@@ -1,18 +1,26 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any, Dict, Optional, Type
-
-from six import string_types
+from dataclasses import dataclass, asdict
+from typing import Any, Dict, Type
 
 from eduid_userdb.element import Element, ElementList
-from eduid_userdb.exceptions import EduIDUserDBError, UserDBValueError
+from eduid_userdb.exceptions import EduIDUserDBError
 
 __author__ = 'lundberg'
 
 
-class LockedIdentityElement(Element):
+@dataclass
+class _LockedIdentityElementRequired(Element):
+    """
+    Required fields for LockedElement, so that they go before the optional
+    arguments of Element in the implicit constructor.
+    """
+    identity_type: str
+
+
+@dataclass
+class LockedIdentityElement(Element, _LockedIdentityElementRequired):
 
     """
     Element that is used to lock an identity to a user
@@ -22,19 +30,6 @@ class LockedIdentityElement(Element):
         identity_type
     """
 
-    def __init__(self, data, called_directly=True):
-        raise NotImplementedError()
-
-    @classmethod
-    def from_dict(cls: Type[LockedIdentityElement], data: Dict[str, Any]) -> LockedIdentityElement:
-        """
-        Construct locked identity element from a data dict.
-        """
-        self = super().from_dict(data)
-        self.identity_type = data.pop('identity_type')
-        return self
-
-    # -----------------------------------------------------------------
     @property
     def key(self):
         """
@@ -43,27 +38,18 @@ class LockedIdentityElement(Element):
         """
         return self.identity_type
 
-    # -----------------------------------------------------------------
-    @property
-    def identity_type(self):
-        """
-        :return: Type of identity
-        :rtype: string_types
-        """
-        return self._data['identity_type']
 
-    @identity_type.setter
-    def identity_type(self, value):
-        """
-        :param value: Type of identity
-        :type value: string_types
-        """
-        if not isinstance(value, string_types):
-            raise UserDBValueError("Invalid 'identity_type': {!r}".format(value))
-        self._data['identity_type'] = value
+@dataclass
+class _LockedIdentityNinRequired(LockedIdentityElement):
+    """
+    Required fields for LockedElementNin, so that they go before the optional
+    arguments of Element in the implicit constructor.
+    """
+    number: str
 
 
-class LockedIdentityNin(LockedIdentityElement):
+@dataclass
+class LockedIdentityNin(LockedIdentityElement, _LockedIdentityNinRequired):
 
     """
     Element that is used to lock a NIN to a user
@@ -73,47 +59,16 @@ class LockedIdentityNin(LockedIdentityElement):
         number
     """
 
-    def __init__(
-        self,
-        number: Optional[str] = None,
-        created_by: Optional[str] = None,
-        created_ts: Optional[datetime] = None,
-        data: Optional[Dict[str, Any]] = None,
-        called_directly: bool = True,
-    ):
-        raise NotImplementedError()
-
     @classmethod
-    def from_dict(cls: Type[LockedIdentityElement], data: Dict[str, Any]) -> LockedIdentityElement:
+    def massage_data(cls: Type[LockedIdentityElement], data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Construct locked identity element from a data dict.
         """
         data['identity_type'] = 'nin'
 
-        number = data.pop('number')
-        self = super().from_dict(data)
-        self.number = number
+        data = super().massage_data(data)
 
-        return self
-
-    # -----------------------------------------------------------------
-    @property
-    def number(self):
-        """
-        :return: Nin number
-        :rtype: string_types
-        """
-        return self._data['number']
-
-    @number.setter
-    def number(self, value):
-        """
-        :param value: Nin number
-        :type value: string_types
-        """
-        if not isinstance(value, string_types):
-            raise UserDBValueError("Invalid 'number': {!r}".format(value))
-        self._data['number'] = value
+        return data
 
 
 class LockedIdentityList(ElementList):
@@ -134,8 +89,8 @@ class LockedIdentityList(ElementList):
             else:
                 if item['identity_type'] == 'nin':
                     elements.append(
-                        LockedIdentityNin.from_dict(
-                            dict(number=item['number'], created_by=item['created_by'], created_ts=item['created_ts'])
+                        LockedIdentityNin(
+                            number=item['number'], created_by=item['created_by'], created_ts=item['created_ts']
                         )
                     )
         ElementList.__init__(self, elements)

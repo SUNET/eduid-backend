@@ -32,17 +32,16 @@
 #
 from __future__ import annotations
 
-from typing import Any, Dict, Type
-import copy
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Optional
 
-from six import string_types
-
-from eduid_userdb.element import Element, VerifiedElement, _set_something_by, _set_something_ts
-from eduid_userdb.exceptions import UserDBValueError
+from eduid_userdb.element import Element, VerifiedElement
 
 __author__ = 'lundberg'
 
 
+@dataclass
 class ProofingElement(VerifiedElement):
     """
     Element for holding the state of a proofing flow. It should contain meta data needed for logging
@@ -61,58 +60,18 @@ class ProofingElement(VerifiedElement):
 
     :type data: dict
     """
-
-    def __init__(
-        self,
-        application=None,
-        created_ts=None,
-        verified=False,
-        verified_by=None,
-        verified_ts=None,
-        verification_code=None,
-        data=None,
-        called_directly=True,
-    ):
-        raise NotImplementedError()
-
-    @classmethod
-    def from_dict(cls: Type[ProofingElement], data: Dict[str, Any], raise_on_unknown: bool = True) -> ProofingElement:
-        """
-        Construct proofing element from a data dict.
-        """
-        data_in = copy.copy(data)  # to not modify callers data
-
-        if 'created_ts' not in data:
-            data['created_ts'] = True
-
-        verification_code = data_in.pop('verification_code', None)
-        self = super().from_dict(data_in)
-        self.verification_code = verification_code
-
-        return self
-
-    @property
-    def verification_code(self):
-        """
-        :return: Confirmation code used to verify this element.
-        :rtype: str | unicode
-        """
-        return self._data['verification_code']
-
-    @verification_code.setter
-    def verification_code(self, value):
-        """
-        :param value: New verification_code
-        :type value: str | unicode | None
-        """
-        if value is None:
-            return
-        if not isinstance(value, string_types):
-            raise UserDBValueError("Invalid 'verification_code': {!r}".format(value))
-        self._data['verification_code'] = value
+    verification_code: Optional[str] = None
 
 
-class NinProofingElement(ProofingElement):
+@dataclass
+class _NumberProofingElementRequired(ProofingElement):
+    """
+    """
+    number: str
+
+
+@dataclass
+class NinProofingElement(ProofingElement, _NumberProofingElementRequired):
     """
     Element for holding the state of a nin proofing flow.
 
@@ -131,57 +90,16 @@ class NinProofingElement(ProofingElement):
     :type data: dict
     """
 
-    def __init__(
-        self,
-        number=None,
-        application=None,
-        created_ts=None,
-        verified=False,
-        verification_code=None,
-        data=None,
-        called_directly=True,
-    ):
-        raise NotImplementedError()
 
-    @classmethod
-    def from_dict(cls: Type[NinProofingElement], data: Dict[str, Any], raise_on_unknown: bool = True) -> NinProofingElement:
-        """
-        Construct nin proofing element from a data dict.
-        """
-        data = copy.copy(data)
-
-        self = super().from_dict(data)
-        self.number = data.pop('number')
-
-        return self
-
-    @property
-    def number(self):
-        """
-        This is the nin number.
-
-        :return: nin number.
-        :rtype: str | unicode
-        """
-        return self._data['number']
-
-    @number.setter
-    def number(self, value):
-        """
-        :param value: nin number.
-        :type value: str | unicode
-        """
-        if not isinstance(value, string_types):
-            raise UserDBValueError("Invalid 'number': {!r}".format(value))
-        self._data['number'] = str(value.lower())
-
-    def to_dict(self):
-        res = super(NinProofingElement, self).to_dict()
-        res['number'] = self.number
-        return res
+@dataclass
+class _EmailProofingElementRequired(ProofingElement):
+    """
+    """
+    email: str
 
 
-class EmailProofingElement(ProofingElement):
+@dataclass
+class EmailProofingElement(ProofingElement, _EmailProofingElementRequired):
     """
     Element for holding the state of an email proofing flow.
 
@@ -200,57 +118,9 @@ class EmailProofingElement(ProofingElement):
     :type data: dict
     """
 
-    def __init__(
-        self,
-        email=None,
-        application=None,
-        created_ts=None,
-        verified=False,
-        verification_code=None,
-        data=None,
-        called_directly=True,
-    ):
-        raise NotImplementedError()
 
-    @classmethod
-    def from_dict(cls: Type[EmailProofingElement], data: Dict[str, Any], raise_on_unknown: bool = True) -> EmailProofingElement:
-        """
-        Construct email proofing element from a data dict.
-        """
-        data = copy.copy(data)
-
-        self = super().from_dict(data)
-        self.email = data.pop('email')
-
-        return self
-
-    @property
-    def email(self):
-        """
-        This is the email.
-
-        :return: nin number.
-        :rtype: str | unicode
-        """
-        return self._data['email']
-
-    @email.setter
-    def email(self, value):
-        """
-        :param value: email.
-        :type value: str | unicode
-        """
-        if not isinstance(value, string_types):
-            raise UserDBValueError("Invalid 'email': {!r}".format(value))
-        self._data['email'] = str(value.lower())
-
-    def to_dict(self):
-        res = super(ProofingElement, self).to_dict()
-        res['email'] = self.email
-        return res
-
-
-class PhoneProofingElement(ProofingElement):
+@dataclass
+class PhoneProofingElement(ProofingElement, _NumberProofingElementRequired):
     """
     Element for holding the state of a phone number proofing flow.
 
@@ -269,56 +139,8 @@ class PhoneProofingElement(ProofingElement):
     :type data: dict
     """
 
-    def __init__(
-        self,
-        phone=None,
-        application=None,
-        created_ts=None,
-        verified=False,
-        verification_code=None,
-        data=None,
-        called_directly=True,
-    ):
-        raise NotImplementedError()
 
-    @classmethod
-    def from_dict(cls: Type[PhoneProofingElement], data: Dict[str, Any], raise_on_unknown: bool = True) -> PhoneProofingElement:
-        """
-        Construct phone proofing element from a data dict.
-        """
-        data = copy.copy(data)
-
-        self = super().from_dict(data)
-        self.number = data.pop('number')
-
-        return self
-
-    @property
-    def number(self):
-        """
-        This is the phone number.
-
-        :return: phone number.
-        :rtype: str | unicode
-        """
-        return self._data['number']
-
-    @number.setter
-    def number(self, value):
-        """
-        :param value: number.
-        :type value: str | unicode
-        """
-        if not isinstance(value, string_types):
-            raise UserDBValueError("Invalid 'phone number': {!r}".format(value))
-        self._data['number'] = str(value.lower())
-
-    def to_dict(self):
-        res = super(ProofingElement, self).to_dict()
-        res['number'] = self.number
-        return res
-
-
+@dataclass
 class SentLetterElement(Element):
     """
     Properties of SentLetterElement:
@@ -330,87 +152,7 @@ class SentLetterElement(Element):
     created_by
     created_ts
     """
-
-    def __init__(self, data, called_directly=True):
-        raise NotImplementedError()
-
-    @classmethod
-    def from_dict(cls: Type[SentLetterElement], data: Dict[str, Any], raise_on_unknown: bool = True) -> SentLetterElement:
-        """
-        Construct sent letter element from a data dict.
-        """
-        self = super().from_dict(data)
-
-        self._data['is_sent'] = data.pop('is_sent', False)
-        self._data['sent_ts'] = data.pop('sent_ts', None)
-        self._data['transaction_id'] = data.pop('transaction_id', None)
-        self._data['address'] = data.pop('address', None)
-
-        return self
-
-    @property
-    def is_sent(self):
-        """
-        :return: True if this is a verified element.
-        :rtype: bool
-        """
-        return self._data['is_sent']
-
-    @is_sent.setter
-    def is_sent(self, value):
-        """
-        :param value: New verification status
-        :type value: bool
-        """
-        if not isinstance(value, bool):
-            raise UserDBValueError("Invalid 'is_sent': {!r}".format(value))
-        self._data['is_sent'] = value
-
-    @property
-    def sent_ts(self):
-        """
-        :return: Timestamp of when letter was delivered to letter service.
-        :rtype: datetime.datetime
-        """
-        return self._data.get('sent_ts')
-
-    @sent_ts.setter
-    def sent_ts(self, value):
-        """
-        :param value: Timestamp of when letter was delivered to letter service.
-                      Value None is ignored, True is short for datetime.utcnow().
-        :type value: datetime.datetime | True | None
-        """
-        _set_something_ts(self._data, 'sent_ts', value)
-
-    @property
-    def transaction_id(self):
-        """
-        :return: Transaction information from the letter service
-        :rtype: str | unicode
-        """
-        return self._data.get('transaction_id', '')
-
-    @transaction_id.setter
-    def transaction_id(self, value):
-        """
-        :param value: Transaction information from letter service (None is no-op).
-        :type value: str | unicode | None
-        """
-        _set_something_by(self._data, 'transaction_id', value)
-
-    @property
-    def address(self):
-        """
-        :return: Official address the letter should be sent to
-        :rtype: str | unicode
-        """
-        return self._data.get('address', None)
-
-    @address.setter
-    def address(self, value):
-        """
-        :param value: Official address the letter should be sent to
-        :type value: dict | None
-        """
-        self._data['address'] = value
+    is_sent: bool = False
+    sent_ts: Optional[datetime] = None
+    transaction_id: Optional[str] = None
+    address: Optional[str] = None
