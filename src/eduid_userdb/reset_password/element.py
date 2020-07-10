@@ -40,7 +40,7 @@ from eduid_userdb.element import Element
 
 
 @dataclass
-class _CodeElementRequired(Element):
+class _CodeElementRequired:
     """
     """
     code: str
