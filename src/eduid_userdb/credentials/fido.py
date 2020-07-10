@@ -44,7 +44,7 @@ __author__ = 'ft'
 
 
 @dataclass
-class _FidoCredentialRequired(Credential):
+class _FidoCredentialRequired:
     """
     Required fields for FidoCredential, so that they go before the optional
     arguments of Element in the implicit constructor.
@@ -62,7 +62,7 @@ class FidoCredential(Credential, _FidoCredentialRequired):
 
 
 @dataclass
-class _U2FCredentialRequired(Credential):
+class _U2FCredentialRequired:
     """
     Required fields for U2F, so that they go before the optional
     arguments in the implicit constructor.

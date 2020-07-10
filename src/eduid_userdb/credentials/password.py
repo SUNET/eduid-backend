@@ -43,7 +43,7 @@ __author__ = 'lundberg'
 
 
 @dataclass
-class _PasswordRequired(Credential):
+class _PasswordRequired:
     """
     """
     credential_id: str

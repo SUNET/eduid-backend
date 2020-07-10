@@ -36,12 +36,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Type
-
-from six import string_types
+from typing import Optional
 
 from eduid_userdb.element import VerifiedElement
-from eduid_userdb.exceptions import UserDBValueError
 
 __author__ = 'ft'
 

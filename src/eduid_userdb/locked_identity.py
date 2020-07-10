@@ -11,7 +11,7 @@ __author__ = 'lundberg'
 
 
 @dataclass
-class _LockedIdentityElementRequired(Element):
+class _LockedIdentityElementRequired:
     """
     Required fields for LockedElement, so that they go before the optional
     arguments of Element in the implicit constructor.
@@ -40,7 +40,7 @@ class LockedIdentityElement(Element, _LockedIdentityElementRequired):
 
 
 @dataclass
-class _LockedIdentityNinRequired(LockedIdentityElement):
+class _LockedIdentityNinRequired:
     """
     Required fields for LockedElementNin, so that they go before the optional
     arguments of Element in the implicit constructor.
