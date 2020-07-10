@@ -58,6 +58,7 @@ class LockedIdentityNin(LockedIdentityElement, _LockedIdentityNinRequired):
 
         number
     """
+    identity_type: str = 'nin'
 
     @classmethod
     def massage_data(cls: Type[LockedIdentityElement], data: Dict[str, Any]) -> Dict[str, Any]:
