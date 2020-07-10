@@ -32,53 +32,42 @@
 #
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Dict, Mapping, Type, Union
 
 from eduid_userdb.element import Element
-from eduid_userdb.exceptions import UserDBValueError
 
 
-class CodeElement(Element):
-    def __init__(self, application: str, code: str, verified: bool, created_ts: Union[datetime, bool]):
+@dataclass
+class _CodeElementRequired(Element):
+    """
+    """
+    code: str
+    is_verified: bool
 
-        self._data: Dict[str, Any] = {}
 
-        self.created_by = application
-        self.created_ts = created_ts
-        self.code = code
-        self.is_verified = verified
+@dataclass
+class CodeElement(Element, _CodeElementRequired):
+    """
+    """
+
+    @classmethod
+    def massage_data(cls: Type[CodeElement], data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Construct locked identity element from a data dict.
+        """
+        data = super().massage_data(data)
+
+        if 'verified' in data:
+            data['is_verified'] = data.pop('verified')
+
+        return data
 
     @property
     def key(self) -> str:
         """Get element key."""
         return self.code
-
-    # -----------------------------------------------------------------
-
-    @property
-    def code(self) -> str:
-        """Get email code."""
-        return self._data['code']
-
-    @code.setter
-    def code(self, value: str):
-        self._data['code'] = value
-
-    # -----------------------------------------------------------------
-
-    @property
-    def is_verified(self) -> bool:
-        """Return True if the code has been used."""
-        return self._data['verified']
-
-    @is_verified.setter
-    def is_verified(self, value: bool):
-        if not isinstance(value, bool):
-            raise UserDBValueError("Invalid 'verified': {!r}".format(value))
-        self._data['verified'] = value
-
-    # -----------------------------------------------------------------
 
     def is_expired(self, timeout_seconds: int) -> bool:
         """

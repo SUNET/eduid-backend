@@ -3,7 +3,6 @@
 from __future__ import absolute_import
 
 import copy
-import datetime
 
 import bson
 from six import string_types
