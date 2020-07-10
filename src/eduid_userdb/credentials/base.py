@@ -35,7 +35,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Type
+from dataclasses import dataclass
+from typing import Any, Dict, Optional, Type
 
 from six import string_types
 
@@ -45,6 +46,7 @@ from eduid_userdb.exceptions import UserDBValueError
 __author__ = 'ft'
 
 
+@dataclass
 class Credential(VerifiedElement):
     """
     Base class for credentials.
@@ -54,23 +56,8 @@ class Credential(VerifiedElement):
     only for credentials until we know we want it for other types of verifed
     elements too.
     """
-
-    def __init__(self, data: Dict[str, Any], called_directly: bool = True):
-        raise NotImplementedError()
-
-    @classmethod
-    def from_dict(
-        cls: Type[Credential], data: Dict[str, Any]
-    ) -> Credential:
-        """
-        Construct credential from a data dict.
-        """
-        self = super().from_dict(data)
-
-        self.proofing_method = data.pop('proofing_method', None)
-        self.proofing_version = data.pop('proofing_version', None)
-
-        return self
+    proofing_method: Optional[str] = None
+    proofing_version: Optional[str] = None
 
     def __str__(self):
         shortkey = self.key[:12]
@@ -80,44 +67,6 @@ class Credential(VerifiedElement):
             )
         else:
             return '<eduID {!s}(key=\'{!s}...\'): verified=False>'.format(self.__class__.__name__, shortkey)
-
-    # -----------------------------------------------------------------
-    @property
-    def proofing_method(self):
-        """
-        :return: Name of proofing process used to verify this credential.
-        :rtype: string_types | None
-        """
-        return self._data['proofing_method']
-
-    @proofing_method.setter
-    def proofing_method(self, value):
-        """
-        :param value: Name of proofing process used
-        :type value: string_types | None
-        """
-        if not isinstance(value, string_types) and value is not None:
-            raise UserDBValueError("Invalid 'proofing_method': {!r}".format(value))
-        self._data['proofing_method'] = value
-
-    # -----------------------------------------------------------------
-    @property
-    def proofing_version(self):
-        """
-        :return: Name of proofing process used to verify this credential.
-        :rtype: string_types | None
-        """
-        return self._data['proofing_version']
-
-    @proofing_version.setter
-    def proofing_version(self, value):
-        """
-        :param value: Name of proofing process used
-        :type value: string_types | None
-        """
-        if not isinstance(value, string_types) and value is not None:
-            raise UserDBValueError("Invalid 'proofing_version': {!r}".format(value))
-        self._data['proofing_version'] = value
 
     def to_dict(self, old_userdb_format=False):
         res = super(Credential, self).to_dict(old_userdb_format=old_userdb_format)
