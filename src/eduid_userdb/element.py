@@ -34,9 +34,11 @@
 import copy
 from datetime import datetime
 from dataclasses import dataclass, asdict, field
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union
+from typing import Any, Dict, List, Optional, Type, TypeVar
 
-from eduid_userdb.exceptions import EduIDUserDBError, UserDBValueError, UserHasUnknownData
+from six import string_types
+
+from eduid_userdb.exceptions import EduIDUserDBError, UserDBValueError
 
 __author__ = 'ft'
 
@@ -446,3 +448,45 @@ class PrimaryElementList(ElementList):
         """
         verified_elements = [e for e in self._elements if e.is_verified]
         return self.__class__(verified_elements)
+
+
+def _set_something_by(data, key, value, allow_update=False):
+    """
+    Shared code to set or update 'verified_by', 'created_by' and similar properties.
+
+    :param data: Where the data is stored
+    :param key: Key name of the data
+    :param value: Information about who did something (None is no-op).
+
+    :type value: str | unicode | None
+    """
+    if data.get(key) is not None and not allow_update:
+        # Once created_by etc. is set, it should not be modified.
+        raise UserDBValueError("Refusing to modify {!r} of element".format(key))
+    if value is None:
+        return
+    if not isinstance(value, string_types):
+        raise UserDBValueError("Invalid {!r} value: {!r}".format(key, value))
+    data[key] = str(value)
+
+
+def _set_something_ts(data, key, value, allow_update=False):
+    """
+    Shared code to set or update 'verified_ts', 'created_ts' and similar properties.
+
+    :param data: Where the data is stored
+    :param key: Key name of the data
+    :param value: Timestamp of element verification.
+                  Value None is ignored, True is short for datetime.utcnow().
+    :type value: datetime.datetime | True | None
+    """
+    if data.get(key) is not None and not allow_update:
+        # Once created_ts etc. is set, it should not be modified.
+        raise UserDBValueError("Refusing to modify {!r} of element".format(key))
+    if value is None:
+        return
+    if value is True:
+        value = datetime.datetime.utcnow()
+    if not isinstance(value, datetime.datetime):
+        raise UserDBValueError("Invalid {!r} value: {!r}".format(key, value))
+    data[key] = value
