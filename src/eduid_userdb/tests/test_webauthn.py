@@ -1,11 +1,8 @@
-import copy
 import datetime
 from hashlib import sha256
 from unittest import TestCase
 
-import eduid_userdb.element
-import eduid_userdb.exceptions
-from eduid_userdb.credentials import CredentialList, Webauthn
+from eduid_userdb.credentials import CredentialList
 
 __author__ = 'lundberg'
 

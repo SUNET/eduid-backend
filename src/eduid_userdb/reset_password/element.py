@@ -51,18 +51,7 @@ class _CodeElementRequired:
 class CodeElement(Element, _CodeElementRequired):
     """
     """
-
-    @classmethod
-    def massage_data(cls: Type[CodeElement], data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Construct locked identity element from a data dict.
-        """
-        data = super().massage_data(data)
-
-        if 'verified' in data:
-            data['is_verified'] = data.pop('verified')
-
-        return data
+    name_mapping = {'verified': 'is_verified'}
 
     @property
     def key(self) -> str:
@@ -85,17 +74,17 @@ class CodeElement(Element, _CodeElementRequired):
         cls: Type[CodeElement], code_or_element: Union[Mapping, CodeElement, str], application: str
     ) -> CodeElement:
         if isinstance(code_or_element, str):
-            return cls(application=application, code=code_or_element, created_ts=True, verified=False)
+            return cls(created_by=application, code=code_or_element, created_ts=True, is_verified=False)
         if isinstance(code_or_element, dict):
             data = code_or_element
             for this in data.keys():
-                if this not in ['application', 'code', 'created_by', 'created_ts', 'verified']:
+                if this not in ['application', 'code', 'created_by', 'created_ts', 'verified', 'modified_ts', 'modified_by']:
                     raise ValueError(f'Unknown data {this} for CodeElement.parse from mapping')
             return cls(
-                application=data.get('created_by', application),
+                created_by=data.get('created_by', application),
                 code=data['code'],
                 created_ts=data.get('created_ts', True),
-                verified=data.get('verified', False),
+                is_verified=data.get('verified', False),
             )
         if isinstance(code_or_element, CodeElement):
             return code_or_element

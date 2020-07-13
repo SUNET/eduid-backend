@@ -531,7 +531,7 @@ def _set_something_ts(data, key, value, allow_update=False):
     if value is None:
         return
     if value is True:
-        value = datetime.datetime.utcnow()
-    if not isinstance(value, datetime.datetime):
+        value = datetime.utcnow()
+    if not isinstance(value, datetime):
         raise UserDBValueError("Invalid {!r} value: {!r}".format(key, value))
     data[key] = value
