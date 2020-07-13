@@ -33,8 +33,8 @@
 #
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
-from typing import Any, Dict, Optional, Type
+from dataclasses import dataclass
+from typing import ClassVar, Dict, Optional
 
 from eduid_userdb.element import PrimaryElement, PrimaryElementList
 
@@ -52,7 +52,7 @@ class MailAddress(PrimaryElement):
     """
     email: Optional[str] = None
 
-    name_mapping = {'added_timestamp': 'created_ts', 'csrf': ''}
+    name_mapping: ClassVar[Dict[str, str]] = {'added_timestamp': 'created_ts', 'csrf': ''}
     old_names = ('added_timestamp',)
 
     @property

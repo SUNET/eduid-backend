@@ -66,10 +66,10 @@ class TestToUEvent(TestCase):
         Tests that we output something we parsed back into the same thing we output.
         """
         for this in [self.one, self.two, self.three]:
-            this_dict = this.to_list_of_dicts(mixed_format=True)
+            this_dict = this.to_list_of_dicts()
             eventlist_again = EventList(this_dict)
             self.assertEqual(
-                eventlist_again.to_list_of_dicts(mixed_format=True), this.to_list_of_dicts(mixed_format=True)
+                eventlist_again.to_list_of_dicts(), this.to_list_of_dicts()
             )
 
     def test_unknown_input_data(self):

@@ -112,13 +112,11 @@ class EventList(ElementList):
             raise DuplicateElementViolation("Event {!s} already in list".format(event.key))
         super(EventList, self).add(event)
 
-    def to_list_of_dicts(self, mixed_format: bool = False) -> List[Dict[str, Any]]:
+    def to_list_of_dicts(self) -> List[Dict[str, Any]]:
         """
         Get the elements in a serialized format that can be stored in MongoDB.
-
-        :param mixed_format: Tag each Event with the event_type. Used when list has multiple types of events.
         """
-        return [this.to_dict(mixed_format=mixed_format) for this in self._elements if isinstance(this, Event)]
+        return [this.to_dict() for this in self._elements if isinstance(this, Event)]
 
 
 def event_from_dict(data: Dict[str, Any]):

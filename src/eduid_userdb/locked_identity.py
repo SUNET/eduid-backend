@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from typing import Any, Dict, Type
 
 from eduid_userdb.element import Element, ElementList
@@ -90,9 +90,7 @@ class LockedIdentityList(ElementList):
             else:
                 if item['identity_type'] == 'nin':
                     elements.append(
-                        LockedIdentityNin(
-                            number=item['number'], created_by=item['created_by'], created_ts=item['created_ts']
-                        )
+                        LockedIdentityNin.from_dict(item)
                     )
         ElementList.__init__(self, elements)
 

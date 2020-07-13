@@ -80,7 +80,7 @@ TElementSubclass = TypeVar('TElementSubclass', bound='Element')
 
 
 class MetaElement(type):
-    def __new__(cls, name: str, bases: tuple, dct: dict):
+    def __new__(typ, name: str, bases: tuple, dct: dict):
         """
         Here we modify the construction of the Element class and its subclasses.
 
@@ -93,7 +93,7 @@ class MetaElement(type):
         which are used for typing
         (to raise UserDBValueError when setting a field with a  wrongly typed value)
         """
-        elem_class = super().__new__(cls, name, bases, dct)
+        elem_class = super().__new__(typ, name, bases, dct)
 
         mapping = {}
         old_names = ()
@@ -115,7 +115,7 @@ class MetaElement(type):
 
 
 @dataclass
-class Element:
+class Element(metaclass=MetaElement):
     """
     Base class for elements.
 
@@ -137,6 +137,7 @@ class Element:
     modified_ts: datetime = field(default_factory=datetime.utcnow)
 
     name_mapping: ClassVar[Dict[str, str]] = {'application': 'created_by'}
+    old_names: ClassVar[tuple] = ()
 
     _name_mapping: ClassVar[Dict[str, str]] = {}
     _inverse_name_mapping: ClassVar[Dict[str, str]] = {}
@@ -155,9 +156,11 @@ class Element:
 
         data = copy.deepcopy(data)  # to not modify callers data
 
-        for k, v in cls.name_mapping.items():
-            if k in data and v != '':
-                data[v] = data.pop(k)
+        for k, v in cls._name_mapping.items():
+            if k in data:
+                new = data.pop(k)
+                if v != '':
+                    data[v] = new
 
         data = cls.data_in_transforms(data)
 
@@ -175,7 +178,7 @@ class Element:
         inverse_mapping = self._inverse_name_mapping
 
         for k, v in inverse_mapping.items():
-            if k != '' and k in data and v not in self._old_names:
+            if k != '' and k in data and not (v in self._old_names and not old_userdb_format):
                 data[v] = data.pop(k)
 
         data = self.data_out_transforms(data)
@@ -190,15 +193,22 @@ class Element:
         """
         raise NotImplementedError("'key' not implemented for Element subclass")
 
+    @classmethod
     def data_in_transforms(cls: Type[TElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
         """
         """
-        return data
+        try:
+            return super().data_in_transforms(data)
+        except AttributeError:
+            return data
 
     def data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         """
-        return data
+        try:
+            return super().data_out_transforms(data)
+        except AttributeError:
+            return data
 
 
 @dataclass
@@ -216,7 +226,7 @@ class VerifiedElement(Element):
     verified_by: Optional[str] = None
     verified_ts: Optional[datetime] = None
 
-    name_mapping = {'verified': 'is_verified', 'verification_code': ''}
+    name_mapping: ClassVar[Dict[str, str]] = {'verified': 'is_verified', 'verification_code': ''}
 
 
 @dataclass
@@ -230,7 +240,7 @@ class PrimaryElement(VerifiedElement):
     """
     is_primary: bool = False
 
-    name_mapping = {'primary': 'is_primary'}
+    name_mapping: ClassVar[Dict[str, str]] = {'primary': 'is_primary'}
 
     def __setattr__(self, key: str, value: Any):
         """
