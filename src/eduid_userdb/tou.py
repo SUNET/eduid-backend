@@ -51,10 +51,10 @@ class ToUEvent(Event):
     version: Optional[str] = None
 
     @classmethod
-    def massage_data(cls: Type[ToUEvent], data: Dict[str, Any]) -> Dict[str, Any]:
+    def data_in_transforms(cls: Type[ToUEvent], data: Dict[str, Any]) -> Dict[str, Any]:
         """
         """
-        data = super().massage_data(data)
+        data = super().data_in_transforms(data)
 
         data['event_type'] = 'tou_event'
 

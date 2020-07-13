@@ -44,19 +44,7 @@ class OidcIdToken(Element, _OidcIdTokenRequired):
     # Authorized party
     azp: Optional[str] = None
 
-    @classmethod
-    def massage_data(
-        cls: Type[OidcIdToken], data: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """
-        """
-        data = super().massage_data(data)
-
-        for key in ('at_hash', 'family_name', 'given_name', 'jti'):
-            if key in data:
-                del data[key]
-
-        return data
+    name_mapping = {'at_hash': '', 'family_name': '', 'given_name': '', 'jti': ''}
 
     @property
     def key(self):
@@ -86,13 +74,22 @@ class OidcAuthorization(Element, _OidcAuthorizationRequired):
     expires_in: Optional[int] = None
     refresh_token: Optional[str] = None
 
+    name_mapping = {'name': '', 'orcid': '', 'scope': ''}
+
+    @property
+    def key(self) -> str:
+        """
+        :return: Unique identifier
+        """
+        return self.id_token.key
+
     @classmethod
-    def massage_data(
+    def data_in_transforms(
         cls: Type[OidcAuthorization], data: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         """
-        data = super().massage_data(data)
+        data = super().data_in_transforms(data)
 
         # Parse ID token
         _id_token = data.pop('id_token')
@@ -101,25 +98,13 @@ class OidcAuthorization(Element, _OidcAuthorizationRequired):
         elif isinstance(_id_token, OidcIdToken):
             data['id_token'] = _id_token
 
-        for key in ('name', 'orcid', 'scope'):
-            if key in data:
-                del data[key]
-
         return data
 
-    @property
-    def key(self):
+    def data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        :return: Unique identifier
-        :rtype: six.string_types
         """
-        return self.id_token.key
+        data = super().data_out_transforms(data)
 
-    def to_dict(self) -> Dict[str, Any]:
-        """
-        Convert OidcAuthorization to a dict
-        """
-        data = asdict(self)
         data['id_token'] = self.id_token.to_dict()
         return data
 
@@ -141,12 +126,18 @@ class Orcid(VerifiedElement, _OrcidRequired):
     given_name: Optional[str] = None
     family_name: Optional[str] = None
 
+    @property
+    def key(self):
+        """
+        Unique id
+        """
+        return self.id
+
     @classmethod
-    def massage_data(cls: Type[Orcid], data: Dict[str, Any]) -> Dict[str, Any]:
+    def data_in_transforms(cls: Type[Orcid], data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Construct user from a data dict.
         """
-        data = super().massage_data(data)
+        data = super().data_in_transforms(data)
 
         # Parse ID token
         _oidc_authz = data.pop('oidc_authz')
@@ -157,18 +148,10 @@ class Orcid(VerifiedElement, _OrcidRequired):
 
         return data
 
-    @property
-    def key(self):
+    def data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Unique id
         """
-        return self.id
+        data = super().data_out_transforms(data)
 
-    def to_dict(self):
-        """
-        Convert Element to a dict, that can be used to reconstruct the
-        Element later.
-        """
-        data = asdict(self)
         data['oidc_authz'] = self.oidc_authz.to_dict()
         return data

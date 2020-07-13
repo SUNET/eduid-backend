@@ -34,7 +34,7 @@
 #
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Type
 
 from bson import ObjectId
@@ -58,29 +58,8 @@ class Event(Element):
     event_type: Optional[str] = None
     event_id: Optional[str] = None
 
-    @classmethod
-    def massage_data(cls: Type[Event], data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        """
-        data = super().massage_data(data)
+    name_mapping = {'id': 'event_id'}
 
-        if 'id' in data:  # Compatibility for old format
-            data['event_id'] = data.pop('id')
-
-        return data
-
-    def to_dict(self, mixed_format: bool = False) -> Dict[str, Any]:
-        """
-        Convert Element to a dict, that can be used to reconstruct the Element later.
-
-        :param mixed_format: Tag each Event with the event_type. Used when list has multiple types of events.
-        """
-        res = asdict(self)
-        if not mixed_format and 'event_type' in res:
-            del res['event_type']
-        return res
-
-    # -----------------------------------------------------------------
     @property
     def key(self) -> EventId:
         """ Return the element that is used as key for events in an ElementList. """

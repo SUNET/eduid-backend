@@ -33,12 +33,10 @@
 #
 from __future__ import annotations
 
-import copy
 from dataclasses import dataclass, asdict
 from typing import Any, Dict, Optional, Type
 
 from eduid_userdb.element import PrimaryElement, PrimaryElementList
-from eduid_userdb.exceptions import UserDBValueError
 
 __author__ = 'ft'
 
@@ -54,40 +52,9 @@ class MailAddress(PrimaryElement):
     """
     email: Optional[str] = None
 
-    @classmethod
-    def massage_data(cls: Type[MailAddress], data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        """
-        data = super().massage_data(data)
+    name_mapping = {'added_timestamp': 'created_ts', 'csrf': ''}
+    old_names = ('added_timestamp',)
 
-        if 'added_timestamp' in data:
-            # old userdb-style creation timestamp
-            data['created_ts'] = data.pop('added_timestamp')
-
-        # CSRF tokens were accidentally put in the database some time ago
-        if 'csrf' in data:
-            del data['csrf']
-
-        return data
-
-    def to_dict(self, old_userdb_format=False):
-        """
-        Convert Element to a dict, that can be used to reconstruct the
-        Element later.
-
-        :param old_userdb_format: Set to True to get data back in legacy format.
-        :type old_userdb_format: bool
-        """
-        data = asdict(self)
-        if old_userdb_format:
-            # XXX created_ts -> added_timestamp
-            if 'created_ts' in data:
-                data['added_timestamp'] = data.pop('created_ts')
-            del data['primary']
-
-        return data
-
-    # -----------------------------------------------------------------
     @property
     def key(self):
         """

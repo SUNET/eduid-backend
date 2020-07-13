@@ -35,7 +35,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Type
 
 from eduid_userdb.credentials import Credential
 
@@ -56,21 +55,8 @@ class Password(Credential, _PasswordRequired):
     """
     is_generated: bool = False
 
-    @classmethod
-    def massage_data(
-        cls: Type[Password], data: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """
-        Construct password credential from a data dict.
-        """
-        data = super().massage_data(data)
-
-        if 'source' in data:  # TODO: Load and save all users in the database to replace source with created_by
-            data['created_by'] = data.pop('source')
-        if 'id' in data:  # TODO: Load and save all users in the database to replace id with credential_id
-            data['credential_id'] = data.pop('id')
-
-        return data
+    name_mapping = {'source': 'created_by', 'id': 'credential_id'}
+    old_names = ('source', 'id')
 
     @property
     def key(self) -> str:

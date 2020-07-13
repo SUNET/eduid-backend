@@ -47,54 +47,16 @@ class PhoneNumber(PrimaryElement):
     """
     number: Optional[str] = None
 
-    @classmethod
-    def massage_data(
-        cls: Type[PhoneNumber], data: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """
-        """
-        data = super().massage_data(data)
+    name_mapping = {'added_timestamp': 'created_ts', 'mobile': 'number', 'csrf': ''}
+    old_names = ('added_timestamp', 'mobile')
 
-        if 'added_timestamp' in data:
-            # old userdb-style creation timestamp
-            data['created_ts'] = data.pop('added_timestamp')
 
-        if 'mobile' in data:
-            # old userdb-style entry
-            data['number'] = data.pop('mobile')
-
-        # CSRF tokens were accidentally put in the database some time ago
-        if 'csrf' in data:
-            del data['csrf']
-
-        return data
-
-    # -----------------------------------------------------------------
     @property
     def key(self):
         """
         Return the element that is used as key for phone numbers in a PrimaryElementList.
         """
         return self.number
-
-    def to_dict(self, old_userdb_format: bool = False) -> Dict[str, Any]:
-        """
-        Convert Element to a dict, that can be used to reconstruct the
-        Element later.
-
-        :param old_userdb_format: Set to True to get data back in legacy format.
-        """
-        data = asdict(self)
-        if not old_userdb_format:
-            return data
-
-        # XXX created_ts -> added_timestamp
-        if 'created_ts' in data:
-            data['added_timestamp'] = data.pop('created_ts')
-        if 'number' in data:
-            data['mobile'] = data.pop('number')
-
-        return data
 
 
 class PhoneNumberList(PrimaryElementList):

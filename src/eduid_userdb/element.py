@@ -79,6 +79,41 @@ class PrimaryElementViolation(PrimaryElementError):
 TElementSubclass = TypeVar('TElementSubclass', bound='Element')
 
 
+class MetaElement(type):
+    def __new__(cls, name: str, bases: tuple, dct: dict):
+        """
+        Here we modify the construction of the Element class and its subclasses.
+
+        We gather the field names marked as immutable in all superclasses
+        and set them in the `_immutable` class attr,
+        So that subclasses respect immutability defined in their superclasses.
+
+        We do the same for the `ts_fields`, some of which have a special kind of mutability
+        (they are mutable is set with a bool and immutable if set with a datetime).
+        which are used for typing
+        (to raise UserDBValueError when setting a field with a  wrongly typed value)
+        """
+        elem_class = super().__new__(cls, name, bases, dct)
+
+        mapping = {}
+        old_names = ()
+
+        for cls in elem_class.__mro__:
+
+            if hasattr(cls, 'name_mapping'):
+                mapping.update(cls.name_mapping)
+
+            if hasattr(cls, 'old_names'):
+                old_names += cls.old_names
+
+        elem_class._name_mapping = mapping
+        elem_class._inverse_name_mapping = {v: k for k, v in mapping.items()}
+
+        elem_class._old_names = tuple(set(old_names))
+
+        return elem_class
+
+
 @dataclass
 class Element:
     """
@@ -101,17 +136,14 @@ class Element:
     created_ts: datetime = field(default_factory=datetime.utcnow)
     modified_ts: datetime = field(default_factory=datetime.utcnow)
 
-    name_mapping: ClassVar[Dict[str, str]] = {}
-    _inverse_name_mapping: Optional[ClassVar[Dict[str, str]]] = None
+    name_mapping: ClassVar[Dict[str, str]] = {'application': 'created_by'}
+
+    _name_mapping: ClassVar[Dict[str, str]] = {}
+    _inverse_name_mapping: ClassVar[Dict[str, str]] = {}
+    _old_names: ClassVar[tuple] = ()
 
     def __str__(self) -> str:
         return f'<eduID {self.__class__.__name__}: {asdict(self)}>'
-
-    @classmethod
-    def _get_inverse_mapping(cls):
-        if cls._inverse_name_mapping is None:
-            cls._inverse_name_mapping = {v: k for k, v in cls.name_mapping}
-        return cls._inverse_name_mapping
 
     @classmethod
     def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any]) -> TElementSubclass:
@@ -124,10 +156,10 @@ class Element:
         data = copy.deepcopy(data)  # to not modify callers data
 
         for k, v in cls.name_mapping.items():
-            if k in data:
+            if k in data and v != '':
                 data[v] = data.pop(k)
 
-        data = cls.data_transforms(data)
+        data = cls.data_in_transforms(data)
 
         return cls(**data)
 
@@ -140,11 +172,13 @@ class Element:
                                   This is unused and kept for B/C
         """
         data = asdict(self)
-        inverse_mapping = self._get_inverse_mapping()
+        inverse_mapping = self._inverse_name_mapping
 
         for k, v in inverse_mapping.items():
-            if k in data:
+            if k != '' and k in data and v not in self._old_names:
                 data[v] = data.pop(k)
+
+        data = self.data_out_transforms(data)
 
         return data
 
@@ -155,6 +189,16 @@ class Element:
         Must be implemented in subclasses of PrimaryElement.
         """
         raise NotImplementedError("'key' not implemented for Element subclass")
+
+    def data_in_transforms(cls: Type[TElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        """
+        return data
+
+    def data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        """
+        return data
 
 
 @dataclass
@@ -172,18 +216,7 @@ class VerifiedElement(Element):
     verified_by: Optional[str] = None
     verified_ts: Optional[datetime] = None
 
-    @classmethod
-    def massage_data(cls: Type[TElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        """
-        data = super().massage_data(data)
-        # Remove deprecated verification_code from VerifiedElement
-        data.pop('verification_code', None)
-
-        if 'verified' in data:
-            data['is_verified'] = data.pop('verified')
-
-        return data
+    name_mapping = {'verified': 'is_verified', 'verification_code': ''}
 
 
 @dataclass
@@ -197,16 +230,7 @@ class PrimaryElement(VerifiedElement):
     """
     is_primary: bool = False
 
-    @classmethod
-    def massage_data(cls: Type[TElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        """
-        data = super().massage_data(data)
-
-        if 'primary' in data:
-            data['is_primary'] = data.pop('primary')
-
-        return data
+    name_mapping = {'primary': 'is_primary'}
 
     def __setattr__(self, key: str, value: Any):
         """
