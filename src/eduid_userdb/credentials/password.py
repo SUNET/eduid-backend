@@ -56,7 +56,7 @@ class Password(Credential, _PasswordRequired):
     is_generated: bool = False
 
     name_mapping = {'source': 'created_by', 'id': 'credential_id'}
-    old_names = ('source', 'id')
+    old_names = ('source',)
 
     @property
     def key(self) -> str:

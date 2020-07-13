@@ -36,7 +36,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, ClassVar, Dict, Optional
 
 from eduid_userdb.element import VerifiedElement
 
@@ -65,19 +65,22 @@ class Credential(VerifiedElement):
         else:
             return '<eduID {!s}(key=\'{!s}...\'): verified=False>'.format(self.__class__.__name__, shortkey)
 
-    def to_dict(self, old_userdb_format=False):
-        res = super(Credential, self).to_dict(old_userdb_format=old_userdb_format)
-        if res.get('verified') is True:
+    def data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        """
+        data = super().data_in_transforms(data)
+
+        if data.get('verified') is True:
             # suppress method/version None to avoid messing up test cases unnecessarily
-            if 'proofing_method' in res and res['proofing_method'] is None:
-                del res['proofing_method']
-            if 'proofing_version' in res and res['proofing_version'] is None:
-                del res['proofing_version']
-        elif res.get('verified') is False:
-            del res['verified']
+            if 'proofing_method' in data and data['proofing_method'] is None:
+                del data['proofing_method']
+            if 'proofing_version' in data and data['proofing_version'] is None:
+                del data['proofing_version']
+        elif data.get('verified') is False:
+            del data['verified']
             # Make sure we never store proofing info for un-verified credentials
-            if 'proofing_method' in res:
-                del res['proofing_method']
-            if 'proofing_version' in res:
-                del res['proofing_version']
-        return res
+            if 'proofing_method' in data:
+                del data['proofing_method']
+            if 'proofing_version' in data:
+                del data['proofing_version']
+        return data

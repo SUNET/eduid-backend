@@ -405,7 +405,7 @@ class _AbstractUserTestCase:
         self.assertFalse(user.tou.has_accepted('2', reaccept_interval=94608000))  # reaccept_interval seconds (3 years)
 
     def test_locked_identity_load(self):
-        locked_identity = {'created_by': 'test', 'created_ts': True, 'identity_type': 'nin', 'number': '197801012345'}
+        locked_identity = {'created_by': 'test', 'identity_type': 'nin', 'number': '197801012345'}
         data = self.data1
         data['locked_identity'] = [locked_identity]
         user = User.from_dict(data)
@@ -416,13 +416,12 @@ class _AbstractUserTestCase:
         self.assertIsInstance(user.locked_identity.find('nin').number, string_types)
 
     def test_locked_identity_set(self):
-        locked_identity = {'created_by': 'test', 'created_ts': True, 'identity_type': 'nin', 'number': '197801012345'}
+        locked_identity = {'created_by': 'test', 'identity_type': 'nin', 'number': '197801012345'}
         user = User.from_dict(self.data1)
         locked_nin = LockedIdentityNin.from_dict(
             dict(
                 number=locked_identity['number'],
                 created_by=locked_identity['created_by'],
-                created_ts=locked_identity['created_ts'],
             )
         )
         user.locked_identity.add(locked_nin)
@@ -435,13 +434,12 @@ class _AbstractUserTestCase:
         self.assertIsInstance(locked_nin.number, string_types)
 
     def test_locked_identity_to_dict(self):
-        locked_identity = {'created_by': 'test', 'created_ts': True, 'identity_type': 'nin', 'number': '197801012345'}
+        locked_identity = {'created_by': 'test', 'identity_type': 'nin', 'number': '197801012345'}
         user = User.from_dict(self.data1)
         locked_nin = LockedIdentityNin.from_dict(
             dict(
                 number=locked_identity['number'],
                 created_by=locked_identity['created_by'],
-                created_ts=locked_identity['created_ts'],
             )
         )
         user.locked_identity.add(locked_nin)
@@ -461,13 +459,12 @@ class _AbstractUserTestCase:
         self.assertIsInstance(new_user.locked_identity.to_list()[0].number, string_types)
 
     def test_locked_identity_remove(self):
-        locked_identity = {'created_by': 'test', 'created_ts': True, 'identity_type': 'nin', 'number': '197801012345'}
+        locked_identity = {'created_by': 'test', 'identity_type': 'nin', 'number': '197801012345'}
         user = User.from_dict(self.data1)
         locked_nin = LockedIdentityNin.from_dict(
             dict(
                 number=locked_identity['number'],
                 created_by=locked_identity['created_by'],
-                created_ts=locked_identity['created_ts'],
             )
         )
         user.locked_identity.add(locked_nin)
