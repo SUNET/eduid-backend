@@ -203,7 +203,6 @@ class LetterProofing(NinProofingLogElement, _LetterProofingRequired):
 @dataclass
 class _SeLegProofingRequired:
     transaction_id: str
-    vetting_by: str
 
 
 @dataclass
