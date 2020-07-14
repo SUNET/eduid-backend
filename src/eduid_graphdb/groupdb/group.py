@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List, Mapping, Optional, Union
+from typing import List, Mapping, Optional, Set, Union
 
 from bson import ObjectId
 
@@ -14,25 +14,15 @@ from eduid_graphdb.helpers import neo4j_ts_to_dt
 __author__ = 'lundberg'
 
 
-@dataclass()
+@dataclass(frozen=True)
 class Group:
     identifier: str
+    display_name: str
     version: Optional[ObjectId] = None
-    display_name: Optional[str] = None
     created_ts: Optional[datetime] = None
     modified_ts: Optional[datetime] = None
-    owners: List[Union[User, Group]] = field(default_factory=list)
-    members: List[Union[User, Group]] = field(default_factory=list)
-
-    def __eq__(self, other: object):
-        if not isinstance(other, Group):
-            return False
-        return self.identifier == other.identifier
-
-    def __hash__(self):
-        # TODO: Hash has to include _all_ fields I think, definitely display_name. Probably owners and members.
-        #       Maybe go with (eq=True, frozen=True)?
-        return hash(self.identifier)
+    owners: Set[Union[User, Group]] = field(compare=False, default_factory=set)
+    members: Set[Union[User, Group]] = field(compare=False, default_factory=set)
 
     @staticmethod
     def _get_user(it: List[User], identifier: str) -> Optional[User]:
@@ -80,6 +70,12 @@ class Group:
     def get_owner_group(self, identifier: str) -> Optional[Group]:
         return self._get_group(self.owner_groups, identifier=identifier)
 
+    def has_member(self, identifier: str) -> bool:
+        return identifier in [member.identifier for member in self.members]
+
+    def has_owner(self, identifier: str) -> bool:
+        return identifier in [owner.identifier for owner in self.owners]
+
     @classmethod
     def from_mapping(cls, data: Mapping) -> Group:
         dt = neo4j_ts_to_dt(data)
@@ -92,6 +88,6 @@ class Group:
             display_name=data['display_name'],
             created_ts=dt['created_ts'],
             modified_ts=dt['modified_ts'],
-            members=data.get('members', []),
-            owners=data.get('owners', []),
+            members=set(data.get('members', [])),
+            owners=set(data.get('owners', [])),
         )

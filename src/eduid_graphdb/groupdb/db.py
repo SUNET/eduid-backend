@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import enum
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Union
+from dataclasses import replace
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from bson import ObjectId
 from neo4j import READ_ACCESS, WRITE_ACCESS, Record, Transaction
@@ -89,70 +90,60 @@ class GroupDB(BaseGraphDB):
 
     def _add_or_update_users_and_groups(
         self, tx: Transaction, group: Group
-    ) -> Tuple[List[Union[User, Group]], List[Union[User, Group]]]:
-        members: List[Union[User, Group]] = []
-        owners: List[Union[User, Group]] = []
+    ) -> Tuple[Set[Union[User, Group]], Set[Union[User, Group]]]:
+        members: Set[Union[User, Group]] = set()
+        owners: Set[Union[User, Group]] = set()
 
         for user_member in group.member_users:
             res = self._add_user_to_group(tx, group=group, member=user_member, role=Role.MEMBER)
-            members.append(User.from_mapping(res.data()))
+            members.add(User.from_mapping(res.data()))
         for group_member in group.member_groups:
             res = self._add_group_to_group(tx, group=group, member=group_member, role=Role.MEMBER)
-            members.append(self._load_group(res.data()))
+            members.add(self._load_group(res.data()))
         for user_owner in group.owner_users:
             res = self._add_user_to_group(tx, group=group, member=user_owner, role=Role.OWNER)
-            owners.append(User.from_mapping(res.data()))
+            owners.add(User.from_mapping(res.data()))
         for group_owner in group.owner_groups:
             res = self._add_group_to_group(tx, group=group, member=group_owner, role=Role.OWNER)
-            owners.append(self._load_group(res.data()))
+            owners.add(self._load_group(res.data()))
         return members, owners
 
     def _remove_missing_users_and_groups(self, tx: Transaction, group: Group, role: Role) -> None:
         """ Remove the relationship between group and member if the member no longer is in the groups member list"""
-
-        # Create lists of current members by type
-        group_list: List[Group] = []
-        user_list: List[User] = []
-        if role is Role.MEMBER:
-            group_list = group.member_groups
-            user_list = group.member_users
-        elif role is Role.OWNER:
-            group_list = group.owner_groups
-            user_list = group.owner_users
-
-        # Compare current members with members in the db and remove the excess members
         q = f"""
             MATCH (Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(m)
             RETURN m.scope as scope, m.identifier as identifier, labels(m) as labels
             """
         members_in_db = tx.run(q, scope=self.scope, identifier=group.identifier)
         for record in members_in_db:
-            if 'Group' in record['labels']:
-                group_member = Group(identifier=record['identifier'])
-                if group_member not in group_list:
-                    self._remove_group_from_group(tx, group=group, member=group_member, role=role)
-            elif 'User' in record['labels']:
-                user_member = User(identifier=record['identifier'])
-                if user_member not in user_list:
-                    self._remove_user_from_group(tx, group=group, member=user_member, role=role)
+            remove = False
+            if role is Role.MEMBER and group.has_member(record['identifier']) is False:
+                remove = True
+            elif role is Role.OWNER and group.has_owner(record['identifier']) is False:
+                remove = True
+            if remove:
+                if Label.GROUP.value in record['labels']:
+                    self._remove_group_from_group(tx, group=group, group_identifier=record['identifier'], role=role)
+                elif Label.USER.value in record['labels']:
+                    self._remove_user_from_group(tx, group=group, user_identifier=record['identifier'], role=role)
 
-    def _remove_group_from_group(self, tx: Transaction, group: Group, member: Group, role: Role):
+    def _remove_group_from_group(self, tx: Transaction, group: Group, group_identifier: str, role: Role):
         q = f"""
             MATCH (:Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(:Group
-                    {{scope: $scope, identifier: $member_identifier}})
+                    {{scope: $scope, identifier: $group_identifier}})
             DELETE r
             """
         tx.run(
-            q, scope=self.scope, identifier=group.identifier, member_identifier=member.identifier,
+            q, scope=self.scope, identifier=group.identifier, group_identifier=group_identifier,
         )
 
-    def _remove_user_from_group(self, tx: Transaction, group: Group, member: User, role: Role):
+    def _remove_user_from_group(self, tx: Transaction, group: Group, user_identifier: str, role: Role):
         q = f"""
             MATCH (:Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(:User
-                    {{identifier: $member_identifier}})
+                    {{identifier: $user_identifier}})
             DELETE r
             """
-        tx.run(q, scope=self.scope, identifier=group.identifier, member_identifier=member.identifier)
+        tx.run(q, scope=self.scope, identifier=group.identifier, user_identifier=user_identifier)
 
     def _add_group_to_group(self, tx, group: Group, member: Group, role: Role) -> Record:
         q = f"""
@@ -247,14 +238,14 @@ class GroupDB(BaseGraphDB):
                 is_member = rel.type == Role.MEMBER.value
                 # Instantiate and add owners
                 if is_owner and 'Group' in labels:
-                    group.owners.append(self._load_group(data))
+                    group.owners.add(self._load_group(data))
                 if is_owner and 'User' in labels:
-                    group.owners.append(User.from_mapping(data))
+                    group.owners.add(User.from_mapping(data))
                 # Instantiate and add members
                 if is_member and 'Group' in labels:
-                    group.members.append(self._load_group(data))
+                    group.members.add(self._load_group(data))
                 if is_member and 'User' in labels:
-                    group.members.append(User.from_mapping(data))
+                    group.members.add(User.from_mapping(data))
         return group
 
     def remove_group(self, identifier: str) -> None:
@@ -320,10 +311,12 @@ class GroupDB(BaseGraphDB):
         with self.db.driver.session(default_access_mode=READ_ACCESS) as session:
             for record in session.run(q, identifier=identifier, scope=self.scope):
                 group = self._load_group(record.data()['group'])
-                group.owners = [self._load_node(owner) for owner in record.data()['owners'] if owner.get('identifier')]
-                group.members = [
-                    self._load_node(member) for member in record.data()['members'] if member.get('identifier')
-                ]
+                owners = set([self._load_node(owner) for owner in record.data()['owners'] if owner.get('identifier')])
+                group = replace(group, owners=owners)
+                members = set(
+                    [self._load_node(member) for member in record.data()['members'] if member.get('identifier')]
+                )
+                group = replace(group, members=members)
                 res.append(group)
         return res
 
@@ -371,8 +364,7 @@ class GroupDB(BaseGraphDB):
                 else:
                     logger.error('Group save error: ROLLING BACK')
                 tx.close()
-        saved_group.members = saved_members
-        saved_group.owners = saved_owners
+        saved_group = replace(saved_group, members=saved_members, owners=saved_owners)
         return saved_group
 
     def _load_node(self, data: Dict) -> Union[User, Group]:
