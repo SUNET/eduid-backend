@@ -4,7 +4,7 @@ __author__ = 'lundberg'
 
 import logging
 from datetime import datetime
-from typing import Any, List, Mapping, Optional, Set
+from typing import Any, List, Mapping, Optional, Set, Union
 from uuid import UUID, uuid4
 
 from bson import ObjectId
@@ -18,6 +18,7 @@ from eduid_scimapi.groupdb import GroupExtensions, ScimApiGroup
 from eduid_scimapi.scimbase import Meta, SCIMResourceType, SCIMSchema, make_etag
 from eduid_scimapi.testing import ScimApiTestCase
 from eduid_scimapi.tests.test_scimbase import TestScimBase
+from eduid_scimapi.userdb import ScimApiUser
 
 logger = logging.getLogger(__name__)
 
@@ -68,10 +69,14 @@ class TestGroupResource(ScimApiTestCase):
         self.groupdb.save(group)
         return group
 
-    def add_member(self, group: ScimApiGroup, identifier: str, display_name: str) -> ScimApiGroup:
-        self.add_user(identifier=identifier, external_id='not-used')
-        member = GraphUser(identifier=identifier, display_name=display_name)
-        group.graph.members.append(member)
+    def add_member(
+        self, group: ScimApiGroup, member: Union[ScimApiUser, ScimApiGroup], display_name: str
+    ) -> ScimApiGroup:
+        if isinstance(member, ScimApiUser):
+            member = GraphUser(identifier=str(member.scim_id), display_name=display_name)
+        elif isinstance(member, ScimApiGroup):
+            member = GraphGroup(identifier=str(member.scim_id), display_name=display_name)
+        group.add_member(member)
         assert self.groupdb  # mypy doesn't know setUp will be called
         self.groupdb.save(group)
         return group
@@ -328,17 +333,21 @@ class TestGroupResource_PUT(TestGroupResource):
     def test_removing_group_member(self):
         db_group = self.add_group(uuid4(), 'Test Group 1')
         subgroup = self.add_group(uuid4(), 'Test Group 2')
+        db_group = self.add_member(db_group, subgroup, 'Test User')
         user = self.add_user(identifier=str(uuid4()), external_id='not-used')
+        db_group = self.add_member(db_group, user, 'Test User')
+
+        # Load group to verify it has two members
+        _g1 = self.groupdb.get_group_by_scim_id(str(db_group.scim_id))
+        self.assertEqual(2, len(_g1.graph.members), 'Group loaded from database does not have two members')
+        self.assertEqual(1, len(_g1.graph.member_users), 'Group loaded from database does not have one member user')
+        self.assertEqual(1, len(_g1.graph.member_groups), 'Group loaded from database does not have one member group')
+
         members = [
             {
                 'value': str(user.scim_id),
                 '$ref': f'http://localhost:8000/Users/{user.scim_id}',
                 'display': 'Test User 1',
-            },
-            {
-                'value': str(subgroup.scim_id),
-                '$ref': f'http://localhost:8000/Groups/{subgroup.scim_id}',
-                'display': 'Test Group 2',
             },
         ]
         req = {
@@ -348,23 +357,8 @@ class TestGroupResource_PUT(TestGroupResource):
             'members': members,
             SCIMSchema.NUTID_GROUP_V1.value: {'data': {'test': 'updated'}},
         }
+
         self.headers['IF-MATCH'] = make_etag(db_group.version)
-        response = self.client.simulate_put(
-            path=f'/Groups/{db_group.scim_id}', body=self.as_json(req), headers=self.headers
-        )
-
-        self._assertGroupUpdateSuccess(req, response, db_group)
-
-        # Load group to verify it has two members now
-        _g1 = self.groupdb.get_group_by_scim_id(str(db_group.scim_id))
-        self.assertEqual(2, len(_g1.graph.members), 'Group loaded from database does not have two members')
-        self.assertEqual(1, len(_g1.graph.member_users), 'Group loaded from database does not have one member user')
-        self.assertEqual(1, len(_g1.graph.member_groups), 'Group loaded from database does not have one member group')
-
-        # Remove the second member
-        req['members'] = [members[0]]
-
-        self.headers['IF-MATCH'] = response.headers['Etag']
         response = self.client.simulate_put(
             path=f'/Groups/{db_group.scim_id}', body=self.as_json(req), headers=self.headers
         )

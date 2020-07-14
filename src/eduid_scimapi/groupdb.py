@@ -4,9 +4,9 @@ from __future__ import annotations
 import logging
 import pprint
 import uuid
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Type, Union
+from typing import Any, Dict, List, Mapping, Optional, Set, Tuple, Type, Union
 from uuid import UUID
 
 from bson import ObjectId
@@ -19,7 +19,6 @@ from eduid_scimapi.basedb import ScimApiBaseDB
 from eduid_scimapi.group import Group as SCIMGroup
 
 __author__ = 'lundberg'
-
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +48,28 @@ class ScimApiGroup(object):
 
     def __post_init__(self):
         self.graph = GraphGroup(identifier=str(self.scim_id), display_name=self.display_name)
+
+    @property
+    def members(self) -> Set[Union[GraphGroup, GraphUser]]:
+        return self.graph.members
+
+    @members.setter
+    def members(self, members: Set[Union[GraphGroup, GraphUser]]):
+        self.graph = replace(self.graph, members=members)
+
+    def add_member(self, member: Union[GraphGroup, GraphUser]) -> None:
+        self.graph.members.add(member)
+
+    @property
+    def owners(self) -> Set[Union[GraphGroup, GraphUser]]:
+        return self.graph.owners
+
+    @owners.setter
+    def owners(self, owners: Set[Union[GraphGroup, GraphUser]]):
+        self.graph = replace(self.graph, owners=owners)
+
+    def add_owner(self, owner: Union[GraphGroup, GraphUser]) -> None:
+        self.graph.owners.add(owner)
 
     def to_dict(self) -> Dict[str, Any]:
         res = asdict(self)
@@ -123,8 +144,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
 
     def update_group(self, scim_group: SCIMGroup, db_group: ScimApiGroup) -> ScimApiGroup:
         changed = False
-        member_changed = False
-        updated_members = []
+        updated_members = set()
         logger.info(f'Updating group {str(db_group.scim_id)}')
         for this in scim_group.members:
             if this.is_user:
@@ -138,32 +158,28 @@ class ScimApiGroupDB(ScimApiBaseDB):
 
             # Add a new member
             if _new_member:
-                member_changed = True
-                updated_members.append(_new_member)
+                updated_members.add(_new_member)
                 logger.debug(f'Added new member: {_new_member}')
             # Update member attributes if they changed
             elif _member.display_name != this.display:
-                member_changed = True
                 logger.debug(f'Changed display name for existing member: {_member.display_name} -> {this.display}')
-                _member.display_name = this.display
-                updated_members.append(_member)
+                _member = replace(_member, display_name=this.display)
+                updated_members.add(_member)
             else:
                 # no change, retain member as-is
-                updated_members.append(_member)
+                updated_members.add(_member)
 
         if db_group.graph.display_name != scim_group.display_name:
             changed = True
             logger.debug(f'Changed display name for group: {db_group.graph.display_name} -> {scim_group.display_name}')
-            db_group.graph.display_name = scim_group.display_name
+            db_group.graph = replace(db_group.graph, display_name=scim_group.display_name)
 
         # Check if there where new, changed or removed members
-        if member_changed or set(db_group.graph.members) != set(updated_members):
-            # TODO: Make it so that only set comparison is used - that doesn't work today as display name is not
-            #       part of GraphGroup.__eq__
+        if db_group.graph.members != updated_members:
             changed = True
             logger.debug(f'Old members: {db_group.graph.members}')
             logger.debug(f'New members: {updated_members}')
-            db_group.graph.members = updated_members
+            db_group.graph = replace(db_group.graph, members=updated_members)
 
         _sg_ext = GroupExtensions(data=scim_group.nutid_group_v1.data)
         if db_group.extensions != _sg_ext:
