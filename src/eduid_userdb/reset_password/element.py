@@ -74,7 +74,7 @@ class CodeElement(Element, _CodeElementRequired):
         cls: Type[CodeElement], code_or_element: Union[Mapping, CodeElement, str], application: str
     ) -> CodeElement:
         if isinstance(code_or_element, str):
-            return cls(created_by=application, code=code_or_element, created_ts=True, is_verified=False)
+            return cls(created_by=application, code=code_or_element, is_verified=False)
         if isinstance(code_or_element, dict):
             data = code_or_element
             for this in data.keys():
@@ -83,7 +83,7 @@ class CodeElement(Element, _CodeElementRequired):
             return cls(
                 created_by=data.get('created_by', application),
                 code=data['code'],
-                created_ts=data.get('created_ts', True),
+                created_ts=data.get('created_ts', datetime.utcnow()),
                 is_verified=data.get('verified', False),
             )
         if isinstance(code_or_element, CodeElement):

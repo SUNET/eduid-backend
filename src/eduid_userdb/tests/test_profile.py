@@ -18,7 +18,6 @@ class ProfileTest(TestCase):
             schema='test schema',
             profile_data=OPAQUE_DATA,
             created_by='test created_by',
-            created_ts=True,
         )
         self.assertEqual(profile.owner, 'test owner')
         self.assertEqual(profile.schema, 'test schema')
@@ -34,12 +33,10 @@ class ProfileTest(TestCase):
             schema='test schema',
             profile_data=OPAQUE_DATA,
             created_by='test created_by',
-            created_ts=True,
         )
         profile2 = Profile(
             owner='test owner 2',
             created_by='test created_by',
-            created_ts=True,
             schema='test schema',
             profile_data=OPAQUE_DATA,
         )
@@ -61,10 +58,9 @@ class ProfileTest(TestCase):
             schema='test schema',
             profile_data=OPAQUE_DATA,
             created_by='test created_by',
-            created_ts=True,
         )
         profile_dict = profile.to_dict()
-        profile2 = Profile(**profile_dict)
+        profile2 = Profile.from_dict(profile_dict)
 
         with self.assertRaises(DuplicateElementViolation):
             ProfileList([profile, profile2])

@@ -33,7 +33,7 @@ class TestProofingLog(TestCase):
     def test_id_proofing_data(self):
 
         proofing_element = ProofingLogElement(
-            self.user, created_by='test', proofing_method='test', proofing_version='test'
+            eppn=self.user.eppn, created_by='test', proofing_method='test', proofing_version='test'
         )
         self.proofing_log_db.save(proofing_element)
 
@@ -47,6 +47,7 @@ class TestProofingLog(TestCase):
 
     def test_teleadress_proofing(self):
         data = {
+            'eppn': self.user.eppn,
             'created_by': 'test',
             'reason': 'matched',
             'nin': 'some_nin',
@@ -54,7 +55,7 @@ class TestProofingLog(TestCase):
             'user_postal_address': {'response_data': {'some': 'data'}},
             'proofing_version': 'test',
         }
-        proofing_element = TeleAdressProofing(self.user, **data)
+        proofing_element = TeleAdressProofing(**data)
         for key, value in data.items():
             self.assertIn(key, proofing_element.to_dict())
             self.assertEqual(value, proofing_element.to_dict().get(key))
@@ -72,6 +73,7 @@ class TestProofingLog(TestCase):
 
     def test_teleadress_proofing_relation(self):
         data = {
+            'eppn': self.user.eppn,
             'created_by': 'test',
             'reason': 'matched_by_navet',
             'nin': 'some_nin',
@@ -82,7 +84,7 @@ class TestProofingLog(TestCase):
             'registered_postal_address': {'response_data': {'some': 'data'}},
             'proofing_version': 'test',
         }
-        proofing_element = TeleAdressProofingRelation(self.user, **data)
+        proofing_element = TeleAdressProofingRelation(**data)
         for key, value in data.items():
             self.assertIn(key, proofing_element.to_dict())
             self.assertEqual(value, proofing_element.to_dict().get(key))
@@ -100,6 +102,7 @@ class TestProofingLog(TestCase):
 
     def test_teleadress_proofing_extend_bug(self):
         data_match = {
+            'eppn': self.user.eppn,
             'created_by': 'test',
             'reason': 'matched',
             'nin': 'some_nin',
@@ -109,6 +112,7 @@ class TestProofingLog(TestCase):
         }
 
         data_relation = {
+            'eppn': self.user.eppn,
             'created_by': 'test',
             'reason': 'matched_by_navet',
             'nin': 'some_nin',
@@ -121,15 +125,16 @@ class TestProofingLog(TestCase):
         }
 
         # Make a copy of the original required keys
-        required_keys1 = deepcopy(TeleAdressProofing(self.user, **data_match)._required_keys)
+        required_keys1 = deepcopy(TeleAdressProofing(**data_match)._required_keys)
         # Extend the required keys
-        TeleAdressProofingRelation(self.user, **data_relation)
+        TeleAdressProofingRelation(**data_relation)
         # Make sure the required keys are instantiated as the original keys
-        required_keys2 = TeleAdressProofing(self.user, **data_match)._required_keys
+        required_keys2 = TeleAdressProofing(**data_match)._required_keys
         self.assertEqual(required_keys1, required_keys2)
 
     def test_letter_proofing(self):
         data = {
+            'eppn': self.user.eppn,
             'created_by': 'test',
             'nin': 'some_nin',
             'letter_sent_to': {'name': {'some': 'data'}, 'address': {'some': 'data'}},
@@ -137,7 +142,7 @@ class TestProofingLog(TestCase):
             'user_postal_address': {'response_data': {'some': 'data'}},
             'proofing_version': 'test',
         }
-        proofing_element = LetterProofing(self.user, **data)
+        proofing_element = LetterProofing(**data)
         for key, value in data.items():
             self.assertIn(key, proofing_element.to_dict())
             self.assertEqual(value, proofing_element.to_dict().get(key))
@@ -156,12 +161,13 @@ class TestProofingLog(TestCase):
 
     def test_mail_address_proofing(self):
         data = {
+            'eppn': self.user.eppn,
             'created_by': 'test',
             'mail_address': 'some_mail_address',
             'proofing_version': 'test',
             'reference': 'reference id',
         }
-        proofing_element = MailAddressProofing(self.user, **data)
+        proofing_element = MailAddressProofing(**data)
         for key, value in data.items():
             self.assertIn(key, proofing_element.to_dict())
             self.assertEqual(value, proofing_element.to_dict().get(key))
@@ -178,12 +184,13 @@ class TestProofingLog(TestCase):
 
     def test_phone_number_proofing(self):
         data = {
+            'eppn': self.user.eppn,
             'created_by': 'test',
             'phone_number': 'some_phone_number',
             'proofing_version': 'test',
             'reference': 'reference id',
         }
-        proofing_element = PhoneNumberProofing(self.user, **data)
+        proofing_element = PhoneNumberProofing(**data)
         for key, value in data.items():
             self.assertIn(key, proofing_element.to_dict())
             self.assertEqual(value, proofing_element.to_dict().get(key))
@@ -201,6 +208,7 @@ class TestProofingLog(TestCase):
 
     def test_se_leg_proofing(self):
         data = {
+            'eppn': self.user.eppn,
             'created_by': 'test',
             'proofing_version': 'test',
             'nin': 'national_identity_number',
@@ -208,7 +216,7 @@ class TestProofingLog(TestCase):
             'transaction_id': 'transaction_id',
             'user_postal_address': {'response_data': {'some': 'data'}},
         }
-        proofing_element = SeLegProofing(self.user, **data)
+        proofing_element = SeLegProofing(**data)
         for key, value in data.items():
             self.assertIn(key, proofing_element.to_dict())
             self.assertEqual(value, proofing_element.to_dict().get(key))
@@ -229,6 +237,7 @@ class TestProofingLog(TestCase):
 
     def test_se_leg_proofing_freja(self):
         data = {
+            'eppn': self.user.eppn,
             'created_by': 'test',
             'proofing_version': 'test',
             'nin': 'national_identity_number',
@@ -236,7 +245,7 @@ class TestProofingLog(TestCase):
             'opaque_data': 'some data',
             'user_postal_address': {'response_data': {'some': 'data'}},
         }
-        proofing_element = SeLegProofingFrejaEid(self.user, **data)
+        proofing_element = SeLegProofingFrejaEid(**data)
         for key, value in data.items():
             self.assertIn(key, proofing_element.to_dict())
             self.assertEqual(value, proofing_element.to_dict().get(key))
@@ -258,41 +267,44 @@ class TestProofingLog(TestCase):
 
     def test_blank_string_proofing_data(self):
         data = {
+            'eppn': self.user.eppn,
             'created_by': 'test',
             'phone_number': 'some_phone_number',
             'proofing_version': 'test',
             'reference': 'reference id',
         }
-        proofing_element = PhoneNumberProofing(self.user, **data)
+        proofing_element = PhoneNumberProofing(**data)
         proofing_element._data['phone_number'] = ''
 
         self.assertFalse(self.proofing_log_db.save(proofing_element))
 
     def test_missing_proofing_data(self):
         data = {
+            'eppn': self.user.eppn,
             'created_by': 'test',
             'phone_number': 'some_phone_number',
             'proofing_version': 'test',
             'reference': 'reference id',
         }
-        proofing_element = PhoneNumberProofing(self.user, **data)
+        proofing_element = PhoneNumberProofing(**data)
         del proofing_element._data['created_by']
 
         self.assertFalse(self.proofing_log_db.save(proofing_element))
 
     def test_boolean_false_proofing_data(self):
         data = {
+            'eppn': self.user.eppn,
             'created_by': 'test',
             'phone_number': 'some_phone_number',
             'proofing_version': 'test',
             'reference': 'reference id',
         }
-        proofing_element = PhoneNumberProofing(self.user, **data)
+        proofing_element = PhoneNumberProofing(**data)
         proofing_element._data['phone_number'] = 0
 
         self.assertTrue(self.proofing_log_db.save(proofing_element))
 
-        proofing_element = PhoneNumberProofing(self.user, **data)
+        proofing_element = PhoneNumberProofing(**data)
         proofing_element._data['phone_number'] = False
 
         self.assertTrue(self.proofing_log_db.save(proofing_element))

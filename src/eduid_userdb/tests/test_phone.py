@@ -62,8 +62,8 @@ class TestPhoneNumberList(TestCase):
 
         _one_dict_list = [_one_dict]
 
-        assert _one_dict_list[0]['primary'] == one_dict_list[0]['is_primary'], 'Created one phone list has wrong is_primary'
-        assert _one_dict_list[0]['verified'] == one_dict_list[0]['is_verified'], 'Created one phone list has wrong is_verified'
+        assert _one_dict_list[0]['primary'] == one_dict_list[0]['primary'], 'Created one phone list has wrong is_primary'
+        assert _one_dict_list[0]['verified'] == one_dict_list[0]['verified'], 'Created one phone list has wrong is_verified'
         assert _one_dict_list[0]['number'] == one_dict_list[0]['number'], 'Created one phone list has wrong number'
 
     def test_find(self):
@@ -247,8 +247,8 @@ class TestPhoneNumber(TestCase):
         # remove added timestamp
         one_dict = one.to_dict()
 
-        assert _one_dict['primary'] == one_dict['is_primary'], 'Created phone has wrong is_primary'
-        assert _one_dict['verified'] == one_dict['is_verified'], 'Created phone has wrong is_verified'
+        assert _one_dict['primary'] == one_dict['primary'], 'Created phone has wrong is_primary'
+        assert _one_dict['verified'] == one_dict['verified'], 'Created phone has wrong is_verified'
         assert _one_dict['number'] == one_dict['number'], 'Created phone has wrong number'
 
     def test_parse_cycle(self):

@@ -135,11 +135,6 @@ class NinProofingState(ProofingState):
         _data['nin'] = NinProofingElement.from_dict(_data['nin'])
         return cls._default_from_dict(_data, {'nin'})
 
-    def to_dict(self) -> MutableMapping:
-        res = super().to_dict()
-        res['nin'] = res['nin'].to_dict()
-        return res
-
 
 @dataclass()
 class LetterProofingState(NinProofingState):
@@ -152,11 +147,6 @@ class LetterProofingState(NinProofingState):
         _data['nin'] = NinProofingElement.from_dict(_data['nin'])
         _data['proofing_letter'] = SentLetterElement.from_dict(_data['proofing_letter'])
         return cls._default_from_dict(_data, {'nin', 'proofing_letter'})
-
-    def to_dict(self) -> MutableMapping:
-        res = super().to_dict()
-        res['proofing_letter'] = res['proofing_letter'].to_dict()
-        return res
 
 
 @dataclass()
@@ -195,11 +185,6 @@ class EmailProofingState(ProofingState):
         _data['verification'] = EmailProofingElement.from_dict(_data['verification'])
         return cls._default_from_dict(_data, {'verification'})
 
-    def to_dict(self) -> MutableMapping:
-        res = super().to_dict()
-        res['verification'] = res['verification'].to_dict()
-        return res
-
 
 @dataclass()
 class PhoneProofingState(ProofingState):
@@ -211,8 +196,3 @@ class PhoneProofingState(ProofingState):
         _data = copy.deepcopy(dict(data))  # to not modify callers data
         _data['verification'] = PhoneProofingElement.from_dict(_data['verification'])
         return cls._default_from_dict(_data, {'verification'})
-
-    def to_dict(self) -> MutableMapping:
-        res = super().to_dict()
-        res['verification'] = res['verification'].to_dict()
-        return res
