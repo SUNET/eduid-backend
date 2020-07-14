@@ -100,38 +100,6 @@ class TestProofingLog(TestCase):
         self.assertEqual(hit['proofing_method'], 'TeleAdress')
         self.assertEqual(hit['proofing_version'], 'test')
 
-    def test_teleadress_proofing_extend_bug(self):
-        data_match = {
-            'eppn': self.user.eppn,
-            'created_by': 'test',
-            'reason': 'matched',
-            'nin': 'some_nin',
-            'mobile_number': 'some_mobile_number',
-            'user_postal_address': {'response_data': {'some': 'data'}},
-            'proofing_version': 'test',
-        }
-
-        data_relation = {
-            'eppn': self.user.eppn,
-            'created_by': 'test',
-            'reason': 'matched_by_navet',
-            'nin': 'some_nin',
-            'mobile_number': 'some_mobile_number',
-            'user_postal_address': {'response_data': {'some': 'data'}},
-            'mobile_number_registered_to': 'registered_national_identity_number',
-            'registered_relation': 'registered_relation_to_user',
-            'registered_postal_address': {'response_data': {'some': 'data'}},
-            'proofing_version': 'test',
-        }
-
-        # Make a copy of the original required keys
-        required_keys1 = deepcopy(TeleAdressProofing(**data_match)._required_keys)
-        # Extend the required keys
-        TeleAdressProofingRelation(**data_relation)
-        # Make sure the required keys are instantiated as the original keys
-        required_keys2 = TeleAdressProofing(**data_match)._required_keys
-        self.assertEqual(required_keys1, required_keys2)
-
     def test_letter_proofing(self):
         data = {
             'eppn': self.user.eppn,
@@ -274,7 +242,7 @@ class TestProofingLog(TestCase):
             'reference': 'reference id',
         }
         proofing_element = PhoneNumberProofing(**data)
-        proofing_element._data['phone_number'] = ''
+        proofing_element.phone_number = ''
 
         self.assertFalse(self.proofing_log_db.save(proofing_element))
 
@@ -287,7 +255,6 @@ class TestProofingLog(TestCase):
             'reference': 'reference id',
         }
         proofing_element = PhoneNumberProofing(**data)
-        del proofing_element._data['created_by']
 
         self.assertFalse(self.proofing_log_db.save(proofing_element))
 
@@ -300,11 +267,11 @@ class TestProofingLog(TestCase):
             'reference': 'reference id',
         }
         proofing_element = PhoneNumberProofing(**data)
-        proofing_element._data['phone_number'] = 0
+        proofing_element.phone_number = 0
 
         self.assertTrue(self.proofing_log_db.save(proofing_element))
 
         proofing_element = PhoneNumberProofing(**data)
-        proofing_element._data['phone_number'] = False
+        proofing_element.phone_number = False
 
         self.assertTrue(self.proofing_log_db.save(proofing_element))

@@ -137,7 +137,7 @@ class Element(metaclass=MetaElement):
     modified_ts: datetime = field(default_factory=datetime.utcnow)
 
     name_mapping: ClassVar[Dict[str, str]] = {'application': 'created_by'}
-    old_names: ClassVar[tuple] = ()
+    old_names: ClassVar[tuple] = ('application',)
 
     _name_mapping: ClassVar[Dict[str, str]] = {}
     _inverse_name_mapping: ClassVar[Dict[str, str]] = {}

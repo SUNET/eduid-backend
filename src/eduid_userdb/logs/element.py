@@ -5,9 +5,9 @@
 
 from __future__ import absolute_import
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields, asdict
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, ClassVar, Dict
 import logging
 
 import six
@@ -26,7 +26,31 @@ class _LogElementRequired:
 
 @dataclass
 class LogElement(Element, _LogElementRequired):
+    """
+    """
     created_ts: datetime = field(default_factory=datetime.utcnow)
+
+    name_mapping: ClassVar[Dict[Any, str]] = {'eduPersonPrincipalName': 'eppn'}
+
+    def validate(self):
+        element_keys = set([elem.name for elem in fields(Element)])
+        self_keys = set([elem.name for elem in fields(self)])
+        required_keys = self_keys - element_keys
+        # Check that all keys are accounted for and that no string values are blank
+        for key in required_keys:
+            data = getattr(self, key)
+            if data is None:
+                logger.error(
+                    'Not enough data to log proofing event: {!r}. Required keys: {!r}'.format(
+                        asdict(self), required_keys - self_keys
+                    )
+                )
+                return False
+            if isinstance(data, six.string_types):
+                if not data:
+                    logger.error('Not enough data to log proofing event: "{}" can not be blank.'.format(key))
+                    return False
+        return True
 
 
 @dataclass
@@ -178,8 +202,8 @@ class LetterProofing(NinProofingLogElement, _LetterProofingRequired):
 
 @dataclass
 class _SeLegProofingRequired:
-    vetting_by: str
     transaction_id: str
+    vetting_by: str
 
 
 @dataclass
@@ -221,12 +245,14 @@ class SeLegProofingFrejaEid(SeLegProofing, _SeLegProofingFrejaEidRequired):
         'user_postal_address': {postal_address_from_navet}
     }
     """
-    proofing_method: str = 'se-leg'
+    vetting_by: str = 'Freja eID',
 
 
 @dataclass
 class _OrcidProofingRequired:
-    opaque_data: str
+    orcid: str
+    issuer: str
+    audience: str
 
 
 @dataclass
