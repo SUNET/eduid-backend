@@ -32,7 +32,7 @@
 #
 import json
 from typing import Any, Optional
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from flask import Response
 from mock import patch
@@ -75,10 +75,18 @@ class GroupManagementTests(EduidAPITestCase):
         self.test_user3 = self.app.central_userdb.get_user_by_eppn('hubba-fooo')
         # Temporarily fix email address locally until test user fixtures are merged
         self._fix_mail_addresses()
-        self.scim_user1 = self._add_scim_user(scim_id=uuid4(), eppn=self.test_user.eppn)
-        self.scim_user2 = self._add_scim_user(scim_id=uuid4(), eppn=self.test_user2.eppn)
-        self.scim_group1 = self._add_scim_group(scim_id=uuid4(), display_name='Test Group 1')
-        self.scim_group2 = self._add_scim_group(scim_id=uuid4(), display_name='Test Group 2')
+        self.scim_user1 = self._add_scim_user(
+            scim_id=UUID('00000000-0000-0000-0000-000000000000'), eppn=self.test_user.eppn
+        )
+        self.scim_user2 = self._add_scim_user(
+            scim_id=UUID('00000000-0000-0000-0000-000000000001'), eppn=self.test_user2.eppn
+        )
+        self.scim_group1 = self._add_scim_group(
+            scim_id=UUID('00000000-0000-0000-0000-000000000002'), display_name='Test Group 1'
+        )
+        self.scim_group2 = self._add_scim_group(
+            scim_id=UUID('00000000-0000-0000-0000-000000000003'), display_name='Test Group 2'
+        )
 
     def _fix_mail_addresses(self):
         correct_address = self.test_user2.mail_addresses.find('johnsmith2@example.com')
