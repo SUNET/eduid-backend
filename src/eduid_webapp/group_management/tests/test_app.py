@@ -212,8 +212,8 @@ class GroupManagementTests(EduidAPITestCase):
     def test_app_starts(self):
         assert self.app.config.app_name == "group_management"
 
-    def test_get_member_groups(self):
-        # Add test user as group member
+    def test_get_groups(self):
+        # Add test user as group member and owner
         graph_user = GraphUser(
             identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
         )
@@ -898,3 +898,61 @@ class GroupManagementTests(EduidAPITestCase):
         payload = response.json.get('payload')
         assert 1 == len(payload['incoming'])
         assert 1 == len(payload['member_of'])
+
+    def test_get_all_data_privacy(self):
+        # Add test user as group member and owner, add test user 2 as member
+        graph_user1 = GraphUser(
+            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        )
+        graph_user2 = GraphUser(
+            identifier=str(self.scim_user2.scim_id), display_name=self.test_user2.mail_addresses.primary.email
+        )
+        self.scim_group1.members = [graph_user1, graph_user2]
+        self.scim_group1.owners = [graph_user1]
+        self.app.scimapi_groupdb.save(self.scim_group1)
+
+        # Invite test user 2 as owner
+        self._invite(
+            group_scim_id=str(self.scim_group1.scim_id),
+            inviter=self.test_user,
+            invite_address=self.test_user2.mail_addresses.primary.email,
+            role='owner',
+        )
+
+        # Get all data as test user 1
+        with self.session_cookie(self.browser, self.test_user.eppn) as client:
+            response = client.get('/all-data')
+        self._check_success_response(response, type_='GET_GROUP_MANAGEMENT_ALL_DATA_SUCCESS')
+        payload = response.json.get('payload')
+        # As member the user only see owners for a group
+        assert 0 == len(payload['member_of'][0]['members'])
+        assert 1 == len(payload['member_of'][0]['owners'])
+        # As owner the user see both members and owners
+        assert 2 == len(payload['owner_of'][0]['members'])
+        assert 1 == len(payload['owner_of'][0]['owners'])
+        # As owner the user see your outgoing invites
+        assert 1 == len(payload['outgoing'])
+        assert str(self.scim_group1.scim_id) == payload['outgoing'][0]['group_identifier']
+        assert 0 == len(payload['outgoing'][0]['member_invites'])
+        assert 1 == len(payload['outgoing'][0]['owner_invites'])
+        # test user 1 does not have any incoming invites
+        assert 0 == len(payload['incoming'])
+
+        # Get all data as test user 2
+        with self.session_cookie(self.browser, self.test_user2.eppn) as client:
+            response = client.get('/all-data')
+        self._check_success_response(response, type_='GET_GROUP_MANAGEMENT_ALL_DATA_SUCCESS')
+        payload = response.json.get('payload')
+        # As member the user only see owners for a group
+        assert 0 == len(payload['member_of'][0]['members'])
+        assert 1 == len(payload['member_of'][0]['owners'])
+        # test user 2 is not an owner of a group
+        assert 0 == len(payload['owner_of'])
+        # test user 2 does not have any outgoing invites
+        assert 0 == len(payload['outgoing'])
+        # as an invitee the user see incoming invites
+        assert 1 == len(payload['incoming'])
+        assert self.test_user2.mail_addresses.primary.email == payload['incoming'][0]['email_address']
+        assert str(self.scim_group1.scim_id) == payload['incoming'][0]['group_identifier']
+        assert str(self.scim_user1.scim_id) == payload['incoming'][0]['owners'][0]['identifier']
+        assert payload['incoming'][0].get('members') is None
