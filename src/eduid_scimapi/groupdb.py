@@ -6,7 +6,7 @@ import pprint
 import uuid
 from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Set, Tuple, Type, Union
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple, Type, Union
 from uuid import UUID
 
 from bson import ObjectId
@@ -54,7 +54,8 @@ class ScimApiGroup(object):
         return self.graph.members
 
     @members.setter
-    def members(self, members: Set[Union[GraphGroup, GraphUser]]):
+    def members(self, members: Iterable[Union[GraphGroup, GraphUser]]):
+        members = set(members)
         self.graph = replace(self.graph, members=members)
 
     def add_member(self, member: Union[GraphGroup, GraphUser]) -> None:
@@ -65,11 +66,18 @@ class ScimApiGroup(object):
         return self.graph.owners
 
     @owners.setter
-    def owners(self, owners: Set[Union[GraphGroup, GraphUser]]):
+    def owners(self, owners: Iterable[Union[GraphGroup, GraphUser]]):
+        owners = set(owners)
         self.graph = replace(self.graph, owners=owners)
 
     def add_owner(self, owner: Union[GraphGroup, GraphUser]) -> None:
         self.graph.owners.add(owner)
+
+    def has_member(self, identifier: UUID) -> bool:
+        return self.graph.has_member(str(identifier))
+
+    def has_owner(self, identifier: UUID) -> bool:
+        return self.graph.has_owner(str(identifier))
 
     def to_dict(self) -> Dict[str, Any]:
         res = asdict(self)
