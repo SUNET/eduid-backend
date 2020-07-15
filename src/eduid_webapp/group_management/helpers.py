@@ -3,17 +3,18 @@ from enum import unique
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from eduid_graphdb.groupdb import User as GraphUser
 from flask_babel import gettext as _
 
 from eduid_common.api.exceptions import MailTaskFailed
 from eduid_common.api.helpers import send_mail
 from eduid_common.api.messages import TranslatableMsg
+from eduid_graphdb.groupdb import User as GraphUser
 from eduid_scimapi.groupdb import ScimApiGroup
 from eduid_scimapi.userdb import ScimApiUser
 from eduid_userdb import User
 from eduid_userdb.exceptions import DocumentDoesNotExist, EduIDDBError
 from eduid_userdb.group_management import GroupInviteState
+
 from eduid_webapp.group_management.app import current_group_management_app as current_app
 from eduid_webapp.group_management.schemas import GroupRole
 
@@ -115,15 +116,13 @@ def remove_user_from_group(scim_user: ScimApiUser, scim_group: ScimApiGroup, rol
     modified = False
     if role == GroupRole.OWNER:
         if is_owner(scim_user, scim_group.scim_id):
-            scim_group.owners = set(
-                [owner for owner in scim_group.owners if owner.identifier != str(scim_user.scim_id)]
-            )
+            scim_group.owners = [owner for owner in scim_group.owners if owner.identifier != str(scim_user.scim_id)]
             modified = True
     elif role == GroupRole.MEMBER:
         if is_member(scim_user, scim_group.scim_id):
-            scim_group.members = set(
-                [member for member in scim_group.members if member.identifier != str(scim_user.scim_id)]
-            )
+            scim_group.members = [
+                member for member in scim_group.members if member.identifier != str(scim_user.scim_id)
+            ]
             modified = True
     else:
         raise NotImplementedError(f'Unknown role: {role}')
@@ -177,7 +176,7 @@ def get_incoming_invites(user: User) -> List[Dict[str, Any]]:
             current_app.logger.info(f'Removed invite to non existent group: {state}')
             continue
 
-        owners = [{'identifier': owner.identifier, 'display_name': owner.display_name} for owner in group.graph.owners]
+        owners = [{'identifier': owner.identifier, 'display_name': owner.display_name} for owner in group.owners]
         invites.append(
             {
                 'group_identifier': group.scim_id,

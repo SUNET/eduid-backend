@@ -30,17 +30,19 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from typing import Dict, List
 from uuid import UUID
 
-from eduid_graphdb.groupdb import User as GraphUser
 from flask import Blueprint
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.messages import CommonMsg, FluxData, error_response, success_response
+from eduid_graphdb.groupdb import User as GraphUser
 from eduid_scimapi.groupdb import ScimApiGroup
 from eduid_userdb import User
 from eduid_userdb.exceptions import EduIDDBError
 from eduid_userdb.group_management import GroupRole
+
 from eduid_webapp.group_management.app import current_group_management_app as current_app
 from eduid_webapp.group_management.helpers import (
     GroupManagementMsg,
@@ -100,8 +102,8 @@ def create_group(user: User, display_name: str) -> FluxData:
     scim_user = get_or_create_scim_user_by_eppn(user.eppn)
     graph_user = GraphUser(identifier=str(scim_user.scim_id), display_name=user.mail_addresses.primary.email)
     group = ScimApiGroup(display_name=display_name)
-    group.add_owner(graph_user)
-    group.add_member(graph_user)
+    group.owners = [graph_user]
+    group.members = [graph_user]
 
     if not current_app.scimapi_groupdb.save(group):
         current_app.logger.error(f'Failed to create ScimApiGroup with scim_id: {group.scim_id}')
@@ -166,7 +168,7 @@ def remove_user(user: User, group_identifier: UUID, user_identifier: UUID, role:
         return error_response(message=GroupManagementMsg.user_to_be_removed_does_not_exist)
 
     # Check so we don't remove the last owner of a group
-    if role == GroupRole.OWNER and len(group.graph.owners) == 1:
+    if role == GroupRole.OWNER and len(group.owners) == 1:
         current_app.logger.error(f'Can not remove the last owner in group with scim_id: {group_identifier}')
         return error_response(message=GroupManagementMsg.can_not_remove_last_owner)
 

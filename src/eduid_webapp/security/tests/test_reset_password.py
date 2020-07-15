@@ -530,6 +530,49 @@ class SecurityResetPasswordTests(EduidAPITestCase):
 
     @patch('eduid_common.authn.vccs.get_vccs_client')
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid_common.api.msg.MsgRelay.sendsms')
+    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    def test_reset_password_blank_repeat_password(
+        self, mock_request_user_sync, mock_sendsms, mock_sendmail, mock_get_vccs_client
+    ):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_sendsms.return_value = True
+        mock_sendmail.return_value = True
+        mock_get_vccs_client.return_value = TestVCCSClient()
+
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        old_password = user.credentials.filter(Password).to_list()[0]
+
+        self.post_email_address('johnsmith@example.com')
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        self.verify_email_address(state)
+        self.choose_no_extra_security(state)
+
+        with self.app.test_client() as c:
+            c.get('/reset-password/new-password/{}'.format(state.email_code.code))
+            with c.session_transaction() as sess:
+                data = {
+                    'csrf': sess.get_csrf_token(),
+                    'custom_password': 'a_pretty_long_password',
+                    'repeat_password': '',
+                }
+            response = c.post('/reset-password/new-password/{}'.format(state.email_code.code), data=data)
+            self.assertEqual(response.status_code, 200)
+
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        self.assertIsNotNone(state)
+
+        # Check that nothing changed
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        self.assertEqual(user.credentials.filter(Password).count, 1)
+        self.assertEqual(user.credentials.filter(Password).to_list()[0].key, old_password.key)
+        for nin in user.nins.verified.to_list():
+            self.assertEqual(nin.is_verified, True)
+        for phone_number in user.phone_numbers.verified.to_list():
+            self.assertEqual(phone_number.is_verified, True)
+
+    @patch('eduid_common.authn.vccs.get_vccs_client')
+    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_common.api.msg.MsgRelay.sendsms')
     def _get_code_backdoor(
