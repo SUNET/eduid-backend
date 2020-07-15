@@ -67,10 +67,8 @@ group_management_views = Blueprint('group_management', __name__, url_prefix='', 
 def _list_of_group_data(group_list: List[ScimApiGroup]) -> List[Dict]:
     ret = []
     for group in group_list:
-        members = [
-            {'identifier': member.identifier, 'display_name': member.display_name} for member in group.graph.members
-        ]
-        owners = [{'identifier': owner.identifier, 'display_name': owner.display_name} for owner in group.graph.owners]
+        members = [{'identifier': member.identifier, 'display_name': member.display_name} for member in group.members]
+        owners = [{'identifier': owner.identifier, 'display_name': owner.display_name} for owner in group.owners]
         group_data = {
             'identifier': group.scim_id,
             'display_name': group.display_name,
@@ -175,7 +173,7 @@ def remove_user(user: User, group_identifier: UUID, user_identifier: UUID, role:
         return error_response(message=GroupManagementMsg.user_to_be_removed_does_not_exist)
 
     # Check so we don't remove the last owner of a group
-    if role == GroupRole.OWNER and len(group.graph.owners) == 1:
+    if role == GroupRole.OWNER and len(group.owners) == 1:
         current_app.logger.error(f'Can not remove the last owner in group with scim_id: {group_identifier}')
         return error_response(message=GroupManagementMsg.can_not_remove_last_owner)
 
