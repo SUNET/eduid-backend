@@ -69,11 +69,11 @@ def accept_group_invitation(scim_user: ScimApiUser, scim_group: ScimApiGroup, in
     modified = False
     if invite.role == GroupRole.OWNER:
         if not is_owner(scim_user, scim_group.scim_id):
-            scim_group.graph.owners.append(graph_user)
+            scim_group.add_owner(graph_user)
             modified = True
     elif invite.role == GroupRole.MEMBER:
         if not is_member(scim_user, scim_group.scim_id):
-            scim_group.graph.members.append(graph_user)
+            scim_group.add_member(graph_user)
             modified = True
     else:
         raise NotImplementedError(f'Unknown role: {invite.role}')
@@ -90,14 +90,12 @@ def remove_user_from_group(scim_user: ScimApiUser, scim_group: ScimApiGroup, rol
     modified = False
     if role == GroupRole.OWNER:
         if is_owner(scim_user, scim_group.scim_id):
-            scim_group.graph.owners = [
-                owner for owner in scim_group.graph.owners if owner.identifier != str(scim_user.scim_id)
-            ]
+            scim_group.owners = [owner for owner in scim_group.owners if owner.identifier != str(scim_user.scim_id)]
             modified = True
     elif role == GroupRole.MEMBER:
         if is_member(scim_user, scim_group.scim_id):
-            scim_group.graph.members = [
-                member for member in scim_group.graph.members if member.identifier != str(scim_user.scim_id)
+            scim_group.members = [
+                member for member in scim_group.members if member.identifier != str(scim_user.scim_id)
             ]
             modified = True
     else:
@@ -152,7 +150,7 @@ def get_incoming_invites(user: User) -> List[Dict[str, Any]]:
             current_app.logger.info(f'Removed invite to non existent group: {state}')
             continue
 
-        owners = [{'identifier': owner.identifier, 'display_name': owner.display_name} for owner in group.graph.owners]
+        owners = [{'identifier': owner.identifier, 'display_name': owner.display_name} for owner in group.owners]
         invites.append(
             {
                 'group_identifier': group.scim_id,
