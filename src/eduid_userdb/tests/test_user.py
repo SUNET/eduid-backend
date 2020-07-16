@@ -12,6 +12,7 @@ from eduid_userdb.mail import MailAddressList
 from eduid_userdb.nin import NinList
 from eduid_userdb.phone import PhoneNumberList
 from eduid_userdb.profile import Profile, ProfileList
+from eduid_userdb.tests import DictTestCase
 from eduid_userdb.tou import ToUList
 from eduid_userdb.user import User
 
@@ -45,7 +46,12 @@ class _AbstractUserTestCase:
         """
         Test that we get back a dict identical to the one we put in for old-style userdb data.
         """
-        self.assertEqual(self.user1.passwords.to_list_of_dicts(old_userdb_format=True), self.data1['passwords'])
+        expected = self.data1['passwords']
+        obtained = self.user1.passwords.to_list_of_dicts(old_userdb_format=True)
+
+        expected, obtained = self.normalize_data(expected, obtained)
+
+        assert expected == obtained
 
     def test_obsolete_attributes(self):
         """
@@ -104,7 +110,13 @@ class _AbstractUserTestCase:
         ]
         user = User.from_dict(data)
         self.assertEqual(user.surname, data['surname'])
-        self.assertEqual(user.passwords.to_list_of_dicts(), data['passwords'])
+
+        expected = data['passwords']
+        obtained = user.passwords.to_list_of_dicts(old_userdb_format=True)
+
+        expected, obtained = self.normalize_data(expected, obtained)
+
+        assert expected == obtained
 
     def test_revoked_user(self):
         """
@@ -559,9 +571,8 @@ class _AbstractUserTestCase:
             }
         )
         out = user.to_dict()['phone']
-        # remove timestamps
-        for _phone in out:
-            del _phone['created_ts']
+
+        phone, out = self.normalize_data(phone, out)
 
         assert phone == out, 'The phone objects differ when using both phone and mobile'
 
@@ -589,7 +600,7 @@ class _AbstractUserTestCase:
         self.assertEqual(new_user2.eppn, 'birub-gagoz')
 
 
-class TestUser(TestCase, _AbstractUserTestCase):
+class TestUser(DictTestCase, _AbstractUserTestCase):
     def setUp(self):
         self.data1 = {
             u'_id': ObjectId('547357c3d00690878ae9b620'),
@@ -683,17 +694,29 @@ class TestUser(TestCase, _AbstractUserTestCase):
         Test that we get back a dict identical to the one we put in for old-style userdb data.
         """
         to_dict_result = self.user1.mail_addresses.to_list_of_dicts(old_userdb_format=True)
-        self.assertEqual(to_dict_result, self.data1['mailAliases'])
+
+        expected = self.data1['mailAliases']
+        obtained = to_dict_result
+
+        expected, obtained = self.normalize_data(expected, obtained)
+
+        assert obtained == expected
 
     def test_phone_numbers(self):
         """
         Test that we get back a dict identical to the one we put in for old-style userdb data.
         """
         to_dict_result = self.user2.phone_numbers.to_list_of_dicts(old_userdb_format=True)
-        self.assertEqual(to_dict_result, self.data2['mobile'])
+
+        expected = self.data2['mobile']
+        obtained = to_dict_result
+
+        expected, obtained = self.normalize_data(expected, obtained)
+
+        assert obtained == expected
 
 
-class TestNewUser(TestCase, _AbstractUserTestCase):
+class TestNewUser(DictTestCase, _AbstractUserTestCase):
     def setUp(self):
         self._setup_user1()
         self._setup_user2()

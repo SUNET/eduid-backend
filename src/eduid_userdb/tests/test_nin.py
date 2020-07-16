@@ -64,7 +64,7 @@ class TestNinList(DictTestCase):
         expected = self.two.to_list_of_dicts()
         obtained = self.one.to_list_of_dicts()
 
-        expected, obtained = self.remove_timestamps(expected, obtained)
+        expected, obtained = self.normalize_data(expected, obtained)
 
         assert expected == obtained, 'List with removed NIN has unexpected data'
 
@@ -80,7 +80,7 @@ class TestNinList(DictTestCase):
         expected = self.three.to_list_of_dicts()
         obtained = this.to_list_of_dicts()
 
-        expected, obtained = self.remove_timestamps(expected, obtained)
+        expected, obtained = self.normalize_data(expected, obtained)
 
         assert expected == obtained, 'List with added mail address has unexpected data'
 
@@ -103,7 +103,7 @@ class TestNinList(DictTestCase):
         expected = self.two.to_list_of_dicts()
         obtained = now_two.to_list_of_dicts()
 
-        expected, obtained = self.remove_timestamps(expected, obtained)
+        expected, obtained = self.normalize_data(expected, obtained)
 
         assert expected == obtained, 'List with removed NIN has unexpected data'
 

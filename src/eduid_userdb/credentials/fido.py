@@ -36,7 +36,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from hashlib import sha256
-from typing import Optional
+from typing import ClassVar, Dict, Optional
 
 from eduid_userdb.credentials import Credential
 
@@ -78,6 +78,8 @@ class U2F(FidoCredential, _U2FCredentialRequired):
     """
     attest_cert: Optional[str] = None
 
+    name_mapping: ClassVar[Dict[str, str]] = {'application': 'created_by'}
+
     @property
     def key(self):
         """
@@ -107,6 +109,8 @@ class Webauthn(FidoCredential):
     """
     attest_obj: str = ''
     credential_data: str = ''
+
+    name_mapping: ClassVar[Dict[str, str]] = {'application': 'created_by'}
 
     @property
     def key(self):

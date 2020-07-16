@@ -34,7 +34,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any, ClassVar, Dict, Optional
 
 from eduid_userdb.element import PrimaryElement, PrimaryElementList
 
@@ -46,6 +46,8 @@ class Nin(PrimaryElement):
     """
     """
     number: Optional[str] = None
+
+    name_mapping: ClassVar[Dict[str, str]] = {'application': 'created_by'}
 
     @property
     def key(self):

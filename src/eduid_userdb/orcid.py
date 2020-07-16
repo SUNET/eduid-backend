@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, asdict
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, ClassVar, Dict, List, Optional, Type
 
 from eduid_userdb.element import Element, VerifiedElement
 
@@ -44,7 +44,7 @@ class OidcIdToken(Element, _OidcIdTokenRequired):
     # Authorized party
     azp: Optional[str] = None
 
-    name_mapping = {'at_hash': '', 'family_name': '', 'given_name': '', 'jti': ''}
+    name_mapping: ClassVar[Dict[str, str]] = {'application': 'created_by', 'at_hash': '', 'family_name': '', 'given_name': '', 'jti': ''}
 
     @property
     def key(self):
@@ -74,7 +74,7 @@ class OidcAuthorization(Element, _OidcAuthorizationRequired):
     expires_in: Optional[int] = None
     refresh_token: Optional[str] = None
 
-    name_mapping = {'name': '', 'orcid': '', 'scope': ''}
+    name_mapping = {'application': 'created_by', 'name': '', 'orcid': '', 'scope': ''}
 
     @property
     def key(self) -> str:
@@ -125,6 +125,8 @@ class Orcid(VerifiedElement, _OrcidRequired):
     name: Optional[str] = None
     given_name: Optional[str] = None
     family_name: Optional[str] = None
+
+    name_mapping: ClassVar[Dict[str, str]] = {'application': 'created_by'}
 
     @property
     def key(self):

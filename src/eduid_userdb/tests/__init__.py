@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import unittest
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List, Tuple
 
 
 class DictTestCase(unittest.TestCase):
@@ -38,17 +38,38 @@ class DictTestCase(unittest.TestCase):
     """
     maxDiff = None
 
-    @staticmethod
-    def remove_timestamps(expected: Dict[str, Any], obtained: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    @classmethod
+    def normalize_data(cls, expected: List[Dict[str, Any]], obtained: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         """
         Remove timestamps that in general are created at different times
         and compare the resulting dicts
         """
         for elist in (expected, obtained):
             for elem in elist:
-                if 'created_ts' in elem:
-                    del elem['created_ts']
-                if 'modified_ts' in elem:
-                    del elem['modified_ts']
+                cls.normalize_elem(elem)
 
         return expected, obtained
+
+    @classmethod
+    def normalize_elem(cls, elem: Dict[str, Any]) -> Dict[str, Any]:
+        if 'created_ts' in elem:
+            del elem['created_ts']
+        if 'modified_ts' in elem:
+            del elem['modified_ts']
+
+        if 'application' in elem:
+            elem['created_by'] = elem.pop('application')
+
+        if 'source' in elem:
+            elem['created_by'] = elem.pop('source')
+
+        if 'credential_id' in elem:
+            elem['id'] = elem.pop('credential_id')
+
+        for key in elem:
+            if isinstance(elem[key], dict):
+                cls.normalize_elem(elem[key])
+
+        for key in ('created_by', 'application', 'verified_ts', 'verified_by'):
+            if key in elem and elem[key] is None:
+                del elem[key]

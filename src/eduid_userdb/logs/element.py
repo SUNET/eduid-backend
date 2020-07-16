@@ -7,7 +7,7 @@ from __future__ import absolute_import
 
 from dataclasses import dataclass, field, fields, asdict
 from datetime import datetime
-from typing import Any, ClassVar, Dict
+from typing import ClassVar, Dict
 import logging
 
 import six
@@ -30,7 +30,7 @@ class LogElement(Element, _LogElementRequired):
     """
     created_ts: datetime = field(default_factory=datetime.utcnow)
 
-    name_mapping: ClassVar[Dict[Any, str]] = {'eduPersonPrincipalName': 'eppn'}
+    name_mapping: ClassVar[Dict[str, str]] = {'eduPersonPrincipalName': 'eppn'}
 
     def validate(self):
         element_keys = set([elem.name for elem in fields(Element)])
@@ -221,6 +221,7 @@ class SeLegProofing(NinProofingLogElement, _SeLegProofingRequired):
     }
     """
     proofing_method: str = 'se-leg'
+    vetting_by: str = ''
 
 
 @dataclass

@@ -35,7 +35,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, ClassVar, Dict, List, Optional, Type
 
 from bson import ObjectId
 
@@ -58,7 +58,7 @@ class Event(Element):
     event_type: Optional[str] = None
     event_id: Optional[str] = None
 
-    name_mapping = {'id': 'event_id'}
+    name_mapping: ClassVar[Dict[str, str]] = {'id': 'event_id', 'application': 'created_by'}
 
     @property
     def key(self) -> EventId:

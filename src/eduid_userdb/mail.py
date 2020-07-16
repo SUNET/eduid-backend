@@ -52,7 +52,7 @@ class MailAddress(PrimaryElement):
     """
     email: Optional[str] = None
 
-    name_mapping: ClassVar[Dict[str, str]] = {'added_timestamp': 'created_ts', 'csrf': ''}
+    name_mapping: ClassVar[Dict[str, str]] = {'added_timestamp': 'created_ts', 'application': 'created_by', 'csrf': ''}
     old_names = ('added_timestamp',)
 
     @property

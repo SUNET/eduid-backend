@@ -34,7 +34,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, asdict
-from typing import Any, Dict, Optional, Type
+from typing import Any, ClassVar, Dict, Optional, Type
 
 from eduid_userdb.element import PrimaryElement, PrimaryElementList
 
@@ -47,9 +47,8 @@ class PhoneNumber(PrimaryElement):
     """
     number: Optional[str] = None
 
-    name_mapping = {'added_timestamp': 'created_ts', 'mobile': 'number', 'csrf': ''}
-    old_names = ('added_timestamp', 'mobile')
-
+    name_mapping: ClassVar[Dict[str, str]] = {'application': 'created_by', 'added_timestamp': 'created_ts', 'mobile': 'number', 'csrf': ''}
+    old_names: ClassVar[tuple] = ('added_timestamp', 'mobile')
 
     @property
     def key(self):
