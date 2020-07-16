@@ -45,7 +45,7 @@ import time
 import unittest
 from abc import ABC
 from copy import deepcopy
-from typing import Type
+from typing import Any, Dict, List, Tuple, Type
 
 import pymongo
 
@@ -174,7 +174,50 @@ class MongoTemporaryInstance(object):
             self._process = None
 
 
-class MongoTestCase(unittest.TestCase):
+class DictTestCase(unittest.TestCase):
+    """
+    """
+    maxDiff = None
+
+    @classmethod
+    def normalize_data(cls, expected: List[Dict[str, Any]], obtained: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+        """
+        Remove timestamps that in general are created at different times
+        normalize the names of some attributes
+        remove attributes set to None
+        """
+        for elist in (expected, obtained):
+            for elem in elist:
+                cls.normalize_elem(elem)
+
+        return expected, obtained
+
+    @classmethod
+    def normalize_elem(cls, elem: Dict[str, Any]):
+        if 'created_ts' in elem:
+            del elem['created_ts']
+        if 'modified_ts' in elem:
+            del elem['modified_ts']
+
+        if 'application' in elem:
+            elem['created_by'] = elem.pop('application')
+
+        if 'source' in elem:
+            elem['created_by'] = elem.pop('source')
+
+        if 'credential_id' in elem:
+            elem['id'] = elem.pop('credential_id')
+
+        for key in elem:
+            if isinstance(elem[key], dict):
+                cls.normalize_elem(elem[key])
+
+        for key in ('created_by', 'application', 'verified_ts', 'verified_by'):
+            if key in elem and elem[key] is None:
+                del elem[key]
+
+
+class MongoTestCase(DictTestCase):
     """TestCase with an embedded MongoDB temporary instance.
 
     Each test runs on a temporary instance of MongoDB. The instance will
@@ -282,22 +325,3 @@ class MongoTestCase(unittest.TestCase):
     # def mongodb_uri(self, dbname):
     #    self.assertIsNotNone(dbname)
     #    return self.tmp_db.uri + '/' + dbname
-
-
-class DictTestCase(unittest.TestCase):
-    """
-    TestCase with a compare_dicts method that compares dicts removing the
-    created_ts and modified_ts keys, that hold timestamps created in general at different times.
-    """
-
-    @staticmethod
-    def compare_dicts(expected, obtained, fail_message):
-        # Remove timestamps that are created at different times
-        for mlist in (expected, obtained):
-            for mail in mlist:
-                if 'created_ts' in mail:
-                    del mail['created_ts']
-                if 'modified_ts' in mail:
-                    del mail['modified_ts']
-
-        assert obtained == expected, fail_message
