@@ -308,16 +308,22 @@ class EduidAPITestCase(CommonTestCase):
         :param payload: Data expected to be found in the 'payload' of the response
         """
         try:
-            assert status == response.status_code, f'The HTTP response code was not {status}'
-            assert type_ == response.json['type'], 'Response had unexpected type'
+            assert status == response.status_code, f'The HTTP response code was {response.status_code} not {status}'
+            assert (
+                type_ == response.json['type']
+            ), f'Wrong response type. expected: {response.json["type"]}, actual: {type_}'
             assert 'payload' in response.json, 'JSON body has no "payload" element'
             if message is not None:
                 assert 'message' in response.json['payload'], 'JSON payload has no "message" element'
-                assert message.value == response.json['payload']['message'], 'Wrong message returned'
+                _message_value = response.json['payload']['message']
+                assert (
+                    message.value == _message_value
+                ), f'Wrong message returned. expected: {message.value}, actual: {_message_value}'
             if error is not None:
                 assert response.json['error'] is True, 'The Flux response was supposed to have error=True'
                 assert 'error' in response.json['payload'], 'JSON payload has no "error" element'
-                assert error == response.json['payload']['error'], 'Wrong error returned'
+                _error = response.json['payload']['error']
+                assert error == _error, f'Wrong error returned. expected: {error}, actual: {_error}'
             if payload is not None:
                 for k, v in payload.items():
                     assert k in response.json['payload'], f'The Flux response payload does not contain {repr(k)}'
