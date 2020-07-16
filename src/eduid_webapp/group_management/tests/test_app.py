@@ -37,7 +37,7 @@ from uuid import UUID
 from flask import Response
 from mock import patch
 
-from eduid_common.api.testing import EduidAPITestCase
+from eduid_common.api.testing import EduidAPITestCase, normalised_data
 from eduid_graphdb.groupdb import User as GraphUser
 from eduid_graphdb.testing import Neo4jTemporaryInstance
 from eduid_scimapi.groupdb import GroupExtensions, ScimApiGroup
@@ -89,6 +89,7 @@ class GroupManagementTests(EduidAPITestCase):
         )
 
     def _fix_mail_addresses(self):
+        # Due to mixup in base user data
         correct_address = self.test_user2.mail_addresses.find('johnsmith2@example.com')
         correct_address.is_verified = True
         self.test_user2.mail_addresses.primary = correct_address.email
@@ -109,7 +110,11 @@ class GroupManagementTests(EduidAPITestCase):
     def tearDown(self):
         super(GroupManagementTests, self).tearDown()
         with self.app.app_context():
+            self.neo4j_instance.purge_db()
             self.app.central_userdb._drop_whole_collection()
+            self.app.scimapi_userdb._drop_whole_collection()
+            self.app.scimapi_groupdb._drop_whole_collection()
+            self.app.invite_state_db._drop_whole_collection()
 
     def _add_scim_user(self, scim_id: UUID, eppn: str) -> ScimApiUser:
         scim_user = ScimApiUser(scim_id=scim_id, external_id=f'{eppn}@eduid.se')
@@ -933,18 +938,49 @@ class GroupManagementTests(EduidAPITestCase):
         self._check_success_response(response, type_='GET_GROUP_MANAGEMENT_ALL_DATA_SUCCESS')
         payload = response.json.get('payload')
         # As member the user only see owners for a group
-        assert 0 == len(payload['member_of'][0]['members'])
-        assert 1 == len(payload['member_of'][0]['owners'])
+        assert normalised_data(
+            [
+                {
+                    'display_name': 'Test Group 1',
+                    'identifier': '00000000-0000-0000-0000-000000000002',
+                    'members': [],
+                    'owners': [
+                        {'display_name': 'johnsmith@example.com', 'identifier': '00000000-0000-0000-0000-000000000000'}
+                    ],
+                }
+            ]
+        ) == normalised_data(payload['member_of'])
         # As owner the user see both members and owners
-        assert 2 == len(payload['owner_of'][0]['members'])
-        assert 1 == len(payload['owner_of'][0]['owners'])
+        assert normalised_data(
+            [
+                {
+                    'display_name': 'Test Group 1',
+                    'identifier': '00000000-0000-0000-0000-000000000002',
+                    'members': [
+                        {'display_name': 'johnsmith@example.com', 'identifier': '00000000-0000-0000-0000-000000000000'},
+                        {
+                            'display_name': 'johnsmith2@example.com',
+                            'identifier': '00000000-0000-0000-0000-000000000001',
+                        },
+                    ],
+                    'owners': [
+                        {'display_name': 'johnsmith@example.com', 'identifier': '00000000-0000-0000-0000-000000000000'}
+                    ],
+                }
+            ]
+        ) == normalised_data(payload['owner_of'])
         # As owner the user see your outgoing invites
-        assert 1 == len(payload['outgoing'])
-        assert str(self.scim_group1.scim_id) == payload['outgoing'][0]['group_identifier']
-        assert 0 == len(payload['outgoing'][0]['member_invites'])
-        assert 1 == len(payload['outgoing'][0]['owner_invites'])
+        assert normalised_data(
+            [
+                {
+                    'group_identifier': '00000000-0000-0000-0000-000000000002',
+                    'member_invites': [],
+                    'owner_invites': [{'email_address': 'johnsmith2@example.com'}],
+                }
+            ]
+        ) == normalised_data(payload['outgoing'])
         # test user 1 does not have any incoming invites
-        assert 0 == len(payload['incoming'])
+        assert [] == normalised_data(payload['incoming'])
 
         # Get all data as test user 2
         with self.session_cookie(self.browser, self.test_user2.eppn) as client:
@@ -952,15 +988,33 @@ class GroupManagementTests(EduidAPITestCase):
         self._check_success_response(response, type_='GET_GROUP_MANAGEMENT_ALL_DATA_SUCCESS')
         payload = response.json.get('payload')
         # As member the user only see owners for a group
-        assert 0 == len(payload['member_of'][0]['members'])
-        assert 1 == len(payload['member_of'][0]['owners'])
+        assert normalised_data(
+            [
+                {
+                    'display_name': 'Test Group 1',
+                    'identifier': '00000000-0000-0000-0000-000000000002',
+                    'members': [],
+                    'owners': [
+                        {'display_name': 'johnsmith@example.com', 'identifier': '00000000-0000-0000-0000-000000000000'}
+                    ],
+                }
+            ]
+        ) == normalised_data(payload['member_of'])
         # test user 2 is not an owner of a group
-        assert 0 == len(payload['owner_of'])
+        assert [] == payload['owner_of']
         # test user 2 does not have any outgoing invites
-        assert 0 == len(payload['outgoing'])
+        assert [] == payload['outgoing']
         # as an invitee the user see incoming invites
-        assert 1 == len(payload['incoming'])
-        assert self.test_user2.mail_addresses.primary.email == payload['incoming'][0]['email_address']
-        assert str(self.scim_group1.scim_id) == payload['incoming'][0]['group_identifier']
-        assert str(self.scim_user1.scim_id) == payload['incoming'][0]['owners'][0]['identifier']
-        assert payload['incoming'][0].get('members') is None
+        assert normalised_data(
+            [
+                {
+                    'display_name': 'Test Group 1',
+                    'email_address': 'johnsmith2@example.com',
+                    'group_identifier': '00000000-0000-0000-0000-000000000002',
+                    'owners': [
+                        {'display_name': 'johnsmith@example.com', 'identifier': '00000000-0000-0000-0000-000000000000'}
+                    ],
+                    'role': 'owner',
+                }
+            ]
+        ) == normalised_data(payload['incoming'])
