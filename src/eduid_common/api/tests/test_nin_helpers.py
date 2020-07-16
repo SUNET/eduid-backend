@@ -163,7 +163,7 @@ class NinHelpersTest(EduidAPITestCase):
         )
         proofing_state = NinProofingState.from_dict({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
         proofing_log_entry = NinProofingLogElement(
-            user,
+            eppn=user.eppn,
             created_by=proofing_state.nin.created_by,
             nin=proofing_state.nin.number,
             user_postal_address=self.navet_response,
@@ -198,7 +198,7 @@ class NinHelpersTest(EduidAPITestCase):
         )
         proofing_state = NinProofingState.from_dict({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
         proofing_log_entry = NinProofingLogElement(
-            user,
+            eppn=user.eppn,
             created_by=proofing_state.nin.created_by,
             nin=proofing_state.nin.number,
             user_postal_address=self.navet_response,
@@ -238,7 +238,7 @@ class NinHelpersTest(EduidAPITestCase):
         )
         proofing_state = NinProofingState.from_dict({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
         proofing_log_entry = NinProofingLogElement(
-            user,
+            eppn=user.eppn,
             created_by=proofing_state.nin.created_by,
             nin=proofing_state.nin.number,
             user_postal_address=self.navet_response,
@@ -280,7 +280,7 @@ class NinHelpersTest(EduidAPITestCase):
         proofing_state = NinProofingState.from_dict({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
         # Create a ProofingLogElement with an empty created_by, which should be rejected on save in LogDB
         proofing_log_entry = NinProofingLogElement(
-            user,
+            eppn=user.eppn,
             created_by='',
             nin=proofing_state.nin.number,
             user_postal_address=self.navet_response,
@@ -299,7 +299,7 @@ class NinHelpersTest(EduidAPITestCase):
         del userdata['displayName']
         user = ProofingUser.from_dict(data=userdata)
         proofing_element = NinProofingLogElement(
-            user,
+            eppn=user.eppn,
             created_by='test',
             nin='190102031234',
             user_postal_address=self.navet_response,
@@ -321,7 +321,7 @@ class NinHelpersTest(EduidAPITestCase):
             u'OfficialAddress': {u'Address2': u'\xd6RGATAN 79 LGH 10', u'City': u'LANDET', u'PostalCode': u'12345'},
         }
         proofing_element = NinProofingLogElement(
-            user,
+            eppn=user.eppn,
             created_by='test',
             nin='190102031234',
             user_postal_address=navet_response,
@@ -347,7 +347,7 @@ class NinHelpersTest(EduidAPITestCase):
             u'OfficialAddress': {u'Address2': u'\xd6RGATAN 79 LGH 10', u'City': u'LANDET', u'PostalCode': u'12345'},
         }
         proofing_element = NinProofingLogElement(
-            user,
+            eppn=user.eppn,
             created_by='test',
             nin='190102031234',
             user_postal_address=navet_response,
@@ -369,7 +369,7 @@ class NinHelpersTest(EduidAPITestCase):
             u'OfficialAddress': {u'Address2': u'\xd6RGATAN 79 LGH 10', u'City': u'LANDET', u'PostalCode': u'12345'},
         }
         proofing_element = NinProofingLogElement(
-            user,
+            eppn=user.eppn,
             created_by='test',
             nin='190102031234',
             user_postal_address=navet_response,
@@ -386,7 +386,7 @@ class NinHelpersTest(EduidAPITestCase):
         userdata = new_user_example.to_dict()
         user = ProofingUser.from_dict(data=userdata)
         proofing_element = NinProofingLogElement(
-            user,
+            eppn=user.eppn,
             created_by='test',
             nin='190102031234',
             user_postal_address=self.navet_response,
