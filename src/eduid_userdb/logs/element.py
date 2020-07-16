@@ -28,8 +28,6 @@ class _LogElementRequired:
 class LogElement(Element, _LogElementRequired):
     """
     """
-    created_ts: datetime = field(default_factory=datetime.utcnow)
-
     name_mapping: ClassVar[Dict[str, str]] = {'eduPersonPrincipalName': 'eppn'}
 
     def validate(self):
@@ -39,13 +37,6 @@ class LogElement(Element, _LogElementRequired):
         # Check that all keys are accounted for and that no string values are blank
         for key in required_keys:
             data = getattr(self, key)
-            if data is None:
-                logger.error(
-                    'Not enough data to log proofing event: {!r}. Required keys: {!r}'.format(
-                        asdict(self), required_keys - self_keys
-                    )
-                )
-                return False
             if isinstance(data, six.string_types):
                 if not data:
                     logger.error('Not enough data to log proofing event: "{}" can not be blank.'.format(key))
@@ -245,7 +236,7 @@ class SeLegProofingFrejaEid(SeLegProofing, _SeLegProofingFrejaEidRequired):
         'user_postal_address': {postal_address_from_navet}
     }
     """
-    vetting_by: str = 'Freja eID',
+    vetting_by: str = 'Freja eID'
 
 
 @dataclass

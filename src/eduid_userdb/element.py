@@ -98,7 +98,7 @@ class MetaElement(type):
         mapping = {}
         old_names = ()
 
-        for cls in elem_class.__mro__:
+        for cls in reversed(elem_class.__mro__):
 
             if hasattr(cls, 'name_mapping'):
                 mapping.update(cls.name_mapping)

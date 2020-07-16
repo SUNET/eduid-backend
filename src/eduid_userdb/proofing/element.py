@@ -34,7 +34,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
+from typing import ClassVar, Dict, Optional
 
 from eduid_userdb.element import Element, VerifiedElement
 
@@ -61,6 +61,8 @@ class ProofingElement(VerifiedElement):
     :type data: dict
     """
     verification_code: Optional[str] = None
+
+    name_mapping: ClassVar[Dict[str, str]] = {'verification_code': 'verification_code'}
 
 
 @dataclass

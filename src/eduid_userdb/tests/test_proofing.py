@@ -75,16 +75,15 @@ class ProofingStateTest(TestCase):
             proofing_letter=SentLetterElement.from_dict({}),
         )
         state.proofing_letter.address = ADDRESS
-        x = state.proofing_letter.to_dict()
         state_dict = state.to_dict()
         self.assertEqual(
             sorted(state_dict.keys()), ['_id', 'eduPersonPrincipalName', 'modified_ts', 'nin', 'proofing_letter']
         )
         self.assertEqual(
-            sorted(state_dict['nin'].keys()), ['created_by', 'created_ts', 'number', 'verification_code', 'verified']
+            sorted([k for k, v in state_dict['nin'].items() if v is not None]), ['created_by', 'created_ts', 'modified_ts', 'number', 'verification_code', 'verified']
         )
         self.assertEqual(
-            sorted(state_dict['proofing_letter'].keys()), ['address', 'is_sent', 'sent_ts', 'transaction_id']
+            sorted([k for k, v in state_dict['proofing_letter'].items() if v is not None]), ['address', 'created_ts', 'is_sent', 'modified_ts']
         )
 
     def test_create_oidcproofingstate(self):

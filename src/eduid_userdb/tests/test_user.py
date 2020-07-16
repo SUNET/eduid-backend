@@ -611,6 +611,7 @@ class TestUser(DictTestCase, _AbstractUserTestCase):
                     u'added_timestamp': datetime.datetime(2014, 12, 18, 11, 25, 19, 804000),
                     u'email': u'user@example.net',
                     u'verified': True,
+                    u'primary': True,
                 }
             ],
             u'passwords': [

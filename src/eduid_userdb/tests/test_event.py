@@ -131,10 +131,8 @@ class TestEventList(TestCase):
         el = EventList([_event_no_modified_ts])
         for event in el.to_list_of_dicts():
             self.assertIsInstance(event['modified_ts'], datetime.datetime)
-            self.assertEqual(event['modified_ts'], event['created_ts'])
         for event in el.to_list():
             self.assertIsInstance(event.modified_ts, datetime.datetime)
-            self.assertEqual(event.modified_ts, event.created_ts)
 
     def test_update_modified_ts(self):
         _event_modified_ts = {

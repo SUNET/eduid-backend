@@ -42,7 +42,8 @@ class DictTestCase(unittest.TestCase):
     def normalize_data(cls, expected: List[Dict[str, Any]], obtained: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         """
         Remove timestamps that in general are created at different times
-        and compare the resulting dicts
+        normalize the names of some attributes
+        remove attributes set to None
         """
         for elist in (expected, obtained):
             for elem in elist:
@@ -51,7 +52,7 @@ class DictTestCase(unittest.TestCase):
         return expected, obtained
 
     @classmethod
-    def normalize_elem(cls, elem: Dict[str, Any]) -> Dict[str, Any]:
+    def normalize_elem(cls, elem: Dict[str, Any]):
         if 'created_ts' in elem:
             del elem['created_ts']
         if 'modified_ts' in elem:

@@ -37,7 +37,7 @@ from __future__ import annotations
 import copy
 import datetime
 from dataclasses import asdict, dataclass
-from typing import Iterable, Mapping, MutableMapping, Optional, Set
+from typing import Mapping, MutableMapping, Optional, Set
 
 import bson
 
@@ -135,6 +135,12 @@ class NinProofingState(ProofingState):
         _data['nin'] = NinProofingElement.from_dict(_data['nin'])
         return cls._default_from_dict(_data, {'nin'})
 
+    def to_dict(self) -> MutableMapping:
+        nin_data = self.nin.to_dict()
+        res = super().to_dict()
+        res['nin'] = nin_data
+        return res
+
 
 @dataclass()
 class LetterProofingState(NinProofingState):
@@ -147,6 +153,12 @@ class LetterProofingState(NinProofingState):
         _data['nin'] = NinProofingElement.from_dict(_data['nin'])
         _data['proofing_letter'] = SentLetterElement.from_dict(_data['proofing_letter'])
         return cls._default_from_dict(_data, {'nin', 'proofing_letter'})
+
+    def to_dict(self) -> MutableMapping:
+        letter_data = self.proofing_letter.to_dict()
+        res = super().to_dict()
+        res['proofing_letter'] = letter_data
+        return res
 
 
 @dataclass()
@@ -185,6 +197,12 @@ class EmailProofingState(ProofingState):
         _data['verification'] = EmailProofingElement.from_dict(_data['verification'])
         return cls._default_from_dict(_data, {'verification'})
 
+    def to_dict(self) -> MutableMapping:
+        email_data = self.verification.to_dict()
+        res = super().to_dict()
+        res['verification'] = email_data
+        return res
+
 
 @dataclass()
 class PhoneProofingState(ProofingState):
@@ -196,3 +214,9 @@ class PhoneProofingState(ProofingState):
         _data = copy.deepcopy(dict(data))  # to not modify callers data
         _data['verification'] = PhoneProofingElement.from_dict(_data['verification'])
         return cls._default_from_dict(_data, {'verification'})
+
+    def to_dict(self) -> MutableMapping:
+        phone_data = self.verification.to_dict()
+        res = super().to_dict()
+        res['verification'] = phone_data
+        return res

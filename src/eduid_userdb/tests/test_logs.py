@@ -57,6 +57,8 @@ class TestProofingLog(TestCase):
         }
         proofing_element = TeleAdressProofing(**data)
         for key, value in data.items():
+            if key == 'eppn':
+                continue
             self.assertIn(key, proofing_element.to_dict())
             self.assertEqual(value, proofing_element.to_dict().get(key))
 
@@ -86,6 +88,8 @@ class TestProofingLog(TestCase):
         }
         proofing_element = TeleAdressProofingRelation(**data)
         for key, value in data.items():
+            if key == 'eppn':
+                continue
             self.assertIn(key, proofing_element.to_dict())
             self.assertEqual(value, proofing_element.to_dict().get(key))
 
@@ -112,6 +116,8 @@ class TestProofingLog(TestCase):
         }
         proofing_element = LetterProofing(**data)
         for key, value in data.items():
+            if key == 'eppn':
+                continue
             self.assertIn(key, proofing_element.to_dict())
             self.assertEqual(value, proofing_element.to_dict().get(key))
 
@@ -137,6 +143,8 @@ class TestProofingLog(TestCase):
         }
         proofing_element = MailAddressProofing(**data)
         for key, value in data.items():
+            if key == 'eppn':
+                continue
             self.assertIn(key, proofing_element.to_dict())
             self.assertEqual(value, proofing_element.to_dict().get(key))
 
@@ -160,6 +168,8 @@ class TestProofingLog(TestCase):
         }
         proofing_element = PhoneNumberProofing(**data)
         for key, value in data.items():
+            if key == 'eppn':
+                continue
             self.assertIn(key, proofing_element.to_dict())
             self.assertEqual(value, proofing_element.to_dict().get(key))
 
@@ -186,6 +196,8 @@ class TestProofingLog(TestCase):
         }
         proofing_element = SeLegProofing(**data)
         for key, value in data.items():
+            if key == 'eppn':
+                continue
             self.assertIn(key, proofing_element.to_dict())
             self.assertEqual(value, proofing_element.to_dict().get(key))
 
@@ -215,6 +227,8 @@ class TestProofingLog(TestCase):
         }
         proofing_element = SeLegProofingFrejaEid(**data)
         for key, value in data.items():
+            if key == 'eppn':
+                continue
             self.assertIn(key, proofing_element.to_dict())
             self.assertEqual(value, proofing_element.to_dict().get(key))
 
@@ -243,18 +257,6 @@ class TestProofingLog(TestCase):
         }
         proofing_element = PhoneNumberProofing(**data)
         proofing_element.phone_number = ''
-
-        self.assertFalse(self.proofing_log_db.save(proofing_element))
-
-    def test_missing_proofing_data(self):
-        data = {
-            'eppn': self.user.eppn,
-            'created_by': 'test',
-            'phone_number': 'some_phone_number',
-            'proofing_version': 'test',
-            'reference': 'reference id',
-        }
-        proofing_element = PhoneNumberProofing(**data)
 
         self.assertFalse(self.proofing_log_db.save(proofing_element))
 

@@ -59,6 +59,7 @@ class Event(Element):
     event_id: Optional[str] = None
 
     name_mapping: ClassVar[Dict[str, str]] = {'id': 'event_id', 'application': 'created_by'}
+    old_names: ClassVar[tuple] = ('id',)
 
     @property
     def key(self) -> EventId:
