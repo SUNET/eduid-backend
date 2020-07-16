@@ -36,6 +36,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+import bson
+
 from eduid_userdb.credentials import Credential
 
 __author__ = 'lundberg'
@@ -47,6 +49,11 @@ class _PasswordRequired:
     """
     credential_id: str
     salt: str
+
+    def __post_init__(self):
+        # backwards compat
+        if isinstance(self.credential_id, bson.ObjectId):
+            self.credential_id = str(self.credential_id)
 
 
 @dataclass

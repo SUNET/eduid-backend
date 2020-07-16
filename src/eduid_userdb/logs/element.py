@@ -33,7 +33,8 @@ class LogElement(Element, _LogElementRequired):
     def validate(self):
         element_keys = set([elem.name for elem in fields(Element)])
         self_keys = set([elem.name for elem in fields(self)])
-        required_keys = self_keys - element_keys
+        required_keys = tuple(self_keys - element_keys)
+        required_keys += ('created_ts', 'created_by')
         # Check that all keys are accounted for and that no string values are blank
         for key in required_keys:
             data = getattr(self, key)
