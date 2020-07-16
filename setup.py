@@ -1,6 +1,6 @@
 import os
 
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, find_namespace_packages
 
 __author__ = 'ft'
 
@@ -24,7 +24,7 @@ setup(
     author_email='fredrik@thulin.net',
     url='https://www.eduid.se/',
     license='BSD',
-    packages=find_packages('src'),
+    packages=find_packages('src') + find_namespace_packages(where='src', include='eduid_satosa_plugins.*'),
     package_dir={'': 'src'},
     zip_safe=False,
     install_requires=install_requires,
