@@ -390,14 +390,24 @@ def normalised_data(
         # type becomes too bloated with that in mind and the code becomes too inelegant when unrolling
         # this list comprehension into a for-loop checking types for something only intended to be used in test cases.
         # Hence the type: ignore.
-        return [normalised_data(x) for x in data if isinstance(x, dict)]  # type: ignore
+        return sorted([_normalise_value(x) for x in data], key=_any_key)  # type: ignore
     elif isinstance(data, dict):
         # normalise all values found in the dict, returning a new dict (to not modify callers data)
-        return {k: _normalise_datetime(v) for k, v in data.items()}
+        return {k: _normalise_value(v) for k, v in data.items()}
     raise TypeError('normalised_data not called on dict (or list of dicts)')
 
 
-def _normalise_datetime(data):
-    if isinstance(data, datetime):
+def _any_key(value: Any):
+    """ Helper function to be able to use sorted with key argument for everything """
+    if isinstance(value, dict):
+        # It should not matter much what we sort on as the data structures should be equal or not
+        return [value.keys()][0]
+    return value
+
+
+def _normalise_value(data: Any) -> Any:
+    if isinstance(data, dict) or isinstance(data, list):
+        return normalised_data(data)
+    elif isinstance(data, datetime):
         return data.replace(microsecond=0, tzinfo=None)
     return data
