@@ -404,7 +404,7 @@ class LetterProofingTests(EduidAPITestCase):
 
         # User with locked_identity and correct nin
         user.locked_identity.add(
-            LockedIdentityNin.from_dict(dict(number=self.test_user_nin, created_by='test', created_ts=True))
+            LockedIdentityNin(number=self.test_user_nin, created_by='test')
         )
         self.app.central_userdb.save(user, check_sync=False)
         with self.session_cookie(self.browser, self.test_user_eppn):
@@ -418,7 +418,7 @@ class LetterProofingTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
         user.locked_identity.add(
-            LockedIdentityNin.from_dict(dict(number=self.test_user_nin, created_by='test', created_ts=True))
+            LockedIdentityNin(number=self.test_user_nin, created_by='test')
         )
         self.app.central_userdb.save(user, check_sync=False)
 

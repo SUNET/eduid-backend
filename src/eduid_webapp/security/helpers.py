@@ -236,7 +236,7 @@ def verify_email_address(state):
         return False
 
     proofing_element = MailAddressProofing(
-        user,
+        eppn=user.eppn,
         created_by='security',
         mail_address=state.email_address,
         reference=state.reference,

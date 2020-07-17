@@ -186,17 +186,14 @@ class SecurityWebauthnTests(EduidAPITestCase):
 
     def _add_u2f_token_to_user(self, eppn):
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        u2f_token = U2F.from_dict(
-            dict(
-                version='version',
-                keyhandle='keyHandle',
-                app_id='appId',
-                public_key='publicKey',
-                attest_cert='cert',
-                description='description',
-                created_by='eduid_security',
-                created_ts=True,
-            )
+        u2f_token = U2F(
+            version='version',
+            keyhandle='keyHandle',
+            app_id='appId',
+            public_key='publicKey',
+            attest_cert='cert',
+            description='description',
+            created_by='eduid_security',
         )
         user.credentials.add(u2f_token)
         self.app.central_userdb.save(user)
