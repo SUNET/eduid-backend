@@ -68,7 +68,7 @@ class Credential(VerifiedElement):
     def data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         """
-        data = super().data_in_transforms(data)
+        data = super().data_out_transforms(data)
 
         if data.get('verified') is True:
             # suppress method/version None to avoid messing up test cases unnecessarily

@@ -205,10 +205,14 @@ class Element(metaclass=MetaElement):
     def data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         """
+        new_data = dict()
+        for key, val in data.items():
+            if val is not None:
+                new_data[key] = val
         try:
-            return super().data_out_transforms(data)
+            return super().data_out_transforms(new_data)
         except AttributeError:
-            return data
+            return new_data
 
 
 @dataclass

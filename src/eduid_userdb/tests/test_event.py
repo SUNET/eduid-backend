@@ -62,7 +62,6 @@ class TestEventList(TestCase):
 
         _one_dict_copy = deepcopy(_one_dict)  # Update id to event_id before comparing dicts
         _one_dict_copy['event_id'] = _one_dict_copy.pop('id')
-        _one_dict_copy['data'] = None
         self.assertEqual([_one_dict_copy], self.one.to_list_of_dicts())
 
     def test_find(self):

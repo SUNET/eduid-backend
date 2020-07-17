@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from typing import Any, ClassVar, Dict, List, Optional, Type
 
 from eduid_userdb.element import Element, VerifiedElement
@@ -73,8 +73,6 @@ class OidcAuthorization(Element, _OidcAuthorizationRequired):
     """
     expires_in: Optional[int] = None
     refresh_token: Optional[str] = None
-
-    name_mapping = {'application': 'created_by', 'name': '', 'orcid': '', 'scope': ''}
 
     @property
     def key(self) -> str:

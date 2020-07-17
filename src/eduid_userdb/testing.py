@@ -190,7 +190,7 @@ class DictTestCase(unittest.TestCase):
             for elem in elist:
                 cls.normalize_elem(elem)
 
-        return expected, obtained
+        return expected, obtained  # XXX this is useless, we are now modifying in place
 
     @classmethod
     def normalize_elem(cls, elem: Dict[str, Any]):
@@ -198,6 +198,8 @@ class DictTestCase(unittest.TestCase):
             del elem['created_ts']
         if 'modified_ts' in elem:
             del elem['modified_ts']
+        if 'verified_ts' in elem:
+            del elem['verified_ts']
 
         if 'application' in elem:
             elem['created_by'] = elem.pop('application')
@@ -211,10 +213,6 @@ class DictTestCase(unittest.TestCase):
         for key in elem:
             if isinstance(elem[key], dict):
                 cls.normalize_elem(elem[key])
-
-        for key in ('created_by', 'application', 'verified_ts', 'verified_by'):
-            if key in elem and elem[key] is None:
-                del elem[key]
 
 
 class MongoTestCase(DictTestCase):
