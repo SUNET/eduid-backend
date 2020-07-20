@@ -65,6 +65,12 @@ class Credential(VerifiedElement):
         else:
             return '<eduID {!s}(key=\'{!s}...\'): verified=False>'.format(self.__class__.__name__, shortkey)
 
+    def __hash__(self):
+        return hash(str(self.key))
+
+    def __eq__(self, other):
+        return self.key == other.key
+
     def data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         """
