@@ -6,6 +6,7 @@ import random
 import subprocess
 import time
 import unittest
+import logging
 from os import environ
 from typing import Optional
 
@@ -18,6 +19,8 @@ __author__ = 'lundberg'
 # Run tests with different Neo4j docker image versions using environment variables
 NEO4J_VERSION = environ.get('NEO4J_VERSION', 'enterprise')
 
+logger = logging.getLogger(__name__)
+logger.info(f'NEO4J_VERSION={NEO4J_VERSION}')
 
 class Neo4jTemporaryInstance(object):
     """
@@ -77,16 +80,21 @@ class Neo4jTemporaryInstance(object):
 
         self._host = 'localhost'
 
+        self._db = None
         for i in range(300):
             time.sleep(0.5)
             try:
                 db_uri = f'bolt://{self.DEFAULT_USERNAME}:{self.DEFAULT_PASSWORD}@{self.host}:{self.bolt_port}'
                 self._db = Neo4jDB(db_uri=db_uri, config={'encrypted': False})
-            except (ServiceUnavailable, ConnectionError):
+            except (ServiceUnavailable, ConnectionError) as e:
+                logger.error(e)
+                logger.info(f'Retrying, attempt {i}')
                 continue
             else:
+                logger.info(f'Successfully connected to neo4jdb on attempt {i} after {i*0.5}s')
                 break
-        else:
+
+        if self._db is None:
             self.shutdown()
             assert False, 'Cannot connect to the neo4j test instance'
 
