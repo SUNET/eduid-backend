@@ -54,6 +54,32 @@ def get_or_create_scim_user_by_eppn(eppn: str) -> ScimApiUser:
     return scim_user
 
 
+def list_of_group_data(group_list: List[ScimApiGroup]) -> List[Dict]:
+    ret = []
+    for group in group_list:
+        members = [
+            {'identifier': member.identifier, 'display_name': member.display_name} for member in group.graph.members
+        ]
+        owners = [{'identifier': owner.identifier, 'display_name': owner.display_name} for owner in group.graph.owners]
+        group_data = {
+            'identifier': group.scim_id,
+            'display_name': group.display_name,
+            'members': members,
+            'owners': owners,
+        }
+        current_app.logger.debug(f'Group data: {group_data}')
+        ret.append(group_data)
+    return ret
+
+
+def get_all_group_data(scim_user: ScimApiUser) -> Dict[str, Any]:
+    member_groups = current_app.scimapi_groupdb.get_groups_for_user_identifer(scim_user.scim_id)
+    owner_groups = current_app.scimapi_groupdb.get_groups_owned_by_user_identifier(scim_user.scim_id)
+    current_app.logger.debug(f'member_of: {member_groups}')
+    current_app.logger.debug(f'owner_of: {owner_groups}')
+    return {'member_of': list_of_group_data(member_groups), 'owner_of': list_of_group_data(owner_groups)}
+
+
 def is_owner(scim_user: ScimApiUser, group_id: UUID) -> bool:
     owner_groups = current_app.scimapi_groupdb.get_groups_owned_by_user_identifier(scim_user.scim_id)
     return group_id in [owner_group.scim_id for owner_group in owner_groups]

@@ -133,3 +133,13 @@ class GroupAllInviteResponseSchema(FluxStandardAction):
         outgoing = fields.Nested(OutgoingInvite, many=True)
 
     payload = fields.Nested(GroupInviteResponsePayload)
+
+
+class GroupManagementAllDataResponseSchema(FluxStandardAction):
+    class CombinedGroupDataInviteDataPayload(EduidSchema, CSRFResponseMixin):
+        member_of = fields.Nested(Group, default=[], many=True)
+        owner_of = fields.Nested(Group, default=[], many=True)
+        incoming = fields.Nested(IncomingInvite, many=True)
+        outgoing = fields.Nested(OutgoingInvite, many=True)
+
+    payload = fields.Nested(CombinedGroupDataInviteDataPayload)
