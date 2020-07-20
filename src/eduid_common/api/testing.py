@@ -33,6 +33,7 @@
 
 from __future__ import absolute_import
 
+import json
 import logging
 import pprint
 import sys
@@ -400,8 +401,7 @@ def normalised_data(
 def _any_key(value: Any):
     """ Helper function to be able to use sorted with key argument for everything """
     if isinstance(value, dict):
-        # It should not matter much what we sort on as the data structures should be equal or not
-        return [value.keys()][0]
+        return json.dumps(value, sort_keys=True)  # Turn dict in to a string for sorting
     return value
 
 
