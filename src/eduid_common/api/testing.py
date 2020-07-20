@@ -398,10 +398,17 @@ def normalised_data(
     raise TypeError('normalised_data not called on dict (or list of dicts)')
 
 
+class SortEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return str(_normalise_value(obj))
+        return json.JSONEncoder.default(self, obj)
+
+
 def _any_key(value: Any):
     """ Helper function to be able to use sorted with key argument for everything """
     if isinstance(value, dict):
-        return json.dumps(value, sort_keys=True)  # Turn dict in to a string for sorting
+        return json.dumps(value, sort_keys=True, cls=SortEncoder)  # Turn dict in to a string for sorting
     return value
 
 
