@@ -294,7 +294,6 @@ class LetterProofingTests(EduidAPITestCase):
         response = self.send_letter(self.test_user_nin)
         # move the proofing state back in time so that it is expired by now
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
-        proofing_state.proofing_letter._data['sent_ts'] = None
         proofing_state.proofing_letter.sent_ts = datetime.fromisoformat('2020-01-01T01:02:03')
         self.app.proofing_statedb.save(proofing_state)
 

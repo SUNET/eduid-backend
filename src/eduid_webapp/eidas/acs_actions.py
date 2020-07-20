@@ -90,7 +90,7 @@ def token_verify_action(session_info: Mapping[str, Any], user: User) -> Werkzeug
         current_app.stats.count('navet_error')
         return redirect_with_msg(redirect_url, CommonMsg.navet_error)
     proofing_log_entry = MFATokenProofing(
-        user=proofing_user,
+        eppn=proofing_user.eppn,
         created_by='eduid-eidas',
         nin=user_nin.number,
         issuer=issuer,
@@ -160,7 +160,7 @@ def nin_verify_action(session_info: Mapping[str, Any], user: User) -> WerkzeugRe
         return redirect_with_msg(redirect_url, CommonMsg.navet_error)
 
     proofing_log_entry = SwedenConnectProofing(
-        user=proofing_user,
+        eppn=proofing_user.eppn,
         created_by='eduid-eidas',
         nin=asserted_nin,
         issuer=issuer,
@@ -217,7 +217,7 @@ def nin_verify_BACKDOOR(user: User) -> WerkzeugResponse:
     }
 
     proofing_log_entry = SwedenConnectProofing(
-        user=proofing_user,
+        eppn=proofing_user.eppn,
         created_by='eduid-eidas',
         nin=asserted_nin,
         issuer=issuer,

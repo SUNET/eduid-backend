@@ -122,7 +122,7 @@ def verify_mail_address(state, proofing_user):
             proofing_user.mail_addresses.find(state.verification.email).is_primary = True
 
     mail_address_proofing = MailAddressProofing(
-        proofing_user,
+        eppn=proofing_user.eppn,
         created_by='email',
         mail_address=new_email.email,
         reference=state.reference,

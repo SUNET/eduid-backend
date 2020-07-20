@@ -116,7 +116,7 @@ def create_proofing_state(eppn: str, nin: str) -> LetterProofingState:
         verification_code=get_short_hash(),
     )
     proofing_letter = SentLetterElement()
-    return LetterProofingState(eppn=eppn, nin=_nin, proofing_letter=proofing_letter)
+    return LetterProofingState(eppn=eppn, nin=_nin, proofing_letter=proofing_letter, id=None, modified_ts=None)
 
 
 def get_address(user: User, proofing_state: LetterProofingState) -> Optional[dict]:
