@@ -33,6 +33,7 @@
 
 from __future__ import absolute_import
 
+import json
 import logging
 import pprint
 import sys
@@ -308,16 +309,22 @@ class EduidAPITestCase(CommonTestCase):
         :param payload: Data expected to be found in the 'payload' of the response
         """
         try:
-            assert status == response.status_code, f'The HTTP response code was not {status}'
-            assert type_ == response.json['type'], 'Response had unexpected type'
+            assert status == response.status_code, f'The HTTP response code was {response.status_code} not {status}'
+            assert (
+                type_ == response.json['type']
+            ), f'Wrong response type. expected: {type_}, actual: {response.json["type"]}'
             assert 'payload' in response.json, 'JSON body has no "payload" element'
             if message is not None:
                 assert 'message' in response.json['payload'], 'JSON payload has no "message" element'
-                assert message.value == response.json['payload']['message'], 'Wrong message returned'
+                _message_value = response.json['payload']['message']
+                assert (
+                    message.value == _message_value
+                ), f'Wrong message returned. expected: {message.value}, actual: {_message_value}'
             if error is not None:
                 assert response.json['error'] is True, 'The Flux response was supposed to have error=True'
                 assert 'error' in response.json['payload'], 'JSON payload has no "error" element'
-                assert error == response.json['payload']['error'], 'Wrong error returned'
+                _error = response.json['payload']['error']
+                assert error == _error, f'Wrong error returned. expected: {error}, actual: {_error}'
             if payload is not None:
                 for k, v in payload.items():
                     assert k in response.json['payload'], f'The Flux response payload does not contain {repr(k)}'
@@ -384,14 +391,30 @@ def normalised_data(
         # type becomes too bloated with that in mind and the code becomes too inelegant when unrolling
         # this list comprehension into a for-loop checking types for something only intended to be used in test cases.
         # Hence the type: ignore.
-        return [normalised_data(x) for x in data if isinstance(x, dict)]  # type: ignore
+        return sorted([_normalise_value(x) for x in data], key=_any_key)  # type: ignore
     elif isinstance(data, dict):
         # normalise all values found in the dict, returning a new dict (to not modify callers data)
-        return {k: _normalise_datetime(v) for k, v in data.items()}
+        return {k: _normalise_value(v) for k, v in data.items()}
     raise TypeError('normalised_data not called on dict (or list of dicts)')
 
 
-def _normalise_datetime(data):
-    if isinstance(data, datetime):
+class SortEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return str(_normalise_value(obj))
+        return json.JSONEncoder.default(self, obj)
+
+
+def _any_key(value: Any):
+    """ Helper function to be able to use sorted with key argument for everything """
+    if isinstance(value, dict):
+        return json.dumps(value, sort_keys=True, cls=SortEncoder)  # Turn dict in to a string for sorting
+    return value
+
+
+def _normalise_value(data: Any) -> Any:
+    if isinstance(data, dict) or isinstance(data, list):
+        return normalised_data(data)
+    elif isinstance(data, datetime):
         return data.replace(microsecond=0, tzinfo=None)
     return data
