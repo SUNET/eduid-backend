@@ -311,7 +311,7 @@ class EduidAPITestCase(CommonTestCase):
             assert status == response.status_code, f'The HTTP response code was {response.status_code} not {status}'
             assert (
                 type_ == response.json['type']
-            ), f'Wrong response type. expected: {response.json["type"]}, actual: {type_}'
+            ), f'Wrong response type. expected: {type_}, actual: {response.json["type"]}'
             assert 'payload' in response.json, 'JSON body has no "payload" element'
             if message is not None:
                 assert 'message' in response.json['payload'], 'JSON payload has no "message" element'
