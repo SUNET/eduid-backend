@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from unittest import TestCase
-
 import eduid_userdb.element
 import eduid_userdb.exceptions
 from eduid_userdb.orcid import OidcAuthorization, OidcIdToken, Orcid
+from eduid_userdb.testing import DictTestCase
 
 __author__ = 'lundberg'
 
@@ -32,13 +31,12 @@ token_response = {
 }
 
 
-class TestOrcid(TestCase):
+class TestOrcid(DictTestCase):
 
     maxDiff = None
 
     def test_id_token(self):
         id_token_data = token_response['id_token']
-        id_token_data['created_ts'] = True
         id_token_data['created_by'] = 'test'
         id_token_1 = OidcIdToken.from_dict(id_token_data)
         id_token_2 = OidcIdToken(
@@ -58,23 +56,19 @@ class TestOrcid(TestCase):
 
         dict_1 = id_token_1.to_dict()
         dict_2 = id_token_2.to_dict()
-        del dict_1['created_ts']
-        del dict_1['modified_ts']
-        del dict_2['created_ts']
-        del dict_2['modified_ts']
 
-        self.assertEqual(dict_1, dict_2)
+        self.normalize_data([dict_1], [dict_2])
+
+        assert dict_1 == dict_2, ''
 
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
             OidcIdToken.from_dict(None)
 
     def test_oidc_authz(self):
         id_token_data = token_response['id_token']
-        id_token_data['created_ts'] = True
         id_token_data['created_by'] = 'test'
         id_token = OidcIdToken.from_dict(token_response['id_token'])
 
-        token_response['created_ts'] = True
         token_response['created_by'] = 'test'
         oidc_authz_1 = OidcAuthorization.from_dict(token_response)
         oidc_authz_2 = OidcAuthorization(
@@ -84,7 +78,6 @@ class TestOrcid(TestCase):
             expires_in=token_response['expires_in'],
             refresh_token=token_response['refresh_token'],
             created_by='test',
-            created_ts=True,
         )
 
         self.assertIsInstance(oidc_authz_1, OidcAuthorization)
@@ -93,24 +86,16 @@ class TestOrcid(TestCase):
 
         dict_1 = oidc_authz_1.to_dict()
         dict_2 = oidc_authz_2.to_dict()
-        del dict_1['created_ts']
-        del dict_1['modified_ts']
-        del dict_1['id_token']['created_ts']
-        del dict_1['id_token']['modified_ts']
-        del dict_2['created_ts']
-        del dict_2['modified_ts']
-        del dict_2['id_token']['created_ts']
-        del dict_2['id_token']['modified_ts']
 
-        self.assertEqual(dict_1, dict_2)
+        self.normalize_data([dict_1], [dict_2])
+
+        assert dict_1 == dict_2, ''
 
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
             OidcAuthorization.from_dict(None)
 
     def test_orcid(self):
-        token_response['id_token']['created_ts'] = True
         token_response['id_token']['created_by'] = 'test'
-        token_response['created_ts'] = True
         token_response['created_by'] = 'test'
         oidc_authz = OidcAuthorization.from_dict(token_response)
         orcid_1 = Orcid(
@@ -128,14 +113,10 @@ class TestOrcid(TestCase):
 
         dict_1 = orcid_1.to_dict()
         dict_2 = orcid_2.to_dict()
-        del dict_1['created_ts']
-        del dict_1['oidc_authz']['created_ts']
-        del dict_1['oidc_authz']['id_token']['created_ts']
-        del dict_2['created_ts']
-        del dict_2['oidc_authz']['created_ts']
-        del dict_2['oidc_authz']['id_token']['created_ts']
 
-        self.assertEqual(dict_1, dict_2)
+        self.normalize_data([dict_1], [dict_2])
+
+        assert dict_1 == dict_2, ''
 
         with self.assertRaises(TypeError):
             data = orcid_1.to_dict()

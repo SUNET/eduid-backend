@@ -74,6 +74,10 @@ class OidcAuthorization(Element, _OidcAuthorizationRequired):
     expires_in: Optional[int] = None
     refresh_token: Optional[str] = None
 
+    # XXX the data samples in the tests in test_orcid provide these keys,
+    # and here we remove them to avoid a TypeError.
+    name_mapping: ClassVar[Dict[str, str]] = {'name': '', 'orcid': '', 'scope': ''}
+
     @property
     def key(self) -> str:
         """

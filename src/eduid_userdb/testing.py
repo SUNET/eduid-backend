@@ -45,6 +45,7 @@ import time
 import unittest
 from abc import ABC
 from copy import deepcopy
+from datetime import datetime
 from typing import Any, Dict, List, Tuple, Type
 
 import pymongo
@@ -195,10 +196,16 @@ class DictTestCase(unittest.TestCase):
     @classmethod
     def normalize_elem(cls, elem: Dict[str, Any]):
         if 'created_ts' in elem:
+            assert isinstance(elem['created_ts'], datetime)
             del elem['created_ts']
+
         if 'modified_ts' in elem:
+            assert isinstance(elem['modified_ts'], datetime)
             del elem['modified_ts']
+
         if 'verified_ts' in elem:
+            if elem['verified_ts'] is not None:
+                assert isinstance(elem['verified_ts'], datetime)
             del elem['verified_ts']
 
         if 'application' in elem:
