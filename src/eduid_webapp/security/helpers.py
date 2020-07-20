@@ -280,7 +280,7 @@ def verify_phone_number(state):
         return False
 
     proofing_element = PhoneNumberProofing(
-        user,
+        eppn=user.eppn,
         created_by='security',
         phone_number=state.phone_number,
         reference=state.reference,

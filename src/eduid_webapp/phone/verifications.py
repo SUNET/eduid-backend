@@ -101,7 +101,7 @@ def verify_phone_number(state, proofing_user):
             proofing_user.phone_numbers.find(number).is_primary = True
 
     phone_number_proofing = PhoneNumberProofing(
-        proofing_user,
+        eppn=proofing_user.eppn,
         created_by='phone',
         phone_number=state.verification.number,
         reference=state.reference,

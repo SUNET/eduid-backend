@@ -112,7 +112,7 @@ def create_proofing_state(eppn: str, nin: str) -> LetterProofingState:
     _nin = NinProofingElement(
         number=nin,
         created_by='eduid-idproofing-letter',
-        verified=False,
+        is_verified=False,
         verification_code=get_short_hash(),
     )
     proofing_letter = SentLetterElement()

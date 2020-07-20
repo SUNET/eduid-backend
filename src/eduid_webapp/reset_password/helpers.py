@@ -410,7 +410,7 @@ def verify_phone_number(state: ResetPasswordEmailAndPhoneState) -> bool:
         return False
 
     proofing_element = PhoneNumberProofing(
-        user,
+        eppn=user.eppn,
         created_by='security',
         phone_number=state.phone_number,
         reference=state.reference,

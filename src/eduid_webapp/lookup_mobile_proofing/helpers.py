@@ -92,7 +92,7 @@ def match_mobile_to_user(user, self_asserted_nin, verified_mobile_numbers):
             'OfficialAddress': {'Address2': 'Dummy address', 'City': 'LANDET', 'PostalCode': '12345'},
         }
         proofing_log_entry = TeleAdressProofing(
-            proofing_user,
+            eppn=proofing_user.eppn,
             created_by='lookup_mobile_proofing',
             reason='magic_cookie',
             nin=self_asserted_nin,
@@ -123,7 +123,7 @@ def match_mobile_to_user(user, self_asserted_nin, verified_mobile_numbers):
             current_app.logger.info('Looking up official address for user {}.'.format(proofing_user))
             user_postal_address = current_app.msg_relay.get_postal_address(self_asserted_nin)
             proofing_log_entry = TeleAdressProofing(
-                proofing_user,
+                eppn=proofing_user.eppn,
                 created_by='lookup_mobile_proofing',
                 reason='matched',
                 nin=self_asserted_nin,
@@ -153,7 +153,7 @@ def match_mobile_to_user(user, self_asserted_nin, verified_mobile_numbers):
                 current_app.logger.info('Looking up official address for relation {}.'.format(proofing_user))
                 registered_postal_address = current_app.msg_relay.get_postal_address(registered_to_nin)
                 proofing_log_entry = TeleAdressProofingRelation(
-                    proofing_user,
+                    eppn=proofing_user.eppn,
                     created_by='lookup_mobile_proofing',
                     reason='match_by_navet',
                     nin=self_asserted_nin,
