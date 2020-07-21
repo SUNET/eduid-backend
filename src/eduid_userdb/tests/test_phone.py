@@ -1,11 +1,11 @@
 import copy
 import datetime
-from unittest import TestCase
 
 import eduid_userdb.element
 import eduid_userdb.exceptions
 from eduid_userdb.element import Element
 from eduid_userdb.phone import PhoneNumber, PhoneNumberList
+from eduid_userdb.testing import DictTestCase
 
 __author__ = 'ft'
 
@@ -34,7 +34,7 @@ _four_dict = {
 }
 
 
-class TestPhoneNumberList(TestCase):
+class TestPhoneNumberList(DictTestCase):
     def setUp(self):
         self.empty = PhoneNumberList([])
         self.one = PhoneNumberList([_one_dict])
@@ -207,7 +207,7 @@ class TestPhoneNumberList(TestCase):
             PhoneNumberList([one])
 
 
-class TestPhoneNumber(TestCase):
+class TestPhoneNumber(DictTestCase):
     def setUp(self):
         self.empty = PhoneNumberList([])
         self.one = PhoneNumberList([_one_dict])
