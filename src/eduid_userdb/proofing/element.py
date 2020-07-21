@@ -55,19 +55,18 @@ class ProofingElement(VerifiedElement):
         verified_by
         verified_ts
         verification_code
-
-    :param data: element parameters from database
-
-    :type data: dict
     """
     verification_code: Optional[str] = None
 
+    # this seems redundant but it is not: VerifiedElement's name_mapping eliminates the
+    # verification_code key, and here we replace it.
     name_mapping: ClassVar[Dict[str, str]] = {'verification_code': 'verification_code'}
 
 
 @dataclass
 class _NumberProofingElementRequired:
     """
+    Required fields for NinProofingElement and PhoneProofingElement
     """
     number: str
 
@@ -86,16 +85,13 @@ class NinProofingElement(ProofingElement, _NumberProofingElementRequired):
         verified_by
         verified_ts
         verification_code
-
-    :param data: element parameters from database
-
-    :type data: dict
     """
 
 
 @dataclass
 class _EmailProofingElementRequired:
     """
+    Required fields for EmailProofingElement
     """
     email: str
 
@@ -114,10 +110,6 @@ class EmailProofingElement(ProofingElement, _EmailProofingElementRequired):
         verified_by
         verified_ts
         verification_code
-
-    :param data: element parameters from database
-
-    :type data: dict
     """
 
 
@@ -135,10 +127,6 @@ class PhoneProofingElement(ProofingElement, _NumberProofingElementRequired):
         verified_by
         verified_ts
         verification_code
-
-    :param data: element parameters from database
-
-    :type data: dict
     """
 
 

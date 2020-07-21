@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional
 
 from eduid_userdb.element import DuplicateElementViolation, Element, ElementList
 from eduid_userdb.exceptions import UserDBValueError

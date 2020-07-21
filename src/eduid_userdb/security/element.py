@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, Type, Union
+from typing import ClassVar, Dict, Mapping, Type, Union
 
 from eduid_userdb.element import Element
 
@@ -20,7 +20,7 @@ class _CodeElementRequired:
 class CodeElement(Element, _CodeElementRequired):
     """
     """
-    name_mapping = {'verified': 'is_verified'}
+    name_mapping: ClassVar[Dict[str, str]] = {'verified': 'is_verified'}
 
     @property
     def key(self) -> str:

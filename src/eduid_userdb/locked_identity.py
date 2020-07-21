@@ -31,11 +31,13 @@ class LockedIdentityElement(Element, _LockedIdentityElementRequired):
     """
 
     @property
-    def key(self):
+    def key(self) -> str:
         """
         :return: Type of identity
-        :rtype: string_types
         """
+        # XXX this is wrong, with a list of locked identity elements we should be able to
+        # XXX find or remove elements through their key, so the key should be unique for
+        # XXX each locked identity element.
         return self.identity_type
 
 

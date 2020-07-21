@@ -5,8 +5,7 @@
 
 from __future__ import absolute_import
 
-from dataclasses import dataclass, field, fields, asdict
-from datetime import datetime
+from dataclasses import dataclass, fields
 from typing import ClassVar, Dict
 import logging
 
@@ -21,6 +20,9 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class _LogElementRequired:
+    """
+    Required fields for LogElement
+    """
     created_by: str
 
 
@@ -30,7 +32,7 @@ class LogElement(Element, _LogElementRequired):
     """
     name_mapping: ClassVar[Dict[str, str]] = {'eduPersonPrincipalName': 'eppn'}
 
-    def validate(self):
+    def validate(self) -> bool:
         element_keys = set([elem.name for elem in fields(Element)])
         self_keys = set([elem.name for elem in fields(self)])
         required_keys = tuple(self_keys - element_keys)
@@ -47,6 +49,9 @@ class LogElement(Element, _LogElementRequired):
 
 @dataclass
 class _ProofingLogElementRequired:
+    """
+    Required fields for ProofingLogElement
+    """
     eppn: str
     proofing_version: str
 
@@ -60,6 +65,9 @@ class ProofingLogElement(LogElement, _ProofingLogElementRequired):
 
 @dataclass
 class _NinProofingLogElementRequired:
+    """
+    Required fields for NinProofingLogElement
+    """
     nin: str
     user_postal_address: str
 
@@ -72,6 +80,9 @@ class NinProofingLogElement(ProofingLogElement, _NinProofingLogElementRequired):
 
 @dataclass
 class _MailAddressProofingRequired:
+    """
+    Required fields for MailAddressProofing
+    """
     mail_address: str
     reference: str
 
@@ -94,6 +105,9 @@ class MailAddressProofing(ProofingLogElement, _MailAddressProofingRequired):
 
 @dataclass
 class _PhoneNumberProofingRequired:
+    """
+    Required fields for PhoneNumberProofing
+    """
     phone_number: str
     reference: str
 
@@ -116,6 +130,9 @@ class PhoneNumberProofing(ProofingLogElement, _PhoneNumberProofingRequired):
 
 @dataclass
 class _TeleAdressProofingRequired:
+    """
+    Required fields for TeleAdressProofing
+    """
     mobile_number: str
     reason: str
 
@@ -141,6 +158,9 @@ class TeleAdressProofing(NinProofingLogElement, _TeleAdressProofingRequired):
 
 @dataclass
 class _TeleAdressProofingRelationRequired:
+    """
+    Required fields for TeleAdressProofingRelation
+    """
     mobile_number_registered_to: str
     registered_relation: str
     registered_postal_address: str
@@ -170,6 +190,9 @@ class TeleAdressProofingRelation(TeleAdressProofing, _TeleAdressProofingRelation
 
 @dataclass
 class _LetterProofingRequired:
+    """
+    Required fields for LetterProofing
+    """
     letter_sent_to: str
     transaction_id: str
 
@@ -194,6 +217,9 @@ class LetterProofing(NinProofingLogElement, _LetterProofingRequired):
 
 @dataclass
 class _SeLegProofingRequired:
+    """
+    Required fields for SeLegProofing
+    """
     transaction_id: str
 
 
@@ -218,6 +244,9 @@ class SeLegProofing(NinProofingLogElement, _SeLegProofingRequired):
 
 @dataclass
 class _SeLegProofingFrejaEidRequired:
+    """
+    Required fields for SeLegProofingFrejaEid
+    """
     opaque_data: str
 
 
@@ -242,6 +271,9 @@ class SeLegProofingFrejaEid(SeLegProofing, _SeLegProofingFrejaEidRequired):
 
 @dataclass
 class _OrcidProofingRequired:
+    """
+    Required fields for OrcidProofing
+    """
     orcid: str
     issuer: str
     audience: str
@@ -266,6 +298,9 @@ class OrcidProofing(ProofingLogElement, _OrcidProofingRequired):
 
 @dataclass
 class _SwedenConnectProofingRequired:
+    """
+    Required fields for SwedenConnectProofing
+    """
     issuer: str
     authn_context_class: str
 
@@ -290,6 +325,9 @@ class SwedenConnectProofing(NinProofingLogElement, _SwedenConnectProofingRequire
 
 @dataclass
 class _MFATokenProofingRequired:
+    """
+    Required fields for MFATokenProofing
+    """
     key_id: str
 
 

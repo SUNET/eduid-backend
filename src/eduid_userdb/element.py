@@ -71,9 +71,9 @@ semantically sound. For example, we don't want data representing an element
 with the `is_primary` attribute set to `True` but the `is_verified` attribute
 set to `False`.
 
-To do the name translation, we use a mapping set as a class attribute in the
+To do the name translation, we use a mapping, set as a class attribute in the
 dataclasses (the dataclass machinery leaves alone such attributes), with the
-eduid names as keys and the pythonic names as values. We make this inheritble
+eduid names as keys and the pythonic names as values. We make this inheritable
 (in the sense that subclasses will merge the mappings declared in its
 superclasses with the mapping declared for themselves) by providing them with
 a metaclass that does the aggregation.

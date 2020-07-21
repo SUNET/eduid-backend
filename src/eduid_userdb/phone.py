@@ -33,8 +33,8 @@
 #
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
-from typing import Any, ClassVar, Dict, Optional, Type
+from dataclasses import dataclass
+from typing import Any, ClassVar, Dict, Optional
 
 from eduid_userdb.element import PrimaryElement, PrimaryElementList
 
@@ -51,7 +51,7 @@ class PhoneNumber(PrimaryElement):
     old_names: ClassVar[tuple] = ('added_timestamp', 'mobile')
 
     @property
-    def key(self):
+    def key(self) -> str:
         """
         Return the element that is used as key for phone numbers in a PrimaryElementList.
         """

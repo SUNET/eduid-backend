@@ -24,7 +24,7 @@ class _OidcIdTokenRequired:
     aud: List[str]
     # Expiration time
     exp: int
-    # Expiration time
+    # What is this?
     iat: int
 
 
@@ -47,12 +47,11 @@ class OidcIdToken(Element, _OidcIdTokenRequired):
     name_mapping: ClassVar[Dict[str, str]] = {'application': 'created_by', 'at_hash': '', 'family_name': '', 'given_name': '', 'jti': ''}
 
     @property
-    def key(self):
+    def key(self) -> str:
         """
         :return: Unique identifier
-        :rtype: six.string_types
         """
-        return '{}{}'.format(self.iss, self.sub)
+        return f'{self.iss}{self.sub}'
 
 
 @dataclass
@@ -114,6 +113,7 @@ class OidcAuthorization(Element, _OidcAuthorizationRequired):
 @dataclass
 class _OrcidRequired:
     """
+    Required fields for Orcid
     """
     # User's ORCID
     id: str
@@ -131,7 +131,7 @@ class Orcid(VerifiedElement, _OrcidRequired):
     name_mapping: ClassVar[Dict[str, str]] = {'application': 'created_by'}
 
     @property
-    def key(self):
+    def key(self) -> str:
         """
         Unique id
         """

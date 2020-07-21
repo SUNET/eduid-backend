@@ -44,11 +44,6 @@ __author__ = 'ft'
 @dataclass
 class MailAddress(PrimaryElement):
     """
-    :param data: Mail address parameters from database
-    :param raise_on_unknown: Raise exception on unknown values in `data' or not.
-
-    :type data: dict
-    :type raise_on_unknown: bool
     """
     email: Optional[str] = None
 
@@ -56,7 +51,7 @@ class MailAddress(PrimaryElement):
     old_names = ('added_timestamp',)
 
     @property
-    def key(self):
+    def key(self) -> str:
         """
         Return the element that is used as key for e-mail addresses in a PrimaryElementList.
         """
