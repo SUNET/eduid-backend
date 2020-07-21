@@ -64,7 +64,7 @@ class Password(Credential, _PasswordRequired):
     """
     is_generated: bool = False
 
-    name_mapping = {'application': 'created_by', 'source': 'created_by', 'id': 'credential_id'}
+    name_mapping = {'source': 'created_by', 'id': 'credential_id'}
     old_names = ('source', 'id')
 
     @property
