@@ -36,7 +36,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from hashlib import sha256
-from typing import ClassVar, Dict, Optional
+from typing import Any, ClassVar, Dict, Optional
 
 from eduid_userdb.credentials import Credential
 
@@ -53,7 +53,7 @@ class _FidoCredentialRequired:
     app_id: str
 
 
-@dataclass(eq=True, unsafe_hash=True)
+@dataclass(eq=False, unsafe_hash=True)
 class FidoCredential(Credential, _FidoCredentialRequired):
     """
     Token authentication credential
@@ -71,7 +71,7 @@ class _U2FCredentialRequired:
     public_key: str
 
 
-@dataclass(eq=True, unsafe_hash=True)
+@dataclass(eq=False, unsafe_hash=True)
 class U2F(FidoCredential, _U2FCredentialRequired):
     """
     U2F token authentication credential
@@ -81,28 +81,25 @@ class U2F(FidoCredential, _U2FCredentialRequired):
     name_mapping: ClassVar[Dict[str, str]] = {'application': 'created_by'}
 
     @property
-    def key(self):
+    def key(self) -> str:
         """
         Return the element that is used as key.
         """
         return 'sha256:' + sha256(self.keyhandle.encode('utf-8') + self.public_key.encode('utf-8')).hexdigest()
 
 
-def u2f_from_dict(data, raise_on_unknown=True):
+def u2f_from_dict(data: Dict[str, Any], raise_on_unknown: bool = True) -> U2F:
     """
     Create an U2F instance from a dict.
 
     :param data: Credential parameters from database
     :param raise_on_unknown: Raise UserHasUnknownData if unrecognized data is encountered
-
-    :type data: dict
-    :type raise_on_unknown: bool
-    :rtype: U2F
+                             kept for B/C
     """
     return U2F.from_dict(data)
 
 
-@dataclass(eq=True, unsafe_hash=True)
+@dataclass(eq=False, unsafe_hash=True)
 class Webauthn(FidoCredential):
     """
     Webauthn token authentication credential
@@ -113,22 +110,19 @@ class Webauthn(FidoCredential):
     name_mapping: ClassVar[Dict[str, str]] = {'application': 'created_by'}
 
     @property
-    def key(self):
+    def key(self) -> str:
         """
         Return the element that is used as key.
         """
         return 'sha256:' + sha256(self.keyhandle.encode('utf-8') + self.credential_data.encode('utf-8')).hexdigest()
 
 
-def webauthn_from_dict(data, raise_on_unknown=True):
+def webauthn_from_dict(data: Dict[str, Any], raise_on_unknown: bool = True) -> Webauthn:
     """
     Create an Webauthn instance from a dict.
 
     :param data: Credential parameters from database
     :param raise_on_unknown: Raise UserHasUnknownData if unrecognized data is encountered
-
-    :type data: dict
-    :type raise_on_unknown: bool
-    :rtype: Webauthn
+                             kept for B/C
     """
     return Webauthn.from_dict(data)

@@ -35,6 +35,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any, Dict
 
 import bson
 
@@ -46,6 +47,7 @@ __author__ = 'lundberg'
 @dataclass
 class _PasswordRequired:
     """
+    Required fields for Password
     """
     credential_id: str
     salt: str
@@ -56,7 +58,7 @@ class _PasswordRequired:
             self.credential_id = str(self.credential_id)
 
 
-@dataclass
+@dataclass(eq=False, unsafe_hash=True)
 class Password(Credential, _PasswordRequired):
     """
     """
@@ -73,15 +75,12 @@ class Password(Credential, _PasswordRequired):
         return self.credential_id
 
 
-def password_from_dict(data, raise_on_unknown=True):
+def password_from_dict(data: Dict[str, Any], raise_on_unknown: bool = True) -> Password:
     """
     Create a Password instance from a dict.
 
     :param data: Password parameters from database
     :param raise_on_unknown: Raise UserHasUnknownData if unrecognized data is encountered
-
-    :type data: dict
-    :type raise_on_unknown: bool
-    :rtype: Password
+                             kept for B/C
     """
     return Password.from_dict(data)

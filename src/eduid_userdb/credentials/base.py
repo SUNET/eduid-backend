@@ -52,6 +52,9 @@ class Credential(VerifiedElement):
     main VerifiedElement, but after a short discussion we chose to add it
     only for credentials until we know we want it for other types of verifed
     elements too.
+
+    There is some use of these objects as keys in dicts in eduid-IdP,
+    so we are making them hashable.
     """
     proofing_method: Optional[str] = None
     proofing_version: Optional[str] = None
@@ -66,25 +69,19 @@ class Credential(VerifiedElement):
             return '<eduID {!s}(key=\'{!s}...\'): verified=False>'.format(self.__class__.__name__, shortkey)
 
     def __hash__(self):
-        return hash(str(self.key))
+        return hash(self.key)
 
     def __eq__(self, other):
         return self.key == other.key
 
     def data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
+        Make sure we never store proofing info for un-verified credentials
         """
         data = super().data_out_transforms(data)
 
-        if data.get('verified') is True:
-            # suppress method/version None to avoid messing up test cases unnecessarily
-            if 'proofing_method' in data and data['proofing_method'] is None:
-                del data['proofing_method']
-            if 'proofing_version' in data and data['proofing_version'] is None:
-                del data['proofing_version']
-        elif data.get('verified') is False:
+        if data.get('verified') is False:
             del data['verified']
-            # Make sure we never store proofing info for un-verified credentials
             if 'proofing_method' in data:
                 del data['proofing_method']
             if 'proofing_version' in data:
