@@ -36,7 +36,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, ClassVar, Dict, Optional
+from typing import Any, Dict, Optional
 
 from eduid_userdb.element import VerifiedElement
 
