@@ -31,6 +31,61 @@
 #
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
+"""
+userdb data
+===========
+
+userdb data can be in 2 different formats, which I will call here pythonic and
+eduid formats. In both cases, the data is in the form of sets of attributes with
+values of arbitrary types.
+
+In Python code we deal with data in pythonic format. Outside Python code (in
+the DB, or when sending data to the front, or also in data samples for testing)
+we deal with data in eduid format.
+
+The interface between both formats is provided by the methods `from_dict` (to
+convert data in eduid format to data in pythonic format) and `to_dict` (to
+convert data in the opposite direction).
+
+The main differences between both formats are, in one hand, the names of the
+attributes, that may change from one format to the other. For example, the
+pythonic attribute `is_verified` is generally translated to eduid format as
+`verified`.
+
+On another hand, the representation of complex data (i.e., not of basic types:
+string, boolean, integer, bytes), differs: in pythonic format is in the form of
+dataclass objects, and in eduid format is in the form of dictionaries / JSON.
+
+Additionally, some of the pythonic attribute names that were used in the past
+have been deprecated. An example is the pythonic attribute name `created_by`,
+which in some elements was translated to eduid format as `source`. We want
+to be able to ingest (in `from_dict`) data in the old format, and only produce
+data in the old format if `to_dict` is called with `old_userdb_format=True`.
+
+There is also sometimes data in the eduid format dicts that we simply want
+to ignore. An example is `verification_code` in VerifiedElement.
+
+Finally, when ingesting external data (in eduid format) we may want to enforce
+any number of arbitrary constraints (in `from_dict`), to make sure the data is
+semantically sound. For example, we don't want data representing an element
+with the `is_primary` attribute set to `True` but the `is_verified` attribute
+set to `False`.
+
+To do the name translation, we use a mapping set as a class attribute in the
+dataclasses (the dataclass machinery leaves alone such attributes), with the
+eduid names as keys and the pythonic names as values. We make this inheritble
+(in the sense that subclasses will merge the mappings declared in its
+superclasses with the mapping declared for themselves) by providing them with
+a metaclass that does the aggregation.
+
+To ignore attributes in eduid data, we add the eduid name as key to the mapping
+of names, with the empty string as value (in place of the pythonic name).
+
+To enforce arbitrary constraints we provide 2 methods, `data_in_transforms` and
+`data_out_transforms`, that are respectively called in `from_dict` and `to_dict`
+and can be overridden in subclasses.
+
+"""
 import copy
 from datetime import datetime
 from dataclasses import dataclass, asdict, field
@@ -82,16 +137,8 @@ TElementSubclass = TypeVar('TElementSubclass', bound='Element')
 class MetaElement(type):
     def __new__(typ, name: str, bases: tuple, dct: dict):
         """
-        Here we modify the construction of the Element class and its subclasses.
-
-        We gather the field names marked as immutable in all superclasses
-        and set them in the `_immutable` class attr,
-        So that subclasses respect immutability defined in their superclasses.
-
-        We do the same for the `ts_fields`, some of which have a special kind of mutability
-        (they are mutable is set with a bool and immutable if set with a datetime).
-        which are used for typing
-        (to raise UserDBValueError when setting a field with a  wrongly typed value)
+        Here we modify the construction of the Element class and its subclasses,
+        to be able to inherit the mappings of attribute names.
         """
         elem_class = super().__new__(typ, name, bases, dct)
 
@@ -125,23 +172,15 @@ class Element(metaclass=MetaElement):
             VerifiedElement
                 PrimaryElement
             EventElement
-
-    Properties of Element:
-
-        created_by
-        created_ts
-        modified_ts
     """
     created_by: Optional[str] = None
     created_ts: datetime = field(default_factory=datetime.utcnow)
     modified_ts: datetime = field(default_factory=datetime.utcnow)
 
+    # mapping of eduid attribute names to pythonic attribute names.
     name_mapping: ClassVar[Dict[str, str]] = {'application': 'created_by'}
+    # deprecated (old format) eduid attribute names
     old_names: ClassVar[tuple] = ('application',)
-
-    _name_mapping: ClassVar[Dict[str, str]] = {}
-    _inverse_name_mapping: ClassVar[Dict[str, str]] = {}
-    _old_names: ClassVar[tuple] = ()
 
     def __str__(self) -> str:
         return f'<eduID {self.__class__.__name__}: {asdict(self)}>'
@@ -149,7 +188,7 @@ class Element(metaclass=MetaElement):
     @classmethod
     def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any]) -> TElementSubclass:
         """
-        Construct element from a data dict.
+        Construct element from a data dict in eduid format.
         """
         if not isinstance(data, dict):
             raise UserDBValueError(f"Invalid data: {data}")
@@ -168,17 +207,17 @@ class Element(metaclass=MetaElement):
 
     def to_dict(self, old_userdb_format: bool = False) -> Dict[str, Any]:
         """
-        Convert Element to a dict, that can be used to reconstruct the
+        Convert Element to a dict in eduid format, that can be used to reconstruct the
         Element later.
 
         :param old_userdb_format: Set to True to get data back in legacy format.
-                                  This is unused and kept for B/C
         """
         data = asdict(self)
         inverse_mapping = self._inverse_name_mapping
 
         for k, v in inverse_mapping.items():
-            if k != '' and k in data and not (v in self._old_names and not old_userdb_format):
+            do_translate = old_userdb_format or v not in self._old_names
+            if k != '' and k in data and do_translate:
                 data[v] = data.pop(k)
 
         data = self.data_out_transforms(data)
@@ -196,6 +235,10 @@ class Element(metaclass=MetaElement):
     @classmethod
     def data_in_transforms(cls: Type[TElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
         """
+        Transform data received in eduid format into pythonic format.
+        To be overridden in subclasses that know specifically how to transform the data.
+
+        The default implementation just tries to delegate to super()
         """
         try:
             return super().data_in_transforms(data)
@@ -204,6 +247,11 @@ class Element(metaclass=MetaElement):
 
     def data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
+        Transform data kept in pythonic format into eduid format.
+        To be overridden in subclasses that know specifically how to transform the data.
+
+        The default implementation removes the attributes with None value
+        and then tries to delegate to super()
         """
         new_data = dict()
         for key, val in data.items():
@@ -219,12 +267,6 @@ class Element(metaclass=MetaElement):
 class VerifiedElement(Element):
     """
     Elements that can be verified or not.
-
-    Properties of VerifiedElement:
-
-        is_verified
-        verified_by
-        verified_ts
     """
     is_verified: bool = False
     verified_by: Optional[str] = None
@@ -237,10 +279,6 @@ class VerifiedElement(Element):
 class PrimaryElement(VerifiedElement):
     """
     Elements that can be either primary or not.
-
-    Properties of PrimaryElement:
-
-        is_primary
     """
     is_primary: bool = False
 
