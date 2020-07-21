@@ -1,6 +1,5 @@
 import datetime
 from hashlib import sha256
-from unittest import TestCase
 
 from bson import ObjectId
 from six import string_types
@@ -49,7 +48,7 @@ class _AbstractUserTestCase:
         expected = self.data1['passwords']
         obtained = self.user1.passwords.to_list_of_dicts(old_userdb_format=True)
 
-        expected, obtained = self.normalize_data(expected, obtained)
+        self.normalize_data(expected, obtained)
 
         assert expected == obtained
 
@@ -114,7 +113,7 @@ class _AbstractUserTestCase:
         expected = data['passwords']
         obtained = user.passwords.to_list_of_dicts(old_userdb_format=True)
 
-        expected, obtained = self.normalize_data(expected, obtained)
+        self.normalize_data(expected, obtained)
 
         assert expected == obtained
 
@@ -572,7 +571,7 @@ class _AbstractUserTestCase:
         )
         out = user.to_dict()['phone']
 
-        phone, out = self.normalize_data(phone, out)
+        self.normalize_data(phone, out)
 
         assert phone == out, 'The phone objects differ when using both phone and mobile'
 
@@ -699,7 +698,7 @@ class TestUser(DictTestCase, _AbstractUserTestCase):
         expected = self.data1['mailAliases']
         obtained = to_dict_result
 
-        expected, obtained = self.normalize_data(expected, obtained)
+        self.normalize_data(expected, obtained)
 
         assert obtained == expected
 
@@ -712,7 +711,7 @@ class TestUser(DictTestCase, _AbstractUserTestCase):
         expected = self.data2['mobile']
         obtained = to_dict_result
 
-        expected, obtained = self.normalize_data(expected, obtained)
+        self.normalize_data(expected, obtained)
 
         assert obtained == expected
 

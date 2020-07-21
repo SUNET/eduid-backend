@@ -181,7 +181,7 @@ class DictTestCase(unittest.TestCase):
     maxDiff = None
 
     @classmethod
-    def normalize_data(cls, expected: List[Dict[str, Any]], obtained: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    def normalize_data(cls, expected: List[Dict[str, Any]], obtained: List[Dict[str, Any]]):
         """
         Remove timestamps that in general are created at different times
         normalize the names of some attributes
@@ -190,8 +190,6 @@ class DictTestCase(unittest.TestCase):
         for elist in (expected, obtained):
             for elem in elist:
                 cls.normalize_elem(elem)
-
-        return expected, obtained  # XXX this is useless, we are now modifying in place
 
     @classmethod
     def normalize_elem(cls, elem: Dict[str, Any]):

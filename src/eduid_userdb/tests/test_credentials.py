@@ -66,7 +66,7 @@ class TestCredentialList(DictTestCase):
         expected = [_one_dict]
         obtained = self.one.to_list_of_dicts(old_userdb_format=True)
 
-        expected, obtained = self.normalize_data(expected, obtained)
+        self.normalize_data(expected, obtained)
 
         assert expected == obtained, 'Credential list with one password not as expected'
 
@@ -97,7 +97,7 @@ class TestCredentialList(DictTestCase):
         expected = self.two.to_list_of_dicts()
         obtained = self.one.to_list_of_dicts()
 
-        expected, obtained = self.normalize_data(expected, obtained)
+        self.normalize_data(expected, obtained)
 
         assert expected == obtained, 'List of credentials with added credential different than expected'
 
@@ -113,7 +113,7 @@ class TestCredentialList(DictTestCase):
         expected = self.three.to_list_of_dicts()
         obtained = this.to_list_of_dicts()
 
-        expected, obtained = self.normalize_data(expected, obtained)
+        self.normalize_data(expected, obtained)
 
         assert expected == obtained, 'List of credentials with added password different than expected'
 
@@ -123,7 +123,7 @@ class TestCredentialList(DictTestCase):
         expected = self.two.to_list_of_dicts()
         obtained = now_two.to_list_of_dicts()
 
-        expected, obtained = self.normalize_data(expected, obtained)
+        self.normalize_data(expected, obtained)
 
         assert expected == obtained, 'List of credentials with removed credential different than expected'
 

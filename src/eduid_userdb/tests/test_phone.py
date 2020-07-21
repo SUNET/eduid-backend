@@ -57,8 +57,7 @@ class TestPhoneNumberList(TestCase):
 
         # remove added timestamps
         one_dict_list = self.one.to_list_of_dicts()
-        for d in one_dict_list:
-            del d['created_ts']
+        self.normalize_data(one_dict_list, [])
 
         _one_dict_list = [_one_dict]
 
@@ -79,14 +78,7 @@ class TestPhoneNumberList(TestCase):
         expected = self.two.to_list_of_dicts()
         got = self.one.to_list_of_dicts()
         # remove timestamps added at different times
-        for d in expected:
-            del d['created_ts']
-            del d['modified_ts']
-        for d in got:
-            if 'created_ts' in d:
-                del d['created_ts']
-            if 'modified_ts' in d:
-                del d['modified_ts']
+        self.normalize_data(expected, got)
 
         assert expected == got, 'Adding a phone number to a list results in wrong data'
 
@@ -102,14 +94,7 @@ class TestPhoneNumberList(TestCase):
         expected = self.three.to_list_of_dicts()
         got = this.to_list_of_dicts()
         # remove timestamps added at different times
-        for d in expected:
-            del d['created_ts']
-            del d['modified_ts']
-        for d in got:
-            if 'created_ts' in d:
-                del d['created_ts']
-            if 'modified_ts' in d:
-                del d['modified_ts']
+        self.normalize_data(expected, got)
 
         assert expected == got, 'Phone number list contains wrong data'
 
@@ -131,12 +116,7 @@ class TestPhoneNumberList(TestCase):
         expected = self.two.to_list_of_dicts()
         got = now_two.to_list_of_dicts()
         # remove timestamps - added at different times
-        for d in expected:
-            del d['created_ts']
-            del d['modified_ts']
-        for d in got:
-            del d['created_ts']
-            del d['modified_ts']
+        self.normalize_data(expected, got)
 
         assert expected == got, 'Phone list has wrong data after removing phone'
 
