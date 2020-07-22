@@ -72,6 +72,9 @@ class Credential(VerifiedElement):
         return hash(self.key)
 
     def __eq__(self, other):
+        if not isinstance(other, type(self)):
+            return False
+
         return self.key == other.key
 
     def data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
