@@ -183,9 +183,14 @@ def handle_seleg_userinfo(user: ProofingUser, proofing_state: OidcProofingState,
         address = current_app.msg_relay.get_postal_address(proofing_state.nin.number, timeout=15)
         # Transaction id is the same data as used for the QR code
         transaction_id = metadata['opaque']
+
+        created_by = proofing_state.nin.created_by
+        if created_by is None:
+            created_by = 'se-leg'
+
         proofing_log_entry = SeLegProofing(
             eppn=user.eppn,
-            created_by=proofing_state.nin.created_by,
+            created_by=created_by,
             nin=proofing_state.nin.number,
             vetting_by='se-leg',
             transaction_id=transaction_id,

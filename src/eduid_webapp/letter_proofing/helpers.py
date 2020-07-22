@@ -82,6 +82,9 @@ def check_state(state: LetterProofingState) -> StateExpireInfo:
     current_app.logger.info('Letter is sent for user with eppn {!s}'.format(state.eppn))
     # Check how long ago the letter was sent
     sent_dt = state.proofing_letter.sent_ts
+    if not isinstance(sent_dt, datetime):
+        raise ValueError("SentLetterElement must have a datetime sent_ts attr if is_sent is True")
+
     minutes_until_midnight = (24 - sent_dt.hour) * 60  # Give the user until midnight the day the code expires
     now = datetime.now(sent_dt.tzinfo)  # Use tz_info from timezone aware mongodb datetime
     max_wait = timedelta(hours=current_app.config.letter_wait_time_hours, minutes=minutes_until_midnight)
@@ -103,8 +106,9 @@ def check_state(state: LetterProofingState) -> StateExpireInfo:
         current_app.proofing_statedb.remove_state(state)
         current_app.logger.info('Removed {!s}'.format(state))
         current_app.stats.count('letter_expired')
+        expires_dt = sent_dt + max_wait
         return StateExpireInfo(
-            sent=sent_dt, expires=sent_dt + max_wait, is_expired=True, error=False, message=LetterMsg.letter_expired
+            sent=sent_dt, expires=expires_dt, is_expired=True, error=False, message=LetterMsg.letter_expired
         )
 
 
@@ -119,7 +123,7 @@ def create_proofing_state(eppn: str, nin: str) -> LetterProofingState:
     return LetterProofingState(eppn=eppn, nin=_nin, proofing_letter=proofing_letter, id=None, modified_ts=None)
 
 
-def get_address(user: User, proofing_state: LetterProofingState) -> Optional[dict]:
+def get_address(user: User, proofing_state: LetterProofingState) -> dict:
     """
     :param user: User object
     :param proofing_state: Users proofing state
