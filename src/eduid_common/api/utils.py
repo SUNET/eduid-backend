@@ -102,14 +102,11 @@ def save_and_sync_user(user):
     return current_app.am_relay.request_user_sync(user)
 
 
-def urlappend(base, path):
+def urlappend(base: str, path: str) -> str:
     """
     :param base: Base url
-    :type base: six.string_types
     :param path: Path to join to base
-    :type path: six.string_types
     :return: Joined url
-    :rtype: six.string_types
 
     Used instead of urlparse.urljoin to append path to base in an obvious way.
 
