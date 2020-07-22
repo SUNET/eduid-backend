@@ -310,8 +310,9 @@ def mfa_authentication_action(session_info: Mapping[str, Any], user: User) -> We
 
     # Redirect back to action app but to the redirect-action view
     resp = redirect_with_msg(redirect_url, EidasMsg.action_completed, error=False)
-    scheme, netloc, path, query_string, fragment = urlsplit(resp.location)
-    new_path = urlappend(str(path), 'redirect-action')
-    new_url = urlunsplit((scheme, netloc, new_path, query_string, fragment))
+    parsed_url = urlsplit(str(resp.location))
+    new_path = urlappend(str(parsed_url.path), 'redirect-action')
+    parsed_url._replace(path=new_path)
+    new_url = urlunsplit(parsed_url)
     current_app.logger.debug(f'Redirecting to: {new_url}')
     return redirect(new_url)
