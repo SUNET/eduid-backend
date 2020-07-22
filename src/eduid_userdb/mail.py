@@ -51,7 +51,7 @@ class MailAddress(PrimaryElement):
     old_names = ('added_timestamp',)
 
     @property
-    def key(self) -> str:
+    def key(self) -> Optional[str]:
         """
         Return the element that is used as key for e-mail addresses in a PrimaryElementList.
         """

@@ -20,7 +20,7 @@ class Profile(Element):
     profile_data: Optional[Mapping[str, Any]] = None
 
     @property
-    def key(self) -> str:
+    def key(self) -> Optional[str]:
         """ Return the element that is used as key in a ElementList """
         return self.owner
 

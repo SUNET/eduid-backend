@@ -50,7 +50,7 @@ class Nin(PrimaryElement):
     name_mapping: ClassVar[Dict[str, str]] = {'application': 'created_by'}
 
     @property
-    def key(self) -> str:
+    def key(self) -> Optional[str]:
         """
         Return the element that is used as key for nin numberes in a PrimaryElementList.
         """

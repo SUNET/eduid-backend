@@ -6,7 +6,7 @@
 from __future__ import absolute_import
 
 from dataclasses import dataclass, fields
-from typing import ClassVar, Dict
+from typing import Any, ClassVar, Dict
 import logging
 
 import six
@@ -19,17 +19,11 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class _LogElementRequired:
+class LogElement(Element):
     """
-    Required fields for LogElement
     """
     created_by: str
 
-
-@dataclass
-class LogElement(Element, _LogElementRequired):
-    """
-    """
     name_mapping: ClassVar[Dict[str, str]] = {'eduPersonPrincipalName': 'eppn'}
 
     def validate(self) -> bool:
@@ -69,7 +63,7 @@ class _NinProofingLogElementRequired:
     Required fields for NinProofingLogElement
     """
     nin: str
-    user_postal_address: str
+    user_postal_address: Dict[str, Any]
 
 
 @dataclass

@@ -51,7 +51,7 @@ class PhoneNumber(PrimaryElement):
     old_names: ClassVar[tuple] = ('added_timestamp', 'mobile')
 
     @property
-    def key(self) -> str:
+    def key(self) -> Optional[str]:
         """
         Return the element that is used as key for phone numbers in a PrimaryElementList.
         """

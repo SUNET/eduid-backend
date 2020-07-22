@@ -113,11 +113,11 @@ class EventList(ElementList):
             raise DuplicateElementViolation("Event {!s} already in list".format(event.key))
         super(EventList, self).add(event)
 
-    def to_list_of_dicts(self) -> List[Dict[str, Any]]:
+    def to_list_of_dicts(self, old_userdb_format: bool = False) -> List[Dict[str, Any]]:
         """
         Get the elements in a serialized format that can be stored in MongoDB.
         """
-        return [this.to_dict() for this in self._elements if isinstance(this, Event)]
+        return [this.to_dict(old_userdb_format=old_userdb_format) for this in self._elements if isinstance(this, Event)]
 
 
 def event_from_dict(data: Dict[str, Any]):

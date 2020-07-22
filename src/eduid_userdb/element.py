@@ -86,6 +86,8 @@ To enforce arbitrary constraints we provide 2 methods, `data_in_transforms` and
 and can be overridden in subclasses.
 
 """
+from __future__ import annotations
+
 import copy
 from datetime import datetime
 from dataclasses import dataclass, asdict, field
@@ -133,9 +135,12 @@ class PrimaryElementViolation(PrimaryElementError):
 
 TElementSubclass = TypeVar('TElementSubclass', bound='Element')
 
+TType = TypeVar('TType', bound=type)
+
 
 class MetaElement(type):
-    def __new__(typ, name: str, bases: tuple, dct: dict):
+
+    def __new__(typ: Type[MetaElement], name: str, bases: tuple, dct: dict) -> MetaElement:
         """
         Here we modify the construction of the Element class and its subclasses,
         to be able to inherit the mappings of attribute names.
@@ -147,11 +152,13 @@ class MetaElement(type):
 
         for cls in reversed(elem_class.__mro__):
 
-            if hasattr(cls, 'name_mapping'):
-                mapping.update(cls.name_mapping)
+            if cls is not type:
 
-            if hasattr(cls, 'old_names'):
-                old_names += cls.old_names
+                if hasattr(cls, 'name_mapping'):
+                    mapping.update(cls.name_mapping)
+
+                if hasattr(cls, 'old_names'):
+                    old_names += cls.old_names
 
         elem_class._name_mapping = mapping
         elem_class._inverse_name_mapping = {v: k for k, v in mapping.items()}

@@ -89,6 +89,9 @@ class ToUList(EventList):
 
     def add(self, event: ToUEvent) -> None:
         """ Add a ToUEvent to the list. """
+        if event.version is None:
+            raise ValueError('Invalid ToUEvent without version')
+
         existing = self.find(event.version)
         if existing:
             if event.created_ts >= existing.created_ts:
