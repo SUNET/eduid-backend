@@ -146,13 +146,14 @@ class MetaElement(type):
         to be able to inherit the mappings of attribute names.
         """
         elem_class = super().__new__(typ, name, bases, dct)
+        elem_class.__class__ = MetaElement
 
         mapping = {}
-        old_names = ()
+        old_names: tuple = ()
 
         for cls in reversed(elem_class.__mro__):
 
-            if cls is not type:
+            if issubclass(cls, Element):
 
                 if hasattr(cls, 'name_mapping'):
                     mapping.update(cls.name_mapping)
@@ -160,10 +161,12 @@ class MetaElement(type):
                 if hasattr(cls, 'old_names'):
                     old_names += cls.old_names
 
-        elem_class._name_mapping = mapping
-        elem_class._inverse_name_mapping = {v: k for k, v in mapping.items()}
+        if issubclass(elem_class, Element):
 
-        elem_class._old_names = tuple(set(old_names))
+            elem_class.name_mapping = mapping
+            elem_class.inverse_name_mapping = {v: k for k, v in mapping.items()}
+
+            elem_class.old_names = tuple(set(old_names))
 
         return elem_class
 
@@ -186,6 +189,7 @@ class Element(metaclass=MetaElement):
 
     # mapping of eduid attribute names to pythonic attribute names.
     name_mapping: ClassVar[Dict[str, str]] = {'application': 'created_by'}
+    inverse_name_mapping: ClassVar[Dict[str, str]] = {}
     # deprecated (old format) eduid attribute names
     old_names: ClassVar[tuple] = ('application',)
 
@@ -202,7 +206,7 @@ class Element(metaclass=MetaElement):
 
         data = copy.deepcopy(data)  # to not modify callers data
 
-        for k, v in cls._name_mapping.items():
+        for k, v in cls.name_mapping.items():
             if k in data:
                 new = data.pop(k)
                 if v != '':
@@ -220,10 +224,10 @@ class Element(metaclass=MetaElement):
         :param old_userdb_format: Set to True to get data back in legacy format.
         """
         data = asdict(self)
-        inverse_mapping = self._inverse_name_mapping
+        inverse_mapping = self.inverse_name_mapping
 
         for k, v in inverse_mapping.items():
-            do_translate = old_userdb_format or v not in self._old_names
+            do_translate = old_userdb_format or v not in self.old_names
             if k != '' and k in data and do_translate:
                 data[v] = data.pop(k)
 
