@@ -43,9 +43,9 @@ In Python code we deal with data in pythonic format. Outside Python code (in
 the DB, or when sending data to the front, or also in data samples for testing)
 we deal with data in eduid format.
 
-The interface between both formats is provided by the methods `from_dict` (to
-convert data in eduid format to data in pythonic format) and `to_dict` (to
-convert data in the opposite direction).
+The interface between both formats is given by the `Element`'s methods
+`from_dict` (to convert data in eduid format to data in pythonic format) and
+`to_dict` (to convert data in the opposite direction).
 
 The main differences between both formats are, in one hand, the names of the
 attributes, that may change from one format to the other. For example, the
@@ -56,11 +56,11 @@ On another hand, the representation of complex data (i.e., not of basic types:
 string, boolean, integer, bytes), differs: in pythonic format is in the form of
 dataclass objects, and in eduid format is in the form of dictionaries / JSON.
 
-Additionally, some of the pythonic attribute names that were used in the past
-have been deprecated. An example is the pythonic attribute name `created_by`,
-which in some elements was translated to eduid format as `source`. We want
-to be able to ingest (in `from_dict`) data in the old format, and only produce
-data in the old format if `to_dict` is called with `old_userdb_format=True`.
+Additionally, some of the attribute names that were used in the past have been
+deprecated. An example is the pythonic attribute name `created_by`, which in
+some elements was translated to eduid format as `source`. We want to be able to
+ingest (in `from_dict`) data in the old format, and only produce data in the
+old format if `to_dict` is called with `old_userdb_format=True`.
 
 There is also sometimes data in the eduid format dicts that we simply want
 to ignore. An example is `verification_code` in VerifiedElement.
