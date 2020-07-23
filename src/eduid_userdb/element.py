@@ -91,7 +91,7 @@ from __future__ import annotations
 import copy
 from datetime import datetime
 from dataclasses import dataclass, asdict, field
-from typing import Any, ClassVar, Dict, List, Optional, Type, TypeVar
+from typing import cast, Any, ClassVar, Dict, List, Optional, Type, TypeVar
 
 from six import string_types
 
@@ -138,7 +138,7 @@ TElementSubclass = TypeVar('TElementSubclass', bound='Element')
 
 class MetaElement(type):
 
-    def __new__(typ, name, bases, dct):
+    def __new__(typ: Type[MetaElement], name: str, bases: tuple, dct: dict) -> MetaElement:
         """
         Here we modify the construction of the Element class and its subclasses,
         to be able to inherit the mappings of attribute names.
@@ -164,7 +164,9 @@ class MetaElement(type):
         dct['inverse_name_mapping'] = {v: k for k, v in mapping.items()}
         dct['old_names'] = tuple(set(old))
 
-        return super().__new__(typ, name, bases, dct)
+        result = super().__new__(typ, name, bases, dct)
+
+        return cast(MetaElement, result)
 
 
 @dataclass
