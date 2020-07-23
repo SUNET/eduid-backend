@@ -135,40 +135,36 @@ class PrimaryElementViolation(PrimaryElementError):
 
 TElementSubclass = TypeVar('TElementSubclass', bound='Element')
 
-TType = TypeVar('TType', bound=type)
-
 
 class MetaElement(type):
 
-    def __new__(typ: Type[MetaElement], name: str, bases: tuple, dct: dict) -> MetaElement:
+    def __new__(typ, name, bases, dct):
         """
         Here we modify the construction of the Element class and its subclasses,
         to be able to inherit the mappings of attribute names.
         """
-        elem_class = super().__new__(typ, name, bases, dct)
-        elem_class.__class__ = MetaElement
-
         mapping = {}
-        old_names: tuple = ()
+        old = ()
 
-        for cls in reversed(elem_class.__mro__):
+        for base in bases:
 
-            if issubclass(cls, Element):
+            if hasattr(base, 'name_mapping'):
+                mapping.update(base.name_mapping)
 
-                if hasattr(cls, 'name_mapping'):
-                    mapping.update(cls.name_mapping)
+            if hasattr(base, 'old_names'):
+                old += base.old_names
 
-                if hasattr(cls, 'old_names'):
-                    old_names += cls.old_names
+        if 'name_mapping' in dct:
+            mapping.update(dct['name_mapping'])
 
-        if issubclass(elem_class, Element):
+        if 'old_names' in dct:
+            old += dct['old_names']
 
-            elem_class.name_mapping = mapping
-            elem_class.inverse_name_mapping = {v: k for k, v in mapping.items()}
+        dct['name_mapping'] = mapping
+        dct['inverse_name_mapping'] = {v: k for k, v in mapping.items()}
+        dct['old_names'] = tuple(set(old))
 
-            elem_class.old_names = tuple(set(old_names))
-
-        return elem_class
+        return super().__new__(typ, name, bases, dct)
 
 
 @dataclass
@@ -248,13 +244,8 @@ class Element(metaclass=MetaElement):
         """
         Transform data received in eduid format into pythonic format.
         To be overridden in subclasses that know specifically how to transform the data.
-
-        The default implementation just tries to delegate to super()
         """
-        try:
-            return super().data_in_transforms(data)
-        except AttributeError:
-            return data
+        return data
 
     def data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -268,10 +259,8 @@ class Element(metaclass=MetaElement):
         for key, val in data.items():
             if val is not None:
                 new_data[key] = val
-        try:
-            return super().data_out_transforms(new_data)
-        except AttributeError:
-            return new_data
+
+        return new_data
 
 
 @dataclass
