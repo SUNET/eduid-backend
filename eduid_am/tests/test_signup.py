@@ -39,8 +39,7 @@ class AttributeFetcherTests(AMTestCase):
                 'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
             }
         ]
-        fetched_passwords, expected_passwords = self.normalize_data(fetched['$set']['passwords'], expected_passwords)
-        fetched['$set']['passwords'] = fetched_passwords
+        self.normalize_data(fetched['$set']['passwords'], expected_passwords)
 
         expected_emails = [
             {
@@ -53,8 +52,7 @@ class AttributeFetcherTests(AMTestCase):
             {'email': 'johnsmith2@example.com', 'primary': False, 'verified': True},
             {'email': 'johnsmith3@example.com', 'primary': False, 'verified': False},
         ]
-        fetched_emails, expected_emails = self.normalize_data(fetched['$set']['mailAliases'], expected_emails)
-        fetched['$set']['mailAliases'] = fetched_emails
+        self.normalize_data(fetched['$set']['mailAliases'], expected_emails)
 
         expected = {
             '$set': {
@@ -96,12 +94,10 @@ class AttributeFetcherTests(AMTestCase):
         fetched = self.fetcher.fetch_attrs(user.user_id)
 
         expected_passwords = [{'credential_id': u'123', 'is_generated': False, 'salt': u'456', }]
-        fetched_passwords, expected_passwords = self.normalize_data(fetched['$set']['passwords'], expected_passwords)
-        fetched['$set']['passwords'] = fetched_passwords
+        self.normalize_data(fetched['$set']['passwords'], expected_passwords)
 
         expected_emails = [{'verified': True, 'primary': True, 'email': 'john@example.com'}]
-        fetched_emails, expected_emails = self.normalize_data(fetched['$set']['mailAliases'], expected_emails)
-        fetched['$set']['mailAliases'] = fetched_emails
+        self.normalize_data(fetched['$set']['mailAliases'], expected_emails)
 
         expected = {
             '$set': {
