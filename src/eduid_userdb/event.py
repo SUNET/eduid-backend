@@ -54,6 +54,7 @@ class EventId(ObjectId):
 class Event(Element):
     """
     """
+
     data: Optional[Dict[str, Any]] = None
     event_type: Optional[str] = None
     event_id: Optional[str] = None

@@ -45,6 +45,7 @@ __author__ = 'ft'
 class Nin(PrimaryElement):
     """
     """
+
     number: Optional[str] = None
 
     name_mapping: ClassVar[Dict[str, str]] = {'application': 'created_by'}

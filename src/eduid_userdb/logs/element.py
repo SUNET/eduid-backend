@@ -5,9 +5,9 @@
 
 from __future__ import absolute_import
 
+import logging
 from dataclasses import dataclass, fields
 from typing import Any, ClassVar, Dict
-import logging
 
 import six
 
@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 class LogElement(Element):
     """
     """
+
     created_by: str
 
     name_mapping: ClassVar[Dict[str, str]] = {'eduPersonPrincipalName': 'eppn'}
@@ -46,6 +47,7 @@ class _ProofingLogElementRequired:
     """
     Required fields for ProofingLogElement
     """
+
     eppn: str
     proofing_version: str
 
@@ -54,6 +56,7 @@ class _ProofingLogElementRequired:
 class ProofingLogElement(LogElement, _ProofingLogElementRequired):
     """
     """
+
     proofing_method: str = ''
 
 
@@ -62,6 +65,7 @@ class _NinProofingLogElementRequired:
     """
     Required fields for NinProofingLogElement
     """
+
     nin: str
     user_postal_address: Dict[str, Any]
 
@@ -77,6 +81,7 @@ class _MailAddressProofingRequired:
     """
     Required fields for MailAddressProofing
     """
+
     mail_address: str
     reference: str
 
@@ -94,6 +99,7 @@ class MailAddressProofing(ProofingLogElement, _MailAddressProofingRequired):
         'reference': 'reference id'
     }
     """
+
     proofing_method: str = 'e-mail'
 
 
@@ -102,6 +108,7 @@ class _PhoneNumberProofingRequired:
     """
     Required fields for PhoneNumberProofing
     """
+
     phone_number: str
     reference: str
 
@@ -119,6 +126,7 @@ class PhoneNumberProofing(ProofingLogElement, _PhoneNumberProofingRequired):
         'reference': 'reference id'
     }
     """
+
     proofing_method: str = 'sms'
 
 
@@ -127,6 +135,7 @@ class _TeleAdressProofingRequired:
     """
     Required fields for TeleAdressProofing
     """
+
     mobile_number: str
     reason: str
 
@@ -147,6 +156,7 @@ class TeleAdressProofing(NinProofingLogElement, _TeleAdressProofingRequired):
         'user_postal_address': {postal_address_from_navet}
     }
     """
+
     proofing_method: str = 'TeleAdress'
 
 
@@ -155,6 +165,7 @@ class _TeleAdressProofingRelationRequired:
     """
     Required fields for TeleAdressProofingRelation
     """
+
     mobile_number_registered_to: str
     registered_relation: str
     registered_postal_address: str
@@ -179,6 +190,7 @@ class TeleAdressProofingRelation(TeleAdressProofing, _TeleAdressProofingRelation
         'registered_postal_address': {postal_address_from_navet}
     }
     """
+
     proofing_method: str = 'TeleAdress'
 
 
@@ -187,6 +199,7 @@ class _LetterProofingRequired:
     """
     Required fields for LetterProofing
     """
+
     letter_sent_to: str
     transaction_id: str
 
@@ -206,6 +219,7 @@ class LetterProofing(NinProofingLogElement, _LetterProofingRequired):
         'user_postal_address': {postal_address_from_navet}
     }
     """
+
     proofing_method: str = 'letter'
 
 
@@ -214,6 +228,7 @@ class _SeLegProofingRequired:
     """
     Required fields for SeLegProofing
     """
+
     transaction_id: str
 
 
@@ -232,6 +247,7 @@ class SeLegProofing(NinProofingLogElement, _SeLegProofingRequired):
         'user_postal_address': {postal_address_from_navet}
     }
     """
+
     proofing_method: str = 'se-leg'
     vetting_by: str = ''
 
@@ -241,6 +257,7 @@ class _SeLegProofingFrejaEidRequired:
     """
     Required fields for SeLegProofingFrejaEid
     """
+
     opaque_data: str
 
 
@@ -260,6 +277,7 @@ class SeLegProofingFrejaEid(SeLegProofing, _SeLegProofingFrejaEidRequired):
         'user_postal_address': {postal_address_from_navet}
     }
     """
+
     vetting_by: str = 'Freja eID'
 
 
@@ -268,6 +286,7 @@ class _OrcidProofingRequired:
     """
     Required fields for OrcidProofing
     """
+
     orcid: str
     issuer: str
     audience: str
@@ -287,6 +306,7 @@ class OrcidProofing(ProofingLogElement, _OrcidProofingRequired):
         'proofing_version': '2018v1'
     }
     """
+
     proofing_method: str = 'oidc'
 
 
@@ -295,6 +315,7 @@ class _SwedenConnectProofingRequired:
     """
     Required fields for SwedenConnectProofing
     """
+
     issuer: str
     authn_context_class: str
 
@@ -314,6 +335,7 @@ class SwedenConnectProofing(NinProofingLogElement, _SwedenConnectProofingRequire
         'user_postal_address': {postal_address_from_navet}
     }
     """
+
     proofing_method: str = 'swedenconnect'
 
 
@@ -322,6 +344,7 @@ class _MFATokenProofingRequired:
     """
     Required fields for MFATokenProofing
     """
+
     key_id: str
 
 
@@ -341,4 +364,5 @@ class MFATokenProofing(SwedenConnectProofing, _MFATokenProofingRequired):
         'user_postal_address': {postal_address_from_navet}
     }
     """
+
     proofing_method: str = 'swedenconnect'

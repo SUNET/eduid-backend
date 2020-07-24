@@ -5,12 +5,11 @@ from unittest import TestCase
 import bson
 
 import eduid_userdb.exceptions
-from eduid_userdb.element import Element, PrimaryElement, VerifiedElement, PrimaryElementViolation
+from eduid_userdb.element import Element, PrimaryElement, PrimaryElementViolation, VerifiedElement
 from eduid_userdb.exceptions import EduIDUserDBError, UserDBValueError, UserHasUnknownData
 
 
 class TestElements(TestCase):
-
     def test_create_element(self):
         elem = Element(created_by='test')
 
@@ -53,7 +52,6 @@ class TestElements(TestCase):
 
 
 class TestVerifiedElements(TestCase):
-
     def test_create_verified_element(self):
         elem = VerifiedElement(created_by='test')
 
@@ -85,12 +83,7 @@ class TestVerifiedElements(TestCase):
         now = datetime.utcnow()
 
         elem = VerifiedElement(
-            created_by='test',
-            created_ts=now,
-            modified_ts=now,
-            is_verified=True,
-            verified_by='test',
-            verified_ts=now
+            created_by='test', created_ts=now, modified_ts=now, is_verified=True, verified_by='test', verified_ts=now
         )
 
         assert elem.created_by == 'test'
@@ -103,7 +96,6 @@ class TestVerifiedElements(TestCase):
 
 
 class TestPrimaryElements(TestCase):
-
     def test_create_primary_element(self):
         elem = PrimaryElement(created_by='test')
 
@@ -147,7 +139,7 @@ class TestPrimaryElements(TestCase):
             is_verified=True,
             verified_by='test',
             verified_ts=now,
-            is_primary=True
+            is_primary=True,
         )
 
         assert elem.created_by == 'test'
@@ -170,7 +162,7 @@ class TestPrimaryElements(TestCase):
             is_verified=True,
             verified_by='test',
             verified_ts=now,
-            is_primary=True
+            is_primary=True,
         )
         with self.assertRaises(PrimaryElementViolation):
             elem.is_verified = False

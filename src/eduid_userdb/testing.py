@@ -178,6 +178,7 @@ class MongoTemporaryInstance(object):
 class DictTestCase(unittest.TestCase):
     """
     """
+
     maxDiff = None
 
     @classmethod

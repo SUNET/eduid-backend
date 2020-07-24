@@ -12,6 +12,7 @@ from eduid_userdb.element import Element
 class _CodeElementRequired:
     """
     """
+
     code: str
     is_verified: bool
 
@@ -20,6 +21,7 @@ class _CodeElementRequired:
 class CodeElement(Element, _CodeElementRequired):
     """
     """
+
     name_mapping: ClassVar[Dict[str, str]] = {'verified': 'is_verified'}
 
     @property
@@ -47,7 +49,15 @@ class CodeElement(Element, _CodeElementRequired):
         if isinstance(code_or_element, dict):
             data = code_or_element
             for this in data.keys():
-                if this not in ['application', 'code', 'created_by', 'created_ts', 'verified', 'modified_ts', 'modified_by']:
+                if this not in [
+                    'application',
+                    'code',
+                    'created_by',
+                    'created_ts',
+                    'verified',
+                    'modified_ts',
+                    'modified_by',
+                ]:
                     raise ValueError(f'Unknown data {this} for CodeElement.parse from mapping')
             return cls(
                 created_by=data.get('created_by', application),

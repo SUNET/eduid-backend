@@ -56,6 +56,7 @@ class ProofingElement(VerifiedElement):
         verified_ts
         verification_code
     """
+
     verification_code: Optional[str] = None
 
     # this seems redundant but it is not: VerifiedElement's name_mapping eliminates the
@@ -68,6 +69,7 @@ class _NumberProofingElementRequired:
     """
     Required fields for NinProofingElement and PhoneProofingElement
     """
+
     number: str
 
 
@@ -93,6 +95,7 @@ class _EmailProofingElementRequired:
     """
     Required fields for EmailProofingElement
     """
+
     email: str
 
 
@@ -142,6 +145,7 @@ class SentLetterElement(Element):
     created_by
     created_ts
     """
+
     is_sent: bool = False
     sent_ts: Optional[datetime] = None
     transaction_id: Optional[str] = None

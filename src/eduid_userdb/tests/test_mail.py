@@ -5,8 +5,8 @@ from unittest import TestCase
 import eduid_userdb.element
 import eduid_userdb.exceptions
 from eduid_userdb.element import Element
-from eduid_userdb.tests import DictTestCase
 from eduid_userdb.mail import MailAddress, MailAddressList
+from eduid_userdb.tests import DictTestCase
 
 __author__ = 'ft'
 

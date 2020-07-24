@@ -49,6 +49,7 @@ class _PasswordRequired:
     """
     Required fields for Password
     """
+
     credential_id: str
     salt: str
 
@@ -62,6 +63,7 @@ class _PasswordRequired:
 class Password(Credential, _PasswordRequired):
     """
     """
+
     is_generated: bool = False
 
     name_mapping = {'source': 'created_by', 'id': 'credential_id'}

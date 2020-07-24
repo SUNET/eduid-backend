@@ -15,6 +15,7 @@ __author__ = 'lundberg'
 class Profile(Element):
     """
     """
+
     owner: Optional[str] = None
     schema: Optional[str] = None
     profile_data: Optional[Mapping[str, Any]] = None

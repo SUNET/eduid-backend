@@ -16,6 +16,7 @@ class _LockedIdentityElementRequired:
     Required fields for LockedElement, so that they go before the optional
     arguments of Element in the implicit constructor.
     """
+
     identity_type: str
 
 
@@ -47,6 +48,7 @@ class _LockedIdentityNinRequired:
     Required fields for LockedElementNin, so that they go before the optional
     arguments of Element in the implicit constructor.
     """
+
     number: str
 
 
@@ -60,6 +62,7 @@ class LockedIdentityNin(LockedIdentityElement, _LockedIdentityNinRequired):
 
         number
     """
+
     identity_type: str = 'nin'
 
     @classmethod
@@ -91,9 +94,7 @@ class LockedIdentityList(ElementList):
                 elements.append(item)
             else:
                 if item['identity_type'] == 'nin':
-                    elements.append(
-                        LockedIdentityNin.from_dict(item)
-                    )
+                    elements.append(LockedIdentityNin.from_dict(item))
         ElementList.__init__(self, elements)
 
     def remove(self, key):

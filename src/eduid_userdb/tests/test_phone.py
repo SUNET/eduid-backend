@@ -61,8 +61,12 @@ class TestPhoneNumberList(DictTestCase):
 
         _one_dict_list = [_one_dict]
 
-        assert _one_dict_list[0]['primary'] == one_dict_list[0]['primary'], 'Created one phone list has wrong is_primary'
-        assert _one_dict_list[0]['verified'] == one_dict_list[0]['verified'], 'Created one phone list has wrong is_verified'
+        assert (
+            _one_dict_list[0]['primary'] == one_dict_list[0]['primary']
+        ), 'Created one phone list has wrong is_primary'
+        assert (
+            _one_dict_list[0]['verified'] == one_dict_list[0]['verified']
+        ), 'Created one phone list has wrong is_verified'
         assert _one_dict_list[0]['number'] == one_dict_list[0]['number'], 'Created one phone list has wrong number'
 
     def test_find(self):

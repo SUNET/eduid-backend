@@ -63,9 +63,7 @@ class TestToUEvent(TestCase):
         for this in [self.one, self.two, self.three]:
             this_dict = this.to_list_of_dicts()
             eventlist_again = EventList(this_dict)
-            self.assertEqual(
-                eventlist_again.to_list_of_dicts(), this.to_list_of_dicts()
-            )
+            self.assertEqual(eventlist_again.to_list_of_dicts(), this.to_list_of_dicts())
 
     def test_created_by(self):
         this = Event.from_dict(dict(created_by=None, event_id=bson.ObjectId(), event_type='test_event'))

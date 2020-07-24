@@ -49,6 +49,7 @@ class _FidoCredentialRequired:
     Required fields for FidoCredential, so that they go before the optional
     arguments of Element in the implicit constructor.
     """
+
     keyhandle: str
     app_id: str
 
@@ -58,6 +59,7 @@ class FidoCredential(Credential, _FidoCredentialRequired):
     """
     Token authentication credential
     """
+
     description: str = ''
 
 
@@ -67,6 +69,7 @@ class _U2FCredentialRequired:
     Required fields for U2F, so that they go before the optional
     arguments in the implicit constructor.
     """
+
     version: str
     public_key: str
 
@@ -76,6 +79,7 @@ class U2F(FidoCredential, _U2FCredentialRequired):
     """
     U2F token authentication credential
     """
+
     attest_cert: Optional[str] = None
 
     name_mapping: ClassVar[Dict[str, str]] = {'application': 'created_by'}
@@ -104,6 +108,7 @@ class Webauthn(FidoCredential):
     """
     Webauthn token authentication credential
     """
+
     attest_obj: str = ''
     credential_data: str = ''
 

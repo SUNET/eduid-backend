@@ -45,6 +45,7 @@ __author__ = 'ft'
 class MailAddress(PrimaryElement):
     """
     """
+
     email: Optional[str] = None
 
     name_mapping: ClassVar[Dict[str, str]] = {'added_timestamp': 'created_ts', 'application': 'created_by', 'csrf': ''}

@@ -16,6 +16,7 @@ class _OidcIdTokenRequired:
     This is used to order the required args for OidcIdToken
     before the optional args for Element
     """
+
     # Issuer identifier
     iss: str
     # Subject identifier
@@ -33,6 +34,7 @@ class OidcIdToken(Element, _OidcIdTokenRequired):
     """
     OpenID Connect ID token data
     """
+
     # Nonce used to associate a Client session with an ID Token, and to mitigate replay attacks.
     nonce: Optional[str] = None
     # Time when the End-User authentication occurred.
@@ -44,7 +46,13 @@ class OidcIdToken(Element, _OidcIdTokenRequired):
     # Authorized party
     azp: Optional[str] = None
 
-    name_mapping: ClassVar[Dict[str, str]] = {'application': 'created_by', 'at_hash': '', 'family_name': '', 'given_name': '', 'jti': ''}
+    name_mapping: ClassVar[Dict[str, str]] = {
+        'application': 'created_by',
+        'at_hash': '',
+        'family_name': '',
+        'given_name': '',
+        'jti': '',
+    }
 
     @property
     def key(self) -> str:
@@ -60,6 +68,7 @@ class _OidcAuthorizationRequired:
     This is used to order the required args for OidcAuthorization
     before the optional args for Element
     """
+
     access_token: str
     token_type: str
     id_token: OidcIdToken
@@ -70,6 +79,7 @@ class OidcAuthorization(Element, _OidcAuthorizationRequired):
     """
     OpenID Connect Authorization data
     """
+
     expires_in: Optional[int] = None
     refresh_token: Optional[str] = None
 
@@ -85,9 +95,7 @@ class OidcAuthorization(Element, _OidcAuthorizationRequired):
         return self.id_token.key
 
     @classmethod
-    def data_in_transforms(
-        cls: Type[OidcAuthorization], data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def data_in_transforms(cls: Type[OidcAuthorization], data: Dict[str, Any]) -> Dict[str, Any]:
         """
         """
         data = super().data_in_transforms(data)
@@ -115,6 +123,7 @@ class _OrcidRequired:
     """
     Required fields for Orcid
     """
+
     # User's ORCID
     id: str
     oidc_authz: OidcAuthorization
@@ -124,6 +133,7 @@ class _OrcidRequired:
 class Orcid(VerifiedElement, _OrcidRequired):
     """
     """
+
     name: Optional[str] = None
     given_name: Optional[str] = None
     family_name: Optional[str] = None

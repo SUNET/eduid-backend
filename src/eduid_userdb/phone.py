@@ -45,9 +45,15 @@ __author__ = 'ft'
 class PhoneNumber(PrimaryElement):
     """
     """
+
     number: Optional[str] = None
 
-    name_mapping: ClassVar[Dict[str, str]] = {'application': 'created_by', 'added_timestamp': 'created_ts', 'mobile': 'number', 'csrf': ''}
+    name_mapping: ClassVar[Dict[str, str]] = {
+        'application': 'created_by',
+        'added_timestamp': 'created_ts',
+        'mobile': 'number',
+        'csrf': '',
+    }
     old_names: ClassVar[tuple] = ('added_timestamp', 'mobile')
 
     @property

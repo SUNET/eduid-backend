@@ -430,10 +430,7 @@ class _AbstractUserTestCase:
         locked_identity = {'created_by': 'test', 'identity_type': 'nin', 'number': '197801012345'}
         user = User.from_dict(self.data1)
         locked_nin = LockedIdentityNin.from_dict(
-            dict(
-                number=locked_identity['number'],
-                created_by=locked_identity['created_by'],
-            )
+            dict(number=locked_identity['number'], created_by=locked_identity['created_by'],)
         )
         user.locked_identity.add(locked_nin)
         self.assertEqual(user.locked_identity.count, 1)
@@ -448,10 +445,7 @@ class _AbstractUserTestCase:
         locked_identity = {'created_by': 'test', 'identity_type': 'nin', 'number': '197801012345'}
         user = User.from_dict(self.data1)
         locked_nin = LockedIdentityNin.from_dict(
-            dict(
-                number=locked_identity['number'],
-                created_by=locked_identity['created_by'],
-            )
+            dict(number=locked_identity['number'], created_by=locked_identity['created_by'],)
         )
         user.locked_identity.add(locked_nin)
 
@@ -473,10 +467,7 @@ class _AbstractUserTestCase:
         locked_identity = {'created_by': 'test', 'identity_type': 'nin', 'number': '197801012345'}
         user = User.from_dict(self.data1)
         locked_nin = LockedIdentityNin.from_dict(
-            dict(
-                number=locked_identity['number'],
-                created_by=locked_identity['created_by'],
-            )
+            dict(number=locked_identity['number'], created_by=locked_identity['created_by'],)
         )
         user.locked_identity.add(locked_nin)
         with self.assertRaises(EduIDUserDBError):
@@ -553,12 +544,7 @@ class _AbstractUserTestCase:
         """ Test user that has both 'mobile' and 'phone' """
         phone = [
             {'number': '+4673123', 'primary': True, 'verified': True},
-            {
-                'created_by': 'phone',
-                'number': '+4670999',
-                'primary': False,
-                'verified': False,
-            },
+            {'created_by': 'phone', 'number': '+4670999', 'primary': False, 'verified': False,},
         ]
         user = User.from_dict(
             data={

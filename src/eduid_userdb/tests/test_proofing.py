@@ -80,10 +80,12 @@ class ProofingStateTest(TestCase):
             sorted(state_dict.keys()), ['_id', 'eduPersonPrincipalName', 'modified_ts', 'nin', 'proofing_letter']
         )
         self.assertEqual(
-            sorted([k for k, v in state_dict['nin'].items() if v is not None]), ['created_by', 'created_ts', 'modified_ts', 'number', 'verification_code', 'verified']
+            sorted([k for k, v in state_dict['nin'].items() if v is not None]),
+            ['created_by', 'created_ts', 'modified_ts', 'number', 'verification_code', 'verified'],
         )
         self.assertEqual(
-            sorted([k for k, v in state_dict['proofing_letter'].items() if v is not None]), ['address', 'created_ts', 'is_sent', 'modified_ts']
+            sorted([k for k, v in state_dict['proofing_letter'].items() if v is not None]),
+            ['address', 'created_ts', 'is_sent', 'modified_ts'],
         )
 
     def test_create_oidcproofingstate(self):

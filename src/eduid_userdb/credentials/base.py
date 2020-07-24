@@ -56,6 +56,7 @@ class Credential(VerifiedElement):
     There is some use of these objects as keys in dicts in eduid-IdP,
     so we are making them hashable.
     """
+
     proofing_method: Optional[str] = None
     proofing_version: Optional[str] = None
 
