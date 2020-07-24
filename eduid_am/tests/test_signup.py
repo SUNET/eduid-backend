@@ -93,7 +93,7 @@ class AttributeFetcherTests(AMTestCase):
 
         fetched = self.fetcher.fetch_attrs(user.user_id)
 
-        expected_passwords = [{'credential_id': u'123', 'is_generated': False, 'salt': u'456', }]
+        expected_passwords = [{'credential_id': u'123', 'is_generated': False, 'salt': u'456',}]
         self.normalize_data(fetched['$set']['passwords'], expected_passwords)
 
         expected_emails = [{'verified': True, 'primary': True, 'email': 'john@example.com'}]

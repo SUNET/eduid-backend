@@ -288,7 +288,9 @@ class AttributeFetcherOldToNewUsersTests(AMTestCase):
 
         self.normalize_data(expected['$set']['nins'], fetched['$set']['nins'])
 
-        assert fetched == expected, 'Fetched (old to new) letter proofing data with appended attributes has unexpected data'
+        assert (
+            fetched == expected
+        ), 'Fetched (old to new) letter proofing data with appended attributes has unexpected data'
 
     def convert_and_remove_norEduPersonNIN(self):
         self.user_data.update({'norEduPersonNIN': '123456781235'})
@@ -570,13 +572,14 @@ class AttributeFetcherEmailProofingTests(AMTestCase):
         fetcher.private_db.save(proofing_user)
 
         fetched = fetcher.fetch_attrs(proofing_user.user_id)
-        expected = {'$set': {'mailAliases': [{'email': 'john@example.com', 'verified': True, 'primary': True,}],},}
+        expected = {
+            '$set': {'mailAliases': [{'email': 'john@example.com', 'verified': True, 'primary': True,}],},
+        }
 
         self.normalize_data(expected['$set']['mailAliases'], fetched['$set']['mailAliases'])
 
         self.assertDictEqual(
-            fetched,
-            expected,
+            fetched, expected,
         )
 
     def test_malicious_attributes(self):
@@ -615,13 +618,14 @@ class AttributeFetcherEmailProofingTests(AMTestCase):
         fetcher.private_db.save(proofing_user)
 
         fetched = fetcher.fetch_attrs(proofing_user.user_id)
-        expected = {'$set': {'mailAliases': [{'email': 'john@example.com', 'verified': True, 'primary': True}],},}
+        expected = {
+            '$set': {'mailAliases': [{'email': 'john@example.com', 'verified': True, 'primary': True}],},
+        }
 
         self.normalize_data(expected['$set']['mailAliases'], fetched['$set']['mailAliases'])
 
         self.assertDictEqual(
-            fetched,
-            expected,
+            fetched, expected,
         )
 
 
@@ -650,7 +654,9 @@ class AttributeFetcherPhoneProofingTests(AMTestCase):
         self.fetcher.private_db.save(proofing_user)
         fetched = self.fetcher.fetch_attrs(proofing_user.user_id)
 
-        expected = {'$set': {'phone': [{'verified': True, 'number': '+46700011336', 'primary': True}],},}
+        expected = {
+            '$set': {'phone': [{'verified': True, 'number': '+46700011336', 'primary': True}],},
+        }
 
         self.normalize_data(expected['$set']['phone'], fetched['$set']['phone'])
 
