@@ -12,13 +12,19 @@ __author__ = 'lundberg'
 
 
 @dataclass
-class Profile(Element):
+class _ProfileRequired:
     """
     """
 
-    owner: Optional[str] = None
-    schema: Optional[str] = None
-    profile_data: Optional[Mapping[str, Any]] = None
+    owner: str
+    schema: str
+    profile_data: Mapping[str, Any]
+
+
+@dataclass
+class Profile(Element, _ProfileRequired):
+    """
+    """
 
     @property
     def key(self) -> Optional[str]:
