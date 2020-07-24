@@ -257,7 +257,6 @@ class Element(metaclass=MetaElement):
         To be overridden in subclasses that know specifically how to transform the data.
 
         The default implementation removes the attributes with None value
-        and then tries to delegate to super()
         """
         new_data = dict()
         for key, val in data.items():
