@@ -36,7 +36,7 @@ class LockedIdentityElement(Element, _LockedIdentityElementRequired):
         """
         :return: Type of identity
         """
-        # XXX this is wrong, with a list of locked identity elements we should be able to
+        # XXX this seems wrong: given a list of locked identity elements, we should be able to
         # XXX find or remove elements through their key, so the key should be unique for
         # XXX each locked identity element.
         return self.identity_type
