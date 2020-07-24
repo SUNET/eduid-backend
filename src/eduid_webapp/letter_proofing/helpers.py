@@ -114,10 +114,7 @@ def check_state(state: LetterProofingState) -> StateExpireInfo:
 
 def create_proofing_state(eppn: str, nin: str) -> LetterProofingState:
     _nin = NinProofingElement(
-        number=nin,
-        created_by='eduid-idproofing-letter',
-        is_verified=False,
-        verification_code=get_short_hash(),
+        number=nin, created_by='eduid-idproofing-letter', is_verified=False, verification_code=get_short_hash(),
     )
     proofing_letter = SentLetterElement()
     return LetterProofingState(eppn=eppn, nin=_nin, proofing_letter=proofing_letter, id=None, modified_ts=None)
