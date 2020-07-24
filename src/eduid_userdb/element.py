@@ -165,6 +165,8 @@ class MetaElement(type):
 
         result = super().__new__(typ, name, bases, dct)
 
+        # It seems there's not other waay to do this than casting, see:
+        # https://stackoverflow.com/questions/63054541/how-to-type-the-new-method-in-a-python-metaclass-so-that-mypy-is-happy
         return cast(MetaElement, result)
 
 
