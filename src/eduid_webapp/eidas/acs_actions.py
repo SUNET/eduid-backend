@@ -312,7 +312,7 @@ def mfa_authentication_action(session_info: Mapping[str, Any], user: User) -> We
     resp = redirect_with_msg(redirect_url, EidasMsg.action_completed, error=False)
     parsed_url = urlsplit(str(resp.location))
     new_path = urlappend(str(parsed_url.path), 'redirect-action')
-    parsed_url._replace(path=new_path)
+    parsed_url = parsed_url._replace(path=new_path)
     new_url = urlunsplit(parsed_url)
     current_app.logger.debug(f'Redirecting to: {new_url}')
     return redirect(new_url)
