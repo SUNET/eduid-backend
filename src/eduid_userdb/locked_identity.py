@@ -65,17 +65,6 @@ class LockedIdentityNin(LockedIdentityElement, _LockedIdentityNinRequired):
 
     identity_type: str = 'nin'
 
-    @classmethod
-    def data_in_transforms(cls: Type[LockedIdentityNin], data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Construct locked identity element from a data dict.
-        """
-        data['identity_type'] = 'nin'
-
-        data = super().data_in_transforms(data)
-
-        return data
-
 
 class LockedIdentityList(ElementList):
     """
