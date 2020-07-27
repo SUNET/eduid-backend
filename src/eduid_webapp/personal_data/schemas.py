@@ -39,7 +39,7 @@ from eduid_common.api.schemas.nin import NinSchema
 from eduid_common.api.schemas.orcid import OrcidSchema
 
 from eduid_webapp.email.schemas import EmailSchema
-from eduid_webapp.personal_data.validators import validate_language, validate_nonempty
+from eduid_webapp.personal_data.validators import validate_language, validate_nonempty, validate_no_special_chars
 from eduid_webapp.phone.schemas import PhoneSchema
 
 __author__ = 'eperez'
@@ -55,8 +55,8 @@ class PersonalDataRequestSchema(EduidSchema, CSRFRequestMixin):
 
 class PersonalDataSchema(EduidSchema):
 
-    given_name = fields.String(required=True, attribute='givenName')
-    surname = fields.String(required=True)
+    given_name = fields.String(required=True, attribute='givenName', validate=[validate_nonempty, validate_no_special_chars])
+    surname = fields.String(required=True, validate=[validate_nonempty, validate_no_special_chars])
     display_name = fields.String(required=True, attribute='displayName')
     language = fields.String(required=True, attribute='preferredLanguage', validate=validate_language)
 

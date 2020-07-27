@@ -46,3 +46,5 @@ class PDataMsg(TranslatableMsg):
     save_success = 'pd.save-success'
     # validation error: missing required field
     required = 'pdata.field_required'
+    # validation error: ilegal characters
+    special_chars = 'only allow letters'
