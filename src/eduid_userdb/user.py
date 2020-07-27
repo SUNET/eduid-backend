@@ -34,7 +34,7 @@
 
 import copy
 import datetime
-import warnings
+from dataclasses import dataclass, field, asdict
 from typing import Any, Dict, List, Optional, Type, TypeVar, Union
 
 import bson
@@ -55,81 +55,29 @@ VALID_SUBJECT_VALUES = ['physical person']
 TUserSubclass = TypeVar('TUserSubclass', bound='User')
 
 
+@dataclass
 class User(object):
     """
     Generic eduID user object.
-
-    :param data: MongoDB document representing a user
-    :type  data: dict
     """
-
-    def __init__(self, data: Dict[str, Any], raise_on_unknown: bool = True, called_directly: bool = True):
-        if called_directly:
-            warnings.warn("User.__init__ called directly", DeprecationWarning)
-
-        self._data_in = copy.deepcopy(data)  # to not modify callers data
-        self._data_orig = copy.deepcopy(data)  # to not modify callers data
-        self._data: Dict[str, Any] = dict()
-
-        self.check_or_use_data()
-
-        self._parse_check_invalid_users()
-
-        # things without setters
-        _id = self._data_in.pop('_id', None)
-        if _id is None:
-            _id = bson.ObjectId()
-        if not isinstance(_id, bson.ObjectId):
-            _id = bson.ObjectId(_id)
-        self._data['_id'] = _id
-
-        if 'sn' in self._data_in:
-            _sn = self._data_in.pop('sn')
-            # Some users have both 'sn' and 'surname'. In that case, assume sn was
-            # once converted to surname but also left behind, and discard 'sn'.
-            if 'surname' not in self._data_in:
-                self._data_in['surname'] = _sn
-        if 'eduPersonEntitlement' in self._data_in:
-            self._data_in['entitlements'] = self._data_in.pop('eduPersonEntitlement')
-
-        self._parse_mail_addresses()
-        self._parse_phone_numbers()
-        self._parse_nins()
-        self._parse_tous()
-        self._parse_locked_identity()
-        self._parse_orcid()
-        self._parse_profiles()
-
-        self._credentials = CredentialList(self._data_in.pop('passwords', []))
-        # generic (known) attributes
-        self.eppn = self._data_in.pop('eduPersonPrincipalName')  # mandatory
-        self.subject = self._data_in.pop('subject', None)
-        self.display_name = self._data_in.pop('displayName', None)
-        self.given_name = self._data_in.pop('givenName', None)
-        self.surname = self._data_in.pop('surname', None)
-        self.language = self._data_in.pop('preferredLanguage', None)
-        self.modified_ts = self._data_in.pop('modified_ts', None)
-        self.entitlements = self._data_in.pop('entitlements', None)
-        self.terminated = self._data_in.pop('terminated', None)
-        # obsolete attributes
-        if 'postalAddress' in self._data_in:
-            del self._data_in['postalAddress']
-        if 'date' in self._data_in:
-            del self._data_in['date']
-        if 'csrf' in self._data_in:
-            del self._data_in['csrf']
-        # temporary data we just want to retain as is
-        for copy_attribute in ['letter_proofing_data']:
-            if copy_attribute in self._data_in:
-                self._data[copy_attribute] = self._data_in.pop(copy_attribute)
-
-        if len(self._data_in) > 0:
-            if raise_on_unknown:
-                raise UserHasUnknownData(
-                    'User {!s}/{!s} unknown data: {!r}'.format(self.user_id, self.eppn, self._data_in.keys())
-                )
-            # Just keep everything that is left as-is
-            self._data.update(self._data_in)
+    user_id: bson.ObjectId
+    eppn: Optional[str] = None
+    given_name: str = ''
+    display_name: str = ''
+    surname: str = ''
+    subject: Optional[str] = None
+    language: str = 'sv'
+    mail_addresses: MailAddressList = field(default_factory=MailAddressList)
+    phone_numbers: PhoneNumberList = field(default_factory=PhoneNumberList)
+    credentials: CredentialList = field(default_factory=CredentialList)
+    nins: NinList = field(default_factory=NinList)
+    modified_ts: datetime.datetime = field(default_factory=datetime.utcnow)
+    entitlements: List[str] = field(default_factory=list)
+    tou: ToUList = field(default_factory=ToUList)
+    terminated: datetime.datetime = field(default_factory=datetime.utcnow)
+    locked_identity: LockedIdentityList = field(default_factory=LockedIdentityList)
+    orcid: Optional[Orcid] = None
+    profiles: ProfileList = field(default_factory=ProfileList)
 
     @classmethod
     def construct_user(
@@ -215,7 +163,73 @@ class User(object):
         """
         Construct user from a data dict.
         """
-        return cls(data=data, raise_on_unknown=raise_on_unknown, called_directly=False)
+        self = object.__new__(cls)
+
+        self._data_in = copy.deepcopy(data)  # to not modify callers data
+        self._data_orig = copy.deepcopy(data)  # to not modify callers data
+        self._data: Dict[str, Any] = dict()
+
+        self.check_or_use_data()
+
+        self._parse_check_invalid_users()
+
+        # things without setters
+        _id = self._data_in.pop('_id', None)
+        if _id is None:
+            _id = bson.ObjectId()
+        if not isinstance(_id, bson.ObjectId):
+            _id = bson.ObjectId(_id)
+        self._data['_id'] = _id
+
+        if 'sn' in self._data_in:
+            _sn = self._data_in.pop('sn')
+            # Some users have both 'sn' and 'surname'. In that case, assume sn was
+            # once converted to surname but also left behind, and discard 'sn'.
+            if 'surname' not in self._data_in:
+                self._data_in['surname'] = _sn
+        if 'eduPersonEntitlement' in self._data_in:
+            self._data_in['entitlements'] = self._data_in.pop('eduPersonEntitlement')
+
+        self._parse_mail_addresses()
+        self._parse_phone_numbers()
+        self._parse_nins()
+        self._parse_tous()
+        self._parse_locked_identity()
+        self._parse_orcid()
+        self._parse_profiles()
+
+        self._credentials = CredentialList(self._data_in.pop('passwords', []))
+        # generic (known) attributes
+        self.eppn = self._data_in.pop('eduPersonPrincipalName')  # mandatory
+        self.subject = self._data_in.pop('subject', None)
+        self.display_name = self._data_in.pop('displayName', None)
+        self.given_name = self._data_in.pop('givenName', None)
+        self.surname = self._data_in.pop('surname', None)
+        self.language = self._data_in.pop('preferredLanguage', None)
+        self.modified_ts = self._data_in.pop('modified_ts', None)
+        self.entitlements = self._data_in.pop('entitlements', None)
+        self.terminated = self._data_in.pop('terminated', None)
+        # obsolete attributes
+        if 'postalAddress' in self._data_in:
+            del self._data_in['postalAddress']
+        if 'date' in self._data_in:
+            del self._data_in['date']
+        if 'csrf' in self._data_in:
+            del self._data_in['csrf']
+        # temporary data we just want to retain as is
+        for copy_attribute in ['letter_proofing_data']:
+            if copy_attribute in self._data_in:
+                self._data[copy_attribute] = self._data_in.pop(copy_attribute)
+
+        if len(self._data_in) > 0:
+            if raise_on_unknown:
+                raise UserHasUnknownData(
+                    'User {!s}/{!s} unknown data: {!r}'.format(self.user_id, self.eppn, self._data_in.keys())
+                )
+            # Just keep everything that is left as-is
+            self._data.update(self._data_in)
+
+        return self
 
     def __repr__(self):
         return '<eduID {!s}: {!s}/{!s}>'.format(self.__class__.__name__, self.eppn, self.user_id,)
@@ -377,324 +391,13 @@ class User(object):
         _profiles = self._data_in.pop('profiles', [])
         self._profiles = ProfileList.from_list_of_dicts(_profiles)
 
-    # -----------------------------------------------------------------
-    @property
-    def user_id(self):
-        """
-        Get the user's oid in MongoDB.
-
-        :rtype: bson.ObjectId
-        """
-        return self._data['_id']
-
-    # -----------------------------------------------------------------
-    @property
-    def eppn(self):
-        """
-        Get the user's eduPersonPrincipalName.
-
-        :rtype: str
-        """
-        return self._data.get('eduPersonPrincipalName', '')
-
-    @eppn.setter
-    def eppn(self, value):
-        """
-        :param value: Set the user's eduPersonPrincipalName.
-        :type value: str | unicode
-        """
-        if self._data.get('eduPersonPrincipalName') is not None:
-            raise UserDBValueError('Overwriting an existing eduPersonPrincipalName is not allowed')
-        self._data['eduPersonPrincipalName'] = value
-
-    # -----------------------------------------------------------------
-    @property
-    def given_name(self):
-        """
-        Get the user's givenName.
-
-        :rtype: str | unicode
-        """
-        return self._data.get('givenName', '')
-
-    @given_name.setter
-    def given_name(self, value):
-        """
-        Set the user's givenName.
-
-        :param value: the givenName to set
-        :type  value: str | unicode
-        """
-        self._data['givenName'] = value
-
-    # -----------------------------------------------------------------
-    @property
-    def display_name(self):
-        """
-        Get the user's displayName.
-
-        :rtype: str | unicode
-        """
-        return self._data.get('displayName', '')
-
-    @display_name.setter
-    def display_name(self, value):
-        """
-        Set the user's displayName.
-
-        :param value: the displayName to set
-        :type  value: str
-        """
-        self._data['displayName'] = value
-
-    # -----------------------------------------------------------------
-    @property
-    def surname(self):
-        """
-        Get the user's surname (family name).
-
-        :rtype: str | unicode
-        """
-        return self._data.get('surname', '')
-
-    @surname.setter
-    def surname(self, value):
-        """
-        Set the user's surname (family name).
-
-        :param value: the surname to set
-        :type  value: str | unicode
-        """
-        self._data['surname'] = value
-
-    # -----------------------------------------------------------------
-    @property
-    def subject(self):
-        """
-        Get the user's subject type ('physical person', ...).
-
-        :rtype: str | unicode
-        """
-        return self._data.get('subject')
-
-    @subject.setter
-    def subject(self, value):
-        """
-        Set the user's subject type ('physical person', ...).
-
-        :param value: the subject to set
-        :type  value: str
-        """
-        if value is None:
-            return
-        if value not in VALID_SUBJECT_VALUES:
-            raise UserDBValueError("Unknown 'subject' value: {!r}".format(value))
-        self._data['subject'] = value
-
-    # -----------------------------------------------------------------
-    @property
-    def language(self):
-        """
-        Get the user's preferred language ('sv', 'en', ...).
-
-        :rtype: str | unicode
-        """
-        return self._data.get('preferredLanguage')
-
-    @language.setter
-    def language(self, value):
-        """
-        Set the user's preferred language.
-
-        :param value: the language preference to set ('sv', 'en', ...)
-        :type  value: str | unicode
-        """
-        self._data['preferredLanguage'] = value
-
-    # -----------------------------------------------------------------
-    @property
-    def mail_addresses(self):
-        """
-        Get the user's email addresses.
-        :return: MailAddressList object
-        :rtype: eduid_userdb.mail.MailAddressList
-        """
-        # no setter for this one, as the MailAddressList object provides modification functions
-        return self._mail_addresses
-
-    # -----------------------------------------------------------------
-    @property
-    def phone_numbers(self):
-        """
-        Get the user's phone numbers.
-        :return: PhoneNumberList object
-        :rtype: eduid_userdb.phone.PhoneNumberList
-        """
-        # no setter for this one, as the PhoneNumberList object provides modification functions
-        return self._phone_numbers
-
-    # -----------------------------------------------------------------
-    @property
-    def credentials(self):
-        """
-        Get the user's credentials.
-        :return: CredentialList object
-        :rtype: eduid_userdb.credentials.CredentialList
-        """
-        # no setter for this one, as the CredentialList object provides modification functions
-        return self._credentials
-
-    @property
-    def passwords(self):
-        """
-        DEPRECATED - see credentials.
-        :return: CredentialList object
-        :rtype: eduid_userdb.credentials.CredentialList
-        """
-        # no setter for this one, as the CredentialList object provides modification functions
-        return self._credentials
-
-    # -----------------------------------------------------------------
-    @property
-    def nins(self):
-        """
-        Get the user's national identity numbers.
-        :return: NinList object
-        :rtype: eduid_userdb.nin.NinList
-        """
-        # no setter for this one, as the NinList object provides modification functions
-        return self._nins
-
-    # -----------------------------------------------------------------
-    @property
-    def modified_ts(self):
-        """
-        :return: Timestamp of last modification in the database.
-                 None if User has never been written to the database.
-        :rtype: datetime.datetime | None
-        """
-        return self._data.get('modified_ts')
-
-    @modified_ts.setter
-    def modified_ts(self, value):
-        """
-        :param value: Timestamp of modification.
-                      Value None is ignored, True is short for datetime.utcnow().
-        :type value: datetime.datetime | True | None
-        """
-        if value is None:
-            return
-        if value is True:
-            value = datetime.datetime.utcnow()
-        self._data['modified_ts'] = value
-
-    # -----------------------------------------------------------------
-    @property
-    def entitlements(self):
-        """
-        :return: List of entitlements for this user.
-        :rtype: [str | unicode]
-        """
-        return self._data.get('entitlements')
-
-    @entitlements.setter
-    def entitlements(self, value):
-        """
-        :param value: List of entitlements (strings).
-        :type value: [str | unicode]
-        """
-        if value is None:
-            return
-        if not isinstance(value, list):
-            raise UserDBValueError("Unknown 'entitlements' value: {!r}".format(value))
-        for this in value:
-            if not isinstance(this, str):
-                raise UserDBValueError("Unknown 'entitlements' element: {!r}".format(this))
-        self._data['entitlements'] = value
-
-    # -----------------------------------------------------------------
-    @property
-    def tou(self):
-        """
-        Get the user's Terms of Use info.
-
-        :return: ToUList object
-        :rtype: eduid_userdb.tou.ToUList
-        """
-        # no setter for this one, as the ToUList object provides modification functions
-        return self._tou
-
-    # -----------------------------------------------------------------
-    @property
-    def terminated(self):
-        """
-        Get the user's terminated status (False or the timestamp when the user was terminated).
-
-        :rtype: False | datetime
-        """
-        return self._data.get('terminated', False)
-
-    @terminated.setter
-    def terminated(self, value):
-        """
-        :param value: Set the user's terminated status.
-        :type value: bool
-        """
-        if value is not None:
-            if not isinstance(value, bool) and not isinstance(value, datetime.datetime):
-                raise UserDBValueError('Non-bool/datetime terminated value')
-            if value is True:
-                value = datetime.datetime.utcnow()
-            self._data['terminated'] = value
-
-    # -----------------------------------------------------------------
-    @property
-    def locked_identity(self):
-        """
-        :return: Identity locked to this user or empty list
-        :rtype: LockedIdentityList
-        """
-        return self._locked_identity
-
-    # -----------------------------------------------------------------
-    @property
-    def orcid(self):
-        """
-        :return: Users ORCID
-        :rtype: Orcid | None
-        """
-        return self._orcid
-
-    @orcid.setter
-    def orcid(self, value):
-        """
-        :param value: Users ORCID
-        :type value: Orcid
-
-        :return: Users ORCID
-        :rtype: Orcid | None
-        """
-        if value is None or isinstance(value, Orcid):
-            self._orcid = value
-        else:
-            raise UserDBValueError("Unknown 'orcid' value: {!r}".format(value))
-
-    # -----------------------------------------------------------------
-    @property
-    def profiles(self) -> ProfileList:
-        """
-        :return: Profiles for this user or empty list
-        """
-        return self._profiles
-
-    # -----------------------------------------------------------------
     def to_dict(self) -> Dict[str, Any]:
         """
         Return user data serialized into a dict that can be stored in MongoDB.
 
         :return: User as dict
         """
-        res = copy.copy(self._data)  # avoid caller messing up our private _data
+        res = copy.copy(asdict(self._data))  # avoid caller messing up our private _data
         res['mailAliases'] = self.mail_addresses.to_list_of_dicts()
         res['phone'] = self.phone_numbers.to_list_of_dicts()
         res['passwords'] = self.credentials.to_list_of_dicts()
