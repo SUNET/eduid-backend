@@ -32,14 +32,14 @@
 
 __author__ = 'eperez'
 
-from typing import Optional, Union
-
-import bson
+from dataclasses import dataclass
+from typing import Any, Dict
 
 from eduid_userdb.exceptions import UserMissingData
 from eduid_userdb.user import User
 
 
+@dataclass
 class ToUUser(User):
     """
     Subclass of eduid_userdb.User with
@@ -53,27 +53,11 @@ class ToUUser(User):
                              there is unknown data in the data dict
     """
 
-    def __init__(
-        self,
-        userid: Optional[Union[str, bson.ObjectId]] = None,
-        eppn: Optional[str] = None,
-        tou: Optional[list] = None,
-        data: Optional[dict] = None,
-        raise_on_unknown: bool = True,
-        called_directly: bool = True,
-    ):
-        """
-        """
-        if data is None:
-            data = {'_id': userid, 'eduPersonPrincipalName': eppn, 'tou': tou}
-
-        User.__init__(self, data, raise_on_unknown=raise_on_unknown, called_directly=called_directly)
-
-    def check_or_use_data(self):
+    @classmethod
+    def check_or_use_data(cls, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Check that the provided data dict contains all needed keys.
         """
-        data = self._data_in
         if '_id' not in data or data['_id'] is None:
             raise UserMissingData('Attempting to record a ToU acceptance ' 'for an unidentified user.')
         if 'eduPersonPrincipalName' not in data or data['eduPersonPrincipalName'] is None:
@@ -84,3 +68,4 @@ class ToUUser(User):
                 'an unknown version of the ToU for '
                 'the user with eppn ' + str(data.get('eduPersonPrincipalName', data.get('eppn')))
             )
+        return data

@@ -33,7 +33,7 @@
 #
 
 import copy
-import datetime
+from datetime import datetime
 from dataclasses import dataclass, field, asdict
 from typing import Any, Dict, List, Optional, Type, TypeVar, Union
 
@@ -60,8 +60,8 @@ class User(object):
     """
     Generic eduID user object.
     """
-    user_id: bson.ObjectId
-    eppn: Optional[str] = None
+    eppn: str
+    user_id: Optional[bson.ObjectId] = None
     given_name: str = ''
     display_name: str = ''
     surname: str = ''
@@ -71,13 +71,23 @@ class User(object):
     phone_numbers: PhoneNumberList = field(default_factory=PhoneNumberList)
     credentials: CredentialList = field(default_factory=CredentialList)
     nins: NinList = field(default_factory=NinList)
-    modified_ts: datetime.datetime = field(default_factory=datetime.utcnow)
+    modified_ts: datetime = field(default_factory=datetime.utcnow)
     entitlements: List[str] = field(default_factory=list)
     tou: ToUList = field(default_factory=ToUList)
-    terminated: datetime.datetime = field(default_factory=datetime.utcnow)
+    terminated: datetime = field(default_factory=datetime.utcnow)
     locked_identity: LockedIdentityList = field(default_factory=LockedIdentityList)
     orcid: Optional[Orcid] = None
     profiles: ProfileList = field(default_factory=ProfileList)
+    revoked_ts: Optional[datetime] = None
+
+    def __post_init__(self):
+        """
+        Check users that can't be loaded for some known reason.
+        """
+        if self.revoked_ts is not None:
+            raise UserIsRevoked(
+                f'User {self.user_id}/{self.eppn} was revoked at {self.revoked_ts}'
+            )
 
     @classmethod
     def construct_user(
@@ -90,8 +100,8 @@ class User(object):
         surname: Optional[str] = None,
         language: Optional[str] = None,
         passwords: Optional[CredentialList] = None,
-        modified_ts: Optional[datetime.datetime] = None,
-        revoked_ts: Optional[datetime.datetime] = None,
+        modified_ts: Optional[datetime] = None,
+        revoked_ts: Optional[datetime] = None,
         entitlements: Optional[List[str]] = None,
         terminated: Optional[bool] = None,
         letter_proofing_data: Optional[dict] = None,
@@ -149,87 +159,73 @@ class User(object):
 
         return cls.from_dict(data)
 
-    def check_or_use_data(self):
+    @classmethod
+    def check_or_use_data(cls, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Derived classes can override this method to check that the provided data
         is enough for their purposes, or to deal specially with particular bits of it.
 
         In case of problems they sould raise whatever Exception is appropriate.
         """
-        pass
+        return data
 
     @classmethod
     def from_dict(cls: Type[TUserSubclass], data: Dict[str, Any], raise_on_unknown: bool = True) -> TUserSubclass:
         """
         Construct user from a data dict.
         """
-        self = object.__new__(cls)
+        data_in = copy.deepcopy(data)  # to not modify callers data
 
-        self._data_in = copy.deepcopy(data)  # to not modify callers data
-        self._data_orig = copy.deepcopy(data)  # to not modify callers data
-        self._data: Dict[str, Any] = dict()
+        data_in = cls.check_or_use_data(data_in)
 
-        self.check_or_use_data()
-
-        self._parse_check_invalid_users()
-
+        if 'passwords' not in data_in:
+            raise UserHasNotCompletedSignup(
+                'User {!s}/{!s} is incomplete'.format(
+                    data_in.get('_id'), data_in.get('eduPersonPrincipalName')
+                )
+            )
         # things without setters
-        _id = self._data_in.pop('_id', None)
+        _id = data_in.pop('_id', None)
         if _id is None:
             _id = bson.ObjectId()
         if not isinstance(_id, bson.ObjectId):
             _id = bson.ObjectId(_id)
-        self._data['_id'] = _id
+        data_in['user_id'] = _id
 
-        if 'sn' in self._data_in:
-            _sn = self._data_in.pop('sn')
+        if 'sn' in data_in:
+            _sn = data_in.pop('sn')
             # Some users have both 'sn' and 'surname'. In that case, assume sn was
             # once converted to surname but also left behind, and discard 'sn'.
-            if 'surname' not in self._data_in:
-                self._data_in['surname'] = _sn
-        if 'eduPersonEntitlement' in self._data_in:
-            self._data_in['entitlements'] = self._data_in.pop('eduPersonEntitlement')
+            if 'surname' not in data_in:
+                data_in['surname'] = _sn
 
-        self._parse_mail_addresses()
-        self._parse_phone_numbers()
-        self._parse_nins()
-        self._parse_tous()
-        self._parse_locked_identity()
-        self._parse_orcid()
-        self._parse_profiles()
+        if 'eduPersonEntitlement' in data_in:
+            data_in['entitlements'] = data_in.pop('eduPersonEntitlement')
 
-        self._credentials = CredentialList(self._data_in.pop('passwords', []))
+        data_in['mail_addresses'] = cls._parse_mail_addresses(data_in)
+        data_in['phone_numbers'] = cls._parse_phone_numbers(data_in)
+        data_in['nins'] = cls._parse_nins(data_in)
+        data_in['tou'] = cls._parse_tous(data_in)
+        data_in['locked_identity'] = cls._parse_locked_identity(data_in)
+        data_in['orcid'] = cls._parse_orcid(data_in)
+        data_in['profiles'] = cls._parse_profiles(data_in)
+
+        data_in['credentials'] = CredentialList(data_in.pop('passwords', []))
         # generic (known) attributes
-        self.eppn = self._data_in.pop('eduPersonPrincipalName')  # mandatory
-        self.subject = self._data_in.pop('subject', None)
-        self.display_name = self._data_in.pop('displayName', None)
-        self.given_name = self._data_in.pop('givenName', None)
-        self.surname = self._data_in.pop('surname', None)
-        self.language = self._data_in.pop('preferredLanguage', None)
-        self.modified_ts = self._data_in.pop('modified_ts', None)
-        self.entitlements = self._data_in.pop('entitlements', None)
-        self.terminated = self._data_in.pop('terminated', None)
+        data_in['eppn'] = data_in.pop('eduPersonPrincipalName')  # mandatory
+        data_in['subject'] = data_in.pop('subject', None)
+        data_in['display_name'] = data_in.pop('displayName', None)
+        data_in['given_name'] = data_in.pop('givenName', None)
+        data_in['language'] = data_in.pop('preferredLanguage', None)
         # obsolete attributes
-        if 'postalAddress' in self._data_in:
-            del self._data_in['postalAddress']
-        if 'date' in self._data_in:
-            del self._data_in['date']
-        if 'csrf' in self._data_in:
-            del self._data_in['csrf']
-        # temporary data we just want to retain as is
-        for copy_attribute in ['letter_proofing_data']:
-            if copy_attribute in self._data_in:
-                self._data[copy_attribute] = self._data_in.pop(copy_attribute)
+        if 'postalAddress' in data_in:
+            del data_in['postalAddress']
+        if 'date' in data_in:
+            del data_in['date']
+        if 'csrf' in data_in:
+            del data_in['csrf']
 
-        if len(self._data_in) > 0:
-            if raise_on_unknown:
-                raise UserHasUnknownData(
-                    'User {!s}/{!s} unknown data: {!r}'.format(self.user_id, self.eppn, self._data_in.keys())
-                )
-            # Just keep everything that is left as-is
-            self._data.update(self._data_in)
-
-        return self
+        return cls(**data_in)
 
     def __repr__(self):
         return '<eduID {!s}: {!s}/{!s}>'.format(self.__class__.__name__, self.eppn, self.user_id,)
@@ -241,37 +237,19 @@ class User(object):
             )
         return self._data == other._data
 
-    def _parse_check_invalid_users(self):
-        """
-        Part of __init__().
-
-        Check users that can't be loaded for some known reason.
-        """
-        if 'revoked_ts' in self._data_in:
-            raise UserIsRevoked(
-                'User {!s}/{!s} was revoked at {!s}'.format(
-                    self._data_in.get('_id'), self._data_in.get('eduPersonPrincipalName'), self._data_in['revoked_ts']
-                )
-            )
-        if 'passwords' not in self._data_in:
-            raise UserHasNotCompletedSignup(
-                'User {!s}/{!s} is incomplete'.format(
-                    self._data_in.get('_id'), self._data_in.get('eduPersonPrincipalName')
-                )
-            )
-
-    def _parse_mail_addresses(self):
+    @classmethod
+    def _parse_mail_addresses(cls, data: Dict[str, Any]) -> MailAddressList:
         """
         Part of __init__().
 
         Parse all the different formats of mail+mailAliases attributes in the database.
         """
-        _mail_addresses = self._data_in.pop('mailAliases', [])
-        if 'mail' in self._data_in:
+        _mail_addresses = data.pop('mailAliases', [])
+        if 'mail' in data:
             # old-style userdb primary e-mail address indicator
             for idx in range(len(_mail_addresses)):
-                if _mail_addresses[idx]['email'] == self._data_in['mail']:
-                    if 'passwords' in self._data_in:
+                if _mail_addresses[idx]['email'] == data['mail']:
+                    if 'passwords' in data:
                         # Work around a bug where one could signup, not follow the link in the e-mail
                         # and then do a password reset to set a password. The e-mail address is
                         # implicitly verified by the password reset (which must have been done using e-mail).
@@ -281,29 +259,28 @@ class User(object):
                     _has_primary = any([item.get('primary', False) for item in _mail_addresses])
                     if _mail_addresses[idx].get('verified', False) and not _has_primary:
                         _mail_addresses[idx]['primary'] = True
-            self._data_in.pop('mail')
+            data.pop('mail')
 
         if len(_mail_addresses) == 1 and _mail_addresses[0].get('verified', False):
             if not _mail_addresses[0].get('primary', False):
                 # A single mail address was not set as Primary until it was verified
                 _mail_addresses[0]['primary'] = True
 
-        self._mail_addresses = MailAddressList(_mail_addresses)
+        return MailAddressList(_mail_addresses)
 
-    def _parse_phone_numbers(self):
+    @classmethod
+    def _parse_phone_numbers(cls, data: Dict[str, Any]) -> PhoneNumberList:
         """
-        Part of __init__().
-
         Parse all the different formats of mobile/phone attributes in the database.
         """
-        if 'mobile' in self._data_in:
-            _mobile = self._data_in.pop('mobile')
-            if 'phone' not in self._data_in:
+        if 'mobile' in data:
+            _mobile = data.pop('mobile')
+            if 'phone' not in data:
                 # Some users have both 'mobile' and 'phone'. Assume mobile was once transformed
                 # to 'phone' but also left behind - so just discard 'mobile'.
-                self._data_in['phone'] = _mobile
-        if 'phone' in self._data_in:
-            _phones = self._data_in.pop('phone')
+                data['phone'] = _mobile
+        if 'phone' in data:
+            _phones = data.pop('phone')
             # Clean up for non verified phone elements that where still primary
             for _this in _phones:
                 if not _this.get('verified', False) and _this.get('primary', False):
@@ -316,22 +293,21 @@ class User(object):
                     if _this.get('verified', False):
                         _this['primary'] = True
                         break
-            self._data_in['phone'] = _phones
+            data['phone'] = _phones
 
-        _phones = self._data_in.pop('phone', [])
+        _phones = data.pop('phone', [])
 
-        self._phone_numbers = PhoneNumberList(_phones)
+        return PhoneNumberList(_phones)
 
-    def _parse_nins(self):
+    @classmethod
+    def _parse_nins(cls, data: Dict[str, Any]) -> NinList:
         """
-        Part of __init__().
-
         Parse all the different formats of norEduPersonNIN attributes in the database.
         """
-        _nins = self._data_in.pop('nins', [])
-        if 'norEduPersonNIN' in self._data_in:
+        _nins = data.pop('nins', [])
+        if 'norEduPersonNIN' in data:
             # old-style list of verified nins
-            old_nins = self._data_in.pop('norEduPersonNIN')
+            old_nins = data.pop('norEduPersonNIN')
             for this in old_nins:
                 if isinstance(this, str):
                     # XXX lookup NIN in eduid-dashboards verifications to make sure it is verified somehow?
@@ -351,45 +327,43 @@ class User(object):
                         raise UserDBValueError('Old-style NIN-as-dict has unknown data')
                 else:
                     raise UserDBValueError('Old-style NIN is not a string or dict')
-        self._nins = NinList(_nins)
+        return NinList(_nins)
 
-    def _parse_tous(self):
+    @classmethod
+    def _parse_tous(cls, data: Dict[str, Any]) -> ToUList:
         """
-        Part of __init__().
-
         Parse the ToU acceptance events.
         """
-        _tou = self._data_in.pop('tou', [])
-        self._tou = ToUList(_tou)
+        _tou = data.pop('tou', [])
+        return ToUList(_tou)
 
-    def _parse_locked_identity(self):
+    @classmethod
+    def _parse_locked_identity(cls, data: Dict[str, Any]) -> LockedIdentityList:
         """
-        Part of __init__().
-
         Parse the LockedIdentity elements.
         """
-        _locked_identity = self._data_in.pop('locked_identity', [])
-        self._locked_identity = LockedIdentityList(_locked_identity)
+        _locked_identity = data.pop('locked_identity', [])
+        return LockedIdentityList(_locked_identity)
 
-    def _parse_orcid(self):
+    @classmethod
+    def _parse_orcid(cls, data: Dict[str, Any]) -> Optional[Orcid]:
         """
-        Part of __init__().
-
         Parse the Orcid element.
         """
-        self._orcid = None
-        _orcid = self._data_in.pop('orcid', None)
-        if _orcid is not None:
-            self._orcid = Orcid.from_dict(_orcid)
+        orcid = data.pop('orcid', None)
+        if orcid is not None:
+            return Orcid.from_dict(orcid)
+        return None
 
-    def _parse_profiles(self):
+    @classmethod
+    def _parse_profiles(cls, data: Dict[str, Any]) -> ProfileList:
         """
-        Part of __init__().
-
         Parse the Profile elements.
         """
-        _profiles = self._data_in.pop('profiles', [])
-        self._profiles = ProfileList.from_list_of_dicts(_profiles)
+        profiles = data.pop('profiles', [])
+        if isinstance(profiles, list):
+            return ProfileList.from_list_of_dicts(profiles)
+        return profiles
 
     def to_dict(self) -> Dict[str, Any]:
         """
@@ -397,13 +371,18 @@ class User(object):
 
         :return: User as dict
         """
-        res = copy.copy(asdict(self._data))  # avoid caller messing up our private _data
+        res = asdict(self)  # avoid caller messing up our private _data
+        res['eduPersonPrincipalName'] = res.pop('eppn')  # mandatory
         res['mailAliases'] = self.mail_addresses.to_list_of_dicts()
+        res.pop('mail_addresses')
         res['phone'] = self.phone_numbers.to_list_of_dicts()
+        res.pop('phone_numbers')
         res['passwords'] = self.credentials.to_list_of_dicts()
+        res.pop('credentials')
         res['nins'] = self.nins.to_list_of_dicts()
         res['tou'] = self.tou.to_list_of_dicts()
         res['locked_identity'] = self.locked_identity.to_list_of_dicts()
+        res['profiles'] = self.profiles.to_list_of_dicts()
         res['orcid'] = None
         if self.orcid is not None:
             res['orcid'] = self.orcid.to_dict()
