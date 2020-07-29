@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from dataclasses import dataclass
 from typing import Any, Dict
 
 from bson import ObjectId
@@ -14,20 +15,12 @@ from eduid_am.testing import AMTestCase
 __author__ = 'leifj'
 
 
+@dataclass
 class AmTestUser(eduid_userdb.User):
     """
     User class for the 'test' plugin below.
     """
-
-    def __init__(self, data: Dict[str, Any], raise_on_unknown: bool = True, called_directly: bool = True):
-        self.uid = data.pop('uid', None)
-
-        eduid_userdb.User.__init__(self, data=data, raise_on_unknown=raise_on_unknown, called_directly=called_directly)
-
-    def to_dict(self):
-        res = eduid_userdb.User.to_dict(self)
-        res['uid'] = self.uid
-        return res
+    uid: str = ''
 
 
 class AmTestUserDb(eduid_userdb.UserDB):
