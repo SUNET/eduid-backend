@@ -32,39 +32,29 @@
 
 __author__ = 'ft'
 
-from typing import Optional, Union
+from dataclasses import dataclass, field
+from typing import Any, Dict, Optional
 
 import bson
-import six
 
-from eduid_userdb.exceptions import UserIsRevoked
 from eduid_userdb.proofing import EmailProofingElement
 from eduid_userdb.user import User
 
 
+@dataclass
 class SignupUser(User):
     """
     Subclass of eduid_userdb.User with eduid Signup application specific data.
     """
+    social_network: str = ''
+    social_network_id: str = ''
+    # The user's pending (unconfirmed) mail address.
+    pending_mail_address: Optional[EmailProofingElement] = None
+    # Holds a reference id that is used for connecting msg tasks with proofing log statements.
+    proofing_reference: str = field(default_factory=lambda: str(bson.ObjectId()))
 
-    def __init__(
-        self,
-        userid: Optional[Union[str, bson.ObjectId]] = None,
-        eppn: Optional[str] = None,
-        subject: str = 'physical person',
-        data: Optional[dict] = None,
-        raise_on_unknown: bool = True,
-        called_directly: bool = True,
-    ):
-        if data is None:
-            if userid is None:
-                userid = bson.ObjectId()
-            data = dict(_id=userid, eduPersonPrincipalName=eppn, subject=subject,)
-
-        User.__init__(self, data=data, raise_on_unknown=raise_on_unknown, called_directly=called_directly)
-
-    def check_or_use_data(self):
-        data = self._data_in
+    @classmethod
+    def check_or_use_data(cls, data: Dict[str, Any]) -> Dict[str, Any]:
         _social_network = data.pop('social_network', None)
         _social_network_id = data.pop('social_network_id', None)
         _pending_mail_address = data.pop('pending_mail_address', None)
@@ -73,108 +63,16 @@ class SignupUser(User):
             if isinstance(_pending_mail_address, dict):
                 _pending_mail_address = EmailProofingElement.from_dict(_pending_mail_address)
 
-        self.social_network = _social_network
-        self.social_network_id = _social_network_id
-        self.pending_mail_address = _pending_mail_address
+        data['social_network'] = _social_network
+        data['social_network_id'] = _social_network_id
+        data['pending_mail_address'] = _pending_mail_address
         if _proofing_reference:
-            self.proofing_reference = _proofing_reference
+            data['proofing_reference'] = _proofing_reference
 
-    def _parse_check_invalid_users(self):
-        """
-        Part of User.__init__().
-
-        Check users that can't be loaded for some known reason.
-        """
-        if 'revoked_ts' in self._data_in:
-            raise UserIsRevoked(
-                'User {!s}/{!s} was revoked at {!s}'.format(
-                    self._data_in.get('_id'), self._data_in.get('eduPersonPrincipalName'), self._data_in['revoked_ts']
-                )
-            )
+        return data
 
     def to_dict(self):
         res = User.to_dict(self)
         if self._pending_mail_address is not None:
             res['pending_mail_address'] = self._pending_mail_address.to_dict()
         return res
-
-    # -----------------------------------------------------------------
-    @property
-    def social_network(self):
-        """
-        Get the user's social_network.
-
-        :rtype: str
-        """
-        return self._data.get('social_network', '')
-
-    @social_network.setter
-    def social_network(self, value):
-        """
-        :param value: Set the name of the social_network used to do SNA signup.
-        :type value: str | unicode
-        """
-        if value is not None:
-            self._data['social_network'] = value
-
-    # -----------------------------------------------------------------
-    @property
-    def social_network_id(self):
-        """
-        Get the user's social network id.
-
-        :rtype: str
-        """
-        return self._data.get('social_network_id', '')
-
-    @social_network_id.setter
-    def social_network_id(self, value):
-        """
-        :param value: Set the user's social network id.
-        :type value: str | unicode
-        """
-        if value is not None:
-            self._data['social_network_id'] = value
-
-    # -----------------------------------------------------------------
-    @property
-    def pending_mail_address(self):
-        """
-        Get the user's pending (unconfirmed) mail address.
-
-        In the userdb, the mail_addresses attribute requires a primary e-mail address,
-        and it has to be verified already. Signup is really the special case, so
-        we have a special attribute for it.
-
-        :rtype: eduid_userdb.proofing.EmailProofingElement | None
-        """
-        return self._pending_mail_address
-
-    @pending_mail_address.setter
-    def pending_mail_address(self, value):
-        """
-        :param value: Set the user's pending (unconfirmed) mail address.
-        :type value: eduid_userdb.proofing.EmailProofingElement | None
-        """
-        if value is not None and not isinstance(value, EmailProofingElement):
-            raise ValueError('Must be eduid_userdb.proofing.EmailProofingElement')
-        self._pending_mail_address = value
-
-    @property
-    def proofing_reference(self):
-        """
-        Holds a reference id that is used for connecting msg tasks with proofing log statements.
-
-        :return: reference id
-        :rtype: six.string_types
-        """
-        if not self._data.get('proofing_reference', None):
-            ref = str(bson.objectid.ObjectId())
-            self.proofing_reference = ref
-        return self._data['proofing_reference']
-
-    @proofing_reference.setter
-    def proofing_reference(self, value):
-        if not isinstance(value, six.string_types):
-            raise ValueError('Must be type string')
-        self._data['proofing_reference'] = value

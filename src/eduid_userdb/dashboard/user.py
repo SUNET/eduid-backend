@@ -35,6 +35,7 @@
 
 import copy
 import logging
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, Union
 
@@ -46,29 +47,11 @@ from eduid_userdb.exceptions import UserDBValueError, UserOutOfSync
 log = logging.getLogger('eduiddashboard')
 
 
+@dataclass
 class DashboardUser(User):
     """
     Subclass of eduid_userdb.User with eduid Dashboard application specific data.
     """
-
-    def __init__(
-        self,
-        userid: Optional[Union[str, bson.ObjectId]] = None,
-        eppn: Optional[str] = None,
-        subject: str = 'physical person',
-        data: Optional[dict] = None,
-        raise_on_unknown: bool = False,
-        called_directly: bool = True,
-    ):
-        data_in = data
-        data = copy.copy(data_in)  # to not modify callers data
-
-        if data is None:
-            if userid is None:
-                userid = bson.ObjectId()
-            data = dict(_id=userid, eduPersonPrincipalName=eppn, subject=subject,)
-
-        User.__init__(self, data=data, raise_on_unknown=raise_on_unknown, called_directly=called_directly)
 
     def add_letter_proofing_data(self, data):
         """
@@ -90,11 +73,6 @@ class DashboardUser(User):
             raise TypeError('letter_proofing_data must be dict, not {!s}'.format(type(data)))
         old_data = self._data.get('letter_proofing_data', [])
         self._data['letter_proofing_data'] = old_data + [data]
-
-    def to_dict(self):
-        res = User.to_dict(self)
-        res['terminated'] = self.terminated
-        return res
 
 
 class DashboardLegacyUser(object):
