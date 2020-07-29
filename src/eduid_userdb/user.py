@@ -89,6 +89,16 @@ class User(object):
                 f'User {self.user_id}/{self.eppn} was revoked at {self.revoked_ts}'
             )
 
+    def __repr__(self):
+        return '<eduID {!s}: {!s}/{!s}>'.format(self.__class__.__name__, self.eppn, self.user_id,)
+
+    def __eq__(self, other):
+        if self.__class__ is not other.__class__:
+            raise TypeError(
+                'Trying to compare objects of different class {!r} - {!r} '.format(self.__class__, other.__class__)
+            )
+        return self._data == other._data
+
     @classmethod
     def construct_user(
         cls: Type[TUserSubclass],
@@ -160,16 +170,6 @@ class User(object):
         return cls.from_dict(data)
 
     @classmethod
-    def check_or_use_data(cls, data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Derived classes can override this method to check that the provided data
-        is enough for their purposes, or to deal specially with particular bits of it.
-
-        In case of problems they sould raise whatever Exception is appropriate.
-        """
-        return data
-
-    @classmethod
     def from_dict(cls: Type[TUserSubclass], data: Dict[str, Any], raise_on_unknown: bool = True) -> TUserSubclass:
         """
         Construct user from a data dict.
@@ -178,12 +178,6 @@ class User(object):
 
         data_in = cls.check_or_use_data(data_in)
 
-        if 'passwords' not in data_in:
-            raise UserHasNotCompletedSignup(
-                'User {!s}/{!s} is incomplete'.format(
-                    data_in.get('_id'), data_in.get('eduPersonPrincipalName')
-                )
-            )
         # things without setters
         _id = data_in.pop('_id', None)
         if _id is None:
@@ -227,15 +221,84 @@ class User(object):
 
         return cls(**data_in)
 
-    def __repr__(self):
-        return '<eduID {!s}: {!s}/{!s}>'.format(self.__class__.__name__, self.eppn, self.user_id,)
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Return user data serialized into a dict that can be stored in MongoDB.
 
-    def __eq__(self, other):
-        if self.__class__ is not other.__class__:
-            raise TypeError(
-                'Trying to compare objects of different class {!r} - {!r} '.format(self.__class__, other.__class__)
+        :return: User as dict
+        """
+        res = asdict(self)  # avoid caller messing up our private _data
+        res['eduPersonPrincipalName'] = res.pop('eppn')  # mandatory
+        res['_id'] = res.pop('user_id')
+        res['mailAliases'] = self.mail_addresses.to_list_of_dicts()
+        res.pop('mail_addresses')
+        res['phone'] = self.phone_numbers.to_list_of_dicts()
+        res.pop('phone_numbers')
+        res['passwords'] = self.credentials.to_list_of_dicts()
+        res.pop('credentials')
+        res['nins'] = self.nins.to_list_of_dicts()
+        res['tou'] = self.tou.to_list_of_dicts()
+        res['locked_identity'] = self.locked_identity.to_list_of_dicts()
+        res['profiles'] = self.profiles.to_list_of_dicts()
+        res['orcid'] = None
+        if self.orcid is not None:
+            res['orcid'] = self.orcid.to_dict()
+        if 'eduPersonEntitlement' not in res:
+            res['eduPersonEntitlement'] = res.pop('entitlements', [])
+        # Remove these values if they have a value that evaluates to False
+        for _remove in [
+            'displayName',
+            'givenName',
+            'surname',
+            'preferredLanguage',
+            'phone',
+            'orcid',
+            'eduPersonEntitlement',
+            'locked_identity',
+            'nins',
+        ]:
+            if _remove in res and not res[_remove]:
+                del res[_remove]
+        return res
+
+    # -----------------------------------------------------------------
+    @classmethod
+    def from_user(cls, user, private_userdb):
+        """
+        This function is only expected to be used by subclasses of User.
+
+        :param user: User instance from AM database
+        :param private_userdb: Private UserDB to load modified_ts from
+
+        :type user: User
+        :type private_userdb: eduid_userdb.UserDB
+
+        :return: User proper
+        :rtype: cls
+        """
+        user_dict = user.to_dict()
+        private_user = private_userdb.get_user_by_eppn(user.eppn, raise_on_missing=False)
+        if private_user is None:
+            user_dict.pop('modified_ts', None)
+        else:
+            user_dict['modified_ts'] = private_user.modified_ts
+        return cls.from_dict(data=user_dict)
+
+    @classmethod
+    def check_or_use_data(cls, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Derived classes can override this method to check that the provided data
+        is enough for their purposes, or to deal specially with particular bits of it.
+
+        In case of problems they sould raise whatever Exception is appropriate.
+        """
+        if 'passwords' not in data:
+            raise UserHasNotCompletedSignup(
+                'User {!s}/{!s} is incomplete'.format(
+                    data.get('_id'), data.get('eduPersonPrincipalName')
+                )
             )
-        return self._data == other._data
+        return data
 
     @classmethod
     def _parse_mail_addresses(cls, data: Dict[str, Any]) -> MailAddressList:
@@ -364,65 +427,3 @@ class User(object):
         if isinstance(profiles, list):
             return ProfileList.from_list_of_dicts(profiles)
         return profiles
-
-    def to_dict(self) -> Dict[str, Any]:
-        """
-        Return user data serialized into a dict that can be stored in MongoDB.
-
-        :return: User as dict
-        """
-        res = asdict(self)  # avoid caller messing up our private _data
-        res['eduPersonPrincipalName'] = res.pop('eppn')  # mandatory
-        res['mailAliases'] = self.mail_addresses.to_list_of_dicts()
-        res.pop('mail_addresses')
-        res['phone'] = self.phone_numbers.to_list_of_dicts()
-        res.pop('phone_numbers')
-        res['passwords'] = self.credentials.to_list_of_dicts()
-        res.pop('credentials')
-        res['nins'] = self.nins.to_list_of_dicts()
-        res['tou'] = self.tou.to_list_of_dicts()
-        res['locked_identity'] = self.locked_identity.to_list_of_dicts()
-        res['profiles'] = self.profiles.to_list_of_dicts()
-        res['orcid'] = None
-        if self.orcid is not None:
-            res['orcid'] = self.orcid.to_dict()
-        if 'eduPersonEntitlement' not in res:
-            res['eduPersonEntitlement'] = res.pop('entitlements', [])
-        # Remove these values if they have a value that evaluates to False
-        for _remove in [
-            'displayName',
-            'givenName',
-            'surname',
-            'preferredLanguage',
-            'phone',
-            'orcid',
-            'eduPersonEntitlement',
-            'locked_identity',
-            'nins',
-        ]:
-            if _remove in res and not res[_remove]:
-                del res[_remove]
-        return res
-
-    # -----------------------------------------------------------------
-    @classmethod
-    def from_user(cls, user, private_userdb):
-        """
-        This function is only expected to be used by subclasses of User.
-
-        :param user: User instance from AM database
-        :param private_userdb: Private UserDB to load modified_ts from
-
-        :type user: User
-        :type private_userdb: eduid_userdb.UserDB
-
-        :return: User proper
-        :rtype: cls
-        """
-        user_dict = user.to_dict()
-        private_user = private_userdb.get_user_by_eppn(user.eppn, raise_on_missing=False)
-        if private_user is None:
-            user_dict.pop('modified_ts', None)
-        else:
-            user_dict['modified_ts'] = private_user.modified_ts
-        return cls.from_dict(data=user_dict)
