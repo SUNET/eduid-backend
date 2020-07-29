@@ -79,6 +79,7 @@ class User(object):
     orcid: Optional[Orcid] = None
     profiles: ProfileList = field(default_factory=ProfileList)
     revoked_ts: Optional[datetime] = None
+    just_created: bool = True
 
     def __post_init__(self):
         """
@@ -97,7 +98,7 @@ class User(object):
             raise TypeError(
                 'Trying to compare objects of different class {!r} - {!r} '.format(self.__class__, other.__class__)
             )
-        return self._data == other._data
+        return self.to_dict() == other.to_dict()
 
     @classmethod
     def construct_user(
@@ -141,6 +142,8 @@ class User(object):
         data['surname'] = surname
         data['preferredLanguage'] = language
         data['modified_ts'] = modified_ts
+        if modified_ts is None:
+            data['modified_ts'] = datetime.utcnow()
         data['terminated'] = terminated
         if revoked_ts is not None:
             data['revoked_ts'] = revoked_ts
@@ -230,6 +233,10 @@ class User(object):
         res = asdict(self)  # avoid caller messing up our private _data
         res['eduPersonPrincipalName'] = res.pop('eppn')  # mandatory
         res['_id'] = res.pop('user_id')
+        res['preferredLanguage'] = res.pop('language', None)
+        res['givenName'] = res.pop('given_name', None)
+        res['displayName'] = res.pop('display_name', None)
+        res['eduPersonEntitlement'] = res.pop('entitlements', [])
         res['mailAliases'] = self.mail_addresses.to_list_of_dicts()
         res.pop('mail_addresses')
         res['phone'] = self.phone_numbers.to_list_of_dicts()
@@ -259,9 +266,11 @@ class User(object):
         ]:
             if _remove in res and not res[_remove]:
                 del res[_remove]
+
+        del res['just_created']
+
         return res
 
-    # -----------------------------------------------------------------
     @classmethod
     def from_user(cls, user, private_userdb):
         """

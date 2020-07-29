@@ -281,11 +281,8 @@ class UserDB(BaseDB):
         if not isinstance(user.user_id, ObjectId):
             raise AssertionError('user.user_id is not of type {}'.format(ObjectId))
 
-        # XXX add modified_by info. modified_ts alone is not unique when propagated to eduid_am.
-
-        modified = user.modified_ts
-        user.modified_ts = True  # update to current time
-        if modified is None:
+        if user.just_created:
+            user.just_created = False
             # profile has never been modified through the dashboard.
             # possibly just created in signup.
             result = self._coll.replace_one({'_id': user.user_id}, user.to_dict(), upsert=True)
@@ -301,7 +298,7 @@ class UserDB(BaseDB):
         else:
             test_doc = {'_id': user.user_id}
             if check_sync:
-                test_doc['modified_ts'] = modified
+                test_doc['modified_ts'] = user.modified_ts
             result = self._coll.replace_one(test_doc, user.to_dict(), upsert=(not check_sync))
             if check_sync and result.modified_count == 0:
                 db_ts = None
@@ -309,12 +306,12 @@ class UserDB(BaseDB):
                 if db_user:
                     db_ts = db_user['modified_ts']
                 logger.debug(
-                    f"{self} FAILED Updating user {user} (ts {modified}) in {self._coll_name}"
+                    f"{self} FAILED Updating user {user} (ts {user.modified_ts}) in {self._coll_name}"
                     f" (old_format={old_format}). ts in db = {db_ts}"
                 )
                 raise eduid_userdb.exceptions.UserOutOfSync('Stale user object can\'t be saved')
             logger.debug(
-                "{!s} Updated user {!r} (ts {!s}) in {!r}: {!r}".format(self, user, modified, self._coll_name, result)
+                "{!s} Updated user {!r} (ts {!s}) in {!r}: {!r}".format(self, user, user.modified_ts, self._coll_name, result)
             )
             import pprint
 
