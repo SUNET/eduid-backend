@@ -46,7 +46,7 @@ class _AbstractUserTestCase:
         Test that we get back a dict identical to the one we put in for old-style userdb data.
         """
         expected = self.data1['passwords']
-        obtained = self.user1.passwords.to_list_of_dicts(old_userdb_format=True)
+        obtained = self.user1.credentials.to_list_of_dicts(old_userdb_format=True)
 
         self.normalize_data(expected, obtained)
 
@@ -62,12 +62,31 @@ class _AbstractUserTestCase:
         data['csrf'] = 'long and secret string'
         data['mailAliases'][0]['verification_code'] = '123456789'
         user = User.from_dict(data)
-        self.assertEqual(self.user1._data, user._data)
+
+        expected = self.user1.to_dict()
+        obtained = user.to_dict()
+
+        self.normalize_data([expected], [obtained])
+        self.normalize_data(expected['mailAliases'], obtained['mailAliases'])
+        self.normalize_data(expected['passwords'], obtained['passwords'])
+        self.normalize_data(expected['nins'], obtained['nins'])
+
+        assert expected == obtained
 
         data = self.data2
         data['mobile'][0]['verification_code'] = '123456789'
         user = User.from_dict(data)
-        self.assertEqual(self.user2._data, user._data)
+
+        expected = self.user2.to_dict()
+        obtained = user.to_dict()
+
+        self.normalize_data([expected], [obtained])
+        self.normalize_data(expected['mailAliases'], obtained['mailAliases'])
+        self.normalize_data(expected['passwords'], obtained['passwords'])
+        self.normalize_data(expected['phone'], obtained['phone'])
+        self.normalize_data(expected['profiles'], obtained['profiles'])
+
+        assert expected == obtained
 
     def test_unknown_attributes(self):
         """
@@ -111,7 +130,7 @@ class _AbstractUserTestCase:
         self.assertEqual(user.surname, data['surname'])
 
         expected = data['passwords']
-        obtained = user.passwords.to_list_of_dicts(old_userdb_format=True)
+        obtained = user.credentials.to_list_of_dicts(old_userdb_format=True)
 
         self.normalize_data(expected, obtained)
 
@@ -239,17 +258,10 @@ class _AbstractUserTestCase:
         """
         Test the modified_ts property.
         """
-        # ensure known starting point
-        self.assertIsNone(self.user1.modified_ts)
-        # set to current time
-        self.user1.modified_ts = True
         _time1 = self.user1.modified_ts
         self.assertIsInstance(_time1, datetime.datetime)
-        # Setting existing value to None should be ignored
-        self.user1.modified_ts = None
-        self.assertEqual(_time1, self.user1.modified_ts)
         # update to current time
-        self.user1.modified_ts = True
+        self.user1.modified_ts = datetime.datetime.utcnow()
         _time2 = self.user1.modified_ts
         self.assertNotEqual(_time1, _time2)
         # set to a datetime instance
