@@ -6,7 +6,7 @@ from six import string_types
 
 from eduid_userdb import LockedIdentityNin, OidcAuthorization, OidcIdToken, Orcid
 from eduid_userdb.credentials import METHOD_SWAMID_AL2_MFA, CredentialList
-from eduid_userdb.exceptions import EduIDUserDBError, UserHasNotCompletedSignup, UserHasUnknownData, UserIsRevoked
+from eduid_userdb.exceptions import EduIDUserDBError, UserHasNotCompletedSignup, UserIsRevoked
 from eduid_userdb.mail import MailAddressList
 from eduid_userdb.nin import NinList
 from eduid_userdb.phone import PhoneNumberList
@@ -66,10 +66,7 @@ class _AbstractUserTestCase:
         expected = self.user1.to_dict()
         obtained = user.to_dict()
 
-        self.normalize_data([expected], [obtained])
-        self.normalize_data(expected['mailAliases'], obtained['mailAliases'])
-        self.normalize_data(expected['passwords'], obtained['passwords'])
-        self.normalize_data(expected['nins'], obtained['nins'])
+        self.normalize_users([expected, obtained])
 
         assert expected == obtained
 
@@ -80,11 +77,7 @@ class _AbstractUserTestCase:
         expected = self.user2.to_dict()
         obtained = user.to_dict()
 
-        self.normalize_data([expected], [obtained])
-        self.normalize_data(expected['mailAliases'], obtained['mailAliases'])
-        self.normalize_data(expected['passwords'], obtained['passwords'])
-        self.normalize_data(expected['phone'], obtained['phone'])
-        self.normalize_data(expected['profiles'], obtained['profiles'])
+        self.normalize_users([expected, obtained])
 
         assert expected == obtained
 
@@ -94,11 +87,9 @@ class _AbstractUserTestCase:
         """
         data = self.data1
         data['unknown_attribute'] = 'something'
-        user = User.from_dict(data, raise_on_unknown=False)
-        self.assertEqual(data['_id'], user.user_id)
 
-        with self.assertRaises(UserHasUnknownData):
-            User.from_dict(data, raise_on_unknown=True)
+        with self.assertRaises(TypeError):
+            User.from_dict(data)
 
     def test_incomplete_signup_user(self):
         """
@@ -141,9 +132,10 @@ class _AbstractUserTestCase:
         Test ability to identify revoked users.
         """
         data = {
-            u'_id': ObjectId(),
-            u'eduPersonPrincipalName': u'binib-mufus',
-            u'revoked_ts': datetime.datetime(2015, 5, 26, 8, 33, 56, 826000),
+            '_id': ObjectId(),
+            'eduPersonPrincipalName': 'binib-mufus',
+            'revoked_ts': datetime.datetime(2015, 5, 26, 8, 33, 56, 826000),
+            'passwords': [],
         }
         with self.assertRaises(UserIsRevoked):
             User.from_dict(data)
@@ -867,4 +859,4 @@ class TestNewUser(DictTestCase, _AbstractUserTestCase):
         """
         Test that we get back a dict identical to the one we put in for old-style userdb data.
         """
-        self.assertEqual(self.user1.passwords.to_list_of_dicts(), self.data1['passwords'])
+        self.assertEqual(self.user1.credentials.to_list_of_dicts(), self.data1['passwords'])
