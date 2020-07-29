@@ -30,8 +30,11 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from dataclasses import dataclass
+
 from eduid_userdb.user import User
 
 
+@dataclass
 class ResetPasswordUser(User):
     pass
