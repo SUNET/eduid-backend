@@ -4,12 +4,10 @@ from unittest import TestCase
 
 import bson
 
-import eduid_userdb.element
-import eduid_userdb.exceptions
 from eduid_userdb.actions.tou import ToUUser
 from eduid_userdb.credentials import CredentialList
 from eduid_userdb.event import Event, EventList
-from eduid_userdb.exceptions import UserHasUnknownData, UserMissingData
+from eduid_userdb.exceptions import UserMissingData
 from eduid_userdb.fixtures.users import new_user_example
 from eduid_userdb.tou import ToUEvent, ToUList
 
