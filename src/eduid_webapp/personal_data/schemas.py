@@ -47,18 +47,18 @@ __author__ = 'eperez'
 
 class PersonalDataRequestSchema(EduidSchema, CSRFRequestMixin):
 
-    given_name = fields.String(required=True, validate=validate_nonempty)
-    surname = fields.String(required=True, validate=validate_nonempty)
+    given_name = fields.String(required=True, validate=[validate_nonempty, validate_no_special_chars])
+    surname = fields.String(required=True, validate=[validate_nonempty, validate_no_special_chars])
     display_name = fields.String(required=True, validate=validate_nonempty)
     language = fields.String(required=True, default='en', validate=validate_language)
 
 
 class PersonalDataSchema(EduidSchema):
 
-    given_name = fields.String(required=True, attribute='givenName', validate=[validate_nonempty, validate_no_special_chars])
-    surname = fields.String(required=True, validate=[validate_nonempty, validate_no_special_chars])
+    given_name = fields.String(required=True, attribute='givenName')
+    surname = fields.String(required=True)
     display_name = fields.String(required=True, attribute='displayName')
-    language = fields.String(required=True, attribute='preferredLanguage', validate=validate_language)
+    language = fields.String(required=True, attribute='preferredLanguage')
 
 
 class PersonalDataResponseSchema(FluxStandardAction):
