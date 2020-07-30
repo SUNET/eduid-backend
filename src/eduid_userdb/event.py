@@ -103,15 +103,10 @@ class EventList(ElementList):
     maintaining some governing principles, such as ensuring there no duplicates in the list.
 
     :param events: List of events
-    :param raise_on_unknown: Raise EventHasUnknownData if unrecognized data is encountered
     :param event_class: Enforce all elements are of this type
-
-    :type events: [dict | Event]
-    :type raise_on_unknown: bool
-    :type event_class: object
     """
 
-    def __init__(self, events, event_class: Type[Event] = Event):
+    def __init__(self, events: list, event_class: Type[Event] = Event):
         self._event_class = event_class
         ElementList.__init__(self, elements=[])
 

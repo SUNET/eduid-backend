@@ -174,7 +174,7 @@ class User(object):
         return cls.from_dict(data)
 
     @classmethod
-    def from_dict(cls: Type[TUserSubclass], data: Dict[str, Any], raise_on_unknown: bool = True) -> TUserSubclass:
+    def from_dict(cls: Type[TUserSubclass], data: Dict[str, Any]) -> TUserSubclass:
         """
         Construct user from a data dict.
         """

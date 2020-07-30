@@ -101,13 +101,11 @@ class U2F(FidoCredential, _U2FCredentialRequired):
         return 'sha256:' + sha256(self.keyhandle.encode('utf-8') + self.public_key.encode('utf-8')).hexdigest()
 
 
-def u2f_from_dict(data: Dict[str, Any], raise_on_unknown: bool = True) -> U2F:
+def u2f_from_dict(data: Dict[str, Any]) -> U2F:
     """
     Create an U2F instance from a dict.
 
     :param data: Credential parameters from database
-    :param raise_on_unknown: Raise UserHasUnknownData if unrecognized data is encountered
-                             kept for B/C
     """
     return U2F.from_dict(data)
 
@@ -129,12 +127,10 @@ class Webauthn(FidoCredential):
         return 'sha256:' + sha256(self.keyhandle.encode('utf-8') + self.credential_data.encode('utf-8')).hexdigest()
 
 
-def webauthn_from_dict(data: Dict[str, Any], raise_on_unknown: bool = True) -> Webauthn:
+def webauthn_from_dict(data: Dict[str, Any]) -> Webauthn:
     """
     Create an Webauthn instance from a dict.
 
     :param data: Credential parameters from database
-    :param raise_on_unknown: Raise UserHasUnknownData if unrecognized data is encountered
-                             kept for B/C
     """
     return Webauthn.from_dict(data)

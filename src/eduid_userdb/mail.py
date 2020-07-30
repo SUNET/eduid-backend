@@ -154,10 +154,8 @@ def address_from_dict(data):
     Create a MailAddress instance from a dict.
 
     :param data: Mail address parameters from database
-    :param raise_on_unknown: Raise exception on unknown values in `data' or not.
 
     :type data: dict
-    :type raise_on_unknown: bool
     :rtype: MailAddress
     """
     return MailAddress.from_dict(data)

@@ -104,12 +104,10 @@ class Password(Credential, _PasswordRequired):
         return data
 
 
-def password_from_dict(data: Dict[str, Any], raise_on_unknown: bool = True) -> Password:
+def password_from_dict(data: Dict[str, Any]) -> Password:
     """
     Create a Password instance from a dict.
 
     :param data: Password parameters from database
-    :param raise_on_unknown: Raise UserHasUnknownData if unrecognized data is encountered
-                             kept for B/C
     """
     return Password.from_dict(data)
