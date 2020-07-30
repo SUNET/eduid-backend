@@ -1,12 +1,7 @@
-import copy
 from datetime import datetime
 from unittest import TestCase
 
-import bson
-
-import eduid_userdb.exceptions
 from eduid_userdb.element import Element, PrimaryElement, PrimaryElementViolation, VerifiedElement
-from eduid_userdb.exceptions import EduIDUserDBError, UserDBValueError, UserHasUnknownData
 
 
 class TestElements(TestCase):
