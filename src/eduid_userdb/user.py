@@ -41,7 +41,7 @@ import bson
 
 from eduid_userdb.credentials import CredentialList
 from eduid_userdb.element import UserDBValueError
-from eduid_userdb.exceptions import UserHasNotCompletedSignup, UserHasUnknownData, UserIsRevoked, UserMissingData
+from eduid_userdb.exceptions import UserHasNotCompletedSignup, UserIsRevoked, UserMissingData
 from eduid_userdb.locked_identity import LockedIdentityList
 from eduid_userdb.mail import MailAddressList
 from eduid_userdb.nin import NinList
@@ -74,10 +74,11 @@ class User(object):
     modified_ts: datetime = field(default_factory=datetime.utcnow)
     entitlements: List[str] = field(default_factory=list)
     tou: ToUList = field(default_factory=ToUList)
-    terminated: datetime = field(default_factory=datetime.utcnow)
+    terminated: Optional[datetime] = None
     locked_identity: LockedIdentityList = field(default_factory=LockedIdentityList)
     orcid: Optional[Orcid] = None
     profiles: ProfileList = field(default_factory=ProfileList)
+    letter_proofing_data: Optional[dict] = None
     revoked_ts: Optional[datetime] = None
     just_created: bool = True
 
