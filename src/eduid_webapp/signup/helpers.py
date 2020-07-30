@@ -179,7 +179,7 @@ def complete_registration(signup_user) -> FluxData:
     (password, salt) = generate_password(str(password_id), signup_user)
 
     credential = Password.from_dict(dict(credential_id=password_id, salt=salt, is_generated=True, created_by='signup'))
-    signup_user.passwords.add(credential)
+    signup_user.credentials.add(credential)
     # Record the acceptance of the terms of use
     record_tou(signup_user, 'signup')
     try:
