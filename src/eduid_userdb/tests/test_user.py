@@ -401,7 +401,6 @@ class _AbstractUserTestCase:
             'event_type': 'tou_event',
             'version': '1',
             'created_by': 'unit test',
-            'created_ts': True,
         }
         tou_events = ToUList([tou_dict])
         data = self.data1

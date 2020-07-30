@@ -63,7 +63,6 @@ class ProofingStateTest(TestCase):
                 {
                     'number': '200102034567',
                     'created_by': 'eduid_letter_proofing',
-                    'created_ts': True,
                     'verified': False,
                     'verification_code': 'abc123',
                     'verified_by': None,
