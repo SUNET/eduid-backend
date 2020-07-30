@@ -296,7 +296,7 @@ def reset_user_password(user: User, state: ResetPasswordState, password: str):
         application='security',
         vccs_url=vccs_url,
     )
-    reset_password_user.terminated = False
+    reset_password_user.terminated = None
     save_and_sync_user(reset_password_user)
     current_app.stats.count(name='security_password_reset', value=1)
     current_app.logger.info(f'Reset password successful for user {reset_password_user}')
