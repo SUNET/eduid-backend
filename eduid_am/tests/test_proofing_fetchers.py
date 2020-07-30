@@ -4,7 +4,7 @@ from copy import deepcopy
 
 import bson
 
-from eduid_userdb.exceptions import UserDoesNotExist, UserHasUnknownData
+from eduid_userdb.exceptions import UserDoesNotExist
 from eduid_userdb.personal_data import PersonalDataUser
 from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.reset_password import ResetPasswordUser
@@ -113,7 +113,7 @@ class AttributeFetcherOldToNewUsersTests(AMTestCase):
             result = fetcher.private_db._coll.insert_one(self.user_data)
             user_id = result.inserted_id
 
-            with self.assertRaises(UserHasUnknownData):
+            with self.assertRaises(TypeError):
                 fetcher.fetch_attrs(user_id)
 
     def test_fillup_attributes(self):
@@ -365,7 +365,7 @@ class AttributeFetcherNINProofingTests(AMTestCase):
             result = fetcher.private_db._coll.insert_one(self.user_data)
             user_id = result.inserted_id
 
-            with self.assertRaises(UserHasUnknownData):
+            with self.assertRaises(TypeError):
                 fetcher.fetch_attrs(user_id)
 
     def test_fillup_attributes(self):
@@ -592,7 +592,7 @@ class AttributeFetcherEmailProofingTests(AMTestCase):
         result = fetcher.private_db._coll.insert_one(self.user_data)
         user_id = result.inserted_id
 
-        with self.assertRaises(UserHasUnknownData):
+        with self.assertRaises(TypeError):
             fetcher.fetch_attrs(user_id)
 
     def test_fillup_attributes(self):
@@ -671,7 +671,7 @@ class AttributeFetcherPhoneProofingTests(AMTestCase):
         result = self.fetcher.private_db._coll.insert_one(self.user_data)
         user_id = result.inserted_id
 
-        with self.assertRaises(UserHasUnknownData):
+        with self.assertRaises(TypeError):
             self.fetcher.fetch_attrs(user_id)
 
 
@@ -719,7 +719,7 @@ class AttributeFetcherPersonalDataTests(AMTestCase):
         result = self.fetcher.private_db._coll.insert_one(self.user_data)
         user_id = result.inserted_id
 
-        with self.assertRaises(UserHasUnknownData):
+        with self.assertRaises(TypeError):
             self.fetcher.fetch_attrs(user_id)
 
     def test_fillup_attributes(self):
@@ -778,9 +778,7 @@ class AttributeFetcherSecurityTests(AMTestCase):
         }
         fetched = self.fetcher.fetch_attrs(security_user.user_id)
 
-        self.normalize_data(expected['$set']['passwords'], fetched['$set']['passwords'])
-        self.normalize_data(expected['$set']['nins'], fetched['$set']['nins'])
-        self.normalize_data(expected['$set']['phone'], fetched['$set']['phone'])
+        self.normalize_users([expected['$set'], fetched['$set']])
 
         assert fetched == expected, 'Wrong data fetched by the security fetcher'
 
@@ -793,7 +791,7 @@ class AttributeFetcherSecurityTests(AMTestCase):
         result = self.fetcher.private_db._coll.insert_one(self.user_data)
         user_id = result.inserted_id
 
-        with self.assertRaises(UserHasUnknownData):
+        with self.assertRaises(TypeError):
             self.fetcher.fetch_attrs(user_id)
 
     def test_fillup_attributes(self):
@@ -876,7 +874,7 @@ class AttributeFetcherResetPasswordTests(AMTestCase):
         result = self.fetcher.private_db._coll.insert_one(self.user_data)
         user_id = result.inserted_id
 
-        with self.assertRaises(UserHasUnknownData):
+        with self.assertRaises(TypeError):
             self.fetcher.fetch_attrs(user_id)
 
     def test_fillup_attributes(self):
@@ -972,7 +970,7 @@ class AttributeFetcherOrcidTests(AMTestCase):
         result = self.fetcher.private_db._coll.insert_one(self.user_data)
         user_id = result.inserted_id
 
-        with self.assertRaises(UserHasUnknownData):
+        with self.assertRaises(TypeError):
             self.fetcher.fetch_attrs(user_id)
 
     def test_remove_orcid(self):
