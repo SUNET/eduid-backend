@@ -73,12 +73,10 @@ class NinHelpersTest(EduidAPITestCase):
                 number=self.test_user_nin,
                 created_by='AlreadyVerifiedNinHelpersTest',
                 verified=True,
-                created_ts=True,
                 primary=True,
             )
         )
         user.nins.add(nin_element)
-        user.modified_ts = True
         self.app.central_userdb.save(user, check_sync=False)
         return user.eppn
 
@@ -91,12 +89,10 @@ class NinHelpersTest(EduidAPITestCase):
                 number=self.test_user_nin,
                 created_by='AlreadyAddedNinHelpersTest',
                 verified=False,
-                created_ts=True,
                 primary=False,
             )
         )
         user.nins.add(nin_element)
-        user.modified_ts = True
         self.app.central_userdb.save(user, check_sync=False)
         return user.eppn
 
@@ -105,7 +101,6 @@ class NinHelpersTest(EduidAPITestCase):
         userdata = new_user_example.to_dict()
         del userdata['nins']
         user = User.from_dict(data=userdata)
-        user.modified_ts = True
         self.app.central_userdb.save(user, check_sync=False)
         return user.eppn
 

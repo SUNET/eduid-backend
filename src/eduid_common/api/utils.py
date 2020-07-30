@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import re
+from datetime import datetime
 from typing import Optional
 from urllib.parse import urlparse
 from uuid import uuid4
@@ -50,7 +51,7 @@ def update_modified_ts(user):
         return
 
     if private_user.modified_ts is None:
-        private_user.modified_ts = True  # use current time
+        private_user.modified_ts = datetime.utcnow()  # use current time
         current_app.logger.debug(
             "Updating user {!s} with new modified_ts: {!s}".format(private_user, private_user.modified_ts)
         )

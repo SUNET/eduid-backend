@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import warnings
+from datetime import datetime
 from typing import List, Optional, Type, Union
 
 from flask import current_app, render_template, request
@@ -89,7 +90,7 @@ def add_nin_to_user(user: User, proofing_state: NinProofingState, user_class: Ty
             )
         )
         proofing_user.nins.add(nin_element)
-        proofing_user.modified_ts = True
+        proofing_user.modified_ts = datetime.utcnow()
         # Save user to private db
         current_app.private_userdb.save(proofing_user, check_sync=False)
         # Ask am to sync user to central db
