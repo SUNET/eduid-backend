@@ -20,18 +20,18 @@ class CredentialList(ElementList):
     :type credentials: [dict | Password | U2F]
     """
 
-    def __init__(self, creds, raise_on_unknown=True):
+    def __init__(self, creds):
         elements = []
         for this in creds:
             if isinstance(this, Credential):
                 credential = this
             elif isinstance(this, dict) and 'salt' in this:
-                credential = password_from_dict(this, raise_on_unknown)
+                credential = password_from_dict(this)
             elif isinstance(this, dict) and 'keyhandle' in this:
                 if 'public_key' in this:
-                    credential = u2f_from_dict(this, raise_on_unknown)
+                    credential = u2f_from_dict(this)
                 else:
-                    credential = webauthn_from_dict(this, raise_on_unknown)
+                    credential = webauthn_from_dict(this)
             else:
                 raise UserHasUnknownData('Unknown credential data (type {}): {!r}'.format(type(this), this))
             elements.append(credential)

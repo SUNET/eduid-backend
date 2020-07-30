@@ -49,8 +49,6 @@ class ToUUser(User):
     :param eppn: eppn
     :param tou: ToU  list
     :param data: userid, eppn and tou
-    :param raise_on_unknown: whether to raise an exception if
-                             there is unknown data in the data dict
     """
 
     @classmethod
