@@ -34,8 +34,8 @@
 
 import copy
 import warnings
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from dataclasses import dataclass, field, asdict
 from typing import Any, Dict, List, Optional, Type, TypeVar, Union
 
 import bson
@@ -62,6 +62,7 @@ class User(object):
     """
     Generic eduID user object.
     """
+
     eppn: str
     user_id: Optional[bson.ObjectId] = None
     given_name: str = ''
@@ -89,9 +90,7 @@ class User(object):
         Check users that can't be loaded for some known reason.
         """
         if self.revoked_ts is not None:
-            raise UserIsRevoked(
-                f'User {self.user_id}/{self.eppn} was revoked at {self.revoked_ts}'
-            )
+            raise UserIsRevoked(f'User {self.user_id}/{self.eppn} was revoked at {self.revoked_ts}')
 
     def __repr__(self):
         return '<eduID {!s}: {!s}/{!s}>'.format(self.__class__.__name__, self.eppn, self.user_id,)
@@ -306,9 +305,7 @@ class User(object):
         """
         if 'passwords' not in data:
             raise UserHasNotCompletedSignup(
-                'User {!s}/{!s} is incomplete'.format(
-                    data.get('_id'), data.get('eduPersonPrincipalName')
-                )
+                'User {!s}/{!s} is incomplete'.format(data.get('_id'), data.get('eduPersonPrincipalName'))
             )
         return data
 
