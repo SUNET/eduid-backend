@@ -36,13 +36,13 @@ import copy
 import warnings
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union
+from typing import Any, Dict, List, Optional, Type, TypeVar
 
 import bson
 
 from eduid_userdb.credentials import CredentialList
 from eduid_userdb.element import UserDBValueError
-from eduid_userdb.exceptions import UserHasNotCompletedSignup, UserIsRevoked, UserMissingData
+from eduid_userdb.exceptions import UserHasNotCompletedSignup, UserIsRevoked
 from eduid_userdb.locked_identity import LockedIdentityList
 from eduid_userdb.mail import MailAddressList
 from eduid_userdb.nin import NinList
@@ -75,7 +75,7 @@ class User(object):
     nins: NinList = field(default_factory=lambda: NinList([]))
     modified_ts: datetime = field(default_factory=datetime.utcnow)
     entitlements: List[str] = field(default_factory=list)
-    tou: ToUList = field(default_factory=lambda: ToUList([]))
+    tou: Optional[ToUList] = None
     terminated: Optional[datetime] = None
     locked_identity: LockedIdentityList = field(default_factory=lambda: LockedIdentityList([]))
     orcid: Optional[Orcid] = None
@@ -90,6 +90,9 @@ class User(object):
         """
         if self.revoked_ts is not None:
             raise UserIsRevoked(f'User {self.user_id}/{self.eppn} was revoked at {self.revoked_ts}')
+
+        if self.tou is None:
+            self.tou = ToUList([])
 
     def __repr__(self):
         return '<eduID {!s}: {!s}/{!s}>'.format(self.__class__.__name__, self.eppn, self.user_id,)

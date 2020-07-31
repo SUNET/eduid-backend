@@ -143,5 +143,7 @@ class TestTouUser(TestCase):
             ToUUser.from_dict(data=dict(tou=[tou], eppn=EPPN))
 
     def test_missing_tou(self):
+        userdata = new_user_example.to_dict()
+        passwords = CredentialList(userdata['passwords'])
         with self.assertRaises(UserMissingData):
-            ToUUser.from_dict(data=dict(eppn=EPPN, userid=USERID))
+            ToUUser.from_dict(data=dict(eduPersonPrincipalName=EPPN, _id=USERID, passwords=passwords))
