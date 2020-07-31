@@ -46,9 +46,10 @@ class ToUUser(User):
     """
 
     def __post_init__(self):
-        super().__post_init__()
-        if self.tou.count == 0:
+        if self.tou is None:
             raise TypeError('ToUUser needs to be initialized with at least 1 ToU acceptance')
+
+        super().__post_init__()
 
     @classmethod
     def check_or_use_data(cls, data: Dict[str, Any]) -> Dict[str, Any]:

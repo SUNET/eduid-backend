@@ -143,13 +143,7 @@ class TestTouUser(TestCase):
             ToUUser.from_dict(data=dict(tou=[tou], eppn=EPPN))
 
     def test_missing_tou(self):
+        userdata = new_user_example.to_dict()
+        passwords = CredentialList(userdata['passwords'])
         with self.assertRaises(UserMissingData):
-            ToUUser.from_dict(data=dict(eppn=EPPN, userid=USERID))
-
-    def test_to_dict(self):
-        one = copy.deepcopy(_one_dict)
-        tou = ToUEvent.from_dict(one)
-        data = tou.to_dict()
-        assert 'created_by' in data
-        assert 'application' not in data
-        assert data == one
+            ToUUser.from_dict(data=dict(eduPersonPrincipalName=EPPN, _id=USERID, passwords=passwords))
