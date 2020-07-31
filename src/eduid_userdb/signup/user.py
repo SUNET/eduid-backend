@@ -46,6 +46,7 @@ class SignupUser(User):
     """
     Subclass of eduid_userdb.User with eduid Signup application specific data.
     """
+
     social_network: str = ''
     social_network_id: str = ''
     # The user's pending (unconfirmed) mail address.

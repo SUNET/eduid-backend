@@ -47,6 +47,7 @@ class ToUEvent(Event):
     """
     A record of a user's acceptance of a particular version of the Terms of Use.
     """
+
     created_by: str
     version: Optional[str] = None
 
