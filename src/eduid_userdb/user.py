@@ -40,6 +40,7 @@ from typing import Any, Dict, List, Optional, Type, TypeVar, Union
 import bson
 
 from eduid_userdb.credentials import CredentialList
+from eduid_userdb.deprecation import deprecated
 from eduid_userdb.element import UserDBValueError
 from eduid_userdb.exceptions import UserHasNotCompletedSignup, UserIsRevoked, UserMissingData
 from eduid_userdb.locked_identity import LockedIdentityList
@@ -437,3 +438,11 @@ class User(object):
         if isinstance(profiles, list):
             return ProfileList.from_list_of_dicts(profiles)
         return profiles
+
+    @property
+    @deprecated('Use User.credentials rather than User.passwords')
+    def passwords(self):
+        """
+        For backwards compatibility
+        """
+        return self.credentials
