@@ -16,7 +16,7 @@ class TestSignupUser(TestCase):
         userdata = new_signup_user_example.to_dict()
         userid = userdata.pop('_id')
         eppn = userdata.pop('eduPersonPrincipalName')
-        user = SignupUser.construct_user(_id=userid, eppn=eppn)
+        user = SignupUser(user_id=userid, eppn=eppn)
         self.assertEqual(user.user_id, userid)
         self.assertEqual(user.eppn, eppn)
 
@@ -24,12 +24,11 @@ class TestSignupUser(TestCase):
         userdata = new_signup_user_example.to_dict()
         userid = userdata.pop('_id')
         eppn = userdata.pop('eduPersonPrincipalName')
-        user = SignupUser.construct_user(eppn=eppn)
+        user = SignupUser(eppn=eppn)
         self.assertNotEqual(user.user_id, userid)
 
     def test_missing_eppn(self):
         userdata = new_signup_user_example.to_dict()
         userid = userdata.pop('_id')
-        userdata.pop('eduPersonPrincipalName')
-        with self.assertRaises(UserMissingData):
-            SignupUser.construct_user(_id=userid)
+        with self.assertRaises(TypeError):
+            SignupUser(user_id=userid)

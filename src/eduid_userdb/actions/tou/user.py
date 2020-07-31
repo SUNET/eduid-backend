@@ -42,14 +42,13 @@ from eduid_userdb.user import User
 @dataclass
 class ToUUser(User):
     """
-    Subclass of eduid_userdb.User with
-    the eduid-actions plugin for ToU specific data.
-
-    :param userid: user id
-    :param eppn: eppn
-    :param tou: ToU  list
-    :param data: userid, eppn and tou
+    Subclass of eduid_userdb.User
     """
+
+    def __post_init__(self):
+        super().__post_init__()
+        if self.tou.count == 0:
+            raise TypeError('ToUUser needs to be initialized with at least 1 ToU acceptance')
 
     @classmethod
     def check_or_use_data(cls, data: Dict[str, Any]) -> Dict[str, Any]:
