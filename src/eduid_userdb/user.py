@@ -33,6 +33,7 @@
 #
 
 import copy
+import warnings
 from datetime import datetime
 from dataclasses import dataclass, field, asdict
 from typing import Any, Dict, List, Optional, Type, TypeVar, Union
@@ -68,17 +69,17 @@ class User(object):
     surname: str = ''
     subject: Optional[str] = None
     language: str = 'sv'
-    mail_addresses: MailAddressList = field(default_factory=MailAddressList)
-    phone_numbers: PhoneNumberList = field(default_factory=PhoneNumberList)
-    credentials: CredentialList = field(default_factory=CredentialList)
-    nins: NinList = field(default_factory=NinList)
+    mail_addresses: MailAddressList = field(default_factory=lambda: MailAddressList([]))
+    phone_numbers: PhoneNumberList = field(default_factory=lambda: PhoneNumberList([]))
+    credentials: CredentialList = field(default_factory=lambda: CredentialList([]))
+    nins: NinList = field(default_factory=lambda: NinList([]))
     modified_ts: datetime = field(default_factory=datetime.utcnow)
     entitlements: List[str] = field(default_factory=list)
-    tou: ToUList = field(default_factory=ToUList)
+    tou: ToUList = field(default_factory=lambda: ToUList([]))
     terminated: Optional[datetime] = None
-    locked_identity: LockedIdentityList = field(default_factory=LockedIdentityList)
+    locked_identity: LockedIdentityList = field(default_factory=lambda: LockedIdentityList([]))
     orcid: Optional[Orcid] = None
-    profiles: ProfileList = field(default_factory=ProfileList)
+    profiles: ProfileList = field(default_factory=lambda: ProfileList([]))
     letter_proofing_data: Optional[dict] = None
     revoked_ts: Optional[datetime] = None
     just_created: bool = True
@@ -440,9 +441,9 @@ class User(object):
         return profiles
 
     @property
-    @deprecated('Use User.credentials rather than User.passwords')
     def passwords(self):
         """
         For backwards compatibility
         """
+        warnings.warn("Use User.credentials rather than User.passwords", DeprecationWarning)
         return self.credentials
