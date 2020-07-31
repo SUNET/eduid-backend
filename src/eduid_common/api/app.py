@@ -43,6 +43,7 @@ from typing import Optional, TypeVar
 
 from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
+from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
 
 from eduid_userdb import UserDB
 
@@ -104,6 +105,9 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         self.wsgi_app = PrefixMiddleware(  # type: ignore
             self.wsgi_app, prefix=self.config.application_root, server_name=self.config.server_name,
         )
+
+        # Allow legacy samesite cookie support
+        self.wsgi_app = CookiesSameSiteCompatMiddleware(self.wsgi_app, self.config)
 
         # Initialize shared features
         init_logging(self)
