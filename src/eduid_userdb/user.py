@@ -41,7 +41,6 @@ from typing import Any, Dict, List, Optional, Type, TypeVar, Union
 import bson
 
 from eduid_userdb.credentials import CredentialList
-from eduid_userdb.deprecation import deprecated
 from eduid_userdb.element import UserDBValueError
 from eduid_userdb.exceptions import UserHasNotCompletedSignup, UserIsRevoked, UserMissingData
 from eduid_userdb.locked_identity import LockedIdentityList
@@ -103,78 +102,6 @@ class User(object):
         return self.to_dict() == other.to_dict()
 
     @classmethod
-    def construct_user(
-        cls: Type[TUserSubclass],
-        eppn: Optional[str] = None,
-        _id: Optional[Union[bson.ObjectId, str]] = None,
-        subject: Optional[str] = None,
-        display_name: Optional[str] = None,
-        given_name: Optional[str] = None,
-        surname: Optional[str] = None,
-        language: Optional[str] = None,
-        passwords: Optional[CredentialList] = None,
-        modified_ts: Optional[datetime] = None,
-        revoked_ts: Optional[datetime] = None,
-        entitlements: Optional[List[str]] = None,
-        terminated: Optional[bool] = None,
-        letter_proofing_data: Optional[dict] = None,
-        mail_addresses: Optional[MailAddressList] = None,
-        phone_numbers: Optional[PhoneNumberList] = None,
-        nins: Optional[NinList] = None,
-        tou: Optional[ToUList] = None,
-        locked_identity: Optional[LockedIdentityList] = None,
-        orcid: Optional[Orcid] = None,
-        profiles: Optional[ProfileList] = None,
-        raise_on_unknown: bool = True,
-        **kwargs,
-    ) -> TUserSubclass:
-        """
-        Construct user from data in typed params.
-        """
-
-        data: Dict[str, Any] = {}
-
-        data['_id'] = _id
-        if eppn is None:
-            raise UserMissingData("User objects must be constructed with an eppn")
-        data['eduPersonPrincipalName'] = eppn
-        data['subject'] = subject
-        data['displayName'] = display_name
-        data['givenName'] = given_name
-        data['surname'] = surname
-        data['preferredLanguage'] = language
-        data['modified_ts'] = modified_ts
-        if modified_ts is None:
-            data['modified_ts'] = datetime.utcnow()
-        data['terminated'] = terminated
-        if revoked_ts is not None:
-            data['revoked_ts'] = revoked_ts
-        if orcid is not None:
-            data['orcid'] = orcid.to_dict()
-        if letter_proofing_data is not None:
-            data['letter_proofing_data'] = letter_proofing_data
-        if passwords is not None:
-            data['passwords'] = passwords.to_list_of_dicts()
-        if entitlements is not None:
-            data['entitlements'] = entitlements
-        if mail_addresses is not None:
-            data['mailAliases'] = mail_addresses.to_list_of_dicts()
-        if phone_numbers is not None:
-            data['phone'] = phone_numbers.to_list_of_dicts()
-        if nins is not None:
-            data['nins'] = nins.to_list_of_dicts()
-        if tou is not None:
-            data['tou'] = tou.to_list_of_dicts()
-        if locked_identity is not None:
-            data['locked_identity'] = locked_identity.to_list_of_dicts()
-        if profiles is not None:
-            data['profiles'] = profiles.to_list_of_dicts()
-
-        data.update(kwargs)
-
-        return cls.from_dict(data)
-
-    @classmethod
     def from_dict(cls: Type[TUserSubclass], data: Dict[str, Any]) -> TUserSubclass:
         """
         Construct user from a data dict.
@@ -211,7 +138,9 @@ class User(object):
 
         data_in['credentials'] = CredentialList(data_in.pop('passwords', []))
         # generic (known) attributes
-        data_in['eppn'] = data_in.pop('eduPersonPrincipalName')  # mandatory
+        if 'eduPersonPrincipalName' in data_in:
+            # Mandatory, let it raise a TypeError if missing
+            data_in['eppn'] = data_in.pop('eduPersonPrincipalName')
         data_in['subject'] = data_in.pop('subject', None)
         data_in['display_name'] = data_in.pop('displayName', None)
         data_in['given_name'] = data_in.pop('givenName', None)
