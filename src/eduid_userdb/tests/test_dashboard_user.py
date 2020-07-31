@@ -45,7 +45,7 @@ class TestPdataUser(TestCase):
         userid = userdata.pop('_id')
         eppn = userdata.pop('eduPersonPrincipalName')
         passwords = CredentialList(userdata['passwords'])
-        user = DashboardUser.construct_user(_id=userid, eppn=eppn, passwords=passwords)
+        user = DashboardUser(user_id=userid, eppn=eppn, credentials=passwords)
         self.assertEqual(user.user_id, userid)
         self.assertEqual(user.eppn, eppn)
 
@@ -54,12 +54,11 @@ class TestPdataUser(TestCase):
         userid = userdata.pop('_id')
         eppn = userdata.pop('eduPersonPrincipalName')
         passwords = CredentialList(userdata['passwords'])
-        user = DashboardUser.construct_user(eppn=eppn, passwords=passwords)
+        user = DashboardUser(eppn=eppn, credentials=passwords)
         self.assertNotEqual(user.user_id, userid)
 
     def test_missing_eppn(self):
         userdata = new_user_example.to_dict()
-        userid = userdata.pop('_id')
         userdata.pop('eduPersonPrincipalName')
-        with self.assertRaises(UserMissingData):
-            DashboardUser.construct_user(_id=userid, **userdata)
+        with self.assertRaises(TypeError):
+            DashboardUser.from_dict(userdata)

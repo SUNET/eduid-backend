@@ -725,11 +725,11 @@ class TestNewUser(DictTestCase, _AbstractUserTestCase):
         entitlements = [u'http://foo.example.org']
         language = 'en'
 
-        self.user1 = User.construct_user(
-            _id=_id,
+        self.user1 = User(
+            user_id=_id,
             eppn=eppn,
             mail_addresses=mail_addresses,
-            passwords=passwords,
+            credentials=passwords,
             nins=nins,
             subject=subject,
             entitlements=entitlements,
@@ -811,14 +811,14 @@ class TestNewUser(DictTestCase, _AbstractUserTestCase):
         surname = '\xf6ne'
         subject = 'physical person'
 
-        self.user2 = User.construct_user(
-            _id=_id,
+        self.user2 = User(
+            user_id=_id,
             eppn=eppn,
             display_name=display_name,
             given_name=given_name,
             mail_addresses=mail_addresses,
             phone_numbers=phone_numbers,
-            passwords=passwords,
+            credentials=passwords,
             profiles=profiles,
             language=language,
             surname=surname,
