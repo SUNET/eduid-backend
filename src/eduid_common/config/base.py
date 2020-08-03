@@ -377,6 +377,8 @@ class FlaskConfig(BaseConfig):
     secret_key: Optional[str] = None
     # the name of the session cookie
     session_cookie_name: str = 'sessid'
+    # Sets a cookie with legacy SameSite=None, the SameSite key and value is omitted
+    cookies_samesite_compat: list = field(default_factory=lambda: [('sessid', 'sessid_samesite_compat')])
     # the domain for the session cookie. If this is not set, the cookie will
     # be valid for all subdomains of SERVER_NAME.
     session_cookie_domain: Optional[str] = None
