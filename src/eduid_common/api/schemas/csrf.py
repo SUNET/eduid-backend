@@ -61,11 +61,8 @@ class CSRFResponseMixin(Schema):
         return out_data
 
 
-class CSRFRequest(EduidSchema):
-    class RequestPayload(EduidSchema, CSRFRequestMixin):
-        pass
-
-    payload = fields.Nested(RequestPayload)
+class CSRFRequest(EduidSchema, CSRFRequestMixin):
+    pass
 
 
 class CSRFResponse(FluxStandardAction):
