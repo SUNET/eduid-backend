@@ -41,9 +41,9 @@ from dataclasses import asdict
 from sys import stderr
 from typing import Optional, TypeVar
 
+from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
 from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
-from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
 
 from eduid_userdb import UserDB
 
@@ -107,7 +107,7 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         )
 
         # Allow legacy samesite cookie support
-        self.wsgi_app = CookiesSameSiteCompatMiddleware(self.wsgi_app, self.config)
+        self.wsgi_app = CookiesSameSiteCompatMiddleware(self.wsgi_app, self.config)  # type: ignore
 
         # Initialize shared features
         init_logging(self)
