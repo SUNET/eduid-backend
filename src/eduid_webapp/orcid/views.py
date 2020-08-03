@@ -184,8 +184,8 @@ def get_orcid(user):
 
 
 @orcid_views.route('/remove', methods=['POST'])
-@MarshalWith(OrcidResponseSchema)
 @UnmarshalWith(CSRFRequest)
+@MarshalWith(OrcidResponseSchema)
 @require_user
 def remove_orcid(user):
     current_app.logger.info('Removing ORCID data for user')
