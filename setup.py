@@ -29,6 +29,7 @@ webapp_requires = [
     'zxcvbn>=4.4.27,<5.0',
     'python-u2flib-server>=5.0.0',
     'fido2==0.6.0',
+    'cookies-samesite-compat==0.0.*',
 ]
 webapp_extras = webapp_requires + []
 
