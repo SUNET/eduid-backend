@@ -124,10 +124,10 @@ class ResetPasswordEmailAndPhoneState(ResetPasswordEmailState, _ResetPasswordEma
     def from_email_state(
         cls, email_state: ResetPasswordEmailState, phone_number: str, phone_code: str
     ) -> 'ResetPasswordEmailAndPhoneState':
-        data = asdict(email_state)
+        data = email_state.to_dict()
         data['phone_number'] = phone_number
         data['phone_code'] = phone_code
-        return cls(**data)
+        return cls.from_dict(data=data)
 
     def to_dict(self) -> dict:
         res = super().to_dict()
