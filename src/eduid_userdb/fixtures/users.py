@@ -187,13 +187,13 @@ old_user_example = User.from_dict(
         preferredLanguage='en',
         modified_ts=datetime.fromisoformat("2013-09-02T10:23:25"),
         mailAliases=MailAddressList(
-            [johnsmith_example_com_old, johnsmith2_example_com_old, johnsmith3_example_com_unverified, ]
+            [johnsmith_example_com_old, johnsmith2_example_com_old, johnsmith3_example_com_unverified,]
         ).to_list_of_dicts(),
         norEduPersonNIN=['197801011234'],
         postalAddress=old_postal_addresses,
-        phone=PhoneNumberList([old_primary_phone, old_unverified_phone, ]).to_list_of_dicts(),
+        phone=PhoneNumberList([old_primary_phone, old_unverified_phone,]).to_list_of_dicts(),
         passwords=CredentialList([old_password]).to_list_of_dicts(),
-        eduPersonEntitlement=['urn:mace:eduid.se:role:admin', 'urn:mace:eduid.se:role:student', ],
+        eduPersonEntitlement=['urn:mace:eduid.se:role:admin', 'urn:mace:eduid.se:role:student',],
         terminated=None,
     )
 )
