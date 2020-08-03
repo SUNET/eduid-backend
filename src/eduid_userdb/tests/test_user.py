@@ -242,14 +242,14 @@ class _AbstractUserTestCase:
         Test the modified_ts property.
         """
         _time1 = self.user1.modified_ts
-        self.assertIsInstance(_time1, datetime.datetime)
+        assert _time1 is None
         # update to current time
         self.user1.modified_ts = datetime.datetime.utcnow()
         _time2 = self.user1.modified_ts
         self.assertNotEqual(_time1, _time2)
         # set to a datetime instance
-        self.user1.modified_ts = _time1
-        self.assertEqual(_time1, self.user1.modified_ts)
+        self.user1.modified_ts = datetime.datetime.utcnow()
+        self.assertNotEqual(_time2, self.user1.modified_ts)
 
     def test_two_unverified_non_primary_phones(self):
         """

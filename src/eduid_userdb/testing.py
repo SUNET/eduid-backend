@@ -224,7 +224,8 @@ class DictTestCase(unittest.TestCase):
             del elem['created_ts']
 
         if 'modified_ts' in elem:
-            assert isinstance(elem['modified_ts'], datetime)
+            if elem['modified_ts'] is not None:
+                assert isinstance(elem['modified_ts'], datetime)
             del elem['modified_ts']
 
         if 'verified_ts' in elem:
