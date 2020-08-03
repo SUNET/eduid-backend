@@ -73,7 +73,7 @@ class User(object):
     phone_numbers: PhoneNumberList = field(default_factory=lambda: PhoneNumberList([]))
     credentials: CredentialList = field(default_factory=lambda: CredentialList([]))
     nins: NinList = field(default_factory=lambda: NinList([]))
-    modified_ts: datetime = field(default_factory=datetime.utcnow)
+    modified_ts: Optional[datetime] = None
     entitlements: List[str] = field(default_factory=list)
     tou: Optional[ToUList] = None
     terminated: Optional[datetime] = None
@@ -82,7 +82,6 @@ class User(object):
     profiles: ProfileList = field(default_factory=lambda: ProfileList([]))
     letter_proofing_data: Optional[dict] = None
     revoked_ts: Optional[datetime] = None
-    just_created: bool = True
 
     def __post_init__(self):
         """
@@ -200,8 +199,6 @@ class User(object):
         ]:
             if _remove in res and not res[_remove]:
                 del res[_remove]
-
-        del res['just_created']
 
         return res
 
