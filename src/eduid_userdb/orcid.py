@@ -25,7 +25,8 @@ class _OidcIdTokenRequired:
     aud: List[str]
     # Expiration time
     exp: int
-    # What is this?
+    # Time at which the JWT was issued. Its value is a JSON number representing
+    # the number of seconds from 1970-01-01T0:0:0Z as measured in UTC until the date/time.
     iat: int
 
 
