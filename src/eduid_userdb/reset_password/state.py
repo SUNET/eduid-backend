@@ -30,16 +30,18 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-import copy
+from __future__ import annotations
+
 import datetime
 from dataclasses import dataclass, field, asdict
-from typing import Any, Dict, Mapping, Optional, Union, cast
+from typing import Any, Dict, Optional, TypeVar, Union
 
 import bson
 
-from eduid_userdb.element import _set_something_ts
-from eduid_userdb.exceptions import UserDBValueError, UserHasUnknownData
 from eduid_userdb.reset_password.element import CodeElement
+
+
+TResetPasswordStateSubclass = TypeVar('TResetPasswordStateSubclass', bound='ResetPasswordState')
 
 
 @dataclass
@@ -51,7 +53,7 @@ class ResetPasswordState(object):
     reference: str = field(init=False)
     method: Optional[str] = None
     created_ts: datetime.datetime = field(default_factory=datetime.datetime.utcnow)
-    modified_ts: datetime.datetime = field(default_factory=datetime.datetime.utcnow)
+    modified_ts: Optional[datetime.datetime] = None
     extra_security: Optional[Dict[str, Any]] = None
     generated_password: bool = False
 
@@ -66,6 +68,14 @@ class ResetPasswordState(object):
         res['eduPersonPrincipalName'] = res.pop('eppn')
         res['_id'] = res.pop('id')
         return res
+
+    @classmethod
+    def from_dict(cls: TResetPasswordStateSubclass, data: Dict[str, Any]) -> TResetPasswordStateSubclass:
+        data['eppn'] = data.pop('eduPersonPrincipalName')
+        data['id'] = data.pop('_id')
+        if 'reference' in data:
+            data.pop('reference')
+        return cls(**data)
 
 
 @dataclass

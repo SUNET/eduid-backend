@@ -31,6 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import logging
+from datetime import datetime
 from typing import Any, Dict, Mapping, Optional, TypeVar, Union
 
 from eduid_userdb.db import BaseDB
@@ -113,9 +114,9 @@ class ResetPasswordStateDB(BaseDB):
     @staticmethod
     def init_state(state: Mapping) -> Optional[Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState]]:
         if state.get('method') == 'email':
-            return ResetPasswordEmailState(data=state)
+            return ResetPasswordEmailState.from_dict(data=state)
         elif state.get('method') == 'email_and_phone':
-            return ResetPasswordEmailAndPhoneState(data=state)
+            return ResetPasswordEmailAndPhoneState.from_dict(data=state)
         return None
 
     def save(self, state: ResetPasswordState, check_sync: bool = True):
@@ -126,7 +127,7 @@ class ResetPasswordStateDB(BaseDB):
                            database since it was loaded
         """
         modified = state.modified_ts
-        state.modified_ts = True  # update to current time
+        state.modified_ts = datetime.utcnow()
         if modified is None:
             # document has never been modified
             # Remove old reset password state
