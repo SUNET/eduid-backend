@@ -36,6 +36,7 @@ Configuration (file) handling for eduID IdP.
 
 from __future__ import annotations
 
+import importlib.machinery
 import importlib.util
 import logging
 import os
@@ -318,9 +319,10 @@ class BaseConfig(CommonConfig):
         secrets_path = os.environ.get('LOCAL_CFG_FILE')
         if secrets_path is not None and os.path.exists(secrets_path):
             logger.debug(f'LOCAL_CFG_FILE is set and file {secrets_path} exist')
-            spec = importlib.util.spec_from_file_location("secret.settings", secrets_path)
+            loader = importlib.machinery.SourceFileLoader("secret.settings", secrets_path)
+            spec = importlib.util.spec_from_loader(loader.name, loader)
             secret_settings_module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(secret_settings_module)
+            loader.exec_module(secret_settings_module)
             for secret in dir(secret_settings_module):
                 if not secret.startswith('_'):
                     logger.debug(f'Adding config key {secret} from local file')
