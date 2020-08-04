@@ -315,18 +315,15 @@ class BaseConfig(CommonConfig):
         app_config = parser.read_configuration(silent=True)
         config.update(app_config)
 
-        # Load optional app specific secrets
-        secrets_path = os.environ.get('LOCAL_CFG_FILE')
-        if secrets_path is not None and os.path.exists(secrets_path):
-            logger.debug(f'LOCAL_CFG_FILE is set and file {secrets_path} exist')
-            loader = importlib.machinery.SourceFileLoader("secret.settings", secrets_path)
-            spec = importlib.util.spec_from_loader(loader.name, loader)
-            secret_settings_module = importlib.util.module_from_spec(spec)
-            loader.exec_module(secret_settings_module)
-            for secret in dir(secret_settings_module):
-                if not secret.startswith('_'):
-                    logger.debug(f'Adding config key {secret} from local file')
-                    config[secret.lower()] = getattr(secret_settings_module, secret)
+        # Load optional local settings
+        local_config_path = os.environ.get('LOCAL_CFG_FILE')
+        if local_config_path is not None and os.path.exists(local_config_path):
+            logger.debug(f'LOCAL_CFG_FILE is set and file {local_config_path} exist')
+            with open(local_config_path) as f:
+                local_config = yaml.safe_load(f)
+                for key, value in local_config.items():
+                    config[key.lower()] = value
+                    logger.debug(f'Added config key {key} from local file')
 
         # Make sure we don't try to load config keys that are not expected as that will result in a crash
         filtered_config = cls.filter_config(config)
