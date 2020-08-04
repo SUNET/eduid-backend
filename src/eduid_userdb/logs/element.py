@@ -25,6 +25,7 @@ TLogElementSubclass = TypeVar('TLogElementSubclass', bound='LogElement')
 class LogElement(Element):
     """
     """
+
     # Application creating the log element
     created_by: str
 
@@ -71,6 +72,7 @@ class _ProofingLogElementRequired:
     """
     Required fields for ProofingLogElement
     """
+
     # eduPersonPrincipalName
     eppn: str
     # Proofing method version number
@@ -81,6 +83,7 @@ class _ProofingLogElementRequired:
 class ProofingLogElement(LogElement, _ProofingLogElementRequired):
     """
     """
+
     # Proofing method name
     proofing_method: str = ''
 
@@ -90,6 +93,7 @@ class _NinProofingLogElementRequired:
     """
     Required fields for NinProofingLogElement
     """
+
     # National identity number
     nin: str
     # Navet response for users official address
@@ -107,6 +111,7 @@ class _MailAddressProofingRequired:
     """
     Required fields for MailAddressProofing
     """
+
     # e-mail address
     mail_address: str
     # Audit reference to help cross reference audit log and events
@@ -126,6 +131,7 @@ class MailAddressProofing(ProofingLogElement, _MailAddressProofingRequired):
         'reference': 'reference id'
     }
     """
+
     # Proofing method name
     proofing_method: str = 'e-mail'
 
@@ -135,6 +141,7 @@ class _PhoneNumberProofingRequired:
     """
     Required fields for PhoneNumberProofing
     """
+
     # phone number
     phone_number: str
     # Audit reference to help cross reference audit log and events
@@ -154,6 +161,7 @@ class PhoneNumberProofing(ProofingLogElement, _PhoneNumberProofingRequired):
         'reference': 'reference id'
     }
     """
+
     # Proofing method name
     proofing_method: str = 'sms'
 
@@ -163,6 +171,7 @@ class _TeleAdressProofingRequired:
     """
     Required fields for TeleAdressProofing
     """
+
     # Mobile phone number
     mobile_number: str
     # Reason for mobile phone number match to user
@@ -185,6 +194,7 @@ class TeleAdressProofing(NinProofingLogElement, _TeleAdressProofingRequired):
         'user_postal_address': {postal_address_from_navet}
     }
     """
+
     # Proofing method name
     proofing_method: str = 'TeleAdress'
 
@@ -194,6 +204,7 @@ class _TeleAdressProofingRelationRequired:
     """
     Required fields for TeleAdressProofingRelation
     """
+
     # NIN of registered user of mobile phone subscription
     mobile_number_registered_to: str
     # Relation of mobile phone subscriber to User
@@ -221,6 +232,7 @@ class TeleAdressProofingRelation(TeleAdressProofing, _TeleAdressProofingRelation
         'registered_postal_address': {postal_address_from_navet}
     }
     """
+
     # Proofing method name
     proofing_method: str = 'TeleAdress'
 
@@ -230,6 +242,7 @@ class _LetterProofingRequired:
     """
     Required fields for LetterProofing
     """
+
     # Name and address the letter was sent to
     letter_sent_to: str
     # Letter service transaction id
@@ -251,6 +264,7 @@ class LetterProofing(NinProofingLogElement, _LetterProofingRequired):
         'user_postal_address': {postal_address_from_navet}
     }
     """
+
     # Proofing method name
     proofing_method: str = 'letter'
 
@@ -260,6 +274,7 @@ class _SeLegProofingRequired:
     """
     Required fields for SeLegProofing
     """
+
     # Provider transaction id
     transaction_id: str
 
@@ -279,6 +294,7 @@ class SeLegProofing(NinProofingLogElement, _SeLegProofingRequired):
         'user_postal_address': {postal_address_from_navet}
     }
     """
+
     # Proofing method name
     proofing_method: str = 'se-leg'
     # Name of the provider who performed the vetting
@@ -290,6 +306,7 @@ class _SeLegProofingFrejaEidRequired:
     """
     Required fields for SeLegProofingFrejaEid
     """
+
     # Data used to initialize the vetting process
     opaque_data: str
 
@@ -310,6 +327,7 @@ class SeLegProofingFrejaEid(SeLegProofing, _SeLegProofingFrejaEidRequired):
         'user_postal_address': {postal_address_from_navet}
     }
     """
+
     # Name of the provider who performed the vetting
     vetting_by: str = 'Freja eID'
 
@@ -319,6 +337,7 @@ class _OrcidProofingRequired:
     """
     Required fields for OrcidProofing
     """
+
     # Users unique id
     orcid: str
     # OIDC issuer
@@ -341,6 +360,7 @@ class OrcidProofing(ProofingLogElement, _OrcidProofingRequired):
         'proofing_version': '2018v1'
     }
     """
+
     # Proofing method name
     proofing_method: str = 'oidc'
 
@@ -350,6 +370,7 @@ class _SwedenConnectProofingRequired:
     """
     Required fields for SwedenConnectProofing
     """
+
     # Provider transaction id
     issuer: str
     # The authentication context class asserted
@@ -371,6 +392,7 @@ class SwedenConnectProofing(NinProofingLogElement, _SwedenConnectProofingRequire
         'user_postal_address': {postal_address_from_navet}
     }
     """
+
     # Proofing method name
     proofing_method: str = 'swedenconnect'
 
@@ -380,6 +402,7 @@ class _MFATokenProofingRequired:
     """
     Required fields for MFATokenProofing
     """
+
     # Data used to initialize the vetting process
     key_id: str
 
@@ -400,5 +423,6 @@ class MFATokenProofing(SwedenConnectProofing, _MFATokenProofingRequired):
         'user_postal_address': {postal_address_from_navet}
     }
     """
+
     # Proofing method name
     proofing_method: str = 'swedenconnect'
