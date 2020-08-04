@@ -36,7 +36,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from hashlib import sha256
-from typing import Any, ClassVar, Dict, Optional
+from typing import Any, Dict, Optional
 
 from eduid_userdb.credentials import Credential
 
@@ -62,6 +62,17 @@ class FidoCredential(Credential, _FidoCredentialRequired):
 
     description: str = ''
 
+    def data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
+        """
+        Transform data kept in pythonic format into eduid format.
+        """
+        if 'created_by' in data:
+            data['application'] = data.pop('created_by')
+
+        data = super().data_out_transforms(data, old_userdb_format)
+
+        return data
+
 
 @dataclass
 class _U2FCredentialRequired:
@@ -81,8 +92,6 @@ class U2F(FidoCredential, _U2FCredentialRequired):
     """
 
     attest_cert: Optional[str] = None
-
-    name_mapping: ClassVar[Dict[str, str]] = {'application': 'created_by'}
 
     @property
     def key(self) -> str:
@@ -111,8 +120,6 @@ class Webauthn(FidoCredential):
 
     attest_obj: str = ''
     credential_data: str = ''
-
-    name_mapping: ClassVar[Dict[str, str]] = {'application': 'created_by'}
 
     @property
     def key(self) -> str:

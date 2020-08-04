@@ -183,8 +183,8 @@ class Element:
 
         return data
 
-    @staticmethod
-    def data_in_transforms(data: Dict[str, Any]) -> Dict[str, Any]:
+    @classmethod
+    def data_in_transforms(cls: Type[TElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """
@@ -225,8 +225,8 @@ class VerifiedElement(Element):
     verified_by: Optional[str] = None
     verified_ts: Optional[datetime] = None
 
-    @staticmethod
-    def data_in_transforms(data: Dict[str, Any]) -> Dict[str, Any]:
+    @classmethod
+    def data_in_transforms(cls: Type[TElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """
@@ -270,8 +270,8 @@ class PrimaryElement(VerifiedElement):
 
         super().__setattr__(key, value)
 
-    @staticmethod
-    def data_in_transforms(data: Dict[str, Any]) -> Dict[str, Any]:
+    @classmethod
+    def data_in_transforms(cls: Type[TElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """

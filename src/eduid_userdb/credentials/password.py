@@ -35,7 +35,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any, Dict, Type
 
 import bson
 
@@ -75,6 +75,36 @@ class Password(Credential, _PasswordRequired):
         Return the element that is used as key.
         """
         return self.credential_id
+
+    @staticmethod
+    def data_in_transforms(cls: Type[Password], data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Transform data received in eduid format into pythonic format.
+        """
+        data = super().data_in_transforms(data)
+
+        if 'source' in data:
+            data['created_by'] = data.pop('source')
+
+        if 'id' in data:
+            data['credential_id'] = data.pop('id')
+
+        return data
+
+    def data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
+        """
+        Transform data kept in pythonic format into eduid format.
+        """
+        if old_userdb_format:
+            if 'created_by' in data:
+                data['source'] = data.pop('created_by')
+
+            if 'credential_id' in data:
+                data['id'] = data.pop('credential_id')
+
+        data = super().data_out_transforms(data, old_userdb_format)
+
+        return data
 
 
 def password_from_dict(data: Dict[str, Any], raise_on_unknown: bool = True) -> Password:
