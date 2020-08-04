@@ -206,6 +206,9 @@ class Element:
         raise NotImplementedError("'key' not implemented for Element subclass")
 
 
+TVerifiedElementSubclass = TypeVar('TVerifiedElementSubclass', bound='VerifiedElement')
+
+
 @dataclass
 class VerifiedElement(Element):
     """
@@ -217,7 +220,7 @@ class VerifiedElement(Element):
     verified_ts: Optional[datetime] = None
 
     @classmethod
-    def _data_in_transforms(cls: Type[TElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _data_in_transforms(cls: Type[TVerifiedElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """
@@ -243,6 +246,9 @@ class VerifiedElement(Element):
         return data
 
 
+TPrimaryElementSubclass = TypeVar('TPrimaryElementSubclass', bound='PrimaryElement')
+
+
 @dataclass
 class PrimaryElement(VerifiedElement):
     """
@@ -261,7 +267,7 @@ class PrimaryElement(VerifiedElement):
         super().__setattr__(key, value)
 
     @classmethod
-    def _data_in_transforms(cls: Type[TElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _data_in_transforms(cls: Type[TPrimaryElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """
