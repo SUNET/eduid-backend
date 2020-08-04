@@ -315,7 +315,7 @@ class BaseConfig(CommonConfig):
         app_config = parser.read_configuration(silent=True)
         config.update(app_config)
 
-        # Load optional app specific secrets
+        # Load optional local settings
         local_config_path = os.environ.get('LOCAL_CFG_FILE')
         if local_config_path is not None and os.path.exists(local_config_path):
             logger.debug(f'LOCAL_CFG_FILE is set and file {local_config_path} exist')
