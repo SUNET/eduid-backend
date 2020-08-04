@@ -317,10 +317,13 @@ class BaseConfig(CommonConfig):
         # Load optional app specific secrets
         secrets_path = os.environ.get('LOCAL_CFG_FILE')
         if secrets_path is not None and os.path.exists(secrets_path):
+            logger.debug(f'LOCAL_CFG_FILE is set and file {secrets_path} exist')
             spec = importlib.util.spec_from_file_location("secret.settings", secrets_path)
             secret_settings_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(secret_settings_module)
             for secret in dir(secret_settings_module):
                 if not secret.startswith('_'):
+                    logger.debug(f'Adding config key {secret} from local file')
                     config[secret.lower()] = getattr(secret_settings_module, secret)
 
         # Make sure we don't try to load config keys that are not expected as that will result in a crash
