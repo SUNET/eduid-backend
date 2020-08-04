@@ -136,42 +136,8 @@ class PrimaryElementViolation(PrimaryElementError):
 TElementSubclass = TypeVar('TElementSubclass', bound='Element')
 
 
-class MetaElement(type):
-    def __new__(typ: Type[MetaElement], name: str, bases: tuple, dct: dict) -> MetaElement:
-        """
-        Here we modify the construction of the Element class and its subclasses,
-        to be able to inherit the mappings of attribute names.
-        """
-        mapping = {}
-        old = ()
-
-        for base in bases:
-
-            if hasattr(base, 'name_mapping'):
-                mapping.update(base.name_mapping)
-
-            if hasattr(base, 'old_names'):
-                old += base.old_names
-
-        if 'name_mapping' in dct:
-            mapping.update(dct['name_mapping'])
-
-        if 'old_names' in dct:
-            old += dct['old_names']
-
-        dct['name_mapping'] = mapping
-        dct['inverse_name_mapping'] = {v: k for k, v in mapping.items()}
-        dct['old_names'] = tuple(set(old))
-
-        result = super().__new__(typ, name, bases, dct)
-
-        # It seems there's not other waay to do this than casting, see:
-        # https://stackoverflow.com/questions/63054541/how-to-type-the-new-method-in-a-python-metaclass-so-that-mypy-is-happy
-        return cast(MetaElement, result)
-
-
 @dataclass
-class Element(metaclass=MetaElement):
+class Element:
     """
     Base class for elements.
 
@@ -187,12 +153,6 @@ class Element(metaclass=MetaElement):
     created_ts: datetime = field(default_factory=datetime.utcnow)
     modified_ts: datetime = field(default_factory=datetime.utcnow)
 
-    # mapping of eduid attribute names to pythonic attribute names.
-    name_mapping: ClassVar[Dict[str, str]] = {'application': 'created_by'}
-    inverse_name_mapping: ClassVar[Dict[str, str]] = {}
-    # deprecated (old format) eduid attribute names
-    old_names: ClassVar[tuple] = ('application',)
-
     def __str__(self) -> str:
         return f'<eduID {self.__class__.__name__}: {asdict(self)}>'
 
@@ -206,12 +166,6 @@ class Element(metaclass=MetaElement):
 
         data = copy.deepcopy(data)  # to not modify callers data
 
-        for k, v in cls.name_mapping.items():
-            if k in data:
-                new = data.pop(k)
-                if v != '':
-                    data[v] = new
-
         data = cls.data_in_transforms(data)
 
         return cls(**data)
@@ -224,14 +178,31 @@ class Element(metaclass=MetaElement):
         :param old_userdb_format: Set to True to get data back in legacy format.
         """
         data = asdict(self)
-        inverse_mapping = self.inverse_name_mapping
 
-        for k, v in inverse_mapping.items():
-            do_translate = old_userdb_format or v not in self.old_names
-            if k != '' and k in data and do_translate:
-                data[v] = data.pop(k)
+        data = self.data_out_transforms(data, old_userdb_format)
 
-        data = self.data_out_transforms(data)
+        return data
+
+    @staticmethod
+    def data_in_transforms(data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Transform data received in eduid format into pythonic format.
+        """
+        if 'application' in data:
+            data['created_by'] = data.pop('application')
+
+        return data
+
+    def data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
+        """
+        Transform data kept in pythonic format into eduid format.
+        """
+        if old_userdb_format:
+            if 'created_by' in data:
+                data['application'] = data.pop('created_by')
+
+        # remove None values
+        data = {k: v for k, v in data.items() if v is not None}
 
         return data
 
@@ -242,28 +213,6 @@ class Element(metaclass=MetaElement):
         Must be implemented in subclasses of PrimaryElement.
         """
         raise NotImplementedError("'key' not implemented for Element subclass")
-
-    @classmethod
-    def data_in_transforms(cls: Type[TElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Transform data received in eduid format into pythonic format.
-        To be overridden in subclasses that know specifically how to transform the data.
-        """
-        return data
-
-    def data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Transform data kept in pythonic format into eduid format.
-        To be overridden in subclasses that know specifically how to transform the data.
-
-        The default implementation removes the attributes with None value
-        """
-        new_data = dict()
-        for key, val in data.items():
-            if val is not None:
-                new_data[key] = val
-
-        return new_data
 
 
 @dataclass
@@ -276,7 +225,32 @@ class VerifiedElement(Element):
     verified_by: Optional[str] = None
     verified_ts: Optional[datetime] = None
 
-    name_mapping: ClassVar[Dict[str, str]] = {'verified': 'is_verified', 'verification_code': ''}
+    @staticmethod
+    def data_in_transforms(data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Transform data received in eduid format into pythonic format.
+        """
+        data = super().data_in_transforms(data)
+
+        if 'verified' in data:
+            data['is_verified'] = data.pop('verified')
+
+        if 'verification_code' in data:
+            del data['verification_code']
+
+        return data
+
+    def data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
+        """
+        Transform data kept in pythonic format into eduid format.
+        """
+        if old_userdb_format:
+            if 'is_verified' in data:
+                data['verified'] = data.pop('is_verified')
+
+        data = super().data_out_transforms(data)
+
+        return data
 
 
 @dataclass
@@ -287,8 +261,6 @@ class PrimaryElement(VerifiedElement):
 
     is_primary: bool = False
 
-    name_mapping: ClassVar[Dict[str, str]] = {'primary': 'is_primary'}
-
     def __setattr__(self, key: str, value: Any):
         """
         raise PrimaryElementViolation when trying to set a primary element as unverified
@@ -297,6 +269,30 @@ class PrimaryElement(VerifiedElement):
             raise PrimaryElementViolation("Can't remove verified status of primary element")
 
         super().__setattr__(key, value)
+
+    @staticmethod
+    def data_in_transforms(data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Transform data received in eduid format into pythonic format.
+        """
+        data = super().data_in_transforms(data)
+
+        if 'primary' in data:
+            data['is_primary'] = data.pop('primary')
+
+        return data
+
+    def data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
+        """
+        Transform data kept in pythonic format into eduid format.
+        """
+        if old_userdb_format:
+            if 'is_primary' in data:
+                data['primary'] = data.pop('is_primary')
+
+        data = super().data_out_transforms(data)
+
+        return data
 
 
 class ElementList(object):
