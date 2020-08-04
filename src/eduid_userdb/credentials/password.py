@@ -66,9 +66,6 @@ class Password(Credential, _PasswordRequired):
 
     is_generated: bool = False
 
-    name_mapping = {'source': 'created_by', 'id': 'credential_id'}
-    old_names = ('source', 'id')
-
     @property
     def key(self) -> str:
         """
@@ -76,12 +73,12 @@ class Password(Credential, _PasswordRequired):
         """
         return self.credential_id
 
-    @staticmethod
-    def data_in_transforms(cls: Type[Password], data: Dict[str, Any]) -> Dict[str, Any]:
+    @classmethod
+    def _data_in_transforms(cls: Type[Password], data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """
-        data = super().data_in_transforms(data)
+        data = super()._data_in_transforms(data)
 
         if 'source' in data:
             data['created_by'] = data.pop('source')
@@ -91,7 +88,7 @@ class Password(Credential, _PasswordRequired):
 
         return data
 
-    def data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
+    def _data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
         """
         Transform data kept in pythonic format into eduid format.
         """
@@ -102,7 +99,7 @@ class Password(Credential, _PasswordRequired):
             if 'credential_id' in data:
                 data['id'] = data.pop('credential_id')
 
-        data = super().data_out_transforms(data, old_userdb_format)
+        data = super()._data_out_transforms(data, old_userdb_format)
 
         return data
 

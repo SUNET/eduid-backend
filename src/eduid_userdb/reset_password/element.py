@@ -34,7 +34,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import ClassVar, Dict, Mapping, Type, Union
+from typing import Any, Dict, Mapping, Type, Union
 
 from eduid_userdb.element import Element
 
@@ -54,12 +54,33 @@ class CodeElement(Element, _CodeElementRequired):
     """
     """
 
-    name_mapping: ClassVar[Dict[str, str]] = {'verified': 'is_verified'}
-
     @property
     def key(self) -> str:
         """Get element key."""
         return self.code
+
+    @classmethod
+    def _data_in_transforms(cls: Type[CodeElement], data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Transform data received in eduid format into pythonic format.
+        """
+        data = super()._data_in_transforms(data)
+
+        if 'verified' in data:
+            data['is_verified'] = data.pop('verified')
+
+        return data
+
+    def _data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
+        """
+        Transform data kept in pythonic format into eduid format.
+        """
+        if 'is_verified' in data:
+            data['verified'] = data.pop('is_verified')
+
+        data = super()._data_out_transforms(data, old_userdb_format)
+
+        return data
 
     def is_expired(self, timeout_seconds: int) -> bool:
         """

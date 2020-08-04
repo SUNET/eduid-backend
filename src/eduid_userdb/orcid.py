@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, ClassVar, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional, Type
 
 from eduid_userdb.element import Element, VerifiedElement
 
@@ -47,20 +47,37 @@ class OidcIdToken(Element, _OidcIdTokenRequired):
     # Authorized party
     azp: Optional[str] = None
 
-    name_mapping: ClassVar[Dict[str, str]] = {
-        'application': 'created_by',
-        'at_hash': '',
-        'family_name': '',
-        'given_name': '',
-        'jti': '',
-    }
-
     @property
     def key(self) -> str:
         """
         :return: Unique identifier
         """
         return f'{self.iss}{self.sub}'
+
+    @classmethod
+    def _data_in_transforms(cls: Type[OidcIdToken], data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Transform data received in eduid format into pythonic format.
+        """
+        data = super()._data_in_transforms(data)
+
+        # these keys appear in the data sample in the eduid_userdb.tests.test_orcid module
+        for key in ('at_hash', 'family_name', 'given_name', 'jti'):
+            if key in data:
+                del data[key]
+
+        return data
+
+    def _data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
+        """
+        Transform data kept in pythonic format into eduid format.
+        """
+        if 'created_by' in data:
+            data['application'] = data.pop('created_by')
+
+        data = super()._data_out_transforms(data, old_userdb_format)
+
+        return data
 
 
 @dataclass
@@ -84,10 +101,6 @@ class OidcAuthorization(Element, _OidcAuthorizationRequired):
     expires_in: Optional[int] = None
     refresh_token: Optional[str] = None
 
-    # XXX the data samples in the tests in test_orcid provide these keys,
-    # and here we remove them to avoid a TypeError.
-    name_mapping: ClassVar[Dict[str, str]] = {'name': '', 'orcid': '', 'scope': ''}
-
     @property
     def key(self) -> str:
         """
@@ -96,10 +109,15 @@ class OidcAuthorization(Element, _OidcAuthorizationRequired):
         return self.id_token.key
 
     @classmethod
-    def data_in_transforms(cls: Type[OidcAuthorization], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _data_in_transforms(cls: Type[OidcAuthorization], data: Dict[str, Any]) -> Dict[str, Any]:
         """
         """
-        data = super().data_in_transforms(data)
+        data = super()._data_in_transforms(data)
+
+        # these keys appear in the data sample in the eduid_userdb.tests.test_orcid module
+        for key in ('name', 'orcid', 'scope'):
+            if key in data:
+                del data[key]
 
         # Parse ID token
         _id_token = data.pop('id_token')
@@ -110,10 +128,10 @@ class OidcAuthorization(Element, _OidcAuthorizationRequired):
 
         return data
 
-    def data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
         """
         """
-        data = super().data_out_transforms(data)
+        data = super()._data_out_transforms(data, old_userdb_format)
 
         data['id_token'] = self.id_token.to_dict()
         return data
@@ -139,8 +157,6 @@ class Orcid(VerifiedElement, _OrcidRequired):
     given_name: Optional[str] = None
     family_name: Optional[str] = None
 
-    name_mapping: ClassVar[Dict[str, str]] = {'application': 'created_by'}
-
     @property
     def key(self) -> str:
         """
@@ -149,10 +165,10 @@ class Orcid(VerifiedElement, _OrcidRequired):
         return self.id
 
     @classmethod
-    def data_in_transforms(cls: Type[Orcid], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _data_in_transforms(cls: Type[Orcid], data: Dict[str, Any]) -> Dict[str, Any]:
         """
         """
-        data = super().data_in_transforms(data)
+        data = super()._data_in_transforms(data)
 
         # Parse ID token
         _oidc_authz = data.pop('oidc_authz')
@@ -163,10 +179,13 @@ class Orcid(VerifiedElement, _OrcidRequired):
 
         return data
 
-    def data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
         """
         """
-        data = super().data_out_transforms(data)
+        if 'created_by' in data:
+            data['application'] = data.pop('created_by')
+
+        data = super()._data_out_transforms(data, old_userdb_format)
 
         data['oidc_authz'] = self.oidc_authz.to_dict()
         return data

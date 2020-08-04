@@ -34,7 +34,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import ClassVar, Dict, Optional
+from typing import Any, Dict, Optional, Type
 
 from eduid_userdb.element import PrimaryElement, PrimaryElementList
 
@@ -48,15 +48,42 @@ class MailAddress(PrimaryElement):
 
     email: Optional[str] = None
 
-    name_mapping: ClassVar[Dict[str, str]] = {'added_timestamp': 'created_ts', 'application': 'created_by', 'csrf': ''}
-    old_names = ('added_timestamp',)
-
     @property
     def key(self) -> Optional[str]:
         """
         Return the element that is used as key for e-mail addresses in a PrimaryElementList.
         """
         return self.email
+
+    @classmethod
+    def _data_in_transforms(cls: Type[MailAddress], data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Transform data received in eduid format into pythonic format.
+        """
+        data = super()._data_in_transforms(data)
+
+        if 'added_timestamp' in data:
+            data['created_ts'] = data.pop('added_timestamp')
+
+        if 'csrf' in data:
+            del data['csrf']
+
+        return data
+
+    def _data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
+        """
+        Transform data kept in pythonic format into eduid format.
+        """
+        if 'created_by' in data:
+            data['application'] = data.pop('created_by')
+
+        if old_userdb_format:
+            if 'created_ts' in data:
+                data['added_timestamp'] = data.pop('created_ts')
+
+        data = super()._data_out_transforms(data, old_userdb_format)
+
+        return data
 
 
 class MailAddressList(PrimaryElementList):

@@ -71,19 +71,10 @@ semantically sound. For example, we don't want data representing an element
 with the `is_primary` attribute set to `True` but the `is_verified` attribute
 set to `False`.
 
-To do the name translation, we use a mapping, set as a class attribute in the
-dataclasses (the dataclass machinery leaves alone such attributes), with the
-eduid names as keys and the pythonic names as values. We make this inheritable
-(in the sense that subclasses will merge the mappings declared in its
-superclasses with the mapping declared for themselves) by providing them with
-a metaclass that does the aggregation.
-
-To ignore attributes in eduid data, we add the eduid name as key to the mapping
-of names, with the empty string as value (in place of the pythonic name).
-
-To enforce arbitrary constraints we provide 2 methods, `data_in_transforms` and
-`data_out_transforms`, that are respectively called in `from_dict` and `to_dict`
-and can be overridden in subclasses.
+To translate between the data formats, and to enforce arbitrary constraints we
+provide 2 methods, `_data_in_transforms` and `_data_out_transforms`, that are
+respectively called in `from_dict` and `to_dict` and can be overridden in
+subclasses.
 
 """
 from __future__ import annotations
@@ -91,7 +82,7 @@ from __future__ import annotations
 import copy
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, ClassVar, Dict, List, Optional, Type, TypeVar, cast
+from typing import Any, Dict, List, Optional, Type, TypeVar
 
 from six import string_types
 
@@ -166,7 +157,7 @@ class Element:
 
         data = copy.deepcopy(data)  # to not modify callers data
 
-        data = cls.data_in_transforms(data)
+        data = cls._data_in_transforms(data)
 
         return cls(**data)
 
@@ -179,12 +170,12 @@ class Element:
         """
         data = asdict(self)
 
-        data = self.data_out_transforms(data, old_userdb_format)
+        data = self._data_out_transforms(data, old_userdb_format)
 
         return data
 
     @classmethod
-    def data_in_transforms(cls: Type[TElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _data_in_transforms(cls: Type[TElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """
@@ -193,7 +184,7 @@ class Element:
 
         return data
 
-    def data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
+    def _data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
         """
         Transform data kept in pythonic format into eduid format.
         """
@@ -226,11 +217,11 @@ class VerifiedElement(Element):
     verified_ts: Optional[datetime] = None
 
     @classmethod
-    def data_in_transforms(cls: Type[TElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _data_in_transforms(cls: Type[TElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """
-        data = super().data_in_transforms(data)
+        data = super()._data_in_transforms(data)
 
         if 'verified' in data:
             data['is_verified'] = data.pop('verified')
@@ -240,15 +231,14 @@ class VerifiedElement(Element):
 
         return data
 
-    def data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
+    def _data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
         """
         Transform data kept in pythonic format into eduid format.
         """
-        if old_userdb_format:
-            if 'is_verified' in data:
-                data['verified'] = data.pop('is_verified')
+        if 'is_verified' in data:
+            data['verified'] = data.pop('is_verified')
 
-        data = super().data_out_transforms(data)
+        data = super()._data_out_transforms(data)
 
         return data
 
@@ -271,26 +261,25 @@ class PrimaryElement(VerifiedElement):
         super().__setattr__(key, value)
 
     @classmethod
-    def data_in_transforms(cls: Type[TElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _data_in_transforms(cls: Type[TElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """
-        data = super().data_in_transforms(data)
+        data = super()._data_in_transforms(data)
 
         if 'primary' in data:
             data['is_primary'] = data.pop('primary')
 
         return data
 
-    def data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
+    def _data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
         """
         Transform data kept in pythonic format into eduid format.
         """
-        if old_userdb_format:
-            if 'is_primary' in data:
-                data['primary'] = data.pop('is_primary')
+        if 'is_primary' in data:
+            data['primary'] = data.pop('is_primary')
 
-        data = super().data_out_transforms(data)
+        data = super()._data_out_transforms(data)
 
         return data
 

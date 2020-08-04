@@ -35,7 +35,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, ClassVar, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional, Type, TypeVar
 
 from bson import ObjectId
 
@@ -50,6 +50,9 @@ class EventId(ObjectId):
     pass
 
 
+TEventSubclass = TypeVar('TEventSubclass', bound='Event')
+
+
 @dataclass
 class Event(Element):
     """
@@ -59,13 +62,37 @@ class Event(Element):
     event_type: Optional[str] = None
     event_id: Optional[str] = None
 
-    name_mapping: ClassVar[Dict[str, str]] = {'id': 'event_id', 'application': 'created_by'}
-    old_names: ClassVar[tuple] = ('id',)
-
     @property
     def key(self) -> EventId:
         """ Return the element that is used as key for events in an ElementList. """
         return EventId(self.event_id)
+
+    @classmethod
+    def _data_in_transforms(cls: Type[TEventSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Transform data received in eduid format into pythonic format.
+        """
+        data = super()._data_in_transforms(data)
+
+        if 'id' in data:
+            data['event_id'] = data.pop('id')
+
+        return data
+
+    def _data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
+        """
+        Transform data kept in pythonic format into eduid format.
+        """
+        if 'created_by' in data:
+            data['application'] = data.pop('created_by')
+
+        if old_userdb_format:
+            if 'event_id' in data:
+                data['id'] = data.pop('event_id')
+
+        data = super()._data_out_transforms(data, old_userdb_format)
+
+        return data
 
 
 class EventList(ElementList):

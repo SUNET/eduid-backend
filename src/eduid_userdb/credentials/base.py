@@ -78,11 +78,11 @@ class Credential(VerifiedElement):
 
         return self.key == other.key
 
-    def data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
         """
         Make sure we never store proofing info for un-verified credentials
         """
-        data = super().data_out_transforms(data)
+        data = super()._data_out_transforms(data, old_userdb_format)
 
         if data.get('verified') is False:
             del data['verified']

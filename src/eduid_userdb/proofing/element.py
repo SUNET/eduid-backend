@@ -34,11 +34,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import ClassVar, Dict, Optional
+from typing import Any, Dict, Optional, Type, TypeVar
 
 from eduid_userdb.element import Element, VerifiedElement
 
 __author__ = 'lundberg'
+
+
+TProofingElementSubclass = TypeVar('TProofingElementSubclass', bound='ProofingElement')
 
 
 @dataclass
@@ -59,9 +62,20 @@ class ProofingElement(VerifiedElement):
 
     verification_code: Optional[str] = None
 
-    # this seems redundant but it is not: VerifiedElement's name_mapping eliminates the
-    # verification_code key, and here we replace it.
-    name_mapping: ClassVar[Dict[str, str]] = {'verification_code': 'verification_code'}
+    @classmethod
+    def _data_in_transforms(cls: Type[TProofingElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Transform data received in eduid format into pythonic format.
+        """
+        # VerifiedElement._data_in_transforms eliminates the verification_code key, and here we keep it.
+        code = data.pop('verification_code', None)
+
+        data = super()._data_in_transforms(data)
+
+        if code is not None:
+            data['verification_code'] = code
+
+        return data
 
 
 @dataclass

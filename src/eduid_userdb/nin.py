@@ -34,7 +34,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, ClassVar, Dict, Optional
+from typing import Any, Dict, Optional
 
 from eduid_userdb.element import PrimaryElement, PrimaryElementList
 
@@ -48,14 +48,23 @@ class Nin(PrimaryElement):
 
     number: Optional[str] = None
 
-    name_mapping: ClassVar[Dict[str, str]] = {'application': 'created_by'}
-
     @property
     def key(self) -> Optional[str]:
         """
         Return the element that is used as key for nin numberes in a PrimaryElementList.
         """
         return self.number
+
+    def _data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
+        """
+        Transform data kept in pythonic format into eduid format.
+        """
+        if 'created_by' in data:
+            data['application'] = data.pop('created_by')
+
+        data = super()._data_out_transforms(data, old_userdb_format)
+
+        return data
 
 
 class NinList(PrimaryElementList):

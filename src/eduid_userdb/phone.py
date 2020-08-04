@@ -34,7 +34,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, ClassVar, Dict, Optional
+from typing import Any, ClassVar, Dict, Optional, Type
 
 from eduid_userdb.element import PrimaryElement, PrimaryElementList
 
@@ -48,20 +48,48 @@ class PhoneNumber(PrimaryElement):
 
     number: Optional[str] = None
 
-    name_mapping: ClassVar[Dict[str, str]] = {
-        'application': 'created_by',
-        'added_timestamp': 'created_ts',
-        'mobile': 'number',
-        'csrf': '',
-    }
-    old_names: ClassVar[tuple] = ('added_timestamp', 'mobile')
-
     @property
     def key(self) -> Optional[str]:
         """
         Return the element that is used as key for phone numbers in a PrimaryElementList.
         """
         return self.number
+
+    @classmethod
+    def _data_in_transforms(cls: Type[PhoneNumber], data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Transform data received in eduid format into pythonic format.
+        """
+        data = super()._data_in_transforms(data)
+
+        if 'added_timestamp' in data:
+            data['created_ts'] = data.pop('added_timestamp')
+
+        if 'mobile' in data:
+            data['number'] = data.pop('mobile')
+
+        if 'csrf' in data:
+            del data['csrf']
+
+        return data
+
+    def _data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
+        """
+        Transform data kept in pythonic format into eduid format.
+        """
+        if 'created_by' in data:
+            data['application'] = data.pop('created_by')
+
+        if old_userdb_format:
+            if 'created_ts' in data:
+                data['added_timestamp'] = data.pop('created_ts')
+
+            if 'number' in data:
+                data['mobile'] = data.pop('number')
+
+        data = super()._data_out_transforms(data, old_userdb_format)
+
+        return data
 
 
 class PhoneNumberList(PrimaryElementList):

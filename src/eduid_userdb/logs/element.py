@@ -7,7 +7,7 @@ from __future__ import absolute_import
 
 import logging
 from dataclasses import dataclass, fields
-from typing import Any, ClassVar, Dict
+from typing import Any, Dict, Type, TypeVar
 
 import six
 
@@ -18,14 +18,15 @@ __author__ = 'lundberg'
 logger = logging.getLogger(__name__)
 
 
+TLogElementSubclass = TypeVar('TLogElementSubclass', bound='LogElement')
+
+
 @dataclass
 class LogElement(Element):
     """
     """
     # Application creating the log element
     created_by: str
-
-    name_mapping: ClassVar[Dict[str, str]] = {'eduPersonPrincipalName': 'eppn'}
 
     def validate(self) -> bool:
         element_keys = set([elem.name for elem in fields(Element)])
@@ -40,6 +41,29 @@ class LogElement(Element):
                     logger.error('Not enough data to log proofing event: "{}" can not be blank.'.format(key))
                     return False
         return True
+
+    @classmethod
+    def _data_in_transforms(cls: Type[TLogElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Transform data received in eduid format into pythonic format.
+        """
+        data = super()._data_in_transforms(data)
+
+        if 'eduPersonPrincipalName' in data:
+            data['eppn'] = data.pop('eduPersonPrincipalName')
+
+        return data
+
+    def _data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
+        """
+        Transform data kept in pythonic format into eduid format.
+        """
+        if 'eppn' in data:
+            data['eduPersonPrincipalName'] = data.pop('eppn')
+
+        data = super()._data_out_transforms(data, old_userdb_format)
+
+        return data
 
 
 @dataclass
