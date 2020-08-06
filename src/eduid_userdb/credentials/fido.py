@@ -54,7 +54,7 @@ class _FidoCredentialRequired:
     app_id: str
 
 
-@dataclass(eq=False, unsafe_hash=True)
+@dataclass
 class FidoCredential(Credential, _FidoCredentialRequired):
     """
     Token authentication credential
@@ -85,7 +85,7 @@ class _U2FCredentialRequired:
     public_key: str
 
 
-@dataclass(eq=False, unsafe_hash=True)
+@dataclass
 class U2F(FidoCredential, _U2FCredentialRequired):
     """
     U2F token authentication credential
@@ -112,7 +112,7 @@ def u2f_from_dict(data: Dict[str, Any], raise_on_unknown: bool = True) -> U2F:
     return U2F.from_dict(data)
 
 
-@dataclass(eq=False, unsafe_hash=True)
+@dataclass
 class Webauthn(FidoCredential):
     """
     Webauthn token authentication credential

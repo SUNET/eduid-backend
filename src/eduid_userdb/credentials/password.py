@@ -59,7 +59,7 @@ class _PasswordRequired:
             self.credential_id = str(self.credential_id)
 
 
-@dataclass(eq=False, unsafe_hash=True)
+@dataclass
 class Password(Credential, _PasswordRequired):
     """
     """

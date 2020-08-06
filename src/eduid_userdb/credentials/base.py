@@ -69,15 +69,6 @@ class Credential(VerifiedElement):
         else:
             return '<eduID {!s}(key=\'{!s}...\'): verified=False>'.format(self.__class__.__name__, shortkey)
 
-    def __hash__(self):
-        return hash(self.key)
-
-    def __eq__(self, other):
-        if not isinstance(other, type(self)):
-            return False
-
-        return self.key == other.key
-
     def _data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
         """
         Make sure we never store proofing info for un-verified credentials
