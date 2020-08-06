@@ -67,6 +67,12 @@ class ScimApiUser(object):
 class ScimApiUserDB(ScimApiBaseDB):
     def __init__(self, db_uri: str, collection: str, db_name='eduid_scimapi'):
         super().__init__(db_uri, db_name, collection=collection)
+        # Create an index so that scim_id and external_id is unique per data owner
+        indexes = {
+            'unique-scimid': {'key': [('scim_id', 1)], 'unique': True},
+            'unique-external-id': {'key': [('external_id', 1)], 'unique': True},
+        }
+        self.setup_indexes(indexes)
 
     def save(self, user: ScimApiUser) -> bool:
         user_dict = user.to_dict()
