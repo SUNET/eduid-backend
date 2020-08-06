@@ -4,8 +4,8 @@ import sys
 from typing import Optional
 
 from eduid_scimapi.config import ScimApiConfig
-from eduid_scimapi.groupdb import ScimApiGroupDB
-from eduid_scimapi.userdb import ScimApiUserDB
+from eduid_scimapi.db.groupdb import ScimApiGroupDB
+from eduid_scimapi.db.userdb import ScimApiUserDB
 from eduid_scimapi.utils import urlappend
 
 

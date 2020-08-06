@@ -1,5 +1,3 @@
-from neo4j import basic_auth
-
 from eduid_scimapi.config import ScimApiConfig
 from eduid_scimapi.context import Context
 from eduid_scimapi.testing import ScimApiTestCase

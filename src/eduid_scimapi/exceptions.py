@@ -9,7 +9,7 @@ from typing import Dict, List, Optional
 
 import falcon
 
-from eduid_scimapi.scimbase import SCIMSchema
+from eduid_scimapi.schemas.scimbase import SCIMSchema
 from eduid_scimapi.utils import filter_none
 
 logger = logging.getLogger(__name__)

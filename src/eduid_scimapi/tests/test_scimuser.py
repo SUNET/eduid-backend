@@ -11,10 +11,11 @@ import bson
 from bson import ObjectId
 from marshmallow_dataclass import class_schema
 
-from eduid_scimapi.scimbase import Meta, SCIMResourceType, SCIMSchema, make_etag
+from eduid_scimapi.db.userdb import Profile, ScimApiUser
+from eduid_scimapi.schemas.scimbase import Meta, SCIMResourceType, SCIMSchema
+from eduid_scimapi.schemas.user import NutidExtensionV1, UserResponse, UserResponseSchema
 from eduid_scimapi.testing import ScimApiTestCase
-from eduid_scimapi.user import NutidExtensionV1, UserResponse, UserResponseSchema
-from eduid_scimapi.userdb import Profile, ScimApiUser
+from eduid_scimapi.utils import make_etag
 
 logger = logging.getLogger(__name__)
 

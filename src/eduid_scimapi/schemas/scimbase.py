@@ -12,6 +12,8 @@ from marshmallow import Schema, ValidationError, fields, missing, post_dump, val
 from marshmallow_dataclass import NewType, class_schema
 from marshmallow_enum import EnumField
 
+from eduid_scimapi.utils import make_etag
+
 __author__ = 'lundberg'
 
 
@@ -49,10 +51,6 @@ class VersionField(ObjectIdField):
         if value is None:
             return missing
         return make_etag(value)
-
-
-def make_etag(version: ObjectId):
-    return f'W/"{version}"'
 
 
 class SCIMSchema(Enum):

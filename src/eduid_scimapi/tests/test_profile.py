@@ -2,7 +2,7 @@ from unittest import TestCase
 
 from marshmallow_dataclass import class_schema
 
-from eduid_scimapi.user import NutidExtensionV1
+from eduid_scimapi.schemas.user import NutidExtensionV1
 
 
 class TestProfile(TestCase):

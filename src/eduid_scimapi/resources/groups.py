@@ -6,8 +6,11 @@ from uuid import UUID
 from falcon import HTTP_201, HTTP_204, Request, Response
 from marshmallow.exceptions import ValidationError
 
+from eduid_scimapi.db.groupdb import ScimApiGroup
 from eduid_scimapi.exceptions import BadRequest, NotFound
-from eduid_scimapi.group import (
+from eduid_scimapi.middleware import ctx_groupdb, ctx_userdb
+from eduid_scimapi.resources.base import BaseResource, SCIMResource
+from eduid_scimapi.schemas.group import (
     Group,
     GroupCreateRequestSchema,
     GroupMember,
@@ -17,10 +20,7 @@ from eduid_scimapi.group import (
     GroupUpdateRequestSchema,
     NutidGroupExtensionV1,
 )
-from eduid_scimapi.groupdb import ScimApiGroup
-from eduid_scimapi.middleware import ctx_groupdb, ctx_userdb
-from eduid_scimapi.resources.base import BaseResource, SCIMResource
-from eduid_scimapi.scimbase import (
+from eduid_scimapi.schemas.scimbase import (
     ListResponse,
     ListResponseSchema,
     Meta,
@@ -28,9 +28,9 @@ from eduid_scimapi.scimbase import (
     SCIMSchema,
     SearchRequest,
     SearchRequestSchema,
-    make_etag,
 )
 from eduid_scimapi.search import SearchFilter, parse_search_filter
+from eduid_scimapi.utils import make_etag
 
 
 class GroupsResource(SCIMResource):

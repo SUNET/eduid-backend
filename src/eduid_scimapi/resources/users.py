@@ -4,12 +4,12 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 from falcon import Request, Response
 from marshmallow import ValidationError
 
-from eduid_graphdb.groupdb import User as GroupUser
-
+from eduid_scimapi.db.userdb import Profile as DBProfile
+from eduid_scimapi.db.userdb import ScimApiUser
 from eduid_scimapi.exceptions import BadRequest, NotFound
 from eduid_scimapi.middleware import ctx_groupdb, ctx_userdb
 from eduid_scimapi.resources.base import BaseResource, SCIMResource
-from eduid_scimapi.scimbase import (
+from eduid_scimapi.schemas.scimbase import (
     ListResponse,
     ListResponseSchema,
     Meta,
@@ -17,10 +17,8 @@ from eduid_scimapi.scimbase import (
     SCIMSchema,
     SearchRequest,
     SearchRequestSchema,
-    make_etag,
 )
-from eduid_scimapi.search import SearchFilter, parse_search_filter
-from eduid_scimapi.user import (
+from eduid_scimapi.schemas.user import (
     Group,
     NutidExtensionV1,
     Profile,
@@ -31,8 +29,8 @@ from eduid_scimapi.user import (
     UserUpdateRequest,
     UserUpdateRequestSchema,
 )
-from eduid_scimapi.userdb import Profile as DBProfile
-from eduid_scimapi.userdb import ScimApiUser
+from eduid_scimapi.search import SearchFilter, parse_search_filter
+from eduid_scimapi.utils import make_etag
 
 
 class UsersResource(SCIMResource):

@@ -15,9 +15,9 @@ from eduid_userdb.testing import MongoTemporaryInstance
 from eduid_scimapi.app import init_api
 from eduid_scimapi.config import ScimApiConfig
 from eduid_scimapi.context import Context
-from eduid_scimapi.groupdb import ScimApiGroup
-from eduid_scimapi.scimbase import SCIMSchema
-from eduid_scimapi.userdb import Profile, ScimApiUser
+from eduid_scimapi.db.groupdb import ScimApiGroup
+from eduid_scimapi.db.userdb import Profile, ScimApiUser
+from eduid_scimapi.schemas.scimbase import SCIMSchema
 
 __author__ = 'lundberg'
 
