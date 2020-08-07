@@ -109,6 +109,12 @@ class ScimApiGroupDB(ScimApiBaseDB):
         self.graphdb = GroupDB(db_uri=neo4j_uri, scope=scope, config=neo4j_config)
         logger.info(f'{self} initialised')
 
+        # Create an index so that scim_id is unique per data owner
+        indexes = {
+            'unique-scimid': {'key': [('scim_id', 1)], 'unique': True},
+        }
+        self.setup_indexes(indexes)
+
     def save(self, group: ScimApiGroup) -> bool:
         group_dict = group.to_dict()
 
