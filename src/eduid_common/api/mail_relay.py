@@ -59,7 +59,7 @@ class MailRelay(object):
         text: Optional[str] = None,
         html: Optional[str] = None,
         reference: Optional[str] = None,
-        timeout: int = 4,
+        timeout: int = 25,
     ):
         """
         :param subject: Message subject
