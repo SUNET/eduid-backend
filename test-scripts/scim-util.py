@@ -7,8 +7,9 @@ import sys
 from pprint import pformat
 from typing import Any, Callable, Dict, Mapping, NewType, Optional, cast
 
-import requests
 import yaml
+
+import requests
 
 logger = logging.getLogger(__name__)
 

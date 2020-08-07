@@ -15,8 +15,8 @@ from eduid_graphdb.groupdb import Group as GraphGroup
 from eduid_graphdb.groupdb import GroupDB
 from eduid_graphdb.groupdb import User as GraphUser
 
-from eduid_scimapi.basedb import ScimApiBaseDB
-from eduid_scimapi.group import Group as SCIMGroup
+from eduid_scimapi.db.basedb import ScimApiBaseDB
+from eduid_scimapi.schemas.group import Group as SCIMGroup
 
 __author__ = 'lundberg'
 

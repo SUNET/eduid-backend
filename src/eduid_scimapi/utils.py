@@ -1,6 +1,8 @@
 import base64
 from typing import AnyStr, Dict, List, Union
 
+from bson import ObjectId
+
 
 def urlappend(base: str, path: str) -> str:
     """
@@ -52,3 +54,7 @@ def filter_none(x: Union[Dict, List]) -> Union[Dict, List]:
         return [filter_none(i) for i in x if x is not None]
     else:
         return x
+
+
+def make_etag(version: ObjectId):
+    return f'W/"{version}"'

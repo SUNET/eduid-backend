@@ -3,10 +3,9 @@ from typing import Union
 from falcon import Request
 
 from eduid_scimapi.context import Context
-from eduid_scimapi.groupdb import ScimApiGroup
-from eduid_scimapi.scimbase import make_etag
-from eduid_scimapi.userdb import ScimApiUser
-from eduid_scimapi.utils import urlappend
+from eduid_scimapi.db.groupdb import ScimApiGroup
+from eduid_scimapi.db.userdb import ScimApiUser
+from eduid_scimapi.utils import make_etag, urlappend
 
 
 class BaseResource(object):

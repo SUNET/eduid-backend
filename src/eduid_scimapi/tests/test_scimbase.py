@@ -6,7 +6,7 @@ from uuid import uuid4
 from bson import ObjectId
 from marshmallow_dataclass import class_schema
 
-from eduid_scimapi.scimbase import BaseResponse, Meta, SCIMResourceType, SCIMSchema, SubResource
+from eduid_scimapi.schemas.scimbase import BaseResponse, Meta, SCIMResourceType, SCIMSchema, SubResource
 
 __author__ = 'lundberg'
 

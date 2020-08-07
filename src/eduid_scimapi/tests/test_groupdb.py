@@ -6,7 +6,7 @@ from eduid_graphdb.groupdb import Group as GraphGroup
 
 from eduid_scimapi.config import ScimApiConfig
 from eduid_scimapi.context import Context
-from eduid_scimapi.groupdb import GroupExtensions, ScimApiGroup
+from eduid_scimapi.db.groupdb import GroupExtensions, ScimApiGroup
 from eduid_scimapi.testing import MongoNeoTestCase
 
 logger = logging.getLogger(__name__)

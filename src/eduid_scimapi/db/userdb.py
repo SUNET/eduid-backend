@@ -9,7 +9,7 @@ from uuid import UUID
 
 from bson import ObjectId
 
-from eduid_scimapi.basedb import ScimApiBaseDB
+from eduid_scimapi.db.basedb import ScimApiBaseDB
 
 __author__ = 'ft'
 
