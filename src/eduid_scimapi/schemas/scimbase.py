@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from bson import ObjectId
@@ -53,6 +53,24 @@ class VersionField(ObjectIdField):
         return make_etag(value)
 
 
+class DateTimeField(fields.Field):
+    """
+    The attribute value MUST be encoded as a valid xsd:dateTime as specified in Section 3.3.7 of
+    XML-Schema (https://www.w3.org/TR/xmlschema11-2/) and MUST include both a date and a time.
+    """
+
+    def _deserialize(self, value: str, attr, data, **kwargs):
+        try:
+            return datetime.strptime(value, '%Y-%m-%dT%H:%M:%S%z')
+        except ValueError as e:
+            raise ValidationError(f'{e}')
+
+    def _serialize(self, value: datetime, attr, obj, **kwargs):
+        if value is None:
+            return missing
+        return datetime.strftime(value, '%Y-%m-%dT%H:%M:%S%z')
+
+
 class SCIMSchema(Enum):
     CORE_20_USER = 'urn:ietf:params:scim:schemas:core:2.0:User'
     CORE_20_GROUP = 'urn:ietf:params:scim:schemas:core:2.0:Group'
@@ -61,6 +79,7 @@ class SCIMSchema(Enum):
     ERROR = 'urn:ietf:params:scim:api:messages:2.0:Error'
     NUTID_USER_V1 = 'https://scim.eduid.se/schema/nutid/user/v1'
     NUTID_GROUP_V1 = 'https://scim.eduid.se/schema/nutid/group/v1'
+    NUTID_INVITE_V1 = 'https://scim.eduid.se/schema/nutid/invite/v1'
     DEBUG_V1 = 'https://scim.eduid.se/schema/nutid-DEBUG/v1'
 
 
@@ -70,6 +89,12 @@ SCIMSchemaValue = NewType('SCIMSchemaValue', Enum, field=EnumField, enum=SCIMSch
 class SCIMResourceType(Enum):
     user = 'User'
     group = 'Group'
+
+
+class EmailType(Enum):
+    home = 'home'
+    work = 'work'
+    other = 'other'
 
 
 @dataclass(eq=True, frozen=True)
@@ -98,6 +123,24 @@ class Meta:
     resource_type: SCIMResourceType = field(metadata={'data_key': 'resourceType', 'by_value': True, 'required': True})
     created: datetime = field(metadata={'required': True})
     version: ObjectId = field(metadata={'marshmallow_field': VersionField(), 'required': True})
+
+
+@dataclass
+class Name:
+    familyName: Optional[str] = None
+    givenName: Optional[str] = None
+    formatted: Optional[str] = None
+    middleName: Optional[str] = None
+    honorificPrefix: Optional[str] = None
+    honorificSuffix: Optional[str] = None
+
+
+@dataclass
+class Email:
+    value: Optional[str] = field(metadata={'validate': validate.Email()})
+    display: Optional[str] = None
+    type: Optional[EmailType] = field(metadata={'by_value': True}, default=None)
+    primary: Optional[bool] = None
 
 
 @dataclass
