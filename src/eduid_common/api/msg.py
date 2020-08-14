@@ -49,7 +49,7 @@ class MsgRelay(object):
     def get_language(lang: str) -> str:
         return LANGUAGE_MAPPING.get(lang, 'en_US')
 
-    def get_postal_address(self, nin: str, timeout: int = 4) -> Optional[dict]:
+    def get_postal_address(self, nin: str, timeout: int = 25) -> Optional[dict]:
         """
         :param nin: Swedish national identity number
         :param timeout: Max wait time for task to finish
@@ -77,7 +77,7 @@ class MsgRelay(object):
             rtask.forget()
             raise MsgTaskFailed(f'get_postal_address task failed: {e}')
 
-    def get_relations_to(self, nin: str, relative_nin: str, timeout: int = 4) -> List[str]:
+    def get_relations_to(self, nin: str, relative_nin: str, timeout: int = 25) -> List[str]:
         """
         Get a list of the NAVET 'Relations' type codes between a NIN and a relatives NIN.
 
@@ -107,7 +107,7 @@ class MsgRelay(object):
         code: str,
         language: str,
         template_name: str = 'mobile-validator',
-        timeout: int = 4,
+        timeout: int = 25,
     ) -> None:
         """
             The template keywords are:
@@ -141,7 +141,7 @@ class MsgRelay(object):
             rtask.forget()
             raise MsgTaskFailed(f'phone_validator task failed: {e}')
 
-    def sendsms(self, recipient: str, message: str, reference: str, timeout: int = 4) -> None:
+    def sendsms(self, recipient: str, message: str, reference: str, timeout: int = 25) -> None:
         """
         :param recipient: the recipient of the sms
         :param message: message as a string (160 chars per sms)
