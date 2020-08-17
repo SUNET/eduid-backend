@@ -38,7 +38,6 @@ import requests
 from flask import render_template
 from flask_babel import gettext as _
 
-from eduid_common.session import session
 from eduid_userdb import MailAddress
 from eduid_userdb.logs import MailAddressProofing
 from eduid_userdb.proofing import EmailProofingElement

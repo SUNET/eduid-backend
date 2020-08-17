@@ -194,8 +194,9 @@ class OrcidTests(EduidAPITestCase):
 
         csrf_token = response['payload']['csrf_token']
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            response = browser.post('/remove', data=json.dumps({'csrf_token': csrf_token}),
-                                    content_type=self.content_type_json)
+            response = browser.post(
+                '/remove', data=json.dumps({'csrf_token': csrf_token}), content_type=self.content_type_json
+            )
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.data)
         self.assertEqual(response['type'], 'POST_ORCID_REMOVE_SUCCESS')

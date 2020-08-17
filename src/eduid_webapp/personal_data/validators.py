@@ -37,7 +37,6 @@ from marshmallow import ValidationError
 from eduid_webapp.personal_data.app import current_pdata_app as current_app
 from eduid_webapp.personal_data.helpers import PDataMsg
 
-
 BLANKS_PATTERN = re.compile(r"^\s*$")
 
 SPECIAL_CHARACTERS_PATTERN = re.compile(r"""[`!€%&?~#@,.<>;':"\/\[\]\|{}()-=_+]""")

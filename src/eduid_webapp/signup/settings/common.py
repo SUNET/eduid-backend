@@ -35,7 +35,6 @@
 from __future__ import absolute_import
 
 from dataclasses import dataclass
-from typing import Optional
 
 from eduid_common.config.base import FlaskConfig
 
