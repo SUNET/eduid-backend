@@ -39,7 +39,7 @@ from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.exceptions import MailTaskFailed
 from eduid_common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid_userdb import User
-from eduid_userdb.exceptions import DocumentDoesNotExist, EduIDDBError
+from eduid_userdb.exceptions import EduIDDBError
 from eduid_userdb.group_management import GroupInviteState, GroupRole
 
 from eduid_webapp.group_management.app import current_group_management_app as current_app
