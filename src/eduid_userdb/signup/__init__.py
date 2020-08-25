@@ -1,16 +1,39 @@
-"""
-The eduID Signup application database interface package.
-
-Copyright (c) 2015 SUNET. All rights reserved.
-See the file LICENSE.txt for full license statement.
-"""
-
-__version__ = '0.0.1'
-__copyright__ = 'SUNET'
-__organization__ = 'SUNET'
-__license__ = 'BSD'
-__authors__ = ['Fredrik Thulin']
+# -*- coding: utf-8 -*-
+#
+# Copyright (c) 2015 Sunet
+# Copyright (c) 2020 Sunet
+# All rights reserved.
+#
+#   Redistribution and use in source and binary forms, with or
+#   without modification, are permitted provided that the following
+#   conditions are met:
+#
+#     1. Redistributions of source code must retain the above copyright
+#        notice, this list of conditions and the following disclaimer.
+#     2. Redistributions in binary form must reproduce the above
+#        copyright notice, this list of conditions and the following
+#        disclaimer in the documentation and/or other materials provided
+#        with the distribution.
+#     3. Neither the name of the Sunet nor the names of its
+#        contributors may be used to endorse or promote products derived
+#        from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
 
 # convenience imports (order matters)
+from eduid_userdb.signup.invite import Invite, InviteMailAddress, InviteType, SCIMReference
+from eduid_userdb.signup.invitedb import SignupInviteDB
 from eduid_userdb.signup.user import SignupUser
 from eduid_userdb.signup.userdb import SignupUserDB
