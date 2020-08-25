@@ -9,9 +9,8 @@ from uuid import UUID
 
 from bson import ObjectId
 
-from eduid_common.api.utils import get_short_hash
 from eduid_scimapi.db.basedb import ScimApiBaseDB
-from eduid_scimapi.schemas.scimbase import Name, Email
+from eduid_scimapi.schemas.scimbase import Email, EmailType, Name
 
 __author__ = 'lundberg'
 
@@ -20,16 +19,13 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class ScimApiInvite(object):
+class ScimApiInvite:
     invite_id: ObjectId = field(default_factory=lambda: ObjectId())
     scim_id: UUID = field(default_factory=lambda: uuid.uuid4())
+    external_id: Optional[str] = field(default=None)
     name: Name = field(default_factory=lambda: Name())
     emails: List[Email] = field(default_factory=list)
-    send_email: Optional[bool] = field(default=None)
-    finish_url: Optional[str] = field(default=None)
-    invite_code: str = field(default_factory=lambda: get_short_hash(entropy=10))
     completed: bool = field(default=False)
-    expires_at: Optional[datetime] = field(default=None)
     version: ObjectId = field(default_factory=lambda: ObjectId())
     created: datetime = field(default_factory=lambda: datetime.utcnow())
     last_modified: datetime = field(default_factory=lambda: datetime.utcnow())
@@ -38,6 +34,8 @@ class ScimApiInvite(object):
         res = asdict(self)
         res['scim_id'] = str(res['scim_id'])
         res['_id'] = res.pop('invite_id')
+        for email in res['emails']:
+            email['type'] = email['type'].value
         return res
 
     @classmethod
@@ -45,6 +43,8 @@ class ScimApiInvite(object):
         this = dict(data)
         this['scim_id'] = uuid.UUID(this['scim_id'])
         this['invite_id'] = this.pop('_id')
+        for email in this['emails']:
+            email['type'] = EmailType(email['type'])
         return cls(**this)
 
 
@@ -54,6 +54,7 @@ class ScimApiInviteDB(ScimApiBaseDB):
         # Create an index so that scim_id is unique per data owner
         indexes = {
             'unique-scimid': {'key': [('scim_id', 1)], 'unique': True},
+            'unique-external-id': {'key': [('external_id', 1)], 'unique': True},
         }
         self.setup_indexes(indexes)
 

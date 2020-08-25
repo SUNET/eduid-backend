@@ -89,6 +89,7 @@ SCIMSchemaValue = NewType('SCIMSchemaValue', Enum, field=EnumField, enum=SCIMSch
 class SCIMResourceType(Enum):
     user = 'User'
     group = 'Group'
+    invite = 'Invite'
 
 
 class EmailType(Enum):
@@ -137,10 +138,10 @@ class Name:
 
 @dataclass
 class Email:
-    value: Optional[str] = field(metadata={'validate': validate.Email()})
+    value: str = field(metadata={'required': True, 'validate': validate.Email()})
     display: Optional[str] = None
     type: Optional[EmailType] = field(metadata={'by_value': True}, default=None)
-    primary: Optional[bool] = None
+    primary: bool = True
 
 
 @dataclass

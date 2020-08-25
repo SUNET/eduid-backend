@@ -40,6 +40,11 @@ class InviteCreateRequest:
         # Validate that at least one email address were provided if an invite email should be sent
         if data[SCIMSchema.NUTID_INVITE_V1.value]['send_email'] is True and len(data['emails']) == 0:
             raise ValidationError('There must be an email address to be able to send an invite mail.')
+        # Validate that there is a primary email address if more than one is requested
+        if len(data['emails']) > 1:
+            primary_addresses = [item for item in data['emails'] if item.get('primary') is True]
+            if len(primary_addresses) == 0 or len(primary_addresses) > 1:
+                raise ValidationError('There must be exactly one primary email address.')
 
 
 # TODO: Should we allow update?

@@ -5,6 +5,7 @@ from jose import ExpiredSignatureError, jwt
 
 from eduid_scimapi.context import Context
 from eduid_scimapi.db.groupdb import ScimApiGroupDB
+from eduid_scimapi.db.invitedb import ScimApiInviteDB
 from eduid_scimapi.db.userdb import ScimApiUserDB
 from eduid_scimapi.exceptions import Unauthorized, UnsupportedMediaTypeMalformed
 from eduid_scimapi.resources.base import BaseResource
@@ -96,3 +97,8 @@ def ctx_userdb(req: Request) -> ScimApiUserDB:
 def ctx_groupdb(req: Request) -> ScimApiGroupDB:
     """ Retrieve the groupdb put in the request context by the middleware in a way that mypy can understand. """
     return req.context['groupdb']
+
+
+def ctx_invitedb(req: Request) -> ScimApiInviteDB:
+    """ Retrieve the invitedb put in the request context by the middleware in a way that mypy can understand. """
+    return req.context['invitedb']
