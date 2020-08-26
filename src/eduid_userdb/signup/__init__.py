@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2015 Sunet
-# Copyright (c) 2020 Sunet
+# Copyright (c) 2015, 2020 Sunet
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -14,9 +13,6 @@
 #        copyright notice, this list of conditions and the following
 #        disclaimer in the documentation and/or other materials provided
 #        with the distribution.
-#     3. Neither the name of the Sunet nor the names of its
-#        contributors may be used to endorse or promote products derived
-#        from this software without specific prior written permission.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 # "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -32,7 +28,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-# convenience imports (order matters)
 from eduid_userdb.signup.invite import Invite, InviteMailAddress, InviteType, SCIMReference
 from eduid_userdb.signup.invitedb import SignupInviteDB
 from eduid_userdb.signup.user import SignupUser

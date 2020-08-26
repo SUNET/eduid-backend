@@ -13,9 +13,6 @@
 #        copyright notice, this list of conditions and the following
 #        disclaimer in the documentation and/or other materials provided
 #        with the distribution.
-#     3. Neither the name of the Sunet nor the names of its
-#        contributors may be used to endorse or promote products derived
-#        from this software without specific prior written permission.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 # "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -35,7 +32,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional, Union
 from uuid import UUID
 
 from bson import ObjectId
@@ -48,7 +45,12 @@ class InviteType(Enum):
 
 
 @dataclass
-class SCIMReference:
+class InviteReference:
+    pass
+
+
+@dataclass
+class SCIMReference(InviteReference):
     data_owner: str
     scim_id: UUID
 
@@ -62,8 +64,9 @@ class InviteMailAddress:
 @dataclass
 class _InviteRequired:
     invite_type: InviteType
-    invite_reference: Any
+    invite_reference: InviteReference
     invite_code: str
+    send_email: bool
 
 
 @dataclass
@@ -73,7 +76,6 @@ class Invite(_InviteRequired):
     given_name: Optional[str] = field(default=None)
     surname: Optional[str] = field(default=None)
     mail_addresses: Optional[List[InviteMailAddress]] = field(default=None)
-    send_email: Optional[bool] = field(default=None)
     finish_url: Optional[str] = field(default=None)
     completed: bool = field(default=False)
     expires_at: Optional[datetime] = field(default=None)
