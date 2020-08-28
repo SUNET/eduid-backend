@@ -86,8 +86,7 @@ class ProofingStateTest(TestCase):
             _nin_expected_keys += ['modified_ts']
 
         self.assertEqual(
-            sorted([k for k, v in state_dict['nin'].items() if v is not None]),
-            sorted(_nin_expected_keys),
+            sorted([k for k, v in state_dict['nin'].items() if v is not None]), sorted(_nin_expected_keys),
         )
         _proofing_letter_expected_keys = ['address', 'created_ts', 'is_sent', 'modified_ts']
         self.assertEqual(

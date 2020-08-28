@@ -173,7 +173,7 @@ class Orcid(VerifiedElement, _OrcidRequired):
         """
         data['oidc_authz'] = self.oidc_authz.to_dict()
 
-        _has_empty_name = ('name' in data and data['name'] == None)
+        _has_empty_name = 'name' in data and data['name'] == None
 
         data = super()._data_out_transforms(data)
 
