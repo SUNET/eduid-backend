@@ -30,8 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from datetime import datetime
-
 import bson
 
 import eduid_userdb
@@ -113,8 +111,8 @@ class TestUserDB_mail(MongoTestCase):
         self.user1 = User.from_dict(data1)
         self.user2 = User.from_dict(data2)
 
-        self.amdb.save(self.user1, check_sync=False, old_format=False)
-        self.amdb.save(self.user2, check_sync=False, old_format=False)
+        self.amdb.save(self.user1, check_sync=False)
+        self.amdb.save(self.user2, check_sync=False)
 
     def test_get_user_by_mail(self):
         test_user = self.amdb.get_user_by_id(self.user1.user_id)
@@ -169,30 +167,10 @@ class TestUserDB_phone(MongoTestCase):
 
         self.user1 = User.from_dict(data1)
         self.user2 = User.from_dict(data2)
-        self.amdb.save(self.user1, old_format=False)
-        self.amdb.save(self.user2, old_format=False)
+        self.amdb.save(self.user1)
+        self.amdb.save(self.user2)
 
     def test_get_user_by_phone(self):
-        test_user = self.amdb.get_user_by_id(self.user1.user_id)
-        res = self.amdb.get_user_by_phone(test_user.phone_numbers.primary.number)
-        self.assertEqual(test_user.user_id, res.user_id)
-
-        res = self.amdb.get_user_by_phone('+22222222222')
-        self.assertEqual(test_user.user_id, res.user_id)
-
-        self.assertIsNone(self.amdb.get_user_by_phone(u'+33333333333', raise_on_missing=False))
-
-        res = self.amdb.get_user_by_phone(u'+33333333333', include_unconfirmed=True)
-        self.assertEqual(self.user2.user_id, res.user_id)
-
-    def test_get_user_by_phone_old_format(self):
-        """ Test compatibility code locating old style users """
-        # Re-save the test users in old userdb format
-        user1 = self.amdb.get_user_by_id(self.user1.user_id)
-        user2 = self.amdb.get_user_by_id(self.user2.user_id)
-        self.amdb.save(user1, old_format=True)
-        self.amdb.save(user2, old_format=True)
-
         test_user = self.amdb.get_user_by_id(self.user1.user_id)
         res = self.amdb.get_user_by_phone(test_user.phone_numbers.primary.number)
         self.assertEqual(test_user.user_id, res.user_id)
@@ -253,8 +231,8 @@ class TestUserDB_nin(MongoTestCase):
 
         self.user1 = User.from_dict(data1)
         self.user2 = User.from_dict(data2)
-        self.amdb.save(self.user1, old_format=False)
-        self.amdb.save(self.user2, old_format=False)
+        self.amdb.save(self.user1)
+        self.amdb.save(self.user2)
 
     def test_get_user_by_nin(self):
         test_user = self.amdb.get_user_by_id(self.user1.user_id)
