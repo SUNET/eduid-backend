@@ -93,8 +93,6 @@ class Password(Credential, _PasswordRequired):
         Transform data kept in pythonic format into eduid format.
         """
 
-            if 'credential_id' in data:
-                data['id'] = data.pop('credential_id')
         data = super()._data_out_transforms(data)
 
         return data
