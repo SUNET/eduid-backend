@@ -173,5 +173,14 @@ class Orcid(VerifiedElement, _OrcidRequired):
         """
         data['oidc_authz'] = self.oidc_authz.to_dict()
 
+        _has_empty_name = ('name' in data and data['name'] == None)
+
         data = super()._data_out_transforms(data)
+
+        if _has_empty_name:
+            # Be bug-compatible with earlier code, to be able to release dataclass based
+            # elements with confidence that nothing will change in the database. This can
+            # be removed after a burn-in period.
+            data['name'] = None
+
         return data

@@ -60,9 +60,8 @@ class TestEventList(TestCase):
     def test_to_list_of_dicts(self):
         self.assertEqual([], self.empty.to_list_of_dicts(), list)
 
-        _one_dict_copy = deepcopy(_one_dict)  # Update id and application to event_id before comparing dicts
+        _one_dict_copy = deepcopy(_one_dict)  # Update id to event_id before comparing dicts
         _one_dict_copy['event_id'] = _one_dict_copy.pop('id')
-        _one_dict_copy['application'] = _one_dict_copy.pop('created_by')
         self.assertEqual([_one_dict_copy], self.one.to_list_of_dicts())
 
     def test_find(self):
@@ -129,8 +128,17 @@ class TestEventList(TestCase):
         }
         self.assertNotIn('modified_ts', _event_no_modified_ts)
         el = EventList([_event_no_modified_ts])
+        assert el.count == 1
         for event in el.to_list_of_dicts():
-            self.assertIsInstance(event['modified_ts'], datetime.datetime)
+            # As long as the _no_modified_ts_in_db property exists on Element, we expect
+            # there to be no modified_ts in the output dict when there was none in the
+            # input dict. Written this way to be obvious what needs to change in this test
+            # case when _no_modified_ts_in_db is removed from Element.
+            if el.to_list()[0]._no_modified_ts_in_db:
+                assert 'modified_ts' not in event
+            else:
+                self.assertIsInstance(event['modified_ts'], datetime.datetime)
+                assert event['modified_ts'] == event['created_ts']
         for event in el.to_list():
             self.assertIsInstance(event.modified_ts, datetime.datetime)
 

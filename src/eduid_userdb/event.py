@@ -61,6 +61,9 @@ class Event(Element):
     data: Optional[Dict[str, Any]] = None
     event_type: Optional[str] = None
     event_id: Optional[str] = None
+    # This is a short-term hack to deploy new dataclass based events without
+    # any changes to data in the production database. Remove after a burn-in period.
+    _no_event_type_in_db: bool = False
 
     @property
     def key(self) -> EventId:
@@ -74,6 +77,9 @@ class Event(Element):
         """
         data = super()._data_in_transforms(data)
 
+        if 'event_type' not in data:
+            data['_no_event_type_in_db'] = True  # Remove this line when Event._no_event_type_in_db is removed
+
         if 'id' in data:
             data['event_id'] = data.pop('id')
 
@@ -85,6 +91,12 @@ class Event(Element):
         """
         data = super()._data_out_transforms(data)
 
+        # If there was no event_type in the data that was loaded from the database,
+        # don't write one back if it matches the implied one of 'tou_event'
+        if '_no_event_type_in_db' in data:
+            if data.pop('_no_event_type_in_db') == True:
+                if 'event_type' in data:
+                    del data['event_type']
 
         return data
 
