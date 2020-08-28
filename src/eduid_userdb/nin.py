@@ -55,17 +55,6 @@ class Nin(PrimaryElement):
         """
         return self.number
 
-    def _data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
-        """
-        Transform data kept in pythonic format into eduid format.
-        """
-        if 'created_by' in data:
-            data['application'] = data.pop('created_by')
-
-        data = super()._data_out_transforms(data, old_userdb_format)
-
-        return data
-
 
 class NinList(PrimaryElementList):
     """

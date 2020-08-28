@@ -83,8 +83,6 @@ class Event(Element):
         """
         Transform data kept in pythonic format into eduid format.
         """
-        if 'created_by' in data:
-            data['application'] = data.pop('created_by')
 
         if old_userdb_format:
             if 'event_id' in data:

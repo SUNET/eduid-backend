@@ -74,9 +74,6 @@ class MailAddress(PrimaryElement):
         """
         Transform data kept in pythonic format into eduid format.
         """
-        if 'created_by' in data:
-            data['application'] = data.pop('created_by')
-
         if old_userdb_format:
             if 'created_ts' in data:
                 data['added_timestamp'] = data.pop('created_ts')

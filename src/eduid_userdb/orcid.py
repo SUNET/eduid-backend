@@ -68,17 +68,6 @@ class OidcIdToken(Element, _OidcIdTokenRequired):
 
         return data
 
-    def _data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
-        """
-        Transform data kept in pythonic format into eduid format.
-        """
-        if 'created_by' in data:
-            data['application'] = data.pop('created_by')
-
-        data = super()._data_out_transforms(data, old_userdb_format)
-
-        return data
-
 
 @dataclass
 class _OidcAuthorizationRequired:
@@ -182,9 +171,6 @@ class Orcid(VerifiedElement, _OrcidRequired):
     def _data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
         """
         """
-        if 'created_by' in data:
-            data['application'] = data.pop('created_by')
-
         data = super()._data_out_transforms(data, old_userdb_format)
 
         data['oidc_authz'] = self.oidc_authz.to_dict()

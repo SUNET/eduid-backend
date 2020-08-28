@@ -188,9 +188,6 @@ class Element:
         """
         Transform data kept in pythonic format into eduid format.
         """
-        if old_userdb_format:
-            if 'created_by' in data:
-                data['application'] = data.pop('created_by')
 
         # remove None values
         data = {k: v for k, v in data.items() if v is not None}
