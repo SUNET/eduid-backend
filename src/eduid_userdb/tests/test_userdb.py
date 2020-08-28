@@ -61,15 +61,7 @@ class TestUserDB(MongoTestCase):
         """ Test get_user_by_nin """
         test_user = self.amdb.get_user_by_id(self.user.user_id)
         test_user.given_name = 'Kalle Anka'
-        self.amdb.save(test_user, old_format=False)
-        res = self.amdb.get_user_by_nin(test_user.nins.primary.number)
-        self.assertEqual(test_user.given_name, res.given_name)
-
-    def test_get_user_by_nin_old_format(self):
-        """ Test get_user_by_nin old format """
-        test_user = self.amdb.get_user_by_id(self.user.user_id)
-        test_user.given_name = 'Kalle Anka 2'
-        self.amdb.save(test_user, old_format=True)
+        self.amdb.save(test_user)
         res = self.amdb.get_user_by_nin(test_user.nins.primary.number)
         self.assertEqual(test_user.given_name, res.given_name)
 
@@ -121,8 +113,8 @@ class TestUserDB_mail(MongoTestCase):
         self.user1 = User.from_dict(data1)
         self.user2 = User.from_dict(data2)
 
-        self.amdb.save(self.user1, check_sync=False)
-        self.amdb.save(self.user2, check_sync=False)
+        self.amdb.save(self.user1, check_sync=False, old_format=False)
+        self.amdb.save(self.user2, check_sync=False, old_format=False)
 
     def test_get_user_by_mail(self):
         test_user = self.amdb.get_user_by_id(self.user1.user_id)
@@ -177,8 +169,8 @@ class TestUserDB_phone(MongoTestCase):
 
         self.user1 = User.from_dict(data1)
         self.user2 = User.from_dict(data2)
-        self.amdb.save(self.user1)
-        self.amdb.save(self.user2)
+        self.amdb.save(self.user1, old_format=False)
+        self.amdb.save(self.user2, old_format=False)
 
     def test_get_user_by_phone(self):
         test_user = self.amdb.get_user_by_id(self.user1.user_id)
@@ -261,8 +253,8 @@ class TestUserDB_nin(MongoTestCase):
 
         self.user1 = User.from_dict(data1)
         self.user2 = User.from_dict(data2)
-        self.amdb.save(self.user1)
-        self.amdb.save(self.user2)
+        self.amdb.save(self.user1, old_format=False)
+        self.amdb.save(self.user2, old_format=False)
 
     def test_get_user_by_nin(self):
         test_user = self.amdb.get_user_by_id(self.user1.user_id)
@@ -279,27 +271,6 @@ class TestUserDB_nin(MongoTestCase):
 
         res = self.amdb.get_user_by_nin(u'33333333333', include_unconfirmed=True)
         self.assertEqual(self.user2.user_id, res.user_id)
-
-    def test_get_user_by_nin_old_format(self):
-        """ Test compatibility code locating old style users """
-        # Re-save the test users in old userdb format
-        user1 = self.amdb.get_user_by_id(self.user1.user_id)
-        user2 = self.amdb.get_user_by_id(self.user2.user_id)
-        self.amdb.save(user1, old_format=True)
-        self.amdb.save(user2, old_format=True)
-
-        test_user = self.amdb.get_user_by_id(self.user1.user_id)
-        res = self.amdb.get_user_by_nin(test_user.nins.primary.number)
-        self.assertEqual(test_user.user_id, res.user_id)
-
-        res = self.amdb.get_user_by_nin('22222222222')
-        self.assertEqual(self.user2.user_id, res.user_id)
-
-        self.assertIsNone(self.amdb.get_user_by_nin(u'33333333333', raise_on_missing=False))
-
-        with self.assertRaises(eduid_userdb.exceptions.UserDoesNotExist):
-            # in old userdb format, unconfirmed nins are not saved on the user
-            self.amdb.get_user_by_nin(u'33333333333', include_unconfirmed=True)
 
     def test_get_user_by_nin_unknown(self):
         """ Test searching for unknown e-nin address """

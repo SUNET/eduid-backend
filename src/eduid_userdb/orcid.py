@@ -117,10 +117,10 @@ class OidcAuthorization(Element, _OidcAuthorizationRequired):
 
         return data
 
-    def _data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
+    def _data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         """
-        data = super()._data_out_transforms(data, old_userdb_format)
+        data = super()._data_out_transforms(data)
 
         data['id_token'] = self.id_token.to_dict()
         return data
@@ -168,10 +168,10 @@ class Orcid(VerifiedElement, _OrcidRequired):
 
         return data
 
-    def _data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
+    def _data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         """
-        data = super()._data_out_transforms(data, old_userdb_format)
-
         data['oidc_authz'] = self.oidc_authz.to_dict()
+
+        data = super()._data_out_transforms(data)
         return data

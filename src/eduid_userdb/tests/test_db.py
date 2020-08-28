@@ -78,8 +78,8 @@ class TestMongoDB(TestCase):
 
 
 class TestDB(MongoTestCase):
-    def setUp(self, init_am=False, userdb_use_old_format=False, am_settings=None):
-        super().setUp(init_am=init_am, userdb_use_old_format=userdb_use_old_format, am_settings=am_settings)
+    def setUp(self, init_am=False, am_settings=None):
+        super().setUp(init_am=init_am, am_settings=am_settings)
         self.doc_count = len(list(self.MockedUserDB().all_userdocs()))
 
     def test_db_count(self):

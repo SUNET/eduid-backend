@@ -70,18 +70,6 @@ class MailAddress(PrimaryElement):
 
         return data
 
-    def _data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
-        """
-        Transform data kept in pythonic format into eduid format.
-        """
-        if old_userdb_format:
-            if 'created_ts' in data:
-                data['added_timestamp'] = data.pop('created_ts')
-
-        data = super()._data_out_transforms(data, old_userdb_format)
-
-        return data
-
 
 class MailAddressList(PrimaryElementList):
     """

@@ -88,18 +88,14 @@ class Password(Credential, _PasswordRequired):
 
         return data
 
-    def _data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
+    def _data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data kept in pythonic format into eduid format.
         """
-        if old_userdb_format:
-            if 'created_by' in data:
-                data['source'] = data.pop('created_by')
 
             if 'credential_id' in data:
                 data['id'] = data.pop('credential_id')
-
-        data = super()._data_out_transforms(data, old_userdb_format)
+        data = super()._data_out_transforms(data)
 
         return data
 

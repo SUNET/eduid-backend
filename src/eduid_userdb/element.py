@@ -59,8 +59,7 @@ dataclass objects, and in eduid format is in the form of dictionaries / JSON.
 Additionally, some of the attribute names that were used in the past have been
 deprecated. An example is the pythonic attribute name `created_by`, which in
 some elements was translated to eduid format as `source`. We want to be able to
-ingest (in `from_dict`) data in the old format, and only produce data in the
-old format if `to_dict` is called with `old_userdb_format=True`.
+ingest (in `from_dict`) data in the old format.
 
 There is also sometimes data in the eduid format dicts that we simply want
 to ignore. An example is `verification_code` in VerifiedElement.
@@ -143,6 +142,10 @@ class Element:
     created_by: Optional[str] = None
     created_ts: datetime = field(default_factory=datetime.utcnow)
     modified_ts: datetime = field(default_factory=datetime.utcnow)
+    # This is a short-term hack to deploy new dataclass based elements without
+    # any changes to data in the production database. Remove after a burn-in period.
+    _no_created_ts_in_db: bool = False
+    _no_modified_ts_in_db: bool = False
 
     def __str__(self) -> str:
         return f'<eduID {self.__class__.__name__}: {asdict(self)}>'
@@ -161,16 +164,14 @@ class Element:
 
         return cls(**data)
 
-    def to_dict(self, old_userdb_format: bool = False) -> Dict[str, Any]:
+    def to_dict(self) -> Dict[str, Any]:
         """
         Convert Element to a dict in eduid format, that can be used to reconstruct the
         Element later.
-
-        :param old_userdb_format: Set to True to get data back in legacy format.
         """
         data = asdict(self)
 
-        data = self._data_out_transforms(data, old_userdb_format)
+        data = self._data_out_transforms(data)
 
         return data
 
@@ -182,12 +183,36 @@ class Element:
         if 'application' in data:
             data['created_by'] = data.pop('application')
 
+        if 'added_timestamp' in data:
+            data['created_ts'] = data.pop('added_timestamp')
+
+        if 'created_ts' not in data:
+            # some really old nin entries in the database have neither created_ts nor modified_ts
+            data['_no_created_ts_in_db'] = True
+            data['created_ts'] = datetime.fromisoformat('1900-01-01')
+
+        if 'modified_ts' not in data:
+            data['_no_modified_ts_in_db'] = True
+            # Use created_ts as modified_ts if no explicit modified_ts was found
+            data['modified_ts'] = data['created_ts']
+
         return data
 
-    def _data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
+    def _data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data kept in pythonic format into eduid format.
         """
+        # If there was no modified_ts in the data that was loaded from the database,
+        # don't write one back if it matches the implied one of created_ts
+        if '_no_modified_ts_in_db' in data:
+            if data.pop('_no_modified_ts_in_db') is True:
+                if data.get('modified_ts') == data.get('created_ts'):
+                    del data['modified_ts']
+
+        if '_no_created_ts_in_db' in data:
+            if data.pop('_no_created_ts_in_db') is True:
+                if 'created_ts' in data:
+                    del data['created_ts']
 
         # remove None values
         data = {k: v for k, v in data.items() if v is not None}
@@ -231,7 +256,7 @@ class VerifiedElement(Element):
 
         return data
 
-    def _data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
+    def _data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data kept in pythonic format into eduid format.
         """
@@ -275,7 +300,7 @@ class PrimaryElement(VerifiedElement):
 
         return data
 
-    def _data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
+    def _data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data kept in pythonic format into eduid format.
         """
@@ -313,17 +338,13 @@ class ElementList(object):
         """
         return self._elements
 
-    def to_list_of_dicts(self, old_userdb_format=False):
+    def to_list_of_dicts(self) -> List[Dict[str, Any]]:
         """
         Get the elements in a serialized format that can be stored in MongoDB.
 
-        :param old_userdb_format: Set to True to get data back in legacy format.
-        :type old_userdb_format: bool
-
         :return: List of dicts
-        :rtype: [dict]
         """
-        return [this.to_dict(old_userdb_format=old_userdb_format) for this in self._elements]
+        return [this.to_dict() for this in self._elements]
 
     def find(self, key):
         """
