@@ -57,7 +57,8 @@ class ToUEvent(Event):
         """
         data = super()._data_in_transforms(data)
 
-        data['event_type'] = 'tou_event'
+        if 'event_type' not in data:
+            data['event_type'] = 'tou_event'
 
         return data
 
