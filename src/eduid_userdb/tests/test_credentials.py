@@ -64,7 +64,7 @@ class TestCredentialList(DictTestCase):
         self.assertEqual([], self.empty.to_list_of_dicts(), list)
 
         expected = [_one_dict]
-        obtained = self.one.to_list_of_dicts(old_userdb_format=True)
+        obtained = self.one.to_list_of_dicts()
 
         self.normalize_data(expected, obtained)
 

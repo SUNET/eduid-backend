@@ -688,23 +688,19 @@ class User(object):
         return self._profiles
 
     # -----------------------------------------------------------------
-    def to_dict(self, old_userdb_format=False):
+    def to_dict(self) -> Dict[str, Any]:
         """
         Return user data serialized into a dict that can be stored in MongoDB.
 
-        :param old_userdb_format: Set to True to get the dict in the old database format.
-        :type old_userdb_format: bool
-
         :return: User as dict
-        :rtype: dict
         """
         res = copy.copy(self._data)  # avoid caller messing up our private _data
-        res['mailAliases'] = self.mail_addresses.to_list_of_dicts(old_userdb_format=old_userdb_format)
-        res['phone'] = self.phone_numbers.to_list_of_dicts(old_userdb_format=old_userdb_format)
-        res['passwords'] = self.credentials.to_list_of_dicts(old_userdb_format=old_userdb_format)
-        res['nins'] = self.nins.to_list_of_dicts(old_userdb_format=old_userdb_format)
+        res['mailAliases'] = self.mail_addresses.to_list_of_dicts()
+        res['phone'] = self.phone_numbers.to_list_of_dicts()
+        res['passwords'] = self.credentials.to_list_of_dicts()
+        res['nins'] = self.nins.to_list_of_dicts()
         res['tou'] = self.tou.to_list_of_dicts()
-        res['locked_identity'] = self.locked_identity.to_list_of_dicts(old_userdb_format=old_userdb_format)
+        res['locked_identity'] = self.locked_identity.to_list_of_dicts()
         res['orcid'] = None
         if self.orcid is not None:
             res['orcid'] = self.orcid.to_dict()
@@ -724,25 +720,6 @@ class User(object):
         ]:
             if _remove in res and not res[_remove]:
                 del res[_remove]
-        if old_userdb_format:
-            _primary = self.mail_addresses.primary
-            if _primary:
-                res['mail'] = _primary.email
-            if 'phone' in res:
-                res['mobile'] = res.pop('phone')
-            if 'surname' in res:
-                res['sn'] = res.pop('surname')
-            if 'nins' in res:
-                # Extract all verified NINs and return as a list of strings
-                _nins = res.pop('nins')
-                verified_nins = [this['number'] for this in _nins if this['verified']]
-                # don't even put 'norEduPersonNIN' in res if it is empty
-                if verified_nins:
-                    res['norEduPersonNIN'] = verified_nins
-                elif 'norEduPersonNIN' in res:
-                    del res['norEduPersonNIN']
-            if res.get('mailAliases') is list():
-                del res['mailAliases']
         return res
 
     # -----------------------------------------------------------------

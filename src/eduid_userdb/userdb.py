@@ -30,7 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import logging
-from typing import Mapping, Type
+import warnings
+from typing import Mapping, Optional, Type
 
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -265,12 +266,15 @@ class UserDB(BaseDB):
             logger.error("MultipleUsersReturned, {!r} = {!r}".format(attr, value))
             raise MultipleUsersReturned(e.reason)
 
-    def save(self, user: User, check_sync: bool = True, old_format: bool = False) -> bool:
+    def save(self, user: User, check_sync: bool = True, old_format: Optional[bool] = None) -> bool:
         """
         :param user: UserClass object
         :param check_sync: Ensure the user hasn't been updated in the database since it was loaded
-        :param old_format: Save the user in legacy format in the database
+        :param old_format: Deprecated. Ignored.
         """
+        if old_format is not None:
+            warnings.warn('old_format supplied - deprecated and ignored', DeprecationWarning)
+
         if not isinstance(user, self.UserClass):
             raise EduIDUserDBError('user is not of type {}'.format(self.UserClass))
 
@@ -284,9 +288,7 @@ class UserDB(BaseDB):
         if modified is None:
             # profile has never been modified through the dashboard.
             # possibly just created in signup.
-            result = self._coll.replace_one(
-                {'_id': user.user_id}, user.to_dict(old_userdb_format=old_format), upsert=True
-            )
+            result = self._coll.replace_one({'_id': user.user_id}, user.to_dict(), upsert=True)
             logger.debug(
                 "{!s} Inserted new user {!r} into {!r} (old_format={!r}): {!r})".format(
                     self, user, self._coll_name, old_format, result
@@ -294,15 +296,13 @@ class UserDB(BaseDB):
             )
             import pprint
 
-            extra_debug = pprint.pformat(user.to_dict(old_userdb_format=old_format))
+            extra_debug = pprint.pformat(user.to_dict())
             logger.debug(f"Extra debug:\n{extra_debug}")
         else:
             test_doc = {'_id': user.user_id}
             if check_sync:
                 test_doc['modified_ts'] = modified
-            result = self._coll.replace_one(
-                test_doc, user.to_dict(old_userdb_format=old_format), upsert=(not check_sync)
-            )
+            result = self._coll.replace_one(test_doc, user.to_dict(), upsert=(not check_sync))
             if check_sync and result.modified_count == 0:
                 db_ts = None
                 db_user = self._coll.find_one({'_id': user.user_id})
@@ -314,13 +314,11 @@ class UserDB(BaseDB):
                 )
                 raise eduid_userdb.exceptions.UserOutOfSync('Stale user object can\'t be saved')
             logger.debug(
-                "{!s} Updated user {!r} (ts {!s}) in {!r} (old_format={!r}): {!r}".format(
-                    self, user, modified, self._coll_name, old_format, result
-                )
+                "{!s} Updated user {!r} (ts {!s}) in {!r}: {!r}".format(self, user, modified, self._coll_name, result)
             )
             import pprint
 
-            extra_debug = pprint.pformat(user.to_dict(old_userdb_format=old_format))
+            extra_debug = pprint.pformat(user.to_dict())
             logger.debug(f"Extra debug:\n{extra_debug}")
         return result.acknowledged
 

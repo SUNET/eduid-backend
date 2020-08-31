@@ -46,7 +46,7 @@ class _AbstractUserTestCase:
         Test that we get back a dict identical to the one we put in for old-style userdb data.
         """
         expected = self.data1['passwords']
-        obtained = self.user1.passwords.to_list_of_dicts(old_userdb_format=True)
+        obtained = self.user1.passwords.to_list_of_dicts()
 
         self.normalize_data(expected, obtained)
 
@@ -65,7 +65,7 @@ class _AbstractUserTestCase:
         self.assertEqual(self.user1._data, user._data)
 
         data = self.data2
-        data['mobile'][0]['verification_code'] = '123456789'
+        data['phone'][0]['verification_code'] = '123456789'
         user = User.from_dict(data)
         self.assertEqual(self.user2._data, user._data)
 
@@ -111,7 +111,7 @@ class _AbstractUserTestCase:
         self.assertEqual(user.surname, data['surname'])
 
         expected = data['passwords']
-        obtained = user.passwords.to_list_of_dicts(old_userdb_format=True)
+        obtained = user.passwords.to_list_of_dicts()
 
         self.normalize_data(expected, obtained)
 
@@ -224,15 +224,6 @@ class _AbstractUserTestCase:
         d1 = self.user1.to_dict()
         u2 = User.from_dict(d1)
         d2 = u2.to_dict()
-        self.assertEqual(d1, d2)
-
-    def test_to_dict_old_format(self):
-        """
-        Test that User objects can be recreated.
-        """
-        d1 = self.user1.to_dict(old_userdb_format=True)
-        u2 = User.from_dict(d1)
-        d2 = u2.to_dict(old_userdb_format=True)
         self.assertEqual(d1, d2)
 
     def test_modified_ts(self):
@@ -449,14 +440,14 @@ class _AbstractUserTestCase:
         )
         user.locked_identity.add(locked_nin)
 
-        old_user = User.from_dict(user.to_dict(old_userdb_format=True))
+        old_user = User.from_dict(user.to_dict())
         self.assertEqual(user.locked_identity.count, 1)
         self.assertIsInstance(old_user.locked_identity.to_list()[0].created_by, string_types)
         self.assertIsInstance(old_user.locked_identity.to_list()[0].created_ts, datetime.datetime)
         self.assertIsInstance(old_user.locked_identity.to_list()[0].identity_type, string_types)
         self.assertIsInstance(old_user.locked_identity.to_list()[0].number, string_types)
 
-        new_user = User.from_dict(user.to_dict(old_userdb_format=False))
+        new_user = User.from_dict(user.to_dict())
         self.assertEqual(user.locked_identity.count, 1)
         self.assertIsInstance(new_user.locked_identity.to_list()[0].created_by, string_types)
         self.assertIsInstance(new_user.locked_identity.to_list()[0].created_ts, datetime.datetime)
@@ -500,7 +491,7 @@ class _AbstractUserTestCase:
         user = User.from_dict(self.data1)
         user.orcid = orcid_element
 
-        old_user = User.from_dict(user.to_dict(old_userdb_format=True))
+        old_user = User.from_dict(user.to_dict())
         self.assertIsNotNone(old_user.orcid)
         self.assertIsInstance(old_user.orcid.created_by, string_types)
         self.assertIsInstance(old_user.orcid.created_ts, datetime.datetime)
@@ -508,7 +499,7 @@ class _AbstractUserTestCase:
         self.assertIsInstance(old_user.orcid.oidc_authz, OidcAuthorization)
         self.assertIsInstance(old_user.orcid.oidc_authz.id_token, OidcIdToken)
 
-        new_user = User.from_dict(user.to_dict(old_userdb_format=False))
+        new_user = User.from_dict(user.to_dict())
         self.assertIsNotNone(new_user.orcid)
         self.assertIsInstance(new_user.orcid.created_by, string_types)
         self.assertIsInstance(new_user.orcid.created_ts, datetime.datetime)
@@ -629,10 +620,10 @@ class TestUser(DictTestCase, _AbstractUserTestCase):
                     u'verified': True,
                 },
             ],
-            u'mobile': [
+            u'phone': [
                 {
-                    u'added_timestamp': datetime.datetime(2014, 12, 18, 9, 11, 35, 78000),
-                    u'mobile': u'+46702222222',
+                    u'created_ts': datetime.datetime(2014, 12, 18, 9, 11, 35, 78000),
+                    u'number': u'+46702222222',
                     u'primary': True,
                     u'verified': True,
                 }
@@ -675,26 +666,13 @@ class TestUser(DictTestCase, _AbstractUserTestCase):
         }
         self.user2 = User.from_dict(self.data2)
 
-    def test_mail_addresses_to_old_userdb_format(self):
-        """
-        Test that we get back a dict identical to the one we put in for old-style userdb data.
-        """
-        to_dict_result = self.user1.mail_addresses.to_list_of_dicts(old_userdb_format=True)
-
-        expected = self.data1['mailAliases']
-        obtained = to_dict_result
-
-        self.normalize_data(expected, obtained)
-
-        assert obtained == expected
-
     def test_phone_numbers(self):
         """
         Test that we get back a dict identical to the one we put in for old-style userdb data.
         """
-        to_dict_result = self.user2.phone_numbers.to_list_of_dicts(old_userdb_format=True)
+        to_dict_result = self.user2.phone_numbers.to_list_of_dicts()
 
-        expected = self.data2['mobile']
+        expected = self.data2['phone']
         obtained = to_dict_result
 
         self.normalize_data(expected, obtained)
@@ -851,7 +829,7 @@ class TestNewUser(DictTestCase, _AbstractUserTestCase):
             'givenName': given_name,
             'mail': mail,
             'mailAliases': mail_addresses.to_list_of_dicts(),
-            'mobile': phone_numbers.to_list_of_dicts(),
+            'phone': phone_numbers.to_list_of_dicts(),
             'passwords': passwords.to_list_of_dicts(),
             'profiles': profiles.to_list_of_dicts(),
             'preferredLanguage': language,
@@ -871,7 +849,7 @@ class TestNewUser(DictTestCase, _AbstractUserTestCase):
         Test that we get back a dict identical to the one we put in for old-style userdb data.
         """
         to_dict_result = self.user2.phone_numbers.to_list_of_dicts()
-        self.assertEqual(to_dict_result, self.data2['mobile'])
+        self.assertEqual(to_dict_result, self.data2['phone'])
 
     def test_passwords_new_format(self):
         """

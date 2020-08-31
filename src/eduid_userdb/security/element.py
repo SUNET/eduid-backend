@@ -39,14 +39,14 @@ class CodeElement(Element, _CodeElementRequired):
 
         return data
 
-    def _data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
+    def _data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data kept in pythonic format into eduid format.
         """
         if 'is_verified' in data:
             data['verified'] = data.pop('is_verified')
 
-        data = super()._data_out_transforms(data, old_userdb_format)
+        data = super()._data_out_transforms(data)
 
         return data
 

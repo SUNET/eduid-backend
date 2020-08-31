@@ -238,7 +238,7 @@ class MongoTestCase(DictTestCase):
     user = User.from_dict(mocked_user_standard.to_dict())
     mock_users_patches: list = []
 
-    def setUp(self, init_am=False, userdb_use_old_format=False, am_settings=None):
+    def setUp(self, init_am=False, am_settings=None):
         """
         Test case initialization.
 
@@ -257,7 +257,6 @@ class MongoTestCase(DictTestCase):
                     ...
 
         :param init_am: True if the test needs am
-        :param userdb_use_old_format: True if old userdb format should be used
         :param am_settings: Test specific am settings
         :return:
         """
@@ -312,7 +311,7 @@ class MongoTestCase(DictTestCase):
         for userdoc in _foo_userdb.all_userdocs():
             this = deepcopy(userdoc)  # deep-copy to not have side effects between tests
             user = User.from_dict(data=this)
-            self.amdb.save(user, check_sync=False, old_format=userdb_use_old_format)
+            self.amdb.save(user, check_sync=False, old_format=False)
 
     def tearDown(self):
         for userdoc in self.amdb._get_all_docs():

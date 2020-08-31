@@ -68,17 +68,6 @@ class OidcIdToken(Element, _OidcIdTokenRequired):
 
         return data
 
-    def _data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
-        """
-        Transform data kept in pythonic format into eduid format.
-        """
-        if 'created_by' in data:
-            data['application'] = data.pop('created_by')
-
-        data = super()._data_out_transforms(data, old_userdb_format)
-
-        return data
-
 
 @dataclass
 class _OidcAuthorizationRequired:
@@ -128,10 +117,10 @@ class OidcAuthorization(Element, _OidcAuthorizationRequired):
 
         return data
 
-    def _data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
+    def _data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         """
-        data = super()._data_out_transforms(data, old_userdb_format)
+        data = super()._data_out_transforms(data)
 
         data['id_token'] = self.id_token.to_dict()
         return data
@@ -179,13 +168,19 @@ class Orcid(VerifiedElement, _OrcidRequired):
 
         return data
 
-    def _data_out_transforms(self, data: Dict[str, Any], old_userdb_format: bool = False) -> Dict[str, Any]:
+    def _data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         """
-        if 'created_by' in data:
-            data['application'] = data.pop('created_by')
-
-        data = super()._data_out_transforms(data, old_userdb_format)
-
         data['oidc_authz'] = self.oidc_authz.to_dict()
+
+        _has_empty_name = 'name' in data and data['name'] == None
+
+        data = super()._data_out_transforms(data)
+
+        if _has_empty_name:
+            # Be bug-compatible with earlier code, to be able to release dataclass based
+            # elements with confidence that nothing will change in the database. This can
+            # be removed after a burn-in period.
+            data['name'] = None
+
         return data

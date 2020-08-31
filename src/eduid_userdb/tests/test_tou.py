@@ -147,3 +147,11 @@ class TestTouUser(TestCase):
     def test_missing_tou(self):
         with self.assertRaises(UserMissingData):
             ToUUser.from_dict(data=dict(eppn=EPPN, userid=USERID))
+
+    def test_to_dict(self):
+        one = copy.deepcopy(_one_dict)
+        tou = ToUEvent.from_dict(one)
+        data = tou.to_dict()
+        assert 'created_by' in data
+        assert 'application' not in data
+        assert data == one
