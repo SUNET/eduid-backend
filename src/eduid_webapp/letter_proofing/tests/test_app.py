@@ -5,7 +5,7 @@ from __future__ import absolute_import
 import json
 from collections import OrderedDict
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from flask import Response
 from mock import Mock, patch

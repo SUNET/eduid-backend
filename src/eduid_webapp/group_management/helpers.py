@@ -9,8 +9,8 @@ from eduid_common.api.exceptions import MailTaskFailed
 from eduid_common.api.helpers import send_mail
 from eduid_common.api.messages import TranslatableMsg
 from eduid_graphdb.groupdb import User as GraphUser
-from eduid_scimapi.groupdb import ScimApiGroup
-from eduid_scimapi.userdb import ScimApiUser
+from eduid_scimapi.db.groupdb import ScimApiGroup
+from eduid_scimapi.db.userdb import ScimApiUser
 from eduid_userdb import User
 from eduid_userdb.exceptions import DocumentDoesNotExist, EduIDDBError
 from eduid_userdb.group_management import GroupInviteState

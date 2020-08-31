@@ -9,7 +9,6 @@ from flask import Blueprint, abort, redirect, render_template, request, url_for
 from flask_babel import gettext as _
 from marshmallow import ValidationError
 
-from eduid_common.api.decorators import require_user
 from eduid_common.api.exceptions import MailTaskFailed, MsgTaskFailed
 from eduid_common.api.helpers import check_magic_cookie
 from eduid_common.session import session

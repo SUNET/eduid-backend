@@ -32,7 +32,7 @@
 #
 import math
 from enum import unique
-from typing import Any, Dict, List, Optional, TypeVar, Union
+from typing import Any, Dict, List, Optional, Union
 
 import bcrypt
 from flask import render_template

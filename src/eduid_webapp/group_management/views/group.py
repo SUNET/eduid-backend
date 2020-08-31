@@ -30,7 +30,6 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from typing import Dict, List
 from uuid import UUID
 
 from flask import Blueprint
@@ -38,7 +37,7 @@ from flask import Blueprint
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid_graphdb.groupdb import User as GraphUser
-from eduid_scimapi.groupdb import ScimApiGroup
+from eduid_scimapi.db.groupdb import ScimApiGroup
 from eduid_userdb import User
 from eduid_userdb.exceptions import EduIDDBError
 from eduid_userdb.group_management import GroupRole

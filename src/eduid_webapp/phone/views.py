@@ -46,13 +46,7 @@ from eduid_userdb.proofing import ProofingUser
 
 from eduid_webapp.phone.app import current_phone_app as current_app
 from eduid_webapp.phone.helpers import PhoneMsg
-from eduid_webapp.phone.schemas import (
-    PhoneListPayload,
-    PhoneResponseSchema,
-    PhoneSchema,
-    SimplePhoneSchema,
-    VerificationCodeSchema,
-)
+from eduid_webapp.phone.schemas import PhoneResponseSchema, PhoneSchema, SimplePhoneSchema, VerificationCodeSchema
 from eduid_webapp.phone.verifications import send_verification_code, verify_phone_number
 
 phone_views = Blueprint('phone', __name__, url_prefix='', template_folder='templates')

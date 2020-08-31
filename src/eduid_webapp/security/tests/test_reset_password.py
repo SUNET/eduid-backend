@@ -2,11 +2,9 @@
 from __future__ import absolute_import
 
 import datetime
-import json
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import quote_plus
 
-from flask import url_for
 from mock import patch
 
 from eduid_common.api.exceptions import MailTaskFailed, MsgTaskFailed
