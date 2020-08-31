@@ -949,6 +949,7 @@ class AttributeFetcherOrcidTests(AMTestCase):
                         'expires_in': 631138518,
                         'created_by': 'orcid',
                     },
+                    'name': None,
                     'given_name': 'Testaren',
                     'family_name': 'Testsson',
                     'verified': True,
