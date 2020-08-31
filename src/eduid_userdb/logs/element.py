@@ -44,25 +44,25 @@ class LogElement(Element):
         return True
 
     @classmethod
-    def _data_in_transforms(cls: Type[TLogElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: Type[TLogElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """
-        data = super()._data_in_transforms(data)
+        data = super()._from_dict_transform(data)
 
         if 'eduPersonPrincipalName' in data:
             data['eppn'] = data.pop('eduPersonPrincipalName')
 
         return data
 
-    def _data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data kept in pythonic format into eduid format.
         """
         if 'eppn' in data:
             data['eduPersonPrincipalName'] = data.pop('eppn')
 
-        data = super()._data_out_transforms(data)
+        data = super()._to_dict_transform(data)
 
         return data
 

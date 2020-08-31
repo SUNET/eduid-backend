@@ -55,11 +55,11 @@ class OidcIdToken(Element, _OidcIdTokenRequired):
         return f'{self.iss}{self.sub}'
 
     @classmethod
-    def _data_in_transforms(cls: Type[OidcIdToken], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: Type[OidcIdToken], data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """
-        data = super()._data_in_transforms(data)
+        data = super()._from_dict_transform(data)
 
         # these keys appear in the data sample in the eduid_userdb.tests.test_orcid module
         for key in ('at_hash', 'family_name', 'given_name', 'jti'):
@@ -98,10 +98,10 @@ class OidcAuthorization(Element, _OidcAuthorizationRequired):
         return self.id_token.key
 
     @classmethod
-    def _data_in_transforms(cls: Type[OidcAuthorization], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: Type[OidcAuthorization], data: Dict[str, Any]) -> Dict[str, Any]:
         """
         """
-        data = super()._data_in_transforms(data)
+        data = super()._from_dict_transform(data)
 
         # these keys appear in the data sample in the eduid_userdb.tests.test_orcid module
         for key in ('name', 'orcid', 'scope'):
@@ -117,10 +117,10 @@ class OidcAuthorization(Element, _OidcAuthorizationRequired):
 
         return data
 
-    def _data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         """
-        data = super()._data_out_transforms(data)
+        data = super()._to_dict_transform(data)
 
         data['id_token'] = self.id_token.to_dict()
         return data
@@ -154,10 +154,10 @@ class Orcid(VerifiedElement, _OrcidRequired):
         return self.id
 
     @classmethod
-    def _data_in_transforms(cls: Type[Orcid], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: Type[Orcid], data: Dict[str, Any]) -> Dict[str, Any]:
         """
         """
-        data = super()._data_in_transforms(data)
+        data = super()._from_dict_transform(data)
 
         # Parse ID token
         _oidc_authz = data.pop('oidc_authz')
@@ -168,14 +168,14 @@ class Orcid(VerifiedElement, _OrcidRequired):
 
         return data
 
-    def _data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         """
         data['oidc_authz'] = self.oidc_authz.to_dict()
 
         _has_empty_name = 'name' in data and data['name'] == None
 
-        data = super()._data_out_transforms(data)
+        data = super()._to_dict_transform(data)
 
         if _has_empty_name:
             # Be bug-compatible with earlier code, to be able to release dataclass based

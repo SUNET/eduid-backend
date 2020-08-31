@@ -52,10 +52,10 @@ class ToUEvent(Event):
     version: Optional[str] = None
 
     @classmethod
-    def _data_in_transforms(cls: Type[ToUEvent], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: Type[ToUEvent], data: Dict[str, Any]) -> Dict[str, Any]:
         """
         """
-        data = super()._data_in_transforms(data)
+        data = super()._from_dict_transform(data)
 
         if 'event_type' not in data:
             data['event_type'] = 'tou_event'

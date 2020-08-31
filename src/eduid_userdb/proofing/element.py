@@ -63,14 +63,14 @@ class ProofingElement(VerifiedElement):
     verification_code: Optional[str] = None
 
     @classmethod
-    def _data_in_transforms(cls: Type[TProofingElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: Type[TProofingElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """
-        # VerifiedElement._data_in_transforms eliminates the verification_code key, and here we keep it.
+        # VerifiedElement._from_dict_transform eliminates the verification_code key, and here we keep it.
         code = data.pop('verification_code', None)
 
-        data = super()._data_in_transforms(data)
+        data = super()._from_dict_transform(data)
 
         if code is not None:
             data['verification_code'] = code

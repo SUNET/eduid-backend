@@ -71,7 +71,7 @@ with the `is_primary` attribute set to `True` but the `is_verified` attribute
 set to `False`.
 
 To translate between the data formats, and to enforce arbitrary constraints we
-provide 2 methods, `_data_in_transforms` and `_data_out_transforms`, that are
+provide 2 methods, `_from_dict_transform` and `_to_dict_transform`, that are
 respectively called in `from_dict` and `to_dict` and can be overridden in
 subclasses.
 
@@ -160,7 +160,7 @@ class Element:
 
         data = copy.deepcopy(data)  # to not modify callers data
 
-        data = cls._data_in_transforms(data)
+        data = cls._from_dict_transform(data)
 
         return cls(**data)
 
@@ -171,12 +171,12 @@ class Element:
         """
         data = asdict(self)
 
-        data = self._data_out_transforms(data)
+        data = self._to_dict_transform(data)
 
         return data
 
     @classmethod
-    def _data_in_transforms(cls: Type[TElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: Type[TElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """
@@ -198,7 +198,7 @@ class Element:
 
         return data
 
-    def _data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data kept in pythonic format into eduid format.
         """
@@ -242,11 +242,11 @@ class VerifiedElement(Element):
     verified_ts: Optional[datetime] = None
 
     @classmethod
-    def _data_in_transforms(cls: Type[TVerifiedElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: Type[TVerifiedElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """
-        data = super()._data_in_transforms(data)
+        data = super()._from_dict_transform(data)
 
         if 'verified' in data:
             data['is_verified'] = data.pop('verified')
@@ -256,14 +256,14 @@ class VerifiedElement(Element):
 
         return data
 
-    def _data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data kept in pythonic format into eduid format.
         """
         if 'is_verified' in data:
             data['verified'] = data.pop('is_verified')
 
-        data = super()._data_out_transforms(data)
+        data = super()._to_dict_transform(data)
 
         return data
 
@@ -289,25 +289,25 @@ class PrimaryElement(VerifiedElement):
         super().__setattr__(key, value)
 
     @classmethod
-    def _data_in_transforms(cls: Type[TPrimaryElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: Type[TPrimaryElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """
-        data = super()._data_in_transforms(data)
+        data = super()._from_dict_transform(data)
 
         if 'primary' in data:
             data['is_primary'] = data.pop('primary')
 
         return data
 
-    def _data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data kept in pythonic format into eduid format.
         """
         if 'is_primary' in data:
             data['primary'] = data.pop('is_primary')
 
-        data = super()._data_out_transforms(data)
+        data = super()._to_dict_transform(data)
 
         return data
 

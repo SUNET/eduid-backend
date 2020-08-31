@@ -69,11 +69,11 @@ class Credential(VerifiedElement):
         else:
             return '<eduID {!s}(key=\'{!s}...\'): verified=False>'.format(self.__class__.__name__, shortkey)
 
-    def _data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Make sure we never store proofing info for un-verified credentials
         """
-        data = super()._data_out_transforms(data)
+        data = super()._to_dict_transform(data)
 
         if data.get('verified') is False:
             del data['verified']

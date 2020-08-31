@@ -71,11 +71,11 @@ class Event(Element):
         return EventId(self.event_id)
 
     @classmethod
-    def _data_in_transforms(cls: Type[TEventSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: Type[TEventSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """
-        data = super()._data_in_transforms(data)
+        data = super()._from_dict_transform(data)
 
         if 'event_type' not in data:
             data['_no_event_type_in_db'] = True  # Remove this line when Event._no_event_type_in_db is removed
@@ -85,11 +85,11 @@ class Event(Element):
 
         return data
 
-    def _data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data kept in pythonic format into eduid format.
         """
-        data = super()._data_out_transforms(data)
+        data = super()._to_dict_transform(data)
 
         # If there was no event_type in the data that was loaded from the database,
         # don't write one back if it matches the implied one of 'tou_event'

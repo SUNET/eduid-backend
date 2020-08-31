@@ -74,11 +74,11 @@ class Password(Credential, _PasswordRequired):
         return self.credential_id
 
     @classmethod
-    def _data_in_transforms(cls: Type[Password], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: Type[Password], data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """
-        data = super()._data_in_transforms(data)
+        data = super()._from_dict_transform(data)
 
         if 'source' in data:
             data['created_by'] = data.pop('source')
@@ -88,12 +88,12 @@ class Password(Credential, _PasswordRequired):
 
         return data
 
-    def _data_out_transforms(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data kept in pythonic format into eduid format.
         """
 
-        data = super()._data_out_transforms(data)
+        data = super()._to_dict_transform(data)
 
         return data
 

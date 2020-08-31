@@ -56,11 +56,11 @@ class PhoneNumber(PrimaryElement):
         return self.number
 
     @classmethod
-    def _data_in_transforms(cls: Type[PhoneNumber], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: Type[PhoneNumber], data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """
-        data = super()._data_in_transforms(data)
+        data = super()._from_dict_transform(data)
 
         if 'added_timestamp' in data:
             data['created_ts'] = data.pop('added_timestamp')
