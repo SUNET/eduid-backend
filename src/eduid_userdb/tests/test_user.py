@@ -392,6 +392,24 @@ class _AbstractUserTestCase:
         user = User.from_dict(data)
         self.assertEqual(user.phone_numbers.primary.number, u'+22222222222')
 
+    def test_user_tou_no_created_ts(self):
+        """
+        Basic test for user ToU.
+        """
+        tou_dict = {
+            'event_id': ObjectId(),
+            'event_type': 'tou_event',
+            'version': '1',
+            'created_by': 'unit test',
+        }
+        tou_events = ToUList([tou_dict])
+        data = self.data1
+        data.update({'tou': tou_events.to_list_of_dicts()})
+        user = User.from_dict(data)
+        # If we create the ToU from a dict w/o created_ts key, the created object will carry a _no_created_ts_in_db
+        # attr set to True, and therefore the to_dict method will wipe out the created_ts key
+        self.assertFalse(user.tou.has_accepted('1', reaccept_interval=94608000))  # reaccept_interval seconds (3 years)
+
     def test_user_tou(self):
         """
         Basic test for user ToU.
@@ -401,6 +419,7 @@ class _AbstractUserTestCase:
             'event_type': 'tou_event',
             'version': '1',
             'created_by': 'unit test',
+            'created_ts': datetime.datetime.utcnow(),
         }
         tou_events = ToUList([tou_dict])
         data = self.data1
