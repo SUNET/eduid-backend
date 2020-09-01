@@ -2,6 +2,7 @@
 
 from collections import OrderedDict
 from datetime import datetime
+from typing import List
 from unittest import TestCase
 
 from eduid_userdb.proofing.element import NinProofingElement, SentLetterElement
@@ -27,7 +28,7 @@ ADDRESS = OrderedDict(
 
 
 class ProofingStateTest(TestCase):
-    def test_create_letterproofingstate(self):
+    def _test_create_letterproofingstate(self, state: LetterProofingState, nin_expected_keys: List[str]):
         """
         {
              'eppn': 'foob-arra',
@@ -57,6 +58,23 @@ class ProofingStateTest(TestCase):
              }
          }
         """
+        state.proofing_letter.address = ADDRESS
+        state_dict = state.to_dict()
+        _state_expected_keys = ['_id', 'eduPersonPrincipalName', 'nin', 'modified_ts', 'proofing_letter']
+        assert sorted(state_dict.keys()) == sorted(_state_expected_keys)
+
+        self.assertEqual(
+            sorted([k for k, v in state_dict['nin'].items() if v is not None]), sorted(nin_expected_keys),
+        )
+        _proofing_letter_expected_keys = ['address', 'created_ts', 'is_sent', 'modified_ts']
+        self.assertEqual(
+            sorted([k for k, v in state_dict['proofing_letter'].items() if v is not None]),
+            sorted(_proofing_letter_expected_keys),
+        )
+
+    def test_create_letterproofingstate_with_ninproofingelement_from_dict(self):
+        """
+        """
         state = LetterProofingState(
             eppn=EPPN,
             nin=NinProofingElement.from_dict(
@@ -73,10 +91,37 @@ class ProofingStateTest(TestCase):
             modified_ts=None,
             proofing_letter=SentLetterElement(),
         )
-        state.proofing_letter.address = ADDRESS
-        state_dict = state.to_dict()
-        _state_expected_keys = ['_id', 'eduPersonPrincipalName', 'nin', 'modified_ts', 'proofing_letter']
-        assert sorted(state_dict.keys()) == sorted(_state_expected_keys)
+        # Don't expect a created_ts key here. Since the NinProofingElement is created from a dict w/o created_ts key,
+        # the resulting object will get a _no_created_ts_in_db attr set to True, and its to_dict method will
+        # discard the created_ts key.
+        _nin_expected_keys = ['created_by', 'number', 'verification_code', 'verified']
+        if not state.nin._no_modified_ts_in_db:
+            # When _no_modified_ts_in_db is removed from Element,
+            # 'modified_ts' should be added to _nin_expected_keys above
+            _nin_expected_keys += ['modified_ts']
+
+        self._test_create_letterproofingstate(state, _nin_expected_keys)
+
+    def test_create_letterproofingstate_with_ninproofingelement_from_dict_with_created_ts(self):
+        """
+        """
+        state = LetterProofingState(
+            eppn=EPPN,
+            nin=NinProofingElement.from_dict(
+                {
+                    'number': '200102034567',
+                    'created_by': 'eduid_letter_proofing',
+                    'created_ts': datetime.fromisoformat('1900-01-01'),
+                    'verified': False,
+                    'verification_code': 'abc123',
+                    'verified_by': None,
+                    'verified_ts': None,
+                }
+            ),
+            id=None,
+            modified_ts=None,
+            proofing_letter=SentLetterElement(),
+        )
 
         _nin_expected_keys = ['created_by', 'created_ts', 'number', 'verification_code', 'verified']
         if not state.nin._no_modified_ts_in_db:
@@ -84,14 +129,33 @@ class ProofingStateTest(TestCase):
             # 'modified_ts' should be added to _nin_expected_keys above
             _nin_expected_keys += ['modified_ts']
 
-        self.assertEqual(
-            sorted([k for k, v in state_dict['nin'].items() if v is not None]), sorted(_nin_expected_keys),
+        self._test_create_letterproofingstate(state, _nin_expected_keys)
+
+    def test_create_letterproofingstate(self):
+        """
+        """
+        state = LetterProofingState(
+            eppn=EPPN,
+            nin=NinProofingElement(
+                number='200102034567',
+                created_by='eduid_letter_proofing',
+                is_verified=False,
+                verification_code='abc123',
+                verified_by=None,
+                verified_ts=None,
+            ),
+            id=None,
+            modified_ts=None,
+            proofing_letter=SentLetterElement(),
         )
-        _proofing_letter_expected_keys = ['address', 'created_ts', 'is_sent', 'modified_ts']
-        self.assertEqual(
-            sorted([k for k, v in state_dict['proofing_letter'].items() if v is not None]),
-            sorted(_proofing_letter_expected_keys),
-        )
+
+        _nin_expected_keys = ['created_by', 'created_ts', 'number', 'verification_code', 'verified']
+        if not state.nin._no_modified_ts_in_db:
+            # When _no_modified_ts_in_db is removed from Element,
+            # 'modified_ts' should be added to _nin_expected_keys above
+            _nin_expected_keys += ['modified_ts']
+
+        self._test_create_letterproofingstate(state, _nin_expected_keys)
 
     def test_create_oidcproofingstate(self):
         """
