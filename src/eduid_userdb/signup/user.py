@@ -74,6 +74,6 @@ class SignupUser(User):
 
     def to_dict(self):
         res = User.to_dict(self)
-        if self._pending_mail_address is not None:
-            res['pending_mail_address'] = self._pending_mail_address.to_dict()
+        if self.pending_mail_address is not None:
+            res['pending_mail_address'] = self.pending_mail_address.to_dict()
         return res
