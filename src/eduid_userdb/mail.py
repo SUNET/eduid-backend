@@ -31,101 +31,44 @@
 #
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
+from __future__ import annotations
 
-import copy
-from datetime import datetime
-from typing import Any, Dict, Optional, Union
-
-from six import string_types
+from dataclasses import dataclass
+from typing import Any, Dict, Optional, Type
 
 from eduid_userdb.element import PrimaryElement, PrimaryElementList
-from eduid_userdb.exceptions import UserDBValueError
 
 __author__ = 'ft'
 
 
+@dataclass
 class MailAddress(PrimaryElement):
     """
-    :param data: Mail address parameters from database
-    :param raise_on_unknown: Raise exception on unknown values in `data' or not.
-
-    :type data: dict
-    :type raise_on_unknown: bool
     """
 
-    def __init__(
-        self,
-        email: Optional[str] = None,
-        application: Optional[str] = None,
-        verified: bool = False,
-        created_ts: Optional[Union[datetime, bool]] = None,
-        primary: bool = False,
-        data: Optional[Dict[str, Any]] = None,
-        raise_on_unknown: bool = True,
-        called_directly: bool = True,
-    ):
-        data_in = data
-        data = copy.copy(data_in)  # to not modify callers data
+    email: Optional[str] = None
 
-        if data is None:
-            if created_ts is None:
-                created_ts = True
-            data = dict(email=email, created_by=application, created_ts=created_ts, verified=verified, primary=primary,)
-        if 'added_timestamp' in data:
-            # old userdb-style creation timestamp
-            data['created_ts'] = data.pop('added_timestamp')
-        # CSRF tokens were accidentally put in the database some time ago
-        if 'csrf' in data:
-            del data['csrf']
-        super().__init__(data, raise_on_unknown, called_directly=called_directly, ignore_data=['email'])
-        self.email = data.pop('email')
-
-    # -----------------------------------------------------------------
     @property
-    def key(self):
+    def key(self) -> Optional[str]:
         """
         Return the element that is used as key for e-mail addresses in a PrimaryElementList.
         """
         return self.email
 
-    # -----------------------------------------------------------------
-    @property
-    def email(self):
+    @classmethod
+    def _from_dict_transform(cls: Type[MailAddress], data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        This is the e-mail address.
+        Transform data received in eduid format into pythonic format.
+        """
+        data = super()._from_dict_transform(data)
 
-        :return: E-mail address.
-        :rtype: str
-        """
-        return self._data['email']
+        if 'added_timestamp' in data:
+            data['created_ts'] = data.pop('added_timestamp')
 
-    @email.setter
-    def email(self, value):
-        """
-        :param value: e-mail address.
-        :type value: str | unicode
-        """
-        if not isinstance(value, string_types):
-            raise UserDBValueError("Invalid 'email': {!r}".format(value))
-        self._data['email'] = str(value.lower())
+        if 'csrf' in data:
+            del data['csrf']
 
-    # -----------------------------------------------------------------
-    def to_dict(self, old_userdb_format=False):
-        """
-        Convert Element to a dict, that can be used to reconstruct the
-        Element later.
-
-        :param old_userdb_format: Set to True to get data back in legacy format.
-        :type old_userdb_format: bool
-        """
-        if not old_userdb_format:
-            return self._data
-        old = copy.copy(self._data)
-        # XXX created_ts -> added_timestamp
-        if 'created_ts' in old:
-            old['added_timestamp'] = old.pop('created_ts')
-        del old['primary']
-        return old
+        return data
 
 
 class MailAddressList(PrimaryElementList):
@@ -140,14 +83,14 @@ class MailAddressList(PrimaryElementList):
     :type addresses: [dict | MailAddress]
     """
 
-    def __init__(self, addresses, raise_on_unknown=True):
+    def __init__(self, addresses):
         elements = []
 
         for this in addresses:
             if isinstance(this, MailAddress):
                 address = this
             else:
-                address = address_from_dict(this, raise_on_unknown)
+                address = address_from_dict(this)
             elements.append(address)
 
         PrimaryElementList.__init__(self, elements)
@@ -191,7 +134,7 @@ class MailAddressList(PrimaryElementList):
         return PrimaryElementList.find(self, email)
 
 
-def address_from_dict(data, raise_on_unknown=True):
+def address_from_dict(data):
     """
     Create a MailAddress instance from a dict.
 
@@ -202,4 +145,4 @@ def address_from_dict(data, raise_on_unknown=True):
     :type raise_on_unknown: bool
     :rtype: MailAddress
     """
-    return MailAddress.from_dict(data, raise_on_unknown=raise_on_unknown)
+    return MailAddress.from_dict(data)

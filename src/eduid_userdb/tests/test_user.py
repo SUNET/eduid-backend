@@ -1,6 +1,5 @@
 import datetime
 from hashlib import sha256
-from unittest import TestCase
 
 from bson import ObjectId
 from six import string_types
@@ -12,6 +11,7 @@ from eduid_userdb.mail import MailAddressList
 from eduid_userdb.nin import NinList
 from eduid_userdb.phone import PhoneNumberList
 from eduid_userdb.profile import Profile, ProfileList
+from eduid_userdb.tests import DictTestCase
 from eduid_userdb.tou import ToUList
 from eduid_userdb.user import User
 
@@ -45,7 +45,12 @@ class _AbstractUserTestCase:
         """
         Test that we get back a dict identical to the one we put in for old-style userdb data.
         """
-        self.assertEqual(self.user1.passwords.to_list_of_dicts(old_userdb_format=True), self.data1['passwords'])
+        expected = self.data1['passwords']
+        obtained = self.user1.passwords.to_list_of_dicts()
+
+        self.normalize_data(expected, obtained)
+
+        assert expected == obtained
 
     def test_obsolete_attributes(self):
         """
@@ -60,7 +65,7 @@ class _AbstractUserTestCase:
         self.assertEqual(self.user1._data, user._data)
 
         data = self.data2
-        data['mobile'][0]['verification_code'] = '123456789'
+        data['phone'][0]['verification_code'] = '123456789'
         user = User.from_dict(data)
         self.assertEqual(self.user2._data, user._data)
 
@@ -104,7 +109,13 @@ class _AbstractUserTestCase:
         ]
         user = User.from_dict(data)
         self.assertEqual(user.surname, data['surname'])
-        self.assertEqual(user.passwords.to_list_of_dicts(), data['passwords'])
+
+        expected = data['passwords']
+        obtained = user.passwords.to_list_of_dicts()
+
+        self.normalize_data(expected, obtained)
+
+        assert expected == obtained
 
     def test_revoked_user(self):
         """
@@ -213,15 +224,6 @@ class _AbstractUserTestCase:
         d1 = self.user1.to_dict()
         u2 = User.from_dict(d1)
         d2 = u2.to_dict()
-        self.assertEqual(d1, d2)
-
-    def test_to_dict_old_format(self):
-        """
-        Test that User objects can be recreated.
-        """
-        d1 = self.user1.to_dict(old_userdb_format=True)
-        u2 = User.from_dict(d1)
-        d2 = u2.to_dict(old_userdb_format=True)
         self.assertEqual(d1, d2)
 
     def test_modified_ts(self):
@@ -405,7 +407,7 @@ class _AbstractUserTestCase:
         self.assertFalse(user.tou.has_accepted('2', reaccept_interval=94608000))  # reaccept_interval seconds (3 years)
 
     def test_locked_identity_load(self):
-        locked_identity = {'created_by': 'test', 'created_ts': True, 'identity_type': 'nin', 'number': '197801012345'}
+        locked_identity = {'created_by': 'test', 'identity_type': 'nin', 'number': '197801012345'}
         data = self.data1
         data['locked_identity'] = [locked_identity]
         user = User.from_dict(data)
@@ -416,14 +418,10 @@ class _AbstractUserTestCase:
         self.assertIsInstance(user.locked_identity.find('nin').number, string_types)
 
     def test_locked_identity_set(self):
-        locked_identity = {'created_by': 'test', 'created_ts': True, 'identity_type': 'nin', 'number': '197801012345'}
+        locked_identity = {'created_by': 'test', 'identity_type': 'nin', 'number': '197801012345'}
         user = User.from_dict(self.data1)
         locked_nin = LockedIdentityNin.from_dict(
-            dict(
-                number=locked_identity['number'],
-                created_by=locked_identity['created_by'],
-                created_ts=locked_identity['created_ts'],
-            )
+            dict(number=locked_identity['number'], created_by=locked_identity['created_by'],)
         )
         user.locked_identity.add(locked_nin)
         self.assertEqual(user.locked_identity.count, 1)
@@ -435,25 +433,21 @@ class _AbstractUserTestCase:
         self.assertIsInstance(locked_nin.number, string_types)
 
     def test_locked_identity_to_dict(self):
-        locked_identity = {'created_by': 'test', 'created_ts': True, 'identity_type': 'nin', 'number': '197801012345'}
+        locked_identity = {'created_by': 'test', 'identity_type': 'nin', 'number': '197801012345'}
         user = User.from_dict(self.data1)
         locked_nin = LockedIdentityNin.from_dict(
-            dict(
-                number=locked_identity['number'],
-                created_by=locked_identity['created_by'],
-                created_ts=locked_identity['created_ts'],
-            )
+            dict(number=locked_identity['number'], created_by=locked_identity['created_by'],)
         )
         user.locked_identity.add(locked_nin)
 
-        old_user = User.from_dict(user.to_dict(old_userdb_format=True))
+        old_user = User.from_dict(user.to_dict())
         self.assertEqual(user.locked_identity.count, 1)
         self.assertIsInstance(old_user.locked_identity.to_list()[0].created_by, string_types)
         self.assertIsInstance(old_user.locked_identity.to_list()[0].created_ts, datetime.datetime)
         self.assertIsInstance(old_user.locked_identity.to_list()[0].identity_type, string_types)
         self.assertIsInstance(old_user.locked_identity.to_list()[0].number, string_types)
 
-        new_user = User.from_dict(user.to_dict(old_userdb_format=False))
+        new_user = User.from_dict(user.to_dict())
         self.assertEqual(user.locked_identity.count, 1)
         self.assertIsInstance(new_user.locked_identity.to_list()[0].created_by, string_types)
         self.assertIsInstance(new_user.locked_identity.to_list()[0].created_ts, datetime.datetime)
@@ -461,14 +455,10 @@ class _AbstractUserTestCase:
         self.assertIsInstance(new_user.locked_identity.to_list()[0].number, string_types)
 
     def test_locked_identity_remove(self):
-        locked_identity = {'created_by': 'test', 'created_ts': True, 'identity_type': 'nin', 'number': '197801012345'}
+        locked_identity = {'created_by': 'test', 'identity_type': 'nin', 'number': '197801012345'}
         user = User.from_dict(self.data1)
         locked_nin = LockedIdentityNin.from_dict(
-            dict(
-                number=locked_identity['number'],
-                created_by=locked_identity['created_by'],
-                created_ts=locked_identity['created_ts'],
-            )
+            dict(number=locked_identity['number'], created_by=locked_identity['created_by'],)
         )
         user.locked_identity.add(locked_nin)
         with self.assertRaises(EduIDUserDBError):
@@ -501,7 +491,7 @@ class _AbstractUserTestCase:
         user = User.from_dict(self.data1)
         user.orcid = orcid_element
 
-        old_user = User.from_dict(user.to_dict(old_userdb_format=True))
+        old_user = User.from_dict(user.to_dict())
         self.assertIsNotNone(old_user.orcid)
         self.assertIsInstance(old_user.orcid.created_by, string_types)
         self.assertIsInstance(old_user.orcid.created_ts, datetime.datetime)
@@ -509,7 +499,7 @@ class _AbstractUserTestCase:
         self.assertIsInstance(old_user.orcid.oidc_authz, OidcAuthorization)
         self.assertIsInstance(old_user.orcid.oidc_authz.id_token, OidcIdToken)
 
-        new_user = User.from_dict(user.to_dict(old_userdb_format=False))
+        new_user = User.from_dict(user.to_dict())
         self.assertIsNotNone(new_user.orcid)
         self.assertIsInstance(new_user.orcid.created_by, string_types)
         self.assertIsInstance(new_user.orcid.created_ts, datetime.datetime)
@@ -545,13 +535,7 @@ class _AbstractUserTestCase:
         """ Test user that has both 'mobile' and 'phone' """
         phone = [
             {'number': '+4673123', 'primary': True, 'verified': True},
-            {
-                'created_by': 'phone',
-                'created_ts': datetime.datetime.utcnow(),
-                'number': '+4670999',
-                'primary': False,
-                'verified': False,
-            },
+            {'created_by': 'phone', 'number': '+4670999', 'primary': False, 'verified': False,},
         ]
         user = User.from_dict(
             data={
@@ -563,7 +547,10 @@ class _AbstractUserTestCase:
             }
         )
         out = user.to_dict()['phone']
-        self.assertEqual(phone, out)
+
+        self.normalize_data(phone, out)
+
+        assert phone == out, 'The phone objects differ when using both phone and mobile'
 
     def test_both_sn_and_surname(self):
         """ Test user that has both 'sn' and 'surname' """
@@ -589,7 +576,7 @@ class _AbstractUserTestCase:
         self.assertEqual(new_user2.eppn, 'birub-gagoz')
 
 
-class TestUser(TestCase, _AbstractUserTestCase):
+class TestUser(DictTestCase, _AbstractUserTestCase):
     def setUp(self):
         self.data1 = {
             u'_id': ObjectId('547357c3d00690878ae9b620'),
@@ -600,6 +587,7 @@ class TestUser(TestCase, _AbstractUserTestCase):
                     u'added_timestamp': datetime.datetime(2014, 12, 18, 11, 25, 19, 804000),
                     u'email': u'user@example.net',
                     u'verified': True,
+                    u'primary': True,
                 }
             ],
             u'passwords': [
@@ -632,10 +620,10 @@ class TestUser(TestCase, _AbstractUserTestCase):
                     u'verified': True,
                 },
             ],
-            u'mobile': [
+            u'phone': [
                 {
-                    u'added_timestamp': datetime.datetime(2014, 12, 18, 9, 11, 35, 78000),
-                    u'mobile': u'+46702222222',
+                    u'created_ts': datetime.datetime(2014, 12, 18, 9, 11, 35, 78000),
+                    u'number': u'+46702222222',
                     u'primary': True,
                     u'verified': True,
                 }
@@ -678,22 +666,21 @@ class TestUser(TestCase, _AbstractUserTestCase):
         }
         self.user2 = User.from_dict(self.data2)
 
-    def test_mail_addresses_to_old_userdb_format(self):
-        """
-        Test that we get back a dict identical to the one we put in for old-style userdb data.
-        """
-        to_dict_result = self.user1.mail_addresses.to_list_of_dicts(old_userdb_format=True)
-        self.assertEqual(to_dict_result, self.data1['mailAliases'])
-
     def test_phone_numbers(self):
         """
         Test that we get back a dict identical to the one we put in for old-style userdb data.
         """
-        to_dict_result = self.user2.phone_numbers.to_list_of_dicts(old_userdb_format=True)
-        self.assertEqual(to_dict_result, self.data2['mobile'])
+        to_dict_result = self.user2.phone_numbers.to_list_of_dicts()
+
+        expected = self.data2['phone']
+        obtained = to_dict_result
+
+        self.normalize_data(expected, obtained)
+
+        assert obtained == expected
 
 
-class TestNewUser(TestCase, _AbstractUserTestCase):
+class TestNewUser(DictTestCase, _AbstractUserTestCase):
     def setUp(self):
         self._setup_user1()
         self._setup_user2()
@@ -842,7 +829,7 @@ class TestNewUser(TestCase, _AbstractUserTestCase):
             'givenName': given_name,
             'mail': mail,
             'mailAliases': mail_addresses.to_list_of_dicts(),
-            'mobile': phone_numbers.to_list_of_dicts(),
+            'phone': phone_numbers.to_list_of_dicts(),
             'passwords': passwords.to_list_of_dicts(),
             'profiles': profiles.to_list_of_dicts(),
             'preferredLanguage': language,
@@ -862,7 +849,7 @@ class TestNewUser(TestCase, _AbstractUserTestCase):
         Test that we get back a dict identical to the one we put in for old-style userdb data.
         """
         to_dict_result = self.user2.phone_numbers.to_list_of_dicts()
-        self.assertEqual(to_dict_result, self.data2['mobile'])
+        self.assertEqual(to_dict_result, self.data2['phone'])
 
     def test_passwords_new_format(self):
         """

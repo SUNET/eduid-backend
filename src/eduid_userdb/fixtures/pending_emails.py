@@ -42,6 +42,5 @@ johnsmith2_example_com_pending = EmailProofingElement.from_dict(
         'verified': False,
         'verified_by': None,
         'verified_ts': None,
-        'primary': False,
     }
 )

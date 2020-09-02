@@ -1,11 +1,8 @@
-import copy
 import datetime
 from hashlib import sha256
 from unittest import TestCase
 
-import eduid_userdb.element
-import eduid_userdb.exceptions
-from eduid_userdb.credentials import CredentialList, Webauthn
+from eduid_userdb.credentials import CredentialList
 
 __author__ = 'lundberg'
 
@@ -56,11 +53,6 @@ class TestWebauthn(TestCase):
             ),
         )
 
-    def test_setting_invalid_keyhandle(self):
-        this = self.one.find(_keyid(_one_dict))
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.keyhandle = None
-
     def test_parse_cycle(self):
         """
         Tests that we output something we parsed back into the same thing we output.
@@ -69,49 +61,14 @@ class TestWebauthn(TestCase):
             this_dict = this.to_list_of_dicts()
             self.assertEqual(CredentialList(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
 
-    def test_unknown_input_data(self):
-        one = copy.deepcopy(_one_dict)
-        one['foo'] = 'bar'
-        with self.assertRaises(eduid_userdb.exceptions.UserHasUnknownData):
-            Webauthn.from_dict(one)
-
-    def test_unknown_input_data_allowed(self):
-        one = copy.deepcopy(_one_dict)
-        one['foo'] = 'bar'
-        addr = Webauthn.from_dict(one, raise_on_unknown=False)
-        out = addr.to_dict()
-        self.assertIn('foo', out)
-        self.assertEqual(out['foo'], one['foo'])
-
     def test_created_by(self):
         this = self.three.find(_keyid(_three_dict))
         this.created_by = 'unit test'
         self.assertEqual(this.created_by, 'unit test')
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_by = False
-
-    def test_modify_created_by(self):
-        this = self.three.find(_keyid(_three_dict))
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_by = 1
-        this.created_by = 'unit test'
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_by = None
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_by = 'test unit'
 
     def test_created_ts(self):
         this = self.three.find(_keyid(_three_dict))
         self.assertIsInstance(this.created_ts, datetime.datetime)
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_ts = False
-
-    def test_modify_created_ts(self):
-        this = self.three.find(_keyid(_three_dict))
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_ts = None
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_ts = True
 
     def test_proofing_method(self):
         this = self.three.find(_keyid(_three_dict))
@@ -121,8 +78,6 @@ class TestWebauthn(TestCase):
         self.assertEqual(this.proofing_method, 'TEST2')
         this.proofing_method = None
         self.assertEqual(this.proofing_method, None)
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.proofing_method = False
 
     def test_proofing_version(self):
         this = self.three.find(_keyid(_three_dict))
@@ -132,5 +87,3 @@ class TestWebauthn(TestCase):
         self.assertEqual(this.proofing_version, 'TEST2')
         this.proofing_version = None
         self.assertEqual(this.proofing_version, None)
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.proofing_version = False

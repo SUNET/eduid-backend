@@ -34,14 +34,13 @@
 #
 from __future__ import annotations
 
-import copy
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Type, Union
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Type, TypeVar
 
 from bson import ObjectId
 
 from eduid_userdb.element import DuplicateElementViolation, Element, ElementList
-from eduid_userdb.exceptions import BadEvent, EventHasUnknownData, UserDBValueError
+from eduid_userdb.exceptions import BadEvent, UserDBValueError
 
 
 # Unique type for the events 'key' property. Not created with EventId = NewType('EventId', ObjectId)
@@ -51,107 +50,55 @@ class EventId(ObjectId):
     pass
 
 
+TEventSubclass = TypeVar('TEventSubclass', bound='Event')
+
+
+@dataclass
 class Event(Element):
     """
-    :param data: Event parameters from database
-
-    :type data: dict
     """
 
-    def __init__(
-        self,
-        application: Optional[str] = None,
-        created_ts: Optional[Union[datetime, bool]] = None,
-        modified_ts: Optional[Union[datetime, bool]] = None,
-        data: Optional[Dict[str, Any]] = None,
-        event_type: Optional[str] = None,
-        event_id: Optional[str] = None,
-        raise_on_unknown: bool = True,
-        called_directly: bool = True,
-        ignore_data: Optional[List[str]] = None,
-    ):
-        data_in = data
-        data = copy.copy(data_in)  # to not modify callers data
+    data: Optional[Dict[str, Any]] = None
+    event_type: Optional[str] = None
+    event_id: Optional[str] = None
+    # This is a short-term hack to deploy new dataclass based events without
+    # any changes to data in the production database. Remove after a burn-in period.
+    _no_event_type_in_db: bool = False
 
-        if data is None:
-            if created_ts is None:
-                created_ts = True
-            if modified_ts is None:
-                modified_ts = created_ts
-            data = dict(
-                created_by=application,
-                created_ts=created_ts,
-                modified_ts=modified_ts,
-                event_type=event_type,
-                event_id=event_id,
-            )
-        # modified_ts was not part of Event from the start, make sure it gets added and default to created_ts
-        if 'modified_ts' not in data:
-            data['modified_ts'] = data.get('created_ts', None)
-
-        super().__init__(data, called_directly=called_directly)
-        self.event_type = data.pop('event_type', None)
-        if 'id' in data:  # Compatibility for old format
-            data['event_id'] = data.pop('id')
-        self.event_id = data.pop('event_id')
-
-        ignore_data = ignore_data or []
-        leftovers = [x for x in data.keys() if x not in ignore_data]
-        if leftovers:
-            if raise_on_unknown:
-                raise EventHasUnknownData('Event {!r} unknown data: {!r}'.format(self.event_id, leftovers,))
-            # Just keep everything that is left as-is
-            self._data.update(data)
-
-    @classmethod
-    def from_dict(cls: Type[Event], data: Dict[str, Any], raise_on_unknown: bool = True) -> Event:
-        """
-        Construct event from a data dict.
-        """
-        return cls(data=data, called_directly=False, raise_on_unknown=raise_on_unknown)
-
-    # -----------------------------------------------------------------
     @property
     def key(self) -> EventId:
         """ Return the element that is used as key for events in an ElementList. """
         return EventId(self.event_id)
 
-    # -----------------------------------------------------------------
-    @property
-    def event_type(self) -> str:
-        """ This is the event type. """
-        return self._data['event_type']
-
-    @event_type.setter
-    def event_type(self, value: str):
-        if value is None:
-            return
-        if not isinstance(value, str):
-            raise UserDBValueError("Invalid 'event_type': {!r}".format(value))
-        self._data['event_type'] = str(value.lower())
-
-    @property
-    def event_id(self) -> EventId:
-        """ This is a unique id for this event. """
-        return self._data['event_id']
-
-    @event_id.setter
-    def event_id(self, value: EventId):
-        if not isinstance(value, ObjectId):
-            raise UserDBValueError("Invalid 'event_id': {!r}".format(value))
-        self._data['event_id'] = value
-
-    # -----------------------------------------------------------------
-    def to_dict(self, mixed_format: bool = False) -> Dict[str, Any]:
+    @classmethod
+    def _from_dict_transform(cls: Type[TEventSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Convert Element to a dict, that can be used to reconstruct the Element later.
-
-        :param mixed_format: Tag each Event with the event_type. Used when list has multiple types of events.
+        Transform data received in eduid format into pythonic format.
         """
-        res = copy.copy(self._data)  # avoid caller messing with our _data
-        if not mixed_format and 'event_type' in res:
-            del res['event_type']
-        return res
+        data = super()._from_dict_transform(data)
+
+        if 'event_type' not in data:
+            data['_no_event_type_in_db'] = True  # Remove this line when Event._no_event_type_in_db is removed
+
+        if 'id' in data:
+            data['event_id'] = data.pop('id')
+
+        return data
+
+    def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Transform data kept in pythonic format into eduid format.
+        """
+        data = super()._to_dict_transform(data)
+
+        # If there was no event_type in the data that was loaded from the database,
+        # don't write one back if it matches the implied one of 'tou_event'
+        if '_no_event_type_in_db' in data:
+            if data.pop('_no_event_type_in_db') == True:
+                if 'event_type' in data:
+                    del data['event_type']
+
+        return data
 
 
 class EventList(ElementList):
@@ -170,7 +117,7 @@ class EventList(ElementList):
     :type event_class: object
     """
 
-    def __init__(self, events, raise_on_unknown=True, event_class: Type[Event] = Event):
+    def __init__(self, events, event_class: Type[Event] = Event):
         self._event_class = event_class
         ElementList.__init__(self, elements=[])
 
@@ -183,7 +130,7 @@ class EventList(ElementList):
             else:
                 event: Event
                 if 'event_type' in this:
-                    event = event_from_dict(this, raise_on_unknown=raise_on_unknown)
+                    event = event_from_dict(this)
                 else:
                     event = self._event_class.from_dict(this)
                 self.add(event)
@@ -200,26 +147,23 @@ class EventList(ElementList):
             raise DuplicateElementViolation("Event {!s} already in list".format(event.key))
         super(EventList, self).add(event)
 
-    def to_list_of_dicts(self, mixed_format: bool = False) -> List[Dict[str, Any]]:
+    def to_list_of_dicts(self) -> List[Dict[str, Any]]:
         """
         Get the elements in a serialized format that can be stored in MongoDB.
-
-        :param mixed_format: Tag each Event with the event_type. Used when list has multiple types of events.
         """
-        return [this.to_dict(mixed_format=mixed_format) for this in self._elements if isinstance(this, Event)]
+        return [this.to_dict() for this in self._elements if isinstance(this, Event)]
 
 
-def event_from_dict(data: Dict[str, Any], raise_on_unknown: bool = True):
+def event_from_dict(data: Dict[str, Any]):
     """
     Create an Event instance (probably really a subclass of Event) from a dict.
 
     :param data: Password parameters from database
-    :param raise_on_unknown: Raise EventHasUnknownData if unrecognized data is encountered
     """
     if 'event_type' not in data:
         raise UserDBValueError('No event type specified')
     if data['event_type'] == 'tou_event':
         from eduid_userdb.tou import ToUEvent  # avoid cyclic dependency by importing this here
 
-        return ToUEvent.from_dict(data=data, raise_on_unknown=raise_on_unknown)
+        return ToUEvent.from_dict(data=data)
     raise BadEvent('Unknown event_type in data: {!s}'.format(data['event_type']))

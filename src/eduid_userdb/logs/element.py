@@ -6,6 +6,8 @@
 from __future__ import absolute_import
 
 import logging
+from dataclasses import dataclass, fields
+from typing import Any, Dict, Type, TypeVar
 
 import six
 
@@ -16,93 +18,108 @@ __author__ = 'lundberg'
 logger = logging.getLogger(__name__)
 
 
+TLogElementSubclass = TypeVar('TLogElementSubclass', bound='LogElement')
+
+
+@dataclass
 class LogElement(Element):
-    def __init__(self, created_by):
-        """
-        :param created_by: Application creating the log element
+    """
+    """
 
-        :type created_by: six.string_types
+    # Application creating the log element
+    created_by: str
 
-        :return: LogElement object
-        :rtype: LogElement
-        """
-        self._required_keys = ['created_by', 'created_ts']
-        # Since log elements are already nearer dataclasses than the rest of elements,
-        # we do not deprecate direct calls to their __init__, which is close to what a dataclass would provide.
-        super().__init__(data={'created_by': created_by, 'created_ts': True}, called_directly=False)
-
-    def validate(self):
+    def validate(self) -> bool:
+        element_keys = set([elem.name for elem in fields(Element)])
+        self_keys = set([elem.name for elem in fields(self)])
+        required_keys = tuple(self_keys - element_keys)
+        required_keys += ('created_ts', 'created_by')
         # Check that all keys are accounted for and that no string values are blank
-        for key in self._required_keys:
-            data = self._data.get(key)
-            if data is None:
-                logger.error(
-                    'Not enough data to log proofing event: {!r}. Required keys: {!r}'.format(
-                        self._data, list(set(self._required_keys) - set(self._data.keys()))
-                    )
-                )
-                return False
+        for key in required_keys:
+            data = getattr(self, key)
             if isinstance(data, six.string_types):
                 if not data:
                     logger.error('Not enough data to log proofing event: "{}" can not be blank.'.format(key))
                     return False
         return True
 
-
-class ProofingLogElement(LogElement):
-    def __init__(self, user, created_by, proofing_method, proofing_version):
+    @classmethod
+    def _from_dict_transform(cls: Type[TLogElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        :param user: User object
-        :param created_by: Application creating the log element
-        :param proofing_method: Proofing method name
-        :param proofing_version: Proofing method version number
-
-        :type user: eduid_userdb.user.User
-        :type created_by: six.string_types
-        :type proofing_method: six.string_types
-        :type proofing_version: six.string_types
-
-        :return: ProofingLogElement object
-        :rtype: ProofingLogElement
+        Transform data received in eduid format into pythonic format.
         """
-        super(ProofingLogElement, self).__init__(created_by)
-        self._required_keys.extend(['eduPersonPrincipalName', 'proofing_method', 'proofing_version'])
-        self._data['eduPersonPrincipalName'] = user.eppn
-        self._data['proofing_method'] = proofing_method
-        self._data['proofing_version'] = proofing_version
+        data = super()._from_dict_transform(data)
 
+        if 'eduPersonPrincipalName' in data:
+            data['eppn'] = data.pop('eduPersonPrincipalName')
 
-class NinProofingLogElement(ProofingLogElement):
-    def __init__(self, user, created_by, nin, user_postal_address, proofing_method, proofing_version):
+        return data
+
+    def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        :param user: user object
-        :param created_by: Application creating the log element
-        :param nin: National identity number
-        :param user_postal_address: Navet response for users official address
-        :param proofing_version: Proofing method version number
-
-        :type user: eduid_userdb.User
-        :type created_by: six.string_types
-        :type nin: six.string_types
-        :type user_postal_address: dict
-        :type proofing_version: six.string_types
-
-        :return: NinProofingLogElement object
-        :rtype: NinProofingLogElement
+        Transform data kept in pythonic format into eduid format.
         """
-        super(NinProofingLogElement, self).__init__(
-            user, created_by, proofing_method=proofing_method, proofing_version=proofing_version
-        )
-        self._required_keys.extend(['nin', 'user_postal_address'])
-        self._data['nin'] = nin
-        self._data['user_postal_address'] = user_postal_address
+        if 'eppn' in data:
+            data['eduPersonPrincipalName'] = data.pop('eppn')
 
-    @property
-    def user_postal_address(self):
-        return self._data['user_postal_address']
+        data = super()._to_dict_transform(data)
+
+        return data
 
 
-class MailAddressProofing(ProofingLogElement):
+@dataclass
+class _ProofingLogElementRequired:
+    """
+    Required fields for ProofingLogElement
+    """
+
+    # eduPersonPrincipalName
+    eppn: str
+    # Proofing method version number
+    proofing_version: str
+
+
+@dataclass
+class ProofingLogElement(LogElement, _ProofingLogElementRequired):
+    """
+    """
+
+    # Proofing method name
+    proofing_method: str = ''
+
+
+@dataclass
+class _NinProofingLogElementRequired:
+    """
+    Required fields for NinProofingLogElement
+    """
+
+    # National identity number
+    nin: str
+    # Navet response for users official address
+    user_postal_address: Dict[str, Any]
+
+
+@dataclass
+class NinProofingLogElement(ProofingLogElement, _NinProofingLogElementRequired):
+    """
+    """
+
+
+@dataclass
+class _MailAddressProofingRequired:
+    """
+    Required fields for MailAddressProofing
+    """
+
+    # e-mail address
+    mail_address: str
+    # Audit reference to help cross reference audit log and events
+    reference: str
+
+
+@dataclass
+class MailAddressProofing(ProofingLogElement, _MailAddressProofingRequired):
     """
     {
         'eduPersonPrincipalName': eppn,
@@ -115,32 +132,24 @@ class MailAddressProofing(ProofingLogElement):
     }
     """
 
-    def __init__(self, user, created_by, mail_address, reference, proofing_version):
-        """
-        :param user: User object
-        :param created_by: Application creating the log element
-        :param mail_address: e-mail address
-        :param reference: Audit reference to help cross reference audit log and events
-        :param proofing_version: Proofing method version number
-
-        :type user: eduid_userdb.user.User
-        :type created_by: six.string_types
-        :type mail_address: six.string_types
-        :type reference: six.string_types
-        :type proofing_version: six.string_types
-
-        :return: MailAddressProofing object
-        :rtype: MailAddressProofing
-        """
-        super(MailAddressProofing, self).__init__(
-            user, created_by, proofing_method='e-mail', proofing_version=proofing_version
-        )
-        self._required_keys.extend(['mail_address', 'reference'])
-        self._data['mail_address'] = mail_address
-        self._data['reference'] = reference
+    # Proofing method name
+    proofing_method: str = 'e-mail'
 
 
-class PhoneNumberProofing(ProofingLogElement):
+@dataclass
+class _PhoneNumberProofingRequired:
+    """
+    Required fields for PhoneNumberProofing
+    """
+
+    # phone number
+    phone_number: str
+    # Audit reference to help cross reference audit log and events
+    reference: str
+
+
+@dataclass
+class PhoneNumberProofing(ProofingLogElement, _PhoneNumberProofingRequired):
     """
     {
         'eduPersonPrincipalName': eppn,
@@ -153,32 +162,24 @@ class PhoneNumberProofing(ProofingLogElement):
     }
     """
 
-    def __init__(self, user, created_by, phone_number, reference, proofing_version):
-        """
-        :param user: User object
-        :param created_by: Application creating the log element
-        :param phone_number: phone number
-        :param reference: Audit reference to help cross reference audit log and events
-        :param proofing_version: Proofing method version number
-
-        :type user: eduid_userdb.user.User
-        :type created_by: six.string_types
-        :type phone_number: six.string_types
-        :type reference: six.string_types
-        :type proofing_version: six.string_types
-
-        :return: PhoneNumberProofing object
-        :rtype: PhoneNumberProofing
-        """
-        super(PhoneNumberProofing, self).__init__(
-            user, created_by, proofing_method='sms', proofing_version=proofing_version
-        )
-        self._required_keys.extend(['phone_number', 'reference'])
-        self._data['phone_number'] = phone_number
-        self._data['reference'] = reference
+    # Proofing method name
+    proofing_method: str = 'sms'
 
 
-class TeleAdressProofing(NinProofingLogElement):
+@dataclass
+class _TeleAdressProofingRequired:
+    """
+    Required fields for TeleAdressProofing
+    """
+
+    # Mobile phone number
+    mobile_number: str
+    # Reason for mobile phone number match to user
+    reason: str
+
+
+@dataclass
+class TeleAdressProofing(NinProofingLogElement, _TeleAdressProofingRequired):
     """
     {
         'eduPersonPrincipalName': eppn,
@@ -194,36 +195,26 @@ class TeleAdressProofing(NinProofingLogElement):
     }
     """
 
-    def __init__(self, user, created_by, reason, nin, mobile_number, user_postal_address, proofing_version):
-        """
-        :param user: user object
-        :param created_by: Application creating the log element
-        :param reason: Reason for mobile phone number match to user
-        :param nin: National identity number
-        :param mobile_number: Mobile phone number
-        :param user_postal_address: Navet response for users official address
-        :param proofing_version: Proofing method version number
-
-        :type user: eduid_userdb.User
-        :type created_by: six.string_types
-        :type reason: six.string_types
-        :type nin: six.string_types
-        :type mobile_number: six.string_types
-        :type user_postal_address: dict
-        :type proofing_version: six.string_types
-
-        :return: TeleAdressProofing object
-        :rtype: TeleAdressProofing
-        """
-        super(TeleAdressProofing, self).__init__(
-            user, created_by, nin, user_postal_address, proofing_method='TeleAdress', proofing_version=proofing_version
-        )
-        self._required_keys.extend(['reason', 'mobile_number'])
-        self._data['reason'] = reason
-        self._data['mobile_number'] = mobile_number
+    # Proofing method name
+    proofing_method: str = 'TeleAdress'
 
 
-class TeleAdressProofingRelation(TeleAdressProofing):
+@dataclass
+class _TeleAdressProofingRelationRequired:
+    """
+    Required fields for TeleAdressProofingRelation
+    """
+
+    # NIN of registered user of mobile phone subscription
+    mobile_number_registered_to: str
+    # Relation of mobile phone subscriber to User
+    registered_relation: str
+    # Navet response for mobile phone subscriber
+    registered_postal_address: str
+
+
+@dataclass
+class TeleAdressProofingRelation(TeleAdressProofing, _TeleAdressProofingRelationRequired):
     """
     {
         'eduPersonPrincipalName': eppn,
@@ -242,55 +233,24 @@ class TeleAdressProofingRelation(TeleAdressProofing):
     }
     """
 
-    def __init__(
-        self,
-        user,
-        created_by,
-        reason,
-        nin,
-        mobile_number,
-        user_postal_address,
-        mobile_number_registered_to,
-        registered_relation,
-        registered_postal_address,
-        proofing_version,
-    ):
-        """
-        :param user: user object
-        :param created_by: Application creating the log element
-        :param reason: Reason for mobile phone number match to user
-        :param nin: National identity number
-        :param mobile_number: Mobile phone number
-        :param user_postal_address: Navet response for users official address
-        :param mobile_number_registered_to: NIN of registered user of mobile phone subscription
-        :param registered_relation: Relation of mobile phone subscriber to User
-        :param registered_postal_address: Navet response for mobile phone subscriber
-        :param proofing_version: Proofing method version number
-
-        :type user: User
-        :type created_by: six.string_types
-        :type reason: six.string_types
-        :type nin: six.string_types
-        :type mobile_number: six.string_types
-        :type user_postal_address: dict
-        :type mobile_number_registered_to: six.string_types
-        :type registered_relation: six.string_types
-        :type registered_postal_address:  dict
-        :type proofing_version: six.string_types
-
-        :return: TeleAdressProofingRelation object
-        :rtype: TeleAdressProofingRelation
-        """
-        super(TeleAdressProofingRelation, self).__init__(
-            user, created_by, reason, nin, mobile_number, user_postal_address, proofing_version=proofing_version
-        )
-        self._required_keys.extend(['mobile_number_registered_to', 'registered_relation', 'registered_postal_address'])
-        self._data['mobile_number_registered_to'] = mobile_number_registered_to
-        self._data['registered_relation'] = registered_relation
-        self._data['registered_postal_address'] = registered_postal_address
+    # Proofing method name
+    proofing_method: str = 'TeleAdress'
 
 
-class LetterProofing(NinProofingLogElement):
+@dataclass
+class _LetterProofingRequired:
+    """
+    Required fields for LetterProofing
+    """
+
+    # Name and address the letter was sent to
+    letter_sent_to: str
+    # Letter service transaction id
+    transaction_id: str
+
+
+@dataclass
+class LetterProofing(NinProofingLogElement, _LetterProofingRequired):
     """
     {
         'eduPersonPrincipalName': eppn,
@@ -305,36 +265,22 @@ class LetterProofing(NinProofingLogElement):
     }
     """
 
-    def __init__(self, user, created_by, nin, letter_sent_to, transaction_id, user_postal_address, proofing_version):
-        """
-        :param user: user object
-        :param created_by: Application creating the log element
-        :param nin: National identity number
-        :param letter_sent_to: Name and address the letter was sent to
-        :param transaction_id: Letter service transaction id
-        :param user_postal_address: Navet response for users official address
-        :param proofing_version: Proofing method version number
-
-        :type user: User
-        :type created_by: six.string_types
-        :type nin: six.string_types
-        :type letter_sent_to: dict
-        :type transaction_id: six.string_types
-        :type user_postal_address: dict
-        :type proofing_version: six.string_types
-
-        :return: LetterProofing object
-        :rtype: LetterProofing
-        """
-        super(LetterProofing, self).__init__(
-            user, created_by, nin, user_postal_address, proofing_method='letter', proofing_version=proofing_version
-        )
-        self._required_keys.extend(['proofing_method', 'letter_sent_to', 'transaction_id'])
-        self._data['letter_sent_to'] = letter_sent_to
-        self._data['transaction_id'] = transaction_id
+    # Proofing method name
+    proofing_method: str = 'letter'
 
 
-class SeLegProofing(NinProofingLogElement):
+@dataclass
+class _SeLegProofingRequired:
+    """
+    Required fields for SeLegProofing
+    """
+
+    # Provider transaction id
+    transaction_id: str
+
+
+@dataclass
+class SeLegProofing(NinProofingLogElement, _SeLegProofingRequired):
     """
     {
         'eduPersonPrincipalName': eppn,
@@ -349,36 +295,24 @@ class SeLegProofing(NinProofingLogElement):
     }
     """
 
-    def __init__(self, user, created_by, nin, vetting_by, transaction_id, user_postal_address, proofing_version):
-        """
-        :param user: user object
-        :param created_by: Application creating the log element
-        :param nin: National identity number
-        :param vetting_by: Name of the provider who performed the vetting
-        :param transaction_id: Provider transaction id
-        :param user_postal_address: Navet response for users official address
-        :param proofing_version: Proofing method version number
-
-        :type user: User
-        :type created_by: six.string_types
-        :type nin: six.string_types
-        :type vetting_by: six.string_types
-        :type transaction_id: six.string_types
-        :type user_postal_address: dict
-        :type proofing_version: six.string_types
-
-        :return: SeLegProofing object
-        :rtype: SeLegProofing
-        """
-        super(SeLegProofing, self).__init__(
-            user, created_by, nin, user_postal_address, proofing_method='se-leg', proofing_version=proofing_version
-        )
-        self._required_keys.extend(['proofing_method', 'vetting_by', 'transaction_id'])
-        self._data['vetting_by'] = vetting_by
-        self._data['transaction_id'] = transaction_id
+    # Proofing method name
+    proofing_method: str = 'se-leg'
+    # Name of the provider who performed the vetting
+    vetting_by: str = ''
 
 
-class SeLegProofingFrejaEid(SeLegProofing):
+@dataclass
+class _SeLegProofingFrejaEidRequired:
+    """
+    Required fields for SeLegProofingFrejaEid
+    """
+
+    # Data used to initialize the vetting process
+    opaque_data: str
+
+
+@dataclass
+class SeLegProofingFrejaEid(SeLegProofing, _SeLegProofingFrejaEidRequired):
     """
     {
         'eduPersonPrincipalName': eppn,
@@ -394,41 +328,26 @@ class SeLegProofingFrejaEid(SeLegProofing):
     }
     """
 
-    def __init__(self, user, created_by, nin, transaction_id, opaque_data, user_postal_address, proofing_version):
-        """
-        :param user: user object
-        :param created_by: Application creating the log element
-        :param nin: National identity number
-        :param transaction_id: Provider transaction id
-        :param opaque_data: Data used to initialize the vetting process
-        :param user_postal_address: Navet response for users official address
-        :param proofing_version: Proofing method version number
-
-        :type user: User
-        :type created_by: six.string_types
-        :type nin: six.string_types
-        :type transaction_id: six.string_types
-        :type opaque_data: six.string_types
-        :type user_postal_address: dict
-        :type proofing_version: six.string_types
-
-        :return: SeLegProofingFrejaEid object
-        :rtype: SeLegProofingFrejaEid
-        """
-        super(SeLegProofingFrejaEid, self).__init__(
-            user,
-            created_by,
-            nin,
-            vetting_by='Freja eID',
-            transaction_id=transaction_id,
-            user_postal_address=user_postal_address,
-            proofing_version=proofing_version,
-        )
-        self._required_keys.extend(['opaque_data'])
-        self._data['opaque_data'] = opaque_data
+    # Name of the provider who performed the vetting
+    vetting_by: str = 'Freja eID'
 
 
-class OrcidProofing(ProofingLogElement):
+@dataclass
+class _OrcidProofingRequired:
+    """
+    Required fields for OrcidProofing
+    """
+
+    # Users unique id
+    orcid: str
+    # OIDC issuer
+    issuer: str
+    # OIDC audience
+    audience: str
+
+
+@dataclass
+class OrcidProofing(ProofingLogElement, _OrcidProofingRequired):
     """
     {
         'eduPersonPrincipalName': eppn,
@@ -442,37 +361,24 @@ class OrcidProofing(ProofingLogElement):
     }
     """
 
-    def __init__(self, user, created_by, orcid, issuer, audience, proofing_method, proofing_version):
-        """
-        :param user: User object
-        :param created_by: Application creating the log element
-        :param orcid: Users unique id
-        :param issuer: OIDC issuer
-        :param audience: OIDC audience
-        :param proofing_method: Proofing method name
-        :param proofing_version: Proofing method version number
-
-        :type user: eduid_userdb.user.User
-        :type created_by: six.string_types
-        :type orcid: six.string_types
-        :type issuer: six.string_types
-        :type audience: list
-        :type proofing_method: six.string_types
-        :type proofing_version: six.string_types
-
-        :return: ProofingLogElement object
-        :rtype: ProofingLogElement
-        """
-        super(OrcidProofing, self).__init__(
-            user, created_by, proofing_method=proofing_method, proofing_version=proofing_version
-        )
-        self._required_keys.extend(['orcid', 'issuer', 'audience'])
-        self._data['orcid'] = orcid
-        self._data['issuer'] = issuer
-        self._data['audience'] = audience
+    # Proofing method name
+    proofing_method: str = 'oidc'
 
 
-class SwedenConnectProofing(NinProofingLogElement):
+@dataclass
+class _SwedenConnectProofingRequired:
+    """
+    Required fields for SwedenConnectProofing
+    """
+
+    # Provider transaction id
+    issuer: str
+    # The authentication context class asserted
+    authn_context_class: str
+
+
+@dataclass
+class SwedenConnectProofing(NinProofingLogElement, _SwedenConnectProofingRequired):
     """
     {
         'eduPersonPrincipalName': eppn,
@@ -487,41 +393,22 @@ class SwedenConnectProofing(NinProofingLogElement):
     }
     """
 
-    def __init__(self, user, created_by, nin, issuer, authn_context_class, user_postal_address, proofing_version):
-        """
-        :param user: user object
-        :param created_by: Application creating the log element
-        :param nin: National identity number
-        :param issuer: Provider transaction id
-        :param authn_context_class: The authentication context class asserted
-        :param user_postal_address: Navet response for users official address
-        :param proofing_version: Proofing method version number
-
-        :type user: User
-        :type created_by: six.string_types
-        :type nin: six.string_types
-        :type issuer: six.string_types
-        :type authn_context_class: six.string_types
-        :type user_postal_address: dict
-        :type proofing_version: six.string_types
-
-        :return: SwedenConnectProofing object
-        :rtype: SwedenConnectProofing
-        """
-        super(SwedenConnectProofing, self).__init__(
-            user,
-            created_by,
-            nin,
-            user_postal_address,
-            proofing_method='swedenconnect',
-            proofing_version=proofing_version,
-        )
-        self._required_keys.extend(['issuer', 'authn_context_class'])
-        self._data['issuer'] = issuer
-        self._data['authn_context_class'] = authn_context_class
+    # Proofing method name
+    proofing_method: str = 'swedenconnect'
 
 
-class MFATokenProofing(SwedenConnectProofing):
+@dataclass
+class _MFATokenProofingRequired:
+    """
+    Required fields for MFATokenProofing
+    """
+
+    # Data used to initialize the vetting process
+    key_id: str
+
+
+@dataclass
+class MFATokenProofing(SwedenConnectProofing, _MFATokenProofingRequired):
     """
     {
         'eduPersonPrincipalName': eppn,
@@ -537,33 +424,5 @@ class MFATokenProofing(SwedenConnectProofing):
     }
     """
 
-    def __init__(
-        self, user, created_by, nin, issuer, authn_context_class, key_id, user_postal_address, proofing_version
-    ):
-        """
-        :param user: user object
-        :param created_by: Application creating the log element
-        :param nin: National identity number
-        :param issuer: Provider transaction id
-        :param authn_context_class: The authentication context class asserted
-        :param key_id: Data used to initialize the vetting process
-        :param user_postal_address: Navet response for users official address
-        :param proofing_version: Proofing method version number
-
-        :type user: User
-        :type created_by: six.string_types
-        :type nin: six.string_types
-        :type issuer: six.string_types
-        :type authn_context_class: six.string_types
-        :type key_id: six.string_types
-        :type user_postal_address: dict
-        :type proofing_version: six.string_types
-
-        :return: MFATokenProofing object
-        :rtype: MFATokenProofing
-        """
-        super(MFATokenProofing, self).__init__(
-            user, created_by, nin, issuer, authn_context_class, user_postal_address, proofing_version=proofing_version
-        )
-        self._required_keys.extend(['key_id'])
-        self._data['key_id'] = key_id
+    # Proofing method name
+    proofing_method: str = 'swedenconnect'

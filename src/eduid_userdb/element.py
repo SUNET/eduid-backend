@@ -31,14 +31,61 @@
 #
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
+"""
+userdb data
+===========
+
+userdb data can be in 2 different formats, which I will call here pythonic and
+eduid formats. In both cases, the data is in the form of sets of attributes with
+values of arbitrary types.
+
+In Python code we deal with data in pythonic format. Outside Python code (in
+the DB, or when sending data to the front, or also in data samples for testing)
+we deal with data in eduid format.
+
+The interface between both formats is given by the `Element`'s methods
+`from_dict` (to convert data in eduid format to data in pythonic format) and
+`to_dict` (to convert data in the opposite direction).
+
+The main differences between both formats are, in one hand, the names of the
+attributes, that may change from one format to the other. For example, the
+pythonic attribute `is_verified` is generally translated to eduid format as
+`verified`.
+
+On another hand, the representation of complex data (i.e., not of basic types:
+string, boolean, integer, bytes), differs: in pythonic format is in the form of
+dataclass objects, and in eduid format is in the form of dictionaries / JSON.
+
+Additionally, some of the attribute names that were used in the past have been
+deprecated. An example is the pythonic attribute name `created_by`, which in
+some elements was translated to eduid format as `source`. We want to be able to
+ingest (in `from_dict`) data in the old format.
+
+There is also sometimes data in the eduid format dicts that we simply want
+to ignore. An example is `verification_code` in VerifiedElement.
+
+Finally, when ingesting external data (in eduid format) we may want to enforce
+any number of arbitrary constraints (in `from_dict`), to make sure the data is
+semantically sound. For example, we don't want data representing an element
+with the `is_primary` attribute set to `True` but the `is_verified` attribute
+set to `False`.
+
+To translate between the data formats, and to enforce arbitrary constraints we
+provide 2 methods, `_from_dict_transform` and `_to_dict_transform`, that are
+respectively called in `from_dict` and `to_dict` and can be overridden in
+subclasses.
+
+"""
+from __future__ import annotations
+
 import copy
-import datetime
-import warnings
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union
+from dataclasses import asdict, dataclass, field
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Type, TypeVar
 
 from six import string_types
 
-from eduid_userdb.exceptions import EduIDUserDBError, UserDBValueError, UserHasUnknownData
+from eduid_userdb.exceptions import EduIDUserDBError, UserDBValueError
 
 __author__ = 'ft'
 
@@ -79,7 +126,8 @@ class PrimaryElementViolation(PrimaryElementError):
 TElementSubclass = TypeVar('TElementSubclass', bound='Element')
 
 
-class Element(object):
+@dataclass
+class Element:
     """
     Base class for elements.
 
@@ -89,38 +137,88 @@ class Element(object):
             VerifiedElement
                 PrimaryElement
             EventElement
-
-    Properties of Element:
-
-        created_by
-        created_ts
     """
 
-    def __init__(
-        self, data: Dict[str, Any], called_directly: bool = True,
-    ):
-        if called_directly:
-            warnings.warn("Element.__init__ called directly", DeprecationWarning)
+    created_by: Optional[str] = None
+    created_ts: datetime = field(default_factory=datetime.utcnow)
+    modified_ts: datetime = field(default_factory=datetime.utcnow)
+    # This is a short-term hack to deploy new dataclass based elements without
+    # any changes to data in the production database. Remove after a burn-in period.
+    _no_created_ts_in_db: bool = False
+    _no_modified_ts_in_db: bool = False
 
-        if not isinstance(data, dict):
-            raise UserDBValueError("Invalid 'data', not dict ({!r})".format(type(data)))
-        self._data: Dict[str, Any] = {}
-
-        self.created_by = data.pop('created_by', None)
-        self.created_ts = data.pop('created_ts', None)
-        self.modified_ts = data.pop('modified_ts', None)
-
-    def __str__(self):
-        return '<eduID {!s}: {!r}>'.format(self.__class__.__name__, getattr(self, '_data', None))
+    def __str__(self) -> str:
+        return f'<eduID {self.__class__.__name__}: {asdict(self)}>'
 
     @classmethod
     def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any]) -> TElementSubclass:
         """
-        Construct element from a data dict.
+        Construct element from a data dict in eduid format.
         """
-        return cls(data=data, called_directly=False)
+        if not isinstance(data, dict):
+            raise UserDBValueError(f"Invalid data: {data}")
 
-    # -----------------------------------------------------------------
+        data = copy.deepcopy(data)  # to not modify callers data
+
+        data = cls._from_dict_transform(data)
+
+        return cls(**data)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert Element to a dict in eduid format, that can be used to reconstruct the
+        Element later.
+        """
+        data = asdict(self)
+
+        data = self._to_dict_transform(data)
+
+        return data
+
+    @classmethod
+    def _from_dict_transform(cls: Type[TElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Transform data received in eduid format into pythonic format.
+        """
+        if 'application' in data:
+            data['created_by'] = data.pop('application')
+
+        if 'added_timestamp' in data:
+            data['created_ts'] = data.pop('added_timestamp')
+
+        if 'created_ts' not in data:
+            # some really old nin entries in the database have neither created_ts nor modified_ts
+            data['_no_created_ts_in_db'] = True
+            data['created_ts'] = datetime.fromisoformat('1900-01-01')
+
+        if 'modified_ts' not in data:
+            data['_no_modified_ts_in_db'] = True
+            # Use created_ts as modified_ts if no explicit modified_ts was found
+            data['modified_ts'] = data['created_ts']
+
+        return data
+
+    def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Transform data kept in pythonic format into eduid format.
+        """
+        # If there was no modified_ts in the data that was loaded from the database,
+        # don't write one back if it matches the implied one of created_ts
+        if '_no_modified_ts_in_db' in data:
+            if data.pop('_no_modified_ts_in_db') is True:
+                if data.get('modified_ts') == data.get('created_ts'):
+                    del data['modified_ts']
+
+        if '_no_created_ts_in_db' in data:
+            if data.pop('_no_created_ts_in_db') is True:
+                if 'created_ts' in data:
+                    del data['created_ts']
+
+        # remove None values
+        data = {k: v for k, v in data.items() if v is not None}
+
+        return data
+
     @property
     def key(self):
         """
@@ -129,234 +227,89 @@ class Element(object):
         """
         raise NotImplementedError("'key' not implemented for Element subclass")
 
-    # -----------------------------------------------------------------
-    @property
-    def created_by(self):
-        """
-        :return: Information about who created the element (None is no-op).
-        :rtype: str | unicode | None
-        """
-        return self._data.get('created_by')
 
-    @created_by.setter
-    def created_by(self, value):
-        """
-        :param value: Information about who created a element.
-        :type value: str | unicode
-        """
-        _set_something_by(self._data, 'created_by', value)
-
-    # -----------------------------------------------------------------
-    @property
-    def created_ts(self):
-        """
-        :return: Timestamp of element creation.
-        :rtype: datetime.datetime
-        """
-        return self._data.get('created_ts')
-
-    @created_ts.setter
-    def created_ts(self, value):
-        """
-        :param value: Timestamp of element creation.
-                      Value None is ignored, True is short for datetime.utcnow().
-        :type value: datetime.datetime | True | None
-        """
-        _set_something_ts(self._data, 'created_ts', value)
-
-    # -----------------------------------------------------------------
-    @property
-    def modified_ts(self) -> Optional[datetime.datetime]:
-        """
-        :return: Timestamp of element last update.
-        """
-        return self._data.get('modified_ts')
-
-    @modified_ts.setter
-    def modified_ts(self, value: Optional[Union[datetime.datetime, bool]]):
-        """
-        :param value: Timestamp of element last update.
-                      Value None is ignored, True is short for datetime.utcnow().
-        """
-        _set_something_ts(self._data, 'modified_ts', value, allow_update=True)
-
-    # -----------------------------------------------------------------
-
-    def to_dict(self, old_userdb_format=False):
-        """
-        Convert Element to a dict, that can be used to reconstruct the
-        Element later.
-
-        :param old_userdb_format: Set to True to get data back in legacy format.
-        :type old_userdb_format: bool
-        """
-        res = copy.copy(self._data)  # avoid caller messing with our _data
-        return res
+TVerifiedElementSubclass = TypeVar('TVerifiedElementSubclass', bound='VerifiedElement')
 
 
+@dataclass
 class VerifiedElement(Element):
     """
     Elements that can be verified or not.
-
-    Properties of VerifiedElement:
-
-        is_verified
-        verified_by
-        verified_ts
     """
 
-    def __init__(
-        self, data: Dict[str, Any], called_directly: bool = True,
-    ):
-        super().__init__(data, called_directly=called_directly)
-        # Remove deprecated verification_code from VerifiedElement
-        data.pop('verification_code', None)
-        self.is_verified = data.pop('verified', False)
-        self.verified_by = data.pop('verified_by', None)
-        self.verified_ts = data.pop('verified_ts', None)
+    is_verified: bool = False
+    verified_by: Optional[str] = None
+    verified_ts: Optional[datetime] = None
 
-    # -----------------------------------------------------------------
-    @property
-    def is_verified(self):
+    @classmethod
+    def _from_dict_transform(cls: Type[TVerifiedElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        :return: True if this is a verified element.
-        :rtype: bool
+        Transform data received in eduid format into pythonic format.
         """
-        return self._data['verified']
+        data = super()._from_dict_transform(data)
 
-    @is_verified.setter
-    def is_verified(self, value):
-        """
-        :param value: New verification status
-        :type value: bool
-        """
-        if not isinstance(value, bool):
-            raise UserDBValueError("Invalid 'is_verified': {!r}".format(value))
-        self._data['verified'] = value
+        if 'verified' in data:
+            data['is_verified'] = data.pop('verified')
 
-    # -----------------------------------------------------------------
-    @property
-    def verified_by(self):
-        """
-        :return: Information about who verified the element.
-        :rtype: str | unicode
-        """
-        return self._data.get('verified_by', None)
+        if 'verification_code' in data:
+            del data['verification_code']
 
-    @verified_by.setter
-    def verified_by(self, value):
-        """
-        :param value: Information about who verified a element (None is no-op).
-        :type value: str | unicode | None
-        """
-        _set_something_by(self._data, 'verified_by', value, allow_update=True)
+        return data
 
-    # -----------------------------------------------------------------
-    @property
-    def verified_ts(self):
+    def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        :return: Timestamp of element verification.
-        :rtype: datetime.datetime
+        Transform data kept in pythonic format into eduid format.
         """
-        return self._data.get('verified_ts')
+        if 'is_verified' in data:
+            data['verified'] = data.pop('is_verified')
 
-    @verified_ts.setter
-    def verified_ts(self, value):
-        """
-        :param value: Timestamp of element verification.
-                      Value None is ignored, True is short for datetime.utcnow().
-        :type value: datetime.datetime | True | None
-        """
-        _set_something_ts(self._data, 'verified_ts', value, allow_update=True)
+        data = super()._to_dict_transform(data)
+
+        return data
 
 
 TPrimaryElementSubclass = TypeVar('TPrimaryElementSubclass', bound='PrimaryElement')
 
 
+@dataclass
 class PrimaryElement(VerifiedElement):
     """
     Elements that can be either primary or not.
-
-    Properties of PrimaryElement:
-
-        is_primary
-
-    :param data: element parameters from database
-    :param raise_on_unknown: Raise exception on unknown values in `data' or not.
-
-    :type data: dict
-    :type raise_on_unknown: bool
     """
 
-    def __init__(
-        self,
-        data: Dict[str, Any],
-        raise_on_unknown: bool = True,
-        called_directly: bool = True,
-        ignore_data: Optional[List[str]] = None,
-    ):
-        super().__init__(data, called_directly=called_directly)
+    is_primary: bool = False
 
-        self.is_primary = data.pop('primary', False)
+    def __setattr__(self, key: str, value: Any):
+        """
+        raise PrimaryElementViolation when trying to set a primary element as unverified
+        """
+        if key == 'is_verified' and value is False and self.is_primary is True:
+            raise PrimaryElementViolation("Can't remove verified status of primary element")
 
-        ignore_data = ignore_data or []
-        leftovers = [x for x in data.keys() if x not in ignore_data]
-        if leftovers:
-            if raise_on_unknown:
-                raise UserHasUnknownData('{!s} has unknown data: {!r}'.format(self.__class__.__name__, leftovers,))
-            # Just keep everything that is left as-is
-            self._data.update(data)
+        super().__setattr__(key, value)
 
     @classmethod
-    def from_dict(
-        cls: Type[TPrimaryElementSubclass], data: Dict[str, Any], raise_on_unknown: bool = True
-    ) -> TPrimaryElementSubclass:
+    def _from_dict_transform(cls: Type[TPrimaryElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Construct primary element from a data dict.
+        Transform data received in eduid format into pythonic format.
         """
-        return cls(data=data, called_directly=False, raise_on_unknown=raise_on_unknown)
+        data = super()._from_dict_transform(data)
 
-    # -----------------------------------------------------------------
-    @property
-    def is_primary(self):
-        """
-        :return: True if this is the primary element.
-        :rtype: bool
-        """
-        try:
-            return self._data['primary']
-        except KeyError:
-            # handle init moment 22
-            return False
+        if 'primary' in data:
+            data['is_primary'] = data.pop('primary')
 
-    @is_primary.setter
-    def is_primary(self, value):
-        """
-        :param value: New verification status
-        :type value: bool
-        """
-        if not isinstance(value, bool):
-            raise UserDBValueError("Invalid 'is_primary': {!r}".format(value))
-        self._data['primary'] = value
+        return data
 
-    # -----------------------------------------------------------------
-    @property
-    def is_verified(self):
+    def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        :return: True if this is a verified element.
-        :rtype: bool
+        Transform data kept in pythonic format into eduid format.
         """
-        return VerifiedElement.is_verified.fget(self)
+        if 'is_primary' in data:
+            data['primary'] = data.pop('is_primary')
 
-    @is_verified.setter
-    def is_verified(self, value):
-        """
-        :param value: New verification status
-        :type value: bool
-        """
-        if value is False and self.is_primary:
-            raise PrimaryElementViolation("Can't remove verified status of primary element")
-        VerifiedElement.is_verified.fset(self, value)
+        data = super()._to_dict_transform(data)
+
+        return data
 
 
 class ElementList(object):
@@ -385,17 +338,13 @@ class ElementList(object):
         """
         return self._elements
 
-    def to_list_of_dicts(self, old_userdb_format=False):
+    def to_list_of_dicts(self) -> List[Dict[str, Any]]:
         """
         Get the elements in a serialized format that can be stored in MongoDB.
 
-        :param old_userdb_format: Set to True to get data back in legacy format.
-        :type old_userdb_format: bool
-
         :return: List of dicts
-        :rtype: [dict]
         """
-        return [this.to_dict(old_userdb_format=old_userdb_format) for this in self._elements]
+        return [this.to_dict() for this in self._elements]
 
     def find(self, key):
         """
@@ -638,7 +587,7 @@ def _set_something_ts(data, key, value, allow_update=False):
     if value is None:
         return
     if value is True:
-        value = datetime.datetime.utcnow()
-    if not isinstance(value, datetime.datetime):
+        value = datetime.utcnow()
+    if not isinstance(value, datetime):
         raise UserDBValueError("Invalid {!r} value: {!r}".format(key, value))
     data[key] = value

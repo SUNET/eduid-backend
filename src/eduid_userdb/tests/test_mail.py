@@ -2,12 +2,11 @@ import copy
 import datetime
 from unittest import TestCase
 
-import bson
-
 import eduid_userdb.element
 import eduid_userdb.exceptions
-from eduid_userdb.credentials import Password
+from eduid_userdb.element import Element
 from eduid_userdb.mail import MailAddress, MailAddressList
+from eduid_userdb.tests import DictTestCase
 
 __author__ = 'ft'
 
@@ -30,8 +29,9 @@ _three_dict = {
 }
 
 
-class TestMailAddressList(TestCase):
+class TestMailAddressList(DictTestCase):
     def setUp(self):
+        self.maxDiff = None
         self.empty = MailAddressList([])
         self.one = MailAddressList([_one_dict])
         self.two = MailAddressList([_one_dict, _two_dict])
@@ -47,10 +47,8 @@ class TestMailAddressList(TestCase):
 
         self.assertEqual(1, len(self.one.to_list()))
 
-    def test_to_list_of_dicts(self):
+    def test_empty_to_list_of_dicts(self):
         self.assertEqual([], self.empty.to_list_of_dicts(), list)
-
-        self.assertEqual([_one_dict], self.one.to_list_of_dicts())
 
     def test_find(self):
         match = self.one.find('ft@one.example.org')
@@ -62,7 +60,13 @@ class TestMailAddressList(TestCase):
     def test_add(self):
         second = self.two.find('ft@two.example.org')
         self.one.add(second)
-        self.assertEqual(self.one.to_list_of_dicts(), self.two.to_list_of_dicts())
+
+        expected = self.two.to_list_of_dicts()
+        obtained = self.one.to_list_of_dicts()
+
+        self.normalize_data(expected, obtained)
+
+        assert expected == obtained, 'Wrong data after adding mail address to list'
 
     def test_add_duplicate(self):
         dup = self.two.find(self.two.primary.email)
@@ -72,7 +76,13 @@ class TestMailAddressList(TestCase):
     def test_add_mailaddress(self):
         third = self.three.find('ft@three.example.org')
         this = MailAddressList([_one_dict, _two_dict, third])
-        self.assertEqual(this.to_list_of_dicts(), self.three.to_list_of_dicts())
+
+        expected = self.three.to_list_of_dicts()
+        obtained = this.to_list_of_dicts()
+
+        self.normalize_data(expected, obtained)
+
+        assert expected == obtained, 'Wrong data in mail address list'
 
     def test_add_another_primary(self):
         new = eduid_userdb.mail.address_from_dict(
@@ -82,17 +92,22 @@ class TestMailAddressList(TestCase):
             self.one.add(new)
 
     def test_add_wrong_type(self):
-        pwdict = {
-            'id': bson.ObjectId(),
-            'salt': 'foo',
+        elemdict = {
+            'created_by': 'tests',
         }
-        new = Password.from_dict(pwdict)
+        new = Element.from_dict(elemdict)
         with self.assertRaises(eduid_userdb.element.UserDBValueError):
             self.one.add(new)
 
     def test_remove(self):
         now_two = self.three.remove('ft@three.example.org')
-        self.assertEqual(self.two.to_list_of_dicts(), now_two.to_list_of_dicts())
+
+        expected = self.two.to_list_of_dicts()
+        obtained = now_two.to_list_of_dicts()
+
+        self.normalize_data(expected, obtained)
+
+        assert expected == obtained, 'Wrong data after removing email from list'
 
     def test_remove_unknown(self):
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
@@ -164,37 +179,23 @@ class TestMailAddress(TestCase):
         address = self.two.primary
         self.assertEqual(address.key, address.email)
 
-    def test_setting_invalid_mail(self):
-        this = self.one.primary
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.email = None
-
     def test_parse_cycle(self):
         """
         Tests that we output something we parsed back into the same thing we output.
         """
         for this in [self.one, self.two, self.three]:
-            this_dict = this.to_list_of_dicts()
-            self.assertEqual(MailAddressList(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
+            this_list = this.to_list_of_dicts()
 
-    def test_bad_is_primary(self):
-        this = self.one.to_list()[0]
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.is_primary = 'foo'
+            expected = this.to_list_of_dicts()
+            cycled = MailAddressList(this_list).to_list_of_dicts()
+
+            assert expected == cycled
 
     def test_unknown_input_data(self):
         one = copy.deepcopy(_one_dict)
         one['foo'] = 'bar'
-        with self.assertRaises(eduid_userdb.exceptions.UserHasUnknownData):
+        with self.assertRaises(TypeError):
             MailAddress.from_dict(one)
-
-    def test_unknown_input_data_allowed(self):
-        one = copy.deepcopy(_one_dict)
-        one['foo'] = 'bar'
-        addr = MailAddress.from_dict(data=one, raise_on_unknown=False)
-        out = addr.to_dict()
-        self.assertIn('foo', out)
-        self.assertEqual(out['foo'], one['foo'])
 
     def test_changing_is_verified_on_primary(self):
         this = self.one.primary
@@ -206,74 +207,32 @@ class TestMailAddress(TestCase):
         this.is_verified = False  # was False already
         this.is_verified = True
 
-    def test_setting_invalid_is_verified(self):
-        this = self.three.find('ft@three.example.org')
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.is_verified = 1
-
     def test_verified_by(self):
         this = self.three.find('ft@three.example.org')
         this.verified_by = 'unit test'
         self.assertEqual(this.verified_by, 'unit test')
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.verified_by = False
 
     def test_modify_verified_by(self):
         this = self.three.find('ft@three.example.org')
         this.verified_by = 'unit test'
-        this.verified_by = None
-        self.assertEqual(this.verified_by, 'unit test')
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.verified_by = False
         this.verified_by = 'test unit'
         self.assertEqual(this.verified_by, 'test unit')
 
     def test_verified_ts(self):
         this = self.three.find('ft@three.example.org')
-        this.verified_ts = True
+        this.verified_ts = datetime.datetime.utcnow()
         self.assertIsInstance(this.verified_ts, datetime.datetime)
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.verified_ts = False
 
     def test_modify_verified_ts(self):
         this = self.three.find('ft@three.example.org')
         now = datetime.datetime.utcnow()
         this.verified_ts = now
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.verified_ts = 'not a datetime'
-        this.verified_ts = True
-        self.assertGreater(this.verified_ts, now)
-        this.verified_ts = now
-        self.assertEqual(this.verified_ts, now)
 
     def test_created_by(self):
         this = self.three.find('ft@three.example.org')
         this.created_by = 'unit test'
         self.assertEqual(this.created_by, 'unit test')
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_by = False
-
-    def test_modify_created_by(self):
-        this = self.three.find('ft@three.example.org')
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_by = 1
-        this.created_by = 'unit test'
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_by = None
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_by = 'test unit'
 
     def test_created_ts(self):
         this = self.three.find('ft@three.example.org')
-        this.created_ts = True
         self.assertIsInstance(this.created_ts, datetime.datetime)
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_ts = False
-
-    def test_modify_created_ts(self):
-        this = self.three.find('ft@three.example.org')
-        this.created_ts = datetime.datetime.utcnow()
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_ts = None
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_ts = True

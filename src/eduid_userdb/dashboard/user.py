@@ -91,8 +91,8 @@ class DashboardUser(User):
         old_data = self._data.get('letter_proofing_data', [])
         self._data['letter_proofing_data'] = old_data + [data]
 
-    def to_dict(self, old_userdb_format=False):
-        res = User.to_dict(self, old_userdb_format=old_userdb_format)
+    def to_dict(self):
+        res = User.to_dict(self)
         res['terminated'] = self.terminated
         return res
 

@@ -77,7 +77,7 @@ class IdPUser(User):
 
         :return: SAML attributes
         """
-        attributes_in = self.to_dict(old_userdb_format=True)
+        attributes_in = self.to_dict()
         attributes = {}
         for approved in filter_attributes:
             if approved in attributes_in:

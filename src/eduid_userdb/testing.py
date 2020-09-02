@@ -45,7 +45,8 @@ import time
 import unittest
 from abc import ABC
 from copy import deepcopy
-from typing import Type
+from datetime import datetime
+from typing import Any, Dict, List, Tuple, Type
 
 import pymongo
 
@@ -174,7 +175,53 @@ class MongoTemporaryInstance(object):
             self._process = None
 
 
-class MongoTestCase(unittest.TestCase):
+class DictTestCase(unittest.TestCase):
+    """
+    """
+
+    maxDiff = None
+
+    @classmethod
+    def normalize_data(cls, expected: List[Dict[str, Any]], obtained: List[Dict[str, Any]]):
+        """
+        Remove timestamps that in general are created at different times
+        normalize the names of some attributes
+        remove attributes set to None
+        """
+        for elist in (expected, obtained):
+            for elem in elist:
+                cls.normalize_elem(elem)
+
+    @classmethod
+    def normalize_elem(cls, elem: Dict[str, Any]):
+        if 'created_ts' in elem:
+            assert isinstance(elem['created_ts'], datetime)
+            del elem['created_ts']
+
+        if 'modified_ts' in elem:
+            assert isinstance(elem['modified_ts'], datetime)
+            del elem['modified_ts']
+
+        if 'verified_ts' in elem:
+            if elem['verified_ts'] is not None:
+                assert isinstance(elem['verified_ts'], datetime)
+            del elem['verified_ts']
+
+        if 'application' in elem:
+            elem['created_by'] = elem.pop('application')
+
+        if 'source' in elem:
+            elem['created_by'] = elem.pop('source')
+
+        if 'credential_id' in elem:
+            elem['id'] = elem.pop('credential_id')
+
+        for key in elem:
+            if isinstance(elem[key], dict):
+                cls.normalize_elem(elem[key])
+
+
+class MongoTestCase(DictTestCase):
     """TestCase with an embedded MongoDB temporary instance.
 
     Each test runs on a temporary instance of MongoDB. The instance will
@@ -191,7 +238,7 @@ class MongoTestCase(unittest.TestCase):
     user = User.from_dict(mocked_user_standard.to_dict())
     mock_users_patches: list = []
 
-    def setUp(self, init_am=False, userdb_use_old_format=False, am_settings=None):
+    def setUp(self, init_am=False, am_settings=None):
         """
         Test case initialization.
 
@@ -210,7 +257,6 @@ class MongoTestCase(unittest.TestCase):
                     ...
 
         :param init_am: True if the test needs am
-        :param userdb_use_old_format: True if old userdb format should be used
         :param am_settings: Test specific am settings
         :return:
         """
@@ -265,7 +311,7 @@ class MongoTestCase(unittest.TestCase):
         for userdoc in _foo_userdb.all_userdocs():
             this = deepcopy(userdoc)  # deep-copy to not have side effects between tests
             user = User.from_dict(data=this)
-            self.amdb.save(user, check_sync=False, old_format=userdb_use_old_format)
+            self.amdb.save(user, check_sync=False, old_format=False)
 
     def tearDown(self):
         for userdoc in self.amdb._get_all_docs():

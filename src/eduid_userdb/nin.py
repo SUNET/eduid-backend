@@ -31,94 +31,29 @@
 #
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
+from __future__ import annotations
 
-import copy
-from datetime import datetime
-from typing import Any, Dict, Optional, Union
-
-from six import string_types
+from dataclasses import dataclass
+from typing import Any, Dict, Optional
 
 from eduid_userdb.element import PrimaryElement, PrimaryElementList
-from eduid_userdb.exceptions import UserDBValueError
 
 __author__ = 'ft'
 
 
+@dataclass
 class Nin(PrimaryElement):
     """
-    :param data: Phone number parameters from database
-    :param raise_on_unknown: Raise exception on unknown values in `data' or not.
-
-    :type data: dict
-    :type raise_on_unknown: bool
     """
 
-    def __init__(
-        self,
-        number: Optional[str] = None,
-        application: Optional[str] = None,
-        verified: bool = False,
-        created_ts: Optional[Union[datetime, bool]] = None,
-        primary: bool = False,
-        data: Optional[Dict[str, Any]] = None,
-        raise_on_unknown: bool = True,
-        called_directly: bool = True,
-    ):
-        data_in = data
-        data = copy.copy(data_in)  # to not modify callers data
+    number: Optional[str] = None
 
-        if data is None:
-            if created_ts is None:
-                created_ts = True
-            data = dict(
-                number=number, created_by=application, created_ts=created_ts, verified=verified, primary=primary,
-            )
-
-        super().__init__(data, raise_on_unknown, called_directly=called_directly, ignore_data=['number'])
-        self.number = data.pop('number')
-
-    # -----------------------------------------------------------------
     @property
-    def key(self):
+    def key(self) -> Optional[str]:
         """
         Return the element that is used as key for nin numberes in a PrimaryElementList.
         """
         return self.number
-
-    # -----------------------------------------------------------------
-    @property
-    def number(self):
-        """
-        This is the nin number.
-
-        :return: nin number.
-        :rtype: str | unicode
-        """
-        return self._data['number']
-
-    @number.setter
-    def number(self, value):
-        """
-        :param value: nin number.
-        :type value: str | unicode
-        """
-        if not isinstance(value, string_types):
-            raise UserDBValueError("Invalid 'number': {!r}".format(value))
-        self._data['number'] = str(value.lower())
-
-    # -----------------------------------------------------------------
-    def to_dict(self, old_userdb_format=False):
-        """
-        Convert Element to a dict, that can be used to reconstruct the
-        Element later.
-
-        :param old_userdb_format: Set to True to get data back in legacy format.
-        :type old_userdb_format: bool
-        """
-        if not old_userdb_format:
-            return self._data
-        old = copy.copy(self._data)
-        return old
 
 
 class NinList(PrimaryElementList):
@@ -133,14 +68,14 @@ class NinList(PrimaryElementList):
     :type nins: [dict | Nin]
     """
 
-    def __init__(self, nins, raise_on_unknown=True):
+    def __init__(self, nins):
         elements = []
 
         for this in nins:
             if isinstance(this, Nin):
                 nin = this
             else:
-                nin = nin_from_dict(this, raise_on_unknown)
+                nin = nin_from_dict(this)
             elements.append(nin)
 
         PrimaryElementList.__init__(self, elements)
@@ -172,15 +107,8 @@ class NinList(PrimaryElementList):
         PrimaryElementList.primary.fset(self, nin)
 
 
-def nin_from_dict(data, raise_on_unknown=True):
+def nin_from_dict(data: Dict[str, Any]) -> Nin:
     """
     Create a Nin instance from a dict.
-
-    :param data: Phone number parameters from database
-    :param raise_on_unknown: Raise exception on unknown values in `data' or not.
-
-    :type data: dict
-    :type raise_on_unknown: bool
-    :rtype: Nin
     """
-    return Nin.from_dict(data, raise_on_unknown=raise_on_unknown)
+    return Nin.from_dict(data)

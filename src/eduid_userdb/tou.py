@@ -32,75 +32,36 @@
 #
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
+from __future__ import annotations
 
-import copy
 import datetime
-from typing import Any, Dict, List, Optional, Union
-
-from six import string_types
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Type
 
 from eduid_userdb.event import Event, EventList
-from eduid_userdb.exceptions import BadEvent, EduIDUserDBError, UserDBValueError
+from eduid_userdb.exceptions import EduIDUserDBError, UserDBValueError
 
 
+@dataclass
 class ToUEvent(Event):
     """
     A record of a user's acceptance of a particular version of the Terms of Use.
     """
 
-    def __init__(
-        self,
-        version: Optional[str] = None,
-        application: Optional[str] = None,
-        created_ts: Optional[Union[datetime.datetime, bool]] = None,
-        modified_ts: Optional[Union[datetime.datetime, bool]] = None,
-        event_id: Optional[str] = None,
-        data: Optional[Dict[str, Any]] = None,
-        raise_on_unknown: bool = True,
-        called_directly: bool = True,
-    ):
-        data_in = data
-        data = copy.copy(data_in)  # to not modify callers data
+    created_by: str
+    version: Optional[str] = None
 
-        if data is None:
-            data = dict(
-                version=version,
-                created_by=application,
-                created_ts=created_ts,
-                modified_ts=modified_ts,
-                event_type='tou_event',
-                event_id=event_id,
-            )
-        for required in ['created_by', 'created_ts']:
-            if required not in data or not data.get(required):
-                raise BadEvent('missing required data for event: {!s}'.format(required))
-        Event.__init__(
-            self, data=data, raise_on_unknown=raise_on_unknown, called_directly=called_directly, ignore_data=['version']
-        )
-        self.version = data.pop('version')
-
-    # -----------------------------------------------------------------
-    @property
-    def version(self):
+    @classmethod
+    def _from_dict_transform(cls: Type[ToUEvent], data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        This is the version of the ToU that was accepted.
-
-        :return: ToU version.
-        :rtype: string_types
         """
-        return self._data['version']
+        data = super()._from_dict_transform(data)
 
-    @version.setter
-    def version(self, value):
-        """
-        :param value: Unique ID of event.
-        :type value: bson.ObjectId | string_types
-        """
-        if not isinstance(value, str) and not isinstance(value, string_types):
-            raise BadEvent("Invalid tou_event 'version': {!r}".format(value))
-        self._data['version'] = value
+        if 'event_type' not in data:
+            data['event_type'] = 'tou_event'
 
-    # -----------------------------------------------------------------
+        return data
+
     def is_expired(self, interval_seconds: int) -> bool:
         """
         Check whether the ToU event needs to be reaccepted.
@@ -125,11 +86,14 @@ class ToUList(EventList):
           has_accepted() is the interface to find an ToU event using a version number.
     """
 
-    def __init__(self, events, raise_on_unknown=True):
-        EventList.__init__(self, events, raise_on_unknown=raise_on_unknown, event_class=ToUEvent)
+    def __init__(self, events):
+        EventList.__init__(self, events, event_class=ToUEvent)
 
     def add(self, event: ToUEvent) -> None:
         """ Add a ToUEvent to the list. """
+        if event.version is None:
+            raise ValueError('Invalid ToUEvent without version')
+
         existing = self.find(event.version)
         if existing:
             if event.created_ts >= existing.created_ts:
