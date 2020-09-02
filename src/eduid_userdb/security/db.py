@@ -115,9 +115,9 @@ class PasswordResetStateDB(BaseDB):
     @staticmethod
     def init_state(state):
         if state.get('method') == 'email':
-            return PasswordResetEmailState(data=state)
+            return PasswordResetEmailState.from_dict(state)
         if state.get('method') == 'email_and_phone':
-            return PasswordResetEmailAndPhoneState(data=state)
+            return PasswordResetEmailAndPhoneState.from_dict(state)
 
     def save(self, state, check_sync=True):
         """
