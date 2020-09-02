@@ -32,124 +32,37 @@
 #
 # Author : Enrique Perez <enrique@cazalla.net>
 #
+from __future__ import annotations
 
-import copy
+from dataclasses import dataclass, field, asdict
+from typing import Any, Dict, Optional, Type
 
 import bson
 
-from eduid_userdb.exceptions import ActionHasUnknownData, ActionMissingData
 
-
+@dataclass
 class Action(object):
     """
     Generic eduID action object.
-
-    If the `data' argument is None (default), the Action will be created from the other
-    keyword arguments.
-
-    :param data: MongoDB document representing an action
-    :param action_id: Unique identifier for the action
-    :param eppn: User eppn
-    :param user_oid: User id
-    :param action_type: What action to perform
-    :param preference: Used to sort actions
-    :param session: IdP session identifier
-    :param params: Parameters for action
-    :param result: Result of action (return value to IdP typically)
-    :param raise_on_unknown: Raise exception on unknown data or not
-    :param old_format: Whether to use user_oid (True) or eppn (False) to identify users
-
-    :type data: dict | None
-    :type action_id: bson.ObjectId | str | None
-    :type user_oid: bson.ObjectId | str | None
-    :type eppn: str | None
-    :type action_type: str | None
-    :type preference: int | None
-    :type session: str | None
-    :type params: dict | None
-    :type result: dict | None
-    :type raise_on_unknown: bool
-    :type old_format: bool
     """
+    # eppn: User eppn
+    eppn: str
+    # action_type: What action to perform
+    action_type: str
+    # action_id: Unique identifier for the action
+    action_id: bson.ObjectId = field(default_factory=lambda: bson.ObjectId())
+    # preference: Used to sort actions
+    preference: int = 100
+    # session: IdP session identifier
+    session: str = ''
+    # params: Parameters for action
+    params: Dict[str, Any] = field(default_factory=dict)
+    # result: Result of action (return value to IdP typically)
+    result: Optional[Dict[str, Any]] = None
 
-    def __init__(
-        self,
-        action_id=None,
-        eppn=None,
-        user_oid=None,
-        action_type=None,
-        preference=None,
-        session=None,
-        params=None,
-        result=None,
-        data=None,
-        raise_on_unknown=True,
-        old_format=False,
-    ):
-        self.old_format = old_format
-        self._data_in = copy.deepcopy(data)  # to not modify callers data
-        self._data = dict()
-
-        if self._data_in is None:
-            self._data_in = dict(
-                _id=action_id,
-                action=action_type,
-                preference=preference,
-                session=session or '',
-                params=params or {},
-                result=result,
-            )
-            if old_format:
-                self._data_in['user_oid'] = user_oid
-            else:
-                self._data_in['eppn'] = eppn
-
-        self._parse_check_invalid_actions()
-
-        # ensure _id is always an ObjectId
-        _id = self._data_in.pop('_id', None)
-        if _id is None:
-            _id = bson.ObjectId()
-        elif not isinstance(_id, bson.ObjectId):
-            _id = bson.ObjectId(_id)
-
-        self.result = self._data_in.pop('result', None)
-        # things without setters
-        self._data['_id'] = _id
-        self._data['action'] = self._data_in.pop('action')
-        self._data['preference'] = self._data_in.pop('preference', 100)
-        self._data['session'] = self._data_in.pop('session', '')
-        self._data['params'] = self._data_in.pop('params', {})
-
-        if old_format:
-            user_oid = self._data_in.pop('user_oid')
-            if not isinstance(user_oid, bson.ObjectId):
-                user_oid = bson.ObjectId(user_oid)
-            self._data['user_oid'] = user_oid
-        else:
-            self._data['eppn'] = self._data_in.pop('eppn')
-
-        if len(self._data_in) > 0:
-            if raise_on_unknown:
-                raise ActionHasUnknownData(
-                    'Action {!s} unknown data: {!r}'.format(self.action_id, self._data_in.keys())
-                )
-            # Just keep everything that is left as-is
-            self._data.update(self._data_in)
-
-        del self._data_in
-
-    def _parse_check_invalid_actions(self):
-        """"
-        Part of __init__().
-
-        Check actions that can't be loaded for some known reason.
-        """
-        key = 'user_oid' if self.old_format else 'eppn'
-        if self._data_in.get(key) is None:
-            raise ActionMissingData('Action {!s} has no key {}'.format(self._data_in.get('_id'), key))
-        if self._data_in.get('action') is None:
-            raise ActionMissingData('Action {!s} has no key action'.format(self._data_in.get('_id')))
+    def __post_init__(self):
+        if isinstance(self.action_id, str):
+            self.action_id = bson.ObjectId(self.action_id)
 
     def __repr__(self):
         sess_str = ''
@@ -170,103 +83,26 @@ class Action(object):
             raise TypeError('Trying to compare objects of different class')
         return self._data == other._data
 
-    # -----------------------------------------------------------------
-    @property
-    def action_id(self):
-        """
-        Get the actions's oid in MongoDB.
-
-        :rtype: bson.ObjectId
-        """
-        return self._data['_id']
-
-    # -----------------------------------------------------------------
-    @property
-    def eppn(self):
-        """
-        Get the actions's eppn
-
-        :rtype: str
-        """
-        return self._data['eppn']
-
-    # -----------------------------------------------------------------
-    @property
-    def user_id(self):
-        """
-        Get the actions's user_oid in MongoDB.
-
-        :rtype: bson.ObjectId
-        """
-        return self._data['user_oid']
-
-    # -----------------------------------------------------------------
-    @property
-    def action_type(self):
-        """
-        Get the action type.
-
-        :rtype: str
-        """
-        return self._data.get('action')
-
-    # -----------------------------------------------------------------
-    @property
-    def session(self):
-        """
-        Get the IdP session for the action.
-
-        :rtype: str
-        """
-        return self._data.get('session')
-
-    # -----------------------------------------------------------------
-    @property
-    def preference(self):
-        """
-        Get the action preference.
-
-        :rtype: str
-        """
-        return int(self._data.get('preference'))
-
-    # -----------------------------------------------------------------
-    @property
-    def params(self) -> dict:
-        """
-        Get the action params.
-        """
-        return self._data.get('params')
-
-    # -----------------------------------------------------------------
-    @property
-    def result(self):
-        """
-        Get the action result (return value from actions to IdP typically).
-
-        :rtype: dict | None
-        """
-        return self._data.get('result')
-
-    @result.setter
-    def result(self, value):
-        """
-        :param value: result of performing action (must be serializable by database)
-        :type value: dict | None
-        """
-        if value is not None and not isinstance(value, dict):
-            raise ValueError('The result must be a dict or None')
-        self._data['result'] = value
-
-    # -----------------------------------------------------------------
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         """
         Return action data serialized into a dict that can be stored in MongoDB.
-
-        :return: Action as dict
-        :rtype: dict | None
         """
-        res = copy.deepcopy(self._data)  # avoid caller messing up our private _data
+        res = asdict(self)
+
+        res['_id'] = res.pop('action_id')
+        res['action'] = res.pop('action_type')
+
         if res['session'] == '':
             del res['session']
+
         return res
+
+    @classmethod
+    def from_dict(cls: Type[Action], data: Dict[str, Any]) -> Action:
+        """
+        Reconstruct Action object from data retrieved from the db
+        """
+        data['action_id'] = data.pop('_id')
+        data['action_type'] = data.pop('action')
+
+        return cls(**data)

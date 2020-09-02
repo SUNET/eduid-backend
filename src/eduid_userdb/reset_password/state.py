@@ -30,271 +30,95 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-import copy
+from __future__ import annotations
+
 import datetime
-from typing import Dict, Mapping, Optional, Union, cast
+from dataclasses import dataclass, field, asdict
+from typing import Any, Dict, Optional, TypeVar, Union
 
 import bson
 
-from eduid_userdb.element import _set_something_ts
-from eduid_userdb.exceptions import UserDBValueError, UserHasUnknownData
 from eduid_userdb.reset_password.element import CodeElement
 
 
+TResetPasswordStateSubclass = TypeVar('TResetPasswordStateSubclass', bound='ResetPasswordState')
+
+
+@dataclass
 class ResetPasswordState(object):
-    def __init__(self, data: dict, raise_on_unknown: bool = True):
+    """
+    """
+    eppn: str
+    id: bson.ObjectId = field(default_factory=lambda: bson.ObjectId())
+    reference: str = field(init=False)
+    method: Optional[str] = None
+    created_ts: datetime.datetime = field(default_factory=datetime.datetime.utcnow)
+    modified_ts: Optional[datetime.datetime] = None
+    extra_security: Optional[Dict[str, Any]] = None
+    generated_password: bool = False
 
-        self._data_in = copy.deepcopy(data)  # to not modify callers data
-        self._data: Dict = dict()
-
-        # things without setters
-        # _id
-        _id = self._data_in.pop('_id', None)
-        if _id is None:
-            _id = bson.ObjectId()
-        if not isinstance(_id, bson.ObjectId):
-            _id = bson.ObjectId(_id)
-        self._data['_id'] = _id
-        # eppn
-        self._data['eduPersonPrincipalName'] = self._data_in.pop('eduPersonPrincipalName')
-
-        # method
-        self._data['method'] = self._data_in.pop('method', None)
-
-        # extra security alternatives
-        self._data['extra_security'] = self._data_in.pop('extra_security', None)
-
-        # generated password
-        self._data['generated_password'] = self._data_in.pop('generated_password', False)
-
-        # meta
-        self.created_ts = self._data_in.pop('created_ts', None)
-        self.modified_ts = self._data_in.pop('modified_ts', None)
-
-        if len(self._data_in) > 0:
-            if raise_on_unknown:
-                raise UserHasUnknownData('Unknown data: {!r}'.format(self._data_in.keys()))
-            # Just keep everything that is left as-is
-            self._data.update(self._data_in)
+    def __post_init__(self):
+        self.reference = str(self.id)
 
     def __repr__(self):
         return '<eduID {!s}: {!s}>'.format(self.__class__.__name__, self.eppn)
 
-    @property
-    def id(self) -> bson.ObjectId:
-        """
-        Get state id
-        """
-        return self._data['_id']
-
-    @property
-    def reference(self) -> str:
-        """
-        Audit reference to help cross reference audit log and events
-        """
-        return f'{self.id}'
-
-    @property
-    def eppn(self) -> str:
-        """
-        Get the user's eppn
-        """
-        return self._data['eduPersonPrincipalName']
-
-    # -----------------------------------------------------------------
-    @property
-    def method(self) -> str:
-        """
-        Get the password reset method
-        """
-        return self._data['method']
-
-    @method.setter
-    def method(self, value: str):
-        """
-        Set the password reset method
-        """
-        if value is None or isinstance(value, str):
-            self._data['method'] = value
-
-    # -----------------------------------------------------------------
-    @property
-    def created_ts(self) -> datetime.datetime:
-        """
-        :return: Timestamp of element creation.
-        """
-        return cast(datetime.datetime, self._data.get('created_ts'))
-
-    @created_ts.setter
-    def created_ts(self, value: Optional[Union[datetime.datetime, bool]]):
-        """
-        :param value: Timestamp of element creation.
-                      Value None is ignored, True is short for datetime.utcnow().
-        """
-        _set_something_ts(self._data, 'created_ts', value)
-
-    # -----------------------------------------------------------------
-    @property
-    def modified_ts(self) -> Optional[Union[datetime.datetime, bool]]:
-        """
-        :return: Timestamp of last modification in the database.
-                 None if User has never been written to the database.
-        """
-        return self._data.get('modified_ts')
-
-    @modified_ts.setter
-    def modified_ts(self, value: Optional[Union[datetime.datetime, bool]]):
-        """
-        :param value: Timestamp of modification.
-                      Value None is ignored, True is short for datetime.utcnow().
-        """
-        _set_something_ts(self._data, 'modified_ts', value, allow_update=True)
-
-    @property
-    def extra_security(self) -> dict:
-        """
-        Get the extra security alternatives
-        """
-        return self._data['extra_security']
-
-    @extra_security.setter
-    def extra_security(self, value: dict):
-        """
-        :param value: dict of extra security alternatives
-        """
-        if value is None or isinstance(value, dict):
-            self._data['extra_security'] = value
-
-    @property
-    def generated_password(self) -> Optional[bool]:
-        """
-        Get whether the password was generated
-        """
-        return self._data['generated_password']
-
-    @generated_password.setter
-    def generated_password(self, value: bool):
-        """
-        :param value: is generated password
-        """
-        if value is None or isinstance(value, bool):
-            self._data['generated_password'] = value
-
     def to_dict(self) -> dict:
-        res = copy.copy(self._data)  # avoid caller messing with our _data
+        res = asdict(self)
+        res['eduPersonPrincipalName'] = res.pop('eppn')
+        res['_id'] = res.pop('id')
         return res
 
+    @classmethod
+    def from_dict(cls: TResetPasswordStateSubclass, data: Dict[str, Any]) -> TResetPasswordStateSubclass:
+        data['eppn'] = data.pop('eduPersonPrincipalName')
+        data['id'] = data.pop('_id')
+        if 'reference' in data:
+            data.pop('reference')
+        return cls(**data)
 
-class ResetPasswordEmailState(ResetPasswordState):
-    def __init__(
-        self,
-        eppn: Optional[str] = None,
-        email_address: Optional[str] = None,
-        email_code: Optional[Union[str, CodeElement]] = None,
-        created_ts: Optional[Union[bool, datetime.datetime]] = None,
-        data: Optional[Mapping] = None,
-        raise_on_unknown: bool = True,
-    ):
-        if data is None:
-            if created_ts is None:
-                created_ts = True
-            if email_address is None:
-                raise ValueError('Neither email_address nor data provided')
-            if email_code is None:
-                raise ValueError('Neither email_code nor data provided')
-            data = dict(
-                eduPersonPrincipalName=eppn, email_address=email_address, email_code=email_code, created_ts=created_ts,
-            )
 
-        self._data_in = copy.deepcopy(cast(dict, data))  # to not modify callers data
-        self._data = dict()
+@dataclass
+class _ResetPasswordEmailStateRequired:
+    """
+    """
+    email_address: str
+    email_code: Union[str, CodeElement]
 
-        mail_address: str = self._data_in.pop('email_address')
-        mail_code: str = self._data_in.pop('email_code')
 
-        ResetPasswordState.__init__(self, self._data_in, raise_on_unknown)
+@dataclass
+class ResetPasswordEmailState(ResetPasswordState, _ResetPasswordEmailStateRequired):
+    """
+    """
 
-        # things with setters
+    def __post_init__(self):
+        super().__post_init__()
         self.method = 'email'
-        self.email_address = mail_address
-        self.email_code = CodeElement.parse(application='security', code_or_element=mail_code)
-
-    @property
-    def email_address(self) -> str:
-        """
-        This is the e-mail address.
-        """
-        return self._data['email_address']
-
-    @email_address.setter
-    def email_address(self, value: str):
-        """
-        :param value: e-mail address.
-        """
-        if not isinstance(value, str):
-            raise UserDBValueError(f"Invalid 'email_address': {value}")
-        self._data['email_address'] = str(value.lower())
-
-    @property
-    def email_code(self) -> CodeElement:
-        """
-        This is the code sent out with email
-        """
-        return self._data['email_code']
-
-    @email_code.setter
-    def email_code(self, value: CodeElement):
-        """
-        :param value: Code element
-        """
-        if not isinstance(value, CodeElement):
-            raise UserDBValueError(f"Invalid 'email_code': {value}")
-        self._data['email_code'] = value
+        self.email_code = CodeElement.parse(application='security', code_or_element=self.email_code)
 
     def to_dict(self):
-        res = super(ResetPasswordEmailState, self).to_dict()
+        res = super().to_dict()
         res['email_code'] = self.email_code.to_dict()
         return res
 
 
-class ResetPasswordEmailAndPhoneState(ResetPasswordEmailState):
-    def __init__(
-        self,
-        eppn: Optional[str] = None,
-        email_address: Optional[str] = None,
-        email_code: Optional[str] = None,
-        phone_number: Optional[str] = None,
-        phone_code: Optional[str] = None,
-        created_ts: Optional[Union[datetime.datetime, bool]] = None,
-        data: Optional[Mapping] = None,
-        raise_on_unknown: bool = True,
-    ):
-        if data is None:
-            if created_ts is None:
-                created_ts = True
-            data = dict(
-                eduPersonPrincipalName=eppn,
-                email_address=email_address,
-                email_code=email_code,
-                phone_number=phone_number,
-                phone_code=phone_code,
-                created_ts=created_ts,
-            )
+@dataclass
+class _ResetPasswordEmailAndPhoneStateRequired:
+    """
+    """
+    phone_number: str
+    phone_code: Union[str, CodeElement]
 
-        self._data_in = copy.deepcopy(cast(dict, data))  # to not modify callers data
-        self._data = dict()
 
-        # phone_number
-        phone_number = cast(str, self._data_in.pop('phone_number'))
-        # phone_code
-        phone_code = cast(str, self._data_in.pop('phone_code'))
+@dataclass
+class ResetPasswordEmailAndPhoneState(ResetPasswordEmailState, _ResetPasswordEmailAndPhoneStateRequired):
+    """
+    """
 
-        ResetPasswordEmailState.__init__(self, data=self._data_in, raise_on_unknown=raise_on_unknown)
-
-        # things with setters
+    def __post_init__(self):
+        super().__post_init__()
         self.method = 'email_and_phone'
-        self.phone_number = phone_number
-        self.phone_code = CodeElement.parse(application='security', code_or_element=phone_code)
+        self.phone_code = CodeElement.parse(application='security', code_or_element=self.phone_code)
 
     @classmethod
     def from_email_state(
@@ -303,46 +127,10 @@ class ResetPasswordEmailAndPhoneState(ResetPasswordEmailState):
         data = email_state.to_dict()
         data['phone_number'] = phone_number
         data['phone_code'] = phone_code
-        return cls(data=data)
-
-    @property
-    def phone_number(self) -> str:
-        """
-        The phone number
-        """
-        return self._data['phone_number']
-
-    @phone_number.setter
-    def phone_number(self, value: str):
-        """
-        :param value: phone number
-        """
-        if value is None:
-            return
-        if not isinstance(value, str):
-            raise UserDBValueError(f"Invalid 'phone_number': {value}")
-        self._data['phone_number'] = value
-
-    @property
-    def phone_code(self) -> CodeElement:
-        """
-        This is the code sent out with sms
-        """
-        return self._data['phone_code']
-
-    @phone_code.setter
-    def phone_code(self, value: CodeElement):
-        """
-        :param value: Code element
-        """
-        if value is None:
-            return
-        if not isinstance(value, CodeElement):
-            raise UserDBValueError("Invalid 'phone_code': {!r}".format(value))
-        self._data['phone_code'] = value
+        return cls.from_dict(data=data)
 
     def to_dict(self) -> dict:
-        res = super(ResetPasswordEmailAndPhoneState, self).to_dict()
-        if self._data.get('phone_code'):
+        res = super().to_dict()
+        if self.phone_code:
             res['phone_code'] = self.phone_code.to_dict()
         return res
