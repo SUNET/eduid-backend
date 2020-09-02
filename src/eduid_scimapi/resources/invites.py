@@ -66,7 +66,7 @@ class InvitesResource(SCIMResource):
         meta = Meta(
             location=location,
             last_modified=db_invite.last_modified,
-            resource_type=SCIMResourceType.user,
+            resource_type=SCIMResourceType.INVITE,
             created=db_invite.created,
             version=db_invite.version,
         )

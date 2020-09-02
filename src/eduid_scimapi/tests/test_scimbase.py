@@ -15,7 +15,7 @@ class TestScimBase(TestCase):
     def test_meta(self) -> None:
         meta = Meta(
             location='http://example.org/group/some-id',
-            resource_type=SCIMResourceType.group,
+            resource_type=SCIMResourceType.GROUP,
             created=datetime.utcnow(),
             last_modified=datetime.utcnow(),
             version=ObjectId(),
@@ -28,7 +28,7 @@ class TestScimBase(TestCase):
     def test_base_response(self) -> None:
         meta = Meta(
             location='http://example.org/group/some-id',
-            resource_type=SCIMResourceType.group,
+            resource_type=SCIMResourceType.GROUP,
             created=datetime.utcnow(),
             last_modified=datetime.utcnow(),
             version=ObjectId(),

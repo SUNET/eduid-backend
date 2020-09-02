@@ -87,15 +87,24 @@ SCIMSchemaValue = NewType('SCIMSchemaValue', Enum, field=EnumField, enum=SCIMSch
 
 
 class SCIMResourceType(Enum):
-    user = 'User'
-    group = 'Group'
-    invite = 'Invite'
+    USER = 'User'
+    GROUP = 'Group'
+    INVITE = 'Invite'
 
 
 class EmailType(Enum):
-    home = 'home'
-    work = 'work'
-    other = 'other'
+    HOME = 'home'
+    WORK = 'work'
+    OTHER = 'other'
+
+
+class PhoneNumberType(Enum):
+    HOME = 'home'
+    WORK = 'work'
+    OTHER = 'other'
+    MOBILE = 'mobile'
+    FAX = 'fax'
+    PAGER = 'pager'
 
 
 @dataclass(eq=True, frozen=True)

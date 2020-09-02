@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import logging
 import uuid
 from dataclasses import asdict, dataclass, field
@@ -54,7 +55,7 @@ class ScimApiUser(object):
 
     @classmethod
     def from_dict(cls: Type[ScimApiUser], data: Mapping[str, Any]) -> ScimApiUser:
-        this = dict(data)
+        this = dict(copy.copy(data))  # to not modify callers data
         this['scim_id'] = uuid.UUID(this['scim_id'])
         this['user_id'] = this.pop('_id')
         parsed_profiles = {}

@@ -48,7 +48,7 @@ class UsersResource(SCIMResource):
         meta = Meta(
             location=location,
             last_modified=db_user.last_modified,
-            resource_type=SCIMResourceType.user,
+            resource_type=SCIMResourceType.USER,
             created=db_user.created,
             version=db_user.version,
         )

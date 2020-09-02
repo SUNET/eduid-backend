@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import logging
 import uuid
 from dataclasses import asdict, dataclass, field
@@ -40,7 +41,7 @@ class ScimApiInvite:
 
     @classmethod
     def from_dict(cls: Type[ScimApiInvite], data: Mapping[str, Any]) -> ScimApiInvite:
-        this = dict(data)
+        this = dict(copy.copy(data))  # to not modify callers data
         this['scim_id'] = uuid.UUID(this['scim_id'])
         this['invite_id'] = this.pop('_id')
         for email in this['emails']:

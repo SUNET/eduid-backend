@@ -22,4 +22,4 @@ class ScimApiConfig(BaseConfig):
     data_owners: List[str] = field(default_factory=lambda: ['eduid.se'])
     # Invite config
     invite_url: str = ''
-    invite_expire: int = 15552000  # 180 days
+    invite_expire: int = 180 * 86400  # 180 days
