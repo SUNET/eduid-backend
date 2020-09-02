@@ -138,14 +138,6 @@ class UserHasNotCompletedSignup(EduIDUserDBError):
     pass
 
 
-class ActionMissingData(EduIDUserDBError):
-    """
-    There is missing data for an Action
-    """
-
-    pass
-
-
 class ActionDBError(EduIDUserDBError):
     """
     There was an actions-database related error
@@ -157,14 +149,6 @@ class ActionDBError(EduIDUserDBError):
 class BadEvent(EduIDUserDBError):
     """
     General error in Event processing.
-    """
-
-    pass
-
-
-class ActionHasUnknownData(EduIDUserDBError):
-    """
-    One or more elements of the action could not be interpreted.
     """
 
     pass

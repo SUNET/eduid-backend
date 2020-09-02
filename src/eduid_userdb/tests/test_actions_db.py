@@ -113,39 +113,3 @@ class TestActionsDB(MongoTestCase):
         self.actionsdb.update_action(action)
         # Saving a result on the action should make get_next_action advance to the next one
         next_action = self.actionsdb.get_next_action(EPPN3)
-
-
-class TestActionsDBUserid(MongoTestCase):
-    def setUp(self):
-        super(TestActionsDBUserid, self).setUp(None, None)
-        self.actionsdb = ActionDB(self.tmp_db.uri)
-        self.actionsdb.add_action(data=TOU_ACTION_USERID)
-        self.actionsdb.add_action(data=DUMMY_ACTION_USERID)
-
-    def tearDown(self):
-        self.actionsdb._drop_whole_collection()
-
-    def test_remove_action_userid(self):
-        self.actionsdb.remove_action_by_id(DUMMY_ACTION_USERID['_id'])
-        next_action = self.actionsdb.get_next_action(USERID3)
-        self.assertEqual(next_action.action_type, 'tou')
-        self.actionsdb.remove_action_by_id(next_action.action_id)
-        next_action = self.actionsdb.get_next_action(USERID3)
-        self.assertEqual(next_action, None)
-
-    def test_has_actions_userid(self):
-        self.assertTrue(self.actionsdb.has_actions(eppn_or_userid=USERID3))
-        self.assertFalse(self.actionsdb.has_actions(eppn_or_userid=USERID4))
-        self.assertTrue(self.actionsdb.has_actions(eppn_or_userid=USERID3, session='xzf'))
-        self.assertTrue(self.actionsdb.has_actions(eppn_or_userid=USERID3, params={'version': 'test-version'}))
-        self.assertFalse(self.actionsdb.has_actions(eppn_or_userid=USERID3, params={'version': 'WRONG'}))
-        self.assertTrue(
-            self.actionsdb.has_actions(eppn_or_userid=USERID3, action_type='tou', params={'version': 'test-version'})
-        )
-
-    def test_update_action_with_result_userid(self):
-        action = self.actionsdb.get_next_action(USERID3)
-        action.result = {'test': True}
-        self.actionsdb.update_action(action)
-        # Saving a result on the action should make get_next_action advance to the next one
-        next_action = self.actionsdb.get_next_action(USERID3)

@@ -34,6 +34,7 @@
 #
 from __future__ import annotations
 
+from copy import copy
 from dataclasses import dataclass, field, asdict
 from typing import Any, Dict, Optional, Type
 
@@ -71,9 +72,8 @@ class Action(object):
         res_str = ''
         if self.result:
             res_str = ', result={}'.format(self.result)
-        key = 'user_id' if self.old_format else 'eppn'
         return '<eduID {!s}: {}: {} for user {}{}{}>'.format(
-            self.__class__.__name__, self.action_id, self.action_type, getattr(self, key), sess_str, res_str
+            self.__class__.__name__, self.action_id, self.action_type, self.eppn, sess_str, res_str
         )
 
     __str__ = __repr__
@@ -81,7 +81,7 @@ class Action(object):
     def __eq__(self, other):
         if self.__class__ is not other.__class__:
             raise TypeError('Trying to compare objects of different class')
-        return self._data == other._data
+        return self.to_dict() == other.to_dict()
 
     def to_dict(self) -> Dict[str, Any]:
         """
@@ -102,7 +102,11 @@ class Action(object):
         """
         Reconstruct Action object from data retrieved from the db
         """
-        data['action_id'] = data.pop('_id')
-        data['action_type'] = data.pop('action')
+        _data = copy(data)  # to not modify caller's data
 
-        return cls(**data)
+        if '_id' in _data:
+            _data['action_id'] = _data.pop('_id')
+        if 'action' in data:
+            _data['action_type'] = _data.pop('action')
+
+        return cls(**_data)
