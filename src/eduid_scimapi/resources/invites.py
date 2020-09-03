@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
-from dataclasses import replace
-from datetime import datetime, timedelta
+from dataclasses import asdict, replace
+from datetime import datetime, timedelta, timezone
 
 from falcon import Request, Response
 from marshmallow import ValidationError
 
-from eduid_common.api.utils import get_short_hash, get_unique_hash
-from eduid_userdb.mail import MailAddress, MailAddressList
 from eduid_userdb.signup import Invite as SignupInvite
-from eduid_userdb.signup import InviteType, SCIMReference
+from eduid_userdb.signup import InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
 
+from eduid_scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
 from eduid_scimapi.db.invitedb import ScimApiInvite
 from eduid_scimapi.exceptions import BadRequest
 from eduid_scimapi.middleware import ctx_invitedb
@@ -19,10 +18,10 @@ from eduid_scimapi.schemas.invite import (
     InviteCreateRequestSchema,
     InviteResponse,
     InviteResponseSchema,
-    NutidInviteExtensionV1,
 )
 from eduid_scimapi.schemas.scimbase import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
-from eduid_scimapi.utils import make_etag
+from eduid_scimapi.schemas.user import NutidUserExtensionV1, Profile
+from eduid_scimapi.utils import get_short_hash, get_unique_hash, make_etag
 
 __author__ = 'lundberg'
 
@@ -33,16 +32,18 @@ class InvitesResource(SCIMResource):
     ) -> SignupInvite:
         invite_reference = SCIMReference(data_owner=req.context['data_owner'], scim_id=db_invite.scim_id)
 
-        if create_request.nutid_invite_v1.send_email is False:
+        if create_request.send_email is False:
             # Generate a shorter code if the code will reach the invitee on paper or other analog media
             invite_code = get_short_hash()
-            mail_address_list = None
         else:
             invite_code = get_unique_hash()
-            addresses = []
-            for email in create_request.emails:
-                addresses.append(MailAddress(email=email.value, application='eduid-scimapi', primary=email.primary))
-            mail_address_list = MailAddressList(addresses)
+
+        mails_addresses = [
+            InviteMailAddress(email=email.value, primary=email.primary) for email in create_request.emails
+        ]
+        phone_numbers = [
+            InvitePhoneNumber(number=number.value, primary=number.primary) for number in create_request.phone_numbers
+        ]
 
         signup_invite = SignupInvite(
             invite_code=invite_code,
@@ -51,9 +52,11 @@ class InvitesResource(SCIMResource):
             display_name=create_request.name.formatted,
             given_name=create_request.name.givenName,
             surname=create_request.name.familyName,
-            send_email=create_request.nutid_invite_v1.send_email,
-            mail_addresses=mail_address_list,
-            finish_url=create_request.nutid_invite_v1.finish_url,
+            nin=create_request.national_identity_number,
+            send_email=create_request.send_email,
+            mail_addresses=mails_addresses,
+            phone_numbers=phone_numbers,
+            finish_url=create_request.finish_url,
             expires_at=datetime.utcnow() + timedelta(seconds=self.context.config.invite_expire),
         )
         return signup_invite
@@ -70,28 +73,29 @@ class InvitesResource(SCIMResource):
             version=db_invite.version,
         )
 
-        schemas = [SCIMSchema.CORE_20_USER, SCIMSchema.NUTID_USER_V1, SCIMSchema.NUTID_INVITE_V1]
+        schemas = [SCIMSchema.NUTID_INVITE_V1, SCIMSchema.NUTID_USER_V1]
+        _profiles = {k: Profile(attributes=v.attributes, data=v.data) for k, v in db_invite.profiles.items()}
         invite = InviteResponse(
             id=db_invite.scim_id,
             external_id=db_invite.external_id,
-            name=Name(**db_invite.name.to_dict()),
-            emails=[Email(**email.to_dict()) for email in db_invite.emails],
-            phone_numbers=[PhoneNumber(**number.to_dict()) for number in db_invite.phone_numbers],
+            name=Name(**asdict(db_invite.name)),
+            emails=[Email(**asdict(email)) for email in db_invite.emails],
+            phone_numbers=[PhoneNumber(**asdict(number)) for number in db_invite.phone_numbers],
+            national_identity_number=db_invite.nin,
+            preferred_language=db_invite.preferred_language,
             meta=meta,
             schemas=list(schemas),  # extra list() needed to work with _both_ mypy and marshmallow
-            nutid_invite_v1=NutidInviteExtensionV1(
-                send_email=signup_invite.send_email,
-                finish_url=signup_invite.finish_url,
-                completed=db_invite.completed,
-                expires_at=signup_invite.expires_at,
-            ),
+            send_email=signup_invite.send_email,
+            finish_url=signup_invite.finish_url,
+            completed=db_invite.completed,
+            expires_at=signup_invite.expires_at,
+            nutid_user_v1=NutidUserExtensionV1(profiles=_profiles),
         )
 
         # Only add invite url in response if no email should be sent to the invitee
         if signup_invite.send_email is False:
             invite_url = f'{self.context.config.invite_url}/{signup_invite.invite_code}'
-            nutid_invite_v1 = replace(invite.nutid_invite_v1, invite_url=invite_url)
-            invite = replace(invite, nutid_invite_v1=nutid_invite_v1)
+            invite = replace(invite, invite_url=invite_url)
 
         resp.set_header("Location", location)
         resp.set_header("ETag", make_etag(db_invite.version))
@@ -106,49 +110,41 @@ class InvitesResource(SCIMResource):
                Authorization: Bearer h480djs93hd8
                Content-Length: ...
 
-               {
-                 "schemas":["urn:ietf:params:scim:schemas:core:2.0:User"],
-                 "name":{
-                   "formatted":"Ms. Barbara J Jensen III",
-                   "familyName":"Jensen",
-                   "givenName":"Barbara"
-                 },
-                 "emails":[
-                   {
-                       "value":"bjensen@example.com"
-                   }
-                 ],
-               }
-
-
-               HTTP/1.1 201 Created
-               Content-Type: application/scim+json
-               Location:
-                https://example.com/v2/Invites/2819c223-7f76-453a-919d-413861904646
-               ETag: W/"e180ee84f0671b1"
-
-               {
-                 "schemas":["urn:ietf:params:scim:schemas:core:2.0:User"],
-                 "id":"2819c223-7f76-453a-919d-413861904646",
-                 "externalId":"bjensen",
-                 "meta":{
-                   "resourceType":"Invite",
-                   "created":"2011-08-01T21:32:44.882Z",
-                   "lastModified":"2011-08-01T21:32:44.882Z",
-                   "location": "https://example.com/v2/Invites/2819c223-7f76-453a-919d-413861904646",
-                   "version":"W\/\"e180ee84f0671b1\""
-                 },
-                 "name":{
-                   "formatted":"Ms. Barbara J Jensen III",
-                   "familyName":"Jensen",
-                   "givenName":"Barbara"
-                 },
-                 "emails":[
-                   {
-                       "value":"bjensen@example.com"
-                   }
-                 ],
-               }
+                {
+                    'schemas': ['https://scim.eduid.se/schema/nutid/invite/v1',
+                                'https://scim.eduid.se/schema/nutid/user/v1'],
+                    'expires_at': '2021-03-02T14:35:52',
+                    'groups': [],
+                    'phoneNumbers': [
+                        {'type': 'fax', 'value': 'tel:+461234567', 'primary': True},
+                        {'type': 'home', 'value': 'tel:+5-555-555-5555', 'primary': False},
+                    ],
+                    'meta': {
+                        'location': 'http://localhost:8000/Invites/fb96a6d0-1837-4c3b-9945-4249c476875c',
+                        'resourceType': 'Invite',
+                        'created': '2020-09-03T14:35:52.381881',
+                        'version': 'W/"5f50ff48df3ce45b48394eb2"',
+                        'lastModified': '2020-09-03T14:35:52.388959',
+                    },
+                    'nationalIdentityNumber': '190102031234',
+                    'id': 'fb96a6d0-1837-4c3b-9945-4249c476875c',
+                    'preferred_language': 'se-SV',
+                    'sendEmail': True,
+                    'name': {
+                        'familyName': 'Testsson',
+                        'middleName': 'Testaren',
+                        'formatted': 'Test T. Testsson',
+                        'givenName': 'Test',
+                    },
+                    'finishURL': 'https://finish.example.com',
+                    'https://scim.eduid.se/schema/nutid/user/v1': {
+                        'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}}
+                    },
+                    'emails': [
+                        {'type': 'other', 'value': 'johnsmith@example.com', 'primary': True},
+                        {'type': 'home', 'value': 'johnsmith2@example.com', 'primary': False},
+                    ],
+                }
         """
         self.context.logger.info(f'Creating invite')
         try:
@@ -157,7 +153,18 @@ class InvitesResource(SCIMResource):
         except ValidationError as e:
             raise BadRequest(detail=f"{e}")
 
-        db_invite = ScimApiInvite(name=create_request.name, emails=create_request.emails,)
+        profiles = {}
+        for profile_name, profile in create_request.nutid_user_v1.profiles.items():
+            profiles[profile_name] = ScimApiProfile(attributes=profile.attributes, data=profile.data)
+
+        db_invite = ScimApiInvite(
+            name=ScimApiName(**asdict(create_request.name)),
+            emails=[ScimApiEmail(**asdict(email)) for email in create_request.emails],
+            phone_numbers=[ScimApiPhoneNumber(**asdict(number)) for number in create_request.phone_numbers],
+            nin=create_request.national_identity_number,
+            preferred_language=create_request.preferred_language,
+            profiles=profiles,
+        )
         signup_invite = self._create_signup_invite(req, resp, create_request, db_invite)
         self.context.signup_invitedb.save(signup_invite)
         ctx_invitedb(req).save(db_invite)

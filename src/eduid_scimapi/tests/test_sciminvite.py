@@ -12,9 +12,10 @@ from bson import ObjectId
 from eduid_userdb.signup import Invite as SignupInvite
 from eduid_userdb.signup import InviteMailAddress, InviteType, SCIMReference
 
+from eduid_scimapi.db.common import ScimApiProfile
 from eduid_scimapi.db.invitedb import ScimApiInvite
-from eduid_scimapi.schemas.invite import InviteResponse, InviteResponseSchema, NutidInviteExtensionV1
-from eduid_scimapi.schemas.scimbase import Meta, SCIMResourceType, SCIMSchema
+from eduid_scimapi.schemas.invite import InviteResponse, InviteResponseSchema, NutidInviteV1
+from eduid_scimapi.schemas.scimbase import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
 from eduid_scimapi.schemas.user import NutidUserExtensionV1
 from eduid_scimapi.testing import ScimApiTestCase
 
@@ -90,19 +91,17 @@ class TestScimInvite(unittest.TestCase):
         invite_response = InviteResponse(
             id=db_invite.scim_id,
             meta=meta,
-            schemas=[SCIMSchema.CORE_20_USER, SCIMSchema.NUTID_USER_V1, SCIMSchema.NUTID_INVITE_V1],
+            schemas=[SCIMSchema.NUTID_INVITE_V1, SCIMSchema.NUTID_USER_V1],
             external_id=db_invite.external_id,
-            name=db_invite.name,
-            emails=db_invite.emails,
-            phone_numbers=db_invite.phone_numbers,
+            name=Name(**asdict(db_invite.name)),
+            emails=[Email(**asdict(email)) for email in db_invite.emails],
+            phone_numbers=[PhoneNumber(**asdict(number)) for number in db_invite.phone_numbers],
             preferred_language=db_invite.preferred_language,
-            nutid_invite_v1=NutidInviteExtensionV1(
-                send_email=signup_invite.send_email,
-                finish_url=signup_invite.finish_url,
-                invite_url=f"https://signup.eduid.se/invitation/scim/{signup_invite.invite_code}",
-                completed=db_invite.completed,
-                expires_at=signup_invite.expires_at,
-            ),
+            send_email=signup_invite.send_email,
+            finish_url=signup_invite.finish_url,
+            invite_url=f'https://signup.eduid.se/invitation/scim/{signup_invite.invite_code}',
+            completed=db_invite.completed,
+            expires_at=signup_invite.expires_at,
             nutid_user_v1=NutidUserExtensionV1(profiles=db_invite.profiles),
         )
 
@@ -111,11 +110,7 @@ class TestScimInvite(unittest.TestCase):
         InviteResponseSchema().loads(scim)
 
         expected = {
-            'schemas': [
-                'urn:ietf:params:scim:schemas:core:2.0:User',
-                SCIMSchema.NUTID_USER_V1.value,
-                SCIMSchema.NUTID_INVITE_V1.value,
-            ],
+            'schemas': [SCIMSchema.NUTID_INVITE_V1.value, SCIMSchema.NUTID_USER_V1.value],
             'emails': [
                 {'primary': True, 'type': 'other', 'value': 'johnsmith@example.com'},
                 {'primary': False, 'type': 'home', 'value': 'johnsmith2@example.com'},
@@ -123,12 +118,10 @@ class TestScimInvite(unittest.TestCase):
             'externalId': 'hubba-bubba@eduid.se',
             'id': '9784e1bf-231b-4eb8-b315-52eb46dd7c4b',
             'groups': [],
-            SCIMSchema.NUTID_INVITE_V1.value: {
-                "expires_at": "2020-08-23T15:52:59+0000",
-                "finishURL": "https://finish.example.com",
-                "inviteURL": "https://signup.eduid.se/invitation/scim/abc123",
-                "sendEmail": True,
-            },
+            'expires_at': '2020-08-23T15:52:59+0000',
+            'finishURL': 'https://finish.example.com',
+            'inviteURL': 'https://signup.eduid.se/invitation/scim/abc123',
+            'sendEmail': True,
             SCIMSchema.NUTID_USER_V1.value: {
                 'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}}
             },
@@ -159,7 +152,7 @@ class TestInviteResource(ScimApiTestCase):
         super().setUp()
 
     def add_invite(
-        self, identifier: str, extension: Optional[Dict[str, NutidInviteExtensionV1]] = None
+        self, identifier: str, extension: Optional[Dict[str, ScimApiProfile]] = None
     ) -> Optional[ScimApiInvite]:
         invite = ScimApiInvite(scim_id=identifier,)
         self.invite_doc1 = {
@@ -185,8 +178,8 @@ class TestInviteResource(ScimApiTestCase):
         self.invitedb.save(invite)
         return self.invitedb.get_invite_by_scim_id(scim_id=identifier)
 
-    def _assertUserUpdateSuccess(self, req: Mapping, response):
-        """ Function to validate successful responses to SCIM calls that update a group according to a request. """
+    def _assertUpdateUpdateSuccess(self, req: Mapping, response):
+        """ Function to validate successful responses to SCIM calls that update an invite according to a request. """
         if response.json.get('schemas') == [SCIMSchema.ERROR.value]:
             self.fail(f'Got SCIM error response ({response.status}):\n{response.json}')
 
@@ -218,13 +211,33 @@ class TestInviteResource(ScimApiTestCase):
     #    resources = response.json.get('Resources')
     #    self.assertEqual(self.userdb.db_count(), len(resources))
 
-    def test_get_invite(self):
-        db_user = self.add_invite(
-            identifier=str(uuid4()), external_id='test-id-1', profiles={'test': self.test_profile}
-        )
-        response = self.client.simulate_get(path=f'/Users/{db_user.scim_id}', headers=self.headers)
+    def test_create_invite(self):
 
-        _req = {
-            SCIMSchema.NUTID_USER_V1.value: {'profiles': {'test': asdict(self.test_profile)}},
+        req = {
+            'schemas': [SCIMSchema.NUTID_INVITE_V1.value, SCIMSchema.NUTID_USER_V1.value],
+            'name': {
+                'familyName': 'Testsson',
+                'formatted': 'Test T. Testsson',
+                'givenName': 'Test',
+                'middleName': 'Testaren',
+            },
+            'emails': [
+                {'primary': True, 'type': 'other', 'value': 'johnsmith@example.com'},
+                {'primary': False, 'type': 'home', 'value': 'johnsmith2@example.com'},
+            ],
+            'phoneNumbers': [
+                {'primary': True, 'type': 'fax', 'value': 'tel:+461234567'},
+                {'primary': False, 'type': 'home', 'value': 'tel:+5-555-555-5555'},
+            ],
+            'nationalIdentityNumber': '190102031234',
+            'preferred_language': 'se-SV',
+            'groups': ['9784e1bf-231b-4eb8-b315-52eb46dd7c4b'],
+            'finishURL': 'https://finish.example.com',
+            'sendEmail': True,
+            SCIMSchema.NUTID_USER_V1.value: {
+                'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}}
+            },
         }
-        self._assertUserUpdateSuccess(_req, response, db_user)
+
+        response = self.client.simulate_post(path=f'/Invites/', body=self.as_json(req), headers=self.headers)
+        assert response is not None

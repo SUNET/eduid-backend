@@ -65,6 +65,7 @@ class HandleAuthentication(object):
             req.context['data_owner'] = 'eduid.se'
             req.context['userdb'] = self.context.get_userdb(req.context['data_owner'])
             req.context['groupdb'] = self.context.get_groupdb(req.context['data_owner'])
+            req.context['invitedb'] = self.context.get_invitedb(req.context['data_owner'])
             return
 
         token = req.auth[len('Bearer ') :]
@@ -80,8 +81,9 @@ class HandleAuthentication(object):
             raise Unauthorized(detail='Unknown data_owner')
 
         req.context['data_owner'] = data_owner
-        req.context['userdb'] = self.context.get_userdb(data_owner)
+        req.context['userdb'] = self.context.get_userdb(req.context['data_owner'])
         req.context['groupdb'] = self.context.get_groupdb(req.context['data_owner'])
+        req.context['invitedb'] = self.context.get_invitedb(req.context['data_owner'])
 
         self.context.logger.debug(f'Bearer token data owner: {data_owner}')
 
