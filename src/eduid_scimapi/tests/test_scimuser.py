@@ -9,11 +9,10 @@ from uuid import uuid4
 
 import bson
 from bson import ObjectId
-from marshmallow_dataclass import class_schema
 
 from eduid_scimapi.db.userdb import Profile, ScimApiUser
 from eduid_scimapi.schemas.scimbase import Meta, SCIMResourceType, SCIMSchema
-from eduid_scimapi.schemas.user import NutidExtensionV1, UserResponse, UserResponseSchema
+from eduid_scimapi.schemas.user import NutidUserExtensionV1, UserResponse, UserResponseSchema
 from eduid_scimapi.testing import ScimApiTestCase
 from eduid_scimapi.utils import make_etag
 
@@ -27,6 +26,21 @@ class TestScimUser(unittest.TestCase):
             "_id": ObjectId("5e5542db34a4cf8015e62ac8"),
             "scim_id": "9784e1bf-231b-4eb8-b315-52eb46dd7c4b",
             "external_id": "hubba-bubba@eduid.se",
+            "name": {
+                "givenName": "Test",
+                "familyName": "Testsson",
+                "middleName": "Testaren",
+                "formatted": "Test T. Testsson",
+            },
+            "emails": [
+                {"value": "johnsmith@example.com", "type": "other", "primary": True},
+                {"value": "johnsmith2@example.com", "type": "home", "primary": False},
+            ],
+            "phone_numbers": [
+                {"value": "tel:+461234567", "type": "fax", "primary": True},
+                {"value": "tel:+5-555-555-5555", "type": "home", "primary": False},
+            ],
+            "preferred_language": "se-SV",
             "version": ObjectId("5e5e6829f86abf66d341d4a2"),
             "created": datetime.fromisoformat("2020-02-25T15:52:59.745"),
             "last_modified": datetime.fromisoformat("2020-02-25T15:52:59.745"),
@@ -45,7 +59,7 @@ class TestScimUser(unittest.TestCase):
         db_user = ScimApiUser.from_dict(self.user_doc1)
         meta = Meta(
             location=f'http://example.org/Users/{db_user.scim_id}',
-            resource_type=SCIMResourceType.user,
+            resource_type=SCIMResourceType.USER,
             created=db_user.created,
             last_modified=db_user.last_modified,
             version=db_user.version,
@@ -57,13 +71,22 @@ class TestScimUser(unittest.TestCase):
             schemas=[SCIMSchema.CORE_20_USER, SCIMSchema.NUTID_USER_V1],
             external_id=db_user.external_id,
             groups=[],
-            nutid_v1=NutidExtensionV1(profiles=db_user.profiles),
+            emails=db_user.emails,
+            phone_numbers=db_user.phone_numbers,
+            name=db_user.name,
+            nutid_user_v1=NutidUserExtensionV1(profiles=db_user.profiles),
         )
-        schema = class_schema(UserResponse)
-        scim = schema().dumps(user_response, sort_keys=True)
+
+        scim = UserResponseSchema().dumps(user_response, sort_keys=True)
+        # Validation does not occur on serialization
+        UserResponseSchema().loads(scim)
 
         expected = {
             'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User', SCIMSchema.NUTID_USER_V1.value],
+            'emails': [
+                {'primary': True, 'type': 'other', 'value': 'johnsmith@example.com'},
+                {'primary': False, 'type': 'home', 'value': 'johnsmith2@example.com'},
+            ],
             'externalId': 'hubba-bubba@eduid.se',
             'id': '9784e1bf-231b-4eb8-b315-52eb46dd7c4b',
             'groups': [],
@@ -77,6 +100,16 @@ class TestScimUser(unittest.TestCase):
                 'resourceType': 'User',
                 'version': 'W/"5e5e6829f86abf66d341d4a2"',
             },
+            'name': {
+                'familyName': 'Testsson',
+                'formatted': 'Test T. Testsson',
+                'givenName': 'Test',
+                'middleName': 'Testaren',
+            },
+            'phoneNumbers': [
+                {'primary': True, 'type': 'fax', 'value': 'tel:+461234567'},
+                {'primary': False, 'type': 'home', 'value': 'tel:+5-555-555-5555'},
+            ],
         }
         self.assertDictEqual(expected, json.loads(scim))
 
@@ -93,7 +126,7 @@ class TestScimUser(unittest.TestCase):
 
         meta = Meta(
             location=f'http://example.org/Users/{db_user.scim_id}',
-            resource_type=SCIMResourceType.user,
+            resource_type=SCIMResourceType.USER,
             created=db_user.created,
             last_modified=db_user.last_modified,
             version=db_user.version,
@@ -105,13 +138,16 @@ class TestScimUser(unittest.TestCase):
             schemas=[SCIMSchema.CORE_20_USER, SCIMSchema.NUTID_USER_V1],
             external_id=db_user.external_id,
             groups=[],
-            nutid_v1=NutidExtensionV1(profiles=db_user.profiles),
+            nutid_user_v1=NutidUserExtensionV1(profiles=db_user.profiles),
         )
+
         scim = UserResponseSchema().dumps(user_response)
+        UserResponseSchema().validate(scim)
 
         expected = {
             'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User', SCIMSchema.NUTID_USER_V1.value],
             'id': 'a7851d21-eab9-4caa-ba5d-49653d65c452',
+            'emails': [],
             'groups': [],
             SCIMSchema.NUTID_USER_V1.value: {'profiles': {'student': {'attributes': {}, 'data': {}}}},
             'meta': {
@@ -121,6 +157,8 @@ class TestScimUser(unittest.TestCase):
                 'resourceType': 'User',
                 'version': 'W/"5e81c5f849ac2cd87580e502"',
             },
+            'name': {},
+            'phoneNumbers': [],
         }
         self.assertDictEqual(expected, json.loads(scim))
 

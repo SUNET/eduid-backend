@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -8,13 +8,25 @@ from uuid import UUID
 
 from bson import ObjectId
 from bson.errors import InvalidId
-from marshmallow import Schema, ValidationError, fields, missing, post_dump, validate
+from langcodes import standardize_tag
+from marshmallow import Schema, ValidationError, fields, missing, post_dump, pre_load, validate
 from marshmallow_dataclass import NewType, class_schema
 from marshmallow_enum import EnumField
 
 from eduid_scimapi.utils import make_etag
 
 __author__ = 'lundberg'
+
+# https://snipplr.com/view/11540/regex-for-tel-uris
+PHONE_NUMBER_RFC_3966 = re.compile(
+    r'''^tel:((?:\+[\d().-]*\d[\d().-]*|[0-9A-F*#().-]*[0-9A-F*#][0-9A-F*#().-]*(?:
+    ;[a-z\d-]+(?:=(?:[a-z\d\[\]/:&+$_!~*'().-]|%[\dA-F]{2})+)?)*;phone-context=(?:\+[\d().-]*\d[\d().-]*|
+    (?:[a-z0-9]\.|[a-z0-9][a-z0-9-]*[a-z0-9]\.)*(?:[a-z]|[a-z][a-z0-9-]*[a-z0-9])))(?:;[a-z\d-]+(?:=
+    (?:[a-z\d\[\]/:&+$_!~*'().-]|%[\dA-F]{2})+)?)*(?:,(?:\+[\d().-]*\d[\d().-]*|[0-9A-F*#().-]*[0-9A-F*#]
+    [0-9A-F*#().-]*(?:;[a-z\d-]+(?:=(?:[a-z\d\[\]/:&+$_!~*'().-]|%[\dA-F]{2})+)?)*;phone-context=\+[\d().-]*
+    \d[\d().-]*)(?:;[a-z\d-]+(?:=(?:[a-z\d\[\]/:&+$_!~*'().-]|%[\dA-F]{2})+)?)*)*)$''',
+    re.VERBOSE,
+)
 
 
 class BaseSchema(Schema):
@@ -69,6 +81,22 @@ class DateTimeField(fields.Field):
         if value is None:
             return missing
         return datetime.strftime(value, '%Y-%m-%dT%H:%M:%S%z')
+
+
+class LanguageTagField(fields.Field):
+    def _deserialize(self, value: str, attr, data, **kwargs):
+        try:
+            # TODO: Does not validate that the input is a correct language tag
+            # Replaces overlong tags with their shortest version, and also formats them according to the
+            # conventions of BCP 47.
+            return standardize_tag(value, macro=True)
+        except ValueError as e:
+            raise ValidationError(f'{e}')
+
+    def _serialize(self, value: str, attr, obj, **kwargs):
+        if value is None:
+            return missing
+        return value
 
 
 class SCIMSchema(Enum):
@@ -151,6 +179,31 @@ class Email:
     display: Optional[str] = None
     type: Optional[EmailType] = field(metadata={'by_value': True}, default=None)
     primary: bool = True
+
+    @pre_load
+    def value_to_lower(self, data, **kwargs):
+        data['value'] = data['value'].lower()
+        return data
+
+
+@dataclass
+class PhoneNumber:
+    value: str = field(
+        metadata={
+            'required': True,
+            'validate': validate.Regexp(
+                PHONE_NUMBER_RFC_3966, error='Phone number format needs to conform to RFC 3966'
+            ),
+        }
+    )
+    display: Optional[str] = None
+    type: Optional[PhoneNumberType] = field(metadata={'by_value': True}, default=None)
+    primary: bool = True
+
+    @pre_load
+    def value_to_lower(self, data, **kwargs):
+        data['value'] = data['value'].lower()
+        return data
 
 
 @dataclass
