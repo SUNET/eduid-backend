@@ -60,3 +60,6 @@ class Context(object):
 
     def get_groupdb(self, data_owner: str) -> Optional[ScimApiGroupDB]:
         return self._groupdbs.get(data_owner)
+
+    def get_invitedb(self, data_owner: str) -> Optional[ScimApiInviteDB]:
+        return self._invitedbs.get(data_owner)

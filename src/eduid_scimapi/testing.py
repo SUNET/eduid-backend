@@ -107,6 +107,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         # TODO: more tests for scoped groups when that is implemented
         self.data_owner = 'eduid.se'
         self.userdb = self.context.get_userdb(self.data_owner)
+        self.invitedb = self.context.get_invitedb(self.data_owner)
 
         api = init_api(name='test_api', test_config=self.test_config, debug=True)
         self.client = TestClient(api)

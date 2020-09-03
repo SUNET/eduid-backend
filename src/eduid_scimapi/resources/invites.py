@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from dataclasses import replace
 from datetime import datetime, timedelta
-from typing import Any
 
 from falcon import Request, Response
 from marshmallow import ValidationError
@@ -20,9 +19,9 @@ from eduid_scimapi.schemas.invite import (
     InviteCreateRequestSchema,
     InviteResponse,
     InviteResponseSchema,
-    NutidExtensionV1,
+    NutidInviteExtensionV1,
 )
-from eduid_scimapi.schemas.scimbase import Meta, SCIMResourceType, SCIMSchema
+from eduid_scimapi.schemas.scimbase import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
 from eduid_scimapi.utils import make_etag
 
 __author__ = 'lundberg'
@@ -34,7 +33,7 @@ class InvitesResource(SCIMResource):
     ) -> SignupInvite:
         invite_reference = SCIMReference(data_owner=req.context['data_owner'], scim_id=db_invite.scim_id)
 
-        if create_request.nutid_v1.send_email is False:
+        if create_request.nutid_invite_v1.send_email is False:
             # Generate a shorter code if the code will reach the invitee on paper or other analog media
             invite_code = get_short_hash()
             mail_address_list = None
@@ -52,9 +51,9 @@ class InvitesResource(SCIMResource):
             display_name=create_request.name.formatted,
             given_name=create_request.name.givenName,
             surname=create_request.name.familyName,
-            send_email=create_request.nutid_v1.send_email,
+            send_email=create_request.nutid_invite_v1.send_email,
             mail_addresses=mail_address_list,
-            finish_url=create_request.nutid_v1.finish_url,
+            finish_url=create_request.nutid_invite_v1.finish_url,
             expires_at=datetime.utcnow() + timedelta(seconds=self.context.config.invite_expire),
         )
         return signup_invite
@@ -71,15 +70,16 @@ class InvitesResource(SCIMResource):
             version=db_invite.version,
         )
 
-        schemas = [SCIMSchema.CORE_20_USER, SCIMSchema.NUTID_INVITE_V1]
+        schemas = [SCIMSchema.CORE_20_USER, SCIMSchema.NUTID_USER_V1, SCIMSchema.NUTID_INVITE_V1]
         invite = InviteResponse(
             id=db_invite.scim_id,
             external_id=db_invite.external_id,
-            name=db_invite.name,
-            emails=db_invite.emails,
+            name=Name(**db_invite.name.to_dict()),
+            emails=[Email(**email.to_dict()) for email in db_invite.emails],
+            phone_numbers=[PhoneNumber(**number.to_dict()) for number in db_invite.phone_numbers],
             meta=meta,
             schemas=list(schemas),  # extra list() needed to work with _both_ mypy and marshmallow
-            nutid_v1=NutidExtensionV1(
+            nutid_invite_v1=NutidInviteExtensionV1(
                 send_email=signup_invite.send_email,
                 finish_url=signup_invite.finish_url,
                 completed=db_invite.completed,
@@ -90,8 +90,8 @@ class InvitesResource(SCIMResource):
         # Only add invite url in response if no email should be sent to the invitee
         if signup_invite.send_email is False:
             invite_url = f'{self.context.config.invite_url}/{signup_invite.invite_code}'
-            nutid_v1 = replace(invite.nutid_v1, invite_url=invite_url)
-            invite = replace(invite, nutid_v1=nutid_v1)
+            nutid_invite_v1 = replace(invite.nutid_invite_v1, invite_url=invite_url)
+            invite = replace(invite, nutid_invite_v1=nutid_invite_v1)
 
         resp.set_header("Location", location)
         resp.set_header("ETag", make_etag(db_invite.version))
@@ -150,17 +150,15 @@ class InvitesResource(SCIMResource):
                  ],
                }
         """
+        self.context.logger.info(f'Creating invite')
         try:
-            self.context.logger.info(f'Creating invite')
-
             create_request: InviteCreateRequest = InviteCreateRequestSchema().load(req.media)
             self.context.logger.debug(create_request)
-
-            db_invite = ScimApiInvite(name=create_request.name, emails=create_request.emails,)
-            signup_invite = self._create_signup_invite(req, resp, create_request, db_invite)
-            self.context.signup_invitedb.save(signup_invite)
-            ctx_invitedb(req).save(db_invite)
-
-            self._db_invite_to_response(req, resp, db_invite, signup_invite)
         except ValidationError as e:
             raise BadRequest(detail=f"{e}")
+
+        db_invite = ScimApiInvite(name=create_request.name, emails=create_request.emails,)
+        signup_invite = self._create_signup_invite(req, resp, create_request, db_invite)
+        self.context.signup_invitedb.save(signup_invite)
+        ctx_invitedb(req).save(db_invite)
+        self._db_invite_to_response(req, resp, db_invite, signup_invite)
