@@ -52,14 +52,15 @@ class CommonTestCase(MongoTestCase):
 
     def setUp(
         self,
+        init_am: bool = False,
+        am_settings: Optional[Dict[str, Any]] = None,
         users: Optional[List[str]] = None,
         copy_user_to_private: bool = False,
-        am_settings: Optional[Dict[str, Any]] = None,
     ):
         """
         set up tests
         """
-        super(CommonTestCase, self).setUp()
+        super(CommonTestCase, self).setUp(init_am=init_am, am_settings=am_settings)
 
         # setup AM
         celery_settings = {
