@@ -177,7 +177,8 @@ class User(object):
         res['passwords'] = self.credentials.to_list_of_dicts()
         res.pop('credentials')
         res['nins'] = self.nins.to_list_of_dicts()
-        res['tou'] = self.tou.to_list_of_dicts()
+        if self.tou is not None:
+            res['tou'] = self.tou.to_list_of_dicts()
         res['locked_identity'] = self.locked_identity.to_list_of_dicts()
         res['profiles'] = self.profiles.to_list_of_dicts()
         res['orcid'] = None
