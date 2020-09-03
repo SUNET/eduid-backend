@@ -364,6 +364,9 @@ def choose_extra_security_phone(code: str, phone_index: int) -> FluxData:
         current_app.logger.info(f'User with eppn {state.eppn} has not verified their email address')
         return error_response(message=ResetPwMsg.email_not_validated)
 
+    if state.extra_security is None:  # please mypy
+        raise ValueError(f'User {state.eppn} trying to reset password with extra security whithout alternatives')
+
     phone_number = state.extra_security['phone_numbers'][phone_index]
     current_app.logger.info(f'Trying to send password reset sms to user with eppn {state.eppn}')
     try:
