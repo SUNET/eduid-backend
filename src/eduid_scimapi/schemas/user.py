@@ -6,7 +6,10 @@ from marshmallow import fields
 from marshmallow_dataclass import class_schema
 
 from eduid_scimapi.schemas.scimbase import (
+    BaseCreateRequest,
+    BaseResponse,
     BaseSchema,
+    BaseUpdateRequest,
     Email,
     LanguageTagField,
     Meta,
@@ -47,74 +50,26 @@ class Group(SubResource):
 @dataclass(frozen=True)
 class User:
     external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId', 'required': False})
-    name: Name = field(default_factory=lambda: Name(), metadata={'required': False})
-    emails: List[Email] = field(default_factory=list)
-    phone_numbers: List[PhoneNumber] = field(default_factory=list, metadata={'data_key': 'phoneNumbers'})
     groups: List[Group] = field(default_factory=list, metadata={'required': False})
-    preferred_language: Optional[str] = field(
-        default=None, metadata={'data_key': 'preferredLanguage', 'marshmallow_field': LanguageTagField()}
-    )
     nutid_user_v1: NutidUserExtensionV1 = field(
         default_factory=lambda: NutidUserExtensionV1(),
         metadata={'data_key': SCIMSchema.NUTID_USER_V1.value, 'required': False},
     )
 
 
-# Duplicate User and BaseCreateRequest until dataclasses has better inheritance support
 @dataclass(frozen=True)
-class UserCreateRequest:
-    schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
-    external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId', 'required': False})
-    name: Name = field(default_factory=lambda: Name(), metadata={'required': False})
-    emails: List[Email] = field(default_factory=list)
-    phone_numbers: List[PhoneNumber] = field(default_factory=list, metadata={'data_key': 'phoneNumbers'})
-    groups: List[Group] = field(default_factory=list, metadata={'required': False})
-    preferred_language: Optional[str] = field(
-        default=None, metadata={'data_key': 'preferredLanguage', 'marshmallow_field': LanguageTagField()}
-    )
-    nutid_user_v1: NutidUserExtensionV1 = field(
-        default_factory=lambda: NutidUserExtensionV1(),
-        metadata={'data_key': SCIMSchema.NUTID_USER_V1.value, 'required': False},
-    )
+class UserCreateRequest(User, BaseCreateRequest):
+    pass
 
 
-# Duplicate User and BaseUpdateRequest until dataclasses has better inheritance support
 @dataclass(frozen=True)
-class UserUpdateRequest:
-    id: UUID = field(metadata={'required': True})
-    schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
-    external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId', 'required': False})
-    name: Name = field(default_factory=lambda: Name(), metadata={'required': False})
-    emails: List[Email] = field(default_factory=list)
-    phone_numbers: List[PhoneNumber] = field(default_factory=list, metadata={'data_key': 'phoneNumbers'})
-    groups: List[Group] = field(default_factory=list, metadata={'required': False})
-    preferred_language: Optional[str] = field(
-        default=None, metadata={'data_key': 'preferredLanguage', 'marshmallow_field': LanguageTagField()}
-    )
-    nutid_user_v1: NutidUserExtensionV1 = field(
-        default_factory=lambda: NutidUserExtensionV1(),
-        metadata={'data_key': SCIMSchema.NUTID_USER_V1.value, 'required': False},
-    )
+class UserUpdateRequest(User, BaseUpdateRequest):
+    pass
 
 
-# Duplicate User and BaseResponse until dataclasses has better inheritance support
 @dataclass(frozen=True)
-class UserResponse:
-    id: UUID = field(metadata={'required': True})
-    meta: Meta = field(metadata={'required': True})  # type: ignore
-    schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
-    external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId', 'required': False})
-    name: Name = field(default_factory=lambda: Name(), metadata={'required': False})
-    emails: List[Email] = field(default_factory=list)
-    phone_numbers: List[PhoneNumber] = field(default_factory=list, metadata={'data_key': 'phoneNumbers'})
-    groups: List[Group] = field(default_factory=list, metadata={'required': False})
-    preferred_language: Optional[str] = field(
-        default=None, metadata={'data_key': 'preferredLanguage', 'marshmallow_field': LanguageTagField()}
-    )
-    nutid_user_v1: NutidUserExtensionV1 = field(
-        default_factory=lambda: NutidUserExtensionV1(),
-        metadata={'data_key': SCIMSchema.NUTID_USER_V1.value, 'required': False},
-    )
+class UserResponse(User, BaseResponse):
+    pass
 
 
 NutidExtensionV1Schema = class_schema(NutidUserExtensionV1, base_schema=BaseSchema)
