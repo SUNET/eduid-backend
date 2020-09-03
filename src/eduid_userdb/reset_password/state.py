@@ -33,13 +33,12 @@
 from __future__ import annotations
 
 import datetime
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, Optional, Type, TypeVar, Union
 
 import bson
 
 from eduid_userdb.reset_password.element import CodeElement
-
 
 TResetPasswordStateSubclass = TypeVar('TResetPasswordStateSubclass', bound='ResetPasswordState')
 
@@ -48,6 +47,7 @@ TResetPasswordStateSubclass = TypeVar('TResetPasswordStateSubclass', bound='Rese
 class ResetPasswordState(object):
     """
     """
+
     eppn: str
     id: bson.ObjectId = field(default_factory=lambda: bson.ObjectId())
     reference: str = field(init=False)
@@ -82,6 +82,7 @@ class ResetPasswordState(object):
 class _ResetPasswordEmailStateRequired:
     """
     """
+
     email_address: str
     email_code: CodeElement
 
@@ -106,6 +107,7 @@ class ResetPasswordEmailState(ResetPasswordState, _ResetPasswordEmailStateRequir
 class _ResetPasswordEmailAndPhoneStateRequired:
     """
     """
+
     phone_number: str
     phone_code: CodeElement
 
@@ -122,7 +124,10 @@ class ResetPasswordEmailAndPhoneState(ResetPasswordEmailState, _ResetPasswordEma
 
     @classmethod
     def from_email_state(
-            cls: Type[ResetPasswordEmailAndPhoneState], email_state: ResetPasswordEmailState, phone_number: str, phone_code: str
+        cls: Type[ResetPasswordEmailAndPhoneState],
+        email_state: ResetPasswordEmailState,
+        phone_number: str,
+        phone_code: str,
     ) -> ResetPasswordEmailAndPhoneState:
         data = email_state.to_dict()
         data['phone_number'] = phone_number

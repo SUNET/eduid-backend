@@ -35,7 +35,7 @@
 from __future__ import annotations
 
 from copy import copy
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, Optional, Type
 
 import bson
@@ -46,6 +46,7 @@ class Action(object):
     """
     Generic eduID action object.
     """
+
     # eppn: User eppn
     eppn: str
     # action_type: What action to perform

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import datetime
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, Optional, Type, TypeVar, Union
 
 import bson
@@ -54,6 +54,7 @@ class PasswordResetState(object):
 class _PasswordResetEmailStateRequired:
     """
     """
+
     email_address: str
     email_code: Union[str, CodeElement]
 
@@ -78,6 +79,7 @@ class PasswordResetEmailState(PasswordResetState, _PasswordResetEmailStateRequir
 class _PasswordResetEmailAndPhoneStateRequired:
     """
     """
+
     phone_number: str
     phone_code: Union[str, CodeElement]
 
