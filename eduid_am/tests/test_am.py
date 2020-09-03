@@ -20,6 +20,7 @@ class AmTestUser(eduid_userdb.User):
     """
     User class for the 'test' plugin below.
     """
+
     uid: str = ''
 
 
