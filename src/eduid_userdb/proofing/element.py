@@ -34,7 +34,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, Optional, Type, TypeVar
+from typing import Any, Dict, Mapping, Optional, Type, TypeVar
 
 from eduid_userdb.element import Element, VerifiedElement
 
@@ -163,4 +163,4 @@ class SentLetterElement(Element):
     is_sent: bool = False
     sent_ts: Optional[datetime] = None
     transaction_id: Optional[str] = None
-    address: Optional[str] = None
+    address: Optional[Mapping] = None
