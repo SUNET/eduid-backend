@@ -660,7 +660,7 @@ class AttributeFetcherPhoneProofingTests(AMTestCase):
 
         self.normalize_data(expected['$set']['phone'], fetched['$set']['phone'])
 
-        assert expected == fetched, 'Unexpected data fetched by phone fetcher for existing user'
+        assert fetched == expected, 'Unexpected data fetched by phone fetcher for existing user'
 
     def test_malicious_attributes(self):
         self.user_data.update(
@@ -961,7 +961,7 @@ class AttributeFetcherOrcidTests(AMTestCase):
 
         self.normalize_data([expected['$set']], [fetched['$set']])
 
-        assert expected == fetched
+        assert fetched == expected
 
     def test_malicious_attributes(self):
         self.user_data.update(
