@@ -83,7 +83,7 @@ class _ResetPasswordEmailStateRequired:
     """
     """
     email_address: str
-    email_code: Union[str, CodeElement]
+    email_code: CodeElement
 
 
 @dataclass
@@ -98,9 +98,7 @@ class ResetPasswordEmailState(ResetPasswordState, _ResetPasswordEmailStateRequir
 
     def to_dict(self):
         res = super().to_dict()
-        # This check is to please mypy, email_code can only be a string briefly during initialization
-        if isinstance(self.email_code, CodeElement):
-            res['email_code'] = self.email_code.to_dict()
+        res['email_code'] = self.email_code.to_dict()
         return res
 
 
@@ -109,7 +107,7 @@ class _ResetPasswordEmailAndPhoneStateRequired:
     """
     """
     phone_number: str
-    phone_code: Union[str, CodeElement]
+    phone_code: CodeElement
 
 
 @dataclass
@@ -133,7 +131,5 @@ class ResetPasswordEmailAndPhoneState(ResetPasswordEmailState, _ResetPasswordEma
 
     def to_dict(self) -> dict:
         res = super().to_dict()
-        # This check is to please mypy, phone_code can only be a string briefly during initialization
-        if self.phone_code and isinstance(self.phone_code, CodeElement):
-            res['phone_code'] = self.phone_code.to_dict()
+        res['phone_code'] = self.phone_code.to_dict()
         return res
