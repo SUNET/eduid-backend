@@ -11,7 +11,7 @@ __author__ = 'lundberg'
 
 
 @dataclass
-class Profile:
+class ScimApiProfile:
     attributes: Dict[str, Any] = field(default_factory=dict)
     data: Dict[str, Any] = field(default_factory=dict)
 
@@ -19,14 +19,14 @@ class Profile:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls: Type[Profile], data: Mapping[str, Any]) -> Profile:
+    def from_dict(cls: Type[ScimApiProfile], data: Mapping[str, Any]) -> ScimApiProfile:
         _attributes = data.get('attributes', {})
         _data = data.get('data', {})
         return cls(attributes=_attributes, data=_data)
 
 
 @dataclass
-class Name:
+class ScimApiName:
     familyName: Optional[str] = None
     givenName: Optional[str] = None
     formatted: Optional[str] = None
@@ -38,12 +38,12 @@ class Name:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls: Type[Name], data: Mapping[str, Optional[str]]) -> Name:
+    def from_dict(cls: Type[ScimApiName], data: Mapping[str, Optional[str]]) -> ScimApiName:
         return cls(**data)
 
 
 @dataclass
-class Email:
+class ScimApiEmail:
     value: str
     display: Optional[str] = None
     type: Optional[EmailType] = None
@@ -56,7 +56,7 @@ class Email:
         return res
 
     @classmethod
-    def from_dict(cls: Type[Email], data: Mapping[str, Any]) -> Email:
+    def from_dict(cls: Type[ScimApiEmail], data: Mapping[str, Any]) -> ScimApiEmail:
         email_type = None
         if data.get('type') is not None:
             email_type = EmailType(data['type'])
@@ -64,7 +64,7 @@ class Email:
 
 
 @dataclass
-class PhoneNumber:
+class ScimApiPhoneNumber:
     value: str
     display: Optional[str] = None
     type: Optional[PhoneNumberType] = None
@@ -77,7 +77,7 @@ class PhoneNumber:
         return res
 
     @classmethod
-    def from_dict(cls: Type[PhoneNumber], data: Mapping[str, Any]) -> PhoneNumber:
+    def from_dict(cls: Type[ScimApiPhoneNumber], data: Mapping[str, Any]) -> ScimApiPhoneNumber:
         number_type = None
         if data.get('type') is not None:
             number_type = PhoneNumberType(data['type'])

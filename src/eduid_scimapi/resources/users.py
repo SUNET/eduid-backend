@@ -4,8 +4,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 from falcon import Request, Response
 from marshmallow import ValidationError
 
-from eduid_scimapi.db.userdb import Profile as DBProfile
-from eduid_scimapi.db.userdb import ScimApiUser
+from eduid_scimapi.db.userdb import ScimApiProfile, ScimApiUser
 from eduid_scimapi.exceptions import BadRequest, NotFound
 from eduid_scimapi.middleware import ctx_groupdb, ctx_userdb
 from eduid_scimapi.resources.base import BaseResource, SCIMResource
@@ -133,7 +132,7 @@ class UsersResource(SCIMResource):
 
                 if changed:
                     for profile_name, profile in update_request.nutid_user_v1.profiles.items():
-                        db_profile = DBProfile(attributes=profile.attributes, data=profile.data)
+                        db_profile = ScimApiProfile(attributes=profile.attributes, data=profile.data)
                         db_user.profiles[profile_name] = db_profile
                     ctx_userdb(req).save(db_user)
 
@@ -200,7 +199,7 @@ class UsersResource(SCIMResource):
 
             profiles = {}
             for profile_name, profile in create_request.nutid_user_v1.profiles.items():
-                profiles[profile_name] = DBProfile(attributes=profile.attributes, data=profile.data)
+                profiles[profile_name] = ScimApiProfile(attributes=profile.attributes, data=profile.data)
 
             db_user = ScimApiUser(external_id=create_request.external_id, profiles=profiles)
             ctx_userdb(req).save(db_user)

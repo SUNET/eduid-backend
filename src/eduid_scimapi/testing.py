@@ -16,7 +16,7 @@ from eduid_scimapi.app import init_api
 from eduid_scimapi.config import ScimApiConfig
 from eduid_scimapi.context import Context
 from eduid_scimapi.db.groupdb import ScimApiGroup
-from eduid_scimapi.db.userdb import Profile, ScimApiUser
+from eduid_scimapi.db.userdb import ScimApiProfile, ScimApiUser
 from eduid_scimapi.schemas.scimbase import SCIMSchema
 
 __author__ = 'lundberg'
@@ -117,7 +117,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         }
 
     def add_user(
-        self, identifier: str, external_id: str, profiles: Optional[Dict[str, Profile]] = None
+        self, identifier: str, external_id: str, profiles: Optional[Dict[str, ScimApiProfile]] = None
     ) -> Optional[ScimApiUser]:
         user = ScimApiUser(user_id=ObjectId(), scim_id=uuid.UUID(identifier), external_id=external_id)
         if profiles:

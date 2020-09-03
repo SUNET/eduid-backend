@@ -4,14 +4,14 @@ import copy
 import logging
 import uuid
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Type
 from uuid import UUID
 
 from bson import ObjectId
 
 from eduid_scimapi.db.basedb import ScimApiBaseDB
-from eduid_scimapi.db.common import Email, Name, PhoneNumber, Profile
+from eduid_scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
 
 __author__ = 'lundberg'
 
@@ -24,17 +24,16 @@ class ScimApiInvite:
     invite_id: ObjectId = field(default_factory=lambda: ObjectId())
     scim_id: UUID = field(default_factory=lambda: uuid.uuid4())
     external_id: Optional[str] = None
-    name: Name = field(default_factory=lambda: Name())
-    emails: List[Email] = field(default_factory=list)
-    phone_numbers: List[PhoneNumber] = field(default_factory=list)
+    name: ScimApiName = field(default_factory=lambda: ScimApiName())
+    emails: List[ScimApiEmail] = field(default_factory=list)
+    phone_numbers: List[ScimApiPhoneNumber] = field(default_factory=list)
+    nin: Optional[str] = field(default=None)
     preferred_language: Optional[str] = field(default=None)
+    completed: Optional[datetime] = field(default=None)
+    profiles: Dict[str, ScimApiProfile] = field(default_factory=lambda: {})
     version: ObjectId = field(default_factory=lambda: ObjectId())
     created: datetime = field(default_factory=lambda: datetime.utcnow())
     last_modified: datetime = field(default_factory=lambda: datetime.utcnow())
-    profiles: Dict[str, Profile] = field(default_factory=lambda: {})
-    # Invite specific attributes
-    completed: Optional[datetime] = field(default=None)
-    user_scim_id: Optional[UUID] = field(default=None)
 
     def to_dict(self) -> Dict[str, Any]:
         emails = []
@@ -46,8 +45,6 @@ class ScimApiInvite:
         res = asdict(self)
         res['scim_id'] = str(res['scim_id'])
         res['_id'] = res.pop('invite_id')
-        if res['user_scim_id'] is not None:
-            res['user_scim_id'] = str(res['user_scim_id'])
         res['emails'] = emails
         res['phone_numbers'] = phone_numbers
         return res
@@ -57,25 +54,23 @@ class ScimApiInvite:
         this = dict(copy.copy(data))  # to not modify callers data
         this['scim_id'] = uuid.UUID(this['scim_id'])
         this['invite_id'] = this.pop('_id')
-        if this.get('user_scim_id') is not None:
-            this['user_scim_id'] = uuid.UUID(this['user_scim_id'])
         # Name
         if this.get('name') is not None:
-            this['name'] = Name.from_dict(this['name'])
+            this['name'] = ScimApiName.from_dict(this['name'])
         # Emails
         emails = []
         for email in data.get('emails', []):
-            emails.append(Email.from_dict(email))
+            emails.append(ScimApiEmail.from_dict(email))
         this['emails'] = emails
         # Phone numbers
         phone_numbers = []
         for number in data.get('phone_numbers', []):
-            phone_numbers.append(PhoneNumber.from_dict(number))
+            phone_numbers.append(ScimApiPhoneNumber.from_dict(number))
         this['phone_numbers'] = phone_numbers
         # Profiles
         parsed_profiles = {}
         for k, v in data['profiles'].items():
-            parsed_profiles[k] = Profile.from_dict(v)
+            parsed_profiles[k] = ScimApiProfile.from_dict(v)
         this['profiles'] = parsed_profiles
         return cls(**this)
 
