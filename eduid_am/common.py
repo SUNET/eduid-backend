@@ -4,5 +4,4 @@ from typing import Optional
 
 from celery import Celery
 
-
 celery: Optional[Celery] = None
