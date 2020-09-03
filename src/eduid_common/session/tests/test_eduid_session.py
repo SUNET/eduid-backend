@@ -67,12 +67,13 @@ def session_init_app(name, config):
 class EduidSessionTests(EduidAPITestCase):
     def setUp(
         self,
+        init_am: bool = False,
+        am_settings: Optional[Dict[str, Any]] = None,
         users: Optional[List[str]] = None,
         copy_user_to_private: bool = False,
-        am_settings: Optional[Dict[str, Any]] = None,
     ):
         self.test_user_eppn = 'hubba-bubba'
-        super().setUp(users=users, copy_user_to_private=copy_user_to_private, am_settings=am_settings)
+        super().setUp(init_am=init_am, am_settings=am_settings, users=users, copy_user_to_private=copy_user_to_private)
 
     def load_app(self, config):
         """

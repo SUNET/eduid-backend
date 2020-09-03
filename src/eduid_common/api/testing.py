@@ -116,9 +116,10 @@ class EduidAPITestCase(CommonTestCase):
 
     def setUp(
         self,
+        init_am: bool = False,
+        am_settings: Optional[Dict[str, Any]] = None,
         users: Optional[List[str]] = None,
         copy_user_to_private: bool = False,
-        am_settings: Optional[Dict[str, Any]] = None,
     ):
         """
         set up tests
@@ -137,7 +138,7 @@ class EduidAPITestCase(CommonTestCase):
         self.test_user_data = _standard_test_users[users[0]].to_dict()
         self.test_user = User.from_dict(self.test_user_data)
 
-        super(EduidAPITestCase, self).setUp(users=users, am_settings=am_settings)
+        super(EduidAPITestCase, self).setUp(init_am=init_am, am_settings=am_settings, users=users)
         # Set up Redis for shared sessions
         self.redis_instance = RedisTemporaryInstance.get_instance()
         # settings

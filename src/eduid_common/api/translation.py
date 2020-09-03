@@ -3,9 +3,9 @@
 from __future__ import absolute_import
 
 from flask import request
+from flask_babel import Babel
 
 from eduid_common.api.app import EduIDBaseApp
-from flask_babel import Babel
 
 __author__ = 'lundberg'
 

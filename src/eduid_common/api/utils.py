@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import re
+from datetime import datetime
 from typing import Optional
 from urllib.parse import urlparse
 from uuid import uuid4
@@ -50,7 +51,7 @@ def update_modified_ts(user):
         return
 
     if private_user.modified_ts is None:
-        private_user.modified_ts = True  # use current time
+        private_user.modified_ts = datetime.utcnow()  # use current time
         current_app.logger.debug(
             "Updating user {!s} with new modified_ts: {!s}".format(private_user, private_user.modified_ts)
         )
@@ -102,14 +103,11 @@ def save_and_sync_user(user):
     return current_app.am_relay.request_user_sync(user)
 
 
-def urlappend(base, path):
+def urlappend(base: str, path: str) -> str:
     """
     :param base: Base url
-    :type base: six.string_types
     :param path: Path to join to base
-    :type path: six.string_types
     :return: Joined url
-    :rtype: six.string_types
 
     Used instead of urlparse.urljoin to append path to base in an obvious way.
 
