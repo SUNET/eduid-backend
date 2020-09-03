@@ -24,8 +24,8 @@ class AmTestUser(eduid_userdb.User):
 
         eduid_userdb.User.__init__(self, data=data, raise_on_unknown=raise_on_unknown, called_directly=called_directly)
 
-    def to_dict(self, old_userdb_format=False):
-        res = eduid_userdb.User.to_dict(self, old_userdb_format=old_userdb_format)
+    def to_dict(self):
+        res = eduid_userdb.User.to_dict(self)
         res['uid'] = self.uid
         return res
 
@@ -63,7 +63,7 @@ class FakeAttributeFetcher(AttributeFetcher):
         # Transfer all attributes except `uid' from the test plugins database.
         # Transform eduPersonPrincipalName on the way to make it clear that the
         # update was done using this code.
-        res = user.to_dict(old_userdb_format=True)
+        res = user.to_dict()
         res['eduPersonPrincipalName'] = "{!s}@eduid.se".format(user.uid)
         del res['uid']
         attributes = {'$set': res}

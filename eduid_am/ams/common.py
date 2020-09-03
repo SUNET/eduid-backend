@@ -76,7 +76,7 @@ class AttributeFetcher(ABC):
         user = self.private_db.get_user_by_id(user_id)
         logger.debug('User: {} found.'.format(user))
 
-        user_dict = user.to_dict(old_userdb_format=False)
+        user_dict = user.to_dict()
 
         # white list of valid attributes for security reasons
         attributes_set = {}

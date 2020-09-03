@@ -29,39 +29,40 @@ class AttributeFetcherTests(AMTestCase):
             self.fetcher.fetch_attrs(bson.ObjectId('000000000000000000000000'))
 
     def test_existing_user_from_db(self):
-        self.maxDiff = None
+        fetched = self.fetcher.fetch_attrs(bson.ObjectId(M['_id']))
+
+        expected_passwords = [
+            {
+                'created_by': 'signup',
+                'credential_id': '112345678901234567890123',
+                'is_generated': False,
+                'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
+            }
+        ]
+        self.normalize_data(fetched['$set']['passwords'], expected_passwords)
+
+        expected_emails = [
+            {
+                'created_by': 'signup',
+                'email': 'johnsmith@example.com',
+                'primary': True,
+                'verified': True,
+                'verified_by': 'signup',
+            },
+            {'email': 'johnsmith2@example.com', 'primary': False, 'verified': True},
+            {'email': 'johnsmith3@example.com', 'primary': False, 'verified': False},
+        ]
+        self.normalize_data(fetched['$set']['mailAliases'], expected_emails)
+
         expected = {
             '$set': {
                 'eduPersonPrincipalName': 'hubba-bubba',
-                'mailAliases': [
-                    {
-                        'created_by': 'signup',
-                        'email': 'johnsmith@example.com',
-                        'primary': True,
-                        'verified': True,
-                        'verified_by': 'signup',
-                    },
-                    {'email': 'johnsmith2@example.com', 'primary': False, 'verified': True},
-                    {'email': 'johnsmith3@example.com', 'primary': False, 'verified': False},
-                ],
-                'passwords': [
-                    {
-                        'created_by': 'signup',
-                        'credential_id': '112345678901234567890123',
-                        'is_generated': False,
-                        'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
-                    }
-                ],
+                'mailAliases': expected_emails,
+                'passwords': expected_passwords,
             }
         }
-        res = self.fetcher.fetch_attrs(bson.ObjectId(M['_id']))
-        # remove the datetimes from the response,
-        # that carry their own tzinfo object from bson
-        del res['$set']['mailAliases'][0]['created_ts']
-        del res['$set']['mailAliases'][0]['verified_ts']
-        del res['$set']['passwords'][0]['created_ts']
 
-        assert res == expected
+        assert fetched == expected
 
     def test_existing_user(self):
         user_data = deepcopy(USER_DATA)
@@ -91,17 +92,22 @@ class AttributeFetcherTests(AMTestCase):
         self.fetcher.private_db.save(user)
 
         fetched = self.fetcher.fetch_attrs(user.user_id)
-        for pw in fetched['$set']['passwords']:
-            del pw['created_ts']
+
+        expected_passwords = [{'credential_id': u'123', 'is_generated': False, 'salt': u'456',}]
+        self.normalize_data(fetched['$set']['passwords'], expected_passwords)
+
+        expected_emails = [{'verified': True, 'primary': True, 'email': 'john@example.com'}]
+        self.normalize_data(fetched['$set']['mailAliases'], expected_emails)
 
         expected = {
             '$set': {
                 'eduPersonPrincipalName': 'test-test',
-                'mailAliases': [{'verified': True, 'primary': True, 'email': 'john@example.com'}],
-                'passwords': [{'credential_id': u'123', 'is_generated': False, 'salt': u'456',}],
+                'mailAliases': expected_emails,
+                'passwords': expected_passwords,
             }
         }
-        assert fetched == expected, 'Wronf data fetched by signup fetcher'
+
+        assert fetched == expected, 'Wrong data fetched by signup fetcher'
 
     def test_malicious_attributes(self):
         user_data = deepcopy(USER_DATA)
