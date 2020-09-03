@@ -34,7 +34,7 @@ from __future__ import annotations
 
 import datetime
 from dataclasses import dataclass, field, asdict
-from typing import Any, Dict, Optional, TypeVar, Union
+from typing import Any, Dict, Optional, Type, TypeVar, Union
 
 import bson
 
@@ -70,7 +70,7 @@ class ResetPasswordState(object):
         return res
 
     @classmethod
-    def from_dict(cls: TResetPasswordStateSubclass, data: Dict[str, Any]) -> TResetPasswordStateSubclass:
+    def from_dict(cls: Type[TResetPasswordStateSubclass], data: Dict[str, Any]) -> TResetPasswordStateSubclass:
         data['eppn'] = data.pop('eduPersonPrincipalName')
         data['id'] = data.pop('_id')
         if 'reference' in data:
@@ -98,7 +98,9 @@ class ResetPasswordEmailState(ResetPasswordState, _ResetPasswordEmailStateRequir
 
     def to_dict(self):
         res = super().to_dict()
-        res['email_code'] = self.email_code.to_dict()
+        # This check is to please mypy, email_code can only be a string briefly during initialization
+        if isinstance(self.email_code, CodeElement):
+            res['email_code'] = self.email_code.to_dict()
         return res
 
 
@@ -122,8 +124,8 @@ class ResetPasswordEmailAndPhoneState(ResetPasswordEmailState, _ResetPasswordEma
 
     @classmethod
     def from_email_state(
-        cls, email_state: ResetPasswordEmailState, phone_number: str, phone_code: str
-    ) -> 'ResetPasswordEmailAndPhoneState':
+            cls: Type[ResetPasswordEmailAndPhoneState], email_state: ResetPasswordEmailState, phone_number: str, phone_code: str
+    ) -> ResetPasswordEmailAndPhoneState:
         data = email_state.to_dict()
         data['phone_number'] = phone_number
         data['phone_code'] = phone_code
@@ -131,6 +133,7 @@ class ResetPasswordEmailAndPhoneState(ResetPasswordEmailState, _ResetPasswordEma
 
     def to_dict(self) -> dict:
         res = super().to_dict()
-        if self.phone_code:
+        # This check is to please mypy, phone_code can only be a string briefly during initialization
+        if self.phone_code and isinstance(self.phone_code, CodeElement):
             res['phone_code'] = self.phone_code.to_dict()
         return res

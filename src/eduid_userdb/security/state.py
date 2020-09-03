@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import datetime
 from dataclasses import dataclass, field, asdict
-from typing import Any, Dict, Optional, TypeVar, Union
+from typing import Any, Dict, Optional, Type, TypeVar, Union
 
 import bson
 
@@ -42,7 +42,7 @@ class PasswordResetState(object):
         return res
 
     @classmethod
-    def from_dict(cls: TPasswordResetStateSubclass, data: Dict[str, Any]) -> TPasswordResetStateSubclass:
+    def from_dict(cls: Type[TPasswordResetStateSubclass], data: Dict[str, Any]) -> TPasswordResetStateSubclass:
         data['eppn'] = data.pop('eduPersonPrincipalName')
         data['id'] = data.pop('_id')
         if 'reference' in data:
@@ -68,7 +68,9 @@ class PasswordResetEmailState(PasswordResetState, _PasswordResetEmailStateRequir
 
     def to_dict(self):
         res = super().to_dict()
-        res['email_code'] = self.email_code.to_dict()
+        # This check is to please mypy, email_code can only be a string briefly during initialization
+        if isinstance(self.email_code, CodeElement):
+            res['email_code'] = self.email_code.to_dict()
         return res
 
 
@@ -99,6 +101,7 @@ class PasswordResetEmailAndPhoneState(PasswordResetEmailState, _PasswordResetEma
 
     def to_dict(self) -> dict:
         res = super().to_dict()
-        if self.phone_code:
+        # This check is to please mypy, phone_code can only be a string briefly during initialization
+        if self.phone_code and isinstance(self.phone_code, CodeElement):
             res['phone_code'] = self.phone_code.to_dict()
         return res
