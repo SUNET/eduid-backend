@@ -62,7 +62,7 @@ class AttributeFetcherTests(AMTestCase):
             }
         }
 
-        assert expected == fetched
+        assert fetched == expected
 
     def test_existing_user(self):
         user_data = deepcopy(USER_DATA)
