@@ -25,7 +25,9 @@ class LoggingTest(EduidAPITestCase):
         copy_user_to_private: bool = False,
     ):
 
-        super(LoggingTest, self).setUp(init_am=init_am, am_settings=am_settings, users=users, copy_user_to_private=copy_user_to_private)
+        super(LoggingTest, self).setUp(
+            init_am=init_am, am_settings=am_settings, users=users, copy_user_to_private=copy_user_to_private
+        )
 
     def load_app(self, config):
         """

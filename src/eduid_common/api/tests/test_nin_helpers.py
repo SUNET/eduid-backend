@@ -69,12 +69,7 @@ class NinHelpersTest(EduidAPITestCase):
         del userdata['nins']
         user = User.from_dict(data=userdata)
         nin_element = Nin.from_dict(
-            dict(
-                number=self.test_user_nin,
-                created_by='AlreadyVerifiedNinHelpersTest',
-                verified=True,
-                primary=True,
-            )
+            dict(number=self.test_user_nin, created_by='AlreadyVerifiedNinHelpersTest', verified=True, primary=True,)
         )
         user.nins.add(nin_element)
         self.app.central_userdb.save(user, check_sync=False)
@@ -85,12 +80,7 @@ class NinHelpersTest(EduidAPITestCase):
         del userdata['nins']
         user = User.from_dict(data=userdata)
         nin_element = Nin.from_dict(
-            dict(
-                number=self.test_user_nin,
-                created_by='AlreadyAddedNinHelpersTest',
-                verified=False,
-                primary=False,
-            )
+            dict(number=self.test_user_nin, created_by='AlreadyAddedNinHelpersTest', verified=False, primary=False,)
         )
         user.nins.add(nin_element)
         self.app.central_userdb.save(user, check_sync=False)
