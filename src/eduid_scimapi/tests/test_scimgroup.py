@@ -3,7 +3,8 @@
 __author__ = 'lundberg'
 
 import logging
-from datetime import datetime
+from dataclasses import asdict
+from datetime import datetime, timezone
 from typing import Any, List, Mapping, Optional, Set, Union
 from uuid import UUID, uuid4
 
@@ -17,7 +18,7 @@ from eduid_scimapi.db.groupdb import GroupExtensions, ScimApiGroup
 from eduid_scimapi.db.userdb import ScimApiUser
 from eduid_scimapi.schemas.group import GroupMember, GroupResponse
 from eduid_scimapi.schemas.scimbase import BaseSchema, Meta, SCIMResourceType, SCIMSchema
-from eduid_scimapi.testing import ScimApiTestCase
+from eduid_scimapi.testing import ScimApiTestCase, normalised_data
 from eduid_scimapi.tests.test_scimbase import TestScimBase
 from eduid_scimapi.utils import make_etag
 
@@ -49,7 +50,7 @@ class TestSCIMGroup(TestScimBase):
         )
         group_dump = schema().dump(group)
         loaded_group = schema().load(group_dump)
-        self.assertEqual(group, loaded_group)
+        assert normalised_data(asdict(group)) == normalised_data(asdict(loaded_group))
 
 
 class TestGroupResource(ScimApiTestCase):

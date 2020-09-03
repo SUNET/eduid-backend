@@ -6,7 +6,7 @@ import logging
 import pprint
 import uuid
 from dataclasses import asdict, dataclass, field, replace
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple, Type, Union
 from uuid import UUID
 

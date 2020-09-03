@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 from dataclasses import dataclass, field, replace
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from os import environ
 from typing import Dict, Mapping, Optional
 

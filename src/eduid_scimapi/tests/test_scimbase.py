@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime
+from dataclasses import asdict
+from datetime import datetime, timezone
 from unittest import TestCase
 from uuid import uuid4
 
@@ -7,6 +8,7 @@ from bson import ObjectId
 from marshmallow_dataclass import class_schema
 
 from eduid_scimapi.schemas.scimbase import BaseResponse, Meta, SCIMResourceType, SCIMSchema, SubResource
+from eduid_scimapi.testing import normalised_data
 
 __author__ = 'lundberg'
 
@@ -23,7 +25,7 @@ class TestScimBase(TestCase):
         schema = class_schema(Meta)
         meta_dump = schema().dump(meta)
         loaded_meta = schema().load(meta_dump)
-        self.assertEqual(meta, loaded_meta)
+        assert normalised_data(asdict(meta)) == normalised_data(asdict(loaded_meta))
 
     def test_base_response(self) -> None:
         meta = Meta(
@@ -37,7 +39,7 @@ class TestScimBase(TestCase):
         schema = class_schema(BaseResponse)
         base_dump = schema().dump(base)
         loaded_base = schema().load(base_dump)
-        self.assertEqual(base, loaded_base)
+        assert normalised_data(asdict(base)) == normalised_data(asdict(loaded_base))
 
     def test_hashable_subresources(self):
         a = {
