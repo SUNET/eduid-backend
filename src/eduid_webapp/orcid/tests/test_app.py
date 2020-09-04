@@ -173,7 +173,6 @@ class OrcidTests(EduidAPITestCase):
         response = json.loads(response.data)
         self.assertEqual(response['type'], 'GET_ORCID_SUCCESS')
         self.assertEqual(response['payload']['orcid']['id'], self.orcid_element.id)
-        self.assertEqual(response['payload']['orcid']['name'], self.orcid_element.name)
         self.assertEqual(response['payload']['orcid']['given_name'], self.orcid_element.given_name)
         self.assertEqual(response['payload']['orcid']['family_name'], self.orcid_element.family_name)
 

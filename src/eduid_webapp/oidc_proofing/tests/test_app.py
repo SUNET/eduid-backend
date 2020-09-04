@@ -569,9 +569,7 @@ class OidcProofingTests(EduidAPITestCase):
         csrf_token = response['payload']['csrf_token']
 
         # User with locked_identity and correct nin
-        user.locked_identity.add(
-            LockedIdentityNin.from_dict(dict(number=self.test_user_nin, created_by='test', created_ts=True))
-        )
+        user.locked_identity.add(LockedIdentityNin(number=self.test_user_nin, created_by='test'))
         self.app.central_userdb.save(user, check_sync=False)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -610,9 +608,7 @@ class OidcProofingTests(EduidAPITestCase):
 
         csrf_token = response['payload']['csrf_token']
 
-        user.locked_identity.add(
-            LockedIdentityNin.from_dict(dict(number=self.test_user_nin, created_by='test', created_ts=True))
-        )
+        user.locked_identity.add(LockedIdentityNin(number=self.test_user_nin, created_by='test'))
         self.app.central_userdb.save(user, check_sync=False)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:

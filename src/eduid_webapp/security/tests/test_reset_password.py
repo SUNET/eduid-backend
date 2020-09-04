@@ -312,7 +312,6 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         state = self.app.password_reset_state_db.get_state_by_email_code(state.email_code.code)
         self.app.logger.info('Moving phone-expire-state back in time')
         # Move state back in time so that the code will be expired
-        state.phone_code._data['created_ts'] = None
         state.phone_code.created_ts = datetime.datetime.fromtimestamp(123)
         self.app.password_reset_state_db.save(state)
         self.app.logger.info(f'Saved expired state: {state}')

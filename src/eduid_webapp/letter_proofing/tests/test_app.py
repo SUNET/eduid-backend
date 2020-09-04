@@ -294,7 +294,6 @@ class LetterProofingTests(EduidAPITestCase):
         response = self.send_letter(self.test_user_nin)
         # move the proofing state back in time so that it is expired by now
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
-        proofing_state.proofing_letter._data['sent_ts'] = None
         proofing_state.proofing_letter.sent_ts = datetime.fromisoformat('2020-01-01T01:02:03')
         self.app.proofing_statedb.save(proofing_state)
 
@@ -403,9 +402,7 @@ class LetterProofingTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
         # User with locked_identity and correct nin
-        user.locked_identity.add(
-            LockedIdentityNin.from_dict(dict(number=self.test_user_nin, created_by='test', created_ts=True))
-        )
+        user.locked_identity.add(LockedIdentityNin(number=self.test_user_nin, created_by='test'))
         self.app.central_userdb.save(user, check_sync=False)
         with self.session_cookie(self.browser, self.test_user_eppn):
             response = self.send_letter(self.test_user_nin)
@@ -417,9 +414,7 @@ class LetterProofingTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
-        user.locked_identity.add(
-            LockedIdentityNin.from_dict(dict(number=self.test_user_nin, created_by='test', created_ts=True))
-        )
+        user.locked_identity.add(LockedIdentityNin(number=self.test_user_nin, created_by='test'))
         self.app.central_userdb.save(user, check_sync=False)
 
         # User with locked_identity and incorrect nin

@@ -1,6 +1,6 @@
-eduid-userdb>=0.4.18
-eduid-common[webapp]>=0.7.4,==0.7.*
-eduid-am>=0.7.7
+eduid-userdb>=0.5.0
+eduid-common[webapp]>=0.7.11,==0.7.*
+eduid-am>=0.7.8
 eduid-msg>=0.10.9
 eduid_lookup_mobile>=0.1.2
 eduid_scimapi==0.3.*
