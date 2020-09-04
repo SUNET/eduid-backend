@@ -71,12 +71,12 @@ def token_verify_action(session_info: Mapping[str, Any], user: User) -> Werkzeug
         )
 
     # Check that a verified NIN is equal to the asserted attribute personalIdentityNumber
-    asserted_nin_in_list = get_saml_attribute(session_info, 'personalIdentityNumber')
+    _nin_list = get_saml_attribute(session_info, 'personalIdentityNumber')
 
-    if asserted_nin_in_list is None:
+    if _nin_list is None:
         raise ValueError("Missing PIN in SAML session info")
 
-    asserted_nin = asserted_nin_in_list[0]
+    asserted_nin = _nin_list[0]
     user_nin = proofing_user.nins.verified.find(asserted_nin)
     if not user_nin:
         current_app.logger.error('Asserted NIN not matching user verified nins')
@@ -145,12 +145,12 @@ def nin_verify_action(session_info: Mapping[str, Any], user: User) -> WerkzeugRe
         return redirect_with_msg(redirect_url, EidasMsg.reauthn_expired)
 
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    asserted_nin_in_list = get_saml_attribute(session_info, 'personalIdentityNumber')
+    _nin_list = get_saml_attribute(session_info, 'personalIdentityNumber')
 
-    if asserted_nin_in_list is None:
+    if _nin_list is None:
         raise ValueError("Missing PIN in SAML session info")
 
-    asserted_nin = asserted_nin_in_list[0]
+    asserted_nin = _nin_list[0]
 
     if proofing_user.nins.verified.count != 0:
         current_app.logger.error('User already has a verified NIN')
