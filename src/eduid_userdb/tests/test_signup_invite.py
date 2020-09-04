@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from unittest import TestCase
 from uuid import uuid4
 
-from eduid_userdb.signup import Invite, InviteMailAddress, InviteType, SCIMReference
+from eduid_userdb.signup import Invite, InviteMailAddress, InviteType, SCIMReference, InvitePhoneNumber
 
 
 class TestSignupInvite(TestCase):
@@ -15,6 +15,7 @@ class TestSignupInvite(TestCase):
             given_name='Testaren',
             surname='Testsson',
             mail_addresses=[InviteMailAddress(email='johnsmith@example.com', primary=True)],
+            phone_numbers=[InvitePhoneNumber(number='+46071234567', primary=True)],
             send_email=True,
             finish_url='https://example.com/finish',
             completed=False,

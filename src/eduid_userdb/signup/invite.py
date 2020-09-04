@@ -61,7 +61,11 @@ class InviteMailAddress:
     primary: bool
 
 
-@dataclass
+@dataclass(frozen=True)
+class InvitePhoneNumber:
+    number: str
+    primary: bool
+
 class _InviteRequired:
     invite_type: InviteType
     invite_reference: InviteReference
@@ -75,7 +79,8 @@ class Invite(_InviteRequired):
     display_name: Optional[str] = field(default=None)
     given_name: Optional[str] = field(default=None)
     surname: Optional[str] = field(default=None)
-    mail_addresses: Optional[List[InviteMailAddress]] = field(default=None)
+    mail_addresses: List[InviteMailAddress] = field(default_factory=list)
+    phone_numbers: List[InvitePhoneNumber] = field(default_factory=list)
     preferred_language: Optional[str] = field(default=None)
     finish_url: Optional[str] = field(default=None)
     completed_ts: Optional[datetime] = field(default=None)
