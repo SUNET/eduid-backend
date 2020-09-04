@@ -16,7 +16,7 @@ from eduid_scimapi.db.common import ScimApiProfile
 from eduid_scimapi.db.invitedb import ScimApiInvite
 from eduid_scimapi.schemas.invite import InviteResponse, InviteResponseSchema, NutidInviteV1
 from eduid_scimapi.schemas.scimbase import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
-from eduid_scimapi.schemas.user import NutidUserExtensionV1
+from eduid_scimapi.schemas.user import NutidUserExtensionV1, Profile
 from eduid_scimapi.testing import ScimApiTestCase
 
 logger = logging.getLogger(__name__)
@@ -75,6 +75,7 @@ class TestScimInvite(unittest.TestCase):
             invite_type=InviteType.SCIM,
             invite_reference=SCIMReference(data_owner='test_data_owner', scim_id=db_invite.scim_id),
             invite_code='abc123',
+            inviter_name='Test Inviter Name',
             display_name=f'{db_invite.name.givenName} {db_invite.name.middleName} {db_invite.name.familyName}',
             given_name=db_invite.name.givenName,
             surname=db_invite.name.familyName,
@@ -97,12 +98,15 @@ class TestScimInvite(unittest.TestCase):
             emails=[Email(**asdict(email)) for email in db_invite.emails],
             phone_numbers=[PhoneNumber(**asdict(number)) for number in db_invite.phone_numbers],
             preferred_language=db_invite.preferred_language,
+            completed=db_invite.completed,
+            nutid_user_v1=NutidUserExtensionV1(
+                profiles={k: Profile(attributes=v.attributes, data=v.data) for k, v in db_invite.profiles.items()}
+            ),
+            inviter_name=signup_invite.inviter_name,
             send_email=signup_invite.send_email,
             finish_url=signup_invite.finish_url,
             invite_url=f'https://signup.eduid.se/invitation/scim/{signup_invite.invite_code}',
-            completed=db_invite.completed,
             expires_at=signup_invite.expires_at,
-            nutid_user_v1=NutidUserExtensionV1(profiles=db_invite.profiles),
         )
 
         scim = InviteResponseSchema().dumps(invite_response, sort_keys=True)
@@ -121,6 +125,7 @@ class TestScimInvite(unittest.TestCase):
             'expires_at': '2020-08-23T15:52:59+0000',
             'finishURL': 'https://finish.example.com',
             'inviteURL': 'https://signup.eduid.se/invitation/scim/abc123',
+            'inviterName': 'Test Inviter Name',
             'sendEmail': True,
             SCIMSchema.NUTID_USER_V1.value: {
                 'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}}
@@ -231,8 +236,9 @@ class TestInviteResource(ScimApiTestCase):
             ],
             'nationalIdentityNumber': '190102031234',
             'preferred_language': 'se-SV',
-            'groups': ['9784e1bf-231b-4eb8-b315-52eb46dd7c4b'],
+            'groups': ['7544e1bf-231b-4eb8-b315-52eb46dd7c4b'],
             'finishURL': 'https://finish.example.com',
+            'inviterName': 'Test Inviter Name',
             'sendEmail': True,
             SCIMSchema.NUTID_USER_V1.value: {
                 'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}}

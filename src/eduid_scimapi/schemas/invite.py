@@ -46,7 +46,8 @@ class NutidInviteV1:
     preferred_language: Optional[str] = field(
         default=None, metadata={'data_key': 'preferredLanguage', 'marshmallow_field': LanguageTagField()}
     )
-    groups: Optional[List[UUID]] = field(default_factory=list)
+    groups: List[UUID] = field(default_factory=list)
+    inviter_name: Optional[str] = field(default=None, metadata={'data_key': 'inviterName', 'required': True})
     send_email: Optional[bool] = field(default=None, metadata={'data_key': 'sendEmail', 'required': True})
     finish_url: Optional[str] = field(default=None, metadata={'data_key': 'finishURL'})
     invite_url: Optional[str] = field(default=None, metadata={'data_key': 'inviteURL'})

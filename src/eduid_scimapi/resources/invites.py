@@ -53,6 +53,7 @@ class InvitesResource(SCIMResource):
             given_name=create_request.name.givenName,
             surname=create_request.name.familyName,
             nin=create_request.national_identity_number,
+            inviter_name=create_request.inviter_name,
             send_email=create_request.send_email,
             mail_addresses=mails_addresses,
             phone_numbers=phone_numbers,
@@ -83,6 +84,7 @@ class InvitesResource(SCIMResource):
             phone_numbers=[PhoneNumber(**asdict(number)) for number in db_invite.phone_numbers],
             national_identity_number=db_invite.nin,
             preferred_language=db_invite.preferred_language,
+            groups=db_invite.groups,
             meta=meta,
             schemas=list(schemas),  # extra list() needed to work with _both_ mypy and marshmallow
             send_email=signup_invite.send_email,
@@ -163,6 +165,7 @@ class InvitesResource(SCIMResource):
             phone_numbers=[ScimApiPhoneNumber(**asdict(number)) for number in create_request.phone_numbers],
             nin=create_request.national_identity_number,
             preferred_language=create_request.preferred_language,
+            groups=create_request.groups,
             profiles=profiles,
         )
         signup_invite = self._create_signup_invite(req, resp, create_request, db_invite)
