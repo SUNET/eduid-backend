@@ -104,7 +104,8 @@ class Invite(_InviteRequired):
         data['invite_type'] = InviteType(data['invite_type'])
         if data.get('mail_addresses'):
             data['mail_addresses'] = [InviteMailAddress(**address) for address in data['mail_addresses']]
-
+        if data.get('phone_numbers'):
+            data['phone_numbers'] = [InvitePhoneNumber(**number) for number in data['phone_numbers']]
         # Load invite specific data
         if data['invite_type'] is InviteType.SCIM:
             data['invite_reference'] = SCIMReference(**data['invite_reference'])
