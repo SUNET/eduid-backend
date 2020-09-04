@@ -167,5 +167,6 @@ def match_mobile_to_user(user, self_asserted_nin, verified_mobile_numbers):
                 current_app.stats.count('validate_nin_by_mobile_relative_match')
                 return True, proofing_log_entry
 
+    current_app.stats.count('validate_nin_by_mobile_no_match')
     current_app.logger.info('Mobile number NOT matched for user {}.'.format(proofing_user))
     return False, None
