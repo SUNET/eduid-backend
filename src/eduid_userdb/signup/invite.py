@@ -72,6 +72,7 @@ class _InviteRequired:
     invite_type: InviteType
     invite_reference: InviteReference
     invite_code: str
+    inviter_name: str
     send_email: bool
 
 
