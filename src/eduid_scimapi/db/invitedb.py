@@ -27,6 +27,7 @@ class ScimApiInvite:
     name: ScimApiName = field(default_factory=lambda: ScimApiName())
     emails: List[ScimApiEmail] = field(default_factory=list)
     phone_numbers: List[ScimApiPhoneNumber] = field(default_factory=list)
+    groups: List[UUID] = field(default_factory=list)
     nin: Optional[str] = field(default=None)
     preferred_language: Optional[str] = field(default=None)
     completed: Optional[datetime] = field(default=None)
