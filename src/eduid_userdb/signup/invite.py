@@ -81,6 +81,7 @@ class Invite(_InviteRequired):
     surname: Optional[str] = field(default=None)
     mail_addresses: List[InviteMailAddress] = field(default_factory=list)
     phone_numbers: List[InvitePhoneNumber] = field(default_factory=list)
+    nin: Optional[str] = field(default=None)
     preferred_language: Optional[str] = field(default=None)
     finish_url: Optional[str] = field(default=None)
     completed_ts: Optional[datetime] = field(default=None)
