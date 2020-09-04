@@ -29,6 +29,7 @@
 #
 import datetime
 import logging
+from dataclasses import replace
 from typing import Optional
 
 from eduid_userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
@@ -70,7 +71,7 @@ class SignupInviteDB(BaseDB):
         :param check_sync: Ensure the document hasn't been updated in the database since it was loaded
         """
         modified = invite.modified_ts
-        invite.modified_ts = datetime.datetime.utcnow()  # update to current time
+        invite = replace(invite, modified_ts=datetime.datetime.utcnow())  # update to current time
         if modified is None:
             # document has never been modified
             result = self._coll.insert_one(invite.to_dict())

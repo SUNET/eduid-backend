@@ -44,18 +44,18 @@ class InviteType(Enum):
     SCIM = 'SCIM'
 
 
-@dataclass
+@dataclass(frozen=True)
 class InviteReference:
     pass
 
 
-@dataclass
+@dataclass(frozen=True)
 class SCIMReference(InviteReference):
     data_owner: str
     scim_id: UUID
 
 
-@dataclass
+@dataclass(frozen=True)
 class InviteMailAddress:
     email: str
     primary: bool
@@ -66,6 +66,8 @@ class InvitePhoneNumber:
     number: str
     primary: bool
 
+
+@dataclass(frozen=True)
 class _InviteRequired:
     invite_type: InviteType
     invite_reference: InviteReference
@@ -73,7 +75,7 @@ class _InviteRequired:
     send_email: bool
 
 
-@dataclass
+@dataclass(frozen=True)
 class Invite(_InviteRequired):
     invite_id: ObjectId = field(default_factory=ObjectId)
     display_name: Optional[str] = field(default=None)
