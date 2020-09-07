@@ -50,7 +50,7 @@ class _AbstractUserTestCase:
 
         self.normalize_data(expected, obtained)
 
-        assert expected == obtained
+        assert obtained == expected
 
     def test_obsolete_attributes(self):
         """
@@ -68,7 +68,7 @@ class _AbstractUserTestCase:
 
         self.normalize_users([expected, obtained])
 
-        assert expected == obtained
+        assert obtained == expected
 
         data = self.data2
         data['phone'][0]['verification_code'] = '123456789'
@@ -79,7 +79,7 @@ class _AbstractUserTestCase:
 
         self.normalize_users([expected, obtained])
 
-        assert expected == obtained
+        assert obtained == expected
 
     def test_unknown_attributes(self):
         """
@@ -125,7 +125,7 @@ class _AbstractUserTestCase:
 
         self.normalize_data(expected, obtained)
 
-        assert expected == obtained
+        assert obtained == expected
 
     def test_revoked_user(self):
         """

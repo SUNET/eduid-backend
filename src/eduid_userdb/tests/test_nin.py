@@ -66,7 +66,7 @@ class TestNinList(DictTestCase):
 
         self.normalize_data(expected, obtained)
 
-        assert expected == obtained, 'List with removed NIN has unexpected data'
+        assert obtained == expected, 'List with removed NIN has unexpected data'
 
     def test_add_duplicate(self):
         dup = self.two.find(self.two.primary.number)
@@ -82,7 +82,7 @@ class TestNinList(DictTestCase):
 
         self.normalize_data(expected, obtained)
 
-        assert expected == obtained, 'List with added mail address has unexpected data'
+        assert obtained == expected, 'List with added mail address has unexpected data'
 
     def test_add_another_primary(self):
         new = eduid_userdb.nin.nin_from_dict({'number': '+46700000009', 'verified': True, 'primary': True,})
@@ -105,7 +105,7 @@ class TestNinList(DictTestCase):
 
         self.normalize_data(expected, obtained)
 
-        assert expected == obtained, 'List with removed NIN has unexpected data'
+        assert obtained == expected, 'List with removed NIN has unexpected data'
 
     def test_remove_unknown(self):
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):

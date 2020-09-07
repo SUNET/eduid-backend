@@ -68,7 +68,7 @@ class TestCredentialList(DictTestCase):
 
         self.normalize_data(expected, obtained)
 
-        assert expected == obtained, 'Credential list with one password not as expected'
+        assert obtained == expected, 'Credential list with one password not as expected'
 
     def test_find(self):
         match = self.two.find('222222222222222222222222')
@@ -99,7 +99,7 @@ class TestCredentialList(DictTestCase):
 
         self.normalize_data(expected, obtained)
 
-        assert expected == obtained, 'List of credentials with added credential different than expected'
+        assert obtained == expected, 'List of credentials with added credential different than expected'
 
     def test_add_duplicate(self):
         dup = self.two.find(ObjectId('222222222222222222222222'))
@@ -115,7 +115,7 @@ class TestCredentialList(DictTestCase):
 
         self.normalize_data(expected, obtained)
 
-        assert expected == obtained, 'List of credentials with added password different than expected'
+        assert obtained == expected, 'List of credentials with added password different than expected'
 
     def test_remove(self):
         now_two = self.three.remove(ObjectId('333333333333333333333333'))
@@ -125,7 +125,7 @@ class TestCredentialList(DictTestCase):
 
         self.normalize_data(expected, obtained)
 
-        assert expected == obtained, 'List of credentials with removed credential different than expected'
+        assert obtained == expected, 'List of credentials with removed credential different than expected'
 
     def test_remove_unknown(self):
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
