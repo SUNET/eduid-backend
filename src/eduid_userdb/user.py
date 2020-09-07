@@ -215,7 +215,7 @@ class User(object):
 
         :return: User proper
         """
-        # We cast here to avoid importing UserDB at the module thus level creating a circular import
+        # We cast here to avoid importing UserDB at the module level thus creating a circular import
         from eduid_userdb import UserDB
         private_userdb = cast(UserDB, private_userdb)
 
