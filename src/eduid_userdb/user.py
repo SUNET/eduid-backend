@@ -31,16 +31,18 @@
 #
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
+from __future__ import annotations
 
 import copy
 import warnings
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Type, TypeVar
+from typing import cast, Any, Dict, List, Optional, Type, TypeVar
 
 import bson
 
 from eduid_userdb.credentials import CredentialList
+from eduid_userdb.db import BaseDB
 from eduid_userdb.element import UserDBValueError
 from eduid_userdb.exceptions import UserHasNotCompletedSignup, UserIsRevoked
 from eduid_userdb.locked_identity import LockedIdentityList
@@ -204,19 +206,19 @@ class User(object):
         return res
 
     @classmethod
-    def from_user(cls, user, private_userdb):
+    def from_user(cls: Type[TUserSubclass], user: TUserSubclass, private_userdb: BaseDB) -> TUserSubclass:
         """
         This function is only expected to be used by subclasses of User.
 
         :param user: User instance from AM database
         :param private_userdb: Private UserDB to load modified_ts from
 
-        :type user: User
-        :type private_userdb: eduid_userdb.UserDB
-
         :return: User proper
-        :rtype: cls
         """
+        # We cast here to avoid importing UserDB at the module thus level creating a circular import
+        from eduid_userdb import UserDB
+        private_userdb = cast(UserDB, private_userdb)
+
         user_dict = user.to_dict()
         private_user = private_userdb.get_user_by_eppn(user.eppn, raise_on_missing=False)
         if private_user is None:
