@@ -165,8 +165,10 @@ def match_mobile_to_user(user, self_asserted_nin, verified_mobile_numbers):
                 return True, proofing_log_entry
         # No match
         else:
+            current_app.logger.info(f'Mobile {mobile_number} number NOT matched to users NIN')
+            current_app.logger.debug(f'Mobile registered to NIN: {registered_to_nin}')
             current_app.logger.debug(f'User NIN: {self_asserted_nin}')
-            current_app.logger.debug(f'Mobile {mobile_number} registered to NIN: {registered_to_nin}.')
-            current_app.logger.info('Mobile number NOT matched to users NIN.')
-            current_app.stats.count('validate_nin_by_mobile_no_match')
-            return False, None
+
+    # None of the users verified mobile phone numbers matched the NIN
+    current_app.stats.count('validate_nin_by_mobile_no_match')
+    return False, None
