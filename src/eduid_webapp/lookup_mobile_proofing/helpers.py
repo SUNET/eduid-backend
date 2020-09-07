@@ -109,18 +109,17 @@ def match_mobile_to_user(user, self_asserted_nin, verified_mobile_numbers):
         try:
             registered_to_nin = current_app.lookup_mobile_relay.find_nin_by_mobile(mobile_number)
             registered_to_nin = format_NIN(registered_to_nin)
+            current_app.logger.debug(f'Mobile {mobile_number} registered to NIN: {registered_to_nin}')
         except LookupMobileTaskFailed as e:
-            current_app.logger.error('Lookup mobile task failed for user {}.'.format(proofing_user))
-            current_app.logger.debug('Mobile number: {}'.format(mobile_number))
+            current_app.logger.error('Lookup mobile task failed for user')
+            current_app.logger.debug(f'Mobile number: {mobile_number}')
             raise e
 
         # Check if registered nin was the self asserted nin
         if registered_to_nin == self_asserted_nin:
-            current_app.logger.info('Mobile number matched for user {}.'.format(proofing_user))
-            current_app.logger.debug('Mobile {!s} registered to NIN: {!s}.'.format(mobile_number, registered_to_nin))
-
-            current_app.logger.info('Creating proofing log entry for user {}.'.format(proofing_user))
-            current_app.logger.info('Looking up official address for user {}.'.format(proofing_user))
+            current_app.logger.info('Mobile number matched for user')
+            current_app.logger.info('Creating proofing log entry for user')
+            current_app.logger.info('Looking up official address for user')
             user_postal_address = current_app.msg_relay.get_postal_address(self_asserted_nin)
             proofing_log_entry = TeleAdressProofing(
                 eppn=proofing_user.eppn,
@@ -142,16 +141,14 @@ def match_mobile_to_user(user, self_asserted_nin, verified_mobile_numbers):
             # F - Förälder
             valid_relations = ['FA', 'MO', 'VF', 'F']
             if any(r in relations for r in valid_relations):
-                current_app.logger.info('Mobile number matched for user {} via navet.'.format(user))
-                current_app.logger.debug('Mobile {} registered to NIN: {}.'.format(mobile_number, registered_to_nin))
-                current_app.logger.debug(
-                    'Person with NIN {} have relation {} to user: {}.'.format(registered_to_nin, relations, user)
-                )
-                current_app.logger.info('Creating proofing log entry for user {}.'.format(proofing_user))
-                current_app.logger.info('Looking up official address for user {}.'.format(proofing_user))
+                current_app.logger.info('Mobile number matched for user relation via navet.')
+                current_app.logger.debug(f'Mobile {mobile_number} registered to NIN: {registered_to_nin}.')
+                current_app.logger.debug(f'Person with NIN {registered_to_nin} have relation {relations} to user')
+                current_app.logger.info('Looking up official address for user')
                 user_postal_address = current_app.msg_relay.get_postal_address(self_asserted_nin)
-                current_app.logger.info('Looking up official address for relation {}.'.format(proofing_user))
+                current_app.logger.info(f'Looking up official address for relation {relations}.')
                 registered_postal_address = current_app.msg_relay.get_postal_address(registered_to_nin)
+                current_app.logger.info('Creating proofing log entry for user')
                 proofing_log_entry = TeleAdressProofingRelation(
                     eppn=proofing_user.eppn,
                     created_by='lookup_mobile_proofing',
@@ -166,7 +163,10 @@ def match_mobile_to_user(user, self_asserted_nin, verified_mobile_numbers):
                 )
                 current_app.stats.count('validate_nin_by_mobile_relative_match')
                 return True, proofing_log_entry
-
-    current_app.stats.count('validate_nin_by_mobile_no_match')
-    current_app.logger.info('Mobile number NOT matched for user {}.'.format(proofing_user))
-    return False, None
+        # No match
+        else:
+            current_app.logger.debug(f'User NIN: {self_asserted_nin}')
+            current_app.logger.debug(f'Mobile {mobile_number} registered to NIN: {registered_to_nin}.')
+            current_app.logger.info('Mobile number NOT matched to users NIN.')
+            current_app.stats.count('validate_nin_by_mobile_no_match')
+            return False, None
