@@ -37,7 +37,7 @@ import copy
 import warnings
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import cast, Any, Dict, List, Optional, Type, TypeVar
+from typing import Any, Dict, List, Optional, Type, TypeVar, cast
 
 import bson
 
@@ -217,6 +217,7 @@ class User(object):
         """
         # We cast here to avoid importing UserDB at the module level thus creating a circular import
         from eduid_userdb import UserDB
+
         private_userdb = cast(UserDB, private_userdb)
 
         user_dict = user.to_dict()
