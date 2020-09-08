@@ -2,12 +2,11 @@ import copy
 import datetime
 from unittest import TestCase
 
-import bson
-
 import eduid_userdb.element
 import eduid_userdb.exceptions
-from eduid_userdb.credentials import Password
+from eduid_userdb.element import Element
 from eduid_userdb.nin import Nin, NinList
+from eduid_userdb.tests import DictTestCase
 
 __author__ = 'ft'
 
@@ -30,8 +29,9 @@ _three_dict = {
 }
 
 
-class TestNinList(TestCase):
+class TestNinList(DictTestCase):
     def setUp(self):
+        self.maxDiff = None  # Make pytest show full diffs
         self.empty = NinList([])
         self.one = NinList([_one_dict])
         self.two = NinList([_one_dict, _two_dict])
@@ -50,8 +50,6 @@ class TestNinList(TestCase):
     def test_to_list_of_dicts(self):
         self.assertEqual([], self.empty.to_list_of_dicts(), list)
 
-        self.assertEqual([_one_dict], self.one.to_list_of_dicts())
-
     def test_find(self):
         match = self.one.find('197801011234')
         self.assertIsInstance(match, Nin)
@@ -62,7 +60,13 @@ class TestNinList(TestCase):
     def test_add(self):
         second = self.two.find('197802022345')
         self.one.add(second)
-        self.assertEqual(self.one.to_list_of_dicts(), self.two.to_list_of_dicts())
+
+        expected = self.two.to_list_of_dicts()
+        obtained = self.one.to_list_of_dicts()
+
+        self.normalize_data(expected, obtained)
+
+        assert expected == obtained, 'List with removed NIN has unexpected data'
 
     def test_add_duplicate(self):
         dup = self.two.find(self.two.primary.number)
@@ -72,7 +76,13 @@ class TestNinList(TestCase):
     def test_add_mailaddress(self):
         third = self.three.find('197803033456')
         this = NinList([_one_dict, _two_dict, third])
-        self.assertEqual(this.to_list_of_dicts(), self.three.to_list_of_dicts())
+
+        expected = self.three.to_list_of_dicts()
+        obtained = this.to_list_of_dicts()
+
+        self.normalize_data(expected, obtained)
+
+        assert expected == obtained, 'List with added mail address has unexpected data'
 
     def test_add_another_primary(self):
         new = eduid_userdb.nin.nin_from_dict({'number': '+46700000009', 'verified': True, 'primary': True,})
@@ -80,17 +90,22 @@ class TestNinList(TestCase):
             self.one.add(new)
 
     def test_add_wrong_type(self):
-        pwdict = {
-            'id': bson.ObjectId(),
-            'salt': 'foo',
+        elemdict = {
+            'created_by': 'tests',
         }
-        new = Password.from_dict(pwdict)
+        new = Element.from_dict(elemdict)
         with self.assertRaises(eduid_userdb.element.UserDBValueError):
             self.one.add(new)
 
     def test_remove(self):
         now_two = self.three.remove('197803033456')
-        self.assertEqual(self.two.to_list_of_dicts(), now_two.to_list_of_dicts())
+
+        expected = self.two.to_list_of_dicts()
+        obtained = now_two.to_list_of_dicts()
+
+        self.normalize_data(expected, obtained)
+
+        assert expected == obtained, 'List with removed NIN has unexpected data'
 
     def test_remove_unknown(self):
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
@@ -162,11 +177,6 @@ class TestNin(TestCase):
         address = self.two.primary
         self.assertEqual(address.key, address.number)
 
-    def test_setting_invalid_mail(self):
-        this = self.one.primary
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.number = None
-
     def test_parse_cycle(self):
         """
         Tests that we output something we parsed back into the same thing we output.
@@ -174,25 +184,6 @@ class TestNin(TestCase):
         for this in [self.one, self.two, self.three]:
             this_dict = this.to_list_of_dicts()
             self.assertEqual(NinList(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
-
-    def test_bad_is_primary(self):
-        this = self.one.to_list()[0]
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.is_primary = 'foo'
-
-    def test_unknown_input_data(self):
-        one = copy.deepcopy(_one_dict)
-        one['foo'] = 'bar'
-        with self.assertRaises(eduid_userdb.exceptions.UserHasUnknownData):
-            Nin.from_dict(one)
-
-    def test_unknown_input_data_allowed(self):
-        one = copy.deepcopy(_one_dict)
-        one['foo'] = 'bar'
-        addr = Nin.from_dict(one, raise_on_unknown=False)
-        out = addr.to_dict()
-        self.assertIn('foo', out)
-        self.assertEqual(out['foo'], one['foo'])
 
     def test_changing_is_verified_on_primary(self):
         this = self.one.primary
@@ -204,43 +195,20 @@ class TestNin(TestCase):
         this.is_verified = False  # was False already
         this.is_verified = True
 
-    def test_setting_invalid_is_verified(self):
-        this = self.three.find('197803033456')
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.is_verified = 1
-
     def test_verified_by(self):
         this = self.three.find('197803033456')
         this.verified_by = 'unit test'
         self.assertEqual(this.verified_by, 'unit test')
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.verified_by = False
 
     def test_modify_verified_by(self):
         this = self.three.find('197803033456')
         this.verified_by = 'unit test'
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.verified_by = False
         this.verified_by = 'test unit'
         self.assertEqual(this.verified_by, 'test unit')
-
-    def test_verified_ts(self):
-        this = self.three.find('197803033456')
-        this.verified_ts = True
-        self.assertIsInstance(this.verified_ts, datetime.datetime)
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.verified_ts = False
 
     def test_modify_verified_ts(self):
         this = self.three.find('197803033456')
         now = datetime.datetime.utcnow()
-        this.verified_ts = now
-        this.verified_ts = None
-        self.assertEqual(this.verified_ts, now)
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.verified_ts = 'not a datetime'
-        this.verified_ts = True
-        self.assertGreater(this.verified_ts, now)
         this.verified_ts = now
         self.assertEqual(this.verified_ts, now)
 
@@ -248,30 +216,13 @@ class TestNin(TestCase):
         this = self.three.find('197803033456')
         this.created_by = 'unit test'
         self.assertEqual(this.created_by, 'unit test')
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_by = False
 
     def test_modify_created_by(self):
         this = self.three.find('197803033456')
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_by = 1
         this.created_by = 'unit test'
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_by = None
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_by = 'test unit'
+
+        assert this.created_by == 'unit test'
 
     def test_created_ts(self):
         this = self.three.find('197803033456')
-        this.created_ts = True
         self.assertIsInstance(this.created_ts, datetime.datetime)
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_ts = False
-
-    def test_modify_created_ts(self):
-        this = self.three.find('197803033456')
-        this.created_ts = datetime.datetime.utcnow()
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_ts = None
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
-            this.created_ts = True

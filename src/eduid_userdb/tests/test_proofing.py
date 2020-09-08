@@ -72,19 +72,26 @@ class ProofingStateTest(TestCase):
             ),
             id=None,
             modified_ts=None,
-            proofing_letter=SentLetterElement.from_dict({}),
+            proofing_letter=SentLetterElement(),
         )
         state.proofing_letter.address = ADDRESS
-        x = state.proofing_letter.to_dict()
         state_dict = state.to_dict()
+        _state_expected_keys = ['_id', 'eduPersonPrincipalName', 'nin', 'modified_ts', 'proofing_letter']
+        assert sorted(state_dict.keys()) == sorted(_state_expected_keys)
+
+        _nin_expected_keys = ['created_by', 'created_ts', 'number', 'verification_code', 'verified']
+        if not state.nin._no_modified_ts_in_db:
+            # When _no_modified_ts_in_db is removed from Element,
+            # 'modified_ts' should be added to _nin_expected_keys above
+            _nin_expected_keys += ['modified_ts']
+
         self.assertEqual(
-            sorted(state_dict.keys()), ['_id', 'eduPersonPrincipalName', 'modified_ts', 'nin', 'proofing_letter']
+            sorted([k for k, v in state_dict['nin'].items() if v is not None]), sorted(_nin_expected_keys),
         )
+        _proofing_letter_expected_keys = ['address', 'created_ts', 'is_sent', 'modified_ts']
         self.assertEqual(
-            sorted(state_dict['nin'].keys()), ['created_by', 'created_ts', 'number', 'verification_code', 'verified']
-        )
-        self.assertEqual(
-            sorted(state_dict['proofing_letter'].keys()), ['address', 'is_sent', 'sent_ts', 'transaction_id']
+            sorted([k for k, v in state_dict['proofing_letter'].items() if v is not None]),
+            sorted(_proofing_letter_expected_keys),
         )
 
     def test_create_oidcproofingstate(self):

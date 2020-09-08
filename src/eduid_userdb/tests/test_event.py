@@ -6,7 +6,7 @@ import bson
 
 import eduid_userdb.element
 import eduid_userdb.exceptions
-from eduid_userdb.credentials import Password
+from eduid_userdb.element import Element
 from eduid_userdb.event import EventList
 from eduid_userdb.tou import ToUEvent, ToUList
 
@@ -62,7 +62,7 @@ class TestEventList(TestCase):
 
         _one_dict_copy = deepcopy(_one_dict)  # Update id to event_id before comparing dicts
         _one_dict_copy['event_id'] = _one_dict_copy.pop('id')
-        self.assertEqual([_one_dict_copy], self.one.to_list_of_dicts(mixed_format=True))
+        self.assertEqual([_one_dict_copy], self.one.to_list_of_dicts())
 
     def test_find(self):
         match = self.one.find(self.one.to_list()[0].key)
@@ -93,11 +93,10 @@ class TestEventList(TestCase):
         self.assertEqual(this.to_list_of_dicts(), self.three.to_list_of_dicts())
 
     def test_add_wrong_type(self):
-        pwdict = {
-            'id': bson.ObjectId(),
-            'salt': 'foo',
+        elemdict = {
+            'created_by': 'tests',
         }
-        new = Password.from_dict(pwdict)
+        new = Element.from_dict(elemdict)
         with self.assertRaises(eduid_userdb.element.UserDBValueError):
             self.one.add(new)
 
@@ -129,12 +128,19 @@ class TestEventList(TestCase):
         }
         self.assertNotIn('modified_ts', _event_no_modified_ts)
         el = EventList([_event_no_modified_ts])
+        assert el.count == 1
         for event in el.to_list_of_dicts():
-            self.assertIsInstance(event['modified_ts'], datetime.datetime)
-            self.assertEqual(event['modified_ts'], event['created_ts'])
+            # As long as the _no_modified_ts_in_db property exists on Element, we expect
+            # there to be no modified_ts in the output dict when there was none in the
+            # input dict. Written this way to be obvious what needs to change in this test
+            # case when _no_modified_ts_in_db is removed from Element.
+            if el.to_list()[0]._no_modified_ts_in_db:
+                assert 'modified_ts' not in event
+            else:
+                self.assertIsInstance(event['modified_ts'], datetime.datetime)
+                assert event['modified_ts'] == event['created_ts']
         for event in el.to_list():
             self.assertIsInstance(event.modified_ts, datetime.datetime)
-            self.assertEqual(event.modified_ts, event.created_ts)
 
     def test_update_modified_ts(self):
         _event_modified_ts = {
