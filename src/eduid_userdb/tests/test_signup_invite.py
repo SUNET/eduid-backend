@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from unittest import TestCase
 from uuid import uuid4
 
-from eduid_userdb.signup import Invite, InviteMailAddress, InviteType, SCIMReference, InvitePhoneNumber
+from eduid_userdb.signup import Invite, InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
 
 
 class TestSignupInvite(TestCase):
@@ -11,6 +11,7 @@ class TestSignupInvite(TestCase):
             invite_type=InviteType.SCIM,
             invite_reference=SCIMReference(data_owner='test_data_owner', scim_id=uuid4()),
             invite_code='test_invite_code',
+            inviter_name='Test Inviter',
             display_name='Testaren Test Testsson',
             given_name='Testaren',
             surname='Testsson',

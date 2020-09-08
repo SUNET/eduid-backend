@@ -34,6 +34,7 @@ from typing import Optional
 
 from eduid_userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
 from eduid_userdb.signup import Invite, SCIMReference
+from eduid_userdb.signup.invite import InviteReference
 from eduid_userdb.userdb import BaseDB
 
 __author__ = 'lundberg'
@@ -56,9 +57,12 @@ class SignupInviteDB(BaseDB):
             return Invite.from_dict(doc)
         return None
 
-    def get_invite_by_scim_reference(self, reference: SCIMReference) -> Optional[Invite]:
-        spec = {'invite_reference.scim_id': reference.scim_id, 'invite_reference.data_owner': reference.data_owner}
-        docs = self._get_documents_by_filter(spec=spec, raise_on_missing=True)
+    def get_invite_by_reference(self, reference: InviteReference) -> Optional[Invite]:
+        if isinstance(reference, SCIMReference):
+            spec = {'invite_reference.scim_id': reference.scim_id, 'invite_reference.data_owner': reference.data_owner}
+        else:
+            raise NotImplemented(f'Reference of type {type(reference)} not implemented.')
+        docs = self._get_documents_by_filter(spec=spec, raise_on_missing=False)
         if len(docs) > 1:
             raise MultipleDocumentsReturned(f'Multiple matching documents for {repr(spec)}')
         elif len(docs) == 1:
