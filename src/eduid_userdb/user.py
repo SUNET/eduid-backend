@@ -206,7 +206,7 @@ class User(object):
         return res
 
     @classmethod
-    def from_user(cls: Type[TUserSubclass], user: TUserSubclass, private_userdb: BaseDB) -> TUserSubclass:
+    def from_user(cls: Type[TUserSubclass], user: User, private_userdb: BaseDB) -> TUserSubclass:
         """
         This function is only expected to be used by subclasses of User.
 
