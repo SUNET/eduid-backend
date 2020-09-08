@@ -122,14 +122,6 @@ class TestTouUser(TestCase):
         with self.assertRaises(TypeError):
             ToUUser(user_id=userid, tou=tou, credentials=passwords)
 
-    def test_proper_new_user_no_tou(self):
-        userdata = new_user_example.to_dict()
-        userid = userdata.pop('_id')
-        eppn = userdata.pop('eduPersonPrincipalName')
-        passwords = CredentialList(userdata['passwords'])
-        with self.assertRaises(TypeError):
-            ToUUser(user_id=userid, eppn=eppn, credentials=passwords)
-
     def test_missing_eppn(self):
         one = copy.deepcopy(_one_dict)
         tou = ToUList([ToUEvent.from_dict(one)])
@@ -141,9 +133,3 @@ class TestTouUser(TestCase):
         tou = ToUEvent.from_dict(one)
         with self.assertRaises(UserMissingData):
             ToUUser.from_dict(data=dict(tou=[tou], eppn=EPPN))
-
-    def test_missing_tou(self):
-        userdata = new_user_example.to_dict()
-        passwords = CredentialList(userdata['passwords'])
-        with self.assertRaises(UserMissingData):
-            ToUUser.from_dict(data=dict(eduPersonPrincipalName=EPPN, _id=USERID, passwords=passwords))

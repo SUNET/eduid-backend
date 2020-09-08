@@ -45,12 +45,6 @@ class ToUUser(User):
     Subclass of eduid_userdb.User
     """
 
-    def __post_init__(self):
-        if self.tou is None:
-            raise TypeError('ToUUser needs to be initialized with at least 1 ToU acceptance')
-
-        super().__post_init__()
-
     @classmethod
     def check_or_use_data(cls, data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -60,10 +54,4 @@ class ToUUser(User):
             raise UserMissingData('Attempting to record a ToU acceptance ' 'for an unidentified user.')
         if 'eduPersonPrincipalName' not in data or data['eduPersonPrincipalName'] is None:
             raise UserMissingData('Attempting to record a ToU acceptance ' 'for a user without eppn.')
-        if 'tou' not in data or data['tou'] is None:
-            raise UserMissingData(
-                'Attempting to record the acceptance of '
-                'an unknown version of the ToU for '
-                'the user with eppn ' + str(data.get('eduPersonPrincipalName', data.get('eppn')))
-            )
         return data

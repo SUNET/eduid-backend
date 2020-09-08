@@ -77,7 +77,7 @@ class User(object):
     nins: NinList = field(default_factory=lambda: NinList([]))
     modified_ts: Optional[datetime] = None
     entitlements: List[str] = field(default_factory=list)
-    tou: Optional[ToUList] = None
+    tou: ToUList = field(default_factory=lambda: ToUList([]))
     terminated: Optional[datetime] = None
     locked_identity: LockedIdentityList = field(default_factory=lambda: LockedIdentityList([]))
     orcid: Optional[Orcid] = None
