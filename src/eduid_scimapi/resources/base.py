@@ -4,6 +4,7 @@ from falcon import Request
 
 from eduid_scimapi.context import Context
 from eduid_scimapi.db.groupdb import ScimApiGroup
+from eduid_scimapi.db.invitedb import ScimApiInvite
 from eduid_scimapi.db.userdb import ScimApiUser
 from eduid_scimapi.utils import make_etag, urlappend
 
@@ -23,7 +24,7 @@ class BaseResource(object):
 
 
 class SCIMResource(BaseResource):
-    def _check_version(self, req: Request, db_obj: Union[ScimApiGroup, ScimApiUser]) -> bool:
+    def _check_version(self, req: Request, db_obj: Union[ScimApiGroup, ScimApiUser, ScimApiInvite]) -> bool:
         if req.headers.get('IF-MATCH') == make_etag(db_obj.version):
             return True
         self.context.logger.error(f'Version mismatch')

@@ -44,7 +44,7 @@ class NutidInviteV1:
         },
     )
     preferred_language: Optional[str] = field(
-        default=None, metadata={'data_key': 'preferredLanguage', 'marshmallow_field': LanguageTagField()}
+        default=None, metadata={'marshmallow_field': LanguageTagField(data_key='preferredLanguage')}
     )
     groups: List[UUID] = field(default_factory=list)
     inviter_name: Optional[str] = field(default=None, metadata={'data_key': 'inviterName', 'required': True})
@@ -53,7 +53,7 @@ class NutidInviteV1:
     invite_url: Optional[str] = field(default=None, metadata={'data_key': 'inviteURL'})
     completed: Optional[datetime] = field(default=None, metadata={'marshmallow_field': DateTimeField()})
     expires_at: Optional[datetime] = field(
-        default=None, metadata={'data_key': 'expiresAt', 'marshmallow_field': DateTimeField()}
+        default=None, metadata={'marshmallow_field': DateTimeField(data_key='expiresAt')}
     )
     nutid_user_v1: NutidUserExtensionV1 = field(
         default_factory=lambda: NutidUserExtensionV1(),

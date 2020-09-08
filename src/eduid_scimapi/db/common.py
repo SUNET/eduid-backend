@@ -15,7 +15,7 @@ class ScimApiProfile:
     attributes: Dict[str, Any] = field(default_factory=dict)
     data: Dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Mapping[str, Any]:
+    def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 
     @classmethod
@@ -34,7 +34,7 @@ class ScimApiName:
     honorificPrefix: Optional[str] = None
     honorificSuffix: Optional[str] = None
 
-    def to_dict(self) -> Mapping[str, Optional[str]]:
+    def to_dict(self) -> Dict[str, Optional[str]]:
         return asdict(self)
 
     @classmethod
@@ -49,7 +49,7 @@ class ScimApiEmail:
     type: Optional[EmailType] = None
     primary: Optional[bool] = None
 
-    def to_dict(self) -> Mapping[str, Union[Optional[str], bool]]:
+    def to_dict(self) -> Dict[str, Union[Optional[str], bool]]:
         res = asdict(self)
         if self.type is not None:
             res['type'] = self.type.value
@@ -70,7 +70,7 @@ class ScimApiPhoneNumber:
     type: Optional[PhoneNumberType] = None
     primary: Optional[bool] = None
 
-    def to_dict(self) -> Mapping[str, Union[Optional[str], bool]]:
+    def to_dict(self) -> Dict[str, Union[Optional[str], bool]]:
         res = asdict(self)
         if self.type is not None:
             res['type'] = self.type.value

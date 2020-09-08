@@ -12,12 +12,14 @@ from falcon.testing import TestClient
 
 from eduid_common.config.testing import EtcdTemporaryInstance
 from eduid_graphdb.testing import Neo4jTemporaryInstance
+from eduid_userdb.signup import SignupInviteDB
 from eduid_userdb.testing import MongoTemporaryInstance
 
 from eduid_scimapi.app import init_api
 from eduid_scimapi.config import ScimApiConfig
 from eduid_scimapi.context import Context
 from eduid_scimapi.db.groupdb import ScimApiGroup
+from eduid_scimapi.db.invitedb import ScimApiInvite
 from eduid_scimapi.db.userdb import ScimApiProfile, ScimApiUser
 from eduid_scimapi.schemas.scimbase import SCIMSchema
 
@@ -110,6 +112,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         self.data_owner = 'eduid.se'
         self.userdb = self.context.get_userdb(self.data_owner)
         self.invitedb = self.context.get_invitedb(self.data_owner)
+        self.signup_invitedb = SignupInviteDB(db_uri=config.mongo_uri)
 
         api = init_api(name='test_api', test_config=self.test_config, debug=True)
         self.client = TestClient(api)
@@ -156,7 +159,7 @@ class ScimApiTestCase(MongoNeoTestCase):
             self.assertEqual(detail, json.get('detail'))
 
     def _assertScimResponseProperties(
-        self, response, resource: Union[ScimApiGroup, ScimApiUser], expected_schemas: List[str]
+        self, response, resource: Union[ScimApiGroup, ScimApiUser, ScimApiInvite], expected_schemas: List[str]
     ):
         if SCIMSchema.NUTID_USER_V1.value in response.json:
             # The API can always add this extension to the response, even if it was not in the request
@@ -178,8 +181,11 @@ class ScimApiTestCase(MongoNeoTestCase):
         elif isinstance(resource, ScimApiGroup):
             expected_location = f'http://localhost:8000/Groups/{resource.scim_id}'
             expected_resource_type = 'Group'
+        elif isinstance(resource, ScimApiInvite):
+            expected_location = f'http://localhost:8000/Invites/{resource.scim_id}'
+            expected_resource_type = 'Invite'
         else:
-            raise ValueError('Resource is neither ScimApiUser nor ScimApiGroup')
+            raise ValueError('Resource is neither ScimApiUser, ScimApiGroup or ScimApiInvite')
 
         self.assertEqual(str(resource.scim_id), response.json.get('id'), 'Unexpected id in response')
 

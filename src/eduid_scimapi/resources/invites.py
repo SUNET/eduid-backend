@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 from dataclasses import asdict, replace
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
-from falcon import Request, Response
+from falcon import HTTP_204, Request, Response
 from marshmallow import ValidationError
 
 from eduid_userdb.signup import Invite as SignupInvite
@@ -10,7 +11,7 @@ from eduid_userdb.signup import InviteMailAddress, InvitePhoneNumber, InviteType
 
 from eduid_scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
 from eduid_scimapi.db.invitedb import ScimApiInvite
-from eduid_scimapi.exceptions import BadRequest
+from eduid_scimapi.exceptions import BadRequest, NotFound
 from eduid_scimapi.middleware import ctx_invitedb
 from eduid_scimapi.resources.base import SCIMResource
 from eduid_scimapi.schemas.invite import (
@@ -79,6 +80,7 @@ class InvitesResource(SCIMResource):
         invite = InviteResponse(
             id=db_invite.scim_id,
             external_id=db_invite.external_id,
+            completed=db_invite.completed,
             name=Name(**asdict(db_invite.name)),
             emails=[Email(**asdict(email)) for email in db_invite.emails],
             phone_numbers=[PhoneNumber(**asdict(number)) for number in db_invite.phone_numbers],
@@ -89,8 +91,8 @@ class InvitesResource(SCIMResource):
             schemas=list(schemas),  # extra list() needed to work with _both_ mypy and marshmallow
             send_email=signup_invite.send_email,
             finish_url=signup_invite.finish_url,
-            completed=db_invite.completed,
             expires_at=signup_invite.expires_at,
+            inviter_name=signup_invite.inviter_name,
             nutid_user_v1=NutidUserExtensionV1(profiles=_profiles),
         )
 
@@ -102,6 +104,21 @@ class InvitesResource(SCIMResource):
         resp.set_header("Location", location)
         resp.set_header("ETag", make_etag(db_invite.version))
         resp.media = InviteResponseSchema().dump(invite)
+
+    @staticmethod
+    def _create_signup_ref(req: Request, db_invite: ScimApiInvite):
+        return SCIMReference(data_owner=req.context['data_owner'], scim_id=db_invite.scim_id)
+
+    def on_get(self, req: Request, resp: Response, scim_id: Optional[str] = None):
+        if scim_id is None:
+            raise BadRequest(detail='Not implemented')
+        self.context.logger.info(f'Fetching invite {scim_id}')
+        db_invite = ctx_invitedb(req).get_invite_by_scim_id(scim_id)
+        if not db_invite:
+            raise NotFound(detail='Invite not found')
+        ref = self._create_signup_ref(req, db_invite)
+        signup_invite = self.context.signup_invitedb.get_invite_by_reference(ref)
+        self._db_invite_to_response(req, resp, db_invite, signup_invite)
 
     def on_post(self, req: Request, resp: Response):
         """
@@ -172,3 +189,22 @@ class InvitesResource(SCIMResource):
         self.context.signup_invitedb.save(signup_invite)
         ctx_invitedb(req).save(db_invite)
         self._db_invite_to_response(req, resp, db_invite, signup_invite)
+
+    def on_delete(self, req: Request, resp: Response, scim_id: str):
+        self.context.logger.info(f'Deleting invite {scim_id}')
+        db_invite = ctx_invitedb(req).get_invite_by_scim_id(scim_id=scim_id)
+        self.context.logger.debug(f'Found invite: {db_invite}')
+        if not db_invite:
+            raise NotFound(detail="Invite not found")
+        # Check version
+        if not self._check_version(req, db_invite):
+            raise BadRequest(detail="Version mismatch")
+        # Remove signup invite
+        ref = self._create_signup_ref(req, db_invite)
+        signup_invite = self.context.signup_invitedb.get_invite_by_reference(ref)
+        self.context.signup_invitedb.remove_document(signup_invite.invite_id)
+        # Remove scim invite
+        res = ctx_invitedb(req).remove(db_invite)
+        self.context.logger.debug(f'Remove invite result: {res}')
+
+        resp.status = HTTP_204

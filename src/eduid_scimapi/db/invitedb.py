@@ -12,6 +12,7 @@ from bson import ObjectId
 
 from eduid_scimapi.db.basedb import ScimApiBaseDB
 from eduid_scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
+from eduid_scimapi.utils import filter_none
 
 __author__ = 'lundberg'
 
@@ -43,11 +44,16 @@ class ScimApiInvite:
         phone_numbers = []
         for phone_number in self.phone_numbers:
             phone_numbers.append(phone_number.to_dict())
+        groups = []
+        for group_id in self.groups:
+            groups.append(str(group_id))
         res = asdict(self)
+        res = filter_none(res)
         res['scim_id'] = str(res['scim_id'])
         res['_id'] = res.pop('invite_id')
         res['emails'] = emails
         res['phone_numbers'] = phone_numbers
+        res['groups'] = groups
         return res
 
     @classmethod
@@ -68,6 +74,11 @@ class ScimApiInvite:
         for number in data.get('phone_numbers', []):
             phone_numbers.append(ScimApiPhoneNumber.from_dict(number))
         this['phone_numbers'] = phone_numbers
+        # Groups
+        groups = []
+        for group_id in data.get('groups', []):
+            groups.append(UUID(group_id))
+        this['groups'] = groups
         # Profiles
         parsed_profiles = {}
         for k, v in data['profiles'].items():
