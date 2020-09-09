@@ -346,7 +346,10 @@ def reset_user_password(state, password):
                 nin.is_verified = False
                 current_app.logger.debug('NIN {} unverified'.format(nin.number))
 
-    security_user = reset_password(security_user, new_password=password, application='security', vccs_url=vccs_url)
+    if not reset_password(security_user, new_password=password, application='security', vccs_url=vccs_url):
+        current_app.logger.error('Failed resetting password')
+        return
+
     security_user.terminated = False
     save_and_sync_user(security_user)
     current_app.stats.count(name='security_password_reset', value=1)
