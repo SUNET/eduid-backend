@@ -34,22 +34,23 @@
 import datetime
 import os
 import struct
-import time
 from enum import unique
+from re import findall
 
 import proquint
 from bson import ObjectId
 from flask import abort
+from pwgen import pwgen
 
-from eduid_common.api.messages import FluxData, TranslatableMsg, error_response, success_response
+from eduid_common.api.messages import CommonMsg, FluxData, TranslatableMsg, error_response, success_response
 from eduid_common.api.utils import save_and_sync_user
+from eduid_common.authn.vccs import add_password
+from eduid_common.misc.timeutil import utc_now
 from eduid_common.session import session
-from eduid_userdb.credentials import Password
 from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.tou import ToUEvent
 
 from eduid_webapp.signup.app import current_signup_app as current_app
-from eduid_webapp.signup.vccs import generate_password
 
 
 @unique
@@ -69,7 +70,7 @@ class SignupMsg(TranslatableMsg):
     no_recaptcha = 'signup.recaptcha-not-verified'
     # verification email successfully re-sent
     resent_success = 'signup.verification-present'
-    # unrecognized verfication code
+    # unrecognized verification code
     unknown_code = 'signup.unknown-code'
     # the verification code has already been verified
     already_verified = 'signup.already-verified'
@@ -172,38 +173,34 @@ def complete_registration(signup_user) -> FluxData:
 
     :return: registration status info
     """
-    current_app.logger.info("Completing registration for user " "{}".format(signup_user))
+    current_app.logger.info(f'Completing registration for user {signup_user}')
 
-    context = {}
-    password_id = ObjectId()
-    (password, salt) = generate_password(str(password_id), signup_user)
+    password = _generate_password()
+    if not add_password(signup_user, password, application='signup'):
+        current_app.logger.error(f'Failed adding a credential to user {signup_user}')
+        return error_response(message=CommonMsg.temp_problem)
 
-    credential = Password.from_dict(dict(credential_id=password_id, salt=salt, is_generated=True, created_by='signup'))
-    signup_user.passwords.add(credential)
     # Record the acceptance of the terms of use
     record_tou(signup_user, 'signup')
     try:
         save_and_sync_user(signup_user)
     except UserOutOfSync:
-        current_app.logger.error('Couldnt save user {}, ' 'data out of sync'.format(signup_user))
-        return error_response(message='user-out-of-sync')
+        current_app.logger.error(f'Failed saving user {signup_user}, data out of sync')
+        return error_response(message=CommonMsg.out_of_sync)
 
-    timestamp = datetime.datetime.fromtimestamp(int(time.time()))
     if session.common is not None:  # please mypy
         session.common.eppn = signup_user.eppn
     if session.signup is not None:  # please mypy
-        session.signup.ts = timestamp
-    context.update(
-        {
-            "status": 'verified',
-            "password": password,
-            "email": signup_user.mail_addresses.primary.email,
-            "dashboard_url": current_app.config.signup_authn_url,
-        }
-    )
+        session.signup.ts = utc_now()
+    context = {
+        "status": 'verified',
+        "password": password,
+        "email": signup_user.mail_addresses.primary.email,
+        "dashboard_url": current_app.config.signup_authn_url,
+    }
 
     current_app.stats.count(name='signup_complete')
-    current_app.logger.info("Signup process for new user {} complete".format(signup_user))
+    current_app.logger.info(f'Signup process for new user {signup_user} complete')
     return success_response(payload=context)
 
 
@@ -229,3 +226,10 @@ def record_tou(user, source):
     user.tou.add(
         ToUEvent.from_dict(dict(version=tou_version, created_by=source, created_ts=created_ts, event_id=event_id))
     )
+
+
+def _generate_password() -> str:
+    """ Generate a random password readable to humans (groups of four characters). """
+    password = pwgen(current_app.config.password_length, no_capitalize=True, no_symbols=True)
+    parts = findall('.{,4}', password)
+    return ' '.join(parts).rstrip()
