@@ -29,10 +29,12 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from typing import cast
 
 from mock import patch
 
 from eduid_userdb.testing import MongoTestCase
+from vccs_client import VCCSClient
 
 from eduid_common.authn import vccs as vccs_module
 from eduid_common.authn.testing import MockVCCSClient
@@ -41,7 +43,7 @@ from eduid_common.authn.testing import MockVCCSClient
 class VCCSTestCase(MongoTestCase):
     def setUp(self):
         super(VCCSTestCase, self).setUp()
-        self.vccs_client = MockVCCSClient()
+        self.vccs_client = cast(VCCSClient, MockVCCSClient())
         self.user = self.amdb.get_user_by_mail('johnsmith@example.com')
 
         # Start with no credentials
@@ -54,7 +56,7 @@ class VCCSTestCase(MongoTestCase):
         super(VCCSTestCase, self).tearDown()
 
     def _check_credentials(self, creds):
-        return vccs_module.check_password('dummy', creds, self.user, self.vccs_client)
+        return vccs_module.check_password(creds, self.user, vccs=self.vccs_client)
 
     def test_check_good_credentials(self):
         result = self._check_credentials('abcd')
