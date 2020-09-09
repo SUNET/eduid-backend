@@ -67,7 +67,7 @@ class SignupTests(EduidAPITestCase):
                 'log_level': 'DEBUG',
                 'am_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/am',
                 'msg_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/msg',
-                'password_length': '10',
+                'password_length': 10,
                 'vccs_url': 'http://turq:13085/',
                 'tou_version': '2018-v1',
                 'tou_url': 'https://localhost/get-tous',

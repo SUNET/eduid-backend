@@ -139,7 +139,7 @@ def change_password(user):
         return error_response(message='chpass.stale_reauthn')
 
     vccs_url = current_app.config.vccs_url
-    added = add_credentials(vccs_url, old_password, new_password, security_user, source='security')
+    added = add_credentials(old_password, new_password, security_user, source='security', vccs_url=vccs_url)
 
     if not added:
         current_app.logger.debug('Problem verifying the old credentials for {}'.format(user))
@@ -222,7 +222,7 @@ def account_terminated(user):
     del session['reauthn-for-termination']
 
     # revoke all user passwords
-    revoke_all_credentials(current_app.config.vccs_url, security_user)
+    revoke_all_credentials(security_user, vccs_url=current_app.config.vccs_url)
     # Skip removing old passwords from the user at this point as a password reset will do that anyway.
     # This fixes the problem with loading users for a password reset as users without passwords triggers
     # the UserHasNotCompletedSignup check in eduid-userdb.
