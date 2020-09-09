@@ -118,9 +118,9 @@ def match_mobile_to_user(user, self_asserted_nin, verified_mobile_numbers):
         # Check if registered nin was the self asserted nin
         if registered_to_nin == self_asserted_nin:
             current_app.logger.info('Mobile number matched for user')
-            current_app.logger.info('Creating proofing log entry for user')
             current_app.logger.info('Looking up official address for user')
             user_postal_address = current_app.msg_relay.get_postal_address(self_asserted_nin)
+            current_app.logger.info('Creating proofing log entry for user')
             proofing_log_entry = TeleAdressProofing(
                 eppn=proofing_user.eppn,
                 created_by='lookup_mobile_proofing',
