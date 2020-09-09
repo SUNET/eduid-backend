@@ -35,13 +35,15 @@ def set_user_names_from_offical_address(proofing_user, proofing_log_entry):
     given_name_marking = name.get('GivenNameMarking')
     # Only set display name if not already set
     if not proofing_user.display_name:
+        proofing_user.display_name = f'{proofing_user.given_name} {proofing_user.surname}'
         if given_name_marking:
-            given_name_marking = int((int(given_name_marking) / 10) - 1)  # ex. "20" -> 1 (second given name)
-            proofing_user.display_name = u'{} {}'.format(
-                name['GivenName'].split()[given_name_marking], proofing_user.surname
-            )
-        else:
-            proofing_user.display_name = u'{} {}'.format(proofing_user.given_name, proofing_user.surname)
+            _name_index = (int(given_name_marking) // 10) - 1  # ex. "20" -> 1 (second GivenName is real given name)
+            try:
+                _given_name = name['GivenName'].split()[_name_index]
+                proofing_user.display_name = f'{_given_name} {proofing_user.surname}'
+            except IndexError:
+                # At least occasionally, we've seen GivenName 'Jan-Erik Martin' with GivenNameMarking 30
+                pass
     current_app.logger.info(u'User names set from official address')
     current_app.logger.debug(
         u'{} resulted in given_name: {}, surname: {} and display_name: {}'.format(
