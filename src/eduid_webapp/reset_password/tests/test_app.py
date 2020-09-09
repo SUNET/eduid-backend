@@ -1072,9 +1072,9 @@ class ChangePasswordTests(EduidAPITestCase):
         self, mock_request_user_sync: Any, data1: Optional[dict] = None, authenticate: bool = True
     ):
         """
-        To change the pasword of the test user using a suggested password,
+        To change the password of the test user using a suggested password,
         first GET a suggested password, and then POST old and new passwords,
-        mocking the required reauthentication (by setting a flag in the session).
+        mocking the required re-authentication (by setting a flag in the session).
 
         :param reauthn: timestamp to set in the session, as the time at which the user
                         has re-authenticated.
@@ -1085,13 +1085,9 @@ class ChangePasswordTests(EduidAPITestCase):
         with self.app.test_request_context():
             with self.session_cookie(self.browser, eppn) as client:
                 with client.session_transaction() as sess:
-                    with patch('eduid_common.authn.vccs.vccs_client.VCCSClient.add_credentials', return_value=True):
-                        with patch(
-                            'eduid_common.authn.vccs.vccs_client.VCCSClient.revoke_credentials', return_value=True
-                        ):
-                            with patch(
-                                'eduid_common.authn.vccs.vccs_client.VCCSClient.authenticate', return_value=authenticate
-                            ):
+                    with patch('eduid_common.authn.vccs.VCCSClient.add_credentials', return_value=True):
+                        with patch('eduid_common.authn.vccs.VCCSClient.revoke_credentials', return_value=True):
+                            with patch('eduid_common.authn.vccs.VCCSClient.authenticate', return_value=authenticate):
                                 sess['reauthn-for-chpass'] = int(time.time())
                                 response2 = client.get('/suggested-password')
                                 passwd = json.loads(response2.data)
