@@ -257,7 +257,7 @@ def extra_security_used(state: ResetPasswordState) -> bool:
     return False
 
 
-def reset_user_password(user: User, state: ResetPasswordState, password: str):
+def reset_user_password(user: User, state: ResetPasswordState, password: str) -> None:
     """
     :param user: the user
     :param state: Password reset state
@@ -289,14 +289,20 @@ def reset_user_password(user: User, state: ResetPasswordState, password: str):
 
     is_generated = state.generated_password if isinstance(state.generated_password, bool) else False
 
-    reset_password_user = reset_password(
+    _res = reset_password(
         reset_password_user,
         new_password=password,
         is_generated=is_generated,
         application='security',
         vccs_url=vccs_url,
     )
-    reset_password_user.terminated = False
+    if not _res:
+        # Uh oh, reset password failed. Credentials _might_ have been reset in the backend but we don't know.
+        current_app.stats.count(name='security_password_reset_failed', value=1)
+        current_app.logger.error(f'Reset password failed for user {reset_password_user}')
+        return
+
+    reset_password_user.terminated = None
     save_and_sync_user(reset_password_user)
     current_app.stats.count(name='security_password_reset', value=1)
     current_app.logger.info(f'Reset password successful for user {reset_password_user}')
