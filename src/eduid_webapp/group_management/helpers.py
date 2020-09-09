@@ -9,8 +9,8 @@ from eduid_common.api.exceptions import MailTaskFailed
 from eduid_common.api.helpers import send_mail
 from eduid_common.api.messages import TranslatableMsg
 from eduid_graphdb.groupdb import User as GraphUser
-from eduid_scimapi.groupdb import ScimApiGroup
-from eduid_scimapi.userdb import ScimApiUser
+from eduid_scimapi.db.groupdb import ScimApiGroup
+from eduid_scimapi.db.userdb import ScimApiUser
 from eduid_userdb import User
 from eduid_userdb.exceptions import DocumentDoesNotExist, EduIDDBError
 from eduid_userdb.group_management import GroupInviteState
@@ -54,6 +54,32 @@ def get_or_create_scim_user_by_eppn(eppn: str) -> ScimApiUser:
     return scim_user
 
 
+def list_of_group_data(group_list: List[ScimApiGroup]) -> List[Dict]:
+    ret = []
+    for group in group_list:
+        members = [
+            {'identifier': member.identifier, 'display_name': member.display_name} for member in group.graph.members
+        ]
+        owners = [{'identifier': owner.identifier, 'display_name': owner.display_name} for owner in group.graph.owners]
+        group_data = {
+            'identifier': group.scim_id,
+            'display_name': group.display_name,
+            'members': members,
+            'owners': owners,
+        }
+        current_app.logger.debug(f'Group data: {group_data}')
+        ret.append(group_data)
+    return ret
+
+
+def get_all_group_data(scim_user: ScimApiUser) -> Dict[str, Any]:
+    member_groups = current_app.scimapi_groupdb.get_groups_for_user_identifer(scim_user.scim_id)
+    owner_groups = current_app.scimapi_groupdb.get_groups_owned_by_user_identifier(scim_user.scim_id)
+    current_app.logger.debug(f'member_of: {member_groups}')
+    current_app.logger.debug(f'owner_of: {owner_groups}')
+    return {'member_of': list_of_group_data(member_groups), 'owner_of': list_of_group_data(owner_groups)}
+
+
 def is_owner(scim_user: ScimApiUser, group_id: UUID) -> bool:
     owner_groups = current_app.scimapi_groupdb.get_groups_owned_by_user_identifier(scim_user.scim_id)
     return group_id in [owner_group.scim_id for owner_group in owner_groups]
@@ -69,11 +95,11 @@ def accept_group_invitation(scim_user: ScimApiUser, scim_group: ScimApiGroup, in
     modified = False
     if invite.role == GroupRole.OWNER:
         if not is_owner(scim_user, scim_group.scim_id):
-            scim_group.graph.owners.append(graph_user)
+            scim_group.add_owner(graph_user)
             modified = True
     elif invite.role == GroupRole.MEMBER:
         if not is_member(scim_user, scim_group.scim_id):
-            scim_group.graph.members.append(graph_user)
+            scim_group.add_member(graph_user)
             modified = True
     else:
         raise NotImplementedError(f'Unknown role: {invite.role}')
@@ -90,14 +116,12 @@ def remove_user_from_group(scim_user: ScimApiUser, scim_group: ScimApiGroup, rol
     modified = False
     if role == GroupRole.OWNER:
         if is_owner(scim_user, scim_group.scim_id):
-            scim_group.graph.owners = [
-                owner for owner in scim_group.graph.owners if owner.identifier != str(scim_user.scim_id)
-            ]
+            scim_group.owners = [owner for owner in scim_group.owners if owner.identifier != str(scim_user.scim_id)]
             modified = True
     elif role == GroupRole.MEMBER:
         if is_member(scim_user, scim_group.scim_id):
-            scim_group.graph.members = [
-                member for member in scim_group.graph.members if member.identifier != str(scim_user.scim_id)
+            scim_group.members = [
+                member for member in scim_group.members if member.identifier != str(scim_user.scim_id)
             ]
             modified = True
     else:
@@ -152,7 +176,7 @@ def get_incoming_invites(user: User) -> List[Dict[str, Any]]:
             current_app.logger.info(f'Removed invite to non existent group: {state}')
             continue
 
-        owners = [{'identifier': owner.identifier, 'display_name': owner.display_name} for owner in group.graph.owners]
+        owners = [{'identifier': owner.identifier, 'display_name': owner.display_name} for owner in group.owners]
         invites.append(
             {
                 'group_identifier': group.scim_id,

@@ -38,8 +38,8 @@ from flask import current_app
 from eduid_common.api import mail_relay, translation
 from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.config.exceptions import BadConfiguration
-from eduid_scimapi.groupdb import ScimApiGroupDB
-from eduid_scimapi.userdb import ScimApiUserDB
+from eduid_scimapi.db.groupdb import ScimApiGroupDB
+from eduid_scimapi.db.userdb import ScimApiUserDB
 from eduid_userdb.group_management import GroupManagementInviteStateDB
 
 from eduid_webapp.group_management.settings.common import GroupManagementConfig

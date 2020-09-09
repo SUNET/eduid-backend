@@ -251,11 +251,11 @@ class ResetPasswordNewPasswordSchema(PasswordSchema):
             custom_password = data.get('custom_password', None)
             repeat_password = data.get('repeat_password', None)
             if not custom_password:
-                raise ValidationError(_('Please enter a password'), ['custom_password'])
+                raise ValidationError(_('Please enter a password'), 'custom_password')
             if not repeat_password:
-                raise ValidationError(_('Please repeat the password'), ['repeat_password'])
+                raise ValidationError(_('Please repeat the password'), 'repeat_password')
             if custom_password != repeat_password:
-                raise ValidationError(_('Passwords does not match'), ['repeat_password'])
+                raise ValidationError(_('Passwords does not match'), 'repeat_password')
 
     @validates('custom_password')
     def validate_custom_password(self, value, **kwargs):

@@ -32,16 +32,16 @@
 #
 import json
 from typing import Any, Optional
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from flask import Response
 from mock import patch
 
-from eduid_common.api.testing import EduidAPITestCase
+from eduid_common.api.testing import EduidAPITestCase, normalised_data
 from eduid_graphdb.groupdb import User as GraphUser
 from eduid_graphdb.testing import Neo4jTemporaryInstance
-from eduid_scimapi.groupdb import GroupExtensions, ScimApiGroup
-from eduid_scimapi.userdb import ScimApiUser
+from eduid_scimapi.db.groupdb import GroupExtensions, ScimApiGroup
+from eduid_scimapi.db.userdb import ScimApiUser
 from eduid_userdb import User
 from eduid_userdb.exceptions import DocumentDoesNotExist
 
@@ -75,12 +75,21 @@ class GroupManagementTests(EduidAPITestCase):
         self.test_user3 = self.app.central_userdb.get_user_by_eppn('hubba-fooo')
         # Temporarily fix email address locally until test user fixtures are merged
         self._fix_mail_addresses()
-        self.scim_user1 = self._add_scim_user(scim_id=uuid4(), eppn=self.test_user.eppn)
-        self.scim_user2 = self._add_scim_user(scim_id=uuid4(), eppn=self.test_user2.eppn)
-        self.scim_group1 = self._add_scim_group(scim_id=uuid4(), display_name='Test Group 1')
-        self.scim_group2 = self._add_scim_group(scim_id=uuid4(), display_name='Test Group 2')
+        self.scim_user1 = self._add_scim_user(
+            scim_id=UUID('00000000-0000-0000-0000-000000000000'), eppn=self.test_user.eppn
+        )
+        self.scim_user2 = self._add_scim_user(
+            scim_id=UUID('00000000-0000-0000-0000-000000000001'), eppn=self.test_user2.eppn
+        )
+        self.scim_group1 = self._add_scim_group(
+            scim_id=UUID('00000000-0000-0000-0000-000000000002'), display_name='Test Group 1'
+        )
+        self.scim_group2 = self._add_scim_group(
+            scim_id=UUID('00000000-0000-0000-0000-000000000003'), display_name='Test Group 2'
+        )
 
     def _fix_mail_addresses(self):
+        # Due to mixup in base user data
         correct_address = self.test_user2.mail_addresses.find('johnsmith2@example.com')
         correct_address.is_verified = True
         self.test_user2.mail_addresses.primary = correct_address.email
@@ -101,7 +110,11 @@ class GroupManagementTests(EduidAPITestCase):
     def tearDown(self):
         super(GroupManagementTests, self).tearDown()
         with self.app.app_context():
+            self.neo4j_instance.purge_db()
             self.app.central_userdb._drop_whole_collection()
+            self.app.scimapi_userdb._drop_whole_collection()
+            self.app.scimapi_groupdb._drop_whole_collection()
+            self.app.invite_state_db._drop_whole_collection()
 
     def _add_scim_user(self, scim_id: UUID, eppn: str) -> ScimApiUser:
         scim_user = ScimApiUser(scim_id=scim_id, external_id=f'{eppn}@eduid.se')
@@ -175,10 +188,10 @@ class GroupManagementTests(EduidAPITestCase):
         graph_user = GraphUser(
             identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
         )
-        self.scim_group1.graph.owners = [graph_user]
+        self.scim_group1.owners = [graph_user]
         self.app.scimapi_groupdb.save(self.scim_group1)
 
-        self.scim_group2.graph.owners = [graph_user]
+        self.scim_group2.owners = [graph_user]
         self.app.scimapi_groupdb.save(self.scim_group2)
 
         # Invite test_user2 as owner and member of Test Group 1
@@ -212,13 +225,13 @@ class GroupManagementTests(EduidAPITestCase):
     def test_app_starts(self):
         assert self.app.config.app_name == "group_management"
 
-    def test_get_member_groups(self):
-        # Add test user as group member
+    def test_get_groups(self):
+        # Add test user as group member and owner
         graph_user = GraphUser(
             identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
         )
-        self.scim_group1.graph.members = [graph_user]
-        self.scim_group1.graph.owners = [graph_user]
+        self.scim_group1.members = [graph_user]
+        self.scim_group1.owners = [graph_user]
         self.app.scimapi_groupdb.save(self.scim_group1)
 
         response = self.browser.get('/groups')
@@ -281,9 +294,9 @@ class GroupManagementTests(EduidAPITestCase):
         graph_user = GraphUser(
             identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
         )
-        self.scim_group1.graph.owners = [graph_user]
+        self.scim_group1.owners = [graph_user]
         self.app.scimapi_groupdb.save(self.scim_group1)
-        self.scim_group2.graph.owners = [graph_user]
+        self.scim_group2.owners = [graph_user]
         self.app.scimapi_groupdb.save(self.scim_group2)
 
         with self.session_cookie(self.browser, self.test_user.eppn) as client:
@@ -316,8 +329,10 @@ class GroupManagementTests(EduidAPITestCase):
 
     def test_delete_group_not_owner(self):
         # Add test user as group member
-        graph_user = GraphUser(identifier=str(self.scim_user1.scim_id))
-        self.scim_group1.graph.members = [graph_user]
+        graph_user = GraphUser(
+            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        )
+        self.scim_group1.members = [graph_user]
         self.app.scimapi_groupdb.save(self.scim_group1)
 
         with self.session_cookie(self.browser, self.test_user.eppn) as client:
@@ -335,7 +350,7 @@ class GroupManagementTests(EduidAPITestCase):
         graph_user = GraphUser(
             identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
         )
-        self.scim_group1.graph.owners = [graph_user]
+        self.scim_group1.owners = [graph_user]
         self.app.scimapi_groupdb.save(self.scim_group1)
 
         self._invite_setup()
@@ -355,10 +370,10 @@ class GroupManagementTests(EduidAPITestCase):
     def test_remove_member(self):
         # Add test_user1 as group owner
         graph_user1 = GraphUser(identifier=str(self.scim_user1.scim_id), display_name='Test User 1')
-        self.scim_group1.graph.owners = [graph_user1]
+        self.scim_group1.owners = [graph_user1]
         # Add test_user2 as group member
         graph_user2 = GraphUser(identifier=str(self.scim_user2.scim_id), display_name='Test User 2')
-        self.scim_group1.graph.members = [graph_user2]
+        self.scim_group1.members = [graph_user2]
 
         self.app.scimapi_groupdb.save(self.scim_group1)
 
@@ -390,7 +405,7 @@ class GroupManagementTests(EduidAPITestCase):
     def test_remove_member_not_owner(self):
         # Add test_user2 as group member
         graph_user2 = GraphUser(identifier=str(self.scim_user2.scim_id), display_name='Test User 2')
-        self.scim_group1.graph.members = [graph_user2]
+        self.scim_group1.members = [graph_user2]
 
         self.app.scimapi_groupdb.save(self.scim_group1)
 
@@ -419,19 +434,15 @@ class GroupManagementTests(EduidAPITestCase):
         assert 1 == len(found_members)
 
     def test_remove_owner(self):
-        # Add test_user1 as group owner
+        # Add test_user1 and test_user2 as group owner
         graph_user1 = GraphUser(identifier=str(self.scim_user1.scim_id), display_name='Test User 1')
-        self.scim_group1.graph.owners = [graph_user1]
-        # Add test_user2 as group owner
         graph_user2 = GraphUser(identifier=str(self.scim_user2.scim_id), display_name='Test User 2')
-        self.scim_group1.graph.owners.append(graph_user2)
-
+        self.scim_group1.owners = [graph_user1, graph_user2]
         self.app.scimapi_groupdb.save(self.scim_group1)
 
         # Check that test_user2 is an owner of scim_group1
         group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
-        found_owners = [owner for owner in group.graph.owners if owner.identifier == str(self.scim_user2.scim_id)]
-        assert 1 == len(found_owners)
+        assert group.has_owner(self.scim_user2.scim_id) is True
 
         with self.session_cookie(self.browser, self.test_user.eppn) as client:
             with client.session_transaction() as sess:
@@ -450,14 +461,12 @@ class GroupManagementTests(EduidAPITestCase):
 
         # Check that test_user2 is no longer a member of scim_group1
         group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
-        found_owners = [owner for owner in group.graph.owners if owner.identifier == str(self.scim_user2.scim_id)]
-        assert 0 == len(found_owners)
+        assert group.has_owner(self.scim_user2.scim_id) is False
 
     def test_remove_last_owner(self):
         # Add test_user1 as group owner
         graph_user1 = GraphUser(identifier=str(self.scim_user1.scim_id), display_name='Test User 1')
-        self.scim_group1.graph.owners = [graph_user1]
-
+        self.scim_group1.owners = [graph_user1]
         self.app.scimapi_groupdb.save(self.scim_group1)
 
         # Check that test_user1 is an owner of scim_group1
@@ -485,14 +494,13 @@ class GroupManagementTests(EduidAPITestCase):
     def test_remove_self_member(self):
         # Add test_user1 as group member
         graph_user1 = GraphUser(identifier=str(self.scim_user1.scim_id), display_name='Test User 1')
-        self.scim_group1.graph.members = [graph_user1]
+        self.scim_group1.members = [graph_user1]
 
         self.app.scimapi_groupdb.save(self.scim_group1)
 
         # Check that test_user1 is a member of scim_group1
         group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
-        found_members = [member for member in group.graph.members if member.identifier == str(self.scim_user1.scim_id)]
-        assert 1 == len(found_members)
+        assert group.has_member(self.scim_user1.scim_id) is True
 
         with self.session_cookie(self.browser, self.test_user.eppn) as client:
             with client.session_transaction() as sess:
@@ -511,13 +519,12 @@ class GroupManagementTests(EduidAPITestCase):
 
         # Check that test_user1 is no longer a member of scim_group1
         group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
-        found_members = [member for member in group.graph.members if member.identifier == str(self.scim_user1.scim_id)]
-        assert 0 == len(found_members)
+        assert group.has_member(self.scim_user1.scim_id) is False
 
     def test_remove_non_existing_member(self):
         # Add test_user1 as group owner
         graph_user1 = GraphUser(identifier=str(self.scim_user1.scim_id), display_name='Test User 1')
-        self.scim_group1.graph.owners = [graph_user1]
+        self.scim_group1.owners = [graph_user1]
 
         self.app.scimapi_groupdb.save(self.scim_group1)
 
@@ -551,7 +558,7 @@ class GroupManagementTests(EduidAPITestCase):
         graph_user = GraphUser(
             identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
         )
-        self.scim_group1.graph.owners = [graph_user]
+        self.scim_group1.owners = [graph_user]
         self.app.scimapi_groupdb.save(self.scim_group1)
 
         # Invite test user 2 to the group as member
@@ -583,7 +590,7 @@ class GroupManagementTests(EduidAPITestCase):
         graph_user = GraphUser(
             identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
         )
-        self.scim_group1.graph.owners = [graph_user]
+        self.scim_group1.owners = [graph_user]
         self.app.scimapi_groupdb.save(self.scim_group1)
 
         # Invite test user 2 to the group as member
@@ -614,15 +621,14 @@ class GroupManagementTests(EduidAPITestCase):
         scim_user = self.app.scimapi_userdb.get_user_by_external_id(
             f'{self.test_user2.eppn}@{self.app.config.scim_external_id_scope}'
         )
-        graph_user = GraphUser(identifier=str(scim_user.scim_id))
-        assert graph_user in scim_group.graph.members
+        assert scim_group.has_member(scim_user.scim_id) is True
 
     def test_decline_invite_member(self):
         # Add test user as group owner
         graph_user = GraphUser(
             identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
         )
-        self.scim_group1.graph.owners = [graph_user]
+        self.scim_group1.owners = [graph_user]
         self.app.scimapi_groupdb.save(self.scim_group1)
 
         # Invite test user 2 to the group as member
@@ -653,15 +659,14 @@ class GroupManagementTests(EduidAPITestCase):
         scim_user = self.app.scimapi_userdb.get_user_by_external_id(
             f'{self.test_user2.eppn}@{self.app.config.scim_external_id_scope}'
         )
-        graph_user = GraphUser(identifier=str(scim_user.scim_id))
-        assert graph_user not in scim_group.graph.members
+        assert scim_group.has_member(scim_user.scim_id) is False
 
     def test_invite_owner(self):
         # Add test user as group owner
         graph_user = GraphUser(
             identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
         )
-        self.scim_group1.graph.owners = [graph_user]
+        self.scim_group1.owners = [graph_user]
         self.app.scimapi_groupdb.save(self.scim_group1)
 
         # Invite test user 2 to the group as owner
@@ -692,7 +697,7 @@ class GroupManagementTests(EduidAPITestCase):
         graph_user = GraphUser(
             identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
         )
-        self.scim_group1.graph.owners = [graph_user]
+        self.scim_group1.owners = [graph_user]
         self.app.scimapi_groupdb.save(self.scim_group1)
 
         # Invite test user 2 to the group as member
@@ -723,15 +728,14 @@ class GroupManagementTests(EduidAPITestCase):
         scim_user = self.app.scimapi_userdb.get_user_by_external_id(
             f'{self.test_user2.eppn}@{self.app.config.scim_external_id_scope}'
         )
-        graph_user = GraphUser(identifier=str(scim_user.scim_id))
-        assert graph_user in scim_group.graph.owners
+        assert scim_group.has_owner(scim_user.scim_id) is True
 
     def test_decline_invite_owner(self):
         # Add test user as group owner
         graph_user = GraphUser(
             identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
         )
-        self.scim_group1.graph.owners = [graph_user]
+        self.scim_group1.owners = [graph_user]
         self.app.scimapi_groupdb.save(self.scim_group1)
 
         # Invite test user 2 to the group as member
@@ -762,8 +766,7 @@ class GroupManagementTests(EduidAPITestCase):
         scim_user = self.app.scimapi_userdb.get_user_by_external_id(
             f'{self.test_user2.eppn}@{self.app.config.scim_external_id_scope}'
         )
-        graph_user = GraphUser(identifier=str(scim_user.scim_id))
-        assert graph_user not in scim_group.graph.owners
+        assert scim_group.has_owner(scim_user.scim_id) is False
 
     def test_all_invites(self):
         response = self.browser.get('/invites/all')
@@ -878,3 +881,140 @@ class GroupManagementTests(EduidAPITestCase):
             assert self.test_user3.mail_addresses.primary.email == invite['email_address']
             assert 1 == len(invite['owners'])
             assert GroupRole.MEMBER.value == invite['role']
+
+    def test_get_all_data(self):
+        response = self.browser.get('/all-data')
+        assert 302 == response.status_code  # Redirect to token service
+
+        self._invite_setup()
+
+        # Test with owner and invited
+        with self.session_cookie(self.browser, self.test_user.eppn) as client:
+            response = client.get('/all-data', content_type=self.content_type_json)
+        self._check_success_response(response, type_='GET_GROUP_MANAGEMENT_ALL_DATA_SUCCESS')
+        payload = response.json.get('payload')
+        assert 2 == len(payload['outgoing'])
+        assert 2 == len(payload['owner_of'])
+
+        # Accept member invite as test user 2
+        self._accept_invite(
+            group_scim_id=str(self.scim_group1.scim_id),
+            invitee=self.test_user2,
+            invite_address=self.test_user2.mail_addresses.primary.email,
+            role='member',
+        )
+
+        # Test with member and invitee
+        with self.session_cookie(self.browser, self.test_user2.eppn) as client:
+            response = client.get('/all-data', content_type=self.content_type_json)
+        self._check_success_response(response, type_='GET_GROUP_MANAGEMENT_ALL_DATA_SUCCESS')
+        payload = response.json.get('payload')
+        assert 1 == len(payload['incoming'])
+        assert 1 == len(payload['member_of'])
+
+    def test_get_all_data_privacy(self):
+        # Add test user as group member and owner, add test user 2 as member
+        graph_user1 = GraphUser(
+            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        )
+        graph_user2 = GraphUser(
+            identifier=str(self.scim_user2.scim_id), display_name=self.test_user2.mail_addresses.primary.email
+        )
+        self.scim_group1.members = [graph_user1, graph_user2]
+        self.scim_group1.owners = [graph_user1]
+        self.app.scimapi_groupdb.save(self.scim_group1)
+
+        # Invite test user 2 as owner
+        self._invite(
+            group_scim_id=str(self.scim_group1.scim_id),
+            inviter=self.test_user,
+            invite_address=self.test_user2.mail_addresses.primary.email,
+            role='owner',
+        )
+
+        # Get all data as test user 1
+        with self.session_cookie(self.browser, self.test_user.eppn) as client:
+            response = client.get('/all-data')
+        self._check_success_response(response, type_='GET_GROUP_MANAGEMENT_ALL_DATA_SUCCESS')
+        payload = response.json.get('payload')
+        # As member the user only see owners for a group
+        assert normalised_data(
+            [
+                {
+                    'display_name': 'Test Group 1',
+                    'identifier': '00000000-0000-0000-0000-000000000002',
+                    'members': [],
+                    'owners': [
+                        {'display_name': 'johnsmith@example.com', 'identifier': '00000000-0000-0000-0000-000000000000'}
+                    ],
+                }
+            ]
+        ) == normalised_data(payload['member_of'])
+        # As owner the user see both members and owners
+        assert normalised_data(
+            [
+                {
+                    'display_name': 'Test Group 1',
+                    'identifier': '00000000-0000-0000-0000-000000000002',
+                    'members': [
+                        {'display_name': 'johnsmith@example.com', 'identifier': '00000000-0000-0000-0000-000000000000'},
+                        {
+                            'display_name': 'johnsmith2@example.com',
+                            'identifier': '00000000-0000-0000-0000-000000000001',
+                        },
+                    ],
+                    'owners': [
+                        {'display_name': 'johnsmith@example.com', 'identifier': '00000000-0000-0000-0000-000000000000'}
+                    ],
+                }
+            ]
+        ) == normalised_data(payload['owner_of'])
+        # As owner the user see your outgoing invites
+        assert normalised_data(
+            [
+                {
+                    'group_identifier': '00000000-0000-0000-0000-000000000002',
+                    'member_invites': [],
+                    'owner_invites': [{'email_address': 'johnsmith2@example.com'}],
+                }
+            ]
+        ) == normalised_data(payload['outgoing'])
+        # test user 1 does not have any incoming invites
+        assert [] == normalised_data(payload['incoming'])
+
+        # Get all data as test user 2
+        with self.session_cookie(self.browser, self.test_user2.eppn) as client:
+            response = client.get('/all-data')
+        self._check_success_response(response, type_='GET_GROUP_MANAGEMENT_ALL_DATA_SUCCESS')
+        payload = response.json.get('payload')
+        # As member the user only see owners for a group
+        assert normalised_data(
+            [
+                {
+                    'display_name': 'Test Group 1',
+                    'identifier': '00000000-0000-0000-0000-000000000002',
+                    'members': [],
+                    'owners': [
+                        {'display_name': 'johnsmith@example.com', 'identifier': '00000000-0000-0000-0000-000000000000'}
+                    ],
+                }
+            ]
+        ) == normalised_data(payload['member_of'])
+        # test user 2 is not an owner of a group
+        assert [] == payload['owner_of']
+        # test user 2 does not have any outgoing invites
+        assert [] == payload['outgoing']
+        # as an invitee the user see incoming invites
+        assert normalised_data(
+            [
+                {
+                    'display_name': 'Test Group 1',
+                    'email_address': 'johnsmith2@example.com',
+                    'group_identifier': '00000000-0000-0000-0000-000000000002',
+                    'owners': [
+                        {'display_name': 'johnsmith@example.com', 'identifier': '00000000-0000-0000-0000-000000000000'}
+                    ],
+                    'role': 'owner',
+                }
+            ]
+        ) == normalised_data(payload['incoming'])

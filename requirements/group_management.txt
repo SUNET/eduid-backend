@@ -1,1 +1,1 @@
-eduid_scimapi==0.2.*
+eduid_scimapi==0.3.*

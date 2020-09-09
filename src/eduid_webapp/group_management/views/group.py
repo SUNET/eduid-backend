@@ -30,16 +30,14 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from typing import Dict, List, Mapping
 from uuid import UUID
 
 from flask import Blueprint
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.messages import CommonMsg, FluxData, error_response, success_response
-from eduid_graphdb.groupdb import Group as GraphGroup
 from eduid_graphdb.groupdb import User as GraphUser
-from eduid_scimapi.groupdb import ScimApiGroup
+from eduid_scimapi.db.groupdb import ScimApiGroup
 from eduid_userdb import User
 from eduid_userdb.exceptions import EduIDDBError
 from eduid_userdb.group_management import GroupRole
@@ -47,7 +45,10 @@ from eduid_userdb.group_management import GroupRole
 from eduid_webapp.group_management.app import current_group_management_app as current_app
 from eduid_webapp.group_management.helpers import (
     GroupManagementMsg,
+    get_all_group_data,
+    get_incoming_invites,
     get_or_create_scim_user_by_eppn,
+    get_outgoing_invites,
     get_scim_user_by_eppn,
     is_owner,
     remove_user_from_group,
@@ -55,6 +56,7 @@ from eduid_webapp.group_management.helpers import (
 from eduid_webapp.group_management.schemas import (
     GroupCreateRequestSchema,
     GroupDeleteRequestSchema,
+    GroupManagementAllDataResponseSchema,
     GroupManagementResponseSchema,
     GroupRemoveUserRequestSchema,
 )
@@ -64,22 +66,18 @@ __author__ = 'lundberg'
 group_management_views = Blueprint('group_management', __name__, url_prefix='', template_folder='templates')
 
 
-def _list_of_group_data(group_list: List[ScimApiGroup]) -> List[Dict]:
-    ret = []
-    for group in group_list:
-        members = [
-            {'identifier': member.identifier, 'display_name': member.display_name} for member in group.graph.members
-        ]
-        owners = [{'identifier': owner.identifier, 'display_name': owner.display_name} for owner in group.graph.owners]
-        group_data = {
-            'identifier': group.scim_id,
-            'display_name': group.display_name,
-            'members': members,
-            'owners': owners,
-        }
-        current_app.logger.debug(f'Group data: {group_data}')
-        ret.append(group_data)
-    return ret
+@group_management_views.route('/all-data', methods=['GET'])
+@MarshalWith(GroupManagementAllDataResponseSchema)
+@require_user
+def get_all_data(user: User) -> FluxData:
+    payload = {}
+    scim_user = get_scim_user_by_eppn(user.eppn)
+    if scim_user:
+        # The user can only have group data if there is a scim user
+        payload.update(get_all_group_data(scim_user))
+    # Update payload with incoming and outgoing invites
+    payload.update({'incoming': get_incoming_invites(user), 'outgoing': get_outgoing_invites(user)})
+    return success_response(payload=payload)
 
 
 @group_management_views.route('/groups', methods=['GET'])
@@ -91,14 +89,8 @@ def get_groups(user: User) -> FluxData:
         current_app.logger.info('User does not exist in scimapi_userdb')
         # As the user does not exist return empty group lists
         return success_response(payload={})
-
-    member_groups = current_app.scimapi_groupdb.get_groups_for_user_identifer(scim_user.scim_id)
-    owner_groups = current_app.scimapi_groupdb.get_groups_owned_by_user_identifier(scim_user.scim_id)
-    current_app.logger.debug(f'member_of: {member_groups}')
-    current_app.logger.debug(f'owner_of: {owner_groups}')
-    return success_response(
-        payload={'member_of': _list_of_group_data(member_groups), 'owner_of': _list_of_group_data(owner_groups)}
-    )
+    payload = get_all_group_data(scim_user)
+    return success_response(payload=payload)
 
 
 @group_management_views.route('/create', methods=['POST'])
@@ -109,9 +101,8 @@ def create_group(user: User, display_name: str) -> FluxData:
     scim_user = get_or_create_scim_user_by_eppn(user.eppn)
     graph_user = GraphUser(identifier=str(scim_user.scim_id), display_name=user.mail_addresses.primary.email)
     group = ScimApiGroup(display_name=display_name)
-    group.graph = GraphGroup(identifier=str(group.scim_id), display_name=display_name)
-    group.graph.owners = [graph_user]
-    group.graph.members = [graph_user]
+    group.owners = [graph_user]
+    group.members = [graph_user]
 
     if not current_app.scimapi_groupdb.save(group):
         current_app.logger.error(f'Failed to create ScimApiGroup with scim_id: {group.scim_id}')
@@ -176,7 +167,7 @@ def remove_user(user: User, group_identifier: UUID, user_identifier: UUID, role:
         return error_response(message=GroupManagementMsg.user_to_be_removed_does_not_exist)
 
     # Check so we don't remove the last owner of a group
-    if role == GroupRole.OWNER and len(group.graph.owners) == 1:
+    if role == GroupRole.OWNER and len(group.owners) == 1:
         current_app.logger.error(f'Can not remove the last owner in group with scim_id: {group_identifier}')
         return error_response(message=GroupManagementMsg.can_not_remove_last_owner)
 

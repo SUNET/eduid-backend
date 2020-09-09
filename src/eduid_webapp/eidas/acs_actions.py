@@ -71,7 +71,12 @@ def token_verify_action(session_info: Mapping[str, Any], user: User) -> Werkzeug
         )
 
     # Check that a verified NIN is equal to the asserted attribute personalIdentityNumber
-    asserted_nin = get_saml_attribute(session_info, 'personalIdentityNumber')[0]
+    _nin_list = get_saml_attribute(session_info, 'personalIdentityNumber')
+
+    if _nin_list is None:
+        raise ValueError("Missing PIN in SAML session info")
+
+    asserted_nin = _nin_list[0]
     user_nin = proofing_user.nins.verified.find(asserted_nin)
     if not user_nin:
         current_app.logger.error('Asserted NIN not matching user verified nins')
@@ -90,7 +95,7 @@ def token_verify_action(session_info: Mapping[str, Any], user: User) -> Werkzeug
         current_app.stats.count('navet_error')
         return redirect_with_msg(redirect_url, CommonMsg.navet_error)
     proofing_log_entry = MFATokenProofing(
-        user=proofing_user,
+        eppn=proofing_user.eppn,
         created_by='eduid-eidas',
         nin=user_nin.number,
         issuer=issuer,
@@ -140,7 +145,12 @@ def nin_verify_action(session_info: Mapping[str, Any], user: User) -> WerkzeugRe
         return redirect_with_msg(redirect_url, EidasMsg.reauthn_expired)
 
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    asserted_nin = get_saml_attribute(session_info, 'personalIdentityNumber')[0]
+    _nin_list = get_saml_attribute(session_info, 'personalIdentityNumber')
+
+    if _nin_list is None:
+        raise ValueError("Missing PIN in SAML session info")
+
+    asserted_nin = _nin_list[0]
 
     if proofing_user.nins.verified.count != 0:
         current_app.logger.error('User already has a verified NIN')
@@ -160,7 +170,7 @@ def nin_verify_action(session_info: Mapping[str, Any], user: User) -> WerkzeugRe
         return redirect_with_msg(redirect_url, CommonMsg.navet_error)
 
     proofing_log_entry = SwedenConnectProofing(
-        user=proofing_user,
+        eppn=proofing_user.eppn,
         created_by='eduid-eidas',
         nin=asserted_nin,
         issuer=issuer,
@@ -200,6 +210,9 @@ def nin_verify_BACKDOOR(user: User) -> WerkzeugResponse:
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     asserted_nin = request.cookies.get('nin')
 
+    if asserted_nin is None:
+        raise RuntimeError("No backdoor without a NIN in a cookie")
+
     if proofing_user.nins.verified.count != 0:
         current_app.logger.error('User already has a verified NIN')
         current_app.logger.debug(
@@ -217,7 +230,7 @@ def nin_verify_BACKDOOR(user: User) -> WerkzeugResponse:
     }
 
     proofing_log_entry = SwedenConnectProofing(
-        user=proofing_user,
+        eppn=proofing_user.eppn,
         created_by='eduid-eidas',
         nin=asserted_nin,
         issuer=issuer,
@@ -284,6 +297,10 @@ def mfa_authentication_action(session_info: Mapping[str, Any], user: User) -> We
         current_app.stats.count(name='mfa_auth_nin_not_matching')
         return redirect_with_msg(redirect_url, EidasMsg.nin_not_matching)
 
+    if session.mfa_action is None:
+        # TODO: change to reasonable redirect_with_msg? This should not happen...
+        raise RuntimeError('No MFA info in the session')
+
     session.mfa_action.success = True
     session.mfa_action.issuer = session_info['issuer']
     session.mfa_action.authn_instant = session_info['authn_info'][0][2]
@@ -293,8 +310,9 @@ def mfa_authentication_action(session_info: Mapping[str, Any], user: User) -> We
 
     # Redirect back to action app but to the redirect-action view
     resp = redirect_with_msg(redirect_url, EidasMsg.action_completed, error=False)
-    scheme, netloc, path, query_string, fragment = urlsplit(resp.location)
-    new_path = urlappend(path, 'redirect-action')
-    new_url = urlunsplit((scheme, netloc, new_path, query_string, fragment))
+    parsed_url = urlsplit(str(resp.location))
+    new_path = urlappend(str(parsed_url.path), 'redirect-action')
+    parsed_url = parsed_url._replace(path=new_path)
+    new_url = urlunsplit(parsed_url)
     current_app.logger.debug(f'Redirecting to: {new_url}')
     return redirect(new_url)

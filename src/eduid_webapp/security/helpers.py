@@ -236,7 +236,7 @@ def verify_email_address(state):
         return False
 
     proofing_element = MailAddressProofing(
-        user,
+        eppn=user.eppn,
         created_by='security',
         mail_address=state.email_address,
         reference=state.reference,
@@ -280,7 +280,7 @@ def verify_phone_number(state):
         return False
 
     proofing_element = PhoneNumberProofing(
-        user,
+        eppn=user.eppn,
         created_by='security',
         phone_number=state.phone_number,
         reference=state.reference,

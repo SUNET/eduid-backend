@@ -38,7 +38,6 @@ import requests
 from flask import render_template
 from flask_babel import gettext as _
 
-from eduid_common.session import session
 from eduid_userdb import MailAddress
 from eduid_userdb.logs import MailAddressProofing
 from eduid_userdb.proofing import EmailProofingElement
@@ -188,7 +187,7 @@ def verify_email_code(code):
         raise AlreadyVerifiedException()
 
     mail_dict = signup_user.pending_mail_address.to_dict()
-    mail_address = MailAddress.from_dict(mail_dict, raise_on_unknown=False)
+    mail_address = MailAddress.from_dict(mail_dict)
     if mail_address.is_verified:
         # There really should be no way to get here, is_verified is set to False when
         # the EmailProofingElement is created.
@@ -196,7 +195,7 @@ def verify_email_code(code):
         raise AlreadyVerifiedException()
 
     mail_address_proofing = MailAddressProofing(
-        signup_user,
+        eppn=signup_user.eppn,
         created_by='signup',
         mail_address=mail_address.email,
         reference=signup_user.proofing_reference,

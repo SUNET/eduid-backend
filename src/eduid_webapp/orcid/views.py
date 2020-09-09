@@ -151,7 +151,7 @@ def authorization_response(user):
         )
     )
     orcid_proofing = OrcidProofing(
-        proofing_user,
+        eppn=proofing_user.eppn,
         created_by='orcid',
         orcid=orcid_element.id,
         issuer=orcid_element.oidc_authz.id_token.iss,
@@ -184,8 +184,8 @@ def get_orcid(user):
 
 
 @orcid_views.route('/remove', methods=['POST'])
-@MarshalWith(OrcidResponseSchema)
 @UnmarshalWith(CSRFRequest)
+@MarshalWith(OrcidResponseSchema)
 @require_user
 def remove_orcid(user):
     current_app.logger.info('Removing ORCID data for user')

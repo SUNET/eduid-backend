@@ -30,10 +30,16 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+import re
 
 from marshmallow import ValidationError
 
 from eduid_webapp.personal_data.app import current_pdata_app as current_app
+from eduid_webapp.personal_data.helpers import PDataMsg
+
+BLANKS_PATTERN = re.compile(r"^\s*$")
+
+SPECIAL_CHARACTERS_PATTERN = re.compile(r"""[`!€%&?~#@,.<>;':"\/\[\]\|{}()-=_+]""")
 
 
 def validate_language(lang):
@@ -43,5 +49,10 @@ def validate_language(lang):
 
 
 def validate_nonempty(value):
-    if not value:
-        raise ValidationError('pdata.field_required')
+    if BLANKS_PATTERN.match(value):
+        raise ValidationError(PDataMsg.required.value)
+
+
+def validate_no_special_chars(value):
+    if SPECIAL_CHARACTERS_PATTERN.search(value):
+        raise ValidationError(PDataMsg.special_chars.value)

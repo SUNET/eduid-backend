@@ -2,6 +2,8 @@
 
 from __future__ import absolute_import
 
+from datetime import datetime
+
 from flask import Blueprint, abort
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
@@ -97,7 +99,7 @@ def proofing(user: User, nin: str) -> FluxData:
     # Save the users proofing state
     proofing_state.proofing_letter.transaction_id = campaign_id
     proofing_state.proofing_letter.is_sent = True
-    proofing_state.proofing_letter.sent_ts = True
+    proofing_state.proofing_letter.sent_ts = datetime.utcnow()
     current_app.proofing_statedb.save(proofing_state)
     result = check_state(proofing_state)
     result.message = LetterMsg.letter_sent
@@ -139,7 +141,7 @@ def verify_code(user: User, code: str) -> FluxData:
         return error_response(message=CommonMsg.navet_error)
 
     proofing_log_entry = LetterProofing(
-        user,
+        eppn=user.eppn,
         created_by='eduid_letter_proofing',
         nin=proofing_state.nin.number,
         letter_sent_to=proofing_state.proofing_letter.address,

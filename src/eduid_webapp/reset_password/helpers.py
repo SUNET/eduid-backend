@@ -32,7 +32,7 @@
 #
 import math
 from enum import unique
-from typing import Any, Dict, List, Optional, TypeVar, Union
+from typing import Any, Dict, List, Optional, Union
 
 import bcrypt
 from flask import render_template
@@ -350,7 +350,7 @@ def verify_email_address(state: ResetPasswordEmailState) -> bool:
         return False
 
     proofing_element = MailAddressProofing(
-        user,
+        eppn=user.eppn,
         created_by='security',
         mail_address=state.email_address,
         reference=state.reference,
@@ -410,7 +410,7 @@ def verify_phone_number(state: ResetPasswordEmailAndPhoneState) -> bool:
         return False
 
     proofing_element = PhoneNumberProofing(
-        user,
+        eppn=user.eppn,
         created_by='security',
         phone_number=state.phone_number,
         reference=state.reference,
