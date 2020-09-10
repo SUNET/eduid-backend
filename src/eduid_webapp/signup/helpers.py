@@ -176,7 +176,7 @@ def complete_registration(signup_user) -> FluxData:
     current_app.logger.info(f'Completing registration for user {signup_user}')
 
     password = _generate_password()
-    if not add_password(signup_user, password, application='signup'):
+    if not add_password(signup_user, password, application='signup', vccs_url=current_app.config.vccs_url):
         current_app.logger.error(f'Failed adding a credential to user {signup_user}')
         return error_response(message=CommonMsg.temp_problem)
 
