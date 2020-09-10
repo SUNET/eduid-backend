@@ -183,6 +183,8 @@ class TestGroupDB(Neo4jTestCase):
         self._assert_group(group, groups[0])
         assert 1 == len(group.owners)
         self._assert_group(group.owners.pop(), groups[0].owners.pop())
+        assert 1 == len(groups[0].members)
+        self._assert_user(member_user, groups[0].members.pop())
 
     def test_get_groups_for_user_member_2(self):
         group1 = Group.from_mapping(self.group1)
@@ -223,6 +225,8 @@ class TestGroupDB(Neo4jTestCase):
         self._assert_group(group, groups[0])
         assert 1 == len(group.owners)
         self._assert_user(group.owners.pop(), groups[0].owners.pop())
+        assert 1 == len(groups[0].members)
+        self._assert_group(member_group, groups[0].members.pop())
 
     def test_get_groups_for_user_owner(self):
         group = Group.from_mapping(self.group1)
