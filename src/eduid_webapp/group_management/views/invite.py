@@ -103,6 +103,24 @@ def create_invite(user: User, group_identifier: UUID, email_address: str, role: 
     invite_state = GroupInviteState(
         group_scim_id=str(group_identifier), email_address=email_address, role=role, inviter_eppn=user.eppn
     )
+
+    # Short circuit self inviting (owner can invite self as member)
+    if email_address in [item.email for item in user.mail_addresses.verified.to_list()]:
+        current_app.logger.info(f'User is inviting self to group {group_identifier} as {role}')
+        if role is GroupRole.OWNER:
+            current_app.logger.info(f'User already owner of group {group_identifier}, aborting.')
+            return outgoing_invites()
+        # Try to add self to group as member
+        group = current_app.scimapi_groupdb.get_group_by_scim_id(invite_state.group_scim_id)
+        if not group:
+            current_app.logger.error(f'Group with scim_id {invite_state.group_scim_id} not found')
+            return error_response(message=GroupManagementMsg.group_not_found)
+        try:
+            accept_group_invitation(scim_user, group, invite_state)
+        except EduIDDBError:
+            return error_response(message=CommonMsg.temp_problem)
+        return outgoing_invites()
+
     try:
         current_app.invite_state_db.save(invite_state)
     except DuplicateKeyError:
