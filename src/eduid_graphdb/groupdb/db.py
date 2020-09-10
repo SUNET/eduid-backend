@@ -282,9 +282,9 @@ class GroupDB(BaseGraphDB):
     def _get_groups_for_role(self, label: Label, identifier: str, role: Role):
         res: List[Group] = []
         if label == Label.GROUP:
-            entity_match = '(:Group {scope: $scope, identifier: $identifier})'
+            entity_match = '(e:Group {scope: $scope, identifier: $identifier})'
         elif label == Label.USER:
-            entity_match = '(:User {identifier: $identifier})'
+            entity_match = '(e:User {identifier: $identifier})'
         else:
             raise NotImplementedError(f'Label {label.value} not implemented')
 
@@ -296,13 +296,18 @@ class GroupDB(BaseGraphDB):
                                 modified_ts: r.modified_ts, identifier: m.identifier, scope: m.scope}}) as members
                             """
         else:
-            ret_statement = 'RETURN g as group, owners, collect({}) as members'
+            # Return only matched entity as member
+            ret_statement = f"""
+                            OPTIONAL MATCH (g)<-[r:{Role.MEMBER.value}]-(e)
+                            RETURN g as group, owners, collect({{display_name: r.display_name, created_ts: r.created_ts,
+                                modified_ts: r.modified_ts, identifier: e.identifier, scope: e.scope}}) as members
+                            """
 
         q = f"""
             MATCH {entity_match}-[:{role.value}]->(g: Group {{scope: $scope}})
-            WITH g
+            WITH e, g
             OPTIONAL MATCH (g)<-[r:{Role.OWNER.value}]-(o)
-            WITH g, collect({{display_name: r.display_name, created_ts: r.created_ts,
+            WITH e, g, collect({{display_name: r.display_name, created_ts: r.created_ts,
                 modified_ts: r.modified_ts, identifier: o.identifier, scope: o.scope}}) as owners
             {ret_statement}
             """

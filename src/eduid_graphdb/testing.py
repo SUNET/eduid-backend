@@ -2,11 +2,11 @@
 from __future__ import annotations
 
 import atexit
+import logging
 import random
 import subprocess
 import time
 import unittest
-import logging
 from os import environ
 from typing import Optional
 
@@ -21,6 +21,7 @@ NEO4J_VERSION = environ.get('NEO4J_VERSION', 'enterprise')
 
 logger = logging.getLogger(__name__)
 logger.info(f'NEO4J_VERSION={NEO4J_VERSION}')
+
 
 class Neo4jTemporaryInstance(object):
     """
