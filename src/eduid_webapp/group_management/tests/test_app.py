@@ -265,9 +265,8 @@ class GroupManagementTests(EduidAPITestCase):
                     response = client.post('/create', data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_='POST_GROUP_MANAGEMENT_CREATE_SUCCESS')
         payload = response.json.get('payload')
-        assert 1 == len(payload['member_of'])
+        assert 0 == len(payload['member_of'])
         assert 1 == len(payload['owner_of'])
-        assert 'Test Group 2' == payload['member_of'][0]['display_name']
         assert 'Test Group 2' == payload['owner_of'][0]['display_name']
         assert self.app.scimapi_groupdb.group_exists(payload['owner_of'][0]['identifier']) is True
 
@@ -283,9 +282,8 @@ class GroupManagementTests(EduidAPITestCase):
                     response = client.post('/create', data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_='POST_GROUP_MANAGEMENT_CREATE_SUCCESS')
         payload = response.json.get('payload')
-        assert 1 == len(payload['member_of'])
+        assert 0 == len(payload['member_of'])
         assert 1 == len(payload['owner_of'])
-        assert 'Test Group 2' == payload['member_of'][0]['display_name']
         assert 'Test Group 2' == payload['owner_of'][0]['display_name']
         assert self.app.scimapi_groupdb.group_exists(payload['owner_of'][0]['identifier']) is True
 
@@ -585,6 +583,40 @@ class GroupManagementTests(EduidAPITestCase):
             is not None
         )
 
+    def test_self_invite_member(self):
+        # Add test user as group owner
+        graph_user = GraphUser(
+            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        )
+        self.scim_group1.owners = [graph_user]
+        self.app.scimapi_groupdb.save(self.scim_group1)
+
+        # Invite test user 1 to the group as member
+        response = self._invite(
+            group_scim_id=str(self.scim_group1.scim_id),
+            inviter=self.test_user,
+            invite_address=self.test_user.mail_addresses.primary.email,
+            role='member',
+        )
+        payload = response.json.get('payload')
+        outgoing = payload['outgoing']
+        assert 0 == len(outgoing)
+
+        with self.assertRaises(DocumentDoesNotExist):
+            self.app.invite_state_db.get_state(
+                group_scim_id=str(self.scim_group1.scim_id),
+                email_address=self.test_user.mail_addresses.primary.email,
+                role=GroupRole.MEMBER,
+            )
+        with self.session_cookie(self.browser, self.test_user.eppn) as client:
+            response = client.get('/groups')
+        self._check_success_response(response, type_='GET_GROUP_MANAGEMENT_GROUPS_SUCCESS')
+        payload = response.json.get('payload')
+        assert 1 == len(payload['member_of'])
+        assert 1 == len(payload['owner_of'])
+        assert 'Test Group 1' == payload['member_of'][0]['display_name']
+        assert 'Test Group 1' == payload['owner_of'][0]['display_name']
+
     def test_accept_invite_member(self):
         # Add test user as group owner
         graph_user = GraphUser(
@@ -691,6 +723,39 @@ class GroupManagementTests(EduidAPITestCase):
             )
             is not None
         )
+
+    def test_self_invite_owner(self):
+        # Add test user as group owner
+        graph_user = GraphUser(
+            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        )
+        self.scim_group1.owners = [graph_user]
+        self.app.scimapi_groupdb.save(self.scim_group1)
+
+        # Invite test user 1 to the group as owner
+        response = self._invite(
+            group_scim_id=str(self.scim_group1.scim_id),
+            inviter=self.test_user,
+            invite_address=self.test_user.mail_addresses.primary.email,
+            role='owner',
+        )
+        payload = response.json.get('payload')
+        outgoing = payload['outgoing']
+        assert 0 == len(outgoing)
+
+        with self.assertRaises(DocumentDoesNotExist):
+            self.app.invite_state_db.get_state(
+                group_scim_id=str(self.scim_group1.scim_id),
+                email_address=self.test_user.mail_addresses.primary.email,
+                role=GroupRole.OWNER,
+            )
+        with self.session_cookie(self.browser, self.test_user.eppn) as client:
+            response = client.get('/groups')
+        self._check_success_response(response, type_='GET_GROUP_MANAGEMENT_GROUPS_SUCCESS')
+        payload = response.json.get('payload')
+        assert 0 == len(payload['member_of'])
+        assert 1 == len(payload['owner_of'])
+        assert 'Test Group 1' == payload['owner_of'][0]['display_name']
 
     def test_accept_invite_owner(self):
         # Add test user as group owner
@@ -937,13 +1002,15 @@ class GroupManagementTests(EduidAPITestCase):
             response = client.get('/all-data')
         self._check_success_response(response, type_='GET_GROUP_MANAGEMENT_ALL_DATA_SUCCESS')
         payload = response.json.get('payload')
-        # As member the user only see owners for a group
+        # As member the user only see owners and themselves as member for a group
         assert normalised_data(
             [
                 {
                     'display_name': 'Test Group 1',
                     'identifier': '00000000-0000-0000-0000-000000000002',
-                    'members': [],
+                    'members': [
+                        {'display_name': 'johnsmith@example.com', 'identifier': '00000000-0000-0000-0000-000000000000'}
+                    ],
                     'owners': [
                         {'display_name': 'johnsmith@example.com', 'identifier': '00000000-0000-0000-0000-000000000000'}
                     ],
@@ -987,13 +1054,15 @@ class GroupManagementTests(EduidAPITestCase):
             response = client.get('/all-data')
         self._check_success_response(response, type_='GET_GROUP_MANAGEMENT_ALL_DATA_SUCCESS')
         payload = response.json.get('payload')
-        # As member the user only see owners for a group
+        # As member the user only see owners and themselves as member for a group
         assert normalised_data(
             [
                 {
                     'display_name': 'Test Group 1',
                     'identifier': '00000000-0000-0000-0000-000000000002',
-                    'members': [],
+                    'members': [
+                        {'display_name': 'johnsmith2@example.com', 'identifier': '00000000-0000-0000-0000-000000000001'}
+                    ],
                     'owners': [
                         {'display_name': 'johnsmith@example.com', 'identifier': '00000000-0000-0000-0000-000000000000'}
                     ],
