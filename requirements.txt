@@ -3,6 +3,6 @@ PyYAML>=5.*
 gunicorn==19.9.0
 marshmallow-dataclass[enum,union]==7.3.*
 python-jose==3.*
-eduid_userdb>=0.4.13
+eduid_userdb>=0.6.0
 eduid_graphdb>=0.6.0
 eduid_common[api]
