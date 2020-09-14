@@ -186,6 +186,7 @@ class TestInviteResource(ScimApiTestCase):
         super().tearDown()
         self.invitedb._drop_whole_collection()
         self.signup_invitedb._drop_whole_collection()
+        self.messagedb._drop_whole_collection()
         self.etcd_instance.clear('/eduid/api/')
 
     def add_invite(self, data: Optional[dict] = None, update: bool = False) -> ScimApiInvite:
@@ -318,6 +319,7 @@ class TestInviteResource(ScimApiTestCase):
         reference = SCIMReference(data_owner=self.data_owner, scim_id=db_invite.scim_id)
         signup_invite = self.signup_invitedb.get_invite_by_reference(reference)
         self._assertUpdateSuccess(req, response, db_invite, signup_invite)
+        self.assertEqual(1, self.messagedb.db_count())
 
     def test_create_invite_do_not_send_email(self):
 
@@ -353,6 +355,7 @@ class TestInviteResource(ScimApiTestCase):
         reference = SCIMReference(data_owner=self.data_owner, scim_id=db_invite.scim_id)
         signup_invite = self.signup_invitedb.get_invite_by_reference(reference)
         self._assertUpdateSuccess(req, response, db_invite, signup_invite)
+        self.assertEqual(0, self.messagedb.db_count())
 
     def test_get_invite(self):
         db_invite = self.add_invite()

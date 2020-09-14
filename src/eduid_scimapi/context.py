@@ -3,6 +3,7 @@ import logging.config
 import sys
 from typing import Optional
 
+from eduid_userdb.message import MessageDB
 from eduid_userdb.signup.invitedb import SignupInviteDB
 
 from eduid_scimapi.config import ScimApiConfig
@@ -47,6 +48,7 @@ class Context(object):
             )
             self._invitedbs[data_owner] = ScimApiInviteDB(db_uri=self.config.mongo_uri, collection=f'{_owner}__invites')
         self.signup_invitedb = SignupInviteDB(db_uri=self.config.mongo_uri)
+        self.messagedb = MessageDB(db_uri=self.config.mongo_uri)
 
     @property
     def base_url(self) -> str:

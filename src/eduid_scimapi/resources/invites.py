@@ -13,15 +13,27 @@ from eduid_scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumbe
 from eduid_scimapi.db.invitedb import ScimApiInvite
 from eduid_scimapi.exceptions import BadRequest, NotFound
 from eduid_scimapi.middleware import ctx_invitedb
-from eduid_scimapi.resources.base import SCIMResource
+from eduid_scimapi.resources.base import BaseResource, SCIMResource
 from eduid_scimapi.schemas.invite import (
     InviteCreateRequest,
     InviteCreateRequestSchema,
     InviteResponse,
     InviteResponseSchema,
 )
-from eduid_scimapi.schemas.scimbase import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
+from eduid_scimapi.schemas.scimbase import (
+    Email,
+    ListResponse,
+    ListResponseSchema,
+    Meta,
+    Name,
+    PhoneNumber,
+    SCIMResourceType,
+    SCIMSchema,
+    SearchRequest,
+    SearchRequestSchema,
+)
 from eduid_scimapi.schemas.user import NutidUserExtensionV1, Profile
+from eduid_scimapi.search import SearchFilter, parse_search_filter
 from eduid_scimapi.utils import get_short_hash, get_unique_hash, make_etag
 
 __author__ = 'lundberg'
@@ -109,6 +121,38 @@ class InvitesResource(SCIMResource):
     def _create_signup_ref(req: Request, db_invite: ScimApiInvite):
         return SCIMReference(data_owner=req.context['data_owner'], scim_id=db_invite.scim_id)
 
+    def _send_invite_mail(self, signup_invite: SignupInvite):
+        try:
+            email = [email.email for email in signup_invite.mail_addresses if email.primary][0]
+        except IndexError:
+            # Primary not set
+            email = signup_invite.mail_addresses[0].email
+        link = f'{self.context.config.invite_url}/{signup_invite.invite_code}'
+        payload = EduidInviteEmail(
+            email=email,
+            reference=str(signup_invite.invite_id),
+            invite_link=link,
+            invite_code=signup_invite.invite_code,
+            inviter_name=signup_invite.inviter_name,
+        )
+        app_name = self.context.name
+        system_hostname = environ.get('SYSTEM_HOSTNAME', '')  # Underlying hosts name for containers
+        hostname = environ.get('HOSTNAME', '')  # Actual hostname or container id
+        sender_info = SenderInfo(hostname=hostname, node_id=f'f{app_name}@{system_hostname}')
+        expires_at = datetime.utcnow() + timedelta(seconds=self.context.config.invite_expire)
+        discard_at = expires_at + timedelta(days=7)
+        message = Message(
+            type=MessageType.EDUID_INVITE_EMAIL,
+            version='1',
+            expires_at=expires_at,
+            discard_at=discard_at,
+            sender_info=sender_info,
+            payload=payload.to_dict(),
+        )
+        self.context.messagedb.save(message)
+        self.context.logger.info(f'Saved invite email to address {email} in message queue')
+        return True
+
     def on_get(self, req: Request, resp: Response, scim_id: Optional[str] = None):
         if scim_id is None:
             raise BadRequest(detail='Not implemented')
@@ -188,6 +232,8 @@ class InvitesResource(SCIMResource):
         signup_invite = self._create_signup_invite(req, resp, create_request, db_invite)
         self.context.signup_invitedb.save(signup_invite)
         ctx_invitedb(req).save(db_invite)
+        if signup_invite.send_email:
+            self._send_invite_mail(signup_invite)
         self._db_invite_to_response(req, resp, db_invite, signup_invite)
 
     def on_delete(self, req: Request, resp: Response, scim_id: str):

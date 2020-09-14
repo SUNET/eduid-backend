@@ -12,6 +12,8 @@ from falcon.testing import TestClient
 
 from eduid_common.config.testing import EtcdTemporaryInstance
 from eduid_graphdb.testing import Neo4jTemporaryInstance
+from eduid_userdb.deprecation import deprecated
+from eduid_userdb.message import MessageDB
 from eduid_userdb.signup import SignupInviteDB
 from eduid_userdb.testing import MongoTemporaryInstance
 
@@ -113,6 +115,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         self.userdb = self.context.get_userdb(self.data_owner)
         self.invitedb = self.context.get_invitedb(self.data_owner)
         self.signup_invitedb = SignupInviteDB(db_uri=config.mongo_uri)
+        self.messagedb = MessageDB(db_uri=config.mongo_uri)
 
         api = init_api(name='test_api', test_config=self.test_config, debug=True)
         self.client = TestClient(api)
