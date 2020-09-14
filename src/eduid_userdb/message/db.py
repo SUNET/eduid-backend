@@ -35,7 +35,7 @@ from bson import ObjectId
 
 from eduid_userdb.db import BaseDB
 from eduid_userdb.exceptions import MultipleDocumentsReturned
-from eduid_userdb.message import Message
+from eduid_userdb.message.message import Message
 
 logger = logging.getLogger(__name__)
 
