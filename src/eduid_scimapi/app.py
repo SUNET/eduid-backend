@@ -7,7 +7,7 @@ from eduid_scimapi.config import ScimApiConfig
 from eduid_scimapi.context import Context
 from eduid_scimapi.middleware import HandleAuthentication, HandleSCIM
 from eduid_scimapi.resources.groups import GroupSearchResource, GroupsResource
-from eduid_scimapi.resources.invites import InvitesResource
+from eduid_scimapi.resources.invites import InviteSearchResource, InvitesResource
 from eduid_scimapi.resources.login import LoginResource
 from eduid_scimapi.resources.status import HealthCheckResource
 from eduid_scimapi.resources.users import UsersResource, UsersSearchResource
@@ -44,7 +44,7 @@ def init_api(name: str, test_config: Optional[Dict] = None, debug: bool = False)
     # Invites
     api.add_route('/Invites/', InvitesResource(context=context))
     api.add_route('/Invites/{scim_id}', InvitesResource(context=context))
-    # api.add_route('/Invites/.search', InviteSearchResource(context=context))
+    api.add_route('/Invites/.search', InviteSearchResource(context=context))
 
     # Status
     api.add_route('/status/healthy', HealthCheckResource(context=context))

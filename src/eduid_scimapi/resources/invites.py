@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 from dataclasses import asdict, replace
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from os import environ
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from falcon import HTTP_204, Request, Response
 from marshmallow import ValidationError
 
+from eduid_userdb.message import EduidInviteEmail, Message, MessageType, SenderInfo
 from eduid_userdb.signup import Invite as SignupInvite
 from eduid_userdb.signup import InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
 
@@ -254,3 +256,75 @@ class InvitesResource(SCIMResource):
         self.context.logger.debug(f'Remove invite result: {res}')
 
         resp.status = HTTP_204
+
+
+class InviteSearchResource(BaseResource):
+    def on_post(self, req: Request, resp: Response):
+        """
+           POST /Invites/.search
+           Host: scim.eduid.se
+           Accept: application/scim+json
+
+           {
+             "schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"],
+             "attributes": ["id"],
+             "filter": "meta.lastModified ge \"2020-09-14T12:49:45\"",
+             "encryptionKey": "h026jGKrSW%2BTTekkA8Y8mv8%2FGqkGgAfLzaj3ucD3STQ"
+             "startIndex": 1,
+             "count": 1
+           }
+
+           HTTP/1.1 200 OK
+           Content-Type: application/scim+json
+           Location: https://example.com/Invites/.search
+
+           {
+             "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+             "totalResults": 1,
+             "itemsPerPage": 1,
+             "startIndex": 1,
+             "Resources": [
+               {
+                 "id": "fb96a6d0-1837-4c3b-9945-4249c476875c",
+               }
+             ]
+           }
+        """
+        self.context.logger.info(f'Searching for users(s)')
+
+        try:
+            query: SearchRequest = SearchRequestSchema().load(req.media)
+        except ValidationError as e:
+            raise BadRequest(detail=f'{e}')
+
+        self.context.logger.debug(f'Parsed user search query: {query}')
+
+        filter = parse_search_filter(query.filter)
+
+        if filter.attr == 'meta.lastmodified':
+            # SCIM start_index 1 equals item 0
+            users, total_count = self._filter_lastmodified(req, filter, skip=query.start_index - 1, limit=query.count)
+        else:
+            raise BadRequest(scim_type='invalidFilter', detail=f'Can\'t filter on attribute {filter.attr}')
+
+        list_response = ListResponse(resources=self._invites_to_resources_dicts(req, users), total_results=total_count)
+
+        resp.media = ListResponseSchema().dump(list_response)
+
+    @staticmethod
+    def _invites_to_resources_dicts(req: Request, invites: Sequence[ScimApiInvite]) -> List[Dict[str, Any]]:
+        _attributes = req.media.get('attributes')
+        # TODO: include the requested attributes, not just id
+        return [{'id': str(invite.scim_id)} for invite in invites]
+
+    @staticmethod
+    def _filter_lastmodified(
+        req: Request, filter: SearchFilter, skip: Optional[int] = None, limit: Optional[int] = None
+    ) -> Tuple[List[ScimApiInvite], int]:
+        if filter.op not in ['gt', 'ge']:
+            raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
+        if not isinstance(filter.val, str):
+            raise BadRequest(scim_type='invalidFilter', detail='Invalid datetime')
+        return ctx_invitedb(req).get_invites_by_last_modified(
+            operator=filter.op, value=datetime.fromisoformat(filter.val), skip=skip, limit=limit
+        )

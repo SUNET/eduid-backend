@@ -277,6 +277,66 @@ class TestInviteResource(ScimApiTestCase):
         elif SCIMSchema.NUTID_USER_V1.value in response.json:
             self.fail(f'Unexpected {SCIMSchema.NUTID_USER_V1.value} in the response')
 
+    def _perform_search(
+        self,
+        filter: str,
+        start: int = 1,
+        count: int = 10,
+        return_json: bool = False,
+        expected_invite: Optional[ScimApiInvite] = None,
+        expected_num_resources: Optional[int] = None,
+        expected_total_results: Optional[int] = None,
+    ):
+        logger.info(f'Searching for group(s) using filter {repr(filter)}')
+        req = {
+            'schemas': [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
+            'filter': filter,
+            'startIndex': start,
+            'count': count,
+        }
+        response = self.client.simulate_post(path='/Invites/.search', body=self.as_json(req), headers=self.headers)
+        logger.info(f'Search response:\n{response.json}')
+        if return_json:
+            return response.json
+        expected_schemas = [SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value]
+        response_schemas = response.json.get('schemas')
+        self.assertIsInstance(response_schemas, list, 'Response schemas not present, or not a list')
+        self.assertEqual(
+            sorted(set(expected_schemas)), sorted(set(response_schemas)), 'Unexpected schema(s) in search response'
+        )
+
+        resources = response.json.get('Resources')
+
+        if expected_invite is not None:
+            expected_num_resources = 1
+            expected_total_results = 1
+
+        if expected_num_resources is not None:
+            self.assertEqual(
+                expected_num_resources,
+                len(resources),
+                f'Number of resources returned expected to be {expected_num_resources}',
+            )
+            if expected_total_results is None:
+                expected_total_results = expected_num_resources
+        if expected_total_results is not None:
+            self.assertEqual(
+                expected_total_results,
+                response.json.get('totalResults'),
+                f'Response totalResults expected to be {expected_total_results}',
+            )
+
+        if expected_invite is not None:
+            self.assertEqual(
+                str(expected_invite.scim_id),
+                resources[0].get('id'),
+                f'Search response user does not have the expected id: {str(expected_invite.scim_id)}',
+            )
+
+        self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json.get('schemas'))
+        resources = response.json.get('Resources')
+        return resources
+
     # def test_get_invites(self):
     #    for i in range(9):
     #        self.add_user(identifier=str(uuid4()), external_id=f'test-id-{i}', profiles={'test': self.test_profile})
@@ -370,3 +430,18 @@ class TestInviteResource(ScimApiTestCase):
         reference = SCIMReference(data_owner=self.data_owner, scim_id=db_invite.scim_id)
         self.assertIsNone(self.invitedb.get_invite_by_scim_id(str(db_invite.scim_id)))
         self.assertIsNone(self.signup_invitedb.get_invite_by_reference(reference))
+
+    def test_search_user_last_modified(self):
+        db_invite1 = self.add_invite()
+        db_invite2 = self.add_invite(data={'invite_code': 'another_invite_code'}, update=True)
+        self.assertGreater(db_invite2.last_modified, db_invite1.last_modified)
+
+        self._perform_search(
+            filter=f'meta.lastModified ge "{db_invite1.last_modified.isoformat()}"',
+            expected_num_resources=2,
+            expected_total_results=2,
+        )
+
+        self._perform_search(
+            filter=f'meta.lastModified gt "{db_invite1.last_modified.isoformat()}"', expected_invite=db_invite2
+        )
