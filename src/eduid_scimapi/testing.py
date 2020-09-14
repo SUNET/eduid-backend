@@ -209,6 +209,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         )
 
 
+@deprecated('Moved to eduid_userdb.testing')
 def normalised_data(
     data: Union[Mapping[str, Any], Sequence[Mapping[str, Any]]]
 ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
