@@ -49,7 +49,7 @@ class Payload(ABC):
 class TestPayload(Payload):
     message: str
     created_ts: datetime = field(default_factory=datetime.utcnow)
-    version: str = '1'
+    version: int = 1
 
     @classmethod
     def from_dict(cls, data: Mapping):
@@ -64,7 +64,7 @@ class EduidInviteEmail(Payload):
     invite_link: str
     invite_code: str
     inviter_name: str
-    version: str = '1'
+    version: int = 1
 
     @classmethod
     def from_dict(cls, data: Mapping):

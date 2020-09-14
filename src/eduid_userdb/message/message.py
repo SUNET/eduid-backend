@@ -66,7 +66,7 @@ class SenderInfo:
 @dataclass
 class Message:
     type: MessageType
-    version: str
+    version: int
     expires_at: datetime
     discard_at: datetime
     sender_info: SenderInfo
