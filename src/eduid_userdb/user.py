@@ -92,9 +92,6 @@ class User(object):
         if self.revoked_ts is not None:
             raise UserIsRevoked(f'User {self.user_id}/{self.eppn} was revoked at {self.revoked_ts}')
 
-        if self.tou is None:
-            self.tou = ToUList([])
-
     def __repr__(self):
         return '<eduID {!s}: {!s}/{!s}>'.format(self.__class__.__name__, self.eppn, self.user_id,)
 
