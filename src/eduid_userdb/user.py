@@ -97,9 +97,11 @@ class User(object):
         if not isinstance(self.eppn, str):
             raise UserDBValueError('User instantiated with non-string eppn')
         if len(self.eppn) != 11 or '-' not in self.eppn:
-            # have to provide an exception for test cases for now ;)
-            if not self.eppn.startswith('hubba-') and 'test' not in self.eppn:
-                raise UserDBValueError(f'Malformed eppn ({self.eppn})')
+            # the exception to the rule - an old proquint implementation once generated a short eppn
+            if self.eppn != 'holih':
+                # have to provide an exception for test cases for now ;)
+                if not self.eppn.startswith('hubba-') and 'test' not in self.eppn:
+                    raise UserDBValueError(f'Malformed eppn ({self.eppn})')
 
         if self.revoked_ts is not None:
             raise UserIsRevoked(f'User {self.user_id}/{self.eppn} was revoked at {self.revoked_ts}')
