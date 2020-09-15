@@ -13,7 +13,7 @@ from eduid_userdb.phone import PhoneNumberList
 from eduid_userdb.profile import Profile, ProfileList
 from eduid_userdb.tests import DictTestCase
 from eduid_userdb.tou import ToUList
-from eduid_userdb.user import User
+from eduid_userdb.user import SubjectType, User
 
 __author__ = 'ft'
 
@@ -750,7 +750,7 @@ class TestNewUser(DictTestCase, _AbstractUserTestCase):
             mail_addresses=mail_addresses,
             credentials=passwords,
             nins=nins,
-            subject=subject,
+            subject=SubjectType(subject),
             entitlements=entitlements,
             language=language,
         )
@@ -841,7 +841,7 @@ class TestNewUser(DictTestCase, _AbstractUserTestCase):
             profiles=profiles,
             language=language,
             surname=surname,
-            subject=subject,
+            subject=SubjectType(subject),
         )
 
         self.data2 = {

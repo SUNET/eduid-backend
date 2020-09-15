@@ -37,6 +37,7 @@ import copy
 import warnings
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
+from enum import Enum, unique
 from typing import Any, Dict, List, Optional, Type, TypeVar, cast
 
 import bson
@@ -53,9 +54,11 @@ from eduid_userdb.phone import PhoneNumberList
 from eduid_userdb.profile import ProfileList
 from eduid_userdb.tou import ToUList
 
-VALID_SUBJECT_VALUES = ['physical person']
-
 TUserSubclass = TypeVar('TUserSubclass', bound='User')
+
+@unique
+class SubjectType(Enum):
+    PERSON = 'physical person'
 
 
 @dataclass
@@ -69,7 +72,7 @@ class User(object):
     given_name: str = ''
     display_name: str = ''
     surname: str = ''
-    subject: Optional[str] = None
+    subject: Optional[SubjectType] = None
     language: str = 'sv'
     mail_addresses: MailAddressList = field(default_factory=lambda: MailAddressList([]))
     phone_numbers: PhoneNumberList = field(default_factory=lambda: PhoneNumberList([]))
@@ -151,6 +154,8 @@ class User(object):
         if 'eduPersonPrincipalName' in data_in:
             # Mandatory, let it raise a TypeError if missing
             data_in['eppn'] = data_in.pop('eduPersonPrincipalName')
+        if data_in.get('subject') is not None:
+            data_in['subject'] = SubjectType(data_in['subject'])
         data_in['subject'] = data_in.pop('subject', None)
         data_in['display_name'] = data_in.pop('displayName', None)
         data_in['given_name'] = data_in.pop('givenName', None)
@@ -194,6 +199,8 @@ class User(object):
             res['orcid'] = self.orcid.to_dict()
         if 'eduPersonEntitlement' not in res:
             res['eduPersonEntitlement'] = res.pop('entitlements', [])
+        if self.subject is not None:
+            res['subject'] = self.subject.value
         # Remove these values if they have a value that evaluates to False
         for _remove in [
             'displayName',

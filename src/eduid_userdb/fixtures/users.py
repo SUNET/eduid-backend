@@ -64,7 +64,7 @@ from eduid_userdb.nin import NinList
 from eduid_userdb.phone import PhoneNumberList
 from eduid_userdb.signup.user import SignupUser
 from eduid_userdb.tou import ToUList
-from eduid_userdb.user import User
+from eduid_userdb.user import SubjectType, User
 
 mocked_user_standard = User(
     eppn='hubba-bubba',
@@ -103,7 +103,7 @@ new_completed_signup_user_example = User(
     given_name='John',
     display_name='John Smith',
     surname='Smith',
-    subject='physical person',
+    subject=SubjectType.PERSON,
     language='en',
     modified_ts=datetime.fromisoformat("2017-01-04T16:47:30"),
     tou=ToUList([signup_2016_v1]),
@@ -123,7 +123,7 @@ new_signup_user_example = SignupUser(
     given_name='John',
     display_name='John Smith',
     surname='Smith',
-    subject='physical person',
+    subject=SubjectType.PERSON,
     language='en',
     modified_ts=datetime.fromisoformat("2013-09-02T10:23:25"),
     terminated=None,
@@ -145,7 +145,7 @@ new_unverified_user_example = User(
     given_name='John',
     display_name='John Smith',
     surname='Smith',
-    subject='physical person',
+    subject=SubjectType('physical person'),
     language='en',
     modified_ts=datetime.fromisoformat("2013-09-02T10:23:25"),
     terminated=None,
@@ -164,7 +164,7 @@ new_user_example = User(
     given_name='John',
     display_name='John Smith',
     surname='Smith',
-    subject='physical person',
+    subject=SubjectType('physical person'),
     language='en',
     modified_ts=datetime.fromisoformat("2013-09-02T10:23:25"),
     terminated=None,
