@@ -28,39 +28,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-import logging
-from typing import Union
-
-from bson import ObjectId
-
-from eduid_userdb.db import BaseDB
-from eduid_userdb.exceptions import MultipleDocumentsReturned
-from eduid_userdb.q.message.message import Message
-
-logger = logging.getLogger(__name__)
+from eduid_userdb.q.db import QueueDB
 
 __author__ = 'lundberg'
 
 
-class MessageDB(BaseDB):
-    def __init__(self, db_uri, db_name='eduid_message', collection='messages'):
-        super().__init__(db_uri, db_name, collection=collection)
-        # Remove messages older than discard_at datetime
-        indexes = {
-            'auto-discard-messages': {'key': [('discard_at', 1)], 'expireAfterSeconds': 0},
-        }
-        self.setup_indexes(indexes)
-
-    def get_message_by_id(self, message_id: Union[str, ObjectId], raise_on_missing=True) -> Message:
-        if isinstance(message_id, str):
-            message_id = ObjectId(message_id)
-        docs = self._get_documents_by_filter({'_id': message_id}, raise_on_missing=raise_on_missing)
-        if len(docs) > 1:
-            raise MultipleDocumentsReturned(f'Multiple matching messages for _id={message_id}')
-        return Message.from_dict(docs[0])
-
-    def save(self, message: Message) -> bool:
-        test_doc = {'_id': message.message_id}
-        res = self._coll.replace_one(test_doc, message.to_dict(), upsert=True)
-        # TODO: Check result for fail/success
-        return res.acknowledged
+class MessageDB(QueueDB):
+    def __init__(self, db_uri: str, collection: str = 'message'):
+        super().__init__(db_uri, collection=collection)

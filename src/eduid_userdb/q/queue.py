@@ -35,7 +35,7 @@ from typing import Dict
 
 from bson import ObjectId
 
-from eduid_userdb.q.payload import PAYLOAD_LOADERS, Payload, PayloadType
+from eduid_userdb.q import Payload
 
 __author__ = 'lundberg'
 
@@ -53,37 +53,28 @@ class SenderInfo:
 
 @dataclass
 class QueueItem:
-    type: PayloadType
     version: int
     expires_at: datetime
     discard_at: datetime
     sender_info: SenderInfo
+    payload_type: str
     payload: Dict
-    message_id: ObjectId = field(default_factory=ObjectId)
+    item_id: ObjectId = field(default_factory=ObjectId)
     created_ts: datetime = field(default_factory=datetime.utcnow)
-
-    def get_payload(self) -> Payload:
-        try:
-            payload_cls = PAYLOAD_LOADERS[self.type]
-            return payload_cls.from_dict(self.payload)
-        except KeyError:
-            raise NotImplemented(f'Payload of type {self.type} not implemented')
 
     def to_dict(self) -> Dict:
         res = asdict(self)
-        res['_id'] = res.pop('message_id')
-        res['type'] = self.type.value
+        res['_id'] = res.pop('item_id')
         return res
 
     @classmethod
     def from_dict(cls, data: Mapping):
         data = dict(data)
-        message_id = data.pop('_id')
-        message_type = PayloadType(data['type'])
+        item_id = data.pop('_id')
         sender_info = SenderInfo.from_dict(data['sender_info'])
         return cls(
-            message_id=message_id,
-            type=message_type,
+            item_id=item_id,
+            payload_type=data['payload_type'],
             version=data['version'],
             expires_at=data['expires_at'],
             discard_at=data['discard_at'],

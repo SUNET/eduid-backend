@@ -30,15 +30,9 @@
 from abc import ABC
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from enum import Enum
-from typing import Dict, Mapping, Type
+from typing import Dict, Mapping
 
 __author__ = 'lundberg'
-
-
-class PayloadType(Enum):
-    TEST_PAYLOAD = 'test_payload'
-    EDUID_INVITE_EMAIL = 'eduid_invite_email'
 
 
 @dataclass
@@ -49,6 +43,10 @@ class Payload(ABC):
     @classmethod
     def from_dict(cls, data):
         raise NotImplementedError()
+
+    @classmethod
+    def get_type(cls):
+        return cls.__class__.__name__
 
 
 @dataclass
@@ -61,8 +59,3 @@ class TestPayload(Payload):
     def from_dict(cls, data: Mapping):
         data = dict(data)  # Do not change caller data
         return cls(**data)
-
-
-PAYLOAD_LOADERS: Dict[PayloadType, Type[Payload]] = {
-    PayloadType.TEST_PAYLOAD: TestPayload,
-}

@@ -29,10 +29,9 @@
 #
 
 from dataclasses import dataclass
-from typing import Dict, Mapping, Type
+from typing import Mapping
 
-from eduid_userdb.q import PayloadType
-from eduid_userdb.q.payload import Payload, TestPayload
+from eduid_userdb.q.payload import Payload
 
 __author__ = 'lundberg'
 
@@ -50,9 +49,3 @@ class EduidInviteEmail(Payload):
     def from_dict(cls, data: Mapping):
         data = dict(data)  # Do not change caller data
         return cls(**data)
-
-
-PAYLOAD_LOADERS: Dict[PayloadType, Type[Payload]] = {
-    PayloadType.TEST_PAYLOAD: TestPayload,
-    PayloadType.EDUID_INVITE_EMAIL: EduidInviteEmail,
-}
