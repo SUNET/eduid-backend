@@ -27,46 +27,21 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from abc import ABC
-from dataclasses import asdict, dataclass, field
-from datetime import datetime
-from typing import Dict, Mapping
+
+from dataclasses import dataclass
+
+from eduid_userdb.q import Payload
+from eduid_userdb.q.message.payload import PAYLOAD_LOADERS
+from eduid_userdb.q.queue import QueueItem
 
 __author__ = 'lundberg'
 
 
 @dataclass
-class Payload(ABC):
-    def to_dict(self) -> Dict:
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, data):
-        raise NotImplementedError()
-
-
-@dataclass
-class TestPayload(Payload):
-    message: str
-    created_ts: datetime = field(default_factory=datetime.utcnow)
-    version: int = 1
-
-    @classmethod
-    def from_dict(cls, data: Mapping):
-        data = dict(data)  # Do not change caller data
-        return cls(**data)
-
-
-@dataclass
-class EduidInviteEmail(Payload):
-    email: str
-    reference: str
-    invite_link: str
-    invite_code: str
-    inviter_name: str
-    version: int = 1
-
-    @classmethod
-    def from_dict(cls, data: Mapping):
-        data = dict(data)  # Do not change caller data
-        return cls(**data)
+class Message(QueueItem):
+    def get_payload(self) -> Payload:
+        try:
+            payload_cls = PAYLOAD_LOADERS[self.type]
+            return payload_cls.from_dict(self.payload)
+        except KeyError:
+            raise NotImplemented(f'Payload of type {self.type} not implemented')

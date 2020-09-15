@@ -4,21 +4,22 @@ from datetime import datetime, timedelta
 from unittest import TestCase, skip
 
 from eduid_userdb.exceptions import DocumentDoesNotExist
-from eduid_userdb.message import EduidInviteEmail, Message, MessageDB, MessageType, SenderInfo, TestPayload
+from eduid_userdb.q import PayloadType, QueueItem, SenderInfo, TestPayload
+from eduid_userdb.q.message import EduidInviteEmail, Message, MessageDB
 from eduid_userdb.testing import MongoTestCase, normalised_data
 
 __author__ = 'lundberg'
 
 
-class TestMessage(TestCase):
-    def test_message(self):
+class TestQ(TestCase):
+    def test_queue_item(self):
         expires_at = datetime.utcnow() + timedelta(days=180)
         discard_at = expires_at + timedelta(days=7)
         sender_info = SenderInfo(hostname='testhost', node_id='userdb@testhost')
         payload = TestPayload(message='this is a test payload')
-        message = Message(
-            type=MessageType.TEST_PAYLOAD,
-            version='1',
+        message = QueueItem(
+            type=PayloadType.TEST_PAYLOAD,
+            version=1,
             expires_at=expires_at,
             discard_at=discard_at,
             sender_info=sender_info,
@@ -30,6 +31,8 @@ class TestMessage(TestCase):
         loaded_payload_dict = asdict(message.get_payload())
         assert normalised_data(payload.to_dict()) == normalised_data(loaded_payload_dict)
 
+
+class TestMessage(TestCase):
     def test_eduid_invite_mail(self):
         expires_at = datetime.utcnow() + timedelta(days=180)
         discard_at = expires_at + timedelta(days=7)
@@ -42,8 +45,8 @@ class TestMessage(TestCase):
             inviter_name='Test Application',
         )
         message = Message(
-            type=MessageType.EDUID_INVITE_EMAIL,
-            version='1',
+            type=PayloadType.EDUID_INVITE_EMAIL,
+            version=1,
             expires_at=expires_at,
             discard_at=discard_at,
             sender_info=sender_info,
@@ -67,8 +70,8 @@ class TestMessageDB(MongoTestCase):
         sender_info = SenderInfo(hostname='testhost', node_id='userdb@testhost')
         self.payload = TestPayload(message='this is a test payload')
         self.message = Message(
-            type=MessageType.TEST_PAYLOAD,
-            version='1',
+            type=PayloadType.TEST_PAYLOAD,
+            version=1,
             expires_at=expires_at,
             discard_at=discard_at,
             sender_info=sender_info,
@@ -93,7 +96,7 @@ class TestMessageDB(MongoTestCase):
             invite_code='abc123',
             inviter_name='Test Application',
         )
-        self.message.type = MessageType.EDUID_INVITE_EMAIL
+        self.message.type = PayloadType.EDUID_INVITE_EMAIL
         self.message.payload = payload.to_dict()
         self.messagedb.save(self.message)
 

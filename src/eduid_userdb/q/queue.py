@@ -31,25 +31,13 @@
 from collections import Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from enum import Enum
-from typing import Dict, Type
+from typing import Dict
 
 from bson import ObjectId
 
-from eduid_userdb.message.payload import EduidInviteEmail, Payload, TestPayload
+from eduid_userdb.q.payload import PAYLOAD_LOADERS, Payload, PayloadType
 
 __author__ = 'lundberg'
-
-
-class MessageType(Enum):
-    TEST_PAYLOAD = 'test_payload'
-    EDUID_INVITE_EMAIL = 'eduid_invite_email'
-
-
-PAYLOAD_LOADERS: Dict[MessageType, Type[Payload]] = {
-    MessageType.TEST_PAYLOAD: TestPayload,
-    MessageType.EDUID_INVITE_EMAIL: EduidInviteEmail,
-}
 
 
 @dataclass
@@ -64,8 +52,8 @@ class SenderInfo:
 
 
 @dataclass
-class Message:
-    type: MessageType
+class QueueItem:
+    type: PayloadType
     version: int
     expires_at: datetime
     discard_at: datetime
@@ -91,7 +79,7 @@ class Message:
     def from_dict(cls, data: Mapping):
         data = dict(data)
         message_id = data.pop('_id')
-        message_type = MessageType(data['type'])
+        message_type = PayloadType(data['type'])
         sender_info = SenderInfo.from_dict(data['sender_info'])
         return cls(
             message_id=message_id,
