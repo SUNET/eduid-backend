@@ -206,14 +206,20 @@ class User(object):
         # Remove these values if they have a value that evaluates to False
         for _remove in [
             'displayName',
-            'givenName',
-            'surname',
-            'preferredLanguage',
-            'phone',
-            'orcid',
             'eduPersonEntitlement',
+            'givenName',
+            'letter_proofing_data',
             'locked_identity',
+            'modified_ts',
             'nins',
+            'orcid',
+            'phone',
+            'preferredLanguage',
+            'profiles',
+            'revoked_ts',
+            'subject',
+            'surname',
+            'terminated',
         ]:
             if _remove in res and not res[_remove]:
                 del res[_remove]
