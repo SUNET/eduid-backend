@@ -85,7 +85,8 @@ class IdPUser(User):
         logger.debug('Discarded non-attributes:\n{!s}'.format(pprint.pformat(attributes_in)))
         attributes1 = make_scoped_eppn(attributes, config)
         attributes2 = add_scoped_affiliation(attributes1, config)
-        attributes = add_eduperson_assurance(attributes2, self)
+        attributes3 = make_eduperson_unique_id(attributes2, config)
+        attributes = add_eduperson_assurance(attributes3, self)
         return attributes
 
 
@@ -106,6 +107,17 @@ def make_scoped_eppn(attributes: dict, config: dict) -> dict:
         return attributes
     if '@' not in eppn:
         attributes['eduPersonPrincipalName'] = eppn + '@' + scope
+    return attributes
+
+
+def make_eduperson_unique_id(attributes: dict, config: dict) -> dict:
+    eppn = attributes.get('eduPersonPrincipalName')
+    scope = config['DEFAULT_EPPN_SCOPE']
+    if not eppn or not scope:
+        return attributes
+    if attributes.get('eduPersonUniqueID') is None:
+        unique_id = eppn.replace('-', '')
+        attributes['eduPersonUniqueID'] = f'{unique_id}@{scope}'
     return attributes
 
 
