@@ -46,7 +46,20 @@ class Payload(ABC):
 
     @classmethod
     def get_type(cls):
-        return cls.__class__.__name__
+        return cls.__name__
+
+
+@dataclass
+class RawPayload(Payload):
+    data: Dict
+
+    def to_dict(self):
+        return self.data
+
+    @classmethod
+    def from_dict(cls, data: Mapping):
+        data = dict(data)  # Do not change caller data
+        return cls(data=data)
 
 
 @dataclass
