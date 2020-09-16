@@ -71,7 +71,7 @@ class QueueDB(BaseDB):
         return payload_cls.from_dict(item.payload.to_dict())
 
     def get_item_by_id(
-        self, message_id: Union[str, ObjectId], raise_on_missing=True, raw_load=False
+        self, message_id: Union[str, ObjectId], raise_on_missing=True, parse_payload=True
     ) -> Optional[QueueItem]:
         if isinstance(message_id, str):
             message_id = ObjectId(message_id)
@@ -83,7 +83,7 @@ class QueueDB(BaseDB):
             raise MultipleDocumentsReturned(f'Multiple matching messages for _id={message_id}')
 
         item = QueueItem.from_dict(docs[0])
-        if raw_load is True:
+        if parse_payload is False:
             # Return the item with the generic RawPayload
             return item
         item = replace(item, payload=self._load_payload(item))

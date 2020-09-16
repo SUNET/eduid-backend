@@ -102,7 +102,7 @@ class TestMessageDB(MongoTestCase):
         assert loaded_item.payload_type == payload.get_type()
         assert isinstance(loaded_item.payload, TestPayload) is True
 
-        raw_loaded_item = self.messagedb.get_item_by_id(item.item_id, raw_load=True)
+        raw_loaded_item = self.messagedb.get_item_by_id(item.item_id, parse_payload=False)
         assert raw_loaded_item.payload_type == payload.get_type()
         assert isinstance(raw_loaded_item.payload, RawPayload) is True
         assert normalised_data(item.payload.to_dict()) == normalised_data(raw_loaded_item.payload.to_dict())
