@@ -58,17 +58,18 @@ class QueueItem:
     discard_at: datetime
     sender_info: SenderInfo
     payload_type: str
-    payload: Dict
+    payload: Payload
     item_id: ObjectId = field(default_factory=ObjectId)
     created_ts: datetime = field(default_factory=datetime.utcnow)
 
     def to_dict(self) -> Dict:
         res = asdict(self)
         res['_id'] = res.pop('item_id')
+        res['payload'] = self.payload.to_dict()
         return res
 
     @classmethod
-    def from_dict(cls, data: Mapping):
+    def from_dict(cls, data: Mapping, payload: Payload):
         data = dict(data)
         item_id = data.pop('_id')
         sender_info = SenderInfo.from_dict(data['sender_info'])
@@ -79,5 +80,5 @@ class QueueItem:
             expires_at=data['expires_at'],
             discard_at=data['discard_at'],
             sender_info=sender_info,
-            payload=data['payload'],
+            payload=payload,
         )

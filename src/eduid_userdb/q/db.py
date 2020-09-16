@@ -36,6 +36,7 @@ from bson import ObjectId
 from eduid_userdb.db import BaseDB
 from eduid_userdb.exceptions import MultipleDocumentsReturned
 from eduid_userdb.q import Payload
+from eduid_userdb.q.payload import RawPayload
 from eduid_userdb.q.queue import QueueItem
 
 logger = logging.getLogger(__name__)
@@ -56,22 +57,30 @@ class QueueDB(BaseDB):
         self.setup_indexes(indexes)
 
     def register_handler(self, payload: Type[Payload]):
-        self.handlers[payload.get_type()] = payload
+        payload_type = payload.get_type()
+        if payload_type in self.handlers:
+            raise KeyError(f'Payload type \'{payload_type}\' already registered with {self}')
+        self.handlers[payload_type] = payload
 
-    def get_payload(self, item: QueueItem) -> Payload:
+    def _load_payload(self, queue_item_data: Mapping, raw_load=False) -> Payload:
+        payload_type = queue_item_data['payload_type']
+        payload_data = queue_item_data['payload']
+        if raw_load:
+            return RawPayload.from_dict(payload_data)
         try:
-            payload_cls = self.handlers[item.payload_type]
+            payload_cls = self.handlers[payload_type]
         except KeyError:
-            raise KeyError(f'Payload type {item.payload_type} not registered in {self}')
-        return payload_cls.from_dict(item.payload)
+            raise KeyError(f'Payload type \'{payload_type}\' not registered with {self}')
+        return payload_cls.from_dict(payload_data)
 
-    def get_item_by_id(self, message_id: Union[str, ObjectId], raise_on_missing=True) -> QueueItem:
+    def get_item_by_id(self, message_id: Union[str, ObjectId], raise_on_missing=True, raw_load=False) -> QueueItem:
         if isinstance(message_id, str):
             message_id = ObjectId(message_id)
         docs = self._get_documents_by_filter({'_id': message_id}, raise_on_missing=raise_on_missing)
         if len(docs) > 1:
             raise MultipleDocumentsReturned(f'Multiple matching messages for _id={message_id}')
-        return QueueItem.from_dict(docs[0])
+        doc = docs[0]
+        return QueueItem.from_dict(doc, self._load_payload(doc, raw_load=raw_load))
 
     def save(self, item: QueueItem) -> bool:
         test_doc = {'_id': item.item_id}
