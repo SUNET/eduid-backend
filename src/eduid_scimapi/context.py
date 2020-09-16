@@ -3,7 +3,7 @@ import logging.config
 import sys
 from typing import Optional
 
-from eduid_userdb.message import MessageDB
+from eduid_userdb.q.message import MessageDB
 from eduid_userdb.signup.invitedb import SignupInviteDB
 
 from eduid_scimapi.config import ScimApiConfig

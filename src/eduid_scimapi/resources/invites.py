@@ -7,7 +7,8 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 from falcon import HTTP_204, Request, Response
 from marshmallow import ValidationError
 
-from eduid_userdb.message import EduidInviteEmail, Message, MessageType, SenderInfo
+from eduid_userdb.q import QueueItem, SenderInfo
+from eduid_userdb.q.message import EduidInviteEmail
 from eduid_userdb.signup import Invite as SignupInvite
 from eduid_userdb.signup import InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
 
@@ -140,16 +141,16 @@ class InvitesResource(SCIMResource):
         app_name = self.context.name
         system_hostname = environ.get('SYSTEM_HOSTNAME', '')  # Underlying hosts name for containers
         hostname = environ.get('HOSTNAME', '')  # Actual hostname or container id
-        sender_info = SenderInfo(hostname=hostname, node_id=f'f{app_name}@{system_hostname}')
+        sender_info = SenderInfo(hostname=hostname, node_id=f'{app_name}@{system_hostname}')
         expires_at = datetime.utcnow() + timedelta(seconds=self.context.config.invite_expire)
         discard_at = expires_at + timedelta(days=7)
-        message = Message(
-            type=MessageType.EDUID_INVITE_EMAIL,
-            version='1',
+        message = QueueItem(
+            version=1,
             expires_at=expires_at,
             discard_at=discard_at,
             sender_info=sender_info,
-            payload=payload.to_dict(),
+            payload_type=payload.get_type(),
+            payload=payload,
         )
         self.context.messagedb.save(message)
         self.context.logger.info(f'Saved invite email to address {email} in message queue')

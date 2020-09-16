@@ -13,7 +13,7 @@ from falcon.testing import TestClient
 from eduid_common.config.testing import EtcdTemporaryInstance
 from eduid_graphdb.testing import Neo4jTemporaryInstance
 from eduid_userdb.deprecation import deprecated
-from eduid_userdb.message import MessageDB
+from eduid_userdb.q.message import MessageDB
 from eduid_userdb.signup import SignupInviteDB
 from eduid_userdb.testing import MongoTemporaryInstance
 
