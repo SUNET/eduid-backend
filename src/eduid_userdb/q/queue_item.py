@@ -36,6 +36,7 @@ from typing import Dict
 from bson import ObjectId
 
 from eduid_userdb.q import Payload
+from eduid_userdb.q.payload import RawPayload
 
 __author__ = 'lundberg'
 
@@ -69,10 +70,11 @@ class QueueItem:
         return res
 
     @classmethod
-    def from_dict(cls, data: Mapping, payload: Payload):
+    def from_dict(cls, data: Mapping):
         data = dict(data)
         item_id = data.pop('_id')
         sender_info = SenderInfo.from_dict(data['sender_info'])
+        payload = RawPayload.from_dict(data['payload'])
         return cls(
             item_id=item_id,
             payload_type=data['payload_type'],

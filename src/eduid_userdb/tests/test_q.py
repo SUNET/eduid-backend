@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from dataclasses import asdict
 from datetime import datetime, timedelta
 from unittest import TestCase, skip
 
@@ -26,8 +25,8 @@ class TestQ(TestCase):
             payload_type=payload.get_type(),
             payload=payload,
         )
-        loaded_message_dict = asdict(QueueItem.from_dict(item.to_dict(), payload))
-        assert normalised_data(asdict(item)) == normalised_data(loaded_message_dict)
+        loaded_message_dict = QueueItem.from_dict(item.to_dict()).to_dict()
+        assert normalised_data(item.to_dict()) == normalised_data(loaded_message_dict)
         assert normalised_data(payload.to_dict()) == normalised_data(item.payload.to_dict())
 
 
@@ -43,7 +42,7 @@ class TestMessage(TestCase):
             invite_code='abc123',
             inviter_name='Test Application',
         )
-        message = QueueItem(
+        item = QueueItem(
             version=1,
             expires_at=expires_at,
             discard_at=discard_at,
@@ -52,9 +51,9 @@ class TestMessage(TestCase):
             payload=payload,
         )
 
-        loaded_message_dict = asdict(QueueItem.from_dict(message.to_dict(), payload))
-        assert normalised_data(asdict(message)) == normalised_data(loaded_message_dict)
-        assert normalised_data(payload.to_dict()) == normalised_data(message.payload.to_dict())
+        loaded_message_dict = QueueItem.from_dict(item.to_dict()).to_dict()
+        assert normalised_data(item.to_dict()) == normalised_data(loaded_message_dict)
+        assert normalised_data(payload.to_dict()) == normalised_data(item.payload.to_dict())
 
 
 class TestMessageDB(MongoTestCase):
@@ -91,7 +90,7 @@ class TestMessageDB(MongoTestCase):
         loaded_item = self.messagedb.get_item_by_id(item.item_id)
         assert loaded_item.payload_type == payload.get_type()
         assert isinstance(loaded_item.payload, TestPayload) is True
-        assert normalised_data(asdict(item)) == normalised_data(asdict(loaded_item))
+        assert normalised_data(item.to_dict()) == normalised_data(loaded_item.to_dict())
 
     def test_save_load_raw_payload(self):
         payload = TestPayload(message='this is a test payload')
@@ -121,10 +120,8 @@ class TestMessageDB(MongoTestCase):
         assert 1 == self.messagedb.db_count()
 
         loaded_item = self.messagedb.get_item_by_id(item.item_id)
-        assert normalised_data(asdict(item)) == normalised_data(asdict(loaded_item))
-
-        assert normalised_data(asdict(payload)), normalised_data(asdict(item.payload))
-        assert normalised_data(payload.to_dict()), normalised_data(item.payload.to_dict())
+        assert normalised_data(item.to_dict()) == normalised_data(loaded_item.to_dict())
+        assert normalised_data(item.payload.to_dict()), normalised_data(loaded_item.payload.to_dict())
 
     @skip('It takes mongo a couple of seconds to actually remove the document, skip for now.')
     # TODO: Investigate if it is possible to force a expire check in mongodb

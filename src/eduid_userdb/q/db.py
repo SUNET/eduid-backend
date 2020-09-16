@@ -29,7 +29,8 @@
 #
 
 import logging
-from typing import Dict, Mapping, Type, Union
+from dataclasses import replace
+from typing import Dict, Mapping, Optional, Type, Union
 
 from bson import ObjectId
 
@@ -37,7 +38,7 @@ from eduid_userdb.db import BaseDB
 from eduid_userdb.exceptions import MultipleDocumentsReturned
 from eduid_userdb.q import Payload
 from eduid_userdb.q.payload import RawPayload
-from eduid_userdb.q.queue import QueueItem
+from eduid_userdb.q.queue_item import QueueItem
 
 logger = logging.getLogger(__name__)
 
@@ -62,25 +63,31 @@ class QueueDB(BaseDB):
             raise KeyError(f'Payload type \'{payload_type}\' already registered with {self}')
         self.handlers[payload_type] = payload
 
-    def _load_payload(self, queue_item_data: Mapping, raw_load=False) -> Payload:
-        payload_type = queue_item_data['payload_type']
-        payload_data = queue_item_data['payload']
-        if raw_load:
-            return RawPayload.from_dict(payload_data)
+    def _load_payload(self, item: QueueItem) -> Payload:
         try:
-            payload_cls = self.handlers[payload_type]
+            payload_cls = self.handlers[item.payload_type]
         except KeyError:
-            raise KeyError(f'Payload type \'{payload_type}\' not registered with {self}')
-        return payload_cls.from_dict(payload_data)
+            raise KeyError(f'Payload type \'{item.payload_type}\' not registered with {self}')
+        return payload_cls.from_dict(item.payload.to_dict())
 
-    def get_item_by_id(self, message_id: Union[str, ObjectId], raise_on_missing=True, raw_load=False) -> QueueItem:
+    def get_item_by_id(
+        self, message_id: Union[str, ObjectId], raise_on_missing=True, raw_load=False
+    ) -> Optional[QueueItem]:
         if isinstance(message_id, str):
             message_id = ObjectId(message_id)
+
         docs = self._get_documents_by_filter({'_id': message_id}, raise_on_missing=raise_on_missing)
+        if len(docs) == 0:
+            return None
         if len(docs) > 1:
             raise MultipleDocumentsReturned(f'Multiple matching messages for _id={message_id}')
-        doc = docs[0]
-        return QueueItem.from_dict(doc, self._load_payload(doc, raw_load=raw_load))
+
+        item = QueueItem.from_dict(docs[0])
+        if raw_load is True:
+            # Return the item with the generic RawPayload
+            return item
+        item = replace(item, payload=self._load_payload(item))
+        return item
 
     def save(self, item: QueueItem) -> bool:
         test_doc = {'_id': item.item_id}
