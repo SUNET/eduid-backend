@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2015, 2020 Sunet
+# Copyright (c) 2020 Sunet
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -27,8 +27,48 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from abc import ABC
+from dataclasses import asdict, dataclass, field
+from datetime import datetime
+from typing import Dict, Mapping
 
-from eduid_userdb.signup.invite import Invite, InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
-from eduid_userdb.signup.invitedb import SignupInviteDB
-from eduid_userdb.signup.user import SignupUser
-from eduid_userdb.signup.userdb import SignupUserDB
+__author__ = 'lundberg'
+
+
+@dataclass
+class Payload(ABC):
+    def to_dict(self) -> Dict:
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data):
+        raise NotImplementedError()
+
+    @classmethod
+    def get_type(cls):
+        return cls.__name__
+
+
+@dataclass
+class RawPayload(Payload):
+    data: Dict
+
+    def to_dict(self):
+        return self.data
+
+    @classmethod
+    def from_dict(cls, data: Mapping):
+        data = dict(data)  # Do not change caller data
+        return cls(data=data)
+
+
+@dataclass
+class TestPayload(Payload):
+    message: str
+    created_ts: datetime = field(default_factory=datetime.utcnow)
+    version: int = 1
+
+    @classmethod
+    def from_dict(cls, data: Mapping):
+        data = dict(data)  # Do not change caller data
+        return cls(**data)
