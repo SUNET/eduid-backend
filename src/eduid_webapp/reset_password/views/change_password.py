@@ -121,7 +121,7 @@ def change_password_view(user: User, old_password: str, new_password: str) -> Fl
         current_app.logger.debug(f'Problem verifying the old credentials for {user}')
         return error_response(message=ResetPwMsg.unrecognized_pw)
 
-    resetpw_user.terminated = False
+    resetpw_user.terminated = None
     try:
         save_and_sync_user(resetpw_user)
     except UserOutOfSync:

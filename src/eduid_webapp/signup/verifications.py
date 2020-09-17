@@ -32,6 +32,7 @@
 #
 
 import time
+from datetime import datetime
 from uuid import uuid4
 
 import requests
@@ -203,7 +204,7 @@ def verify_email_code(code):
     )
     if current_app.proofing_log.save(mail_address_proofing):
         mail_address.is_verified = True
-        mail_address.verified_ts = True
+        mail_address.verified_ts = datetime.utcnow()
         mail_address.verified_by = 'signup'
         mail_address.is_primary = True
         signup_user.pending_mail_address = None

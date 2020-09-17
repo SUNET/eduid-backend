@@ -4,7 +4,7 @@ from __future__ import absolute_import
 from flask import Blueprint, render_template, request
 
 from eduid_common.api.decorators import require_support_personnel
-from eduid_userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup, UserHasUnknownData
+from eduid_userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup
 from eduid_userdb.support.models import SupportSignupUserFilter, SupportUserFilter
 
 from eduid_webapp.support.app import current_support_app as current_app
@@ -55,7 +55,7 @@ def index(support_user):
             try:
                 signup_user = current_app.support_signup_db.get_user_by_id(user_id=user.user_id)
                 user_data['signup_user'] = SupportSignupUserFilter(signup_user.to_dict())
-            except (UserHasUnknownData, UserDoesNotExist):
+            except UserDoesNotExist:
                 # The user is in an old format or does not exist in the signup db
                 user_data['signup_user'] = None
 
