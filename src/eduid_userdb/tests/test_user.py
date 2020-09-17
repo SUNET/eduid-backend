@@ -6,14 +6,14 @@ from six import string_types
 
 from eduid_userdb import LockedIdentityNin, OidcAuthorization, OidcIdToken, Orcid
 from eduid_userdb.credentials import METHOD_SWAMID_AL2_MFA, CredentialList
-from eduid_userdb.exceptions import EduIDUserDBError, UserHasNotCompletedSignup, UserHasUnknownData, UserIsRevoked
+from eduid_userdb.exceptions import EduIDUserDBError, UserHasNotCompletedSignup, UserIsRevoked
 from eduid_userdb.mail import MailAddressList
 from eduid_userdb.nin import NinList
 from eduid_userdb.phone import PhoneNumberList
 from eduid_userdb.profile import Profile, ProfileList
 from eduid_userdb.tests import DictTestCase
 from eduid_userdb.tou import ToUList
-from eduid_userdb.user import User
+from eduid_userdb.user import SubjectType, User
 
 __author__ = 'ft'
 
@@ -46,11 +46,11 @@ class _AbstractUserTestCase:
         Test that we get back a dict identical to the one we put in for old-style userdb data.
         """
         expected = self.data1['passwords']
-        obtained = self.user1.passwords.to_list_of_dicts()
+        obtained = self.user1.credentials.to_list_of_dicts()
 
         self.normalize_data(expected, obtained)
 
-        assert expected == obtained
+        assert obtained == expected
 
     def test_obsolete_attributes(self):
         """
@@ -62,12 +62,24 @@ class _AbstractUserTestCase:
         data['csrf'] = 'long and secret string'
         data['mailAliases'][0]['verification_code'] = '123456789'
         user = User.from_dict(data)
-        self.assertEqual(self.user1._data, user._data)
+
+        expected = self.user1.to_dict()
+        obtained = user.to_dict()
+
+        self.normalize_users([expected, obtained])
+
+        assert obtained == expected
 
         data = self.data2
         data['phone'][0]['verification_code'] = '123456789'
         user = User.from_dict(data)
-        self.assertEqual(self.user2._data, user._data)
+
+        expected = self.user2.to_dict()
+        obtained = user.to_dict()
+
+        self.normalize_users([expected, obtained])
+
+        assert obtained == expected
 
     def test_unknown_attributes(self):
         """
@@ -75,11 +87,9 @@ class _AbstractUserTestCase:
         """
         data = self.data1
         data['unknown_attribute'] = 'something'
-        user = User.from_dict(data, raise_on_unknown=False)
-        self.assertEqual(data['_id'], user.user_id)
 
-        with self.assertRaises(UserHasUnknownData):
-            User.from_dict(data, raise_on_unknown=True)
+        with self.assertRaises(TypeError):
+            User.from_dict(data)
 
     def test_incomplete_signup_user(self):
         """
@@ -111,20 +121,21 @@ class _AbstractUserTestCase:
         self.assertEqual(user.surname, data['surname'])
 
         expected = data['passwords']
-        obtained = user.passwords.to_list_of_dicts()
+        obtained = user.credentials.to_list_of_dicts()
 
         self.normalize_data(expected, obtained)
 
-        assert expected == obtained
+        assert obtained == expected
 
     def test_revoked_user(self):
         """
         Test ability to identify revoked users.
         """
         data = {
-            u'_id': ObjectId(),
-            u'eduPersonPrincipalName': u'binib-mufus',
-            u'revoked_ts': datetime.datetime(2015, 5, 26, 8, 33, 56, 826000),
+            '_id': ObjectId(),
+            'eduPersonPrincipalName': 'binib-mufus',
+            'revoked_ts': datetime.datetime(2015, 5, 26, 8, 33, 56, 826000),
+            'passwords': [],
         }
         with self.assertRaises(UserIsRevoked):
             User.from_dict(data)
@@ -230,22 +241,15 @@ class _AbstractUserTestCase:
         """
         Test the modified_ts property.
         """
-        # ensure known starting point
-        self.assertIsNone(self.user1.modified_ts)
-        # set to current time
-        self.user1.modified_ts = True
         _time1 = self.user1.modified_ts
-        self.assertIsInstance(_time1, datetime.datetime)
-        # Setting existing value to None should be ignored
-        self.user1.modified_ts = None
-        self.assertEqual(_time1, self.user1.modified_ts)
+        assert _time1 is None
         # update to current time
-        self.user1.modified_ts = True
+        self.user1.modified_ts = datetime.datetime.utcnow()
         _time2 = self.user1.modified_ts
         self.assertNotEqual(_time1, _time2)
         # set to a datetime instance
-        self.user1.modified_ts = _time1
-        self.assertEqual(_time1, self.user1.modified_ts)
+        self.user1.modified_ts = datetime.datetime.utcnow()
+        self.assertNotEqual(_time2, self.user1.modified_ts)
 
     def test_two_unverified_non_primary_phones(self):
         """
@@ -388,6 +392,24 @@ class _AbstractUserTestCase:
         user = User.from_dict(data)
         self.assertEqual(user.phone_numbers.primary.number, u'+22222222222')
 
+    def test_user_tou_no_created_ts(self):
+        """
+        Basic test for user ToU.
+        """
+        tou_dict = {
+            'event_id': ObjectId(),
+            'event_type': 'tou_event',
+            'version': '1',
+            'created_by': 'unit test',
+        }
+        tou_events = ToUList([tou_dict])
+        data = self.data1
+        data.update({'tou': tou_events.to_list_of_dicts()})
+        user = User.from_dict(data)
+        # If we create the ToU from a dict w/o created_ts key, the created object will carry a _no_created_ts_in_db
+        # attr set to True, and therefore the to_dict method will wipe out the created_ts key
+        self.assertFalse(user.tou.has_accepted('1', reaccept_interval=94608000))  # reaccept_interval seconds (3 years)
+
     def test_user_tou(self):
         """
         Basic test for user ToU.
@@ -397,7 +419,7 @@ class _AbstractUserTestCase:
             'event_type': 'tou_event',
             'version': '1',
             'created_by': 'unit test',
-            'created_ts': True,
+            'created_ts': datetime.datetime.utcnow(),
         }
         tou_events = ToUList([tou_dict])
         data = self.data1
@@ -722,13 +744,13 @@ class TestNewUser(DictTestCase, _AbstractUserTestCase):
         entitlements = [u'http://foo.example.org']
         language = 'en'
 
-        self.user1 = User.construct_user(
-            _id=_id,
+        self.user1 = User(
+            user_id=_id,
             eppn=eppn,
             mail_addresses=mail_addresses,
-            passwords=passwords,
+            credentials=passwords,
             nins=nins,
-            subject=subject,
+            subject=SubjectType(subject),
             entitlements=entitlements,
             language=language,
         )
@@ -808,18 +830,18 @@ class TestNewUser(DictTestCase, _AbstractUserTestCase):
         surname = '\xf6ne'
         subject = 'physical person'
 
-        self.user2 = User.construct_user(
-            _id=_id,
+        self.user2 = User(
+            user_id=_id,
             eppn=eppn,
             display_name=display_name,
             given_name=given_name,
             mail_addresses=mail_addresses,
             phone_numbers=phone_numbers,
-            passwords=passwords,
+            credentials=passwords,
             profiles=profiles,
             language=language,
             surname=surname,
-            subject=subject,
+            subject=SubjectType(subject),
         )
 
         self.data2 = {
@@ -855,4 +877,4 @@ class TestNewUser(DictTestCase, _AbstractUserTestCase):
         """
         Test that we get back a dict identical to the one we put in for old-style userdb data.
         """
-        self.assertEqual(self.user1.passwords.to_list_of_dicts(), self.data1['passwords'])
+        self.assertEqual(self.user1.credentials.to_list_of_dicts(), self.data1['passwords'])

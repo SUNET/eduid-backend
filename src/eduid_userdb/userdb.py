@@ -31,6 +31,7 @@
 #
 import logging
 import warnings
+from datetime import datetime
 from typing import Mapping, Optional, Type
 
 from bson import ObjectId
@@ -284,7 +285,7 @@ class UserDB(BaseDB):
         # XXX add modified_by info. modified_ts alone is not unique when propagated to eduid_am.
 
         modified = user.modified_ts
-        user.modified_ts = True  # update to current time
+        user.modified_ts = datetime.utcnow()
         if modified is None:
             # profile has never been modified through the dashboard.
             # possibly just created in signup.
