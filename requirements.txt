@@ -1,4 +1,4 @@
-eduid_common[worker]>=0.7.11
+eduid_common[worker]>=0.8.0
 eduid_userdb>=0.6.1
 python-dateutil>=2.1
 vine<5.0.0a1  # Version mismatch problem
