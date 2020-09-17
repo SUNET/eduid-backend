@@ -244,6 +244,31 @@ class DictTestCase(unittest.TestCase):
     )
 
     @classmethod
+    def normalize_users(cls, users: List[Dict[str, Any]]):
+        """
+        Remove timestamps that in general are created at different times
+        normalize the names of some attributes
+        remove attributes set to None
+        """
+        for user in users:
+            cls.normalize_elem(user)
+
+            if 'mailAliases' in user:
+                cls.normalize_data(user['mailAliases'], [])
+
+            if 'passwords' in user:
+                cls.normalize_data(user['passwords'], [])
+
+            if 'phone' in user:
+                cls.normalize_data(user['phone'], [])
+
+            if 'profiles' in user:
+                cls.normalize_data(user['profiles'], [])
+
+            if 'nins' in user:
+                cls.normalize_data(user['nins'], [])
+
+    @classmethod
     def normalize_data(cls, expected: List[Dict[str, Any]], obtained: List[Dict[str, Any]]):
         """
         Remove timestamps that in general are created at different times
@@ -261,13 +286,19 @@ class DictTestCase(unittest.TestCase):
             del elem['created_ts']
 
         if 'modified_ts' in elem:
-            assert isinstance(elem['modified_ts'], datetime)
+            if elem['modified_ts'] is not None:
+                assert isinstance(elem['modified_ts'], datetime)
             del elem['modified_ts']
 
         if 'verified_ts' in elem:
             if elem['verified_ts'] is not None:
                 assert isinstance(elem['verified_ts'], datetime)
             del elem['verified_ts']
+
+        if 'terminated' in elem:
+            if elem['terminated'] is not None:
+                assert isinstance(elem['terminated'], datetime)
+            del elem['terminated']
 
         if 'application' in elem:
             elem['created_by'] = elem.pop('application')

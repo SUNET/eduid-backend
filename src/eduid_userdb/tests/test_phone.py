@@ -84,7 +84,7 @@ class TestPhoneNumberList(DictTestCase):
         # remove timestamps added at different times
         self.normalize_data(expected, got)
 
-        assert expected == got, 'Adding a phone number to a list results in wrong data'
+        assert got == expected, 'Adding a phone number to a list results in wrong data'
 
     def test_add_duplicate(self):
         dup = self.two.find(self.two.primary.number)
@@ -100,7 +100,7 @@ class TestPhoneNumberList(DictTestCase):
         # remove timestamps added at different times
         self.normalize_data(expected, got)
 
-        assert expected == got, 'Phone number list contains wrong data'
+        assert got == expected, 'Phone number list contains wrong data'
 
     def test_add_another_primary(self):
         new = eduid_userdb.phone.phone_from_dict({'number': '+46700000009', 'verified': True, 'primary': True,})
@@ -122,7 +122,7 @@ class TestPhoneNumberList(DictTestCase):
         # remove timestamps - added at different times
         self.normalize_data(expected, got)
 
-        assert expected == got, 'Phone list has wrong data after removing phone'
+        assert got == expected, 'Phone list has wrong data after removing phone'
 
     def test_remove_unknown(self):
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):

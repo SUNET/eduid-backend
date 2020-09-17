@@ -66,7 +66,7 @@ class TestMailAddressList(DictTestCase):
 
         self.normalize_data(expected, obtained)
 
-        assert expected == obtained, 'Wrong data after adding mail address to list'
+        assert obtained == expected, 'Wrong data after adding mail address to list'
 
     def test_add_duplicate(self):
         dup = self.two.find(self.two.primary.email)
@@ -82,7 +82,7 @@ class TestMailAddressList(DictTestCase):
 
         self.normalize_data(expected, obtained)
 
-        assert expected == obtained, 'Wrong data in mail address list'
+        assert obtained == expected, 'Wrong data in mail address list'
 
     def test_add_another_primary(self):
         new = eduid_userdb.mail.address_from_dict(
@@ -107,7 +107,7 @@ class TestMailAddressList(DictTestCase):
 
         self.normalize_data(expected, obtained)
 
-        assert expected == obtained, 'Wrong data after removing email from list'
+        assert obtained == expected, 'Wrong data after removing email from list'
 
     def test_remove_unknown(self):
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
@@ -189,7 +189,7 @@ class TestMailAddress(TestCase):
             expected = this.to_list_of_dicts()
             cycled = MailAddressList(this_list).to_list_of_dicts()
 
-            assert expected == cycled
+            assert cycled == expected
 
     def test_unknown_input_data(self):
         one = copy.deepcopy(_one_dict)
