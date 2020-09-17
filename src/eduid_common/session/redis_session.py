@@ -1,6 +1,6 @@
 #
 # Copyright (c) 2016 NORDUnet A/S
-# Copyright (c) 2018 SUNET
+# Copyright (c) 2018, 2020 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -85,22 +85,22 @@ import hashlib
 import hmac
 import json
 import logging
+from typing import Any, Dict, Mapping, Optional
 
 import nacl.encoding
 import nacl.secret
 import nacl.utils
 import redis
 import redis.sentinel
-import six
 from saml2.saml import NameID
 
 logger = logging.getLogger(__name__)
 
 # Prepend an 'a' so we always have a valid NCName,
-# needed by  pysaml2 for its session ids.
-TOKEN_PREFIX = b'a'
+# needed by pysaml2 for its session ids.
+TOKEN_PREFIX = 'a'
 
-HMAC_DIGEST_SIZE = int(256 / 8)
+HMAC_DIGEST_SIZE = 256 // 8
 SESSION_KEY_BITS = 256
 
 
@@ -148,7 +148,7 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         debug=False,
     ):
         """
-        Retrive or create a session for the given token or data.
+        Retrieve or create a session for the given token or data.
 
         Preference order of parameter present:
 
@@ -194,7 +194,21 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         self.app_secret = secret
         self.debug = debug
 
-        _bin_session_id = self._init_token_and_session_id(token, session_id)
+        if token:
+            self.token = token
+            _bin_session_id, _bin_signature = self.decode_token(token)
+            self.session_id = _bin_session_id.hex()
+            self.token_key = derive_key(self.app_secret, self.session_id, 'hmac', HMAC_DIGEST_SIZE)
+            if not verify_session_id(_bin_session_id, self.token_key, _bin_signature):
+                raise ValueError('Token signature check failed')
+        else:
+            if not self.session_id:
+                # Generate a random session_id
+                _bin_session_id = nacl.utils.random(SESSION_KEY_BITS // 8)
+                self.session_id = _bin_session_id.hex()
+            self.token_key = derive_key(self.app_secret, self.session_id, 'hmac', HMAC_DIGEST_SIZE)
+            self.token = self.encode_token(_bin_session_id)
+
         _encrypted_data = None
         if data is None:
             if not (token or session_id):
@@ -212,7 +226,7 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
             if self.debug:
                 logger.debug('Creating new session with session_id {} and token {}'.format(self.session_id, token))
 
-        _nacl_key = derive_key(self.app_secret, _bin_session_id, b'nacl', nacl.secret.SecretBox.KEY_SIZE)
+        _nacl_key = derive_key(self.app_secret, self.session_id, 'nacl', nacl.secret.SecretBox.KEY_SIZE)
         self.nacl_box = nacl.secret.SecretBox(_nacl_key)
 
         if _encrypted_data:
@@ -233,38 +247,6 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
 
         if self.debug:
             logger.debug('Instantiated session with session_id {} and token {}'.format(self.session_id, self.token))
-
-    def _init_token_and_session_id(self, token, session_id):
-        """
-        Part of __init__(). Initializes self.token, self.token_key, self.session_id and
-        returns the binary version of session_id.
-
-        :param token: the token containing the session_id for the session
-        :param session_id: session_id for the session, if token is not provided
-
-        :return: Binary session id
-        :rtype: bytes
-        """
-        if token:
-            if isinstance(token, six.text_type):
-                token = token.encode('ascii')
-            self.token = token
-            _bin_session_id, _bin_signature = self.decode_token(token)
-            self.token_key = derive_key(self.app_secret, _bin_session_id, b'hmac', HMAC_DIGEST_SIZE)
-            if not verify_session_id(_bin_session_id, self.token_key, _bin_signature):
-                raise ValueError('Token signature check failed')
-        else:
-            if not session_id:
-                # Generate a random session_id
-                session_id = nacl.utils.random(int(SESSION_KEY_BITS / 8))
-            _bin_session_id = bytes(session_id)
-            self.token_key = derive_key(self.app_secret, _bin_session_id, b'hmac', HMAC_DIGEST_SIZE)
-            self.token = self.encode_token(_bin_session_id)
-        if six.PY2:
-            self.session_id = _bin_session_id.encode('hex')
-        else:
-            self.session_id = _bin_session_id.hex()
-        return _bin_session_id
 
     def __getitem__(self, key, default=None):
         if key in self._data:
@@ -318,7 +300,7 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         # Make sure token will be a valid NCName (pysaml2 requirement)
         while combined.endswith(b'='):
             combined = combined[:-1]
-        return (TOKEN_PREFIX + combined).decode('utf-8')
+        return (TOKEN_PREFIX + combined.decode('utf-8'))
 
     @staticmethod
     def decode_token(token):
@@ -336,7 +318,7 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         # session id.
         if not token.startswith(TOKEN_PREFIX):
             raise ValueError('Invalid token string {!r}'.format(token))
-        val = token.strip(b'"')[len(TOKEN_PREFIX) :]
+        val = token[len(TOKEN_PREFIX) :]
         # Split the token into it's two parts - the session_id and the HMAC signature of it
         # (the last byte is ignored - it is padding to make b32encode not put an = at the end)
         _decoded = base64.b32decode(val)
@@ -363,21 +345,16 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         }
         return json.dumps(versioned)
 
-    def verify_data(self, data_str):
+    def verify_data(self, data_str) -> Dict[str, Any]:
         """
         Verify (and decrypt) session data read from Redis.
 
         :param data_str: Data read from Redis
-        :return: dict
-        :rtype: dict
+        :return: Parsed data as dict
         """
-        if isinstance(data_str, six.binary_type):
-            data_str = data_str.decode('utf8')
         versioned = json.loads(data_str)
         if 'v2' in versioned:
             _data = self.nacl_box.decrypt(versioned['v2'], encoder=nacl.encoding.Base64Encoder)
-            if isinstance(_data, six.binary_type):
-                _data = _data.decode('utf8')
             decrypted = json.loads(_data)
             if self.debug:
                 logger.debug('Loaded data from cache[{}]:\n{!r}'.format(self.session_id, decrypted))
@@ -435,7 +412,13 @@ class SessionManager(object):
         self.whitelist = whitelist
         self.raise_on_unknown = raise_on_unknown
 
-    def get_session(self, token=None, session_id=None, data=None, debug=False) -> RedisEncryptedSession:
+    def get_session(
+        self,
+        token: Optional[str] = None,
+        session_id: Optional[bytes] = None,
+        data: Optional[Mapping[str, Any]] = None,
+        debug: bool = False,
+    ) -> RedisEncryptedSession:
         """
         Create or fetch a session for the given token or data.
 
@@ -444,13 +427,7 @@ class SessionManager(object):
         :param data: the data for the (new) session
         :param debug: Flag for extra debug logging
 
-        :type token: str | unicode | None
-        :type session_id: bytes
-        :type data: dict | None
-        :type debug: bool
-
         :return: the session
-        :rtype: RedisEncryptedSession
         """
         conn = redis.StrictRedis(connection_pool=self.pool)
         return RedisEncryptedSession(
@@ -466,7 +443,7 @@ class SessionManager(object):
         )
 
 
-def derive_key(app_key, session_key, usage, size):
+def derive_key(app_key: str, session_key: str, usage: str, size: int) -> bytes:
     """
     Derive a cryptographic session_id for a specific usage from the app_key and the session_key.
 
@@ -478,22 +455,13 @@ def derive_key(app_key, session_key, usage, size):
     :param session_key: Session unique session_id
     :param size: Size of key requested in bytes
 
-    :type app_key: bytes
-    :type usage: bytes
-    :type session_key: bytes
-    :type size: int
-
     :return: Derived key
-    :rtype: bytes
     """
     # the low number of rounds (3) is not important here - we use this to derive two keys
     # (different 'usage') from a single key which is comprised of a 256 bit app_key
     # (shared between instances), and a random session key of 128 bits.
-    if isinstance(usage, six.text_type):
-        usage = usage.encode('ascii')
-    if isinstance(session_key, six.text_type):
-        session_key = session_key.encode('utf8')
-    return hashlib.pbkdf2_hmac('sha256', app_key.encode('ascii'), usage + session_key, 3, dklen=size)
+    _salt = (usage + session_key).encode('utf-8')
+    return hashlib.pbkdf2_hmac('sha256', app_key.encode('ascii'), _salt, 3, dklen=size)
 
 
 def sign_session_id(session_id: bytes, signing_key: bytes) -> bytes:
