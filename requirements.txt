@@ -6,3 +6,4 @@ python-jose==3.*
 eduid_userdb>=0.6.0
 eduid_graphdb>=0.6.0
 eduid_common[api]
+langcodes==2.*
