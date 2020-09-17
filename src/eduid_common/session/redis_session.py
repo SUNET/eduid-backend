@@ -85,7 +85,8 @@ import hashlib
 import hmac
 import json
 import logging
-from typing import Any, Dict, Mapping, Optional
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 import nacl.encoding
 import nacl.secret
@@ -130,6 +131,105 @@ class NoSessionDataFoundException(Exception):
     pass
 
 
+@dataclass(frozen=True)
+class SessionReference(object):
+    cookie_val: str  # the value to store as a cookie in the user's browser (basically session_id + signature)
+    session_id: str  # the lookup key used to locate the session in the session store
+    signature: bytes = field(repr=False)  # cryptographic signature of session_id
+    hmac_key: bytes = field(repr=False)  # key used to sign the session_id
+
+    @classmethod
+    def new(cls, app_secret: str):
+        # Generate a random session_id
+        _bin_session_id = nacl.utils.random(SESSION_KEY_BITS // 8)
+        session_id = _bin_session_id.hex()
+        _bin_hmac_key = derive_key(app_secret, session_id, 'hmac', HMAC_DIGEST_SIZE)
+        _bin_signature = cls._sign_session_id(_bin_session_id, _bin_hmac_key)
+        token = cls._encode_token(_bin_session_id, _bin_signature)
+        return cls(token, session_id, _bin_signature, _bin_hmac_key)
+
+    @classmethod
+    def from_token(cls, token: str, app_secret: str):
+        _bin_session_id, _bin_signature = cls._decode_token(token)
+        session_id = _bin_session_id.hex()
+        hmac_key = derive_key(app_secret, session_id, 'hmac', HMAC_DIGEST_SIZE)
+        if not cls._verify_session_id(_bin_session_id, hmac_key, _bin_signature):
+            raise ValueError('Token signature check failed')
+        return cls(token, session_id, _bin_signature, hmac_key)
+
+    @staticmethod
+    def _encode_token(bin_session_id: bytes, signature: bytes) -> str:
+        """
+        Encode a session id and it's signature into a token that is stored
+        in the users browser as a cookie.
+
+        :return: a token with the signed session_id
+        """
+        # The last byte ('x') is padding to prevent b32encode from adding an = at the end
+        combined = base64.b32encode(bin_session_id + signature + b'x')
+        # Make sure token will be a valid NCName (pysaml2 requirement)
+        while combined.endswith(b'='):
+            combined = combined[:-1]
+        return TOKEN_PREFIX + combined.decode('utf-8')
+
+    @staticmethod
+    def _decode_token(token: str) -> Tuple[bytes, bytes]:
+        """
+        Decode a token (token is what is stored in a cookie) into it's components.
+
+        :param token: the token with the signed session_id
+
+        :return: the session_id and signature
+        """
+        #  the slicing is to remove a leading 'a' needed so we have a
+        # valid NCName so pysaml2 doesn't complain when it uses the token as
+        # session id.
+        if not token.startswith(TOKEN_PREFIX):
+            raise ValueError('Invalid token string {!r}'.format(token))
+        val = token[len(TOKEN_PREFIX) :]
+        # Split the token into it's two parts - the session_id and the HMAC signature of it
+        # (the last byte is ignored - it is padding to make b32encode not put an = at the end)
+        _decoded = base64.b32decode(val)
+        _bin_session_id, _bin_sig = _decoded[:HMAC_DIGEST_SIZE], _decoded[HMAC_DIGEST_SIZE:-1]
+        return _bin_session_id, _bin_sig
+
+    @staticmethod
+    def _sign_session_id(session_id: bytes, signing_key: bytes) -> bytes:
+        """
+        Generate a HMAC signature of session_id using the session-unique signing key.
+
+        :param session_id: Session id (Redis key)
+        :param signing_key: Key for generating the signature
+
+        :return: HMAC signature of session_id
+        """
+        return hmac.new(signing_key, session_id, digestmod=hashlib.sha256).digest()
+
+    @classmethod
+    def _verify_session_id(cls, session_id: bytes, signing_key: bytes, signature: bytes):
+        """
+        Verify the HMAC signature on a session_id using the session-unique signing key.
+
+        :param session_id: Session id (Redis key)
+        :param signing_key: Key for generating the signature
+        :param signature: Signature of session_id
+
+        :return: True if the signature matches, false otherwise
+        :rtype: bool
+        """
+        calculated_sig = cls._sign_session_id(session_id, signing_key)
+
+        # Avoid timing attacks, copied from Beaker https://beaker.readthedocs.org/
+        invalid_bits = 0
+        if len(calculated_sig) != len(signature):
+            return None
+
+        for a, b in zip(calculated_sig, signature):
+            invalid_bits += a != b
+
+        return bool(not invalid_bits)
+
+
 class RedisEncryptedSession(collections.abc.MutableMapping):
     """
     Session objects that keep their data in a redis db.
@@ -137,15 +237,14 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
 
     def __init__(
         self,
-        conn,
-        token=None,
-        session_id=None,
-        data=None,
-        secret='',
-        ttl=None,
-        whitelist=None,
-        raise_on_unknown=False,
-        debug=False,
+        conn: redis.StrictRedis,
+        token: Optional[str] = None,
+        data: Optional[Mapping[str, Any]] = None,
+        secret: str = '',
+        ttl: Optional[int] = None,
+        whitelist: Optional[List[str]] = None,
+        raise_on_unknown: bool = False,
+        debug: bool = False,
     ):
         """
         Retrieve or create a session for the given token or data.
@@ -174,59 +273,38 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         :param raise_on_unknown: Whether to raise an exception on an attempt
                                  to set a session key not in whitelist
         :param debug: Flag for extra debug logging
-
-        :type conn: redis.StrictRedis
-        :type token: str or None
-        :type session_id: bytes
-        :type data: dict or None
-        :type secret: str
-        :type ttl: int
-        :type whitelist: list
-        :type raise_on_unknown: bool
-        :type debug: bool
         """
         self.conn = conn
         self.ttl = ttl
         self.token = token
-        self.session_id = session_id
         self.whitelist = whitelist
         self.raise_on_unknown = raise_on_unknown
         self.app_secret = secret
         self.debug = debug
 
         if token:
-            self.token = token
-            _bin_session_id, _bin_signature = self.decode_token(token)
-            self.session_id = _bin_session_id.hex()
-            self.token_key = derive_key(self.app_secret, self.session_id, 'hmac', HMAC_DIGEST_SIZE)
-            if not verify_session_id(_bin_session_id, self.token_key, _bin_signature):
-                raise ValueError('Token signature check failed')
+            self.token = SessionReference.from_token(token, app_secret=self.app_secret)
         else:
-            if not self.session_id:
-                # Generate a random session_id
-                _bin_session_id = nacl.utils.random(SESSION_KEY_BITS // 8)
-                self.session_id = _bin_session_id.hex()
-            self.token_key = derive_key(self.app_secret, self.session_id, 'hmac', HMAC_DIGEST_SIZE)
-            self.token = self.encode_token(_bin_session_id)
+            self.token = SessionReference.new(app_secret=self.app_secret)
 
         _encrypted_data = None
         if data is None:
-            if not (token or session_id):
-                raise ValueError('Data must be provided when token/session_id is not provided')
+            if not token:
+                raise ValueError('Data must be provided when token is not provided')
 
             if self.debug:
-                logger.debug('Looking for session using session_id {!r}'.format(self.session_id))
+                logger.debug(f'Looking for session using token {token}')
 
             # Fetch session from self.conn (Redis)
-            _encrypted_data = self.conn.get(self.session_id)
+            _encrypted_data = self.conn.get(self.token.session_id)
             if not _encrypted_data:
-                logger.warning('Session not found: {!r}'.format(self.session_id))
-                raise KeyError('Session not found: {!r}'.format(self.session_id))
+                logger.warning('Session not found: {!r}'.format(self.token.session_id))
+                raise KeyError('Session not found: {!r}'.format(self.token.session_id))
         else:
             if self.debug:
-                logger.debug('Creating new session with session_id {} and token {}'.format(self.session_id, token))
+                logger.debug(f'Creating new session with token {token}')
 
-        _nacl_key = derive_key(self.app_secret, self.session_id, 'nacl', nacl.secret.SecretBox.KEY_SIZE)
+        _nacl_key = derive_key(self.app_secret, self.token.session_id, 'nacl', nacl.secret.SecretBox.KEY_SIZE)
         self.nacl_box = nacl.secret.SecretBox(_nacl_key)
 
         if _encrypted_data:
@@ -246,7 +324,7 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
             self._data[k] = v
 
         if self.debug:
-            logger.debug('Instantiated session with session_id {} and token {}'.format(self.session_id, self.token))
+            logger.debug(f'Instantiated session with token {self.token}')
 
     def __getitem__(self, key, default=None):
         if key in self._data:
@@ -280,50 +358,8 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         """
         data = self.sign_data(self._data)
         if self.debug:
-            logger.debug(
-                'Committing session {} to the cache with ttl {} ({} bytes)'.format(self.session_id, self.ttl, len(data))
-            )
-        self.conn.setex(self.session_id, self.ttl, data)
-
-    def encode_token(self, session_id: bytes) -> str:
-        """
-        Encode a session id and it's signature into a token that is stored
-        in the users browser as a cookie.
-
-        :param session_id: the session_id (Redis key)
-
-        :return: a token with the signed session_id
-        """
-        sig = sign_session_id(session_id, self.token_key)
-        # The last byte ('x') is padding to prevent b32encode from adding an = at the end
-        combined = base64.b32encode(session_id + sig + b'x')
-        # Make sure token will be a valid NCName (pysaml2 requirement)
-        while combined.endswith(b'='):
-            combined = combined[:-1]
-        return (TOKEN_PREFIX + combined.decode('utf-8'))
-
-    @staticmethod
-    def decode_token(token):
-        """
-        Decode a token (token is what is stored in a cookie) into it's components.
-
-        :param token: the token with the signed session_id
-        :type token: str | unicode
-
-        :return: the session_id and signature
-        :rtype: str | unicode, str | unicode
-        """
-        #  the slicing is to remove a leading 'a' needed so we have a
-        # valid NCName so pysaml2 doesn't complain when it uses the token as
-        # session id.
-        if not token.startswith(TOKEN_PREFIX):
-            raise ValueError('Invalid token string {!r}'.format(token))
-        val = token[len(TOKEN_PREFIX) :]
-        # Split the token into it's two parts - the session_id and the HMAC signature of it
-        # (the last byte is ignored - it is padding to make b32encode not put an = at the end)
-        _decoded = base64.b32decode(val)
-        _bin_session_id, _bin_sig = _decoded[:HMAC_DIGEST_SIZE], _decoded[HMAC_DIGEST_SIZE:-1]
-        return _bin_session_id, _bin_sig
+            logger.debug(f'Committing session {self.token} to the cache with ttl {self.ttl} ({len(data)} bytes)')
+        self.conn.setex(self.token.session_id, self.ttl, data)
 
     def sign_data(self, data_dict):
         """
@@ -334,7 +370,7 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         :rtype: str | unicode
         """
         if self.debug:
-            logger.debug('Storing data in cache[{}]:\n{!r}'.format(self.session_id, data_dict))
+            logger.debug(f'Storing data in cache[{self.token}]:\n{repr(data_dict)}')
         nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
         # Version data to make it easier to know how to decode it on reading
         data_json = json.dumps(data_dict, cls=NameIDEncoder)
@@ -357,10 +393,10 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
             _data = self.nacl_box.decrypt(versioned['v2'], encoder=nacl.encoding.Base64Encoder)
             decrypted = json.loads(_data)
             if self.debug:
-                logger.debug('Loaded data from cache[{}]:\n{!r}'.format(self.session_id, decrypted))
+                logger.debug(f'Loaded data from cache[{self.token}]:\n{repr(decrypted)}')
             return decrypted
 
-        logger.error('Unknown data retrieved from cache[{}]: {!r}'.format(self.session_id, data_str))
+        logger.error(f'Unknown data retrieved from cache[{self.token}]: {repr(data_str)}')
         raise ValueError('Unknown data retrieved from cache')
 
     def clear(self):
@@ -368,7 +404,7 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         Discard all data contained in the session.
         """
         self._data = {}
-        self.conn.delete(self.session_id)
+        self.conn.delete(self.token.session_id)
         self.session_id = None
         self.token = None
 
@@ -376,7 +412,7 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         """
         Restart the ttl countdown
         """
-        self.conn.expire(self.session_id, self.ttl)
+        self.conn.expire(self.token.session_id, self.ttl)
 
     def to_dict(self) -> dict:
         return self._data
@@ -413,11 +449,7 @@ class SessionManager(object):
         self.raise_on_unknown = raise_on_unknown
 
     def get_session(
-        self,
-        token: Optional[str] = None,
-        session_id: Optional[bytes] = None,
-        data: Optional[Mapping[str, Any]] = None,
-        debug: bool = False,
+        self, token: Optional[str] = None, data: Optional[Mapping[str, Any]] = None, debug: bool = False,
     ) -> RedisEncryptedSession:
         """
         Create or fetch a session for the given token or data.
@@ -433,7 +465,6 @@ class SessionManager(object):
         return RedisEncryptedSession(
             conn,
             token=token,
-            session_id=session_id,
             data=data,
             secret=self.secret,
             ttl=self.ttl,
@@ -462,43 +493,3 @@ def derive_key(app_key: str, session_key: str, usage: str, size: int) -> bytes:
     # (shared between instances), and a random session key of 128 bits.
     _salt = (usage + session_key).encode('utf-8')
     return hashlib.pbkdf2_hmac('sha256', app_key.encode('ascii'), _salt, 3, dklen=size)
-
-
-def sign_session_id(session_id: bytes, signing_key: bytes) -> bytes:
-    """
-    Generate a HMAC signature of session_id using the session-unique signing key.
-
-    :param session_id: Session id (Redis key)
-    :param signing_key: Key for generating the signature
-
-    :return: HMAC signature of session_id
-    """
-    return hmac.new(signing_key, session_id, digestmod=hashlib.sha256).digest()
-
-
-def verify_session_id(session_id, signing_key, signature):
-    """
-    Verify the HMAC signature on a session_id using the session-unique signing key.
-
-    :param session_id: Session id (Redis key)
-    :param signing_key: Key for generating the signature
-    :param signature: Signature of session_id
-
-    :type session_id: bytes
-    :type signing_key: bytes
-    :type signature: bytes
-
-    :return: True if the signature matches, false otherwise
-    :rtype: bool
-    """
-    calculated_sig = hmac.new(signing_key, session_id, digestmod=hashlib.sha256).digest()
-
-    # Avoid timing attacks, copied from Beaker https://beaker.readthedocs.org/
-    invalid_bits = 0
-    if len(calculated_sig) != len(signature):
-        return None
-
-    for a, b in zip(calculated_sig, signature):
-        invalid_bits += a != b
-
-    return bool(not invalid_bits)

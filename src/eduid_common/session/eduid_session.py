@@ -223,7 +223,7 @@ class EduidSession(SessionMixin, MutableMapping):
         max_age = int(self.app.config.get('permanent_session_lifetime'))
         response.set_cookie(
             cookie_name,
-            value=self.token,
+            value=self.token.cookie_val,
             domain=cookie_domain,
             path=cookie_path,
             secure=cookie_secure,
@@ -273,13 +273,10 @@ class EduidSession(SessionMixin, MutableMapping):
         self._serialize_namespaces()
 
         if self.new or self.modified:
-            if self._session.session_id is not None:
-                self._session.commit()
-                if self.app.debug:
-                    _saved_data = json.dumps(self._session.to_dict(), indent=4, sort_keys=True)
-                    self.app.logger.debug(f'Saved session:\n{_saved_data}')
-            else:
-                self.app.logger.warning('Tried to persist a session with no session id')
+            self._session.commit()
+            if self.app.debug:
+                _saved_data = json.dumps(self._session.to_dict(), indent=4, sort_keys=True)
+                self.app.logger.debug(f'Saved session:\n{_saved_data}')
 
 
 class SessionFactory(SessionInterface):

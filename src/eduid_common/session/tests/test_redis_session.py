@@ -1,7 +1,10 @@
 import time
+from typing import Optional, cast
 from unittest import TestCase
 
-from eduid_common.session.redis_session import RedisEncryptedSession, derive_key
+import redis
+
+from eduid_common.session.redis_session import RedisEncryptedSession, SessionReference, derive_key
 
 
 class FakeRedisConn(object):
@@ -27,7 +30,7 @@ class FakeRedisConn(object):
 
 class TestSession(TestCase):
     def setUp(self):
-        self.conn = FakeRedisConn()
+        self.conn = cast(redis.StrictRedis, FakeRedisConn())
         try:
             # Detect too old Python (like on CI) and skip tests
             derive_key('unittest', 'session', 'test', 16)
@@ -73,12 +76,20 @@ class TestSession(TestCase):
         """ Pysaml uses the token as an XML NCName so it can't contain some characters. """
         for i in range(1024):
             session = self._get_session(data={'foo': 'bar'})
-            self.assertRegex(session.token, '^[a-z][a-zA-Z0-9.]+$')
+            self.assertRegex(session.token.cookie_val, '^[a-z][a-zA-Z0-9.]+$')
 
-    def _get_session(self, token=None, data=None, secret='s3cr3t', ttl=10, whitelist=None, raise_on_unknown=False):
+    def _get_session(
+        self,
+        token: Optional[SessionReference] = None,
+        data=None,
+        secret='s3cr3t',
+        ttl=10,
+        whitelist=None,
+        raise_on_unknown=False,
+    ):
         session = RedisEncryptedSession(
             self.conn,
-            token=token,
+            token=None if token is None else token.cookie_val,
             data=data,
             secret=secret,
             ttl=ttl,
