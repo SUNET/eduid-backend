@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2015, 2020 Sunet
+# Copyright (c) 2020 Sunet
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -28,7 +28,24 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from eduid_userdb.signup.invite import Invite, InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
-from eduid_userdb.signup.invitedb import SignupInviteDB
-from eduid_userdb.signup.user import SignupUser
-from eduid_userdb.signup.userdb import SignupUserDB
+from dataclasses import dataclass
+from typing import Mapping
+
+from eduid_userdb.q.payload import Payload
+
+__author__ = 'lundberg'
+
+
+@dataclass
+class EduidInviteEmail(Payload):
+    email: str
+    reference: str
+    invite_link: str
+    invite_code: str
+    inviter_name: str
+    version: int = 1
+
+    @classmethod
+    def from_dict(cls, data: Mapping):
+        data = dict(data)  # Do not change caller data
+        return cls(**data)

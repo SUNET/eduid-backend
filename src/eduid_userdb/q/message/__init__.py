@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2015, 2020 Sunet
+# Copyright (c) 2020 Sunet
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -28,7 +28,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from eduid_userdb.signup.invite import Invite, InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
-from eduid_userdb.signup.invitedb import SignupInviteDB
-from eduid_userdb.signup.user import SignupUser
-from eduid_userdb.signup.userdb import SignupUserDB
+from eduid_userdb.q.message.db import MessageDB
+from eduid_userdb.q.message.payload import EduidInviteEmail
+
+__author__ = 'lundberg'
