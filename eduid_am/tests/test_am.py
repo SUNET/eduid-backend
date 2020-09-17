@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from dataclasses import dataclass
 from typing import Any, Dict
 
 from bson import ObjectId
@@ -14,20 +15,13 @@ from eduid_am.testing import AMTestCase
 __author__ = 'leifj'
 
 
+@dataclass
 class AmTestUser(eduid_userdb.User):
     """
     User class for the 'test' plugin below.
     """
 
-    def __init__(self, data: Dict[str, Any], raise_on_unknown: bool = True, called_directly: bool = True):
-        self.uid = data.pop('uid', None)
-
-        eduid_userdb.User.__init__(self, data=data, raise_on_unknown=raise_on_unknown, called_directly=called_directly)
-
-    def to_dict(self):
-        res = eduid_userdb.User.to_dict(self)
-        res['uid'] = self.uid
-        return res
+    uid: str = ''
 
 
 class AmTestUserDb(eduid_userdb.UserDB):
@@ -64,7 +58,7 @@ class FakeAttributeFetcher(AttributeFetcher):
         # Transform eduPersonPrincipalName on the way to make it clear that the
         # update was done using this code.
         res = user.to_dict()
-        res['eduPersonPrincipalName'] = "{!s}@eduid.se".format(user.uid)
+        res['eduPersonPrincipalName'] = f"{user.uid}-{user.uid}"
         del res['uid']
         attributes = {'$set': res}
         return attributes
@@ -107,8 +101,8 @@ class MessageTest(AMTestCase):
 
         userdoc = {
             '_id': _id,
-            'eduPersonPrincipalName': 'foo-bar',
-            'uid': 'vlindeman',
+            'eduPersonPrincipalName': 'foooo-baaar',
+            'uid': 'teste',
             'passwords': [{'id': ObjectId('112345678901234567890123'), 'salt': '$NDNv1H1$9c81...545$32$32$',}],
         }
         test_user = AmTestUser.from_dict(userdoc)
@@ -125,7 +119,7 @@ class MessageTest(AMTestCase):
 
         # verify the user has been propagated to the amdb
         am_user = self.amdb.get_user_by_id(_id)
-        self.assertEqual(am_user.eppn, 'vlindeman@eduid.se')
+        self.assertEqual(am_user.eppn, 'teste-teste')
 
     def test_update(self):
         """
@@ -137,8 +131,8 @@ class MessageTest(AMTestCase):
 
         userdoc = {
             '_id': _id,
-            'eduPersonPrincipalName': 'foo-bar',
-            'uid': 'vlindeman',
+            'eduPersonPrincipalName': 'foooo-baaar',
+            'uid': 'teste',
             'passwords': [{'id': ObjectId('112345678901234567890123'), 'salt': '$NDNv1H1$9c81...545$32$32$',}],
         }
         test_user = AmTestUser.from_dict(userdoc)
@@ -151,7 +145,7 @@ class MessageTest(AMTestCase):
         self.amdb.save(central_user, check_sync=False)
 
         am_user = self.amdb.get_user_by_id(_id)
-        self.assertNotEqual(am_user.eppn, 'vlindeman@eduid.se')
+        self.assertNotEqual(am_user.eppn, 'teste-teste')
 
         # It is important to not import eduid_am.tasks before the Celery config has been
         # set up (done in MongoTestCase.setUp()). Since Celery uses decorators, it will
@@ -163,15 +157,15 @@ class MessageTest(AMTestCase):
 
         # verify the user has been propagated to the amdb
         am_user = self.amdb.get_user_by_id(_id)
-        self.assertEqual(am_user.eppn, 'vlindeman@eduid.se')
+        self.assertEqual(am_user.eppn, 'teste-teste')
 
     def test_bad_operator(self):
         _id = ObjectId()
 
         userdoc = {
             '_id': _id,
-            'eduPersonPrincipalName': 'foo-bar',
-            'uid': 'vlindeman',
+            'eduPersonPrincipalName': 'foooo-baaar',
+            'uid': 'teste',
             'passwords': [{'id': ObjectId('112345678901234567890123'), 'salt': '$NDNv1H1$9c81...545$32$32$',}],
         }
         test_user = AmTestUser.from_dict(userdoc)
@@ -184,7 +178,7 @@ class MessageTest(AMTestCase):
         self.amdb.save(central_user, check_sync=False)
 
         am_user = self.amdb.get_user_by_id(_id)
-        self.assertNotEqual(am_user.eppn, 'vlindeman@eduid.se')
+        self.assertNotEqual(am_user.eppn, 'teste-teste')
 
         # It is important to not import eduid_am.tasks before the Celery config has been
         # set up (done in MongoTestCase.setUp()). Since Celery uses decorators, it will
