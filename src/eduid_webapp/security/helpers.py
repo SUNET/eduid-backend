@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import
 
+from datetime import datetime
 from enum import unique
 from typing import Optional
 
@@ -121,7 +122,7 @@ def remove_nin_from_user(security_user, nin):
     """
     if security_user.nins.find(nin):
         security_user.nins.remove(nin)
-        security_user.modified_ts = True
+        security_user.modified_ts = datetime.utcnow()
         # Save user to private db
         current_app.private_userdb.save(security_user, check_sync=False)
         # Ask am to sync user to central db
