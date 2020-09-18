@@ -223,7 +223,7 @@ class EduidSession(SessionMixin, MutableMapping):
         max_age = int(self.app.config.get('permanent_session_lifetime'))
         response.set_cookie(
             cookie_name,
-            value=self.token,
+            value=self.token.cookie_val,
             domain=cookie_domain,
             path=cookie_path,
             secure=cookie_secure,
@@ -273,13 +273,10 @@ class EduidSession(SessionMixin, MutableMapping):
         self._serialize_namespaces()
 
         if self.new or self.modified:
-            if self._session.session_id is not None:
-                self._session.commit()
-                if self.app.debug:
-                    _saved_data = json.dumps(self._session.to_dict(), indent=4, sort_keys=True)
-                    self.app.logger.debug(f'Saved session:\n{_saved_data}')
-            else:
-                self.app.logger.warning('Tried to persist a session with no session id')
+            self._session.commit()
+            if self.app.debug:
+                _saved_data = json.dumps(self._session.to_dict(), indent=4, sort_keys=True)
+                self.app.logger.debug(f'Saved session:\n{_saved_data}')
 
 
 class SessionFactory(SessionInterface):
@@ -296,7 +293,7 @@ class SessionFactory(SessionInterface):
         self.config = config
         secret = config['secret_key']
         ttl = 2 * int(config['permanent_session_lifetime'])
-        self.manager = SessionManager(config, ttl=ttl, secret=secret)
+        self.manager = SessionManager(config, ttl=ttl, app_secret=secret)
 
     #  Return type of "open_session" incompatible with supertype "SessionInterface"
     def open_session(self, app, request) -> EduidSession:  # type: ignore
@@ -310,23 +307,23 @@ class SessionFactory(SessionInterface):
             raise BadConfiguration('session_cookie_name not set in config')
 
         # Load token from cookie
-        token = request.cookies.get(cookie_name, None)
+        cookie_val = request.cookies.get(cookie_name, None)
         if app.debug:
-            current_app.logger.debug('Session cookie {} == {}'.format(cookie_name, token))
+            current_app.logger.debug('Session cookie {} == {}'.format(cookie_name, cookie_val))
 
-        if token:
+        if cookie_val:
             # Existing session
             try:
-                base_session = self.manager.get_session(token=token, debug=app.debug)
+                base_session = self.manager.get_session(cookie_val=cookie_val)
                 sess = EduidSession(app, base_session, new=False)
                 if app.debug:
                     current_app.logger.debug('Loaded existing session {}'.format(sess))
                 return sess
-            except (KeyError, ValueError) as exc:
-                current_app.logger.warning(f'Failed to load session from token {token}: {exc}')
+            except KeyError:
+                current_app.logger.debug(f'Failed to load session from cookie {cookie_val}, will create a new one')
 
         # New session
-        base_session = self.manager.get_session(data={}, debug=app.debug)
+        base_session = self.manager.get_session()
         sess = EduidSession(app, base_session, new=True)
         if app.debug:
             current_app.logger.debug('Created new session {}'.format(sess))

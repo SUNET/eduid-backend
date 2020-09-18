@@ -87,7 +87,7 @@ class AuthnTests(EduidAPITestCase):
 class UnAuthnTests(EduidAPITestCase):
     def load_app(self, config):
         """
-        Called from the parent class, so we can provide the appropiate flask
+        Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         return AuthnTestApp('testing', config)
@@ -114,7 +114,7 @@ class UnAuthnTests(EduidAPITestCase):
     def session_cookie(self, client, server_name='localhost'):
         with client.session_transaction() as sess:
             sess.persist()
-        client.set_cookie(server_name, key=self.app.config.session_cookie_name, value=sess._session.token)
+        client.set_cookie(server_name, key=self.app.config.session_cookie_name, value=sess._session.token.cookie_val)
         yield client
 
     def test_get_view(self):
