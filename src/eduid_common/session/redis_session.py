@@ -37,10 +37,10 @@ use this module.
 Basic usage:
 
     manager = SessionManager(redis_config, secret=app_secret)
-    session = manager.get_session(data={})
+    session = manager.get_session()
     session['foo'] = 'bar'
     session.commit()
-    set_cookie(session.token)
+    set_cookie(session.token.cookie_val)
 
 Sessions are stored in a Redis backend (the currently deployed one
 in eduID has three servers, one master and two slaves, and uses
@@ -76,8 +76,6 @@ the padding made up so that base32 does not need to pad itself by
 appending equal-signs ('=') at the end, since that is not allowed
 in an NCName.
 """
-
-from __future__ import unicode_literals
 
 import base64
 import collections.abc
@@ -149,13 +147,13 @@ class SessionReference(object):
         return cls(token, session_id, _bin_signature, _bin_hmac_key)
 
     @classmethod
-    def from_token(cls, token: str, app_secret: str):
-        _bin_session_id, _bin_signature = cls._decode_token(token)
+    def from_cookie(cls, cookie_val: str, app_secret: str):
+        _bin_session_id, _bin_signature = cls._decode_cookie(cookie_val)
         session_id = _bin_session_id.hex()
         hmac_key = derive_key(app_secret, session_id, 'hmac', HMAC_DIGEST_SIZE)
         if not cls._verify_session_id(_bin_session_id, hmac_key, _bin_signature):
             raise ValueError('Token signature check failed')
-        return cls(token, session_id, _bin_signature, hmac_key)
+        return cls(cookie_val, session_id, _bin_signature, hmac_key)
 
     @staticmethod
     def _encode_token(bin_session_id: bytes, signature: bytes) -> str:
@@ -173,20 +171,20 @@ class SessionReference(object):
         return TOKEN_PREFIX + combined.decode('utf-8')
 
     @staticmethod
-    def _decode_token(token: str) -> Tuple[bytes, bytes]:
+    def _decode_cookie(cookie_val: str) -> Tuple[bytes, bytes]:
         """
         Decode a token (token is what is stored in a cookie) into it's components.
 
-        :param token: the token with the signed session_id
+        :param cookie_val: the token with the signed session_id
 
         :return: the session_id and signature
         """
-        #  the slicing is to remove a leading 'a' needed so we have a
+        # the slicing is to remove a leading 'a' needed so we have a
         # valid NCName so pysaml2 doesn't complain when it uses the token as
         # session id.
-        if not token.startswith(TOKEN_PREFIX):
-            raise ValueError('Invalid token string {!r}'.format(token))
-        val = token[len(TOKEN_PREFIX) :]
+        if not cookie_val.startswith(TOKEN_PREFIX):
+            raise ValueError('Invalid token string {!r}'.format(cookie_val))
+        val = cookie_val[len(TOKEN_PREFIX):]
         # Split the token into it's two parts - the session_id and the HMAC signature of it
         # (the last byte is ignored - it is padding to make b32encode not put an = at the end)
         _decoded = base64.b32decode(val)
@@ -238,13 +236,11 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
     def __init__(
         self,
         conn: redis.StrictRedis,
-        token: Optional[str] = None,
-        data: Optional[Mapping[str, Any]] = None,
-        secret: str = '',
-        ttl: Optional[int] = None,
+        app_secret: str,
+        ttl: int,
+        cookie_val: Optional[str] = None,
         whitelist: Optional[List[str]] = None,
         raise_on_unknown: bool = False,
-        debug: bool = False,
     ):
         """
         Retrieve or create a session for the given token or data.
@@ -263,68 +259,41 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         non-whitelisted key.
 
         :param conn: Redis connection instance
-        :param token: the token containing the session_id for the session
-        :param session_id: session_id for the session, if token is not provided
-        :param data: the data for the (new) session
-        :param ttl: The time to live for the session
-        :param secret: Application secret key used to sign the session_id associated
+        :param app_secret: Application secret key used to sign the session_id associated
                        with the session
+        :param ttl: The time to live for the session
+        :param cookie_val: the token containing the session_id for the session
         :param whitelist: list of allowed keys for the sessions
         :param raise_on_unknown: Whether to raise an exception on an attempt
                                  to set a session key not in whitelist
-        :param debug: Flag for extra debug logging
         """
         self.conn = conn
         self.ttl = ttl
-        self.token = token
         self.whitelist = whitelist
         self.raise_on_unknown = raise_on_unknown
-        self.app_secret = secret
-        self.debug = debug
+        self.app_secret = app_secret
 
-        if token:
-            self.token = SessionReference.from_token(token, app_secret=self.app_secret)
+        if cookie_val:
+            self.token = SessionReference.from_cookie(cookie_val, app_secret=self.app_secret)
         else:
             self.token = SessionReference.new(app_secret=self.app_secret)
 
-        _encrypted_data = None
-        if data is None:
-            if not token:
-                raise ValueError('Data must be provided when token is not provided')
-
-            if self.debug:
-                logger.debug(f'Looking for session using token {token}')
-
-            # Fetch session from self.conn (Redis)
-            _encrypted_data = self.conn.get(self.token.session_id)
-            if not _encrypted_data:
-                logger.warning('Session not found: {!r}'.format(self.token.session_id))
-                raise KeyError('Session not found: {!r}'.format(self.token.session_id))
-        else:
-            if self.debug:
-                logger.debug(f'Creating new session with token {token}')
-
         _nacl_key = derive_key(self.app_secret, self.token.session_id, 'nacl', nacl.secret.SecretBox.KEY_SIZE)
-        self.nacl_box = nacl.secret.SecretBox(_nacl_key)
-
-        if _encrypted_data:
-            # Decode and verify data, need self.nacl_box to do this
-            data = self.verify_data(_encrypted_data)
-
-        if not isinstance(data, dict):
-            # mostly convince pycharms introspection what type data is here
-            raise ValueError('Data must be a dict, not {!s}'.format(type(data)))
+        self.secret_box = nacl.secret.SecretBox(_nacl_key)
 
         self._data: dict = {}
-        for k, v in data.items():
-            if self.whitelist and k not in self.whitelist:
-                if self.raise_on_unknown:
-                    raise ValueError('Key {!r} not allowed in session'.format(k))
-                continue
-            self._data[k] = v
 
-        if self.debug:
-            logger.debug(f'Instantiated session with token {self.token}')
+    def load_session(self) -> bool:
+        logger.debug(f'Looking for session {self.token}')
+
+        # Fetch session from session store (Redis)
+        _encrypted_data = self.conn.get(self.token.session_id)
+        if not _encrypted_data:
+            return False
+
+        self._data = self.decrypt_data(_encrypted_data)
+
+        return True
 
     def __getitem__(self, key, default=None):
         if key in self._data:
@@ -356,32 +325,29 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         """
         Persist the currently held data into the redis db.
         """
-        data = self.sign_data(self._data)
-        if self.debug:
-            logger.debug(f'Committing session {self.token} to the cache with ttl {self.ttl} ({len(data)} bytes)')
+        data = self.encrypt_data(self._data)
+        logger.debug(f'Committing session {self.token} to the cache with ttl {self.ttl} ({len(data)} bytes)')
         self.conn.setex(self.token.session_id, self.ttl, data)
 
-    def sign_data(self, data_dict):
+    def encrypt_data(self, data_dict: Mapping[str, Any]) -> str:
         """
-        Sign (and encrypt) data before storing it in Redis.
+        Sign and encrypt data before storing it in Redis.
 
         :param data_dict: Data to be stored
         :return: serialized data
-        :rtype: str | unicode
         """
-        if self.debug:
-            logger.debug(f'Storing data in cache[{self.token}]:\n{repr(data_dict)}')
+        logger.debug(f'Storing data in cache[{self.token}]:\n{repr(data_dict)}')
         nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
         # Version data to make it easier to know how to decode it on reading
         data_json = json.dumps(data_dict, cls=NameIDEncoder)
         versioned = {
             'v2': bytes(
-                self.nacl_box.encrypt(data_json.encode('ascii'), nonce, encoder=nacl.encoding.Base64Encoder)
+                self.secret_box.encrypt(data_json.encode('ascii'), nonce, encoder=nacl.encoding.Base64Encoder)
             ).decode('ascii')
         }
         return json.dumps(versioned)
 
-    def verify_data(self, data_str) -> Dict[str, Any]:
+    def decrypt_data(self, data_str: str) -> Dict[str, Any]:
         """
         Verify (and decrypt) session data read from Redis.
 
@@ -390,10 +356,9 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         """
         versioned = json.loads(data_str)
         if 'v2' in versioned:
-            _data = self.nacl_box.decrypt(versioned['v2'], encoder=nacl.encoding.Base64Encoder)
+            _data = self.secret_box.decrypt(versioned['v2'], encoder=nacl.encoding.Base64Encoder)
             decrypted = json.loads(_data)
-            if self.debug:
-                logger.debug(f'Loaded data from cache[{self.token}]:\n{repr(decrypted)}')
+            logger.debug(f'Loaded data from cache[{self.token}]:\n{repr(decrypted)}')
             return decrypted
 
         logger.error(f'Unknown data retrieved from cache[{self.token}]: {repr(data_str)}')
@@ -405,7 +370,6 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         """
         self._data = {}
         self.conn.delete(self.token.session_id)
-        self.session_id = None
         self.token = None
 
     def renew_ttl(self):
@@ -448,30 +412,41 @@ class SessionManager(object):
         self.whitelist = whitelist
         self.raise_on_unknown = raise_on_unknown
 
-    def get_session(
-        self, token: Optional[str] = None, data: Optional[Mapping[str, Any]] = None, debug: bool = False,
-    ) -> RedisEncryptedSession:
+    def _get_connection(self) -> redis.StrictRedis:
+        """
+        Get a Redis connection.
+
+        Done in a separate function so that this class can be subclassed in test cases.
+        """
+        return redis.StrictRedis(connection_pool=self.pool)
+
+    def get_session(self, cookie_val: Optional[str] = None) -> RedisEncryptedSession:
         """
         Create or fetch a session for the given token or data.
 
-        :param token: the token containing the session_id for the session
-        :param session_id: the session_id to look for
-        :param data: the data for the (new) session
-        :param debug: Flag for extra debug logging
+        :param cookie_val: the value of the session cookie, if any
 
         :return: the session
         """
-        conn = redis.StrictRedis(connection_pool=self.pool)
-        return RedisEncryptedSession(
+        conn = self._get_connection()
+
+        res = RedisEncryptedSession(
             conn,
-            token=token,
-            data=data,
-            secret=self.secret,
+            cookie_val=cookie_val,
+            app_secret=self.secret,
             ttl=self.ttl,
             whitelist=self.whitelist,
             raise_on_unknown=self.raise_on_unknown,
-            debug=debug,
         )
+
+        if cookie_val:
+            if not res.load_session():
+                logger.warning(f'Session cache miss for cookie {cookie_val}')
+                raise KeyError(f'Session not found using provided cookie')
+        else:
+            logger.debug(f'Created new session {res.token}')
+
+        return res
 
 
 def derive_key(app_key: str, session_key: str, usage: str, size: int) -> bytes:
