@@ -131,7 +131,7 @@ class MsgRelay(object):
         try:
             res = rtask.get(timeout=timeout)
             current_app.logger.debug(
-                f"SENT mobile validator message code: {code} phone number: {targetphone} with " f"reference {reference}"
+                f"SENT mobile validator message code: {code} phone number: {targetphone} with reference {reference}"
             )
             current_app.logger.debug(
                 f"Extra debug: Send message result: {repr(res)},"
