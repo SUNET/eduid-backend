@@ -34,6 +34,7 @@ from datetime import datetime
 
 from bson import ObjectId
 
+from eduid_userdb import Orcid
 from eduid_userdb.credentials import CredentialList
 from eduid_userdb.fixtures.email_addresses import (
     johnsmith2_example_com,
@@ -47,6 +48,7 @@ from eduid_userdb.fixtures.email_addresses import (
 )
 from eduid_userdb.fixtures.locked_identities import dashboard_locked_nin
 from eduid_userdb.fixtures.nins import dashboard_primary_nin, dashboard_verified_nin
+from eduid_userdb.fixtures.orcid import dashboard_orcid
 from eduid_userdb.fixtures.passwords import old_password, signup_password, signup_password_2
 from eduid_userdb.fixtures.pending_emails import johnsmith2_example_com_pending
 from eduid_userdb.fixtures.phones import (
@@ -75,11 +77,12 @@ mocked_user_standard = User(
     nins=NinList([dashboard_primary_nin]),
     language='en',
     entitlements=['urn:mace:eduid.se:role:admin', 'urn:mace:eduid.se:role:student'],
-    phone_numbers=PhoneNumberList([dashboard_primary_phone, dashboard_verified_phone, dashboard_unverified_phone,]),
+    phone_numbers=PhoneNumberList([dashboard_primary_phone, dashboard_verified_phone, dashboard_unverified_phone]),
     mail_addresses=MailAddressList(
-        [johnsmith_example_com, johnsmith2_example_com_old, johnsmith3_example_com_unverified,]
+        [johnsmith_example_com, johnsmith2_example_com_old, johnsmith3_example_com_unverified]
     ),
     credentials=CredentialList([signup_password]),
+    orcid=dashboard_orcid,
 )
 
 
@@ -93,7 +96,7 @@ mocked_user_standard_2 = User(
     language='en',
     entitlements=['urn:mace:eduid.se:role:admin', 'urn:mace:eduid.se:role:student'],
     phone_numbers=PhoneNumberList([]),
-    mail_addresses=MailAddressList([johnsmith_example_org, johnsmith2_example_org,]),
+    mail_addresses=MailAddressList([johnsmith_example_org, johnsmith2_example_org]),
     credentials=CredentialList([signup_password]),
 )
 

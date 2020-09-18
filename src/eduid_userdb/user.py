@@ -56,6 +56,7 @@ from eduid_userdb.tou import ToUList
 
 TUserSubclass = TypeVar('TUserSubclass', bound='User')
 
+
 @unique
 class SubjectType(Enum):
     PERSON = 'physical person'
