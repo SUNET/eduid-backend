@@ -4,7 +4,7 @@ from unittest import TestCase
 
 import redis
 
-from eduid_common.session.redis_session import RedisEncryptedSession, SessionManager, derive_key
+from eduid_common.session.redis_session import SessionManager
 
 
 class FakeRedisConn(object):
