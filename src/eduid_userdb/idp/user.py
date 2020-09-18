@@ -39,6 +39,7 @@ User and user database module.
 import logging
 import pprint
 import warnings
+from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Optional
 
@@ -68,13 +69,25 @@ _SAML_ATTRIBUTES = [
 ]
 
 
+@dataclass
+class SAMLAttributeSettings:
+    # Data that needs to come from IdP configuration
+    default_eppn_scope: str
+    default_country: str
+    default_country_code: str
+    default_scoped_affiliation: Optional[str] = None
+
+
 class IdPUser(User):
     """
     Wrapper class for eduid_userdb.User adding functions useful in the IdP.
     """
 
     def to_saml_attributes(
-        self, config: dict, logger: Optional[logging.Logger] = None, filter_attributes: List[str] = _SAML_ATTRIBUTES
+        self,
+        settings: SAMLAttributeSettings,
+        logger: Optional[logging.Logger] = None,
+        filter_attributes: List[str] = _SAML_ATTRIBUTES,
     ) -> dict:
         """
         Return a dict of SAML attributes for a user.
@@ -82,7 +95,7 @@ class IdPUser(User):
         Note that this is _all_ parts of the user that this IdP knows how to express as
         SAML attributes. It is not necessarily the attributes that will actually be released.
 
-        :param config: IdP config
+        :param settings: Settings for attribute creation from IdP config
         :param logger: logging logger
         :param filter_attributes: Filter to apply
 
@@ -101,10 +114,10 @@ class IdPUser(User):
         logger.debug('Discarded non-attributes:\n{!s}'.format(pprint.pformat(attributes_in)))
         # Create and add missing attributes that can be released if correct release policy
         # is applied by pysaml2 for the current metadata
-        attributes = make_scoped_eppn(attributes, config)
-        attributes = add_scoped_affiliation(attributes, config)
-        attributes = add_country_attributes(attributes, config)
-        attributes = make_eduperson_unique_id(attributes, self, config)
+        attributes = make_scoped_eppn(attributes, settings)
+        attributes = add_scoped_affiliation(attributes, settings)
+        attributes = add_country_attributes(attributes, settings)
+        attributes = make_eduperson_unique_id(attributes, self, settings)
         attributes = add_eduperson_assurance(attributes, self)
         attributes = make_name_attributes(attributes, self)
         attributes = make_nor_eduperson_nin(attributes, self)
@@ -117,7 +130,7 @@ class IdPUser(User):
         return attributes
 
 
-def make_scoped_eppn(attributes: dict, config: dict) -> dict:
+def make_scoped_eppn(attributes: dict, settings: SAMLAttributeSettings) -> dict:
     """
     Add scope to unscoped eduPersonPrincipalName attributes before releasing them.
 
@@ -125,11 +138,11 @@ def make_scoped_eppn(attributes: dict, config: dict) -> dict:
     `default_eppn_scope'.
 
     :param attributes: Attributes of a user
-    :param config: IdP configuration data
+    :param settings: IdP configuration settings
     :return: New attributes
     """
     eppn = attributes.get('eduPersonPrincipalName')
-    scope = config['default_eppn_scope']
+    scope = settings.default_eppn_scope
     if not eppn or not scope:
         return attributes
     if '@' not in eppn:
@@ -137,7 +150,7 @@ def make_scoped_eppn(attributes: dict, config: dict) -> dict:
     return attributes
 
 
-def add_scoped_affiliation(attributes: dict, config: dict) -> dict:
+def add_scoped_affiliation(attributes: dict, settings: SAMLAttributeSettings) -> dict:
     """
     Add eduPersonScopedAffiliation if configured, and not already present.
 
@@ -145,34 +158,34 @@ def add_scoped_affiliation(attributes: dict, config: dict) -> dict:
     `default_scoped_affiliation'.
 
     :param attributes: Attributes of a user
-    :param config: IdP configuration data
+    :param settings: IdP configuration settings
 
     :return: New attributes
     """
     epsa = 'eduPersonScopedAffiliation'
-    if epsa not in attributes and config.get('default_scoped_affiliation'):
-        attributes[epsa] = config['default_scoped_affiliation']
+    if epsa not in attributes and settings.default_scoped_affiliation:
+        attributes[epsa] = settings.default_scoped_affiliation
     return attributes
 
 
-def add_country_attributes(attributes: dict, config: dict) -> dict:
+def add_country_attributes(attributes: dict, settings: SAMLAttributeSettings) -> dict:
     if attributes.get('c') is None:
-        attributes['c'] = config['default_country_code']
+        attributes['c'] = settings.default_country_code
     if attributes.get('co') is None:
-        attributes['co'] = config['default_country']
+        attributes['co'] = settings.default_country
     return attributes
 
 
-def make_eduperson_unique_id(attributes: dict, user: IdPUser, config: dict) -> dict:
+def make_eduperson_unique_id(attributes: dict, user: IdPUser, settings: SAMLAttributeSettings) -> dict:
     """
     eppn@scope (no dash (-) allowed)
     """
     eppn = user.eppn
-    scope = config['default_eppn_scope']
+    scope = settings.default_eppn_scope
     if not eppn or not scope:
         return attributes
     if attributes.get('eduPersonUniqueID') is None:
-        unique_id = eppn.replace('-', '')
+        unique_id = eppn.replace('-', '')  # hyphen (-) not allowed in eduPersonUniqueID
         attributes['eduPersonUniqueID'] = f'{unique_id}@{scope}'
     return attributes
 
@@ -217,7 +230,8 @@ def make_nor_eduperson_nin(attributes: dict, user: IdPUser) -> dict:
     # TODO: If we ever allow NIN to be something else than personnummer or samordningsnummer
     # TODO: we need to update this function
     if attributes.get('norEduPersonNIN') is None and user.nins.primary is not None:
-        attributes['norEduPersonNIN'] = user.nins.primary.number
+        if user.nins.primary.is_verified:  # A primary element have to be verified but better be defensive
+            attributes['norEduPersonNIN'] = user.nins.primary.number
     return attributes
 
 
@@ -228,7 +242,8 @@ def make_personal_identity_number(attributes: dict, user: IdPUser) -> dict:
     # TODO: If we ever allow NIN to be something else than personnummer or samordningsnummer
     # TODO: we need to update this function
     if attributes.get('personalIdentityNumber') is None and user.nins.primary is not None:
-        attributes['personalIdentityNumber'] = user.nins.primary.number
+        if user.nins.primary.is_verified:  # A primary element have to be verified but better be defensive
+            attributes['personalIdentityNumber'] = user.nins.primary.number
     return attributes
 
 
@@ -237,23 +252,26 @@ def make_schac_date_of_birth(attributes: dict, user: IdPUser) -> dict:
     Format: YYYYMMDD, only numeric
     """
     if attributes.get('schacDateOfBirth') is None and user.nins.primary is not None:
-        try:
-            parsed_date = datetime.strptime(user.nins.primary.number[:8], '%Y%m%d')
-            attributes['schacDateOfBirth'] = parsed_date.strftime('%Y%m%d')
-        except ValueError as e:
-            module_logger.error('Unable to parse user nin to date of birth')
-            module_logger.debug(f'User nins: {user.nins}')
-            module_logger.exception(e)
+        if user.nins.primary.is_verified:  # A primary element have to be verified but better be defensive
+            try:
+                parsed_date = datetime.strptime(user.nins.primary.number[:8], '%Y%m%d')
+                attributes['schacDateOfBirth'] = parsed_date.strftime('%Y%m%d')
+            except ValueError as e:
+                module_logger.error('Unable to parse user nin to date of birth')
+                module_logger.debug(f'User nins: {user.nins}')
+                module_logger.exception(e)
     return attributes
 
 
 def make_mail(attributes: dict, user: IdPUser) -> dict:
     if attributes.get('mail') is None and user.mail_addresses.primary is not None:
-        attributes['mail'] = user.mail_addresses.primary.email
+        if user.mail_addresses.primary.is_verified:  # A primary element have to be verified but better be defensive
+            attributes['mail'] = user.mail_addresses.primary.email
     return attributes
 
 
 def make_eduperson_orcid(attributes: dict, user: IdPUser) -> dict:
     if attributes.get('eduPersonOrcid') is None and user.orcid is not None:
-        attributes['eduPersonOrcid'] = user.orcid.id
+        if user.orcid.is_verified:
+            attributes['eduPersonOrcid'] = user.orcid.id
     return attributes
