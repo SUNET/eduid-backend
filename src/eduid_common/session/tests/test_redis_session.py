@@ -29,7 +29,6 @@ class FakeRedisConn(object):
 
 
 class FakeSessionManager(SessionManager):
-
     def __init__(self):
         self.secret = 's3cr3t'
         self.ttl = 10
@@ -41,9 +40,7 @@ class FakeSessionManager(SessionManager):
         return self.conn
 
     def get_session(
-        self,
-        cookie_val: Optional[str] = None,
-        data: Optional[Mapping[str, Any]] = None,
+        self, cookie_val: Optional[str] = None, data: Optional[Mapping[str, Any]] = None,
     ):
         session = super().get_session(cookie_val=cookie_val)
         # Add test data into the session

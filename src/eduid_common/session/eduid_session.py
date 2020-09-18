@@ -293,7 +293,7 @@ class SessionFactory(SessionInterface):
         self.config = config
         secret = config['secret_key']
         ttl = 2 * int(config['permanent_session_lifetime'])
-        self.manager = SessionManager(config, ttl=ttl, secret=secret)
+        self.manager = SessionManager(config, ttl=ttl, app_secret=secret)
 
     #  Return type of "open_session" incompatible with supertype "SessionInterface"
     def open_session(self, app, request) -> EduidSession:  # type: ignore
