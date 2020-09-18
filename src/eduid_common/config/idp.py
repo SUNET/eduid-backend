@@ -137,7 +137,7 @@ class IdPConfig(BaseConfig):
     default_eppn_scope: Optional[str] = None
     # Default country code to use in attribute release as c - ISO_COUNTRY_CODE
     default_country_code: str = 'se'
-    # Default countre to use in attribute release as co - ISO_COUNTRY_NAME
+    # Default country to use in attribute release as co - ISO_COUNTRY_NAME
     default_country: str = 'Sweden'
     # Disallow login for a user after N failures in a given month.
     # This is said to be an imminent Kantara requirement.
