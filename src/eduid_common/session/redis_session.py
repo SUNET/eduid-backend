@@ -312,7 +312,7 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
 
     def decrypt_data(self, data_str: str) -> Dict[str, Any]:
         """
-        Verify (and decrypt) session data read from Redis.
+        Decrypt and verify session data read from Redis.
 
         :param data_str: Data read from Redis
         :return: Parsed data as dict

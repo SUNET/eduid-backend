@@ -113,16 +113,16 @@ class SessionCookie(object):
         return bool(not invalid_bits)
 
 
-def derive_key(app_key: str, session_key: str, usage: str, size: int) -> bytes:
+def derive_key(app_secret: str, session_id: str, usage: str, size: int) -> bytes:
     """
-    Derive a cryptographic key for a specific usage from the app_key and the session_key.
+    Derive a cryptographic key for a specific usage from the app_secret and session_id.
 
-    The app_key is a shared secret between all instances of this app (e.g. eduid-dashboard).
-    The session_key is a randomized session_id unique to this session.
+    The app_secret is a shared secret between all instances of this app (e.g. eduid-dashboard).
+    The session_id is a randomized value unique to this session.
 
-    :param app_key: Application shared session_id
+    :param app_secret: Application shared session_id
     :param usage: 'sign' or 'encrypt' or something else
-    :param session_key: Session unique session_id
+    :param session_id: Session unique session_id
     :param size: Size of key requested in bytes
 
     :return: Derived key
@@ -130,5 +130,5 @@ def derive_key(app_key: str, session_key: str, usage: str, size: int) -> bytes:
     # the low number of rounds (3) is not important here - we use this to derive two keys
     # (different 'usage') from a single key which is comprised of a 256 bit app_key
     # (shared between instances), and a random session key of 128 bits.
-    _salt = (usage + session_key).encode('utf-8')
-    return hashlib.pbkdf2_hmac('sha256', app_key.encode('ascii'), _salt, 3, dklen=size)
+    _salt = (usage + session_id).encode('utf-8')
+    return hashlib.pbkdf2_hmac('sha256', app_secret.encode('ascii'), _salt, 3, dklen=size)
