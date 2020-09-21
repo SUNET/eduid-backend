@@ -241,9 +241,7 @@ class EidasTests(EduidAPITestCase):
                 sess['eduidIdPCredentialsUsed'] = [credential.key, 'other_id']
                 sess.persist()
                 response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
-                token = sess._session.token
-                if isinstance(token, six.binary_type):
-                    token = token.decode('ascii')
+                token = sess._session.token.cookie_val
                 authn_response = self.generate_auth_response(token, self.saml_response_tpl_success, self.test_user_nin)
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, '/')
@@ -277,9 +275,7 @@ class EidasTests(EduidAPITestCase):
                 sess['eduidIdPCredentialsUsed'] = [credential.key, 'other_id']
                 sess.persist()
                 response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
-                token = sess._session.token
-                if isinstance(token, six.binary_type):
-                    token = token.decode('ascii')
+                token = sess._session.token.cookie_val
                 authn_response = self.generate_auth_response(token, self.saml_response_tpl_success, self.test_user_nin)
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, '/')
@@ -313,9 +309,7 @@ class EidasTests(EduidAPITestCase):
                 sess['eduidIdPCredentialsUsed'] = [credential.key, 'other_id']
                 sess.persist()
                 response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
-                token = sess._session.token
-                if isinstance(token, six.binary_type):
-                    token = token.decode('ascii')
+                token = sess._session.token.cookie_val
                 authn_response = self.generate_auth_response(
                     token, self.saml_response_tpl_success, self.test_user_wrong_nin
                 )
@@ -353,9 +347,7 @@ class EidasTests(EduidAPITestCase):
                 sess['eduidIdPCredentialsUsed'] = [credential.key, 'other_id']
                 sess.persist()
                 response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
-                token = sess._session.token
-                if isinstance(token, six.binary_type):
-                    token = token.decode('ascii')
+                token = sess._session.token.cookie_val
                 authn_response = self.generate_auth_response(token, self.saml_response_tpl_success, self.test_user_nin)
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, '/')
@@ -401,9 +393,7 @@ class EidasTests(EduidAPITestCase):
                 sess['eduidIdPCredentialsUsed'] = [credential.key, 'other_id']
                 sess.persist()
                 response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
-                token = sess._session.token
-                if isinstance(token, six.binary_type):
-                    token = token.decode('ascii')
+                token = sess._session.token.cookie_val
                 authn_response = self.generate_auth_response(token, self.saml_response_tpl_success, self.test_user_nin)
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, '/')
@@ -438,9 +428,7 @@ class EidasTests(EduidAPITestCase):
                 sess['eduidIdPCredentialsUsed'] = [credential.key, 'other_id']
                 sess.persist()
                 response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
-                token = sess._session.token
-                if isinstance(token, six.binary_type):
-                    token = token.decode('ascii')
+                token = sess._session.token.cookie_val
                 authn_response = self.generate_auth_response(
                     token, self.saml_response_tpl_fail, self.test_user_wrong_nin
                 )
@@ -476,9 +464,7 @@ class EidasTests(EduidAPITestCase):
                 sess['eduidIdPCredentialsUsed'] = [credential.key, 'other_id']
                 sess.persist()
                 response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
-                token = sess._session.token
-                if isinstance(token, six.binary_type):
-                    token = token.decode('ascii')
+                token = sess._session.token.cookie_val
                 authn_response = self.generate_auth_response(
                     token, self.saml_response_tpl_cancel, self.test_user_wrong_nin
                 )
@@ -514,9 +500,7 @@ class EidasTests(EduidAPITestCase):
                 sess['eduidIdPCredentialsUsed'] = [credential.key, 'other_id']
                 sess.persist()
                 response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
-                token = sess._session.token
-                if isinstance(token, six.binary_type):
-                    token = token.decode('ascii')
+                token = sess._session.token.cookie_val
                 authn_response = self.generate_auth_response(
                     token, self.saml_response_tpl_fail, self.test_user_wrong_nin
                 )
@@ -551,9 +535,7 @@ class EidasTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_unverified_user_eppn) as browser:
             with browser.session_transaction() as sess:
                 response = browser.get('/verify-nin?idp={}'.format(self.test_idp))
-                token = sess._session.token
-                if isinstance(token, six.binary_type):
-                    token = token.decode('ascii')
+                token = sess._session.token.cookie_val
                 authn_response = self.generate_auth_response(token, self.saml_response_tpl_success, self.test_user_nin)
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, '/')
@@ -657,9 +639,7 @@ class EidasTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             with browser.session_transaction() as sess:
                 response = browser.get('/verify-nin/?idp={}'.format(self.test_idp))
-                token = sess._session.token
-                if isinstance(token, six.binary_type):
-                    token = token.decode('ascii')
+                token = sess._session.token.cookie_val
                 authn_response = self.generate_auth_response(token, self.saml_response_tpl_success, self.test_user_nin)
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, '/')
@@ -691,9 +671,7 @@ class EidasTests(EduidAPITestCase):
                 ps = urllib.parse.urlparse(response.location)
                 qs = urllib.parse.parse_qs(ps.query)
                 relay_state = qs['RelayState'][0]
-                token = sess._session.token
-                if isinstance(token, six.binary_type):
-                    token = token.decode('ascii')
+                token = sess._session.token.cookie_val
                 authn_response = self.generate_auth_response(token, self.saml_response_tpl_success, self.test_user_nin)
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, relay_state)
@@ -722,9 +700,7 @@ class EidasTests(EduidAPITestCase):
                 ps = urllib.parse.urlparse(response.location)
                 qs = urllib.parse.parse_qs(ps.query)
                 relay_state = qs['RelayState'][0]
-                token = sess._session.token
-                if isinstance(token, six.binary_type):
-                    token = token.decode('ascii')
+                token = sess._session.token.cookie_val
                 authn_response = self.generate_auth_response(
                     token, self.saml_response_tpl_success, self.test_user_wrong_nin
                 )
@@ -754,9 +730,7 @@ class EidasTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_unverified_user_eppn) as browser:
             with browser.session_transaction() as sess:
                 response = browser.get('/verify-nin?idp={}'.format(self.test_idp))
-                token = sess._session.token
-                if isinstance(token, six.binary_type):
-                    token = token.decode('ascii')
+                token = sess._session.token.cookie_val
                 authn_response = self.generate_auth_response(token, self.saml_response_tpl_success, self.test_user_nin)
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(token, '/')

@@ -108,9 +108,7 @@ class AuthnAPITestBase(EduidAPITestCase):
         with self.app.test_request_context('/login'):
             self.app.dispatch_request()
             oq_cache = OutstandingQueriesCache(session)
-            token = session.token
-            if isinstance(token, six.binary_type):
-                token = token.decode('ascii')
+            token = session.token.cookie_val
             oq_cache.set(token, came_from)
             session.persist()  # Explicit session.persist is needed when working within a test_request_context
             return token
@@ -192,9 +190,7 @@ class AuthnAPITestBase(EduidAPITestCase):
         with self.app.test_client() as c:
             resp = c.get(url)
             cookie = resp.headers['Set-Cookie']
-            token = session._session.token
-            if isinstance(token, six.binary_type):
-                token = token.decode('ascii')
+            token = session._session.token.cookie_val
             authr = auth_response(token, eppn).encode('utf-8')
 
         with self.app.test_request_context(
@@ -310,7 +306,9 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
         with self.app.test_client() as c:
             with self.app.test_request_context('/signup-authn'):
-                c.set_cookie('test.localhost', key=self.app.config.session_cookie_name, value=session._session.token)
+                c.set_cookie(
+                    'test.localhost', key=self.app.config.session_cookie_name, value=session._session.token.cookie_val
+                )
                 session.common.eppn = eppn
                 session.signup.ts = timestamp
 
