@@ -156,7 +156,9 @@ class ActionsTestCase(EduidAPITestCase):
     @contextmanager
     def session_cookie(self, client, server_name='localhost'):
         with client.session_transaction() as sess:
-            client.set_cookie(server_name, key=self.app.config.session_cookie_name, value=sess._session.token)
+            client.set_cookie(
+                server_name, key=self.app.config.session_cookie_name, value=sess._session.token.cookie_val
+            )
         yield client
 
     def prepare_session(
