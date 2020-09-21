@@ -112,7 +112,8 @@ class ResetPasswordStateDB(BaseDB):
         return None
 
     @staticmethod
-    def init_state(state: Dict) -> Optional[Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState]]:
+    def init_state(state_mapping: Mapping) -> Optional[Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState]]:
+        state = dict(state_mapping)
         if state.get('method') == 'email':
             return ResetPasswordEmailState.from_dict(data=state)
         elif state.get('method') == 'email_and_phone':
