@@ -93,7 +93,7 @@ class AuthnAPITestBase(EduidAPITestCase):
         """
         return authn_init_app('testing', config)
 
-    def add_outstanding_query(self, came_from):
+    def add_outstanding_query(self, came_from) -> str:
         """
         Add a SAML2 authentication query to the queries cache.
         To be used before accessing the assertion consumer service.
@@ -108,10 +108,10 @@ class AuthnAPITestBase(EduidAPITestCase):
         with self.app.test_request_context('/login'):
             self.app.dispatch_request()
             oq_cache = OutstandingQueriesCache(session)
-            token = session.token.cookie_val
-            oq_cache.set(token, came_from)
+            cookie_val = session.token.cookie_val
+            oq_cache.set(cookie_val, came_from)
             session.persist()  # Explicit session.persist is needed when working within a test_request_context
-            return token
+            return cookie_val
 
     def login(self, eppn, came_from):
         """
@@ -190,8 +190,8 @@ class AuthnAPITestBase(EduidAPITestCase):
         with self.app.test_client() as c:
             resp = c.get(url)
             cookie = resp.headers['Set-Cookie']
-            token = session._session.token.cookie_val
-            authr = auth_response(token, eppn).encode('utf-8')
+            cookie_val = session._session.token.cookie_val
+            authr = auth_response(cookie_val, eppn).encode('utf-8')
 
         with self.app.test_request_context(
             '/saml2-acs',
@@ -201,7 +201,7 @@ class AuthnAPITestBase(EduidAPITestCase):
         ):
 
             oq_cache = OutstandingQueriesCache(session)
-            oq_cache.set(token, came_from)
+            oq_cache.set(cookie_val, came_from)
 
             resp = self.app.dispatch_request()
 
