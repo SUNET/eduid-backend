@@ -241,7 +241,8 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         else:
             self.token = SessionCookie.new(app_secret=self.app_secret)
 
-        _nacl_key = derive_key(self.app_secret, self.token.session_id, 'nacl', nacl.secret.SecretBox.KEY_SIZE)
+        _bin_session_id = bytes.fromhex(self.token.session_id)
+        _nacl_key = derive_key(self.app_secret, _bin_session_id, 'nacl', nacl.secret.SecretBox.KEY_SIZE)
         self.secret_box = nacl.secret.SecretBox(_nacl_key)
 
         self._data: dict = {}

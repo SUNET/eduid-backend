@@ -25,19 +25,19 @@ class SessionCookie(object):
     def new(cls, app_secret: str):
         # Generate a random session_id
         _bin_session_id = nacl.utils.random(SESSION_KEY_BITS // 8)
-        session_id = _bin_session_id.hex()
-        _bin_hmac_key = derive_key(app_secret, session_id, 'hmac', HMAC_DIGEST_SIZE)
+        _bin_hmac_key = derive_key(app_secret, _bin_session_id, 'hmac', HMAC_DIGEST_SIZE)
         _bin_signature = cls._sign_session_id(_bin_session_id, _bin_hmac_key)
         token = cls._encode_token(_bin_session_id, _bin_signature)
+        session_id = _bin_session_id.hex()
         return cls(token, session_id, _bin_signature, _bin_hmac_key)
 
     @classmethod
     def from_cookie(cls, cookie_val: str, app_secret: str):
         _bin_session_id, _bin_signature = cls._decode_cookie(cookie_val)
-        session_id = _bin_session_id.hex()
-        hmac_key = derive_key(app_secret, session_id, 'hmac', HMAC_DIGEST_SIZE)
+        hmac_key = derive_key(app_secret, _bin_session_id, 'hmac', HMAC_DIGEST_SIZE)
         if not cls._verify_session_id(_bin_session_id, hmac_key, _bin_signature):
             raise ValueError('Token signature check failed')
+        session_id = _bin_session_id.hex()
         return cls(cookie_val, session_id, _bin_signature, hmac_key)
 
     @staticmethod
@@ -113,7 +113,7 @@ class SessionCookie(object):
         return bool(not invalid_bits)
 
 
-def derive_key(app_secret: str, session_id: str, usage: str, size: int) -> bytes:
+def derive_key(app_secret: str, bin_session_id: bytes, usage: str, size: int) -> bytes:
     """
     Derive a cryptographic key for a specific usage from the app_secret and session_id.
 
@@ -130,5 +130,5 @@ def derive_key(app_secret: str, session_id: str, usage: str, size: int) -> bytes
     # the low number of rounds (3) is not important here - we use this to derive two keys
     # (different 'usage') from a single key which is comprised of a 256 bit app_key
     # (shared between instances), and a random session key of 128 bits.
-    _salt = (usage + session_id).encode('utf-8')
+    _salt = usage.encode('ascii') + bin_session_id
     return hashlib.pbkdf2_hmac('sha256', app_secret.encode('ascii'), _salt, 3, dklen=size)
