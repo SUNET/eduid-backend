@@ -239,7 +239,7 @@ class BaseDB(object):
         """
         return self._coll.find({})
 
-    def _get_document_by_attr(self, attr: str, value: str, raise_on_missing: bool = True) -> Optional[Dict]:
+    def _get_document_by_attr(self, attr: str, value: str, raise_on_missing: bool = True) -> Optional[Mapping]:
         """
         Return the document in the MongoDB matching field=value
 
@@ -286,7 +286,7 @@ class BaseDB(object):
         skip: Optional[int] = None,
         limit: Optional[int] = None,
         raise_on_missing: bool = True,
-    ) -> List[Dict]:
+    ) -> List[Mapping]:
         """
         Locate documents in the db using a custom search filter.
 
