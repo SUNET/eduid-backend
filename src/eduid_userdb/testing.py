@@ -248,32 +248,6 @@ class DictTestCase(unittest.TestCase):
         """
         Remove timestamps that in general are created at different times
         normalize the names of some attributes
-        remove attributes set to None
-        """
-        for user in users:
-            cls.normalize_elem(user)
-
-            if 'mailAliases' in user:
-                cls.normalize_data(user['mailAliases'], [])
-
-            if 'passwords' in user:
-                cls.normalize_data(user['passwords'], [])
-
-            if 'phone' in user:
-                cls.normalize_data(user['phone'], [])
-
-            if 'profiles' in user:
-                cls.normalize_data(user['profiles'], [])
-
-            if 'nins' in user:
-                cls.normalize_data(user['nins'], [])
-
-    @classmethod
-    def normalize_users(cls, users: List[Dict[str, Any]]):
-        """
-        Remove timestamps that in general are created at different times
-        normalize the names of some attributes
-        remove attributes set to None
         """
         for user in users:
             cls.normalize_elem(user)
