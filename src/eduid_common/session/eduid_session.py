@@ -333,5 +333,9 @@ class SessionFactory(SessionInterface):
         """
         See flask.session.SessionInterface
         """
-        sess.persist()
+        try:
+            sess.persist()
+        except SessionOutOfSync:
+            app.stats.count('session_out_of_sync_error')
+            raise
         sess.set_cookie(response)
