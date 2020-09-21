@@ -92,15 +92,15 @@ class ActionDB(BaseDB):
         :param session: The actions session for the user
         :param action_type: The type of action to be performed ('mfa', 'tou', ...)
         """
-        old_format, actions = self._read_actions_from_db(eppn_or_userid, session)
+        _, actions = self._read_actions_from_db(eppn_or_userid, session)
 
         if action_type is None:
             # Don't filter on action type, return all actions for user(+session)
-            return [Action(data=this, old_format=old_format) for this in actions]
+            return [Action.from_dict(this) for this in actions]
         res = []
         for this in actions:
             if this['action'] == action_type:
-                res.append(Action(data=this, old_format=old_format))
+                res.append(Action.from_dict(this))
         return res
 
     def has_actions(
@@ -150,7 +150,7 @@ class ActionDB(BaseDB):
         old_format, actions = self._read_actions_from_db(eppn_or_userid, session, filter_)
         for this in actions:
             # return first element in list
-            return Action(data=this, old_format=old_format)
+            return Action.from_dict(this)
         return None
 
     def add_action(
@@ -187,12 +187,8 @@ class ActionDB(BaseDB):
             if params is not None:
                 data['params'] = params
 
-        old_format = False
-        if 'user_oid' in data:
-            old_format = True
-
         # XXX deal with exceptions here ?
-        action = Action(data=data, old_format=old_format)
+        action = Action.from_dict(data)
         result = self._coll.insert_one(action.to_dict())
         if result.acknowledged:
             return action
