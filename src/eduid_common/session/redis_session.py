@@ -116,12 +116,6 @@ class SessionManager(object):
         :param whitelist: list of allowed keys for the sessions
         :param raise_on_unknown: Whether to raise an exception on an attempt
                                  to set a session session_id not in whitelist
-
-        :type cfg: dict
-        :type ttl: int
-        :type app_secret: str
-        :type whitelist: list
-        :type raise_on_unknown: bool
         """
         self.pool = get_redis_pool(cfg)
         self.ttl = ttl
