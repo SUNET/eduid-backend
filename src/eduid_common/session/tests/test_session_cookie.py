@@ -5,8 +5,8 @@ class TestSessionCookie:
     def test_from_cookie(self):
         app_secret = 'supersecretkey'
         cookie_val = (
-            'a44ADOHJ2PGALYCWK5POYDDSFC4PALOAKLZFRIYQ5A2KLO4W76TCNRXG'
-            'WY4RZRICL3LR22J35WCJAPRFPHUNL77ZXGOBT5ZOHWGRG3YTY'
+            'aZPXP25Y5MUIM6APRRY3QEDTOHLAAKDEBLRFU5AOEPIPPW5L7UVVX'
+            '3BSEJEYVTKYD5OJNOX5GECL7OD5FZV4BWFE7KCCHG36SGFMNIBDY'
         )
         token = SessionCookie.from_cookie(cookie_val, app_secret)
-        assert token.session_id == 'e700371d3a7980bc0acaebdd818e45171e05b80a5e4b14621d0694b772dff4c4'
+        assert token.session_id == 'cbeefd771d6510cf01f18e37020e6e3ac0050c815c4b4e81c47a1efb757fa56b'
