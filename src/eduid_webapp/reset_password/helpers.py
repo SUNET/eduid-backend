@@ -160,9 +160,7 @@ def get_pwreset_state(email_code: str) -> Union[ResetPasswordEmailState, ResetPa
         current_app.logger.info(f'Phone code expired for state: {email_code}')
         # Revert the state to EmailState to allow the user to choose extra security again
         current_app.password_reset_state_db.remove_state(state)
-        state = ResetPasswordEmailState(
-            eppn=state.eppn, email_address=state.email_address, email_code=state.email_code.code
-        )
+        state = ResetPasswordEmailState(eppn=state.eppn, email_address=state.email_address, email_code=state.email_code)
         current_app.password_reset_state_db.save(state)
         raise BadCode(ResetPwMsg.expired_sms_code)
 
