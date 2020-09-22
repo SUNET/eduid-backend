@@ -31,6 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import atexit
+import logging
 import random
 import shutil
 import subprocess
@@ -38,6 +39,8 @@ import tempfile
 import time
 
 import redis
+
+logger = logging.getLogger(__name__)
 
 
 class RedisTemporaryInstance(object):
@@ -62,22 +65,18 @@ class RedisTemporaryInstance(object):
         self._port = random.randint(40000, 65535)
         self._logfile = '/tmp/redis-temp.log'
         self._command = [
-                'docker',
-                'run',
-                '--rm',
-                '-p',
-                '{!s}:6379'.format(self._port),
-                '-v',
-                '{!s}:/data'.format(self._tmpdir),
-                '-e',
-                'extra_args=--daemonize no --bind 0.0.0.0',
-                'docker.sunet.se/eduid/redis:latest',
-            ]
-        self._process = subprocess.Popen(
-            self._command,
-            stdout=open(self._logfile, 'wb'),
-            stderr=subprocess.STDOUT,
-        )
+            'docker',
+            'run',
+            '--rm',
+            '-p',
+            '{!s}:6379'.format(self._port),
+            '-v',
+            '{!s}:/data'.format(self._tmpdir),
+            '-e',
+            'extra_args=--daemonize no --bind 0.0.0.0',
+            'docker.sunet.se/eduid/redis:latest',
+        ]
+        self._process = subprocess.Popen(self._command, stdout=open(self._logfile, 'wb'), stderr=subprocess.STDOUT,)
         interval = 0.2
         for i in range(10):
             time.sleep(interval)
@@ -106,6 +105,9 @@ class RedisTemporaryInstance(object):
         return self._port
 
     def shutdown(self):
+        with open(self._logfile, 'r') as fd:
+            _output = ''.join(fd.readlines())
+        logger.info(f'Redis temporary instance output at shutdown:\n{_output}')
         if self._process:
             self._process.terminate()
             self._process.wait()

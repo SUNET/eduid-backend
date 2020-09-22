@@ -31,11 +31,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import atexit
+import logging
 import random
 import subprocess
 import time
 
 import etcd
+
+logger = logging.getLogger(__name__)
 
 
 class EtcdTemporaryInstance(object):
@@ -58,25 +61,21 @@ class EtcdTemporaryInstance(object):
     def __init__(self):
         self._port = random.randint(40000, 50000)
         self._logfile = '/tmp/etcd-temp.log'
-        self._command =             [
-                'docker',
-                'run',
-                '--rm',
-                '-p',
-                '{!s}:2379'.format(self._port),
-                'docker.sunet.se/library/etcd:v3.3.12',
-                'etcd',
-                '--advertise-client-urls',
-                'http://0.0.0.0:2379',
-                '--listen-client-urls',
-                'http://0.0.0.0:2379',
-            ]
+        self._command = [
+            'docker',
+            'run',
+            '--rm',
+            '-p',
+            '{!s}:2379'.format(self._port),
+            'docker.sunet.se/library/etcd:v3.3.12',
+            'etcd',
+            '--advertise-client-urls',
+            'http://0.0.0.0:2379',
+            '--listen-client-urls',
+            'http://0.0.0.0:2379',
+        ]
 
-        self._process = subprocess.Popen(
-            self._command,
-            stdout=open(self._logfile, 'wb'),
-            stderr=subprocess.STDOUT,
-        )
+        self._process = subprocess.Popen(self._command, stdout=open(self._logfile, 'wb'), stderr=subprocess.STDOUT,)
 
         for i in range(10):
             time.sleep(0.2)
@@ -115,6 +114,9 @@ class EtcdTemporaryInstance(object):
             pass
 
     def shutdown(self):
+        with open(self._logfile, 'r') as fd:
+            _output = ''.join(fd.readlines())
+        logger.info(f'etcd temporary instance output at shutdown:\n{_output}')
         if self._process:
             self._process.terminate()
             self._process.wait()
