@@ -433,9 +433,7 @@ class SecurityTests(EduidAPITestCase):
                 with client.session_transaction() as sess:
                     sess['reauthn-for-chpass'] = int(time.time())
                 data = {'new_password': 'j7/E >pO9 ,$Sr O0;&', 'old_password': '5678'}
-                response2 = client.post(
-                    '/change-password', data=json.dumps(data), content_type=self.content_type_json
-                )
+                response2 = client.post('/change-password', data=json.dumps(data), content_type=self.content_type_json)
 
                 self.assertEqual(response2.status_code, 200)
 
@@ -452,9 +450,7 @@ class SecurityTests(EduidAPITestCase):
                 with client.session_transaction() as sess:
                     sess['reauthn-for-chpass'] = int(time.time())
                     data = {'csrf_token': '0000', 'new_password': 'j7/E >pO9 ,$Sr O0;&', 'old_password': '5678'}
-                response2 = client.post(
-                    '/change-password', data=json.dumps(data), content_type=self.content_type_json
-                )
+                response2 = client.post('/change-password', data=json.dumps(data), content_type=self.content_type_json)
 
                 sec_data = json.loads(response2.data)
                 self.assertEqual(sec_data['payload']['message'], 'csrf.try_again')
@@ -470,9 +466,7 @@ class SecurityTests(EduidAPITestCase):
                     with client.session_transaction() as sess:
                         sess['reauthn-for-chpass'] = int(time.time())
                         data = {'csrf_token': sess.get_csrf_token(), 'new_password': '1234', 'old_password': '5678'}
-                response2 = client.post(
-                    '/change-password', data=json.dumps(data), content_type=self.content_type_json
-                )
+                response2 = client.post('/change-password', data=json.dumps(data), content_type=self.content_type_json)
 
                 self.assertEqual(response2.status_code, 200)
 
@@ -494,9 +488,7 @@ class SecurityTests(EduidAPITestCase):
                             'new_password': 'j7/E >pO9 ,$Sr O0;&',
                             'old_password': '5678',
                         }
-                response2 = client.post(
-                    '/change-password', data=json.dumps(data), content_type=self.content_type_json
-                )
+                response2 = client.post('/change-password', data=json.dumps(data), content_type=self.content_type_json)
 
                 self.assertEqual(response2.status_code, 200)
 

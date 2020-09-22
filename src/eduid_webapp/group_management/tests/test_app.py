@@ -145,9 +145,7 @@ class GroupManagementTests(EduidAPITestCase):
                         'role': role,
                         'csrf_token': sess.get_csrf_token(),
                     }
-                response = client.post(
-                    '/invites/create', data=json.dumps(data), content_type=self.content_type_json
-                )
+                response = client.post('/invites/create', data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_='POST_GROUP_INVITE_INVITES_CREATE_SUCCESS')
         return response
 
@@ -161,9 +159,7 @@ class GroupManagementTests(EduidAPITestCase):
                         'role': role,
                         'csrf_token': sess.get_csrf_token(),
                     }
-                response = client.post(
-                    '/invites/accept', data=json.dumps(data), content_type=self.content_type_json
-                )
+                response = client.post('/invites/accept', data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_='POST_GROUP_INVITE_INVITES_ACCEPT_SUCCESS')
         return response
 
@@ -177,9 +173,7 @@ class GroupManagementTests(EduidAPITestCase):
                         'role': role,
                         'csrf_token': sess.get_csrf_token(),
                     }
-                response = client.post(
-                    '/invites/decline', data=json.dumps(data), content_type=self.content_type_json
-                )
+                response = client.post('/invites/decline', data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_='POST_GROUP_INVITE_INVITES_DECLINE_SUCCESS')
         return response
 

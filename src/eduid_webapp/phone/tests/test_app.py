@@ -174,7 +174,13 @@ class PhoneTests(EduidAPITestCase):
     @patch('eduid_webapp.phone.verifications.get_short_hash')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_common.api.msg.MsgRelay.phone_validator')
-    def _resend_code(self, mock_phone_validator: Any, mock_request_user_sync: Any, mock_code_verification: Any, mod_data: Optional[dict] = None):
+    def _resend_code(
+        self,
+        mock_phone_validator: Any,
+        mock_request_user_sync: Any,
+        mock_code_verification: Any,
+        mod_data: Optional[dict] = None,
+    ):
         """
         Send a POST request to trigger re-sending a verification code for an unverified phone number in the test user.
 
