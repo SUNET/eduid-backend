@@ -16,16 +16,12 @@ __author__ = 'lundberg'
 
 class TestEtcdParser(unittest.TestCase):
     def setUp(self):
-        # FIXME: These tests can't be run on a shared etcd instance,
-        # because they expect a clean one, or else they fail from cross
-        # pollution of data.
-        self.etcd_instance = EtcdTemporaryInstance()
+        self.etcd_instance = EtcdTemporaryInstance.get_instance(max_retry_seconds=20)
 
         self.ns = '/test/'
+        # All these tests expect to start with an empty namespace
+        self.etcd_instance.clear(self.ns)
         self.parser = EtcdConfigParser(namespace=self.ns, host=self.etcd_instance.host, port=self.etcd_instance.port)
-
-    def tearDown(self):
-        self.etcd_instance.shutdown()
 
     def test_write(self):
 
