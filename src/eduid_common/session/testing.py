@@ -30,20 +30,17 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-import atexit
 import logging
-import random
-import shutil
-import subprocess
-import tempfile
-import time
+from typing import Optional, Sequence
 
 import redis
+
+from eduid_common.misc.temp_instance import EduidTemporaryInstance
 
 logger = logging.getLogger(__name__)
 
 
-class RedisTemporaryInstance(object):
+class RedisTemporaryInstance(EduidTemporaryInstance):
     """Singleton to manage a temporary Redis instance
 
     Use this for testing purpose only. The instance is automatically destroyed
@@ -51,73 +48,37 @@ class RedisTemporaryInstance(object):
 
     """
 
-    _instance = None
-
-    @classmethod
-    def get_instance(cls):
-        if cls._instance is None:
-            cls._instance = cls()
-            atexit.register(cls._instance.shutdown)
-        return cls._instance
-
-    def __init__(self):
-        self._tmpdir = tempfile.mkdtemp()
-        self._port = random.randint(40000, 65535)
-        self._logfile = '/tmp/redis-temp.log'
-        self._command = [
+    @property
+    def command(self) -> Sequence[str]:
+        return [
             'docker',
             'run',
             '--rm',
             '-p',
-            '{!s}:6379'.format(self._port),
+            '{!s}:6379'.format(self.port),
             '-v',
-            '{!s}:/data'.format(self._tmpdir),
+            '{!s}:/data'.format(self.tmpdir),
             '-e',
             'extra_args=--daemonize no --bind 0.0.0.0',
             'docker.sunet.se/eduid/redis:latest',
         ]
-        self._process = subprocess.Popen(self._command, stdout=open(self._logfile, 'wb'), stderr=subprocess.STDOUT,)
-        interval = 0.2
-        for i in range(10):
-            time.sleep(interval)
-            try:
-                self._conn = redis.Redis('localhost', self._port, 0)
-                self._conn.set('dummy', 'dummy')
-            except redis.exceptions.ConnectionError:
-                if interval < 3:
-                    interval += interval
-                continue
-            else:
-                break
-        else:
-            with open(self._logfile, 'r') as fd:
-                _output = ''.join(fd.readlines())
-            self.shutdown()
-            _cmd = ' '.join(self._command)
-            assert False, f'Cannot connect to the redis test instance, command: {_cmd}\noutput:\n{_output}'
+
+    def setup_conn(self) -> bool:
+        try:
+            host, port, db = self.get_uri()
+            _conn = redis.Redis(host, port, db)
+            _conn.set('dummy', 'dummy')
+            self._conn = _conn
+        except redis.exceptions.ConnectionError:
+            return False
+        return True
 
     @property
-    def conn(self):
+    def conn(self) -> redis.Redis:
+        if self._conn is None:
+            raise RuntimeError('Missing temporary Redis instance')
         return self._conn
 
-    @property
-    def port(self):
-        return self._port
-
-    def shutdown(self):
-        with open(self._logfile, 'r') as fd:
-            _output = ''.join(fd.readlines())
-        logger.info(f'Redis temporary instance output at shutdown:\n{_output}')
-        if self._process:
-            self._process.terminate()
-            self._process.wait()
-            self._process = None
-        shutil.rmtree(self._tmpdir, ignore_errors=True)
-
     def get_uri(self):
-        """
-        Convenience function to get a redis URI to the temporary database.
-
-        :return: host, port, dbname
-        """
+        """ Convenience function to get a redis URI to the temporary database. """
         return 'localhost', self.port, 0
