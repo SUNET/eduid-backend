@@ -30,9 +30,6 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-from __future__ import absolute_import
-
 import atexit
 import random
 import shutil
@@ -63,8 +60,8 @@ class RedisTemporaryInstance(object):
     def __init__(self):
         self._tmpdir = tempfile.mkdtemp()
         self._port = random.randint(40000, 65535)
-        self._process = subprocess.Popen(
-            [
+        self._logfile = '/tmp/redis-temp.log'
+        self._command = [
                 'docker',
                 'run',
                 '--rm',
@@ -75,8 +72,10 @@ class RedisTemporaryInstance(object):
                 '-e',
                 'extra_args=--daemonize no --bind 0.0.0.0',
                 'docker.sunet.se/eduid/redis:latest',
-            ],
-            stdout=open('/tmp/redis-temp.log', 'wb'),
+            ]
+        self._process = subprocess.Popen(
+            self._command,
+            stdout=open(self._logfile, 'wb'),
             stderr=subprocess.STDOUT,
         )
         interval = 0.2
@@ -92,8 +91,11 @@ class RedisTemporaryInstance(object):
             else:
                 break
         else:
+            with open(self._logfile, 'r') as fd:
+                _output = ''.join(fd.readlines())
             self.shutdown()
-            assert False, 'Cannot connect to the redis test instance'
+            _cmd = ' '.join(self._command)
+            assert False, f'Cannot connect to the redis test instance, command: {_cmd}\noutput:\n{_output}'
 
     @property
     def conn(self):
