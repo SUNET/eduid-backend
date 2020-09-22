@@ -116,12 +116,6 @@ class SessionManager(object):
         :param whitelist: list of allowed keys for the sessions
         :param raise_on_unknown: Whether to raise an exception on an attempt
                                  to set a session session_id not in whitelist
-
-        :type cfg: dict
-        :type ttl: int
-        :type app_secret: str
-        :type whitelist: list
-        :type raise_on_unknown: bool
         """
         self.pool = get_redis_pool(cfg)
         self.ttl = ttl
@@ -196,6 +190,10 @@ class NoSessionDataFoundException(Exception):
     pass
 
 
+class SessionOutOfSync(Exception):
+    pass
+
+
 class RedisEncryptedSession(collections.abc.MutableMapping):
     """
     Session objects that keep their data in a redis db.
@@ -235,6 +233,8 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         self.whitelist = whitelist
         self.raise_on_unknown = raise_on_unknown
         self.app_secret = app_secret
+        # encrypted data loaded from redis, used to avoid clobbering concurrent updates to the session
+        self._raw_data: Optional[str] = None
 
         if cookie_val:
             self.token = SessionCookie.from_cookie(cookie_val, app_secret=self.app_secret)
@@ -246,18 +246,6 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         self.secret_box = nacl.secret.SecretBox(_nacl_key)
 
         self._data: dict = {}
-
-    def load_session(self) -> bool:
-        logger.debug(f'Looking for session {self.token}')
-
-        # Fetch session from session store (Redis)
-        _encrypted_data = self.conn.get(self.token.session_id)
-        if not _encrypted_data:
-            return False
-
-        self._data = self.decrypt_data(_encrypted_data)
-
-        return True
 
     def __getitem__(self, key, default=None):
         if key in self._data:
@@ -285,15 +273,47 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
     def __contains__(self, key):
         return self._data.__contains__(key)
 
+    def load_session(self) -> bool:
+        logger.debug(f'Looking for session {self.token}')
+
+        # Fetch session from session store (Redis). We remember the raw data and use it
+        # when writing data back to Redis to detect if the session was updated by someone
+        # else (in which case we abort).
+        self._raw_data = self.conn.get(self.token.session_id)
+        if not self._raw_data:
+            return False
+
+        self._data = self.decrypt_data(self._raw_data)
+
+        return True
+
     def commit(self):
         """
         Persist the currently held data into the redis db.
         """
         data = self.encrypt_data(self._data)
         logger.debug(f'Committing session {self.token} to the cache with ttl {self.ttl} ({len(data)} bytes)')
-        self.conn.setex(self.token.session_id, self.ttl, data)
 
-    def encrypt_data(self, data_dict: Mapping[str, Any]) -> str:
+        def set_no_clobber(pipe: redis.client.Pipeline) -> None:
+            """
+            Read the current value of the session from the database and compare it to what it was
+            when this instance of the session was initialised, before writing this session to the
+            database.
+
+            If two requests are processed simultaneously, it is better to fail the second one than
+            to silently clobber the first ones updates to the session.
+            """
+            if self._raw_data is not None:
+                _data_now = self.conn.get(self.token.session_id)
+                if _data_now != self._raw_data:
+                    pipe.reset()
+                    raise SessionOutOfSync(f'The session {self.token} has been updated by someone else')
+            pipe.setex(self.token.session_id, self.ttl, data)
+            self._raw_data = data
+
+        self.conn.transaction(set_no_clobber, watches=self.token.session_id)
+
+    def encrypt_data(self, data_dict: Mapping[str, Any]) -> bytes:
         """
         Sign and encrypt data before storing it in Redis.
 
@@ -309,7 +329,7 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
                 self.secret_box.encrypt(data_json.encode('ascii'), nonce, encoder=nacl.encoding.Base64Encoder)
             ).decode('ascii')
         }
-        return json.dumps(versioned)
+        return bytes(json.dumps(versioned), 'ascii')
 
     def decrypt_data(self, data_str: str) -> Dict[str, Any]:
         """

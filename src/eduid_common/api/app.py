@@ -115,7 +115,7 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         init_sentry(self)
         init_template_functions(self)
         self.stats = init_app_stats(self)
-        self.session_interface = SessionFactory(asdict(self.config))
+        self.session_interface = SessionFactory(self.config)
 
         if init_central_userdb:
             self.central_userdb = UserDB(self.config.mongo_uri, 'eduid_am')

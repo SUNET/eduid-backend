@@ -4,17 +4,21 @@ import binascii
 import json
 import os
 from collections.abc import MutableMapping
+from dataclasses import asdict
 from time import time
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Mapping, Optional
 
+from flask import Request as FlaskRequest
+from flask import Response as FlaskResponse
 from flask import current_app
 from flask import request as flask_request
 from flask.sessions import SessionInterface, SessionMixin
 
+from eduid_common.config.base import FlaskConfig
 from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.session.logindata import SSOLoginData
 from eduid_common.session.namespaces import Actions, Common, MfaAction, ResetPasswordNS, SessionNSBase, Signup
-from eduid_common.session.redis_session import RedisEncryptedSession, SessionManager
+from eduid_common.session.redis_session import RedisEncryptedSession, SessionManager, SessionOutOfSync
 
 # From https://stackoverflow.com/a/39757388
 # The TYPE_CHECKING constant is always False at runtime, so the import won't be evaluated, but mypy
@@ -285,39 +289,32 @@ class SessionFactory(SessionInterface):
     to provide eduID redis-based sessions to the APIs.
 
     :param config: the configuration for the session
-    :type config: dict
     """
 
-    def __init__(self, config):
+    def __init__(self, config: FlaskConfig):
+        if config.secret_key is None:
+            raise BadConfiguration('secret_key not set in config')
 
         self.config = config
-        secret = config['secret_key']
-        ttl = 2 * int(config['permanent_session_lifetime'])
-        self.manager = SessionManager(config, ttl=ttl, app_secret=secret)
+        ttl = 2 * config.permanent_session_lifetime
+        self.manager = SessionManager(asdict(config), ttl=ttl, app_secret=config.secret_key)
 
-    #  Return type of "open_session" incompatible with supertype "SessionInterface"
-    def open_session(self, app, request) -> EduidSession:  # type: ignore
+    # Return type not specified because 'Return type of "open_session" incompatible with supertype "SessionInterface"'
+    def open_session(self, app: EduIDBaseApp, request: FlaskRequest):  # -> EduidSession:
         """
         See flask.session.SessionInterface
         """
-        try:
-            cookie_name = app.config['session_cookie_name']
-        except KeyError:
-            app.logger.error('session_cookie_name not set in config')
-            raise BadConfiguration('session_cookie_name not set in config')
-
         # Load token from cookie
+        cookie_name = app.config.session_cookie_name
         cookie_val = request.cookies.get(cookie_name, None)
-        if app.debug:
-            current_app.logger.debug('Session cookie {} == {}'.format(cookie_name, cookie_val))
+        current_app.logger.debug(f'Session cookie {cookie_name} == {cookie_val}')
 
         if cookie_val:
             # Existing session
             try:
                 base_session = self.manager.get_session(cookie_val=cookie_val)
                 sess = EduidSession(app, base_session, new=False)
-                if app.debug:
-                    current_app.logger.debug('Loaded existing session {}'.format(sess))
+                current_app.logger.debug('Loaded existing session {}'.format(sess))
                 return sess
             except KeyError:
                 current_app.logger.debug(f'Failed to load session from cookie {cookie_val}, will create a new one')
@@ -325,13 +322,16 @@ class SessionFactory(SessionInterface):
         # New session
         base_session = self.manager.get_session()
         sess = EduidSession(app, base_session, new=True)
-        if app.debug:
-            current_app.logger.debug('Created new session {}'.format(sess))
+        current_app.logger.debug('Created new session {}'.format(sess))
         return sess
 
-    def save_session(self, app, sess, response):
+    def save_session(self, app: EduIDBaseApp, sess: EduidSession, response: FlaskResponse) -> None:
         """
         See flask.session.SessionInterface
         """
-        sess.persist()
+        try:
+            sess.persist()
+        except SessionOutOfSync:
+            app.stats.count('session_out_of_sync_error')
+            raise
         sess.set_cookie(response)
