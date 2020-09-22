@@ -107,8 +107,8 @@ class PersonalDataTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction() as sess:
-                with self.app.test_request_context():
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
                     data = {
                         'given_name': 'Peter',
                         'surname': 'Johnson',
@@ -116,10 +116,10 @@ class PersonalDataTests(EduidAPITestCase):
                         'language': 'en',
                         'csrf_token': sess.get_csrf_token(),
                     }
-                    if mod_data:
-                        data.update(mod_data)
-                response = client.post('/user', data=json.dumps(data), content_type=self.content_type_json)
-                return json.loads(response.data)
+                if mod_data:
+                    data.update(mod_data)
+            response = client.post('/user', data=json.dumps(data), content_type=self.content_type_json)
+            return json.loads(response.data)
 
     def _get_user_nins(self, eppn: Optional[str] = None):
         """

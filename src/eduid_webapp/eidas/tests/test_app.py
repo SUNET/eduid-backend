@@ -239,8 +239,11 @@ class EidasTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             with browser.session_transaction() as sess:
                 sess['eduidIdPCredentialsUsed'] = [credential.key, 'other_id']
-                sess.persist()
-                response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
+
+            response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
+            self.assertEqual(response.status_code, 302)
+
+            with browser.session_transaction() as sess:
                 cookie_val = sess._session.token.cookie_val
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_nin
@@ -249,20 +252,17 @@ class EidasTests(EduidAPITestCase):
                 oq_cache.set(cookie_val, '/')
                 sess['post-authn-action'] = 'token-verify-action'
                 sess['verify_token_action_credential_id'] = credential.key
-                sess.persist()
 
-                self.assertEqual(response.status_code, 302)
+            data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
+            browser.post('/saml2-acs', data=data)
 
-                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
-                browser.post('/saml2-acs', data=data)
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+            user_mfa_tokens = user.credentials.filter(U2F).to_list()
 
-                user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-                user_mfa_tokens = user.credentials.filter(U2F).to_list()
+            self.assertEqual(len(user_mfa_tokens), 1)
+            self.assertEqual(user_mfa_tokens[0].is_verified, True)
 
-                self.assertEqual(len(user_mfa_tokens), 1)
-                self.assertEqual(user_mfa_tokens[0].is_verified, True)
-
-                self.assertEqual(self.app.proofing_log.db_count(), 1)
+            self.assertEqual(self.app.proofing_log.db_count(), 1)
 
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
@@ -275,8 +275,11 @@ class EidasTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             with browser.session_transaction() as sess:
                 sess['eduidIdPCredentialsUsed'] = [credential.key, 'other_id']
-                sess.persist()
-                response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
+
+            response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
+            self.assertEqual(response.status_code, 302)
+
+            with browser.session_transaction() as sess:
                 cookie_val = sess._session.token.cookie_val
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_nin
@@ -285,20 +288,17 @@ class EidasTests(EduidAPITestCase):
                 oq_cache.set(cookie_val, '/')
                 sess['post-authn-action'] = 'token-verify-action'
                 sess['verify_token_action_credential_id'] = credential.key
-                sess.persist()
 
-                self.assertEqual(response.status_code, 302)
+            data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
+            browser.post('/saml2-acs', data=data)
 
-                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
-                browser.post('/saml2-acs', data=data)
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+            user_mfa_tokens = user.credentials.filter(Webauthn).to_list()
 
-                user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-                user_mfa_tokens = user.credentials.filter(Webauthn).to_list()
+            self.assertEqual(len(user_mfa_tokens), 1)
+            self.assertEqual(user_mfa_tokens[0].is_verified, True)
 
-                self.assertEqual(len(user_mfa_tokens), 1)
-                self.assertEqual(user_mfa_tokens[0].is_verified, True)
-
-                self.assertEqual(self.app.proofing_log.db_count(), 1)
+            self.assertEqual(self.app.proofing_log.db_count(), 1)
 
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
@@ -311,8 +311,11 @@ class EidasTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             with browser.session_transaction() as sess:
                 sess['eduidIdPCredentialsUsed'] = [credential.key, 'other_id']
-                sess.persist()
-                response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
+
+            response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
+            self.assertEqual(response.status_code, 302)
+
+            with browser.session_transaction() as sess:
                 cookie_val = sess._session.token.cookie_val
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_wrong_nin
@@ -321,20 +324,16 @@ class EidasTests(EduidAPITestCase):
                 oq_cache.set(cookie_val, '/')
                 sess['post-authn-action'] = 'token-verify-action'
                 sess['verify_token_action_credential_id'] = credential.key
-                sess.persist()
 
-                self.assertEqual(response.status_code, 302)
+            data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
+            browser.post('/saml2-acs', data=data)
 
-                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
-                browser.post('/saml2-acs', data=data)
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+            user_mfa_tokens = user.credentials.filter(FidoCredential).to_list()
 
-                user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-                user_mfa_tokens = user.credentials.filter(FidoCredential).to_list()
-
-                self.assertEqual(len(user_mfa_tokens), 1)
-                self.assertEqual(user_mfa_tokens[0].is_verified, False)
-
-                self.assertEqual(self.app.proofing_log.db_count(), 0)
+            self.assertEqual(len(user_mfa_tokens), 1)
+            self.assertEqual(user_mfa_tokens[0].is_verified, False)
+            self.assertEqual(self.app.proofing_log.db_count(), 0)
 
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
@@ -349,8 +348,11 @@ class EidasTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_unverified_user_eppn) as browser:
             with browser.session_transaction() as sess:
                 sess['eduidIdPCredentialsUsed'] = [credential.key, 'other_id']
-                sess.persist()
+
                 response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
+                self.assertEqual(response.status_code, 302)
+
+            with browser.session_transaction() as sess:
                 cookie_val = sess._session.token.cookie_val
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_nin
@@ -359,22 +361,18 @@ class EidasTests(EduidAPITestCase):
                 oq_cache.set(cookie_val, '/')
                 sess['post-authn-action'] = 'token-verify-action'
                 sess['verify_token_action_credential_id'] = credential.key
-                sess.persist()
 
-                self.assertEqual(response.status_code, 302)
+            data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
+            browser.post('/saml2-acs', data=data)
 
-                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
-                browser.post('/saml2-acs', data=data)
+            user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
+            user_mfa_tokens = user.credentials.filter(FidoCredential).to_list()
+            self.assertEqual(len(user_mfa_tokens), 1)
+            self.assertEqual(user_mfa_tokens[0].is_verified, True)
 
-                user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
-                user_mfa_tokens = user.credentials.filter(FidoCredential).to_list()
-                self.assertEqual(len(user_mfa_tokens), 1)
-                self.assertEqual(user_mfa_tokens[0].is_verified, True)
-
-                self.assertEqual(user.nins.verified.count, 1)
-                self.assertEqual(user.nins.primary.number, self.test_user_nin)
-
-                self.assertEqual(self.app.proofing_log.db_count(), 2)
+            self.assertEqual(user.nins.verified.count, 1)
+            self.assertEqual(user.nins.primary.number, self.test_user_nin)
+            self.assertEqual(self.app.proofing_log.db_count(), 2)
 
     def test_mfa_token_verify_no_mfa_login(self):
         credential = self.add_token_to_user(self.test_user_eppn, 'test', 'u2f')
@@ -397,8 +395,11 @@ class EidasTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             with browser.session_transaction() as sess:
                 sess['eduidIdPCredentialsUsed'] = [credential.key, 'other_id']
-                sess.persist()
-                response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
+
+            response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
+            self.assertEqual(response.status_code, 302)
+
+            with browser.session_transaction() as sess:
                 cookie_val = sess._session.token.cookie_val
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_nin
@@ -408,20 +409,17 @@ class EidasTests(EduidAPITestCase):
                 sess['post-authn-action'] = 'token-verify-action'
                 sess['verify_token_action_credential_id'] = credential.key
                 sess['eduidIdPCredentialsUsed'] = ['other_id']
-                sess.persist()
 
-                self.assertEqual(response.status_code, 302)
+            data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
+            response = browser.post('/saml2-acs', data=data)
 
-                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
-                response = browser.post('/saml2-acs', data=data)
-
-                self.assertEqual(response.status_code, 302)
-                self.assertEqual(
-                    response.location,
-                    '{}?msg=%3AERROR%3Aeidas.token_not_in_credentials_used'.format(
-                        self.app.config.token_verify_redirect_url
-                    ),
-                )
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(
+                response.location,
+                '{}?msg=%3AERROR%3Aeidas.token_not_in_credentials_used'.format(
+                    self.app.config.token_verify_redirect_url
+                ),
+            )
 
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
@@ -434,8 +432,11 @@ class EidasTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             with browser.session_transaction() as sess:
                 sess['eduidIdPCredentialsUsed'] = [credential.key, 'other_id']
-                sess.persist()
-                response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
+
+            response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
+            self.assertEqual(response.status_code, 302)
+
+            with browser.session_transaction() as sess:
                 cookie_val = sess._session.token.cookie_val
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_fail, self.test_user_wrong_nin
@@ -444,9 +445,6 @@ class EidasTests(EduidAPITestCase):
                 oq_cache.set(cookie_val, '/')
                 sess['post-authn-action'] = 'token-verify-action'
                 sess['verify_token_action_credential_id'] = credential.key
-                sess.persist()
-
-                self.assertEqual(response.status_code, 302)
 
                 data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
                 browser.post('/saml2-acs', data=data)
@@ -470,8 +468,11 @@ class EidasTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             with browser.session_transaction() as sess:
                 sess['eduidIdPCredentialsUsed'] = [credential.key, 'other_id']
-                sess.persist()
-                response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
+
+            response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
+            self.assertEqual(response.status_code, 302)
+
+            with browser.session_transaction() as sess:
                 cookie_val = sess._session.token.cookie_val
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_cancel, self.test_user_wrong_nin
@@ -480,20 +481,16 @@ class EidasTests(EduidAPITestCase):
                 oq_cache.set(cookie_val, '/')
                 sess['post-authn-action'] = 'token-verify-action'
                 sess['verify_token_action_credential_id'] = credential.key
-                sess.persist()
 
-                self.assertEqual(response.status_code, 302)
+            data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
+            browser.post('/saml2-acs', data=data)
 
-                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
-                browser.post('/saml2-acs', data=data)
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+            user_mfa_tokens = user.credentials.filter(FidoCredential).to_list()
 
-                user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-                user_mfa_tokens = user.credentials.filter(FidoCredential).to_list()
-
-                self.assertEqual(len(user_mfa_tokens), 1)
-                self.assertEqual(user_mfa_tokens[0].is_verified, False)
-
-                self.assertEqual(self.app.proofing_log.db_count(), 0)
+            self.assertEqual(len(user_mfa_tokens), 1)
+            self.assertEqual(user_mfa_tokens[0].is_verified, False)
+            self.assertEqual(self.app.proofing_log.db_count(), 0)
 
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
@@ -506,8 +503,11 @@ class EidasTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             with browser.session_transaction() as sess:
                 sess['eduidIdPCredentialsUsed'] = [credential.key, 'other_id']
-                sess.persist()
-                response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
+
+            response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
+            self.assertEqual(response.status_code, 302)
+
+            with browser.session_transaction() as sess:
                 cookie_val = sess._session.token.cookie_val
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_fail, self.test_user_wrong_nin
@@ -516,20 +516,16 @@ class EidasTests(EduidAPITestCase):
                 oq_cache.set(cookie_val, '/')
                 sess['post-authn-action'] = 'token-verify-action'
                 sess['verify_token_action_credential_id'] = credential.key
-                sess.persist()
 
-                self.assertEqual(response.status_code, 302)
+            data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
+            browser.post('/saml2-acs', data=data)
 
-                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
-                browser.post('/saml2-acs', data=data)
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+            user_mfa_tokens = user.credentials.filter(FidoCredential).to_list()
 
-                user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-                user_mfa_tokens = user.credentials.filter(FidoCredential).to_list()
-
-                self.assertEqual(len(user_mfa_tokens), 1)
-                self.assertEqual(user_mfa_tokens[0].is_verified, False)
-
-                self.assertEqual(self.app.proofing_log.db_count(), 0)
+            self.assertEqual(len(user_mfa_tokens), 1)
+            self.assertEqual(user_mfa_tokens[0].is_verified, False)
+            self.assertEqual(self.app.proofing_log.db_count(), 0)
 
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
@@ -541,8 +537,9 @@ class EidasTests(EduidAPITestCase):
         self.assertEqual(user.nins.verified.count, 0)
 
         with self.session_cookie(self.browser, self.test_unverified_user_eppn) as browser:
+            response = browser.get('/verify-nin?idp={}'.format(self.test_idp))
+            self.assertEqual(response.status_code, 302)
             with browser.session_transaction() as sess:
-                response = browser.get('/verify-nin?idp={}'.format(self.test_idp))
                 cookie_val = sess._session.token.cookie_val
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_nin
@@ -550,19 +547,15 @@ class EidasTests(EduidAPITestCase):
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(cookie_val, '/')
                 sess['post-authn-action'] = 'nin-verify-action'
-                sess.persist()
 
-                self.assertEqual(response.status_code, 302)
+            data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
+            browser.post('/saml2-acs', data=data)
 
-                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
-                browser.post('/saml2-acs', data=data)
+            user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
 
-                user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
-
-                self.assertEqual(user.nins.verified.count, 1)
-                self.assertEqual(user.nins.primary.number, self.test_user_nin)
-
-                self.assertEqual(self.app.proofing_log.db_count(), 1)
+            self.assertEqual(user.nins.verified.count, 1)
+            self.assertEqual(user.nins.primary.number, self.test_user_nin)
+            self.assertEqual(self.app.proofing_log.db_count(), 1)
 
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
@@ -576,19 +569,15 @@ class EidasTests(EduidAPITestCase):
         self.app.config.magic_cookie = 'magic-cookie'
 
         with self.session_cookie(self.browser, self.test_unverified_user_eppn) as browser:
-            with browser.session_transaction():
+            browser.set_cookie('localhost', key='magic-cookie', value='magic-cookie')
+            browser.set_cookie('localhost', key='nin', value=self.test_user_nin)
+            browser.get('/verify-nin?idp={}'.format(self.test_idp))
 
-                browser.set_cookie('localhost', key='magic-cookie', value='magic-cookie')
-                browser.set_cookie('localhost', key='nin', value=self.test_user_nin)
+        user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
 
-                browser.get('/verify-nin?idp={}'.format(self.test_idp))
-
-                user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
-
-                self.assertEqual(user.nins.verified.count, 1)
-                self.assertEqual(user.nins.primary.number, self.test_user_nin)
-
-                self.assertEqual(self.app.proofing_log.db_count(), 1)
+        self.assertEqual(user.nins.verified.count, 1)
+        self.assertEqual(user.nins.primary.number, self.test_user_nin)
+        self.assertEqual(self.app.proofing_log.db_count(), 1)
 
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
@@ -603,17 +592,15 @@ class EidasTests(EduidAPITestCase):
         self.app.config.environment = 'pro'
 
         with self.session_cookie(self.browser, self.test_unverified_user_eppn) as browser:
-            with browser.session_transaction():
+            browser.set_cookie('localhost', key='magic-cookie', value='magic-cookie')
+            browser.set_cookie('localhost', key='nin', value=self.test_user_nin)
 
-                browser.set_cookie('localhost', key='magic-cookie', value='magic-cookie')
-                browser.set_cookie('localhost', key='nin', value=self.test_user_nin)
+            browser.get('/verify-nin?idp={}'.format(self.test_idp))
 
-                browser.get('/verify-nin?idp={}'.format(self.test_idp))
+        user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
 
-                user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
-
-                self.assertEqual(user.nins.verified.count, 0)
-                self.assertEqual(self.app.proofing_log.db_count(), 0)
+        self.assertEqual(user.nins.verified.count, 0)
+        self.assertEqual(self.app.proofing_log.db_count(), 0)
 
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
@@ -625,17 +612,15 @@ class EidasTests(EduidAPITestCase):
         self.assertEqual(user.nins.verified.count, 0)
 
         with self.session_cookie(self.browser, self.test_unverified_user_eppn) as browser:
-            with browser.session_transaction():
+            browser.set_cookie('localhost', key='magic-cookie', value='magic-cookie')
+            browser.set_cookie('localhost', key='nin', value=self.test_user_nin)
 
-                browser.set_cookie('localhost', key='magic-cookie', value='magic-cookie')
-                browser.set_cookie('localhost', key='nin', value=self.test_user_nin)
+            browser.get('/verify-nin?idp={}'.format(self.test_idp))
 
-                browser.get('/verify-nin?idp={}'.format(self.test_idp))
+        user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
 
-                user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
-
-                self.assertEqual(user.nins.verified.count, 0)
-                self.assertEqual(self.app.proofing_log.db_count(), 0)
+        self.assertEqual(user.nins.verified.count, 0)
+        self.assertEqual(self.app.proofing_log.db_count(), 0)
 
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
@@ -647,8 +632,9 @@ class EidasTests(EduidAPITestCase):
         self.assertEqual(user.nins.verified.count, 0)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+            response = browser.get('/verify-nin/?idp={}'.format(self.test_idp))
+            self.assertEqual(response.status_code, 302)
             with browser.session_transaction() as sess:
-                response = browser.get('/verify-nin/?idp={}'.format(self.test_idp))
                 cookie_val = sess._session.token.cookie_val
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_nin
@@ -656,18 +642,15 @@ class EidasTests(EduidAPITestCase):
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(cookie_val, '/')
                 sess['post-authn-action'] = 'nin-verify-action'
-                sess.persist()
 
-                self.assertEqual(response.status_code, 302)
+            data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
+            response = browser.post('/saml2-acs', data=data)
 
-                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
-                response = browser.post('/saml2-acs', data=data)
-
-                self.assertEqual(response.status_code, 302)
-                self.assertEqual(
-                    response.location,
-                    '{}?msg=%3AERROR%3Aeidas.nin_already_verified'.format(self.app.config.nin_verify_redirect_url),
-                )
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(
+                response.location,
+                '{}?msg=%3AERROR%3Aeidas.nin_already_verified'.format(self.app.config.nin_verify_redirect_url),
+            )
 
     def test_mfa_authentication_verified_user(self):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -676,13 +659,13 @@ class EidasTests(EduidAPITestCase):
         next_url = base64.b64encode(b'http://idp.localhost/action').decode('utf-8')
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            with browser.session_transaction() as sess:
-                response = browser.get('/mfa-authentication/?idp={}&next={}'.format(self.test_idp, next_url))
-                self.assertEqual(response.status_code, 302)
+            response = browser.get('/mfa-authentication/?idp={}&next={}'.format(self.test_idp, next_url))
+            self.assertEqual(response.status_code, 302)
+            ps = urllib.parse.urlparse(response.location)
+            qs = urllib.parse.parse_qs(ps.query)
+            relay_state = qs['RelayState'][0]
 
-                ps = urllib.parse.urlparse(response.location)
-                qs = urllib.parse.parse_qs(ps.query)
-                relay_state = qs['RelayState'][0]
+            with browser.session_transaction() as sess:
                 cookie_val = sess._session.token.cookie_val
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_nin
@@ -707,13 +690,13 @@ class EidasTests(EduidAPITestCase):
         next_url = base64.b64encode(b'http://idp.localhost/action').decode('utf-8')
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            with browser.session_transaction() as sess:
-                response = browser.get('/mfa-authentication/?idp={}&next={}'.format(self.test_idp, next_url))
-                self.assertEqual(response.status_code, 302)
+            response = browser.get('/mfa-authentication/?idp={}&next={}'.format(self.test_idp, next_url))
+            self.assertEqual(response.status_code, 302)
+            ps = urllib.parse.urlparse(response.location)
+            qs = urllib.parse.parse_qs(ps.query)
+            relay_state = qs['RelayState'][0]
 
-                ps = urllib.parse.urlparse(response.location)
-                qs = urllib.parse.parse_qs(ps.query)
-                relay_state = qs['RelayState'][0]
+            with browser.session_transaction() as sess:
                 cookie_val = sess._session.token.cookie_val
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_wrong_nin
@@ -742,8 +725,9 @@ class EidasTests(EduidAPITestCase):
         self.assertEqual(user.nins.verified.count, 0)
 
         with self.session_cookie(self.browser, self.test_unverified_user_eppn) as browser:
+            response = browser.get('/verify-nin?idp={}'.format(self.test_idp))
+            self.assertEqual(response.status_code, 302)
             with browser.session_transaction() as sess:
-                response = browser.get('/verify-nin?idp={}'.format(self.test_idp))
                 cookie_val = sess._session.token.cookie_val
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_nin
@@ -751,19 +735,15 @@ class EidasTests(EduidAPITestCase):
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(cookie_val, '/')
                 sess['post-authn-action'] = 'nin-verify-action'
-                sess.persist()
 
-                self.assertEqual(response.status_code, 302)
+            data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
+            browser.post('/saml2-acs', data=data)
 
-                data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
-                browser.post('/saml2-acs', data=data)
+            user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
 
-                user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
-
-                self.assertEqual(user.nins.verified.count, 1)
-                self.assertEqual(user.nins.primary.number, '190102031234')
-
-                self.assertEqual(self.app.proofing_log.db_count(), 1)
+            self.assertEqual(user.nins.verified.count, 1)
+            self.assertEqual(user.nins.primary.number, '190102031234')
+            self.assertEqual(self.app.proofing_log.db_count(), 1)
 
 
 class RedirectWithMsgTests(TestCase):

@@ -157,12 +157,12 @@ class MFAActionPluginTests(ActionsTestCase):
                 with client.session_transaction() as sess:
                     sess['eduid_webapp.actions.actions.mfa.webauthn.state'] = fido2_state
                     csrf_token = sess.get_csrf_token()
-                    data = {
-                        'csrf_token': csrf_token,
-                    }
-                    if data1 is not None:
-                        data.update(data1)
-                    return client.post('/post-action', data=json.dumps(data), content_type=self.content_type_json)
+                data = {
+                    'csrf_token': csrf_token,
+                }
+                if data1 is not None:
+                    data.update(data1)
+                return client.post('/post-action', data=json.dumps(data), content_type=self.content_type_json)
 
     def _third_party_mfa_action_success(self, prepare_session: bool = True):
         """

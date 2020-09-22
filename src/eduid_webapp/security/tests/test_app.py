@@ -88,15 +88,15 @@ class SecurityTests(EduidAPITestCase):
 
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction() as sess:
-                with self.app.test_request_context():
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
                     data = {
                         'csrf_token': sess.get_csrf_token(),
                     }
-                    if data1 is not None:
-                        data.update(data1)
+                if data1 is not None:
+                    data.update(data1)
 
-                return client.post('/terminate-account', data=json.dumps(data), content_type=self.content_type_json)
+            return client.post('/terminate-account', data=json.dumps(data), content_type=self.content_type_json)
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
@@ -152,13 +152,13 @@ class SecurityTests(EduidAPITestCase):
             self.assertEqual(user.nins.verified.count, 1)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
-            with client.session_transaction() as sess:
-                with self.app.test_request_context():
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
                     data = {'nin': self.test_user_nin, 'csrf_token': sess.get_csrf_token()}
-                    if data1 is not None:
-                        data.update(data1)
+                if data1 is not None:
+                    data.update(data1)
 
-                    return client.post('/remove-nin', data=json.dumps(data), content_type=self.content_type_json)
+                return client.post('/remove-nin', data=json.dumps(data), content_type=self.content_type_json)
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def _add_nin(self, mock_request_user_sync: Any, data1: Optional[dict] = None, remove: bool = True):
@@ -180,13 +180,13 @@ class SecurityTests(EduidAPITestCase):
             self.assertEqual(user.nins.verified.count, 1)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
-            with client.session_transaction() as sess:
-                with self.app.test_request_context():
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
                     data = {'nin': self.test_user_nin, 'csrf_token': sess.get_csrf_token()}
-                    if data1:
-                        data.update(data1)
+                if data1:
+                    data.update(data1)
 
-                    return client.post('/add-nin', data=json.dumps(data), content_type=self.content_type_json)
+                return client.post('/add-nin', data=json.dumps(data), content_type=self.content_type_json)
 
     # actual tests
 
@@ -391,115 +391,115 @@ class SecurityTests(EduidAPITestCase):
     def test_change_passwd_no_reauthn(self):
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction() as sess:
-                with self.app.test_request_context():
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
                     data = {
                         'csrf_token': sess.get_csrf_token(),
                         'new_password': 'j7/E >pO9 ,$Sr',
                         'old_password': '5678',
                     }
-                response2 = client.post('/change-password', data=json.dumps(data), content_type=self.content_type_json)
+            response2 = client.post('/change-password', data=json.dumps(data), content_type=self.content_type_json)
 
-                self.assertEqual(response2.status_code, 200)
+            self.assertEqual(response2.status_code, 200)
 
-                sec_data = json.loads(response2.data)
-                self.assertEqual(sec_data['payload']['message'], 'chpass.no_reauthn')
-                self.assertEqual(sec_data['type'], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
+            sec_data = json.loads(response2.data)
+            self.assertEqual(sec_data['payload']['message'], 'chpass.no_reauthn')
+            self.assertEqual(sec_data['type'], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
 
     def test_change_passwd_stale(self):
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction() as sess:
-                sess['reauthn-for-chpass'] = True
-                with self.app.test_request_context():
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
+                    sess['reauthn-for-chpass'] = True
                     data = {
                         'csrf_token': sess.get_csrf_token(),
                         'new_password': 'j7/E >pO9 ,$Sr O0;&',
                         'old_password': '5678',
                     }
-                response2 = client.post('/change-password', data=json.dumps(data), content_type=self.content_type_json)
+            response2 = client.post('/change-password', data=json.dumps(data), content_type=self.content_type_json)
 
-                self.assertEqual(response2.status_code, 200)
+            self.assertEqual(response2.status_code, 200)
 
-                sec_data = json.loads(response2.data)
-                self.assertEqual(sec_data['type'], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
+            sec_data = json.loads(response2.data)
+            self.assertEqual(sec_data['type'], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_change_passwd_no_csrf(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction() as sess:
-                with patch('eduid_webapp.security.views.security.add_credentials', return_value=True):
+            with patch('eduid_webapp.security.views.security.add_credentials', return_value=True):
+                with client.session_transaction() as sess:
                     sess['reauthn-for-chpass'] = int(time.time())
-                    data = {'new_password': 'j7/E >pO9 ,$Sr O0;&', 'old_password': '5678'}
-                    response2 = client.post(
-                        '/change-password', data=json.dumps(data), content_type=self.content_type_json
-                    )
+                data = {'new_password': 'j7/E >pO9 ,$Sr O0;&', 'old_password': '5678'}
+                response2 = client.post(
+                    '/change-password', data=json.dumps(data), content_type=self.content_type_json
+                )
 
-                    self.assertEqual(response2.status_code, 200)
+                self.assertEqual(response2.status_code, 200)
 
-                    sec_data = json.loads(response2.data)
-                    self.assertEqual(sec_data['payload']['message'], 'chpass.weak-password')
-                    self.assertEqual(sec_data['type'], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
+                sec_data = json.loads(response2.data)
+                self.assertEqual(sec_data['payload']['message'], 'chpass.weak-password')
+                self.assertEqual(sec_data['type'], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_change_passwd_wrong_csrf(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction() as sess:
-                with patch('eduid_webapp.security.views.security.add_credentials', return_value=True):
+            with patch('eduid_webapp.security.views.security.add_credentials', return_value=True):
+                with client.session_transaction() as sess:
                     sess['reauthn-for-chpass'] = int(time.time())
                     data = {'csrf_token': '0000', 'new_password': 'j7/E >pO9 ,$Sr O0;&', 'old_password': '5678'}
-                    response2 = client.post(
-                        '/change-password', data=json.dumps(data), content_type=self.content_type_json
-                    )
+                response2 = client.post(
+                    '/change-password', data=json.dumps(data), content_type=self.content_type_json
+                )
 
-                    sec_data = json.loads(response2.data)
-                    self.assertEqual(sec_data['payload']['message'], 'csrf.try_again')
-                    self.assertEqual(sec_data['type'], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
+                sec_data = json.loads(response2.data)
+                self.assertEqual(sec_data['payload']['message'], 'csrf.try_again')
+                self.assertEqual(sec_data['type'], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_change_passwd_weak(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction() as sess:
-                with patch('eduid_webapp.security.views.security.add_credentials', return_value=True):
-                    sess['reauthn-for-chpass'] = int(time.time())
-                    with self.app.test_request_context():
+            with patch('eduid_webapp.security.views.security.add_credentials', return_value=True):
+                with self.app.test_request_context():
+                    with client.session_transaction() as sess:
+                        sess['reauthn-for-chpass'] = int(time.time())
                         data = {'csrf_token': sess.get_csrf_token(), 'new_password': '1234', 'old_password': '5678'}
-                    response2 = client.post(
-                        '/change-password', data=json.dumps(data), content_type=self.content_type_json
-                    )
+                response2 = client.post(
+                    '/change-password', data=json.dumps(data), content_type=self.content_type_json
+                )
 
-                    self.assertEqual(response2.status_code, 200)
+                self.assertEqual(response2.status_code, 200)
 
-                    sec_data = json.loads(response2.data)
-                    self.assertEqual(sec_data['payload']['message'], 'chpass.weak-password')
-                    self.assertEqual(sec_data['type'], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
+                sec_data = json.loads(response2.data)
+                self.assertEqual(sec_data['payload']['message'], 'chpass.weak-password')
+                self.assertEqual(sec_data['type'], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_change_passwd(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction() as sess:
-                with patch('eduid_webapp.security.views.security.add_credentials', return_value=True):
-                    sess['reauthn-for-chpass'] = int(time.time())
-                    with self.app.test_request_context():
+            with patch('eduid_webapp.security.views.security.add_credentials', return_value=True):
+                with self.app.test_request_context():
+                    with client.session_transaction() as sess:
+                        sess['reauthn-for-chpass'] = int(time.time())
                         data = {
                             'csrf_token': sess.get_csrf_token(),
                             'new_password': 'j7/E >pO9 ,$Sr O0;&',
                             'old_password': '5678',
                         }
-                    response2 = client.post(
-                        '/change-password', data=json.dumps(data), content_type=self.content_type_json
-                    )
+                response2 = client.post(
+                    '/change-password', data=json.dumps(data), content_type=self.content_type_json
+                )
 
-                    self.assertEqual(response2.status_code, 200)
+                self.assertEqual(response2.status_code, 200)
 
-                    sec_data = json.loads(response2.data)
-                    self.assertEqual(sec_data['payload']['message'], 'chpass.password-changed')
-                    self.assertEqual(sec_data['type'], "POST_SECURITY_CHANGE_PASSWORD_SUCCESS")
+                sec_data = json.loads(response2.data)
+                self.assertEqual(sec_data['payload']['message'], 'chpass.password-changed')
+                self.assertEqual(sec_data['type'], "POST_SECURITY_CHANGE_PASSWORD_SUCCESS")

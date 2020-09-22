@@ -268,11 +268,11 @@ class SecurityWebauthnTests(EduidAPITestCase):
                     else:
                         csrf_token = sess.get_csrf_token()
                     data = {'csrf_token': csrf_token, 'authenticator': authenticator}
-                response2 = client.post(
-                    '/webauthn/register/begin', data=json.dumps(data), content_type=self.content_type_json
-                )
-                if check_session:
-                    self._check_session_state(client)
+            response2 = client.post(
+                '/webauthn/register/begin', data=json.dumps(data), content_type=self.content_type_json
+            )
+            if check_session:
+                self._check_session_state(client)
 
             return json.loads(response2.data)
 
@@ -303,9 +303,9 @@ class SecurityWebauthnTests(EduidAPITestCase):
             self._add_u2f_token_to_user(eppn)
 
         with self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction() as sess:
-                sess['_webauthn_state_'] = state
-                with self.app.test_request_context():
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
+                    sess['_webauthn_state_'] = state
                     if csrf is not None:
                         csrf_token = csrf
                     else:
@@ -317,10 +317,10 @@ class SecurityWebauthnTests(EduidAPITestCase):
                         'credentialId': cred_id,
                         'description': 'dummy description',
                     }
-                response2 = client.post(
-                    '/webauthn/register/complete', data=json.dumps(data), content_type=self.content_type_json
-                )
-                return json.loads(response2.data)
+            response2 = client.post(
+                '/webauthn/register/complete', data=json.dumps(data), content_type=self.content_type_json
+            )
+            return json.loads(response2.data)
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def _dont_remove_last(

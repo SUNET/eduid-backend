@@ -133,8 +133,7 @@ class SignupTests(EduidAPITestCase):
                         client.set_cookie(
                             'localhost', key=self.app.config.magic_cookie_name, value=self.app.config.magic_cookie
                         )
-
-                    return client.post('/trycaptcha', data=json.dumps(data), content_type=self.content_type_json)
+            return client.post('/trycaptcha', data=json.dumps(data), content_type=self.content_type_json)
 
     @patch('eduid_webapp.signup.views.verify_recaptcha')
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
@@ -216,26 +215,26 @@ class SignupTests(EduidAPITestCase):
         mock_recaptcha.return_value = True
 
         with self.session_cookie(self.browser) as client:
-            with client.session_transaction() as sess:
-                with self.app.test_request_context():
+
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
                     data = {
                         'email': email,
                         'recaptcha_response': 'dummy',
                         'tou_accepted': True,
                         'csrf_token': sess.get_csrf_token(),
                     }
-                    if data1 is not None:
-                        data.update(data1)
+                if data1 is not None:
+                    data.update(data1)
 
-                    client.post('/trycaptcha', data=json.dumps(data), content_type=self.content_type_json)
+                client.post('/trycaptcha', data=json.dumps(data), content_type=self.content_type_json)
 
-                    if data1 is None:
-                        send_verification_mail(email)
+                if data1 is None:
+                    send_verification_mail(email)
 
-                    signup_user = self.app.private_userdb.get_user_by_pending_mail_address(email)
-                    response = client.get('/verify-link/' + signup_user.pending_mail_address.verification_code)
-
-                    return json.loads(response.data)
+            signup_user = self.app.private_userdb.get_user_by_pending_mail_address(email)
+            response = client.get('/verify-link/' + signup_user.pending_mail_address.verification_code)
+            return json.loads(response.data)
 
     @patch('eduid_webapp.signup.views.verify_recaptcha')
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')

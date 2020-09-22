@@ -144,17 +144,16 @@ class EmailTests(EduidAPITestCase):
         eppn = self.test_user_data['eduPersonPrincipalName']
 
         with self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction() as sess:
-
-                with self.app.test_request_context():
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
                     data = {
                         'email': 'johnsmith3@example.com',
                         'verified': False,
                         'primary': False,
                         'csrf_token': sess.get_csrf_token(),
                     }
-                    if data1 is not None:
-                        data.update(data1)
+                if data1 is not None:
+                    data.update(data1)
 
                 if send_data:
                     return client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
@@ -176,10 +175,8 @@ class EmailTests(EduidAPITestCase):
         eppn = self.test_user_data['eduPersonPrincipalName']
 
         with self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction() as sess:
-
-                with self.app.test_request_context():
-
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
                     data = {
                         'csrf_token': sess.get_csrf_token(),
                     }
@@ -203,14 +200,13 @@ class EmailTests(EduidAPITestCase):
         eppn = self.test_user_data['eduPersonPrincipalName']
 
         with self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction() as sess:
-
-                with self.app.test_request_context():
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
                     data = {'csrf_token': sess.get_csrf_token()}
-                    if data1 is not None:
-                        data.update(data1)
+                if data1 is not None:
+                    data.update(data1)
 
-                return client.post('/remove', data=json.dumps(data), content_type=self.content_type_json)
+            return client.post('/remove', data=json.dumps(data), content_type=self.content_type_json)
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
@@ -226,14 +222,13 @@ class EmailTests(EduidAPITestCase):
         eppn = self.test_user_data['eduPersonPrincipalName']
 
         with self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction() as sess:
-
-                with self.app.test_request_context():
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
                     data = {'csrf_token': sess.get_csrf_token()}
-                    if data1 is not None:
-                        data.update(data1)
+                if data1 is not None:
+                    data.update(data1)
 
-                return client.post('/resend-code', data=json.dumps(data), content_type=self.content_type_json)
+            return client.post('/resend-code', data=json.dumps(data), content_type=self.content_type_json)
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
@@ -262,18 +257,18 @@ class EmailTests(EduidAPITestCase):
         eppn = self.test_user_data['eduPersonPrincipalName']
 
         with self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction() as sess:
-                with self.app.test_request_context():
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
                     data = {
                         'email': 'john-smith3@example.com',
                         'verified': False,
                         'primary': False,
                         'csrf_token': sess.get_csrf_token(),
                     }
-                    if data1 is not None:
-                        data.update(data1)
+                if data1 is not None:
+                    data.update(data1)
 
-                client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
+            client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
 
             with client.session_transaction() as sess:
                 data = {
@@ -284,7 +279,7 @@ class EmailTests(EduidAPITestCase):
                 if data2 is not None:
                     data.update(data2)
 
-                return client.post('/verify', data=json.dumps(data), content_type=self.content_type_json)
+            return client.post('/verify', data=json.dumps(data), content_type=self.content_type_json)
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
@@ -314,21 +309,19 @@ class EmailTests(EduidAPITestCase):
         eppn = self.test_user_data['eduPersonPrincipalName']
 
         with self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction() as sess:
-                with self.app.test_request_context():
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
                     data = {
                         'csrf_token': sess.get_csrf_token(),
                         'email': email,
                         'verified': False,
                         'primary': False,
                     }
-                    if data1 is not None:
-                        data.update(data1)
+                if data1 is not None:
+                    data.update(data1)
 
-                client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
-
-            with client.session_transaction():
-                return client.get('/verify?code={}&email={}'.format(code, email))
+            client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
+            return client.get('/verify?code={}&email={}'.format(code, email))
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
@@ -356,25 +349,24 @@ class EmailTests(EduidAPITestCase):
         eppn = self.test_user_data['eduPersonPrincipalName']
 
         with self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction() as sess:
-
-                with self.app.test_request_context():
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
                     data = {
                         'email': email,
                         'verified': False,
                         'primary': False,
                         'csrf_token': sess.get_csrf_token(),
                     }
-                    if data1 is not None:
-                        data.update(data1)
+                if data1 is not None:
+                    data.update(data1)
 
-                client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
+            client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
 
-                client.set_cookie(
-                    'localhost', key=self.app.config.magic_cookie_name, value=self.app.config.magic_cookie
-                )
+            client.set_cookie(
+                'localhost', key=self.app.config.magic_cookie_name, value=self.app.config.magic_cookie
+            )
 
-                return client.get(f'/get-code?email={email}&eppn={eppn}')
+            return client.get(f'/get-code?email={email}&eppn={eppn}')
 
     # actual test methods
 

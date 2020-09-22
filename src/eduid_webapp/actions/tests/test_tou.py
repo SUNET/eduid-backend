@@ -149,9 +149,9 @@ class ToUActionPluginTests(ActionsTestCase):
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
                     data = {'accept': True, 'csrf_token': sess.get_csrf_token()}
-                    if post_data is not None:
-                        data.update(post_data)
-                    return client.post('/post-action', data=json.dumps(data), content_type=self.content_type_json)
+                if post_data is not None:
+                    data.update(post_data)
+                return client.post('/post-action', data=json.dumps(data), content_type=self.content_type_json)
 
     # actual tests
 
