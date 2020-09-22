@@ -30,9 +30,6 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-from __future__ import absolute_import
-
 import atexit
 import random
 import subprocess
@@ -60,8 +57,8 @@ class EtcdTemporaryInstance(object):
 
     def __init__(self):
         self._port = random.randint(40000, 50000)
-        self._process = subprocess.Popen(
-            [
+        self._logfile = '/tmp/etcd-temp.log'
+        self._command =             [
                 'docker',
                 'run',
                 '--rm',
@@ -73,8 +70,11 @@ class EtcdTemporaryInstance(object):
                 'http://0.0.0.0:2379',
                 '--listen-client-urls',
                 'http://0.0.0.0:2379',
-            ],
-            stdout=open('/tmp/etcd-temp.log', 'wb'),
+            ]
+
+        self._process = subprocess.Popen(
+            self._command,
+            stdout=open(self._logfile, 'wb'),
             stderr=subprocess.STDOUT,
         )
 
@@ -82,14 +82,19 @@ class EtcdTemporaryInstance(object):
             time.sleep(0.2)
             try:
                 self._conn = etcd.Client('localhost', self._port)
-                self._conn.stats  # Check connection
+                # Check connection
+                if not self._conn.stats:
+                    raise etcd.EtcdConnectionFailed('No etcd stats')
             except etcd.EtcdConnectionFailed:
                 continue
             else:
                 break
         else:
+            with open(self._logfile, 'r') as fd:
+                _output = ''.join(fd.readlines())
             self.shutdown()
-            assert False, 'Cannot connect to the etcd test instance'
+            _cmd = ' '.join(self._command)
+            assert False, f'Cannot connect to the etcd test instance, command: {_cmd}\noutput:\n{_output}'
 
     @property
     def conn(self):
