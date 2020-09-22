@@ -69,7 +69,7 @@ class CommonMsg(TranslatableMsg):
     navet_error = 'error_navet_task'
     # NIN validation error
     nin_invalid = 'nin needs to be formatted as 18|19|20yymmddxxxx'
-    # Eamil address validation error
+    # Email address validation error
     email_invalid = 'email needs to be formatted according to RFC2822'
     # TODO: These _should_ be unused now - check and remove
     csrf_try_again = 'csrf.try_again'
