@@ -10,8 +10,8 @@ class TestSession(TestCase):
     def setUp(self):
         self.redis_instance = RedisTemporaryInstance.get_instance()
         config = {
-            'redis_host': '127.0.0.1',
-            'redis_port': self.redis_instance.port,
+            'redis_host': 'localhost',
+            'redis_port': str(self.redis_instance.port),
             'redis_db': '0',
         }
         self.manager = SessionManager(cfg=config, app_secret='s3cr3t')
