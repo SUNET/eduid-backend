@@ -329,7 +329,7 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
                 self.secret_box.encrypt(data_json.encode('ascii'), nonce, encoder=nacl.encoding.Base64Encoder)
             ).decode('ascii')
         }
-        return json.dumps(versioned).encode('utf-8')
+        return bytes(json.dumps(versioned), 'ascii')
 
     def decrypt_data(self, data_str: str) -> Dict[str, Any]:
         """
