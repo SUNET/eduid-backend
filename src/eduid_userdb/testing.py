@@ -248,7 +248,6 @@ class DictTestCase(unittest.TestCase):
         """
         Remove timestamps that in general are created at different times
         normalize the names of some attributes
-        remove attributes set to None
         """
         for user in users:
             cls.normalize_elem(user)
