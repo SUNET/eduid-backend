@@ -4,6 +4,10 @@ upstream:
   - eduid-userdb
 slack:
   room: eduid-builds
+pre_build_script:
+  - "docker pull docker.sunet.se/library/etcd:v3.3.12"
+  - "docker pull docker.sunet.se/eduid/redis:latest"
+  - "docker pull docker.sunet.se/eduid/mongodb:latest"
 script:
   - "python3.7 -m venv venv"
   - ". venv/bin/activate"
