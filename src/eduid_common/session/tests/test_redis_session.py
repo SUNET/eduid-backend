@@ -9,10 +9,11 @@ from eduid_common.session.testing import RedisTemporaryInstance
 class TestSession(TestCase):
     def setUp(self):
         self.redis_instance = RedisTemporaryInstance.get_instance()
+        _host, _port, _db = self.redis_instance.get_params()
         config = {
-            'redis_host': 'localhost',
-            'redis_port': str(self.redis_instance.port),
-            'redis_db': '0',
+            'redis_host': _host,
+            'redis_port': _port,
+            'redis_db': _db,
         }
         self.manager = SessionManager(cfg=config, app_secret='s3cr3t')
 

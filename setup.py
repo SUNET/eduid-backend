@@ -1,19 +1,19 @@
 from setuptools import setup, find_packages
 
 
-version = '0.8.3'
+version = '0.8.4'
 
 
 requires = [
     'six >= 1.11.0',
     'setuptools >= 2.2',
-    'eduid-userdb >= 0.5.0',
+    'eduid-userdb >= 0.6.4,==0.6.*',
 ]
 
 # Flavours
 webapp_requires = [
     'Flask>=1.1,<1.2',
-    'pysaml2 >= 4.9.0',  # version sync with dashboard to avoid pip catastrophes
+    'pysaml2 == 6.*',  # version sync with IdP to avoid pip catastrophes
     'redis >= 2.10.5',
     'pwgen == 0.4',
     'vccs_client >= 0.4.5',

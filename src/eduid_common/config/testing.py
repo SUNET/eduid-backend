@@ -30,38 +30,26 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-import atexit
 import logging
-import random
-import subprocess
-import time
+from typing import Sequence
 
 import etcd
+
+from eduid_userdb.testing import EduidTemporaryInstance
 
 logger = logging.getLogger(__name__)
 
 
-class EtcdTemporaryInstance(object):
+class EtcdTemporaryInstance(EduidTemporaryInstance):
     """Singleton to manage a temporary Etcd instance
 
     Use this for testing purpose only. The instance is automatically destroyed
     at the end of the program.
-
     """
 
-    _instance = None
-
-    @classmethod
-    def get_instance(cls):
-        if cls._instance is None:
-            cls._instance = cls()
-            atexit.register(cls._instance.shutdown)
-        return cls._instance
-
-    def __init__(self):
-        self._port = random.randint(40000, 50000)
-        self._logfile = '/tmp/etcd-temp.log'
-        self._command = [
+    @property
+    def command(self) -> Sequence[str]:
+        return [
             'docker',
             'run',
             '--rm',
@@ -75,28 +63,20 @@ class EtcdTemporaryInstance(object):
             'http://0.0.0.0:2379',
         ]
 
-        self._process = subprocess.Popen(self._command, stdout=open(self._logfile, 'wb'), stderr=subprocess.STDOUT,)
-
-        for i in range(10):
-            time.sleep(0.2)
-            try:
-                self._conn = etcd.Client('localhost', self._port)
-                # Check connection
-                if not self._conn.stats:
-                    raise etcd.EtcdConnectionFailed('No etcd stats')
-            except etcd.EtcdConnectionFailed:
-                continue
-            else:
-                break
-        else:
-            with open(self._logfile, 'r') as fd:
-                _output = ''.join(fd.readlines())
-            self.shutdown()
-            _cmd = ' '.join(self._command)
-            assert False, f'Cannot connect to the etcd test instance, command: {_cmd}\noutput:\n{_output}'
+    def setup_conn(self) -> bool:
+        try:
+            self._conn = etcd.Client('localhost', self.port)
+            # Check connection
+            if not self._conn.stats:
+                raise etcd.EtcdConnectionFailed('No etcd stats')
+        except etcd.EtcdConnectionFailed:
+            return False
+        return True
 
     @property
-    def conn(self):
+    def conn(self) -> etcd.Client:
+        if self._conn is None:
+            raise RuntimeError('Missing temporary etcd instance')
         return self._conn
 
     @property
@@ -112,14 +92,3 @@ class EtcdTemporaryInstance(object):
             self._conn.delete(key=key, recursive=True, dir=True)
         except etcd.EtcdKeyNotFound:
             pass
-
-    def shutdown(self):
-        with open(self._logfile, 'r') as fd:
-            _output = ''.join(fd.readlines())
-        logger.info(f'etcd temporary instance output at shutdown:\n{_output}')
-        if self._process:
-            self._process.terminate()
-            self._process.wait()
-            self._process = None
-        if EtcdTemporaryInstance._instance == self:
-            EtcdTemporaryInstance._instance = None
