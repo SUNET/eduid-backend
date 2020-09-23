@@ -30,6 +30,8 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from __future__ import annotations
+
 import atexit
 import logging
 import random
@@ -37,15 +39,15 @@ import shutil
 import subprocess
 import tempfile
 import time
-from abc import ABCMeta, abstractmethod
-from typing import Any, Sequence
+from abc import ABC, abstractmethod
+from typing import Any, Optional, Sequence, Type
 
 from eduid_common.misc.timeutil import utc_now
 
 logger = logging.getLogger(__name__)
 
 
-class EduidTemporaryInstance(object, metaclass=ABCMeta):
+class EduidTemporaryInstance(ABC):
     """Singleton to manage a temporary instance of something needed when testing.
 
     Use this for testing purpose only. The instance is automatically destroyed
@@ -55,7 +57,7 @@ class EduidTemporaryInstance(object, metaclass=ABCMeta):
     _instance = None
 
     def __init__(self, max_retry_seconds: int):
-        self._conn = None
+        self._conn: Optional[Any] = None  # self._conn should be initialised by subclasses in `setup_conn'
         self._tmpdir = tempfile.mkdtemp()
         self._port = random.randint(40000, 65535)
         self._logfile = f'/tmp/{self.__class__.__name__}-{self.port}.log'
@@ -82,10 +84,15 @@ class EduidTemporaryInstance(object, metaclass=ABCMeta):
                 logger.error(f'{self} instance failed to start after {age} seconds')
                 logger.error(f'{self} instance output:\n{self.output}')
                 raise RuntimeError(f'{self} instance failed to start after {age} seconds')
-            logger.debug(f'{self} {self.port} OUTPUT:\n{self.output}')
 
     @classmethod
-    def get_instance(cls, max_retry_seconds: int = 20):
+    def get_instance(cls: Type[EduidTemporaryInstance], max_retry_seconds: int = 20) -> EduidTemporaryInstance:
+        """
+        Start a new temporary instance, or retrieve an already started one.
+
+        :param max_retry_seconds: Time allowed for the instance to start
+        :return:
+        """
         if cls._instance is None:
             cls._instance = cls(max_retry_seconds=max_retry_seconds)
             atexit.register(cls._instance.shutdown)
