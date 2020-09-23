@@ -34,29 +34,32 @@
 """
 Code used in unit tests of various eduID applications.
 """
-
-__author__ = 'leifj'
+from __future__ import annotations
 
 import atexit
 import json
 import logging
 import random
+import shutil
 import subprocess
+import tempfile
 import time
 import unittest
 import uuid
 import warnings
-from abc import ABC
+from abc import ABC, abstractmethod
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Sequence, Type, Union
+from typing import Any, Optional, Sequence, Type
+from typing import Dict, List, Mapping, Union
 
 import pymongo
 
 from eduid_userdb import User, UserDB
 from eduid_userdb.dashboard.user import DashboardUser
 from eduid_userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
+from eduid_userdb.util import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -109,74 +112,135 @@ class MockedUserDB(AbstractMockedUserDB, UserDB):
                 logger.debug("New MockedUser {!r}:\n{!s}".format(mail, pprint.pformat(self.test_users[mail])))
 
 
-class MongoTemporaryInstance(object):
-    """Singleton to manage a temporary MongoDB instance
+class EduidTemporaryInstance(ABC):
+    """Singleton to manage a temporary instance of something needed when testing.
 
     Use this for testing purpose only. The instance is automatically destroyed
     at the end of the program.
-
     """
 
     _instance = None
 
+    def __init__(self, max_retry_seconds: int):
+        self._conn: Optional[Any] = None  # self._conn should be initialised by subclasses in `setup_conn'
+        self._tmpdir = tempfile.mkdtemp()
+        self._port = random.randint(40000, 65535)
+        self._logfile = f'/tmp/{self.__class__.__name__}-{self.port}.log'
+
+        start_time = utc_now()
+        self._process = subprocess.Popen(self.command, stdout=open(self._logfile, 'wb'), stderr=subprocess.STDOUT,)
+
+        interval = 0.2
+        count = 0
+        while True:
+            count += 1
+            time.sleep(interval)
+
+            # Call a function of the subclass of this ABC to see if the instance is operational yet
+            _res = self.setup_conn()
+
+            time_now = utc_now()
+            delta = time_now - start_time
+            age = delta.total_seconds()
+            if _res:
+                logger.info(f'{self} instance started after {age} seconds (attempt {count})')
+                break
+            if age > max_retry_seconds:
+                logger.error(f'{self} instance failed to start after {age} seconds')
+                logger.error(f'{self} instance output:\n{self.output}')
+                raise RuntimeError(f'{self} instance failed to start after {age} seconds')
+
     @classmethod
-    def get_instance(cls):
+    def get_instance(cls: Type[EduidTemporaryInstance], max_retry_seconds: int = 20) -> EduidTemporaryInstance:
+        """
+        Start a new temporary instance, or retrieve an already started one.
+
+        :param max_retry_seconds: Time allowed for the instance to start
+        :return:
+        """
         if cls._instance is None:
-            cls._instance = cls()
+            cls._instance = cls(max_retry_seconds=max_retry_seconds)
             atexit.register(cls._instance.shutdown)
         return cls._instance
 
-    def __init__(self):
-        self._port = random.randint(40000, 50000)
-        logger.debug('Starting temporary mongodb instance on port {}'.format(self._port))
-        self._process = subprocess.Popen(
-            ['docker', 'run', '--rm', '-p', '{!s}:27017'.format(self._port), 'docker.sunet.se/eduid/mongodb:latest',],
-            stdout=open('/tmp/mongodb-temp.log', 'wb'),
-            stderr=subprocess.STDOUT,
-        )
-        # XXX: wait for the instance to be ready
-        #      Mongo is ready in a glance, we just wait to be able to open a
-        #      Connection.
-        for i in range(100):
-            time.sleep(0.2)
-            try:
-                self._conn = pymongo.MongoClient('localhost', self._port)
-                logger.info('Connected to temporary mongodb instance: {}'.format(self._conn))
-            except pymongo.errors.ConnectionFailure:
-                logger.debug('Connect failed ({})'.format(i))
-                continue
-            else:
-                if self._conn is not None:
-                    break
-        else:
-            self.shutdown()
-            assert False, 'Cannot connect to the mongodb test instance'
+    @abstractmethod
+    def setup_conn(self) -> bool:
+        """
+        Initialise and test a connection of the instance in self._conn.
+
+        Return True on success.
+        """
+        raise NotImplemented('All subclasses of EduidTemporaryInstance must implement setup_conn')
 
     @property
-    def conn(self):
-        return self._conn
+    @abstractmethod
+    def conn(self) -> Any:
+        """ Return the initialised _conn instance. No default since it ought to be typed in the subclasses. """
+        raise NotImplemented('All subclasses of EduidTemporaryInstance should implement the conn property')
 
     @property
-    def port(self):
+    @abstractmethod
+    def command(self) -> Sequence[str]:
+        """ This is the shell command to start the temporary instance. """
+        raise NotImplemented('All subclasses of EduidTemporaryInstance must implement the command property')
+
+    @property
+    def port(self) -> int:
         return self._port
+
+    @property
+    def tmpdir(self) -> str:
+        return self._tmpdir
+
+    @property
+    def output(self) -> str:
+        with open(self._logfile, 'r') as fd:
+            _output = ''.join(fd.readlines())
+        return _output
+
+    def shutdown(self):
+        logger.debug(f'{self} output at shutdown:\n{self.output}')
+        if self._process:
+            self._process.terminate()
+            self._process.wait()
+            self._process = None
+        shutil.rmtree(self._tmpdir, ignore_errors=True)
+
+
+class MongoTemporaryInstance(EduidTemporaryInstance):
+    """Singleton to manage a temporary MongoDB instance
+
+    Use this for testing purpose only. The instance is automatically destroyed
+    at the end of the program.
+    """
+    @property
+    def command(self) -> Sequence[str]:
+        return ['docker', 'run', '--rm', '-p', '{!s}:27017'.format(self._port), 'docker.sunet.se/eduid/mongodb:latest']
+
+    def setup_conn(self) -> bool:
+        try:
+            self._conn = pymongo.MongoClient('localhost', self._port)
+            logger.info('Connected to temporary mongodb instance: {}'.format(self._conn))
+        except pymongo.errors.ConnectionFailure:
+            return False
+        return True
+
+    @property
+    def conn(self) -> pymongo.MongoClient:
+        if self._conn is None:
+            raise RuntimeError('Missing temporary MongoDB instance')
+        return self._conn
 
     @property
     def uri(self):
         return 'mongodb://localhost:{}'.format(self.port)
 
-    def close(self):
+    def shutdown(self):
         if self._conn:
             logger.info('Closing connection {}'.format(self._conn))
             self._conn.close()
             self._conn = None
-
-    def shutdown(self):
-        if self._process:
-            self.close()
-            logger.info('Shutting down {}'.format(self))
-            self._process.terminate()
-            self._process.wait()
-            self._process = None
+        super().shutdown()
 
 
 class SortEncoder(json.JSONEncoder):
