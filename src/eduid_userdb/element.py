@@ -330,6 +330,8 @@ class ElementList(object):
     def __repr__(self):
         return '<eduID {!s}: {!r}>'.format(self.__class__.__name__, getattr(self, '_elements', None))
 
+    __str__ = __repr__
+
     def to_list(self):
         """
         Return the list of elements as an iterable.

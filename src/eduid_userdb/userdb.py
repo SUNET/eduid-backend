@@ -83,6 +83,8 @@ class UserDB(BaseDB):
             self.__class__.__name__, self._db.sanitized_uri, self._coll_name, self.UserClass.__name__,
         )
 
+    __str__ = __repr__
+
     def get_user_by_id(self, user_id, raise_on_missing=True):
         """
         Locate a user in the userdb given the user's _id.
