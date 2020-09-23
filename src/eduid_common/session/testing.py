@@ -65,7 +65,7 @@ class RedisTemporaryInstance(EduidTemporaryInstance):
 
     def setup_conn(self) -> bool:
         try:
-            host, port, db = self.get_uri()
+            host, port, db = self.get_params()
             _conn = redis.Redis(host, port, db)
             _conn.set('dummy', 'dummy')
             self._conn = _conn
@@ -79,6 +79,10 @@ class RedisTemporaryInstance(EduidTemporaryInstance):
             raise RuntimeError('Missing temporary Redis instance')
         return self._conn
 
-    def get_uri(self):
-        """ Convenience function to get a redis URI to the temporary database. """
+    def get_params(self):
+        """
+        Convenience function to get Redis connection parameters for the temporary database.
+
+        :return: Host, port and database
+        """
         return 'localhost', self.port, 0
