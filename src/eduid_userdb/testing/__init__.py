@@ -45,8 +45,7 @@ from abc import ABC
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Sequence, Type
-from typing import Dict, List, Mapping, Union
+from typing import Any, Dict, List, Mapping, Sequence, Type, Union
 
 import pymongo
 
@@ -112,6 +111,7 @@ class MongoTemporaryInstance(EduidTemporaryInstance):
     Use this for testing purpose only. The instance is automatically destroyed
     at the end of the program.
     """
+
     @property
     def command(self) -> Sequence[str]:
         return ['docker', 'run', '--rm', '-p', '{!s}:27017'.format(self._port), 'docker.sunet.se/eduid/mongodb:latest']

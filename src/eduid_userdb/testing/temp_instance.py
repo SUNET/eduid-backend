@@ -29,6 +29,7 @@
 from __future__ import annotations
 
 import atexit
+import logging
 import random
 import shutil
 import subprocess
@@ -37,8 +38,9 @@ import time
 from abc import ABC, abstractmethod
 from typing import Any, Optional, Sequence, Type
 
-from eduid_userdb.testing import logger
 from eduid_userdb.util import utc_now
+
+logger = logging.getLogger(__name__)
 
 
 class EduidTemporaryInstance(ABC):
