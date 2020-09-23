@@ -107,7 +107,7 @@ class User(object):
         if self.revoked_ts is not None:
             raise UserIsRevoked(f'User {self.user_id}/{self.eppn} was revoked at {self.revoked_ts}')
 
-    def __repr__(self):
+    def __str__(self):
         return '<eduID {!s}: {!s}/{!s}>'.format(self.__class__.__name__, self.eppn, self.user_id,)
 
     def __eq__(self, other):
