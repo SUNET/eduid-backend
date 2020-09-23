@@ -34,15 +34,10 @@
 """
 Code used in unit tests of various eduID applications.
 """
+from __future__ import annotations
 
-__author__ = 'leifj'
-
-import atexit
 import json
 import logging
-import random
-import subprocess
-import time
 import unittest
 import uuid
 import warnings
@@ -57,6 +52,7 @@ import pymongo
 from eduid_userdb import User, UserDB
 from eduid_userdb.dashboard.user import DashboardUser
 from eduid_userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
+from eduid_userdb.testing.temp_instance import EduidTemporaryInstance
 
 logger = logging.getLogger(__name__)
 
@@ -109,74 +105,41 @@ class MockedUserDB(AbstractMockedUserDB, UserDB):
                 logger.debug("New MockedUser {!r}:\n{!s}".format(mail, pprint.pformat(self.test_users[mail])))
 
 
-class MongoTemporaryInstance(object):
+class MongoTemporaryInstance(EduidTemporaryInstance):
     """Singleton to manage a temporary MongoDB instance
 
     Use this for testing purpose only. The instance is automatically destroyed
     at the end of the program.
-
     """
 
-    _instance = None
+    @property
+    def command(self) -> Sequence[str]:
+        return ['docker', 'run', '--rm', '-p', '{!s}:27017'.format(self._port), 'docker.sunet.se/eduid/mongodb:latest']
 
-    @classmethod
-    def get_instance(cls):
-        if cls._instance is None:
-            cls._instance = cls()
-            atexit.register(cls._instance.shutdown)
-        return cls._instance
-
-    def __init__(self):
-        self._port = random.randint(40000, 50000)
-        logger.debug('Starting temporary mongodb instance on port {}'.format(self._port))
-        self._process = subprocess.Popen(
-            ['docker', 'run', '--rm', '-p', '{!s}:27017'.format(self._port), 'docker.sunet.se/eduid/mongodb:latest',],
-            stdout=open('/tmp/mongodb-temp.log', 'wb'),
-            stderr=subprocess.STDOUT,
-        )
-        # XXX: wait for the instance to be ready
-        #      Mongo is ready in a glance, we just wait to be able to open a
-        #      Connection.
-        for i in range(100):
-            time.sleep(0.2)
-            try:
-                self._conn = pymongo.MongoClient('localhost', self._port)
-                logger.info('Connected to temporary mongodb instance: {}'.format(self._conn))
-            except pymongo.errors.ConnectionFailure:
-                logger.debug('Connect failed ({})'.format(i))
-                continue
-            else:
-                if self._conn is not None:
-                    break
-        else:
-            self.shutdown()
-            assert False, 'Cannot connect to the mongodb test instance'
+    def setup_conn(self) -> bool:
+        try:
+            self._conn = pymongo.MongoClient('localhost', self._port)
+            logger.info('Connected to temporary mongodb instance: {}'.format(self._conn))
+        except pymongo.errors.ConnectionFailure:
+            return False
+        return True
 
     @property
-    def conn(self):
+    def conn(self) -> pymongo.MongoClient:
+        if self._conn is None:
+            raise RuntimeError('Missing temporary MongoDB instance')
         return self._conn
-
-    @property
-    def port(self):
-        return self._port
 
     @property
     def uri(self):
         return 'mongodb://localhost:{}'.format(self.port)
 
-    def close(self):
+    def shutdown(self):
         if self._conn:
             logger.info('Closing connection {}'.format(self._conn))
             self._conn.close()
             self._conn = None
-
-    def shutdown(self):
-        if self._process:
-            self.close()
-            logger.info('Shutting down {}'.format(self))
-            self._process.terminate()
-            self._process.wait()
-            self._process = None
+        super().shutdown()
 
 
 class SortEncoder(json.JSONEncoder):
