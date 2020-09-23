@@ -31,11 +31,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import logging
-from typing import Optional, Sequence
+from typing import Sequence
 
 import redis
 
-from eduid_common.misc.temp_instance import EduidTemporaryInstance
+from eduid_userdb.testing import EduidTemporaryInstance
 
 logger = logging.getLogger(__name__)
 

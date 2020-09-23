@@ -31,11 +31,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import logging
-from typing import Optional, Sequence
+from typing import Sequence
 
 import etcd
 
-from eduid_common.misc.temp_instance import EduidTemporaryInstance
+from eduid_userdb.testing import EduidTemporaryInstance
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +74,9 @@ class EtcdTemporaryInstance(EduidTemporaryInstance):
         return True
 
     @property
-    def conn(self) -> Optional[etcd.Client]:
+    def conn(self) -> etcd.Client:
+        if self._conn is None:
+            raise RuntimeError('Missing temporary etcd instance')
         return self._conn
 
     @property
