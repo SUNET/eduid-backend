@@ -316,9 +316,7 @@ class UserDB(BaseDB):
                     f" (old_format={old_format}). ts in db = {db_ts}"
                 )
                 raise eduid_userdb.exceptions.UserOutOfSync('Stale user object can\'t be saved')
-            logger.debug(
-                "{!s} Updated user {!r} (ts {!s}) in {!r}: {!r}".format(self, user, modified, self._coll_name, result)
-            )
+            logger.debug(f"{self} Updated user {user} (ts {modified}) in {self._coll_name}: {result}")
             import pprint
 
             extra_debug = pprint.pformat(user.to_dict())
