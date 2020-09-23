@@ -80,6 +80,9 @@ class EduidTemporaryInstance(ABC):
                 logger.error(f'{self} instance failed to start after {age} seconds')
                 logger.error(f'{self} instance output:\n{self.output}')
                 raise RuntimeError(f'{self} instance failed to start after {age} seconds')
+            if count <= 3:
+                # back off slightly
+                interval += interval
 
     @classmethod
     def get_instance(cls: Type[EduidTemporaryInstance], max_retry_seconds: int = 20) -> EduidTemporaryInstance:
