@@ -59,22 +59,23 @@ class EduidSession(SessionMixin, MutableMapping):
         self._sso_ticket: Optional[SSOLoginData] = None
         self._reset_password: ResetPasswordNS
 
+    def __str__(self):
+        return f'<{self.__class__.__name__} at {hex(id(self))}: new={self.new}, modified={self.modified}>'
+
     def __getitem__(self, key, default=None):
         return self._session.__getitem__(key, default=None)
 
     def __setitem__(self, key, value):
         if key not in self._session or self._session[key] != value:
             self._session[key] = value
+            self.app.logger.debug(f'SET {self}[{key}] = {value}')
             self.modified = True
-            if self.app.debug:
-                self.app.logger.debug(f'SET session[{key}] = {value}')
 
     def __delitem__(self, key):
         if key in self._session:
             del self._session[key]
+            self.app.logger.debug(f'DEL {self}[{key}]')
             self.modified = True
-            if self.app.debug:
-                self.app.logger.debug(f'DEL session[{key}]')
 
     def __iter__(self):
         return self._session.__iter__()
@@ -277,10 +278,11 @@ class EduidSession(SessionMixin, MutableMapping):
         self._serialize_namespaces()
 
         if self.new or self.modified:
+            self.app.logger.debug(f'Saving session {self}')
             self._session.commit()
             if self.app.debug:
                 _saved_data = json.dumps(self._session.to_dict(), indent=4, sort_keys=True)
-                self.app.logger.debug(f'Saved session:\n{_saved_data}')
+                self.app.logger.debug(f'Saved session {self}:\n{_saved_data}')
 
 
 class SessionFactory(SessionInterface):
@@ -320,9 +322,10 @@ class SessionFactory(SessionInterface):
                 current_app.logger.debug(f'Failed to load session from cookie {cookie_val}, will create a new one')
 
         # New session
+        current_app.logger.debug('Creating new session')
         base_session = self.manager.get_session()
         sess = EduidSession(app, base_session, new=True)
-        current_app.logger.debug('Created new session {}'.format(sess))
+        current_app.logger.debug(f'Created new session {sess}')
         return sess
 
     def save_session(self, app: EduIDBaseApp, sess: EduidSession, response: FlaskResponse) -> None:
