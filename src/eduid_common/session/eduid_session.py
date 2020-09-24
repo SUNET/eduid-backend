@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import binascii
 import json
 import os
 from collections.abc import MutableMapping
@@ -244,7 +243,7 @@ class EduidSession(SessionMixin, MutableMapping):
         # only produce one csrf token by request
         token = getattr(flask_request, '_csrft_', False)
         if not token:
-            token = binascii.hexlify(os.urandom(20)).decode('ascii')
+            token = os.urandom(20).hex()
             flask_request._csrft_ = token
         self['_csrft_'] = token
         self.persist()
