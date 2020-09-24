@@ -43,10 +43,10 @@ class EduidSession(SessionMixin, MutableMapping):
         self.app = app
         self._session = base_session
         self._created = time()
-        self._new = new
         self._invalidated = False
 
         # From SessionMixin
+        self.new = new
         self.modified = False
 
         # Namespaces
@@ -184,13 +184,6 @@ class EduidSession(SessionMixin, MutableMapping):
         return self._session.token
 
     @property
-    def new(self):
-        """
-        See flask.sessions.SessionMixin
-        """
-        return self._new
-
-    @property
     def created(self):
         """
         Created timestamp
@@ -270,6 +263,8 @@ class EduidSession(SessionMixin, MutableMapping):
         if self.new or self.modified:
             self.app.logger.debug(f'Saving session {self}')
             self._session.commit()
+            self.new = False
+            self.modified = False
             if self.app.debug:
                 _saved_data = json.dumps(self._session.to_dict(), indent=4, sort_keys=True)
                 self.app.logger.debug(f'Saved session {self}:\n{_saved_data}')
