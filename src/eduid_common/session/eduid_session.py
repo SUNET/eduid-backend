@@ -238,7 +238,6 @@ class EduidSession(SessionMixin, MutableMapping):
             token = os.urandom(20).hex()
             flask_request._csrft_ = token
         self['_csrft_'] = token
-        self.persist()
         return token
 
     def get_csrf_token(self) -> str:
