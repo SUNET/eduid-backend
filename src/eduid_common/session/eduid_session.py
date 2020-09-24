@@ -47,7 +47,6 @@ class EduidSession(SessionMixin, MutableMapping):
         self._invalidated = False
 
         # From SessionMixin
-        self.permanent = True
         self.modified = False
 
         # Namespaces
@@ -57,6 +56,15 @@ class EduidSession(SessionMixin, MutableMapping):
         self._actions: Optional[Actions] = None
         self._sso_ticket: Optional[SSOLoginData] = None
         self._reset_password: ResetPasswordNS
+
+    @property
+    def permanent(self):
+        return True
+
+    @permanent.setter
+    def permanent(self, value):
+        # EduidSessions are _always_ permanent
+        pass
 
     def __str__(self):
         return f'<{self.__class__.__name__} at {hex(id(self))}: new={self.new}, modified={self.modified}>'
