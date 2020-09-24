@@ -215,25 +215,18 @@ class EduidSession(SessionMixin, MutableMapping):
         """
         Set the session cookie.
 
-        :param response: the response  object to carry the cookie
+        :param response: the response object to carry the cookie
         :type response: flask.Response
         """
-        cookie_name = self.app.config.get('session_cookie_name')
-        cookie_domain = self.app.config.get('session_cookie_domain')
-        cookie_path = self.app.config.get('session_cookie_path')
-        cookie_secure = self.app.config.get('session_cookie_secure')
-        cookie_httponly = self.app.config.get('session_cookie_httponly')
-        cookie_samesite = self.app.config.get('session_cookie_samesite')
-        max_age = int(self.app.config.get('permanent_session_lifetime'))
         response.set_cookie(
-            cookie_name,
+            self.app.config.session_cookie_name,
             value=self.token.cookie_val,
-            domain=cookie_domain,
-            path=cookie_path,
-            secure=cookie_secure,
-            httponly=cookie_httponly,
-            samesite=cookie_samesite,
-            max_age=max_age,
+            domain=self.app.config.session_cookie_domain,
+            path=self.app.config.session_cookie_path,
+            secure=self.app.config.session_cookie_secure,
+            httponly=self.app.config.session_cookie_httponly,
+            samesite=self.app.config.session_cookie_samesite,
+            max_age=self.app.config.permanent_session_lifetime,
         )
 
     def new_csrf_token(self):
