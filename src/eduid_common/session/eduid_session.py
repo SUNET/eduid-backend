@@ -5,7 +5,7 @@ import os
 from collections.abc import MutableMapping
 from dataclasses import asdict
 from time import time
-from typing import TYPE_CHECKING, Any, Mapping, Optional
+from typing import TYPE_CHECKING, Optional
 
 from flask import Request as FlaskRequest
 from flask import Response as FlaskResponse
@@ -189,13 +189,12 @@ class EduidSession(SessionMixin, MutableMapping):
         """
         return self._created
 
-    def renew_ttl(self, renew_backend):
+    def renew_ttl(self, renew_backend: bool) -> None:
         """
         Reset the ttl for the session, both in the cookie and
         (if `renew_backend==True`) in the redis backend.
 
         :param renew_backend: whether to renew the ttl in the redis backend
-        :type renew_backend: bool
         """
         if not self.modified:
             self.modified = True
@@ -229,7 +228,7 @@ class EduidSession(SessionMixin, MutableMapping):
             max_age=self.app.config.permanent_session_lifetime,
         )
 
-    def new_csrf_token(self):
+    def new_csrf_token(self) -> str:
         """
         Copied from pyramid_session.py
         """
@@ -242,7 +241,7 @@ class EduidSession(SessionMixin, MutableMapping):
         self.persist()
         return token
 
-    def get_csrf_token(self):
+    def get_csrf_token(self) -> str:
         """
         Copied from pyramid_session.py
         """
