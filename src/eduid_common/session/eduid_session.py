@@ -237,21 +237,13 @@ class EduidSession(SessionMixin, MutableMapping):
         )
 
     def new_csrf_token(self) -> str:
-        """
-        Copied from pyramid_session.py
-        """
         # only produce one csrf token by request
-        token = getattr(flask_request, '_csrft_', False)
-        if not token:
+        if '_csrft_' not in self:
             token = os.urandom(20).hex()
-            flask_request._csrft_ = token
-        self['_csrft_'] = token
-        return token
+            self['_csrft_'] = token
+        return self['_csrft_']
 
     def get_csrf_token(self) -> str:
-        """
-        Copied from pyramid_session.py
-        """
         token = self.get('_csrft_', None)
         if token is None:
             token = self.new_csrf_token()
