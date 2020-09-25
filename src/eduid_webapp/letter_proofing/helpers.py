@@ -117,7 +117,11 @@ def create_proofing_state(eppn: str, nin: str) -> LetterProofingState:
         number=nin, created_by='eduid-idproofing-letter', is_verified=False, verification_code=get_short_hash(),
     )
     proofing_letter = SentLetterElement()
-    return LetterProofingState(eppn=eppn, nin=_nin, proofing_letter=proofing_letter, id=None, modified_ts=None)
+    proofing_state = LetterProofingState(
+        eppn=eppn, nin=_nin, proofing_letter=proofing_letter, id=None, modified_ts=None
+    )
+    current_app.logger.debug(f'Created proofing state: {repr(proofing_state)}')
+    return proofing_state
 
 
 def get_address(user: User, proofing_state: LetterProofingState) -> dict:

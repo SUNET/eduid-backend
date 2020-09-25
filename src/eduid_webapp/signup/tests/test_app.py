@@ -92,7 +92,7 @@ class SignupTests(EduidAPITestCase):
     def session_cookie(self, client, server_name='localhost'):
         with client.session_transaction() as sess:
             sess.persist()
-        client.set_cookie(server_name, key=self.app.config.session_cookie_name, value=sess._session.token.cookie_val)
+        client.set_cookie(server_name, key=self.app.config.session_cookie_name, value=sess._token.cookie_val)
         yield client
 
     # parameterized test methods
@@ -150,13 +150,13 @@ class SignupTests(EduidAPITestCase):
         mock_recaptcha.return_value = True
 
         with self.session_cookie(self.browser) as client:
-            with client.session_transaction() as sess:
-                with self.app.test_request_context():
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
                     data = {'email': email, 'csrf_token': sess.get_csrf_token()}
-                    if data1 is not None:
-                        data.update(data1)
+                if data1 is not None:
+                    data.update(data1)
 
-                return client.post('/resend-verification', data=json.dumps(data), content_type=self.content_type_json)
+            return client.post('/resend-verification', data=json.dumps(data), content_type=self.content_type_json)
 
     @patch('eduid_webapp.signup.views.verify_recaptcha')
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')

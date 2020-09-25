@@ -58,12 +58,12 @@ class ActionsTests(ActionsTestCase):
         if timestamp is None:
             timestamp = datetime.fromtimestamp(int(time.time()))
         with self.session_cookie(self.browser) as client:
-            with client.session_transaction() as sess:
-                with self.app.test_request_context():
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
                     sess.common.eppn = eppn
                     sess.actions.ts = timestamp
                     sess.persist()
-                    return client.get('/')
+                return client.get('/')
 
     def _get_config(self, **kwargs):
         """
