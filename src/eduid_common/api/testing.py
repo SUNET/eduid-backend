@@ -65,7 +65,7 @@ TEST_CONFIG = {
     'session_cookie_path': '/',
     'session_cookie_httponly': False,
     'session_cookie_secure': False,
-    'permanent_session_lifetime': '60',
+    'permanent_session_lifetime': 60,
     'server_name': 'test.localhost',
     'propagate_exceptions': True,
     'preserve_context_on_exception': True,
@@ -77,8 +77,8 @@ TEST_CONFIG = {
     'jsonify_prettyprint_regular': True,
     'mongo_uri': 'mongodb://localhost',
     'redis_host': 'localhost',
-    'redis_port': '6379',
-    'redis_db': '0',
+    'redis_port': 6379,
+    'redis_db': 0,
     'redis_sentinel_hosts': '',
     'redis_sentinel_service_name': '',
     'token_service_url': 'http://test.localhost/',
@@ -212,14 +212,14 @@ class EduidAPITestCase(CommonTestCase):
         with client.session_transaction(**kwargs) as sess:
             sess['user_eppn'] = eppn
             sess['user_is_logged_in'] = True
-        client.set_cookie(server_name, key=self.app.config.session_cookie_name, value=sess._session.token.cookie_val)
+        client.set_cookie(server_name, key=self.app.config.session_cookie_name, value=sess.token.cookie_val)
         yield client
 
     @contextmanager
     def session_cookie_anon(self, client, server_name='localhost', **kwargs):
         with client.session_transaction(**kwargs) as sess:
             pass
-        client.set_cookie(server_name, key=self.app.config.session_cookie_name, value=sess._session.token.cookie_val)
+        client.set_cookie(server_name, key=self.app.config.session_cookie_name, value=sess.token.cookie_val)
         yield client
 
     def request_user_sync(self, private_user):

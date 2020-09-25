@@ -1,8 +1,10 @@
 from unittest import TestCase
 
+import nacl
 import pytest
 
 from eduid_common.session.redis_session import RedisEncryptedSession, SessionManager, SessionOutOfSync
+from eduid_common.session.session_cookie import SessionCookie
 from eduid_common.session.testing import RedisTemporaryInstance
 
 
@@ -19,24 +21,26 @@ class TestSession(TestCase):
 
     def test_create_session(self):
         """ Test creating a session and reading it back """
-        session1 = self.manager.get_session()
+        _token = SessionCookie.new(app_secret=self.manager.secret)
+
+        session1 = self.manager.get_session(token=_token, new=True)
         session1['foo'] = 'bar'
         session1.commit()
 
         # read back session
-        session2 = self.manager.get_session(cookie_val=session1.token.cookie_val)
+        session2 = self.manager.get_session(token=_token, new=False)
         self.assertEqual(session2['foo'], session1['foo'])
 
     def test_clear_session(self):
         """ Test creating a session, clearing it and verifying it is gone """
-        session1 = self.manager.get_session()
+        _token = SessionCookie.new(app_secret=self.manager.secret)
+
+        session1 = self.manager.get_session(token=_token, new=True)
         session1['foo'] = 'bar'
         session1.commit()
 
-        cookie_val = session1.token.cookie_val
-
         # check the session is there now
-        session2 = self.manager.get_session(cookie_val=cookie_val)
+        session2 = self.manager.get_session(token=_token, new=False)
         self.assertEqual(session2['foo'], session1['foo'])
 
         # clear session
@@ -44,7 +48,7 @@ class TestSession(TestCase):
 
         # check that it is no longer there
         with self.assertRaises(KeyError):
-            self.manager.get_session(cookie_val=cookie_val)
+            self.manager.get_session(token=_token, new=False)
 
     def test_decrypt_session(self):
         data = (
@@ -60,29 +64,35 @@ class TestSession(TestCase):
             'Fzlb1zwwLjeZQkOF6yroUbzj3i01r8MnD1Ad5NDqZvzdyOEsgUb5Wp3TqmYuMHPjhOWwrw+KlsELOHsSYwOf6KuTo2RNbxxx'
             'JvSQuHPagPP2ssIaTqy0mByRXK08xoewEKOoVy8daZjumnptnNnbH+nLqeDOB1m6pF15LLIj6dEcSw=="}'
         )
-        session = RedisEncryptedSession(
-            conn=None,  # type: ignore
-            app_secret='supersecretkey',
-            ttl=3600,
+        app_secret = 'supersecretkey'
+        token = SessionCookie.from_cookie(
             cookie_val='aG3KLGJZNK64ZPPT7GEV2BOADGF2HQIGOKFDRKZW5BPB54C6APJDDF7ABDY52QPPRVFQFITZW3'
             'TMGJTC6OFBA3L5G4J3V6HMFNFDK2Y3Y',
+            app_secret=app_secret,
         )
-        assert session.token.session_id == '36d4b3272d57b997be7f312ba0b80331747820ce51471566dd0bc3de0bc07a46'
+        assert token.session_id == '36d4b3272d57b997be7f312ba0b80331747820ce51471566dd0bc3de0bc07a46'
+
+        session = RedisEncryptedSession(
+            conn=None,  # type: ignore
+            db_key=token.session_id,
+            encryption_key=token.derive_key(app_secret, 'nacl', nacl.secret.SecretBox.KEY_SIZE),
+            ttl=10,
+        )
         decrypted = session.decrypt_data(data)
         assert decrypted['flag'] == 'dirty session to force saving to redis 0.9806122964128207'
 
     def test_usable_token_encoding(self):
         """ Pysaml uses the token as an XML NCName so it can't contain some characters. """
         for i in range(1024):
-            session = self.manager.get_session()
-            session['foo'] = 'bar'
-            self.assertRegex(session.token.cookie_val, '^[a-z][a-zA-Z0-9.]+$')
+            _token = SessionCookie.new(app_secret=self.manager.secret)
+            self.assertRegex(_token.cookie_val, '^[a-z][a-zA-Z0-9.]+$')
 
     def test_clobbered_session(self):
         """ Test what would happen if two requests are processed simultaneously """
-        session1 = self.manager.get_session()
+        _token = SessionCookie.new(app_secret=self.manager.secret)
+        session1 = self.manager.get_session(token=_token, new=True)
         session1.commit()
-        session2 = self.manager.get_session(session1.token.cookie_val)
+        session2 = self.manager.get_session(token=_token, new=False)
         session1['foo'] = 'bar'
         session1.commit()
 
@@ -90,6 +100,6 @@ class TestSession(TestCase):
         with pytest.raises(SessionOutOfSync):
             session2.commit()
 
-        session3 = self.manager.get_session(session1.token.cookie_val)
+        session3 = self.manager.get_session(token=_token, new=False)
         assert session3['foo'] == 'bar'
         assert 'bar' not in session3
