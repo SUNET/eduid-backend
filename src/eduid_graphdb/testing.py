@@ -47,8 +47,6 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
         self._neo4j_version = neo4j_version
         self._host = 'localhost'
 
-        self._db = None
-
         super().__init__(max_retry_seconds=max_retry_seconds)
 
     @property
@@ -75,7 +73,7 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
     def setup_conn(self) -> bool:
         try:
             db_uri = f'bolt://{self.DEFAULT_USERNAME}:{self.DEFAULT_PASSWORD}@{self.host}:{self.bolt_port}'
-            self._db = Neo4jDB(db_uri=db_uri, config={'encrypted': False})
+            self._conn = Neo4jDB(db_uri=db_uri, config={'encrypted': False})
         except (ServiceUnavailable, ConnectionError) as e:
             logger.error(e)
             return False
@@ -86,10 +84,6 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
         if self._conn is None:
             raise RuntimeError('Missing temporary Neo4jDB instance')
         return self._conn
-
-    @property
-    def db(self):
-        return self._db
 
     @property
     def host(self):
@@ -112,7 +106,7 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
             MATCH (n)
             DETACH DELETE n
             """
-        with self.db.driver.session() as s:
+        with self.conn.driver.session() as s:
             s.run(q)
             # Drop constraints and indices
             for constraint in s.run("CALL db.constraints"):
@@ -132,7 +126,7 @@ class Neo4jTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.neo4j_instance = Neo4jTemporaryInstance.get_instance()
-        cls.neo4jdb = cls.neo4j_instance.db
+        cls.neo4jdb = cls.neo4j_instance.conn
 
     def tearDown(self):
         self.neo4j_instance.purge_db()
