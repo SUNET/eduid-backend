@@ -238,11 +238,6 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         # encrypted data loaded from redis, used to avoid clobbering concurrent updates to the session
         self._raw_data: Optional[str] = None
 
-        #        if cookie_val:
-        #            self.token = SessionCookie.from_cookie(cookie_val, app_secret=self.app_secret)
-        #        else:
-        #            self.token = SessionCookie.new(app_secret=self.app_secret)
-
         self.secret_box = nacl.secret.SecretBox(encryption_key)
 
         self._data: dict = {}
