@@ -121,16 +121,16 @@ class ResetPasswordTests(EduidAPITestCase):
         mock_sendmail.return_value = sendmail_return
         mock_sendmail.side_effect = sendmail_side_effect
         with self.session_cookie_anon(self.browser) as c:
-            with c.session_transaction() as session:
-                with self.app.test_request_context():
+            with self.app.test_request_context():
+                with c.session_transaction() as sess:
                     data = {
                         'email': self.test_user_email,
-                        'csrf_token': session.get_csrf_token(),
+                        'csrf_token': sess.get_csrf_token(),
                     }
-                    if data1 is not None:
-                        data.update(data1)
+                if data1 is not None:
+                    data.update(data1)
 
-                    return c.post('/reset/', data=json.dumps(data), content_type=self.content_type_json)
+                return c.post('/reset/', data=json.dumps(data), content_type=self.content_type_json)
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     def _post_reset_code(self, mock_sendmail: Any, data1: Optional[dict] = None, data2: Optional[dict] = None):
@@ -188,40 +188,40 @@ class ResetPasswordTests(EduidAPITestCase):
         mock_sendmail.return_value = True
         mock_get_vccs_client.return_value = TestVCCSClient()
         with self.session_cookie_anon(self.browser) as c:
-            with c.session_transaction() as session:
-                with self.app.test_request_context():
+            with self.app.test_request_context():
+                with c.session_transaction() as sess:
                     data = {
                         'email': self.test_user_email,
-                        'csrf_token': session.get_csrf_token(),
+                        'csrf_token': sess.get_csrf_token(),
                     }
-                    if data1 is not None:
-                        data.update(data1)
-                    response = c.post('/reset/', data=json.dumps(data), content_type=self.content_type_json)
-                    self.assertEqual(response.status_code, 200)
-                    state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+                if data1 is not None:
+                    data.update(data1)
+                response = c.post('/reset/', data=json.dumps(data), content_type=self.content_type_json)
+                self.assertEqual(response.status_code, 200)
+                state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
 
-                    # check that the user has verified data
-                    user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-                    verified_phone_numbers = user.phone_numbers.verified.to_list()
-                    self.assertEqual(len(verified_phone_numbers), 1)
-                    verified_nins = user.nins.verified.to_list()
-                    self.assertEqual(len(verified_nins), 2)
+                # check that the user has verified data
+                user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+                verified_phone_numbers = user.phone_numbers.verified.to_list()
+                self.assertEqual(len(verified_phone_numbers), 1)
+                verified_nins = user.nins.verified.to_list()
+                self.assertEqual(len(verified_nins), 2)
 
-                    new_password = generate_suggested_password()
-                    session.reset_password.generated_password_hash = hash_password(new_password)
-                    session.persist()
-                    url = url_for('reset_password.set_new_pw', _external=True)
+                new_password = generate_suggested_password()
+                url = url_for('reset_password.set_new_pw', _external=True)
+                with c.session_transaction() as sess:
+                    sess.reset_password.generated_password_hash = hash_password(new_password)
                     data = {
-                        'csrf_token': session.get_csrf_token(),
+                        'csrf_token': sess.get_csrf_token(),
                         'code': state.email_code.code,
                         'password': new_password,
                     }
-                    if data2 == {}:
-                        data = {}
-                    elif data2 is not None:
-                        data.update(data2)
+                if data2 == {}:
+                    data = {}
+                elif data2 is not None:
+                    data.update(data2)
 
-                    return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
+                return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
 
     @patch('eduid_common.authn.vccs.get_vccs_client')
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
@@ -321,38 +321,40 @@ class ResetPasswordTests(EduidAPITestCase):
         mock_get_vccs_client.return_value = TestVCCSClient()
         mock_sendsms.return_value = True
         with self.session_cookie_anon(self.browser) as c:
-            with c.session_transaction() as session:
-                with self.app.test_request_context():
+            with self.app.test_request_context():
+                with c.session_transaction() as sess:
                     data = {
                         'email': self.test_user_email,
-                        'csrf_token': session.get_csrf_token(),
+                        'csrf_token': sess.get_csrf_token(),
                     }
-                    if data1 is not None:
-                        data.update(data1)
-                    response = c.post('/reset/', data=json.dumps(data), content_type=self.content_type_json)
-                    self.assertEqual(response.status_code, 200)
+                if data1 is not None:
+                    data.update(data1)
+                response = c.post('/reset/', data=json.dumps(data), content_type=self.content_type_json)
+                self.assertEqual(response.status_code, 200)
 
-                    user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-                    state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
-                    alternatives = get_extra_security_alternatives(user, 'dummy.session.prefix')
-                    state.extra_security = alternatives
-                    state.email_code.is_verified = True
-                    self.app.password_reset_state_db.save(state)
-                    phone_number = state.extra_security['phone_numbers'][0]
-                    send_verify_phone_code(state, phone_number['number'])
+                user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+                state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+                alternatives = get_extra_security_alternatives(user, 'dummy.session.prefix')
+                state.extra_security = alternatives
+                state.email_code.is_verified = True
+                self.app.password_reset_state_db.save(state)
+                phone_number = state.extra_security['phone_numbers'][0]
+                send_verify_phone_code(state, phone_number['number'])
 
-                    new_password = generate_suggested_password()
-                    session.reset_password.generated_password_hash = hash_password(new_password)
-                    url = url_for('reset_password.set_new_pw_extra_security_phone', _external=True)
-                    state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+                new_password = generate_suggested_password()
+
+                url = url_for('reset_password.set_new_pw_extra_security_phone', _external=True)
+                state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+                with c.session_transaction() as sess:
+                    sess.reset_password.generated_password_hash = hash_password(new_password)
                     data = {
-                        'csrf_token': session.get_csrf_token(),
+                        'csrf_token': sess.get_csrf_token(),
                         'code': state.email_code.code,
                         'phone_code': state.phone_code.code,
                         'password': new_password,
                     }
-                    if data2 is not None:
-                        data.update(data2)
+                if data2 is not None:
+                    data.update(data2)
 
             return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
 
@@ -389,54 +391,54 @@ class ResetPasswordTests(EduidAPITestCase):
         mock_sendmail.return_value = True
         mock_verify.return_value = True
         with self.session_cookie_anon(self.browser) as c:
-            with c.session_transaction() as session:
-                with self.app.test_request_context():
+            with self.app.test_request_context():
+                with c.session_transaction() as sess:
                     data = {
-                        'csrf_token': session.get_csrf_token(),
+                        'csrf_token': sess.get_csrf_token(),
                         'email': self.test_user_email,
                     }
-                    if data1 is not None:
-                        data.update(data1)
-                    response = c.post('/reset/', data=json.dumps(data), content_type=self.content_type_json)
-                    self.assertEqual(response.status_code, 200)
+                if data1 is not None:
+                    data.update(data1)
+                response = c.post('/reset/', data=json.dumps(data), content_type=self.content_type_json)
+                self.assertEqual(response.status_code, 200)
 
-                    credential = sample_credential.to_dict()
-                    if credential_data:
-                        credential.update(credential_data)
-                    webauthn_credential = Webauthn.from_dict(credential)
-                    user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-                    user.credentials.add(webauthn_credential)
-                    self.app.central_userdb.save(user, check_sync=False)
+                credential = sample_credential.to_dict()
+                if credential_data:
+                    credential.update(credential_data)
+                webauthn_credential = Webauthn.from_dict(credential)
+                user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+                user.credentials.add(webauthn_credential)
+                self.app.central_userdb.save(user, check_sync=False)
 
-                    state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
-                    alternatives = get_extra_security_alternatives(user, 'dummy.session.prefix')
-                    state.extra_security = alternatives
-                    state.email_code.is_verified = True
-                    self.app.password_reset_state_db.save(state)
+                state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+                alternatives = get_extra_security_alternatives(user, 'dummy.session.prefix')
+                state.extra_security = alternatives
+                state.email_code.is_verified = True
+                self.app.password_reset_state_db.save(state)
 
-                    if fido2state is None:
-                        fido2state = {
-                            'challenge': '3h_EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc',
-                            'user_verification': 'preferred',
-                        }
-                    session['eduid_webapp.reset_password.views.webauthn.state'] = json.dumps(fido2state)
-                    new_password = generate_suggested_password()
-                    session.reset_password.generated_password_hash = hash_password(new_password)
-                    session.persist()
-                    url = url_for('reset_password.set_new_pw_extra_security_token', _external=True)
-                    state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+                if fido2state is None:
+                    fido2state = {
+                        'challenge': '3h_EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc',
+                        'user_verification': 'preferred',
+                    }
+                new_password = generate_suggested_password()
+                url = url_for('reset_password.set_new_pw_extra_security_token', _external=True)
+                state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+                with c.session_transaction() as sess:
+                    sess['eduid_webapp.reset_password.views.webauthn.state'] = json.dumps(fido2state)
+                    sess.reset_password.generated_password_hash = hash_password(new_password)
                     data = {
-                        'csrf_token': session.get_csrf_token(),
+                        'csrf_token': sess.get_csrf_token(),
                         'code': state.email_code.code,
                         'password': custom_password or new_password,
                     }
-                    data.update(SAMPLE_WEBAUTHN_REQUEST)
-                    if data2 == {}:
-                        data = {}
-                    elif data2 is not None:
-                        data.update(data2)
+                data.update(SAMPLE_WEBAUTHN_REQUEST)
+                if data2 == {}:
+                    data = {}
+                elif data2 is not None:
+                    data.update(data2)
 
-            return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
+        return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
 
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
     def _get_email_code_backdoor(self, mock_sendmail: Any, data1: Optional[dict] = None):
@@ -448,24 +450,24 @@ class ResetPasswordTests(EduidAPITestCase):
         """
         mock_sendmail.return_value = True
         with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as session:
-                with self.app.test_request_context():
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
                     data = {
                         'email': self.test_user_email,
-                        'csrf_token': session.get_csrf_token(),
+                        'csrf_token': sess.get_csrf_token(),
                     }
-                    if data1 is not None:
-                        data.update(data1)
-                    response = client.post('/reset/', data=json.dumps(data), content_type=self.content_type_json)
-                    self.assertEqual(response.status_code, 200)
+                if data1 is not None:
+                    data.update(data1)
+                response = client.post('/reset/', data=json.dumps(data), content_type=self.content_type_json)
+                self.assertEqual(response.status_code, 200)
 
-                    client.set_cookie(
-                        'localhost', key=self.app.config.magic_cookie_name, value=self.app.config.magic_cookie
-                    )
+                client.set_cookie(
+                    'localhost', key=self.app.config.magic_cookie_name, value=self.app.config.magic_cookie
+                )
 
-                    eppn = quote_plus(self.test_user_eppn)
+                eppn = quote_plus(self.test_user_eppn)
 
-                    return client.get(f'/reset/get-email-code?eppn={eppn}')
+                return client.get(f'/reset/get-email-code?eppn={eppn}')
 
     @patch('eduid_common.authn.vccs.get_vccs_client')
     @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
