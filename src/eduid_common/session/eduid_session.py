@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 from collections.abc import MutableMapping
 from dataclasses import asdict
 from time import time
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Union
 
 from flask import Request as FlaskRequest
 from flask import Response as FlaskResponse
-from flask import current_app
-from flask import request as flask_request
 from flask.sessions import SessionInterface, SessionMixin
 
 from eduid_common.config.base import FlaskConfig
@@ -22,8 +21,12 @@ from eduid_common.session.redis_session import RedisEncryptedSession, SessionMan
 # From https://stackoverflow.com/a/39757388
 # The TYPE_CHECKING constant is always False at runtime, so the import won't be evaluated, but mypy
 # (and other type-checking tools) will evaluate the contents of that block.
+from eduid_common.session.session_cookie import SessionCookie
+
 if TYPE_CHECKING:
     from eduid_common.api.app import EduIDBaseApp
+
+logger = logging.getLogger(__name__)
 
 
 class EduidSession(SessionMixin, MutableMapping):
@@ -33,7 +36,7 @@ class EduidSession(SessionMixin, MutableMapping):
     to store the session data in redis.
     """
 
-    def __init__(self, app: EduIDBaseApp, base_session: RedisEncryptedSession, new: bool = False):
+    def __init__(self, app: EduIDBaseApp, token: SessionCookie, base_session: RedisEncryptedSession, new: bool = False):
         """
         :param app: the flask app
         :param base_session: The underlying session object
@@ -41,6 +44,7 @@ class EduidSession(SessionMixin, MutableMapping):
         """
         super().__init__()
         self.app = app
+        self._token = token
         self._session = base_session
         self._created = time()
         self._invalidated = False
@@ -57,17 +61,12 @@ class EduidSession(SessionMixin, MutableMapping):
         self._sso_ticket: Optional[SSOLoginData] = None
         self._reset_password: ResetPasswordNS
 
-    @property
-    def permanent(self):
-        return True
-
-    @permanent.setter
-    def permanent(self, value):
-        # EduidSessions are _always_ permanent
-        pass
-
     def __str__(self):
-        return f'<{self.__class__.__name__} at {hex(id(self))}: new={self.new}, modified={self.modified}>'
+        # Include hex(id(self)) for now to troubleshoot clobbered sessions
+        return (
+            f'<{self.__class__.__name__} at {hex(id(self))}: new={self.new}, '
+            f'modified={self.modified}, cookie={self.short_id}>'
+        )
 
     def __getitem__(self, key, default=None):
         return self._session.__getitem__(key, default=None)
@@ -75,13 +74,13 @@ class EduidSession(SessionMixin, MutableMapping):
     def __setitem__(self, key, value):
         if key not in self._session or self._session[key] != value:
             self._session[key] = value
-            self.app.logger.debug(f'SET {self}[{key}] = {value}')
+            logger.debug(f'SET {self}[{key}] = {value}')
             self.modified = True
 
     def __delitem__(self, key):
         if key in self._session:
             del self._session[key]
-            self.app.logger.debug(f'DEL {self}[{key}]')
+            logger.debug(f'DEL {self}[{key}]')
             self.modified = True
 
     def __iter__(self):
@@ -92,6 +91,20 @@ class EduidSession(SessionMixin, MutableMapping):
 
     def __contains__(self, key):
         return self._session.__contains__(key)
+
+    @property
+    def short_id(self) -> str:
+        """ Short version of the cookie value for use in logging """
+        return self._token.cookie_val[:9] + '...'
+
+    @property
+    def permanent(self):
+        return True
+
+    @permanent.setter
+    def permanent(self, value):
+        # EduidSessions are _always_ permanent
+        pass
 
     @property
     def common(self) -> Optional[Common]:
@@ -149,7 +162,7 @@ class EduidSession(SessionMixin, MutableMapping):
             try:
                 self._sso_ticket = SSOLoginData.from_dict(self._session.get('_sso_ticket', {}))
             except Exception:
-                self.app.logger.exception('Failed parsing SSOLoginData')
+                logger.exception('Failed parsing SSOLoginData')
                 self._sso_ticket = None
         return self._sso_ticket
 
@@ -174,14 +187,14 @@ class EduidSession(SessionMixin, MutableMapping):
             raise ValueError('ResetPasswordNS already initialised')
 
     @property
-    def token(self):
+    def token(self) -> Union[str, SessionCookie]:
         """
-        Return the token in the session,
-        or the empty string if the session has been invalidated.
+        Return the token in the session, or the empty string if the session has been invalidated.
         """
         if self._invalidated:
+            # TODO: Strange interface not returning None, where is this needed?
             return ''
-        return self._session.token
+        return self._token
 
     @property
     def created(self):
@@ -261,13 +274,13 @@ class EduidSession(SessionMixin, MutableMapping):
         self._serialize_namespaces()
 
         if self.new or self.modified:
-            self.app.logger.debug(f'Saving session {self}')
+            logger.debug(f'Saving session {self}')
             self._session.commit()
             self.new = False
             self.modified = False
             if self.app.debug:
                 _saved_data = json.dumps(self._session.to_dict(), indent=4, sort_keys=True)
-                self.app.logger.debug(f'Saved session {self}:\n{_saved_data}')
+                logger.debug(f'Saved session {self}:\n{_saved_data}')
 
 
 class SessionFactory(SessionInterface):
@@ -294,23 +307,30 @@ class SessionFactory(SessionInterface):
         # Load token from cookie
         cookie_name = app.config.session_cookie_name
         cookie_val = request.cookies.get(cookie_name, None)
-        current_app.logger.debug(f'Session cookie {cookie_name} == {cookie_val}')
+        logger.debug(f'Session cookie {cookie_name} == {cookie_val}')
 
         if cookie_val:
-            # Existing session
-            try:
-                base_session = self.manager.get_session(cookie_val=cookie_val)
-                sess = EduidSession(app, base_session, new=False)
-                current_app.logger.debug('Loaded existing session {}'.format(sess))
-                return sess
-            except KeyError:
-                current_app.logger.debug(f'Failed to load session from cookie {cookie_val}, will create a new one')
+            _token = SessionCookie.from_cookie(cookie_val, app_secret=self.manager.secret)
+        else:
+            _token = SessionCookie.new(app_secret=self.manager.secret)
 
-        # New session
-        current_app.logger.debug('Creating new session')
-        base_session = self.manager.get_session()
-        sess = EduidSession(app, base_session, new=True)
-        current_app.logger.debug(f'Created new session {sess}')
+        base_session = None
+        if cookie_val:
+            # Try and load existing session identified by browser provided cookie
+            try:
+                base_session = self.manager.get_session(token=_token, new=False)
+                logger.debug(f'Loaded existing session {base_session}')
+            except KeyError:
+                logger.debug(f'Failed to load session from cookie {cookie_val}, will create a new one')
+
+        new = False
+        if not base_session:
+            logger.debug(f'Creating new session with cookie {_token.cookie_val}')
+            base_session = self.manager.get_session(token=_token, new=True)
+            new = True
+
+        sess = EduidSession(app, _token, base_session, new=new)
+        logger.debug(f'Created/loaded session {sess} with base_session {base_session}')
         return sess
 
     def save_session(self, app: EduIDBaseApp, sess: EduidSession, response: FlaskResponse) -> None:

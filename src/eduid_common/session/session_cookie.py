@@ -112,6 +112,11 @@ class SessionCookie(object):
 
         return bool(not invalid_bits)
 
+    def derive_key(self, app_secret: str, usage: str, size: int) -> bytes:
+        _bin_session_id = bytes.fromhex(self.session_id)
+
+        return derive_key(app_secret, _bin_session_id, usage, size)
+
 
 def derive_key(app_secret: str, bin_session_id: bytes, usage: str, size: int) -> bytes:
     """

@@ -88,7 +88,7 @@ import redis
 import redis.sentinel
 from saml2.saml import NameID
 
-from eduid_common.session.session_cookie import SessionCookie, derive_key
+from eduid_common.session.session_cookie import SessionCookie
 
 logger = logging.getLogger(__name__)
 
@@ -132,11 +132,12 @@ class SessionManager(object):
         """
         return redis.StrictRedis(connection_pool=self.pool)
 
-    def get_session(self, cookie_val: Optional[str] = None) -> RedisEncryptedSession:
+    def get_session(self, token: SessionCookie, new: bool) -> RedisEncryptedSession:
         """
         Create or fetch a session for the given token or data.
 
         :param cookie_val: the value of the session cookie, if any
+        :param new: True if this is a new session
 
         :return: the session
         """
@@ -144,19 +145,19 @@ class SessionManager(object):
 
         res = RedisEncryptedSession(
             conn,
-            cookie_val=cookie_val,
-            app_secret=self.secret,
+            db_key=token.session_id,
+            encryption_key=token.derive_key(self.secret, 'nacl', nacl.secret.SecretBox.KEY_SIZE),
             ttl=self.ttl,
             whitelist=self.whitelist,
             raise_on_unknown=self.raise_on_unknown,
         )
 
-        if cookie_val:
-            if not res.load_session():
-                logger.warning(f'Session cache miss for cookie {cookie_val}')
-                raise KeyError(f'Session not found using provided cookie')
+        if new:
+            logger.debug(f'Created new session {res}')
         else:
-            logger.debug(f'Created new session {res.token}')
+            if not res.load_session():
+                logger.warning(f'No existing session found for {res}')
+                raise KeyError(f'Session not found using provided cookie')
 
         return res
 
@@ -202,9 +203,9 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
     def __init__(
         self,
         conn: redis.StrictRedis,
-        app_secret: str,
+        db_key: str,
+        encryption_key: bytes,
         ttl: int,
-        cookie_val: Optional[str] = None,
         whitelist: Optional[List[str]] = None,
         raise_on_unknown: bool = False,
     ):
@@ -229,23 +230,26 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
                                  to set a session key not in whitelist
         """
         self.conn = conn
+        self.db_key = db_key
+        self.encryption_key = encryption_key
         self.ttl = ttl
         self.whitelist = whitelist
         self.raise_on_unknown = raise_on_unknown
-        self.app_secret = app_secret
         # encrypted data loaded from redis, used to avoid clobbering concurrent updates to the session
         self._raw_data: Optional[str] = None
 
-        if cookie_val:
-            self.token = SessionCookie.from_cookie(cookie_val, app_secret=self.app_secret)
-        else:
-            self.token = SessionCookie.new(app_secret=self.app_secret)
+        #        if cookie_val:
+        #            self.token = SessionCookie.from_cookie(cookie_val, app_secret=self.app_secret)
+        #        else:
+        #            self.token = SessionCookie.new(app_secret=self.app_secret)
 
-        _bin_session_id = bytes.fromhex(self.token.session_id)
-        _nacl_key = derive_key(self.app_secret, _bin_session_id, 'nacl', nacl.secret.SecretBox.KEY_SIZE)
-        self.secret_box = nacl.secret.SecretBox(_nacl_key)
+        self.secret_box = nacl.secret.SecretBox(encryption_key)
 
         self._data: dict = {}
+
+    def __str__(self):
+        # Include hex(id(self)) for now to troubleshoot clobbered sessions
+        return f'<{self.__class__.__name__} at {hex(id(self))}: db_key={self.short_id}>'
 
     def __getitem__(self, key, default=None):
         if key in self._data:
@@ -273,18 +277,24 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
     def __contains__(self, key):
         return self._data.__contains__(key)
 
+    @property
+    def short_id(self) -> str:
+        """ Short version of db_key for use in logging """
+        return self.db_key[:8] + '...'
+
     def load_session(self) -> bool:
-        logger.debug(f'Looking for session {self.token}')
+        logger.debug(f'Looking for session {self.short_id}')
 
         # Fetch session from session store (Redis). We remember the raw data and use it
         # when writing data back to Redis to detect if the session was updated by someone
         # else (in which case we abort).
-        self._raw_data = self.conn.get(self.token.session_id)
+        self._raw_data = self.conn.get(self.db_key)
         if not self._raw_data:
             return False
 
         self._data = self.decrypt_data(self._raw_data)
 
+        logger.debug(f'Loaded data from Redis[{self.short_id}]:\n{repr(self._data)}')
         return True
 
     def commit(self):
@@ -292,7 +302,7 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         Persist the currently held data into the redis db.
         """
         data = self.encrypt_data(self._data)
-        logger.debug(f'Committing session {self.token} to the cache with ttl {self.ttl} ({len(data)} bytes)')
+        logger.debug(f'Committing session {self} to Redis with ttl {self.ttl} ({len(data)} bytes)')
 
         def set_no_clobber(pipe: redis.client.Pipeline) -> None:
             """
@@ -304,14 +314,14 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
             to silently clobber the first ones updates to the session.
             """
             if self._raw_data is not None:
-                _data_now = self.conn.get(self.token.session_id)
+                _data_now = self.conn.get(self.db_key)
                 if _data_now != self._raw_data:
                     pipe.reset()
-                    raise SessionOutOfSync(f'The session {self.token} has been updated by someone else')
-            pipe.setex(self.token.session_id, self.ttl, data)
+                    raise SessionOutOfSync(f'The session {self} has been updated by someone else')
+            pipe.setex(self.db_key, self.ttl, data)
             self._raw_data = data
 
-        self.conn.transaction(set_no_clobber, watches=self.token.session_id)
+        self.conn.transaction(set_no_clobber, watches=self.db_key)
 
     def encrypt_data(self, data_dict: Mapping[str, Any]) -> bytes:
         """
@@ -320,7 +330,7 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         :param data_dict: Data to be stored
         :return: serialized data
         """
-        logger.debug(f'Storing data in cache[{self.token}]:\n{repr(data_dict)}')
+        logger.debug(f'Storing data in Redis[{self.short_id}]:\n{repr(data_dict)}')
         nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
         # Version data to make it easier to know how to decode it on reading
         data_json = json.dumps(data_dict, cls=NameIDEncoder)
@@ -342,25 +352,23 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         if 'v2' in versioned:
             _data = self.secret_box.decrypt(versioned['v2'], encoder=nacl.encoding.Base64Encoder)
             decrypted = json.loads(_data)
-            logger.debug(f'Loaded data from cache[{self.token}]:\n{repr(decrypted)}')
             return decrypted
 
-        logger.error(f'Unknown data retrieved from cache[{self.token}]: {repr(data_str)}')
-        raise ValueError('Unknown data retrieved from cache')
+        logger.error(f'Unknown data retrieved from Redis[{self.short_id}]: {repr(data_str)}')
+        raise ValueError('Unknown data retrieved from Redis')
 
     def clear(self):
         """
         Discard all data contained in the session.
         """
         self._data = {}
-        self.conn.delete(self.token.session_id)
-        self.token = None
+        self.conn.delete(self.db_key)
 
     def renew_ttl(self):
         """
         Restart the ttl countdown
         """
-        self.conn.expire(self.token.session_id, self.ttl)
+        self.conn.expire(self.db_key, self.ttl)
 
     def to_dict(self) -> dict:
         return dict(self._data)
