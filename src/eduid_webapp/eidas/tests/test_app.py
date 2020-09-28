@@ -244,7 +244,7 @@ class EidasTests(EduidAPITestCase):
             self.assertEqual(response.status_code, 302)
 
             with browser.session_transaction() as sess:
-                cookie_val = sess._token.cookie_val
+                cookie_val = sess.meta.cookie_val
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_nin
                 )
@@ -280,7 +280,7 @@ class EidasTests(EduidAPITestCase):
             self.assertEqual(response.status_code, 302)
 
             with browser.session_transaction() as sess:
-                cookie_val = sess._token.cookie_val
+                cookie_val = sess.meta.cookie_val
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_nin
                 )
@@ -316,7 +316,7 @@ class EidasTests(EduidAPITestCase):
             self.assertEqual(response.status_code, 302)
 
             with browser.session_transaction() as sess:
-                cookie_val = sess._token.cookie_val
+                cookie_val = sess.meta.cookie_val
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_wrong_nin
                 )
@@ -353,7 +353,7 @@ class EidasTests(EduidAPITestCase):
                 self.assertEqual(response.status_code, 302)
 
             with browser.session_transaction() as sess:
-                cookie_val = sess._token.cookie_val
+                cookie_val = sess.meta.cookie_val
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_nin
                 )
@@ -400,7 +400,7 @@ class EidasTests(EduidAPITestCase):
             self.assertEqual(response.status_code, 302)
 
             with browser.session_transaction() as sess:
-                cookie_val = sess._token.cookie_val
+                cookie_val = sess.meta.cookie_val
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_nin
                 )
@@ -437,7 +437,7 @@ class EidasTests(EduidAPITestCase):
             self.assertEqual(response.status_code, 302)
 
             with browser.session_transaction() as sess:
-                cookie_val = sess._token.cookie_val
+                cookie_val = sess.meta.cookie_val
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_fail, self.test_user_wrong_nin
                 )
@@ -473,7 +473,7 @@ class EidasTests(EduidAPITestCase):
             self.assertEqual(response.status_code, 302)
 
             with browser.session_transaction() as sess:
-                cookie_val = sess._token.cookie_val
+                cookie_val = sess.meta.cookie_val
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_cancel, self.test_user_wrong_nin
                 )
@@ -508,7 +508,7 @@ class EidasTests(EduidAPITestCase):
             self.assertEqual(response.status_code, 302)
 
             with browser.session_transaction() as sess:
-                cookie_val = sess._token.cookie_val
+                cookie_val = sess.meta.cookie_val
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_fail, self.test_user_wrong_nin
                 )
@@ -540,7 +540,7 @@ class EidasTests(EduidAPITestCase):
             response = browser.get('/verify-nin?idp={}'.format(self.test_idp))
             self.assertEqual(response.status_code, 302)
             with browser.session_transaction() as sess:
-                cookie_val = sess._token.cookie_val
+                cookie_val = sess.meta.cookie_val
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_nin
                 )
@@ -635,7 +635,7 @@ class EidasTests(EduidAPITestCase):
             response = browser.get('/verify-nin/?idp={}'.format(self.test_idp))
             self.assertEqual(response.status_code, 302)
             with browser.session_transaction() as sess:
-                cookie_val = sess._token.cookie_val
+                cookie_val = sess.meta.cookie_val
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_nin
                 )
@@ -666,7 +666,7 @@ class EidasTests(EduidAPITestCase):
             relay_state = qs['RelayState'][0]
 
             with browser.session_transaction() as sess:
-                cookie_val = sess._token.cookie_val
+                cookie_val = sess.meta.cookie_val
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_nin
                 )
@@ -697,7 +697,7 @@ class EidasTests(EduidAPITestCase):
             relay_state = qs['RelayState'][0]
 
             with browser.session_transaction() as sess:
-                cookie_val = sess._token.cookie_val
+                cookie_val = sess.meta.cookie_val
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_wrong_nin
                 )
@@ -728,7 +728,7 @@ class EidasTests(EduidAPITestCase):
             response = browser.get('/verify-nin?idp={}'.format(self.test_idp))
             self.assertEqual(response.status_code, 302)
             with browser.session_transaction() as sess:
-                cookie_val = sess._token.cookie_val
+                cookie_val = sess.meta.cookie_val
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_nin
                 )
