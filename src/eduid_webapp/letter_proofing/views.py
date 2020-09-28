@@ -2,14 +2,13 @@
 
 from __future__ import absolute_import
 
-from datetime import datetime
-
 from flask import Blueprint, abort
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid_common.api.helpers import add_nin_to_user, check_magic_cookie, verify_nin_for_user
 from eduid_common.api.messages import CommonMsg, FluxData, error_response, success_response
+from eduid_common.misc.timeutil import utc_now
 from eduid_userdb import User
 from eduid_userdb.logs import LetterProofing
 from eduid_userdb.proofing import ProofingUser
@@ -57,10 +56,8 @@ def proofing(user: User, nin: str) -> FluxData:
     # NOOP if the user already have the nin
     add_nin_to_user(user, proofing_state)
 
-    # TODO: Don't send a letter if the nin is already verified
-
     if proofing_state.proofing_letter.is_sent:
-        current_app.logger.info('A letter has already been sent to the user. ')
+        current_app.logger.info('A letter has already been sent to the user.')
         current_app.logger.debug('Proofing state: {}'.format(proofing_state.to_dict()))
         result = check_state(proofing_state)
         if result.error:
@@ -70,6 +67,11 @@ def proofing(user: User, nin: str) -> FluxData:
             return result.to_response()
         # XXX Are we sure that the user wants to send a new letter?
         current_app.logger.info('The letter has expired. Sending a new one...')
+
+        current_app.proofing_statedb.remove_state(proofing_state)
+        current_app.logger.info(f'Removed {proofing_state}')
+        current_app.stats.count('letter_expired')
+
     try:
         address = get_address(user, proofing_state)
         if not address:
@@ -99,7 +101,7 @@ def proofing(user: User, nin: str) -> FluxData:
     # Save the users proofing state
     proofing_state.proofing_letter.transaction_id = campaign_id
     proofing_state.proofing_letter.is_sent = True
-    proofing_state.proofing_letter.sent_ts = datetime.utcnow()
+    proofing_state.proofing_letter.sent_ts = utc_now()
     current_app.proofing_statedb.save(proofing_state)
     result = check_state(proofing_state)
     result.message = LetterMsg.letter_sent
@@ -130,6 +132,7 @@ def verify_code(user: User, code: str) -> FluxData:
     if state_info.is_expired:
         # This is not an error in the get_state view, but here it is an error so 'upgrade' it.
         state_info.error = True
+        current_app.logger.warning(f'Tried to validate expired state: {proofing_state}')
         return state_info.to_response()
 
     try:
