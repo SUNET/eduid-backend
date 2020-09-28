@@ -190,7 +190,7 @@ class AuthnAPITestBase(EduidAPITestCase):
         with self.app.test_client() as c:
             resp = c.get(url)
             cookie = resp.headers['Set-Cookie']
-            cookie_val = session._token.cookie_val
+            cookie_val = session.meta.cookie_val
             authr = auth_response(cookie_val, eppn).encode('utf-8')
 
         with self.app.test_request_context(
@@ -306,7 +306,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
         with self.app.test_client() as c:
             with self.app.test_request_context('/signup-authn'):
-                c.set_cookie('test.localhost', key=self.app.config.session_cookie_name, value=session._token.cookie_val)
+                c.set_cookie('test.localhost', key=self.app.config.session_cookie_name, value=session.meta.cookie_val)
                 session.common.eppn = eppn
                 session.signup.ts = timestamp
 
