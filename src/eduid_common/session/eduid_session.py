@@ -21,7 +21,7 @@ from eduid_common.session.redis_session import RedisEncryptedSession, SessionMan
 # From https://stackoverflow.com/a/39757388
 # The TYPE_CHECKING constant is always False at runtime, so the import won't be evaluated, but mypy
 # (and other type-checking tools) will evaluate the contents of that block.
-from eduid_common.session.session_cookie import SessionCookie
+from eduid_common.session.meta import SessionMeta
 
 if TYPE_CHECKING:
     from eduid_common.api.app import EduIDBaseApp
@@ -36,15 +36,16 @@ class EduidSession(SessionMixin, MutableMapping):
     to store the session data in redis.
     """
 
-    def __init__(self, app: EduIDBaseApp, token: SessionCookie, base_session: RedisEncryptedSession, new: bool = False):
+    def __init__(self, app: EduIDBaseApp, meta: SessionMeta, base_session: RedisEncryptedSession, new: bool = False):
         """
         :param app: the flask app
+        :param meta: Session metadata
         :param base_session: The underlying session object
         :param new: whether the session is new or not.
         """
         super().__init__()
         self.app = app
-        self._token = token
+        self.meta = meta
         self._session = base_session
         self._created = time()
         self._invalidated = False
@@ -95,7 +96,7 @@ class EduidSession(SessionMixin, MutableMapping):
     @property
     def short_id(self) -> str:
         """ Short version of the cookie value for use in logging """
-        return self._token.cookie_val[:9] + '...'
+        return self.meta.cookie_val[:9] + '...'
 
     @property
     def permanent(self):
@@ -187,14 +188,14 @@ class EduidSession(SessionMixin, MutableMapping):
             raise ValueError('ResetPasswordNS already initialised')
 
     @property
-    def token(self) -> Union[str, SessionCookie]:
+    def token(self) -> Union[str, SessionMeta]:
         """
         Return the token in the session, or the empty string if the session has been invalidated.
         """
         if self._invalidated:
             # TODO: Strange interface not returning None, where is this needed?
             return ''
-        return self._token
+        return self.meta
 
     @property
     def created(self):
@@ -310,26 +311,26 @@ class SessionFactory(SessionInterface):
         logger.debug(f'Session cookie {cookie_name} == {cookie_val}')
 
         if cookie_val:
-            _token = SessionCookie.from_cookie(cookie_val, app_secret=self.manager.secret)
+            _meta = SessionMeta.from_cookie(cookie_val, app_secret=self.manager.secret)
         else:
-            _token = SessionCookie.new(app_secret=self.manager.secret)
+            _meta = SessionMeta.new(app_secret=self.manager.secret)
 
         base_session = None
         if cookie_val:
             # Try and load existing session identified by browser provided cookie
             try:
-                base_session = self.manager.get_session(token=_token, new=False)
+                base_session = self.manager.get_session(meta=_meta, new=False)
                 logger.debug(f'Loaded existing session {base_session}')
             except KeyError:
                 logger.debug(f'Failed to load session from cookie {cookie_val}, will create a new one')
 
         new = False
         if not base_session:
-            logger.debug(f'Creating new session with cookie {_token.cookie_val}')
-            base_session = self.manager.get_session(token=_token, new=True)
+            logger.debug(f'Creating new session with cookie {_meta.cookie_val}')
+            base_session = self.manager.get_session(meta=_meta, new=True)
             new = True
 
-        sess = EduidSession(app, _token, base_session, new=new)
+        sess = EduidSession(app, _meta, base_session, new=new)
         logger.debug(f'Created/loaded session {sess} with base_session {base_session}')
         return sess
 
