@@ -214,8 +214,10 @@ class LetterProofingTests(EduidAPITestCase):
         expires = response.json['payload']['letter_expires']
         expires = datetime.utcfromtimestamp(int(expires))
         self.assertIsInstance(expires, datetime)
-        expires = expires.strftime('%Y-%m-%d')
-        self.assertIsInstance(expires, str)
+        # Check that the user was given until midnight the day the code expires
+        assert expires.hour == 23
+        assert expires.minute == 59
+        assert expires.second == 59
 
     def test_resend_letter(self):
         response = self.send_letter(self.test_user_nin)

@@ -97,23 +97,22 @@ def check_state(state: LetterProofingState) -> StateExpireInfo:
     if not isinstance(sent_dt, datetime):
         raise ValueError("SentLetterElement must have a datetime sent_ts attr if is_sent is True")
 
-    minutes_until_midnight = (24 - sent_dt.hour) * 60  # Give the user until midnight the day the code expires
-    now = datetime.now(sent_dt.tzinfo)  # Use tz_info from timezone aware mongodb datetime
-    max_wait = timedelta(hours=current_app.config.letter_wait_time_hours, minutes=minutes_until_midnight)
+    expires_at = sent_dt + timedelta(hours=current_app.config.letter_wait_time_hours)
+    # Give the user until midnight the day the code expires
+    expires_at = expires_at.replace(hour=23, minute=59, second=59)
 
-    time_since_sent = now - sent_dt
-    if time_since_sent < max_wait:
-        current_app.logger.info('User with eppn {!s} has to wait for letter to arrive.'.format(state.eppn))
-        current_app.logger.info('Code expires: {!s}'.format(sent_dt + max_wait))
+    now = utc_now()
+    if now < expires_at:
+        current_app.logger.info(f'User with eppn {state.eppn} has to wait for letter to arrive.')
+        current_app.logger.info(f'Code expires: {expires_at}')
         # The user has to wait for the letter to arrive
         return StateExpireInfo(
-            sent=sent_dt, expires=sent_dt + max_wait, is_expired=False, error=False, message=LetterMsg.already_sent
+            sent=sent_dt, expires=expires_at, is_expired=False, error=False, message=LetterMsg.already_sent
         )
     else:
         current_app.logger.info('Letter expired for user with eppn {!s}.'.format(state.eppn))
-        expires_dt = sent_dt + max_wait
         return StateExpireInfo(
-            sent=sent_dt, expires=expires_dt, is_expired=True, error=False, message=LetterMsg.letter_expired
+            sent=sent_dt, expires=expires_at, is_expired=True, error=False, message=LetterMsg.letter_expired
         )
 
 
