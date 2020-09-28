@@ -61,11 +61,12 @@ class StateExpireInfo(object):
             'letter_expired': self.is_expired,
         }
         now = utc_now()
-        if self.sent:
-            # If a letter was sent yesterday, letter_sent_days_ago should be 1 even if it
-            # is now one minute past midnight and the letter was sent two minutes ago
-            _delta = now - self.sent.replace(hour=0, minute=0, second=1)
-            res['letter_sent_days_ago'] = _delta.days
+
+        # If a letter was sent yesterday, letter_sent_days_ago should be 1 even if it
+        # is now one minute past midnight and the letter was sent two minutes ago
+        _delta = now - self.sent.replace(hour=0, minute=0, second=1)
+        res['letter_sent_days_ago'] = _delta.days
+
         if self.expires and not self.is_expired:
             _delta = self.expires - now
             res['letter_expires_in_days'] = _delta.days
