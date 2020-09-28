@@ -98,14 +98,7 @@ def check_state(state: LetterProofingState) -> StateExpireInfo:
             sent=sent_dt, expires=sent_dt + max_wait, is_expired=False, error=False, message=LetterMsg.already_sent
         )
     else:
-        # If the letter haven't reached the user within the allotted time
-        # remove the previous proofing object and restart the proofing flow
         current_app.logger.info('Letter expired for user with eppn {!s}.'.format(state.eppn))
-        # TODO: The state should probably be kept in the database for some time (a couple of months perhaps).
-        #       to show the user information when she visits the proofing view again.
-        current_app.proofing_statedb.remove_state(state)
-        current_app.logger.info('Removed {!s}'.format(state))
-        current_app.stats.count('letter_expired')
         expires_dt = sent_dt + max_wait
         return StateExpireInfo(
             sent=sent_dt, expires=expires_dt, is_expired=True, error=False, message=LetterMsg.letter_expired
@@ -120,7 +113,7 @@ def create_proofing_state(eppn: str, nin: str) -> LetterProofingState:
     proofing_state = LetterProofingState(
         eppn=eppn, nin=_nin, proofing_letter=proofing_letter, id=None, modified_ts=None
     )
-    current_app.logger.debug(f'Created proofing state: {repr(proofing_state)}')
+    current_app.logger.debug(f'Created proofing state: {proofing_state}')
     return proofing_state
 
 
