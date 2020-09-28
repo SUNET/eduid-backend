@@ -29,6 +29,8 @@ class LetterProofingResponseSchema(FluxStandardAction):
         letter_sent = fields.DateTime(format='%s')
         letter_expires = fields.DateTime(format='%s')
         letter_expired = fields.Boolean()
+        letter_expires_in_days = fields.Int(required=False)
+        letter_sent_days_ago = fields.Int(required=False)
 
     payload = fields.Nested(LetterProofingPayload)
 

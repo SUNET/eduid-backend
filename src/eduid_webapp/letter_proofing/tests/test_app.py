@@ -480,3 +480,54 @@ class LetterProofingTests(EduidAPITestCase):
         response = self.get_code_backdoor(cookie_value='wrong-cookie')
 
         self.assertEqual(response.status_code, 400)
+
+    def test_state_days_info(self):
+        """ Validate calculation of days information in state retrieval """
+        self.send_letter(self.test_user_nin)
+        json_data = self.get_state()
+
+        assert json_data['payload']['letter_sent_days_ago'] == 0
+        assert json_data['payload']['letter_expires_in_days'] == 14
+        assert json_data['payload']['letter_expired'] is False
+        assert json_data['payload']['message'] == LetterMsg.already_sent.value
+
+        proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
+
+        # move back the 'letter sent' value to the last second of yesterday
+        new_ts = proofing_state.proofing_letter.sent_ts - timedelta(days=1)
+        new_ts = new_ts.replace(hour=23, minute=59, second=59)
+        proofing_state.proofing_letter.sent_ts = new_ts
+        self.app.proofing_statedb.save(proofing_state)
+
+        json_data = self.get_state()
+
+        assert json_data['payload']['letter_sent_days_ago'] == 1
+        assert json_data['payload']['letter_expires_in_days'] == 13
+        assert json_data['payload']['letter_expired'] is False
+        assert json_data['payload']['message'] == LetterMsg.already_sent.value
+
+        # move back the 'letter sent' value to the last day of validity
+        new_ts = proofing_state.proofing_letter.sent_ts - timedelta(days=13)
+        new_ts = new_ts.replace(hour=23, minute=59, second=59)
+        proofing_state.proofing_letter.sent_ts = new_ts
+        self.app.proofing_statedb.save(proofing_state)
+
+        json_data = self.get_state()
+
+        assert json_data['payload']['letter_sent_days_ago'] == 14
+        assert json_data['payload']['letter_expires_in_days'] == 0
+        assert json_data['payload']['letter_expired'] is False
+        assert json_data['payload']['message'] == LetterMsg.already_sent.value
+
+        # make the state expired
+        new_ts = proofing_state.proofing_letter.sent_ts - timedelta(days=1)
+        new_ts = new_ts.replace(hour=23, minute=59, second=59)
+        proofing_state.proofing_letter.sent_ts = new_ts
+        self.app.proofing_statedb.save(proofing_state)
+
+        json_data = self.get_state()
+
+        assert json_data['payload']['letter_sent_days_ago'] == 15
+        assert 'letter_expires_in_days' not in json_data['payload']
+        assert json_data['payload']['letter_expired'] is True
+        assert json_data['payload']['message'] == LetterMsg.letter_expired.value

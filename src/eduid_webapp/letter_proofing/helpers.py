@@ -2,10 +2,10 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import unique
-from typing import Optional
 
 from eduid_common.api.messages import TranslatableMsg, error_response, success_response
 from eduid_common.api.utils import get_short_hash
+from eduid_common.misc.timeutil import utc_now
 from eduid_userdb import User
 from eduid_userdb.proofing import LetterProofingState, NinProofingElement
 from eduid_userdb.proofing.element import SentLetterElement
@@ -55,10 +55,22 @@ class StateExpireInfo(object):
         """ Create a response with information about the users current proofing state (or an error)."""
         if self.error:
             return error_response(message=self.message)
-        return success_response(
-            {'letter_sent': self.sent, 'letter_expires': self.expires, 'letter_expired': self.is_expired,},
-            message=self.message,
-        )
+        res = {
+            'letter_sent': self.sent,
+            'letter_expires': self.expires,
+            'letter_expired': self.is_expired,
+        }
+        now = utc_now()
+        if self.sent:
+            # If a letter was sent yesterday, letter_sent_days_ago should be 1 even if it
+            # is now one minute past midnight and the letter was sent two minutes ago
+            _delta = now - self.sent.replace(hour=0, minute=0, second=1)
+            res['letter_sent_days_ago'] = _delta.days
+        if self.expires and not self.is_expired:
+            _delta = self.expires - now
+            res['letter_expires_in_days'] = _delta.days
+
+        return success_response(res, message=self.message)
 
 
 def check_state(state: LetterProofingState) -> StateExpireInfo:
