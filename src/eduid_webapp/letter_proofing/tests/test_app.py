@@ -533,3 +533,20 @@ class LetterProofingTests(EduidAPITestCase):
         assert 'letter_expires_in_days' not in json_data['payload']
         assert json_data['payload']['letter_expired'] is True
         assert json_data['payload']['message'] == LetterMsg.letter_expired.value
+
+    def test_proofing_with_a_verified_nin(self):
+        """ Test that no letter is sent when the user already has a verified NIN """
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        verified_nin = Nin(
+            number=self.test_user_nin, created_by='test', is_verified=True, verified_by='test', is_primary=True
+        )
+        user.nins.add(verified_nin)
+        self.app.central_userdb.save(user)
+
+        response = self.send_letter(self.test_user_nin, validate_response=False)
+        self._check_error_response(
+            response, type_='POST_LETTER_PROOFING_PROOFING_FAIL', payload={'message': 'User is already verified'},
+        )
+
+        proofing_state = self.app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
+        assert proofing_state is None

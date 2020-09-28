@@ -56,8 +56,6 @@ def proofing(user: User, nin: str) -> FluxData:
     # NOOP if the user already have the nin
     add_nin_to_user(user, proofing_state)
 
-    # TODO: Don't send a letter if the nin is already verified
-
     if proofing_state.proofing_letter.is_sent:
         current_app.logger.info('A letter has already been sent to the user.')
         current_app.logger.debug('Proofing state: {}'.format(proofing_state.to_dict()))
