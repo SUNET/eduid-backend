@@ -83,6 +83,8 @@ class UserDB(BaseDB):
             self.__class__.__name__, self._db.sanitized_uri, self._coll_name, self.UserClass.__name__,
         )
 
+    __str__ = __repr__
+
     def get_user_by_id(self, user_id, raise_on_missing=True):
         """
         Locate a user in the userdb given the user's _id.
@@ -314,9 +316,7 @@ class UserDB(BaseDB):
                     f" (old_format={old_format}). ts in db = {db_ts}"
                 )
                 raise eduid_userdb.exceptions.UserOutOfSync('Stale user object can\'t be saved')
-            logger.debug(
-                "{!s} Updated user {!r} (ts {!s}) in {!r}: {!r}".format(self, user, modified, self._coll_name, result)
-            )
+            logger.debug(f"{self} Updated user {user} (ts {modified}) in {self._coll_name}: {result}")
             import pprint
 
             extra_debug = pprint.pformat(user.to_dict())

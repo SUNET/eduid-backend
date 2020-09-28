@@ -66,6 +66,8 @@ class MongoDB(object):
             self.__class__.__name__, getattr(self, '_db_uri', None), getattr(self, '_database_name', None)
         )
 
+    __str__ = __repr__
+
     @property
     def sanitized_uri(self):
         """
@@ -219,6 +221,8 @@ class BaseDB(object):
 
     def __repr__(self):
         return '<eduID {!s}: {!s} {!r}>'.format(self.__class__.__name__, self._db.sanitized_uri, self._coll_name)
+
+    __str__ = __repr__
 
     def _drop_whole_collection(self):
         """

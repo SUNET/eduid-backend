@@ -32,7 +32,7 @@ class PasswordResetState(object):
     def __post_init__(self):
         self.reference = str(self.id)
 
-    def __repr__(self):
+    def __str__(self):
         return '<eduID {!s}: {!s}>'.format(self.__class__.__name__, self.eppn)
 
     def to_dict(self) -> dict:
