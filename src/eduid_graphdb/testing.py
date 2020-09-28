@@ -125,7 +125,7 @@ class Neo4jTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.neo4j_instance = Neo4jTemporaryInstance.get_instance()
+        cls.neo4j_instance = Neo4jTemporaryInstance.get_instance(max_retry_seconds=60)
         cls.neo4jdb = cls.neo4j_instance.conn
 
     def tearDown(self):
