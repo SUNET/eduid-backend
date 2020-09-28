@@ -26,8 +26,8 @@ class LetterProofingResponseSchema(FluxStandardAction):
         strict = True
 
     class LetterProofingPayload(EduidSchema, CSRFResponseMixin):
-        letter_sent = fields.DateTime(format='%s')
-        letter_expires = fields.DateTime(format='%s')
+        letter_sent = fields.DateTime()
+        letter_expires = fields.DateTime()
         letter_expired = fields.Boolean()
         letter_expires_in_days = fields.Int(required=False)
         letter_sent_days_ago = fields.Int(required=False)

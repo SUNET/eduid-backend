@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 import json
 from collections import OrderedDict
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Optional
 
 from flask import Response
@@ -212,7 +212,7 @@ class LetterProofingTests(EduidAPITestCase):
     def test_send_letter(self):
         response = self.send_letter(self.test_user_nin)
         expires = response.json['payload']['letter_expires']
-        expires = datetime.utcfromtimestamp(int(expires))
+        expires = datetime.fromisoformat(expires)
         self.assertIsInstance(expires, datetime)
         # Check that the user was given until midnight the day the code expires
         assert expires.hour == 23
@@ -231,7 +231,7 @@ class LetterProofingTests(EduidAPITestCase):
         )
 
         expires = response2.json['payload']['letter_expires']
-        expires = datetime.utcfromtimestamp(int(expires))
+        expires = datetime.fromisoformat(expires)
         self.assertIsInstance(expires, datetime)
         expires = expires.strftime('%Y-%m-%d')
         self.assertIsInstance(expires, str)
@@ -246,7 +246,7 @@ class LetterProofingTests(EduidAPITestCase):
         self.send_letter(self.test_user_nin)
         json_data = self.get_state()
         self.assertIn('letter_sent', json_data['payload'])
-        expires = datetime.utcfromtimestamp(int(json_data['payload']['letter_expires']))
+        expires = datetime.fromisoformat(json_data['payload']['letter_expires'])
         self.assertIsInstance(expires, datetime)
         expires = expires.strftime('%Y-%m-%d')
         self.assertIsInstance(expires, str)
