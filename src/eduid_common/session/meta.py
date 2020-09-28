@@ -15,7 +15,7 @@ TOKEN_PREFIX = 'a'
 
 
 @dataclass(frozen=True)
-class SessionCookie(object):
+class SessionMeta(object):
     cookie_val: str  # the value to store as a cookie in the user's browser (basically session_id + signature)
     session_id: str  # the lookup key used to locate the session in the session store
     signature: bytes = field(repr=False)  # cryptographic signature of session_id

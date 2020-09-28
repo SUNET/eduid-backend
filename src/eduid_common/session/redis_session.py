@@ -88,7 +88,7 @@ import redis
 import redis.sentinel
 from saml2.saml import NameID
 
-from eduid_common.session.session_cookie import SessionCookie
+from eduid_common.session.meta import SessionMeta
 
 logger = logging.getLogger(__name__)
 
@@ -132,7 +132,7 @@ class SessionManager(object):
         """
         return redis.StrictRedis(connection_pool=self.pool)
 
-    def get_session(self, token: SessionCookie, new: bool) -> RedisEncryptedSession:
+    def get_session(self, meta: SessionMeta, new: bool) -> RedisEncryptedSession:
         """
         Create or fetch a session for the given token or data.
 
@@ -145,8 +145,8 @@ class SessionManager(object):
 
         res = RedisEncryptedSession(
             conn,
-            db_key=token.session_id,
-            encryption_key=token.derive_key(self.secret, 'nacl', nacl.secret.SecretBox.KEY_SIZE),
+            db_key=meta.session_id,
+            encryption_key=meta.derive_key(self.secret, 'nacl', nacl.secret.SecretBox.KEY_SIZE),
             ttl=self.ttl,
             whitelist=self.whitelist,
             raise_on_unknown=self.raise_on_unknown,
