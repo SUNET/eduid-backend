@@ -117,6 +117,7 @@ class SessionMeta(object):
 
         return derive_key(app_secret, _bin_session_id, usage, size)
 
+
 # TODO: This standalone version of this function should perhaps be moved to some utility module.
 def derive_key(app_secret: str, bin_session_id: bytes, usage: str, size: int) -> bytes:
     """

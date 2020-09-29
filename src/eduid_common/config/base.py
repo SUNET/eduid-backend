@@ -41,7 +41,7 @@ import importlib.util
 import logging
 import os
 from dataclasses import dataclass, field, fields
-from typing import Any, Dict, List, Mapping, Optional, Type, TypeVar
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Type, TypeVar
 
 import yaml
 
@@ -73,6 +73,15 @@ class CeleryConfig:
         }
     )
     mongo_uri: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class RedisConfig(object):
+    port: int = 6379
+    db: int = 0
+    host: Optional[str] = None
+    sentinel_hosts: Optional[Sequence[str]] = None
+    sentinel_service_name: Optional[str] = None
 
 
 @dataclass
@@ -216,6 +225,7 @@ class BaseConfig(CommonConfig):
     log_format: str = '%(asctime)s | %(levelname)s | %(hostname)s | %(name)s | %(module)s | %(eppn)s | %(message)s'
     log_type: List[str] = field(default_factory=lambda: ['stream'])
     logger: Optional[logging.Logger] = None
+    redis_config: RedisConfig = field(default_factory=RedisConfig)
     # Redis config
     # The Redis host to use for session storage.
     redis_host: Optional[str] = None
@@ -281,6 +291,20 @@ class BaseConfig(CommonConfig):
     magic_cookie: Optional[str] = None
     # name of the magic cookie
     magic_cookie_name: Optional[str] = None
+
+    def __post_init__(self):
+        # Convert redis_config from dict to the proper dataclass
+        if isinstance(self.redis_config, dict):
+            self.redis_config = RedisConfig(**self.redis_config)
+        # Backwards compat
+        if self.redis_host or self.redis_sentinel_hosts:
+            self.redis_config = RedisConfig(
+                port=self.redis_port,
+                db=self.redis_db,
+                host=self.redis_host,
+                sentinel_hosts=self.redis_sentinel_hosts,
+                sentinel_service_name=self.redis_sentinel_service_name,
+            )
 
     @classmethod
     def init_config(
