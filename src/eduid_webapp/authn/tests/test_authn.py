@@ -93,22 +93,20 @@ class AuthnAPITestBase(EduidAPITestCase):
         """
         return authn_init_app('testing', config)
 
-    def add_outstanding_query(self, came_from) -> str:
+    def add_outstanding_query(self, came_from: str) -> str:
         """
         Add a SAML2 authentication query to the queries cache.
         To be used before accessing the assertion consumer service.
 
         :param came_from: url to redirect back the client
                           after finishing with the authn service.
-        :type came_from: str
 
         :return: the session token corresponding to the query
-        :rtype: str
         """
         with self.app.test_request_context('/login'):
             self.app.dispatch_request()
             oq_cache = OutstandingQueriesCache(session)
-            cookie_val = session.token.cookie_val
+            cookie_val = session.meta.cookie_val
             oq_cache.set(cookie_val, came_from)
             session.persist()  # Explicit session.persist is needed when working within a test_request_context
             return cookie_val
