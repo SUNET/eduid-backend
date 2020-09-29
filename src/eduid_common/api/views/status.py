@@ -116,7 +116,8 @@ def _check_mongo():
 
 
 def _check_redis() -> bool:
-    pool = get_redis_pool(current_app.config.redis_config)
+    config = cast(BaseConfig, current_app.config)  # Please mypy
+    pool = get_redis_pool(config.redis_config)
     client = redis.StrictRedis(connection_pool=pool)
     try:
         pong = client.ping()
