@@ -12,7 +12,7 @@ from flask import Request as FlaskRequest
 from flask import Response as FlaskResponse
 from flask.sessions import SessionInterface, SessionMixin
 
-from eduid_common.config.base import FlaskConfig
+from eduid_common.config.base import FlaskConfig, RedisConfig
 from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.session.logindata import SSOLoginData
 from eduid_common.session.namespaces import Actions, Common, MfaAction, ResetPasswordNS, SessionNSBase, Signup
@@ -296,9 +296,8 @@ class SessionFactory(SessionInterface):
         if config.secret_key is None:
             raise BadConfiguration('secret_key not set in config')
 
-        self.config = config
         ttl = 2 * config.permanent_session_lifetime
-        self.manager = SessionManager(asdict(config), ttl=ttl, app_secret=config.secret_key)
+        self.manager = SessionManager(config.redis_config, ttl=ttl, app_secret=config.secret_key)
 
     # Return type not specified because 'Return type of "open_session" incompatible with supertype "SessionInterface"'
     def open_session(self, app: EduIDBaseApp, request: FlaskRequest):  # -> EduidSession:

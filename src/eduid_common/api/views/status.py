@@ -39,7 +39,7 @@ from typing import Dict, Mapping, Optional, cast
 import redis
 from flask import Blueprint, Response, current_app, jsonify
 
-from eduid_common.config.base import BaseConfig
+from eduid_common.config.base import BaseConfig, RedisConfig
 from eduid_common.session.redis_session import get_redis_pool
 
 status_views = Blueprint('status', __name__, url_prefix='/status')
@@ -115,8 +115,9 @@ def _check_mongo():
         return False
 
 
-def _check_redis():
-    pool = get_redis_pool(current_app.config)
+def _check_redis() -> bool:
+    config = cast(BaseConfig, current_app.config)  # Please mypy
+    pool = get_redis_pool(config.redis_config)
     client = redis.StrictRedis(connection_pool=pool)
     try:
         pong = client.ping()

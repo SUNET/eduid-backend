@@ -88,6 +88,7 @@ import redis
 import redis.sentinel
 from saml2.saml import NameID
 
+from eduid_common.config.base import RedisConfig
 from eduid_common.session.meta import SessionMeta
 
 logger = logging.getLogger(__name__)
@@ -101,7 +102,7 @@ class SessionManager(object):
 
     def __init__(
         self,
-        cfg: Mapping[str, Any],
+        redis_config: RedisConfig,
         app_secret: str,
         ttl: int = 600,
         whitelist: Optional[List[str]] = None,
@@ -110,14 +111,14 @@ class SessionManager(object):
         """
         Constructor for SessionManager
 
-        :param cfg: Redis connection settings dict
+        :param redis_config: Redis connection settings
         :param app_secret: Shared secret for all instances of a particular application
         :param ttl: The time to live for the sessions
         :param whitelist: list of allowed keys for the sessions
         :param raise_on_unknown: Whether to raise an exception on an attempt
                                  to set a session session_id not in whitelist
         """
-        self.pool = get_redis_pool(cfg)
+        self.pool = get_redis_pool(redis_config)
         self.ttl = ttl
         self.secret = app_secret
         # TODO: whitelist and raise_on_unknown is unused functionality. Remove?
@@ -162,18 +163,17 @@ class SessionManager(object):
         return res
 
 
-def get_redis_pool(cfg):
-    port = cfg['redis_port']
-    if cfg.get('redis_sentinel_hosts') and cfg.get('redis_sentinel_service_name'):
-        _hosts = cfg['redis_sentinel_hosts']
-        _name = cfg['redis_sentinel_service_name']
-        host_port = [(x, port) for x in _hosts]
+def get_redis_pool(cfg: RedisConfig):
+    logger.debug(f'Redis configuration: {cfg}')
+    if cfg.sentinel_hosts and cfg.sentinel_service_name:
+        host_port = [(x, cfg.port) for x in cfg.sentinel_hosts]
         manager = redis.sentinel.Sentinel(host_port, socket_timeout=0.1)
-        pool = redis.sentinel.SentinelConnectionPool(_name, manager)
+        pool = redis.sentinel.SentinelConnectionPool(cfg.sentinel_service_name, manager)
     else:
-        db = cfg['redis_db']
-        host = cfg['redis_host']
-        pool = redis.ConnectionPool(host=host, port=port, db=db)
+        if not cfg.host:
+            logger.error(f'Redis configuration without sentinel parameters does not have host')
+            raise RuntimeError('Redis configuration incorrect')
+        pool = redis.ConnectionPool(host=cfg.host, port=cfg.port, db=cfg.db)
     return pool
 
 

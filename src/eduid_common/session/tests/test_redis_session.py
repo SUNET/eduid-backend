@@ -3,8 +3,9 @@ from unittest import TestCase
 import nacl
 import pytest
 
-from eduid_common.session.redis_session import RedisEncryptedSession, SessionManager, SessionOutOfSync
+from eduid_common.config.base import RedisConfig
 from eduid_common.session.meta import SessionMeta
+from eduid_common.session.redis_session import RedisEncryptedSession, SessionManager, SessionOutOfSync
 from eduid_common.session.testing import RedisTemporaryInstance
 
 
@@ -12,12 +13,8 @@ class TestSession(TestCase):
     def setUp(self):
         self.redis_instance = RedisTemporaryInstance.get_instance()
         _host, _port, _db = self.redis_instance.get_params()
-        config = {
-            'redis_host': _host,
-            'redis_port': _port,
-            'redis_db': _db,
-        }
-        self.manager = SessionManager(cfg=config, app_secret='s3cr3t')
+        redis_cfg = RedisConfig(host=_host, port=_port, db=_db)
+        self.manager = SessionManager(redis_cfg, app_secret='s3cr3t')
 
     def test_create_session(self):
         """ Test creating a session and reading it back """
