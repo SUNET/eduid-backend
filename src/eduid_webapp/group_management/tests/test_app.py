@@ -61,7 +61,7 @@ class GroupManagementTests(EduidAPITestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.neo4j_instance = Neo4jTemporaryInstance.get_instance()
+        cls.neo4j_instance = Neo4jTemporaryInstance.get_instance(max_retry_seconds=60)
         cls.neo4j_uri = (
             f'bolt://{cls.neo4j_instance.DEFAULT_USERNAME}:{cls.neo4j_instance.DEFAULT_PASSWORD}'
             f'@localhost:{cls.neo4j_instance.bolt_port}'
