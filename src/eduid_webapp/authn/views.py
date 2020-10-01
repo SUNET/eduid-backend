@@ -55,6 +55,8 @@ from eduid_common.session import session
 from eduid_webapp.authn import acs_actions  # acs_action needs to be imported to be loaded
 from eduid_webapp.authn.app import current_authn_app as current_app
 
+assert acs_actions  # make sure nothing optimises away the import of this, as it is needed to execute @acs_actions
+
 authn_views = Blueprint('authn', __name__, url_prefix='')
 
 
@@ -91,13 +93,24 @@ def terminate():
     return _authn('terminate-account-action', force_authn=True)
 
 
-def _authn(action, force_authn=False):
+def _authn(action: str, force_authn=False):
     redirect_url = current_app.config.saml2_login_redirect_url
     relay_state = verify_relay_state(request.args.get('next', redirect_url), redirect_url)
-    idps = current_app.saml2_config.getattr('idp')
-    assert len(idps) == 1
-    idp = list(idps.keys())[0]
-    idp = request.args.get('idp', idp)
+
+    # In the future, we might want to support choosing the IdP somehow but for now
+    # the only supported configuration is one (1) IdP.
+    _configured_idps = current_app.saml2_config.getattr('idp')
+    if len(_configured_idps) != 1:
+        current_app.logger.error(f'Unknown SAML2 idp config: {repr(_configured_idps)}')
+        raise RuntimeError('Unknown SAML2 idp config')
+    # For now, we will only ever use the single configured IdP
+    idp = list(_configured_idps.keys())[0]
+    # Be somewhat backwards compatible and check the provided IdP parameter
+    _requested_idp = request.args.get('idp')
+    if _requested_idp and _requested_idp != idp:
+        current_app.logger.error(f'Requested IdP {_requested_idp} not allowed')
+        raise Forbidden('Requested IdP not allowed')
+
     authn_request = get_authn_request(
         current_app.saml2_config,
         session,
@@ -108,7 +121,7 @@ def _authn(action, force_authn=False):
         digest_alg=current_app.config.authn_digest_alg,
     )
     schedule_action(action)
-    current_app.logger.info('Redirecting the user to the IdP for ' + action)
+    current_app.logger.info(f'Redirecting the user to the IdP for {action} (relay state {relay_state})')
     return redirect(get_location(authn_request))
 
 
