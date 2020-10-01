@@ -3,7 +3,7 @@
 from __future__ import absolute_import
 
 import base64
-from enum import unique
+from enum import Enum, unique
 from typing import Any, Mapping
 
 from flask import redirect, request
@@ -34,7 +34,7 @@ __author__ = 'lundberg'
 
 
 @unique
-class EidasAcsAction(AcsAction):
+class EidasAcsAction(AcsAction, Enum):
     token_verify = 'token-verify-action'
     nin_verify = 'nin-verify-action'
     mfa_authn = 'mfa-authentication-action'

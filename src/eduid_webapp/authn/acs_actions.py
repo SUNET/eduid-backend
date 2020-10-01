@@ -31,7 +31,7 @@
 #
 from __future__ import absolute_import
 
-from enum import unique
+from enum import Enum, unique
 from time import time
 from typing import Any, Mapping
 
@@ -48,7 +48,7 @@ from saml2.ident import code
 
 
 @unique
-class AuthnAcsAction(AcsAction):
+class AuthnAcsAction(AcsAction, Enum):
     login = 'login-action'
     change_password = 'change-password-action'
     terminate_account = 'terminate-account-action'
