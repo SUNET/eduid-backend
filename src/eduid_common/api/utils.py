@@ -204,15 +204,21 @@ def init_template_functions(app):
     return app
 
 
-def verify_relay_state(relay_state, safe_default='/', logger=None, url_scheme=None, safe_domain=None):
+def verify_relay_state(
+    relay_state: str,
+    safe_default: str = '/',
+    logger=None,
+    url_scheme: Optional[str] = None,
+    safe_domain: Optional[str] = None,
+) -> str:
     """
     Make sure the URL provided in relay_state is safe and does
     not provide an open redirect.
 
     The reason for the `logger`, `url_scheme`, and `safe_domain`
-    kwars (rather than directly taking them from the current app and config)
+    kwargs (rather than directly taking them from the current app and config)
     is so that this can be used in non-flask apps (specifically, in the
-    IdP cherrypy app). Used within a falsk app, these args can be ignored.
+    IdP cherrypy app). Used within a flask app, these args can be ignored.
 
     :param relay_state: Next url
     :param safe_default: The default if relay state is found unsafe
@@ -220,14 +226,7 @@ def verify_relay_state(relay_state, safe_default='/', logger=None, url_scheme=No
     :param url_scheme: the preferred URL scheme (http|https)
     :param safe_domain: Safe domain to relay
 
-    :type safe_default: six.string_types
-    :type relay_state: six.string_types
-    :type logger: logging.Logger
-    :type url_scheme: str
-    :type safe_domain: str
-
     :return: Safe relay state
-    :rtype: six.string_types
     """
     if relay_state is None:
         return safe_default
@@ -251,5 +250,5 @@ def verify_relay_state(relay_state, safe_default='/', logger=None, url_scheme=No
             return relay_state
 
     # Unsafe relay state found
-    logger.warning('Caught unsafe relay state: {}. ' 'Using safe relay state: {}.'.format(relay_state, safe_default))
+    logger.warning(f'Caught unsafe relay state: {relay_state}. Using safe default: {safe_default}.')
     return safe_default

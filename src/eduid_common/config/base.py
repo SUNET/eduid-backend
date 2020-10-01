@@ -242,7 +242,7 @@ class BaseConfig(CommonConfig):
     saml2_settings_module: str = ''
     saml2_strip_saml_user_suffix: bool = False
     saml2_user_main_attribute: str = 'eduPersonPrincipalName'
-    token_service_url: str = ''
+    token_service_url: str = ''  # the eduid-authn service
     new_user_date: str = ''
     sms_sender: str = ''
     mail_starttls: bool = False
