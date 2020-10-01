@@ -213,23 +213,28 @@ def saml_logout(current_app: EduIDBaseApp, user: User, location: str) -> Respons
     This function initiates the SAML2 Logout request
     using the pysaml2 library to create the LogoutRequest.
     """
-    state = StateCache(session)
-    identity = IdentityCache(session)
-
-    client = Saml2Client(current_app.saml2_config, state_cache=state, identity_cache=identity)
-
-    try:
-        subject_id = decode(session['_saml2_session_name_id'])
-    except KeyError:
-        current_app.logger.warning('The session does not contain the subject id for user {user}')
+    if '_saml2_session_name_id' not in session:
+        current_app.logger.warning(f'The session does not contain the subject id for user {user}')
         session.invalidate()
-        current_app.logger.info(f'Redirection user to user {location}')
+        current_app.logger.info(f'Invalidated session for {user}')
+        current_app.logger.info(f'Redirection user to {location} for logout')
         return redirect(location)
 
+    # Since we have a subject_id, call the IdP using SOAP to do a global logout
+
+    state = StateCache(session)  # _saml2_state in the session
+    identity = IdentityCache(session)  # _saml2_identities in the session
+    client = Saml2Client(current_app.saml2_config, state_cache=state, identity_cache=identity)
+
+    _subject_id = decode(session['_saml2_session_name_id'])
+    current_app.logger.info(f'Initiating global logout for {_subject_id}')
+    logouts = client.global_logout(_subject_id)
+    current_app.logger.debug(f'Logout response: {logouts}')
+
+    # Invalidate session, now that Saml2Client is done with the information within.
     session.invalidate()
     current_app.logger.info(f'Invalidated session for {user}')
 
-    logouts = client.global_logout(subject_id)
     loresponse = list(logouts.values())[0]
     # loresponse is a dict for REDIRECT binding, and LogoutResponse for SOAP binding
     if isinstance(loresponse, LogoutResponse):
@@ -237,10 +242,10 @@ def saml_logout(current_app: EduIDBaseApp, user: User, location: str) -> Respons
             location = verify_relay_state(request.form.get('RelayState', location), location)
             return redirect(location)
         else:
+            current_app.logger.error(f'The logout response was not OK: {loresponse}')
             abort(500)
 
     headers_tuple = loresponse[1]['headers']
     location = headers_tuple[0][1]
     current_app.logger.info(f"Redirecting {user} to {location} after successful logout")
-    state.sync()
     return redirect(location)
