@@ -18,6 +18,7 @@ from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.cache import OutstandingQueriesCache
 from eduid_userdb.credentials import U2F, Webauthn
 from eduid_userdb.credentials.fido import FidoCredential
+from eduid_webapp.eidas.acs_actions import EidasAcsAction
 
 from eduid_webapp.eidas.app import init_eidas_app
 from eduid_webapp.eidas.helpers import EidasMsg
@@ -286,7 +287,7 @@ class EidasTests(EduidAPITestCase):
                 )
                 oq_cache = OutstandingQueriesCache(sess)
                 oq_cache.set(cookie_val, '/')
-                sess['post-authn-action'] = 'token-verify-action'
+                sess['post-authn-action'] = EidasAcsAction.token_verify.value
                 sess['verify_token_action_credential_id'] = credential.key
 
             data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}

@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 
 import base64
+from enum import Enum, unique
 from typing import Any, Mapping
 
 from flask import redirect, request
@@ -14,7 +15,7 @@ from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid_common.api.helpers import verify_nin_for_user
 from eduid_common.api.messages import CommonMsg, redirect_with_msg
 from eduid_common.api.utils import save_and_sync_user, urlappend, verify_relay_state
-from eduid_common.authn.acs_registry import acs_action
+from eduid_common.authn.acs_registry import AcsAction, acs_action
 from eduid_common.authn.eduid_saml2 import get_authn_ctx
 from eduid_common.authn.utils import get_saml_attribute
 from eduid_common.session import session
@@ -32,7 +33,14 @@ from eduid_webapp.eidas.helpers import EidasMsg, is_required_loa, is_valid_reaut
 __author__ = 'lundberg'
 
 
-@acs_action('token-verify-action')
+@unique
+class EidasAcsAction(AcsAction, Enum):
+    token_verify = 'token-verify-action'
+    nin_verify = 'nin-verify-action'
+    mfa_authn = 'mfa-authentication-action'
+
+
+@acs_action(EidasAcsAction.token_verify)
 @require_user
 def token_verify_action(session_info: Mapping[str, Any], user: User) -> WerkzeugResponse:
     """
@@ -124,7 +132,7 @@ def token_verify_action(session_info: Mapping[str, Any], user: User) -> Werkzeug
     return redirect_with_msg(redirect_url, EidasMsg.verify_success, error=False)
 
 
-@acs_action('nin-verify-action')
+@acs_action(EidasAcsAction.nin_verify)
 @require_user
 def nin_verify_action(session_info: Mapping[str, Any], user: User) -> WerkzeugResponse:
     """
@@ -254,7 +262,7 @@ def nin_verify_BACKDOOR(user: User) -> WerkzeugResponse:
     return redirect_with_msg(redirect_url, 'eidas.nin_verify_success')
 
 
-@acs_action('mfa-authentication-action')
+@acs_action(EidasAcsAction.mfa_authn)
 @require_user
 def mfa_authentication_action(session_info: Mapping[str, Any], user: User) -> WerkzeugResponse:
     relay_state = request.form.get('RelayState')

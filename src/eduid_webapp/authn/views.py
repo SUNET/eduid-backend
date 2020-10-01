@@ -31,11 +31,8 @@
 #
 
 from flask import Blueprint, abort, make_response, redirect, request
-from saml2 import BINDING_HTTP_REDIRECT
-from saml2.client import Saml2Client
-from saml2.ident import decode
-from saml2.metadata import entity_descriptor
 from werkzeug.exceptions import Forbidden
+from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid_common.api.utils import verify_relay_state
 from eduid_common.authn.acs_registry import get_action, schedule_action
@@ -51,9 +48,13 @@ from eduid_common.authn.eduid_saml2 import (
 from eduid_common.authn.loa import get_loa
 from eduid_common.authn.utils import check_previous_identification, get_location
 from eduid_common.session import session
-
 from eduid_webapp.authn import acs_actions  # acs_action needs to be imported to be loaded
+from eduid_webapp.authn.acs_actions import AuthnAcsAction
 from eduid_webapp.authn.app import current_authn_app as current_app
+from saml2 import BINDING_HTTP_REDIRECT
+from saml2.client import Saml2Client
+from saml2.ident import decode
+from saml2.metadata import entity_descriptor
 
 assert acs_actions  # make sure nothing optimises away the import of this, as it is needed to execute @acs_actions
 
@@ -61,39 +62,39 @@ authn_views = Blueprint('authn', __name__, url_prefix='')
 
 
 @authn_views.route('/login')
-def login():
+def login() -> WerkzeugResponse:
     """
     login view, redirects to SAML2 IdP
     """
-    return _authn('login-action')
+    return _authn(AuthnAcsAction.login)
 
 
 @authn_views.route('/reauthn')
-def reauthn():
+def reauthn() -> WerkzeugResponse:
     """
     login view with force authn, redirects to SAML2 IdP
     """
     session['user_is_logged_in'] = False
-    return _authn('reauthn-action', force_authn=True)
+    return _authn(AuthnAcsAction.reauthn, force_authn=True)
 
 
 @authn_views.route('/chpass')
-def chpass():
+def chpass() -> WerkzeugResponse:
     """
     Reauthn view, sends a SAML2 reauthn request to the IdP.
     """
-    return _authn('change-password-action', force_authn=True)
+    return _authn(AuthnAcsAction.change_password, force_authn=True)
 
 
 @authn_views.route('/terminate')
-def terminate():
+def terminate() -> WerkzeugResponse:
     """
     Reauthn view, sends a SAML2 reauthn request to the IdP.
     """
-    return _authn('terminate-account-action', force_authn=True)
+    return _authn(AuthnAcsAction.terminate_account, force_authn=True)
 
 
-def _authn(action: str, force_authn=False):
+def _authn(action: AuthnAcsAction, force_authn=False) -> WerkzeugResponse:
     redirect_url = current_app.config.saml2_login_redirect_url
     relay_state = verify_relay_state(request.args.get('next', redirect_url), redirect_url)
 
@@ -140,7 +141,7 @@ def assertion_consumer_service():
         if user is None:
             current_app.logger.error('Could not find the user identified by the IdP')
             raise Forbidden("Access not authorized")
-        action = get_action()
+        action = get_action(AuthnAcsAction.login)
         return action(session_info, user)
     except UnsolicitedResponse:
         unsolicited_response_redirect_url = current_app.config.unsolicited_response_redirect_url
