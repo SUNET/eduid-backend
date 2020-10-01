@@ -31,32 +31,38 @@
 #
 from __future__ import absolute_import
 
+from enum import unique
 from time import time
+from typing import Any, Mapping
 
 from flask import redirect, request
-from saml2.ident import code
 
 from eduid_common.api.utils import verify_relay_state
-from eduid_common.authn.acs_registry import acs_action
+from eduid_common.authn.acs_registry import AcsAction, acs_action
 from eduid_common.authn.loa import get_loa
 from eduid_common.authn.utils import get_saml_attribute
 from eduid_common.session import session
-
+from eduid_userdb import User
 from eduid_webapp.authn.app import current_authn_app as current_app
+from saml2.ident import code
 
 
-def update_user_session(session_info, user):
+@unique
+class AuthnAcsAction(AcsAction):
+    login = 'login-action'
+    change_password = 'change-password-action'
+    terminate_account = 'terminate-account-action'
+    reauthn = 'reauthn-action'
+
+
+def update_user_session(session_info: Mapping[str, Any], user: User) -> None:
     """
     Store login info in the session
 
     :param session_info: the SAML session info
     :param user: the authenticated user
 
-    :type session_info: dict
-    :type user: eduid_userdb.User
-
     :return: None
-    :rtype: None
     """
     session['_saml2_session_name_id'] = code(session_info['name_id'])
     session['eduPersonPrincipalName'] = user.eppn
@@ -67,7 +73,7 @@ def update_user_session(session_info, user):
     session['eduidIdPCredentialsUsed'] = get_saml_attribute(session_info, 'eduidIdPCredentialsUsed')
 
 
-@acs_action('login-action')
+@acs_action(AuthnAcsAction.login)
 def login_action(session_info, user):
     """
     Upon successful login in the IdP, store login info in the session
@@ -92,7 +98,7 @@ def login_action(session_info, user):
     return response
 
 
-@acs_action('change-password-action')
+@acs_action(AuthnAcsAction.change_password)
 def chpass_action(session_info, user):
     """
     Upon successful reauthn in the IdP,
@@ -109,7 +115,7 @@ def chpass_action(session_info, user):
     return _reauthn('reauthn-for-chpass', session_info, user)
 
 
-@acs_action('terminate-account-action')
+@acs_action(AuthnAcsAction.terminate_account)
 def term_account_action(session_info, user):
     """
     Upon successful reauthn in the IdP,
@@ -126,7 +132,7 @@ def term_account_action(session_info, user):
     return _reauthn('reauthn-for-termination', session_info, user)
 
 
-@acs_action('reauthn-action')
+@acs_action(AuthnAcsAction.reauthn)
 def reauthn_account_action(session_info, user):
     """
     Upon successful reauthn in the IdP,
@@ -145,12 +151,12 @@ def reauthn_account_action(session_info, user):
 
 def _reauthn(reason, session_info, user):
 
-    current_app.logger.info("Reauthenticating user {} for {!r}.".format(user, reason))
+    current_app.logger.info(f'Re-authenticating user {user} for {reason}.')
     update_user_session(session_info, user)
-    # Set reason for reauth in session
+    # Set reason for reauthn in session
     session[reason] = int(time())
 
-    # redirect the user to the view where he came from
+    # redirect the user to the view where they came from
     relay_state = verify_relay_state(request.form.get('RelayState', '/'))
     current_app.logger.debug('Redirecting to the RelayState: ' + relay_state)
     return redirect(location=relay_state)

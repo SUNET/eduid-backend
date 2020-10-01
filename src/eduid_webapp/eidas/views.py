@@ -12,7 +12,7 @@ from eduid_common.api.helpers import check_magic_cookie
 from eduid_common.api.messages import FluxData, redirect_with_msg, success_response
 from eduid_common.api.schemas.csrf import CSRFResponse
 from eduid_common.api.utils import get_unique_hash, urlappend
-from eduid_common.authn.acs_registry import get_action, schedule_action
+from eduid_common.authn.acs_registry import AcsAction, get_action, schedule_action
 from eduid_common.authn.eduid_saml2 import BadSAMLResponse
 from eduid_common.authn.utils import get_location
 from eduid_common.session import session
@@ -20,7 +20,7 @@ from eduid_common.session import session
 # TODO: Import FidoCredential in credentials.__init__
 from eduid_userdb.credentials.fido import FidoCredential
 
-from eduid_webapp.eidas.acs_actions import nin_verify_BACKDOOR
+from eduid_webapp.eidas.acs_actions import EidasAcsAction, nin_verify_BACKDOOR
 from eduid_webapp.eidas.app import current_eidas_app as current_app
 from eduid_webapp.eidas.helpers import (
     EidasMsg,
@@ -69,7 +69,7 @@ def verify_token(user, credential_id) -> Union[FluxData, WerkzeugResponse]:
 
     # Request a authentication from idp
     required_loa = 'loa3'
-    return _authn('token-verify-action', required_loa, force_authn=True)
+    return _authn(EidasAcsAction.token_verify, required_loa, force_authn=True)
 
 
 @eidas_views.route('/verify-nin', methods=['GET'])
@@ -83,7 +83,7 @@ def verify_nin(user):
         return nin_verify_BACKDOOR()
 
     required_loa = 'loa3'
-    return _authn('nin-verify-action', required_loa, force_authn=True)
+    return _authn(EidasAcsAction.nin_verify, required_loa, force_authn=True)
 
 
 @eidas_views.route('/mfa-authentication', methods=['GET'])
@@ -93,23 +93,17 @@ def mfa_authentication(user):
     required_loa = 'loa3'
     # Clear session keys used for external mfa
     del session.mfa_action
-    return _authn('mfa-authentication-action', required_loa, force_authn=True)
+    return _authn(EidasAcsAction.mfa_authn, required_loa, force_authn=True)
 
 
-def _authn(action, required_loa, force_authn=False, redirect_url='/'):
+def _authn(action: AcsAction, required_loa: str, force_authn: bool=False, redirect_url: str='/') -> WerkzeugResponse:
     """
     :param action: name of action
     :param required_loa: friendly loa name
     :param force_authn: should a new authentication be forced
     :param redirect_url: redirect url after successful authentication
 
-    :type action: six.string_types
-    :type required_loa: six.string_types
-    :type force_authn: bool
-    :type redirect_url: six.string_types
-
     :return: redirect response
-    :rtype: Response
     """
     redirect_url = request.args.get('next', redirect_url)
     relay_state = get_unique_hash()
