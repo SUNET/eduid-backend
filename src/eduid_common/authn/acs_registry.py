@@ -34,35 +34,47 @@ Registry for actions to be performed after an IdP sends a POST
 request in response to a SAML request initiated by the service
 
 The actions are defined in the acs_actions module,
-ant they are performed in the assertion consumer service view,
+and they are performed in the assertion consumer service view,
 and are called with two positional parameters:
 
  * the session_info given in the SAML response (a dict)
  * The user object
 """
-from typing import Callable
+from enum import Enum, unique
+from typing import Callable, Dict, Optional, TypeVar
 
 from flask import current_app
 
 from eduid_common.session import session
 
-_actions = {}
+# This is the list of ACS actions loaded. It is populated by decorating functions with the @acs_action.
+# The keys are the AcsAction (subclass) enum values, since get_action() doesn't know which subclass of
+# AcsActions that could be used to turn the string value stored in the session back into an Enum.
+_actions: Dict[str, Callable] = {}
 
 
 class UnregisteredAction(Exception):
     pass
 
 
-def acs_action(action_key):
+@unique
+class AcsAction(Enum):
+    """ Subclass this enum in SAML2 SP applications and use it with the @acs_actions decorator """
+    pass
+
+
+TAcsActionSubclass = TypeVar('TAcsActionSubclass', bound=AcsAction)
+
+
+def acs_action(action: TAcsActionSubclass):
     """
     Decorator to register a new assertion consumer service action.
 
-    :param action_key: the key for the given action
-    :type action_key: str
+    :param action: the AcsAction for the decorated function
     """
 
     def outer(func):
-        _actions[action_key] = func
+        _actions[action.value] = func
 
         def inner(*args, **kwargs):
             return func(*args, **kwargs)
@@ -72,37 +84,36 @@ def acs_action(action_key):
     return outer
 
 
-def schedule_action(action_key):
+def schedule_action(action: TAcsActionSubclass) -> None:
     """
     Schedule an action to be executed after an IdP responds to a SAML request.
     This is called just before the SAML request is sent.
 
-    :param action_key: the key for the given action
-    :type action_key: str
+    :param action: the AcsAction to schedule
     """
-    current_app.logger.debug('Scheduling acs action ' + action_key)
-    session['post-authn-action'] = action_key
+    current_app.logger.debug(f'Scheduling acs action {action}')
+    session['post-authn-action'] = action.value
 
 
-def get_action(default_action: str = 'login-action') -> Callable:
+def get_action(default_action: Optional[TAcsActionSubclass] = None) -> Callable:
     """
-    retrieve an action from the registry based on the key
-    stored in the session.
+    Retrieve an action from the registry based on the AcsAction stored in the session.
 
-    :return: the action
-    :rtype: function
+    :return: the function to be invoked for this action
     """
-    action_key = session.get('post-authn-action')
-    if action_key is None:
-        action_key = default_action
+    action_value = session.get('post-authn-action')
+    if action_value is None:
+        current_app.logger.debug(f'No post-authn-action found in the session, using default {default_action}')
+        if default_action is not None:
+            action_value = default_action.value
     try:
-        action = _actions[action_key]
+        action = _actions[action_value]
     except KeyError:
-        error_msg = f'acs action "{action_key}" not found in acs registry'
+        error_msg = f'"{action_value}" not found in ACS registry'
         current_app.logger.error(error_msg)
-        current_app.logger.debug(f'Registered acs actions: {_actions.keys()}')
+        current_app.logger.debug(f'Registered ACS actions: {_actions.keys()}')
         raise UnregisteredAction(error_msg)
     finally:
         del session['post-authn-action']
-    current_app.logger.debug(f'Consuming acs action {action_key}')
+    current_app.logger.debug(f'Consuming ACS action {action_value}')
     return action
