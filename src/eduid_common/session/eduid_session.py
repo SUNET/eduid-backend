@@ -271,6 +271,10 @@ class EduidSession(SessionMixin, MutableMapping):
         Check that session_id exists - when e.g. the account is being terminated,
         the session has already been invalidated at this point.
         """
+        if self._invalidated:
+            logger.debug('Not saving invalidated session')
+            return
+
         # Serialize namespace dataclasses to see if their content changed
         self._serialize_namespaces()
 

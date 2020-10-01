@@ -65,8 +65,7 @@ class OutstandingQueriesCache(object):
 
 
 class IdentityCache(Cache):
-    """Handles information about the users that have been succesfully
-    logged in.
+    """Handles information about the users that have been successfully logged in.
 
     This information is useful because when the user logs out we must
     know where does he come from in order to notify such IdP/AA.

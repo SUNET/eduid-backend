@@ -358,6 +358,7 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         """
         self._data = {}
         self.conn.delete(self.db_key)
+        self._raw_data = None
 
     def renew_ttl(self):
         """
