@@ -81,7 +81,7 @@ def get_credentials(user):
     """
     View to get credentials for the logged user.
     """
-    current_app.logger.debug('Trying to get the credentials ' 'for user {}'.format(user))
+    current_app.logger.debug(f'Trying to get the credentials for user {user}')
 
     credentials = {'credentials': compile_credential_list(user)}
 
@@ -95,7 +95,7 @@ def get_suggested(user):
     """
     View to get a suggested  password for the logged user.
     """
-    current_app.logger.debug('Triying to get the credentials ' 'for user {}'.format(user))
+    current_app.logger.debug(f'Trying to get the credentials for user {user}')
     suggested = {'suggested_password': generate_suggested_password()}
 
     return suggested
