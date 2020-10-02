@@ -188,16 +188,6 @@ class EduidSession(SessionMixin, MutableMapping):
             raise ValueError('ResetPasswordNS already initialised')
 
     @property
-    def token(self) -> Union[str, SessionMeta]:
-        """
-        Return the token in the session, or the empty string if the session has been invalidated.
-        """
-        if self._invalidated:
-            # TODO: Strange interface not returning None, where is this needed?
-            return ''
-        return self.meta
-
-    @property
     def created(self):
         """
         Created timestamp
@@ -232,9 +222,16 @@ class EduidSession(SessionMixin, MutableMapping):
         :param response: the response object to carry the cookie
         :type response: flask.Response
         """
+        if self._invalidated:
+            response.delete_cookie(
+                key=self.app.config.session_cookie_name,
+                path=self.app.config.session_cookie_path,
+                domain=self.app.config.session_cookie_domain
+            )
+            return
         response.set_cookie(
-            self.app.config.session_cookie_name,
-            value=self.token.cookie_val,
+            key=self.app.config.session_cookie_name,
+            value=self.meta.cookie_val,
             domain=self.app.config.session_cookie_domain,
             path=self.app.config.session_cookie_path,
             secure=self.app.config.session_cookie_secure,

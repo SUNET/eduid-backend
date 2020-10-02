@@ -61,6 +61,11 @@ def session_init_app(name, config):
         session.signup.email_verification_code = 'email-verification-code'
         return 'Hello, World!'
 
+    @app.route('/logout')
+    def logout():
+        session.invalidate()
+        return 'Goodbye'
+
     return app
 
 
@@ -169,3 +174,17 @@ class EduidSessionTests(EduidAPITestCase):
                 self.assertIsNone(sess.mfa_action.issuer)
                 self.assertIsNone(sess.mfa_action.authn_instant)
                 self.assertIsNone(sess.mfa_action.authn_context)
+
+    def test_remove_cookie_on_invalidated_session_save(self):
+        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+            response = browser.get('/logout')
+
+        cookie_headers = [header for header in response.headers if header[0] == 'Set-Cookie']
+        for cookie in cookie_headers:
+            keyvalues = cookie[1].split(';')
+            for keyvalue in keyvalues:
+                value = keyvalue.split('=')
+                if value == self.app.config.session_cookie_name:
+                    self.assertEqual('', value)
+                elif value == 'expires':
+                    self.assertEqual('Thu, 01-Jan-1970 00:00:00 GMT', value)
