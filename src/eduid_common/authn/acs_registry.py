@@ -57,10 +57,8 @@ class UnregisteredAction(Exception):
     pass
 
 
-@unique
-class AcsAction(Enum):
-    """ Subclass this enum in SAML2 SP applications and use it with the @acs_actions decorator """
-
+class AcsAction(object):
+    """ Subclass this in SAML2 SP applications and use it with the @acs_actions decorator """
     pass
 
 
