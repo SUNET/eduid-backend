@@ -222,6 +222,13 @@ class EduidSession(SessionMixin, MutableMapping):
         :param response: the response object to carry the cookie
         :type response: flask.Response
         """
+        if self._invalidated:
+            response.delete_cookie(
+                key=self.app.config.session_cookie_name,
+                path=self.app.config.session_cookie_path,
+                domain=self.app.config.session_cookie_domain
+            )
+            return
         response.set_cookie(
             key=self.app.config.session_cookie_name,
             value=self.meta.cookie_val,
