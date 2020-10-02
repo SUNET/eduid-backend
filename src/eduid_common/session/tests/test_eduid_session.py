@@ -64,7 +64,7 @@ def session_init_app(name, config):
     @app.route('/logout')
     def logout():
         session.invalidate()
-        return 'Hello, World!'
+        return 'Goodbye'
 
     return app
 
