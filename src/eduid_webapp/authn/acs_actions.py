@@ -39,7 +39,6 @@ from flask import redirect, request
 
 from eduid_common.api.utils import verify_relay_state
 from eduid_common.authn.acs_registry import AcsAction, acs_action
-from eduid_common.authn.loa import get_loa
 from eduid_common.authn.utils import get_saml_attribute
 from eduid_common.session import session
 from eduid_userdb import User
@@ -68,8 +67,6 @@ def update_user_session(session_info: Mapping[str, Any], user: User) -> None:
     session['eduPersonPrincipalName'] = user.eppn
     session['user_eppn'] = user.eppn  # TODO: Remove when we have deployed and IdP that sets user_eppn
     session['user_is_logged_in'] = True
-    loa = get_loa(current_app.config.available_loa, session_info)
-    session['eduPersonAssurance'] = loa
     session['eduidIdPCredentialsUsed'] = get_saml_attribute(session_info, 'eduidIdPCredentialsUsed')
 
 

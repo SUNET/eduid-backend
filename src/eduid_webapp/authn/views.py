@@ -252,7 +252,6 @@ def signup_authn():
 
     eppn = check_previous_identification(session.signup)
     if eppn is not None:
-        loa = get_loa(current_app.config.available_loa, None)  # With no session_info lowest loa will be returned
         current_app.logger.info("Starting authentication for user from signup with eppn: {})".format(eppn))
         try:
             user = current_app.central_userdb.get_user_by_eppn(eppn)
@@ -268,7 +267,6 @@ def signup_authn():
             session['eduPersonPrincipalName'] = user.eppn
             session['user_eppn'] = user.eppn
             session['user_is_logged_in'] = True
-            session['eduPersonAssurance'] = loa
 
             response = redirect(location_on_success)
             current_app.logger.info(
