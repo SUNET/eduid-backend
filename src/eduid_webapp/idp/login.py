@@ -21,7 +21,10 @@ from html import escape, unescape
 from typing import Mapping, Optional
 
 from defusedxml import ElementTree as DefusedElementTree
-from werkzeug.exceptions import BadRequest, Forbidden, InternalServerError, NotFound, TooManyRequests
+from flask import render_template
+from flask_babel import gettext as _
+from werkzeug.exceptions import BadRequest, Forbidden, InternalServerError, TooManyRequests
+from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid_common.api import exceptions
 from eduid_common.authn import assurance
@@ -37,7 +40,6 @@ from eduid_common.authn.idp_saml import (
 from eduid_common.session import session
 from eduid_common.session.logindata import SSOLoginData
 from eduid_common.session.sso_session import SSOSession
-
 from eduid_userdb.idp import IdPUser
 from eduid_userdb.idp.user import SAMLAttributeSettings
 from eduid_webapp.idp import mischttp
@@ -47,8 +49,6 @@ from eduid_webapp.idp.idp_actions import check_for_pending_actions
 from eduid_webapp.idp.service import Service
 from eduid_webapp.idp.util import get_requested_authn_context
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
-
-from werkzeug.wrappers import Response as WerkzeugResponse
 
 
 class MustAuthenticate(Exception):
@@ -429,19 +429,18 @@ class SSO(Service):
         argv = mischttp.get_default_template_arguments(self.context.config)
         argv.update(
             {
-                "action": "/verify",
-                "username": "",
-                "password": "",
-                "key": ticket.key,
-                "authn_reference": requested_authn_context,
-                "redirect_uri": redirect_uri,
-                "alert_msg": "",
-                "sp_entity_id": "",
-                "failcount": ticket.FailCount,
+                'action': '/verify',
+                'alert_msg': '',
+                'authn_reference': requested_authn_context,
+                'failcount': ticket.FailCount,
+                'key': ticket.key,
+                'password': '',
+                'redirect_uri': redirect_uri,
+                'username': '',
                 # SAMLRequest, RelayState and binding are used to re-create the ticket state if not found using `key'
-                "SAMLRequest": escape(ticket.SAMLRequest, quote=True),
-                "RelayState": escape(ticket.RelayState, quote=True),
-                "binding": escape(ticket.binding, quote=True),
+                'SAMLRequest': escape(ticket.SAMLRequest, quote=True),
+                'RelayState': escape(ticket.RelayState, quote=True),
+                'binding': escape(ticket.binding, quote=True),
             }
         )
 
@@ -456,13 +455,7 @@ class SSO(Service):
 
         self.logger.debug("Login page HTML substitution arguments :\n{!s}".format(pprint.pformat(argv)))
 
-        # Look for login page in user preferred language
-        content = mischttp.localized_resource('login.html', self.config, self.logger)
-        if not content:
-            raise NotFound()
-
-        # apply simplistic HTML formatting to template in 'res'
-        return content.format(**argv).encode('utf-8')
+        return render_template('login.jinja2', **argv)
 
 
 # -----------------------------------------------------------------------------

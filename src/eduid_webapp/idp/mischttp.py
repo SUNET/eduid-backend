@@ -23,7 +23,7 @@ from logging import Logger
 from typing import Any, Dict, Mapping, Optional, Union
 
 import pkg_resources
-from flask import make_response, redirect, request
+from flask import make_response, redirect, render_template, request
 from werkzeug.exceptions import BadRequest, NotFound
 from werkzeug.wrappers import Response as WerkzeugResponse
 
@@ -98,10 +98,12 @@ def get_post(logger) -> Dict[str, Any]:
     :type logger: logging.Logger
     :rtype: dict
     """
-    #body_params = cherrypy.request.body_params
-    _safe_form = dict()
+    return _sanitise_items(request.form, logger)
+
+def _sanitise_items(data: Mapping, logger: logging.Logger) -> Dict[str, str]:
+    res = dict()
     san = Sanitizer()
-    for k, v in request.form.items():
+    for k, v in data.items():
         try:
             safe_k = san.sanitize_input(k, logger=logger, content_type='text/plain')
             if safe_k != k:
@@ -110,8 +112,8 @@ def get_post(logger) -> Dict[str, Any]:
         except SanitationProblem as sp:
             logger.info(f'There was a problem sanitizing inputs: {repr(sp)}')
             raise BadRequest()
-        _safe_form[safe_k] = safe_v
-    return _safe_form
+        res[str(safe_k)] = str(safe_v)
+    return res
 
 
 def get_request_header() -> Mapping[str, Any]:
@@ -157,7 +159,7 @@ def static_filename(config: OldIdPConfig, path: str, logger: logging.Logger) -> 
         return None
 
 
-def static_file(start_response, filename, logger, fp=None, status=None):
+def static_file(filename: str, logger, fp=None, status=None) -> WerkzeugResponse:
     """
     Serve a static file, 'known' to exist.
 
@@ -309,7 +311,7 @@ def set_cookie(name: str, path: str, logger: logging.Logger, config: OldIdPConfi
     logger.debug("Set cookie {!r} : {}".format(name, cookies))
 
 
-def parse_query_string(logger):
+def parse_query_string(logger) -> Dict[str, str]:
     """
     Parse HTML request query string into a dict like
 
@@ -322,23 +324,15 @@ def parse_query_string(logger):
     :param logger: A logger object
 
     :return: parsed query string
-
-    :type logger: logging.Logger
-    :rtype: dict
     """
-    _safe_form = dict()
-    san = Sanitizer()
-    for k, v in request.args:
-        try:
-            safe_k = san.sanitize_input(k, logger=logger, content_type='text/plain')
-            if safe_k != k:
-                raise BadRequest()
-            safe_v = san.sanitize_input(v[0], logger=logger, content_type='text/plain')
-        except SanitationProblem as sp:
-            logger.info(f'There was a problem sanitizing inputs: {repr(sp)}')
-            raise BadRequest()
-        _safe_form[safe_k] = safe_v
-    return _safe_form
+    args = _sanitise_items(request.args, logger)
+    res = {}
+    for k,v in args.items():
+        if isinstance(v, list):
+            res[k] = v[0]
+        else:
+            res[k] = v
+    return res
 
 
 def parse_accept_lang_header(lang_string):
@@ -404,32 +398,33 @@ def localized_resource(filename: str, config: OldIdPConfig, logger: logging.Logg
 
     if languages:
         logger.debug("Languages list : {!r}".format(languages))
-        for lang in languages:
-            if _LANGUAGE_RE.match(lang):
-                for (package, path) in config.content_packages:
-                    langfile = path + '/' + lang.lower() + '/' + filename  # pkg_resources paths do not use os.path.join
-                    if logger:
-                        logger.debug(
-                            'Looking for package {!r}, language {!r}, path: {!r}'.format(package, lang, langfile)
-                        )
-                    try:
-                        _res = pkg_resources.resource_stream(package, langfile)
-                        res = static_file(langfile, logger, fp=_res, status=status)
-                        return res.decode('UTF-8')
-                    except IOError:
-                        pass
+#        for lang in languages:
+#            if _LANGUAGE_RE.match(lang):
+#                for (package, path) in config.content_packages:
+#                    langfile = path + '/' + lang.lower() + '/' + filename  # pkg_resources paths do not use os.path.join
+#                    if logger:
+#                        logger.debug(
+#                            'Looking for package {!r}, language {!r}, path: {!r}'.format(package, lang, langfile)
+#                        )
+#                    try:
+#                        _res = pkg_resources.resource_stream(package, langfile)
+#                        res = static_file(langfile, logger, fp=_res, status=status)
+#                        return res.decode('UTF-8')
+#                    except IOError:
+#                        pass
 
-    # default language file
-    static_fn = static_filename(config, filename, logger)
-    logger.debug(
-        "Looking for {!r} at default location (static_dir {!r}): {!r}".format(filename, config.static_dir, static_fn)
-    )
-    if not static_fn:
-        logger.warning("Failed locating page {!r} in an accepted language or the default location".format(filename))
-        return None
+#    # default language file
+#    static_fn = static_filename(config, filename, logger)
+#    logger.debug(
+#        "Looking for {!r} at default location (static_dir {!r}): {!r}".format(filename, config.static_dir, static_fn)
+#    )
+#    if not static_fn:
+#        logger.warning("Failed locating page {!r} in an accepted language or the default location".format(filename))
+#        return None
+    static_fn = filename
     logger.debug('Using default file for {!r}: {!r}'.format(filename, static_fn))
-    res = static_file(static_fn, logger, status=status)
-    return res
+    #res = static_file(static_fn, logger, status=status)
+    return render_template(filename)
 
 
 def get_http_method() -> str:

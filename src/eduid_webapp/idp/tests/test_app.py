@@ -63,7 +63,7 @@ class IdPTests(EduidAPITestCase):
         config.update({
             'pysaml2_config': fn,
             })
-        return IdPConfig(**config)
+        return config
 
     def tearDown(self):
         super(IdPTests, self).tearDown()

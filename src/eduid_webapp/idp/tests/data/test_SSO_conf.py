@@ -21,6 +21,7 @@ key_path = os.path.join(here, 'idp-public-snakeoil.key')
 cert_path = os.path.join(here, 'idp-public-snakeoil.pem')
 
 #attrmaps_path = os.path.join(here, '../../../attributemaps')
+idp_metadata_path = os.path.join(here, 'idp_metadata.xml')
 sp_metadata_path = os.path.join(here, 'sp_metadata.xml')
 
 
@@ -56,7 +57,7 @@ CONFIG = {
         },
     },
     "debug": True,
-    "metadata": {"local": [sp_metadata_path]},
+    "metadata": {"local": [idp_metadata_path, sp_metadata_path]},
     #"attribute_map_dir": attrmaps_path,
     "key_file": key_path,
     "cert_file": cert_path,

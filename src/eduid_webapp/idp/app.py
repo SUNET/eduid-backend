@@ -31,22 +31,24 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import logging
+import pprint
 import threading
 from typing import Any, Dict, Optional, cast
 
 from flask import current_app
 
-from eduid_common.api import am, msg
+from eduid_common.api import am, msg, translation
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.authn.utils import init_pysaml2
 from eduid_common.session.sso_cache import SSOSessionCache
+from eduid_webapp.idp import mischttp
 from eduid_webapp.idp.context import IdPContext
 
 from eduid_webapp.idp.settings.common import IdPConfig
 
 from eduid_common.authn import idp_authn
 from eduid_common.authn.utils import init_pysaml2
-from eduid_common.session import sso_cache
+from eduid_common.session import sso_cache, sso_session
 from eduid_common.session.sso_cache import SSOSessionCache
 from eduid_common.session.sso_session import SSOSession
 from eduid_userdb.actions import ActionDB
@@ -75,7 +77,7 @@ class IdPApp(EduIDBaseApp):
         # Init dbs
         #self.private_userdb = IdPUserDB(self.config.mongo_uri)
         # Initiate external modules
-
+        translation.init_babel(self)
 
         # Connecting to MongoDB can take some time if the replica set is not fully working.
         # Log both 'starting' and 'started' messages.
@@ -121,6 +123,63 @@ class IdPApp(EduIDBaseApp):
             authn=self.authn,
         )
 
+
+    def _lookup_sso_session(self):
+        """
+        Locate any existing SSO session for this request.
+
+        :returns: SSO session if found (and valid)
+        :rtype: SSOSession | None
+        """
+        session = self._lookup_sso_session2()
+        if session:
+            self.logger.debug("SSO session for user {!r} found in IdP cache".format(session.user_id))
+            session.set_user(self.userdb.lookup_user(session.user_id))
+            if not session.idp_user:
+                return None
+            _age = session.minutes_old
+            if _age > self.config.sso_session_lifetime:
+                self.logger.debug(
+                    "SSO session expired (age {!r} minutes > {!r})".format(_age, self.config.sso_session_lifetime)
+                )
+                return None
+            self.logger.debug(
+                "SSO session is still valid (age {!r} minutes <= {!r})".format(_age, self.config.sso_session_lifetime)
+            )
+        return session
+
+    def _lookup_sso_session2(self) -> Optional[SSOSession]:
+        """
+        See if a SSO session exists for this request, and return the data about
+        the currently logged in user from the session store.
+
+        :return: Data about currently logged in user
+        """
+        _data = None
+        _session_id = mischttp.get_idpauthn_cookie(self.logger)
+        if _session_id:
+            _data = self.context.sso_sessions.get_session(sso_cache.SSOSessionId(_session_id))
+            self.logger.debug("Looked up SSO session using idpauthn cookie :\n{!s}".format(_data))
+        else:
+            query = mischttp.parse_query_string(self.logger)
+            if query:
+                if 'id' in query:
+                    self.logger.warning('Found "id" in query string - this was thought to be obsolete')
+                self.logger.debug("Parsed query string :\n{!s}".format(pprint.pformat(query)))
+                try:
+                    _data = self.context.sso_sessions.get_session(query['id'])
+                    self.logger.debug(
+                        "Looked up SSO session using query 'id' parameter :\n{!s}".format(pprint.pformat(_data))
+                    )
+                except KeyError:
+                    # no 'id', or not found in cache
+                    pass
+        if not _data:
+            self.logger.debug("SSO session not found using 'id' parameter or 'idpauthn' cookie")
+            return None
+        _sso = sso_session.from_dict(_data)
+        self.logger.debug("Re-created SSO session {!r}".format(_sso))
+        return _sso
 
 
 current_idp_app = cast(IdPApp, current_app)
