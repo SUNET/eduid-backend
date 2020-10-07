@@ -182,12 +182,16 @@ def init_idp_app(name: str, config: Dict) -> IdPApp:
 
     :return: the flask app
     """
-    app = IdPApp(name, config)
+    app = IdPApp(name, config, handle_exceptions=False)
 
     # Register views
     from eduid_webapp.idp.views import idp_views
 
     app.register_blueprint(idp_views)
+
+    from eduid_webapp.idp.exceptions import init_exception_handlers
+
+    init_exception_handlers(app)
 
     app.logger.info(f'{name} initialized')
     return app

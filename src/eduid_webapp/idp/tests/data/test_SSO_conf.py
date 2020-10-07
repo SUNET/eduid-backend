@@ -69,7 +69,7 @@ CONFIG = {
 # SP config
 SP_BASE = 'https://sp.example.edu/saml2'
 
-SAML_CONFIG = {
+SP_CONFIG = {
     # your entity id, usually your subdomain plus the url to the metadata view
     'entityid': f'{SP_BASE}/metadata/',  # f'{SP_BASE}/sp.xml',
     # this block states what services we provide
@@ -105,3 +105,6 @@ SAML_CONFIG = {
     "xmlsec_binary": xmlsec_path,
     "organization": {"display_name": "eduID UNITTEST SP", "name": "eduID UNITTEST SP", "url": "http://www.eduid.se/",},
 }
+
+UNKNOWN_SP_CONFIG = dict(SP_CONFIG)
+UNKNOWN_SP_CONFIG['entityid'] = 'https://unknown-sp.example.org/foo'

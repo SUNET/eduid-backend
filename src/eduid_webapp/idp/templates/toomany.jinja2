@@ -1,0 +1,16 @@
+{% extends "base.jinja2" %}
+
+{% block nav_class_home %}active{% endblock %}
+
+{% block contents %}
+
+        <div class="jumbotron">
+
+          <legend class="">{{ _("Too many requests") }}</legend>
+
+          {% trans %}
+          <p>Access cannot be granted at this time. Please try again later.</p>{% endtrans %}
+
+        </div>
+
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.jinja2" %}
+
+{% block nav_class_home %}active{% endblock %}
+
+{% block contents %}
+
+        <div class="jumbotron">
+
+          <legend class="">{{ _("Access denied") }}</legend>
+
+          {% trans %}
+          <p>Access to the requested service could not be granted.
+              The service provider requires use of a 'confirmed' Security Key (SWAMID MFA/MFA HI).
+          </p>{% endtrans %}
+          <p>
+              {{ _("Visit the") }}
+              <a href="{{ dashboard_link }}">{{ _("eduID dashboard") }}</a>
+              {{ _("to confirm your Security Key (on the Security tab).") }}
+          </p>
+        </div>
+
+{% endblock %}

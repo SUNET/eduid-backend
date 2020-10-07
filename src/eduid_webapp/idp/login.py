@@ -15,7 +15,6 @@ Code handling Single Sign On logins.
 import hmac
 import pprint
 import time
-from base64 import b64encode
 from dataclasses import replace
 from hashlib import sha256
 from html import escape, unescape
@@ -347,9 +346,6 @@ class SSO(Service):
             if hasattr(self.sso_session, 'idp_user') and self.sso_session.idp_user.terminated:
                 self.logger.info(f'User {self.sso_session.idp_user} is terminated')
                 self.logger.debug(f'User terminated: {self.sso_session.idp_user.terminated}')
-                # Delete the SSO session cookie in the browser
-                self.logger.info(f'Removing sso session cookie for user {self.sso_session.idp_user}')
-                mischttp.delete_cookie('idpauthn', self.logger, self.config)
                 raise Forbidden('USER_TERMINATED')
 
         _force_authn = self._should_force_authn(ticket)
@@ -405,7 +401,7 @@ class SSO(Service):
         :returns: HTTP response
         """
         assert isinstance(ticket, SSOLoginData)
-        redirect_uri = mischttp.geturl(self.config, query=False)
+        redirect_uri = mischttp.geturl(query=False)
 
         req_authn_context = get_requested_authn_context(self.context.idp, ticket.saml_req, self.logger)
         self.logger.debug("Do authentication, requested auth context : {!r}".format(req_authn_context))
@@ -582,7 +578,7 @@ def _get_ticket(info: Mapping[str, str], binding: Optional[str]) -> SSOLoginData
             ticket = session.sso_ticket = None
 
         if ticket and _key != ticket.key:
-            raise BadRequest('Corrupted SAMLRequest, please re-initiate login',)
+            raise BadRequest('Corrupted SAMLRequest, please re-initiate login')
 
     if not ticket:
         # cache miss, parse SAMLRequest

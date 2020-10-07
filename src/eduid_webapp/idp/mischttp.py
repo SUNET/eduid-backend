@@ -20,11 +20,11 @@ from typing import Any, Dict, Mapping, Optional
 
 from flask import Response as FlaskResponse
 from flask import redirect, request
+from saml2 import BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid_common.api.sanitation import SanitationProblem, Sanitizer
-from saml2 import BINDING_HTTP_REDIRECT
 
 
 def create_html_response(binding: str, http_args: dict, logger: Logger) -> WerkzeugResponse:

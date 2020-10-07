@@ -1,0 +1,17 @@
+{% extends "base.jinja2" %}
+
+{% block nav_class_home %}active{% endblock %}
+
+{% block contents %}
+
+        <div class="jumbotron">
+
+          <legend class="">{{ _("Already logged in") }}</legend>
+
+          {% trans %}<p>You are already logged in.</p>
+          <p>If you got here by pressing 'back' in your browser,
+              you can press 'forward' to return to where you came from.</p>{% endtrans %}
+
+        </div>
+
+{% endblock %}
