@@ -37,8 +37,9 @@ from logging import Logger
 from typing import Optional
 
 import six
-from eduid_common.authn.idp_saml import IdP_SAMLRequest
 from saml2.server import Server as Saml2Server
+
+from eduid_common.authn.idp_saml import IdP_SAMLRequest
 
 
 def b64encode(source):

@@ -45,6 +45,7 @@ class IdPConfig(FlaskConfig):
     """
     Configuration for the idp app
     """
+
     app_name: str = 'idp'
     # pysaml2 configuration file. Separate config file with SAML related parameters.
     pysaml2_config: str = 'eduid_common.authn.idp_conf'

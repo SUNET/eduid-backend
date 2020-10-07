@@ -13,19 +13,19 @@ Code handling Single Log Out requests.
 """
 import pprint
 
-from werkzeug.exceptions import BadRequest, InternalServerError
-
 import saml2.request
 import saml2.samlp
+from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT, BINDING_SOAP
+from saml2.s_utils import error_status_factory, exception_trace
+from werkzeug.exceptions import BadRequest, InternalServerError
+
 from eduid_common.authn.idp_saml import gen_key
 from eduid_common.session import sso_session
 from eduid_common.session.sso_cache import SSOSessionId
+
 from eduid_webapp.idp import mischttp
 from eduid_webapp.idp.service import Service
 from eduid_webapp.idp.util import maybe_xml_to_string
-from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT, BINDING_SOAP
-from saml2.s_utils import error_status_factory, exception_trace
-
 
 # -----------------------------------------------------------------------------
 # === Single log out ===

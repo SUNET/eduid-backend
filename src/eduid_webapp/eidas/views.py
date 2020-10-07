@@ -16,8 +16,10 @@ from eduid_common.authn.acs_registry import get_action, schedule_action
 from eduid_common.authn.eduid_saml2 import BadSAMLResponse
 from eduid_common.authn.utils import get_location
 from eduid_common.session import session
+
 # TODO: Import FidoCredential in credentials.__init__
 from eduid_userdb.credentials.fido import FidoCredential
+
 from eduid_webapp.eidas.acs_actions import EidasAcsAction, nin_verify_BACKDOOR
 from eduid_webapp.eidas.app import current_eidas_app as current_app
 from eduid_webapp.eidas.helpers import (
@@ -94,7 +96,9 @@ def mfa_authentication(user):
     return _authn(EidasAcsAction.mfa_authn, required_loa, force_authn=True)
 
 
-def _authn(action: EidasAcsAction, required_loa: str, force_authn: bool=False, redirect_url: str='/') -> WerkzeugResponse:
+def _authn(
+    action: EidasAcsAction, required_loa: str, force_authn: bool = False, redirect_url: str = '/'
+) -> WerkzeugResponse:
     """
     :param action: name of action
     :param required_loa: friendly loa name

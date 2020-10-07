@@ -2,17 +2,18 @@ import logging
 import os
 import re
 from typing import Any, Dict, Mapping
-from mock import patch
 
 from flask import make_response
+from mock import patch
+from saml2 import BINDING_HTTP_REDIRECT
+from saml2.client import Saml2Client
 
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.authn.utils import get_saml2_config
 from eduid_userdb.fixtures.users import new_user_example
+
 from eduid_webapp.idp.settings.common import IdPConfig
 from eduid_webapp.idp.tests.test_app import IdPTests
-from saml2 import BINDING_HTTP_REDIRECT
-from saml2.client import Saml2Client
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,6 @@ class IdPTestApp(EduIDBaseApp):
 
 
 class IdPAPITestBase(IdPTests):
-
     def setUp(self):
         super().setUp()
         self.idp_entity_id = 'https://unittest-idp.example.edu/idp.xml'
@@ -35,10 +35,7 @@ class IdPAPITestBase(IdPTests):
 
     def update_config(self, config):
         config = super().update_config(config)
-        config.update({
-            'signup_link': 'TEST-SIGNUP-LINK',
-            'log_level': 'DEBUG'
-            })
+        config.update({'signup_link': 'TEST-SIGNUP-LINK', 'log_level': 'DEBUG'})
         return config
 
     def test_display_of_login_page(self):
@@ -91,7 +88,6 @@ class IdPAPITestBase(IdPTests):
         resp = self.browser.get(redirect_loc, headers={'Cookie': cookies})
         assert resp.status_code == 200
 
-
     def _try_login(self, next_url: str):
         (session_id, info) = self.saml2_client.prepare_for_authenticate(
             entityid=self.idp_entity_id, relay_state=next_url, binding=BINDING_HTTP_REDIRECT,
@@ -133,4 +129,3 @@ class IdPAPITestBase(IdPTests):
         _idx = loc.index('/sso/redirect')
         path = loc[_idx:]
         return path
-

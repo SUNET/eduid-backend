@@ -38,6 +38,7 @@ import os
 import pkg_resources
 
 from eduid_common.api.testing import EduidAPITestCase
+
 from eduid_webapp.idp.app import init_idp_app
 
 __author__ = 'ft'
@@ -59,9 +60,9 @@ class IdPTests(EduidAPITestCase):
     def update_config(self, config):
         datadir = pkg_resources.resource_filename(__name__, 'data')
         fn = os.path.join(datadir, 'test_SSO_conf.py')
-        config.update({
-            'pysaml2_config': fn,
-            })
+        config.update(
+            {'pysaml2_config': fn,}
+        )
         return config
 
     def tearDown(self):

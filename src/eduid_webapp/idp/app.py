@@ -46,10 +46,10 @@ from eduid_common.session.sso_cache import SSOSessionCache
 from eduid_common.session.sso_session import SSOSession
 from eduid_userdb.actions import ActionDB
 from eduid_userdb.idp import IdPUserDb
+
 from eduid_webapp.idp import mischttp
 from eduid_webapp.idp.context import IdPContext
 from eduid_webapp.idp.settings.common import IdPConfig
-
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +58,6 @@ __author__ = 'ft'
 
 
 class IdPApp(EduIDBaseApp):
-
     def __init__(self, name: str, config: Dict, userdb: Optional[Any] = None, **kwargs):
         # Initialise type of self.config before any parent class sets a precedent to mypy
         self.config = IdPConfig.init_config(ns='webapp', app_name=name, test_config=config)
@@ -66,7 +65,7 @@ class IdPApp(EduIDBaseApp):
         # cast self.config because sometimes mypy thinks it is a FlaskConfig after super().__init__()
         self.config: IdPConfig = cast(IdPConfig, self.config)
         # Init dbs
-        #self.private_userdb = IdPUserDB(self.config.mongo_uri)
+        # self.private_userdb = IdPUserDB(self.config.mongo_uri)
         # Initiate external modules
         translation.init_babel(self)
 
@@ -113,7 +112,6 @@ class IdPApp(EduIDBaseApp):
             actions_db=_actions_db,
             authn=self.authn,
         )
-
 
     def _lookup_sso_session(self):
         """
@@ -188,6 +186,7 @@ def init_idp_app(name: str, config: Dict) -> IdPApp:
 
     # Register views
     from eduid_webapp.idp.views import idp_views
+
     app.register_blueprint(idp_views)
 
     app.logger.info(f'{name} initialized')

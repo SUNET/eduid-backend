@@ -14,6 +14,7 @@ Common code for SSO login/logout requests.
 """
 
 from eduid_common.session.sso_session import SSOSession
+
 from eduid_webapp.idp import mischttp
 from eduid_webapp.idp.context import IdPContext
 

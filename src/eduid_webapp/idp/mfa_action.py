@@ -37,10 +37,11 @@ from eduid_userdb.actions import Action
 from eduid_userdb.credentials import U2F, Webauthn
 from eduid_userdb.idp.user import IdPUser
 
-__author__ = 'ft'
-
 from eduid_webapp.idp.context import IdPContext
 from eduid_webapp.idp.util import get_requested_authn_context
+
+__author__ = 'ft'
+
 
 RESULT_CREDENTIAL_KEY_NAME = 'cred_key'
 

@@ -20,7 +20,7 @@ here = os.path.dirname(__file__)
 key_path = os.path.join(here, 'idp-public-snakeoil.key')
 cert_path = os.path.join(here, 'idp-public-snakeoil.pem')
 
-#attrmaps_path = os.path.join(here, '../../../attributemaps')
+# attrmaps_path = os.path.join(here, '../../../attributemaps')
 idp_metadata_path = os.path.join(here, 'idp_metadata.xml')
 sp_metadata_path = os.path.join(here, 'sp_metadata.xml')
 
@@ -58,7 +58,7 @@ CONFIG = {
     },
     "debug": True,
     "metadata": {"local": [sp_metadata_path]},
-    #"attribute_map_dir": attrmaps_path,
+    # "attribute_map_dir": attrmaps_path,
     "key_file": key_path,
     "cert_file": cert_path,
     "xmlsec_binary": xmlsec_path,
@@ -71,8 +71,7 @@ SP_BASE = 'https://sp.example.edu/saml2'
 
 SAML_CONFIG = {
     # your entity id, usually your subdomain plus the url to the metadata view
-    'entityid': f'{SP_BASE}/metadata/',  #f'{SP_BASE}/sp.xml',
-
+    'entityid': f'{SP_BASE}/metadata/',  # f'{SP_BASE}/sp.xml',
     # this block states what services we provide
     'service': {
         # we are just a lonely SP
@@ -81,31 +80,20 @@ SAML_CONFIG = {
             'endpoints': {
                 # url and binding to the assertion consumer service view
                 # do not change the binding or service name
-                'assertion_consumer_service': [
-                    (f'{SP_BASE}/acs/',
-                     BINDING_HTTP_POST),
-                ],
+                'assertion_consumer_service': [(f'{SP_BASE}/acs/', BINDING_HTTP_POST),],
                 # url and binding to the single logout service view
                 # do not change the binding or service name
-                'single_logout_service': [
-                    (f'{SP_BASE}/ls/',
-                     BINDING_HTTP_REDIRECT),
-                ],
+                'single_logout_service': [(f'{SP_BASE}/ls/', BINDING_HTTP_REDIRECT),],
             },
             # in this section the list of IdPs we talk to are defined
             'idp': {
                 # we do not need a WAYF service since there is
                 # only an IdP defined here. This IdP should be
                 # present in our metadata
-
                 # the keys of this dictionary are entity ids
                 f'{IDP_BASE}/idp.xml': {
-                    'single_sign_on_service': {
-                        BINDING_HTTP_REDIRECT: f'{IDP_BASE}/sso/redirect',
-                    },
-                    'single_logout_service': {
-                        BINDING_HTTP_REDIRECT: f'{IDP_BASE}/slo/redirect',
-                    },
+                    'single_sign_on_service': {BINDING_HTTP_REDIRECT: f'{IDP_BASE}/sso/redirect',},
+                    'single_logout_service': {BINDING_HTTP_REDIRECT: f'{IDP_BASE}/slo/redirect',},
                 },
             },
         },
@@ -115,5 +103,5 @@ SAML_CONFIG = {
     "key_file": key_path,
     "cert_file": cert_path,
     "xmlsec_binary": xmlsec_path,
-    "organization": {"display_name": "eduID UNITTEST SP", "name": "eduID UNITTEST SP", "url": "http://www.eduid.se/", },
+    "organization": {"display_name": "eduID UNITTEST SP", "name": "eduID UNITTEST SP", "url": "http://www.eduid.se/",},
 }

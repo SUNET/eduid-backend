@@ -24,14 +24,15 @@ from typing import Any, Dict, Mapping, Optional, Union
 
 from flask import Response as FlaskResponse
 from flask import make_response, redirect, render_template, request
+from saml2 import BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest, NotFound
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid_common.api.sanitation import SanitationProblem, Sanitizer
+
 from eduid_webapp.idp import thirdparty
 from eduid_webapp.idp.settings.common import IdPConfig
 from eduid_webapp.idp.util import b64encode
-from saml2 import BINDING_HTTP_REDIRECT
 
 
 def create_html_response(binding: str, http_args: dict, logger: Logger) -> WerkzeugResponse:
@@ -104,6 +105,7 @@ def get_post(logger) -> Dict[str, Any]:
     :rtype: dict
     """
     return _sanitise_items(request.form, logger)
+
 
 def _sanitise_items(data: Mapping, logger: logging.Logger) -> Dict[str, str]:
     res = dict()
@@ -281,7 +283,9 @@ def set_cookie(name: str, path: str, value: str, response: FlaskResponse, curren
     :param value: The value to assign to the cookie
     """
     if name == 'idpauthn':
-        current_app.logger.info('SET IDPAUTHN COOKIE2 *******************************************************************')
+        current_app.logger.info(
+            'SET IDPAUTHN COOKIE2 *******************************************************************'
+        )
     response.set_cookie(
         key=name,
         value=value,
@@ -312,7 +316,7 @@ def parse_query_string(logger) -> Dict[str, str]:
     """
     args = _sanitise_items(request.args, logger)
     res = {}
-    for k,v in args.items():
+    for k, v in args.items():
         if isinstance(v, list):
             res[k] = v[0]
         else:
@@ -354,7 +358,9 @@ def get_default_template_arguments(config):
     }
 
 
-def localized_resource(filename: str, config: IdPConfig, logger: logging.Logger=None, status: Optional[str]=None) -> WerkzeugResponse:
+def localized_resource(
+    filename: str, config: IdPConfig, logger: logging.Logger = None, status: Optional[str] = None
+) -> WerkzeugResponse:
     """
     Locate a static page in the users preferred language. Such pages are
     packaged in separate Python packages that allow access through
@@ -383,32 +389,32 @@ def localized_resource(filename: str, config: IdPConfig, logger: logging.Logger=
 
     if languages:
         logger.debug("Languages list : {!r}".format(languages))
-#        for lang in languages:
-#            if _LANGUAGE_RE.match(lang):
-#                for (package, path) in config.content_packages:
-#                    langfile = path + '/' + lang.lower() + '/' + filename  # pkg_resources paths do not use os.path.join
-#                    if logger:
-#                        logger.debug(
-#                            'Looking for package {!r}, language {!r}, path: {!r}'.format(package, lang, langfile)
-#                        )
-#                    try:
-#                        _res = pkg_resources.resource_stream(package, langfile)
-#                        res = static_file(langfile, logger, fp=_res, status=status)
-#                        return res.decode('UTF-8')
-#                    except IOError:
-#                        pass
+    #        for lang in languages:
+    #            if _LANGUAGE_RE.match(lang):
+    #                for (package, path) in config.content_packages:
+    #                    langfile = path + '/' + lang.lower() + '/' + filename  # pkg_resources paths do not use os.path.join
+    #                    if logger:
+    #                        logger.debug(
+    #                            'Looking for package {!r}, language {!r}, path: {!r}'.format(package, lang, langfile)
+    #                        )
+    #                    try:
+    #                        _res = pkg_resources.resource_stream(package, langfile)
+    #                        res = static_file(langfile, logger, fp=_res, status=status)
+    #                        return res.decode('UTF-8')
+    #                    except IOError:
+    #                        pass
 
-#    # default language file
-#    static_fn = static_filename(config, filename, logger)
-#    logger.debug(
-#        "Looking for {!r} at default location (static_dir {!r}): {!r}".format(filename, config.static_dir, static_fn)
-#    )
-#    if not static_fn:
-#        logger.warning("Failed locating page {!r} in an accepted language or the default location".format(filename))
-#        return None
+    #    # default language file
+    #    static_fn = static_filename(config, filename, logger)
+    #    logger.debug(
+    #        "Looking for {!r} at default location (static_dir {!r}): {!r}".format(filename, config.static_dir, static_fn)
+    #    )
+    #    if not static_fn:
+    #        logger.warning("Failed locating page {!r} in an accepted language or the default location".format(filename))
+    #        return None
     static_fn = filename
     logger.debug('Using default file for {!r}: {!r}'.format(filename, static_fn))
-    #res = static_file(static_fn, logger, status=status)
+    # res = static_file(static_fn, logger, status=status)
     return render_template(filename)
 
 

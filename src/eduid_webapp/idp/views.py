@@ -32,17 +32,17 @@
 #
 
 from flask import Blueprint, redirect, request
-
-from eduid_common.api.decorators import require_user
-from eduid_webapp.idp.app import current_idp_app as current_app
 from werkzeug.exceptions import Forbidden
 from werkzeug.wrappers import Response as WerkzeugResponse
 
+from eduid_common.api.decorators import require_user
+
+from eduid_webapp.idp.app import current_idp_app as current_app
+from eduid_webapp.idp.login import SSO, do_verify
+from eduid_webapp.idp.logout import SLO
 
 __author__ = 'ft'
 
-from eduid_webapp.idp.login import SSO, do_verify
-from eduid_webapp.idp.logout import SLO
 
 idp_views = Blueprint('idp', __name__, url_prefix='', template_folder='templates')
 

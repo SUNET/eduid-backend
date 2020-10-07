@@ -34,6 +34,7 @@ __author__ = 'eperez'
 
 from eduid_common.session.logindata import SSOLoginData
 from eduid_userdb.idp import IdPUser
+
 from eduid_webapp.idp.context import IdPContext
 
 

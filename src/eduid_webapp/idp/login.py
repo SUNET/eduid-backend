@@ -23,6 +23,7 @@ from typing import Mapping, Optional
 
 from defusedxml import ElementTree as DefusedElementTree
 from flask import redirect, render_template
+from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest, Forbidden, InternalServerError, TooManyRequests
 from werkzeug.wrappers import Response as WerkzeugResponse
 
@@ -42,13 +43,13 @@ from eduid_common.session.logindata import SSOLoginData
 from eduid_common.session.sso_session import SSOSession
 from eduid_userdb.idp import IdPUser
 from eduid_userdb.idp.user import SAMLAttributeSettings
+
 from eduid_webapp.idp import mischttp
 from eduid_webapp.idp.app import current_idp_app as current_app
 from eduid_webapp.idp.context import IdPContext
 from eduid_webapp.idp.idp_actions import check_for_pending_actions
 from eduid_webapp.idp.service import Service
 from eduid_webapp.idp.util import get_requested_authn_context
-from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 
 
 class MustAuthenticate(Exception):
@@ -530,9 +531,9 @@ def do_verify(context: IdPContext):
     # used to avoid requiring subsequent authentication for the same user during a limited
     # period of time, by storing the session-id in a browser cookie.
     _session_id = context.sso_sessions.add_session(user.eppn, _sso_session.to_dict())
-    #mischttp.set_cookie('idpauthn', '/', current_app.logger, context.config, _session_id.decode('utf-8'))
+    # mischttp.set_cookie('idpauthn', '/', current_app.logger, context.config, _session_id.decode('utf-8'))
     # knowledge of the _session_id enables impersonation, so get rid of it as soon as possible
-    #del _session_id
+    # del _session_id
 
     # INFO-Log the request id (sha1 of SAMLrequest) and the sso_session
     current_app.logger.info(
@@ -557,9 +558,7 @@ def _update_ticket_samlrequest(ticket: SSOLoginData, binding: Optional[str]) -> 
         )
     except (SAMLParseError, SAMLValidationError):
         current_app.logger.exception('Failed updating SAML request in SSOLoginData (ticket)')
-        raise BadRequest(
-            'Invalid login request. Try emptying browser cache and re-initiate login.',
-        )
+        raise BadRequest('Invalid login request. Try emptying browser cache and re-initiate login.',)
 
 
 # ----------------------------------------------------------------------------
@@ -575,8 +574,7 @@ def _get_ticket(info: Mapping[str, str], binding: Optional[str]) -> SSOLoginData
     _key = info.get('key')
     if not _key:
         if 'SAMLRequest' not in info:
-            raise BadRequest(
-                'Missing SAMLRequest, please re-initiate login')
+            raise BadRequest('Missing SAMLRequest, please re-initiate login')
         _key = gen_key(info['SAMLRequest'])
         logger.debug(f"No 'key' in info, hashed SAMLRequest into key {_key}")
 
@@ -584,9 +582,7 @@ def _get_ticket(info: Mapping[str, str], binding: Optional[str]) -> SSOLoginData
             ticket = session.sso_ticket = None
 
         if ticket and _key != ticket.key:
-            raise BadRequest(
-                'Corrupted SAMLRequest, please re-initiate login',
-            )
+            raise BadRequest('Corrupted SAMLRequest, please re-initiate login',)
 
     if not ticket:
         # cache miss, parse SAMLRequest
