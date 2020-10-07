@@ -22,7 +22,7 @@ import re
 from logging import Logger
 from typing import Any, Dict, Mapping, Optional, Union
 
-import pkg_resources
+from flask import Response as FlaskResponse
 from flask import make_response, redirect, render_template, request
 from werkzeug.exceptions import BadRequest, NotFound
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -239,28 +239,6 @@ def get_content_type(filename):
 # ----------------------------------------------------------------------------
 # Cookie handling
 # ----------------------------------------------------------------------------
-def get_idpauthn_cookie(logger: Logger) -> Optional[bytes]:
-    """
-    Decode information stored in the 'idpauthn' browser cookie.
-
-    The idpauthn cookie holds a value used to lookup `userdata' in context.sso_sessions.
-
-    :param logger: logging logger
-    :returns: string with cookie content, or None
-    :rtype: string | None
-    """
-    _authn = read_cookie('idpauthn', logger)
-    if _authn:
-        try:
-            cookie_val = base64.b64decode(_authn)
-            logger.debug('idpauthn cookie value={!r}'.format(cookie_val))
-            return cookie_val
-        except binascii.Error:
-            logger.debug('Could not b64 decode idpauthn value: {!r}'.format(_authn))
-            raise
-    return None
-
-
 def read_cookie(name: str, logger: Logger) -> Optional[str]:
     """
     Read a browser cookie.
@@ -278,7 +256,7 @@ def read_cookie(name: str, logger: Logger) -> Optional[str]:
     return cookie
 
 
-def delete_cookie(name: str, logger: logging.Logger, config: IdPConfig) -> None:
+def delete_cookie(name: str, response: FlaskResponse, current_app: 'IdPApp') -> FlaskResponse:
     """
     Ask browser to delete a cookie.
 
@@ -286,11 +264,11 @@ def delete_cookie(name: str, logger: logging.Logger, config: IdPConfig) -> None:
     :param logger: logging instance
     :param config: IdPConfig instance
     """
-    logger.debug("Delete cookie: {!s}".format(name))
-    return set_cookie(name, '/', logger, config, value='')
+    current_app.logger.debug("Delete cookie: {!s}".format(name))
+    return set_cookie(name, '/', '', response, current_app)
 
 
-def set_cookie(name: str, path: str, logger: logging.Logger, config: IdPConfig, value: str, b64: bool = True) -> None:
+def set_cookie(name: str, path: str, value: str, response: FlaskResponse, current_app: 'IdPApp') -> FlaskResponse:
     """
     Ask browser to store a cookie.
 
@@ -302,20 +280,20 @@ def set_cookie(name: str, path: str, logger: logging.Logger, config: IdPConfig, 
     :param config: IdPConfig instance
     :param value: The value to assign to the cookie
     """
-    response = make_response()
-    if b64:
-        value = b64encode(value)
+    if name == 'idpauthn':
+        current_app.logger.info('SET IDPAUTHN COOKIE2 *******************************************************************')
     response.set_cookie(
         key=name,
         value=value,
-        domain=config.session_cookie_domain,
+        domain=current_app.config.session_cookie_domain,
         path=path,
-        secure=config.session_cookie_secure,
-        httponly=config.session_cookie_httponly,
-        samesite=config.session_cookie_samesite,
-        max_age=config.permanent_session_lifetime,
+        secure=current_app.config.session_cookie_secure,
+        httponly=current_app.config.session_cookie_httponly,
+        samesite=current_app.config.session_cookie_samesite,
+        max_age=current_app.config.permanent_session_lifetime,
     )
-    logger.debug(f'Set cookie {repr(name)} : {repr(value)}')
+    current_app.logger.debug(f'Set cookie {repr(name)} : {repr(value)}')
+    return response
 
 
 def parse_query_string(logger) -> Dict[str, str]:

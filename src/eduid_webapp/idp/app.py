@@ -37,15 +37,8 @@ from typing import Any, Dict, Optional, cast
 
 from flask import current_app
 
-from eduid_common.api import am, msg, translation
+from eduid_common.api import translation
 from eduid_common.api.app import EduIDBaseApp
-from eduid_common.authn.utils import init_pysaml2
-from eduid_common.session.sso_cache import SSOSessionCache
-from eduid_webapp.idp import mischttp
-from eduid_webapp.idp.context import IdPContext
-
-from eduid_webapp.idp.settings.common import IdPConfig
-
 from eduid_common.authn import idp_authn
 from eduid_common.authn.utils import init_pysaml2
 from eduid_common.session import sso_cache, sso_session
@@ -53,12 +46,10 @@ from eduid_common.session.sso_cache import SSOSessionCache
 from eduid_common.session.sso_session import SSOSession
 from eduid_userdb.actions import ActionDB
 from eduid_userdb.idp import IdPUserDb
+from eduid_webapp.idp import mischttp
+from eduid_webapp.idp.context import IdPContext
+from eduid_webapp.idp.settings.common import IdPConfig
 
-#import eduid_idp.mischttp
-#from eduid_idp.context import IdPContext
-#from eduid_idp.login import SSO
-#from eduid_idp.logout import SLO
-#from eduid_idp.shared_session import EduidSession
 
 logger = logging.getLogger(__name__)
 
@@ -156,10 +147,10 @@ class IdPApp(EduIDBaseApp):
         :return: Data about currently logged in user
         """
         _data = None
-        _session_id = mischttp.get_idpauthn_cookie(self.logger)
+        _session_id = mischttp.read_cookie('idpauthn', logger)
         if _session_id:
             _data = self.context.sso_sessions.get_session(sso_cache.SSOSessionId(_session_id))
-            self.logger.debug("Looked up SSO session using idpauthn cookie :\n{!s}".format(_data))
+            self.logger.debug(f'Looked up SSO session using idpauthn cookie {_session_id}:\n{_data}')
         else:
             query = mischttp.parse_query_string(self.logger)
             if query:

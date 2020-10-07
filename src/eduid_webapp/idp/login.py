@@ -15,6 +15,7 @@ Code handling Single Sign On logins.
 import hmac
 import pprint
 import time
+from base64 import b64encode
 from dataclasses import replace
 from hashlib import sha256
 from html import escape, unescape
@@ -529,9 +530,9 @@ def do_verify(context: IdPContext):
     # used to avoid requiring subsequent authentication for the same user during a limited
     # period of time, by storing the session-id in a browser cookie.
     _session_id = context.sso_sessions.add_session(user.eppn, _sso_session.to_dict())
-    mischttp.set_cookie('idpauthn', '/', current_app.logger, context.config, _session_id.decode('utf-8'))
+    #mischttp.set_cookie('idpauthn', '/', current_app.logger, context.config, _session_id.decode('utf-8'))
     # knowledge of the _session_id enables impersonation, so get rid of it as soon as possible
-    del _session_id
+    #del _session_id
 
     # INFO-Log the request id (sha1 of SAMLrequest) and the sso_session
     current_app.logger.info(
@@ -545,7 +546,8 @@ def do_verify(context: IdPContext):
     # is passed as an URL parameter instead of the SAMLRequest.
     lox = query["redirect_uri"] + '?key=' + _ticket.key
     current_app.logger.debug("Redirect => %s" % lox)
-    return redirect(lox)
+    resp = redirect(lox)
+    return mischttp.set_cookie('idpauthn', '/', _session_id, resp, current_app)
 
 
 def _update_ticket_samlrequest(ticket: SSOLoginData, binding: Optional[str]) -> None:
@@ -594,6 +596,8 @@ def _get_ticket(info: Mapping[str, str], binding: Optional[str]) -> SSOLoginData
             raise BadRequest('Bad request, no binding')
         assert _key  # please mypy
         ticket = _create_ticket(info, binding, _key)
+
+        current_app.logger.debug('INITIALISING TICKET IN SESSION')
         session.sso_ticket = ticket
 
     return ticket

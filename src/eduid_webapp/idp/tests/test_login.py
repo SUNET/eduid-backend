@@ -7,6 +7,7 @@ from mock import patch
 from flask import make_response
 
 from eduid_common.api.app import EduIDBaseApp
+from eduid_common.authn.utils import get_saml2_config
 from eduid_userdb.fixtures.users import new_user_example
 from eduid_webapp.idp.settings.common import IdPConfig
 from eduid_webapp.idp.tests.test_app import IdPTests
@@ -29,7 +30,8 @@ class IdPAPITestBase(IdPTests):
     def setUp(self):
         super().setUp()
         self.idp_entity_id = 'https://unittest-idp.example.edu/idp.xml'
-        self.saml2_client = Saml2Client(config_file=self.app.config.pysaml2_config)
+        sp_config = get_saml2_config(self.app.config.pysaml2_config)
+        self.saml2_client = Saml2Client(config=sp_config)
 
     def update_config(self, config):
         config = super().update_config(config)
@@ -77,40 +79,42 @@ class IdPAPITestBase(IdPTests):
 
         with patch.object(VCCSClient, 'authenticate'):
             VCCSClient.authenticate.return_value = True
-            res = self._try_login(next_url)
+            resp = self._try_login(next_url)
 
-        redirect_loc = self._extract_path_from_info({'headers': res.headers})
+        redirect_loc = self._extract_path_from_info({'headers': resp.headers})
         # check that we were sent back to the login screen
         # TODO: verify that we really were logged in
         assert redirect_loc.startswith('/sso/redirect?key=')
 
-        with self.app.test_request_context(redirect_loc):
-            res = self.app.dispatch_request()
+        cookies = resp.headers.get('Set-Cookie')
 
-        assert res.status_code == 200
+        with self.session_cookie_anon(self.browser) as browser:
+            resp = browser.get(redirect_loc, headers={'Cookie': cookies})
+            assert resp.status_code == 200
+
 
     def _try_login(self, next_url: str):
         (session_id, info) = self.saml2_client.prepare_for_authenticate(
             entityid=self.idp_entity_id, relay_state=next_url, binding=BINDING_HTTP_REDIRECT,
         )
         path = self._extract_path_from_info(info)
-        with self.app.test_request_context(path):
-            res = self.app.dispatch_request()
+        with self.session_cookie_anon(self.browser) as browser:
+            resp = browser.get(path)
+            assert resp.status_code == 200
 
-            response = make_response()
-            assert response.status_code == 200
-        form_data = self._extract_form_inputs(res)
+        form_data = self._extract_form_inputs(resp.data.decode('utf-8'))
         del form_data['key']  # test if key is really necessary
         form_data['username'] = self.test_user.mail_addresses.primary.email
         form_data['password'] = 'Jenka'
         assert 'redirect_uri' in form_data
-        with self.app.test_request_context('/verify',
-                                           method='POST',
-                                           data=form_data,
-                                           ):
-            res = self.app.dispatch_request()
-            assert res.status_code == 302
-        return res
+
+        cookies = resp.headers.get('Set-Cookie')
+
+        with self.session_cookie_anon(self.browser) as browser:
+            resp = browser.post('/verify', data=form_data, headers={'Cookie': cookies})
+            assert resp.status_code == 302
+
+        return resp
 
     def _extract_form_inputs(self, res: str) -> Dict[str, Any]:
         inputs = {}

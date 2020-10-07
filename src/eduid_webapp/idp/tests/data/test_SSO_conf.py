@@ -14,7 +14,7 @@ else:
     xmlsec_path = '/usr/bin/xmlsec1'
 
 _hostname = 'unittest-idp.example.edu'
-BASE = "https://{!s}".format(_hostname)
+IDP_BASE = "https://{!s}".format(_hostname)
 
 here = os.path.dirname(__file__)
 key_path = os.path.join(here, 'idp-public-snakeoil.key')
@@ -24,9 +24,9 @@ cert_path = os.path.join(here, 'idp-public-snakeoil.pem')
 idp_metadata_path = os.path.join(here, 'idp_metadata.xml')
 sp_metadata_path = os.path.join(here, 'sp_metadata.xml')
 
-
+# IdP config
 CONFIG = {
-    "entityid": "%s/idp.xml" % BASE,
+    "entityid": f'{IDP_BASE}/idp.xml',
     "description": "eduID UNITTEST identity provider",
     "service": {
         "idp": {
@@ -34,13 +34,13 @@ CONFIG = {
             "scope": ["eduid.example.edu"],
             "endpoints": {
                 "single_sign_on_service": [
-                    ("%s/sso/redirect" % BASE, BINDING_HTTP_REDIRECT),
-                    ("%s/sso/post" % BASE, BINDING_HTTP_POST),
+                    (f'{IDP_BASE}/sso/redirect', BINDING_HTTP_REDIRECT),
+                    (f'{IDP_BASE}/sso/post', BINDING_HTTP_POST),
                 ],
                 "single_logout_service": [
-                    ("%s/slo/soap" % BASE, BINDING_SOAP),
-                    ("%s/slo/post" % BASE, BINDING_HTTP_POST),
-                    ("%s/slo/redirect" % BASE, BINDING_HTTP_REDIRECT),
+                    (f'{IDP_BASE}/slo/soap', BINDING_SOAP),
+                    (f'{IDP_BASE}/slo/post', BINDING_HTTP_POST),
+                    (f'{IDP_BASE}/slo/redirect', BINDING_HTTP_REDIRECT),
                 ],
             },
             "policy": {
@@ -57,10 +57,63 @@ CONFIG = {
         },
     },
     "debug": True,
-    "metadata": {"local": [idp_metadata_path, sp_metadata_path]},
+    "metadata": {"local": [sp_metadata_path]},
     #"attribute_map_dir": attrmaps_path,
     "key_file": key_path,
     "cert_file": cert_path,
     "xmlsec_binary": xmlsec_path,
     "organization": {"display_name": "eduID UNITTEST", "name": "eduID UNITTEST", "url": "http://www.eduid.se/",},
+}
+
+
+# SP config
+SP_BASE = 'https://sp.example.edu/saml2'
+
+SAML_CONFIG = {
+    # your entity id, usually your subdomain plus the url to the metadata view
+    'entityid': f'{SP_BASE}/metadata/',  #f'{SP_BASE}/sp.xml',
+
+    # this block states what services we provide
+    'service': {
+        # we are just a lonely SP
+        'sp': {
+            'name': 'Eduid Dashboard SP',
+            'endpoints': {
+                # url and binding to the assertion consumer service view
+                # do not change the binding or service name
+                'assertion_consumer_service': [
+                    (f'{SP_BASE}/acs',
+                     BINDING_HTTP_POST),
+                ],
+                # url and binding to the single logout service view
+                # do not change the binding or service name
+                'single_logout_service': [
+                    (f'{SP_BASE}/ls',
+                     BINDING_HTTP_REDIRECT),
+                ],
+            },
+            # in this section the list of IdPs we talk to are defined
+            'idp': {
+                # we do not need a WAYF service since there is
+                # only an IdP defined here. This IdP should be
+                # present in our metadata
+
+                # the keys of this dictionary are entity ids
+                f'{IDP_BASE}/idp.xml': {
+                    'single_sign_on_service': {
+                        BINDING_HTTP_REDIRECT: f'{IDP_BASE}/sso/redirect',
+                    },
+                    'single_logout_service': {
+                        BINDING_HTTP_REDIRECT: f'{IDP_BASE}/slo/redirect',
+                    },
+                },
+            },
+        },
+    },
+    "debug": True,
+    "metadata": {"local": [idp_metadata_path]},
+    "key_file": key_path,
+    "cert_file": cert_path,
+    "xmlsec_binary": xmlsec_path,
+    "organization": {"display_name": "eduID UNITTEST SP", "name": "eduID UNITTEST SP", "url": "http://www.eduid.se/", },
 }
