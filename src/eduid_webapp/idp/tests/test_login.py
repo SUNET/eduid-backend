@@ -96,6 +96,9 @@ class IdPAPITestBase(IdPTests):
             reached_state, resp = self._try_login()
 
         assert reached_state == LoginState.S5_LOGGED_IN
+        cookies = resp.headers['Set-Cookie']
+        # Ensure the idpauthn cookie is removed for terminated users
+        assert 'idpauthn' in cookies
 
     def test_with_unknown_sp(self):
         sp_config = get_saml2_config(self.app.config.pysaml2_config, name='UNKNOWN_SP_CONFIG')
