@@ -13,26 +13,18 @@
 Miscellaneous HTTP related functions.
 """
 
-import base64
-import binascii
 import logging
-import os
 import pprint
-import re
 from logging import Logger
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Dict, Mapping, Optional
 
 from flask import Response as FlaskResponse
-from flask import make_response, redirect, render_template, request
-from saml2 import BINDING_HTTP_REDIRECT
-from werkzeug.exceptions import BadRequest, NotFound
+from flask import redirect, request
+from werkzeug.exceptions import BadRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid_common.api.sanitation import SanitationProblem, Sanitizer
-
-from eduid_webapp.idp import thirdparty
-from eduid_webapp.idp.settings.common import IdPConfig
-from eduid_webapp.idp.util import b64encode
+from saml2 import BINDING_HTTP_REDIRECT
 
 
 def create_html_response(binding: str, http_args: dict, logger: Logger) -> WerkzeugResponse:
@@ -76,14 +68,12 @@ def create_html_response(binding: str, http_args: dict, logger: Logger) -> Werkz
     return message
 
 
-def geturl(config, query=True, path=True):
+def geturl(query=True, path=True):
     """Rebuilds a request URL (from PEP 333).
 
-    :param config: IdP config
     :param query: Is QUERY_STRING included in URI (default: True)
     :param path: Is path included in URI (default: True)
     """
-    r = request
     if not query:
         if not path:
             return request.host_url
@@ -139,103 +129,6 @@ def get_request_body() -> str:
     :return: raw body
     """
     return request.data.decode('utf-8')
-
-
-def static_filename(config: IdPConfig, path: str, logger: logging.Logger) -> Optional[Union[bool, str]]:
-    """
-    Check if there is a static file matching 'path'.
-
-    :param config: IdP config
-    :param path: URL part to check
-    :param logger: Logging logger
-
-    :return: False, None or filename as string
-    """
-    if not isinstance(path, str):
-        return False
-    if not config.static_dir:
-        return False
-    if '..' in str(path):
-        logger.warning("Attempted directory traversal: \'{}\'".format(path))
-        return False
-    try:
-        filename = os.path.join(config.static_dir, path)
-        os.stat(filename)
-        return filename
-    except OSError:
-        return None
-
-
-def static_file(filename: str, logger, fp=None, status=None) -> WerkzeugResponse:
-    """
-    Serve a static file, 'known' to exist.
-
-    :param start_response: WSGI-like start_response function
-    :param filename: OS path to the files whose content should be served
-    :param logger: Logging logger
-    :param fp: optional file-like object implementing read()
-    :param status: optional HTML result data ('404 Not Found' for example)
-    :return: file content
-
-    :type start_response: function
-    :type filename: string
-    :type logger: logging.Logger
-    :type fp: File
-    :type status: string
-    :rtype: string
-    """
-    content_type = get_content_type(filename)
-    if not content_type:
-        logger.error("Could not determine content type for static file {!r}".format(filename))
-        raise NotFound()
-
-    if not status:
-        status = '200 Ok'
-
-    try:
-        if not fp:
-            fp = open(filename)
-        text = fp.read()
-    except IOError:
-        raise NotFound()
-    finally:
-        fp.close()
-
-    logger.debug(
-        "Serving {!s}, status={!r} content-type {!s}, length={!r}".format(filename, status, content_type, len(text))
-    )
-
-    start_response(status, [('Content-Type', content_type)])
-    return text
-
-
-def get_content_type(filename):
-    """
-    Figure out the content type to use from a filename.
-
-    :param filename: string
-    :return: string like 'text/html'
-
-    :type filename: string
-    :rtype: string
-    """
-    types = {
-        'ico': 'image/x-icon',
-        'png': 'image/png',
-        'html': 'text/html',
-        'css': 'text/css',
-        'js': 'application/javascript',
-        'txt': 'text/plain',
-        'xml': 'text/xml',
-        'svg': 'image/svg+xml',
-        'woff': 'application/font-woff',
-        'eot': 'application/vnd.ms-fontobject',
-        'ttf': 'application/x-font-ttf',
-    }
-    ext = filename.rsplit('.', 1)[-1]
-    if ext not in types:
-        return None
-    return types[ext]
 
 
 # ----------------------------------------------------------------------------
@@ -320,21 +213,6 @@ def parse_query_string(logger) -> Dict[str, str]:
     return res
 
 
-def parse_accept_lang_header(lang_string):
-    """
-    Parses the lang_string, which is the body of an HTTP Accept-Language
-    header, and returns a list of (lang, q-value), ordered by 'q' values.
-
-    Any format errors in lang_string results in an empty list being returned.
-
-    :param lang_string: Accept-Language header
-
-    :type lang_string: string
-    :rtype: list[(string, string)]
-    """
-    return thirdparty.parse_accept_lang_header(lang_string)
-
-
 def get_default_template_arguments(config):
     """
     :param config: IdP config
@@ -352,66 +230,6 @@ def get_default_template_arguments(config):
         'password_reset_link': config.password_reset_link,
         'static_link': config.static_link,
     }
-
-
-def localized_resource(
-    filename: str, config: IdPConfig, logger: logging.Logger = None, status: Optional[str] = None
-) -> WerkzeugResponse:
-    """
-    Locate a static page in the users preferred language. Such pages are
-    packaged in separate Python packages that allow access through
-    pkg_resource.
-
-    :param filename: string, name of resource
-    :param config: IdP config instance
-    :param logger: optional logging logger, for debug log messages
-    :param status: string, optional HTML result data ('404 Not Found' for example)
-    :return: HTML response data
-    """
-    _LANGUAGE_RE = re.compile(
-        r'''
-            ([A-Za-z]{1,8}(?:-[A-Za-z0-9]{1,8})*|)      # "en", "en-au", "x-y-z", "es-419", NOT the "*"
-            ''',
-        re.VERBOSE,
-    )
-
-    # Look for some static page in user preferred language
-    languages = parse_accept_lang_header(request.headers.get('Accept-Language', ''))
-    if logger:
-        logger.debug("Client language preferences: {!r}".format(languages))
-    languages = [lang for (lang, q_val) in languages[:50]]  # cap somewhere to prevent DoS
-    if config.default_language not in languages and config.default_language:
-        languages.append(config.default_language)
-
-    if languages:
-        logger.debug("Languages list : {!r}".format(languages))
-    #        for lang in languages:
-    #            if _LANGUAGE_RE.match(lang):
-    #                for (package, path) in config.content_packages:
-    #                    langfile = path + '/' + lang.lower() + '/' + filename  # pkg_resources paths do not use os.path.join
-    #                    if logger:
-    #                        logger.debug(
-    #                            'Looking for package {!r}, language {!r}, path: {!r}'.format(package, lang, langfile)
-    #                        )
-    #                    try:
-    #                        _res = pkg_resources.resource_stream(package, langfile)
-    #                        res = static_file(langfile, logger, fp=_res, status=status)
-    #                        return res.decode('UTF-8')
-    #                    except IOError:
-    #                        pass
-
-    #    # default language file
-    #    static_fn = static_filename(config, filename, logger)
-    #    logger.debug(
-    #        "Looking for {!r} at default location (static_dir {!r}): {!r}".format(filename, config.static_dir, static_fn)
-    #    )
-    #    if not static_fn:
-    #        logger.warning("Failed locating page {!r} in an accepted language or the default location".format(filename))
-    #        return None
-    static_fn = filename
-    logger.debug('Using default file for {!r}: {!r}'.format(filename, static_fn))
-    # res = static_file(static_fn, logger, status=status)
-    return render_template(filename)
 
 
 def get_http_method() -> str:
