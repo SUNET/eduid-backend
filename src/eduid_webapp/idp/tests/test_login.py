@@ -1,8 +1,9 @@
 import logging
 import os
 import re
-from typing import Any, Dict, Mapping
+from typing import Any, Dict, Mapping, Sequence
 
+from flask import Response as FlaskResponse
 from flask import make_response
 from mock import patch
 from saml2 import BINDING_HTTP_REDIRECT
@@ -10,7 +11,6 @@ from saml2.client import Saml2Client
 
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.authn.utils import get_saml2_config
-from eduid_userdb.fixtures.users import new_user_example
 
 from eduid_webapp.idp.settings.common import IdPConfig
 from eduid_webapp.idp.tests.test_app import IdPTests
@@ -63,7 +63,7 @@ class IdPAPITestBase(IdPTests):
 
         res = self._try_login(next_url)
 
-        redirect_loc = self._extract_path_from_info(res.headers)
+        redirect_loc = self._extract_path_from_response(res)
         # check that we were sent back to the login screen
         # TODO: verify that we really were not logged in
         assert redirect_loc.startswith('/sso/redirect?SAMLRequest=')
@@ -78,7 +78,7 @@ class IdPAPITestBase(IdPTests):
             VCCSClient.authenticate.return_value = True
             resp = self._try_login(next_url)
 
-        redirect_loc = self._extract_path_from_info({'headers': resp.headers})
+        redirect_loc = self._extract_path_from_response(resp)
         # check that we were sent back to the login screen
         # TODO: verify that we really were logged in
         assert redirect_loc.startswith('/sso/redirect?key=')
@@ -88,7 +88,7 @@ class IdPAPITestBase(IdPTests):
         resp = self.browser.get(redirect_loc, headers={'Cookie': cookies})
         assert resp.status_code == 200
 
-    def _try_login(self, next_url: str):
+    def _try_login(self, next_url: str) -> FlaskResponse:
         (session_id, info) = self.saml2_client.prepare_for_authenticate(
             entityid=self.idp_entity_id, relay_state=next_url, binding=BINDING_HTTP_REDIRECT,
         )
@@ -122,10 +122,14 @@ class IdPAPITestBase(IdPTests):
                     inputs[name] = value.strip('\'"')
         return inputs
 
-    def _extract_path_from_info(self, info: Mapping[str, Any]):
-        # Find first Location tuple
-        loc = [_hdr[1] for _hdr in info['headers'] if _hdr[0] == 'Location'][0]
-        # It is a complete URL, extract the path from it
-        _idx = loc.index('/sso/redirect')
-        path = loc[_idx:]
+    def _extract_path_from_response(self, response: FlaskResponse) -> str:
+        return self._extract_path_from_info({'headers': response.headers})
+
+    def _extract_path_from_info(self, info: Mapping[str, Any]) -> str:
+        _location_headers = [_hdr for _hdr in info['headers'] if _hdr[0] == 'Location']
+        # get first Location URL
+        loc = _location_headers[0][1]
+        # It is a complete URL, extract the path from it (8 is to skip over slashes in https://)
+        _idx = loc[8:].index('/')
+        path = loc[8 + _idx :]
         return path

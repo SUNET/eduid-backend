@@ -593,7 +593,6 @@ def _get_ticket(info: Mapping[str, str], binding: Optional[str]) -> SSOLoginData
         assert _key  # please mypy
         ticket = _create_ticket(info, binding, _key)
 
-        current_app.logger.debug('INITIALISING TICKET IN SESSION')
         session.sso_ticket = ticket
 
     return ticket

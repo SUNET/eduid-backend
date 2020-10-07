@@ -282,10 +282,6 @@ def set_cookie(name: str, path: str, value: str, response: FlaskResponse, curren
     :param config: IdPConfig instance
     :param value: The value to assign to the cookie
     """
-    if name == 'idpauthn':
-        current_app.logger.info(
-            'SET IDPAUTHN COOKIE2 *******************************************************************'
-        )
     response.set_cookie(
         key=name,
         value=value,
