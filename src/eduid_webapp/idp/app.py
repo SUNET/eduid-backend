@@ -108,9 +108,9 @@ class IdPApp(EduIDBaseApp):
 
         if userdb is None:
             # This is used in tests at least
-            userdb = IdPUserDb(logger, self.config.mongo_uri, db_name=self.config.userdb_mongo_database)
+            userdb = IdPUserDb(self.logger, self.config.mongo_uri, db_name=self.config.userdb_mongo_database)
         self.userdb = userdb
-        self.authn = idp_authn.IdPAuthn(logger, self.config, self.userdb)
+        self.authn = idp_authn.IdPAuthn(self.logger, self.config, self.userdb)
 
         self.logger.info('eduid-IdP application started')
 

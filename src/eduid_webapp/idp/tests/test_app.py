@@ -39,7 +39,6 @@ import pkg_resources
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.idp.app import init_idp_app
-from eduid_webapp.idp.settings.common import IdPConfig
 
 __author__ = 'ft'
 

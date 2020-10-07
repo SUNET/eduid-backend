@@ -28,8 +28,8 @@ from werkzeug.exceptions import BadRequest, NotFound
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid_common.api.sanitation import SanitationProblem, Sanitizer
-from eduid_common.config.idp import OldIdPConfig
 from eduid_webapp.idp import thirdparty
+from eduid_webapp.idp.settings.common import IdPConfig
 from eduid_webapp.idp.util import b64encode
 from saml2 import BINDING_HTTP_REDIRECT
 
@@ -82,6 +82,11 @@ def geturl(config, query=True, path=True):
     :param query: Is QUERY_STRING included in URI (default: True)
     :param path: Is path included in URI (default: True)
     """
+    r = request
+    if not query:
+        if not path:
+            return request.host_url
+        return request.base_url
     return request.url
 
 
@@ -134,7 +139,7 @@ def get_request_body() -> str:
     return request.data.decode('utf-8')
 
 
-def static_filename(config: OldIdPConfig, path: str, logger: logging.Logger) -> Optional[Union[bool, str]]:
+def static_filename(config: IdPConfig, path: str, logger: logging.Logger) -> Optional[Union[bool, str]]:
     """
     Check if there is a static file matching 'path'.
 
@@ -273,7 +278,7 @@ def read_cookie(name: str, logger: Logger) -> Optional[str]:
     return cookie
 
 
-def delete_cookie(name: str, logger: logging.Logger, config: OldIdPConfig) -> None:
+def delete_cookie(name: str, logger: logging.Logger, config: IdPConfig) -> None:
     """
     Ask browser to delete a cookie.
 
@@ -285,7 +290,7 @@ def delete_cookie(name: str, logger: logging.Logger, config: OldIdPConfig) -> No
     return set_cookie(name, '/', logger, config, value='')
 
 
-def set_cookie(name: str, path: str, logger: logging.Logger, config: OldIdPConfig, value: str, b64: bool = True) -> None:
+def set_cookie(name: str, path: str, logger: logging.Logger, config: IdPConfig, value: str, b64: bool = True) -> None:
     """
     Ask browser to store a cookie.
 
@@ -297,18 +302,20 @@ def set_cookie(name: str, path: str, logger: logging.Logger, config: OldIdPConfi
     :param config: IdPConfig instance
     :param value: The value to assign to the cookie
     """
-    _res = make_response()
-    cookies = _res.cookies
+    response = make_response()
     if b64:
-        _res.set_cookie()
-        cookies[name] = b64encode(value)
-    else:
-        cookies[name] = value
-    cookies[name]['path'] = path
-    if not config.insecure_cookies:
-        cookies[name]['secure'] = True  # ask browser to only send cookie using SSL/TLS
-    cookies[name]['httponly'] = True  # protect against common XSS vulnerabilities
-    logger.debug("Set cookie {!r} : {}".format(name, cookies))
+        value = b64encode(value)
+    response.set_cookie(
+        key=name,
+        value=value,
+        domain=config.session_cookie_domain,
+        path=path,
+        secure=config.session_cookie_secure,
+        httponly=config.session_cookie_httponly,
+        samesite=config.session_cookie_samesite,
+        max_age=config.permanent_session_lifetime,
+    )
+    logger.debug(f'Set cookie {repr(name)} : {repr(value)}')
 
 
 def parse_query_string(logger) -> Dict[str, str]:
@@ -369,7 +376,7 @@ def get_default_template_arguments(config):
     }
 
 
-def localized_resource(filename: str, config: OldIdPConfig, logger: logging.Logger=None, status: Optional[str]=None) -> WerkzeugResponse:
+def localized_resource(filename: str, config: IdPConfig, logger: logging.Logger=None, status: Optional[str]=None) -> WerkzeugResponse:
     """
     Locate a static page in the users preferred language. Such pages are
     packaged in separate Python packages that allow access through

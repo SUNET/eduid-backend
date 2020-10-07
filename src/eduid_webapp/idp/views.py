@@ -41,7 +41,7 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 
 __author__ = 'ft'
 
-from eduid_webapp.idp.login import SSO
+from eduid_webapp.idp.login import SSO, do_verify
 from eduid_webapp.idp.logout import SLO
 
 idp_views = Blueprint('idp', __name__, url_prefix='', template_folder='templates')
@@ -78,3 +78,18 @@ def slo_redirect(*_args, **_kwargs):
     current_app.logger.debug(f'SingleLogOut redirect: {request.path}')
     slo_session = current_app._lookup_sso_session()
     return SLO(slo_session, current_app.context).redirect()
+
+
+@idp_views.route('/verify', methods=['POST'])
+def verify(*_args, **_kwargs):
+    current_app.logger.debug("\n\n")
+    current_app.logger.debug("--- Verify ---")
+    if current_app._lookup_sso_session():
+        # If an already logged in user presses 'back' or similar, we can't really expect to
+        # manage to log them in again (think OTPs) and just continue 'back' to the SP.
+        # However, with forceAuthn, this is exactly what happens so maybe it isn't really
+        # an error case.
+        # raise eduid_idp.error.LoginTimeout("Already logged in - can't verify credentials again",
+        #                                   logger = self.logger)
+        current_app.logger.debug("User is already logged in - verifying credentials again might not work")
+    return do_verify(current_app.context)

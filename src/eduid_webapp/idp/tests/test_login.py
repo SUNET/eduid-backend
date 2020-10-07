@@ -1,10 +1,13 @@
 import logging
 import os
-from typing import Any, Dict
+import re
+from typing import Any, Dict, Mapping
+from mock import patch
 
 from flask import make_response
 
 from eduid_common.api.app import EduIDBaseApp
+from eduid_userdb.fixtures.users import new_user_example
 from eduid_webapp.idp.settings.common import IdPConfig
 from eduid_webapp.idp.tests.test_app import IdPTests
 from saml2 import BINDING_HTTP_REDIRECT
@@ -32,6 +35,7 @@ class IdPAPITestBase(IdPTests):
         config = super().update_config(config)
         config.update({
             'signup_link': 'TEST-SIGNUP-LINK',
+            'log_level': 'DEBUG'
             })
         return config
 
@@ -42,21 +46,88 @@ class IdPAPITestBase(IdPTests):
             entityid=self.idp_entity_id, relay_state=next_url, binding=BINDING_HTTP_REDIRECT,
         )
 
-        # Find first Location tuple
-        loc = [_hdr[1] for _hdr in info['headers'] if _hdr[0] == 'Location'][0]
-        # It is a complete URL, extract the path from it
-        _idx = loc.index('/sso/redirect')
-        path = loc[_idx:]
+        path = self._extract_path_from_info(info)
 
         with self.app.test_request_context(path):
             res = self.app.dispatch_request()
 
             response = make_response()
 
+        assert response.status_code == 200
+        assert self.app.config.signup_link in res
+
+        # the RelayState is present as a hidden form parameter in the login page
+        assert next_url in res
+
+    def test_submitting_wrong_credentials(self):
+        next_url = '/back-to-test-marker'
+
+        res = self._try_login(next_url)
+
+        redirect_loc = self._extract_path_from_info(res.headers)
+        # check that we were sent back to the login screen
+        # TODO: verify that we really were not logged in
+        assert redirect_loc.startswith('/sso/redirect?SAMLRequest=')
+
+    def test_submitting_correct_credentials(self):
+        next_url = '/back-to-test-marker'
+
+        # Patch the VCCSClient so we do not need a vccs server
+        from vccs_client import VCCSClient
+
+        with patch.object(VCCSClient, 'authenticate'):
+            VCCSClient.authenticate.return_value = True
+            res = self._try_login(next_url)
+
+        redirect_loc = self._extract_path_from_info({'headers': res.headers})
+        # check that we were sent back to the login screen
+        # TODO: verify that we really were logged in
+        assert redirect_loc.startswith('/sso/redirect?key=')
+
+        with self.app.test_request_context(redirect_loc):
+            res = self.app.dispatch_request()
+
+        assert res.status_code == 200
+
+    def _try_login(self, next_url: str):
+        (session_id, info) = self.saml2_client.prepare_for_authenticate(
+            entityid=self.idp_entity_id, relay_state=next_url, binding=BINDING_HTTP_REDIRECT,
+        )
+        path = self._extract_path_from_info(info)
+        with self.app.test_request_context(path):
+            res = self.app.dispatch_request()
+
+            response = make_response()
             assert response.status_code == 200
+        form_data = self._extract_form_inputs(res)
+        del form_data['key']  # test if key is really necessary
+        form_data['username'] = self.test_user.mail_addresses.primary.email
+        form_data['password'] = 'Jenka'
+        assert 'redirect_uri' in form_data
+        with self.app.test_request_context('/verify',
+                                           method='POST',
+                                           data=form_data,
+                                           ):
+            res = self.app.dispatch_request()
+            assert res.status_code == 302
+        return res
 
-            assert self.app.config.signup_link in res
+    def _extract_form_inputs(self, res: str) -> Dict[str, Any]:
+        inputs = {}
+        for line in res.split('\n'):
+            if 'input' in line:
+                # YOLO
+                m = re.match('.*<input .* name=[\'"](.+?)[\'"].*value=[\'"](.+?)[\'"]', line)
+                if m:
+                    name, value = m.groups()
+                    inputs[name] = value.strip('\'"')
+        return inputs
 
-            # the RelayState is present as a hidden form parameter in the login page
-            assert next_url in res
+    def _extract_path_from_info(self, info: Mapping[str, Any]):
+        # Find first Location tuple
+        loc = [_hdr[1] for _hdr in info['headers'] if _hdr[0] == 'Location'][0]
+        # It is a complete URL, extract the path from it
+        _idx = loc.index('/sso/redirect')
+        path = loc[_idx:]
+        return path
 

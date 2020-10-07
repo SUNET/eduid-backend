@@ -21,8 +21,7 @@ from html import escape, unescape
 from typing import Mapping, Optional
 
 from defusedxml import ElementTree as DefusedElementTree
-from flask import render_template
-from flask_babel import gettext as _
+from flask import redirect, render_template
 from werkzeug.exceptions import BadRequest, Forbidden, InternalServerError, TooManyRequests
 from werkzeug.wrappers import Response as WerkzeugResponse
 
@@ -323,7 +322,7 @@ class SSO(Service):
         _info = self.unpack_redirect()
         self.logger.debug("Unpacked redirect :\n{!s}".format(pprint.pformat(_info)))
 
-        ticket = _get_ticket(self.context, _info, BINDING_HTTP_REDIRECT)
+        ticket = _get_ticket(_info, BINDING_HTTP_REDIRECT)
         return self._redirect_or_post(ticket)
 
     def post(self) -> bytes:
@@ -336,8 +335,7 @@ class SSO(Service):
         self.logger.debug("--- In SSO POST ---")
         _info = self.unpack_either()
 
-        ticket = _get_ticket(self.context, _info, BINDING_HTTP_POST)
-        session.sso_ticket = ticket
+        ticket = _get_ticket(_info, BINDING_HTTP_POST)
         return self._redirect_or_post(ticket)
 
     def _redirect_or_post(self, ticket: SSOLoginData) -> bytes:
@@ -433,6 +431,7 @@ class SSO(Service):
                 'alert_msg': '',
                 'authn_reference': requested_authn_context,
                 'failcount': ticket.FailCount,
+                # TODO: remove key from response, doesn't seem to be needed
                 'key': ticket.key,
                 'password': '',
                 'redirect_uri': redirect_uri,
@@ -478,27 +477,27 @@ def do_verify(context: IdPContext):
     :return: Does not return
     :raise eduid_idp.mischttp.Redirect: On successful authentication, redirect to redirect_uri.
     """
-    query = mischttp.get_post(context.logger)
+    query = mischttp.get_post(current_app.logger)
     # extract password to keep it away from as much code as possible
     password = query.pop('password', None)
     if password:
         query['password'] = '<redacted>'
-    context.logger.debug("do_verify parsed query :\n{!s}".format(pprint.pformat(query)))
+    current_app.logger.debug("do_verify parsed query :\n{!s}".format(pprint.pformat(query)))
 
     _info = {}
     for this in ['SAMLRequest', 'binding', 'RelayState']:
         if this not in query:
             raise BadRequest(f'Missing parameter {this} - please re-initiate login')
         _info[this] = unescape(query[this])
-    _ticket = _get_ticket(context, _info, None)
+    _ticket = _get_ticket(_info, None)
 
     authn_ref = _ticket.saml_req.get_requested_authn_context()
-    context.logger.debug("Authenticating with {!r}".format(authn_ref))
+    current_app.logger.debug("Authenticating with {!r}".format(authn_ref))
 
     if not password or 'username' not in query:
         lox = f'{query["redirect_uri"]}?{_ticket.query_string}'
-        context.logger.debug(f'Credentials not supplied. Redirect => {lox}')
-        raise Redirect(lox)
+        current_app.logger.debug(f'Credentials not supplied. Redirect => {lox}')
+        return redirect(lox)
 
     login_data = {
         'username': query['username'].strip(),
@@ -516,12 +515,12 @@ def do_verify(context: IdPContext):
         _ticket.FailCount += 1
         session.sso_ticket = _ticket
         lox = f'{query["redirect_uri"]}?{_ticket.query_string}'
-        context.logger.debug(f'Unknown user or wrong password. Redirect => {lox}')
-        raise Redirect(lox)
+        current_app.logger.debug(f'Unknown user or wrong password. Redirect => {lox}')
+        return redirect(lox)
 
     # Create SSO session
     user = authninfo.user
-    context.logger.debug("User {} authenticated OK".format(user))
+    current_app.logger.debug("User {} authenticated OK".format(user))
     _sso_session = SSOSession(
         user_id=user.user_id, authn_request_id=_ticket.saml_req.request_id, authn_credentials=[authninfo],
     )
@@ -530,12 +529,12 @@ def do_verify(context: IdPContext):
     # used to avoid requiring subsequent authentication for the same user during a limited
     # period of time, by storing the session-id in a browser cookie.
     _session_id = context.sso_sessions.add_session(user.eppn, _sso_session.to_dict())
-    mischttp.set_cookie('idpauthn', '/', context.logger, context.config, _session_id.decode('utf-8'))
+    mischttp.set_cookie('idpauthn', '/', current_app.logger, context.config, _session_id.decode('utf-8'))
     # knowledge of the _session_id enables impersonation, so get rid of it as soon as possible
     del _session_id
 
     # INFO-Log the request id (sha1 of SAMLrequest) and the sso_session
-    context.logger.info(
+    current_app.logger.info(
         "{!s}: login sso_session={!s}, authn={!s}, user={!s}".format(
             _ticket.key, _sso_session.public_id, authn_ref, user
         )
@@ -545,38 +544,37 @@ def do_verify(context: IdPContext):
     # the main entry point of the IdP (the 'redirect_uri'). The ticket reference `key'
     # is passed as an URL parameter instead of the SAMLRequest.
     lox = query["redirect_uri"] + '?key=' + _ticket.key
-    context.logger.debug("Redirect => %s" % lox)
-    raise Redirect(lox)
+    current_app.logger.debug("Redirect => %s" % lox)
+    return redirect(lox)
 
 
-def _update_ticket_samlrequest(ticket: SSOLoginData, binding: Optional[str], context: IdPContext) -> None:
+def _update_ticket_samlrequest(ticket: SSOLoginData, binding: Optional[str]) -> None:
     try:
         ticket.saml_req = IdP_SAMLRequest(
-            ticket.SAMLRequest, binding or ticket.binding, context.idp, context.logger, context.config['debug']
+            ticket.SAMLRequest, binding or ticket.binding, current_app.IDP, current_app.logger, current_app.config.debug
         )
     except (SAMLParseError, SAMLValidationError):
-        context.logger.exception('Failed updating SAML request in SSOLoginData (ticket)')
+        current_app.logger.exception('Failed updating SAML request in SSOLoginData (ticket)')
         raise BadRequest(
             'Invalid login request. Try emptying browser cache and re-initiate login.',
         )
 
 
 # ----------------------------------------------------------------------------
-def _get_ticket(context: IdPContext, info: Mapping[str, str], binding: Optional[str]) -> SSOLoginData:
-    logger = context.logger
+def _get_ticket(info: Mapping[str, str], binding: Optional[str]) -> SSOLoginData:
+    logger = current_app.logger
 
     ticket: Optional[SSOLoginData] = session.sso_ticket
     if ticket:
-        _update_ticket_samlrequest(ticket, binding, context)
+        _update_ticket_samlrequest(ticket, binding)
 
     if not info:
-        raise BadRequest('Bad request, please re-initiate login', logger=logger)
+        raise BadRequest('Bad request, please re-initiate login')
     _key = info.get('key')
     if not _key:
         if 'SAMLRequest' not in info:
             raise BadRequest(
-                'Missing SAMLRequest, please re-initiate login', logger=logger, extra={'info': info, 'binding': binding}
-            )
+                'Missing SAMLRequest, please re-initiate login')
         _key = gen_key(info['SAMLRequest'])
         logger.debug(f"No 'key' in info, hashed SAMLRequest into key {_key}")
 
@@ -586,8 +584,6 @@ def _get_ticket(context: IdPContext, info: Mapping[str, str], binding: Optional[
         if ticket and _key != ticket.key:
             raise BadRequest(
                 'Corrupted SAMLRequest, please re-initiate login',
-                logger=logger,
-                extra={'info': info, 'binding': binding},
             )
 
     if not ticket:
@@ -597,13 +593,13 @@ def _get_ticket(context: IdPContext, info: Mapping[str, str], binding: Optional[
         if binding is None:
             raise BadRequest('Bad request, no binding')
         assert _key  # please mypy
-        ticket = _create_ticket(context, info, binding, _key)
+        ticket = _create_ticket(info, binding, _key)
         session.sso_ticket = ticket
 
     return ticket
 
 
-def _create_ticket(context: IdPContext, info: Mapping[str, str], binding: str, key: str) -> SSOLoginData:
+def _create_ticket(info: Mapping[str, str], binding: str, key: str) -> SSOLoginData:
     """
     Create an SSOLoginData instance from a dict.
 
@@ -624,13 +620,12 @@ def _create_ticket(context: IdPContext, info: Mapping[str, str], binding: str, k
         key, info.get('SAMLRequest', ''), binding, info.get('RelayState', ''), int(info.get('FailCount', 0)),
     )
     if not ticket.SAMLRequest:
-        context.logger.error(f'IdP ticket without SAML request: {ticket}')
-        context.logger.error(f'Request info: {info}')
-        context.logger.error(f'Binding: {binding}')
-        context.logger.error(f'Key: {key}')
+        current_app.logger.error(f'IdP ticket without SAML request: {ticket}')
+        current_app.logger.error(f'Request info: {info}')
+        current_app.logger.error(f'Binding: {binding}')
+        current_app.logger.error(f'Key: {key}')
         raise InternalServerError("Can't create IdP ticket with no SAML request")
-    _update_ticket_samlrequest(ticket, binding, context)
+    _update_ticket_samlrequest(ticket, binding)
 
-    context.logger.debug("Created new login state (IdP ticket) for request {!s}".format(key))
-    session.sso_ticket = ticket
+    current_app.logger.debug("Created new login state (IdP ticket) for request {!s}".format(key))
     return ticket
