@@ -82,13 +82,13 @@ SAML_CONFIG = {
                 # url and binding to the assertion consumer service view
                 # do not change the binding or service name
                 'assertion_consumer_service': [
-                    (f'{SP_BASE}/acs',
+                    (f'{SP_BASE}/acs/',
                      BINDING_HTTP_POST),
                 ],
                 # url and binding to the single logout service view
                 # do not change the binding or service name
                 'single_logout_service': [
-                    (f'{SP_BASE}/ls',
+                    (f'{SP_BASE}/ls/',
                      BINDING_HTTP_REDIRECT),
                 ],
             },

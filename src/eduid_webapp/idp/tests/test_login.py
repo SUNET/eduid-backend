@@ -88,9 +88,8 @@ class IdPAPITestBase(IdPTests):
 
         cookies = resp.headers.get('Set-Cookie')
 
-        with self.session_cookie_anon(self.browser) as browser:
-            resp = browser.get(redirect_loc, headers={'Cookie': cookies})
-            assert resp.status_code == 200
+        resp = self.browser.get(redirect_loc, headers={'Cookie': cookies})
+        assert resp.status_code == 200
 
 
     def _try_login(self, next_url: str):
