@@ -34,14 +34,31 @@
 from __future__ import absolute_import
 
 import os
+import re
+from enum import Enum
+from typing import Any, Dict, Mapping, Optional, Tuple
 
 import pkg_resources
+from flask import Response as FlaskResponse
+from saml2 import BINDING_HTTP_REDIRECT
+
+from eduid_common.authn.utils import get_saml2_config
+from saml2.client import Saml2Client
 
 from eduid_common.api.testing import EduidAPITestCase
-
 from eduid_webapp.idp.app import init_idp_app
 
 __author__ = 'ft'
+
+
+class LoginState(Enum):
+    S0_REDIRECT = 'redirect'
+    S1_LOGIN_FORM = 'login-form'
+    S2_VERIFY = 'verify'
+    S3_REDIRECT_LOGGED_IN = 'redirect-logged-in'
+    S4_REDIRECT_TO_ACS = 'redirect-to-acs'
+    S5_LOGGED_IN = 'logged-in'
+
 
 
 class IdPTests(EduidAPITestCase):
@@ -49,6 +66,10 @@ class IdPTests(EduidAPITestCase):
 
     def setUp(self):
         super().setUp()
+        self.idp_entity_id = 'https://unittest-idp.example.edu/idp.xml'
+        self.relay_state = 'test-fest'
+        self.sp_config = get_saml2_config(self.app.config.pysaml2_config, name='SP_CONFIG')
+        self.saml2_client = Saml2Client(config=self.sp_config)
 
     def load_app(self, config):
         """
@@ -72,3 +93,75 @@ class IdPTests(EduidAPITestCase):
 
     def test_app_starts(self):
         self.assertEquals(self.app.config.app_name, "idp")
+
+    def _try_login(self, saml2_client: Optional[Saml2Client] = None, authn_context=None) -> Tuple[LoginState, FlaskResponse]:
+        """
+        Try logging in to the IdP.
+
+        :return: Information about how far we got (reached LoginState) and the last response instance.
+        """
+        _saml2_client = saml2_client if saml2_client is not None else self.saml2_client
+        (session_id, info) = _saml2_client.prepare_for_authenticate(
+            entityid=self.idp_entity_id, relay_state=self.relay_state, binding=BINDING_HTTP_REDIRECT,
+            requested_authn_context=authn_context,
+        )
+        path = self._extract_path_from_info(info)
+        with self.session_cookie_anon(self.browser) as browser:
+            resp = browser.get(path)
+            if resp.status_code != 200:
+                return LoginState.S0_REDIRECT, resp
+
+        form_data = self._extract_form_inputs(resp.data.decode('utf-8'))
+        del form_data['key']  # test if key is really necessary
+        form_data['username'] = self.test_user.mail_addresses.primary.email
+        form_data['password'] = 'Jenka'
+        if 'redirect_uri' not in form_data:
+            return LoginState.S1_LOGIN_FORM, resp
+
+        cookies = resp.headers.get('Set-Cookie')
+        if not cookies:
+            return LoginState.S1_LOGIN_FORM, resp
+
+        with self.session_cookie_anon(self.browser) as browser:
+            resp = browser.post('/verify', data=form_data, headers={'Cookie': cookies})
+            if resp.status_code != 302:
+                return LoginState.S2_VERIFY, resp
+
+        redirect_loc = self._extract_path_from_response(resp)
+        # check that we were sent back to the login screen
+        # TODO: verify that we really were logged in
+        if not redirect_loc.startswith('/sso/redirect?key='):
+            return LoginState.S2_VERIFY, resp
+
+        cookies = resp.headers.get('Set-Cookie')
+        if not cookies:
+            return LoginState.S2_VERIFY, resp
+
+        resp = self.browser.get(redirect_loc, headers={'Cookie': cookies})
+        if resp.status_code != 200:
+            return LoginState.S3_REDIRECT_LOGGED_IN, resp
+
+        return LoginState.S5_LOGGED_IN, resp
+
+    def _extract_form_inputs(self, res: str) -> Dict[str, Any]:
+        inputs = {}
+        for line in res.split('\n'):
+            if 'input' in line:
+                # YOLO
+                m = re.match('.*<input .* name=[\'"](.+?)[\'"].*value=[\'"](.+?)[\'"]', line)
+                if m:
+                    name, value = m.groups()
+                    inputs[name] = value.strip('\'"')
+        return inputs
+
+    def _extract_path_from_response(self, response: FlaskResponse) -> str:
+        return self._extract_path_from_info({'headers': response.headers})
+
+    def _extract_path_from_info(self, info: Mapping[str, Any]) -> str:
+        _location_headers = [_hdr for _hdr in info['headers'] if _hdr[0] == 'Location']
+        # get first Location URL
+        loc = _location_headers[0][1]
+        # It is a complete URL, extract the path from it (8 is to skip over slashes in https://)
+        _idx = loc[8:].index('/')
+        path = loc[8 + _idx :]
+        return path
