@@ -42,7 +42,7 @@ from saml2.server import Server as Saml2Server
 from eduid_common.authn.idp_saml import IdP_SAMLRequest
 
 
-def b64encode(source):
+def b64encode(source: str) -> str:
     # thank you https://stackoverflow.com/a/44688988
     if six.PY3:
         source = source.encode('utf-8')

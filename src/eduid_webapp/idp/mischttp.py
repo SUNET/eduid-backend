@@ -25,6 +25,7 @@ from werkzeug.exceptions import BadRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid_common.api.sanitation import SanitationProblem, Sanitizer
+from eduid_webapp.idp.app import current_idp_app as current_app
 
 
 def create_html_response(binding: str, http_args: dict, logger: Logger) -> WerkzeugResponse:
@@ -151,7 +152,7 @@ def read_cookie(name: str, logger: Logger) -> Optional[str]:
     return cookie
 
 
-def delete_cookie(name: str, response: FlaskResponse, current_app: 'IdPApp') -> FlaskResponse:
+def delete_cookie(name: str, response: FlaskResponse) -> FlaskResponse:
     """
     Ask browser to delete a cookie.
 
@@ -160,10 +161,11 @@ def delete_cookie(name: str, response: FlaskResponse, current_app: 'IdPApp') -> 
     :param config: IdPConfig instance
     """
     current_app.logger.debug("Delete cookie: {!s}".format(name))
-    return set_cookie(name, '/', '', response, current_app)
+    response.delete_cookie(name, path='/', )
+    return set_cookie(name, '/', '', response)
 
 
-def set_cookie(name: str, path: str, value: str, response: FlaskResponse, current_app: 'IdPApp') -> FlaskResponse:
+def set_cookie(name: str, path: str, value: str, response: FlaskResponse) -> FlaskResponse:
     """
     Ask browser to store a cookie.
 

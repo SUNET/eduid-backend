@@ -48,7 +48,7 @@ from eduid_webapp.idp.app import current_idp_app as current_app
 from eduid_webapp.idp.context import IdPContext
 from eduid_webapp.idp.idp_actions import check_for_pending_actions
 from eduid_webapp.idp.service import Service
-from eduid_webapp.idp.util import get_requested_authn_context
+from eduid_webapp.idp.util import b64encode, get_requested_authn_context
 
 
 class MustAuthenticate(Exception):
@@ -544,7 +544,9 @@ def do_verify(context: IdPContext):
     lox = query["redirect_uri"] + '?key=' + _ticket.key
     current_app.logger.debug("Redirect => %s" % lox)
     resp = redirect(lox)
-    return mischttp.set_cookie('idpauthn', '/', _session_id, resp, current_app)
+    # By base64-encoding this string, we should remain interoperable with the old CherryPy based IdP. Fingers crossed.
+    b64_session_id = b64encode(_session_id)
+    return mischttp.set_cookie('idpauthn', '/', b64_session_id, resp)
 
 
 def _update_ticket_samlrequest(ticket: SSOLoginData, binding: Optional[str]) -> None:

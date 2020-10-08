@@ -13,19 +13,20 @@ Code handling Single Log Out requests.
 """
 import pprint
 
-import saml2.request
-import saml2.samlp
-from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT, BINDING_SOAP
-from saml2.s_utils import error_status_factory, exception_trace
 from werkzeug.exceptions import BadRequest, InternalServerError
 
+import saml2.request
+import saml2.samlp
 from eduid_common.authn.idp_saml import gen_key
 from eduid_common.session import sso_session
 from eduid_common.session.sso_cache import SSOSessionId
-
 from eduid_webapp.idp import mischttp
+from eduid_webapp.idp.app import current_idp_app as current_app
 from eduid_webapp.idp.service import Service
 from eduid_webapp.idp.util import maybe_xml_to_string
+from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT, BINDING_SOAP
+from saml2.s_utils import error_status_factory, exception_trace
+
 
 # -----------------------------------------------------------------------------
 # === Single log out ===
@@ -111,7 +112,7 @@ class SLO(Service):
         self.logger.debug("Logout request sender : {!s}".format(req_info.sender()))
 
         _name_id = req_info.message.name_id
-        _session_id = mischttp.get_idpauthn_cookie(self.logger)
+        _session_id =current_app.get_sso_session_id()
         _username = None
         if _session_id:
             # If the binding is REDIRECT, we can get the SSO session to log out from the
@@ -250,7 +251,11 @@ class SLO(Service):
         # self.logger.debug("Apply bindings result :\n{!s}\n\n".format(pprint.pformat(ht_args)))
 
         # Delete the SSO session cookie in the browser
-        mischttp.delete_cookie('idpauthn', self.logger, self.config)
+        response.delete_cookie(
+            key='idpauthn',
+            path=current_app.config.session_cookie_path,
+            domain=current_app.config.session_cookie_domain
+        )
 
         # INFO-Log the SAML request ID, result of logout and destination
         self.logger.info("{!s}: logout status={!r}, dst={!s}".format(req_key, status_code, destination))

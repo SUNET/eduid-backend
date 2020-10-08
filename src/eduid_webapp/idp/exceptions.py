@@ -1,7 +1,6 @@
 from flask import render_template
 from werkzeug.exceptions import HTTPException
 
-from eduid_webapp.idp import mischttp
 from eduid_webapp.idp.app import current_idp_app as current_app
 
 
@@ -29,7 +28,11 @@ def init_exception_handlers(app):
 
         if 'USER_TERMINATED' in error.description:
             # Delete the SSO session cookie in the browser
-            mischttp.delete_cookie('idpauthn', current_app.logger, current_app.config)
+            response.delete_cookie(
+                key='idpauthn',
+                path=current_app.config.session_cookie_path,
+                domain=current_app.config.session_cookie_domain
+            )
 
         return response
 

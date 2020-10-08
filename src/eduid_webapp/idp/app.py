@@ -32,7 +32,7 @@
 #
 import logging
 import pprint
-import threading
+from base64 import b64decode
 from typing import Any, Dict, Optional, cast
 
 from flask import current_app
@@ -42,12 +42,9 @@ from eduid_common.api.app import EduIDBaseApp
 from eduid_common.authn import idp_authn
 from eduid_common.authn.utils import init_pysaml2
 from eduid_common.session import sso_cache, sso_session
-from eduid_common.session.sso_cache import SSOSessionCache
 from eduid_common.session.sso_session import SSOSession
 from eduid_userdb.actions import ActionDB
 from eduid_userdb.idp import IdPUserDb
-
-from eduid_webapp.idp import mischttp
 from eduid_webapp.idp.context import IdPContext
 from eduid_webapp.idp.settings.common import IdPConfig
 
@@ -76,12 +73,11 @@ class IdPApp(EduIDBaseApp):
         logger.debug(f"Loading PySAML2 server using cfgfile {self.config.pysaml2_config}")
         self.IDP = init_pysaml2(self.config.pysaml2_config)
 
-        _session_ttl = self.config.sso_session_lifetime * 60
-        _SSOSessions: SSOSessionCache
         if self.config.sso_session_mongo_uri:
-            _SSOSessions = sso_cache.SSOSessionCacheMDB(self.config.sso_session_mongo_uri, self.logger, _session_ttl)
-        else:
-            _SSOSessions = sso_cache.SSOSessionCacheMem(self.logger, _session_ttl, threading.Lock())
+            logger.info('Config parameter sso_session_mongo_uri ignored. Used mongo_uri instead.')
+
+        _session_ttl = self.config.sso_session_lifetime * 60
+        self.sso_session_db = sso_cache.SSOSessionCacheMDB(self.config.mongo_uri, self.logger, _session_ttl)
 
         _login_state_ttl = (self.config.login_state_ttl + 1) * 60
         self.authn_info_db = None
@@ -108,17 +104,16 @@ class IdPApp(EduIDBaseApp):
             config=self.config,
             idp=self.IDP,
             logger=self.logger,
-            sso_sessions=_SSOSessions,
+            sso_sessions=self.sso_session_db,
             actions_db=_actions_db,
             authn=self.authn,
         )
 
-    def _lookup_sso_session(self):
+    def _lookup_sso_session(self) -> Optional[SSOSession]:
         """
         Locate any existing SSO session for this request.
 
         :returns: SSO session if found (and valid)
-        :rtype: SSOSession | None
         """
         session = self._lookup_sso_session2()
         if session:
@@ -145,30 +140,44 @@ class IdPApp(EduIDBaseApp):
         :return: Data about currently logged in user
         """
         _data = None
-        _session_id = mischttp.read_cookie('idpauthn', logger)
+
+        _session_id = self.get_sso_session_id()
         if _session_id:
             _data = self.context.sso_sessions.get_session(sso_cache.SSOSessionId(_session_id))
-            self.logger.debug(f'Looked up SSO session using idpauthn cookie {_session_id}:\n{_data}')
-        else:
-            query = mischttp.parse_query_string(self.logger)
-            if query:
-                if 'id' in query:
-                    self.logger.warning('Found "id" in query string - this was thought to be obsolete')
-                self.logger.debug("Parsed query string :\n{!s}".format(pprint.pformat(query)))
-                try:
-                    _data = self.context.sso_sessions.get_session(query['id'])
-                    self.logger.debug(
-                        "Looked up SSO session using query 'id' parameter :\n{!s}".format(pprint.pformat(_data))
-                    )
-                except KeyError:
-                    # no 'id', or not found in cache
-                    pass
+            self.logger.debug(f'Looked up SSO session using session ID {_session_id}:\n{_data}')
+
         if not _data:
             self.logger.debug("SSO session not found using 'id' parameter or 'idpauthn' cookie")
             return None
         _sso = sso_session.from_dict(_data)
         self.logger.debug("Re-created SSO session {!r}".format(_sso))
         return _sso
+
+    def get_sso_session_id(self) -> Optional[str]:
+        """
+        Get the SSO session id from the idpauthn cookie, with fallback to hopefully unused 'id' query string parameter.
+
+        :return: SSO session id
+        """
+        # local import to avoid import-loop
+        from eduid_webapp.idp.mischttp import read_cookie, parse_query_string
+
+        _session_id = read_cookie('idpauthn', logger)
+        if _session_id:
+            # The old IdP base64 encoded the session_id, try to  remain interoperable. Fingers crossed.
+            _decoded_session_id = b64decode(_session_id).decode('utf-8')
+            self.logger.debug(f'Got SSO session ID from idpauthn cookie {_session_id} -> {_decoded_session_id}')
+            return _decoded_session_id
+
+        query = parse_query_string(self.logger)
+        if query and 'id' in query:
+            self.logger.warning('Found "id" in query string - this was thought to be obsolete')
+            self.logger.debug("Parsed query string :\n{!s}".format(pprint.pformat(query)))
+            _session_id = query['id']
+            self.logger.debug(f'Got SSO session ID from query string: {_session_id}')
+            return _session_id
+
+        return None
 
 
 current_idp_app = cast(IdPApp, current_app)

@@ -3,10 +3,12 @@ import os
 import re
 from enum import Enum
 from typing import Any, Dict, Mapping, Optional, Tuple
-
+from saml2.authn_context import requested_authn_context
 from flask import Response as FlaskResponse
 from flask import make_response
 from mock import patch
+from saml2.samlp import RequestedAuthnContext
+
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 
@@ -95,10 +97,10 @@ class IdPAPITestBase(IdPTests):
             VCCSClient.authenticate.return_value = True
             reached_state, resp = self._try_login()
 
-        assert reached_state == LoginState.S5_LOGGED_IN
-        cookies = resp.headers['Set-Cookie']
-        # Ensure the idpauthn cookie is removed for terminated users
-        assert 'idpauthn' in cookies
+        assert reached_state == LoginState.S3_REDIRECT_LOGGED_IN
+        cookie = resp.headers['Set-Cookie']
+        assert 'idpauthn=;' in cookie
+        assert 'expires=Thu, 01-Jan-1970 00:00:00 GMT' in cookie
 
     def test_with_unknown_sp(self):
         sp_config = get_saml2_config(self.app.config.pysaml2_config, name='UNKNOWN_SP_CONFIG')
@@ -132,7 +134,18 @@ class IdPAPITestBase(IdPTests):
         # Ensure the pre-existing idpauthn cookie wasn't touched
         assert 'idpauthn' not in cookies
 
-    def _try_login(self, saml2_client: Optional[Saml2Client] = None) -> Tuple[LoginState, FlaskResponse]:
+    def test_with_authncontext(self):
+        # Patch the VCCSClient so we do not need a vccs server
+        with patch.object(VCCSClient, 'authenticate'):
+            VCCSClient.authenticate.return_value = True
+            # request MFA, but the test user does not have any MFA credentials
+            req_authn_context = requested_authn_context('https://refeds.org/profile/mfa', comparison='exact')
+            reached_state, response = self._try_login(authn_context=req_authn_context)
+
+        assert reached_state == LoginState.S3_REDIRECT_LOGGED_IN
+        assert b'Access to the requested service could not be granted.' in response.data
+
+    def _try_login(self, saml2_client: Optional[Saml2Client] = None, authn_context=None) -> Tuple[LoginState, FlaskResponse]:
         """
         Try logging in to the IdP.
 
@@ -141,6 +154,7 @@ class IdPAPITestBase(IdPTests):
         _saml2_client = saml2_client if saml2_client is not None else self.saml2_client
         (session_id, info) = _saml2_client.prepare_for_authenticate(
             entityid=self.idp_entity_id, relay_state=self.relay_state, binding=BINDING_HTTP_REDIRECT,
+            requested_authn_context=authn_context,
         )
         path = self._extract_path_from_info(info)
         with self.session_cookie_anon(self.browser) as browser:
