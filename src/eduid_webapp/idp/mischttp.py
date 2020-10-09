@@ -43,14 +43,18 @@ def create_html_response(binding: str, http_args: Dict[str, str], logger: Logger
     if binding == BINDING_HTTP_REDIRECT:
         # XXX This URL extraction code is untested in practice, but it appears
         # the should be HTTP headers in http_args['headers']
-        urls = [v for (k, v) in http_args['headers'] if k == 'Location']
-        logger.debug('Binding {!r} redirecting to {!r}'.format(binding, urls))
+        _urls = [v for (k, v) in http_args['headers'] if k == 'Location']
+        location = None
+        if _urls:
+            location = _urls[0]
+        logger.debug(f'Binding {binding} redirecting to {location!r}')
         if 'url' in http_args:
-            del http_args['headers']  # less debug log below
-            logger.debug('XXX there is also a "url" in http_args :\n{!s}'.format(pprint.pformat(http_args)))
-            if not urls:
-                urls = [http_args.get('url')]
-        return redirect(urls)
+            _new_url = http_args.pop('url')  # less debug log below
+            if location and not location.startswith(_new_url):
+                logger.warning(f'There is another "url" in http_args : {_new_url}')
+            if not location:
+                location = _new_url
+        return redirect(location)
 
     # Parse the parts of http_args we know how to parse, and then warn about any remains.
     message = http_args.pop('data')

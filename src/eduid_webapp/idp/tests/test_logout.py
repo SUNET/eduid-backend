@@ -1,13 +1,18 @@
 import logging
 import os
+import urllib
+import zlib
+from base64 import b64decode, b64encode, urlsafe_b64decode
 from enum import Enum
 from typing import Any, Dict, Tuple
+from urllib.parse import unquote
 
 from flask import Response as FlaskResponse
 from mock import patch
-from saml2 import BINDING_SOAP
+from saml2 import BINDING_HTTP_REDIRECT, BINDING_SOAP
 from saml2.mdstore import destinations
 from saml2.response import AuthnResponse, LogoutResponse
+from saml2.s_utils import decode_base64_and_inflate
 
 from eduid_common.api.app import EduIDBaseApp
 from vccs_client import VCCSClient
@@ -48,8 +53,33 @@ class IdPTestLogout(IdPTests):
             logout_response = self.parse_saml_logout_response(response, BINDING_SOAP)
             assert logout_response.response.status.status_code.value == 'urn:oasis:names:tc:SAML:2.0:status:Success'
 
+    def test_basic_logout_redirect(self):
+        with self.browser.session_transaction() as sess:
+            # Patch the VCCSClient so we do not need a vccs server
+            with patch.object(VCCSClient, 'authenticate'):
+                VCCSClient.authenticate.return_value = True
+                reached_state, response = self._try_login()
+                assert reached_state == LoginState.S5_LOGGED_IN
+
+            authn_response = self.parse_saml_authn_response(response)
+
+            reached_state, response = self._try_logout(authn_response, BINDING_HTTP_REDIRECT)
+            assert reached_state == LogoutState.S1_LOGGED_OUT
+
+            logout_response = self.parse_saml_logout_response(response, BINDING_HTTP_REDIRECT)
+            assert logout_response.response.status.status_code.value == 'urn:oasis:names:tc:SAML:2.0:status:Success'
+
     def parse_saml_logout_response(self, response: FlaskResponse, binding: str) -> LogoutResponse:
-        xmlstr = response.data
+        if binding == BINDING_SOAP:
+            xmlstr = response.data
+        elif binding == BINDING_HTTP_REDIRECT:
+            path = self._extract_path_from_response(response)
+            _start = path.index('SAMLResponse=')
+            _end = path.index('&RelayState=')
+            saml_response = unquote(path[_start + len('SAMLResponse=') : _end])
+            xmlstr = saml_response
+        else:
+            raise RuntimeError(f'Unknown binding {binding}')
         return self.saml2_client.parse_logout_request_response(xmlstr, binding)
 
     def _try_logout(self, authn_response: AuthnResponse, binding: str) -> Tuple[LogoutState, FlaskResponse]:
@@ -82,6 +112,11 @@ class IdPTestLogout(IdPTests):
         if http_info['method'] == 'POST':
             resp = self.browser.post(path, headers=headers, data=http_info['data'])
             if resp.status_code != 200:
+                return LogoutState.S0_REQUEST_FAILED, resp
+        elif http_info['method'] == 'GET':
+            path = self._extract_path_from_info(http_info)
+            resp = self.browser.get(path)
+            if resp.status_code != 302:
                 return LogoutState.S0_REQUEST_FAILED, resp
         else:
             raise RuntimeError('Unknown HTTP method')
