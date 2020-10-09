@@ -31,7 +31,7 @@
 from collections import Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Dict
+from typing import Dict, Optional
 
 from bson import ObjectId
 
@@ -62,6 +62,8 @@ class QueueItem:
     payload: Payload
     item_id: ObjectId = field(default_factory=ObjectId)
     created_ts: datetime = field(default_factory=datetime.utcnow)
+    processed_by: Optional[str] = None
+    processed_ts: Optional[datetime] = None
 
     def to_dict(self) -> Dict:
         res = asdict(self)
@@ -73,6 +75,8 @@ class QueueItem:
     def from_dict(cls, data: Mapping):
         data = dict(data)
         item_id = data.pop('_id')
+        processed_by = data.pop('processed_by', None)
+        processed_ts = data.pop('processed_ts', None)
         sender_info = SenderInfo.from_dict(data['sender_info'])
         payload = RawPayload.from_dict(data['payload'])
         return cls(
@@ -83,4 +87,6 @@ class QueueItem:
             discard_at=data['discard_at'],
             sender_info=sender_info,
             payload=payload,
+            processed_by=processed_by,
+            processed_ts=processed_ts,
         )

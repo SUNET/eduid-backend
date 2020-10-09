@@ -34,8 +34,8 @@ from typing import Dict, Mapping, Optional, Type, Union
 
 from bson import ObjectId
 
-from eduid_userdb.db import BaseDB
-from eduid_userdb.exceptions import MultipleDocumentsReturned
+from eduid_userdb.db import BaseDB, MongoDB
+from eduid_userdb.exceptions import MultipleDocumentsReturned, PayloadNotRegistered
 from eduid_userdb.q import Payload
 from eduid_userdb.q.payload import RawPayload
 from eduid_userdb.q.queue_item import QueueItem
@@ -48,7 +48,6 @@ __author__ = 'lundberg'
 class QueueDB(BaseDB):
     def __init__(self, db_uri: str, collection: str, db_name: str = 'eduid_queue'):
         super().__init__(db_uri, db_name, collection=collection)
-
         self.handlers: Dict[str, Type[Payload]] = dict()
 
         # Remove messages older than discard_at datetime
@@ -67,7 +66,7 @@ class QueueDB(BaseDB):
         try:
             payload_cls = self.handlers[item.payload_type]
         except KeyError:
-            raise KeyError(f'Payload type \'{item.payload_type}\' not registered with {self}')
+            raise PayloadNotRegistered(f'Payload type \'{item.payload_type}\' not registered with {self}')
         return payload_cls.from_dict(item.payload.to_dict())
 
     def get_item_by_id(

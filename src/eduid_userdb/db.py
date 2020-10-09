@@ -20,7 +20,6 @@ class MongoDB(object):
     """Simple wrapper to get pymongo real objects from the settings uri"""
 
     def __init__(self, db_uri, db_name=None, connection_factory=None, **kwargs):
-
         if db_uri is None:
             raise ValueError('db_uri not supplied')
 
@@ -44,6 +43,10 @@ class MongoDB(object):
                 f'{__name__} initialized with connection_factory {connection_factory} use pymongo.MongoClient instead.',
                 DeprecationWarning,
             )
+        elif connection_factory.__class__.__name__ == 'AsyncIOMotorClient':
+            from motor import motor_asyncio
+
+            connection_factory = motor_asyncio.AsyncIOMotorClient
 
         if 'replicaSet' in _options and _options['replicaSet'] is not None:
             kwargs['replicaSet'] = _options['replicaSet']
