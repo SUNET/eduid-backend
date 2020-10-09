@@ -32,10 +32,7 @@
 #
 
 from flask import Blueprint, redirect, request
-from werkzeug.exceptions import Forbidden
 from werkzeug.wrappers import Response as WerkzeugResponse
-
-from eduid_common.api.decorators import require_user
 
 from eduid_webapp.idp.app import current_idp_app as current_app
 from eduid_webapp.idp.login import SSO, do_verify
@@ -54,35 +51,47 @@ def index() -> WerkzeugResponse:
 
 @idp_views.route('/sso/post', methods=['POST'])
 def sso_post(*_args, **_kwargs):
-    current_app.logger.debug(f'SingleSignOn post: {request.path}')
+    current_app.logger.debug('\n\n')
+    current_app.logger.debug(f'--- SingleSignOn POST: {request.path} ---')
     sso_session = current_app._lookup_sso_session()
     return SSO(sso_session, current_app.context).post()
 
 
 @idp_views.route('/sso/redirect', methods=['GET'])
 def sso_redirect(*_args, **_kwargs):
-    current_app.logger.debug(f'SingleSignOn redirect: {request.path}')
+    current_app.logger.debug('\n\n')
+    current_app.logger.debug(f'--- SingleSignOn REDIRECT: {request.path} ---')
     sso_session = current_app._lookup_sso_session()
     return SSO(sso_session, current_app.context).redirect()
 
 
 @idp_views.route('/slo/post', methods=['POST'])
 def slo_post(*_args, **_kwargs):
-    current_app.logger.debug(f'SingleLogOut post: {request.path}')
+    current_app.logger.debug('\n\n')
+    current_app.logger.debug(f'--- SingleLogOut POST: {request.path} ---')
     sso_session = current_app._lookup_sso_session()
     return SLO(sso_session, current_app.context).post()
 
 
+@idp_views.route('/slo/soap', methods=['POST'])
+def slo_soap(*_args, **_kwargs):
+    current_app.logger.debug('\n\n')
+    current_app.logger.debug(f'--- SingleLogOut SOAP: {request.path} ---')
+    sso_session = current_app._lookup_sso_session()
+    return SLO(sso_session, current_app.context).soap()
+
+
 @idp_views.route('/slo/redirect', methods=['GET'])
 def slo_redirect(*_args, **_kwargs):
-    current_app.logger.debug(f'SingleLogOut redirect: {request.path}')
+    current_app.logger.debug('\n\n')
+    current_app.logger.debug(f'--- SingleLogOut REDIRECT: {request.path} ---')
     slo_session = current_app._lookup_sso_session()
     return SLO(slo_session, current_app.context).redirect()
 
 
 @idp_views.route('/verify', methods=['POST'])
 def verify(*_args, **_kwargs):
-    current_app.logger.debug("\n\n")
+    current_app.logger.debug('\n\n')
     current_app.logger.debug("--- Verify ---")
     if current_app._lookup_sso_session():
         # If an already logged in user presses 'back' or similar, we can't really expect to

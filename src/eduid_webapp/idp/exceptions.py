@@ -31,7 +31,7 @@ def init_exception_handlers(app):
             response.delete_cookie(
                 key='idpauthn',
                 path=current_app.config.session_cookie_path,
-                domain=current_app.config.session_cookie_domain
+                domain=current_app.config.session_cookie_domain,
             )
 
         return response

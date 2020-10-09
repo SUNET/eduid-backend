@@ -45,6 +45,7 @@ from eduid_common.session import sso_cache, sso_session
 from eduid_common.session.sso_session import SSOSession
 from eduid_userdb.actions import ActionDB
 from eduid_userdb.idp import IdPUserDb
+
 from eduid_webapp.idp.context import IdPContext
 from eduid_webapp.idp.settings.common import IdPConfig
 

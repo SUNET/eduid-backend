@@ -40,12 +40,14 @@ from typing import Any, Dict, Mapping, Optional, Tuple
 
 import pkg_resources
 from flask import Response as FlaskResponse
-from saml2 import BINDING_HTTP_REDIRECT
-
-from eduid_common.authn.utils import get_saml2_config
+from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
+from saml2.response import AuthnResponse
 
 from eduid_common.api.testing import EduidAPITestCase
+from eduid_common.authn.cache import IdentityCache, OutstandingQueriesCache, StateCache
+from eduid_common.authn.utils import get_saml2_config
+
 from eduid_webapp.idp.app import init_idp_app
 
 __author__ = 'ft'
@@ -60,7 +62,6 @@ class LoginState(Enum):
     S5_LOGGED_IN = 'logged-in'
 
 
-
 class IdPTests(EduidAPITestCase):
     """Base TestCase for those tests that need a full environment setup"""
 
@@ -69,7 +70,12 @@ class IdPTests(EduidAPITestCase):
         self.idp_entity_id = 'https://unittest-idp.example.edu/idp.xml'
         self.relay_state = 'test-fest'
         self.sp_config = get_saml2_config(self.app.config.pysaml2_config, name='SP_CONFIG')
-        self.saml2_client = Saml2Client(config=self.sp_config)
+        # pysaml2 likes to keep state about ongoing logins, data from login to when you logout etc.
+        self._pysaml2_caches = dict()
+        self.pysaml2_state = StateCache(self._pysaml2_caches)  # _saml2_state in _pysaml2_caches
+        self.pysaml2_identity = IdentityCache(self._pysaml2_caches)  # _saml2_identities in _pysaml2_caches
+        self.pysaml2_oq = OutstandingQueriesCache(self._pysaml2_caches)  # _saml2_outstanding_queries in _pysaml2_caches
+        self.saml2_client = Saml2Client(config=self.sp_config, identity_cache=self.pysaml2_identity)
 
     def load_app(self, config):
         """
@@ -94,17 +100,24 @@ class IdPTests(EduidAPITestCase):
     def test_app_starts(self):
         self.assertEquals(self.app.config.app_name, "idp")
 
-    def _try_login(self, saml2_client: Optional[Saml2Client] = None, authn_context=None) -> Tuple[LoginState, FlaskResponse]:
+    def _try_login(
+        self, saml2_client: Optional[Saml2Client] = None, authn_context=None
+    ) -> Tuple[LoginState, FlaskResponse]:
         """
         Try logging in to the IdP.
 
         :return: Information about how far we got (reached LoginState) and the last response instance.
         """
         _saml2_client = saml2_client if saml2_client is not None else self.saml2_client
+
         (session_id, info) = _saml2_client.prepare_for_authenticate(
-            entityid=self.idp_entity_id, relay_state=self.relay_state, binding=BINDING_HTTP_REDIRECT,
+            entityid=self.idp_entity_id,
+            relay_state=self.relay_state,
+            binding=BINDING_HTTP_REDIRECT,
             requested_authn_context=authn_context,
         )
+        self.pysaml2_oq.set(session_id, self.relay_state)
+
         path = self._extract_path_from_info(info)
         with self.session_cookie_anon(self.browser) as browser:
             resp = browser.get(path)
@@ -161,7 +174,16 @@ class IdPTests(EduidAPITestCase):
         _location_headers = [_hdr for _hdr in info['headers'] if _hdr[0] == 'Location']
         # get first Location URL
         loc = _location_headers[0][1]
+        return self._extract_path_from_url(loc)
+
+    def _extract_path_from_url(self, url):
         # It is a complete URL, extract the path from it (8 is to skip over slashes in https://)
-        _idx = loc[8:].index('/')
-        path = loc[8 + _idx :]
+        _idx = url[8:].index('/')
+        path = url[8 + _idx :]
         return path
+
+    def parse_saml_authn_response(self, response: FlaskResponse) -> AuthnResponse:
+        form = self._extract_form_inputs(response.data.decode('utf-8'))
+        xmlstr = bytes(form['SAMLResponse'], 'ascii')
+        outstanding_queries = self.pysaml2_oq.outstanding_queries()
+        return self.saml2_client.parse_authn_request_response(xmlstr, BINDING_HTTP_POST, outstanding_queries)

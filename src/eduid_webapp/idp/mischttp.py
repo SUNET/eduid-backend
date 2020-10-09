@@ -19,16 +19,17 @@ from logging import Logger
 from typing import Any, Dict, Mapping, Optional
 
 from flask import Response as FlaskResponse
-from flask import redirect, request
+from flask import make_response, redirect, request
 from saml2 import BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid_common.api.sanitation import SanitationProblem, Sanitizer
+
 from eduid_webapp.idp.app import current_idp_app as current_app
 
 
-def create_html_response(binding: str, http_args: dict, logger: Logger) -> WerkzeugResponse:
+def create_html_response(binding: str, http_args: Dict[str, str], logger: Logger) -> WerkzeugResponse:
     """
     Create a HTML response based on parameters compiled by pysaml2 functions
     like apply_binding().
@@ -66,7 +67,7 @@ def create_html_response(binding: str, http_args: dict, logger: Logger) -> Werkz
     if not isinstance(message, bytes):
         message = bytes(message, 'utf-8')
 
-    return message
+    return make_response(message)
 
 
 def geturl(query=True, path=True):
@@ -123,15 +124,6 @@ def get_request_header() -> Mapping[str, Any]:
     return request.headers
 
 
-def get_request_body() -> str:
-    """
-    Return the request body from a HTML POST request.
-
-    :return: raw body
-    """
-    return request.data.decode('utf-8')
-
-
 # ----------------------------------------------------------------------------
 # Cookie handling
 # ----------------------------------------------------------------------------
@@ -150,19 +142,6 @@ def read_cookie(name: str, logger: Logger) -> Optional[str]:
         logger.debug(f'No {name} cookie')
         return None
     return cookie
-
-
-def delete_cookie(name: str, response: FlaskResponse) -> FlaskResponse:
-    """
-    Ask browser to delete a cookie.
-
-    :param name: cookie name as string
-    :param logger: logging instance
-    :param config: IdPConfig instance
-    """
-    current_app.logger.debug("Delete cookie: {!s}".format(name))
-    response.delete_cookie(name, path='/', )
-    return set_cookie(name, '/', '', response)
 
 
 def set_cookie(name: str, path: str, value: str, response: FlaskResponse) -> FlaskResponse:

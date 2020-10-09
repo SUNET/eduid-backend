@@ -3,15 +3,16 @@ import os
 from typing import Any, Dict
 
 from mock import patch
-from vccs_client import VCCSClient
-
-from eduid_common.api.app import EduIDBaseApp
-from eduid_common.authn.utils import get_saml2_config
-from eduid_webapp.idp.settings.common import IdPConfig
-from eduid_webapp.idp.tests.test_app import IdPTests, LoginState
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.authn_context import requested_authn_context
 from saml2.client import Saml2Client
+
+from eduid_common.api.app import EduIDBaseApp
+from eduid_common.authn.utils import get_saml2_config
+from vccs_client import VCCSClient
+
+from eduid_webapp.idp.settings.common import IdPConfig
+from eduid_webapp.idp.tests.test_app import IdPTests, LoginState
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +25,7 @@ class IdPTestApp(EduIDBaseApp):
         super().__init__(name, **kwargs)
 
 
-class IdPAPITestBase(IdPTests):
-
+class IdPTestLogin(IdPTests):
     def update_config(self, config):
         config = super().update_config(config)
         config.update({'signup_link': 'TEST-SIGNUP-LINK', 'log_level': 'DEBUG'})
@@ -65,6 +65,13 @@ class IdPAPITestBase(IdPTests):
             reached_state, resp = self._try_login()
 
         assert reached_state == LoginState.S5_LOGGED_IN
+
+        authn_response = self.parse_saml_authn_response(resp)
+        session_info = authn_response.session_info()
+        attributes = session_info['ava']
+
+        assert 'eduPersonPrincipalName' in attributes
+        assert attributes['eduPersonPrincipalName'] == ['hubba-bubba']
 
     def test_terminated_user(self):
         user = self.amdb.get_user_by_eppn(self.test_user.eppn)
