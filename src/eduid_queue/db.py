@@ -9,11 +9,10 @@ from typing import Any, Dict, List, Mapping, Optional, Union
 
 from bson import ObjectId
 from eduid_userdb import MongoDB
-from eduid_userdb.exceptions import MultipleDocumentsReturned, PayloadNotRegistered
+from eduid_userdb.exceptions import PayloadNotRegistered
 from eduid_userdb.q import QueueItem
 from eduid_userdb.q.db import QueueDB
 from motor import motor_asyncio
-from motor.motor_asyncio import AsyncIOMotorCursor
 from pymongo.results import UpdateResult
 
 __author__ = 'lundberg'
@@ -169,7 +168,7 @@ class AsyncQueueDB(QueueDB):
         update_result: UpdateResult = await self.collection.replace_one(spec, doc)
         logger.debug(f'result: {update_result.raw_result}')
         if not update_result.acknowledged or update_result.modified_count != 1:
-            logger.warning(f'Grabbing of item failed: {update_result.raw_result}')
+            logger.debug(f'Grabbing of item failed: {update_result.raw_result}')
             return None
 
         logger.debug(f'Grabbed item: {item}')
@@ -178,7 +177,7 @@ class AsyncQueueDB(QueueDB):
     async def find_items(
         self, processed: bool, min_age_in_seconds: Optional[int] = None, expired: Optional[bool] = None
     ) -> List:
-        spec = {}
+        spec: Dict[str, Any] = {}
         if not processed:
             spec['processed_by'] = None
             spec['processed_ts'] = None

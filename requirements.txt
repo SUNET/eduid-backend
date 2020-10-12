@@ -1,3 +1,4 @@
 motor==2.*
 aiosmtplib==1.1.*
 eduid-userdb==0.6.*
+eduid-common[worker]==0.11.*
