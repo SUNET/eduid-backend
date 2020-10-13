@@ -5,14 +5,16 @@ import functools
 import logging
 import signal
 from abc import ABC
-from asyncio import CancelledError
+from asyncio import CancelledError, Task
+from dataclasses import replace
 from datetime import datetime
-from typing import List, Type, Optional
+from typing import List, Optional, Type
 
-from eduid_common.config.workers import QueueWorkerConfig
-from eduid_userdb.q import Payload, QueueItem
 from motor.motor_asyncio import AsyncIOMotorClient
 
+from eduid_userdb.q import Payload, QueueItem
+
+from eduid_queue.config import QueueWorkerConfig
 from eduid_queue.db import AsyncQueueDB, ChangeEvent, OperationType
 from eduid_queue.log import init_logging
 
@@ -30,7 +32,7 @@ class QueueWorker(ABC):
     def __init__(self, config: QueueWorkerConfig, handle_payloads: List[Type[Payload]]):
         self.config = config
         self.payloads = handle_payloads
-        self.db: Optional[AsyncQueueDB] = None
+        self.db: AsyncQueueDB
 
         init_logging(app_name=config.app_name, config=self.config.logging_config)
         logger.info(f'Starting {self.config.app_name}: {self.config.worker_name}...')
@@ -68,22 +70,36 @@ class QueueWorker(ABC):
         except CancelledError:
             logger.info('run_tasks task was cancelled')
 
-    async def process_new_item(self, document_id: str):
+    async def done(self, queue_item: QueueItem) -> None:
+        """
+        Removes the queue item from the database
+        """
+        timeit = datetime.utcnow() - queue_item.created_ts
+        await self.db.remove_item(queue_item.item_id)
+        logger.info(f'QueueItem with id: {queue_item.item_id} successfully processed after {timeit.seconds}s.')
+
+    async def retry(self, queue_item: QueueItem) -> None:
+        """
+        Increases the queue item retry counter and puts it back in the queue
+        """
+        # TODO: Should we add a state (retry) to the queue item in the database?
+        retries = queue_item.retries + 1
+        if retries <= self.config.max_retries:
+            # Replace the queue item with a new one that can be grabbed by another worker
+            new_queue_item = replace(queue_item, retries=retries, processed_by=None, processed_ts=None)
+            await self.db.safe_replace_item(queue_item, new_queue_item)
+            logger.info(f'QueueItem with id: {queue_item.item_id} will be retried')
+
+    async def process_new_item(self, document_id: str) -> None:
         """
         Sends queue item for processing and removes the item from the database on success
         """
-        assert self.db  # Please mypy
         queue_item = await self.db.grab_item(document_id, worker_name=self.config.worker_name)
         if queue_item:
             try:
-                queue_item = await self.handle_new_item(queue_item)
+                await self.handle_new_item(queue_item)
             except Exception as e:
                 logger.exception(f'QueueItem processing failed with: {repr(e)}')
-                return
-            # Processing successful, remove queue item
-            timeit = datetime.utcnow() - queue_item.created_ts
-            await self.db.remove_item(queue_item.item_id)
-            logger.info(f'QueueItem with id: {queue_item.item_id} successfully processed after {timeit.seconds}s.')
 
     async def handle_change(self, change: ChangeEvent):
         """
@@ -119,19 +135,7 @@ class QueueWorker(ABC):
         try:
             while True:
                 logger.debug(f'Running periodic collection check')
-                # Check for forgotten untouched queue items
-                items = await self.db.find_items(
-                    processed=False, min_age_in_seconds=self.config.periodic_min_retry_wait_in_seconds, expired=False
-                )
-                logger.debug(f'found items: {items}')
-                for item in items:
-                    logger.info(f'{item} was forgotten, processing it')
-                    tasks.append(
-                        asyncio.create_task(
-                            self.process_new_item(document_id=item['_id']),
-                            name='periodic_process_new_item',
-                        )
-                    )
+                tasks += await self.process_forgotten_items()
 
                 # TODO: Implement expired report or some kind of retry of failed events here
 
@@ -146,8 +150,26 @@ class QueueWorker(ABC):
             logger.info('Cleaning up periodic_collection_check task...')
             await asyncio.gather(*tasks)
 
-    async def handle_new_item(self, queue_item: QueueItem) -> QueueItem:
+    async def process_forgotten_items(self) -> List[Task]:
+        tasks = []
+        # Check for forgotten untouched queue items
+        items = await self.db.find_items(
+            processed=False, min_age_in_seconds=self.config.periodic_min_retry_wait_in_seconds, expired=False
+        )
+        if len(items) > 0:
+            logger.info(f'{len(items)} was forgotten or should be retried, processing...')
+        for item in items:
+            logger.debug(f'item: {item}')
+            tasks.append(
+                asyncio.create_task(
+                    self.process_new_item(document_id=item['_id']),
+                    name='periodic_process_new_item',
+                )
+            )
+        return tasks
+
+    async def handle_new_item(self, queue_item: QueueItem) -> None:
         raise NotImplementedError()
 
-    async def handle_expired_item(self, queue_item: QueueItem) -> QueueItem:
+    async def handle_expired_item(self, queue_item: QueueItem) -> None:
         raise NotImplementedError()
