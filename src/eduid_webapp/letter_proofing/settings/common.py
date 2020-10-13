@@ -51,3 +51,6 @@ class LetterProofingConfig(FlaskConfig):
     ekopost_api_user: str = ''
     ekopost_api_pw: str = ''
     ekopost_debug_pdf: str = ''
+
+    # Remove expired states on GET /proofing if this is set to True
+    backwards_compat_remove_expired_state: bool = False
