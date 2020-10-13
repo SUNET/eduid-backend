@@ -8,12 +8,13 @@ from enum import Enum
 from typing import Any, Dict, List, Mapping, Optional, Union
 
 from bson import ObjectId
+from motor import motor_asyncio
+from pymongo.results import UpdateResult
+
 from eduid_userdb import MongoDB
 from eduid_userdb.exceptions import PayloadNotRegistered
 from eduid_userdb.q import QueueItem
 from eduid_userdb.q.db import QueueDB
-from motor import motor_asyncio
-from pymongo.results import UpdateResult
 
 __author__ = 'lundberg'
 
@@ -177,6 +178,7 @@ class AsyncQueueDB(QueueDB):
     async def find_items(
         self, processed: bool, min_age_in_seconds: Optional[int] = None, expired: Optional[bool] = None
     ) -> List:
+        # TODO: Add registered payload types to spec
         spec: Dict[str, Any] = {}
         if not processed:
             spec['processed_by'] = None
@@ -211,3 +213,16 @@ class AsyncQueueDB(QueueDB):
         }
         result = await self.collection.delete_one(spec)
         return result.acknowledged
+
+    async def safe_replace_item(self, old_item: QueueItem, new_item: QueueItem) -> bool:
+        if old_item.item_id != new_item.item_id:
+            logger.warning(f'Can not replace items with different item_id')
+            logger.debug(f'old_item: {old_item}')
+            logger.debug(f'new_item: {new_item}')
+            return False
+
+        update_result = await self.collection.replace_one(old_item.to_dict(), new_item.to_dict(), upsert=True)
+        if not update_result.acknowledged or update_result.modified_count != 1:
+            logger.debug(f'Saving of item failed: {update_result.raw_result}')
+            return False
+        return True
