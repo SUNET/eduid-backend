@@ -33,6 +33,11 @@ def get_state(user) -> FluxData:
     if proofing_state:
         current_app.logger.info('Found proofing state for user {}'.format(user))
         result = check_state(proofing_state)
+        if result.is_expired and current_app.config.backwards_compat_remove_expired_state:
+            current_app.logger.info(f'Backwards-compat removing expired state for user {user}')
+            current_app.proofing_statedb.remove_state(proofing_state)
+            current_app.stats.count('letter_expired')
+            return success_response(message=LetterMsg.no_state)
         return result.to_response()
     return success_response(message=LetterMsg.no_state)
 
