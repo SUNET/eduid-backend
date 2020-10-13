@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
-
+import asyncio
 import logging
+from email.message import EmailMessage
 from typing import Optional, cast
 
-from eduid_common.config.workers import QueueWorkerConfig
+from aiosmtplib import SMTP
+
 from eduid_userdb.q import QueueItem, TestPayload
 from eduid_userdb.q.message import EduidInviteEmail
 
+from eduid_queue.config import QueueWorkerConfig
+from eduid_queue.decorators import TransactionAudit
 from eduid_queue.misc import slow_print
 from eduid_queue.workers.base import QueueWorker
 
@@ -22,26 +26,24 @@ class MailQueueWorker(QueueWorker):
         payloads = [TestPayload, EduidInviteEmail]
         super().__init__(config=worker_config, handle_payloads=payloads)
 
-    async def handle_new_item(self, queue_item: QueueItem) -> QueueItem:
-        if queue_item.payload_type == TestPayload.get_type():
-            await slow_print(queue_item)
-        elif queue_item.payload_type == EduidInviteEmail.get_type():
-            await self.send_eduid_invite_mail(
-                cast(
-                    EduidInviteEmail,
-                    queue_item.payload,
-                )
-            )
-        return queue_item
+        self._smtp: Optional[SMTP] = None
 
-    async def handle_expired_item(self, queue_item: QueueItem) -> QueueItem:
-        raise NotImplementedError()
-
-    async def send_eduid_invite_mail(self, data: EduidInviteEmail):
-        sender = self.config.mail_default_from
-        #
-        message = f'something something from {data.inviter_name}'
-        await self.sendmail(sender=sender, recipients=[data.email], message=message, reference=data.reference)
+    @property
+    async def smtp(self):
+        if self._smtp is None:
+            self._smtp = SMTP(hostname=self.config.mail_host, port=self.config.mail_port)
+            if self.config.mail_starttls:
+                keyfile = self.config.mail_keyfile
+                certfile = self.config.mail_certfile
+                if keyfile and certfile:
+                    await self._smtp.starttls(client_key=keyfile, client_cert=certfile)
+                else:
+                    await self._smtp.starttls()
+            username = self.config.mail_username
+            password = self.config.mail_password
+            if username and password:
+                await self._smtp.login(username=username, password=password)
+        return self._smtp
 
     async def sendmail(self, sender: str, recipients: list, message: str, reference: str) -> dict:
         """
@@ -65,7 +67,42 @@ class MailQueueWorker(QueueWorker):
             )
             return {'devel_mode': True}
 
-        # TODO: Needs instantiated smtplib.SMTP
-        # ret = smtp.sendmail(sender, recipients, message)
+        async with self.smtp as smtp_client:
+            ret = await smtp_client.sendmail(sender, recipients, message)
+        return ret
 
-        # return ret
+    async def handle_new_item(self, queue_item: QueueItem):
+        if queue_item.payload_type == TestPayload.get_type():
+            await slow_print(queue_item)
+            await self.done(queue_item)
+        elif queue_item.payload_type == EduidInviteEmail.get_type():
+            success = await self.send_eduid_invite_mail(
+                cast(
+                    EduidInviteEmail,
+                    queue_item.payload,
+                )
+            )
+            if not success:
+                await self.retry(queue_item)
+
+    async def handle_expired_item(self, queue_item: QueueItem) -> QueueItem:
+        raise NotImplementedError()
+
+    async def send_eduid_invite_mail(self, data: EduidInviteEmail) -> bool:
+        sender = self.config.mail_default_from
+        #
+        message = f'something something from {data.inviter_name}'
+        ret = await self.sendmail(sender=sender, recipients=[data.email], message=message, reference=data.reference)
+        # TODO: if ret != ok return False
+        return True
+
+
+def start_worker():
+    config = {
+        'app_name': 'mail_worker',
+        'worker_name': 'mail_worker_1',
+        'mongo_uri': 'mongodb://localhost:43444',
+        'mongo_collection': 'test',
+    }
+    worker = MailQueueWorker(app_name='mail_worker', test_config=config)
+    exit(asyncio.run(worker.run()))
