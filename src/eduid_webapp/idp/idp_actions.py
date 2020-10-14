@@ -33,8 +33,10 @@
 #
 
 from time import time
+from typing import Optional
 
 from flask import redirect
+from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid_common.authn.idp_authn import AuthnData
 from eduid_common.session import session
@@ -49,12 +51,10 @@ from eduid_webapp.idp.context import IdPContext
 
 def check_for_pending_actions(
     context: IdPContext, user: IdPUser, ticket: SSOLoginData, sso_session: SSOSession
-) -> None:
+) -> Optional[WerkzeugResponse]:
     """
     Check whether there are any pending actions for the current user,
     and if there are, redirect to the actions app.
-
-    The redirection is performed by raising an eduid_idp.mischttp.Redirect.
 
     :param context: IdP context
     :param user: the authenticating user
