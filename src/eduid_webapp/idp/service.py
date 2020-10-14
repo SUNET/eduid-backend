@@ -31,12 +31,8 @@ class Service(object):
     :param context: IdP context
     """
 
-    def __init__(self, sso_session: SSOSession, context: IdPContext):
-        self.context = context
+    def __init__(self, sso_session: SSOSession):
         self.sso_session = sso_session
-        # TODO: Get rid of this copying of things in the context
-        self.logger = context.logger
-        self.config = context.config
 
     def unpack_redirect(self) -> Dict[str, str]:
         """

@@ -142,17 +142,19 @@ class TestActions(IdPTests):
     def test_add_mfa_action_no_key(self):
         self.actions.remove_action_by_id(self.test_action.action_id)
 
-        mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
-        mfa_add_actions(self.app.context, self.test_user, mock_ticket)
+        with self.app.app_context():
+            mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
+            mfa_add_actions(self.test_user, mock_ticket)
         self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), 0)
 
     def test_add_mfa_action_no_key_required_mfa(self):
         self.actions.remove_action_by_id(self.test_action.action_id)
 
-        mock_ticket = make_login_ticket(
-            req_class_ref=CONTEXTCLASSREFS['REFEDS_MFA'], context=self.app.context, key='mock-session'
-        )
-        mfa_add_actions(self.app.context, self.test_user, mock_ticket)
+        with self.app.app_context():
+            mock_ticket = make_login_ticket(
+                req_class_ref=CONTEXTCLASSREFS['REFEDS_MFA'], context=self.app.context, key='mock-session'
+            )
+            mfa_add_actions(self.test_user, mock_ticket)
         self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), 1)
 
     def test_add_mfa_action_old_key(self):
@@ -168,8 +170,9 @@ class TestActions(IdPTests):
         self.test_user.credentials.add(u2f)
         self.amdb.save(self.test_user, check_sync=False)
 
-        mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
-        mfa_add_actions(self.app.context, self.test_user, mock_ticket)
+        with self.app.app_context():
+            mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
+            mfa_add_actions(self.test_user, mock_ticket)
         self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), 1)
 
     def test_add_mfa_action_new_key(self):
@@ -187,7 +190,7 @@ class TestActions(IdPTests):
         mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
 
         with self.app.app_context():
-            mfa_add_actions(self.app.context, self.test_user, mock_ticket)
+            mfa_add_actions(self.test_user, mock_ticket)
         self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), 1)
 
     def test_add_mfa_action_no_db(self):
@@ -206,7 +209,7 @@ class TestActions(IdPTests):
         with self.app.app_context():
             mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
             self.app.actions_db = None
-            assert mfa_add_actions(self.app.context, self.test_user, mock_ticket) is None
+            assert mfa_add_actions(self.test_user, mock_ticket) is None
         # ensure no action was added when self.app.actions_db is None
         self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), 0)
 
@@ -237,7 +240,7 @@ class TestActions(IdPTests):
 
         with self.app.app_context():
             mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
-            mfa_add_actions(self.app.context, self.test_user, mock_ticket)
+            mfa_add_actions(self.test_user, mock_ticket)
             self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), actions)
         return mock_ticket
 
@@ -259,8 +262,9 @@ class TestActions(IdPTests):
     def test_add_tou_action(self):
         self.actions.remove_action_by_id(self.test_action.action_id)
 
-        mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
-        tou_add_actions(self.app.context, self.test_user, mock_ticket)
+        with self.app.app_context():
+            mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
+            tou_add_actions(self.test_user, mock_ticket)
         self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), 1)
 
     def test_add_tou_action_already_accepted(self):
@@ -277,7 +281,7 @@ class TestActions(IdPTests):
 
         with self.app.app_context():
             mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
-            tou_add_actions(self.app.context, self.test_user, mock_ticket)
+            tou_add_actions(self.test_user, mock_ticket)
         self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), 0)
 
     def test_add_tou_action_already_accepted_other_version(self):
@@ -294,7 +298,7 @@ class TestActions(IdPTests):
 
         with self.app.app_context():
             mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
-            tou_add_actions(self.app.context, self.test_user, mock_ticket)
+            tou_add_actions(self.test_user, mock_ticket)
         self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), 1)
 
     def test_add_tou_action_already_action(self):
@@ -305,7 +309,7 @@ class TestActions(IdPTests):
 
         with self.app.app_context():
             mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
-            tou_add_actions(self.app.context, self.test_user, mock_ticket)
+            tou_add_actions(self.test_user, mock_ticket)
         self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), 1)
 
     def test_add_tou_action_already_action_other_version(self):
@@ -316,7 +320,7 @@ class TestActions(IdPTests):
 
         with self.app.app_context():
             mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
-            tou_add_actions(self.app.context, self.test_user, mock_ticket)
+            tou_add_actions(self.test_user, mock_ticket)
         self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), 2)
 
     def test_add_tou_action_should_reaccept(self):
@@ -334,5 +338,5 @@ class TestActions(IdPTests):
 
         with self.app.app_context():
             mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
-            tou_add_actions(self.app.context, self.test_user, mock_ticket)
+            tou_add_actions(self.test_user, mock_ticket)
         self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), 1)

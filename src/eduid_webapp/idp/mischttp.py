@@ -13,15 +13,12 @@
 Miscellaneous HTTP related functions.
 """
 
-import logging
 import pprint
 from logging import Logger
 from typing import Any, Dict, Mapping, Optional
 
 from flask import Response as FlaskResponse
 from flask import make_response, redirect, request
-
-from eduid_webapp.idp.settings.common import IdPConfig
 from saml2 import BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -29,6 +26,7 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 from eduid_common.api.sanitation import SanitationProblem, Sanitizer
 
 from eduid_webapp.idp.app import current_idp_app as current_app
+from eduid_webapp.idp.settings.common import IdPConfig
 
 
 def create_html_response(binding: str, http_args: Dict[str, str]) -> WerkzeugResponse:
@@ -65,7 +63,8 @@ def create_html_response(binding: str, http_args: Dict[str, str]) -> WerkzeugRes
 
     if http_args != {}:
         current_app.logger.debug(
-            f'Unknown HTTP args when creating {status!r} response :\n{pprint.pformat(http_args)!s}')
+            f'Unknown HTTP args when creating {status!r} response :\n{pprint.pformat(http_args)!s}'
+        )
 
     if not isinstance(message, bytes):
         message = bytes(message, 'utf-8')

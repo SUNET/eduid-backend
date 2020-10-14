@@ -240,8 +240,9 @@ class TestSSO(IdPTests):
             else:
                 data = AuthnData(user, this, datetime.datetime.now())
                 sso_session_1.add_authn_credential(data)
-        _SSO = SSO(sso_session_1, self.app.context)
-        return _SSO._get_login_response_authn(ticket, user)
+        with self.app.app_context():
+            _SSO = SSO(sso_session_1)
+            return _SSO._get_login_response_authn(ticket, user)
 
     # ------------------------------------------------------------------------
 

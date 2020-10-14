@@ -78,17 +78,17 @@ class IdPApp(EduIDBaseApp):
             logger.info('Config parameter sso_session_mongo_uri ignored. Used mongo_uri instead.')
 
         _session_ttl = self.config.sso_session_lifetime * 60
-        self.sso_session_db = sso_cache.SSOSessionCacheMDB(self.config.mongo_uri, self.logger, _session_ttl)
+        self.sso_sessions = sso_cache.SSOSessionCacheMDB(self.config.mongo_uri, self.logger, _session_ttl)
 
         _login_state_ttl = (self.config.login_state_ttl + 1) * 60
         self.authn_info_db = None
-        _actions_db = None
+        self.actions_db = None
 
         if self.config.mongo_uri:
             self.authn_info_db = idp_authn.AuthnInfoStoreMDB(self.config.mongo_uri, logger)
 
         if self.config.mongo_uri and self.config.actions_app_uri:
-            _actions_db = ActionDB(self.config.mongo_uri)
+            self.actions_db = ActionDB(self.config.mongo_uri)
             self.logger.info("configured to redirect users with pending actions")
         else:
             self.logger.debug("NOT configured to redirect users with pending actions")
@@ -105,8 +105,8 @@ class IdPApp(EduIDBaseApp):
             config=self.config,
             idp=self.IDP,
             logger=self.logger,
-            sso_sessions=self.sso_session_db,
-            actions_db=_actions_db,
+            sso_sessions=self.sso_sessions,
+            actions_db=self.actions_db,
             authn=self.authn,
         )
 

@@ -37,6 +37,7 @@ from eduid_userdb.actions import Action
 from eduid_userdb.credentials import U2F, Webauthn
 from eduid_userdb.idp.user import IdPUser
 
+from eduid_webapp.idp.app import current_idp_app as current_app
 from eduid_webapp.idp.context import IdPContext
 from eduid_webapp.idp.util import get_requested_authn_context
 
@@ -46,7 +47,7 @@ __author__ = 'ft'
 RESULT_CREDENTIAL_KEY_NAME = 'cred_key'
 
 
-def add_actions(context: IdPContext, user: IdPUser, ticket: SSOLoginData) -> None:
+def add_actions(user: IdPUser, ticket: SSOLoginData) -> None:
     """
     Add an action requiring the user to login using one or more additional
     authentication factors.
@@ -54,16 +55,15 @@ def add_actions(context: IdPContext, user: IdPUser, ticket: SSOLoginData) -> Non
     This function is called by the IdP when it iterates over all the registered
     action plugins entry points.
 
-    :param context: IdP context
     :param user: the authenticating user
     :param ticket: the SSO login data
     """
-    if not context.actions_db:
-        context.logger.warning('No actions_db - aborting MFA action')
+    if not current_app.actions_db:
+        current_app.logger.warning('No actions_db - aborting MFA action')
         return None
 
     require_mfa = False
-    requested_authn_context = get_requested_authn_context(context.idp, ticket.saml_req, context.logger)
+    requested_authn_context = get_requested_authn_context(ticket.saml_req, current_app.logger)
     if requested_authn_context in [
         'https://refeds.org/profile/mfa',
         'https://www.swamid.se/specs/id-fido-u2f-ce-transports',
@@ -76,21 +76,21 @@ def add_actions(context: IdPContext, user: IdPUser, ticket: SSOLoginData) -> Non
     tokens = u2f_tokens + webauthn_tokens
 
     if not tokens and not require_mfa:
-        context.logger.debug('User does not have any FIDO tokens registered and SP did not require MFA')
+        current_app.logger.debug('User does not have any FIDO tokens registered and SP did not require MFA')
         return None
 
-    existing_actions = context.actions_db.get_actions(user.eppn, ticket.key, action_type='mfa')
+    existing_actions = current_app.actions_db.get_actions(user.eppn, ticket.key, action_type='mfa')
     if existing_actions and len(existing_actions) > 0:
-        context.logger.debug('User has existing MFA actions - checking them')
-        if check_authn_result(context, user, ticket, existing_actions):
+        current_app.logger.debug('User has existing MFA actions - checking them')
+        if check_authn_result(user, ticket, existing_actions):
             for this in ticket.mfa_action_creds:
-                context.authn.log_authn(user, success=[this], failure=[])
+                current_app.authn.log_authn(user, success=[this], failure=[])
             # TODO: Should we persistently log external mfa usage?
             return
-        context.logger.error('User returned without MFA credentials')
+        current_app.logger.error('User returned without MFA credentials')
 
-    context.logger.debug('User must authenticate with a token (has {} token(s))'.format(len(tokens)))
-    context.actions_db.add_action(
+    current_app.logger.debug(f'User must authenticate with a token (has {len(tokens)} token(s))')
+    current_app.actions_db.add_action(
         user.eppn,
         action_type='mfa',
         preference=1,
@@ -99,23 +99,22 @@ def add_actions(context: IdPContext, user: IdPUser, ticket: SSOLoginData) -> Non
     )
 
 
-def check_authn_result(context: IdPContext, user: IdPUser, ticket: SSOLoginData, actions: List[Action]) -> bool:
+def check_authn_result(user: IdPUser, ticket: SSOLoginData, actions: List[Action]) -> bool:
     """
     The user returned to the IdP after being sent to actions. Check if actions has
     added the results of authentication to the action in the database.
 
-    :param context: IdP context
     :param user: the authenticating user
     :param ticket: the SSO login data
     :param actions: Actions in the ActionDB matching this user and session
 
     :return: MFA action with proof of completion found
     """
-    if not context.actions_db:
+    if not current_app.actions_db:
         raise RuntimeError('check_authn_result called without actions_db')
 
     for this in actions:
-        context.logger.debug('Action {} authn result: {}'.format(this, this.result))
+        current_app.logger.debug(f'Action {this} authn result: {this.result}')
         if this.result is None:
             continue
         utc_now = datetime.datetime.utcnow().replace(tzinfo=None)  # thanks for not having timezone.utc, Python2
@@ -125,18 +124,18 @@ def check_authn_result(context: IdPContext, user: IdPUser, ticket: SSOLoginData,
                 ticket.mfa_action_external = ExternalMfaData(
                     issuer=this.result['issuer'], authn_context=this.result['authn_context'], timestamp=utc_now
                 )
-                context.logger.debug(
-                    'Removing MFA action completed with external issuer {}'.format(this.result.get('issuer'))
+                current_app.logger.debug(
+                    f'Removing MFA action completed with external issuer {this.result.get("issuer")}'
                 )
-                context.actions_db.remove_action_by_id(this.action_id)
+                current_app.actions_db.remove_action_by_id(this.action_id)
                 return True
             key = this.result.get(RESULT_CREDENTIAL_KEY_NAME)
             cred = user.credentials.find(key)
             if cred:
                 ticket.mfa_action_creds[cred.key] = utc_now
-                context.logger.debug('Removing MFA action completed with {}'.format(cred))
-                context.actions_db.remove_action_by_id(this.action_id)
+                current_app.logger.debug(f'Removing MFA action completed with {cred}')
+                current_app.actions_db.remove_action_by_id(this.action_id)
                 return True
             else:
-                context.logger.error('MFA action completed with unknown key {}'.format(key))
+                current_app.logger.error(f'MFA action completed with unknown key {key}')
     return False

@@ -37,7 +37,6 @@ from logging import Logger
 from typing import Optional
 
 import six
-from saml2.server import Server as Saml2Server
 
 from eduid_common.authn.idp_saml import IdP_SAMLRequest
 
@@ -78,7 +77,7 @@ def maybe_xml_to_string(message, logger=None):
         return message
 
 
-def get_requested_authn_context(idp: Saml2Server, saml_req: IdP_SAMLRequest, logger: Logger) -> Optional[str]:
+def get_requested_authn_context(saml_req: IdP_SAMLRequest, logger: Logger) -> Optional[str]:
     """
     Check if the SP has explicit Authn preferences in the metadata (some SPs are not
     capable of conveying this preference in the RequestedAuthnContext)

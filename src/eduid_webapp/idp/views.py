@@ -54,7 +54,7 @@ def sso_post(*_args, **_kwargs):
     current_app.logger.debug('\n\n')
     current_app.logger.debug(f'--- SingleSignOn POST: {request.path} ---')
     sso_session = current_app._lookup_sso_session()
-    return SSO(sso_session, current_app.context).post()
+    return SSO(sso_session).post()
 
 
 @idp_views.route('/sso/redirect', methods=['GET'])
@@ -62,7 +62,7 @@ def sso_redirect(*_args, **_kwargs):
     current_app.logger.debug('\n\n')
     current_app.logger.debug(f'--- SingleSignOn REDIRECT: {request.path} ---')
     sso_session = current_app._lookup_sso_session()
-    return SSO(sso_session, current_app.context).redirect()
+    return SSO(sso_session).redirect()
 
 
 @idp_views.route('/slo/post', methods=['POST'])
@@ -70,7 +70,7 @@ def slo_post(*_args, **_kwargs):
     current_app.logger.debug('\n\n')
     current_app.logger.debug(f'--- SingleLogOut POST: {request.path} ---')
     sso_session = current_app._lookup_sso_session()
-    return SLO(sso_session, current_app.context).post()
+    return SLO(sso_session).post()
 
 
 @idp_views.route('/slo/soap', methods=['POST'])
@@ -78,7 +78,7 @@ def slo_soap(*_args, **_kwargs):
     current_app.logger.debug('\n\n')
     current_app.logger.debug(f'--- SingleLogOut SOAP: {request.path} ---')
     sso_session = current_app._lookup_sso_session()
-    return SLO(sso_session, current_app.context).soap()
+    return SLO(sso_session).soap()
 
 
 @idp_views.route('/slo/redirect', methods=['GET'])
@@ -86,7 +86,7 @@ def slo_redirect(*_args, **_kwargs):
     current_app.logger.debug('\n\n')
     current_app.logger.debug(f'--- SingleLogOut REDIRECT: {request.path} ---')
     slo_session = current_app._lookup_sso_session()
-    return SLO(slo_session, current_app.context).redirect()
+    return SLO(slo_session).redirect()
 
 
 @idp_views.route('/verify', methods=['POST'])

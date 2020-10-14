@@ -46,30 +46,29 @@ from eduid_common.session.sso_session import SSOSession
 from eduid_userdb.idp import IdPUser
 
 from eduid_webapp.idp import mfa_action, tou_action
-from eduid_webapp.idp.context import IdPContext
+from eduid_webapp.idp.app import current_idp_app as current_app
 
 
 def check_for_pending_actions(
-    context: IdPContext, user: IdPUser, ticket: SSOLoginData, sso_session: SSOSession
+    user: IdPUser, ticket: SSOLoginData, sso_session: SSOSession
 ) -> Optional[WerkzeugResponse]:
     """
     Check whether there are any pending actions for the current user,
     and if there are, redirect to the actions app.
 
-    :param context: IdP context
     :param user: the authenticating user
     :param ticket: SSOLoginData instance
     :param sso_session: SSOSession
     """
 
-    if context.actions_db is None:
-        context.logger.info("This IdP is not initialized for special actions")
+    if current_app.actions_db is None:
+        current_app.logger.info('This IdP is not initialized for special actions')
         return
 
     # Add any actions that may depend on the login data
-    add_idp_initiated_actions(context, user, ticket)
+    add_idp_initiated_actions(user, ticket)
 
-    actions_eppn = context.actions_db.get_actions(user.eppn, session=ticket.key)
+    actions_eppn = current_app.actions_db.get_actions(user.eppn, session=ticket.key)
 
     # Check for pending actions
     pending_actions = [a for a in actions_eppn if a.result is None]
@@ -89,23 +88,23 @@ def check_for_pending_actions(
             update = True
 
         if update:
-            context.sso_sessions.update_session(user.user_id, sso_session.to_dict())
+            current_app.sso_sessions.update_session(user.user_id, sso_session.to_dict())
 
-        context.logger.debug('There are no pending actions for user {}'.format(user))
+        current_app.logger.debug(f'There are no pending actions for user {user}')
         return
 
     # Pending actions found, redirect to the actions app
-    context.logger.debug(f'There are pending actions for user {user}: {pending_actions}')
+    current_app.logger.debug(f'There are pending actions for user {user}: {pending_actions}')
 
-    actions_uri = context.config.actions_app_uri
-    context.logger.info("Redirecting user {!s} to actions app {!s}".format(user, actions_uri))
+    actions_uri = current_app.config.actions_app_uri
+    current_app.logger.info(f'Redirecting user {user!s} to actions app {actions_uri!s}')
 
     actions = Actions.from_dict({'ts': time(), 'session': ticket.key})
     session.actions = actions
     return redirect(actions_uri)
 
 
-def add_idp_initiated_actions(context: IdPContext, user: IdPUser, ticket: SSOLoginData):
+def add_idp_initiated_actions(user: IdPUser, ticket: SSOLoginData) -> None:
     """
     Load the configured action plugins and execute their `add_actions`
     functions.
@@ -115,11 +114,10 @@ def add_idp_initiated_actions(context: IdPContext, user: IdPUser, ticket: SSOLog
     Also iterate over add_actions entry points and execute them (for backwards
     compatibility).
 
-    :param context: IdP context
     :param user: the authenticating user
     :param ticket: the SSO login data
     """
-    if 'mfa' in context.config.action_plugins:
-        mfa_action.add_actions(context, user, ticket)
-    if 'tou' in context.config.action_plugins:
-        tou_action.add_actions(context, user, ticket)
+    if 'mfa' in current_app.config.action_plugins:
+        mfa_action.add_actions(user, ticket)
+    if 'tou' in current_app.config.action_plugins:
+        tou_action.add_actions(user, ticket)
