@@ -1,10 +1,7 @@
 import logging
 import os
-import urllib
-import zlib
-from base64 import b64decode, b64encode, urlsafe_b64decode
 from enum import Enum
-from typing import Any, Dict, Tuple
+from typing import Tuple
 from urllib.parse import unquote
 
 from flask import Response as FlaskResponse
@@ -12,12 +9,9 @@ from mock import patch
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_SOAP
 from saml2.mdstore import destinations
 from saml2.response import AuthnResponse, LogoutResponse
-from saml2.s_utils import decode_base64_and_inflate
 
-from eduid_common.api.app import EduIDBaseApp
 from vccs_client import VCCSClient
 
-from eduid_webapp.idp.settings.common import IdPConfig
 from eduid_webapp.idp.tests.test_app import IdPTests, LoginState
 
 logger = logging.getLogger(__name__)
@@ -28,12 +22,6 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 class LogoutState(Enum):
     S0_REQUEST_FAILED = 'request-failed'
     S1_LOGGED_OUT = 'logged_out'
-
-
-class IdPTestApp(EduIDBaseApp):
-    def __init__(self, name: str, config: Dict[str, Any], **kwargs):
-        self.config = IdPConfig.init_config(ns='webapp', app_name=name, test_config=config)
-        super().__init__(name, **kwargs)
 
 
 class IdPTestLogout(IdPTests):

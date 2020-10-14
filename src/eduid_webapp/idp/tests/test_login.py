@@ -1,28 +1,19 @@
 import logging
 import os
-from typing import Any, Dict
 
 from mock import patch
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.authn_context import requested_authn_context
 from saml2.client import Saml2Client
 
-from eduid_common.api.app import EduIDBaseApp
 from eduid_common.authn.utils import get_saml2_config
 from vccs_client import VCCSClient
 
-from eduid_webapp.idp.settings.common import IdPConfig
 from eduid_webapp.idp.tests.test_app import IdPTests, LoginState
 
 logger = logging.getLogger(__name__)
 
 HERE = os.path.abspath(os.path.dirname(__file__))
-
-
-class IdPTestApp(EduIDBaseApp):
-    def __init__(self, name: str, config: Dict[str, Any], **kwargs):
-        self.config = IdPConfig.init_config(ns='webapp', app_name=name, test_config=config)
-        super().__init__(name, **kwargs)
 
 
 class IdPTestLogin(IdPTests):
