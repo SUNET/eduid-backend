@@ -21,7 +21,7 @@ from html import escape, unescape
 from typing import Mapping, Optional
 
 from defusedxml import ElementTree as DefusedElementTree
-from flask import redirect, render_template
+from flask import redirect, render_template, request
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest, Forbidden, InternalServerError, TooManyRequests
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -365,7 +365,7 @@ class SSO(Service):
                 _force_authn = True
 
         if not self.sso_session:
-            self.logger.info("{!s}: authenticate ip={!s}".format(ticket.key, mischttp.get_remote_ip()))
+            self.logger.info("{!s}: authenticate ip={!s}".format(ticket.key, request.remote_addr))
         elif _force_authn:
             self.logger.info("{!s}: force_authn sso_session={!s}".format(ticket.key, self.sso_session.public_id))
 

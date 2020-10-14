@@ -12,6 +12,7 @@
 """
 Common code for SSO login/logout requests.
 """
+from flask import request
 
 from eduid_common.session.sso_session import SSOSession
 
@@ -65,14 +66,13 @@ class Service(object):
         :return: query parameters as dict
         :rtype: dict or None
         """
-        method = mischttp.get_http_method()
-        if method == 'GET':
+        if request.method == 'GET':
             _dict = self.unpack_redirect()
-        elif method == 'POST':
+        elif request.method == 'POST':
             _dict = self.unpack_post()
         else:
             _dict = None
-        self.logger.debug("Unpacked {!r}, _dict: {!s}".format(method, _dict))
+        self.logger.debug(f"Unpacked {request.method!r}, _dict: {_dict!s}")
         return _dict
 
     def redirect(self):

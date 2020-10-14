@@ -41,8 +41,6 @@ def create_html_response(binding: str, http_args: Dict[str, str], logger: Logger
     :return: HTML response
     """
     if binding == BINDING_HTTP_REDIRECT:
-        # XXX This URL extraction code is untested in practice, but it appears
-        # the should be HTTP headers in http_args['headers']
         _urls = [v for (k, v) in http_args['headers'] if k == 'Location']
         location = None
         if _urls:
@@ -117,15 +115,6 @@ def _sanitise_items(data: Mapping, logger: logging.Logger) -> Dict[str, str]:
             raise BadRequest()
         res[str(safe_k)] = str(safe_v)
     return res
-
-
-def get_request_header() -> Mapping[str, Any]:
-    """
-    Return the HTML request headers..
-
-    :return: headers
-    """
-    return request.headers
 
 
 # ----------------------------------------------------------------------------
@@ -215,26 +204,3 @@ def get_default_template_arguments(config):
         'password_reset_link': config.password_reset_link,
         'static_link': config.static_link,
     }
-
-
-def get_http_method() -> str:
-    """
-    Get the HTTP method verb for this request.
-
-    This function keeps other modules from having to know that CherryPy is used.
-
-    :return: 'GET', 'POST' or other
-    """
-    return request.method
-
-
-def get_remote_ip() -> str:
-    """
-    Get the remote IP address for this request.
-
-    This function keeps other modules from having to know that CherryPy is used.
-
-    :return: Client IP address
-    :rtype: string
-    """
-    return request.remote_addr
