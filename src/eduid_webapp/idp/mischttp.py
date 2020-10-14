@@ -20,6 +20,8 @@ from typing import Any, Dict, Mapping, Optional
 
 from flask import Response as FlaskResponse
 from flask import make_response, redirect, request
+
+from eduid_webapp.idp.settings.common import IdPConfig
 from saml2 import BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -29,15 +31,13 @@ from eduid_common.api.sanitation import SanitationProblem, Sanitizer
 from eduid_webapp.idp.app import current_idp_app as current_app
 
 
-def create_html_response(binding: str, http_args: Dict[str, str], logger: Logger) -> WerkzeugResponse:
+def create_html_response(binding: str, http_args: Dict[str, str]) -> WerkzeugResponse:
     """
     Create a HTML response based on parameters compiled by pysaml2 functions
     like apply_binding().
 
     :param binding: SAML binding
     :param http_args: response data
-    :param logger: logging logger
-
     :return: HTML response
     """
     if binding == BINDING_HTTP_REDIRECT:
@@ -45,11 +45,11 @@ def create_html_response(binding: str, http_args: Dict[str, str], logger: Logger
         location = None
         if _urls:
             location = _urls[0]
-        logger.debug(f'Binding {binding} redirecting to {location!r}')
+        current_app.logger.debug(f'Binding {binding} redirecting to {location!r}')
         if 'url' in http_args:
             _new_url = http_args.pop('url')  # less debug log below
             if location and not location.startswith(_new_url):
-                logger.warning(f'There is another "url" in http_args : {_new_url}')
+                current_app.logger.warning(f'There is another "url" in http_args : {_new_url}')
             if not location:
                 location = _new_url
         return redirect(location)
@@ -64,7 +64,8 @@ def create_html_response(binding: str, http_args: Dict[str, str], logger: Logger
         headers.append(('Content-Type', _content_type))
 
     if http_args != {}:
-        logger.debug('Unknown HTTP args when creating {!r} response :\n{!s}'.format(status, pprint.pformat(http_args)))
+        current_app.logger.debug(
+            f'Unknown HTTP args when creating {status!r} response :\n{pprint.pformat(http_args)!s}')
 
     if not isinstance(message, bytes):
         message = bytes(message, 'utf-8')
@@ -85,7 +86,7 @@ def geturl(query=True, path=True):
     return request.url
 
 
-def get_post(logger) -> Dict[str, Any]:
+def get_post(logger: Logger) -> Dict[str, Any]:
     """
     Return the parsed query string equivalent from a HTML POST request.
 
@@ -94,24 +95,21 @@ def get_post(logger) -> Dict[str, Any]:
     :param logger: A logger object
 
     :return: query string
-
-    :type logger: logging.Logger
-    :rtype: dict
     """
-    return _sanitise_items(request.form, logger)
+    return _sanitise_items(request.form)
 
 
-def _sanitise_items(data: Mapping, logger: logging.Logger) -> Dict[str, str]:
+def _sanitise_items(data: Mapping) -> Dict[str, str]:
     res = dict()
     san = Sanitizer()
     for k, v in data.items():
         try:
-            safe_k = san.sanitize_input(k, logger=logger, content_type='text/plain')
+            safe_k = san.sanitize_input(k, logger=current_app.logger, content_type='text/plain')
             if safe_k != k:
                 raise BadRequest()
-            safe_v = san.sanitize_input(v, logger=logger, content_type='text/plain')
-        except SanitationProblem as sp:
-            logger.info(f'There was a problem sanitizing inputs: {repr(sp)}')
+            safe_v = san.sanitize_input(v, logger=current_app.logger, content_type='text/plain')
+        except SanitationProblem:
+            current_app.logger.exception(f'There was a problem sanitizing inputs')
             raise BadRequest()
         res[str(safe_k)] = str(safe_v)
     return res
@@ -120,19 +118,18 @@ def _sanitise_items(data: Mapping, logger: logging.Logger) -> Dict[str, str]:
 # ----------------------------------------------------------------------------
 # Cookie handling
 # ----------------------------------------------------------------------------
-def read_cookie(name: str, logger: Logger) -> Optional[str]:
+def read_cookie(name: str) -> Optional[str]:
     """
     Read a browser cookie.
 
-    :param logger: logging logger
     :returns: string with cookie content, or None
     :rtype: string | None
     """
     cookies = request.cookies
-    logger.debug('Reading cookie(s): {}'.format(cookies))
+    current_app.logger.debug(f'Reading cookie(s): {cookies}')
     cookie = cookies.get(name)
     if not cookie:
-        logger.debug(f'No {name} cookie')
+        current_app.logger.debug(f'No {name} cookie')
         return None
     return cookie
 
@@ -163,7 +160,7 @@ def set_cookie(name: str, path: str, value: str, response: FlaskResponse) -> Fla
     return response
 
 
-def parse_query_string(logger) -> Dict[str, str]:
+def parse_query_string() -> Dict[str, str]:
     """
     Parse HTML request query string into a dict like
 
@@ -173,11 +170,9 @@ def parse_query_string(logger) -> Dict[str, str]:
 
     NOTE: Only the first header value for each header is included in the result.
 
-    :param logger: A logger object
-
     :return: parsed query string
     """
-    args = _sanitise_items(request.args, logger)
+    args = _sanitise_items(request.args)
     res = {}
     for k, v in args.items():
         if isinstance(v, list):
@@ -187,12 +182,9 @@ def parse_query_string(logger) -> Dict[str, str]:
     return res
 
 
-def get_default_template_arguments(config):
+def get_default_template_arguments(config: IdPConfig) -> Dict[str, str]:
     """
-    :param config: IdP config
-    :type config: OldIdPConfig
     :return: header links
-    :rtype: dict
     """
     return {
         'dashboard_link': config.dashboard_link,

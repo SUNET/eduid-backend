@@ -12,6 +12,8 @@
 """
 Common code for SSO login/logout requests.
 """
+from typing import Any, Dict, Optional
+
 from flask import request
 
 from eduid_common.session.sso_session import SSOSession
@@ -36,16 +38,16 @@ class Service(object):
         self.logger = context.logger
         self.config = context.config
 
-    def unpack_redirect(self):
+    def unpack_redirect(self) -> Dict[str, str]:
         """
         Unpack redirect (GET) parameters.
 
         :return: query parameters as dict
         :rtype: dict
         """
-        return mischttp.parse_query_string(self.logger)
+        return mischttp.parse_query_string()
 
-    def unpack_post(self):
+    def unpack_post(self) -> Dict[str, Any]:
         """
         Unpack POSTed parameters.
 
@@ -53,25 +55,24 @@ class Service(object):
         :rtype: dict
         """
         info = mischttp.get_post(self.logger)
-        self.logger.debug("unpack_post:: %s" % info)
+        self.logger.debug(f"unpack_post:: {info}")
         try:
             return dict([(k, v) for k, v in info.items()])
         except AttributeError:
-            return None
+            return {}
 
-    def unpack_either(self):
+    def unpack_either(self) -> Dict[str, str]:
         """
         Unpack either redirect (GET) or POST parameters.
 
         :return: query parameters as dict
-        :rtype: dict or None
         """
         if request.method == 'GET':
             _dict = self.unpack_redirect()
         elif request.method == 'POST':
             _dict = self.unpack_post()
         else:
-            _dict = None
+            _dict = {}
         self.logger.debug(f"Unpacked {request.method!r}, _dict: {_dict!s}")
         return _dict
 

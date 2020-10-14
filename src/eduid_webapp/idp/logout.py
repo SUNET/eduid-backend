@@ -270,7 +270,7 @@ class SLO(Service):
                 "Creating response with binding {!r} instead of {!r} used before".format(bindings[0], req_info.binding)
             )
 
-        res = mischttp.create_html_response(bindings[0], ht_args, self.logger)
+        res = mischttp.create_html_response(bindings[0], ht_args)
 
         # Delete the SSO session cookie in the browser
         res.delete_cookie(

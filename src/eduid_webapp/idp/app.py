@@ -163,14 +163,14 @@ class IdPApp(EduIDBaseApp):
         # local import to avoid import-loop
         from eduid_webapp.idp.mischttp import read_cookie, parse_query_string
 
-        _session_id = read_cookie('idpauthn', logger)
+        _session_id = read_cookie('idpauthn')
         if _session_id:
             # The old IdP base64 encoded the session_id, try to  remain interoperable. Fingers crossed.
             _decoded_session_id = b64decode(_session_id).decode('utf-8')
             self.logger.debug(f'Got SSO session ID from idpauthn cookie {_session_id} -> {_decoded_session_id}')
             return _decoded_session_id
 
-        query = parse_query_string(self.logger)
+        query = parse_query_string()
         if query and 'id' in query:
             self.logger.warning('Found "id" in query string - this was thought to be obsolete')
             self.logger.debug("Parsed query string :\n{!s}".format(pprint.pformat(query)))

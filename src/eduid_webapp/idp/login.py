@@ -116,7 +116,7 @@ class SSO(Service):
             user_id=str(user.user_id),
         )
 
-        return mischttp.create_html_response(binding_out, http_args, current_app.logger)
+        return mischttp.create_html_response(binding_out, http_args)
 
     def _make_saml_response(
         self, response_authn: AuthnInfo, resp_args: ResponseArgs, user: IdPUser, ticket: SSOLoginData, sso_session
