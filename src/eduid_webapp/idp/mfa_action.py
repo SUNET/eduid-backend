@@ -30,12 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import datetime
-from typing import List
+from typing import List, Optional
 
 from eduid_common.session.logindata import ExternalMfaData, SSOLoginData
 from eduid_userdb.actions import Action
 from eduid_userdb.credentials import U2F, Webauthn
 from eduid_userdb.idp.user import IdPUser
+
 from eduid_webapp.idp.app import current_idp_app as current_app
 from eduid_webapp.idp.util import get_requested_authn_context
 
@@ -45,7 +46,7 @@ __author__ = 'ft'
 RESULT_CREDENTIAL_KEY_NAME = 'cred_key'
 
 
-def add_actions(user: IdPUser, ticket: SSOLoginData) -> None:
+def add_actions(user: IdPUser, ticket: SSOLoginData) -> Optional[Action]:
     """
     Add an action requiring the user to login using one or more additional
     authentication factors.
@@ -84,11 +85,11 @@ def add_actions(user: IdPUser, ticket: SSOLoginData) -> None:
             for this in ticket.mfa_action_creds:
                 current_app.authn.log_authn(user, success=[this], failure=[])
             # TODO: Should we persistently log external mfa usage?
-            return
+            return None
         current_app.logger.error('User returned without MFA credentials')
 
     current_app.logger.debug(f'User must authenticate with a token (has {len(tokens)} token(s))')
-    current_app.actions_db.add_action(
+    return current_app.actions_db.add_action(
         user.eppn,
         action_type='mfa',
         preference=1,

@@ -63,7 +63,7 @@ def check_for_pending_actions(
 
     if current_app.actions_db is None:
         current_app.logger.info('This IdP is not initialized for special actions')
-        return
+        return None
 
     # Add any actions that may depend on the login data
     add_idp_initiated_actions(user, ticket)
@@ -91,7 +91,7 @@ def check_for_pending_actions(
             current_app.sso_sessions.update_session(user.user_id, sso_session.to_dict())
 
         current_app.logger.debug(f'There are no pending actions for user {user}')
-        return
+        return None
 
     # Pending actions found, redirect to the actions app
     current_app.logger.debug(f'There are pending actions for user {user}: {pending_actions}')

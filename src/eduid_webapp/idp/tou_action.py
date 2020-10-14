@@ -31,13 +31,17 @@
 #
 
 __author__ = 'eperez'
+
+from typing import Optional
+
 from eduid_common.session.logindata import SSOLoginData
+from eduid_userdb.actions import Action
 from eduid_userdb.idp import IdPUser
 
 from eduid_webapp.idp.app import current_idp_app as current_app
 
 
-def add_actions(user: IdPUser, ticket: SSOLoginData) -> None:
+def add_actions(user: IdPUser, ticket: SSOLoginData) -> Optional[Action]:
     """
     Add an action requiring the user to accept a new version of the Terms of Use,
     in case the IdP configuration points to a version the user hasn't accepted.
@@ -53,12 +57,17 @@ def add_actions(user: IdPUser, ticket: SSOLoginData) -> None:
 
     if user.tou.has_accepted(version, interval):
         current_app.logger.debug(f'User has already accepted ToU version {version!r}')
-        return
+        return None
 
     if not current_app.actions_db:
         current_app.logger.warning('No actions_db - aborting ToU action')
         return None
 
-    if not current_app.actions_db.has_actions(user.eppn, action_type='tou', params={'version': version}):
-        current_app.logger.debug(f'User must accept ToU version {version!r}')
-        current_app.actions_db.add_action(user.eppn, action_type='tou', preference=100, params={'version': version})
+    if current_app.actions_db.has_actions(user.eppn, action_type='tou', params={'version': version}):
+        return None
+
+    current_app.logger.debug(f'User must accept ToU version {version!r}')
+    return current_app.actions_db.add_action(
+        user.eppn, action_type='tou', preference=100, params={'version': version}
+    )
+
