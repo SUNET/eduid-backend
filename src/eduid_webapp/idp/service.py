@@ -12,14 +12,12 @@
 """
 Common code for SSO login/logout requests.
 """
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from flask import request
 
 from eduid_common.session.sso_session import SSOSession
-
 from eduid_webapp.idp import mischttp
-from eduid_webapp.idp.context import IdPContext
 
 
 class Service(object):

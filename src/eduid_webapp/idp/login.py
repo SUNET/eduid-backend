@@ -22,7 +22,6 @@ from typing import Mapping, Optional
 
 from defusedxml import ElementTree as DefusedElementTree
 from flask import redirect, render_template, request
-from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest, Forbidden, InternalServerError, TooManyRequests
 from werkzeug.wrappers import Response as WerkzeugResponse
 
@@ -42,13 +41,12 @@ from eduid_common.session.logindata import SSOLoginData
 from eduid_common.session.sso_session import SSOSession
 from eduid_userdb.idp import IdPUser
 from eduid_userdb.idp.user import SAMLAttributeSettings
-
 from eduid_webapp.idp import mischttp
 from eduid_webapp.idp.app import current_idp_app as current_app
-from eduid_webapp.idp.context import IdPContext
 from eduid_webapp.idp.idp_actions import check_for_pending_actions
 from eduid_webapp.idp.service import Service
 from eduid_webapp.idp.util import b64encode, get_requested_authn_context
+from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 
 
 class MustAuthenticate(Exception):
@@ -461,7 +459,7 @@ class SSO(Service):
 # -----------------------------------------------------------------------------
 
 
-def do_verify(context: IdPContext):
+def do_verify():
     """
     Perform authentication of user based on user provided credentials.
 

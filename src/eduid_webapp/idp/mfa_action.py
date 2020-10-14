@@ -36,9 +36,7 @@ from eduid_common.session.logindata import ExternalMfaData, SSOLoginData
 from eduid_userdb.actions import Action
 from eduid_userdb.credentials import U2F, Webauthn
 from eduid_userdb.idp.user import IdPUser
-
 from eduid_webapp.idp.app import current_idp_app as current_app
-from eduid_webapp.idp.context import IdPContext
 from eduid_webapp.idp.util import get_requested_authn_context
 
 __author__ = 'ft'

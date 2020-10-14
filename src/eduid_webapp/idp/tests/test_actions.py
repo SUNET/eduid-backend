@@ -39,17 +39,15 @@ from datetime import datetime
 import bson
 import pkg_resources
 from mock import patch
+from vccs_client import VCCSClient
 
 from eduid_common.session.logindata import SSOLoginData
 from eduid_userdb.credentials import U2F, Webauthn
 from eduid_userdb.tou import ToUEvent
-from vccs_client import VCCSClient
-
 from eduid_webapp.idp.mfa_action import add_actions as mfa_add_actions
-from eduid_webapp.idp.tests.test_app import IdPTests, LoginState
-from eduid_webapp.idp.tests.test_SSO import SWAMID_AL2
+from eduid_webapp.idp.tests.test_SSO import SSOIdPTests, SWAMID_AL2
 from eduid_webapp.idp.tests.test_SSO import cc as CONTEXTCLASSREFS
-from eduid_webapp.idp.tests.test_SSO import make_login_ticket
+from eduid_webapp.idp.tests.test_app import LoginState
 from eduid_webapp.idp.tou_action import add_actions as tou_add_actions
 
 logger = logging.getLogger(__name__)
@@ -58,11 +56,11 @@ logger = logging.getLogger(__name__)
 # remote = cherrypy.lib.httputil.Host('127.0.0.1', 50001, "")
 
 
-class TestActions(IdPTests):
+class TestActions(SSOIdPTests):
     def setUp(self):
         super().setUp()
 
-        self.actions = self.app.context.actions_db
+        self.actions = self.app.actions_db
 
         # setup some test data
         self.test_action = self.actions.add_action(self.test_user.eppn, action_type='dummy', preference=100, params={})
@@ -143,7 +141,7 @@ class TestActions(IdPTests):
         self.actions.remove_action_by_id(self.test_action.action_id)
 
         with self.app.app_context():
-            mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
+            mock_ticket = self._make_login_ticket(req_class_ref=SWAMID_AL2, key='mock-session')
             mfa_add_actions(self.test_user, mock_ticket)
         self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), 0)
 
@@ -151,9 +149,7 @@ class TestActions(IdPTests):
         self.actions.remove_action_by_id(self.test_action.action_id)
 
         with self.app.app_context():
-            mock_ticket = make_login_ticket(
-                req_class_ref=CONTEXTCLASSREFS['REFEDS_MFA'], context=self.app.context, key='mock-session'
-            )
+            mock_ticket = self._make_login_ticket(req_class_ref=CONTEXTCLASSREFS['REFEDS_MFA'], key='mock-session')
             mfa_add_actions(self.test_user, mock_ticket)
         self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), 1)
 
@@ -171,7 +167,7 @@ class TestActions(IdPTests):
         self.amdb.save(self.test_user, check_sync=False)
 
         with self.app.app_context():
-            mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
+            mock_ticket = self._make_login_ticket(req_class_ref=SWAMID_AL2, key='mock-session')
             mfa_add_actions(self.test_user, mock_ticket)
         self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), 1)
 
@@ -187,7 +183,7 @@ class TestActions(IdPTests):
         self.test_user.credentials.add(webauthn)
         self.amdb.save(self.test_user, check_sync=False)
 
-        mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
+        mock_ticket = self._make_login_ticket(req_class_ref=SWAMID_AL2, key='mock-session')
 
         with self.app.app_context():
             mfa_add_actions(self.test_user, mock_ticket)
@@ -207,7 +203,7 @@ class TestActions(IdPTests):
         self.amdb.save(self.test_user, check_sync=False)
 
         with self.app.app_context():
-            mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
+            mock_ticket = self._make_login_ticket(req_class_ref=SWAMID_AL2, key='mock-session')
             self.app.actions_db = None
             assert mfa_add_actions(self.test_user, mock_ticket) is None
         # ensure no action was added when self.app.actions_db is None
@@ -239,7 +235,7 @@ class TestActions(IdPTests):
         self.actions.update_action(completed_action)
 
         with self.app.app_context():
-            mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
+            mock_ticket = self._make_login_ticket(req_class_ref=SWAMID_AL2, key='mock-session')
             mfa_add_actions(self.test_user, mock_ticket)
             self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), actions)
         return mock_ticket
@@ -263,7 +259,7 @@ class TestActions(IdPTests):
         self.actions.remove_action_by_id(self.test_action.action_id)
 
         with self.app.app_context():
-            mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
+            mock_ticket = self._make_login_ticket(req_class_ref=SWAMID_AL2, key='mock-session')
             tou_add_actions(self.test_user, mock_ticket)
         self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), 1)
 
@@ -280,7 +276,7 @@ class TestActions(IdPTests):
         self.actions.remove_action_by_id(self.test_action.action_id)
 
         with self.app.app_context():
-            mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
+            mock_ticket = self._make_login_ticket(req_class_ref=SWAMID_AL2, key='mock-session')
             tou_add_actions(self.test_user, mock_ticket)
         self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), 0)
 
@@ -297,29 +293,29 @@ class TestActions(IdPTests):
         self.actions.remove_action_by_id(self.test_action.action_id)
 
         with self.app.app_context():
-            mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
+            mock_ticket = self._make_login_ticket(req_class_ref=SWAMID_AL2, key='mock-session')
             tou_add_actions(self.test_user, mock_ticket)
         self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), 1)
 
     def test_add_tou_action_already_action(self):
-        self.app.context.actions_db.add_action(
+        self.app.actions_db.add_action(
             self.test_user.eppn, action_type='tou', preference=100, params={'version': 'mock-version'}
         )
         self.actions.remove_action_by_id(self.test_action.action_id)
 
         with self.app.app_context():
-            mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
+            mock_ticket = self._make_login_ticket(req_class_ref=SWAMID_AL2, key='mock-session')
             tou_add_actions(self.test_user, mock_ticket)
         self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), 1)
 
     def test_add_tou_action_already_action_other_version(self):
-        self.app.context.actions_db.add_action(
+        self.app.actions_db.add_action(
             self.test_user.eppn, action_type='tou', preference=100, params={'version': 'mock-version-2'}
         )
         self.actions.remove_action_by_id(self.test_action.action_id)
 
         with self.app.app_context():
-            mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
+            mock_ticket = self._make_login_ticket(req_class_ref=SWAMID_AL2, key='mock-session')
             tou_add_actions(self.test_user, mock_ticket)
         self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), 2)
 
@@ -337,6 +333,6 @@ class TestActions(IdPTests):
         self.actions.remove_action_by_id(self.test_action.action_id)
 
         with self.app.app_context():
-            mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
+            mock_ticket = self._make_login_ticket(req_class_ref=SWAMID_AL2, key='mock-session')
             tou_add_actions(self.test_user, mock_ticket)
         self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), 1)

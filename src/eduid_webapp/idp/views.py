@@ -101,4 +101,4 @@ def verify(*_args, **_kwargs):
         # raise eduid_idp.error.LoginTimeout("Already logged in - can't verify credentials again",
         #                                   logger = self.logger)
         current_app.logger.debug("User is already logged in - verifying credentials again might not work")
-    return do_verify(current_app.context)
+    return do_verify()

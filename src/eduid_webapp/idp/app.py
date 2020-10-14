@@ -45,8 +45,6 @@ from eduid_common.session import sso_cache, sso_session
 from eduid_common.session.sso_session import SSOSession
 from eduid_userdb.actions import ActionDB
 from eduid_userdb.idp import IdPUserDb
-
-from eduid_webapp.idp.context import IdPContext
 from eduid_webapp.idp.settings.common import IdPConfig
 
 logger = logging.getLogger(__name__)
@@ -101,14 +99,6 @@ class IdPApp(EduIDBaseApp):
 
         self.logger.info('eduid-IdP application started')
 
-        self.context = IdPContext(
-            config=self.config,
-            idp=self.IDP,
-            logger=self.logger,
-            sso_sessions=self.sso_sessions,
-            actions_db=self.actions_db,
-            authn=self.authn,
-        )
 
     def _lookup_sso_session(self) -> Optional[SSOSession]:
         """
@@ -144,7 +134,7 @@ class IdPApp(EduIDBaseApp):
 
         _session_id = self.get_sso_session_id()
         if _session_id:
-            _data = self.context.sso_sessions.get_session(sso_cache.SSOSessionId(_session_id))
+            _data = self.sso_sessions.get_session(sso_cache.SSOSessionId(_session_id))
             self.logger.debug(f'Looked up SSO session using session ID {_session_id}:\n{_data}')
 
         if not _data:

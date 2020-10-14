@@ -123,74 +123,75 @@ def _transport_encode(data):
     return b64encode(''.join(data.split('\n')))
 
 
-def make_login_ticket(req_class_ref, context, key=None) -> SSOLoginData:
-    xmlstr = make_SAML_request(class_ref=req_class_ref)
-    info = {'SAMLRequest': xmlstr}
-    binding = 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST'
-    if key is None:
-        key = 'unique-key-for-request-1'
-    saml_req = parse_SAMLRequest(
-        info,
-        binding,
-        context.logger,
-        context.idp,
-        BadRequest,
-        context.config.debug,
-        context.config.verify_request_signatures,
-    )
-    # context.idp.parse_authn_request(xmlstr, binding)
-    ticket = SSOLoginData(key, xmlstr, binding)
-    ticket.saml_req = saml_req
-    return ticket
+class SSOIdPTests(IdPTests):
 
+    def _make_login_ticket(self, req_class_ref, key=None) -> SSOLoginData:
+        xmlstr = make_SAML_request(class_ref=req_class_ref)
+        info = {'SAMLRequest': xmlstr}
+        binding = 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST'
+        if key is None:
+            key = 'unique-key-for-request-1'
+        saml_req = self._parse_SAMLRequest(
+            info,
+            binding,
+            self.app.logger,
+            self.app.IDP,
+            BadRequest,
+            self.app.config.debug,
+            self.app.config.verify_request_signatures,
+        )
+        # context.idp.parse_authn_request(xmlstr, binding)
+        ticket = SSOLoginData(key, xmlstr, binding)
+        ticket.saml_req = saml_req
+        return ticket
 
-def parse_SAMLRequest(
-    info: Mapping,
-    binding: str,
-    logger: logging.Logger,
-    idp: saml2.server.Server,
-    bad_request,
-    debug: bool = False,
-    verify_request_signatures=True,
-) -> IdP_SAMLRequest:
+    def _parse_SAMLRequest(self,
+                           info: Mapping,
+                           binding: str,
+                           logger: logging.Logger,
+                           idp: saml2.server.Server,
+                           bad_request,
+                           debug: bool = False,
+                           verify_request_signatures=True,
+                           ) -> IdP_SAMLRequest:
 
-    """
-    Parse a SAMLRequest query parameter (base64 encoded) into an AuthnRequest
-    instance.
+        """
+        Parse a SAMLRequest query parameter (base64 encoded) into an AuthnRequest
+        instance.
 
-    If the SAMLRequest is signed, the signature is validated and a BadRequest()
-    returned on failure.
+        If the SAMLRequest is signed, the signature is validated and a BadRequest()
+        returned on failure.
 
-    :param info: dict with keys 'SAMLRequest' and possibly 'SigAlg' and 'Signature'
-    :param binding: SAML binding
-    :returns: pysaml2 interface class IdP_SAMLRequest
-    :raise: BadRequest if request signature validation fails
-    """
-    try:
-        saml_req = IdP_SAMLRequest(info['SAMLRequest'], binding, idp, logger, debug=debug)
-    except UnravelError:
-        raise bad_request('No valid SAMLRequest found', logger=logger)
-    except ValueError:
-        raise bad_request('No valid SAMLRequest found', logger=logger)
+        :param info: dict with keys 'SAMLRequest' and possibly 'SigAlg' and 'Signature'
+        :param binding: SAML binding
+        :returns: pysaml2 interface class IdP_SAMLRequest
+        :raise: BadRequest if request signature validation fails
+        """
+        try:
+            saml_req = IdP_SAMLRequest(info['SAMLRequest'], binding, idp, logger, debug=debug)
+        except UnravelError:
+            raise bad_request('No valid SAMLRequest found', logger=logger)
+        except ValueError:
+            raise bad_request('No valid SAMLRequest found', logger=logger)
 
-    if 'SigAlg' in info and 'Signature' in info:  # Signed request
-        if verify_request_signatures:
-            if not saml_req.verify_signature(info['SigAlg'], info['Signature']):
-                raise bad_request('SAML request signature verification failure', logger=logger)
+        if 'SigAlg' in info and 'Signature' in info:  # Signed request
+            if verify_request_signatures:
+                if not saml_req.verify_signature(info['SigAlg'], info['Signature']):
+                    raise bad_request('SAML request signature verification failure', logger=logger)
+            else:
+                logger.debug('Ignoring existing request signature, verify_request_signature is False')
         else:
-            logger.debug('Ignoring existing request signature, verify_request_signature is False')
-    else:
-        # XXX check if metadata says request should be signed ???
-        # Leif says requests are typically not signed, and that verifying signatures
-        # on SAML requests is considered a possible DoS attack vector, so it is typically
-        # not done.
-        # XXX implement configuration flag to disable signature verification
-        logger.debug('No signature in SAMLRequest')
+            # XXX check if metadata says request should be signed ???
+            # Leif says requests are typically not signed, and that verifying signatures
+            # on SAML requests is considered a possible DoS attack vector, so it is typically
+            # not done.
+            # XXX implement configuration flag to disable signature verification
+            logger.debug('No signature in SAMLRequest')
 
-    return saml_req
+        return saml_req
 
 
-class TestSSO(IdPTests):
+class TestSSO(SSOIdPTests):
 
     # ------------------------------------------------------------------------
     def get_user_set_nins(self, eppn: str, nins: Sequence[str]) -> IdPUser:
@@ -221,7 +222,7 @@ class TestSSO(IdPTests):
     def _get_login_response_authn(self, req_class_ref, credentials=[], user=None):
         if user is None:
             user = self.get_user_set_nins(self.test_user.eppn, [])
-        ticket = make_login_ticket(req_class_ref, self.app.context)
+        ticket = self._make_login_ticket(req_class_ref)
 
         sso_session_1 = SSOSession(user_id=user.eppn, authn_request_id='some-unique-id-1')
         if 'u2f' in credentials and not user.credentials.filter(U2F).to_list():
