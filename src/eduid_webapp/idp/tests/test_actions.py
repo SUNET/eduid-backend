@@ -157,15 +157,13 @@ class TestActions(IdPTests):
 
     def test_add_mfa_action_old_key(self):
         self.actions.remove_action_by_id(self.test_action.action_id)
-        u2f = U2F.from_dict(
-            dict(
-                version='U2F_V2',
-                app_id='https://dev.eduid.se/u2f-app-id.json',
-                keyhandle='test_key_handle',
-                public_key='test_public_key',
-                attest_cert='test_attest_cert',
-                description='test_description',
-            )
+        u2f = U2F(
+            version='U2F_V2',
+            app_id='https://dev.eduid.se/u2f-app-id.json',
+            keyhandle='test_key_handle',
+            public_key='test_public_key',
+            attest_cert='test_attest_cert',
+            description='test_description',
         )
         self.test_user.credentials.add(u2f)
         self.amdb.save(self.test_user, check_sync=False)
@@ -176,34 +174,31 @@ class TestActions(IdPTests):
 
     def test_add_mfa_action_new_key(self):
         self.actions.remove_action_by_id(self.test_action.action_id)
-        webauthn = Webauthn.from_dict(
-            dict(
-                keyhandle='test_key_handle',
-                credential_data='test_credential_data',
-                app_id='https://dev.eduid.se/u2f-app-id.json',
-                attest_obj='test_attest_obj',
-                description='test_description',
-            )
+        webauthn = Webauthn(
+            keyhandle='test_key_handle',
+            credential_data='test_credential_data',
+            app_id='https://dev.eduid.se/u2f-app-id.json',
+            attest_obj='test_attest_obj',
+            description='test_description',
         )
         self.test_user.credentials.add(webauthn)
         self.amdb.save(self.test_user, check_sync=False)
 
         mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
 
-        mfa_add_actions(self.app.context, self.test_user, mock_ticket)
+        with self.app.app_context():
+            mfa_add_actions(self.app.context, self.test_user, mock_ticket)
         self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), 1)
 
     def test_add_mfa_action_no_db(self):
         """ Make sure a user doesn't get stuck trying to log in if there is no action db """
         self.actions.remove_action_by_id(self.test_action.action_id)
-        webauthn = Webauthn.from_dict(
-            dict(
-                keyhandle='test_key_handle',
-                credential_data='test_credential_data',
-                app_id='https://dev.eduid.se/u2f-app-id.json',
-                attest_obj='test_attest_obj',
-                description='test_description',
-            )
+        webauthn = Webauthn(
+            keyhandle='test_key_handle',
+            credential_data='test_credential_data',
+            app_id='https://dev.eduid.se/u2f-app-id.json',
+            attest_obj='test_attest_obj',
+            description='test_description',
         )
         self.test_user.credentials.add(webauthn)
         self.amdb.save(self.test_user, check_sync=False)
@@ -217,14 +212,12 @@ class TestActions(IdPTests):
 
     def _test_add_2nd_mfa_action(self, success=True, authn_context=True, cred_key=None, actions=0) -> SSOLoginData:
         self.actions.remove_action_by_id(self.test_action.action_id)
-        webauthn = Webauthn.from_dict(
-            dict(
-                keyhandle='test_key_handle',
-                credential_data='test_credential_data',
-                app_id='https://dev.eduid.se/u2f-app-id.json',
-                attest_obj='test_attest_obj',
-                description='test_description',
-            )
+        webauthn = Webauthn(
+            keyhandle='test_key_handle',
+            credential_data='test_credential_data',
+            app_id='https://dev.eduid.se/u2f-app-id.json',
+            attest_obj='test_attest_obj',
+            description='test_description',
         )
         self.test_user.credentials.add(webauthn)
         self.amdb.save(self.test_user, check_sync=False)
@@ -242,9 +235,10 @@ class TestActions(IdPTests):
         }
         self.actions.update_action(completed_action)
 
-        mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
-        mfa_add_actions(self.app.context, self.test_user, mock_ticket)
-        self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), actions)
+        with self.app.app_context():
+            mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
+            mfa_add_actions(self.app.context, self.test_user, mock_ticket)
+            self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), actions)
         return mock_ticket
 
     def test_add_mfa_action_already_authn(self):
@@ -272,37 +266,35 @@ class TestActions(IdPTests):
     def test_add_tou_action_already_accepted(self):
         event_id = bson.ObjectId()
         self.test_user.tou.add(
-            ToUEvent.from_dict(
-                dict(
-                    version='mock-version',
-                    created_by='test_tou_plugin',
-                    created_ts=datetime.utcnow(),
-                    event_id=event_id,
-                )
+            ToUEvent(
+                version='mock-version',
+                created_by='test_tou_plugin',
+                created_ts=datetime.utcnow(),
+                event_id=str(event_id),
             )
         )
         self.actions.remove_action_by_id(self.test_action.action_id)
 
-        mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
-        tou_add_actions(self.app.context, self.test_user, mock_ticket)
+        with self.app.app_context():
+            mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
+            tou_add_actions(self.app.context, self.test_user, mock_ticket)
         self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), 0)
 
     def test_add_tou_action_already_accepted_other_version(self):
         event_id = bson.ObjectId()
         self.test_user.tou.add(
-            ToUEvent.from_dict(
-                dict(
-                    version='mock-version-2',
-                    created_by='test_tou_plugin',
-                    created_ts=datetime.utcnow(),
-                    event_id=event_id,
-                )
+            ToUEvent(
+                version='mock-version-2',
+                created_by='test_tou_plugin',
+                created_ts=datetime.utcnow(),
+                event_id=str(event_id),
             )
         )
         self.actions.remove_action_by_id(self.test_action.action_id)
 
-        mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
-        tou_add_actions(self.app.context, self.test_user, mock_ticket)
+        with self.app.app_context():
+            mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
+            tou_add_actions(self.app.context, self.test_user, mock_ticket)
         self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), 1)
 
     def test_add_tou_action_already_action(self):
@@ -311,8 +303,9 @@ class TestActions(IdPTests):
         )
         self.actions.remove_action_by_id(self.test_action.action_id)
 
-        mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
-        tou_add_actions(self.app.context, self.test_user, mock_ticket)
+        with self.app.app_context():
+            mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
+            tou_add_actions(self.app.context, self.test_user, mock_ticket)
         self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), 1)
 
     def test_add_tou_action_already_action_other_version(self):
@@ -321,25 +314,25 @@ class TestActions(IdPTests):
         )
         self.actions.remove_action_by_id(self.test_action.action_id)
 
-        mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
-        tou_add_actions(self.app.context, self.test_user, mock_ticket)
+        with self.app.app_context():
+            mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
+            tou_add_actions(self.app.context, self.test_user, mock_ticket)
         self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), 2)
 
     def test_add_tou_action_should_reaccept(self):
         event_id = bson.ObjectId()
         self.test_user.tou.add(
-            ToUEvent.from_dict(
-                dict(
-                    version='mock-version',
-                    created_by='test_tou_plugin',
-                    created_ts=datetime(2015, 9, 24, 1, 1, 1, 111111),
-                    modified_ts=datetime(2015, 9, 24, 1, 1, 1, 111111),
-                    event_id=event_id,
-                )
+            ToUEvent(
+                version='mock-version',
+                created_by='test_tou_plugin',
+                created_ts=datetime(2015, 9, 24, 1, 1, 1, 111111),
+                modified_ts=datetime(2015, 9, 24, 1, 1, 1, 111111),
+                event_id=str(event_id),
             )
         )
         self.actions.remove_action_by_id(self.test_action.action_id)
 
-        mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
-        tou_add_actions(self.app.context, self.test_user, mock_ticket)
+        with self.app.app_context():
+            mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
+            tou_add_actions(self.app.context, self.test_user, mock_ticket)
         self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), 1)
