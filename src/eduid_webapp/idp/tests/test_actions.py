@@ -194,6 +194,7 @@ class TestActions(IdPTests):
         self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), 1)
 
     def test_add_mfa_action_no_db(self):
+        """ Make sure a user doesn't get stuck trying to log in if there is no action db """
         self.actions.remove_action_by_id(self.test_action.action_id)
         webauthn = Webauthn.from_dict(
             dict(
@@ -207,9 +208,11 @@ class TestActions(IdPTests):
         self.test_user.credentials.add(webauthn)
         self.amdb.save(self.test_user, check_sync=False)
 
-        mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
-        with self.assertRaises(AttributeError):
-            mfa_add_actions(self.app, self.test_user, mock_ticket)
+        with self.app.app_context():
+            mock_ticket = make_login_ticket(req_class_ref=SWAMID_AL2, context=self.app.context, key='mock-session')
+            self.app.actions_db = None
+            assert mfa_add_actions(self.app.context, self.test_user, mock_ticket) is None
+        # ensure no action was added when self.app.actions_db is None
         self.assertEqual(len(self.actions.get_actions(self.test_user.eppn, 'mock-session')), 0)
 
     def _test_add_2nd_mfa_action(self, success=True, authn_context=True, cred_key=None, actions=0) -> SSOLoginData:
