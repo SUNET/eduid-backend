@@ -124,7 +124,6 @@ def _transport_encode(data):
 
 
 class SSOIdPTests(IdPTests):
-
     def _make_login_ticket(self, req_class_ref, key=None) -> SSOLoginData:
         xmlstr = make_SAML_request(class_ref=req_class_ref)
         info = {'SAMLRequest': xmlstr}
@@ -145,15 +144,16 @@ class SSOIdPTests(IdPTests):
         ticket.saml_req = saml_req
         return ticket
 
-    def _parse_SAMLRequest(self,
-                           info: Mapping,
-                           binding: str,
-                           logger: logging.Logger,
-                           idp: saml2.server.Server,
-                           bad_request,
-                           debug: bool = False,
-                           verify_request_signatures=True,
-                           ) -> IdP_SAMLRequest:
+    def _parse_SAMLRequest(
+        self,
+        info: Mapping,
+        binding: str,
+        logger: logging.Logger,
+        idp: saml2.server.Server,
+        bad_request,
+        debug: bool = False,
+        verify_request_signatures=True,
+    ) -> IdP_SAMLRequest:
 
         """
         Parse a SAMLRequest query parameter (base64 encoded) into an AuthnRequest

@@ -17,6 +17,7 @@ from typing import Any, Dict
 from flask import request
 
 from eduid_common.session.sso_session import SSOSession
+
 from eduid_webapp.idp import mischttp
 
 
