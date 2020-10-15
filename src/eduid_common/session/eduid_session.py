@@ -15,13 +15,13 @@ from flask.sessions import SessionInterface, SessionMixin
 from eduid_common.config.base import FlaskConfig, RedisConfig
 from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.session.logindata import SSOLoginData
-from eduid_common.session.namespaces import Actions, Common, MfaAction, ResetPasswordNS, SessionNSBase, Signup
-from eduid_common.session.redis_session import RedisEncryptedSession, SessionManager, SessionOutOfSync
 
 # From https://stackoverflow.com/a/39757388
 # The TYPE_CHECKING constant is always False at runtime, so the import won't be evaluated, but mypy
 # (and other type-checking tools) will evaluate the contents of that block.
 from eduid_common.session.meta import SessionMeta
+from eduid_common.session.namespaces import Actions, Common, MfaAction, ResetPasswordNS, SessionNSBase, Signup
+from eduid_common.session.redis_session import RedisEncryptedSession, SessionManager, SessionOutOfSync
 
 if TYPE_CHECKING:
     from eduid_common.api.app import EduIDBaseApp
@@ -229,7 +229,7 @@ class EduidSession(SessionMixin, MutableMapping):
             response.delete_cookie(
                 key=self.app.config.session_cookie_name,
                 path=self.app.config.session_cookie_path,
-                domain=self.app.config.session_cookie_domain
+                domain=self.app.config.session_cookie_domain,
             )
             return
         response.set_cookie(
