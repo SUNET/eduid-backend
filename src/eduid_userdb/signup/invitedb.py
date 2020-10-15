@@ -61,7 +61,7 @@ class SignupInviteDB(BaseDB):
         if isinstance(reference, SCIMReference):
             spec = {'invite_reference.scim_id': reference.scim_id, 'invite_reference.data_owner': reference.data_owner}
         else:
-            raise NotImplemented(f'Reference of type {type(reference)} not implemented.')
+            raise NotImplementedError(f'Reference of type {type(reference)} not implemented.')
         docs = self._get_documents_by_filter(spec=spec, raise_on_missing=False)
         if len(docs) > 1:
             raise MultipleDocumentsReturned(f'Multiple matching documents for {repr(spec)}')
