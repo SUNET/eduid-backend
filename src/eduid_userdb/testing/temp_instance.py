@@ -104,19 +104,19 @@ class EduidTemporaryInstance(ABC):
 
         Return True on success.
         """
-        raise NotImplemented('All subclasses of EduidTemporaryInstance must implement setup_conn')
+        raise NotImplementedError('All subclasses of EduidTemporaryInstance must implement setup_conn')
 
     @property
     @abstractmethod
     def conn(self) -> Any:
         """ Return the initialised _conn instance. No default since it ought to be typed in the subclasses. """
-        raise NotImplemented('All subclasses of EduidTemporaryInstance should implement the conn property')
+        raise NotImplementedError('All subclasses of EduidTemporaryInstance should implement the conn property')
 
     @property
     @abstractmethod
     def command(self) -> Sequence[str]:
         """ This is the shell command to start the temporary instance. """
-        raise NotImplemented('All subclasses of EduidTemporaryInstance must implement the command property')
+        raise NotImplementedError('All subclasses of EduidTemporaryInstance must implement the command property')
 
     @property
     def port(self) -> int:
