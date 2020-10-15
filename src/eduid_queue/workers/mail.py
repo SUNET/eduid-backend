@@ -6,10 +6,9 @@ from typing import Optional, cast
 
 from aiosmtplib import SMTP
 
-from eduid_userdb.q import QueueItem, TestPayload
-from eduid_userdb.q.message import EduidInviteEmail
-
 from eduid_queue.config import QueueWorkerConfig
+from eduid_queue.db import QueueItem, TestPayload
+from eduid_queue.db.message import EduidInviteEmail
 from eduid_queue.decorators import TransactionAudit
 from eduid_queue.misc import slow_print
 from eduid_queue.workers.base import QueueWorker

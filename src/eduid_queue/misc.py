@@ -4,7 +4,7 @@ import asyncio
 import logging
 from random import randint
 
-from eduid_userdb.q import QueueItem, TestPayload
+from eduid_queue.db import QueueItem, TestPayload
 
 __author__ = 'lundberg'
 
