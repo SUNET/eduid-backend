@@ -15,16 +15,18 @@ from flask.sessions import SessionInterface, SessionMixin
 from eduid_common.config.base import FlaskConfig, RedisConfig
 from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.session.logindata import SSOLoginData
+from eduid_common.session.meta import SessionMeta
 from eduid_common.session.namespaces import Actions, Common, MfaAction, ResetPasswordNS, SessionNSBase, Signup
 from eduid_common.session.redis_session import RedisEncryptedSession, SessionManager, SessionOutOfSync
 
-# From https://stackoverflow.com/a/39757388
-# The TYPE_CHECKING constant is always False at runtime, so the import won't be evaluated, but mypy
-# (and other type-checking tools) will evaluate the contents of that block.
-from eduid_common.session.meta import SessionMeta
-
 if TYPE_CHECKING:
+    # From https://stackoverflow.com/a/39757388
+    # The TYPE_CHECKING constant is always False at runtime, so the import won't be evaluated, but mypy
+    # (and other type-checking tools) will evaluate the contents of this block.
     from eduid_common.api.app import EduIDBaseApp
+
+    # keep pycharm from optimising away the above import
+    assert EduIDBaseApp
 
 logger = logging.getLogger(__name__)
 
@@ -160,12 +162,15 @@ class EduidSession(SessionMixin, MutableMapping):
     @property
     def sso_ticket(self) -> Optional[SSOLoginData]:
         if not self._sso_ticket:
-            try:
-                self._sso_ticket = SSOLoginData.from_dict(self._session.get('_sso_ticket', {}))
-            except Exception:
-                logger.exception('Failed parsing SSOLoginData')
-                self._sso_ticket = None
-        return self._sso_ticket
+            data = self._session.get('_sso_ticket', {})
+            if 'key' in data:
+                try:
+                    self._sso_ticket = SSOLoginData.from_dict(data)
+                except Exception:
+                    logger.exception('Failed parsing SSOLoginData')
+                    self._sso_ticket = None
+            return self._sso_ticket
+        return None
 
     @sso_ticket.setter
     def sso_ticket(self, value: Optional[SSOLoginData]):
@@ -226,7 +231,7 @@ class EduidSession(SessionMixin, MutableMapping):
             response.delete_cookie(
                 key=self.app.config.session_cookie_name,
                 path=self.app.config.session_cookie_path,
-                domain=self.app.config.session_cookie_domain
+                domain=self.app.config.session_cookie_domain,
             )
             return
         response.set_cookie(

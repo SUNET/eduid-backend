@@ -60,6 +60,7 @@ class UnregisteredAction(Exception):
 @unique
 class AcsAction(Enum):
     """ Subclass this enum in SAML2 SP applications and use it with the @acs_actions decorator """
+
     pass
 
 
