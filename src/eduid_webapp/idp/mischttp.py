@@ -14,22 +14,62 @@ Miscellaneous HTTP related functions.
 """
 
 import pprint
-from logging import Logger
-from typing import Any, Dict, Mapping, Optional
+from dataclasses import dataclass
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 from flask import Response as FlaskResponse
 from flask import make_response, redirect, request
-from saml2 import BINDING_HTTP_REDIRECT
-from werkzeug.exceptions import BadRequest
+from werkzeug.exceptions import BadRequest, InternalServerError
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid_common.api.sanitation import SanitationProblem, Sanitizer
-
 from eduid_webapp.idp.app import current_idp_app as current_app
 from eduid_webapp.idp.settings.common import IdPConfig
+from saml2 import BINDING_HTTP_REDIRECT
 
+@dataclass
+class HttpArgs():
+    """ Dataclass to remove the ambiguities of pysaml2:s apply_binding() return value """
+    method: str
+    url: str
+    headers: Sequence[Tuple[str, str]]
+    body: Optional[str]
 
-def create_html_response(binding: str, http_args: Dict[str, str]) -> WerkzeugResponse:
+    @classmethod
+    def from_pysaml2_dict(cls, http_args):
+        # Parse the parts of http_args we know how to parse, and then warn about any remains.
+        if 'status' in http_args:
+            current_app.logger.warning(f'Ignoring status in http_args: {http_args["status"]}')
+        method = http_args.pop('method')
+        url = http_args.pop('url')
+        message = http_args.pop('data')
+        status = http_args.pop('status', '200 Ok')
+        headers = http_args.pop('headers', [])
+        headers_lc = [x[0].lower() for x in headers]
+        if 'content-type' not in headers_lc:
+            _content_type = http_args.pop('content', 'text/html')
+            headers.append(('Content-Type', _content_type))
+
+        if http_args != {}:
+            current_app.logger.debug(
+                f'Unknown HTTP args when creating {status!r} response :\n{pprint.pformat(http_args)!s}'
+            )
+
+        return cls(method=method, url=url, headers=headers, body=message)
+
+    @property
+    def redirect_url(self) -> Optional[str]:
+        """
+        Get the destination URL for a redirect.
+
+        Use the header Location first, and secondly 'url' from http_args.
+        """
+        for k, v in self.headers:
+            if k.lower() == 'location':
+                return v
+        return self.url
+
+def create_html_response(binding: str, http_args: Dict[str, Union[str, List[Tuple[str, str]]]]) -> WerkzeugResponse:
     """
     Create a HTML response based on parameters compiled by pysaml2 functions
     like apply_binding().
@@ -38,38 +78,30 @@ def create_html_response(binding: str, http_args: Dict[str, str]) -> WerkzeugRes
     :param http_args: response data
     :return: HTML response
     """
+    args = HttpArgs.from_pysaml2_dict(http_args)
     if binding == BINDING_HTTP_REDIRECT:
-        _urls = [v for (k, v) in http_args['headers'] if k == 'Location']
-        location = None
-        if _urls:
-            location = _urls[0]
+        if args.method is not 'GET':
+            current_app.logger.warning(f'BINDING_HTTP_REDIRECT method is not GET ({args.method})')
+        location = args.redirect_url
         current_app.logger.debug(f'Binding {binding} redirecting to {location!r}')
-        if 'url' in http_args:
-            _new_url = http_args.pop('url')  # less debug log below
-            if location and not location.startswith(_new_url):
-                current_app.logger.warning(f'There is another "url" in http_args : {_new_url}')
-            if not location:
-                location = _new_url
+        if args.url:
+            if not location.startswith(args.url):
+                current_app.logger.warning(f'There is another "url" in args: {args.url} (location: {location})')
+        if not location:
+            raise InternalServerError('No redirect destination')
         return redirect(location)
 
-    # Parse the parts of http_args we know how to parse, and then warn about any remains.
-    message = http_args.pop('data')
-    status = http_args.pop('status', '200 Ok')
-    headers = http_args.pop('headers', [])
-    headers_lc = [x[0].lower() for x in headers]
-    if 'content-type' not in headers_lc:
-        _content_type = http_args.pop('content', 'text/html')
-        headers.append(('Content-Type', _content_type))
-
-    if http_args != {}:
-        current_app.logger.debug(
-            f'Unknown HTTP args when creating {status!r} response :\n{pprint.pformat(http_args)!s}'
-        )
-
+    message = args.body
     if not isinstance(message, bytes):
         message = bytes(message, 'utf-8')
 
-    return make_response(message)
+    response = make_response(message)
+    for k, v in args.headers:
+        _old_v = response.headers.get(k)
+        if v != _old_v:
+            current_app.logger.debug(f'Changing response header {repr(k)} from {repr(_old_v)} -> {repr(v)}')
+            response.headers[k] = v
+    return response
 
 
 def geturl(query=True, path=True):
@@ -85,13 +117,11 @@ def geturl(query=True, path=True):
     return request.url
 
 
-def get_post(logger: Logger) -> Dict[str, Any]:
+def get_post() -> Dict[str, Any]:
     """
     Return the parsed query string equivalent from a HTML POST request.
 
     When the method is POST the query string will be sent in the HTTP request body.
-
-    :param logger: A logger object
 
     :return: query string
     """

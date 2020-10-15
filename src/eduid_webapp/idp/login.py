@@ -21,7 +21,7 @@ from html import escape, unescape
 from typing import Mapping, Optional
 
 from defusedxml import ElementTree as DefusedElementTree
-from flask import redirect, render_template, request
+from flask import make_response, redirect, render_template, request
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest, Forbidden, InternalServerError, TooManyRequests
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -291,7 +291,7 @@ class SSO(Service):
         # Decide what AuthnContext to assert based on the one requested in the request
         # and the authentication performed
 
-        req_authn_context = get_requested_authn_context(ticket.saml_req, current_app.logger)
+        req_authn_context = get_requested_authn_context(ticket.saml_req)
 
         try:
             resp_authn = assurance.response_authn(req_authn_context, user, self.sso_session, current_app.logger)
@@ -315,11 +315,10 @@ class SSO(Service):
         # Augment the AuthnInfo with the authn_timestamp before returning it
         return replace(resp_authn, instant=self.sso_session.authn_timestamp)
 
-    def redirect(self) -> bytes:
+    def redirect(self) -> WerkzeugResponse:
         """This is the HTTP-redirect endpoint.
 
         :return: HTTP response
-        :rtype: string
         """
         current_app.logger.debug("--- In SSO Redirect ---")
         _info = self.unpack_redirect()
@@ -328,12 +327,11 @@ class SSO(Service):
         ticket = _get_ticket(_info, BINDING_HTTP_REDIRECT)
         return self._redirect_or_post(ticket)
 
-    def post(self) -> bytes:
+    def post(self) -> WerkzeugResponse:
         """
         The HTTP-Post endpoint
 
         :return: HTTP response
-        :rtype: string
         """
         current_app.logger.debug("--- In SSO POST ---")
         _info = self.unpack_either()
@@ -341,7 +339,7 @@ class SSO(Service):
         ticket = _get_ticket(_info, BINDING_HTTP_POST)
         return self._redirect_or_post(ticket)
 
-    def _redirect_or_post(self, ticket: SSOLoginData) -> bytes:
+    def _redirect_or_post(self, ticket: SSOLoginData) -> WerkzeugResponse:
         """ Common code for redirect() and post() endpoints. """
 
         if self.sso_session:
@@ -393,7 +391,7 @@ class SSO(Service):
             )
         return False
 
-    def _not_authn(self, ticket: SSOLoginData) -> bytes:
+    def _not_authn(self, ticket: SSOLoginData) -> WerkzeugResponse:
         """
         Authenticate user. Either, the user hasn't logged in yet,
         or the service provider forces re-authentication.
@@ -403,12 +401,12 @@ class SSO(Service):
         assert isinstance(ticket, SSOLoginData)
         redirect_uri = mischttp.geturl(query=False)
 
-        req_authn_context = get_requested_authn_context(ticket.saml_req, current_app.logger)
+        req_authn_context = get_requested_authn_context(ticket.saml_req)
         current_app.logger.debug(f'Do authentication, requested auth context : {req_authn_context!r}')
 
         return self._show_login_page(ticket, req_authn_context, redirect_uri)
 
-    def _show_login_page(self, ticket: SSOLoginData, requested_authn_context: Optional[str], redirect_uri) -> bytes:
+    def _show_login_page(self, ticket: SSOLoginData, requested_authn_context: Optional[str], redirect_uri) -> WerkzeugResponse:
         """
         Display the login form for all authentication methods.
 
@@ -427,7 +425,6 @@ class SSO(Service):
             {
                 'action': '/verify',
                 'alert_msg': '',
-                'authn_reference': requested_authn_context,
                 'failcount': ticket.FailCount,
                 # TODO: remove key from response, doesn't seem to be needed
                 'key': ticket.key,
@@ -440,6 +437,8 @@ class SSO(Service):
                 'binding': escape(ticket.binding, quote=True),
             }
         )
+        if requested_authn_context is not None:
+            argv['authn_reference'] = requested_authn_context
 
         # Set alert msg if FailCount is greater than zero
         if ticket.FailCount:
@@ -452,7 +451,8 @@ class SSO(Service):
 
         current_app.logger.debug(f'Login page HTML substitution arguments :\n{pprint.pformat(argv)}')
 
-        return render_template('login.jinja2', **argv)
+        html = render_template('login.jinja2', **argv)
+        return make_response(html)
 
 
 # -----------------------------------------------------------------------------
@@ -475,7 +475,7 @@ def do_verify():
     :return: Does not return
     :raise eduid_idp.mischttp.Redirect: On successful authentication, redirect to redirect_uri.
     """
-    query = mischttp.get_post(current_app.logger)
+    query = mischttp.get_post()
     # extract password to keep it away from as much code as possible
     password = query.pop('password', None)
     if password:

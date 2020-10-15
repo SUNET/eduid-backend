@@ -60,7 +60,7 @@ class IdPApp(EduIDBaseApp):
         self.config = IdPConfig.init_config(ns='webapp', app_name=name, test_config=config)
         super().__init__(name, **kwargs)
         # cast self.config because sometimes mypy thinks it is a FlaskConfig after super().__init__()
-        self.config: IdPConfig = cast(IdPConfig, self.config)
+        self.config: IdPConfig = cast(IdPConfig, self.config)  # type: ignore
         # Init dbs
         # self.private_userdb = IdPUserDB(self.config.mongo_uri)
         # Initiate external modules

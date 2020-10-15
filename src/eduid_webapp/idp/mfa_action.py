@@ -62,7 +62,7 @@ def add_actions(user: IdPUser, ticket: SSOLoginData) -> Optional[Action]:
         return None
 
     require_mfa = False
-    requested_authn_context = get_requested_authn_context(ticket.saml_req, current_app.logger)
+    requested_authn_context = get_requested_authn_context(ticket.saml_req)
     if requested_authn_context in [
         'https://refeds.org/profile/mfa',
         'https://www.swamid.se/specs/id-fido-u2f-ce-transports',

@@ -12,22 +12,22 @@
 """
 Common code for SSO login/logout requests.
 """
+from abc import ABC
 from typing import Any, Dict
 
 from flask import request
 
 from eduid_common.session.sso_session import SSOSession
+from eduid_webapp.idp.app import current_idp_app as current_app
 
 from eduid_webapp.idp import mischttp
 
 
-class Service(object):
+class Service(ABC):
     """
     Base service class. Common code for SSO and SLO classes.
 
     :param session: SSO session
-    :param start_response: WSGI-like start_response function pointer
-    :param context: IdP context
     """
 
     def __init__(self, sso_session: SSOSession):
@@ -38,7 +38,6 @@ class Service(object):
         Unpack redirect (GET) parameters.
 
         :return: query parameters as dict
-        :rtype: dict
         """
         return mischttp.parse_query_string()
 
@@ -47,10 +46,9 @@ class Service(object):
         Unpack POSTed parameters.
 
         :return: query parameters as dict
-        :rtype: dict
         """
-        info = mischttp.get_post(self.logger)
-        self.logger.debug(f"unpack_post:: {info}")
+        info = mischttp.get_post()
+        current_app.logger.debug(f"unpack_post:: {info}")
         try:
             return dict([(k, v) for k, v in info.items()])
         except AttributeError:
@@ -68,7 +66,7 @@ class Service(object):
             _dict = self.unpack_post()
         else:
             _dict = {}
-        self.logger.debug(f"Unpacked {request.method!r}, _dict: {_dict!s}")
+        current_app.logger.debug(f"Unpacked {request.method!r}, _dict: {_dict!s}")
         return _dict
 
     def redirect(self):

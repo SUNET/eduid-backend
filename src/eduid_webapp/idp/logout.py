@@ -240,7 +240,7 @@ class SLO(Service):
         )
         # Only perform expensive parse/pretty-print if debugging
         if current_app.config.debug:
-            xmlstr = maybe_xml_to_string(response, logger=current_app.logger)
+            xmlstr = maybe_xml_to_string(response)
             current_app.logger.debug(f'Logout SAMLResponse :\n\n{xmlstr}\n\n')
 
         ht_args = current_app.IDP.apply_binding(
