@@ -73,7 +73,7 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
     Base class for eduID apps, initializing common features and facilities.
     """
 
-    def __init__(self, name: str, init_central_userdb: bool = True, **kwargs):
+    def __init__(self, name: str, init_central_userdb: bool = True, handle_exceptions: bool = True, **kwargs):
         """
         :param name: name of the app
         :param config_class: the dataclass with configuration settings
@@ -111,7 +111,8 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
 
         # Initialize shared features
         init_logging(self)
-        init_exception_handlers(self)
+        if handle_exceptions:
+            init_exception_handlers(self)
         init_sentry(self)
         init_template_functions(self)
         self.stats = init_app_stats(self)
