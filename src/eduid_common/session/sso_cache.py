@@ -23,7 +23,7 @@ from eduid_userdb import MongoDB
 _SHA1_HEXENCODED_SIZE = 160 // 8 * 2
 
 # A distinct type for session ids
-SSOSessionId = NewType('SSOSessionId', bytes)
+SSOSessionId = NewType('SSOSessionId', str)
 
 
 class NoOpLock(object):
@@ -233,7 +233,7 @@ class SSOSessionCache(ABC):
         The uniqueness and unability to guess is security critical!
         :return: session_id as bytes (to match what cookie decoding yields)
         """
-        return SSOSessionId(str(uuid.uuid4()).encode('utf-8'))
+        return SSOSessionId(str(uuid.uuid4()))
 
 
 class SSOSessionCacheMem(SSOSessionCache):
