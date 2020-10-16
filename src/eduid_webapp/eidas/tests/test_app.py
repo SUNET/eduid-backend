@@ -18,8 +18,8 @@ from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.cache import OutstandingQueriesCache
 from eduid_userdb.credentials import U2F, Webauthn
 from eduid_userdb.credentials.fido import FidoCredential
-from eduid_webapp.eidas.acs_actions import EidasAcsAction
 
+from eduid_webapp.eidas.acs_actions import EidasAcsAction
 from eduid_webapp.eidas.app import init_eidas_app
 from eduid_webapp.eidas.helpers import EidasMsg
 from eduid_webapp.eidas.settings.common import EidasConfig

@@ -1,0 +1,15 @@
+{% extends "base.jinja2" %}
+
+{% block nav_class_home %}active{% endblock %}
+
+{% block contents %}
+
+      <div class="jumbotron">
+
+          <legend class="">{{ _("Not Found") }}</legend>
+
+          {% trans %}<p>The requested resource could not be found.</p>{% endtrans %}
+
+      </div>
+
+{% endblock %}

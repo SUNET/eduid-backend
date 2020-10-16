@@ -1,0 +1,18 @@
+{% extends "base.jinja2" %}
+
+{% block nav_class_home %}active{% endblock %}
+
+{% block contents %}
+
+      <div class="jumbotron">
+
+          <legend class="">{{ _("Server Error") }} ({{ error_code }})</legend>
+
+   	      {{ error_details }}
+
+          {% trans %}<p>Sorry, but the requested page is unavailable due to a server hiccup.</p>
+          <p>Our engineers have been notified already, so please try again later.</p>{% endtrans %}
+
+      </div>
+
+{% endblock %}
