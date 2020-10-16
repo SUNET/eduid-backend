@@ -40,24 +40,21 @@ import logging
 from typing import Optional, Union
 
 from bson import ObjectId
-from six import string_types
 
-from .user import IdPUser
 from eduid_userdb import UserDB
+from .user import IdPUser
 
 
 class IdPUserDb(object):
     """
     :param logger: logging logger
-    :param config: IdP config
     :param userdb: User database
     """
 
-    def __init__(self, logger: logging.Logger, config: dict, userdb: UserDB = None):
+    def __init__(self, logger: logging.Logger, mongo_uri: str, db_name: str, userdb: UserDB = None):
         self.logger = logger
-        self.config = config
         if userdb is None:
-            userdb = UserDB(config['MONGO_URI'], db_name=config['USERDB_MONGO_DATABASE'], user_class=IdPUser)
+            userdb = UserDB(mongo_uri, db_name=db_name, user_class=IdPUser)
         self.userdb = userdb
 
     def lookup_user(self, username: Union[str, ObjectId]) -> Optional[IdPUser]:
