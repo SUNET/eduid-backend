@@ -80,7 +80,7 @@ def create_html_response(binding: str, http_args: Dict[str, Union[str, List[Tupl
     """
     args = HttpArgs.from_pysaml2_dict(http_args)
     if binding == BINDING_HTTP_REDIRECT:
-        if args.method is not 'GET':
+        if args.method != 'GET':
             current_app.logger.warning(f'BINDING_HTTP_REDIRECT method is not GET ({args.method})')
         location = args.redirect_url
         current_app.logger.debug(f'Binding {binding} redirecting to {location!r}')

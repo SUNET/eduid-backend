@@ -78,7 +78,7 @@
                 {% raw %}
             };
 
-            var msg = '{alert_msg}';
+            var msg = '{{ alert_msg }}';
             if (msg) {
                 if (msg in translations) {
                     $('#alert_msg').text(translations[msg]);
