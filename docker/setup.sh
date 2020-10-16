@@ -9,15 +9,15 @@ set -x
 apt-get update
 apt-get -y install \
     libffi-dev \
-    libtiff5-dev \
-    libjpeg62-turbo-dev \
-    zlib1g-dev \
     libfreetype6-dev \
+    libjpeg62-turbo-dev \
     libssl-dev \
+    libtiff5-dev \
     libxml2-dev \
+    libxml2-utils
     libxslt1-dev \
     xmlsec1 \
-    libxml2-utils
+    zlib1g-dev
 
 apt-get clean
 rm -rf /var/lib/apt/lists/*
