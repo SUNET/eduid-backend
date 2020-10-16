@@ -7,6 +7,7 @@
 -r actions.txt
 -r eidas.txt
 -r group_management.txt
+-r idp.txt
 gunicorn
 blinker
 raven

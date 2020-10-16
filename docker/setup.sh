@@ -14,8 +14,9 @@ apt-get -y install \
     libssl-dev \
     libtiff5-dev \
     libxml2-dev \
-    libxml2-utils
+    libxml2-utils \
     libxslt1-dev \
+    swig \
     xmlsec1 \
     zlib1g-dev
 

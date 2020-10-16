@@ -1,1 +1,1 @@
-pyXMLSecurity[PKCS11]
+pyXMLSecurity[PKCS11]==0.21
