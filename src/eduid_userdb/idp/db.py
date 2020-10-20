@@ -37,12 +37,16 @@
 User and user database module.
 """
 import logging
+import warnings
 from typing import Optional, Union
 
 from bson import ObjectId
 
 from eduid_userdb import UserDB
 from .user import IdPUser
+
+# TODO: Rename to logger
+module_logger = logging.getLogger(__name__)
 
 
 class IdPUserDb(object):
@@ -51,11 +55,14 @@ class IdPUserDb(object):
     :param userdb: User database
     """
 
-    def __init__(self, logger: logging.Logger, mongo_uri: str, db_name: str, userdb: UserDB = None):
+    def __init__(self, logger: Optional[logging.Logger], mongo_uri: str, db_name: str, userdb: UserDB = None):
         self.logger = logger
         if userdb is None:
             userdb = UserDB(mongo_uri, db_name=db_name, user_class=IdPUser)
         self.userdb = userdb
+
+        if self.logger is not None:
+            warnings.warn('Object logger deprecated, using module_logger', DeprecationWarning)
 
     def lookup_user(self, username: Union[str, ObjectId]) -> Optional[IdPUser]:
         """
