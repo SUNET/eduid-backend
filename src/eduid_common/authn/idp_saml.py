@@ -1,4 +1,5 @@
 import logging
+import warnings
 from dataclasses import dataclass
 from hashlib import sha1
 from typing import AnyStr, List, Mapping, NewType, Optional
@@ -13,6 +14,9 @@ from saml2.sigver import verify_redirect_signature
 from eduid_common.authn import utils
 
 ResponseArgs = NewType('ResponseArgs', dict)
+
+# TODO: Rename to logger
+module_logger = logging.getLogger(__name__)
 
 
 class SAMLParseError(Exception):
@@ -45,30 +49,42 @@ class AuthnInfo(object):
 
 
 class IdP_SAMLRequest(object):
-    def __init__(self, request: str, binding: str, idp: saml2.server.Server, logger: logging.Logger, debug: bool):
+    def __init__(
+        self,
+        request: str,
+        binding: str,
+        idp: saml2.server.Server,
+        logger: Optional[logging.Logger] = None,
+        debug: bool = False,
+    ):
         self._request = request
         self._binding = binding
         self._idp = idp
         self._logger = logger
         self._debug = debug
 
+        if self._logger is not None:
+            warnings.warn('Object logger deprecated, using module_logger', DeprecationWarning)
+
         try:
             self._req_info = idp.parse_authn_request(request, binding)
         except UnravelError as exc:
-            logger.info(f'Failed parsing SAML request ({len(request)} bytes)')
-            logger.debug(f'Failed parsing SAML request:\n{request}\nException {exc}')
+            module_logger.info(f'Failed parsing SAML request ({len(request)} bytes)')
+            module_logger.debug(f'Failed parsing SAML request:\n{request}\nException {exc}')
             raise SAMLParseError('Failed parsing SAML request')
 
         if not self._req_info:
             # Either there was no request, or pysaml2 found it to be unacceptable.
             # For example, the IssueInstant might have been out of bounds.
-            logger.debug('No valid SAMLRequest returned by pysaml2')
+            module_logger.debug('No valid SAMLRequest returned by pysaml2')
             raise SAMLValidationError('No valid SAMLRequest returned by pysaml2')
 
         # Only perform expensive parse/pretty-print if debugging
         if debug:
             xmlstr = utils.maybe_xml_to_string(self._req_info.message)
-            logger.debug(f'Decoded SAMLRequest into AuthnRequest {repr(self._req_info.message)}:\n\n{xmlstr}\n\n')
+            module_logger.debug(
+                f'Decoded SAMLRequest into AuthnRequest {repr(self._req_info.message)}:\n\n{xmlstr}\n\n'
+            )
 
     @property
     def binding(self):
@@ -89,7 +105,7 @@ class IdP_SAMLRequest(object):
                 break
         if not verified_ok:
             _key = gen_key(info['SAMLRequest'])
-            self._logger.info('{!s}: SAML request signature verification failure'.format(_key))
+            module_logger.info('{!s}: SAML request signature verification failure'.format(_key))
         return verified_ok
 
     @property
@@ -158,20 +174,20 @@ class IdP_SAMLRequest(object):
             # not sure if we need to call pick_binding again (already done in response_args()),
             # but it is what we've always done
             binding_out, destination = self._idp.pick_binding('assertion_consumer_service', entity_id=self.sp_entity_id)
-            self._logger.debug(f'Binding: {binding_out}, destination: {destination}')
+            module_logger.debug(f'Binding: {binding_out}, destination: {destination}')
 
             resp_args['binding_out'] = binding_out
             resp_args['destination'] = destination
         except UnknownPrincipal as excp:
-            self._logger.info(f'{key}: Unknown service provider: {excp}')
+            module_logger.info(f'{key}: Unknown service provider: {excp}')
             raise bad_request("Don't know the SP that referred you here", logger=self._logger)
         except UnsupportedBinding as excp:
-            self._logger.info(f'{key}: Unsupported SAML binding: {excp}')
+            module_logger.info(f'{key}: Unsupported SAML binding: {excp}')
             raise bad_request("Don't know how to reply to the SP that referred you here", logger=self._logger)
         except UnknownSystemEntity as exc:
             # TODO: Validate refactoring didn't move this exception handling to the wrong place.
             #       Used to be in an exception handler in _redirect_or_post around perform_login().
-            self._logger.info(f'{key}: Service provider not known: {exc}')
+            module_logger.info(f'{key}: Service provider not known: {exc}')
             raise bad_request('SAML_UNKNOWN_SP')
 
         return ResponseArgs(resp_args)
@@ -190,7 +206,7 @@ class IdP_SAMLRequest(object):
         """
         binding_out = resp_args.get('binding_out')
         destination = resp_args.get('destination')
-        self._logger.debug(
+        module_logger.debug(
             'Applying binding_out {!r}, destination {!r}, relay_state {!r}'.format(
                 binding_out, destination, relay_state
             )
