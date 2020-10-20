@@ -550,7 +550,7 @@ def do_verify():
 def _update_ticket_samlrequest(ticket: SSOLoginData, binding: Optional[str]) -> None:
     try:
         ticket.saml_req = IdP_SAMLRequest(
-            ticket.SAMLRequest, binding or ticket.binding, current_app.IDP, current_app.logger, current_app.config.debug
+            ticket.SAMLRequest, binding or ticket.binding, current_app.IDP, logger=None, debug=current_app.config.debug
         )
     except (SAMLParseError, SAMLValidationError):
         current_app.logger.exception('Failed updating SAML request in SSOLoginData (ticket)')
