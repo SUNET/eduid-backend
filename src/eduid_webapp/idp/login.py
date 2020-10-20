@@ -25,6 +25,7 @@ from flask import make_response, redirect, render_template, request
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest, Forbidden, InternalServerError, TooManyRequests
 from werkzeug.wrappers import Response as WerkzeugResponse
+from flask_babel import gettext as _
 
 from eduid_common.api import exceptions
 from eduid_common.authn import assurance
@@ -425,7 +426,6 @@ class SSO(Service):
             {
                 'action': '/verify',
                 'alert_msg': '',
-                'failcount': ticket.FailCount,
                 # TODO: remove key from response, doesn't seem to be needed
                 'key': ticket.key,
                 'password': '',
@@ -442,7 +442,7 @@ class SSO(Service):
 
         # Set alert msg if FailCount is greater than zero
         if ticket.FailCount:
-            argv["alert_msg"] = "INCORRECT"  # "Incorrect username or password ({!s} attempts)".format(ticket.FailCount)
+            argv["alert_msg"] = _('Incorrect username or password')
 
         try:
             argv["sp_entity_id"] = ticket.saml_req.sp_entity_id
