@@ -22,7 +22,7 @@ def init_exception_handlers(app):
             context['error_details'] = '<p>' + messages[error.description] + '</p>'
 
         template = _get_error_template(error.code, error.description)
-        current_app.logger.debug(f'Rendering {template} with context {context}')
+        app.logger.debug(f'Rendering {template} with context {context}')
 
         response.data = render_template(template, **context)
 
@@ -30,11 +30,13 @@ def init_exception_handlers(app):
             # Delete the SSO session cookie in the browser
             response.delete_cookie(
                 key='idpauthn',
-                path=current_app.config.session_cookie_path,
-                domain=current_app.config.session_cookie_domain,
+                path=app.config.session_cookie_path,
+                domain=app.config.session_cookie_domain,
             )
 
         return response
+
+    return app
 
 
 def _get_error_template(status_code: int, message: str) -> str:

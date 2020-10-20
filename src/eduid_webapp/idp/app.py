@@ -30,7 +30,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-import logging
+
 import pprint
 from base64 import b64decode
 from typing import Any, Dict, Optional, cast
@@ -47,9 +47,6 @@ from eduid_userdb.actions import ActionDB
 from eduid_userdb.idp import IdPUserDb
 
 from eduid_webapp.idp.settings.common import IdPConfig
-
-logger = logging.getLogger(__name__)
-
 
 __author__ = 'ft'
 
@@ -70,21 +67,21 @@ class IdPApp(EduIDBaseApp):
         # Log both 'starting' and 'started' messages.
         self.logger.info("eduid-IdP server starting")
 
-        logger.debug(f"Loading PySAML2 server using cfgfile {self.config.pysaml2_config}")
+        self.logger.debug(f"Loading PySAML2 server using cfgfile {self.config.pysaml2_config}")
         self.IDP = init_pysaml2(self.config.pysaml2_config)
 
         if self.config.sso_session_mongo_uri:
-            logger.info('Config parameter sso_session_mongo_uri ignored. Used mongo_uri instead.')
+            self.logger.info('Config parameter sso_session_mongo_uri ignored. Used mongo_uri instead.')
 
         _session_ttl = self.config.sso_session_lifetime * 60
-        self.sso_sessions = sso_cache.SSOSessionCacheMDB(self.config.mongo_uri, self.logger, _session_ttl)
+        self.sso_sessions = sso_cache.SSOSessionCacheMDB(self.config.mongo_uri, None, _session_ttl)
 
         _login_state_ttl = (self.config.login_state_ttl + 1) * 60
         self.authn_info_db = None
         self.actions_db = None
 
         if self.config.mongo_uri:
-            self.authn_info_db = idp_authn.AuthnInfoStoreMDB(self.config.mongo_uri, logger)
+            self.authn_info_db = idp_authn.AuthnInfoStoreMDB(self.config.mongo_uri, logger=None)
 
         if self.config.mongo_uri and self.config.actions_app_uri:
             self.actions_db = ActionDB(self.config.mongo_uri)
@@ -94,10 +91,9 @@ class IdPApp(EduIDBaseApp):
 
         if userdb is None:
             # This is used in tests at least
-            userdb = IdPUserDb(self.logger, self.config.mongo_uri, db_name=self.config.userdb_mongo_database)
+            userdb = IdPUserDb(logger=None, mongo_uri=self.config.mongo_uri, db_name=self.config.userdb_mongo_database)
         self.userdb = userdb
-        self.authn = idp_authn.IdPAuthn(self.logger, self.config, self.userdb)
-
+        self.authn = idp_authn.IdPAuthn(logger=None, config=self.config, userdb=self.userdb)
         self.logger.info('eduid-IdP application started')
 
     def _lookup_sso_session(self) -> Optional[SSOSession]:
@@ -151,7 +147,7 @@ class IdPApp(EduIDBaseApp):
         :return: SSO session id
         """
         # local import to avoid import-loop
-        from eduid_webapp.idp.mischttp import read_cookie, parse_query_string
+        from eduid_webapp.idp.mischttp import parse_query_string, read_cookie
 
         _session_id = read_cookie('idpauthn')
         if _session_id:
@@ -191,7 +187,7 @@ def init_idp_app(name: str, config: Dict) -> IdPApp:
 
     from eduid_webapp.idp.exceptions import init_exception_handlers
 
-    init_exception_handlers(app)
+    app = init_exception_handlers(app)
 
     app.logger.info(f'{name} initialized')
     return app
