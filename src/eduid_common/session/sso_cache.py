@@ -26,6 +26,7 @@ _SHA1_HEXENCODED_SIZE = 160 // 8 * 2
 # A distinct type for session ids
 SSOSessionId = NewType('SSOSessionId', str)
 
+# TODO: Rename to logger
 module_logger = logging.getLogger(__name__)
 
 

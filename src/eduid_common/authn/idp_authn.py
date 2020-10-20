@@ -51,6 +51,7 @@ from eduid_userdb.idp import IdPUser
 from eduid_common.api import exceptions
 from eduid_common.authn import get_vccs_client
 
+# TODO: Rename to logger
 module_logger = logging.getLogger(__name__)
 
 
