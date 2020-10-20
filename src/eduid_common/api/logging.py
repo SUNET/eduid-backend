@@ -126,7 +126,7 @@ def init_logging(app: EduIDBaseApp) -> None:
 
     if app.debug:
         # Flask expects to be able to debug log in debug mode
-        local_context['log_level'] = 'DEBUG'
+        local_context['level'] = 'DEBUG'
 
     settings_config = app.config.logging_config
     base_config = {
