@@ -13,6 +13,7 @@ import datetime
 import logging
 import time
 import uuid
+import warnings
 from abc import ABC
 from collections import deque
 from threading import Lock
@@ -24,6 +25,8 @@ _SHA1_HEXENCODED_SIZE = 160 // 8 * 2
 
 # A distinct type for session ids
 SSOSessionId = NewType('SSOSessionId', str)
+
+module_logger = logging.getLogger(__name__)
 
 
 class NoOpLock(object):
@@ -65,7 +68,7 @@ class ExpiringCacheMem:
     :param lock: threading.Lock compatible locking instance
     """
 
-    def __init__(self, name: str, logger: logging.Logger, ttl: int, lock: Optional[Lock] = None):
+    def __init__(self, name: str, logger: Optional[logging.Logger], ttl: int, lock: Optional[Lock] = None):
         self.logger = logger
         self.ttl = ttl
         self.name = name
@@ -74,6 +77,9 @@ class ExpiringCacheMem:
         self.lock = lock
         if self.lock is None:
             self.lock = cast(Lock, NoOpLock())  # intentionally lie to mypy
+
+        if self.logger is not None:
+            warnings.warn('Object logger deprecated, using module_logger', DeprecationWarning)
 
     def add(self, key: SSOSessionId, info: Any, now: Optional[int] = None) -> None:
         """
@@ -113,7 +119,7 @@ class ExpiringCacheMem:
                     # entry not expired - reinsert in queue and end purging
                     self._ages.appendleft((_exp_ts, _exp_key))
                     break
-                self.logger.debug(
+                module_logger.debug(
                     'Purged {!s} cache entry {!s} seconds over limit : {!s}'.format(
                         self.name, timestamp - _exp_ts, _exp_key
                     )
@@ -152,7 +158,7 @@ class ExpiringCacheMem:
             del self._data[key]
             return True
         except KeyError:
-            self.logger.debug('Failed deleting key {!r} from {!s} cache (entry did not exist)'.format(key, self.name))
+            module_logger.debug('Failed deleting key {!r} from {!s} cache (entry did not exist)'.format(key, self.name))
         return False
 
     def items(self) -> Any:
@@ -169,12 +175,15 @@ class SSOSessionCache(ABC):
     (until the SSO session expires).
     """
 
-    def __init__(self, logger: logging.Logger, ttl: int, lock: Optional[Lock] = None):
+    def __init__(self, logger: Optional[logging.Logger], ttl: int, lock: Optional[Lock] = None):
         self.logger = logger
         self._ttl = ttl
         self._lock = lock
         if self._lock is None:
             self._lock = cast(Lock, NoOpLock())  # intentionally lie to mypy
+
+        if self.logger is not None:
+            warnings.warn('Object logger deprecated, using module_logger', DeprecationWarning)
 
     def remove_session(self, sid: SSOSessionId) -> Union[int, bool]:
         """
@@ -251,26 +260,26 @@ class SSOSessionCacheMem(SSOSessionCache):
         self.lid2data = ExpiringCacheMem('SSOSession.uid2user', self.logger, self._ttl, lock=self._lock)
 
     def remove_session(self, sid: SSOSessionId) -> Any:
-        self.logger.debug('Purging SSO session {!r}, data : {!s}'.format(sid, self.lid2data.get(sid)))
+        module_logger.debug('Purging SSO session {!r}, data : {!s}'.format(sid, self.lid2data.get(sid)))
         return self.lid2data.delete(sid)
 
     def add_session(self, username: str, data: Mapping[str, Any]) -> SSOSessionId:
         _sid = self._create_session_id()
         self.lid2data.add(_sid, {'username': username, 'data': data,})
-        self.logger.debug('Added SSO session {!r}, data : {!s}'.format(_sid, self.lid2data.get(_sid)))
+        module_logger.debug('Added SSO session {!r}, data : {!s}'.format(_sid, self.lid2data.get(_sid)))
         return _sid
 
     def update_session(self, username: str, data: Mapping[str, Any]) -> None:
         # TODO: This is completely broken - we add a new state rather than updating the old one
         _sid = self._create_session_id()
-        self.logger.debug(f'Updating data by adding it using new session id {repr(_sid)}. FIXME.')
+        module_logger.debug(f'Updating data by adding it using new session id {repr(_sid)}. FIXME.')
         self.lid2data.update(_sid, {'username': username, 'data': data,})
 
     def get_session(self, sid: SSOSessionId) -> Optional[Dict[str, Any]]:
         try:
             this = self.lid2data.get(sid)
         except KeyError:
-            self.logger.debug('Failed looking up SSO session with session id={!r}'.format(sid))
+            module_logger.debug('Failed looking up SSO session with session id={!r}'.format(sid))
             raise
         if not this:
             return None
@@ -286,7 +295,7 @@ class SSOSessionCacheMem(SSOSessionCache):
             # log out to another).
             if _val.get('username') == username:
                 res.append(_key)
-        self.logger.debug('Found SSO sessions for user {!r}: {!r}'.format(username, res))
+        module_logger.debug('Found SSO sessions for user {!r}: {!r}'.format(username, res))
         return res
 
 
@@ -302,7 +311,7 @@ class SSOSessionCacheMDB(SSOSessionCache):
     def __init__(
         self,
         uri: str,
-        logger: logging.Logger,
+        logger: Optional[logging.Logger],
         ttl: int,
         lock: Optional[Lock] = None,
         expiration_freq: int = 60,
@@ -324,16 +333,19 @@ class SSOSessionCacheMDB(SSOSessionCache):
                 break
             except Exception as e:
                 if not retry:
-                    self.logger.error(f'Failed ensuring mongodb index due to exception: {e}')
+                    module_logger.error(f'Failed ensuring mongodb index due to exception: {e}')
                     raise
-                self.logger.error(f'Failed ensuring mongodb index, retrying ({retry})')
+                module_logger.error(f'Failed ensuring mongodb index, retrying ({retry})')
+
+        if self.logger is not None:
+            warnings.warn('Object logger deprecated, using module_logger', DeprecationWarning)
 
     def remove_session(self, sid: SSOSessionId) -> Union[int, bool]:
         res = self.sso_sessions.remove({'session_id': sid}, w='majority')
         try:
             return int(res['n'])  # number of deleted records
         except (KeyError, TypeError):
-            self.logger.warning('Remove session {!r} failed, result: {!r}'.format(sid, res))
+            module_logger.warning('Remove session {!r} failed, result: {!r}'.format(sid, res))
             return False
 
     def add_session(self, username: str, data: Mapping[str, Any]) -> SSOSessionId:
@@ -353,7 +365,7 @@ class SSOSessionCacheMDB(SSOSessionCache):
     def update_session(self, username: str, data: Mapping[str, Any]) -> None:
         # TODO: This is completely broken - we add a new state rather than updating the old one
         _sid = self._create_session_id()
-        self.logger.debug(f'Updating data by adding it using new session id {repr(_sid)}. FIXME.')
+        module_logger.debug(f'Updating data by adding it using new session id {repr(_sid)}. FIXME.')
         _test_doc = {
             'session_id': _sid,
             'username': username,
@@ -364,7 +376,7 @@ class SSOSessionCacheMDB(SSOSessionCache):
         try:
             res = self.sso_sessions.find_one({'session_id': sid})
         except KeyError:
-            self.logger.debug('Failed looking up SSO session with id={!r}'.format(sid))
+            module_logger.debug('Failed looking up SSO session with id={!r}'.format(sid))
             raise
         if not res:
             return None

@@ -124,6 +124,10 @@ def init_logging(app: EduIDBaseApp) -> None:
     except (KeyError, AttributeError) as e:
         raise BadConfiguration(message=f'Could not initialize logging local_context. {type(e).__name__}: {e}')
 
+    if app.debug:
+        # Flask expects to be able to debug log in debug mode
+        local_context['log_level'] = 'DEBUG'
+
     settings_config = app.config.logging_config
     base_config = {
         'version': 1,

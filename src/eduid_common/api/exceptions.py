@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from flask import current_app, jsonify
+from flask import jsonify
 
 __author__ = 'lundberg'
 
@@ -76,7 +76,7 @@ def init_exception_handlers(app):
     def _handle_flask_http_exception(error):
         app.logger.error('HttpException {!s}'.format(error))
         e = ApiException(error.name, error.code)
-        if current_app.config.get('DEBUG', False):
+        if app.config.get('DEBUG', False):
             e.payload = {'description': error.description}
         response = jsonify(e.to_dict())
         response.status_code = e.status_code

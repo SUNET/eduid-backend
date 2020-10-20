@@ -38,6 +38,8 @@ such as rate limiting.
 """
 
 import datetime
+import logging
+import warnings
 from typing import Dict, Optional
 
 import vccs_client
@@ -48,6 +50,8 @@ from eduid_userdb.idp import IdPUser
 
 from eduid_common.api import exceptions
 from eduid_common.authn import get_vccs_client
+
+module_logger = logging.getLogger(__name__)
 
 
 class AuthnData(object):
@@ -111,7 +115,7 @@ class IdPAuthn(object):
     :type config: IdPConfig
     """
 
-    def __init__(self, logger, config, userdb, auth_client=None, authn_store=None):
+    def __init__(self, logger: Optional[logging.Logger], config, userdb, auth_client=None, authn_store=None):
         self.logger = logger
         self.config = config
         self.userdb = userdb
@@ -121,6 +125,9 @@ class IdPAuthn(object):
         self.authn_store = authn_store
         if self.authn_store is None and config.mongo_uri:
             self.authn_store = AuthnInfoStoreMDB(uri=config.mongo_uri, logger=logger)
+
+        if self.logger is not None:
+            warnings.warn('Object logger deprecated, using module_logger', DeprecationWarning)
 
     def password_authn(self, data: dict) -> Optional[AuthnData]:
         """
@@ -139,11 +146,11 @@ class IdPAuthn(object):
             # XXX Redirect user to some kind of info page
             return None
         if not user:
-            self.logger.info('Unknown user : {!r}'.format(username))
+            module_logger.info('Unknown user : {!r}'.format(username))
             # XXX we effectively disclose there was no such user by the quick
             # response in this case. Maybe send bogus auth request to backends?
             return None
-        self.logger.debug('Found user {!r}'.format(user))
+        module_logger.debug('Found user {!r}'.format(user))
 
         cred = self._verify_username_and_password2(user, password)
         if not cred:
@@ -170,7 +177,7 @@ class IdPAuthn(object):
         if self.authn_store:  # requires optional configuration
             authn_info = self.authn_store.get_user_authn_info(user)
             if authn_info.failures_this_month() > self.config.max_authn_failures_per_month:
-                self.logger.info(
+                module_logger.info(
                     "User {!r} AuthN failures this month {!r} > {!r}".format(
                         user, authn_info.failures_this_month(), self.config.max_authn_failures_per_month
                     )
@@ -183,7 +190,7 @@ class IdPAuthn(object):
             last_creds = authn_info.last_used_credentials()
             sorted_creds = sorted(pw_credentials, key=lambda x: x.credential_id not in last_creds)
             if sorted_creds != pw_credentials:
-                self.logger.debug(
+                module_logger.debug(
                     "Re-sorted list of credentials into\n{}\nbased on last-used {!r}".format(sorted_creds, last_creds)
                 )
                 pw_credentials = sorted_creds
@@ -208,27 +215,27 @@ class IdPAuthn(object):
             try:
                 factor = vccs_client.VCCSPasswordFactor(password, str(cred.credential_id), str(cred.salt))
             except ValueError as exc:
-                self.logger.info("User {} password factor {!s} unusable: {!r}".format(user, cred.credential_id, exc))
+                module_logger.info("User {} password factor {!s} unusable: {!r}".format(user, cred.credential_id, exc))
                 continue
-            self.logger.debug(
+            module_logger.debug(
                 "Password-authenticating {}/{!r} with VCCS: {!r}".format(user, str(cred.credential_id), factor)
             )
             user_id = str(user.user_id)
             try:
                 if self.auth_client.authenticate(user_id, [factor]):
-                    self.logger.debug("VCCS authenticated user {} (user_id {!r})".format(user, user_id))
+                    module_logger.debug("VCCS authenticated user {} (user_id {!r})".format(user, user_id))
                     # Verify that the credential had been successfully used in the last 18 monthts
                     # (Kantara AL2_CM_CSM#050).
                     if self.credential_expired(cred):
-                        self.logger.info('User {} credential {!r} has expired'.format(user, cred.key))
+                        module_logger.info('User {} credential {!r} has expired'.format(user, cred.key))
                         raise exceptions.EduidForbidden('CREDENTIAL_EXPIRED')
                     self.log_authn(user, success=[cred.credential_id], failure=[])
                     return cred
             except vccs_client.VCCSClientHTTPError as exc:
                 if exc.http_code == 500:
-                    self.logger.debug("VCCS credential {!r} might be revoked".format(cred.credential_id))
+                    module_logger.debug("VCCS credential {!r} might be revoked".format(cred.credential_id))
                     continue
-        self.logger.debug('VCCS username-password authentication FAILED for user {}'.format(user))
+        module_logger.debug('VCCS username-password authentication FAILED for user {}'.format(user))
         self.log_authn(user, success=[], failure=[cred.credential_id for cred in pw_credentials])
         return None
 
@@ -241,16 +248,16 @@ class IdPAuthn(object):
         :rtype: bool
         """
         if not self.authn_store:  # requires optional configuration
-            self.logger.debug("Can't check if credential {!r} is expired, no authn_store available".format(cred.key))
+            module_logger.debug("Can't check if credential {!r} is expired, no authn_store available".format(cred.key))
             return False
         last_used = self.authn_store.get_credential_last_used(cred.credential_id)
         if last_used is None:
             # Can't disallow this while there is a short-path from signup to dashboard unforch...
-            self.logger.debug('Allowing never-used credential {!r}'.format(cred))
+            module_logger.debug('Allowing never-used credential {!r}'.format(cred))
             return False
         now = datetime.datetime.utcnow().replace(tzinfo=None)  # thanks for not having timezone.utc, Python2
         delta = now - last_used.replace(tzinfo=None)
-        self.logger.debug("Credential {} last used {!r} days ago".format(cred.key, delta.days))
+        module_logger.debug("Credential {} last used {!r} days ago".format(cred.key, delta.days))
         return delta.days >= int(365 * 1.5)
 
     def log_authn(self, user, success, failure):
@@ -280,8 +287,11 @@ class AuthnInfoStore(object):
     Abstract AuthnInfoStore.
     """
 
-    def __init__(self, logger):
+    def __init__(self, logger: Optional[logging.Logger]):
         self.logger = logger
+
+        if self.logger is not None:
+            warnings.warn('Object logger deprecated, using module_logger', DeprecationWarning)
 
 
 class AuthnInfoStoreMDB(AuthnInfoStore):
@@ -292,7 +302,7 @@ class AuthnInfoStoreMDB(AuthnInfoStore):
     def __init__(self, uri, logger, db_name='eduid_idp_authninfo', collection_name='authn_info', **kwargs):
         AuthnInfoStore.__init__(self, logger)
 
-        logger.debug("Setting up AuthnInfoStoreMDB")
+        module_logger.debug("Setting up AuthnInfoStoreMDB")
         self._db = MongoDB(db_uri=uri, db_name=db_name)
         self.collection = self._db.get_collection(collection_name)
 
