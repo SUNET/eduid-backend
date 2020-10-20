@@ -1,7 +1,7 @@
 from flask import render_template
 from werkzeug.exceptions import HTTPException
 
-from eduid_webapp.idp.app import current_idp_app as current_app
+from eduid_webapp.idp.mischttp import get_default_template_arguments
 
 
 def init_exception_handlers(app):
@@ -12,7 +12,8 @@ def init_exception_handlers(app):
         app.logger.error(f'IdP HTTPException {error}')
         response = error.get_response()
 
-        context = {'error_code': error.code}
+        context = get_default_template_arguments(app.config)
+        context['error_code'] = error.code
 
         messages = {
             'SAML_UNKNOWN_SP': 'SAML error: Unknown Service Provider',
