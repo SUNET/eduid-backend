@@ -111,7 +111,7 @@ class IdPUser(User):
         for approved in filter_attributes:
             if approved in attributes_in:
                 attributes[approved] = attributes_in.pop(approved)
-        logger.debug('Discarded non-attributes:\n{!s}'.format(pprint.pformat(attributes_in)))
+        logger.debug(f'Discarded non-attributes: {list(attributes_in.keys())!s}')
         # Create and add missing attributes that can be released if correct release policy
         # is applied by pysaml2 for the current metadata
         attributes = make_scoped_eppn(attributes, settings)
@@ -125,7 +125,7 @@ class IdPUser(User):
         attributes = make_schac_date_of_birth(attributes, self)
         attributes = make_mail(attributes, self)
         attributes = make_eduperson_orcid(attributes, self)
-        logger.info(f'Attributes available for release: {attributes.keys()}')
+        logger.info(f'Attributes available for release: {list(attributes.keys())}')
         logger.debug(f'Attributes with values: {attributes}')
         return attributes
 
