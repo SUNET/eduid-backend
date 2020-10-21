@@ -189,7 +189,7 @@ def nin_verify_action(session_info: Mapping[str, Any], user: User) -> WerkzeugRe
 
     # Verify NIN for user
     try:
-        nin_element = NinProofingElement.from_dict(dict(number=asserted_nin, created_by='eduid-eidas', verified=False))
+        nin_element = NinProofingElement(number=asserted_nin, created_by='eduid-eidas', is_verified=False)
         proofing_state = NinProofingState(id=None, modified_ts=None, eppn=user.eppn, nin=nin_element)
         if not verify_nin_for_user(user, proofing_state, proofing_log_entry):
             current_app.logger.error(f'Failed verifying NIN for user {user}')
@@ -249,7 +249,7 @@ def nin_verify_BACKDOOR(user: User) -> WerkzeugResponse:
 
     # Verify NIN for user
     try:
-        nin_element = NinProofingElement.from_dict(dict(number=asserted_nin, created_by='eduid-eidas', verified=False))
+        nin_element = NinProofingElement(number=asserted_nin, created_by='eduid-eidas', is_verified=False)
         proofing_state = NinProofingState(id=None, modified_ts=None, eppn=user.eppn, nin=nin_element)
         if not verify_nin_for_user(user, proofing_state, proofing_log_entry):
             current_app.logger.error(f'Failed verifying NIN for user {user}')

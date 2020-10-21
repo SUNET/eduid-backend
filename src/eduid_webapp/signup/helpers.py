@@ -223,9 +223,7 @@ def record_tou(user, source):
         'Recording ToU acceptance {!r} (version {})'
         ' for user {} (source: {})'.format(event_id, tou_version, user, source)
     )
-    user.tou.add(
-        ToUEvent.from_dict(dict(version=tou_version, created_by=source, created_ts=created_ts, event_id=event_id))
-    )
+    user.tou.add(ToUEvent(version=tou_version, created_by=source, created_ts=created_ts, event_id=str(event_id)))
 
 
 def _generate_password() -> str:
