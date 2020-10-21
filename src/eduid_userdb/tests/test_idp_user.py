@@ -36,7 +36,7 @@ class TestIdpUser(TestCase):
             'c': 'se',
             'co': 'Sweden',
             'eduPersonUniqueID': 'hubbabubba@example.com',
-            'eduPersonAssurance': 'http://www.swamid.se/policy/assurance/al2',
+            'eduPersonAssurance': ['http://www.swamid.se/policy/assurance/al2'],
             'cn': 'John Smith',
             'sn': 'Smith',
             'norEduPersonNIN': '197801011234',
