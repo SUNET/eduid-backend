@@ -201,8 +201,7 @@ def add_eduperson_assurance(attributes: dict, user: IdPUser) -> dict:
     :return: New attributes
     """
     attributes['eduPersonAssurance'] = 'http://www.swamid.se/policy/assurance/al1'
-    _verified_nins = [x for x in user.nins.to_list() if x.is_verified]
-    if _verified_nins:
+    if user.nins.verified.count:
         attributes['eduPersonAssurance'] = 'http://www.swamid.se/policy/assurance/al2'
     return attributes
 
