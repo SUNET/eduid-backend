@@ -151,7 +151,7 @@ class IdPAuthn(object):
             # XXX we effectively disclose there was no such user by the quick
             # response in this case. Maybe send bogus auth request to backends?
             return None
-        module_logger.debug('Found user {!r}'.format(user))
+        module_logger.debug(f'Found user {user}')
 
         cred = self._verify_username_and_password2(user, password)
         if not cred:
