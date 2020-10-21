@@ -41,7 +41,7 @@ import pprint
 import warnings
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from eduid_userdb import User
 
@@ -190,7 +190,7 @@ def make_eduperson_unique_id(attributes: dict, user: IdPUser, settings: SAMLAttr
     return attributes
 
 
-def add_eduperson_assurance(attributes: dict, user: IdPUser) -> dict:
+def add_eduperson_assurance(attributes: Dict[str, Any], user: IdPUser) -> Dict[str, Any]:
     """
     Add an eduPersonAssurance attribute indicating the level of id-proofing
     a user has achieved, regardless of current session authentication strength.
@@ -200,9 +200,9 @@ def add_eduperson_assurance(attributes: dict, user: IdPUser) -> dict:
 
     :return: New attributes
     """
-    attributes['eduPersonAssurance'] = 'http://www.swamid.se/policy/assurance/al1'
+    attributes['eduPersonAssurance'] = ['http://www.swamid.se/policy/assurance/al1']
     if user.nins.verified.count:
-        attributes['eduPersonAssurance'] = 'http://www.swamid.se/policy/assurance/al2'
+        attributes['eduPersonAssurance'] = ['http://www.swamid.se/policy/assurance/al2']
     return attributes
 
 
