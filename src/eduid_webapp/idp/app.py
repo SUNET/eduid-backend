@@ -104,10 +104,11 @@ class IdPApp(EduIDBaseApp):
         """
         session = self._lookup_sso_session2()
         if session:
-            self.logger.debug("SSO session for user {!r} found in IdP cache".format(session.user_id))
             session.set_user(self.userdb.lookup_user(session.user_id))
             if not session.idp_user:
+                self.logger.debug(f'No IdPUser found for user_id {session.user_id} - ignoring session')
                 return None
+            self.logger.debug(f'SSO session for user {session.idp_user} found in IdP cache: {session}')
             _age = session.minutes_old
             if _age > self.config.sso_session_lifetime:
                 self.logger.debug(

@@ -166,18 +166,15 @@ class SSO(Service):
             if sign_alg in ticket.saml_req.sp_sign_algs:
                 resp_args['sign_alg'] = sign_alg
                 break
-        # Only perform expensive parse/pretty-print if debugging
         if current_app.config.debug:
+            # Only perform expensive parse/pretty-print if debugging
             current_app.logger.debug(
-                'Creating an AuthnResponse: user {!r}\n\nAttributes:\n{!s},\n\n'
+                'Creating an AuthnResponse: user {!s}\n\nAttributes:\n{!s},\n\n'
                 'Response args:\n{!s},\n\nAuthn:\n{!s}\n'.format(
                     user, pprint.pformat(attributes), pprint.pformat(resp_args), pprint.pformat(response_authn)
                 )
             )
 
-        #        saml_response = self.context.idp.create_authn_response(attributes, userid = user.eppn,
-        #                                                               authn = response_authn, sign_response = True,
-        #                                                               **resp_args)
         saml_response = ticket.saml_req.make_saml_response(attributes, user.eppn, response_authn, resp_args)
         self._kantara_log_assertion_id(saml_response, ticket)
 
@@ -284,10 +281,12 @@ class SSO(Service):
         :param user: The user for whom the assertion will be made
         :return: Authn information
         """
-        current_app.logger.debug('MFA credentials logged in the ticket: {}'.format(ticket.mfa_action_creds))
-        current_app.logger.debug('External MFA credential logged in the ticket: {}'.format(ticket.mfa_action_external))
-        current_app.logger.debug('Credentials used in this SSO session:\n{}'.format(self.sso_session.authn_credentials))
-        current_app.logger.debug('User credentials:\n{}'.format(user.credentials.to_list()))
+        if current_app.config.debug:
+            current_app.logger.debug(f'MFA credentials logged in the ticket: {ticket.mfa_action_creds}')
+            current_app.logger.debug(f'External MFA credential logged in the ticket: {ticket.mfa_action_external}')
+            current_app.logger.debug(f'Credentials used in this SSO session:\n{self.sso_session.authn_credentials}')
+            _creds_as_strings = [str(_cred) for _cred in user.credentials.to_list()]
+            current_app.logger.debug(f'User credentials:\n{_creds_as_strings}')
 
         # Decide what AuthnContext to assert based on the one requested in the request
         # and the authentication performed
