@@ -1,26 +1,27 @@
-# Translations template for PROJECT.
-# Copyright (C) 2019 ORGANIZATION
-# This file is distributed under the same license as the PROJECT project.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2019.
+# Translations template for eduid-webapp.
+# Copyright (C) 2020 ORGANIZATION
+# This file is distributed under the same license as the eduid-webapp project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2020.
 # 
+#, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: PROJECT VERSION\n"
+"Project-Id-Version: eduid-webapp 0.2.26\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2019-09-24 16:52+0200\n"
+"POT-Creation-Date: 2020-10-22 15:27+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.7.0\n"
+"Generated-By: Babel 2.8.0\n"
 
-#: email/verifications.py:70
+#: src/eduid_webapp/email/verifications.py:70
 msgid "eduID confirmation email"
 msgstr "eduID confirmation email"
 
-#: email/templates/verification_email.html.jinja2:5
+#: src/eduid_webapp/email/templates/verification_email.html.jinja2:5
 #, python-format
 msgid ""
 "\n"
@@ -49,7 +50,7 @@ msgstr ""
 "<p><strong>%(code)s</strong></p>\n"
 "\n"
 
-#: email/templates/verification_email.txt.jinja2:1
+#: src/eduid_webapp/email/templates/verification_email.txt.jinja2:1
 #, python-format
 msgid ""
 "\n"
@@ -78,12 +79,296 @@ msgstr ""
 "%(code)s\n"
 "\n"
 
-#: oidc_proofing/helpers.py:128
+#: src/eduid_webapp/group_management/helpers.py:201
+msgid "Group invitation"
+msgstr "Group invitation"
+
+#: src/eduid_webapp/group_management/views/templates/group_invite_email.html.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"    <p>Hi,</p>\n"
+"    <p>You are invited to join the group %(group_display_name)s with your <a href=%(site_url)s>%(site_name)s</a> account.</p>\n"
+"    <p>To accept or decline the invitation go to <a href=%(group_invite_url)s>%(group_invite_url)s</a>.</p>\n"
+"    <p>If you do not have an %(site_name)s account you can <a href=\"%(site_url)s\">create one</a>.</p>\n"
+"    <p>(This is an automated email. Please do not reply.)</p>\n"
+msgstr ""
+"\n"
+"    <p>Hi,</p>\n"
+"    <p>You are invited to join the group %(group_display_name)s with your <a href=%(site_url)s>%(site_name)s</a> account.</p>\n"
+"    <p>To accept or decline the invitation go to <a href=%(group_invite_url)s>%(group_invite_url)s</a>.</p>\n"
+"    <p>If you do not have an %(site_name)s account you can <a href=\"%(site_url)s\">create one</a>.</p>\n"
+"    <p>(This is an automated email. Please do not reply.)</p>\n"
+
+#: src/eduid_webapp/group_management/views/templates/group_invite_email.txt.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"Hi,\n"
+"\n"
+"You are invited to join the group %(group_display_name)s with your %(site_name)s account.\n"
+"\n"
+"To accept or decline the invitation go to %(group_invite_url)s.\n"
+"\n"
+"If you do not have an %(site_name)s account you can create one at\n"
+"%(site_url)s.\n"
+"\n"
+"(This is an automated email. Please do not reply.)\n"
+msgstr ""
+"\n"
+"Hi,\n"
+"\n"
+"You are invited to join the group %(group_display_name)s with your %(site_name)s account.\n"
+"\n"
+"To accept or decline the invitation go to %(group_invite_url)s.\n"
+"\n"
+"If you do not have an %(site_name)s account you can create one at\n"
+"%(site_url)s.\n"
+"\n"
+"(This is an automated email. Please do not reply.)\n"
+
+#: src/eduid_webapp/idp/login.py:439
+msgid "Incorrect username or password"
+msgstr "Incorrect username or password"
+
+#: src/eduid_webapp/idp/templates/bad_request.jinja2:9
+msgid "Bad Request"
+msgstr "Bad Request"
+
+#: src/eduid_webapp/idp/templates/bad_request.jinja2:13
+msgid ""
+"<p>The login request could not be processed.</p>\n"
+"          <p>Try emptying the browsers cache and re-initiate login.</p>"
+msgstr ""
+"<p>The login request could not be processed.</p>\n"
+"          <p>Try emptying the browsers cache and re-initiate login.</p>"
+
+#: src/eduid_webapp/idp/templates/base.jinja2:2
+#: src/eduid_webapp/security/views/templates/base.jinja2:2
+msgid "en"
+msgstr "en"
+
+#: src/eduid_webapp/idp/templates/base.jinja2:6
+msgid "eduID Login"
+msgstr "eduID Login"
+
+#: src/eduid_webapp/idp/templates/base.jinja2:30
+msgid "Student"
+msgstr "Student"
+
+#: src/eduid_webapp/idp/templates/base.jinja2:33
+msgid "Technicians"
+msgstr "Technicians"
+
+#: src/eduid_webapp/idp/templates/base.jinja2:36
+msgid "Staff"
+msgstr "Staff"
+
+#: src/eduid_webapp/idp/templates/base.jinja2:39
+msgid "FAQ"
+msgstr "FAQ"
+
+#: src/eduid_webapp/idp/templates/base.jinja2:45
+#: src/eduid_webapp/idp/templates/login.jinja2:56
+msgid "Sign up"
+msgstr "Sign up"
+
+#: src/eduid_webapp/idp/templates/base.jinja2:49
+#: src/eduid_webapp/idp/templates/login.jinja2:53
+msgid "Sign in"
+msgstr "Sign in"
+
+#: src/eduid_webapp/idp/templates/credential_expired.jinja2:9
+msgid "Credential expired"
+msgstr "Credential expired"
+
+#: src/eduid_webapp/idp/templates/credential_expired.jinja2:11
+msgid ""
+"\n"
+"          <p>The password has expired, because it had not been used in 18 months.</p>\n"
+"\t  <p>To regain access to the account, a reset of the credential is necessary.</p>\n"
+"\t  "
+msgstr ""
+"\n"
+"          <p>The password has expired, because it had not been used in 18 months.</p>\n"
+"\t  <p>To regain access to the account, a reset of the credential is necessary.</p>\n"
+"\t  "
+
+#: src/eduid_webapp/idp/templates/credential_expired.jinja2:19
+#: src/eduid_webapp/idp/templates/user_terminated.jinja2:19
+#: src/eduid_webapp/reset_password/helpers.py:200
+#: src/eduid_webapp/security/helpers.py:219
+#: src/eduid_webapp/security/views/reset_password.py:98
+#: src/eduid_webapp/security/views/templates/reset_password.jinja2:28
+msgid "Reset password"
+msgstr "Reset password"
+
+#: src/eduid_webapp/idp/templates/error.jinja2:9
+msgid "Server Error"
+msgstr "Server Error"
+
+#: src/eduid_webapp/idp/templates/error.jinja2:13
+msgid ""
+"<p>Sorry, but the requested page is unavailable due to a server hiccup.</p>\n"
+"          <p>Our engineers have been notified already, so please try again later.</p>"
+msgstr ""
+"<p>Sorry, but the requested page is unavailable due to a server hiccup.</p>\n"
+"          <p>Our engineers have been notified already, so please try again later.</p>"
+
+#: src/eduid_webapp/idp/templates/forbidden.jinja2:9
+#: src/eduid_webapp/idp/templates/mfa_required.jinja2:9
+#: src/eduid_webapp/idp/templates/swamid_mfa_required.jinja2:9
+msgid "Access denied"
+msgstr "Access denied"
+
+#: src/eduid_webapp/idp/templates/forbidden.jinja2:11
+msgid ""
+"\n"
+"          <p>Access to the requested service could not be granted.\n"
+"              The service might have requested a 'confirmed' identity.</p>"
+msgstr ""
+"\n"
+"          <p>Access to the requested service could not be granted.\n"
+"              The service might have requested a 'confirmed' identity.</p>"
+
+#: src/eduid_webapp/idp/templates/forbidden.jinja2:15
+#: src/eduid_webapp/idp/templates/mfa_required.jinja2:16
+#: src/eduid_webapp/idp/templates/swamid_mfa_required.jinja2:16
+msgid "Visit the"
+msgstr "Visit the"
+
+#: src/eduid_webapp/idp/templates/forbidden.jinja2:16
+#: src/eduid_webapp/idp/templates/mfa_required.jinja2:17
+#: src/eduid_webapp/idp/templates/swamid_mfa_required.jinja2:17
+msgid "eduID dashboard"
+msgstr "eduID dashboard"
+
+#: src/eduid_webapp/idp/templates/forbidden.jinja2:17
+msgid "to confirm your identity."
+msgstr "to confirm your identity."
+
+#: src/eduid_webapp/idp/templates/login.jinja2:12
+msgid "eduID login"
+msgstr "eduID login"
+
+#: src/eduid_webapp/idp/templates/login.jinja2:23
+msgid "Something failed, or Javascript disabled"
+msgstr "Something failed, or Javascript disabled"
+
+#: src/eduid_webapp/idp/templates/login.jinja2:30
+msgid "Email:"
+msgstr "Email:"
+
+#: src/eduid_webapp/idp/templates/login.jinja2:40
+msgid "Password:"
+msgstr "Password:"
+
+#: src/eduid_webapp/idp/templates/login.jinja2:47
+msgid "Forgot your password?"
+msgstr "Forgot your password?"
+
+#: src/eduid_webapp/idp/templates/mfa_required.jinja2:11
+msgid ""
+"\n"
+"          <p>Access to the requested service could not be granted.\n"
+"              The service provider requires use of a Security Key (MFA).\n"
+"          </p>"
+msgstr ""
+"\n"
+"          <p>Access to the requested service could not be granted.\n"
+"              The service provider requires use of a Security Key (MFA).\n"
+"          </p>"
+
+#: src/eduid_webapp/idp/templates/mfa_required.jinja2:18
+msgid "to register a Security Key (on the Security tab)."
+msgstr "to register a Security Key (on the Security tab)."
+
+#: src/eduid_webapp/idp/templates/not_found.jinja2:9
+msgid "Not Found"
+msgstr "Not Found"
+
+#: src/eduid_webapp/idp/templates/not_found.jinja2:11
+msgid "<p>The requested resource could not be found.</p>"
+msgstr "<p>The requested resource could not be found.</p>"
+
+#: src/eduid_webapp/idp/templates/session_timeout.jinja2:9
+msgid "Already logged in"
+msgstr "Already logged in"
+
+#: src/eduid_webapp/idp/templates/session_timeout.jinja2:11
+msgid ""
+"<p>You are already logged in.</p>\n"
+"          <p>If you got here by pressing 'back' in your browser,\n"
+"              you can press 'forward' to return to where you came from.</p>"
+msgstr ""
+"<p>You are already logged in.</p>\n"
+"          <p>If you got here by pressing 'back' in your browser,\n"
+"              you can press 'forward' to return to where you came from.</p>"
+
+#: src/eduid_webapp/idp/templates/swamid_mfa_required.jinja2:11
+msgid ""
+"\n"
+"          <p>Access to the requested service could not be granted.\n"
+"              The service provider requires use of a 'confirmed' Security Key (SWAMID MFA/MFA HI).\n"
+"          </p>"
+msgstr ""
+"\n"
+"          <p>Access to the requested service could not be granted.\n"
+"              The service provider requires use of a 'confirmed' Security Key (SWAMID MFA/MFA HI).\n"
+"          </p>"
+
+#: src/eduid_webapp/idp/templates/swamid_mfa_required.jinja2:18
+msgid "to confirm your Security Key (on the Security tab)."
+msgstr "to confirm your Security Key (on the Security tab)."
+
+#: src/eduid_webapp/idp/templates/toomany.jinja2:9
+msgid "Too many requests"
+msgstr "Too many requests"
+
+#: src/eduid_webapp/idp/templates/toomany.jinja2:11
+msgid ""
+"\n"
+"          <p>Access cannot be granted at this time. Please try again later.</p>"
+msgstr ""
+"\n"
+"          <p>Access cannot be granted at this time. Please try again later.</p>"
+
+#: src/eduid_webapp/idp/templates/unauthorized.jinja2:9
+msgid "Username or password incorrect"
+msgstr "Username or password incorrect"
+
+#: src/eduid_webapp/idp/templates/unauthorized.jinja2:11
+msgid ""
+"<p>Please try again.</p>\n"
+"          <p>There is a link (Forgot your password?) on the login page if you do not remember\n"
+"              your username or password.</p>"
+msgstr ""
+"<p>Please try again.</p>\n"
+"          <p>There is a link (Forgot your password?) on the login page if you do not remember\n"
+"              your username or password.</p>"
+
+#: src/eduid_webapp/idp/templates/user_terminated.jinja2:9
+msgid "User terminated"
+msgstr "User terminated"
+
+#: src/eduid_webapp/idp/templates/user_terminated.jinja2:11
+msgid ""
+"\n"
+"          <p>This user account has been terminated.</p>\n"
+"\t  <p>To regain access to the account, a reset of the credential is necessary.</p>\n"
+"\t  "
+msgstr ""
+"\n"
+"          <p>This user account has been terminated.</p>\n"
+"\t  <p>To regain access to the account, a reset of the credential is necessary.</p>\n"
+"\t  "
+
+#: src/eduid_webapp/oidc_proofing/helpers.py:148
 #, python-format
 msgid "%(site_name)s account verification"
 msgstr "%(site_name)s account verification"
 
-#: oidc_proofing/templates/redo_verification.html.jinja2:5
+#: src/eduid_webapp/oidc_proofing/templates/redo_verification.html.jinja2:5
 #, python-format
 msgid ""
 "\n"
@@ -96,7 +381,7 @@ msgstr ""
 "    <p>We encountered a problem and kindly ask you to verify you account again using a different verification method.</p>\n"
 "    <p>We apologize for any inconvenience.</p>\n"
 
-#: oidc_proofing/templates/redo_verification.txt.jinja2:2
+#: src/eduid_webapp/oidc_proofing/templates/redo_verification.txt.jinja2:2
 #, python-format
 msgid ""
 "\n"
@@ -113,147 +398,206 @@ msgstr ""
 "\n"
 "    We apologize for any inconvenience.\n"
 
-#: security/helpers.py:152
+#: src/eduid_webapp/reset_password/views/templates/reset_password_email.html.jinja2:1
+#: src/eduid_webapp/security/views/templates/reset_password_email.html.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"<p>Hi,</p>\n"
+"<p>You recently asked to reset your password for your %(site_name)s account.</p>\n"
+"<p>To change your password, click the link below:</p>\n"
+"<p><a href=\"%(reset_password_link)s\">%(reset_password_link)s</a></p>\n"
+"<p>If clicking the link does not work you can copy and paste it into your browser.</p>\n"
+"<p>The password reset link is valid for %(password_reset_timeout)s hours.</p>\n"
+"<p>(This is an automated email. Please do not reply.)</p>\n"
+msgstr ""
+"\n"
+"<p>Hi,</p>\n"
+"<p>You recently asked to reset your password for your %(site_name)s account.</p>\n"
+"<p>To change your password, click the link below:</p>\n"
+"<p><a href=\"%(reset_password_link)s\">%(reset_password_link)s</a></p>\n"
+"<p>If clicking the link does not work you can copy and paste it into your browser.</p>\n"
+"<p>The password reset link is valid for %(password_reset_timeout)s hours.</p>\n"
+"<p>(This is an automated email. Please do not reply.)</p>\n"
+
+#: src/eduid_webapp/reset_password/views/templates/reset_password_email.txt.jinja2:1
+#: src/eduid_webapp/security/views/templates/reset_password_email.txt.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"Hi,\n"
+"\n"
+"You recently asked to reset your password for your %(site_name)s account.\n"
+"\n"
+"To change your password, click the link below:\n"
+"\n"
+"%(reset_password_link)s\n"
+"\n"
+"If clicking the link does not work you can copy and paste it into your browser.\n"
+"\n"
+"The password reset link is valid for %(password_reset_timeout)s hours.\n"
+"\n"
+"(This is an automated email. Please do not reply.)\n"
+msgstr ""
+"\n"
+"Hi,\n"
+"\n"
+"You recently asked to reset your password for your %(site_name)s account.\n"
+"\n"
+"To change your password, click the link below:\n"
+"\n"
+"%(reset_password_link)s\n"
+"\n"
+"If clicking the link does not work you can copy and paste it into your browser.\n"
+"\n"
+"The password reset link is valid for %(password_reset_timeout)s hours.\n"
+"\n"
+"(This is an automated email. Please do not reply.)\n"
+
+#: src/eduid_webapp/reset_password/views/templates/reset_password_sms.txt.jinja2:1
+#: src/eduid_webapp/security/views/templates/reset_password_sms.txt.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"Your %(site_name)s verification code: %(verification_code)s\n"
+msgstr ""
+"\n"
+"Your %(site_name)s verification code: %(verification_code)s\n"
+
+#: src/eduid_webapp/security/helpers.py:180
 msgid "Terminate account"
 msgstr "Terminate account"
 
-#: security/helpers.py:187 security/views/reset_password.py:81
-#: security/views/templates/reset_password.jinja2:28
-msgid "Reset password"
-msgstr "Reset password"
-
-#: security/schemas.py:213
+#: src/eduid_webapp/security/schemas.py:225
 msgid "Invalid email address"
 msgstr "Invalid email address"
 
-#: security/schemas.py:226
+#: src/eduid_webapp/security/schemas.py:238
 msgid "Please enter a code"
 msgstr "Please enter a code"
 
-#: security/schemas.py:242
+#: src/eduid_webapp/security/schemas.py:254
 msgid "Please enter a password"
 msgstr "Please enter a password"
 
-#: security/schemas.py:244
+#: src/eduid_webapp/security/schemas.py:256
 msgid "Please repeat the password"
 msgstr "Please repeat the password"
 
-#: security/schemas.py:246
+#: src/eduid_webapp/security/schemas.py:258
 msgid "Passwords does not match"
 msgstr "Passwords does not match"
 
-#: security/schemas.py:254
+#: src/eduid_webapp/security/schemas.py:266
 msgid "Please use a stronger password"
 msgstr "Please use a stronger password"
 
-#: security/views/reset_password.py:40
+#: src/eduid_webapp/security/views/reset_password.py:55
 msgid "404 Not found"
 msgstr "404 Not found"
 
-#: security/views/reset_password.py:41
+#: src/eduid_webapp/security/views/reset_password.py:56
 msgid "The requested state can not be found."
 msgstr "The requested state can not be found."
 
-#: security/views/reset_password.py:43 security/views/reset_password.py:53
-#: security/views/reset_password.py:124 security/views/reset_password.py:191
+#: src/eduid_webapp/security/views/reset_password.py:58
+#: src/eduid_webapp/security/views/reset_password.py:68
+#: src/eduid_webapp/security/views/reset_password.py:146
+#: src/eduid_webapp/security/views/reset_password.py:221
 msgid "Reset your password"
 msgstr "Reset your password"
 
-#: security/views/reset_password.py:50
+#: src/eduid_webapp/security/views/reset_password.py:65
 msgid "Link expired"
 msgstr "Link expired"
 
-#: security/views/reset_password.py:51
+#: src/eduid_webapp/security/views/reset_password.py:66
 msgid "The password reset link has expired."
 msgstr "The password reset link has expired."
 
-#: security/views/reset_password.py:65
+#: src/eduid_webapp/security/views/reset_password.py:81
 msgid "SMS code expired"
 msgstr "SMS code expired"
 
-#: security/views/reset_password.py:66
+#: src/eduid_webapp/security/views/reset_password.py:82
 msgid "The phone verification has expired."
 msgstr "The phone verification has expired."
 
-#: security/views/reset_password.py:68 security/views/reset_password.py:210
+#: src/eduid_webapp/security/views/reset_password.py:84
+#: src/eduid_webapp/security/views/reset_password.py:240
 msgid "Resend code or try another way"
 msgstr "Resend code or try another way"
 
-#: security/views/reset_password.py:82
+#: src/eduid_webapp/security/views/reset_password.py:99
 msgid "Enter an email address registered to your account below"
 msgstr "Enter an email address registered to your account below"
 
-#: security/views/reset_password.py:86
+#: src/eduid_webapp/security/views/reset_password.py:103
 msgid "Reset password message sent. Check your email to continue."
 msgstr "Reset password message sent. Check your email to continue."
 
-#: security/views/reset_password.py:98
-msgid "Could not send e-mail"
-msgstr "Could not send e-mail"
-
-#: security/views/reset_password.py:99 security/views/reset_password.py:168
-msgid "The request could not complete due to an internal server error"
-msgstr "The request could not complete due to an internal server error"
-
-#: security/views/reset_password.py:101 security/views/reset_password.py:170
-#: security/views/reset_password.py:225
-msgid "Try again"
-msgstr "Try again"
-
-#: security/views/reset_password.py:121 security/views/reset_password.py:222
+#: src/eduid_webapp/security/views/reset_password.py:120
+#: src/eduid_webapp/security/views/reset_password.py:143
+#: src/eduid_webapp/security/views/reset_password.py:194
+#: src/eduid_webapp/security/views/reset_password.py:260
 msgid "Temporary technical problem"
 msgstr "Temporary technical problem"
 
-#: security/views/reset_password.py:122 security/views/reset_password.py:223
+#: src/eduid_webapp/security/views/reset_password.py:121
+#: src/eduid_webapp/security/views/reset_password.py:144
+#: src/eduid_webapp/security/views/reset_password.py:195
+#: src/eduid_webapp/security/views/reset_password.py:261
 msgid "Please try again."
 msgstr "Please try again."
 
-#: security/views/reset_password.py:134
+#: src/eduid_webapp/security/views/reset_password.py:123
+#: src/eduid_webapp/security/views/reset_password.py:199
+#: src/eduid_webapp/security/views/reset_password.py:265
+msgid "Try again"
+msgstr "Try again"
+
+#: src/eduid_webapp/security/views/reset_password.py:156
 msgid "Extra security"
 msgstr "Extra security"
 
-#: security/views/reset_password.py:135
+#: src/eduid_webapp/security/views/reset_password.py:157
 msgid "Choose an option to enhance the security"
 msgstr "Choose an option to enhance the security"
 
-#: security/views/reset_password.py:146
+#: src/eduid_webapp/security/views/reset_password.py:168
 msgid "Email address not validated"
 msgstr "Email address not validated"
 
-#: security/views/reset_password.py:147
+#: src/eduid_webapp/security/views/reset_password.py:169
 msgid "Please use the password reset link that you have in your email."
 msgstr "Please use the password reset link that you have in your email."
 
-#: security/views/reset_password.py:167
-msgid "Could not send sms"
-msgstr "Could not send sms"
-
-#: security/views/reset_password.py:188
+#: src/eduid_webapp/security/views/reset_password.py:218
 msgid "Something went wrong"
 msgstr "Something went wrong"
 
-#: security/views/reset_password.py:189
+#: src/eduid_webapp/security/views/reset_password.py:219
 msgid "Please restart the password reset procedure."
 msgstr "Please restart the password reset procedure."
 
-#: security/views/reset_password.py:205
-#: security/views/templates/reset_password_verify_phone.jinja2:30
+#: src/eduid_webapp/security/views/reset_password.py:235
+#: src/eduid_webapp/security/views/templates/reset_password_verify_phone.jinja2:30
 msgid "Verify phone number"
 msgstr "Verify phone number"
 
-#: security/views/reset_password.py:206
+#: src/eduid_webapp/security/views/reset_password.py:236
 msgid "Enter the code you received via SMS"
 msgstr "Enter the code you received via SMS"
 
-#: security/views/reset_password.py:231
+#: src/eduid_webapp/security/views/reset_password.py:271
 msgid "Invalid code. Please try again."
 msgstr "Invalid code. Please try again."
 
-#: security/views/reset_password.py:242
+#: src/eduid_webapp/security/views/reset_password.py:281
 msgid "New password"
 msgstr "New password"
 
-#: security/views/reset_password.py:243
+#: src/eduid_webapp/security/views/reset_password.py:282
 msgid ""
 "\n"
 "            Please choose a new password for your eduID account. A strong password has been generated for you.\n"
@@ -267,85 +611,27 @@ msgstr ""
 "            own password by clicking \"Custom Password\".\n"
 "        "
 
-#: security/views/templates/base.jinja2:2
-msgid "en"
-msgstr "en"
-
-#: security/views/templates/error.jinja2:3
+#: src/eduid_webapp/security/views/templates/error.jinja2:3
 msgid "Error"
 msgstr "Error"
 
-#: security/views/templates/reset_password.jinja2:3
+#: src/eduid_webapp/security/views/templates/reset_password.jinja2:3
 msgid "Reset password - Email"
 msgstr "Reset password - Email"
 
-#: security/views/templates/reset_password.jinja2:18
+#: src/eduid_webapp/security/views/templates/reset_password.jinja2:18
 msgid "Email address"
 msgstr "Email address"
 
-#: security/views/templates/reset_password_email.html.jinja2:1
-#, python-format
-msgid ""
-"\n"
-"<p>Hi,</p>\n"
-"<p>You recently asked to reset your password for your %(site_name)s account.</p>\n"
-"<p>To change your password, click the link below:</p>\n"
-"<p><a href=\"%(reset_password_link)s\">%(reset_password_link)s</a></p>\n"
-"<p>If clicking the link does not work you can copy and paste it into your browser.</p>\n"
-"<p>The password reset link is valid for %(password_reset_timeout)s hours.</p>\n"
-"<p>(This is an automated email. Please do not reply.)</p>\n"
-msgstr ""
-"\n"
-"<p>Hi,</p>\n"
-"<p>You recently asked to reset your password for your %(site_name)s account.</p>\n"
-"<p>To change your password, click the link below:</p>\n"
-"<p><a href=\"%(reset_password_link)s\">%(reset_password_link)s</a></p>\n"
-"<p>If clicking the link does not work you can copy and paste it into your browser.</p>\n"
-"<p>The password reset link is valid for %(password_reset_timeout)s hours.</p>\n"
-"<p>(This is an automated email. Please do not reply.)</p>\n"
-
-#: security/views/templates/reset_password_email.txt.jinja2:1
-#, python-format
-msgid ""
-"\n"
-"Hi,\n"
-"\n"
-"You recently asked to reset your password for your %(site_name)s account.\n"
-"\n"
-"To change your password, click the link below:\n"
-"\n"
-"%(reset_password_link)s\n"
-"\n"
-"If clicking the link does not work you can copy and paste it into your browser.\n"
-"\n"
-"The password reset link is valid for %(password_reset_timeout)s hours.\n"
-"\n"
-"(This is an automated email. Please do not reply.)\n"
-msgstr ""
-"\n"
-"Hi,\n"
-"\n"
-"You recently asked to reset your password for your %(site_name)s account.\n"
-"\n"
-"To change your password, click the link below:\n"
-"\n"
-"%(reset_password_link)s\n"
-"\n"
-"If clicking the link does not work you can copy and paste it into your browser.\n"
-"\n"
-"The password reset link is valid for %(password_reset_timeout)s hours.\n"
-"\n"
-"(This is an automated email. Please do not reply.)\n"
-
-#: security/views/templates/reset_password_extra_security.jinja2:3
+#: src/eduid_webapp/security/views/templates/reset_password_extra_security.jinja2:3
 msgid "Reset password - Extra security"
 msgstr "Reset password - Extra security"
 
-#: security/views/templates/reset_password_extra_security.jinja2:26
+#: src/eduid_webapp/security/views/templates/reset_password_extra_security.jinja2:26
 msgid "Send SMS to number"
 msgstr "Send SMS to number"
 
-#: security/views/templates/reset_password_extra_security.jinja2:40
+#: src/eduid_webapp/security/views/templates/reset_password_extra_security.jinja2:40
 msgid ""
 "Continue with no extra security. I understand that I will have to verify my "
 "account again."
@@ -353,11 +639,11 @@ msgstr ""
 "Continue with no extra security. I understand that I will have to verify my "
 "account again."
 
-#: security/views/templates/reset_password_new_password.jinja2:28
+#: src/eduid_webapp/security/views/templates/reset_password_new_password.jinja2:28
 msgid "Your generated password is"
 msgstr "Your generated password is"
 
-#: security/views/templates/reset_password_new_password.jinja2:32
+#: src/eduid_webapp/security/views/templates/reset_password_new_password.jinja2:32
 msgid ""
 "Copy and save the above password somewhere safe and click \"Accept "
 "password\"."
@@ -365,7 +651,7 @@ msgstr ""
 "Copy and save the above password somewhere safe and click \"Accept "
 "password\"."
 
-#: security/views/templates/reset_password_new_password.jinja2:37
+#: src/eduid_webapp/security/views/templates/reset_password_new_password.jinja2:37
 msgid ""
 "Accept\n"
 "                                        password"
@@ -373,7 +659,7 @@ msgstr ""
 "Accept\n"
 "                                        password"
 
-#: security/views/templates/reset_password_new_password.jinja2:46
+#: src/eduid_webapp/security/views/templates/reset_password_new_password.jinja2:46
 msgid ""
 "\n"
 "                            <p><strong>Choose a strong password</strong></p>\n"
@@ -397,17 +683,17 @@ msgstr ""
 "                            </ul>\n"
 "                        "
 
-#: security/views/templates/reset_password_new_password.jinja2:60
-#: security/views/templates/reset_password_new_password.jinja2:61
+#: src/eduid_webapp/security/views/templates/reset_password_new_password.jinja2:60
+#: src/eduid_webapp/security/views/templates/reset_password_new_password.jinja2:61
 msgid "Password"
 msgstr "Password"
 
-#: security/views/templates/reset_password_new_password.jinja2:66
-#: security/views/templates/reset_password_new_password.jinja2:67
+#: src/eduid_webapp/security/views/templates/reset_password_new_password.jinja2:66
+#: src/eduid_webapp/security/views/templates/reset_password_new_password.jinja2:67
 msgid "Repeat password"
 msgstr "Repeat password"
 
-#: security/views/templates/reset_password_new_password.jinja2:80
+#: src/eduid_webapp/security/views/templates/reset_password_new_password.jinja2:80
 msgid ""
 "Change\n"
 "                                        password"
@@ -415,7 +701,7 @@ msgstr ""
 "Change\n"
 "                                        password"
 
-#: security/views/templates/reset_password_new_password.jinja2:91
+#: src/eduid_webapp/security/views/templates/reset_password_new_password.jinja2:91
 #, python-format
 msgid ""
 "\n"
@@ -428,32 +714,23 @@ msgstr ""
 "                <p><a href=\"%(login_url)s\">Return to login page</a></p>\n"
 "            "
 
-#: security/views/templates/reset_password_new_password.jinja2:103
+#: src/eduid_webapp/security/views/templates/reset_password_new_password.jinja2:103
 msgid "A stronger password is required."
 msgstr "A stronger password is required."
 
-#: security/views/templates/reset_password_new_password.jinja2:104
+#: src/eduid_webapp/security/views/templates/reset_password_new_password.jinja2:104
 msgid "Type the same password again"
 msgstr "Type the same password again"
 
-#: security/views/templates/reset_password_sms.txt.jinja2:1
-#, python-format
-msgid ""
-"\n"
-"Your %(site_name)s verification code: %(verification_code)s\n"
-msgstr ""
-"\n"
-"Your %(site_name)s verification code: %(verification_code)s\n"
-
-#: security/views/templates/reset_password_verify_phone.jinja2:3
+#: src/eduid_webapp/security/views/templates/reset_password_verify_phone.jinja2:3
 msgid "Reset password - Verify phone number"
 msgstr "Reset password - Verify phone number"
 
-#: security/views/templates/reset_password_verify_phone.jinja2:17
+#: src/eduid_webapp/security/views/templates/reset_password_verify_phone.jinja2:17
 msgid "SMS code"
 msgstr "SMS code"
 
-#: security/views/templates/termination_email.html.jinja2:5
+#: src/eduid_webapp/security/views/templates/termination_email.html.jinja2:5
 #, python-format
 msgid ""
 "\n"
@@ -474,7 +751,7 @@ msgstr ""
 "\n"
 "    <p>(This is an automated email. Please do not reply.)</p>\n"
 
-#: security/views/templates/termination_email.txt.jinja2:2
+#: src/eduid_webapp/security/views/templates/termination_email.txt.jinja2:2
 #, python-format
 msgid ""
 "\n"
@@ -495,11 +772,11 @@ msgstr ""
 "\n"
 "    (This is an automated email. Please do not reply.)\n"
 
-#: signup/verifications.py:132
+#: src/eduid_webapp/signup/verifications.py:131
 msgid "eduid-signup verification email"
 msgstr "eduid-signup verification email"
 
-#: signup/templates/verification_email.html.jinja2:1
+#: src/eduid_webapp/signup/templates/verification_email.html.jinja2:1
 #, python-format
 msgid ""
 "\n"
@@ -524,7 +801,7 @@ msgstr ""
 "<a href=\"%(verification_link)s\">%(verification_link)s</a>\n"
 "\n"
 
-#: signup/templates/verification_email.txt.jinja2:1
+#: src/eduid_webapp/signup/templates/verification_email.txt.jinja2:1
 #, python-format
 msgid ""
 "\n"
