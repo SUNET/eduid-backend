@@ -216,18 +216,13 @@ class SSO(Service):
                 # Fall back to logging the whole response
                 current_app.logger.info(f'{ticket.key}: authn response: {saml_response}')
 
-    def _fticks_log(self, relying_party, authn_method, user_id):
+    def _fticks_log(self, relying_party: str, authn_method: str, user_id: str) -> None:
         """
         Perform SAML F-TICKS logging, for statistics in the SWAMID federation.
 
         :param relying_party: The entity id of the relying party (SP).
         :param authn_method: The URN of the authentication method used.
         :param user_id: Unique user id.
-
-        :type relying_party: string
-        :type authn_method: string
-        :type user_id: string
-        :return: None
         """
         if not current_app.config.fticks_secret_key:
             return
@@ -235,10 +230,10 @@ class SSO(Service):
         #   'F-TICKS/SWAMID/2.0#TS={ts}#RP={rp}#AP={ap}#PN={pn}#AM={am}#',
         _timestamp = time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())
         _anon_userid = hmac.new(
-            current_app.config.fticks_secret_key.encode('ascii'), msg=user_id.encode('ascii'), digestmod=sha256
+            bytes(current_app.config.fticks_secret_key, 'ascii'), msg=bytes(user_id, 'ascii'), digestmod=sha256
         ).hexdigest()
         msg = current_app.config.fticks_format_string.format(
-            ts=_timestamp, rp=relying_party, ap=current_app.config.entityid, pn=_anon_userid, am=authn_method,
+            ts=_timestamp, rp=relying_party, ap=current_app.IDP.config.entityid, pn=_anon_userid, am=authn_method,
         )
         current_app.logger.info(msg)
 
