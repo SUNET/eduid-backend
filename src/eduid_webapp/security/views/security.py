@@ -292,10 +292,8 @@ def add_nin(user, nin):
         return error_response(message=SecurityMsg.already_exists)
 
     try:
-        nin_element = NinProofingElement.from_dict(dict(number=nin, created_by='security', verified=False))
-        proofing_state = NinProofingState.from_dict(
-            {'eduPersonPrincipalName': security_user.eppn, 'nin': nin_element.to_dict()}
-        )
+        nin_element = NinProofingElement(number=nin, created_by='security', is_verified=False)
+        proofing_state = NinProofingState(id=None, eppn=security_user.eppn, nin=nin_element, modified_ts=None)
         add_nin_to_user(user, proofing_state, user_class=SecurityUser)
         return success_response(
             payload=dict(nins=security_user.nins.to_list_of_dicts()), message=SecurityMsg.add_success

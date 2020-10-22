@@ -93,14 +93,12 @@ class Plugin(ActionPlugin):
         else:
             current_app.logger.info('ToU version {} accepted by user {}'.format(version, user))
             user.tou.add(
-                ToUEvent.from_dict(
-                    dict(
-                        version=version,
-                        created_by='eduid_tou_plugin',
-                        created_ts=datetime.utcnow(),
-                        modified_ts=datetime.utcnow(),
-                        event_id=ObjectId(),
-                    )
+                ToUEvent(
+                    version=version,
+                    created_by='eduid_tou_plugin',
+                    created_ts=datetime.utcnow(),
+                    modified_ts=datetime.utcnow(),
+                    event_id=str(ObjectId()),
                 )
             )
 

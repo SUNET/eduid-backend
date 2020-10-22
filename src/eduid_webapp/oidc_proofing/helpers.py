@@ -47,7 +47,7 @@ def create_proofing_state(user, nin):
     state = get_unique_hash()
     nonce = get_unique_hash()
     token = get_unique_hash()
-    nin_element = NinProofingElement.from_dict(dict(number=nin, created_by='oidc_proofing', verified=False))
+    nin_element = NinProofingElement(number=nin, created_by='oidc_proofing', is_verified=False)
     proofing_state = OidcProofingState(
         id=None, modified_ts=None, eppn=user.eppn, nin=nin_element, state=state, nonce=nonce, token=token
     )

@@ -36,6 +36,7 @@ from datetime import datetime
 from uuid import uuid4
 
 import requests
+from bson import ObjectId
 from flask import render_template
 from flask_babel import gettext as _
 
@@ -116,10 +117,9 @@ def send_verification_mail(email):
 
     signup_user = current_app.private_userdb.get_user_by_pending_mail_address(email)
     if not signup_user:
-        mailaddress = EmailProofingElement.from_dict(
-            dict(email=email, created_by='signup', verified=False, verification_code=code)
-        )
-        signup_user = SignupUser.from_dict(data=dict(eduPersonPrincipalName=generate_eppn()))
+        mailaddress = EmailProofingElement(email=email, created_by='signup', is_verified=False, verification_code=code)
+        # TODO: Let User create a user_id if it is None (as default)
+        signup_user = SignupUser(user_id=ObjectId(), eppn=generate_eppn())
         signup_user.pending_mail_address = mailaddress
         current_app.logger.info("New user {}/{} created. e-mail is pending confirmation".format(signup_user, email))
     else:
@@ -187,8 +187,7 @@ def verify_email_code(code):
         current_app.logger.debug("Email {} already present in central db".format(email))
         raise AlreadyVerifiedException()
 
-    mail_dict = signup_user.pending_mail_address.to_dict()
-    mail_address = MailAddress.from_dict(mail_dict)
+    mail_address = MailAddress(signup_user.pending_mail_address)
     if mail_address.is_verified:
         # There really should be no way to get here, is_verified is set to False when
         # the EmailProofingElement is created.
