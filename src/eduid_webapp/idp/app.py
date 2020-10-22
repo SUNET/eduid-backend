@@ -154,7 +154,7 @@ class IdPApp(EduIDBaseApp):
         if _session_id:
             # The old IdP base64 encoded the session_id, try to  remain interoperable. Fingers crossed.
             _decoded_session_id = b64decode(_session_id)
-            self.logger.debug(f'Got SSO session ID from idpauthn cookie {_session_id} -> {_decoded_session_id}')
+            self.logger.debug(f'Got SSO session ID from idpauthn cookie {repr(_session_id)} -> {_decoded_session_id}')
             return sso_cache.SSOSessionId(_decoded_session_id)
 
         query = parse_query_string()
