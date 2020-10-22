@@ -1,8 +1,9 @@
-Enter directory src/eduid_webapp
+How to translate eduid-webapp
+----------------------------
 
-pybabel extract -F babel.cfg -k lazy_gettext -o messages.pot .
+make update_translations
 
-Upload messages.pot to Transifex. Translate and download languange specific files.
+Upload message.pot to Transifex, translate.
+Download for_use_XX.po to src/eduid_webapp/translations/XX/LC_MESSAGES/messages.po.
 
-pybabel compile -d translations
-
+make compile_translations

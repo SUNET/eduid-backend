@@ -232,27 +232,26 @@ Use init_babel from eduid-common to set up translation support in the microservi
   ...
   app = translation.init_babel(app)
 
-There is a babel.cfg in the root dir (src/eduid_webapp)::
+There is a babel.cfg in the repo root dir::
 
   [python: **.py]
   [jinja2: **/templates/**.jinja2]
-  [jinja2: **/templates/**.html]
   extensions=jinja2.ext.autoescape,jinja2.ext.with_
 
-Initialize translation files::
+Initialize translation files (first time)::
 
-  pybabel extract -F babel.cfg -k lazy_gettext -o messages.pot .
+  pybabel extract -F babel.cfg -k lazy_gettext -o src/eduid_webapp/translations/messages.pot .
   pybabel init -i messages.pot -d translations -l sv
 
 Edit translations/sv/LC_MESSAGES/messages.po manually or use Transifex.
 
-Compile translations::
-
-  pybabel compile -d translations
-
 Update translation strings::
 
-  pybabel update -i messages.pot -d translations
+  make update_translations
+
+Compile translations::
+
+  make compile_translations
 
 Development of front end applications
 -------------------------------------
