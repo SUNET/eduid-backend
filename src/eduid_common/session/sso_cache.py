@@ -24,7 +24,7 @@ from eduid_userdb import MongoDB
 _SHA1_HEXENCODED_SIZE = 160 // 8 * 2
 
 # A distinct type for session ids
-SSOSessionId = NewType('SSOSessionId', str)
+SSOSessionId = NewType('SSOSessionId', bytes)
 
 # TODO: Rename to logger
 module_logger = logging.getLogger(__name__)
@@ -243,7 +243,7 @@ class SSOSessionCache(ABC):
         The uniqueness and unability to guess is security critical!
         :return: session_id as bytes (to match what cookie decoding yields)
         """
-        return SSOSessionId(str(uuid.uuid4()))
+        return SSOSessionId(bytes(str(uuid.uuid4()), 'ascii'))
 
 
 class SSOSessionCacheMem(SSOSessionCache):
