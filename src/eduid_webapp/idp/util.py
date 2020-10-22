@@ -36,11 +36,16 @@ import base64
 from typing import Optional, Union
 
 from eduid_common.authn.idp_saml import IdP_SAMLRequest
+
 from eduid_webapp.idp.app import current_idp_app as current_app
 
 
-def b64encode(source: str) -> str:
-    return base64.b64encode(bytes(source, 'utf-8')).decode('utf-8')
+def b64encode(source: Union[str, bytes]) -> str:
+    if isinstance(source, str):
+        _source = bytes(source, 'utf-8')
+    else:
+        _source = source
+    return base64.b64encode(_source).decode('utf-8')
 
 
 def maybe_xml_to_string(message: Union[str, bytes]) -> str:
