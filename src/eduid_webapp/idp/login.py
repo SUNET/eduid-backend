@@ -22,10 +22,10 @@ from typing import Mapping, Optional
 
 from defusedxml import ElementTree as DefusedElementTree
 from flask import make_response, redirect, render_template, request
+from flask_babel import gettext as _
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest, Forbidden, InternalServerError, TooManyRequests
 from werkzeug.wrappers import Response as WerkzeugResponse
-from flask_babel import gettext as _
 
 from eduid_common.api import exceptions
 from eduid_common.authn import assurance
@@ -401,7 +401,9 @@ class SSO(Service):
 
         return self._show_login_page(ticket, req_authn_context, redirect_uri)
 
-    def _show_login_page(self, ticket: SSOLoginData, requested_authn_context: Optional[str], redirect_uri) -> WerkzeugResponse:
+    def _show_login_page(
+        self, ticket: SSOLoginData, requested_authn_context: Optional[str], redirect_uri
+    ) -> WerkzeugResponse:
         """
         Display the login form for all authentication methods.
 
@@ -521,9 +523,7 @@ def do_verify():
     # used to avoid requiring subsequent authentication for the same user during a limited
     # period of time, by storing the session-id in a browser cookie.
     _session_id = current_app.sso_sessions.add_session(user.eppn, _sso_session.to_dict())
-    # mischttp.set_cookie('idpauthn', '/', current_app.logger, context.config, _session_id.decode('utf-8'))
-    # knowledge of the _session_id enables impersonation, so get rid of it as soon as possible
-    # del _session_id
+    current_app.logger.debug(f'Created SSO session {repr(_session_id)}')
 
     # INFO-Log the request id (sha1 of SAMLrequest) and the sso_session
     current_app.logger.info(

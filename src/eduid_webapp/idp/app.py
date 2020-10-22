@@ -131,8 +131,8 @@ class IdPApp(EduIDBaseApp):
 
         _session_id = self.get_sso_session_id()
         if _session_id:
-            _data = self.sso_sessions.get_session(sso_cache.SSOSessionId(_session_id))
-            self.logger.debug(f'Looked up SSO session using session ID {_session_id}:\n{_data}')
+            _data = self.sso_sessions.get_session(_session_id)
+            self.logger.debug(f'Looked up SSO session using session ID {repr(_session_id)}:\n{_data}')
 
         if not _data:
             self.logger.debug("SSO session not found using 'id' parameter or 'idpauthn' cookie")
@@ -141,7 +141,7 @@ class IdPApp(EduIDBaseApp):
         self.logger.debug("Re-created SSO session {!r}".format(_sso))
         return _sso
 
-    def get_sso_session_id(self) -> Optional[str]:
+    def get_sso_session_id(self) -> Optional[sso_cache.SSOSessionId]:
         """
         Get the SSO session id from the idpauthn cookie, with fallback to hopefully unused 'id' query string parameter.
 
@@ -153,9 +153,9 @@ class IdPApp(EduIDBaseApp):
         _session_id = read_cookie('idpauthn')
         if _session_id:
             # The old IdP base64 encoded the session_id, try to  remain interoperable. Fingers crossed.
-            _decoded_session_id = b64decode(_session_id).decode('utf-8')
+            _decoded_session_id = b64decode(_session_id)
             self.logger.debug(f'Got SSO session ID from idpauthn cookie {_session_id} -> {_decoded_session_id}')
-            return _decoded_session_id
+            return sso_cache.SSOSessionId(_decoded_session_id)
 
         query = parse_query_string()
         if query and 'id' in query:
@@ -163,7 +163,7 @@ class IdPApp(EduIDBaseApp):
             self.logger.debug("Parsed query string :\n{!s}".format(pprint.pformat(query)))
             _session_id = query['id']
             self.logger.debug(f'Got SSO session ID from query string: {_session_id}')
-            return _session_id
+            return sso_cache.SSOSessionId(_session_id)
 
         return None
 
