@@ -82,15 +82,13 @@ class MockTicket:
 class MFAActionPluginTests(ActionsTestCase):
     def setUp(self):
         super(MFAActionPluginTests, self).setUp()
-        u2f = U2F.from_dict(
-            dict(
-                version='U2F_V2',
-                app_id='https://dev.eduid.se/u2f-app-id.json',
-                keyhandle='test_key_handle',
-                public_key='test_public_key',
-                attest_cert='test_attest_cert',
-                description='test_description',
-            )
+        u2f = U2F(
+            version='U2F_V2',
+            app_id='https://dev.eduid.se/u2f-app-id.json',
+            keyhandle='test_key_handle',
+            public_key='test_public_key',
+            attest_cert='test_attest_cert',
+            description='test_description',
         )
         self.user.credentials.add(u2f)
         self.app.central_userdb.save(self.user, check_sync=False)
@@ -256,15 +254,13 @@ class MFAActionPluginTests(ActionsTestCase):
         #        'dummy-touch', 'dummy-counter')
         #
         # Add a working U2F credential for this test
-        u2f = U2F.from_dict(
-            dict(
-                version='U2F_V2',
-                keyhandle='V1vXqZcwBJD2RMIH2udd2F7R9NoSNlP7ZSPOtKHzS7n_rHFXcXbSpOoX__aUKyTR6jEC8Xv678WjXC5KEkvziA',
-                public_key='BHVTWuo3_D7ruRBe2Tw-m2atT2IOm_qQWSDreWShu3t21ne9c-DPSUdym-H-t7FcjV7rj1dSc3WSwaOJpFmkKxQ',
-                app_id='https://dev.eduid.se/u2f-app-id.json',
-                attest_cert='',
-                description='unit test U2F token',
-            )
+        u2f = U2F(
+            version='U2F_V2',
+            keyhandle='V1vXqZcwBJD2RMIH2udd2F7R9NoSNlP7ZSPOtKHzS7n_rHFXcXbSpOoX__aUKyTR6jEC8Xv678WjXC5KEkvziA',
+            public_key='BHVTWuo3_D7ruRBe2Tw-m2atT2IOm_qQWSDreWShu3t21ne9c-DPSUdym-H-t7FcjV7rj1dSc3WSwaOJpFmkKxQ',
+            app_id='https://dev.eduid.se/u2f-app-id.json',
+            attest_cert='',
+            description='unit test U2F token',
         )
         self.user.credentials.add(u2f)
         self.app.central_userdb.save(self.user, check_sync=False)

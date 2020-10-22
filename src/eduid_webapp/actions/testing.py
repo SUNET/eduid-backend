@@ -123,9 +123,8 @@ TEST_CONFIG = {
 class ActionsTestCase(EduidAPITestCase):
     def setUp(self, users=None, copy_user_to_private=False, am_settings=None):
         super(ActionsTestCase, self).setUp(users=None, copy_user_to_private=False, am_settings=None)
-        user_data = mocked_user_standard.to_dict()
-        user_data['modified_ts'] = datetime.utcnow()
-        self.user = User.from_dict(data=user_data)
+        self.user = User.from_dict(data=mocked_user_standard.to_dict())  # make a copy of mocked_user_standard
+        self.user.modified_ts = datetime.utcnow()
         self.app.central_userdb.save(self.user, check_sync=False)
         self.test_eppn = self.user.eppn
 
