@@ -3,7 +3,7 @@ EDUIDCOMMON= ../eduid-common/src
 EDUIDUSERDB= ../eduid-userdb/src
 
 test:
-	pytest
+	pytest --log-cli-level DEBUG
 
 reformat:
 	isort --line-width 120 --atomic --project eduid_webapp --recursive $(SOURCE)
