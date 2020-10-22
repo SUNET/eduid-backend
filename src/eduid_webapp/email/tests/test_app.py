@@ -84,22 +84,14 @@ class EmailTests(EduidAPITestCase):
             user.mail_addresses.remove(address.email)
 
     def _add_2_emails(self, user):
-        verified = MailAddress.from_dict(
-            dict(email='verified@example.com', created_by='test', verified=True, primary=True)
-        )
-        verified2 = MailAddress.from_dict(
-            dict(email='verified2@example.com', created_by='test', verified=True, primary=False)
-        )
+        verified = MailAddress(email='verified@example.com', created_by='test', is_verified=True, is_primary=True)
+        verified2 = MailAddress(email='verified2@example.com', created_by='test', is_verified=True, is_primary=False)
         user.mail_addresses.add(verified)
         user.mail_addresses.add(verified2)
 
     def _add_2_emails_1_verified(self, user):
-        verified = MailAddress.from_dict(
-            dict(email='verified@example.com', created_by='test', verified=True, primary=True)
-        )
-        verified2 = MailAddress.from_dict(
-            dict(email='unverified@example.com', created_by='test', verified=False, primary=False)
-        )
+        verified = MailAddress(email='verified@example.com', created_by='test', is_verified=True, is_primary=True)
+        verified2 = MailAddress(email='unverified@example.com', created_by='test', is_verified=False, is_primary=False)
         user.mail_addresses.add(verified)
         user.mail_addresses.add(verified2)
 
@@ -415,7 +407,7 @@ class EmailTests(EduidAPITestCase):
         self.app.config.throttle_resend_seconds = -500
         eppn = self.test_user_data['eduPersonPrincipalName']
         email = 'johnsmith3@example.com'
-        verification1 = EmailProofingElement.from_dict(dict(email=email, verification_code='test_code_1'))
+        verification1 = EmailProofingElement(email=email, verification_code='test_code_1')
         modified_ts = datetime.now(tz=None)
         old_state = EmailProofingState(id=None, eppn=eppn, modified_ts=modified_ts, verification=verification1)
         self.app.proofing_statedb.save(old_state, check_sync=False)
@@ -432,7 +424,7 @@ class EmailTests(EduidAPITestCase):
         eppn = self.test_user_data['eduPersonPrincipalName']
         email = 'johnsmith3@example.com'
         modified_ts = datetime.now(tz=None)
-        verification1 = EmailProofingElement.from_dict(dict(email=email, verification_code='test_code_1'))
+        verification1 = EmailProofingElement(email=email, verification_code='test_code_1')
         old_state = EmailProofingState(id=None, eppn=eppn, modified_ts=modified_ts, verification=verification1)
         self.app.proofing_statedb.save(old_state, check_sync=False)
 
@@ -455,7 +447,7 @@ class EmailTests(EduidAPITestCase):
 
         # Save unverified mail address for test user
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        mail_address = MailAddress.from_dict(dict(email=email, created_by='email', verified=False, primary=False))
+        mail_address = MailAddress(email=email, created_by='email', is_verified=False, is_primary=False)
         user.mail_addresses.add(mail_address)
         self.app.central_userdb.save(user, check_sync=False)
 
@@ -743,8 +735,8 @@ class EmailTests(EduidAPITestCase):
     def test_handle_multiple_email_proofings(self):
         eppn = self.test_user_data['eduPersonPrincipalName']
         email = 'example@example.com'
-        verification1 = EmailProofingElement.from_dict(dict(email=email, verification_code='test_code_1'))
-        verification2 = EmailProofingElement.from_dict(dict(email=email, verification_code='test_code_2'))
+        verification1 = EmailProofingElement(email=email, verification_code='test_code_1')
+        verification2 = EmailProofingElement(email=email, verification_code='test_code_2')
         modified_ts = datetime.now(tz=None) - timedelta(seconds=1)
         state1 = EmailProofingState(id=None, eppn=eppn, modified_ts=modified_ts, verification=verification1)
         state2 = EmailProofingState(id=None, eppn=eppn, modified_ts=None, verification=verification2)

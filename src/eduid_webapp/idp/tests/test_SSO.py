@@ -45,9 +45,10 @@ from werkzeug.exceptions import BadRequest, Forbidden
 
 from eduid_common.authn.idp_authn import AuthnData
 from eduid_common.authn.idp_saml import IdP_SAMLRequest
+from eduid_common.misc.timeutil import utc_now
 from eduid_common.session.logindata import ExternalMfaData, SSOLoginData
 from eduid_common.session.sso_session import SSOSession
-from eduid_userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, U2F, Password, u2f_from_dict
+from eduid_userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, U2F, Password
 from eduid_userdb.idp import IdPUser
 from eduid_userdb.nin import Nin, NinList
 
@@ -67,30 +68,26 @@ cc = {
     'PASSWORD_PT': 'urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport',
 }
 
-_U2F = u2f_from_dict({'version': 'U2F_V2', 'app_id': 'unit test', 'keyhandle': 'firstU2FElement', 'public_key': 'foo',})
+_U2F = U2F(version='U2F_V2', app_id='unit test', keyhandle='firstU2FElement', public_key='foo')
 
-_U2F_SWAMID_AL2 = u2f_from_dict(
-    {
-        'version': 'U2F_V2',
-        'app_id': 'unit test',
-        'keyhandle': 'U2F SWAMID AL2',
-        'public_key': 'foo',
-        'verified': True,
-        'proofing_method': METHOD_SWAMID_AL2_MFA,
-        'proofing_version': 'testing',
-    }
+_U2F_SWAMID_AL2 = U2F(
+    version='U2F_V2',
+    app_id='unit test',
+    keyhandle='U2F SWAMID AL2',
+    public_key='foo',
+    is_verified=True,
+    proofing_method=METHOD_SWAMID_AL2_MFA,
+    proofing_version='testing',
 )
 
-_U2F_SWAMID_AL2_HI = u2f_from_dict(
-    {
-        'version': 'U2F_V2',
-        'app_id': 'unit test',
-        'keyhandle': 'U2F SWAMID AL2 HI',
-        'public_key': 'foo',
-        'verified': True,
-        'proofing_method': METHOD_SWAMID_AL2_MFA_HI,
-        'proofing_version': 'testing',
-    }
+_U2F_SWAMID_AL2_HI = U2F(
+    version='U2F_V2',
+    app_id='unit test',
+    keyhandle='U2F SWAMID AL2 HI',
+    public_key='foo',
+    is_verified=True,
+    proofing_method=METHOD_SWAMID_AL2_MFA_HI,
+    proofing_version='testing',
 )
 
 
@@ -205,14 +202,12 @@ class TestSSO(SSOIdPTests):
         user = self.app.userdb.lookup_user(eppn)
         user.nins = NinList(nins=[])
         for number in nins:
-            this_nin = Nin.from_dict(
-                dict(
-                    number=number,
-                    created_by='unittest',
-                    created_ts=True,
-                    verified=True,
-                    primary=user.nins.primary is None,
-                )
+            this_nin = Nin(
+                number=number,
+                created_by='unittest',
+                created_ts=utc_now(),
+                is_verified=True,
+                is_primary=user.nins.primary is None,
             )
             user.nins.add(this_nin)
         return user

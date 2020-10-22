@@ -170,15 +170,13 @@ class SecurityWebauthnTests(EduidAPITestCase):
         cred_data = auth_data.credential_data
         cred_id = cred_data.credential_id
 
-        credential = Webauthn.from_dict(
-            dict(
-                keyhandle=cred_id.hex(),
-                credential_data=base64.urlsafe_b64encode(cred_data).decode('ascii'),
-                app_id=self.app.config.fido2_rp_id,
-                attest_obj=base64.b64encode(attestation).decode('ascii'),
-                description='ctap1 token',
-                created_by='test_security',
-            )
+        credential = Webauthn(
+            keyhandle=cred_id.hex(),
+            credential_data=base64.urlsafe_b64encode(cred_data).decode('ascii'),
+            app_id=self.app.config.fido2_rp_id,
+            attest_obj=base64.b64encode(attestation).decode('ascii'),
+            description='ctap1 token',
+            created_by='test_security',
         )
         self.test_user.credentials.add(credential)
         self.app.central_userdb.save(self.test_user, check_sync=False)

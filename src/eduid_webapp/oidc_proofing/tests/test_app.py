@@ -273,9 +273,7 @@ class OidcProofingTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
-        not_verified_nin = Nin.from_dict(
-            dict(number=self.test_user_nin, created_by='test', verified=False, primary=False)
-        )
+        not_verified_nin = Nin(number=self.test_user_nin, created_by='test', is_verified=False, is_primary=False)
         user.nins.add(not_verified_nin)
         self.app.central_userdb.save(user)
 
@@ -326,9 +324,7 @@ class OidcProofingTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
-        not_verified_nin = Nin.from_dict(
-            dict(number=self.test_user_wrong_nin, created_by='test', verified=False, primary=False)
-        )
+        not_verified_nin = Nin(number=self.test_user_wrong_nin, created_by='test', is_verified=False, is_primary=False)
         user.nins.add(not_verified_nin)
         self.app.central_userdb.save(user)
 
@@ -424,9 +420,7 @@ class OidcProofingTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
-        not_verified_nin = Nin.from_dict(
-            dict(number=self.test_user_nin, created_by='test', verified=False, primary=False)
-        )
+        not_verified_nin = Nin(number=self.test_user_nin, created_by='test', is_verified=False, is_primary=False)
         user.nins.add(not_verified_nin)
         self.app.central_userdb.save(user)
 
@@ -475,9 +469,7 @@ class OidcProofingTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
-        not_verified_nin = Nin.from_dict(
-            dict(number=self.test_user_wrong_nin, created_by='test', verified=False, primary=False)
-        )
+        not_verified_nin = Nin(number=self.test_user_wrong_nin, created_by='test', is_verified=False, is_primary=False)
         user.nins.add(not_verified_nin)
         self.app.central_userdb.save(user)
 
