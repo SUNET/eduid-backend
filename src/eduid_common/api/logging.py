@@ -28,7 +28,7 @@ app_name - Flask app name
 eppn - Available if a user session is initiated
 """
 
-DEFAULT_FORMAT = '{asctime} | {levelname} | {hostname} | {name} | {module} | {eppn} | {message}'
+DEFAULT_FORMAT = '{asctime} | {levelname:7} | {hostname} | {eppn} | {name:35} | {module} | {message}'
 
 
 # Default to RFC3339/ISO 8601 with tz
