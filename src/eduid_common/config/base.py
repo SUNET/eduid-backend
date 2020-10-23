@@ -40,6 +40,7 @@ import importlib.machinery
 import importlib.util
 import logging
 import os
+import pprint
 from dataclasses import dataclass, field, fields
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Type, TypeVar
 
@@ -323,7 +324,7 @@ class BaseConfig(CommonConfig):
         if test_config:
             # Load init time settings
             config.update(test_config)
-            logger.info(f'Using test_config: {config}')
+            logger.info(f'Using test_config:\n{pprint.pformat(config)}')
             return cls(**config)
 
         from eduid_common.config.parsers.etcd import EtcdConfigParser
