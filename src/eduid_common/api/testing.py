@@ -193,7 +193,7 @@ class EduidAPITestCase(CommonTestCase):
             'Classes extending EduidAPITestCase must provide a method where they import the flask app and return it.'
         )
 
-    def update_config(self, config):
+    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """
         Method that can be overridden by any subclass,
         where it can add configuration specific for that API
@@ -205,6 +205,7 @@ class EduidAPITestCase(CommonTestCase):
         :return: the updated configuration
         :rtype: FlaskConfig
         """
+        config['log_format'] = '{debugTime} | {levelname:7} | {eppn} | {name:35} | {message}'
         return config
 
     @contextmanager

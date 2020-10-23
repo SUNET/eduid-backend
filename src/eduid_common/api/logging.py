@@ -46,6 +46,15 @@ class EduidFormatter(logging.Formatter):
         return s
 
 
+class DebugTimeFilter(logging.Filter):
+    """ A filter to add record.debugTime which is time since the logger was initialised in a fixed format """
+
+    def filter(self, record: logging.LogRecord) -> int:
+        _seconds = record.relativeCreated / 1000
+        record.debugTime = f'{_seconds:.3f}s'
+        return 1
+
+
 class AppFilter(logging.Filter):
     def __init__(self, app_name):
         logging.Filter.__init__(self)
@@ -152,13 +161,14 @@ def init_logging(app: EduIDBaseApp) -> None:
                 '()': 'eduid_common.api.logging.RequireDebugFalse',
                 'app_debug': 'cfg://local_context.app_debug',
             },
+            'debugtime_filter': {'()': 'eduid_common.api.logging.DebugTimeFilter',},
         },
         'handlers': {
             'console': {
                 'class': 'logging.StreamHandler',
                 'level': 'cfg://local_context.level',
                 'formatter': 'default',
-                'filters': ['app_filter', 'user_filter'],
+                'filters': ['app_filter', 'user_filter', 'debugtime_filter'],
             },
         },
         'root': {'handlers': ['console'], 'level': 'cfg://local_context.level',},
