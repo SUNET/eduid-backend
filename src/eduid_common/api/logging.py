@@ -28,7 +28,7 @@ app_name - Flask app name
 eppn - Available if a user session is initiated
 """
 
-DEFAULT_FORMAT = '%(asctime)s | %(levelname)s | %(hostname)s | %(name)s | %(module)s | %(eppn)s | %(message)s'
+DEFAULT_FORMAT = '{asctime} | {levelname} | {hostname} | {name} | {module} | {eppn} | {message}'
 
 
 # Default to RFC3339/ISO 8601 with tz
@@ -135,7 +135,11 @@ def init_logging(app: EduIDBaseApp) -> None:
         # Local variables
         'local_context': local_context,
         'formatters': {
-            'default': {'()': 'eduid_common.api.logging.EduidFormatter', 'fmt': 'cfg://local_context.format'},
+            'default': {
+                '()': 'eduid_common.api.logging.EduidFormatter',
+                'fmt': 'cfg://local_context.format',
+                'style': '{',
+            },
         },
         'filters': {
             'app_filter': {'()': 'eduid_common.api.logging.AppFilter', 'app_name': 'cfg://local_context.app_name',},
