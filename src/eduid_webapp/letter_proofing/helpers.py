@@ -125,7 +125,7 @@ def create_proofing_state(eppn: str, nin: str) -> LetterProofingState:
     proofing_state = LetterProofingState(
         eppn=eppn, nin=_nin, proofing_letter=proofing_letter, id=None, modified_ts=None
     )
-    current_app.logger.debug(f'Created proofing state: {proofing_state}')
+    current_app.logger.debug(f'Created proofing state: {proofing_state.to_dict()}')
     return proofing_state
 
 
