@@ -187,7 +187,15 @@ def verify_email_code(code):
         current_app.logger.debug("Email {} already present in central db".format(email))
         raise AlreadyVerifiedException()
 
-    mail_address = MailAddress(signup_user.pending_mail_address)
+    pending_mail_address: EmailProofingElement = signup_user.pending_mail_address
+    mail_address = MailAddress(
+        email=pending_mail_address.email,
+        created_by=pending_mail_address.created_by,
+        created_ts=pending_mail_address.created_ts,
+        modified_ts=pending_mail_address.modified_ts,
+        is_verified=pending_mail_address.is_verified,
+        is_primary=False,
+    )
     if mail_address.is_verified:
         # There really should be no way to get here, is_verified is set to False when
         # the EmailProofingElement is created.
