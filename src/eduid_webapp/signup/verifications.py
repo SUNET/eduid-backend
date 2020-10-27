@@ -159,7 +159,7 @@ class ProofingLogFailure(Exception):
     pass
 
 
-def verify_email_code(code):
+def verify_email_code(code: str) -> SignupUser:
     """
     Look up a user in the signup userdb using an e-mail verification code.
 
