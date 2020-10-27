@@ -159,7 +159,7 @@ class ProofingLogFailure(Exception):
     pass
 
 
-def verify_email_code(code):
+def verify_email_code(code: str) -> SignupUser:
     """
     Look up a user in the signup userdb using an e-mail verification code.
 
@@ -187,12 +187,15 @@ def verify_email_code(code):
         current_app.logger.debug("Email {} already present in central db".format(email))
         raise AlreadyVerifiedException()
 
-    mail_address = MailAddress(signup_user.pending_mail_address)
-    if mail_address.is_verified:
-        # There really should be no way to get here, is_verified is set to False when
-        # the EmailProofingElement is created.
-        current_app.logger.debug("Code {} already verified ({})".format(code, mail_address))
-        raise AlreadyVerifiedException()
+    pending_mail_address: EmailProofingElement = signup_user.pending_mail_address
+    mail_address = MailAddress(
+        email=pending_mail_address.email,
+        created_by=pending_mail_address.created_by,
+        created_ts=pending_mail_address.created_ts,
+        modified_ts=pending_mail_address.modified_ts,
+        is_verified=False,
+        is_primary=False,
+    )
 
     mail_address_proofing = MailAddressProofing(
         eppn=signup_user.eppn,
