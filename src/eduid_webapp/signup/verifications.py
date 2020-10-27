@@ -193,14 +193,9 @@ def verify_email_code(code: str) -> SignupUser:
         created_by=pending_mail_address.created_by,
         created_ts=pending_mail_address.created_ts,
         modified_ts=pending_mail_address.modified_ts,
-        is_verified=pending_mail_address.is_verified,
+        is_verified=False,
         is_primary=False,
     )
-    if mail_address.is_verified:
-        # There really should be no way to get here, is_verified is set to False when
-        # the EmailProofingElement is created.
-        current_app.logger.debug("Code {} already verified ({})".format(code, mail_address))
-        raise AlreadyVerifiedException()
 
     mail_address_proofing = MailAddressProofing(
         eppn=signup_user.eppn,
