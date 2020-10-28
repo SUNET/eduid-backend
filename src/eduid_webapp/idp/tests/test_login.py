@@ -64,6 +64,32 @@ class IdPTestLogin(IdPTests):
         assert 'eduPersonPrincipalName' in attributes
         assert attributes['eduPersonPrincipalName'] == ['hubba-bubba']
 
+    def test_ForceAuthn_with_existing_SSO_session(self):
+        # Patch the VCCSClient so we do not need a vccs server
+        with patch.object(VCCSClient, 'authenticate'):
+            VCCSClient.authenticate.return_value = True
+            reached_state, resp = self._try_login()
+
+        assert reached_state == LoginState.S5_LOGGED_IN
+
+        authn_response = self.parse_saml_authn_response(resp)
+        session_info = authn_response.session_info()
+        attributes = session_info['ava']
+
+        assert 'eduPersonPrincipalName' in attributes
+        assert attributes['eduPersonPrincipalName'] == ['hubba-bubba']
+
+        # Log in again, with ForceAuthn="true"
+        # Patch the VCCSClient so we do not need a vccs server
+        with patch.object(VCCSClient, 'authenticate'):
+            VCCSClient.authenticate.return_value = True
+            reached_state2, resp2 = self._try_login(force_authn=True)
+
+        authn_response2 = self.parse_saml_authn_response(resp2)
+
+        # Make sure the second response isn't referring to the first login request
+        assert authn_response.in_response_to != authn_response2.in_response_to
+
     def test_terminated_user(self):
         user = self.amdb.get_user_by_eppn(self.test_user.eppn)
         user.terminated = True
