@@ -67,7 +67,4 @@ def add_actions(user: IdPUser, ticket: SSOLoginData) -> Optional[Action]:
         return None
 
     current_app.logger.debug(f'User must accept ToU version {version!r}')
-    return current_app.actions_db.add_action(
-        user.eppn, action_type='tou', preference=100, params={'version': version}
-    )
-
+    return current_app.actions_db.add_action(user.eppn, action_type='tou', preference=100, params={'version': version})

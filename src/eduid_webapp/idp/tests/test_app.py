@@ -97,11 +97,10 @@ class IdPTests(EduidAPITestCase):
             self.app.central_userdb._drop_whole_collection()
 
     def test_app_starts(self):
-        assert self.app.config.app_name =='idp'
-
+        assert self.app.config.app_name == 'idp'
 
     def _try_login(
-        self, saml2_client: Optional[Saml2Client] = None, authn_context=None, force_authn: bool=False,
+        self, saml2_client: Optional[Saml2Client] = None, authn_context=None, force_authn: bool = False,
     ) -> Tuple[LoginState, FlaskResponse]:
         """
         Try logging in to the IdP.

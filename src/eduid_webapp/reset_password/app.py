@@ -56,8 +56,8 @@ class ResetPasswordApp(AuthnBaseApp):
         self.config: ResetPasswordConfig = cast(ResetPasswordConfig, self.config)  # type: ignore
 
         # Register views
-        from eduid_webapp.reset_password.views.reset_password import reset_password_views
         from eduid_webapp.reset_password.views.change_password import change_password_views
+        from eduid_webapp.reset_password.views.reset_password import reset_password_views
 
         self.register_blueprint(change_password_views)
         self.register_blueprint(reset_password_views)

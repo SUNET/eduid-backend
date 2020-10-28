@@ -19,17 +19,20 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 from flask import Response as FlaskResponse
 from flask import make_response, redirect, request
+from saml2 import BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest, InternalServerError
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid_common.api.sanitation import SanitationProblem, Sanitizer
+
 from eduid_webapp.idp.app import current_idp_app as current_app
 from eduid_webapp.idp.settings.common import IdPConfig
-from saml2 import BINDING_HTTP_REDIRECT
+
 
 @dataclass
-class HttpArgs():
+class HttpArgs:
     """ Dataclass to remove the ambiguities of pysaml2:s apply_binding() return value """
+
     method: str
     url: str
     headers: Sequence[Tuple[str, str]]
@@ -68,6 +71,7 @@ class HttpArgs():
             if k.lower() == 'location':
                 return v
         return self.url
+
 
 def create_html_response(binding: str, http_args: Dict[str, Union[str, List[Tuple[str, str]]]]) -> WerkzeugResponse:
     """
