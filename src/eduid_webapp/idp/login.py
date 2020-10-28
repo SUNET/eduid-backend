@@ -575,10 +575,15 @@ def _get_ticket(info: Mapping[str, str], binding: Optional[str]) -> SSOLoginData
 
         if ticket and info['SAMLRequest'] != ticket.SAMLRequest:
             logger.debug('The SAMLRequest does not match the one in the ticket - invalidating ticket')
+            session._sso_ticket = None  # work around sso_ticket setter that silently drops updated values
             ticket = session.sso_ticket = None
 
-        if ticket and _key != ticket.key:
-            raise BadRequest('Corrupted SAMLRequest, please re-initiate login')
+    if ticket and _key:
+        # Validate that the key from `info' matches the one in the ticket.
+        if _key != ticket.key:
+            logger.debug('The `key` does not match the one in the ticket - invalidating ticket')
+            session._sso_ticket = None  # work around sso_ticket setter that silently drops updated values
+            ticket = session.sso_ticket = None
 
     if not ticket:
         # cache miss, parse SAMLRequest
