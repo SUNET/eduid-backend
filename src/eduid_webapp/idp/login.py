@@ -376,7 +376,7 @@ class SSO(Service):
         if ticket.saml_req.request_id != self.sso_session.user_authn_request_id:
             current_app.logger.debug(
                 'Forcing authentication because of ForceAuthn with '
-                'SSO session id {!r} != {!r}'.format(
+                'SSO session id {!r} != this requests {!r}'.format(
                     self.sso_session.user_authn_request_id, ticket.saml_req.request_id
                 )
             )
@@ -574,6 +574,7 @@ def _get_ticket(info: Mapping[str, str], binding: Optional[str]) -> SSOLoginData
         logger.debug(f"No 'key' in info, hashed SAMLRequest into key {_key}")
 
         if ticket and info['SAMLRequest'] != ticket.SAMLRequest:
+            logger.debug('The SAMLRequest does not match the one in the ticket - invalidating ticket')
             ticket = session.sso_ticket = None
 
         if ticket and _key != ticket.key:

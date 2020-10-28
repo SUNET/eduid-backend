@@ -79,6 +79,10 @@ class IdPTestLogin(IdPTests):
         assert 'eduPersonPrincipalName' in attributes
         assert attributes['eduPersonPrincipalName'] == ['hubba-bubba']
 
+        logger.info(
+            '\n\n\n\n' + '#' * 80 + '\n' + 'Logging in again with ForceAuthn="true"\n' + '#' * 80 + '\n' + '\n\n\n\n'
+        )
+
         # Log in again, with ForceAuthn="true"
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, 'authenticate'):
