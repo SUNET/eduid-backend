@@ -593,7 +593,9 @@ def _get_ticket(info: Mapping[str, str], binding: Optional[str]) -> SSOLoginData
             raise BadRequest('Bad request, no binding')
         assert _key  # please mypy
         ticket = _create_ticket(info, binding, _key)
-
+        # Update the ticket in the eduid session after creating it
+        # TODO: Remove this workaround in eduid-common when we only have one IdP code base to worry about
+        session._sso_ticket = None  # work around sso_ticket setter that silently drops updated values
         session.sso_ticket = ticket
 
     return ticket
