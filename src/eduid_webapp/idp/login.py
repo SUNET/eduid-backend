@@ -168,11 +168,12 @@ class SSO(Service):
                 break
         if current_app.config.debug:
             # Only perform expensive parse/pretty-print if debugging
+            pp = pprint.PrettyPrinter()
             current_app.logger.debug(
-                'Creating an AuthnResponse: user {!s}\n\nAttributes:\n{!s},\n\n'
-                'Response args:\n{!s},\n\nAuthn:\n{!s}\n'.format(
-                    user, pprint.pformat(attributes), pprint.pformat(resp_args), pprint.pformat(response_authn)
-                )
+                f'Creating an AuthnResponse to SAML request {repr(ticket.saml_req.request_id)}:\nUser {user}\n\n'
+                f'Attributes:\n{pp.pformat(attributes)},\n\n'
+                f'Response args:\n{pp.pformat(resp_args)},\n\n'
+                f'Authn:\n{pp.pformat(response_authn)}\n'
             )
 
         saml_response = ticket.saml_req.make_saml_response(attributes, user.eppn, response_authn, resp_args)
@@ -180,15 +181,12 @@ class SSO(Service):
 
         return saml_response
 
-    def _kantara_log_assertion_id(self, saml_response, ticket):
+    def _kantara_log_assertion_id(self, saml_response: str, ticket: SSOLoginData) -> None:
         """
         Log the assertion id, which _might_ be required by Kantara.
 
         :param saml_response: authn response as a compact XML string
         :param ticket: Login process state
-
-        :type saml_response: str | unicode
-        :type ticket: SSOLoginData
 
         :return: None
         """
@@ -369,21 +367,23 @@ class SSO(Service):
         by looking if the SSO session says authentication was actually performed
         based on this SAML request.
         """
-        if ticket.saml_req.force_authn:
-            if not self.sso_session:
-                current_app.logger.debug('Force authn without session - ignoring')
-                return True
-            if ticket.saml_req.request_id != self.sso_session.user_authn_request_id:
-                current_app.logger.debug(
-                    'Forcing authentication because of ForceAuthn with '
-                    'SSO session id {!r} != {!r}'.format(
-                        self.sso_session.user_authn_request_id, ticket.saml_req.request_id
-                    )
-                )
-                return True
+        if not ticket.saml_req.force_authn:
+            current_app.logger.debug(f'SAML request {repr(ticket.saml_req.request_id)} does not have ForceAuthn')
+            return False
+        if not self.sso_session:
+            current_app.logger.debug('Force authn without session - ignoring')
+            return True
+        if ticket.saml_req.request_id != self.sso_session.user_authn_request_id:
             current_app.logger.debug(
-                f'Ignoring ForceAuthn, authn already performed for SAML request {ticket.saml_req.request_id!r}'
+                'Forcing authentication because of ForceAuthn with '
+                'SSO session id {!r} != {!r}'.format(
+                    self.sso_session.user_authn_request_id, ticket.saml_req.request_id
+                )
             )
+            return True
+        current_app.logger.debug(
+            f'Ignoring ForceAuthn, authn already performed for SAML request {repr(ticket.saml_req.request_id)}'
+        )
         return False
 
     def _not_authn(self, ticket: SSOLoginData) -> WerkzeugResponse:
@@ -394,6 +394,7 @@ class SSO(Service):
         :returns: HTTP response
         """
         assert isinstance(ticket, SSOLoginData)
+        # TODO: Use flask url_for below in function do_verify(), instead of passing the current URL from here
         redirect_uri = mischttp.geturl(query=False)
 
         req_authn_context = get_requested_authn_context(ticket.saml_req)
@@ -486,7 +487,7 @@ def do_verify():
     _ticket = _get_ticket(_info, None)
 
     authn_ref = _ticket.saml_req.get_requested_authn_context()
-    current_app.logger.debug(f'Authenticating with {authn_ref!r}')
+    current_app.logger.debug(f'Authenticating with {repr(authn_ref)}')
 
     if not password or 'username' not in query:
         lox = f'{query["redirect_uri"]}?{_ticket.query_string}'
@@ -514,7 +515,7 @@ def do_verify():
 
     # Create SSO session
     user = authninfo.user
-    current_app.logger.debug(f'User {user} authenticated OK')
+    current_app.logger.debug(f'User {user} authenticated OK (SAML id {repr(_ticket.saml_req.request_id)})')
     _sso_session = SSOSession(
         user_id=user.user_id, authn_request_id=_ticket.saml_req.request_id, authn_credentials=[authninfo],
     )
@@ -533,8 +534,9 @@ def do_verify():
     # Now that an SSO session has been created, redirect the users browser back to
     # the main entry point of the IdP (the 'redirect_uri'). The ticket reference `key'
     # is passed as an URL parameter instead of the SAMLRequest.
+    session.sso_ticket = _ticket
     lox = query["redirect_uri"] + '?key=' + _ticket.key
-    current_app.logger.debug("Redirect => %s" % lox)
+    current_app.logger.debug(f'Redirecting user back to me => {lox}')
     resp = redirect(lox)
     # By base64-encoding this string, we should remain interoperable with the old CherryPy based IdP. Fingers crossed.
     b64_session_id = b64encode(_session_id)
@@ -553,6 +555,9 @@ def _update_ticket_samlrequest(ticket: SSOLoginData, binding: Optional[str]) -> 
 
 # ----------------------------------------------------------------------------
 def _get_ticket(info: Mapping[str, str], binding: Optional[str]) -> SSOLoginData:
+    """
+    Get the SSOLoginData from the eduid common session, or from query parameters.
+    """
     logger = current_app.logger
 
     ticket: Optional[SSOLoginData] = session.sso_ticket
