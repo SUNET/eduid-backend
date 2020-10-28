@@ -85,6 +85,7 @@ class IdPTests(EduidAPITestCase):
         return init_idp_app('testing', config)
 
     def update_config(self, config):
+        config = super().update_config(config)
         datadir = pkg_resources.resource_filename(__name__, 'data')
         fn = os.path.join(datadir, 'test_SSO_conf.py')
         config.update({'pysaml2_config': fn, 'fticks_secret_key': 'test test'})
