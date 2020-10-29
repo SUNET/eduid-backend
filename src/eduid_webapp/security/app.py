@@ -53,10 +53,10 @@ class SecurityApp(AuthnBaseApp):
         # cast self.config because sometimes mypy thinks it is a FlaskConfig after super().__init__()
         self.config: SecurityConfig = cast(SecurityConfig, self.config)  # type: ignore
 
+        from eduid_webapp.security.views.reset_password import reset_password_views
         from eduid_webapp.security.views.security import security_views
         from eduid_webapp.security.views.u2f import u2f_views
         from eduid_webapp.security.views.webauthn import webauthn_views
-        from eduid_webapp.security.views.reset_password import reset_password_views
 
         self.register_blueprint(security_views)
         self.register_blueprint(u2f_views)
