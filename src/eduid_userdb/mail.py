@@ -46,7 +46,7 @@ class _MailAddressRequired:
     email: str
 
     def __post_init__(self):
-        super().__setattr__('email', self.email.lower())
+        self.email = self.email.lower()
 
 
 @dataclass()

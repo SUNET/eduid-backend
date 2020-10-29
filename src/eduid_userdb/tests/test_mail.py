@@ -238,10 +238,5 @@ class TestMailAddress(TestCase):
         self.assertIsInstance(this.created_ts, datetime.datetime)
 
     def test_uppercase_email_address(self):
-        lower_case_mail_address = _one_dict['email']
-        # Change email address to uppercase
-        _one_dict['email'] = _one_dict['email'].upper()
-        self.one = MailAddressList([_one_dict])
-        address = self.one.primary
-        # Make sure the email address is back to lowercase
-        self.assertEqual(lower_case_mail_address, address.email)
+        mail_address = MailAddress(email='UPPERCASE@example.com')
+        self.assertTrue(mail_address.email.islower())
