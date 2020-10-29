@@ -236,3 +236,8 @@ class TestMailAddress(TestCase):
     def test_created_ts(self):
         this = self.three.find('ft@three.example.org')
         self.assertIsInstance(this.created_ts, datetime.datetime)
+
+    def test_uppercase_email_address(self):
+        address = 'UPPERCASE@example.com'
+        mail_address = MailAddress(email=address)
+        self.assertEqual(address.lower(), mail_address.email)

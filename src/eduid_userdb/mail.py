@@ -41,12 +41,17 @@ from eduid_userdb.element import PrimaryElement, PrimaryElementList
 __author__ = 'ft'
 
 
-@dataclass
-class MailAddress(PrimaryElement):
-    """
-    """
+@dataclass()
+class _MailAddressRequired:
+    email: str
 
-    email: Optional[str] = None
+    def __post_init__(self):
+        self.email = self.email.lower()
+
+
+@dataclass()
+class MailAddress(PrimaryElement, _MailAddressRequired):
+    """"""
 
     @property
     def key(self) -> Optional[str]:
