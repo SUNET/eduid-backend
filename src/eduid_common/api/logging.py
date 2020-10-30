@@ -49,10 +49,10 @@ class EduidFormatter(logging.Formatter):
 class DebugTimeFilter(logging.Filter):
     """ A filter to add record.debugTime which is time since the logger was initialised in a fixed format """
 
-    def filter(self, record: logging.LogRecord) -> int:
+    def filter(self, record: logging.LogRecord) -> bool:
         _seconds = record.relativeCreated / 1000
         record.debugTime = f'{_seconds:.3f}s'
-        return 1
+        return True
 
 
 class AppFilter(logging.Filter):
