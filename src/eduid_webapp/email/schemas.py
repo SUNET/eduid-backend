@@ -35,6 +35,7 @@ from marshmallow import fields
 
 from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid_common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
+from eduid_common.api.schemas.email import LowercaseEmail
 from eduid_common.api.schemas.validators import validate_email
 
 from eduid_webapp.email.validators import email_does_not_exist, email_exists
@@ -42,27 +43,31 @@ from eduid_webapp.email.validators import email_does_not_exist, email_exists
 __author__ = 'eperez'
 
 
-class VerificationCodeSchema(EduidSchema, CSRFRequestMixin):
-
+class NoCSRFVerificationCodeSchema(EduidSchema):
+    # Create the VerificationCodeSchema without forced CSRF token so it can be used for the GET verification view also
     code = fields.String(required=True)
-    email = fields.Email(required=True, validate=[validate_email, email_exists])
+    email = LowercaseEmail(required=True, validate=[validate_email, email_exists])
+
+
+class VerificationCodeSchema(NoCSRFVerificationCodeSchema, CSRFRequestMixin):
+    pass
 
 
 class EmailSchema(EduidSchema, CSRFRequestMixin):
 
-    email = fields.Email(required=True, validate=validate_email)
+    email = LowercaseEmail(required=True, validate=validate_email)
     verified = fields.Boolean(attribute='verified')
     primary = fields.Boolean(attribute='primary')
 
 
 class AddEmailSchema(EmailSchema):
 
-    email = fields.Email(required=True, validate=[validate_email, email_does_not_exist])
+    email = LowercaseEmail(required=True, validate=[validate_email, email_does_not_exist])
 
 
 class ChangeEmailSchema(EduidSchema, CSRFRequestMixin):
 
-    email = fields.Email(required=True, validate=[validate_email, email_exists])
+    email = LowercaseEmail(required=True, validate=[validate_email, email_exists])
 
 
 class EmailListPayload(EduidSchema, CSRFRequestMixin, CSRFResponseMixin):

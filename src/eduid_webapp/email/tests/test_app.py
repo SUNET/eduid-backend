@@ -283,6 +283,7 @@ class EmailTests(EduidAPITestCase):
         mock_sendmail: Any,
         code: str = '432123425',
         data1: Optional[dict] = None,
+        email: str = 'johnsmith3@example.com',
     ):
         """
         Verify email address in the test user, using a GET to the verification endpoint
@@ -293,7 +294,6 @@ class EmailTests(EduidAPITestCase):
         mock_code_verification.return_value = '432123425'
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_sendmail.return_value = True
-        email = 'johnsmith3@example.com'
 
         response = self.browser.post('/verify')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
@@ -703,6 +703,23 @@ class EmailTests(EduidAPITestCase):
         self.assertTrue(mail_address_element)
 
         self.assertEqual(mail_address_element.email, email)
+        self.assertEqual(mail_address_element.is_verified, True)
+        self.assertEqual(mail_address_element.is_primary, False)
+        self.assertEqual(self.app.proofing_log.db_count(), 1)
+
+    def test_verify_email_link_uppercase(self):
+        email = 'UPPERCASE@example.com'
+        response = self._verify_email_link(email=email)
+        eppn = self.test_user_data['eduPersonPrincipalName']
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.location, 'http://test.localhost/profile/?msg=emails.verification-success')
+
+        user = self.app.private_userdb.get_user_by_eppn(eppn)
+        mail_address_element = user.mail_addresses.find(email.lower())
+        self.assertTrue(mail_address_element)
+
+        self.assertEqual(mail_address_element.email, email.lower())
         self.assertEqual(mail_address_element.is_verified, True)
         self.assertEqual(mail_address_element.is_primary, False)
         self.assertEqual(self.app.proofing_log.db_count(), 1)
