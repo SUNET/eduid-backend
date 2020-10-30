@@ -12,7 +12,8 @@ __pycache__
 build/
 dist/
 sessions/
-venv/
+env
+venv
 nosetests.xml
 coverage.xml
 .idea/
