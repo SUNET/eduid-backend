@@ -51,7 +51,7 @@ class DebugTimeFilter(logging.Filter):
 
     def filter(self, record: logging.LogRecord) -> bool:
         _seconds = record.relativeCreated / 1000
-        record.debugTime = f'{_seconds:.3f}s'
+        record.__setattr__('debugTime', f'{_seconds:.3f}s')  # use setattr to prevent mypy unhappiness
         return True
 
 
