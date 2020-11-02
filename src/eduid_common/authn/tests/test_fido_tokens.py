@@ -117,7 +117,7 @@ class FidoTokensTestCase(EduidAPITestCase):
                 },
             }
         )
-        return MockFidoConfig(**app_config)
+        return app_config
 
     def test_u2f_start_verification(self):
         # Add a working U2F credential for this test

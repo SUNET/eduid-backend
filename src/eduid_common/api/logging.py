@@ -28,7 +28,7 @@ app_name - Flask app name
 eppn - Available if a user session is initiated
 """
 
-DEFAULT_FORMAT = '%(asctime)s | %(levelname)s | %(hostname)s | %(name)s | %(module)s | %(eppn)s | %(message)s'
+DEFAULT_FORMAT = '{asctime} | {levelname:7} | {hostname} | {eppn} | {name:35} | {module} | {message}'
 
 
 # Default to RFC3339/ISO 8601 with tz
@@ -44,6 +44,15 @@ class EduidFormatter(logging.Formatter):
                 tz = '{0}:{1}'.format(tz[:3], tz[3:])  # Need colon to follow the rfc/iso
             s = '{}.{:03.0f}{}'.format(t, record.msecs, tz)
         return s
+
+
+class DebugTimeFilter(logging.Filter):
+    """ A filter to add record.debugTime which is time since the logger was initialised in a fixed format """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        _seconds = record.relativeCreated / 1000
+        record.__setattr__('debugTime', f'{_seconds:.3f}s')  # use setattr to prevent mypy unhappiness
+        return True
 
 
 class AppFilter(logging.Filter):
@@ -135,7 +144,11 @@ def init_logging(app: EduIDBaseApp) -> None:
         # Local variables
         'local_context': local_context,
         'formatters': {
-            'default': {'()': 'eduid_common.api.logging.EduidFormatter', 'fmt': 'cfg://local_context.format'},
+            'default': {
+                '()': 'eduid_common.api.logging.EduidFormatter',
+                'fmt': 'cfg://local_context.format',
+                'style': '{',
+            },
         },
         'filters': {
             'app_filter': {'()': 'eduid_common.api.logging.AppFilter', 'app_name': 'cfg://local_context.app_name',},
@@ -148,13 +161,14 @@ def init_logging(app: EduIDBaseApp) -> None:
                 '()': 'eduid_common.api.logging.RequireDebugFalse',
                 'app_debug': 'cfg://local_context.app_debug',
             },
+            'debugtime_filter': {'()': 'eduid_common.api.logging.DebugTimeFilter',},
         },
         'handlers': {
             'console': {
                 'class': 'logging.StreamHandler',
                 'level': 'cfg://local_context.level',
                 'formatter': 'default',
-                'filters': ['app_filter', 'user_filter'],
+                'filters': ['app_filter', 'user_filter', 'debugtime_filter'],
             },
         },
         'root': {'handlers': ['console'], 'level': 'cfg://local_context.level',},

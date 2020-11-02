@@ -40,6 +40,7 @@ import importlib.machinery
 import importlib.util
 import logging
 import os
+import pprint
 from dataclasses import dataclass, field, fields
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Type, TypeVar
 
@@ -222,7 +223,7 @@ class BaseConfig(CommonConfig):
     log_file: Optional[str] = None
     log_max_bytes: int = 1000000  # 1 MB
     log_backup_count: int = 10  # 10 x 1 MB
-    log_format: str = '%(asctime)s | %(levelname)s | %(hostname)s | %(name)s | %(module)s | %(eppn)s | %(message)s'
+    log_format: str = '{asctime} | {levelname:7} | {hostname} | {eppn} | {name:35} | {module} | {message}'
     log_type: List[str] = field(default_factory=lambda: ['stream'])
     logger: Optional[logging.Logger] = None
     redis_config: RedisConfig = field(default_factory=RedisConfig)
@@ -323,7 +324,7 @@ class BaseConfig(CommonConfig):
         if test_config:
             # Load init time settings
             config.update(test_config)
-            logger.info(f'Using test_config: {config}')
+            logger.info(f'Using test_config:\n{pprint.pformat(config)}')
             return cls(**config)
 
         from eduid_common.config.parsers.etcd import EtcdConfigParser

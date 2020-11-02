@@ -150,11 +150,7 @@ class EduidAPITestCase(CommonTestCase):
         # re-initialized in load_app() below.
         self.settings['celery_config'] = self.am_settings['celery']
 
-        settings = self.settings
-        if not isinstance(settings, dict):
-            settings = settings.to_dict()
-
-        self.app = self.load_app(settings)
+        self.app = self.load_app(self.settings)
         if not getattr(self, 'browser', False):
             self.app.test_client_class = CSRFTestClient
             self.browser = self.app.test_client()
@@ -193,18 +189,18 @@ class EduidAPITestCase(CommonTestCase):
             'Classes extending EduidAPITestCase must provide a method where they import the flask app and return it.'
         )
 
-    def update_config(self, config):
+    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """
         Method that can be overridden by any subclass,
         where it can add configuration specific for that API
         before loading the app.
 
         :param config: original configuration
-        :type config: dict
 
         :return: the updated configuration
-        :rtype: FlaskConfig
         """
+        # For tests, it makes sense to show relative time instead of datetime
+        config['log_format'] = '{debugTime} | {levelname:7} | {eppn} | {name:35} | {message}'
         return config
 
     @contextmanager
