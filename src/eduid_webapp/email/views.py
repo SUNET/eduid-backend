@@ -211,7 +211,7 @@ def verify_link(user):
             return redirect_with_msg(redirect_url, EmailMsg.unknown_email)
         current_app.logger.debug(f'Trying to save email address {schema["email"]} as verified')
     except (KeyError, ValidationError) as e:
-        current_app.logger.info(f'Schema validation error: {e}')
+        current_app.logger.warning(f'Schema validation error: {e}')
         current_app.logger.debug(f'code={code_in}, email={email_in}')
         abort(400)
 
