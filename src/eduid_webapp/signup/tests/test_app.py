@@ -86,7 +86,7 @@ class SignupTests(EduidAPITestCase):
                 'environment': 'dev',
             }
         )
-        return SignupConfig(**app_config)
+        return app_config
 
     @contextmanager
     def session_cookie(self, client, server_name='localhost'):

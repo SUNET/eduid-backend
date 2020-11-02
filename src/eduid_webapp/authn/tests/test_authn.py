@@ -84,7 +84,7 @@ class AuthnAPITestBase(EduidAPITestCase):
                 'safe_relay_domain': 'test.localhost',
             }
         )
-        return AuthnConfig(**app_config)
+        return app_config
 
     def load_app(self, config):
         """
@@ -334,7 +334,7 @@ class UnAuthnAPITestCase(EduidAPITestCase):
         app_config.update(
             {'token_service_url': 'http://login', 'saml2_settings_module': saml_config,}
         )
-        return AuthnConfig(**app_config)
+        return app_config
 
     def load_app(self, config):
         """
@@ -385,7 +385,7 @@ class NoAuthnAPITestCase(EduidAPITestCase):
         app_config.update(
             {'token_service_url': 'http://login', 'saml2_settings_module': saml_config, 'no_authn_urls': ['^/test$'],}
         )
-        return AuthnConfig(**app_config)
+        return app_config
 
     def load_app(self, config):
         """

@@ -61,7 +61,7 @@ class SupportAppTests(EduidAPITestCase):
         app_config.update(
             {'support_personnel': ['hubba-bubba'],}
         )
-        return SupportConfig(**app_config)
+        return app_config
 
     def test_authenticate(self):
         response = self.client.get('/')

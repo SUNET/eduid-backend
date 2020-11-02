@@ -71,7 +71,7 @@ class SecurityTests(EduidAPITestCase):
                 'eduid_site_url': 'https://www.eduid.se/',
             }
         )
-        return SecurityConfig(**app_config)
+        return app_config
 
     # parameterized test methods
 

@@ -161,7 +161,7 @@ class EidasTests(EduidAPITestCase):
                 'environment': 'dev',
             }
         )
-        return EidasConfig(**app_config)
+        return app_config
 
     def add_token_to_user(self, eppn, credential_id, token_type):
         user = self.app.central_userdb.get_user_by_eppn(eppn)

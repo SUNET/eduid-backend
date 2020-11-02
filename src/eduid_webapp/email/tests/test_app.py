@@ -71,7 +71,7 @@ class EmailTests(EduidAPITestCase):
                 'throttle_resend_seconds': 300,
             }
         )
-        return EmailConfig(**app_config)
+        return app_config
 
     def _remove_all_emails(self, user):
         unverified = [address for address in user.mail_addresses.to_list() if not address.is_verified]

@@ -99,7 +99,7 @@ class OidcProofingTests(EduidAPITestCase):
                 'seleg_expire_time_hours': 336,
             }
         )
-        return OIDCProofingConfig(**app_config)
+        return app_config
 
     @patch('oic.oic.Client.parse_response')
     @patch('oic.oic.Client.do_user_info_request')

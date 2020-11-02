@@ -47,7 +47,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
                 'no_authn_urls': [r'/reset.*'],
             }
         )
-        return SecurityConfig(**app_config)
+        return app_config
 
     def tearDown(self):
         super(SecurityResetPasswordTests, self).tearDown()

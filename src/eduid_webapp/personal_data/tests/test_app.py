@@ -63,7 +63,7 @@ class PersonalDataTests(EduidAPITestCase):
                 'celery_config': {'result_backend': 'amqp', 'task_serializer': 'json'},
             }
         )
-        return FlaskConfig(**app_config)
+        return app_config
 
     # parameterized test methods
 

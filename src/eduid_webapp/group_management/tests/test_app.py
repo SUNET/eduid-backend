@@ -105,7 +105,7 @@ class GroupManagementTests(EduidAPITestCase):
 
     def update_config(self, config):
         config.update({'neo4j_uri': self.neo4j_uri, 'neo4j_config': {'encrypted': False}})
-        return GroupManagementConfig(**config)
+        return config
 
     def tearDown(self):
         super(GroupManagementTests, self).tearDown()

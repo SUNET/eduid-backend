@@ -153,7 +153,7 @@ class CreatePDFTest(EduidAPITestCase):
                 'celery_config': {'result_backend': 'amqp', 'task_serializer': 'json'},
             }
         )
-        return LetterProofingConfig(**app_config)
+        return app_config
 
     def test_create_pdf(self):
 
