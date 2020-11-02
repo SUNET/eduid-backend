@@ -33,6 +33,7 @@
 from __future__ import absolute_import
 
 from flask import Blueprint, abort, request
+from marshmallow import ValidationError
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.helpers import check_magic_cookie
@@ -52,6 +53,7 @@ from eduid_webapp.email.schemas import (
     EmailListPayload,
     EmailResponseSchema,
     VerificationCodeSchema,
+    NoCSRFVerificationCodeSchema,
 )
 from eduid_webapp.email.verifications import send_verification_code, verify_mail_address
 
@@ -190,40 +192,50 @@ def verify_link(user):
     Used for verifying an e-mail address when the user clicks the link in the verification mail.
     """
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    code = request.args.get('code')
-    email = request.args.get('email')
-    if code and email:
-        current_app.logger.debug('Trying to save email address {} as verified for user {}'.format(email, proofing_user))
-        redirect_url = current_app.config.email_verify_redirect_url
+    redirect_url = current_app.config.email_verify_redirect_url
+    timeout = current_app.config.email_verification_timeout
+    state = None
+    code = None
+    code_in = request.args.get('code')
+    email_in = request.args.get('email')
 
-        try:
-            state = current_app.proofing_statedb.get_state_by_eppn_and_email(proofing_user.eppn, email)
-            timeout = current_app.config.email_verification_timeout
-            if state.is_expired(timeout):
-                current_app.logger.info("Verification code is expired. Removing the state")
-                current_app.logger.debug("Proofing state: {}".format(state))
-                current_app.proofing_statedb.remove_state(state)
-                return redirect_with_msg(redirect_url, EmailMsg.invalid_code)
-        except DocumentDoesNotExist:
-            current_app.logger.info('Could not find proofing state for email {}'.format(email))
+    # Verify input and retrieve the users state
+    try:
+        schema = NoCSRFVerificationCodeSchema().load({'code': code_in, 'email': email_in})
+        code = schema['code']
+        state = current_app.proofing_statedb.get_state_by_eppn_and_email(
+            proofing_user.eppn, schema['email'], raise_on_missing=False
+        )
+        if not state:
+            current_app.logger.info(f'Could not find proofing state for email {schema["email"]}')
             return redirect_with_msg(redirect_url, EmailMsg.unknown_email)
+        current_app.logger.debug(f'Trying to save email address {schema["email"]} as verified')
+    except (KeyError, ValidationError) as e:
+        current_app.logger.warning(f'Schema validation error: {e}')
+        current_app.logger.debug(f'code={code_in}, email={email_in}')
+        abort(400)
 
-        if code == state.verification.verification_code:
-            try:
-                verify_mail_address(state, proofing_user)
-                current_app.logger.info('Email successfully verified')
-                current_app.logger.debug('Email address: {}'.format(email))
-                return redirect_with_msg(redirect_url, EmailMsg.verify_success, error=False)
-
-            except UserOutOfSync:
-                current_app.logger.info('Could not confirm email, data out of sync')
-                current_app.logger.debug('Mail address: {}'.format(email))
-                return redirect_with_msg(redirect_url, CommonMsg.out_of_sync)
-
-        current_app.logger.info("Invalid verification code")
-        current_app.logger.debug("Email address: {}".format(state.verification.email))
+    if state.is_expired(timeout):
+        current_app.logger.info('Verification code is expired. Removing the state')
+        current_app.logger.debug(f'Proofing state: {state}')
+        current_app.proofing_statedb.remove_state(state)
         return redirect_with_msg(redirect_url, EmailMsg.invalid_code)
-    abort(400)
+
+    if code != state.verification.verification_code:
+        current_app.logger.info('Invalid verification code')
+        current_app.logger.debug(f'Email address: {state.verification.email}')
+        return redirect_with_msg(redirect_url, EmailMsg.invalid_code)
+
+    # Everything seems to be in order, verify the mail address for the user
+    try:
+        verify_mail_address(state, proofing_user)
+        current_app.logger.info('Email successfully verified')
+        current_app.logger.debug(f'Email address: {state.verification.email}')
+        return redirect_with_msg(redirect_url, EmailMsg.verify_success, error=False)
+    except UserOutOfSync:
+        current_app.logger.info('Could not confirm email, data out of sync')
+        current_app.logger.debug(f'Email address: {state.verification.email}')
+        return redirect_with_msg(redirect_url, CommonMsg.out_of_sync)
 
 
 @email_views.route('/remove', methods=['POST'])

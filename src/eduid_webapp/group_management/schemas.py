@@ -36,20 +36,11 @@ from marshmallow_enum import EnumField
 
 from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid_common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
+from eduid_common.api.schemas.email import LowercaseEmail
 from eduid_common.api.schemas.validators import validate_email
 from eduid_userdb.group_management import GroupRole
 
 __author__ = 'lundberg'
-
-
-class LowerEmail(fields.Email):
-    def _serialize(self, value, attr, obj, **kwargs):
-        value = super()._serialize(value, attr, obj, **kwargs)
-        return value.lower()
-
-    def _deserialize(self, value, attr, data, **kwargs):
-        value = super()._deserialize(value, attr, data, **kwargs)
-        return value.lower()
 
 
 class GroupUser(EduidSchema):
@@ -66,7 +57,7 @@ class Group(EduidSchema):
 
 class OutgoingInvite(EduidSchema):
     class EmailAddress(EduidSchema):
-        email_address = LowerEmail(required=True)
+        email_address = LowercaseEmail(required=True)
 
     group_identifier = fields.UUID(required=True)
     member_invites = fields.Nested(EmailAddress, many=True)
@@ -76,7 +67,7 @@ class OutgoingInvite(EduidSchema):
 class IncomingInvite(EduidSchema):
     group_identifier = fields.UUID(required=True)
     display_name = fields.Str(required=True)
-    email_address = LowerEmail(required=True)
+    email_address = LowercaseEmail(required=True)
     role = EnumField(GroupRole, required=True, by_value=True)
     owners = fields.Nested(GroupUser, many=True)
 
@@ -109,7 +100,7 @@ class GroupRemoveUserRequestSchema(EduidSchema, CSRFRequestMixin):
 class GroupInviteRequestSchema(EduidSchema, CSRFRequestMixin):
 
     group_identifier = fields.UUID(required=True)
-    email_address = fields.Email(required=True, validate=validate_email)
+    email_address = LowercaseEmail(required=True, validate=validate_email)
     role = EnumField(GroupRole, required=True, by_value=True)
 
 
