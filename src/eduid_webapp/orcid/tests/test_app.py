@@ -88,7 +88,7 @@ class OrcidTests(EduidAPITestCase):
                 'orcid_verify_redirect_url': 'https://dashboard.example.com/',
             }
         )
-        return OrcidConfig(**app_config)
+        return app_config
 
     @patch('oic.oic.Client.parse_response')
     @patch('oic.oic.Client.do_user_info_request')

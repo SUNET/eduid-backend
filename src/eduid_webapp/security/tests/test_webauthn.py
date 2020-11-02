@@ -156,7 +156,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
                 'fido2_rp_id': 'localhost',
             }
         )
-        return SecurityConfig(**app_config)
+        return app_config
 
     def _add_token_to_user(self, registration_data, state):
         data = registration_data + (b'=' * (len(registration_data) % 4))

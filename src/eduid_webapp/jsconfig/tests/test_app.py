@@ -86,7 +86,7 @@ class JSConfigTests(EduidAPITestCase):
                 'login_bundle_version': 'dummy-login-version',
             }
         )
-        return JSConfigConfig(**app_config)
+        return app_config
 
     def test_get_dashboard_config(self):
         eppn = self.test_user_data['eduPersonPrincipalName']

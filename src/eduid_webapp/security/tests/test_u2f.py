@@ -36,7 +36,7 @@ class SecurityU2FTests(EduidAPITestCase):
                 'u2f_max_description_length': 50,
             }
         )
-        return SecurityConfig(**app_config)
+        return app_config
 
     def add_token_to_user(self, eppn):
         user = self.app.central_userdb.get_user_by_eppn(eppn)

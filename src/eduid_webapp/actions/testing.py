@@ -150,7 +150,7 @@ class ActionsTestCase(EduidAPITestCase):
     def update_config(self, config):
         more_config = self.update_actions_config(deepcopy(TEST_CONFIG))
         config.update(more_config)
-        return ActionsConfig(**config)
+        return config
 
     @contextmanager
     def session_cookie(self, client, server_name='localhost'):

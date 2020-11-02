@@ -94,7 +94,7 @@ class ResetPasswordTests(EduidAPITestCase):
                 'u2f_valid_facets': ['https://dashboard.dev.eduid.se', 'https://idp.dev.eduid.se'],
             }
         )
-        return ResetPasswordConfig(**config)
+        return config
 
     def tearDown(self):
         super(ResetPasswordTests, self).tearDown()
@@ -1019,7 +1019,7 @@ class ChangePasswordTests(EduidAPITestCase):
                 'chpass_timeout': 600,
             }
         )
-        return ResetPasswordConfig(**config)
+        return config
 
     def tearDown(self):
         super(ChangePasswordTests, self).tearDown()

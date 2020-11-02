@@ -66,7 +66,7 @@ class PhoneTests(EduidAPITestCase):
                 'throttle_resend_seconds': 300,
             }
         )
-        return PhoneConfig(**app_config)
+        return app_config
 
     # parameterized test methods
 

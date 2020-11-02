@@ -95,7 +95,7 @@ class LetterProofingTests(EduidAPITestCase):
                 },
             }
         )
-        return LetterProofingConfig(**app_config)
+        return app_config
 
     # Helper methods
     def get_state(self):

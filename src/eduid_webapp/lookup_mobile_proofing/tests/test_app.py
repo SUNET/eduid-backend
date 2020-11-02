@@ -64,7 +64,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
                 'magic_cookie_name': '',
             },
         )
-        return MobileProofingConfig(**app_config)
+        return app_config
 
     def test_authenticate(self):
         response = self.browser.get('/proofing')
