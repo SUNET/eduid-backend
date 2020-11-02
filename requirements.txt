@@ -16,7 +16,7 @@ Babel>=2.6.0
 flask-babel>=0.11.2
 oic>=0.8.3
 zxcvbn>=4.4.27,==4.*
-pysaml2>=5.0.0,==5.*
+pysaml2>=6.3.0,==6.*
 xhtml2pdf>=0.2.2
 hammock>=0.2.4
 qrcode>=5.1
