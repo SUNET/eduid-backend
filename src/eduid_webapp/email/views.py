@@ -202,15 +202,15 @@ def verify_link(user):
     # Verify input and retrieve the users state
     try:
         schema = NoCSRFVerificationCodeSchema().load({'code': code_in, 'email': email_in})
-        code = schema.get('code')
+        code = schema['code']
         state = current_app.proofing_statedb.get_state_by_eppn_and_email(
-            proofing_user.eppn, schema.get('email'), raise_on_missing=False
+            proofing_user.eppn, schema['email'], raise_on_missing=False
         )
         if not state:
-            current_app.logger.info(f'Could not find proofing state for email {schema.get("email")}')
+            current_app.logger.info(f'Could not find proofing state for email {schema["email"]}')
             return redirect_with_msg(redirect_url, EmailMsg.unknown_email)
-        current_app.logger.debug(f'Trying to save email address {schema.get("email")} as verified')
-    except ValidationError as e:
+        current_app.logger.debug(f'Trying to save email address {schema["email"]} as verified')
+    except (KeyError, ValidationError) as e:
         current_app.logger.info(f'Schema validation error: {e}')
         current_app.logger.debug(f'code={code_in}, email={email_in}')
         abort(400)
