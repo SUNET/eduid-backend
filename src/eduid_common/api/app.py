@@ -37,9 +37,8 @@ import importlib.util
 import os
 import warnings
 from abc import ABCMeta
-from dataclasses import asdict
 from sys import stderr
-from typing import Optional, TypeVar
+from typing import Dict, Optional, TypeVar
 
 from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
 from flask import Flask
@@ -47,6 +46,16 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from eduid_userdb import UserDB
 
+from eduid_common.api.checks import (
+    CheckResult,
+    FailCountItem,
+    check_am,
+    check_mail,
+    check_mongo,
+    check_msg,
+    check_redis,
+    check_vccs,
+)
 from eduid_common.api.debug import init_app_debug
 from eduid_common.api.exceptions import init_exception_handlers, init_sentry
 from eduid_common.api.logging import init_logging
@@ -58,7 +67,7 @@ from eduid_common.config.base import FlaskConfig
 from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.config.parsers.etcd import EtcdConfigParser
 from eduid_common.session.eduid_session import SessionFactory
-from eduid_common.stats import AppStats, init_app_stats
+from eduid_common.stats import init_app_stats
 
 DEBUG = os.environ.get('EDUID_APP_DEBUG', False)
 if DEBUG:
@@ -117,12 +126,58 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         init_template_functions(self)
         self.stats = init_app_stats(self)
         self.session_interface = SessionFactory(self.config)
+        self.failure_info: Dict[str, FailCountItem] = dict()
 
         if init_central_userdb:
             self.central_userdb = UserDB(self.config.mongo_uri, 'eduid_am')
 
         # Set up generic health check views
         init_status_views(self)
+
+    def run_health_checks(
+        self,
+        mongo: bool = True,
+        redis: bool = True,
+        am: bool = True,
+        msg: bool = True,
+        mail: bool = True,
+        vccs: bool = True,
+    ) -> CheckResult:
+        """
+        Used in status health check view to run the apps checks
+        """
+        res = CheckResult(healthy=True)
+        # MongoDB
+        if mongo and not check_mongo():
+            res.healthy = False
+            res.reason = 'mongodb check failed'
+            self.logger.warning('mongodb check failed')
+        # Redis
+        elif redis and not check_redis():
+            res.healthy = False
+            res.reason = 'redis check failed'
+            self.logger.warning('redis check failed')
+        # AM
+        elif am and not check_am():
+            res.healthy = False
+            res.reason = 'am check failed'
+            self.logger.warning('am check failed')
+        # MSG
+        elif msg and not check_msg():
+            res.healthy = False
+            res.reason = 'msg check failed'
+            self.logger.warning('msg check failed')
+        # Mail Relay
+        elif mail and not check_mail():
+            res.healthy = False
+            res.reason = 'mail check failed'
+            self.logger.warning('mail check failed')
+        # VCCS
+        elif vccs and not check_vccs():
+            res.healthy = False
+            res.reason = 'vccs check failed'
+            self.logger.warning('vccs check failed')
+        return res
 
 
 def get_app_config(name: str, config: Optional[dict] = None) -> dict:
