@@ -124,38 +124,46 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         # Set up generic health check views
         init_status_views(self)
 
-    def run_health_checks(self) -> CheckResult:
+    def run_health_checks(
+        self,
+        mongo: bool = True,
+        redis: bool = True,
+        am: bool = True,
+        msg: bool = True,
+        mail: bool = True,
+        vccs: bool = True,
+    ) -> CheckResult:
         """
         Used in status health check view to run the apps checks
         """
         res = CheckResult(healthy=True)
         # MongoDB
-        if not check_mongo():
+        if mongo and not check_mongo():
             res.healthy = False
             res.reason = 'mongodb check failed'
             self.logger.warning('mongodb check failed')
         # Redis
-        elif not check_redis():
+        elif redis and not check_redis():
             res.healthy = False
             res.reason = 'redis check failed'
             self.logger.warning('redis check failed')
         # AM
-        elif getattr(self, 'am_relay', False) and not check_am():
+        elif am and not check_am():
             res.healthy = False
             res.reason = 'am check failed'
             self.logger.warning('am check failed')
         # MSG
-        elif getattr(self, 'msg_relay', False) and not check_msg():
+        elif msg and not check_msg():
             res.healthy = False
             res.reason = 'msg check failed'
             self.logger.warning('msg check failed')
         # Mail Relay
-        elif getattr(self, 'mail_relay', False) and not check_mail():
+        elif mail and not check_mail():
             res.healthy = False
             res.reason = 'mail check failed'
             self.logger.warning('mail check failed')
         # VCCS
-        elif self.config.vccs_url and not check_vccs():
+        elif vccs and not check_vccs():
             res.healthy = False
             res.reason = 'vccs check failed'
             self.logger.warning('vccs check failed')

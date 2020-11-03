@@ -101,6 +101,8 @@ def check_redis() -> bool:
 
 
 def check_am() -> bool:
+    if not getattr(current_app, 'am_relay', False):
+        return True
     try:
         res = current_app.am_relay.ping()
         if res == 'pong for {}'.format(current_app.am_relay.relay_for):
@@ -113,6 +115,8 @@ def check_am() -> bool:
 
 
 def check_msg() -> bool:
+    if not getattr(current_app, 'msg_relay', False):
+        return True
     try:
         res = current_app.msg_relay.ping()
         if res == 'pong':
@@ -125,6 +129,8 @@ def check_msg() -> bool:
 
 
 def check_mail() -> bool:
+    if not getattr(current_app, 'mail_relay', False):
+        return True
     try:
         res = current_app.mail_relay.ping()
         if res == 'pong':
@@ -138,6 +144,8 @@ def check_mail() -> bool:
 
 def check_vccs() -> bool:
     config = cast(BaseConfig, current_app.config)  # Please mypy
+    if not config.vccs_url:
+        return True
     try:
         eppn = config.vccs_check_eppn
         user = current_app.central_userdb.get_user_by_eppn(eppn=eppn, raise_on_missing=False)
