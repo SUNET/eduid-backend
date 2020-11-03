@@ -272,6 +272,9 @@ class BaseConfig(CommonConfig):
     # localhost that will proxy requests to a currently available backend
     # using TLS.
     vccs_url: str = ''
+    # vccs health check credentials
+    vccs_check_eppn: str = ''
+    vccs_check_password: str = ''
     # Whitelist of URLs that do not need authentication. Unauthenticated requests
     # for these URLs will be served, rather than redirected to the authn service.
     # The list is a list of regex that are matched against the path of the
