@@ -33,8 +33,9 @@ DEFAULT_FORMAT = '{asctime} | {levelname:7} | {hostname} | {eppn:9} | {name:35} 
 
 # Default to RFC3339/ISO 8601 with tz
 class EduidFormatter(logging.Formatter):
-    def formatTime(self, record, datefmt=None):
-        ct = self.converter(record.created)
+    def formatTime(self, record: logging.LogRecord, datefmt=None) -> str:
+        # self.converter seems incorrectly typed as a two-argument method (Callable[[Optional[float]], struct_time])
+        ct = self.converter(record.created)  # type: ignore
         if datefmt:
             s = time.strftime(datefmt, ct)
         else:
@@ -57,42 +58,45 @@ class DebugTimeFilter(logging.Filter):
 
 class AppFilter(logging.Filter):
     def __init__(self, app_name):
-        logging.Filter.__init__(self)
+        super().__init__()
         self.app_name = app_name
 
-    def filter(self, record):
-        record.system_hostname = environ.get('SYSTEM_HOSTNAME', '')  # Underlying hosts name for containers
-        record.hostname = environ.get('HOSTNAME', '')  # Actual hostname or container id
-        record.app_name = self.app_name
+    def filter(self, record: logging.LogRecord) -> bool:
+        # use setattr to prevent mypy unhappiness
+        record.__setattr__('system_hostname', environ.get('SYSTEM_HOSTNAME', '')) # Underlying hosts name for containers
+        record.__setattr__('hostname', environ.get('HOSTNAME', ''))  # Actual hostname or container id
+        record.__setattr__('app_name', self.app_name)
         return True
 
 
 class UserFilter(logging.Filter):
     def __init__(self):
-        logging.Filter.__init__(self)
+        super().__init__()
 
-    def filter(self, record):
-        record.eppn = ''
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.__setattr__('eppn', '')  # use setattr to prevent mypy unhappiness
         if session:
-            record.eppn = session.get('user_eppn', '')
+            eppn = session.get('user_eppn', '')
+            if eppn:
+                record.__setattr__('eppn', eppn)  # use setattr to prevent mypy unhappiness
         return True
 
 
 class RequireDebugTrue(logging.Filter):
-    def __init__(self, app_debug):
-        logging.Filter.__init__(self)
+    def __init__(self, app_debug: bool):
+        super().__init__()
         self.app_debug = app_debug
 
-    def filter(self, record):
+    def filter(self, record: logging.LogRecord) -> bool:
         return self.app_debug
 
 
 class RequireDebugFalse(logging.Filter):
-    def __init__(self, app_debug):
-        logging.Filter.__init__(self)
+    def __init__(self, app_debug: bool):
+        super().__init__()
         self.app_debug = app_debug
 
-    def filter(self, record):
+    def filter(self, record: logging.LogRecord) -> bool:
         return not self.app_debug
 
 
