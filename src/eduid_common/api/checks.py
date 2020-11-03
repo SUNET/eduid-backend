@@ -144,8 +144,11 @@ def check_vccs() -> bool:
     config = cast(BaseConfig, current_app.config)  # Please mypy
     if not config.vccs_url:
         return True
+    eppn = config.vccs_check_eppn
+    # Do not force this check if not configured
+    if not eppn:
+        return True
     try:
-        eppn = config.vccs_check_eppn
         user = current_app.central_userdb.get_user_by_eppn(eppn=eppn, raise_on_missing=False)
         vccs_url = config.vccs_url
         password = config.vccs_check_password
