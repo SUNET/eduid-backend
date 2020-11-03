@@ -38,7 +38,7 @@ import os
 import warnings
 from abc import ABCMeta
 from sys import stderr
-from typing import Optional, TypeVar
+from typing import Dict, Optional, TypeVar
 
 from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
 from flask import Flask
@@ -46,7 +46,16 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from eduid_userdb import UserDB
 
-from eduid_common.api.checks import CheckResult, check_am, check_mail, check_mongo, check_msg, check_redis, check_vccs
+from eduid_common.api.checks import (
+    CheckResult,
+    FailCountItem,
+    check_am,
+    check_mail,
+    check_mongo,
+    check_msg,
+    check_redis,
+    check_vccs,
+)
 from eduid_common.api.debug import init_app_debug
 from eduid_common.api.exceptions import init_exception_handlers, init_sentry
 from eduid_common.api.logging import init_logging
@@ -117,6 +126,7 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         init_template_functions(self)
         self.stats = init_app_stats(self)
         self.session_interface = SessionFactory(self.config)
+        self.failure_info: Dict[str, FailCountItem] = dict()
 
         if init_central_userdb:
             self.central_userdb = UserDB(self.config.mongo_uri, 'eduid_am')

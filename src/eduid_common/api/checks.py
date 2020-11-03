@@ -35,26 +35,23 @@ class FailCountItem:
         return f'(first_failure: {self.first_failure.isoformat()}, fail count: {self.count})'
 
 
-FAILURE_INFO: Dict[str, FailCountItem] = dict()
-
-
 def log_failure_info(key: str, msg: str, exc: Optional[Exception] = None) -> None:
-    if key not in FAILURE_INFO:
-        FAILURE_INFO[key] = FailCountItem(first_failure=datetime.utcnow())
-    FAILURE_INFO[key].count += 1
-    current_app.logger.warning(f'{msg} {FAILURE_INFO[key]}: {exc}')
+    if key not in current_app.failure_info:
+        current_app.failure_info[key] = FailCountItem(first_failure=datetime.utcnow())
+    current_app.failure_info[key].count += 1
+    current_app.logger.warning(f'{msg} {current_app.failure_info[key]}: {exc}')
 
 
 def reset_failure_info(key: str) -> None:
-    if key not in FAILURE_INFO:
+    if key not in current_app.failure_info:
         return None
-    info = FAILURE_INFO.pop(key)
+    info = current_app.failure_info.pop(key)
     current_app.logger.info(f'Check {key} back to normal. Resetting info {info}')
 
 
 def check_restart(key, restart: int, terminate: int) -> bool:
     res = False  # default to no restart
-    info = FAILURE_INFO.get(key)
+    info = current_app.failure_info.get(key)
     if not info:
         return res
     if restart and not info.restart_at:
@@ -63,12 +60,13 @@ def check_restart(key, restart: int, terminate: int) -> bool:
         info = replace(info, exit_at=info.first_failure + timedelta(seconds=terminate))
     if info.exit_at and datetime.utcnow() >= info.exit_at:
         # Exit application and rely on something else restarting it
+        current_app.logger.warning(f'Max failure time reached, terminating {current_app.name}')
         sys.exit(1)
     if info.restart_at and datetime.utcnow() >= info.restart_at:
         info = replace(info, restart_at=datetime.utcnow() + timedelta(seconds=restart))
         # Try to restart/reinitialize the failing functionality
         res = True
-    FAILURE_INFO[key] = info
+    current_app.failure_info[key] = info
     return res
 
 
