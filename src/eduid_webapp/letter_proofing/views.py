@@ -70,12 +70,13 @@ def proofing(user: User, nin: str) -> FluxData:
             return result.to_response()
         if not result.is_expired:
             return result.to_response()
-        # XXX Are we sure that the user wants to send a new letter?
-        current_app.logger.info('The letter has expired. Sending a new one...')
 
+        current_app.logger.info('The letter has expired. Sending a new one...')
         current_app.proofing_statedb.remove_state(proofing_state)
         current_app.logger.info(f'Removed {proofing_state}')
         current_app.stats.count('letter_expired')
+        proofing_state = create_proofing_state(user.eppn, nin)
+        current_app.logger.info(f'Created new {proofing_state}')
 
     try:
         address = get_address(user, proofing_state)

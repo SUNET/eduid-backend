@@ -368,6 +368,16 @@ class LetterProofingTests(EduidAPITestCase):
         self.assertIn('letter_sent', json_data['payload'])
         self.assertIsNotNone(json_data['payload']['letter_sent'])
 
+    def test_send_new_letter_with_expired_proofing_state(self):
+        self.send_letter(self.test_user_nin)
+        json_data = self.get_state()
+        self.assertIn('letter_sent', json_data['payload'])
+        self.app.config.letter_wait_time_hours = -24
+        self.send_letter(self.test_user_nin)
+        self.assertFalse(json_data['payload']['letter_expired'])
+        self.assertIn('letter_sent', json_data['payload'])
+        self.assertIsNotNone(json_data['payload']['letter_sent'])
+
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     def test_unmarshal_error(self, mock_get_postal_address):
         mock_get_postal_address.return_value = self.mock_address
