@@ -205,6 +205,8 @@ class BaseConfig(CommonConfig):
     """
 
     debug: bool = False
+    # If this list contains anything, debug logging will only be performed for these users
+    debug_eppns: Sequence[str] = field(default_factory=list)
     # These below are configuration keys used in the webapps, common to most
     # or at least to several of them.
 
@@ -223,7 +225,7 @@ class BaseConfig(CommonConfig):
     log_file: Optional[str] = None
     log_max_bytes: int = 1000000  # 1 MB
     log_backup_count: int = 10  # 10 x 1 MB
-    log_format: str = '{asctime} | {levelname:7} | {hostname} | {eppn} | {name:35} | {module} | {message}'
+    log_format: str = '{asctime} | {levelname:7} | {hostname} | {eppn:9} | {name:35} | {module:10} | {message}'
     log_type: List[str] = field(default_factory=lambda: ['stream'])
     logger: Optional[logging.Logger] = None
     redis_config: RedisConfig = field(default_factory=RedisConfig)
