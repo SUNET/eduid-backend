@@ -205,6 +205,8 @@ class BaseConfig(CommonConfig):
     """
 
     debug: bool = False
+    # If this list contains anything, debug logging will only be performed for these users
+    debug_eppns: Sequence[str] = field(default_factory=list)
     # These below are configuration keys used in the webapps, common to most
     # or at least to several of them.
 

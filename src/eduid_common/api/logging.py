@@ -7,7 +7,7 @@ import logging.config
 import time
 from os import environ
 from pprint import PrettyPrinter
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Sequence
 
 from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.session import session
@@ -63,22 +63,27 @@ class AppFilter(logging.Filter):
 
     def filter(self, record: logging.LogRecord) -> bool:
         # use setattr to prevent mypy unhappiness
-        record.__setattr__('system_hostname', environ.get('SYSTEM_HOSTNAME', '')) # Underlying hosts name for containers
+        record.__setattr__(
+            'system_hostname', environ.get('SYSTEM_HOSTNAME', '')
+        )  # Underlying hosts name for containers
         record.__setattr__('hostname', environ.get('HOSTNAME', ''))  # Actual hostname or container id
         record.__setattr__('app_name', self.app_name)
         return True
 
 
 class UserFilter(logging.Filter):
-    def __init__(self):
+    def __init__(self, debug_eppns: Sequence[str]):
         super().__init__()
+        self.debug_eppns = debug_eppns
 
     def filter(self, record: logging.LogRecord) -> bool:
-        record.__setattr__('eppn', '')  # use setattr to prevent mypy unhappiness
+        eppn = ''
         if session:
             eppn = session.get('user_eppn', '')
-            if eppn:
-                record.__setattr__('eppn', eppn)  # use setattr to prevent mypy unhappiness
+        record.__setattr__('eppn', eppn)  # use setattr to prevent mypy unhappiness
+        if record.levelno == logging.DEBUG:
+            if self.debug_eppns and eppn not in self.debug_eppns:
+                return False
         return True
 
 
@@ -133,6 +138,7 @@ def init_logging(app: EduIDBaseApp) -> None:
             'format': app.config.setdefault('log_format', DEFAULT_FORMAT),
             'app_name': app.name,
             'app_debug': app.debug,
+            'debug_eppns': app.config.debug_eppns,
         }
     except (KeyError, AttributeError) as e:
         raise BadConfiguration(message=f'Could not initialize logging local_context. {type(e).__name__}: {e}')
@@ -156,7 +162,10 @@ def init_logging(app: EduIDBaseApp) -> None:
         },
         'filters': {
             'app_filter': {'()': 'eduid_common.api.logging.AppFilter', 'app_name': 'cfg://local_context.app_name',},
-            'user_filter': {'()': 'eduid_common.api.logging.UserFilter',},
+            'user_filter': {
+                '()': 'eduid_common.api.logging.UserFilter',
+                'debug_eppns': 'cfg://local_context.debug_eppns',
+            },
             'require_debug_true': {
                 '()': 'eduid_common.api.logging.RequireDebugTrue',
                 'app_debug': 'cfg://local_context.app_debug',
