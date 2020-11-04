@@ -82,7 +82,10 @@ class UserFilter(logging.Filter):
             eppn = session.get('user_eppn', '')
         record.__setattr__('eppn', eppn)  # use setattr to prevent mypy unhappiness
         if record.levelno == logging.DEBUG:
+            # If debug_eppns is not empty, we filter debug messages here and only allow them
+            # (return True) if the eppn found in the session above is present in the debug_eppns list.
             if self.debug_eppns and eppn not in self.debug_eppns:
+                # debug_eppns is not empty, but the eppn is not present in it
                 return False
         return True
 
