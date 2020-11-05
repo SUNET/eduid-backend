@@ -355,8 +355,10 @@ class SessionFactory(SessionInterface):
         See flask.session.SessionInterface
         """
         if sess is None:
-            return
-        # Only save the session and set the cookie if the session is initialized
+            # Do not try to save the session and set the cookie if the session is not initialized
+            # We have seen this happen...
+            logger.warning(f'Session was not initialized when reaching save_session: sess={sess}')
+            return None
         try:
             sess.persist()
         except SessionOutOfSync:
