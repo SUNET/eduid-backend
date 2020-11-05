@@ -317,11 +317,14 @@ class SessionFactory(SessionInterface):
         # Load token from cookie
         cookie_name = app.config.session_cookie_name
         cookie_val = request.cookies.get(cookie_name, None)
-        _meta = None
         logger.debug(f'Session cookie {cookie_name} == {cookie_val}')
+
+        _meta = None
+        _load_existing = False
         if cookie_val:
             try:
                 _meta = SessionMeta.from_cookie(cookie_val, app_secret=self.manager.secret)
+                _load_existing = True
             except ValueError as e:
                 # Session cookie loading failed
                 logger.debug(f'Could not load SessionMeta from cookie: {e}')
@@ -332,7 +335,7 @@ class SessionFactory(SessionInterface):
             logger.debug('New SessionMeta initialized')
 
         base_session = None
-        if cookie_val:
+        if _load_existing:
             # Try and load existing session identified by browser provided cookie
             try:
                 base_session = self.manager.get_session(meta=_meta, new=False)
