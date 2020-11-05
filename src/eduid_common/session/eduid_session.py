@@ -337,7 +337,7 @@ class SessionFactory(SessionInterface):
                 base_session = self.manager.get_session(meta=_meta, new=False)
                 logger.debug(f'Loaded existing session {base_session}')
             except KeyError:
-                logger.debug(f'Failed to load session from cookie {cookie_val}, will create a new one')
+                logger.debug(f'No session found using cookie {cookie_val}, will create a new one')
 
         new = False
         if not base_session:
