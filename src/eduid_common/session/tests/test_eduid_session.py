@@ -2,8 +2,6 @@
 
 from typing import Any, Dict, List, Optional
 
-import pytest
-
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.authn.utils import no_authn_views
