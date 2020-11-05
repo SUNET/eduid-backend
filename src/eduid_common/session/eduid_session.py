@@ -281,9 +281,9 @@ class EduidSession(SessionMixin, MutableMapping):
         self._serialize_namespaces()
 
         # TODO: Remove self.new below at a later stage
-        # TODO: Only save a session if it is modified
-        # TODO: Don't save it just because it is new, this is to not
-        # TODO: save empty sessions for every call to the backend
+        #   Only save a session if it is modified
+        #   Don't save it just because it is new, this is to not
+        #   save empty sessions for every call to the backend
         if self.new or self.modified:
             logger.debug(f'Saving session {self}')
             self._session.commit()
