@@ -188,3 +188,23 @@ class EduidSessionTests(EduidAPITestCase):
                     self.assertEqual('', value)
                 elif value == 'expires':
                     self.assertEqual('Thu, 01-Jan-1970 00:00:00 GMT', value)
+
+    def _test_bad_session_cookie(self, bad_cookie_value):
+        with self.browser as browser:
+            browser.set_cookie(server_name='.test.localhost', key='sessid', value=bad_cookie_value)
+            response = browser.get('/unauthenticated')
+            # Make sure the request completes correctly even with a bad cookie value
+            self.assertEqual(response.status_code, 200)
+            with browser.session_transaction() as sess:
+                self.assertTrue(sess['unauthenticated_request'])
+
+    def test_bad_session_cookie(self):
+        self._test_bad_session_cookie(
+            """aNDCJ7WPO4A5RB4D2N6QIOTUXCOSCV43LGCB4PJC4ILCIVWSR7RBLOZYIUPS42UTV5SJMNXQE44L6YHOVBIOUKUBBKV6ZRF6KA4WZ3KT\
+            Y';.")"""
+        )
+        self._test_bad_session_cookie(
+            """aNDCJ7WPO4A5RB4D2N6QIOTUXCOSCV43LGCB4PJC4ILCIVWSR7RBLOZYIUPS42UTV5SJMNXQE44L6YHOVBIOUKUBBKV6ZRF6KA4WZ3KT\
+            Y" or sleep(4) # """
+        )
+        self._test_bad_session_cookie('-1839%2Bor%2B1=2')

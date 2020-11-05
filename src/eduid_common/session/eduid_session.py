@@ -280,6 +280,10 @@ class EduidSession(SessionMixin, MutableMapping):
         # Serialize namespace dataclasses to see if their content changed
         self._serialize_namespaces()
 
+        # TODO: Remove self.new below at a later stage
+        #   Only save a session if it is modified
+        #   Don't save it just because it is new, this is to not
+        #   save empty sessions for every call to the backend
         if self.new or self.modified:
             logger.debug(f'Saving session {self}')
             self._session.commit()
@@ -315,19 +319,29 @@ class SessionFactory(SessionInterface):
         cookie_val = request.cookies.get(cookie_name, None)
         logger.debug(f'Session cookie {cookie_name} == {cookie_val}')
 
+        _meta = None
+        _load_existing = False
         if cookie_val:
-            _meta = SessionMeta.from_cookie(cookie_val, app_secret=self.manager.secret)
-        else:
+            try:
+                _meta = SessionMeta.from_cookie(cookie_val, app_secret=self.manager.secret)
+                _load_existing = True
+            except ValueError as e:
+                # Session cookie loading failed
+                logger.debug(f'Could not load SessionMeta from cookie: {e}')
+
+        if _meta is None:
+            # No session cookie or cookie loading failed, create a new SessionMeta
             _meta = SessionMeta.new(app_secret=self.manager.secret)
+            logger.debug('New SessionMeta initialized')
 
         base_session = None
-        if cookie_val:
+        if _load_existing:
             # Try and load existing session identified by browser provided cookie
             try:
                 base_session = self.manager.get_session(meta=_meta, new=False)
                 logger.debug(f'Loaded existing session {base_session}')
             except KeyError:
-                logger.debug(f'Failed to load session from cookie {cookie_val}, will create a new one')
+                logger.debug(f'No session found using cookie {cookie_val}, will create a new one')
 
         new = False
         if not base_session:
@@ -343,6 +357,11 @@ class SessionFactory(SessionInterface):
         """
         See flask.session.SessionInterface
         """
+        if sess is None:
+            # Do not try to save the session and set the cookie if the session is not initialized
+            # We have seen this happen...
+            logger.warning(f'Session was not initialized when reaching save_session: sess={sess}')
+            return None
         try:
             sess.persist()
         except SessionOutOfSync:
