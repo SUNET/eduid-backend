@@ -1,4 +1,5 @@
 import base64
+import binascii
 import hashlib
 import hmac
 from dataclasses import dataclass, field
@@ -72,7 +73,10 @@ class SessionMeta(object):
         val = cookie_val[len(TOKEN_PREFIX) :]
         # Split the token into it's two parts - the session_id and the HMAC signature of it
         # (the last byte is ignored - it is padding to make b32encode not put an = at the end)
-        _decoded = base64.b32decode(val)
+        try:
+            _decoded = base64.b32decode(val)
+        except binascii.Error as e:
+            raise ValueError(f'Token string b32decode failed: {e}')
         _bin_session_id, _bin_sig = _decoded[:HMAC_DIGEST_SIZE], _decoded[HMAC_DIGEST_SIZE:-1]
         return _bin_session_id, _bin_sig
 
