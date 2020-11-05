@@ -353,6 +353,9 @@ class SessionFactory(SessionInterface):
         """
         See flask.session.SessionInterface
         """
+        if sess is None:
+            return
+        # Only save the session and set the cookie if the session is initialized
         try:
             sess.persist()
         except SessionOutOfSync:
