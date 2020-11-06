@@ -156,50 +156,35 @@ def read_cookie(name: str) -> Optional[str]:
     Read a browser cookie.
 
     :returns: string with cookie content, or None
-    :rtype: string | None
     """
     cookies = request.cookies
     current_app.logger.debug(f'Reading cookie(s): {cookies}')
     cookie = cookies.get(name)
     if not cookie:
-        current_app.logger.debug(f'No {name} cookie')
+        current_app.logger.debug(f'No IdP SSO cookie ({name}) found')
         return None
     return cookie
 
 
-def set_cookie(name: str, path: str, value: str, response: FlaskResponse) -> FlaskResponse:
+def set_sso_cookie(value: str, response: FlaskResponse) -> FlaskResponse:
     """
-    Ask browser to store a cookie.
+    Ask the browser to store an SSO cookie.
 
-    Since eduID.se is HTTPS only, the cookie parameter `Secure' is set.
-
-    :param name: Cookie identifier (string)
-    :param path: The path specification for the cookie
     :param value: The value to assign to the cookie
     :param response: Flask response object
     """
-    # TODO: Rename to set_sso_cookie as it is only used in do_verify for setting sso cookie
-    #   Remove name, path from arguments and use global Flask response
-    #   Use values from settings instead
-    if name != current_app.config.sso_cookie_name:
-        current_app.logger.warning(
-            f'set_sso_cookie called with wrong cookie name, '
-            f'name={name} != sso_cookie_name={current_app.config.sso_cookie_name}'
-        )
-    _domain = current_app.config.session_cookie_domain
-    if name == current_app.config.sso_cookie_name and current_app.config.sso_cookie_domain is not None:
-        _domain = current_app.config.sso_cookie_domain
     response.set_cookie(
-        key=name,
+        key=current_app.config.sso_cookie.key,
         value=value,
-        domain=_domain,
-        path=path,
-        secure=current_app.config.session_cookie_secure,
-        httponly=current_app.config.session_cookie_httponly,
-        samesite=current_app.config.session_cookie_samesite,
-        max_age=current_app.config.permanent_session_lifetime,
+        domain=current_app.config.sso_cookie.domain,
+        path=current_app.config.sso_cookie.path,
+        secure=current_app.config.sso_cookie.secure,
+        httponly=current_app.config.sso_cookie.httponly,
+        samesite=current_app.config.sso_cookie.samesite,
+        max_age=current_app.config.sso_cookie.max_age_seconds,
     )
-    current_app.logger.debug(f'Set cookie {repr(name)} : {repr(value)}')
+    _cookie = response.headers.get('Set-Cookie')
+    current_app.logger.debug(f'Set SSO cookie {_cookie}')
     return response
 
 

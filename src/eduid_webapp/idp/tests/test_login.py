@@ -106,7 +106,7 @@ class IdPTestLogin(IdPTests):
 
         assert reached_state == LoginState.S3_REDIRECT_LOGGED_IN
         cookie = resp.headers['Set-Cookie']
-        assert f'{self.app.config.sso_cookie_name}=;' in cookie
+        assert f'{self.app.config.sso_cookie.key}=;' in cookie
         assert 'expires=Thu, 01-Jan-1970 00:00:00 GMT' in cookie
 
     def test_with_unknown_sp(self):
