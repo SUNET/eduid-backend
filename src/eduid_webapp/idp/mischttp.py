@@ -192,7 +192,7 @@ def set_cookie(name: str, path: str, value: str, response: FlaskResponse) -> Fla
     response.set_cookie(
         key=name,
         value=value,
-        domain=current_app.config.session_cookie_domain,
+        domain=_domain,
         path=path,
         secure=current_app.config.session_cookie_secure,
         httponly=current_app.config.session_cookie_httponly,
