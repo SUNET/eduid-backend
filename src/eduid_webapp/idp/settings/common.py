@@ -133,6 +133,7 @@ class IdPConfig(FlaskConfig):
     shared_session_cookie_name: str = 'sessid'
     # Name of IdP-specific session allowing users to SSO
     sso_cookie_name: str = 'idpauthn'
+    sso_cookie_domain: Optional[str] = None
     session_cookie_timeout: int = 60  # in minutes
     preferred_url_scheme: str = 'http'
     # TTL for shared sessions.

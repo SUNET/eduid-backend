@@ -179,6 +179,9 @@ def set_cookie(name: str, path: str, value: str, response: FlaskResponse) -> Fla
     :param config: IdPConfig instance
     :param value: The value to assign to the cookie
     """
+    _domain = current_app.config.session_cookie_domain
+    if name == current_app.config.sso_cookie_name and current_app.config.sso_cookie_domain is not None:
+        _domain = current_app.config.sso_cookie_domain
     response.set_cookie(
         key=name,
         value=value,

@@ -262,9 +262,12 @@ class SLO(Service):
         res = mischttp.create_html_response(bindings[0], ht_args)
 
         # Delete the SSO session cookie in the browser
+        _domain = current_app.config.session_cookie_domain
+        if current_app.config.sso_cookie_domain is not None:
+            _domain = current_app.config.sso_cookie_domain
         res.delete_cookie(
             key=current_app.config.sso_cookie_name,
             path=current_app.config.session_cookie_path,
-            domain=current_app.config.session_cookie_domain,
+            domain=_domain,
         )
         return res
