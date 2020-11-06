@@ -85,6 +85,17 @@ class RedisConfig(object):
     sentinel_service_name: Optional[str] = None
 
 
+@dataclass(frozen=True)
+class CookieConfig(object):
+    key: str
+    domain: Optional[str] = None
+    path: str = '/'
+    secure: bool = True
+    httponly: bool = True
+    samesite: Optional[str] = None
+    max_age_seconds: Optional[int] = None  # None means this is a session cookie
+
+
 @dataclass
 class CommonConfig:
     """
