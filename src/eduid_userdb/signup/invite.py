@@ -60,6 +60,9 @@ class InviteMailAddress:
     email: str
     primary: bool
 
+    def __post_init__(self):
+        self.__setattr__('email', self.email.lower())
+
 
 @dataclass(frozen=True)
 class InvitePhoneNumber:

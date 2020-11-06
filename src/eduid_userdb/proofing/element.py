@@ -112,6 +112,9 @@ class _EmailProofingElementRequired:
 
     email: str
 
+    def __post_init__(self):
+        self.email = self.email.lower()
+
 
 @dataclass
 class EmailProofingElement(ProofingElement, _EmailProofingElementRequired):
