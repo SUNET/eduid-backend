@@ -116,7 +116,7 @@ class SLO(Service):
         _username = None
         if _session_id:
             # If the binding is REDIRECT, we can get the SSO session to log out from the
-            # client idpauthn cookie
+            # client SSO session
             session_ids = [SSOSessionId(_session_id)]
         else:
             # For SOAP binding, no cookie is sent - only NameID. Have to figure out
@@ -263,6 +263,8 @@ class SLO(Service):
 
         # Delete the SSO session cookie in the browser
         res.delete_cookie(
-            key='idpauthn', path=current_app.config.session_cookie_path, domain=current_app.config.session_cookie_domain
+            key=current_app.config.sso_cookie_name,
+            path=current_app.config.session_cookie_path,
+            domain=current_app.config.session_cookie_domain,
         )
         return res

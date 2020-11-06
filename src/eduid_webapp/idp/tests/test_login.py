@@ -106,7 +106,7 @@ class IdPTestLogin(IdPTests):
 
         assert reached_state == LoginState.S3_REDIRECT_LOGGED_IN
         cookie = resp.headers['Set-Cookie']
-        assert 'idpauthn=;' in cookie
+        assert f'{self.app.config.sso_cookie_name}=;' in cookie
         assert 'expires=Thu, 01-Jan-1970 00:00:00 GMT' in cookie
 
     def test_with_unknown_sp(self):
@@ -138,8 +138,8 @@ class IdPTestLogin(IdPTests):
         assert reached_state == LoginState.S0_REDIRECT
         assert b'SAML error: Unknown Service Provider' in resp.data
         cookies = resp.headers['Set-Cookie']
-        # Ensure the pre-existing idpauthn cookie wasn't touched
-        assert 'idpauthn' not in cookies
+        # Ensure the pre-existing IdP SSO cookie wasn't touched
+        assert self.app.config.sso_cookie_name not in cookies
 
     def test_with_authncontext(self):
         # Patch the VCCSClient so we do not need a vccs server

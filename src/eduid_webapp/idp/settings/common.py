@@ -131,6 +131,8 @@ class IdPConfig(FlaskConfig):
     tou_reaccept_interval: int = 94608000
     # Name of cookie used to persist session information in the users browser.
     shared_session_cookie_name: str = 'sessid'
+    # Name of IdP-specific session allowing users to SSO
+    sso_cookie_name: str = 'idpauthn'
     session_cookie_timeout: int = 60  # in minutes
     preferred_url_scheme: str = 'http'
     # TTL for shared sessions.
