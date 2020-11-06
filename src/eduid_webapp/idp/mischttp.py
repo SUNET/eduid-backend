@@ -175,10 +175,17 @@ def set_cookie(name: str, path: str, value: str, response: FlaskResponse) -> Fla
 
     :param name: Cookie identifier (string)
     :param path: The path specification for the cookie
-    :param logger: logging instance
-    :param config: IdPConfig instance
     :param value: The value to assign to the cookie
+    :param response: Flask response object
     """
+    # TODO: Rename to set_sso_cookie as it is only used in do_verify for setting sso cookie
+    #   Remove name, path from arguments and use global Flask response
+    #   Use values from settings instead
+    if name != current_app.config.sso_cookie_name:
+        current_app.logger.warning(
+            f'set_sso_cookie called with wrong cookie name, '
+            f'name={name} != sso_cookie_name={current_app.config.sso_cookie_name}'
+        )
     _domain = current_app.config.session_cookie_domain
     if name == current_app.config.sso_cookie_name and current_app.config.sso_cookie_domain is not None:
         _domain = current_app.config.sso_cookie_domain

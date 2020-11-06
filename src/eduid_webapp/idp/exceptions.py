@@ -29,10 +29,11 @@ def init_exception_handlers(app):
 
         if 'USER_TERMINATED' in error.description:
             # Delete the SSO session cookie in the browser
+            _domain = app.config.session_cookie_domain
+            if app.config.sso_cookie_domain is not None:
+                _domain = app.config.sso_cookie_domain
             response.delete_cookie(
-                key=app.config.sso_cookie_name,
-                path=app.config.session_cookie_path,
-                domain=app.config.session_cookie_domain,
+                key=app.config.sso_cookie_name, path=app.config.session_cookie_path, domain=_domain,
             )
 
         return response
