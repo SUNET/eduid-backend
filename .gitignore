@@ -6,6 +6,8 @@
 *.egg-info
 build/
 dist/
+env
+venv
 metadata.xml
 .idea
 .*.swp
