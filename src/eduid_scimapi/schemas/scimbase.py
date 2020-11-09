@@ -91,7 +91,7 @@ class SubResource:
         return cls(value=UUID(data['value']), ref=data['$ref'], display=data['display'])
 
 
-@dataclass
+@dataclass(frozen=True)
 class Meta:
     location: str = field(metadata={'required': True})
     last_modified: datetime = field(metadata={'data_key': 'lastModified', 'required': True})
@@ -100,25 +100,25 @@ class Meta:
     version: ObjectId = field(metadata={'marshmallow_field': VersionField(), 'required': True})
 
 
-@dataclass
+@dataclass(frozen=True)
 class BaseResponse:
     id: UUID = field(metadata={'required': True})
     meta: Meta = field(metadata={'required': True})
     schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
 
 
-@dataclass
+@dataclass(frozen=True)
 class BaseCreateRequest:
     schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
 
 
-@dataclass
+@dataclass(frozen=True)
 class BaseUpdateRequest:
     id: UUID = field(metadata={'required': True})
     schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
 
 
-@dataclass
+@dataclass(frozen=True)
 class SearchRequest:
     schemas: List[SCIMSchemaValue] = field(
         default_factory=lambda: [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST], metadata={'required': True}
@@ -130,7 +130,7 @@ class SearchRequest:
     count: int = field(default=100, metadata={'required': False, 'validate': validate.Range(min=1)})
 
 
-@dataclass
+@dataclass(frozen=True)
 class ListResponse:
     schemas: List[SCIMSchemaValue] = field(
         default_factory=lambda: [SCIMSchema.API_MESSAGES_20_LIST_RESPONSE], metadata={'required': True}

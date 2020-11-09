@@ -116,7 +116,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         }
 
     def add_user(
-        self, identifier: str, external_id: str, profiles: Optional[Dict[str, Profile]] = None
+        self, identifier: str, external_id: Optional[str] = None, profiles: Optional[Dict[str, Profile]] = None
     ) -> Optional[ScimApiUser]:
         user = ScimApiUser(user_id=ObjectId(), scim_id=uuid.UUID(identifier), external_id=external_id)
         if profiles:

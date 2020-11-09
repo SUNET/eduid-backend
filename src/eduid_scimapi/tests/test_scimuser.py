@@ -138,7 +138,7 @@ class TestUserResource(ScimApiTestCase):
         self.test_profile.data = {'test_key': 'test_value'}
 
     def _assertUserUpdateSuccess(self, req: Mapping, response, user: ScimApiUser):
-        """ Function to validate successful responses to SCIM calls that update a group according to a request. """
+        """ Function to validate successful responses to SCIM calls that update a user according to a request. """
         if response.json.get('schemas') == [SCIMSchema.ERROR.value]:
             self.fail(f'Got SCIM error response ({response.status}):\n{response.json}')
 
@@ -180,6 +180,10 @@ class TestUserResource(ScimApiTestCase):
         }
         self._assertUserUpdateSuccess(_req, response, db_user)
 
+    def test_create_users_with_no_external_id(self):
+        self.add_user(identifier=str(uuid4()), profiles={'test': self.test_profile})
+        self.add_user(identifier=str(uuid4()), profiles={'test': self.test_profile})
+
     def test_create_user(self):
         req = {
             'schemas': [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_USER_V1.value],
@@ -192,9 +196,41 @@ class TestUserResource(ScimApiTestCase):
 
         # Load the created user from the database, ensuring it was in fact created
         db_user = self.userdb.get_user_by_external_id(req['externalId'])
-        self.assertIsNotNone('Created user not found in the database')
+        self.assertIsNotNone(db_user, 'Created user not found in the database')
 
         self._assertUserUpdateSuccess(req, response, db_user)
+
+    def test_create_user_no_external_id(self):
+        req = {
+            'schemas': [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_USER_V1.value],
+            SCIMSchema.NUTID_USER_V1.value: {
+                'profiles': {'test': {'attributes': {'displayName': 'Test User 1'}, 'data': {'test_key': 'test_value'}}}
+            },
+        }
+        response = self.client.simulate_post(path='/Users/', body=self.as_json(req), headers=self.headers)
+
+        # Load the created user from the database, ensuring it was in fact created
+        db_user = self.userdb.get_user_by_scim_id(response.json['id'])
+        self.assertIsNotNone(db_user, 'Created user not found in the database')
+
+        self._assertUserUpdateSuccess(req, response, db_user)
+
+    def test_create_user_duplicated_external_id(self):
+        external_id = 'test-id-1'
+        # Create an existing user in the db
+        self.add_user(identifier=str(uuid4()), external_id=external_id, profiles={'test': self.test_profile})
+        # Try to create a new user with the same external_id
+        req = {
+            'schemas': [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_USER_V1.value],
+            'externalId': external_id,
+            SCIMSchema.NUTID_USER_V1.value: {
+                'profiles': {'test': {'attributes': {'displayName': 'Test User 2'}, 'data': {'test_key': 'test_value'}}}
+            },
+        }
+        response = self.client.simulate_post(path='/Users/', body=self.as_json(req), headers=self.headers)
+        self._assertScimError(
+            response.json, schemas=['urn:ietf:params:scim:api:messages:2.0:Error'], detail='externalID must be unique'
+        )
 
     def test_update_user(self):
         db_user = self.add_user(identifier=str(uuid4()), external_id='test-id-1', profiles={'test': self.test_profile})
@@ -212,8 +248,50 @@ class TestUserResource(ScimApiTestCase):
         response = self.client.simulate_put(
             path=f'/Users/{db_user.scim_id}', body=self.as_json(req), headers=self.headers
         )
-
         self._assertUserUpdateSuccess(req, response, db_user)
+
+    def test_update_user_set_external_id(self):
+        db_user = self.add_user(identifier=str(uuid4()), profiles={'test': self.test_profile})
+        req = {
+            'schemas': [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_USER_V1.value],
+            'id': str(db_user.scim_id),
+            'externalId': 'test-id-1',
+            SCIMSchema.NUTID_USER_V1.value: {
+                'profiles': {
+                    'test': {'attributes': {'displayName': 'New display name'}, 'data': {'test_key': 'new value'}}
+                }
+            },
+        }
+        self.headers['IF-MATCH'] = make_etag(db_user.version)
+        response = self.client.simulate_put(
+            path=f'/Users/{db_user.scim_id}', body=self.as_json(req), headers=self.headers
+        )
+        db_user = self.userdb.get_user_by_scim_id(response.json['id'])
+        self._assertUserUpdateSuccess(req, response, db_user)
+
+    def test_update_user_duplicated_external_id(self):
+        external_id = 'test-id-1'
+        # Create two existing users with different external_id
+        self.add_user(identifier=str(uuid4()), external_id=external_id, profiles={'test': self.test_profile})
+        db_user = self.add_user(identifier=str(uuid4()), external_id='test-id-2', profiles={'test': self.test_profile})
+        # Try to update the second user with the external_id of the first
+        req = {
+            'schemas': [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_USER_V1.value],
+            'id': str(db_user.scim_id),
+            'externalId': external_id,
+            SCIMSchema.NUTID_USER_V1.value: {
+                'profiles': {
+                    'test': {'attributes': {'displayName': 'New display name'}, 'data': {'test_key': 'new value'}}
+                }
+            },
+        }
+        self.headers['IF-MATCH'] = make_etag(db_user.version)
+        response = self.client.simulate_put(
+            path=f'/Users/{db_user.scim_id}', body=self.as_json(req), headers=self.headers
+        )
+        self._assertScimError(
+            response.json, schemas=['urn:ietf:params:scim:api:messages:2.0:Error'], detail='externalID must be unique'
+        )
 
     def test_search_user_external_id(self):
         db_user = self.add_user(identifier=str(uuid4()), external_id='test-id-1', profiles={'test': self.test_profile})

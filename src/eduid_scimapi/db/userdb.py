@@ -70,7 +70,11 @@ class ScimApiUserDB(ScimApiBaseDB):
         # Create an index so that scim_id and external_id is unique per data owner
         indexes = {
             'unique-scimid': {'key': [('scim_id', 1)], 'unique': True},
-            'unique-external-id': {'key': [('external_id', 1)], 'unique': True},
+            'unique-external-id': {
+                'key': [('external_id', 1)],
+                'unique': True,
+                'partialFilterExpression': {'external_id': {'$type': 'string'}},
+            },
         }
         self.setup_indexes(indexes)
 
@@ -90,13 +94,16 @@ class ScimApiUserDB(ScimApiBaseDB):
         # update the version number and last_modified timestamp
         user_dict['version'] = ObjectId()
         user_dict['last_modified'] = datetime.utcnow()
+        # Save existing user
         result = self._coll.replace_one(test_doc, user_dict, upsert=False)
         if result.modified_count == 0:
+            # Could not replace the user, is it new or is something out out sync
             db_user = self._coll.find_one({'_id': user.user_id})
             if db_user:
                 logger.debug(f'{self} FAILED Updating user {user} in {self._coll_name}')
                 raise RuntimeError('User out of sync, please retry')
-            self._coll.insert_one(user_dict)
+            # Out of sync check did not find any problems, it is a new user - save it.
+            result = self._coll.insert_one(user_dict)
         # put the new version number and last_modified in the user object after a successful update
         user.version = user_dict['version']
         user.last_modified = user_dict['last_modified']
@@ -110,10 +117,6 @@ class ScimApiUserDB(ScimApiBaseDB):
 
     def remove(self, user: ScimApiUser):
         return self.remove_document(user.user_id)
-
-    # TODO: Not working, remove/rewrite?
-    def get_user_by_eduid_eppn(self, eppn: str) -> Optional[ScimApiUser]:
-        return self.get_user_by_scoped_attribute('eduid', 'external_id', eppn)
 
     def get_user_by_scim_id(self, scim_id: str) -> Optional[ScimApiUser]:
         docs = self._get_document_by_attr('scim_id', scim_id, raise_on_missing=False)
