@@ -4,8 +4,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 from falcon import Request, Response
 from marshmallow import ValidationError
 
-from eduid_scimapi.db.userdb import Profile as DBProfile
-from eduid_scimapi.db.userdb import ScimApiUser
+from eduid_scimapi.db.userdb import ScimApiProfile, ScimApiUser
 from eduid_scimapi.exceptions import BadRequest, NotFound
 from eduid_scimapi.middleware import ctx_groupdb, ctx_userdb
 from eduid_scimapi.resources.base import BaseResource, SCIMResource
@@ -20,7 +19,7 @@ from eduid_scimapi.schemas.scimbase import (
 )
 from eduid_scimapi.schemas.user import (
     Group,
-    NutidExtensionV1,
+    NutidUserExtensionV1,
     Profile,
     UserCreateRequest,
     UserCreateRequestSchema,
@@ -48,7 +47,7 @@ class UsersResource(SCIMResource):
         meta = Meta(
             location=location,
             last_modified=db_user.last_modified,
-            resource_type=SCIMResourceType.user,
+            resource_type=SCIMResourceType.USER,
             created=db_user.created,
             version=db_user.version,
         )
@@ -66,7 +65,7 @@ class UsersResource(SCIMResource):
             groups=self._get_user_groups(req=req, db_user=db_user),
             meta=meta,
             schemas=list(schemas),  # extra list() needed to work with _both_ mypy and marshmallow
-            nutid_v1=NutidExtensionV1(profiles=_profiles),
+            nutid_user_v1=NutidUserExtensionV1(profiles=_profiles),
         )
 
         resp.set_header("Location", location)
@@ -111,25 +110,29 @@ class UsersResource(SCIMResource):
 
                 # Look for changes
                 changed = False
-                for this in update_request.nutid_v1.profiles.keys():
+                for this in update_request.nutid_user_v1.profiles.keys():
                     if this not in db_user.profiles:
                         self.context.logger.info(
-                            f'Adding profile {this}/{update_request.nutid_v1.profiles[this]} to user'
+                            f'Adding profile {this}/{update_request.nutid_user_v1.profiles[this]} to user'
                         )
                         changed = True
-                    elif update_request.nutid_v1.profiles[this] != db_user.profiles[this]:
-                        self.context.logger.info(f'Profile {this}/{update_request.nutid_v1.profiles[this]} updated')
+                    elif update_request.nutid_user_v1.profiles[this] != db_user.profiles[this]:
+                        self.context.logger.info(
+                            f'Profile {this}/{update_request.nutid_user_v1.profiles[this]} updated'
+                        )
                         changed = True
                     else:
-                        self.context.logger.info(f'Profile {this}/{update_request.nutid_v1.profiles[this]} not changed')
+                        self.context.logger.info(
+                            f'Profile {this}/{update_request.nutid_user_v1.profiles[this]} not changed'
+                        )
                 for this in db_user.profiles.keys():
-                    if this not in update_request.nutid_v1.profiles:
+                    if this not in update_request.nutid_user_v1.profiles:
                         self.context.logger.info(f'Profile {this}/{db_user.profiles[this]} removed')
                         changed = True
 
                 if changed:
-                    for profile_name, profile in update_request.nutid_v1.profiles.items():
-                        db_profile = DBProfile(attributes=profile.attributes, data=profile.data)
+                    for profile_name, profile in update_request.nutid_user_v1.profiles.items():
+                        db_profile = ScimApiProfile(attributes=profile.attributes, data=profile.data)
                         db_user.profiles[profile_name] = db_profile
                     ctx_userdb(req).save(db_user)
 
@@ -195,8 +198,8 @@ class UsersResource(SCIMResource):
                 raise BadRequest(detail='No externalId in user creation request')
 
             profiles = {}
-            for profile_name, profile in create_request.nutid_v1.profiles.items():
-                profiles[profile_name] = DBProfile(attributes=profile.attributes, data=profile.data)
+            for profile_name, profile in create_request.nutid_user_v1.profiles.items():
+                profiles[profile_name] = ScimApiProfile(attributes=profile.attributes, data=profile.data)
 
             db_user = ScimApiUser(external_id=create_request.external_id, profiles=profiles)
             ctx_userdb(req).save(db_user)

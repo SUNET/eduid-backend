@@ -1,5 +1,6 @@
 import base64
-from typing import AnyStr, Dict, List, Union
+from typing import AnyStr
+from uuid import uuid4
 
 from bson import ObjectId
 
@@ -44,7 +45,7 @@ def b64_decode(data: AnyStr) -> bytes:
     return base64.urlsafe_b64decode(_data)
 
 
-def filter_none(x: Union[Dict, List]) -> Union[Dict, List]:
+def filter_none(x):
     """
     Recursively removes key, value pairs or items that is None.
     """
@@ -58,3 +59,11 @@ def filter_none(x: Union[Dict, List]) -> Union[Dict, List]:
 
 def make_etag(version: ObjectId):
     return f'W/"{version}"'
+
+
+def get_unique_hash():
+    return str(uuid4())
+
+
+def get_short_hash(entropy=10):
+    return uuid4().hex[:entropy]

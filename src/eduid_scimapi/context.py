@@ -3,8 +3,12 @@ import logging.config
 import sys
 from typing import Optional
 
+from eduid_userdb.q.message import MessageDB
+from eduid_userdb.signup.invitedb import SignupInviteDB
+
 from eduid_scimapi.config import ScimApiConfig
 from eduid_scimapi.db.groupdb import ScimApiGroupDB
+from eduid_scimapi.db.invitedb import ScimApiInviteDB
 from eduid_scimapi.db.userdb import ScimApiUserDB
 from eduid_scimapi.utils import urlappend
 
@@ -30,6 +34,7 @@ class Context(object):
         # Setup databases
         self._userdbs = {}
         self._groupdbs = {}
+        self._invitedbs = {}
         for data_owner in self.config.data_owners:
             _owner = data_owner.replace('.', '_')  # replace dots with underscores
             self._userdbs[data_owner] = ScimApiUserDB(db_uri=self.config.mongo_uri, collection=f'{_owner}__users')
@@ -41,6 +46,9 @@ class Context(object):
                 mongo_dbname='eduid_scimapi',
                 mongo_collection=f'{_owner}__groups',
             )
+            self._invitedbs[data_owner] = ScimApiInviteDB(db_uri=self.config.mongo_uri, collection=f'{_owner}__invites')
+        self.signup_invitedb = SignupInviteDB(db_uri=self.config.mongo_uri)
+        self.messagedb = MessageDB(db_uri=self.config.mongo_uri)
 
     @property
     def base_url(self) -> str:
@@ -54,3 +62,6 @@ class Context(object):
 
     def get_groupdb(self, data_owner: str) -> Optional[ScimApiGroupDB]:
         return self._groupdbs.get(data_owner)
+
+    def get_invitedb(self, data_owner: str) -> Optional[ScimApiInviteDB]:
+        return self._invitedbs.get(data_owner)

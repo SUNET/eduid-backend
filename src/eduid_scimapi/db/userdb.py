@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import logging
 import uuid
 from dataclasses import asdict, dataclass, field
@@ -10,6 +11,7 @@ from uuid import UUID
 from bson import ObjectId
 
 from eduid_scimapi.db.basedb import ScimApiBaseDB
+from eduid_scimapi.db.common import ScimApiProfile
 
 __author__ = 'ft'
 
@@ -18,29 +20,14 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class Profile:
-    attributes: Dict[str, Any] = field(default_factory=dict)
-    data: Dict[str, Any] = field(default_factory=dict)
-
-    @classmethod
-    def from_dict(cls: Type[Profile], data: Mapping[str, Any]) -> Profile:
-        _attributes = data.get('attributes', {})
-        _data = data.get('data', {})
-        return cls(attributes=_attributes, data=_data)
-
-    def to_dict(self) -> Mapping[str, Any]:
-        return asdict(self)
-
-
-@dataclass
-class ScimApiUser(object):
+class ScimApiUser:
     user_id: ObjectId = field(default_factory=lambda: ObjectId())
     scim_id: UUID = field(default_factory=lambda: uuid.uuid4())
     external_id: Optional[str] = None
     version: ObjectId = field(default_factory=lambda: ObjectId())
     created: datetime = field(default_factory=lambda: datetime.utcnow())
     last_modified: datetime = field(default_factory=lambda: datetime.utcnow())
-    profiles: Dict[str, Profile] = field(default_factory=lambda: {})
+    profiles: Dict[str, ScimApiProfile] = field(default_factory=lambda: {})
 
     @property
     def etag(self):
@@ -54,12 +41,13 @@ class ScimApiUser(object):
 
     @classmethod
     def from_dict(cls: Type[ScimApiUser], data: Mapping[str, Any]) -> ScimApiUser:
-        this = dict(data)
+        this = dict(copy.copy(data))  # to not modify callers data
         this['scim_id'] = uuid.UUID(this['scim_id'])
         this['user_id'] = this.pop('_id')
+        # Profiles
         parsed_profiles = {}
-        for k, v in this['profiles'].items():
-            parsed_profiles[k] = Profile(**v)
+        for k, v in data['profiles'].items():
+            parsed_profiles[k] = ScimApiProfile.from_dict(v)
         this['profiles'] = parsed_profiles
         return cls(**this)
 

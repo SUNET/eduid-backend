@@ -50,7 +50,7 @@ class GroupsResource(SCIMResource):
         meta = Meta(
             location=location,
             last_modified=db_group.last_modified or db_group.created,
-            resource_type=SCIMResourceType.group,
+            resource_type=SCIMResourceType.GROUP,
             created=db_group.created,
             version=db_group.version,
         )

@@ -5,7 +5,16 @@ from uuid import UUID
 from marshmallow import fields
 from marshmallow_dataclass import class_schema
 
-from eduid_scimapi.schemas.scimbase import BaseSchema, Meta, SCIMSchema, SCIMSchemaValue, SubResource
+from eduid_scimapi.schemas.scimbase import (
+    BaseCreateRequest,
+    BaseResponse,
+    BaseSchema,
+    BaseUpdateRequest,
+    Meta,
+    SCIMSchema,
+    SCIMSchemaValue,
+    SubResource,
+)
 
 __author__ = 'lundberg'
 
@@ -32,43 +41,19 @@ class Group:
     )
 
 
-# Duplicate Group and BaseCreateRequest until dataclasses has better inheritance support
 @dataclass(frozen=True)
-class GroupCreateRequest:
-    schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
-    display_name: str = field(default='', metadata={'data_key': 'displayName', 'required': True})
-    members: List[GroupMember] = field(default_factory=list, metadata={'required': False})
-    nutid_group_v1: NutidGroupExtensionV1 = field(
-        default_factory=lambda: NutidGroupExtensionV1(),
-        metadata={'data_key': SCIMSchema.NUTID_GROUP_V1.value, 'required': False},
-    )
+class GroupCreateRequest(Group, BaseCreateRequest):
+    pass
 
 
-# Duplicate Group and BaseUpdateRequest until dataclasses has better inheritance support
 @dataclass(frozen=True)
-class GroupUpdateRequest:
-    id: UUID = field(metadata={'required': True})
-    schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
-    display_name: str = field(default='', metadata={'data_key': 'displayName', 'required': True})
-    members: List[GroupMember] = field(default_factory=list, metadata={'required': False})
-    nutid_group_v1: NutidGroupExtensionV1 = field(
-        default_factory=lambda: NutidGroupExtensionV1(),
-        metadata={'data_key': SCIMSchema.NUTID_GROUP_V1.value, 'required': False},
-    )
+class GroupUpdateRequest(Group, BaseUpdateRequest):
+    pass
 
 
-# Duplicate Group and BaseResponse until dataclasses has better inheritance support
 @dataclass(frozen=True)
-class GroupResponse:
-    id: UUID = field(metadata={'required': True})
-    meta: Meta = field(metadata={'required': True})  # type: ignore
-    schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
-    display_name: str = field(default='', metadata={'data_key': 'displayName', 'required': True})
-    members: List[GroupMember] = field(default_factory=list, metadata={'required': False})
-    nutid_group_v1: NutidGroupExtensionV1 = field(
-        default_factory=lambda: NutidGroupExtensionV1(),
-        metadata={'data_key': SCIMSchema.NUTID_GROUP_V1.value, 'required': False},
-    )
+class GroupResponse(Group, BaseResponse):
+    pass
 
 
 GroupCreateRequestSchema = class_schema(GroupCreateRequest, base_schema=BaseSchema)
