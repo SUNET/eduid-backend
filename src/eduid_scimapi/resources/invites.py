@@ -1,16 +1,11 @@
 # -*- coding: utf-8 -*-
 from dataclasses import asdict, replace
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from os import environ
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from falcon import HTTP_204, Request, Response
 from marshmallow import ValidationError
-
-from eduid_userdb.q import QueueItem, SenderInfo
-from eduid_userdb.q.message import EduidInviteEmail
-from eduid_userdb.signup import Invite as SignupInvite
-from eduid_userdb.signup import InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
 
 from eduid_scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
 from eduid_scimapi.db.invitedb import ScimApiInvite
@@ -38,6 +33,10 @@ from eduid_scimapi.schemas.scimbase import (
 from eduid_scimapi.schemas.user import NutidUserExtensionV1, Profile
 from eduid_scimapi.search import SearchFilter, parse_search_filter
 from eduid_scimapi.utils import get_short_hash, get_unique_hash, make_etag
+from eduid_userdb.q import QueueItem, SenderInfo
+from eduid_userdb.q.message import EduidInviteEmail
+from eduid_userdb.signup import Invite as SignupInvite
+from eduid_userdb.signup import InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
 
 __author__ = 'lundberg'
 
@@ -179,7 +178,7 @@ class InvitesResource(SCIMResource):
                 {
                     'schemas': ['https://scim.eduid.se/schema/nutid/invite/v1',
                                 'https://scim.eduid.se/schema/nutid/user/v1'],
-                    'expires_at': '2021-03-02T14:35:52',
+                    'expiresAt': '2021-03-02T14:35:52',
                     'groups': [],
                     'phoneNumbers': [
                         {'type': 'fax', 'value': 'tel:+461234567', 'primary': True},
@@ -194,7 +193,7 @@ class InvitesResource(SCIMResource):
                     },
                     'nationalIdentityNumber': '190102031234',
                     'id': 'fb96a6d0-1837-4c3b-9945-4249c476875c',
-                    'preferred_language': 'se-SV',
+                    'preferredLanguage': 'se-SV',
                     'sendEmail': True,
                     'name': {
                         'familyName': 'Testsson',
@@ -243,15 +242,18 @@ class InvitesResource(SCIMResource):
         self.context.logger.info(f'Deleting invite {scim_id}')
         db_invite = ctx_invitedb(req).get_invite_by_scim_id(scim_id=scim_id)
         self.context.logger.debug(f'Found invite: {db_invite}')
+
         if not db_invite:
             raise NotFound(detail="Invite not found")
         # Check version
         if not self._check_version(req, db_invite):
             raise BadRequest(detail="Version mismatch")
+
         # Remove signup invite
         ref = self._create_signup_ref(req, db_invite)
         signup_invite = self.context.signup_invitedb.get_invite_by_reference(ref)
         self.context.signup_invitedb.remove_document(signup_invite.invite_id)
+
         # Remove scim invite
         res = ctx_invitedb(req).remove(db_invite)
         self.context.logger.debug(f'Remove invite result: {res}')

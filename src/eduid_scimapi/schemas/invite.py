@@ -73,7 +73,7 @@ class InviteCreateRequest(BaseCreateRequest, NutidInviteV1):
         # Validate that there is a primary email address if more than one is requested
         if len(data['emails']) > 1:
             primary_addresses = [email for email in data['emails'] if email.primary is True]
-            if len(primary_addresses) == 0 or len(primary_addresses) > 1:
+            if len(primary_addresses) != 1:
                 raise ValidationError('There must be exactly one primary email address.')
 
 
