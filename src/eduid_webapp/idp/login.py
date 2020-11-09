@@ -507,6 +507,7 @@ def do_verify():
         raise Forbidden(e.args[0])
 
     if not authninfo:
+        current_app.logger.info(f'{_ticket.key}: Password authentication failed')
         _ticket.FailCount += 1
         session.sso_ticket = _ticket
         lox = f'{query["redirect_uri"]}?{_ticket.query_string}'
