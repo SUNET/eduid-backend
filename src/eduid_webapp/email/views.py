@@ -52,8 +52,8 @@ from eduid_webapp.email.schemas import (
     ChangeEmailSchema,
     EmailListPayload,
     EmailResponseSchema,
-    VerificationCodeSchema,
     NoCSRFVerificationCodeSchema,
+    VerificationCodeSchema,
 )
 from eduid_webapp.email.verifications import send_verification_code, verify_mail_address
 
