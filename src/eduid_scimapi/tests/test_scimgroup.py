@@ -13,12 +13,13 @@ from marshmallow_dataclass import class_schema
 
 from eduid_graphdb.groupdb import Group as GraphGroup
 from eduid_graphdb.groupdb import User as GraphUser
+from eduid_userdb.testing import normalised_data
 
 from eduid_scimapi.db.groupdb import GroupExtensions, ScimApiGroup
 from eduid_scimapi.db.userdb import ScimApiUser
 from eduid_scimapi.schemas.group import GroupMember, GroupResponse
 from eduid_scimapi.schemas.scimbase import BaseSchema, Meta, SCIMResourceType, SCIMSchema
-from eduid_scimapi.testing import ScimApiTestCase, normalised_data
+from eduid_scimapi.testing import ScimApiTestCase
 from eduid_scimapi.tests.test_scimbase import TestScimBase
 from eduid_scimapi.utils import make_etag
 

@@ -7,6 +7,11 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 from falcon import HTTP_204, Request, Response
 from marshmallow import ValidationError
 
+from eduid_userdb.q import QueueItem, SenderInfo
+from eduid_userdb.q.message import EduidInviteEmail
+from eduid_userdb.signup import Invite as SignupInvite
+from eduid_userdb.signup import InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
+
 from eduid_scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
 from eduid_scimapi.db.invitedb import ScimApiInvite
 from eduid_scimapi.exceptions import BadRequest, NotFound
@@ -33,10 +38,6 @@ from eduid_scimapi.schemas.scimbase import (
 from eduid_scimapi.schemas.user import NutidUserExtensionV1, Profile
 from eduid_scimapi.search import SearchFilter, parse_search_filter
 from eduid_scimapi.utils import get_short_hash, get_unique_hash, make_etag
-from eduid_userdb.q import QueueItem, SenderInfo
-from eduid_userdb.q.message import EduidInviteEmail
-from eduid_userdb.signup import Invite as SignupInvite
-from eduid_userdb.signup import InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
 
 __author__ = 'lundberg'
 

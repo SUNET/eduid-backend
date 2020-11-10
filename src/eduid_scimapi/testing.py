@@ -125,7 +125,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         }
 
     def add_user(
-        self, identifier: str, external_id: str, profiles: Optional[Dict[str, ScimApiProfile]] = None
+        self, identifier: str, external_id: Optional[str] = None, profiles: Optional[Dict[str, ScimApiProfile]] = None
     ) -> Optional[ScimApiUser]:
         user = ScimApiUser(user_id=ObjectId(), scim_id=uuid.UUID(identifier), external_id=external_id)
         if profiles:
@@ -207,49 +207,3 @@ class ScimApiTestCase(MongoNeoTestCase):
         self.assertEqual(
             expected_resource_type, meta.get('resourceType'), f'meta.resourceType is not {expected_resource_type}'
         )
-
-
-@deprecated('Moved to eduid_userdb.testing')
-def normalised_data(
-    data: Union[Mapping[str, Any], Sequence[Mapping[str, Any]]]
-) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
-    """ Utility function for normalising dicts (or list of dicts) before comparisons in test cases. """
-    if isinstance(data, list):
-        # Recurse into lists of dicts. mypy (correctly) says this recursion can in fact happen
-        # more than once, so the result can be a list of list of dicts or whatever, but the return
-        # type becomes too bloated with that in mind and the code becomes too inelegant when unrolling
-        # this list comprehension into a for-loop checking types for something only intended to be used in test cases.
-        # Hence the type: ignore.
-        return sorted([_normalise_value(x) for x in data], key=_any_key)  # type: ignore
-    elif isinstance(data, dict):
-        # normalise all values found in the dict, returning a new dict (to not modify callers data)
-        return {k: _normalise_value(v) for k, v in data.items()}
-    raise TypeError('normalised_data not called on dict (or list of dicts)')
-
-
-class SortEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, datetime):
-            return str(_normalise_value(obj))
-        if isinstance(obj, Enum):
-            return _normalise_value(obj)
-        if isinstance(obj, uuid.UUID):
-            return str(obj)
-        return json.JSONEncoder.default(self, obj)
-
-
-def _any_key(value: Any):
-    """ Helper function to be able to use sorted with key argument for everything """
-    if isinstance(value, dict):
-        return json.dumps(value, sort_keys=True, cls=SortEncoder)  # Turn dict in to a string for sorting
-    return value
-
-
-def _normalise_value(data: Any) -> Any:
-    if isinstance(data, dict) or isinstance(data, list):
-        return normalised_data(data)
-    elif isinstance(data, datetime):
-        return data.replace(microsecond=0)
-    if isinstance(data, Enum):
-        return f'{repr(data)}'
-    return data

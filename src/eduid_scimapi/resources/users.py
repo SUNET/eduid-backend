@@ -1,8 +1,10 @@
+from dataclasses import replace
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from falcon import Request, Response
 from marshmallow import ValidationError
+from pymongo.errors import DuplicateKeyError
 
 from eduid_scimapi.db.userdb import ScimApiProfile, ScimApiUser
 from eduid_scimapi.exceptions import BadRequest, NotFound
@@ -72,6 +74,15 @@ class UsersResource(SCIMResource):
         resp.set_header("ETag", make_etag(db_user.version))
         resp.media = UserResponseSchema().dump(user)
 
+    @staticmethod
+    def _save_user(req: Request, db_user: ScimApiUser) -> None:
+        try:
+            ctx_userdb(req).save(db_user)
+        except DuplicateKeyError as e:
+            if 'external-id' in e.details['errmsg']:
+                raise BadRequest(detail='externalID must be unique')
+            raise BadRequest(detail='Duplicated key error')
+
     def on_get(self, req: Request, resp: Response, scim_id: Optional[str] = None):
         if scim_id is None:
             raise BadRequest(detail='Not implemented')
@@ -95,7 +106,7 @@ class UsersResource(SCIMResource):
 
             db_user = ctx_userdb(req).get_user_by_scim_id(scim_id)
             if not db_user:
-                raise NotFound(detail="Group not found")
+                raise NotFound(detail="User not found")
 
             # Check version
             if not self._check_version(req, db_user):
@@ -103,24 +114,26 @@ class UsersResource(SCIMResource):
 
             self.context.logger.debug(f'Extra debug: user {scim_id} as dict:\n{db_user.to_dict()}')
 
-            if SCIMSchema.NUTID_USER_V1 in update_request.schemas:
-                if not db_user.external_id:
-                    # TODO: Skipping?
-                    self.context.logger.warning(f'User {db_user} has no external id, skipping NUTID update')
+            core_changed = False
+            if SCIMSchema.CORE_20_USER in update_request.schemas:
+                if update_request.external_id != db_user.external_id:
+                    db_user = replace(db_user, external_id=update_request.external_id)
+                    core_changed = True
 
+            nutid_changed = False
+            if SCIMSchema.NUTID_USER_V1 in update_request.schemas:
                 # Look for changes
-                changed = False
                 for this in update_request.nutid_user_v1.profiles.keys():
                     if this not in db_user.profiles:
                         self.context.logger.info(
                             f'Adding profile {this}/{update_request.nutid_user_v1.profiles[this]} to user'
                         )
-                        changed = True
+                        nutid_changed = True
                     elif update_request.nutid_user_v1.profiles[this] != db_user.profiles[this]:
                         self.context.logger.info(
                             f'Profile {this}/{update_request.nutid_user_v1.profiles[this]} updated'
                         )
-                        changed = True
+                        nutid_changed = True
                     else:
                         self.context.logger.info(
                             f'Profile {this}/{update_request.nutid_user_v1.profiles[this]} not changed'
@@ -128,13 +141,15 @@ class UsersResource(SCIMResource):
                 for this in db_user.profiles.keys():
                     if this not in update_request.nutid_user_v1.profiles:
                         self.context.logger.info(f'Profile {this}/{db_user.profiles[this]} removed')
-                        changed = True
+                        nutid_changed = True
 
-                if changed:
+                if nutid_changed:
                     for profile_name, profile in update_request.nutid_user_v1.profiles.items():
                         db_profile = ScimApiProfile(attributes=profile.attributes, data=profile.data)
                         db_user.profiles[profile_name] = db_profile
-                    ctx_userdb(req).save(db_user)
+
+            if core_changed or nutid_changed:
+                self._save_user(req, db_user)
 
             self._db_user_to_response(req=req, resp=resp, db_user=db_user)
         except ValidationError as e:
@@ -193,16 +208,12 @@ class UsersResource(SCIMResource):
             create_request: UserCreateRequest = UserCreateRequestSchema().load(req.media)
             self.context.logger.debug(create_request)
 
-            # TODO: Is external_id optional or not?
-            if not create_request.external_id:
-                raise BadRequest(detail='No externalId in user creation request')
-
             profiles = {}
             for profile_name, profile in create_request.nutid_user_v1.profiles.items():
                 profiles[profile_name] = ScimApiProfile(attributes=profile.attributes, data=profile.data)
 
             db_user = ScimApiUser(external_id=create_request.external_id, profiles=profiles)
-            ctx_userdb(req).save(db_user)
+            self._save_user(req, db_user)
 
             self._db_user_to_response(req=req, resp=resp, db_user=db_user)
         except ValidationError as e:
