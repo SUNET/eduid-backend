@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+import copy
 import logging
 import pprint
 import uuid
 from dataclasses import asdict, dataclass, field, replace
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple, Type, Union
 from uuid import UUID
 
@@ -36,7 +37,7 @@ class GroupExtensions(object):
 
 
 @dataclass
-class ScimApiGroup(object):
+class ScimApiGroup:
     display_name: str
     group_id: ObjectId = field(default_factory=lambda: ObjectId())
     scim_id: UUID = field(default_factory=lambda: uuid.uuid4())
@@ -88,7 +89,7 @@ class ScimApiGroup(object):
 
     @classmethod
     def from_dict(cls: Type[ScimApiGroup], data: Mapping[str, Any]) -> ScimApiGroup:
-        this = dict(data)
+        this = dict(copy.copy(data))  # to not modify callers data
         this['scim_id'] = uuid.UUID(this['scim_id'])
         this['group_id'] = this.pop('_id')
         this['extensions'] = GroupExtensions.from_mapping(this['extensions'])

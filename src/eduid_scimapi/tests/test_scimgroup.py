@@ -3,7 +3,8 @@
 __author__ = 'lundberg'
 
 import logging
-from datetime import datetime
+from dataclasses import asdict
+from datetime import datetime, timezone
 from typing import Any, List, Mapping, Optional, Set, Union
 from uuid import UUID, uuid4
 
@@ -12,11 +13,12 @@ from marshmallow_dataclass import class_schema
 
 from eduid_graphdb.groupdb import Group as GraphGroup
 from eduid_graphdb.groupdb import User as GraphUser
+from eduid_userdb.testing import normalised_data
 
 from eduid_scimapi.db.groupdb import GroupExtensions, ScimApiGroup
 from eduid_scimapi.db.userdb import ScimApiUser
 from eduid_scimapi.schemas.group import GroupMember, GroupResponse
-from eduid_scimapi.schemas.scimbase import Meta, SCIMResourceType, SCIMSchema
+from eduid_scimapi.schemas.scimbase import BaseSchema, Meta, SCIMResourceType, SCIMSchema
 from eduid_scimapi.testing import ScimApiTestCase
 from eduid_scimapi.tests.test_scimbase import TestScimBase
 from eduid_scimapi.utils import make_etag
@@ -28,14 +30,14 @@ class TestSCIMGroup(TestScimBase):
     def setUp(self) -> None:
         self.meta = Meta(
             location='http://example.org/Groups/some-id',
-            resource_type=SCIMResourceType.group,
+            resource_type=SCIMResourceType.GROUP,
             created=datetime.utcnow(),
             last_modified=datetime.utcnow(),
             version=ObjectId(),
         )
 
     def test_group(self) -> None:
-        schema = class_schema(GroupResponse)
+        schema = class_schema(GroupResponse, base_schema=BaseSchema)
         group = GroupResponse(id=uuid4(), schemas=[SCIMSchema.CORE_20_GROUP], meta=self.meta, display_name='Test Group')
         member_1_id = uuid4()
         member_2_id = uuid4()
@@ -49,7 +51,7 @@ class TestSCIMGroup(TestScimBase):
         )
         group_dump = schema().dump(group)
         loaded_group = schema().load(group_dump)
-        self.assertEqual(group, loaded_group)
+        assert normalised_data(asdict(group)) == normalised_data(asdict(loaded_group))
 
 
 class TestGroupResource(ScimApiTestCase):

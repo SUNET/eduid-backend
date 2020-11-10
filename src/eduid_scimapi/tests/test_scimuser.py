@@ -3,17 +3,16 @@ import logging
 import unittest
 from collections import Mapping
 from dataclasses import asdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from uuid import uuid4
 
 import bson
 from bson import ObjectId
-from marshmallow_dataclass import class_schema
 
-from eduid_scimapi.db.userdb import Profile, ScimApiUser
+from eduid_scimapi.db.userdb import ScimApiProfile, ScimApiUser
 from eduid_scimapi.schemas.scimbase import Meta, SCIMResourceType, SCIMSchema
-from eduid_scimapi.schemas.user import NutidExtensionV1, UserResponse, UserResponseSchema
+from eduid_scimapi.schemas.user import NutidUserExtensionV1, UserResponse, UserResponseSchema
 from eduid_scimapi.testing import ScimApiTestCase
 from eduid_scimapi.utils import make_etag
 
@@ -45,7 +44,7 @@ class TestScimUser(unittest.TestCase):
         db_user = ScimApiUser.from_dict(self.user_doc1)
         meta = Meta(
             location=f'http://example.org/Users/{db_user.scim_id}',
-            resource_type=SCIMResourceType.user,
+            resource_type=SCIMResourceType.USER,
             created=db_user.created,
             last_modified=db_user.last_modified,
             version=db_user.version,
@@ -57,10 +56,12 @@ class TestScimUser(unittest.TestCase):
             schemas=[SCIMSchema.CORE_20_USER, SCIMSchema.NUTID_USER_V1],
             external_id=db_user.external_id,
             groups=[],
-            nutid_v1=NutidExtensionV1(profiles=db_user.profiles),
+            nutid_user_v1=NutidUserExtensionV1(profiles=db_user.profiles),
         )
-        schema = class_schema(UserResponse)
-        scim = schema().dumps(user_response, sort_keys=True)
+
+        scim = UserResponseSchema().dumps(user_response, sort_keys=True)
+        # Validation does not occur on serialization
+        UserResponseSchema().loads(scim)
 
         expected = {
             'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User', SCIMSchema.NUTID_USER_V1.value],
@@ -93,7 +94,7 @@ class TestScimUser(unittest.TestCase):
 
         meta = Meta(
             location=f'http://example.org/Users/{db_user.scim_id}',
-            resource_type=SCIMResourceType.user,
+            resource_type=SCIMResourceType.USER,
             created=db_user.created,
             last_modified=db_user.last_modified,
             version=db_user.version,
@@ -105,9 +106,11 @@ class TestScimUser(unittest.TestCase):
             schemas=[SCIMSchema.CORE_20_USER, SCIMSchema.NUTID_USER_V1],
             external_id=db_user.external_id,
             groups=[],
-            nutid_v1=NutidExtensionV1(profiles=db_user.profiles),
+            nutid_user_v1=NutidUserExtensionV1(profiles=db_user.profiles),
         )
+
         scim = UserResponseSchema().dumps(user_response)
+        UserResponseSchema().validate(scim)
 
         expected = {
             'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User', SCIMSchema.NUTID_USER_V1.value],
@@ -133,7 +136,7 @@ class TestScimUser(unittest.TestCase):
 class TestUserResource(ScimApiTestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.test_profile = Profile()
+        self.test_profile = ScimApiProfile()
         self.test_profile.attributes['displayName'] = 'Test User 1'
         self.test_profile.data = {'test_key': 'test_value'}
 
