@@ -77,11 +77,6 @@ TEST_CONFIG = {
     'json_sort_keys': True,
     'jsonify_prettyprint_regular': True,
     'mongo_uri': 'mongodb://localhost',
-    'redis_host': 'localhost',
-    'redis_port': 6379,
-    'redis_db': 0,
-    'redis_sentinel_hosts': '',
-    'redis_sentinel_service_name': '',
     'token_service_url': 'http://test.localhost/',
 }
 
