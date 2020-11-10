@@ -1,16 +1,16 @@
--r common.txt
--r oidc_proofing.txt
--r letter_proofing.txt
--r lookup_mobile_proofing.txt
--r security.txt
--r signup.txt
 -r actions.txt
+-r common.txt
 -r eidas.txt
 -r group_management.txt
+-r letter_proofing.txt
+-r lookup_mobile_proofing.txt
+-r oidc_proofing.txt
+-r security.txt
+-r signup.txt
 WebTest>==2.0.30
-mock>=2.0.0
-pytest>=5.2.0
-pytest-cov>=2.7.1
-isort
 black
+isort
+mock>=2.0.0
 mypy
+pytest-cov>=2.7.1
+pytest>=5.2.0

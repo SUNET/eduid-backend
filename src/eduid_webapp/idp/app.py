@@ -41,7 +41,7 @@ from eduid_common.api import translation
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.authn import idp_authn
 from eduid_common.authn.utils import init_pysaml2
-from eduid_common.session import sso_cache, sso_session
+from eduid_common.session import session, sso_cache, sso_session
 from eduid_common.session.sso_session import SSOSession
 from eduid_userdb.actions import ActionDB
 from eduid_userdb.idp import IdPUserDb
@@ -136,6 +136,17 @@ class IdPApp(EduIDBaseApp):
 
         if not _data:
             self.logger.debug("SSO session not found using 'id' parameter or IdP SSO cookie")
+
+            if session.idp.sso_cookie_val is not None:
+                self.logger.debug('Found potential sso_cookie_val in the eduID session')
+                _other_data = self.sso_sessions.get_session(session.idp.sso_cookie_val)
+                if _other_data is not None:
+                    # Debug issues with browsers not returning updated SSO cookie values.
+                    # Only log partial cookie value since it allows impersonation if leaked.
+                    self.logger.info(
+                        f'Found no SSO session, but found one from session.idp.sso_cookie_val '
+                        f'({session.idp.sso_cookie_val[:8]}...)'
+                    )
             return None
         _sso = sso_session.from_dict(_data)
         self.logger.debug("Re-created SSO session {!r}".format(_sso))

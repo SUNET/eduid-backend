@@ -541,7 +541,10 @@ def do_verify():
     resp = redirect(lox)
     # By base64-encoding this string, we should remain interoperable with the old CherryPy based IdP. Fingers crossed.
     b64_session_id = b64encode(_session_id)
-    return mischttp.set_sso_cookie(b64_session_id, resp)
+    # For debugging purposes, save the IdP SSO cookie value in the common session as well.
+    # This is because we think we might have issues overwriting cookies in redirect responses.
+    session.idp.sso_cookie_val = b64_session_id
+    return mischttp.set_cookie(current_app.config.sso_cookie_name, '/', b64_session_id, resp)
 
 
 def _update_ticket_samlrequest(ticket: SSOLoginData, binding: Optional[str]) -> None:
