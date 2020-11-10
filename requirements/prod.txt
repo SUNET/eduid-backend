@@ -1,13 +1,13 @@
--r common.txt
--r oidc_proofing.txt
--r letter_proofing.txt
--r lookup_mobile_proofing.txt
--r security.txt
--r signup.txt
 -r actions.txt
+-r common.txt
 -r eidas.txt
 -r group_management.txt
 -r idp.txt
-gunicorn
+-r letter_proofing.txt
+-r lookup_mobile_proofing.txt
+-r oidc_proofing.txt
+-r security.txt
+-r signup.txt
 blinker
+gunicorn
 raven

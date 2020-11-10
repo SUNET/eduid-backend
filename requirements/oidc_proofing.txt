@@ -1,2 +1,2 @@
-qrcode>=5.1
 python-jose>=3.0.1
+qrcode>=5.1
