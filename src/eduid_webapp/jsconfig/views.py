@@ -106,25 +106,25 @@ def get_signup_config() -> dict:
     # Get ToUs from the ToU action
     if config is None:
         raise BadConfiguration('Configuration not found')
-    tous = None
+    tous = CACHE.get('tous')
     try:
         r = requests.get(tou_url)
-        current_app.logger.debug('Response: {!r} with headers: {!r}'.format(r, r.headers))
+        current_app.logger.debug(f'Response: {r!r} with headers: {r.headers!r}')
         if r.status_code == 302:
             headers = {'Cookie': r.headers.get('Set-Cookie')}
-            current_app.logger.debug('Headers: {}'.format(headers))
+            current_app.logger.debug(f'Headers: {headers}')
             r = requests.get(tou_url, headers=headers)
-            current_app.logger.debug('2nd response: {!r} with headers: {}'.format(r, r.headers))
-            if r.status_code != 200:
-                current_app.logger.debug('Problem getting config, response status: {}'.format(r.status_code))
-                abort(500)
-        tous = r.json()['payload']
-        CACHE['tous'] = tous
+            current_app.logger.debug(f'2nd response: {r!r} with headers: {r.headers}')
+        if r.status_code != 200:
+            current_app.logger.warning(f'Problem getting ToUs from URL {tou_url}, response status: {r.status_code}')
+        else:
+            tous = r.json()['payload']
+            CACHE['tous'] = tous
     except requests.exceptions.HTTPError as e:
-        current_app.logger.warning('Problem getting tous from URL {!r}: {!r}'.format(tou_url, e))
-        tous = CACHE.get('tous')
+        current_app.logger.warning(f'Problem getting ToUs from URL {repr(tou_url)}: {repr(e)}')
 
     if tous is None:
+        current_app.logger.error('Failed fetching ToUs, and the cache is empty')
         abort(500)
 
     config.debug = current_app.config.debug
@@ -132,7 +132,7 @@ def get_signup_config() -> dict:
     config.tous = cast(Dict[str, str], tous)
     # XXX the front app consumes some settings as upper case and some as lower
     # case. We'll provide them all in both upper and lower case, to
-    # possibilitate migration of the front app - preferably to lower case.
+    # facilitate migration of the front app to lower case.
     config_dict = asdict(config)
     config_upper = {}
     for k, v in config_dict.items():
