@@ -72,7 +72,7 @@ class TimestampedNS(SessionNSBase):
         if _ts is not None:
             # Load timestamp from ISO format string, or fallback to old UNIX time.
             # When this code is deployed everywhere, we can change to ISO format in to_dict above.
-            if isinstance(_ts, str):
+            if isinstance(_ts, str) and not _ts.isdigit():
                 _data['ts'] = datetime.fromisoformat(_ts)
             else:
                 _data['ts'] = datetime.fromtimestamp(int(_ts))
