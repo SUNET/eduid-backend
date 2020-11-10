@@ -47,7 +47,7 @@ class MailRelay(object):
         self.settings = settings
         eduid_msg.init_app(settings)
         # this import has to happen _after_ init_app
-        from eduid_msg.tasks import sendmail, pong
+        from eduid_msg.tasks import pong, sendmail
 
         self._sendmail = sendmail
         self._pong = pong

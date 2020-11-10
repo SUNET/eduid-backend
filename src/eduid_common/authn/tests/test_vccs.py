@@ -174,8 +174,9 @@ class VCCSTestCase(MongoTestCase):
             self.assertFalse(result3)
 
     def test_reset_password_error_revoking(self):
-        from eduid_common.authn.testing import MockVCCSClient
         from vccs_client import VCCSClientHTTPError
+
+        from eduid_common.authn.testing import MockVCCSClient
 
         def mock_revoke_creds(*args):
             raise VCCSClientHTTPError('dummy', 500)

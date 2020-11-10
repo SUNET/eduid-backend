@@ -43,7 +43,6 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 from flask import Response
 from flask.testing import FlaskClient
 
-from eduid_common.config.base import RedisConfig
 from eduid_userdb import User
 from eduid_userdb.db import BaseDB
 from eduid_userdb.fixtures.users import new_completed_signup_user_example, new_unverified_user_example, new_user_example
@@ -51,6 +50,7 @@ from eduid_userdb.testing import AbstractMockedUserDB
 
 from eduid_common.api.messages import TranslatableMsg
 from eduid_common.api.testing_base import CommonTestCase
+from eduid_common.config.base import RedisConfig
 from eduid_common.session import EduidSession
 from eduid_common.session.testing import RedisTemporaryInstance
 

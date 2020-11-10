@@ -32,7 +32,7 @@ class AmRelay(object):
 
         eduid_am.init_app(config)
         # these have to be imported _after_ eduid_am.init_app()
-        from eduid_am.tasks import update_attributes_keep_result, pong
+        from eduid_am.tasks import pong, update_attributes_keep_result
 
         self._update_attrs = update_attributes_keep_result
         self._pong = pong

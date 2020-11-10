@@ -16,8 +16,15 @@ from eduid_common.config.base import FlaskConfig, RedisConfig
 from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.session.logindata import SSOLoginData
 from eduid_common.session.meta import SessionMeta
-from eduid_common.session.namespaces import Actions, Common, IdP_Namespace, MfaAction, ResetPasswordNS, SessionNSBase, \
-    Signup
+from eduid_common.session.namespaces import (
+    Actions,
+    Common,
+    IdP_Namespace,
+    MfaAction,
+    ResetPasswordNS,
+    SessionNSBase,
+    Signup,
+)
 from eduid_common.session.redis_session import RedisEncryptedSession, SessionManager, SessionOutOfSync
 
 if TYPE_CHECKING:
