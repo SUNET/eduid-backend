@@ -43,6 +43,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 from flask import Response
 from flask.testing import FlaskClient
 
+from eduid_common.config.base import RedisConfig
 from eduid_userdb import User
 from eduid_userdb.db import BaseDB
 from eduid_userdb.fixtures.users import new_completed_signup_user_example, new_unverified_user_example, new_user_example
@@ -141,7 +142,7 @@ class EduidAPITestCase(CommonTestCase):
         # settings
         config = deepcopy(TEST_CONFIG)
         self.settings = self.update_config(config)
-        self.settings['redis_port'] = str(self.redis_instance.port)
+        self.settings['redis_config'] = RedisConfig(host='localhost', port=self.redis_instance.port)
         self.settings['mongo_uri'] = self.tmp_db.uri
         # 'CELERY' is the key used in workers, and 'CELERY_CONFIG' is used in webapps.
         # self.am_settings is initialized by the super-class MongoTestCase.
