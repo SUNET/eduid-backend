@@ -99,3 +99,10 @@ class Signup(TimestampedNS):
 @dataclass()
 class Actions(TimestampedNS):
     session: Optional[str] = None
+
+
+@dataclass()
+class IdP_Namespace(TimestampedNS):
+    # The SSO cookie value last set by the IdP. Used to debug issues with browsers not
+    # honoring Set-Cookie in redirects, or something.
+    sso_cookie_val: Optional[str] = None

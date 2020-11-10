@@ -16,7 +16,8 @@ from eduid_common.config.base import FlaskConfig, RedisConfig
 from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.session.logindata import SSOLoginData
 from eduid_common.session.meta import SessionMeta
-from eduid_common.session.namespaces import Actions, Common, MfaAction, ResetPasswordNS, SessionNSBase, Signup
+from eduid_common.session.namespaces import Actions, Common, IdP_Namespace, MfaAction, ResetPasswordNS, SessionNSBase, \
+    Signup
 from eduid_common.session.redis_session import RedisEncryptedSession, SessionManager, SessionOutOfSync
 
 if TYPE_CHECKING:
@@ -63,6 +64,7 @@ class EduidSession(SessionMixin, MutableMapping):
         self._actions: Optional[Actions] = None
         self._sso_ticket: Optional[SSOLoginData] = None
         self._reset_password: ResetPasswordNS
+        self._idp: IdP_Namespace
 
     def __str__(self):
         # Include hex(id(self)) for now to troubleshoot clobbered sessions
@@ -191,6 +193,13 @@ class EduidSession(SessionMixin, MutableMapping):
             self._reset_password = value
         else:
             raise ValueError('ResetPasswordNS already initialised')
+
+    @property
+    def idp(self) -> IdP_Namespace:
+        if not hasattr(self, '_idp') or not self._idp:
+            # Convert dict to dataclass instance
+            self._idp = IdP_Namespace.from_dict(self._session.get('_idp', {}))
+        return self._idp
 
     @property
     def created(self):
