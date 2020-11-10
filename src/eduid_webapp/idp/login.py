@@ -507,6 +507,7 @@ def do_verify():
         raise Forbidden(e.args[0])
 
     if not authninfo:
+        current_app.logger.info(f'{_ticket.key}: Password authentication failed')
         _ticket.FailCount += 1
         session.sso_ticket = _ticket
         lox = f'{query["redirect_uri"]}?{_ticket.query_string}'
@@ -540,7 +541,7 @@ def do_verify():
     resp = redirect(lox)
     # By base64-encoding this string, we should remain interoperable with the old CherryPy based IdP. Fingers crossed.
     b64_session_id = b64encode(_session_id)
-    return mischttp.set_cookie(current_app.config.sso_cookie_name, '/', b64_session_id, resp)
+    return mischttp.set_sso_cookie(b64_session_id, resp)
 
 
 def _update_ticket_samlrequest(ticket: SSOLoginData, binding: Optional[str]) -> None:

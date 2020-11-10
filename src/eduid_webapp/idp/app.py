@@ -150,7 +150,7 @@ class IdPApp(EduIDBaseApp):
         # local import to avoid import-loop
         from eduid_webapp.idp.mischttp import parse_query_string, read_cookie
 
-        _session_id = read_cookie(self.config.sso_cookie_name)
+        _session_id = read_cookie(self.config.sso_cookie.key)
         if _session_id:
             # The old IdP base64 encoded the session_id, try to  remain interoperable. Fingers crossed.
             _decoded_session_id = b64decode(_session_id)

@@ -88,7 +88,9 @@ class IdPTests(EduidAPITestCase):
         config = super().update_config(config)
         datadir = pkg_resources.resource_filename(__name__, 'data')
         fn = os.path.join(datadir, 'test_SSO_conf.py')
-        config.update({'pysaml2_config': fn, 'fticks_secret_key': 'test test'})
+        config.update(
+            {'pysaml2_config': fn, 'fticks_secret_key': 'test test', 'sso_cookie': {'key': 'test_sso_cookie'}}
+        )
         return config
 
     def tearDown(self):
