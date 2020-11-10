@@ -109,12 +109,12 @@ def get_signup_config() -> dict:
     tous = CACHE.get('tous')
     try:
         r = requests.get(tou_url)
-        current_app.logger.debug(f'Response: {r!r} with headers: {r.headers!r}')
+        current_app.logger.debug(f'Response: {repr(r)} with headers: {repr(r.headers)}')
         if r.status_code == 302:
             headers = {'Cookie': r.headers.get('Set-Cookie')}
             current_app.logger.debug(f'Headers: {headers}')
             r = requests.get(tou_url, headers=headers)
-            current_app.logger.debug(f'2nd response: {r!r} with headers: {r.headers}')
+            current_app.logger.debug(f'2nd response: {repr(r)} with headers: {r.headers}')
         if r.status_code != 200:
             current_app.logger.warning(f'Problem getting ToUs from URL {tou_url}, response status: {r.status_code}')
         else:
