@@ -50,6 +50,7 @@ from eduid_userdb.testing import AbstractMockedUserDB
 
 from eduid_common.api.messages import TranslatableMsg
 from eduid_common.api.testing_base import CommonTestCase
+from eduid_common.config.base import RedisConfig
 from eduid_common.session import EduidSession
 from eduid_common.session.testing import RedisTemporaryInstance
 
@@ -76,11 +77,6 @@ TEST_CONFIG = {
     'json_sort_keys': True,
     'jsonify_prettyprint_regular': True,
     'mongo_uri': 'mongodb://localhost',
-    'redis_host': 'localhost',
-    'redis_port': 6379,
-    'redis_db': 0,
-    'redis_sentinel_hosts': '',
-    'redis_sentinel_service_name': '',
     'token_service_url': 'http://test.localhost/',
 }
 
@@ -141,7 +137,7 @@ class EduidAPITestCase(CommonTestCase):
         # settings
         config = deepcopy(TEST_CONFIG)
         self.settings = self.update_config(config)
-        self.settings['redis_port'] = str(self.redis_instance.port)
+        self.settings['redis_config'] = RedisConfig(host='localhost', port=self.redis_instance.port)
         self.settings['mongo_uri'] = self.tmp_db.uri
         # 'CELERY' is the key used in workers, and 'CELERY_CONFIG' is used in webapps.
         # self.am_settings is initialized by the super-class MongoTestCase.

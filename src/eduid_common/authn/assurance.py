@@ -40,7 +40,6 @@ from eduid_userdb.idp import IdPUser
 
 from eduid_common.authn.idp_saml import AuthnInfo
 
-
 """
 Assurance Level functionality.
 """

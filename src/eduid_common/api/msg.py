@@ -37,7 +37,7 @@ class MsgRelay(object):
     def __init__(self, settings: CeleryConfig):
         eduid_msg.init_app(settings)
         # these have to be imported _after_ eduid_am.init_app()
-        from eduid_msg.tasks import get_postal_address, get_relations_to, send_message, sendsms, pong
+        from eduid_msg.tasks import get_postal_address, get_relations_to, pong, send_message, sendsms
 
         self._get_postal_address = get_postal_address
         self._get_relations_to = get_relations_to

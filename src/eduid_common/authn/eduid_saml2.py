@@ -44,11 +44,12 @@ from werkzeug.wrappers import Response
 
 from eduid_userdb.user import User
 
-from .cache import IdentityCache, OutstandingQueriesCache, StateCache
-from .utils import SPConfig, get_saml_attribute
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.api.utils import verify_relay_state
 from eduid_common.session import EduidSession, session
+
+from .cache import IdentityCache, OutstandingQueriesCache, StateCache
+from .utils import SPConfig, get_saml_attribute
 
 logger = logging.getLogger(__name__)
 
