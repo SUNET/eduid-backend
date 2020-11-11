@@ -35,9 +35,9 @@ class TestScimInvite(unittest.TestCase):
             "scim_id": "9784e1bf-231b-4eb8-b315-52eb46dd7c4b",
             "external_id": "hubba-bubba@eduid.se",
             "name": {
-                "givenName": "Test",
-                "familyName": "Testsson",
-                "middleName": "Testaren",
+                "given_name": "Test",
+                "family_name": "Testsson",
+                "middle_name": "Testaren",
                 "formatted": "Test T. Testsson",
             },
             "emails": [
@@ -78,9 +78,9 @@ class TestScimInvite(unittest.TestCase):
             invite_reference=SCIMReference(data_owner='test_data_owner', scim_id=db_invite.scim_id),
             invite_code='abc123',
             inviter_name='Test Inviter Name',
-            display_name=f'{db_invite.name.givenName} {db_invite.name.middleName} {db_invite.name.familyName}',
-            given_name=db_invite.name.givenName,
-            surname=db_invite.name.familyName,
+            display_name=f'{db_invite.name.given_name} {db_invite.name.middle_name} {db_invite.name.family_name}',
+            given_name=db_invite.name.given_name,
+            surname=db_invite.name.family_name,
             mail_addresses=[
                 InviteMailAddress(email=db_invite.emails[0].value, primary=db_invite.emails[0].primary),
                 InviteMailAddress(email=db_invite.emails[1].value, primary=db_invite.emails[1].primary),
@@ -160,10 +160,10 @@ class TestInviteResource(ScimApiTestCase):
         self.invite_data: Dict[str, Any] = {
             'invite_code': 'test_invite_code',
             'name': {
-                'familyName': 'Testsson',
+                'family_name': 'Testsson',
                 'formatted': 'Test T. Testsson',
-                'givenName': 'Test',
-                'middleName': 'Testaren',
+                'given_name': 'Test',
+                'middle_name': 'Testaren',
             },
             'emails': [
                 {'primary': True, 'type': 'other', 'value': 'johnsmith@example.com'},
@@ -226,8 +226,8 @@ class TestInviteResource(ScimApiTestCase):
             invite_type=InviteType.SCIM,
             invite_reference=SCIMReference(data_owner=self.data_owner, scim_id=db_invite.scim_id),
             display_name=invite_data.get('name', {}).get('formatted'),
-            given_name=invite_data.get('name', {}).get('givenName'),
-            surname=invite_data.get('name', {}).get('familyName'),
+            given_name=invite_data.get('name', {}).get('given_name'),
+            surname=invite_data.get('name', {}).get('family_name'),
             nin=invite_data.get('national_identity_number'),
             inviter_name=invite_data.get('inviter_name'),
             send_email=invite_data.get('send_email'),
@@ -250,7 +250,7 @@ class TestInviteResource(ScimApiTestCase):
 
         # Validate invite update specifics
         self.assertEqual(invite.external_id, response.json.get('externalId'))
-        self.assertEqual(filter_none(invite.name.to_dict()), response.json.get('name'))
+        self._assertName(invite.name, response.json.get('name'))
         self.assertEqual([filter_none(email.to_dict()) for email in invite.emails], response.json.get('emails'))
         self.assertEqual(
             [filter_none(number.to_dict()) for number in invite.phone_numbers], response.json.get('phoneNumbers')
@@ -375,6 +375,7 @@ class TestInviteResource(ScimApiTestCase):
         }
 
         response = self.client.simulate_post(path=f'/Invites/', body=self.as_json(req), headers=self.headers)
+        self._assertResponse200(response)
         db_invite = self.invitedb.get_invite_by_scim_id(response.json.get('id'))
         reference = SCIMReference(data_owner=self.data_owner, scim_id=db_invite.scim_id)
         signup_invite = self.signup_invitedb.get_invite_by_reference(reference)
@@ -411,6 +412,7 @@ class TestInviteResource(ScimApiTestCase):
         }
 
         response = self.client.simulate_post(path=f'/Invites/', body=self.as_json(req), headers=self.headers)
+        self._assertResponse200(response)
         db_invite = self.invitedb.get_invite_by_scim_id(response.json.get('id'))
         reference = SCIMReference(data_owner=self.data_owner, scim_id=db_invite.scim_id)
         signup_invite = self.signup_invitedb.get_invite_by_reference(reference)

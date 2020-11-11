@@ -2,12 +2,14 @@
 import json
 import unittest
 import uuid
+from dataclasses import asdict
 from datetime import datetime
 from enum import Enum
 from os import environ
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 from bson import ObjectId
+from falcon import Response
 from falcon.testing import TestClient
 
 from eduid_common.config.testing import EtcdTemporaryInstance
@@ -20,10 +22,12 @@ from eduid_userdb.testing import MongoTemporaryInstance
 from eduid_scimapi.app import init_api
 from eduid_scimapi.config import ScimApiConfig
 from eduid_scimapi.context import Context
+from eduid_scimapi.db.common import ScimApiName
 from eduid_scimapi.db.groupdb import ScimApiGroup
 from eduid_scimapi.db.invitedb import ScimApiInvite
 from eduid_scimapi.db.userdb import ScimApiProfile, ScimApiUser
 from eduid_scimapi.schemas.scimbase import SCIMSchema
+from eduid_scimapi.utils import filter_none
 
 __author__ = 'lundberg'
 
@@ -207,3 +211,23 @@ class ScimApiTestCase(MongoNeoTestCase):
         self.assertEqual(
             expected_resource_type, meta.get('resourceType'), f'meta.resourceType is not {expected_resource_type}'
         )
+
+    @staticmethod
+    def _assertName(db_name: ScimApiName, response_name: Dict[str, str]):
+        name_map = [
+            ('family_name', 'familyName'),
+            ('given_name', 'givenName'),
+            ('formatted', 'formatted'),
+            ('middle_name', 'middleName'),
+            ('honorific_prefix', 'honorificPrefix'),
+            ('honorific_suffix', 'honorificSuffix'),
+        ]
+        db_name_dict = asdict(db_name)
+        for first, second in name_map:
+            assert db_name_dict.get(first) == response_name.get(
+                second
+            ), f'{first}:{db_name_dict.get(first)} != {second}:{response_name.get(second)}'
+
+    @staticmethod
+    def _assertResponse200(response: Response):
+        assert 200 == response.status_code, f'{response.json.get("detail", "No error detail in response")}'

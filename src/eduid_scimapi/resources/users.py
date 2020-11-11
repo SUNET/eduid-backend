@@ -12,9 +12,12 @@ from eduid_scimapi.exceptions import BadRequest, NotFound
 from eduid_scimapi.middleware import ctx_groupdb, ctx_userdb
 from eduid_scimapi.resources.base import BaseResource, SCIMResource
 from eduid_scimapi.schemas.scimbase import (
+    Email,
     ListResponse,
     ListResponseSchema,
     Meta,
+    Name,
+    PhoneNumber,
     SCIMResourceType,
     SCIMSchema,
     SearchRequest,
@@ -65,6 +68,10 @@ class UsersResource(SCIMResource):
         user = UserResponse(
             id=db_user.scim_id,
             external_id=db_user.external_id,
+            name=Name(**asdict(db_user.name)),
+            emails=[Email(**asdict(email)) for email in db_user.emails],
+            phone_numbers=[PhoneNumber(**asdict(number)) for number in db_user.phone_numbers],
+            preferred_language=db_user.preferred_language,
             groups=self._get_user_groups(req=req, db_user=db_user),
             meta=meta,
             schemas=list(schemas),  # extra list() needed to work with _both_ mypy and marshmallow
