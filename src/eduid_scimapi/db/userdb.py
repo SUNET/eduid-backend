@@ -11,7 +11,7 @@ from uuid import UUID
 from bson import ObjectId
 
 from eduid_scimapi.db.basedb import ScimApiBaseDB
-from eduid_scimapi.db.common import ScimApiProfile
+from eduid_scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
 
 __author__ = 'ft'
 
@@ -24,6 +24,10 @@ class ScimApiUser:
     user_id: ObjectId = field(default_factory=lambda: ObjectId())
     scim_id: UUID = field(default_factory=lambda: uuid.uuid4())
     external_id: Optional[str] = None
+    name: ScimApiName = field(default_factory=lambda: ScimApiName())
+    emails: List[ScimApiEmail] = field(default_factory=list)
+    phone_numbers: List[ScimApiPhoneNumber] = field(default_factory=list)
+    preferred_language: Optional[str] = field(default=None)
     version: ObjectId = field(default_factory=lambda: ObjectId())
     created: datetime = field(default_factory=lambda: datetime.utcnow())
     last_modified: datetime = field(default_factory=lambda: datetime.utcnow())
@@ -34,9 +38,17 @@ class ScimApiUser:
         return f'W/"{self.version}"'
 
     def to_dict(self) -> Dict[str, Any]:
+        emails = []
+        for email in self.emails:
+            emails.append(email.to_dict())
+        phone_numbers = []
+        for phone_number in self.phone_numbers:
+            phone_numbers.append(phone_number.to_dict())
         res = asdict(self)
         res['scim_id'] = str(res['scim_id'])
         res['_id'] = res.pop('user_id')
+        res['emails'] = emails
+        res['phone_numbers'] = phone_numbers
         return res
 
     @classmethod
@@ -44,6 +56,19 @@ class ScimApiUser:
         this = dict(copy.copy(data))  # to not modify callers data
         this['scim_id'] = uuid.UUID(this['scim_id'])
         this['user_id'] = this.pop('_id')
+        # Name
+        if this.get('name') is not None:
+            this['name'] = ScimApiName.from_dict(this['name'])
+        # Emails
+        emails = []
+        for email in data.get('emails', []):
+            emails.append(ScimApiEmail.from_dict(email))
+        this['emails'] = emails
+        # Phone numbers
+        phone_numbers = []
+        for number in data.get('phone_numbers', []):
+            phone_numbers.append(ScimApiPhoneNumber.from_dict(number))
+        this['phone_numbers'] = phone_numbers
         # Profiles
         parsed_profiles = {}
         for k, v in data['profiles'].items():

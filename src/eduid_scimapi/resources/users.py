@@ -1,4 +1,4 @@
-from dataclasses import replace
+from dataclasses import asdict, replace
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
@@ -6,6 +6,7 @@ from falcon import Request, Response
 from marshmallow import ValidationError
 from pymongo.errors import DuplicateKeyError
 
+from eduid_scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber
 from eduid_scimapi.db.userdb import ScimApiProfile, ScimApiUser
 from eduid_scimapi.exceptions import BadRequest, NotFound
 from eduid_scimapi.middleware import ctx_groupdb, ctx_userdb
@@ -116,13 +117,33 @@ class UsersResource(SCIMResource):
 
             core_changed = False
             if SCIMSchema.CORE_20_USER in update_request.schemas:
+                name_in = ScimApiName(**asdict(update_request.name))
+                emails_in = set(ScimApiEmail(**asdict(email)) for email in update_request.emails)
+                phone_numbers_in = set(ScimApiPhoneNumber(**asdict(number)) for number in update_request.phone_numbers)
+                # external_id
                 if update_request.external_id != db_user.external_id:
                     db_user = replace(db_user, external_id=update_request.external_id)
+                    core_changed = True
+                # preferred_language
+                if update_request.preferred_language != db_user.preferred_language:
+                    db_user = replace(db_user, preferred_language=update_request.preferred_language)
+                    core_changed = True
+                # name
+                if name_in != db_user.name:
+                    db_user = replace(db_user, name=name_in)
+                    core_changed = True
+                # emails
+                if emails_in != set(db_user.emails):
+                    db_user = replace(db_user, emails=list(emails_in))
+                    core_changed = True
+                # phone_numbers
+                if phone_numbers_in != set(db_user.phone_numbers):
+                    db_user = replace(db_user, phone_numbers=list(phone_numbers_in))
                     core_changed = True
 
             nutid_changed = False
             if SCIMSchema.NUTID_USER_V1 in update_request.schemas:
-                # Look for changes
+                # Look for changes in profiles
                 for this in update_request.nutid_user_v1.profiles.keys():
                     if this not in db_user.profiles:
                         self.context.logger.info(
@@ -212,7 +233,14 @@ class UsersResource(SCIMResource):
             for profile_name, profile in create_request.nutid_user_v1.profiles.items():
                 profiles[profile_name] = ScimApiProfile(attributes=profile.attributes, data=profile.data)
 
-            db_user = ScimApiUser(external_id=create_request.external_id, profiles=profiles)
+            db_user = ScimApiUser(
+                external_id=create_request.external_id,
+                name=ScimApiName(**asdict(create_request.name)),
+                emails=[ScimApiEmail(**asdict(email)) for email in create_request.emails],
+                phone_numbers=[ScimApiPhoneNumber(**asdict(number)) for number in create_request.phone_numbers],
+                preferred_language=create_request.preferred_language,
+                profiles=profiles,
+            )
             self._save_user(req, db_user)
 
             self._db_user_to_response(req=req, resp=resp, db_user=db_user)
