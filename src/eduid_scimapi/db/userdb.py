@@ -11,7 +11,7 @@ from uuid import UUID
 from bson import ObjectId
 
 from eduid_scimapi.db.basedb import ScimApiBaseDB
-from eduid_scimapi.db.common import ScimApiProfile
+from eduid_scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
 
 __author__ = 'ft'
 
@@ -24,6 +24,10 @@ class ScimApiUser:
     user_id: ObjectId = field(default_factory=lambda: ObjectId())
     scim_id: UUID = field(default_factory=lambda: uuid.uuid4())
     external_id: Optional[str] = None
+    name: ScimApiName = field(default_factory=lambda: ScimApiName())
+    emails: List[ScimApiEmail] = field(default_factory=list)
+    phone_numbers: List[ScimApiPhoneNumber] = field(default_factory=list)
+    preferred_language: Optional[str] = None
     version: ObjectId = field(default_factory=lambda: ObjectId())
     created: datetime = field(default_factory=lambda: datetime.utcnow())
     last_modified: datetime = field(default_factory=lambda: datetime.utcnow())
@@ -37,6 +41,8 @@ class ScimApiUser:
         res = asdict(self)
         res['scim_id'] = str(res['scim_id'])
         res['_id'] = res.pop('user_id')
+        res['emails'] = [email.to_dict() for email in self.emails]
+        res['phone_numbers'] = [phone_number.to_dict() for phone_number in self.phone_numbers]
         return res
 
     @classmethod
@@ -44,11 +50,15 @@ class ScimApiUser:
         this = dict(copy.copy(data))  # to not modify callers data
         this['scim_id'] = uuid.UUID(this['scim_id'])
         this['user_id'] = this.pop('_id')
+        # Name
+        if this.get('name') is not None:
+            this['name'] = ScimApiName.from_dict(this['name'])
+        # Emails
+        this['emails'] = [ScimApiEmail.from_dict(email) for email in data.get('emails', [])]
+        # Phone numbers
+        this['phone_numbers'] = [ScimApiPhoneNumber.from_dict(number) for number in data.get('phone_numbers', [])]
         # Profiles
-        parsed_profiles = {}
-        for k, v in data['profiles'].items():
-            parsed_profiles[k] = ScimApiProfile.from_dict(v)
-        this['profiles'] = parsed_profiles
+        this['profiles'] = {k: ScimApiProfile.from_dict(v) for k, v in data['profiles'].items()}
         return cls(**this)
 
 

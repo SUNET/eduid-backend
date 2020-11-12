@@ -165,12 +165,12 @@ class Meta:
 
 @dataclass(frozen=True)
 class Name:
-    familyName: Optional[str] = None
-    givenName: Optional[str] = None
+    family_name: Optional[str] = field(default=None, metadata={'data_key': 'familyName'})
+    given_name: Optional[str] = field(default=None, metadata={'data_key': 'givenName'})
     formatted: Optional[str] = None
-    middleName: Optional[str] = None
-    honorificPrefix: Optional[str] = None
-    honorificSuffix: Optional[str] = None
+    middle_name: Optional[str] = field(default=None, metadata={'data_key': 'middleName'})
+    honorific_prefix: Optional[str] = field(default=None, metadata={'data_key': 'honorificPrefix'})
+    honorific_suffix: Optional[str] = field(default=None, metadata={'data_key': 'honorificSuffix'})
 
 
 @dataclass(frozen=True)

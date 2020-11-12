@@ -50,6 +50,12 @@ class Group(SubResource):
 @dataclass(frozen=True)
 class User:
     external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId', 'required': False})
+    name: Name = field(default_factory=lambda: Name(), metadata={'required': False})
+    emails: List[Email] = field(default_factory=list)
+    phone_numbers: List[PhoneNumber] = field(default_factory=list, metadata={'data_key': 'phoneNumbers'})
+    preferred_language: Optional[str] = field(
+        default=None, metadata={'marshmallow_field': LanguageTagField(data_key='preferredLanguage')}
+    )
     groups: List[Group] = field(default_factory=list, metadata={'required': False})
     nutid_user_v1: NutidUserExtensionV1 = field(
         default_factory=lambda: NutidUserExtensionV1(),

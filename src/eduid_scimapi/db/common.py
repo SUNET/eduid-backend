@@ -10,7 +10,7 @@ from eduid_scimapi.schemas.scimbase import EmailType, PhoneNumberType
 __author__ = 'lundberg'
 
 
-@dataclass
+@dataclass(frozen=True)
 class ScimApiProfile:
     attributes: Dict[str, Any] = field(default_factory=dict)
     data: Dict[str, Any] = field(default_factory=dict)
@@ -25,14 +25,14 @@ class ScimApiProfile:
         return cls(attributes=_attributes, data=_data)
 
 
-@dataclass
+@dataclass(frozen=True)
 class ScimApiName:
-    familyName: Optional[str] = None
-    givenName: Optional[str] = None
+    family_name: Optional[str] = None
+    given_name: Optional[str] = None
     formatted: Optional[str] = None
-    middleName: Optional[str] = None
-    honorificPrefix: Optional[str] = None
-    honorificSuffix: Optional[str] = None
+    middle_name: Optional[str] = None
+    honorific_prefix: Optional[str] = None
+    honorific_suffix: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Optional[str]]:
         return asdict(self)
@@ -42,7 +42,7 @@ class ScimApiName:
         return cls(**data)
 
 
-@dataclass
+@dataclass(frozen=True)
 class ScimApiEmail:
     value: str
     display: Optional[str] = None
@@ -63,7 +63,7 @@ class ScimApiEmail:
         return cls(value=data['value'], display=data.get('display'), type=email_type, primary=data.get('primary'))
 
 
-@dataclass
+@dataclass(frozen=True)
 class ScimApiPhoneNumber:
     value: str
     display: Optional[str] = None
