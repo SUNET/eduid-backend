@@ -12,6 +12,9 @@ jobs:
     strategy:
       matrix:
         python-version: [3.8]
+    env:
+      PIP_INDEX_URL: https://pypi.sunet.se/simple/
+      NEO4J_VERSION: 4.0-enterprise
 
     steps:
       - uses: actions/checkout@v2
@@ -27,18 +30,18 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          test -f test_requirements.txt && pip install -i https://pypi.sunet.se/simple/ -r test_requirements.txt
+          test -f test_requirements.txt && pip install -r test_requirements.txt
 
       - name: Fetch docker images
         run: |
           docker pull docker.sunet.se/eduid/redis:latest
           docker pull docker.sunet.se/eduid/mongodb:latest
           docker pull docker.sunet.se/library/etcd:v3.3.12
-          docker pull neo4j:4.0-enterprise
+          docker pull neo4j:$NEO4J_VERSION
 
       - name: Test with pytest
         run: |
-          NEO4J_VERSION=4.0-enterprise make test
+          make test
 
   typecheck:
     runs-on: ubuntu-18.04
