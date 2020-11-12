@@ -38,22 +38,13 @@ class ScimApiInvite:
     last_modified: datetime = field(default_factory=lambda: datetime.utcnow())
 
     def to_dict(self) -> Dict[str, Any]:
-        emails = []
-        for email in self.emails:
-            emails.append(email.to_dict())
-        phone_numbers = []
-        for phone_number in self.phone_numbers:
-            phone_numbers.append(phone_number.to_dict())
-        groups = []
-        for group_id in self.groups:
-            groups.append(str(group_id))
         res = asdict(self)
         res = filter_none(res)
         res['scim_id'] = str(res['scim_id'])
         res['_id'] = res.pop('invite_id')
-        res['emails'] = emails
-        res['phone_numbers'] = phone_numbers
-        res['groups'] = groups
+        res['emails'] = [email.to_dict() for email in self.emails]
+        res['phone_numbers'] = [phone_number.to_dict() for phone_number in self.phone_numbers]
+        res['groups'] = [str(group_id) for group_id in self.groups]
         return res
 
     @classmethod
@@ -65,25 +56,13 @@ class ScimApiInvite:
         if this.get('name') is not None:
             this['name'] = ScimApiName.from_dict(this['name'])
         # Emails
-        emails = []
-        for email in data.get('emails', []):
-            emails.append(ScimApiEmail.from_dict(email))
-        this['emails'] = emails
+        this['emails'] = [ScimApiEmail.from_dict(email) for email in data.get('emails', [])]
         # Phone numbers
-        phone_numbers = []
-        for number in data.get('phone_numbers', []):
-            phone_numbers.append(ScimApiPhoneNumber.from_dict(number))
-        this['phone_numbers'] = phone_numbers
+        this['phone_numbers'] = [ScimApiPhoneNumber.from_dict(number) for number in data.get('phone_numbers', [])]
         # Groups
-        groups = []
-        for group_id in data.get('groups', []):
-            groups.append(UUID(group_id))
-        this['groups'] = groups
+        this['groups'] = [UUID(group_id) for group_id in data.get('groups', [])]
         # Profiles
-        parsed_profiles = {}
-        for k, v in data['profiles'].items():
-            parsed_profiles[k] = ScimApiProfile.from_dict(v)
-        this['profiles'] = parsed_profiles
+        this['profiles'] = {k: ScimApiProfile.from_dict(v) for k, v in data['profiles'].items()}
         return cls(**this)
 
 

@@ -167,7 +167,7 @@ class Meta:
 class Name:
     family_name: Optional[str] = field(default=None, metadata={'data_key': 'familyName'})
     given_name: Optional[str] = field(default=None, metadata={'data_key': 'givenName'})
-    formatted: Optional[str] = field(default=None)
+    formatted: Optional[str] = None
     middle_name: Optional[str] = field(default=None, metadata={'data_key': 'middleName'})
     honorific_prefix: Optional[str] = field(default=None, metadata={'data_key': 'honorificPrefix'})
     honorific_suffix: Optional[str] = field(default=None, metadata={'data_key': 'honorificSuffix'})
