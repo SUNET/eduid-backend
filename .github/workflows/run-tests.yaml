@@ -50,6 +50,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          pip install -r test_requirements.txt
           pip install mypy
 
       - name: Run mypy to check types
