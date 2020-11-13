@@ -4,6 +4,7 @@ title group_management
 
 legend
     GROUPS_RESPONSE: {
+        "user_identifier": str|null,
         "member_of": [
             {"identifier": str, "display_name": str, "members": [], "owners": [{"identifier": str, "display_name": str}]},
         ],

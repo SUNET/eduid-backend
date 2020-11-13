@@ -77,7 +77,11 @@ def get_all_group_data(scim_user: ScimApiUser) -> Dict[str, Any]:
     owner_groups = current_app.scimapi_groupdb.get_groups_owned_by_user_identifier(scim_user.scim_id)
     current_app.logger.debug(f'member_of: {member_groups}')
     current_app.logger.debug(f'owner_of: {owner_groups}')
-    return {'member_of': list_of_group_data(member_groups), 'owner_of': list_of_group_data(owner_groups)}
+    return {
+        'user_identifier': scim_user.scim_id,
+        'member_of': list_of_group_data(member_groups),
+        'owner_of': list_of_group_data(owner_groups),
+    }
 
 
 def is_owner(scim_user: ScimApiUser, group_id: UUID) -> bool:
