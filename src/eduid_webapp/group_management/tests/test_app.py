@@ -234,6 +234,7 @@ class GroupManagementTests(EduidAPITestCase):
             response = client.get('/groups')
         self._check_success_response(response, type_='GET_GROUP_MANAGEMENT_GROUPS_SUCCESS')
         payload = response.json.get('payload')
+        assert str(self.scim_user1.scim_id) == payload['user_identifier']
         assert 1 == len(payload['member_of'])
         assert 1 == len(payload['owner_of'])
         assert 'Test Group 1' == payload['member_of'][0]['display_name']
@@ -248,6 +249,7 @@ class GroupManagementTests(EduidAPITestCase):
             response = client.get('/groups')
         self._check_success_response(response, type_='GET_GROUP_MANAGEMENT_GROUPS_SUCCESS')
         payload = response.json.get('payload')
+        assert payload['user_identifier'] is None
         assert 0 == len(payload['member_of'])
         assert 0 == len(payload['owner_of'])
 
@@ -606,6 +608,7 @@ class GroupManagementTests(EduidAPITestCase):
             response = client.get('/groups')
         self._check_success_response(response, type_='GET_GROUP_MANAGEMENT_GROUPS_SUCCESS')
         payload = response.json.get('payload')
+        assert str(self.scim_user1.scim_id) == payload['user_identifier']
         assert 1 == len(payload['member_of'])
         assert 1 == len(payload['owner_of'])
         assert 'Test Group 1' == payload['member_of'][0]['display_name']
@@ -747,6 +750,7 @@ class GroupManagementTests(EduidAPITestCase):
             response = client.get('/groups')
         self._check_success_response(response, type_='GET_GROUP_MANAGEMENT_GROUPS_SUCCESS')
         payload = response.json.get('payload')
+        assert str(self.scim_user1.scim_id) == payload['user_identifier']
         assert 0 == len(payload['member_of'])
         assert 1 == len(payload['owner_of'])
         assert 'Test Group 1' == payload['owner_of'][0]['display_name']
@@ -952,6 +956,7 @@ class GroupManagementTests(EduidAPITestCase):
             response = client.get('/all-data', content_type=self.content_type_json)
         self._check_success_response(response, type_='GET_GROUP_MANAGEMENT_ALL_DATA_SUCCESS')
         payload = response.json.get('payload')
+        assert str(self.scim_user1.scim_id) == payload['user_identifier']
         assert 2 == len(payload['outgoing'])
         assert 2 == len(payload['owner_of'])
 
@@ -968,8 +973,20 @@ class GroupManagementTests(EduidAPITestCase):
             response = client.get('/all-data', content_type=self.content_type_json)
         self._check_success_response(response, type_='GET_GROUP_MANAGEMENT_ALL_DATA_SUCCESS')
         payload = response.json.get('payload')
+        assert str(self.scim_user2.scim_id) == payload['user_identifier']
         assert 1 == len(payload['incoming'])
         assert 1 == len(payload['member_of'])
+        assert 0 == len(payload['owner_of'])
+
+        # Test with only invites
+        with self.session_cookie(self.browser, self.test_user3.eppn) as client:
+            response = client.get('/all-data', content_type=self.content_type_json)
+        self._check_success_response(response, type_='GET_GROUP_MANAGEMENT_ALL_DATA_SUCCESS')
+        payload = response.json.get('payload')
+        assert payload['user_identifier'] is None
+        assert 2 == len(payload['incoming'])
+        assert 0 == len(payload['member_of'])
+        assert 0 == len(payload['owner_of'])
 
     def test_get_all_data_privacy(self):
         # Add test user as group member and owner, add test user 2 as member
