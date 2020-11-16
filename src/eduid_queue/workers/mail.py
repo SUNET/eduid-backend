@@ -26,6 +26,7 @@ class MailQueueWorker(QueueWorker):
         super().__init__(config=worker_config, handle_payloads=payloads)
 
         self._smtp: Optional[SMTP] = None
+        self._jinja2 = Jinja2Env()
 
     @property
     async def smtp(self):
@@ -94,6 +95,23 @@ class MailQueueWorker(QueueWorker):
         ret = await self.sendmail(sender=sender, recipients=[data.email], message=message, reference=data.reference)
         # TODO: if ret != ok return False
         return True
+    async def send_eduid_invite_mail(self, data: EduidInviteEmail) -> Status:
+        msg = EmailMessage()
+        with self._jinja2.select_language(data.language) as env:
+            msg['Subject'] = _('eduID invitation')
+            txt = env.get_template('eduid_invite_mail_txt.jinja2').render(**asdict(data))
+            logger.debug(f'TXT: {txt}')
+            html = env.get_template('eduid_invite_mail_html.jinja2').render(**asdict(data))
+            logger.debug(f'HTML: {html}')
+        msg.set_content(txt, 'plain', 'utf-8')
+        msg.add_alternative(html, 'html', 'utf-8')
+
+        ret = await self.sendmail(
+            sender=self.config.mail_default_from,
+            recipients=[data.email],
+            message=msg.as_string(),
+            reference=data.reference,
+        )
 
 
 def start_worker():

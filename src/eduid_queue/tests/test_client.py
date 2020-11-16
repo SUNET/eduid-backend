@@ -2,12 +2,12 @@
 from datetime import datetime, timedelta
 from unittest import TestCase, skip
 
-from eduid_queue.db import TestPayload, Payload, RawPayload
-from eduid_queue.db.message import EduidInviteEmail, MessageDB
-from eduid_queue.db.queue_item import SenderInfo, QueueItem
-
 from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_userdb.testing import MongoTestCase, normalised_data
+
+from eduid_queue.db import Payload, RawPayload, TestPayload
+from eduid_queue.db.message import EduidInviteEmail, MessageDB
+from eduid_queue.db.queue_item import QueueItem, SenderInfo
 
 __author__ = 'lundberg'
 
@@ -42,6 +42,7 @@ class TestMessage(TestCase):
             invite_link='https://signup.example.com/abc123',
             invite_code='abc123',
             inviter_name='Test Application',
+            language='sv',
         )
         item = QueueItem(
             version=1,
@@ -115,6 +116,7 @@ class TestMessageDB(MongoTestCase):
             invite_link='https://signup.example.com/abc123',
             invite_code='abc123',
             inviter_name='Test Application',
+            language='sv',
         )
         item = self._create_queue_item(payload)
         self.messagedb.save(item)

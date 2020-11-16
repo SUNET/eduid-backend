@@ -43,6 +43,7 @@ class EduidInviteEmail(Payload):
     invite_link: str
     invite_code: str
     inviter_name: str
+    language: str
     version: int = 1
 
     @classmethod
