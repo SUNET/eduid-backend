@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
 import asyncio
 import logging
+from dataclasses import asdict
 from email.message import EmailMessage
+from gettext import gettext as _
 from typing import Optional, cast
 
-from aiosmtplib import SMTP
+from aiosmtplib import SMTP, SMTPResponse
 
 from eduid_queue.config import QueueWorkerConfig
-from eduid_queue.db import QueueItem, TestPayload
+from eduid_queue.db import QueueItem
 from eduid_queue.db.message import EduidInviteEmail
-from eduid_queue.decorators import TransactionAudit
-from eduid_queue.misc import slow_print
+from eduid_queue.db.queue_item import Status
+from eduid_queue.helpers import Jinja2Env
 from eduid_queue.workers.base import QueueWorker
 
 logger = logging.getLogger(__name__)
@@ -22,7 +24,7 @@ class MailQueueWorker(QueueWorker):
     def __init__(self, app_name: str, test_config: Optional[dict] = None):
         worker_config = QueueWorkerConfig.init_config(ns='queue', app_name=app_name, test_config=test_config)
         # Register which queue items this worker should try to grab
-        payloads = [TestPayload, EduidInviteEmail]
+        payloads = [EduidInviteEmail]
         super().__init__(config=worker_config, handle_payloads=payloads)
 
         self._smtp: Optional[SMTP] = None
@@ -45,7 +47,7 @@ class MailQueueWorker(QueueWorker):
                 await self._smtp.login(username=username, password=password)
         return self._smtp
 
-    async def sendmail(self, sender: str, recipients: list, message: str, reference: str) -> dict:
+    async def sendmail(self, sender: str, recipients: list, message: str, reference: str) -> SMTPResponse:
         """
         Send mail
 
@@ -54,7 +56,7 @@ class MailQueueWorker(QueueWorker):
         :param message: email.mime.multipart.MIMEMultipart message as a string
         :param reference: Audit reference to help cross reference audit log and events
 
-        :return Dict of errors
+        :return SMTPResponse
         """
 
         # Just log the mail if in development mode
@@ -65,36 +67,34 @@ class MailQueueWorker(QueueWorker):
                 f"\nType: email\nReference: {reference}\nSender: {sender}\nRecipients: {recipients}\n"
                 f"Message:\n{message}"
             )
-            return {'devel_mode': True}
+            return SMTPResponse(code=221, message='Devel message printed')
 
         async with self.smtp as smtp_client:
             ret = await smtp_client.sendmail(sender, recipients, message)
         return ret
 
-    async def handle_new_item(self, queue_item: QueueItem):
-        if queue_item.payload_type == TestPayload.get_type():
-            await slow_print(queue_item)
-            await self.done(queue_item)
-        elif queue_item.payload_type == EduidInviteEmail.get_type():
-            success = await self.send_eduid_invite_mail(
+    async def handle_new_item(self, queue_item: QueueItem) -> None:
+        status = None
+        if queue_item.payload_type == EduidInviteEmail.get_type():
+            status = await self.send_eduid_invite_mail(
                 cast(
                     EduidInviteEmail,
                     queue_item.payload,
                 )
             )
-            if not success:
-                await self.retry(queue_item)
+            logger.debug(f'send_eduid_invite_mail returned status: {status}')
 
-    async def handle_expired_item(self, queue_item: QueueItem) -> QueueItem:
-        raise NotImplementedError()
+        if status and status.retry:
+            logger.info(f'Retrying queue item: {queue_item.item_id}')
+            logger.debug(queue_item)
+            await self.retry_item(queue_item)
+            return
 
-    async def send_eduid_invite_mail(self, data: EduidInviteEmail) -> bool:
-        sender = self.config.mail_default_from
-        #
-        message = f'something something from {data.inviter_name}'
-        ret = await self.sendmail(sender=sender, recipients=[data.email], message=message, reference=data.reference)
-        # TODO: if ret != ok return False
-        return True
+        await self.item_successfully_handled(queue_item)
+
+    async def handle_expired_item(self, queue_item: QueueItem) -> None:
+        raise NotImplementedError('handle_expired_item not implemented')
+
     async def send_eduid_invite_mail(self, data: EduidInviteEmail) -> Status:
         msg = EmailMessage()
         with self._jinja2.select_language(data.language) as env:
@@ -113,12 +113,22 @@ class MailQueueWorker(QueueWorker):
             reference=data.reference,
         )
 
+        return_code = ret.code // 100
+        if return_code == 5:
+            # 500, permanent error condition
+            return Status(success=False, retry=False, message=ret.message)
+        elif return_code == 4:
+            # 400, error condition is temporary, and the action may be requested again
+            return Status(success=False, retry=True, message=ret.message)
+        return Status(success=True, message=ret.message)
+
 
 def start_worker():
     config = {
+        'devel_mode': True,
         'app_name': 'mail_worker',
         'worker_name': 'mail_worker_1',
-        'mongo_uri': 'mongodb://localhost:43444',
+        'mongo_uri': 'mongodb://localhost:47094',
         'mongo_collection': 'test',
     }
     worker = MailQueueWorker(app_name='mail_worker', test_config=config)

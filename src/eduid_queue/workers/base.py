@@ -8,7 +8,7 @@ from abc import ABC
 from asyncio import CancelledError, Task
 from dataclasses import replace
 from datetime import datetime
-from typing import List, Optional, Type
+from typing import List, Sequence, Type
 
 from motor.motor_asyncio import AsyncIOMotorClient
 
@@ -29,7 +29,7 @@ def cancel_task(signame, task):
 
 
 class QueueWorker(ABC):
-    def __init__(self, config: QueueWorkerConfig, handle_payloads: List[Type[Payload]]):
+    def __init__(self, config: QueueWorkerConfig, handle_payloads: Sequence[Type[Payload]]):
         self.config = config
         self.payloads = handle_payloads
         self.db: AsyncQueueDB
@@ -70,7 +70,7 @@ class QueueWorker(ABC):
         except CancelledError:
             logger.info('run_tasks task was cancelled')
 
-    async def done(self, queue_item: QueueItem) -> None:
+    async def item_successfully_handled(self, queue_item: QueueItem) -> None:
         """
         Removes the queue item from the database
         """
@@ -78,7 +78,7 @@ class QueueWorker(ABC):
         await self.db.remove_item(queue_item.item_id)
         logger.info(f'QueueItem with id: {queue_item.item_id} successfully processed after {timeit.seconds}s.')
 
-    async def retry(self, queue_item: QueueItem) -> None:
+    async def retry_item(self, queue_item: QueueItem) -> None:
         """
         Increases the queue item retry counter and puts it back in the queue
         """
@@ -87,7 +87,10 @@ class QueueWorker(ABC):
         if retries <= self.config.max_retries:
             # Replace the queue item with a new one that can be grabbed by another worker
             new_queue_item = replace(queue_item, retries=retries, processed_by=None, processed_ts=None)
-            await self.db.safe_replace_item(queue_item, new_queue_item)
+            success = await self.db.replace_item(queue_item, new_queue_item)
+            if not success:
+                logger.warning('Replacing QueueItem failed.')
+                logger.warning(f'QueueItem with id: {queue_item.item_id} will NOT be retried.')
             logger.info(f'QueueItem with id: {queue_item.item_id} will be retried')
 
     async def process_new_item(self, document_id: str) -> None:

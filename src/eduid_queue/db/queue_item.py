@@ -40,7 +40,14 @@ from eduid_queue.db.payload import Payload, RawPayload
 __author__ = 'lundberg'
 
 
-@dataclass
+@dataclass(frozen=True)
+class Status:
+    success: bool
+    retry: bool = False
+    message: Optional[str] = None
+
+
+@dataclass(frozen=True)
 class SenderInfo:
     hostname: str
     node_id: str  # Should be something like application@system_hostname ex. scimapi@apps-lla-3
@@ -51,7 +58,7 @@ class SenderInfo:
         return cls(**data)
 
 
-@dataclass
+@dataclass(frozen=True)
 class QueueItem:
     version: int
     expires_at: datetime

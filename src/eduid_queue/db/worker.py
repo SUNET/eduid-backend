@@ -136,7 +136,7 @@ class AsyncQueueDB(QueueDB):
         result = await self.collection.delete_one(spec)
         return result.acknowledged
 
-    async def safe_replace_item(self, old_item: QueueItem, new_item: QueueItem) -> bool:
+    async def replace_item(self, old_item: QueueItem, new_item: QueueItem) -> bool:
         if old_item.item_id != new_item.item_id:
             logger.warning(f'Can not replace items with different item_id')
             logger.debug(f'old_item: {old_item}')
