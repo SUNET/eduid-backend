@@ -76,12 +76,7 @@ class MailQueueWorker(QueueWorker):
     async def handle_new_item(self, queue_item: QueueItem) -> None:
         status = None
         if queue_item.payload_type == EduidInviteEmail.get_type():
-            status = await self.send_eduid_invite_mail(
-                cast(
-                    EduidInviteEmail,
-                    queue_item.payload,
-                )
-            )
+            status = await self.send_eduid_invite_mail(cast(EduidInviteEmail, queue_item.payload,))
             logger.debug(f'send_eduid_invite_mail returned status: {status}')
 
         if status and status.retry:
@@ -124,11 +119,5 @@ class MailQueueWorker(QueueWorker):
 
 
 def start_worker():
-    config = {
-        'devel_mode': True,
-        'app_name': 'mail_worker',
-        'mongo_uri': 'mongodb://localhost:47094',
-        'mongo_collection': 'test',
-    }
-    worker = MailQueueWorker(app_name='mail_worker', test_config=config)
+    worker = MailQueueWorker(app_name='mail_worker')
     exit(asyncio.run(worker.run()))
