@@ -1,3 +1,5 @@
+builders:
+  - script
 publish_over_ssh:
   - pypi.sunet.se
 upstream:
