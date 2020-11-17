@@ -7,7 +7,7 @@ slack:
 pre_build_script:
   - "docker pull docker.sunet.se/eduid/mongodb:latest"
 script:
-  - "python3.7 -m venv venv"
+  - "python3.8 -m venv venv"
   - ". venv/bin/activate"
   - "pip install -U setuptools wheel mypy"
   - "pip install --index-url https://pypi.sunet.se -r test_requirements.txt"
