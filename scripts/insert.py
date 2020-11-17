@@ -1,57 +1,26 @@
 # -*- coding: utf-8 -*-
 import logging
-from datetime import datetime, timedelta, timezone
 import random
-from time import sleep
-from typing import Sequence
+from datetime import datetime, timedelta, timezone
 
-import pymongo
 from pymongo.errors import ServerSelectionTimeoutError, NotMasterError
 
-from eduid_queue.db import QueueDB, TestPayload
+from eduid_queue.db import QueueDB
 from eduid_queue.db.message import EduidInviteEmail
 from eduid_queue.db.queue_item import SenderInfo, QueueItem
-from eduid_userdb.testing import MongoTemporaryInstance
+from eduid_queue.testing import MongoTemporaryInstanceReplicaSet
 
 __author__ = 'lundberg'
 
 logger = logging.getLogger(__name__)
 
 
-class MongoTemporaryInstanceReplicaSet(MongoTemporaryInstance):
-    @property
-    def command(self) -> Sequence[str]:
-        return ['docker', 'run', '--rm', '-p', f'{self.port}:27017', 'local/mongodb']
-
-    def setup_conn(self) -> bool:
-        try:
-            tmp_conn = pymongo.MongoClient('localhost', self.port)
-            # Start replica set
-            rs_conf = """{
-                '_id': 'rs0',
-                'members': [{'_id': 0, 'host': '0.0.0.0:27017'}],
-            }"""
-
-            tmp_conn.admin.command("replSetInitiate")
-            tmp_conn.close()
-            self._conn = pymongo.MongoClient(host='localhost', port=self.port, replicaSet='rs0')
-        except pymongo.errors.ConnectionFailure:
-            return False
-        return True
-
-    @property
-    def uri(self):
-        return f'mongodb://localhost:{self.port}'
-
-
 tmp_db = MongoTemporaryInstanceReplicaSet.get_instance()
-db_uri = tmp_db.uri
-# db_uri = 'mongodb://localhost:43444'
-print(f'{db_uri}')
+print(f'{tmp_db.uri}')
 
 while True:
     try:
-        db = QueueDB(db_uri=db_uri, collection='test')
+        db = QueueDB(db_uri=tmp_db.uri, collection='messages')
     except ServerSelectionTimeoutError as e:
         print(f'mongodb not ready: {e}')
         print(f'{tmp_db.output}')
