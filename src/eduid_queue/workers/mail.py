@@ -127,7 +127,6 @@ def start_worker():
     config = {
         'devel_mode': True,
         'app_name': 'mail_worker',
-        'worker_name': 'mail_worker_1',
         'mongo_uri': 'mongodb://localhost:47094',
         'mongo_collection': 'test',
     }

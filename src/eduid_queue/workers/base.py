@@ -8,6 +8,7 @@ from abc import ABC
 from asyncio import CancelledError, Task
 from dataclasses import replace
 from datetime import datetime
+from os import environ
 from typing import List, Sequence, Type
 
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -30,12 +31,16 @@ def cancel_task(signame, task):
 
 class QueueWorker(ABC):
     def __init__(self, config: QueueWorkerConfig, handle_payloads: Sequence[Type[Payload]]):
+        worker_name = environ.get('WORKER_NAME', None)
+        if worker_name is None:
+            raise RuntimeError('Environment variable WORKER_NAME needs to be set')
+        self.worker_name = worker_name
         self.config = config
         self.payloads = handle_payloads
         self.db: AsyncQueueDB
 
         init_logging(app_name=config.app_name, config=self.config.logging_config)
-        logger.info(f'Starting {self.config.app_name}: {self.config.worker_name}...')
+        logger.info(f'Starting {self.config.app_name}: {self.worker_name}...')
 
     async def run(self):
         # Init db in the correct loop
@@ -97,7 +102,7 @@ class QueueWorker(ABC):
         """
         Sends queue item for processing and removes the item from the database on success
         """
-        queue_item = await self.db.grab_item(document_id, worker_name=self.config.worker_name)
+        queue_item = await self.db.grab_item(document_id, worker_name=self.worker_name)
         if queue_item:
             try:
                 await self.handle_new_item(queue_item)
