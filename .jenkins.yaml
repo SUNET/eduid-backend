@@ -18,3 +18,18 @@ script:
   - "make typecheck"
   - "python setup.py sdist bdist_wheel --universal"
 clean_workspace: true
+
+extra_jobs:
+  - name: eduid-queue-docker
+    builders:
+      - docker
+    docker_name: eduid/eduid-queue
+    managed_scripts:
+      - docker_build_prep.sh
+      - docker_tag.sh
+    triggers:
+      github_push: false
+      cron: null
+    upstream:
+      - eduid-docker-python3env
+      - eduid-queue
