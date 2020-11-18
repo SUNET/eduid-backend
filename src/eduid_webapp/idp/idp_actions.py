@@ -31,8 +31,6 @@
 #
 # Author : Enrique Perez <enrique@cazalla.net>
 #
-
-from time import time
 from typing import Optional
 
 from flask import redirect
@@ -44,7 +42,7 @@ from eduid_common.session.logindata import SSOLoginData
 from eduid_common.session.namespaces import Actions
 from eduid_common.session.sso_session import SSOSession
 from eduid_userdb.idp import IdPUser
-
+from eduid_userdb.util import utc_now
 from eduid_webapp.idp import mfa_action, tou_action
 from eduid_webapp.idp.app import current_idp_app as current_app
 
@@ -97,9 +95,11 @@ def check_for_pending_actions(
     current_app.logger.debug(f'There are pending actions for user {user}: {pending_actions}')
 
     actions_uri = current_app.config.actions_app_uri
-    current_app.logger.info(f'Redirecting user {user!s} to actions app {actions_uri!s}')
+    current_app.logger.info(f'Redirecting user {user} to actions app {actions_uri}')
 
-    actions = Actions.from_dict({'ts': time(), 'session': ticket.key})
+    # TODO: The IdP should never _write_ to the actions namespace. Actions should _read_
+    #       the ticket.key from the IdP namespace instead.
+    actions = Actions(ts=utc_now(), session=ticket.key)
     session.actions = actions
     return redirect(actions_uri)
 
