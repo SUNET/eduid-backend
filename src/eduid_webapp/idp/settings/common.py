@@ -150,6 +150,7 @@ class IdPConfig(FlaskConfig):
     )
 
     def __post_init__(self):
+        super().__post_init__()
         # Convert sso_cookie from dict to the proper dataclass
         if isinstance(self.sso_cookie, dict):
             self.sso_cookie = CookieConfig(**self.sso_cookie)
