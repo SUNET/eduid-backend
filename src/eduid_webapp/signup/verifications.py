@@ -105,13 +105,12 @@ def generate_verification_link():
     return link, code
 
 
-def send_verification_mail(email):
+def send_verification_mail(email: str) -> None:
     """
     Render and send an email with a verification code/link
     for the provided email.
 
     :param email: Email address to verify
-    :type email: str | unicode
     """
     verification_link, code = generate_verification_link()
 

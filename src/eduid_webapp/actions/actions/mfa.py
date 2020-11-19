@@ -51,7 +51,7 @@ class Plugin(ActionPlugin):
 
     @classmethod
     def includeme(cls, app):
-        mandatory_config_keys = ['u2f_app_id', 'u2f_valid_facets', 'fido2_rp_id', 'eidas_url', 'mfa_authn_idp']
+        mandatory_config_keys = ['eidas_url', 'mfa_authn_idp']
 
         for item in mandatory_config_keys:
             if not getattr(app.config, item):
@@ -66,7 +66,7 @@ class Plugin(ActionPlugin):
         if not user:
             raise self.ActionError(ActionsMsg.user_not_found)
 
-        config = fido_tokens.start_token_verification(user, self.PACKAGE_NAME)
+        config = fido_tokens.start_token_verification(user, self.PACKAGE_NAME, current_app.config.fido2_rp_id)
 
         # Explicit check for boolean True
         if current_app.config.mfa_testing is True:
@@ -125,7 +125,7 @@ class Plugin(ActionPlugin):
             challenge = session.get(self.PACKAGE_NAME + '.u2f.challenge')
             current_app.logger.debug('Challenge: {!r}'.format(challenge))
 
-            result = fido_tokens.verify_u2f(user, challenge, token_response)
+            result = fido_tokens.verify_u2f(user, challenge, token_response, current_app.config.u2f_valid_facets)
 
             if result is not None:
                 action.result = result

@@ -8,9 +8,7 @@ from u2flib_server.model import DeviceRegistration, RegisteredKey
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_userdb.credentials import U2F
-
 from eduid_webapp.security.app import security_init_app
-from eduid_webapp.security.settings.common import SecurityConfig
 
 __author__ = 'lundberg'
 
@@ -32,8 +30,9 @@ class SecurityU2FTests(EduidAPITestCase):
                 'celery_config': {'result_backend': 'amqp', 'task_serializer': 'json'},
                 'u2f_app_id': 'https://eduid.se/u2f-app-id.json',
                 'u2f_max_allowed_tokens': 2,
-                'u2f_facets': 'https://dashboard.eduid.se',
                 'u2f_max_description_length': 50,
+                'fido2_rp_id': 'https://test.example.edu',
+                'u2f_valid_facets': ['https://test.example.edu']
             }
         )
         return app_config

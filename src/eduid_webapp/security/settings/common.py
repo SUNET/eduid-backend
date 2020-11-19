@@ -34,14 +34,13 @@
 
 from __future__ import absolute_import
 
-from dataclasses import dataclass, field
-from typing import List
+from dataclasses import dataclass
 
-from eduid_common.config.base import FlaskConfig
+from eduid_common.config.base import FlaskConfig, WebauthnConfigMixin
 
 
 @dataclass
-class SecurityConfig(FlaskConfig):
+class SecurityConfig(FlaskConfig, WebauthnConfigMixin):
     """
     Configuration for the security app
     """
@@ -53,13 +52,10 @@ class SecurityConfig(FlaskConfig):
     chpass_timeout: int = 600
     vccs_url: str = ''
     # uf2 settings
-    u2f_app_id: str = 'https://eduid.se/u2f-app-id.json'
     u2f_max_allowed_tokens: int = 50  # Do not let a user register more than this amount of tokens
     u2f_max_description_length: int = 64  # Do not allow longer descriptions than this number
-    u2f_facets: List[str] = field(default_factory=list)
     # webauthn
     webauthn_max_allowed_tokens: int = 10
-    fido2_rp_id: str = 'eduid.se'
     # password reset settings
     email_code_timeout: int = 7200  # seconds
     phone_code_timeout: int = 600  # seconds

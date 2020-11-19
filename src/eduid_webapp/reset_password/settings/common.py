@@ -36,11 +36,11 @@ Configuration (file) handling for the eduID reset_password app.
 
 from dataclasses import dataclass, field
 
-from eduid_common.config.base import FlaskConfig
+from eduid_common.config.base import FlaskConfig, WebauthnConfigMixin
 
 
 @dataclass
-class ResetPasswordConfig(FlaskConfig):
+class ResetPasswordConfig(FlaskConfig, WebauthnConfigMixin):
     """
     Configuration for the reset_password app
     """
@@ -69,6 +69,5 @@ class ResetPasswordConfig(FlaskConfig):
     password_service_url: str = '/services/reset-password/'
     # webauthn stuff
     generate_u2f_challenges: bool = False  # UNUSED, remove after updating config everywhere
-    u2f_valid_facets: list = field(default_factory=list)
     # Throttle sending SMSs for extra security resetting passwords
     throttle_sms_seconds: int = 300

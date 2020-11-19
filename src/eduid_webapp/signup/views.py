@@ -62,7 +62,7 @@ signup_views = Blueprint('signup', __name__, url_prefix='', template_folder='tem
 @signup_views.route('/trycaptcha', methods=['POST'])
 @UnmarshalWith(RegisterEmailSchema)
 @MarshalWith(AccountCreatedResponse)
-def trycaptcha(email, recaptcha_response, tou_accepted):
+def trycaptcha(email: str, recaptcha_response: str, tou_accepted: bool):
     """
     Kantara requires a check for humanness even at level AL1.
     """
@@ -111,7 +111,7 @@ def trycaptcha(email, recaptcha_response, tou_accepted):
 @signup_views.route('/resend-verification', methods=['POST'])
 @UnmarshalWith(EmailSchema)
 @MarshalWith(FluxStandardAction)
-def resend_email_verification(email):
+def resend_email_verification(email: str):
     """
     The user has not yet verified the email address.
     Send a verification message to the address so it can be verified.
