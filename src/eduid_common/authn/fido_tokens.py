@@ -118,11 +118,13 @@ def start_token_verification(user: User, session_prefix: str) -> dict:
     """
     # TODO: Only make Webauthn challenges for Webauthn tokens, and only U2F challenges for U2F tokens?
     credential_data = get_user_credentials(user)
-    current_app.logger.debug(f'Extra debug: U2F credentials for user: {user.credentials.filter(U2F).to_list()}')
     current_app.logger.debug(
-        f'Extra debug: Webauthn credentials for user: {user.credentials.filter(Webauthn).to_list()}'
+        f'Extra debug: U2F credentials for user: {[str(x) for x in user.credentials.filter(U2F).to_list()]}'
     )
-    current_app.logger.debug(f'Webauthn credentials for user {user}:\n{pprint.pformat(credential_data)}')
+    current_app.logger.debug(
+        f'Extra debug: Webauthn credentials for user: {[str(x) for x in user.credentials.filter(Webauthn).to_list()]}'
+    )
+    current_app.logger.debug(f'FIDO credentials for user {user}:\n{pprint.pformat(list(credential_data.keys()))}')
 
     webauthn_credentials = [v['webauthn'] for v in credential_data.values()]
     fido2rp = RelyingParty(current_app.config.fido2_rp_id, 'eduid.se')  # type: ignore
