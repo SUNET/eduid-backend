@@ -33,7 +33,7 @@ import base64
 import json
 import pprint
 import warnings
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from fido2 import cbor
 from fido2.client import ClientData
@@ -56,7 +56,7 @@ class VerificationProblem(Exception):
         self.msg = msg
 
 
-def _get_user_credentials_u2f(user: User) -> dict:
+def _get_user_credentials_u2f(user: User) -> Dict[str, Dict[str, Any]]:
     """
     Get the U2F credentials for the user
     """
@@ -71,7 +71,7 @@ def _get_user_credentials_u2f(user: User) -> dict:
     return res
 
 
-def _get_user_credentials_webauthn(user: User) -> dict:
+def _get_user_credentials_webauthn(user: User) -> Dict[str, Dict[str, Any]]:
     """
     Get the Webauthn credentials for the user
     """
