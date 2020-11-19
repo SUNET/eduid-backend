@@ -32,6 +32,7 @@
 #
 import json
 import logging
+import logging.config
 import pprint
 import sys
 import traceback
@@ -48,6 +49,7 @@ from eduid_userdb.db import BaseDB
 from eduid_userdb.fixtures.users import new_completed_signup_user_example, new_unverified_user_example, new_user_example
 from eduid_userdb.testing import AbstractMockedUserDB
 
+from eduid_common.api.logging import LocalContext, make_dictConfig
 from eduid_common.api.messages import TranslatableMsg
 from eduid_common.api.testing_base import CommonTestCase
 from eduid_common.config.base import RedisConfig
@@ -114,9 +116,9 @@ class EduidAPITestCase(CommonTestCase):
         users: Optional[List[str]] = None,
         copy_user_to_private: bool = False,
     ):
-        """
-        set up tests
-        """
+        # Set up provisional logging to capture logs from test setup too
+        self._init_logging()
+
         # test users
         self.MockedUserDB.test_users = {}
         if users is None:
@@ -196,7 +198,7 @@ class EduidAPITestCase(CommonTestCase):
         :return: the updated configuration
         """
         # For tests, it makes sense to show relative time instead of datetime
-        config['log_format'] = '{debugTime} | {levelname:7} | {eppn} | {name:35} | {message}'
+        config['log_format'] = '{asctime} | {levelname:7} | {eppn} | {name:35} | {message}'
         return config
 
     @contextmanager
@@ -329,6 +331,17 @@ class EduidAPITestCase(CommonTestCase):
             else:
                 logger.info(f'Test case got unexpected response ({response.status_code}):\n{response.data}')
             raise
+
+    def _init_logging(self):
+        local_context = LocalContext(
+            app_debug=True,
+            app_name='testing',
+            format='{asctime} | {levelname:7} | {name:35} | {message}',
+            level='DEBUG',
+            relative_time=True,
+        )
+        logging_config = make_dictConfig(local_context)
+        logging.config.dictConfig(logging_config)
 
 
 class CSRFTestClient(FlaskClient):
