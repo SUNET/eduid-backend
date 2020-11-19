@@ -112,7 +112,7 @@ def _get_fido2server(credentials: dict, fido2rp: RelyingParty) -> Fido2Server:
     return Fido2Server(fido2rp)
 
 
-def start_token_verification(user: User, session_prefix: str) -> dict:
+def start_token_verification(user: User, session_prefix: str, fido2_rp_id: str) -> Dict[str, Any]:
     """
     Begin authentication process based on the hardware tokens registered by the user.
     """
@@ -127,9 +127,11 @@ def start_token_verification(user: User, session_prefix: str) -> dict:
     current_app.logger.debug(f'FIDO credentials for user {user}:\n{pprint.pformat(list(credential_data.keys()))}')
 
     webauthn_credentials = [v['webauthn'] for v in credential_data.values()]
-    fido2rp = RelyingParty(current_app.config.fido2_rp_id, 'eduid.se')  # type: ignore
+
+    fido2rp = RelyingParty(fido2_rp_id, name='eduid.se')
     fido2server = _get_fido2server(credential_data, fido2rp)
     raw_fido2data, fido2state = fido2server.authenticate_begin(webauthn_credentials)
+
     current_app.logger.debug(f'FIDO2 authentication data:\n{pprint.pformat(raw_fido2data)}')
     fido2data = base64.urlsafe_b64encode(cbor.encode(raw_fido2data)).decode('ascii')
     fido2data = fido2data.rstrip('=')
@@ -140,7 +142,7 @@ def start_token_verification(user: User, session_prefix: str) -> dict:
     return {'webauthn_options': fido2data}
 
 
-def verify_u2f(user: User, challenge: bytes, token_response: str) -> Optional[dict]:
+def verify_u2f(user: User, challenge: bytes, token_response: str, u2f_valid_facets: List[str]) -> Optional[dict]:
     """
     verify received U2F data against the user's credentials
 
@@ -149,9 +151,7 @@ def verify_u2f(user: User, challenge: bytes, token_response: str) -> Optional[di
           and it should be possible to remove this code. Right?
     """
     warnings.warn('verify_u2f should be unused, is it not?', DeprecationWarning)
-    device, counter, touch = complete_authentication(
-        challenge, token_response, current_app.config.u2f_valid_facets  # type: ignore
-    )
+    device, counter, touch = complete_authentication(challenge, token_response, u2f_valid_facets)
     current_app.logger.debug(
         'U2F authentication data: {}'.format({'keyHandle': device['keyHandle'], 'touch': touch, 'counter': counter,})
     )
