@@ -36,8 +36,6 @@ Configuration (file) handling for eduID IdP.
 
 from __future__ import annotations
 
-import importlib.machinery
-import importlib.util
 import logging
 import os
 import pprint
@@ -298,8 +296,6 @@ class BaseConfig(CommonConfig):
     # The current version of the terms of use agreement.
     tou_version: str = '2017-v6'
     current_tou_version: str = '2017-v6'  # backwards compat
-    fido2_rp_id: str = ''
-    u2f_app_id: str = ''
     stats_host: str = ''
     stats_port: int = 8125
     sentry_dsn: Optional[str] = None
@@ -488,3 +484,10 @@ class FlaskConfig(BaseConfig):
     internal_signup_url: str = ''
     recaptcha_public_key: str = ''
     recaptcha_private_key: str = ''
+
+
+@dataclass
+class WebauthnConfigMixin:
+    fido2_rp_id: str  # 'eduid.se'
+    u2f_app_id: str  # 'https://eduid.se/u2f-app-id.json'
+    u2f_valid_facets: List[str]  # e.g. ['https://dashboard.dev.eduid.se/', 'https://idp.dev.eduid.se/']

@@ -40,7 +40,6 @@ from flask import Blueprint, current_app, request
 from mock import patch
 
 from eduid_userdb import User
-from eduid_userdb.credentials import U2F, Webauthn
 from eduid_userdb.fixtures.fido_credentials import u2f_credential, webauthn_credential
 from eduid_userdb.fixtures.users import new_user_example
 
@@ -129,7 +128,7 @@ class FidoTokensTestCase(EduidAPITestCase):
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction():
                 with self.app.test_request_context():
-                    config = start_token_verification(self.test_user, 'testing')
+                    config = start_token_verification(self.test_user, 'testing', self.app.config.fido2_rp_id)
                     assert 'u2fdata' not in config
                     assert 'webauthn_options' in config
                     s = config['webauthn_options']
@@ -149,7 +148,7 @@ class FidoTokensTestCase(EduidAPITestCase):
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction():
                 with self.app.test_request_context():
-                    config = start_token_verification(self.test_user, 'testing')
+                    config = start_token_verification(self.test_user, 'testing', self.app.config.fido2_rp_id)
                     assert 'u2fdata' not in config
                     assert 'webauthn_options' in config
                     s = config['webauthn_options']
