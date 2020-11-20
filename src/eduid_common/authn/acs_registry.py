@@ -40,8 +40,8 @@ and are called with two positional parameters:
  * the session_info given in the SAML response (a dict)
  * The user object
 """
-from enum import Enum, unique
-from typing import Callable, Dict, Optional, TypeVar
+from enum import Enum
+from typing import Callable, Dict, Optional
 
 from flask import current_app
 
@@ -57,17 +57,7 @@ class UnregisteredAction(Exception):
     pass
 
 
-@unique
-class AcsAction(Enum):
-    """ Subclass this enum in SAML2 SP applications and use it with the @acs_actions decorator """
-
-    pass
-
-
-TAcsActionSubclass = TypeVar('TAcsActionSubclass', bound=AcsAction)
-
-
-def acs_action(action: TAcsActionSubclass):
+def acs_action(action: Enum):
     """
     Decorator to register a new assertion consumer service action.
 
@@ -85,7 +75,7 @@ def acs_action(action: TAcsActionSubclass):
     return outer
 
 
-def schedule_action(action: TAcsActionSubclass) -> None:
+def schedule_action(action: Enum) -> None:
     """
     Schedule an action to be executed after an IdP responds to a SAML request.
     This is called just before the SAML request is sent.
@@ -96,7 +86,7 @@ def schedule_action(action: TAcsActionSubclass) -> None:
     session['post-authn-action'] = action.value
 
 
-def get_action(default_action: Optional[TAcsActionSubclass] = None) -> Callable:
+def get_action(default_action: Optional[Enum] = None) -> Callable:
     """
     Retrieve an action from the registry based on the AcsAction stored in the session.
 
