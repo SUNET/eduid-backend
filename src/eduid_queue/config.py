@@ -13,6 +13,7 @@ class QueueWorkerConfig(BaseConfig):
     Configuration for eduid-queue workers
     """
 
+    testing: bool = False
     mongo_collection: str = ''
     periodic_interval: int = 10
     periodic_min_retry_wait_in_seconds: int = 10

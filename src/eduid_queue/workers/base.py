@@ -39,7 +39,7 @@ class QueueWorker(ABC):
         self.payloads = handle_payloads
         self.db: AsyncQueueDB
 
-        init_logging(app_name=config.app_name, config=self.config.logging_config)
+        init_logging(config=config)
         logger.info(f'Starting {self.config.app_name}: {self.worker_name}...')
 
     async def run(self):
