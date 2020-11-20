@@ -13,12 +13,6 @@ from typing import TYPE_CHECKING, Any, Dict, List, Sequence
 
 from eduid_common.config.exceptions import BadConfiguration
 
-try:
-    # Do not fail if Flask is missing, we want to use this in other projects
-    from eduid_common.session import session
-except ImportError:
-    session = None  # type: ignore
-
 # From https://stackoverflow.com/a/39757388
 # The TYPE_CHECKING constant is always False at runtime, so the import won't be evaluated, but mypy
 # (and other type-checking tools) will evaluate the contents of that block.
@@ -94,6 +88,9 @@ class UserFilter(logging.Filter):
         self.debug_eppns = debug_eppns
 
     def filter(self, record: logging.LogRecord) -> bool:
+        # Local import to decouple logging code from flask
+        from eduid_common.session import session
+
         eppn = ''
         if session:
             eppn = session.get('user_eppn', '')
