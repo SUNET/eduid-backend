@@ -24,7 +24,7 @@ def make_local_context(config: QueueWorkerConfig) -> LocalContext:
         # Flask expects to be able to debug log in debug mode
         log_level = 'DEBUG'
 
-    filters = [LoggingFilters.NAMES, LoggingFilters.SESSION_USER]
+    filters = [LoggingFilters.NAMES]
 
     relative_time = config.testing
 
