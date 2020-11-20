@@ -12,7 +12,12 @@ from pprint import pformat
 from typing import TYPE_CHECKING, Any, Dict, List, Sequence
 
 from eduid_common.config.exceptions import BadConfiguration
-from eduid_common.session import session
+
+try:
+    # Do not fail if Flask is missing, we want to use this in other projects
+    from eduid_common.session import session
+except ImportError:
+    session = None
 
 # From https://stackoverflow.com/a/39757388
 # The TYPE_CHECKING constant is always False at runtime, so the import won't be evaluated, but mypy
