@@ -11,7 +11,7 @@ testing_extras = [
 ]
 client_extras = [x for x in open(os.path.join(here, 'requirements.txt')).read().split('\n') if len(x) > 0]
 
-version = '0.0.1'
+version = '0.0.2'
 
 setup(
     name='eduid-queue',
@@ -25,14 +25,7 @@ setup(
     author_email='lundberg@sunet.se',
     description='MongoDB based task queue',
     install_requires=install_requires,
-    extras_require={
-        'testing': testing_extras,
-        'client': client_extras,
-    },
+    extras_require={'testing': testing_extras, 'client': client_extras},
     include_package_data=True,
-    entry_points={
-        'console_scripts': [
-            'run-mail-worker=eduid_queue.workers.mail:start_worker',
-        ],
-    },
+    entry_points={'console_scripts': ['run-mail-worker=eduid_queue.workers.mail:start_worker',],},
 )
