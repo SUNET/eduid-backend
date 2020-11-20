@@ -17,7 +17,7 @@ try:
     # Do not fail if Flask is missing, we want to use this in other projects
     from eduid_common.session import session
 except ImportError:
-    session = None
+    session = None  # type: ignore
 
 # From https://stackoverflow.com/a/39757388
 # The TYPE_CHECKING constant is always False at runtime, so the import won't be evaluated, but mypy
