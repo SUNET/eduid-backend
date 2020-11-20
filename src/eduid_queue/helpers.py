@@ -23,7 +23,7 @@ class Jinja2Env:
         translations_dir = pkg_resources.resource_filename('eduid_queue', 'translations')
         # Templates
         template_loader = FileSystemLoader(searchpath=templates_dir)
-        logger.info(f'Loaded templates from {templates_dir}: {template_loader}')
+        logger.info(f'Loaded templates from {templates_dir}: {template_loader.list_templates()}')
         self.env = Environment(
             loader=template_loader,
             extensions=['jinja2.ext.i18n', 'jinja2.ext.autoescape'],
