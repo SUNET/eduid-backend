@@ -169,10 +169,7 @@ class QueueWorker(ABC):
         for item in items:
             logger.debug(f'item: {item}')
             tasks.append(
-                asyncio.create_task(
-                    self.process_new_item(document_id=item['_id']),
-                    name='periodic_process_new_item',
-                )
+                asyncio.create_task(self.process_new_item(document_id=item['_id']), name='periodic_process_new_item',)
             )
         return tasks
 
