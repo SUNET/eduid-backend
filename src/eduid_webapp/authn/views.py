@@ -49,7 +49,6 @@ from eduid_common.authn.eduid_saml2 import (
     get_authn_response,
     saml_logout,
 )
-from eduid_common.authn.loa import get_loa
 from eduid_common.authn.utils import check_previous_identification, get_location
 from eduid_common.session import session
 

@@ -43,6 +43,7 @@ from eduid_common.session.namespaces import Actions
 from eduid_common.session.sso_session import SSOSession
 from eduid_userdb.idp import IdPUser
 from eduid_userdb.util import utc_now
+
 from eduid_webapp.idp import mfa_action, tou_action
 from eduid_webapp.idp.app import current_idp_app as current_app
 
