@@ -4,11 +4,11 @@ from datetime import datetime, timedelta
 from os import environ
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
+from eduid_queue.db import QueueItem, SenderInfo
+from eduid_queue.db.message import EduidInviteEmail
 from falcon import HTTP_204, Request, Response
 from marshmallow import ValidationError
 
-from eduid_userdb.q import QueueItem, SenderInfo
-from eduid_userdb.q.message import EduidInviteEmail
 from eduid_userdb.signup import Invite as SignupInvite
 from eduid_userdb.signup import InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
 
@@ -137,6 +137,7 @@ class InvitesResource(SCIMResource):
             invite_link=link,
             invite_code=signup_invite.invite_code,
             inviter_name=signup_invite.inviter_name,
+            language=signup_invite.preferred_language,
         )
         app_name = self.context.name
         system_hostname = environ.get('SYSTEM_HOSTNAME', '')  # Underlying hosts name for containers
