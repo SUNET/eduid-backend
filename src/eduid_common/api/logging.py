@@ -12,7 +12,6 @@ from pprint import pformat
 from typing import TYPE_CHECKING, Any, Dict, List, Sequence
 
 from eduid_common.config.exceptions import BadConfiguration
-from eduid_common.session import session
 
 # From https://stackoverflow.com/a/39757388
 # The TYPE_CHECKING constant is always False at runtime, so the import won't be evaluated, but mypy
@@ -89,6 +88,9 @@ class UserFilter(logging.Filter):
         self.debug_eppns = debug_eppns
 
     def filter(self, record: logging.LogRecord) -> bool:
+        # Local import to decouple logging code from flask
+        from eduid_common.session import session
+
         eppn = ''
         if session:
             eppn = session.get('user_eppn', '')
