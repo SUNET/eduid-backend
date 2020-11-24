@@ -88,7 +88,7 @@ class MailQueueWorker(QueueWorker):
         await self.item_successfully_handled(queue_item)
 
     async def handle_expired_item(self, queue_item: QueueItem) -> None:
-        raise NotImplementedError('handle_expired_item not implemented')
+        logger.warning(f'Found expired item: {queue_item}')
 
     async def send_eduid_invite_mail(self, data: EduidInviteEmail) -> Status:
         msg = EmailMessage()

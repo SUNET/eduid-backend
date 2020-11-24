@@ -144,8 +144,9 @@ class QueueWorker(ABC):
             while True:
                 logger.debug(f'Running periodic collection check')
                 tasks += await self.process_forgotten_items()
+                tasks += await self.process_expired_items()
 
-                # TODO: Implement expired report or some kind of retry of failed events here
+                # TODO: Implement some kind of retry of failed events here
 
                 tasks = [task for task in tasks if not task.done()]
                 logger.debug(f'periodic_collection_check: {len(tasks)} running tasks')
@@ -165,12 +166,28 @@ class QueueWorker(ABC):
             processed=False, min_age_in_seconds=self.config.periodic_min_retry_wait_in_seconds, expired=False
         )
         if len(items) > 0:
-            logger.info(f'{len(items)} was forgotten or should be retried, processing...')
+            logger.info(f'{len(items)} item(s) was forgotten or should be retried, processing...')
         for item in items:
             logger.debug(f'item: {item}')
             tasks.append(
                 asyncio.create_task(self.process_new_item(document_id=item['_id']), name='periodic_process_new_item',)
             )
+        return tasks
+
+    async def process_expired_items(self) -> List[Task]:
+        tasks = []
+        # Check for expired untouched queue items
+        items = await self.db.find_items(
+            processed=False, min_age_in_seconds=self.config.periodic_min_retry_wait_in_seconds, expired=True
+        )
+        if len(items) > 0:
+            logger.info(f'{len(items)} item(s) was not processed and has expired')
+        for item in items:
+            queue_item = await self.db.grab_item(item_id=item['_id'], worker_name=self.worker_name)
+            if queue_item:
+                tasks.append(
+                    asyncio.create_task(self.handle_expired_item(queue_item), name='periodic_process_expired_item')
+                )
         return tasks
 
     async def handle_new_item(self, queue_item: QueueItem) -> None:
