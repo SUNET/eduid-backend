@@ -19,6 +19,7 @@ class QueueWorkerConfig(BaseConfig):
     periodic_min_retry_wait_in_seconds: int = 10
     max_retries: int = 10
     audit: bool = True
+    log_format: str = '{asctime} | {levelname:7} | {hostname} | {name:35} | {module:10} | {message}'
     # Mail worker
     mail_host: str = 'localhost'
     mail_port: int = 25

@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 from logging.config import dictConfig
 
-from eduid_common.api.logging import DEFAULT_FORMAT, LocalContext, LoggingFilters, make_dictConfig
+from eduid_common.api.logging import LocalContext, LoggingFilters, make_dictConfig
 from eduid_common.config.exceptions import BadConfiguration
 
 from eduid_queue.config import QueueWorkerConfig
 
 __author__ = 'lundberg'
+
+DEFAULT_FORMAT = '{asctime} | {levelname:7} | {hostname} | {name:35} | {module:10} | {message}'
 
 
 def make_local_context(config: QueueWorkerConfig) -> LocalContext:
