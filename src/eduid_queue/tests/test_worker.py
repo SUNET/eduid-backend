@@ -54,15 +54,22 @@ class TestBaseWorker(QueueAsyncioTest):
         await super().asyncTearDown()
 
     async def test_worker_item_from_stream(self):
+        """
+        Test that saved queue items are handled by the handle_new_item method
+        """
         expires_at = utc_now() + timedelta(minutes=5)
         discard_at = expires_at + timedelta(minutes=5)
         payload = TestPayload(message='New item')
         queue_item = self.create_queue_item(expires_at, discard_at, payload)
+        # Client saves new queue item
         self.db.save(queue_item)
         await asyncio.sleep(0.5)  # Allow worker to run
         assert self.db.get_item_by_id(queue_item.item_id, raise_on_missing=False) is None
 
     async def test_worker_expired_item(self):
+        """
+        Test that expired queue items are handled by the handle_expired_item method
+        """
         # Stop running worker
         for task in self.tasks:
             task.cancel()
@@ -70,8 +77,9 @@ class TestBaseWorker(QueueAsyncioTest):
         discard_at = expires_at + timedelta(minutes=10)
         payload = TestPayload(message='Expired item')
         queue_item = self.create_queue_item(expires_at, discard_at, payload)
+        # Fake that a client have saved queue item in the past
         self.db.save(queue_item)
-        # Start worker
+        # Start worker after save to fake that the item has expired unhandled in the queue
         self.tasks = [asyncio.create_task(self.worker.run())]
         await asyncio.sleep(0.5)  # Allow worker to run
         assert self.db.get_item_by_id(queue_item.item_id, raise_on_missing=False) is None
