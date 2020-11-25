@@ -14,6 +14,7 @@ class QueueWorkerConfig(BaseConfig):
     """
 
     testing: bool = False
+    mongo_uri: str = ''
     mongo_collection: str = ''
     periodic_interval: int = 10
     periodic_min_retry_wait_in_seconds: int = 10
