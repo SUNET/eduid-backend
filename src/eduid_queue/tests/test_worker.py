@@ -3,11 +3,12 @@ import asyncio
 from datetime import timedelta
 from os import environ
 
+from eduid_userdb.util import utc_now
+
 from eduid_queue.config import QueueWorkerConfig
 from eduid_queue.db import QueueItem, TestPayload
 from eduid_queue.testing import QueueAsyncioTest
 from eduid_queue.workers.base import QueueWorker
-from eduid_userdb.util import utc_now
 
 __author__ = 'lundberg'
 
@@ -44,10 +45,10 @@ class TestBaseWorker(QueueAsyncioTest):
 
     async def asyncSetUp(self) -> None:
         await super().asyncSetUp()
-        await asyncio.sleep(2)  # wait for db
+        await asyncio.sleep(0.5)  # wait for db
         self.worker = QueueTestWorker(config=self.config, handle_payloads=[TestPayload])
         self.tasks = [asyncio.create_task(self.worker.run())]
-        await asyncio.sleep(1)  # wait for worker to initialize
+        await asyncio.sleep(0.5)  # wait for worker to initialize
 
     async def asyncTearDown(self) -> None:
         await super().asyncTearDown()
@@ -58,7 +59,7 @@ class TestBaseWorker(QueueAsyncioTest):
         payload = TestPayload(message='New item')
         queue_item = self.create_queue_item(expires_at, discard_at, payload)
         self.db.save(queue_item)
-        await asyncio.sleep(1)  # Allow worker to run
+        await asyncio.sleep(0.5)  # Allow worker to run
         assert self.db.get_item_by_id(queue_item.item_id, raise_on_missing=False) is None
 
     async def test_worker_expired_item(self):
@@ -72,5 +73,5 @@ class TestBaseWorker(QueueAsyncioTest):
         self.db.save(queue_item)
         # Start worker
         self.tasks = [asyncio.create_task(self.worker.run())]
-        await asyncio.sleep(1)  # Allow worker to run
+        await asyncio.sleep(0.5)  # Allow worker to run
         assert self.db.get_item_by_id(queue_item.item_id, raise_on_missing=False) is None

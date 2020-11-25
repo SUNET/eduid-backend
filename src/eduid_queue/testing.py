@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-from asyncio import Task
-
 import time
+from asyncio import Task
 from datetime import datetime
-from typing import Sequence, List
-from unittest import IsolatedAsyncioTestCase
+from typing import List, Sequence
+from unittest import IsolatedAsyncioTestCase, TestCase
 
 import pymongo
 from pymongo.errors import NotMasterError, ServerSelectionTimeoutError
@@ -56,10 +55,11 @@ class MongoTemporaryInstanceReplicaSet(MongoTemporaryInstance):
         return f'mongodb://localhost:{self.port}'
 
 
-class QueueAsyncioTest(IsolatedAsyncioTestCase):
+class EduidQueueTestCase(TestCase):
     mongo_instance: MongoTemporaryInstanceReplicaSet
     mongo_uri: str
     mongo_collection: str
+    db: QueueDB
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -70,13 +70,8 @@ class QueueAsyncioTest(IsolatedAsyncioTestCase):
         self.mongo_collection = 'test'
         self._init_db()
 
-    async def asyncSetUp(self) -> None:
-        self.tasks: List[Task] = []
-
-    async def asyncTearDown(self) -> None:
-        for task in self.tasks:
-            if not task.done():
-                task.cancel()
+    def tearDown(self) -> None:
+        self.db._drop_whole_collection()
 
     def _init_db(self):
         db_init_try = 0
@@ -90,6 +85,16 @@ class QueueAsyncioTest(IsolatedAsyncioTestCase):
                 if db_init_try >= 10:
                     raise e
                 continue
+
+
+class QueueAsyncioTest(EduidQueueTestCase, IsolatedAsyncioTestCase):
+    async def asyncSetUp(self) -> None:
+        self.tasks: List[Task] = []
+
+    async def asyncTearDown(self) -> None:
+        for task in self.tasks:
+            if not task.done():
+                task.cancel()
 
     @staticmethod
     def create_queue_item(expires_at: datetime, discard_at: datetime, payload: Payload):

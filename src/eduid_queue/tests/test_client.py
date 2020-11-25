@@ -8,6 +8,7 @@ from eduid_userdb.testing import MongoTestCase, normalised_data
 from eduid_queue.db import Payload, RawPayload, TestPayload
 from eduid_queue.db.message import EduidInviteEmail, MessageDB
 from eduid_queue.db.queue_item import QueueItem, SenderInfo
+from eduid_queue.testing import EduidQueueTestCase
 
 __author__ = 'lundberg'
 
@@ -58,10 +59,10 @@ class TestMessage(TestCase):
         assert normalised_data(payload.to_dict()) == normalised_data(item.payload.to_dict())
 
 
-class TestMessageDB(MongoTestCase):
-    def setUp(self, init_am=False, am_settings=None):
-        super().setUp(init_am=init_am, am_settings=am_settings)
-        self.messagedb = MessageDB(self.tmp_db.uri)
+class TestMessageDB(EduidQueueTestCase):
+    def setUp(self):
+        super().setUp()
+        self.messagedb = MessageDB(self.mongo_uri)
         self.messagedb.register_handler(TestPayload)
         self.messagedb.register_handler(EduidInviteEmail)
 
