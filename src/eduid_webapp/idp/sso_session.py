@@ -42,7 +42,7 @@ from eduid_common.session.logindata import ExternalMfaData
 
 class SSOSession(object):
     """
-    Single Sign On sessions are used to remember a previous authenticaction
+    Single Sign On sessions are used to remember a previous authentication
     performed, to avoid re-authenticating users for every Service Provider
     they visit.
 
