@@ -117,6 +117,9 @@ TEST_CONFIG = {
     'bundles_path': '/bundles/',
     'debug': False,
     'devel_mode': True,
+    'u2f_app_id': 'foo',
+    'u2f_valid_facets': [],
+    'fido2_rp_id': 'https://test.example.edu',
 }
 
 

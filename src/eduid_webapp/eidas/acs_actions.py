@@ -15,7 +15,7 @@ from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid_common.api.helpers import verify_nin_for_user
 from eduid_common.api.messages import CommonMsg, redirect_with_msg
 from eduid_common.api.utils import save_and_sync_user, urlappend, verify_relay_state
-from eduid_common.authn.acs_registry import AcsAction, acs_action
+from eduid_common.authn.acs_registry import acs_action
 from eduid_common.authn.eduid_saml2 import get_authn_ctx
 from eduid_common.authn.utils import get_saml_attribute
 from eduid_common.session import session
@@ -34,7 +34,7 @@ __author__ = 'lundberg'
 
 
 @unique
-class EidasAcsAction(AcsAction, Enum):
+class EidasAcsAction(Enum):
     token_verify = 'token-verify-action'
     nin_verify = 'nin-verify-action'
     mfa_authn = 'mfa-authentication-action'

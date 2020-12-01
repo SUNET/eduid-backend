@@ -1017,6 +1017,9 @@ class ChangePasswordTests(EduidAPITestCase):
                 'password_length': 12,
                 'password_entropy': 25,
                 'chpass_timeout': 600,
+                'fido2_rp_id': 'example.org',
+                'u2f_app_id': 'https://example.org/u2f-app-id.json',
+                'u2f_valid_facets': [],
             }
         )
         return config

@@ -38,11 +38,11 @@ Configuration (file) handling for the eduID actions app.
 from dataclasses import dataclass, field
 from typing import Mapping
 
-from eduid_common.config.base import FlaskConfig
+from eduid_common.config.base import FlaskConfig, WebauthnConfigMixin
 
 
 @dataclass
-class ActionsConfig(FlaskConfig):
+class ActionsConfig(FlaskConfig, WebauthnConfigMixin):
     """
     Configuration for the actions app
     """
@@ -56,11 +56,8 @@ class ActionsConfig(FlaskConfig):
     idp_url: str = ''
     mfa_testing: bool = False
     generate_u2f_challenges: bool = False  # UNUSED, remove after updating config everywhere
-    u2f_app_id: str = ''  # TODO: can probably be removed
-    fido2_rp_id: str = ''
     eidas_url: str = ''
     mfa_authn_idp: str = ''
-    u2f_valid_facets: list = field(default_factory=list)
     # The plugins for pre-authentication actions that need to be loaded
     action_plugins: list = field(default_factory=lambda: ["tou", "mfa"])
     tou_version: str = '2017-v6'
