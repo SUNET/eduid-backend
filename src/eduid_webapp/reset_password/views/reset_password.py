@@ -485,12 +485,12 @@ def set_new_pw_extra_security_token(
             raise TypeError(f'U2F challenge in session is not bytes {repr(_challenge)}')
         current_app.logger.debug(f'Challenge: {_challenge!r}')
 
-        result = fido_tokens.verify_u2f(data.user, _challenge, token_response)
+        result = fido_tokens.verify_u2f(data.user, _challenge, token_response, current_app.config.u2f_valid_facets)
 
         if result is not None:
             success = result['success']
 
-    elif not success and authenticatorData:
+    elif authenticatorData:
         # CTAP2/Webauthn
         try:
             result = fido_tokens.verify_webauthn(

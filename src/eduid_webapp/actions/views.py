@@ -59,11 +59,11 @@ def authn():
     """
     eppn = check_previous_identification(session.actions)
     if eppn is not None:
-        current_app.logger.info("Starting pre-login actions " "for eppn: {})".format(eppn))
+        current_app.logger.info(f'Starting pre-login actions for eppn: {eppn})')
         url = url_for('actions.get_actions')
         return render_template('index.html', url=url)
     else:
-        current_app.logger.debug("Action authentication failed " "(eppn: {})".format(eppn))
+        current_app.logger.debug(f'Action authentication failed (eppn: {eppn})')
         return render_template('error.html')
 
 
@@ -105,7 +105,7 @@ def get_actions():
     action_type = session['current_plugin']
     plugin_obj = current_app.plugins[action_type]()
     action = Action.from_dict(session['current_action'])
-    current_app.logger.info('Starting pre-login action {} ' 'for user {}'.format(action.action_type, user))
+    current_app.logger.info(f'Starting pre-login action {action.action_type} for user {user}')
     try:
         url = plugin_obj.get_url_for_bundle(action)
         return json.dumps({'action': True, 'url': url, 'payload': {'csrf_token': session.new_csrf_token()}})
@@ -165,9 +165,7 @@ def _do_action():
 
 def _aborted(action, exc):
     eppn = session.get('user_eppn')
-    current_app.logger.info(
-        u'Aborted pre-login action {} for eppn {}, ' u'reason: {}'.format(action.action_type, eppn, exc.args[0])
-    )
+    current_app.logger.info(f'Aborted pre-login action {action.action_type} for eppn {eppn}, reason: {exc.args[0]}')
     if exc.remove_action:
         aid = action.action_id
         msg = 'Removing faulty action with id '

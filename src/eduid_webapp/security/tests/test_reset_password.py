@@ -45,6 +45,9 @@ class SecurityResetPasswordTests(EduidAPITestCase):
                 'phone_code_timeout': 600,
                 'password_entropy': 25,
                 'no_authn_urls': [r'/reset.*'],
+                'u2f_app_id': 'foo',
+                'u2f_valid_facets': [],
+                'fido2_rp_id': 'https://test.example.edu',
             }
         )
         return app_config

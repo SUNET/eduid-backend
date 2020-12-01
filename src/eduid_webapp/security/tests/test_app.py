@@ -38,9 +38,7 @@ from typing import Any, Optional
 from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
-
 from eduid_webapp.security.app import security_init_app
-from eduid_webapp.security.settings.common import SecurityConfig
 
 
 class SecurityTests(EduidAPITestCase):
@@ -69,6 +67,9 @@ class SecurityTests(EduidAPITestCase):
                 'chpass_timeout': 600,
                 'eduid_site_name': 'eduID',
                 'eduid_site_url': 'https://www.eduid.se/',
+                'u2f_app_id': 'foo',
+                'u2f_valid_facets': [],
+                'fido2_rp_id': 'https://test.example.edu',
             }
         )
         return app_config

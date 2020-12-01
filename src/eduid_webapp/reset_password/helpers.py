@@ -322,7 +322,9 @@ def get_extra_security_alternatives(user: User, session_prefix: str) -> dict:
     credentials = fido_tokens.get_user_credentials(user)
 
     if credentials:
-        alternatives['tokens'] = fido_tokens.start_token_verification(user, session_prefix)
+        alternatives['tokens'] = fido_tokens.start_token_verification(
+            user, session_prefix, current_app.config.fido2_rp_id
+        )
 
     return alternatives
 
