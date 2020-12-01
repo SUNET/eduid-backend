@@ -24,10 +24,9 @@ from werkzeug.exceptions import BadRequest, InternalServerError
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid_common.authn.idp_saml import gen_key
-from eduid_common.session import sso_session
-from eduid_common.session.sso_cache import SSOSessionId
+from eduid_webapp.idp.sso_cache import SSOSessionId
 
-from eduid_webapp.idp import mischttp
+from eduid_webapp.idp import mischttp, sso_session
 from eduid_webapp.idp.app import current_idp_app as current_app
 from eduid_webapp.idp.service import Service
 from eduid_webapp.idp.util import maybe_xml_to_string

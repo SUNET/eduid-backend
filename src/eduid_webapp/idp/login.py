@@ -40,7 +40,7 @@ from eduid_common.authn.idp_saml import (
 )
 from eduid_common.session import session
 from eduid_common.session.logindata import SSOLoginData
-from eduid_common.session.sso_session import SSOSession
+from eduid_webapp.idp.sso_session import SSOSession
 from eduid_userdb.idp import IdPUser
 from eduid_userdb.idp.user import SAMLAttributeSettings
 
