@@ -42,12 +42,12 @@ from eduid_common.api.app import EduIDBaseApp
 from eduid_common.authn import idp_authn
 from eduid_common.authn.utils import init_pysaml2
 from eduid_common.session import session
-from eduid_webapp.idp import sso_cache, sso_session
-from eduid_webapp.idp.sso_session import SSOSession
 from eduid_userdb.actions import ActionDB
 from eduid_userdb.idp import IdPUserDb
 
+from eduid_webapp.idp import sso_cache, sso_session
 from eduid_webapp.idp.settings.common import IdPConfig
+from eduid_webapp.idp.sso_session import SSOSession
 
 __author__ = 'ft'
 

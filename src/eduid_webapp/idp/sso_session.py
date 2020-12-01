@@ -34,10 +34,9 @@
 import time
 from typing import Optional
 
-from eduid_userdb.idp import IdPUser
-
 from eduid_common.authn.idp_authn import AuthnData
 from eduid_common.session.logindata import ExternalMfaData
+from eduid_userdb.idp import IdPUser
 
 
 class SSOSession(object):

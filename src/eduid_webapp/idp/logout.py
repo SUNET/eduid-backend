@@ -18,17 +18,17 @@ import saml2
 from flask import request
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT, BINDING_SOAP
 from saml2.request import LogoutRequest
-from saml2.s_utils import error_status_factory, exception_trace
+from saml2.s_utils import error_status_factory
 from saml2.samlp import STATUS_PARTIAL_LOGOUT, STATUS_RESPONDER, STATUS_SUCCESS, STATUS_UNKNOWN_PRINCIPAL
 from werkzeug.exceptions import BadRequest, InternalServerError
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid_common.authn.idp_saml import gen_key
-from eduid_webapp.idp.sso_cache import SSOSessionId
 
 from eduid_webapp.idp import mischttp, sso_session
 from eduid_webapp.idp.app import current_idp_app as current_app
 from eduid_webapp.idp.service import Service
+from eduid_webapp.idp.sso_cache import SSOSessionId
 from eduid_webapp.idp.util import maybe_xml_to_string
 
 # -----------------------------------------------------------------------------
