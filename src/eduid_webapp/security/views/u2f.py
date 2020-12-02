@@ -3,10 +3,10 @@
 from __future__ import absolute_import
 
 import six
-from OpenSSL import crypto
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from flask import Blueprint
+from OpenSSL import crypto
 from u2flib_server.u2f import begin_authentication, begin_registration, complete_authentication, complete_registration
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
@@ -17,6 +17,7 @@ from eduid_common.session import session
 from eduid_userdb import User
 from eduid_userdb.credentials import U2F
 from eduid_userdb.security import SecurityUser
+
 from eduid_webapp.security.app import current_security_app as current_app
 from eduid_webapp.security.helpers import SecurityMsg, compile_credential_list, credentials_to_registered_keys
 from eduid_webapp.security.schemas import (
@@ -57,7 +58,7 @@ def enroll(user: User):
 @UnmarshalWith(BindU2FRequestSchema)
 @MarshalWith(SecurityResponseSchema)
 @require_user
-def bind_view(user: User, version: str, registration_data: str, client_data: str, description: str='') -> FluxData:
+def bind_view(user: User, version: str, registration_data: str, client_data: str, description: str = '') -> FluxData:
     return bind(
         user, version, registration_data, client_data, description
     )  # TODO: Unsplit bind and bind_view after demo

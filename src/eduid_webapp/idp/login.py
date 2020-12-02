@@ -86,7 +86,8 @@ class SSO(Service):
         current_app.logger.debug("\n\n---\n\n")
         current_app.logger.debug("--- In SSO.perform_login() ---")
 
-        assert isinstance(self.sso_session, SSOSession)
+        if not isinstance(self.sso_session, SSOSession):
+            raise RuntimeError(f'self.sso_session is not of type {SSOSession} ({type(self.sso_session)})')
 
         user = self.sso_session.idp_user
 
@@ -524,7 +525,7 @@ def do_verify():
     # This session contains information about the fact that the user was authenticated. It is
     # used to avoid requiring subsequent authentication for the same user during a limited
     # period of time, by storing the session-id in a browser cookie.
-    _session_id = current_app.sso_sessions.add_session(user.eppn, _sso_session.to_dict())
+    _session_id = current_app.sso_sessions.add_session(user.eppn, _sso_session)
     current_app.logger.debug(f'Created SSO session {repr(_session_id)}')
 
     # INFO-Log the request id (sha1 of SAMLrequest) and the sso_session

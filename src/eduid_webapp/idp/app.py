@@ -45,8 +45,9 @@ from eduid_common.session import session
 from eduid_userdb.actions import ActionDB
 from eduid_userdb.idp import IdPUserDb
 
-from eduid_webapp.idp import sso_cache, sso_session
+from eduid_webapp.idp import sso_cache
 from eduid_webapp.idp.settings.common import IdPConfig
+from eduid_webapp.idp.sso_cache import SSOSessionCache, SSOSessionId
 from eduid_webapp.idp.sso_session import SSOSession
 
 __author__ = 'ft'
@@ -75,7 +76,7 @@ class IdPApp(EduIDBaseApp):
             self.logger.info('Config parameter sso_session_mongo_uri ignored. Used mongo_uri instead.')
 
         _session_ttl = self.config.sso_session_lifetime * 60
-        self.sso_sessions = sso_cache.SSOSessionCacheMDB(self.config.mongo_uri, None, _session_ttl)
+        self.sso_sessions = SSOSessionCache(self.config.mongo_uri, ttl=_session_ttl)
 
         _login_state_ttl = (self.config.login_state_ttl + 1) * 60
         self.authn_info_db = None
@@ -128,20 +129,20 @@ class IdPApp(EduIDBaseApp):
 
         :return: Data about currently logged in user
         """
-        _data = None
+        _sso = None
 
         _session_id = self.get_sso_session_id()
         if _session_id:
-            _data = self.sso_sessions.get_session(_session_id)
-            self.logger.debug(f'Looked up SSO session using session ID {repr(_session_id)}:\n{_data}')
+            _sso = self.sso_sessions.get_session(_session_id)
+            self.logger.debug(f'Looked up SSO session using session ID {repr(_session_id)}:\n{_sso}')
 
-        if not _data:
+        if not _sso:
             self.logger.debug("SSO session not found using 'id' parameter or IdP SSO cookie")
 
             if session.idp.sso_cookie_val is not None:
                 self.logger.debug('Found potential sso_cookie_val in the eduID session')
-                _other_data = self.sso_sessions.get_session(session.idp.sso_cookie_val)
-                if _other_data is not None:
+                _other_sso = self.sso_sessions.get_session(session.idp.sso_cookie_val)
+                if _other_sso is not None:
                     # Debug issues with browsers not returning updated SSO cookie values.
                     # Only log partial cookie value since it allows impersonation if leaked.
                     self.logger.info(
@@ -149,8 +150,7 @@ class IdPApp(EduIDBaseApp):
                         f'({session.idp.sso_cookie_val[:8]}...)'
                     )
             return None
-        _sso = sso_session.from_dict(_data)
-        self.logger.debug("Re-created SSO session {!r}".format(_sso))
+        self.logger.debug(f'Re-created SSO session {_sso}')
         return _sso
 
     def get_sso_session_id(self) -> Optional[sso_cache.SSOSessionId]:
@@ -169,7 +169,7 @@ class IdPApp(EduIDBaseApp):
             self.logger.debug(
                 f'Got SSO session ID from IdP SSO cookie {repr(_session_id)} -> {repr(_decoded_session_id)}'
             )
-            return sso_cache.SSOSessionId(_decoded_session_id)
+            return SSOSessionId(_decoded_session_id)
 
         query = parse_query_string()
         if query and 'id' in query:
@@ -177,7 +177,7 @@ class IdPApp(EduIDBaseApp):
             self.logger.debug("Parsed query string :\n{!s}".format(pprint.pformat(query)))
             _session_id = query['id']
             self.logger.debug(f'Got SSO session ID from query string: {_session_id}')
-            return sso_cache.SSOSessionId(_session_id)
+            return SSOSessionId(bytes(_session_id, 'ascii'))
 
         return None
 

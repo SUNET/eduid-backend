@@ -8,6 +8,7 @@ from u2flib_server.model import DeviceRegistration, RegisteredKey
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_userdb.credentials import U2F
+
 from eduid_webapp.security.app import security_init_app
 
 __author__ = 'lundberg'
@@ -32,7 +33,7 @@ class SecurityU2FTests(EduidAPITestCase):
                 'u2f_max_allowed_tokens': 2,
                 'u2f_max_description_length': 50,
                 'fido2_rp_id': 'https://test.example.edu',
-                'u2f_valid_facets': ['https://test.example.edu']
+                'u2f_valid_facets': ['https://test.example.edu'],
             }
         )
         return app_config

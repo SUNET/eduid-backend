@@ -9,20 +9,18 @@
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #          Roland Hedberg
 #
-import datetime
 import logging
 import time
 import uuid
 import warnings
-from abc import ABC
 from collections import deque
 from threading import Lock
 from typing import Any, Deque, Dict, List, Mapping, NewType, Optional, Tuple, Union, cast
 
 from eduid_common.misc.timeutil import utc_now
-from eduid_common.session.sso_session import SSOSession
-from eduid_userdb import MongoDB
 from eduid_userdb.db import BaseDB
+
+from eduid_webapp.idp.sso_session import SSOSession
 
 _SHA1_HEXENCODED_SIZE = 160 // 8 * 2
 
@@ -243,7 +241,7 @@ class SSOSessionCache(BaseDB):
             return None
 
         # TODO: Make from_dict a classmethod on SSOSession
-        from eduid_common.session.sso_session import from_dict as ssosession_from_dict
+        from eduid_webapp.idp.sso_session import from_dict as ssosession_from_dict
 
         return ssosession_from_dict(res['data'])
 

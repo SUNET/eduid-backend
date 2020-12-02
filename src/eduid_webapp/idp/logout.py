@@ -25,7 +25,7 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid_common.authn.idp_saml import gen_key
 
-from eduid_webapp.idp import mischttp, sso_session
+from eduid_webapp.idp import mischttp
 from eduid_webapp.idp.app import current_idp_app as current_app
 from eduid_webapp.idp.service import Service
 from eduid_webapp.idp.sso_cache import SSOSessionId
@@ -152,10 +152,9 @@ class SLO(Service):
         for this in session_ids:
             current_app.logger.debug("Logging out SSO session with key: {!s}".format(this))
             try:
-                _data = current_app.sso_sessions.get_session(this)
-                if not _data:
+                _sso = current_app.sso_sessions.get_session(this)
+                if not _sso:
                     raise KeyError('Session not found')
-                _sso = sso_session.from_dict(_data)
                 res = current_app.sso_sessions.remove_session(this)
                 current_app.logger.info(
                     f'{req_key}: logout sso_session={_sso.public_id!r}, age={_sso.minutes_old!r}m, result={bool(res)!r}'

@@ -155,7 +155,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
                 'webauthn_max_allowed_tokens': 10,
                 'fido2_rp_id': 'localhost',
                 'u2f_app_id': 'https://eduid.se/u2f-app-id.json',
-                'u2f_valid_facets': []
+                'u2f_valid_facets': [],
             }
         )
         return app_config
