@@ -28,9 +28,16 @@ from werkzeug.exceptions import BadRequest, Forbidden, InternalServerError, TooM
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid_common.api import exceptions
-from eduid_common.authn import assurance
-from eduid_common.authn.assurance import AssuranceException, MissingMultiFactor, WrongMultiFactor
-from eduid_common.authn.idp_saml import (
+from eduid_common.session import session
+from eduid_common.session.logindata import SSOLoginData
+from eduid_userdb.idp import IdPUser
+from eduid_userdb.idp.user import SAMLAttributeSettings
+
+from eduid_webapp.idp import assurance, mischttp
+from eduid_webapp.idp.app import current_idp_app as current_app
+from eduid_webapp.idp.assurance import AssuranceException, MissingMultiFactor, WrongMultiFactor
+from eduid_webapp.idp.idp_actions import check_for_pending_actions
+from eduid_webapp.idp.idp_saml import (
     AuthnInfo,
     IdP_SAMLRequest,
     ResponseArgs,
@@ -38,14 +45,6 @@ from eduid_common.authn.idp_saml import (
     SAMLValidationError,
     gen_key,
 )
-from eduid_common.session import session
-from eduid_common.session.logindata import SSOLoginData
-from eduid_userdb.idp import IdPUser
-from eduid_userdb.idp.user import SAMLAttributeSettings
-
-from eduid_webapp.idp import mischttp
-from eduid_webapp.idp.app import current_idp_app as current_app
-from eduid_webapp.idp.idp_actions import check_for_pending_actions
 from eduid_webapp.idp.service import Service
 from eduid_webapp.idp.sso_session import SSOSession
 from eduid_webapp.idp.util import b64encode, get_requested_authn_context

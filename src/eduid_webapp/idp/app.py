@@ -39,13 +39,12 @@ from flask import current_app
 
 from eduid_common.api import translation
 from eduid_common.api.app import EduIDBaseApp
-from eduid_common.authn import idp_authn
 from eduid_common.authn.utils import init_pysaml2
 from eduid_common.session import session
 from eduid_userdb.actions import ActionDB
 from eduid_userdb.idp import IdPUserDb
 
-from eduid_webapp.idp import sso_cache
+from eduid_webapp.idp import idp_authn, sso_cache
 from eduid_webapp.idp.settings.common import IdPConfig
 from eduid_webapp.idp.sso_cache import SSOSessionCache, SSOSessionId
 from eduid_webapp.idp.sso_session import SSOSession
