@@ -3,11 +3,10 @@
 from sys import exit
 from time import sleep
 
-from requests.exceptions import ConnectionError
-
 from oic.oic import Client
 from oic.oic.message import RegistrationRequest
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
+from requests.exceptions import ConnectionError
 
 __author__ = 'lundberg'
 
