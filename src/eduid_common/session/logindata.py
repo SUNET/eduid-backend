@@ -9,7 +9,6 @@ from urllib.parse import urlencode
 
 from eduid_userdb.credentials import Credential
 
-from eduid_common.authn.idp_saml import IdP_SAMLRequest
 from eduid_common.session.namespaces import SessionNSBase
 
 #
@@ -65,7 +64,7 @@ class SSOLoginData(SessionNSBase):
     FailCount: int = 0
 
     # saml request object
-    saml_req: IdP_SAMLRequest = field(init=False, repr=False)
+    saml_req: 'IdP_SAMLRequest' = field(init=False, repr=False)  # eduid-common can't import from eduid-webapp
 
     # query string
     query_string: str = field(init=False, repr=False)
