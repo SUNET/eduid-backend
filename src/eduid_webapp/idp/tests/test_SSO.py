@@ -47,12 +47,12 @@ from eduid_common.authn.idp_authn import AuthnData
 from eduid_common.authn.idp_saml import IdP_SAMLRequest
 from eduid_common.misc.timeutil import utc_now
 from eduid_common.session.logindata import ExternalMfaData, SSOLoginData
-from eduid_common.session.sso_session import SSOSession
 from eduid_userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, U2F, Password
 from eduid_userdb.idp import IdPUser
 from eduid_userdb.nin import Nin, NinList
 
 from eduid_webapp.idp.login import SSO
+from eduid_webapp.idp.sso_session import SSOSession
 from eduid_webapp.idp.tests.test_app import IdPTests
 from eduid_webapp.idp.util import b64encode
 

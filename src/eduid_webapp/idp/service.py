@@ -17,10 +17,9 @@ from typing import Any, Dict
 
 from flask import request
 
-from eduid_common.session.sso_session import SSOSession
-
 from eduid_webapp.idp import mischttp
 from eduid_webapp.idp.app import current_idp_app as current_app
+from eduid_webapp.idp.sso_session import SSOSession
 
 
 class Service(ABC):

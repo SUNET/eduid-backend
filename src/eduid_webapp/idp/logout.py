@@ -18,18 +18,17 @@ import saml2
 from flask import request
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT, BINDING_SOAP
 from saml2.request import LogoutRequest
-from saml2.s_utils import error_status_factory, exception_trace
+from saml2.s_utils import error_status_factory
 from saml2.samlp import STATUS_PARTIAL_LOGOUT, STATUS_RESPONDER, STATUS_SUCCESS, STATUS_UNKNOWN_PRINCIPAL
 from werkzeug.exceptions import BadRequest, InternalServerError
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid_common.authn.idp_saml import gen_key
-from eduid_common.session import sso_session
-from eduid_common.session.sso_cache import SSOSessionId
 
 from eduid_webapp.idp import mischttp
 from eduid_webapp.idp.app import current_idp_app as current_app
 from eduid_webapp.idp.service import Service
+from eduid_webapp.idp.sso_cache import SSOSessionId
 from eduid_webapp.idp.util import maybe_xml_to_string
 
 # -----------------------------------------------------------------------------
@@ -153,10 +152,9 @@ class SLO(Service):
         for this in session_ids:
             current_app.logger.debug("Logging out SSO session with key: {!s}".format(this))
             try:
-                _data = current_app.sso_sessions.get_session(this)
-                if not _data:
+                _sso = current_app.sso_sessions.get_session(this)
+                if not _sso:
                     raise KeyError('Session not found')
-                _sso = sso_session.from_dict(_data)
                 res = current_app.sso_sessions.remove_session(this)
                 current_app.logger.info(
                     f'{req_key}: logout sso_session={_sso.public_id!r}, age={_sso.minutes_old!r}m, result={bool(res)!r}'

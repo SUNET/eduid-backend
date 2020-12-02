@@ -40,12 +40,12 @@ from eduid_common.authn.idp_authn import AuthnData
 from eduid_common.session import session
 from eduid_common.session.logindata import SSOLoginData
 from eduid_common.session.namespaces import Actions
-from eduid_common.session.sso_session import SSOSession
 from eduid_userdb.idp import IdPUser
 from eduid_userdb.util import utc_now
 
 from eduid_webapp.idp import mfa_action, tou_action
 from eduid_webapp.idp.app import current_idp_app as current_app
+from eduid_webapp.idp.sso_session import SSOSession
 
 
 def check_for_pending_actions(
