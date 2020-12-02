@@ -18,7 +18,7 @@ hammock>=0.2.4
 marshmallow-enum==1.5.*
 marshmallow>=3.0,==3.*
 mock==1.0.1
-oic==0.8.3
+oic==1.2.1
 pyOpenSSL>=17.3.0
 pynacl>=1.0.1
 pytest-cov>=2.7.1
