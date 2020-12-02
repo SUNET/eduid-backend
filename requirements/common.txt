@@ -13,7 +13,7 @@ html5lib>=1.0.1
 idna>=2.1,<2.8
 marshmallow-enum==1.5.*
 marshmallow>=3.0,==3.*
-oic>=0.8.3
+oic>=1.2.1
 pynacl>=1.0.1
 python-etcd>=0.4.3
 redis>=3.2.0,==3.*

@@ -16,7 +16,7 @@ html5lib>=1.0.1
 idna>=2.1,<2.8
 marshmallow-enum==1.5.*
 marshmallow>=3.0,==3.*
-oic>=0.8.3
+oic>=1.2.1
 proquint==0.2.1
 pyOpenSSL>=17.3.0
 pynacl>=1.0.1
