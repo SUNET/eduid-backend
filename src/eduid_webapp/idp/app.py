@@ -81,9 +81,6 @@ class IdPApp(EduIDBaseApp):
         self.authn_info_db = None
         self.actions_db = None
 
-        if self.config.mongo_uri:
-            self.authn_info_db = idp_authn.AuthnInfoStoreMDB(self.config.mongo_uri, logger=None)
-
         if self.config.mongo_uri and self.config.actions_app_uri:
             self.actions_db = ActionDB(self.config.mongo_uri)
             self.logger.info("configured to redirect users with pending actions")
@@ -94,7 +91,7 @@ class IdPApp(EduIDBaseApp):
             # This is used in tests at least
             userdb = IdPUserDb(logger=None, mongo_uri=self.config.mongo_uri, db_name=self.config.userdb_mongo_database)
         self.userdb = userdb
-        self.authn = idp_authn.IdPAuthn(logger=None, config=self.config, userdb=self.userdb)
+        self.authn = idp_authn.IdPAuthn(config=self.config, userdb=self.userdb)
         self.logger.info('eduid-IdP application started')
 
     def _lookup_sso_session(self) -> Optional[SSOSession]:
