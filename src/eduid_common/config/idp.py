@@ -149,9 +149,6 @@ class IdPConfig(BaseConfig):
     # After this time, login cannot complete because the SAMLRequest, RelayState
     # and possibly other needed information will be forgotten.
     login_state_ttl: int = 5
-    # Add a default eduPersonScopedAffiliation if none is returned from the
-    # attribute manager.
-    default_scoped_affiliation: Optional[str] = None
     # URL to use with VCCS client. BCP is to have an nginx or similar on
     # localhost that will proxy requests to a currently available backend
     # using TLS.
