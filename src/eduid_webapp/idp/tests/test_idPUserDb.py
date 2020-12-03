@@ -35,10 +35,8 @@
 
 import datetime
 import logging
-import os
 from typing import Optional
 
-import pkg_resources
 from bson import ObjectId
 from mock import patch
 
@@ -46,12 +44,9 @@ import eduid_common.authn
 import eduid_userdb
 import vccs_client
 from eduid_common.api import exceptions
-from eduid_common.authn.idp_authn import AuthnData
-from eduid_common.session.testing import RedisTemporaryInstance
-from eduid_userdb.testing import MongoTestCase
 from vccs_client import VCCSClient
 
-from eduid_webapp.idp.settings.common import IdPConfig
+from eduid_webapp.idp.idp_authn import AuthnData
 from eduid_webapp.idp.tests.test_app import IdPTests
 
 logger = logging.getLogger(__name__)

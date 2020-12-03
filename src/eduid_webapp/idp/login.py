@@ -28,9 +28,16 @@ from werkzeug.exceptions import BadRequest, Forbidden, InternalServerError, TooM
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid_common.api import exceptions
-from eduid_common.authn import assurance
-from eduid_common.authn.assurance import AssuranceException, MissingMultiFactor, WrongMultiFactor
-from eduid_common.authn.idp_saml import (
+from eduid_common.session import session
+from eduid_common.session.logindata import SSOLoginData
+from eduid_userdb.idp import IdPUser
+from eduid_userdb.idp.user import SAMLAttributeSettings
+
+from eduid_webapp.idp import assurance, mischttp
+from eduid_webapp.idp.app import current_idp_app as current_app
+from eduid_webapp.idp.assurance import AssuranceException, MissingMultiFactor, WrongMultiFactor
+from eduid_webapp.idp.idp_actions import check_for_pending_actions
+from eduid_webapp.idp.idp_saml import (
     AuthnInfo,
     IdP_SAMLRequest,
     ResponseArgs,
@@ -38,14 +45,6 @@ from eduid_common.authn.idp_saml import (
     SAMLValidationError,
     gen_key,
 )
-from eduid_common.session import session
-from eduid_common.session.logindata import SSOLoginData
-from eduid_userdb.idp import IdPUser
-from eduid_userdb.idp.user import SAMLAttributeSettings
-
-from eduid_webapp.idp import mischttp
-from eduid_webapp.idp.app import current_idp_app as current_app
-from eduid_webapp.idp.idp_actions import check_for_pending_actions
 from eduid_webapp.idp.service import Service
 from eduid_webapp.idp.sso_session import SSOSession
 from eduid_webapp.idp.util import b64encode, get_requested_authn_context
@@ -140,7 +139,7 @@ class SSO(Service):
         attributes = user.to_saml_attributes(saml_attribute_settings, current_app.logger)
         # Add a list of credentials used in a private attribute that will only be
         # released to the eduID authn component
-        attributes['eduidIdPCredentialsUsed'] = [x['cred_id'] for x in sso_session.authn_credentials]
+        attributes['eduidIdPCredentialsUsed'] = [x.cred_id for x in sso_session.authn_credentials]
         for k, v in response_authn.authn_attributes.items():
             if k in attributes:
                 current_app.logger.debug(
@@ -307,7 +306,7 @@ class SSO(Service):
             current_app.logger.debug(f'Asserting AuthnContext {resp_authn!r} (none requested)')
 
         # Augment the AuthnInfo with the authn_timestamp before returning it
-        return replace(resp_authn, instant=self.sso_session.authn_timestamp)
+        return replace(resp_authn, instant=int(self.sso_session.authn_timestamp.timestamp()))
 
     def redirect(self) -> WerkzeugResponse:
         """This is the HTTP-redirect endpoint.
@@ -337,7 +336,7 @@ class SSO(Service):
         """ Common code for redirect() and post() endpoints. """
 
         if self.sso_session:
-            if hasattr(self.sso_session, 'idp_user') and self.sso_session.idp_user.terminated:
+            if self.sso_session.idp_user.terminated:
                 current_app.logger.info(f'User {self.sso_session.idp_user} is terminated')
                 current_app.logger.debug(f'User terminated: {self.sso_session.idp_user.terminated}')
                 raise Forbidden('USER_TERMINATED')
@@ -374,12 +373,10 @@ class SSO(Service):
         if not self.sso_session:
             current_app.logger.debug('Force authn without session - ignoring')
             return True
-        if ticket.saml_req.request_id != self.sso_session.user_authn_request_id:
+        if ticket.saml_req.request_id != self.sso_session.authn_request_id:
             current_app.logger.debug(
-                'Forcing authentication because of ForceAuthn with '
-                'SSO session id {!r} != this requests {!r}'.format(
-                    self.sso_session.user_authn_request_id, ticket.saml_req.request_id
-                )
+                f'Forcing authentication because of ForceAuthn with SSO session id '
+                f'{self.sso_session.authn_request_id} != this requests {ticket.saml_req.request_id}'
             )
             return True
         current_app.logger.debug(
@@ -458,7 +455,7 @@ class SSO(Service):
 # -----------------------------------------------------------------------------
 
 
-def do_verify():
+def do_verify() -> WerkzeugResponse:
     """
     Perform authentication of user based on user provided credentials.
 
@@ -515,11 +512,14 @@ def do_verify():
         current_app.logger.debug(f'Unknown user or wrong password. Redirect => {lox}')
         return redirect(lox)
 
+    if authninfo.user is None:
+        raise RuntimeError('User not authenticated')
+
     # Create SSO session
     user = authninfo.user
     current_app.logger.debug(f'User {user} authenticated OK (SAML id {repr(_ticket.saml_req.request_id)})')
     _sso_session = SSOSession(
-        user_id=user.user_id, authn_request_id=_ticket.saml_req.request_id, authn_credentials=[authninfo],
+        user_id=user.user_id, authn_request_id=_ticket.saml_req.request_id, authn_credentials=[authninfo], idp_user=user
     )
 
     # This session contains information about the fact that the user was authenticated. It is

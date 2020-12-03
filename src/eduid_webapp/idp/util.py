@@ -35,9 +35,8 @@
 import base64
 from typing import Optional, Union
 
-from eduid_common.authn.idp_saml import IdP_SAMLRequest
-
 from eduid_webapp.idp.app import current_idp_app as current_app
+from eduid_webapp.idp.idp_saml import IdP_SAMLRequest
 
 
 def b64encode(source: Union[str, bytes]) -> str:
