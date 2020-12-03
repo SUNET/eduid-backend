@@ -81,9 +81,6 @@ class IdPApp(EduIDBaseApp):
         self.authn_info_db = None
         self.actions_db = None
 
-        if self.config.mongo_uri:
-            self.authn_info_db = idp_authn.AuthnInfoStoreMDB(self.config.mongo_uri, logger=None)
-
         if self.config.mongo_uri and self.config.actions_app_uri:
             self.actions_db = ActionDB(self.config.mongo_uri)
             self.logger.info("configured to redirect users with pending actions")
