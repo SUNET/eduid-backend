@@ -336,7 +336,7 @@ class SSO(Service):
         """ Common code for redirect() and post() endpoints. """
 
         if self.sso_session:
-            if hasattr(self.sso_session, 'idp_user') and self.sso_session.idp_user.terminated:
+            if self.sso_session.idp_user.terminated:
                 current_app.logger.info(f'User {self.sso_session.idp_user} is terminated')
                 current_app.logger.debug(f'User terminated: {self.sso_session.idp_user.terminated}')
                 raise Forbidden('USER_TERMINATED')
@@ -455,7 +455,7 @@ class SSO(Service):
 # -----------------------------------------------------------------------------
 
 
-def do_verify():
+def do_verify() -> WerkzeugResponse:
     """
     Perform authentication of user based on user provided credentials.
 
@@ -512,13 +512,14 @@ def do_verify():
         current_app.logger.debug(f'Unknown user or wrong password. Redirect => {lox}')
         return redirect(lox)
 
-    # Create SSO session
     if authninfo.user is None:
         raise RuntimeError('User not authenticated')
+
+    # Create SSO session
     user = authninfo.user
     current_app.logger.debug(f'User {user} authenticated OK (SAML id {repr(_ticket.saml_req.request_id)})')
     _sso_session = SSOSession(
-        user_id=user.user_id, authn_request_id=_ticket.saml_req.request_id, authn_credentials=[authninfo],
+        user_id=user.user_id, authn_request_id=_ticket.saml_req.request_id, authn_credentials=[authninfo], idp_user=user
     )
 
     # This session contains information about the fact that the user was authenticated. It is

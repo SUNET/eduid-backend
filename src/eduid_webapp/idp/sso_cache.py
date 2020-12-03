@@ -19,6 +19,7 @@ from typing import Any, Deque, Dict, List, Mapping, NewType, Optional, Tuple, Un
 
 from eduid_common.misc.timeutil import utc_now
 from eduid_userdb.db import BaseDB
+from eduid_userdb.idp import IdPUserDb
 
 from eduid_webapp.idp.sso_session import SSOSession
 
@@ -225,11 +226,12 @@ class SSOSessionCache(BaseDB):
         """
         raise NotImplementedError()
 
-    def get_session(self, sid: SSOSessionId) -> Optional[SSOSession]:
+    def get_session(self, sid: SSOSessionId, userdb: IdPUserDb) -> Optional[SSOSession]:
         """
         Lookup an SSO session using the session id (same `sid' previously used with add_session).
 
         :param sid: Unique session identifier as string
+        :param userdb: Database to use to initialise session.idp_user
         :return: The session, if found
         """
         try:
@@ -240,7 +242,7 @@ class SSOSessionCache(BaseDB):
         if not res:
             return None
 
-        return SSOSession.from_dict(res['data'])
+        return SSOSession.from_dict(res['data'], userdb)
 
     def get_sessions_for_user(self, username: str) -> List[SSOSessionId]:
         """

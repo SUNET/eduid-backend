@@ -44,9 +44,9 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any, Dict, Optional, Sequence, Type
 
-import vccs_client
 from bson import ObjectId
 
+import vccs_client
 from eduid_common.api import exceptions
 from eduid_common.authn import get_vccs_client
 from eduid_common.misc.timeutil import utc_now

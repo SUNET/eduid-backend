@@ -151,7 +151,7 @@ class SLO(Service):
         for this in session_ids:
             current_app.logger.debug("Logging out SSO session with key: {!s}".format(this))
             try:
-                _sso = current_app.sso_sessions.get_session(this)
+                _sso = current_app.sso_sessions.get_session(this, current_app.userdb)
                 if not _sso:
                     raise KeyError('Session not found')
                 res = current_app.sso_sessions.remove_session(this)

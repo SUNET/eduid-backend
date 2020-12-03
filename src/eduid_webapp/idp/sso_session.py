@@ -41,7 +41,8 @@ import bson
 
 from eduid_common.misc.timeutil import utc_now
 from eduid_common.session.logindata import ExternalMfaData
-from eduid_userdb.idp import IdPUser
+from eduid_userdb import UserDB
+from eduid_userdb.idp import IdPUser, IdPUserDb
 
 from eduid_webapp.idp.idp_authn import AuthnData
 
@@ -73,9 +74,9 @@ class SSOSession:
     user_id: bson.ObjectId
     authn_request_id: str
     authn_credentials: List[AuthnData]
+    idp_user: IdPUser  # extra info - not serialised
     external_mfa: Optional[ExternalMfaData] = None
     authn_timestamp: datetime = field(default_factory=utc_now)
-    idp_user: Optional[IdPUser] = None  # extra info - not serialised
 
     def __str__(self):
         return f'<{self.__class__.__name__}: uid={self.user_id}, ts={self.authn_timestamp.isoformat()}>'
@@ -90,13 +91,17 @@ class SSOSession:
         return res
 
     @classmethod
-    def from_dict(cls: Type[SSOSession], data: Dict[str, Any]) -> SSOSession:
+    def from_dict(cls: Type[SSOSession], data: Dict[str, Any], userdb: IdPUserDb) -> SSOSession:
         """ Construct element from a data dict in database format. """
 
         data = dict(data)  # to not modify callers data
         data['authn_credentials'] = [AuthnData.from_dict(x) for x in data['authn_credentials']]
         if 'external_mfa' in data and data['external_mfa'] is not None:
             data['external_mfa'] = [ExternalMfaData.from_session_dict(x) for x in data['external_mfa']]
+        if 'user_id' in data:
+            data['idp_user'] = userdb.lookup_user(data['user_id'])
+            if not data['idp_user']:
+                raise RuntimeError(f'User with id {repr(data["user_id"])} not found')
         return cls(**data)
 
     @property
@@ -118,22 +123,3 @@ class SSOSession:
         if not isinstance(authn, AuthnData):
             raise ValueError(f'data should be AuthnData (not {type(authn)})')
         self.authn_credentials += [authn]
-
-
-def from_dict(data) -> SSOSession:
-    """
-    Re-create object from serialized format (after loading it from MongoDB).
-
-    :param data: dict
-    :return: SSO session object
-
-    :type data: dict
-    :rtype: SSOSession
-    """
-    return SSOSession(
-        user_id=data['user_id'],
-        authn_request_id=data['authn_request_id'],
-        authn_credentials=data.get('authn_credentials'),
-        authn_timestamp=data['authn_timestamp'],
-        external_mfa=data.get('external_mfa'),
-    )

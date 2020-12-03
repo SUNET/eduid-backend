@@ -166,7 +166,7 @@ def read_cookie(name: str) -> Optional[str]:
     return cookie
 
 
-def set_sso_cookie(value: str, response: FlaskResponse) -> FlaskResponse:
+def set_sso_cookie(value: str, response: WerkzeugResponse) -> WerkzeugResponse:
     """
     Ask the browser to store an SSO cookie.
 
