@@ -77,7 +77,7 @@ def check_for_pending_actions(
         update = False
         for cred_key, ts in ticket.mfa_action_creds.items():
             cred = user.credentials.find(cred_key)
-            authn = AuthnData(user=user, credential=cred, timestamp=ts)
+            authn = AuthnData(cred_id=cred.key, timestamp=ts)
             sso_session.add_authn_credential(authn)
             update = True
         # eduid_action.mfa.idp.check_authn_result will have added any external mfa used to

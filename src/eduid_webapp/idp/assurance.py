@@ -39,6 +39,7 @@ from eduid_userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MF
 from eduid_userdb.idp import IdPUser
 
 from eduid_webapp.idp.idp_saml import AuthnInfo
+from eduid_webapp.idp.sso_session import SSOSession
 
 """
 Assurance Level functionality.
@@ -66,7 +67,7 @@ class MissingAuthentication(AssuranceException):
 
 
 class AuthnState(object):
-    def __init__(self, user, sso_session, logger):
+    def __init__(self, user: IdPUser, sso_session: SSOSession, logger: logging.Logger):
         """
 
         :param user:
@@ -90,11 +91,11 @@ class AuthnState(object):
         self._creds: List[Credential] = []
 
         for this in sso_session.authn_credentials:
-            cred = user.credentials.find(this['cred_id'])
+            cred = user.credentials.find(this.cred_id)
             if not cred:
-                self.logger.warning('Could not find credential {!r} on user {}'.format(this['cred_id'], user))
+                self.logger.warning(f'Could not find credential {this.cred_id} on user {user}')
                 continue
-            self.logger.debug('Adding used credential: {}'.format(cred))
+            self.logger.debug(f'Adding used credential: {cred}')
             self._creds += [cred]
             # until we can go to Python3 and have some... working type checks please
             if 'Password' in str(cred):

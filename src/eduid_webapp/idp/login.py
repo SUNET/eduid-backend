@@ -139,7 +139,7 @@ class SSO(Service):
         attributes = user.to_saml_attributes(saml_attribute_settings, current_app.logger)
         # Add a list of credentials used in a private attribute that will only be
         # released to the eduID authn component
-        attributes['eduidIdPCredentialsUsed'] = [x['cred_id'] for x in sso_session.authn_credentials]
+        attributes['eduidIdPCredentialsUsed'] = [x.cred_id for x in sso_session.authn_credentials]
         for k, v in response_authn.authn_attributes.items():
             if k in attributes:
                 current_app.logger.debug(
@@ -306,7 +306,7 @@ class SSO(Service):
             current_app.logger.debug(f'Asserting AuthnContext {resp_authn!r} (none requested)')
 
         # Augment the AuthnInfo with the authn_timestamp before returning it
-        return replace(resp_authn, instant=self.sso_session.authn_timestamp)
+        return replace(resp_authn, instant=int(self.sso_session.authn_timestamp.timestamp()))
 
     def redirect(self) -> WerkzeugResponse:
         """This is the HTTP-redirect endpoint.
@@ -373,12 +373,10 @@ class SSO(Service):
         if not self.sso_session:
             current_app.logger.debug('Force authn without session - ignoring')
             return True
-        if ticket.saml_req.request_id != self.sso_session.user_authn_request_id:
+        if ticket.saml_req.request_id != self.sso_session.authn_request_id:
             current_app.logger.debug(
-                'Forcing authentication because of ForceAuthn with '
-                'SSO session id {!r} != this requests {!r}'.format(
-                    self.sso_session.user_authn_request_id, ticket.saml_req.request_id
-                )
+                f'Forcing authentication because of ForceAuthn with SSO session id '
+                f'{self.sso_session.authn_request_id} != this requests {ticket.saml_req.request_id}'
             )
             return True
         current_app.logger.debug(
@@ -515,6 +513,8 @@ def do_verify():
         return redirect(lox)
 
     # Create SSO session
+    if authninfo.user is None:
+        raise RuntimeError('User not authenticated')
     user = authninfo.user
     current_app.logger.debug(f'User {user} authenticated OK (SAML id {repr(_ticket.saml_req.request_id)})')
     _sso_session = SSOSession(

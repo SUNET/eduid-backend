@@ -240,10 +240,7 @@ class SSOSessionCache(BaseDB):
         if not res:
             return None
 
-        # TODO: Make from_dict a classmethod on SSOSession
-        from eduid_webapp.idp.sso_session import from_dict as ssosession_from_dict
-
-        return ssosession_from_dict(res['data'])
+        return SSOSession.from_dict(res['data'])
 
     def get_sessions_for_user(self, username: str) -> List[SSOSessionId]:
         """

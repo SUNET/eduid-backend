@@ -31,16 +31,23 @@
 #
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
-import time
-from typing import Optional
+from __future__ import annotations
 
+from dataclasses import asdict, dataclass, field
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Type
+
+import bson
+
+from eduid_common.misc.timeutil import utc_now
 from eduid_common.session.logindata import ExternalMfaData
 from eduid_userdb.idp import IdPUser
 
 from eduid_webapp.idp.idp_authn import AuthnData
 
 
-class SSOSession(object):
+@dataclass
+class SSOSession:
     """
     Single Sign On sessions are used to remember a previous authentication
     performed, to avoid re-authenticating users for every Service Provider
@@ -63,66 +70,34 @@ class SSOSession(object):
     :type ts: int
     """
 
-    def __init__(self, user_id, authn_request_id, authn_credentials=None, ts=None, external_mfa=None):
-        if ts is None:
-            ts = int(time.time())
-        self._data = {
-            'user_id': user_id,
-            'authn_request_id': authn_request_id,
-            'authn_credentials': [],
-            'authn_timestamp': ts,
-            'external_mfa': None,
-        }
-        if authn_credentials is not None:
-            for x in authn_credentials:
-                if isinstance(x, dict):
-                    # reconstructing from storage
-                    self._data['authn_credentials'] += [x]
-                else:
-                    self.add_authn_credential(x)
-        if external_mfa is not None:
-            if isinstance(external_mfa, dict):
-                self._data['external_mfa'] = external_mfa
-            else:
-                self.external_mfa = external_mfa
+    user_id: bson.ObjectId
+    authn_request_id: str
+    authn_credentials: List[AuthnData]
+    external_mfa: Optional[ExternalMfaData] = None
+    authn_timestamp: datetime = field(default_factory=utc_now)
+    idp_user: Optional[IdPUser] = None  # extra info - not serialised
 
-        # Extra information not serialized
-        self._idp_user = None
+    def __str__(self):
+        return f'<{self.__class__.__name__}: uid={self.user_id}, ts={self.authn_timestamp.isoformat()}>'
 
-    def __repr__(self):
-        return '<{cl} instance at {addr}: uid={uid!s}, ts={ts!s}>'.format(
-            cl=self.__class__.__name__,
-            addr=hex(id(self)),
-            uid=str(self._data['user_id']),
-            ts=self._data['authn_timestamp'],
-        )
+    def to_dict(self) -> Dict[str, Any]:
+        """ Return the object in dict format (serialized for storing in MongoDB). """
+        res = asdict(self)
+        res['authn_credentials'] = [x.to_dict() for x in self.authn_credentials]
+        if self.external_mfa is not None:
+            res['external_mfa'] = self.external_mfa.to_session_dict()
+        del res['idp_user']
+        return res
 
-    def to_dict(self):
-        """
-        Return the object in dict format (serialized for storing in MongoDB).
-        :return: serialized object
-        :rtype: dict
-        """
-        return self._data
+    @classmethod
+    def from_dict(cls: Type[SSOSession], data: Dict[str, Any]) -> SSOSession:
+        """ Construct element from a data dict in database format. """
 
-    @property
-    def authn_timestamp(self):
-        """
-        Return the UTC UNIX timestamp for when the actual authentication took place.
-
-        :return: Authn timestamp
-        :rtype: int
-        """
-        return self._data['authn_timestamp']
-
-    @property
-    def user_id(self):
-        """
-        Return the user id (MongoDB _id) of the user for this SSO session.
-
-        :rtype: bson.ObjectId
-        """
-        return self._data['user_id']
+        data = dict(data)  # to not modify callers data
+        data['authn_credentials'] = [AuthnData.from_dict(x) for x in data['authn_credentials']]
+        if 'external_mfa' in data and data['external_mfa'] is not None:
+            data['external_mfa'] = [ExternalMfaData.from_session_dict(x) for x in data['external_mfa']]
+        return cls(**data)
 
     @property
     def public_id(self):
@@ -130,85 +105,22 @@ class SSOSession(object):
         Return a identifier for this session that can't be used to hijack sessions
         if leaked through a log file etc.
         """
-        return "{!s}.{!s}".format(str(self._data['user_id']), self._data['authn_timestamp'])
+        return f'{self.user_id}.{self.authn_timestamp.timestamp()}'
 
     @property
-    def user_authn_request_id(self):
-        """
-        Return the ID of the SAML request that caused the creation of the SSO session.
+    def minutes_old(self) -> int:
+        """ Return the age of this SSO session, in minutes. """
+        age = (utc_now() - self.authn_timestamp).total_seconds()
+        return int(age) // 60
 
-        E.g. u'id-809ecef1cd265efedef7a68708e54b84'
-        """
-        return self._data['authn_request_id']
-
-    @property
-    def idp_user(self):
-        """
-        Get the IdPUser object stored in the SSO session using set_user().
-
-        :rtype: IdPUser
-        """
-        return self._idp_user
-
-    def set_user(self, user):
-        """
-        Store the result of a userdb lookup.
-
-        :param user: User object
-
-        :type user: IdPUser
-        """
-        assert isinstance(user, IdPUser)
-        self._idp_user = user
-
-    @property
-    def minutes_old(self):
-        """
-        Return the age of this SSO session, in minutes.
-
-        :rtype: int
-        """
-        age = (int(time.time()) - self.authn_timestamp) / 60
-        return age
-
-    @property
-    def authn_credentials(self):
-        """
-        Get the data about what credentials have been used (at what time) during
-        this SSO session.
-
-        :return: Used credentials information
-        :rtype: [AuthnData]
-        """
-        return self._data['authn_credentials']
-
-    def add_authn_credential(self, data):
-        """
-        Add information about a credential successfully used in this session.
-
-        :param data: Authentication data
-        :type data: AuthnData
-        :return: None
-        """
-        if not isinstance(data, AuthnData):
-            raise ValueError('data should be AuthnData (not {})'.format(type(data)))
-        self._data['authn_credentials'] += [data.to_session_dict()]
-
-    @property
-    def external_mfa(self) -> Optional[ExternalMfaData]:
-        """
-        Get the data about any external service used for mfa.
-        """
-        if self._data['external_mfa'] is not None:
-            return ExternalMfaData.from_session_dict(self._data['external_mfa'])
-        return self._data['external_mfa']
-
-    @external_mfa.setter
-    def external_mfa(self, data: ExternalMfaData):
-        self._data['external_mfa'] = data.to_session_dict()
+    def add_authn_credential(self, authn: AuthnData) -> None:
+        """ Add information about a credential successfully used in this session. """
+        if not isinstance(authn, AuthnData):
+            raise ValueError(f'data should be AuthnData (not {type(authn)})')
+        self.authn_credentials += [authn]
 
 
-def from_dict(data):
+def from_dict(data) -> SSOSession:
     """
     Re-create object from serialized format (after loading it from MongoDB).
 
@@ -222,6 +134,6 @@ def from_dict(data):
         user_id=data['user_id'],
         authn_request_id=data['authn_request_id'],
         authn_credentials=data.get('authn_credentials'),
-        ts=data['authn_timestamp'],
+        authn_timestamp=data['authn_timestamp'],
         external_mfa=data.get('external_mfa'),
     )

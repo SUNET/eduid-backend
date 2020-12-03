@@ -105,20 +105,16 @@ class IdPApp(EduIDBaseApp):
         """
         session = self._lookup_sso_session2()
         if session:
-            session.set_user(self.userdb.lookup_user(session.user_id))
+            session.idp_user = self.userdb.lookup_user(session.user_id)
             if not session.idp_user:
                 self.logger.debug(f'No IdPUser found for user_id {session.user_id} - ignoring session')
                 return None
             self.logger.debug(f'SSO session for user {session.idp_user} found in IdP cache: {session}')
             _age = session.minutes_old
             if _age > self.config.sso_session_lifetime:
-                self.logger.debug(
-                    "SSO session expired (age {!r} minutes > {!r})".format(_age, self.config.sso_session_lifetime)
-                )
+                self.logger.debug(f'SSO session expired (age {_age} minutes > {self.config.sso_session_lifetime})')
                 return None
-            self.logger.debug(
-                "SSO session is still valid (age {!r} minutes <= {!r})".format(_age, self.config.sso_session_lifetime)
-            )
+            self.logger.debug(f'SSO session is still valid (age {_age} minutes <= {self.config.sso_session_lifetime})')
         return session
 
     def _lookup_sso_session2(self) -> Optional[SSOSession]:

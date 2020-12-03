@@ -35,7 +35,7 @@
 
 import datetime
 import logging
-from typing import Mapping, Sequence
+from typing import Mapping, Optional, Sequence
 
 import saml2.server
 import saml2.time_util
@@ -45,7 +45,7 @@ from werkzeug.exceptions import BadRequest, Forbidden
 
 from eduid_common.misc.timeutil import utc_now
 from eduid_common.session.logindata import ExternalMfaData, SSOLoginData
-from eduid_userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, U2F, Password
+from eduid_userdb.credentials import Credential, METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, U2F, Password
 from eduid_userdb.idp import IdPUser
 from eduid_userdb.nin import Nin, NinList
 
@@ -214,12 +214,12 @@ class TestSSO(SSOIdPTests):
 
     # ------------------------------------------------------------------------
 
-    def _get_login_response_authn(self, req_class_ref, credentials=[], user=None):
+    def _get_login_response_authn(self, req_class_ref: str, credentials, user: Optional[IdPUser]=None):
         if user is None:
             user = self.get_user_set_nins(self.test_user.eppn, [])
         ticket = self._make_login_ticket(req_class_ref)
 
-        sso_session_1 = SSOSession(user_id=user.eppn, authn_request_id='some-unique-id-1')
+        sso_session_1 = SSOSession(user_id=user.user_id, authn_request_id='some-unique-id-1', authn_credentials=[])
         if 'u2f' in credentials and not user.credentials.filter(U2F).to_list():
             # add a U2F credential to the user
             user.credentials.add(_U2F)
@@ -233,9 +233,11 @@ class TestSSO(SSOIdPTests):
                 sso_session_1.add_authn_credential(this)
             elif isinstance(this, ExternalMfaData):
                 sso_session_1.external_mfa = this
-            else:
-                data = AuthnData(user, this, datetime.datetime.now())
+            elif isinstance(this, Credential):
+                data = AuthnData(this.key, user=user)
                 sso_session_1.add_authn_credential(data)
+            else:
+                raise ValueError(f'Unhandled test data: {repr(this)}')
         with self.app.app_context():
             _SSO = SSO(sso_session_1)
             return _SSO._get_login_response_authn(ticket, user)

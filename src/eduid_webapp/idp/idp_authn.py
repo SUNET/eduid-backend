@@ -36,15 +36,20 @@
 Module handling authentication of users. Also applies login policies
 such as rate limiting.
 """
+from __future__ import annotations
 
-import datetime
 import logging
 import warnings
-from typing import Dict, Optional
+from dataclasses import asdict, dataclass, field
+from datetime import datetime
+from typing import Any, Dict, Optional, Sequence, Type
 
 import vccs_client
+from bson import ObjectId
+
 from eduid_common.api import exceptions
 from eduid_common.authn import get_vccs_client
+from eduid_common.misc.timeutil import utc_now
 from eduid_userdb import MongoDB
 from eduid_userdb.credentials import Credential, Password
 from eduid_userdb.exceptions import UserHasNotCompletedSignup
@@ -54,6 +59,7 @@ from eduid_userdb.idp import IdPUser
 module_logger = logging.getLogger(__name__)
 
 
+@dataclass
 class AuthnData(object):
     """
     Data about a successful authentication.
@@ -61,49 +67,20 @@ class AuthnData(object):
     Returned from functions performing authentication.
     """
 
-    def __init__(self, user, credential, timestamp):
-        self.user = user
-        self.credential = credential
-        self.timestamp = timestamp
+    cred_id: str
+    timestamp: datetime = field(default_factory=utc_now)
+    user: Optional[IdPUser] = None  # not set if object is created from database
 
-    @property
-    def user(self) -> IdPUser:
-        return self._user
+    def to_dict(self) -> Dict[str, Any]:
+        """ Return the object in dict format (serialized for storing in MongoDB). """
+        res = asdict(self)
+        del res['user']
+        return res
 
-    @user.setter
-    def user(self, value: IdPUser):
-        if not isinstance(value, IdPUser):
-            raise ValueError('Invalid user (expect IdPUser, got {})'.format(type(value)))
-        self._user = value
-
-    @property
-    def credential(self) -> Credential:
-        return self._credential
-
-    @credential.setter
-    def credential(self, value: Credential):
-        # isinstance is broken here with Python2:
-        #   ValueError: Invalid/unknown credential (got <class 'eduid_userdb.u2f.U2F'>)
-        # if not isinstance(value, Password) or isinstance(value, U2F):
-        if not hasattr(value, 'key'):
-            raise ValueError('Invalid/unknown credential (got {})'.format(type(value)))
-        self._credential = value
-
-    @property
-    def timestamp(self) -> datetime.datetime:
-        return self._timestamp
-
-    @timestamp.setter
-    def timestamp(self, value: datetime.datetime):
-        if not isinstance(value, datetime.datetime):
-            raise ValueError('Invalid timestamp (expect datetime, got {})'.format(type(value)))
-        self._timestamp = value.replace(tzinfo=None)  # thanks for not having timezone.utc, Python2
-
-    def to_session_dict(self) -> Dict:
-        return {
-            'cred_id': self.credential.key,
-            'authn_ts': self.timestamp,
-        }
+    @classmethod
+    def from_dict(cls: Type[AuthnData], data: Dict[str, Any]) -> AuthnData:
+        """ Construct element from a data dict in database format. """
+        return cls(**data)
 
 
 class IdPAuthn(object):
@@ -111,7 +88,6 @@ class IdPAuthn(object):
     :param logger: logging logger
     :param config: IdP configuration data
 
-    :type logger: logging.Logger
     :type config: IdPConfig
     """
 
@@ -156,21 +132,18 @@ class IdPAuthn(object):
         if not cred:
             return None
 
-        return AuthnData(user, cred, datetime.datetime.utcnow())
+        return AuthnData(cred_id=cred.key, user=user)
 
-    def _verify_username_and_password2(self, user, password):
+    def _verify_username_and_password2(self, user: IdPUser, password: str) -> Optional[Password]:
         """
         Attempt to verify that a password is valid for a specific user.
 
         Currently, the naive approach of looping through all the users password credentials
         is taken. This is bad because the more passwords a user has, the more likely an
         online attacker is to guess any one of them.
-        :param username: identifier given by user, probably an e-mail address or eppn
-        :param password: password given by user
+
         :return: IdPUser on successful authentication
 
-        :type user: IdPUser
-        :type password: string
         :rtype: Credential | None
         """
         pw_credentials = user.credentials.filter(Password).to_list()
@@ -197,81 +170,67 @@ class IdPAuthn(object):
 
         return self._authn_passwords(user, password, pw_credentials)
 
-    def _authn_passwords(self, user, password, pw_credentials):
+    def _authn_passwords(self, user: IdPUser, password: str, pw_credentials: Sequence[Password]) -> Optional[Password]:
         """
         Perform the final actual authentication of a user based on a list of (password) credentials.
 
         :param user: User object
         :param password: Password provided
         :param pw_credentials: Password credentials to try
-        :return: Credential used, or None if authentication failed
 
-        :type user: IdPUser
-        :type password: string
-        :type pw_credentials: [Password]
-        :rtype: Password | None
+        :return: Credential used, or None if authentication failed
         """
         for cred in pw_credentials:
             try:
                 factor = vccs_client.VCCSPasswordFactor(password, str(cred.credential_id), str(cred.salt))
             except ValueError as exc:
-                module_logger.info("User {} password factor {!s} unusable: {!r}".format(user, cred.credential_id, exc))
+                module_logger.info(f'User {user} password factor {cred.credential_id} unusable: {exc}')
                 continue
-            module_logger.debug(
-                "Password-authenticating {}/{!r} with VCCS: {!r}".format(user, str(cred.credential_id), factor)
-            )
+            module_logger.debug(f"Password-authenticating {user}/{cred.credential_id} with VCCS: {factor}")
             user_id = str(user.user_id)
             try:
                 if self.auth_client.authenticate(user_id, [factor]):
-                    module_logger.debug("VCCS authenticated user {} (user_id {!r})".format(user, user_id))
-                    # Verify that the credential had been successfully used in the last 18 monthts
+                    module_logger.debug(f'VCCS authenticated user {user}')
+                    # Verify that the credential had been successfully used in the last 18 months
                     # (Kantara AL2_CM_CSM#050).
                     if self.credential_expired(cred):
-                        module_logger.info('User {} credential {!r} has expired'.format(user, cred.key))
+                        module_logger.info(f'User {user} credential {cred.key} has expired')
                         raise exceptions.EduidForbidden('CREDENTIAL_EXPIRED')
                     self.log_authn(user, success=[cred.credential_id], failure=[])
                     return cred
             except vccs_client.VCCSClientHTTPError as exc:
                 if exc.http_code == 500:
-                    module_logger.debug("VCCS credential {!r} might be revoked".format(cred.credential_id))
+                    module_logger.debug(f'VCCS credential {cred.credential_id} might be revoked')
                     continue
-        module_logger.debug('VCCS username-password authentication FAILED for user {}'.format(user))
+        module_logger.debug(f'VCCS username-password authentication FAILED for user {user}')
         self.log_authn(user, success=[], failure=[cred.credential_id for cred in pw_credentials])
         return None
 
-    def credential_expired(self, cred):
+    def credential_expired(self, cred: Password) -> bool:
         """
         Check that a credential hasn't been unused for too long according to Kantara AL2_CM_CSM#050.
         :param cred: Authentication credential
-
-        :type cred: Password
-        :rtype: bool
         """
         if not self.authn_store:  # requires optional configuration
-            module_logger.debug("Can't check if credential {!r} is expired, no authn_store available".format(cred.key))
+            module_logger.debug(f"Can't check if credential {cred.key} is expired, no authn_store available")
             return False
         last_used = self.authn_store.get_credential_last_used(cred.credential_id)
         if last_used is None:
             # Can't disallow this while there is a short-path from signup to dashboard unforch...
             module_logger.debug('Allowing never-used credential {!r}'.format(cred))
             return False
-        now = datetime.datetime.utcnow().replace(tzinfo=None)  # thanks for not having timezone.utc, Python2
-        delta = now - last_used.replace(tzinfo=None)
-        module_logger.debug("Credential {} last used {!r} days ago".format(cred.key, delta.days))
+        now = utc_now()
+        delta = now - last_used
+        module_logger.debug(f'Credential {cred.key} last used {delta.days} days ago')
         return delta.days >= int(365 * 1.5)
 
-    def log_authn(self, user, success, failure):
+    def log_authn(self, user: IdPUser, success: Sequence[ObjectId], failure: Sequence[ObjectId]) -> None:
         """
         Log user authn success as well as failures.
 
         :param user: User
         :param success: List of successfully authenticated credentials
         :param failure: List of failed credentials
-
-        :type user: IdPUser
-        :type success: [bson.ObjectId()]
-        :type failure: [bson.ObjectId()]
-        :rtype: None
         """
         if not self.authn_store:  # requires optional configuration
             return None
@@ -311,7 +270,7 @@ class AuthnInfoStoreMDB(AuthnInfoStore):
         Kantara AL2_CM_CSM#050 requires that any credential that is not used for
         a period of 18 months is disabled (taken to mean revoked).
 
-        Therefor we need to log all successful authentications and have a cron
+        Therefore we need to log all successful authentications and have a cron
         job handling the revoking of unused credentials.
 
         :param cred_ids: List of Credential ID
@@ -322,10 +281,10 @@ class AuthnInfoStoreMDB(AuthnInfoStore):
         :type cred_ids: [bson.ObjectId]
         """
         if ts is None:
-            ts = datetime.datetime.utcnow()
-        # Update all existing entrys in one go would've been nice, but pymongo does not
+            ts = utc_now()
+        # Update all existing entries in one go would've been nice, but pymongo does not
         # return meaningful data for multi=True, so it is not possible to figure out
-        # which entrys were actually updated :(
+        # which entries were actually updated :(
         for this in cred_ids:
             self.collection.save({'_id': this, 'success_ts': ts,},)
         return None
@@ -358,7 +317,7 @@ class AuthnInfoStoreMDB(AuthnInfoStore):
         :type ts: datetime.datetime() | None
         """
         if ts is None:
-            ts = datetime.datetime.utcnow()
+            ts = utc_now()
         this_month = (ts.year * 100) + ts.month  # format year-month as integer (e.g. 201402)
         self.collection.find_and_modify(
             query={'_id': user_id,},
@@ -392,7 +351,7 @@ class AuthnInfoStoreMDB(AuthnInfoStore):
         :return: None
         """
         if ts is None:
-            ts = datetime.datetime.utcnow()
+            ts = utc_now()
         this_month = (ts.year * 100) + ts.month  # format year-month as integer (e.g. 201402)
         self.collection.find_and_modify(
             query={'_id': user_id,},
@@ -453,7 +412,7 @@ class UserAuthnInfo(object):
         :rtype: int
         """
         if ts is None:
-            ts = datetime.datetime.utcnow()
+            ts = utc_now()
         this_month = (ts.year * 100) + ts.month  # format year-month as integer (e.g. 201402)
         return self._data.get('fail_count', {}).get(str(this_month), 0)
 
