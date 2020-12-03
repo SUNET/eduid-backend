@@ -56,10 +56,10 @@ class EduidTemporaryInstance(ABC):
         self._conn: Optional[Any] = None  # self._conn should be initialised by subclasses in `setup_conn'
         self._tmpdir = tempfile.mkdtemp()
         self._port = random.randint(40000, 65535)
-        self._logfile = f'/tmp/{self.__class__.__name__}-{self.port}.log'
+        self._logfile = open(f'/tmp/{self.__class__.__name__}-{self.port}.log', 'wb')
 
         start_time = utc_now()
-        self._process = subprocess.Popen(self.command, stdout=open(self._logfile, 'wb'), stderr=subprocess.STDOUT)
+        self._process = subprocess.Popen(self.command, stdout=self._logfile, stderr=subprocess.STDOUT)
 
         interval = 0.2
         count = 0
@@ -128,7 +128,7 @@ class EduidTemporaryInstance(ABC):
 
     @property
     def output(self) -> str:
-        with open(self._logfile, 'r') as fd:
+        with open(self._logfile.name, 'r') as fd:
             _output = ''.join(fd.readlines())
         return _output
 
@@ -138,4 +138,5 @@ class EduidTemporaryInstance(ABC):
             self._process.terminate()
             self._process.wait()
             self._process = None
+        self._logfile.close()
         shutil.rmtree(self._tmpdir, ignore_errors=True)
