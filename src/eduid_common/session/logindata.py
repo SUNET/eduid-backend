@@ -4,12 +4,15 @@ import pprint
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from html import escape
-from typing import Dict, Mapping, Optional, Type
+from typing import Dict, Mapping, Optional, TYPE_CHECKING, Type
 from urllib.parse import urlencode
 
 from eduid_userdb.credentials import Credential
 
 from eduid_common.session.namespaces import SessionNSBase
+
+if TYPE_CHECKING:
+    from eduid_webapp.idp.idp_saml import IdP_SAMLRequest
 
 #
 # Copyright (c) 2013, 2014, 2016 NORDUnet A/S. All rights reserved.
@@ -64,7 +67,8 @@ class SSOLoginData(SessionNSBase):
     FailCount: int = 0
 
     # saml request object
-    saml_req: 'IdP_SAMLRequest' = field(init=False, repr=False)  # eduid-common can't import from eduid-webapp
+    # eduid-common can't import from eduid-webapp
+    saml_req: 'IdP_SAMLRequest' = field(init=False, repr=False)
 
     # query string
     query_string: str = field(init=False, repr=False)
