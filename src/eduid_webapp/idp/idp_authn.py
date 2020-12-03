@@ -46,14 +46,15 @@ from typing import Any, Dict, List, Optional, Sequence, Type
 
 from bson import ObjectId
 
-import vccs_client
 from eduid_common.api import exceptions
 from eduid_common.authn import get_vccs_client
+from eduid_common.config.idp import IdPConfig
 from eduid_common.misc.timeutil import utc_now
 from eduid_userdb import MongoDB
 from eduid_userdb.credentials import Credential, Password
 from eduid_userdb.exceptions import UserHasNotCompletedSignup
-from eduid_userdb.idp import IdPUser
+from eduid_userdb.idp import IdPUser, IdPUserDb
+from vccs_client import VCCSClient, VCCSClientHTTPError, VCCSPasswordFactor
 
 # TODO: Rename to logger
 module_logger = logging.getLogger(__name__)
@@ -85,27 +86,22 @@ class AuthnData(object):
 
 class IdPAuthn(object):
     """
-    :param logger: logging logger
     :param config: IdP configuration data
 
     :type config: IdPConfig
     """
 
-    def __init__(self, logger: Optional[logging.Logger], config, userdb, auth_client=None, authn_store=None):
-        self.logger = logger
+    def __init__(
+        self,
+        config: IdPConfig,
+        userdb: IdPUserDb,
+    ):
         self.config = config
         self.userdb = userdb
-        self.auth_client = auth_client
-        if self.auth_client is None:
-            self.auth_client = get_vccs_client(config.vccs_url)
-        self.authn_store = authn_store
-        if self.authn_store is None and config.mongo_uri:
-            self.authn_store = AuthnInfoStore(uri=config.mongo_uri)
+        self.auth_client = get_vccs_client(config.vccs_url)
+        self.authn_store = AuthnInfoStore(uri=config.mongo_uri)
 
-        if self.logger is not None:
-            warnings.warn('Object logger deprecated, using module_logger', DeprecationWarning)
-
-    def password_authn(self, data: dict) -> Optional[AuthnData]:
+    def password_authn(self, data: Dict[str, Any]) -> Optional[AuthnData]:
         """
         Authenticate someone using a username and password.
 
@@ -182,7 +178,7 @@ class IdPAuthn(object):
         """
         for cred in pw_credentials:
             try:
-                factor = vccs_client.VCCSPasswordFactor(password, str(cred.credential_id), str(cred.salt))
+                factor = VCCSPasswordFactor(password, str(cred.credential_id), str(cred.salt))
             except ValueError as exc:
                 module_logger.info(f'User {user} password factor {cred.credential_id} unusable: {exc}')
                 continue
@@ -198,7 +194,7 @@ class IdPAuthn(object):
                         raise exceptions.EduidForbidden('CREDENTIAL_EXPIRED')
                     self.log_authn(user, success=[cred.credential_id], failure=[])
                     return cred
-            except vccs_client.VCCSClientHTTPError as exc:
+            except VCCSClientHTTPError as exc:
                 if exc.http_code == 500:
                     module_logger.debug(f'VCCS credential {cred.credential_id} might be revoked')
                     continue
@@ -241,7 +237,7 @@ class IdPAuthn(object):
         return None
 
 
-class AuthnInfoStore(object):
+class AuthnInfoStore:
     """
     In this database, information about users have ObjectId _id's corresponding to user.user_id,
     and information about credentials have string _id's.

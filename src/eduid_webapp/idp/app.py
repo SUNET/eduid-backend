@@ -91,7 +91,7 @@ class IdPApp(EduIDBaseApp):
             # This is used in tests at least
             userdb = IdPUserDb(logger=None, mongo_uri=self.config.mongo_uri, db_name=self.config.userdb_mongo_database)
         self.userdb = userdb
-        self.authn = idp_authn.IdPAuthn(logger=None, config=self.config, userdb=self.userdb)
+        self.authn = idp_authn.IdPAuthn(config=self.config, userdb=self.userdb)
         self.logger.info('eduid-IdP application started')
 
     def _lookup_sso_session(self) -> Optional[SSOSession]:
