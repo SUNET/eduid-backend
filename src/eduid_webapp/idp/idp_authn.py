@@ -39,7 +39,6 @@ such as rate limiting.
 from __future__ import annotations
 
 import logging
-import warnings
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Sequence, Type
@@ -54,10 +53,9 @@ from eduid_userdb import MongoDB
 from eduid_userdb.credentials import Credential, Password
 from eduid_userdb.exceptions import UserHasNotCompletedSignup
 from eduid_userdb.idp import IdPUser, IdPUserDb
-from vccs_client import VCCSClient, VCCSClientHTTPError, VCCSPasswordFactor
+from vccs_client import VCCSClientHTTPError, VCCSPasswordFactor
 
-# TODO: Rename to logger
-module_logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -92,9 +90,7 @@ class IdPAuthn(object):
     """
 
     def __init__(
-        self,
-        config: IdPConfig,
-        userdb: IdPUserDb,
+        self, config: IdPConfig, userdb: IdPUserDb,
     ):
         self.config = config
         self.userdb = userdb
@@ -118,11 +114,11 @@ class IdPAuthn(object):
             # XXX Redirect user to some kind of info page
             return None
         if not user:
-            module_logger.info('Unknown user : {!r}'.format(username))
+            logger.info('Unknown user : {!r}'.format(username))
             # XXX we effectively disclose there was no such user by the quick
             # response in this case. Maybe send bogus auth request to backends?
             return None
-        module_logger.debug(f'Found user {user}')
+        logger.debug(f'Found user {user}')
 
         cred = self._verify_username_and_password2(user, password)
         if not cred:
@@ -146,7 +142,7 @@ class IdPAuthn(object):
         if self.authn_store:  # requires optional configuration
             authn_info = self.authn_store.get_user_authn_info(user)
             if authn_info.failures_this_month > self.config.max_authn_failures_per_month:
-                module_logger.info(
+                logger.info(
                     "User {!r} AuthN failures this month {!r} > {!r}".format(
                         user, authn_info.failures_this_month, self.config.max_authn_failures_per_month
                     )
@@ -159,7 +155,7 @@ class IdPAuthn(object):
             last_creds = authn_info.last_used_credentials
             sorted_creds = sorted(pw_credentials, key=lambda x: x.credential_id not in last_creds)
             if sorted_creds != pw_credentials:
-                module_logger.debug(
+                logger.debug(
                     "Re-sorted list of credentials into\n{}\nbased on last-used {!r}".format(sorted_creds, last_creds)
                 )
                 pw_credentials = sorted_creds
@@ -180,25 +176,25 @@ class IdPAuthn(object):
             try:
                 factor = VCCSPasswordFactor(password, str(cred.credential_id), str(cred.salt))
             except ValueError as exc:
-                module_logger.info(f'User {user} password factor {cred.credential_id} unusable: {exc}')
+                logger.info(f'User {user} password factor {cred.credential_id} unusable: {exc}')
                 continue
-            module_logger.debug(f"Password-authenticating {user}/{cred.credential_id} with VCCS: {factor}")
+            logger.debug(f"Password-authenticating {user}/{cred.credential_id} with VCCS: {factor}")
             user_id = str(user.user_id)
             try:
                 if self.auth_client.authenticate(user_id, [factor]):
-                    module_logger.debug(f'VCCS authenticated user {user}')
+                    logger.debug(f'VCCS authenticated user {user}')
                     # Verify that the credential had been successfully used in the last 18 months
                     # (Kantara AL2_CM_CSM#050).
                     if self.credential_expired(cred):
-                        module_logger.info(f'User {user} credential {cred.key} has expired')
+                        logger.info(f'User {user} credential {cred.key} has expired')
                         raise exceptions.EduidForbidden('CREDENTIAL_EXPIRED')
                     self.log_authn(user, success=[cred.credential_id], failure=[])
                     return cred
             except VCCSClientHTTPError as exc:
                 if exc.http_code == 500:
-                    module_logger.debug(f'VCCS credential {cred.credential_id} might be revoked')
+                    logger.debug(f'VCCS credential {cred.credential_id} might be revoked')
                     continue
-        module_logger.debug(f'VCCS username-password authentication FAILED for user {user}')
+        logger.debug(f'VCCS username-password authentication FAILED for user {user}')
         self.log_authn(user, success=[], failure=[cred.credential_id for cred in pw_credentials])
         return None
 
@@ -208,16 +204,16 @@ class IdPAuthn(object):
         :param cred: Authentication credential
         """
         if not self.authn_store:  # requires optional configuration
-            module_logger.debug(f"Can't check if credential {cred.key} is expired, no authn_store available")
+            logger.debug(f"Can't check if credential {cred.key} is expired, no authn_store available")
             return False
         last_used = self.authn_store.get_credential_last_used(cred.credential_id)
         if last_used is None:
             # Can't disallow this while there is a short-path from signup to dashboard unforch...
-            module_logger.debug('Allowing never-used credential {!r}'.format(cred))
+            logger.debug('Allowing never-used credential {!r}'.format(cred))
             return False
         now = utc_now()
         delta = now - last_used
-        module_logger.debug(f'Credential {cred.key} last used {delta.days} days ago')
+        logger.debug(f'Credential {cred.key} last used {delta.days} days ago')
         return delta.days >= int(365 * 1.5)
 
     def log_authn(self, user: IdPUser, success: Sequence[str], failure: Sequence[str]) -> None:
@@ -269,7 +265,7 @@ class AuthnInfoStore:
     """
 
     def __init__(self, uri: str, db_name: str = 'eduid_idp_authninfo', collection_name: str = 'authn_info'):
-        module_logger.debug("Setting up AuthnInfoStoreMDB")
+        logger.debug("Setting up AuthnInfoStoreMDB")
         self._db = MongoDB(db_uri=uri, db_name=db_name)
         self.collection = self._db.get_collection(collection_name)
 
