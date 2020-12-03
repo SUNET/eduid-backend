@@ -13,7 +13,6 @@ class TestIdpUser(TestCase):
         super().setUp()
         self.idp_config = {
             'default_eppn_scope': 'example.com',
-            'default_scoped_affiliation': 'affiliate@example.com',
             'default_country_code': 'se',
             'default_country': 'Sweden',
         }
