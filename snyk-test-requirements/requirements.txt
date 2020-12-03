@@ -1,6 +1,6 @@
 --index-url https://pypi.sunet.se/simple/
 eduid-am>=0.7.9
-eduid-common[webapp]>=0.21.0,==0.21.*
+eduid-common[webapp]>=0.22.0,==0.22.*
 eduid-msg>=0.10.3b0
 eduid-userdb>=0.8.1,==0.8.*
 eduid_lookup_mobile>=0.0.6b3

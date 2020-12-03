@@ -134,7 +134,6 @@ class SSO(Service):
             default_eppn_scope=current_app.config.default_eppn_scope,
             default_country=current_app.config.default_country,
             default_country_code=current_app.config.default_country_code,
-            default_scoped_affiliation=current_app.config.default_scoped_affiliation,
         )
         attributes = user.to_saml_attributes(saml_attribute_settings, current_app.logger)
         # Add a list of credentials used in a private attribute that will only be
