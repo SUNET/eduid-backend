@@ -4,15 +4,14 @@ import json
 import logging
 import os
 from collections.abc import MutableMapping
-from dataclasses import asdict
 from time import time
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Optional
 
 from flask import Request as FlaskRequest
 from flask import Response as FlaskResponse
 from flask.sessions import SessionInterface, SessionMixin
 
-from eduid_common.config.base import FlaskConfig, RedisConfig
+from eduid_common.config.base import FlaskConfig
 from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.session.logindata import SSOLoginData
 from eduid_common.session.meta import SessionMeta
