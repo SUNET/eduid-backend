@@ -152,7 +152,12 @@ class IdP_SAMLRequest(object):
 
     @property
     def force_authn(self) -> Optional[bool]:
-        return self._req_info.message.force_authn
+        _res = self._req_info.message.force_authn
+        if _res is None:
+            return False
+        if not isinstance(_res, str):
+            raise ValueError(f'Unknown force authn type ({type(_res)})')
+        return _res.lower() == 'true'
 
     @property
     def request_id(self) -> str:
