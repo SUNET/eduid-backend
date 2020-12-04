@@ -365,7 +365,10 @@ class AuthnInfoStore:
         data = self.collection.find({'_id': cred_id})
         if not data.count():
             return None
-        return data[0]['success_ts']
+        _success_ts = data[0]['success_ts']
+        if not isinstance(_success_ts, datetime):
+            raise ValueError(f'success_ts is not a datetime ({repr(_success_ts)})')
+        return _success_ts
 
 
 @dataclass(frozen=True)
