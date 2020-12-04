@@ -13,7 +13,7 @@
 Common code for SSO login/logout requests.
 """
 from abc import ABC
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from flask import request
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -30,7 +30,7 @@ class Service(ABC):
     :param session: SSO session
     """
 
-    def __init__(self, sso_session: SSOSession):
+    def __init__(self, sso_session: Optional[SSOSession]):
         self.sso_session = sso_session
 
     def unpack_redirect(self) -> Dict[str, str]:

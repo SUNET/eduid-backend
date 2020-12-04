@@ -67,12 +67,9 @@ class MustAuthenticate(Exception):
 class SSO(Service):
     """
     Single Sign On service.
-
-    :param sso_session: SSO session
-    :param context: IdP context
     """
 
-    def __init__(self, sso_session: SSOSession):
+    def __init__(self, sso_session: Optional[SSOSession]):
         super().__init__(sso_session)
 
     def perform_login(self, ticket: SSOLoginData) -> WerkzeugResponse:
@@ -279,6 +276,9 @@ class SSO(Service):
         :param user: The user for whom the assertion will be made
         :return: Authn information
         """
+        # already checked with isinstance in perform_login() - we just need to convince mypy
+        assert self.sso_session
+
         if current_app.config.debug:
             current_app.logger.debug(f'MFA credentials logged in the ticket: {ticket.mfa_action_creds}')
             current_app.logger.debug(f'External MFA credential logged in the ticket: {ticket.mfa_action_external}')
