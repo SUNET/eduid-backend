@@ -74,6 +74,8 @@ class IdPApp(EduIDBaseApp):
         if self.config.sso_session_mongo_uri:
             self.logger.info('Config parameter sso_session_mongo_uri ignored. Used mongo_uri instead.')
 
+        if self.config.mongo_uri is None:
+            raise RuntimeError('Mongo URI is not optional for the IdP')
         _session_ttl = self.config.sso_session_lifetime * 60
         self.sso_sessions = SSOSessionCache(self.config.mongo_uri, ttl=_session_ttl)
 
