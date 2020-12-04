@@ -129,17 +129,26 @@ class IdP_SAMLRequest(object):
         TODO: Don't just return the first one, but the most relevant somehow.
         """
         if self.raw_requested_authn_context:
-            return self.raw_requested_authn_context.authn_context_class_ref[0].text
+            _res = self.raw_requested_authn_context.authn_context_class_ref[0].text
+            if not isinstance(_res, str):
+                raise ValueError(f'Unknown class_ref text type ({type(_res)})')
+            return _res
         return None
 
     @property
     def raw_sp_entity_id(self) -> Issuer:
-        return self._req_info.message.issuer
+        _res = self._req_info.message.issuer
+        if not isinstance(_res, Issuer):
+            raise ValueError(f'Unknown issuer type ({type(_res)})')
+        return _res
 
     @property
     def sp_entity_id(self) -> str:
         """The entity ID of the service provider as a string."""
-        return self.raw_sp_entity_id.text
+        _res = self.raw_sp_entity_id.text
+        if not isinstance(_res, str):
+            raise ValueError(f'Unknown SP entity id type ({type(_res)})')
+        return _res
 
     @property
     def force_authn(self) -> Optional[bool]:
@@ -147,31 +156,52 @@ class IdP_SAMLRequest(object):
 
     @property
     def request_id(self) -> str:
-        return self._req_info.message.id
+        _res = self._req_info.message.id
+        if not isinstance(_res, str):
+            raise ValueError(f'Unknown request id type ({type(_res)})')
+        return _res
 
     @property
-    def sp_entity_attributes(self) -> Mapping:
+    def sp_entity_attributes(self) -> Mapping[str, Any]:
         """Return the entity attributes for the SP that made the request from the metadata."""
+        res: Dict[str, Any] = {}
         try:
-            return self._idp.metadata.entity_attributes(self.sp_entity_id)
+            _attrs = self._idp.metadata.entity_attributes(self.sp_entity_id)
+            for k, v in _attrs:
+                if not isinstance(k, str):
+                    raise ValueError(f'Unknown entity attribute type ({type(k)})')
+                _attrs[k] = v
         except KeyError:
             return {}
+        return res
 
     @property
     def sp_digest_algs(self) -> List[str]:
         """Return the best signing algorithm that both the IdP and SP supports"""
+        res: List[str] = []
         try:
-            return self._idp.metadata.supported_algorithms(self.sp_entity_id)['digest_methods']
+            _algs = self._idp.metadata.supported_algorithms(self.sp_entity_id)['digest_methods']
+            for this in _algs:
+                if not isinstance(this, str):
+                    raise ValueError(f'Unknown digest_methods type ({type(this)})')
+                res += [this]
         except KeyError:
             return []
+        return res
 
     @property
     def sp_sign_algs(self) -> List[str]:
         """Return the best signing algorithm that both the IdP and SP supports"""
+        res: List[str] = []
         try:
-            return self._idp.metadata.supported_algorithms(self.sp_entity_id)['signing_methods']
+            _algs = self._idp.metadata.supported_algorithms(self.sp_entity_id)['signing_methods']
+            for this in _algs:
+                if not isinstance(this, str):
+                    raise ValueError(f'Unknown signing_methods type ({type(this)})')
+                res += [this]
         except KeyError:
             return []
+        return res
 
     def get_response_args(self, bad_request: Type[HTTPException], key: str) -> ResponseArgs:
         try:
@@ -205,6 +235,8 @@ class IdP_SAMLRequest(object):
         saml_response = self._idp.create_authn_response(
             attributes, userid=userid, authn=authn, sign_response=True, **resp_args
         )
+        if not isinstance(saml_response, str):
+            raise ValueError(f'Unknown saml_response type ({type(saml_response)})')
         return SamlResponse(saml_response)
 
     def apply_binding(self, resp_args: ResponseArgs, relay_state: str, saml_response: SamlResponse):
