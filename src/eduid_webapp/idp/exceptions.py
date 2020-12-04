@@ -33,7 +33,7 @@ def init_exception_handlers(app: 'IdPApp') -> 'IdPApp':
 
         response.data = render_template(template, **context)
 
-        if 'USER_TERMINATED' in error.description:
+        if error.description is not None and 'USER_TERMINATED' in error.description:
             # Delete the SSO session cookie in the browser
             response.delete_cookie(
                 key=app.config.sso_cookie.key, path=app.config.sso_cookie.path, domain=app.config.sso_cookie.domain,
@@ -53,8 +53,10 @@ def _get_error_template(status_code: Optional[int], message: Optional[str]) -> s
         429: 'toomany.jinja2',
         440: 'session_timeout.jinja2',
     }
-    res = pages.get(status_code)
-    if status_code == 403:
+    res = None
+    if status_code is not None:
+        res = pages.get(status_code)
+    if status_code == 403 and message is not None:
         if 'CREDENTIAL_EXPIRED' in message:
             res = 'credential_expired.jinja2'
         elif 'SWAMID_MFA_REQUIRED' in message:
