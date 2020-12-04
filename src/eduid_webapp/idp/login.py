@@ -42,6 +42,7 @@ from eduid_webapp.idp.idp_saml import (
     IdP_SAMLRequest,
     ResponseArgs,
     SAMLParseError,
+    SamlResponse,
     SAMLValidationError,
     gen_key,
 )
@@ -106,7 +107,7 @@ class SSO(Service):
 
         binding_out = resp_args['binding_out']
         destination = resp_args['destination']
-        http_args = ticket.saml_req.apply_binding(resp_args, ticket.RelayState, str(saml_response))
+        http_args = ticket.saml_req.apply_binding(resp_args, ticket.RelayState, saml_response)
 
         # INFO-Log the SSO session id and the AL and destination
         current_app.logger.info(f'{ticket.key}: response authn={response_authn}, dst={destination}')
@@ -119,8 +120,13 @@ class SSO(Service):
         return mischttp.create_html_response(binding_out, http_args)
 
     def _make_saml_response(
-        self, response_authn: AuthnInfo, resp_args: ResponseArgs, user: IdPUser, ticket: SSOLoginData, sso_session
-    ):
+        self,
+        response_authn: AuthnInfo,
+        resp_args: ResponseArgs,
+        user: IdPUser,
+        ticket: SSOLoginData,
+        sso_session: SSOSession,
+    ) -> SamlResponse:
         """
         Create the SAML response using pysaml2 create_authn_response().
 
