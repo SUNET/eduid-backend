@@ -131,7 +131,8 @@ class IdPApp(EduIDBaseApp):
 
             if session.idp.sso_cookie_val is not None:
                 self.logger.debug('Found potential sso_cookie_val in the eduID session')
-                _other_sso = self.sso_sessions.get_session(session.idp.sso_cookie_val, self.userdb)
+                _other_session_id = SSOSessionId(session.idp.sso_cookie_val.encode('ascii'))
+                _other_sso = self.sso_sessions.get_session(_other_session_id, self.userdb)
                 if _other_sso is not None:
                     # Debug issues with browsers not returning updated SSO cookie values.
                     # Only log partial cookie value since it allows impersonation if leaked.
