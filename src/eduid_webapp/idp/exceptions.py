@@ -19,7 +19,7 @@ def init_exception_handlers(app: 'IdPApp') -> 'IdPApp':
         response = error.get_response()
 
         context = get_default_template_arguments(app.config)
-        context['error_code'] = error.code
+        context['error_code'] = str(error.code)
 
         messages = {
             'SAML_UNKNOWN_SP': 'SAML error: Unknown Service Provider',
