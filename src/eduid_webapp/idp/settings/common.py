@@ -149,7 +149,7 @@ class IdPConfig(FlaskConfig):
         default_factory=lambda: ['http://www.w3.org/2001/04/xmldsig-more#rsa-sha256']
     )
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         # Convert sso_cookie from dict to the proper dataclass
         if isinstance(self.sso_cookie, dict):

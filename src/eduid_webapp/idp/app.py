@@ -53,7 +53,7 @@ __author__ = 'ft'
 
 
 class IdPApp(EduIDBaseApp):
-    def __init__(self, name: str, config: Dict[str, Any], userdb: Optional[Any] = None, **kwargs):
+    def __init__(self, name: str, config: Dict[str, Any], userdb: Optional[Any] = None, **kwargs: Any) -> None:
         # Initialise type of self.config before any parent class sets a precedent to mypy
         self.config = IdPConfig.init_config(ns='webapp', app_name=name, test_config=config)
         super().__init__(name, **kwargs)
