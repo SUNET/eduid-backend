@@ -212,13 +212,12 @@ class SSO(Service):
                     ticket.key, attrs['ID'], attrs['InResponseTo'], assertion.get('ID')
                 )
             )
-
-            return DefusedElementTree.tostring(xml)
         except Exception as exc:
             current_app.logger.debug(f'Could not parse message as XML: {exc!r}')
             if not printed:
                 # Fall back to logging the whole response
                 current_app.logger.info(f'{ticket.key}: authn response: {saml_response}')
+        return None
 
     def _fticks_log(self, relying_party: str, authn_method: str, user_id: str) -> None:
         """
