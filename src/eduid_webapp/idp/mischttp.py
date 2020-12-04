@@ -12,10 +12,11 @@
 """
 Miscellaneous HTTP related functions.
 """
+from __future__ import annotations
 
 import pprint
 from dataclasses import dataclass
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Type, Union
 
 from flask import Response as FlaskResponse
 from flask import make_response, redirect, request
@@ -95,9 +96,11 @@ def create_html_response(binding: str, http_args: Dict[str, Union[str, List[Tupl
                 current_app.logger.warning(f'There is another "url" in args: {args.url} (location: {location})')
         return redirect(location)
 
-    message = args.body
-    if not isinstance(message, bytes):
-        message = bytes(message, 'utf-8')
+    message = b''
+    if isinstance(args.body, bytes):
+        message = args.body
+    elif args.body is not None:
+        message = bytes(args.body, 'utf-8')
 
     response = make_response(message)
     for k, v in args.headers:
