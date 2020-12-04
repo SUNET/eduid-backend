@@ -6,13 +6,13 @@ from typing import Any, AnyStr, Dict, List, Mapping, NewType, Optional, Type
 
 import saml2.server
 import six
-
-from eduid_webapp.idp.mischttp import HttpArgs
 from saml2.s_utils import UnknownPrincipal, UnknownSystemEntity, UnravelError, UnsupportedBinding
 from saml2.saml import Issuer
 from saml2.samlp import RequestedAuthnContext
 from saml2.sigver import verify_redirect_signature
 from werkzeug.exceptions import HTTPException
+
+from eduid_webapp.idp.mischttp import HttpArgs
 
 ResponseArgs = NewType('ResponseArgs', Dict[str, Any])
 
