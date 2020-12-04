@@ -61,7 +61,6 @@ def maybe_xml_to_string(message: Union[str, bytes]) -> str:
     if isinstance(message, bytes):
         # message is returned as binary from pysaml2 in python3
         message = message.decode('utf-8')
-    message = str(message)
     try:
         from defusedxml import ElementTree as DefusedElementTree
 
