@@ -94,6 +94,8 @@ class IdPAuthn(object):
         self.config = config
         self.userdb = userdb
         self.auth_client = get_vccs_client(config.vccs_url)
+        # already checked with isinstance in app init
+        assert config.mongo_uri is not None
         self.authn_store = AuthnInfoStore(uri=config.mongo_uri)
 
     def password_authn(self, data: Dict[str, Any]) -> Optional[AuthnData]:
@@ -264,7 +266,7 @@ class AuthnInfoStore:
     """
 
     def __init__(self, uri: str, db_name: str = 'eduid_idp_authninfo', collection_name: str = 'authn_info'):
-        logger.debug("Setting up AuthnInfoStoreMDB")
+        logger.debug('Setting up AuthnInfoStore')
         self._db = MongoDB(db_uri=uri, db_name=db_name)
         self.collection = self._db.get_collection(collection_name)
 
