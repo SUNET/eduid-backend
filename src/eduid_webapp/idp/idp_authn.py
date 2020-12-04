@@ -85,8 +85,6 @@ class AuthnData(object):
 class IdPAuthn(object):
     """
     :param config: IdP configuration data
-
-    :type config: IdPConfig
     """
 
     def __init__(

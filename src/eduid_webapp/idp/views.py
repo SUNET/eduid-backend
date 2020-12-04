@@ -50,7 +50,7 @@ def index() -> WerkzeugResponse:
 
 
 @idp_views.route('/sso/post', methods=['POST'])
-def sso_post(*_args, **_kwargs):
+def sso_post() -> WerkzeugResponse:
     current_app.logger.debug('\n\n')
     current_app.logger.debug(f'--- SingleSignOn POST: {request.path} ---')
     sso_session = current_app._lookup_sso_session()
@@ -58,7 +58,7 @@ def sso_post(*_args, **_kwargs):
 
 
 @idp_views.route('/sso/redirect', methods=['GET'])
-def sso_redirect(*_args, **_kwargs):
+def sso_redirect() -> WerkzeugResponse:
     current_app.logger.debug('\n\n')
     current_app.logger.debug(f'--- SingleSignOn REDIRECT: {request.path} ---')
     sso_session = current_app._lookup_sso_session()
@@ -66,7 +66,7 @@ def sso_redirect(*_args, **_kwargs):
 
 
 @idp_views.route('/slo/post', methods=['POST'])
-def slo_post(*_args, **_kwargs):
+def slo_post() -> WerkzeugResponse:
     current_app.logger.debug('\n\n')
     current_app.logger.debug(f'--- SingleLogOut POST: {request.path} ---')
     sso_session = current_app._lookup_sso_session()
@@ -74,7 +74,7 @@ def slo_post(*_args, **_kwargs):
 
 
 @idp_views.route('/slo/soap', methods=['POST'])
-def slo_soap(*_args, **_kwargs):
+def slo_soap() -> WerkzeugResponse:
     current_app.logger.debug('\n\n')
     current_app.logger.debug(f'--- SingleLogOut SOAP: {request.path} ---')
     sso_session = current_app._lookup_sso_session()
@@ -82,7 +82,7 @@ def slo_soap(*_args, **_kwargs):
 
 
 @idp_views.route('/slo/redirect', methods=['GET'])
-def slo_redirect(*_args, **_kwargs):
+def slo_redirect() -> WerkzeugResponse:
     current_app.logger.debug('\n\n')
     current_app.logger.debug(f'--- SingleLogOut REDIRECT: {request.path} ---')
     slo_session = current_app._lookup_sso_session()
@@ -90,7 +90,7 @@ def slo_redirect(*_args, **_kwargs):
 
 
 @idp_views.route('/verify', methods=['POST'])
-def verify(*_args, **_kwargs):
+def verify() -> WerkzeugResponse:
     current_app.logger.debug('\n\n')
     current_app.logger.debug("--- Verify ---")
     if current_app._lookup_sso_session():

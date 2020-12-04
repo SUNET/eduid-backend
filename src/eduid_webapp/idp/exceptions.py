@@ -1,14 +1,20 @@
+from typing import TYPE_CHECKING, Optional
+
 from flask import render_template
 from werkzeug.exceptions import HTTPException
+from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid_webapp.idp.mischttp import get_default_template_arguments
 
+if TYPE_CHECKING:
+    from app import IdPApp
 
-def init_exception_handlers(app):
+
+def init_exception_handlers(app: 'IdPApp') -> 'IdPApp':
 
     # Init error handler for raised exceptions
     @app.errorhandler(HTTPException)
-    def _handle_flask_http_exception(error):
+    def _handle_flask_http_exception(error: HTTPException) -> WerkzeugResponse:
         app.logger.error(f'IdP HTTPException {error}')
         response = error.get_response()
 
@@ -38,7 +44,7 @@ def init_exception_handlers(app):
     return app
 
 
-def _get_error_template(status_code: int, message: str) -> str:
+def _get_error_template(status_code: Optional[int], message: Optional[str]) -> str:
     pages = {
         400: 'bad_request.jinja2',
         401: 'unauthorized.jinja2',

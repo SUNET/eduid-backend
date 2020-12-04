@@ -128,7 +128,7 @@ class SSO(Service):
         :param user: IdP user
         :param ticket: Login process state
 
-        :return: SAML response in lxml format
+        :return: SAML response (string)
         """
         saml_attribute_settings = SAMLAttributeSettings(
             default_eppn_scope=current_app.config.default_eppn_scope,
@@ -401,7 +401,7 @@ class SSO(Service):
         return self._show_login_page(ticket, req_authn_context, redirect_uri)
 
     def _show_login_page(
-        self, ticket: SSOLoginData, requested_authn_context: Optional[str], redirect_uri
+        self, ticket: SSOLoginData, requested_authn_context: Optional[str], redirect_uri: str
     ) -> WerkzeugResponse:
         """
         Display the login form for all authentication methods.

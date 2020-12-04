@@ -40,19 +40,19 @@ class SLO(Service):
     Single Log Out service.
     """
 
-    def redirect(self):
+    def redirect(self) -> WerkzeugResponse:
         """ Expects a HTTP-redirect request """
 
         _dict = self.unpack_redirect()
         return self.perform_logout(_dict, BINDING_HTTP_REDIRECT)
 
-    def post(self):
+    def post(self) -> WerkzeugResponse:
         """ Expects a HTTP-POST request """
 
         _dict = self.unpack_post()
         return self.perform_logout(_dict, BINDING_HTTP_POST)
 
-    def soap(self):
+    def soap(self) -> WerkzeugResponse:
         """
         Single log out using HTTP_SOAP binding
         """
@@ -138,14 +138,13 @@ class SLO(Service):
         current_app.logger.debug(f'Logout of sessions {session_ids!r} / NameID {_name_id!r} result : {status_code!r}')
         return self._logout_response(req_info, status_code, req_key)
 
-    def _logout_session_ids(self, session_ids, req_key) -> str:
+    def _logout_session_ids(self, session_ids: Sequence[SSOSessionId], req_key: str) -> str:
         """
         Terminate one or more specific SSO sessions.
 
         :param session_ids: List of db keys in SSO session database
         :param req_key: Logging id of request
         :return: SAML StatusCode
-        :rtype: string
         """
         fail = 0
         for this in session_ids:
@@ -169,7 +168,7 @@ class SLO(Service):
             return STATUS_PARTIAL_LOGOUT
         return STATUS_SUCCESS
 
-    def _logout_name_id(self, name_id, req_key):
+    def _logout_name_id(self, name_id: NameID, req_key: str) -> str:
         """
         Terminate ALL SSO sessions found using this NameID.
 
@@ -180,7 +179,6 @@ class SLO(Service):
         :param name_id: NameID from LogoutRequest
         :param req_key: Logging id of request
         :return: SAML StatusCode
-        :rtype: string
         """
         if not name_id:
             current_app.logger.debug('No NameID provided for logout')

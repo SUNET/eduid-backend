@@ -2,7 +2,7 @@ import logging
 import warnings
 from dataclasses import dataclass
 from hashlib import sha1
-from typing import AnyStr, List, Mapping, NewType, Optional
+from typing import Any, AnyStr, Dict, List, Mapping, NewType, Optional, Type
 
 import saml2.server
 import six
@@ -10,10 +10,11 @@ from saml2.s_utils import UnknownPrincipal, UnknownSystemEntity, UnravelError, U
 from saml2.saml import Issuer
 from saml2.samlp import RequestedAuthnContext
 from saml2.sigver import verify_redirect_signature
+from werkzeug.exceptions import HTTPException
 
 from eduid_common.authn import utils
 
-ResponseArgs = NewType('ResponseArgs', dict)
+ResponseArgs = NewType('ResponseArgs', Dict[str, Any])
 
 # TODO: Rename to logger
 module_logger = logging.getLogger(__name__)
@@ -44,7 +45,7 @@ class AuthnInfo(object):
     """ Information about what AuthnContextClass etc. to put in SAML Authn responses."""
 
     class_ref: str
-    authn_attributes: dict  # these are added to the user attributes
+    authn_attributes: Dict[str, Any]  # these are added to the user attributes
     instant: Optional[int] = None
 
 
@@ -87,7 +88,7 @@ class IdP_SAMLRequest(object):
             )
 
     @property
-    def binding(self):
+    def binding(self) -> str:
         return self._binding
 
     def verify_signature(self, sig_alg: str, signature: str) -> bool:
@@ -168,7 +169,7 @@ class IdP_SAMLRequest(object):
         except KeyError:
             return []
 
-    def get_response_args(self, bad_request, key: str) -> ResponseArgs:
+    def get_response_args(self, bad_request: Type[HTTPException], key: str) -> ResponseArgs:
         try:
             resp_args = self._idp.response_args(self._req_info.message)
             # not sure if we need to call pick_binding again (already done in response_args()),

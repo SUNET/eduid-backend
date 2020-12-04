@@ -39,7 +39,7 @@ class HttpArgs:
     body: Optional[str]
 
     @classmethod
-    def from_pysaml2_dict(cls, http_args):
+    def from_pysaml2_dict(cls: Type[HttpArgs], http_args: Dict[str, Any]) -> HttpArgs:
         # Parse the parts of http_args we know how to parse, and then warn about any remains.
         if 'status' in http_args:
             current_app.logger.warning(f'Ignoring status in http_args: {http_args["status"]}')
@@ -108,7 +108,7 @@ def create_html_response(binding: str, http_args: Dict[str, Union[str, List[Tupl
     return response
 
 
-def geturl(query=True, path=True):
+def geturl(query: bool = True, path: bool = True) -> str:
     """Rebuilds a request URL (from PEP 333).
 
     :param query: Is QUERY_STRING included in URI (default: True)
@@ -132,7 +132,7 @@ def get_post() -> Dict[str, Any]:
     return _sanitise_items(request.form)
 
 
-def _sanitise_items(data: Mapping) -> Dict[str, str]:
+def _sanitise_items(data: Mapping[str, Any]) -> Dict[str, str]:
     res = dict()
     san = Sanitizer()
     for k, v in data.items():
