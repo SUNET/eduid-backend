@@ -12,13 +12,14 @@
 Code handling Single Log Out requests.
 """
 import pprint
-from typing import Dict
+from typing import Dict, Sequence
 
 import saml2
 from flask import request
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT, BINDING_SOAP
 from saml2.request import LogoutRequest
 from saml2.s_utils import error_status_factory
+from saml2.saml import NameID
 from saml2.samlp import STATUS_PARTIAL_LOGOUT, STATUS_RESPONDER, STATUS_SUCCESS, STATUS_UNKNOWN_PRINCIPAL
 from werkzeug.exceptions import BadRequest, InternalServerError
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -164,9 +165,9 @@ class SLO(Service):
                 fail += 1
         if fail:
             if fail == len(session_ids):
-                return STATUS_RESPONDER
-            return STATUS_PARTIAL_LOGOUT
-        return STATUS_SUCCESS
+                return str(STATUS_RESPONDER)  # use str() to ensure external value is the right type
+            return str(STATUS_PARTIAL_LOGOUT)  # use str() to ensure external value is the right type
+        return str(STATUS_SUCCESS)  # use str() to ensure external value is the right type
 
     def _logout_name_id(self, name_id: NameID, req_key: str) -> str:
         """
@@ -182,7 +183,7 @@ class SLO(Service):
         """
         if not name_id:
             current_app.logger.debug('No NameID provided for logout')
-            return STATUS_UNKNOWN_PRINCIPAL
+            return str(STATUS_UNKNOWN_PRINCIPAL)  # use str() to ensure external value is the right type
         try:
             # remove the authentication
             # XXX would be useful if remove_authn_statements() returned how many statements it actually removed
@@ -191,7 +192,7 @@ class SLO(Service):
         except KeyError:
             current_app.logger.exception(f'Failed removing authn')
             raise InternalServerError()
-        return STATUS_SUCCESS
+        return str(STATUS_SUCCESS)  # use str() to ensure external value is the right type
 
     def _logout_response(
         self, req_info: LogoutRequest, status_code: str, req_key: str, sign_response: bool = True
