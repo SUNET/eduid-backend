@@ -53,7 +53,7 @@ __author__ = 'ft'
 
 
 class IdPApp(EduIDBaseApp):
-    def __init__(self, name: str, config: Dict, userdb: Optional[Any] = None, **kwargs):
+    def __init__(self, name: str, config: Dict[str, Any], userdb: Optional[Any] = None, **kwargs: Any) -> None:
         # Initialise type of self.config before any parent class sets a precedent to mypy
         self.config = IdPConfig.init_config(ns='webapp', app_name=name, test_config=config)
         super().__init__(name, **kwargs)
@@ -74,6 +74,8 @@ class IdPApp(EduIDBaseApp):
         if self.config.sso_session_mongo_uri:
             self.logger.info('Config parameter sso_session_mongo_uri ignored. Used mongo_uri instead.')
 
+        if self.config.mongo_uri is None:
+            raise RuntimeError('Mongo URI is not optional for the IdP')
         _session_ttl = self.config.sso_session_lifetime * 60
         self.sso_sessions = SSOSessionCache(self.config.mongo_uri, ttl=_session_ttl)
 
@@ -129,7 +131,8 @@ class IdPApp(EduIDBaseApp):
 
             if session.idp.sso_cookie_val is not None:
                 self.logger.debug('Found potential sso_cookie_val in the eduID session')
-                _other_sso = self.sso_sessions.get_session(session.idp.sso_cookie_val, self.userdb)
+                _other_session_id = SSOSessionId(session.idp.sso_cookie_val.encode('ascii'))
+                _other_sso = self.sso_sessions.get_session(_other_session_id, self.userdb)
                 if _other_sso is not None:
                     # Debug issues with browsers not returning updated SSO cookie values.
                     # Only log partial cookie value since it allows impersonation if leaked.
@@ -173,7 +176,7 @@ class IdPApp(EduIDBaseApp):
 current_idp_app = cast(IdPApp, current_app)
 
 
-def init_idp_app(name: str, config: Dict) -> IdPApp:
+def init_idp_app(name: str, config: Dict[str, Any]) -> IdPApp:
     """
     :param name: The name of the instance, it will affect the configuration loaded.
     :param config: any additional configuration settings. Specially useful

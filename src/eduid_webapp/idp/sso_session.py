@@ -78,7 +78,7 @@ class SSOSession:
     external_mfa: Optional[ExternalMfaData] = None
     authn_timestamp: datetime = field(default_factory=utc_now)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'<{self.__class__.__name__}: uid={self.user_id}, ts={self.authn_timestamp.isoformat()}>'
 
     def to_dict(self) -> Dict[str, Any]:
@@ -105,7 +105,7 @@ class SSOSession:
         return cls(**data)
 
     @property
-    def public_id(self):
+    def public_id(self) -> str:
         """
         Return a identifier for this session that can't be used to hijack sessions
         if leaked through a log file etc.

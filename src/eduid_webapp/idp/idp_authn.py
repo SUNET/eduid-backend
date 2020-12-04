@@ -47,13 +47,14 @@ from bson import ObjectId
 
 from eduid_common.api import exceptions
 from eduid_common.authn import get_vccs_client
-from eduid_common.config.idp import IdPConfig
 from eduid_common.misc.timeutil import utc_now
 from eduid_userdb import MongoDB
 from eduid_userdb.credentials import Credential, Password
 from eduid_userdb.exceptions import UserHasNotCompletedSignup
 from eduid_userdb.idp import IdPUser, IdPUserDb
 from vccs_client import VCCSClientHTTPError, VCCSPasswordFactor
+
+from eduid_webapp.idp.settings.common import IdPConfig
 
 logger = logging.getLogger(__name__)
 
@@ -85,8 +86,6 @@ class AuthnData(object):
 class IdPAuthn(object):
     """
     :param config: IdP configuration data
-
-    :type config: IdPConfig
     """
 
     def __init__(
@@ -95,6 +94,8 @@ class IdPAuthn(object):
         self.config = config
         self.userdb = userdb
         self.auth_client = get_vccs_client(config.vccs_url)
+        # already checked with isinstance in app init
+        assert config.mongo_uri is not None
         self.authn_store = AuthnInfoStore(uri=config.mongo_uri)
 
     def password_authn(self, data: Dict[str, Any]) -> Optional[AuthnData]:
@@ -265,7 +266,7 @@ class AuthnInfoStore:
     """
 
     def __init__(self, uri: str, db_name: str = 'eduid_idp_authninfo', collection_name: str = 'authn_info'):
-        logger.debug("Setting up AuthnInfoStoreMDB")
+        logger.debug('Setting up AuthnInfoStore')
         self._db = MongoDB(db_uri=uri, db_name=db_name)
         self.collection = self._db.get_collection(collection_name)
 
@@ -366,7 +367,10 @@ class AuthnInfoStore:
         data = self.collection.find({'_id': cred_id})
         if not data.count():
             return None
-        return data[0]['success_ts']
+        _success_ts = data[0]['success_ts']
+        if not isinstance(_success_ts, datetime):
+            raise ValueError(f'success_ts is not a datetime ({repr(_success_ts)})')
+        return _success_ts
 
 
 @dataclass(frozen=True)

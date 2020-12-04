@@ -124,7 +124,7 @@ class AuthnState(object):
         if user.nins.verified.to_list():
             self.is_swamid_al2 = True
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f'<AuthnState: creds={len(self._creds)}, pw={self.password_used}, fido={self.fido_used}, '
             f'external_mfa={self.external_mfa_used}, nin is al2={self.is_swamid_al2}, '
@@ -132,20 +132,21 @@ class AuthnState(object):
         )
 
     @property
-    def is_singlefactor(self):
+    def is_singlefactor(self) -> bool:
         return self.password_used or self.fido_used
 
     @property
-    def is_multifactor(self):
+    def is_multifactor(self) -> bool:
         return self.password_used and (self.fido_used or self.external_mfa_used)
 
     @property
-    def is_swamid_al2_mfa(self):
+    def is_swamid_al2_mfa(self) -> bool:
         return self.swamid_al2_used or self.swamid_al2_hi_used
 
 
-# Can't type sso_session: SSOSession here because it creates an import dependency loop
-def response_authn(req_authn_ctx: Optional[str], user: IdPUser, sso_session, logger: logging.Logger) -> AuthnInfo:
+def response_authn(
+    req_authn_ctx: Optional[str], user: IdPUser, sso_session: SSOSession, logger: logging.Logger
+) -> AuthnInfo:
     """
     Figure out what AuthnContext to assert in a SAML response,
     given the RequestedAuthnContext from the SAML request.

@@ -1,19 +1,25 @@
+from typing import TYPE_CHECKING, Optional
+
 from flask import render_template
 from werkzeug.exceptions import HTTPException
+from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid_webapp.idp.mischttp import get_default_template_arguments
 
+if TYPE_CHECKING:
+    from app import IdPApp
 
-def init_exception_handlers(app):
+
+def init_exception_handlers(app: 'IdPApp') -> 'IdPApp':
 
     # Init error handler for raised exceptions
     @app.errorhandler(HTTPException)
-    def _handle_flask_http_exception(error):
+    def _handle_flask_http_exception(error: HTTPException) -> WerkzeugResponse:
         app.logger.error(f'IdP HTTPException {error}')
         response = error.get_response()
 
         context = get_default_template_arguments(app.config)
-        context['error_code'] = error.code
+        context['error_code'] = str(error.code)
 
         messages = {
             'SAML_UNKNOWN_SP': 'SAML error: Unknown Service Provider',
@@ -27,7 +33,7 @@ def init_exception_handlers(app):
 
         response.data = render_template(template, **context)
 
-        if 'USER_TERMINATED' in error.description:
+        if error.description is not None and 'USER_TERMINATED' in error.description:
             # Delete the SSO session cookie in the browser
             response.delete_cookie(
                 key=app.config.sso_cookie.key, path=app.config.sso_cookie.path, domain=app.config.sso_cookie.domain,
@@ -38,7 +44,7 @@ def init_exception_handlers(app):
     return app
 
 
-def _get_error_template(status_code: int, message: str) -> str:
+def _get_error_template(status_code: Optional[int], message: Optional[str]) -> str:
     pages = {
         400: 'bad_request.jinja2',
         401: 'unauthorized.jinja2',
@@ -47,8 +53,10 @@ def _get_error_template(status_code: int, message: str) -> str:
         429: 'toomany.jinja2',
         440: 'session_timeout.jinja2',
     }
-    res = pages.get(status_code)
-    if status_code == 403:
+    res = None
+    if status_code is not None:
+        res = pages.get(status_code)
+    if status_code == 403 and message is not None:
         if 'CREDENTIAL_EXPIRED' in message:
             res = 'credential_expired.jinja2'
         elif 'SWAMID_MFA_REQUIRED' in message:
