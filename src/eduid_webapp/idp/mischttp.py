@@ -88,11 +88,11 @@ def create_html_response(binding: str, http_args: Dict[str, Union[str, List[Tupl
             current_app.logger.warning(f'BINDING_HTTP_REDIRECT method is not GET ({args.method})')
         location = args.redirect_url
         current_app.logger.debug(f'Binding {binding} redirecting to {location!r}')
+        if not location:
+            raise InternalServerError('No redirect destination')
         if args.url:
             if not location.startswith(args.url):
                 current_app.logger.warning(f'There is another "url" in args: {args.url} (location: {location})')
-        if not location:
-            raise InternalServerError('No redirect destination')
         return redirect(location)
 
     message = args.body
