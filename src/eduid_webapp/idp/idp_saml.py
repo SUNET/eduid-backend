@@ -185,10 +185,10 @@ class IdP_SAMLRequest(object):
             resp_args['destination'] = destination
         except UnknownPrincipal as excp:
             module_logger.info(f'{key}: Unknown service provider: {excp}')
-            raise bad_request("Don't know the SP that referred you here", logger=self._logger)
+            raise bad_request('Don\'t know the SP that referred you here')
         except UnsupportedBinding as excp:
             module_logger.info(f'{key}: Unsupported SAML binding: {excp}')
-            raise bad_request("Don't know how to reply to the SP that referred you here", logger=self._logger)
+            raise bad_request('Don\'t know how to reply to the SP that referred you here')
         except UnknownSystemEntity as exc:
             # TODO: Validate refactoring didn't move this exception handling to the wrong place.
             #       Used to be in an exception handler in _redirect_or_post around perform_login().
