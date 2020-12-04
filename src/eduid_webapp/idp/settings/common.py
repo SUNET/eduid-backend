@@ -145,6 +145,7 @@ class IdPConfig(FlaskConfig):
     supported_signing_algorithms: List[str] = field(
         default_factory=lambda: ['http://www.w3.org/2001/04/xmldsig-more#rsa-sha256']
     )
+    eduperson_targeted_id_secret_key: str = ''
 
     def __post_init__(self):
         super().__post_init__()

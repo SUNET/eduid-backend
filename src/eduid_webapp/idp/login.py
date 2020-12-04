@@ -136,6 +136,18 @@ class SSO(Service):
             default_country_code=current_app.config.default_country_code,
         )
         attributes = user.to_saml_attributes(saml_attribute_settings, current_app.logger)
+        # Generate eduPersonTargetedID
+        if current_app.config.eduperson_targeted_id_secret_key:
+            sp_identifier = resp_args.get('sp_entity_id', resp_args['destination'])
+            eduperson_targeted_id_value = self._get_eptid(relying_party=sp_identifier, user_eppn=user.eppn)
+            attributes["eduPersonTargetedID"] = [
+                {
+                    "text": eduperson_targeted_id_value,
+                    "NameQualifier": current_app.IDP.config.entityid,
+                    "SPNameQualifier": sp_identifier,
+                }
+            ]
+
         # Add a list of credentials used in a private attribute that will only be
         # released to the eduID authn component
         attributes['eduidIdPCredentialsUsed'] = [x.cred_id for x in sso_session.authn_credentials]
@@ -233,6 +245,32 @@ class SSO(Service):
             ts=_timestamp, rp=relying_party, ap=current_app.IDP.config.entityid, pn=_anon_userid, am=authn_method,
         )
         current_app.logger.info(msg)
+
+    @staticmethod
+    def _get_eptid(relying_party: str, user_eppn: str) -> str:
+        """
+        Generate eduPersonTargetedID
+
+        eduPersonTargetedID value is a tuple consisting of an opaque identifier for the principal,
+        a name for the source of the identifier, and a name for the intended audience of the identifier.
+
+        Per the SAML format definition, the identifier portion MUST NOT exceed 256 characters, and the
+        source and audience URI values MUST NOT exceed 1024 characters.
+
+        :param relying_party: The entity id of the relying party (SP).
+        :param user_eppn: Unique user identifier
+        """
+        _sp_user_id = f'{relying_party}-{user_eppn}'
+        _anon_sp_userid = hmac.new(
+            bytes(current_app.config.eduperson_targeted_id_secret_key, 'ascii'),
+            msg=bytes(_sp_user_id, 'ascii'),
+            digestmod=sha256,
+        ).hexdigest()
+
+        # Create a string in the form of idp_entity_id!sp_entity_id!opaque_sp_unique_user_id
+        eduperson_targeted_id = f'{current_app.IDP.config.entityid}!{relying_party}!{_anon_sp_userid}'
+        current_app.logger.debug(f'Generated eduPersonTargetedID: {eduperson_targeted_id}')
+        return eduperson_targeted_id
 
     def _validate_login_request(self, ticket: SSOLoginData) -> ResponseArgs:
         """
