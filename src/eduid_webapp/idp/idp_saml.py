@@ -12,8 +12,6 @@ from saml2.samlp import RequestedAuthnContext
 from saml2.sigver import verify_redirect_signature
 from werkzeug.exceptions import HTTPException
 
-from eduid_common.authn import utils
-
 ResponseArgs = NewType('ResponseArgs', Dict[str, Any])
 
 # TODO: Rename to logger
@@ -82,7 +80,10 @@ class IdP_SAMLRequest(object):
 
         # Only perform expensive parse/pretty-print if debugging
         if debug:
-            xmlstr = utils.maybe_xml_to_string(self._req_info.message)
+            # Local import to avoid circular imports
+            from eduid_webapp.idp.util import maybe_xml_to_string
+
+            xmlstr = maybe_xml_to_string(self._req_info.xmlstr)
             module_logger.debug(
                 f'Decoded SAMLRequest into AuthnRequest {repr(self._req_info.message)}:\n\n{xmlstr}\n\n'
             )
