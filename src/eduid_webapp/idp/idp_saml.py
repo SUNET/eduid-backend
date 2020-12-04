@@ -47,6 +47,9 @@ class AuthnInfo(object):
     instant: Optional[int] = None
 
 
+SamlResponse = NewType('SamlResponse', str)
+
+
 class IdP_SAMLRequest(object):
     def __init__(
         self,
@@ -194,15 +197,17 @@ class IdP_SAMLRequest(object):
 
         return ResponseArgs(resp_args)
 
-    def make_saml_response(self, attributes: Mapping, userid: str, response_authn: AuthnInfo, resp_args: ResponseArgs):
+    def make_saml_response(
+        self, attributes: Mapping[str, Any], userid: str, response_authn: AuthnInfo, resp_args: ResponseArgs
+    ) -> SamlResponse:
         # Create pysaml2 dict with the authn information
         authn = dict(class_ref=response_authn.class_ref, authn_instant=response_authn.instant,)
         saml_response = self._idp.create_authn_response(
             attributes, userid=userid, authn=authn, sign_response=True, **resp_args
         )
-        return saml_response
+        return SamlResponse(saml_response)
 
-    def apply_binding(self, resp_args: ResponseArgs, relay_state: str, saml_response: str):
+    def apply_binding(self, resp_args: ResponseArgs, relay_state: str, saml_response: SamlResponse):
         """ Create the Javascript self-posting form that will take the user back to the SP
         with a SAMLResponse.
         """
