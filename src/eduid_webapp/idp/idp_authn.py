@@ -47,13 +47,14 @@ from bson import ObjectId
 
 from eduid_common.api import exceptions
 from eduid_common.authn import get_vccs_client
-from eduid_common.config.idp import IdPConfig
 from eduid_common.misc.timeutil import utc_now
 from eduid_userdb import MongoDB
 from eduid_userdb.credentials import Credential, Password
 from eduid_userdb.exceptions import UserHasNotCompletedSignup
 from eduid_userdb.idp import IdPUser, IdPUserDb
 from vccs_client import VCCSClientHTTPError, VCCSPasswordFactor
+
+from eduid_webapp.idp.settings.common import IdPConfig
 
 logger = logging.getLogger(__name__)
 
