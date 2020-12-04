@@ -74,7 +74,7 @@ class HttpArgs:
         return self.url
 
 
-def create_html_response(binding: str, http_args: Dict[str, Union[str, List[Tuple[str, str]]]]) -> WerkzeugResponse:
+def create_html_response(binding: str, http_args: HttpArgs) -> WerkzeugResponse:
     """
     Create a HTML response based on parameters compiled by pysaml2 functions
     like apply_binding().
@@ -83,27 +83,26 @@ def create_html_response(binding: str, http_args: Dict[str, Union[str, List[Tupl
     :param http_args: response data
     :return: HTML response
     """
-    args = HttpArgs.from_pysaml2_dict(http_args)
     if binding == BINDING_HTTP_REDIRECT:
-        if args.method != 'GET':
-            current_app.logger.warning(f'BINDING_HTTP_REDIRECT method is not GET ({args.method})')
-        location = args.redirect_url
-        current_app.logger.debug(f'Binding {binding} redirecting to {location!r}')
+        if http_args.method != 'GET':
+            current_app.logger.warning(f'BINDING_HTTP_REDIRECT method is not GET ({http_args.method})')
+        location = http_args.redirect_url
+        current_app.logger.debug(f'Binding {binding} redirecting to {repr(location)}')
         if not location:
             raise InternalServerError('No redirect destination')
-        if args.url:
-            if not location.startswith(args.url):
-                current_app.logger.warning(f'There is another "url" in args: {args.url} (location: {location})')
+        if http_args.url:
+            if not location.startswith(http_args.url):
+                current_app.logger.warning(f'There is another "url" in args: {http_args.url} (location: {location})')
         return redirect(location)
 
     message = b''
-    if isinstance(args.body, bytes):
-        message = args.body
-    elif args.body is not None:
-        message = bytes(args.body, 'utf-8')
+    if isinstance(http_args.body, bytes):
+        message = http_args.body
+    elif http_args.body is not None:
+        message = bytes(http_args.body, 'utf-8')
 
     response = make_response(message)
-    for k, v in args.headers:
+    for k, v in http_args.headers:
         _old_v = response.headers.get(k)
         if v != _old_v:
             current_app.logger.debug(f'Changing response header {repr(k)} from {repr(_old_v)} -> {repr(v)}')

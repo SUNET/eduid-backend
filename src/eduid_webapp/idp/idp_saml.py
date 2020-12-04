@@ -6,6 +6,8 @@ from typing import Any, AnyStr, Dict, List, Mapping, NewType, Optional, Type
 
 import saml2.server
 import six
+
+from eduid_webapp.idp.mischttp import HttpArgs
 from saml2.s_utils import UnknownPrincipal, UnknownSystemEntity, UnravelError, UnsupportedBinding
 from saml2.saml import Issuer
 from saml2.samlp import RequestedAuthnContext
@@ -244,9 +246,8 @@ class IdP_SAMLRequest(object):
             raise ValueError(f'Unknown saml_response type ({type(saml_response)})')
         return SamlResponse(saml_response)
 
-    def apply_binding(self, resp_args: ResponseArgs, relay_state: str, saml_response: SamlResponse):
-        """ Create the Javascript self-posting form that will take the user back to the SP
-        with a SAMLResponse.
+    def apply_binding(self, resp_args: ResponseArgs, relay_state: str, saml_response: SamlResponse) -> HttpArgs:
+        """ Create the Javascript self-posting form that will take the user back to the SP with a SAMLResponse.
         """
         binding_out = resp_args.get('binding_out')
         destination = resp_args.get('destination')
@@ -255,5 +256,11 @@ class IdP_SAMLRequest(object):
                 binding_out, destination, relay_state
             )
         )
-        http_args = self._idp.apply_binding(binding_out, str(saml_response), destination, relay_state, response=True)
-        return http_args
+        _args = self._idp.apply_binding(binding_out, str(saml_response), destination, relay_state, response=True)
+        # _args is one of these pysaml2 dicts with HTML data, e.g.:
+        #  {'headers': [('Content-type', 'text/html')],
+        #   'data': '...<body onload="document.forms[0].submit()">,
+        #   'url': 'https://sp.example.edu/saml2/acs/',
+        #   'method': 'POST'
+        #  }
+        return HttpArgs.from_pysaml2_dict(_args)

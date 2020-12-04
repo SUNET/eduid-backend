@@ -16,6 +16,8 @@ from typing import Dict, Sequence
 
 import saml2
 from flask import request
+
+from eduid_webapp.idp.mischttp import HttpArgs
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT, BINDING_SOAP
 from saml2.request import LogoutRequest
 from saml2.s_utils import error_status_factory
@@ -239,10 +241,10 @@ class SLO(Service):
             xmlstr = maybe_xml_to_string(response)
             current_app.logger.debug(f'Logout SAMLResponse :\n\n{xmlstr}\n\n')
 
-        ht_args = current_app.IDP.apply_binding(
+        _args = current_app.IDP.apply_binding(
             bindings[0], str(response), destination, req_info.relay_state, response=True
         )
-        # current_app.logger.debug("Apply bindings result :\n{!s}\n\n".format(pprint.pformat(ht_args)))
+        http_args = HttpArgs.from_pysaml2_dict(_args)
 
         # INFO-Log the SAML request ID, result of logout and destination
         current_app.logger.info(f'{req_key}: logout status={status_code!r}, dst={destination}')
@@ -255,7 +257,7 @@ class SLO(Service):
                 f'Creating response with binding {bindings[0]!r} instead of {req_info.binding!r} used before'
             )
 
-        res = mischttp.create_html_response(bindings[0], ht_args)
+        res = mischttp.create_html_response(bindings[0], http_args)
 
         # Delete the SSO session cookie in the browser
         _domain = current_app.config.session_cookie_domain
