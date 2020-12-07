@@ -12,6 +12,7 @@ __pycache__
 build/
 dist/
 sessions/
+env
 venv/
 nosetests.xml
 coverage.xml
