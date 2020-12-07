@@ -57,8 +57,8 @@ _SAML_ATTRIBUTES = [
     'eduPersonAssurance',
     'eduPersonEntitlement',
     'eduPersonOrcid',
+    'eduPersonTargetedID',
     'eduPersonPrincipalName',
-    'eduPersonScopedAffiliation',
     'givenName',
     'mail',
     'norEduPersonNIN',
@@ -75,7 +75,6 @@ class SAMLAttributeSettings:
     default_eppn_scope: str
     default_country: str
     default_country_code: str
-    default_scoped_affiliation: Optional[str] = None
 
 
 class IdPUser(User):
@@ -115,7 +114,6 @@ class IdPUser(User):
         # Create and add missing attributes that can be released if correct release policy
         # is applied by pysaml2 for the current metadata
         attributes = make_scoped_eppn(attributes, settings)
-        attributes = add_scoped_affiliation(attributes, settings)
         attributes = add_country_attributes(attributes, settings)
         attributes = make_eduperson_unique_id(attributes, self, settings)
         attributes = add_eduperson_assurance(attributes, self)
@@ -147,24 +145,6 @@ def make_scoped_eppn(attributes: dict, settings: SAMLAttributeSettings) -> dict:
         return attributes
     if '@' not in eppn:
         attributes['eduPersonPrincipalName'] = eppn + '@' + scope
-    return attributes
-
-
-def add_scoped_affiliation(attributes: dict, settings: SAMLAttributeSettings) -> dict:
-    """
-    Add eduPersonScopedAffiliation if configured, and not already present.
-
-    This default affiliation is currently controlled by the configuration parameter
-    `default_scoped_affiliation'.
-
-    :param attributes: Attributes of a user
-    :param settings: IdP configuration settings
-
-    :return: New attributes
-    """
-    epsa = 'eduPersonScopedAffiliation'
-    if epsa not in attributes and settings.default_scoped_affiliation:
-        attributes[epsa] = settings.default_scoped_affiliation
     return attributes
 
 
