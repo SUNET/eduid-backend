@@ -41,7 +41,6 @@ import bson
 
 from eduid_common.misc.timeutil import utc_now
 from eduid_common.session.logindata import ExternalMfaData
-from eduid_userdb import UserDB
 from eduid_userdb.idp import IdPUser, IdPUserDb
 
 from eduid_webapp.idp.idp_authn import AuthnData

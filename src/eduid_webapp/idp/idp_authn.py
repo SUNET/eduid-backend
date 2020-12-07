@@ -41,7 +41,7 @@ from __future__ import annotations
 import logging
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Sequence, Type
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Type
 
 from bson import ObjectId
 
@@ -69,18 +69,22 @@ class AuthnData(object):
 
     cred_id: str
     timestamp: datetime = field(default_factory=utc_now)
-    user: Optional[IdPUser] = None  # not set if object is created from database
 
     def to_dict(self) -> Dict[str, Any]:
         """ Return the object in dict format (serialized for storing in MongoDB). """
         res = asdict(self)
-        del res['user']
+        # rename 'timestamp' to 'authn_ts' when writing to the database to match legacy code
+        res['authn_ts'] = res.pop('timestamp')
         return res
 
     @classmethod
-    def from_dict(cls: Type[AuthnData], data: Dict[str, Any]) -> AuthnData:
+    def from_dict(cls: Type[AuthnData], data: Mapping[str, Any]) -> AuthnData:
         """ Construct element from a data dict in database format. """
-        return cls(**data)
+        _data = dict(data)  # to not modify callers data
+        # 'timestamp' is called 'authn_ts' in the database for legacy reasons
+        if 'authn_ts' in _data:
+            _data['timestamp'] = _data.pop('authn_ts')
+        return cls(**_data)
 
 
 class IdPAuthn(object):
@@ -98,34 +102,29 @@ class IdPAuthn(object):
         assert config.mongo_uri is not None
         self.authn_store = AuthnInfoStore(uri=config.mongo_uri)
 
-    def password_authn(self, data: Dict[str, Any]) -> Optional[AuthnData]:
+    def password_authn(self, username: str, password: str) -> Tuple[Optional[IdPUser], Optional[AuthnData]]:
         """
         Authenticate someone using a username and password.
 
-        :param data: Login credentials (dict with 'username' and 'password')
-        :returns: AuthnData on success
+        :returns: The IdPUser found, and AuthnData on success
         """
-        username = data['username']
-        password = data['password']
-        del data  # keep sensitive data out of Sentry logs
-
         try:
             user = self.userdb.lookup_user(username)
         except UserHasNotCompletedSignup:
             # XXX Redirect user to some kind of info page
-            return None
+            return None, None
         if not user:
-            logger.info('Unknown user : {!r}'.format(username))
+            logger.info(f'Unknown user : {repr(username)}')
             # XXX we effectively disclose there was no such user by the quick
             # response in this case. Maybe send bogus auth request to backends?
-            return None
+            return None, None
         logger.debug(f'Found user {user}')
 
         cred = self._verify_username_and_password2(user, password)
         if not cred:
-            return None
+            return None, None
 
-        return AuthnData(cred_id=cred.key, user=user)
+        return user, AuthnData(cred_id=cred.key)
 
     def _verify_username_and_password2(self, user: IdPUser, password: str) -> Optional[Password]:
         """
