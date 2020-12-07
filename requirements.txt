@@ -19,8 +19,6 @@ pynacl>=1.0.1
 python-etcd>=0.4.3
 redis>=3.2.0,==3.*
 zxcvbn>=4.4.27,==4.*
-gunicorn
-raven
 # actions
 eduid-action>=0.2.4
 # eidas
