@@ -36,7 +36,7 @@ from __future__ import absolute_import
 import os
 import re
 from enum import Enum
-from typing import Any, Dict, Mapping, Optional, Tuple
+from typing import Any, Dict, Mapping, Optional, Tuple, List
 
 import pkg_resources
 from flask import Response as FlaskResponse
@@ -77,7 +77,7 @@ class IdPTests(EduidAPITestCase):
         self.relay_state = 'test-fest'
         self.sp_config = get_saml2_config(self.app.config.pysaml2_config, name='SP_CONFIG')
         # pysaml2 likes to keep state about ongoing logins, data from login to when you logout etc.
-        self._pysaml2_caches = dict()
+        self._pysaml2_caches: Dict[str, Any] = dict()
         self.pysaml2_state = StateCache(self._pysaml2_caches)  # _saml2_state in _pysaml2_caches
         self.pysaml2_identity = IdentityCache(self._pysaml2_caches)  # _saml2_identities in _pysaml2_caches
         self.pysaml2_oq = OutstandingQueriesCache(self._pysaml2_caches)  # _saml2_outstanding_queries in _pysaml2_caches
