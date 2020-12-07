@@ -174,7 +174,7 @@ class IdP_SAMLRequest(object):
         res: Dict[str, Any] = {}
         try:
             _attrs = self._idp.metadata.entity_attributes(self.sp_entity_id)
-            for k, v in _attrs:
+            for k, v in _attrs.items():
                 if not isinstance(k, str):
                     raise ValueError(f'Unknown entity attribute type ({type(k)})')
                 _attrs[k] = v
