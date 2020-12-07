@@ -14,16 +14,15 @@ Code handling Single Sign On logins.
 
 import hmac
 import pprint
-import time
 from dataclasses import replace
 from hashlib import sha256
 from html import escape, unescape
 from typing import Mapping, Optional
 
+import time
 from defusedxml import ElementTree as DefusedElementTree
 from flask import make_response, redirect, render_template, request
 from flask_babel import gettext as _
-from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest, Forbidden, InternalServerError, TooManyRequests
 from werkzeug.wrappers import Response as WerkzeugResponse
 
@@ -32,7 +31,6 @@ from eduid_common.session import session
 from eduid_common.session.logindata import SSOLoginData
 from eduid_userdb.idp import IdPUser
 from eduid_userdb.idp.user import SAMLAttributeSettings
-
 from eduid_webapp.idp import assurance, mischttp
 from eduid_webapp.idp.app import current_idp_app as current_app
 from eduid_webapp.idp.assurance import AssuranceException, MissingMultiFactor, WrongMultiFactor
@@ -48,6 +46,7 @@ from eduid_webapp.idp.idp_saml import (
 from eduid_webapp.idp.service import Service
 from eduid_webapp.idp.sso_session import SSOSession
 from eduid_webapp.idp.util import b64encode, get_requested_authn_context
+from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 
 
 class MustAuthenticate(Exception):
