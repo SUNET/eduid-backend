@@ -35,7 +35,7 @@
 
 import datetime
 import logging
-from typing import Optional
+from typing import Optional, Tuple
 
 from bson import ObjectId
 from mock import patch
@@ -46,6 +46,7 @@ import vccs_client
 from eduid_common.api import exceptions
 from vccs_client import VCCSClient
 
+from eduid_userdb.idp import IdPUser
 from eduid_webapp.idp.idp_authn import AuthnData
 from eduid_webapp.idp.tests.test_app import IdPTests
 
@@ -67,13 +68,16 @@ class TestIdPUserDb(IdPTests):
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, 'authenticate'):
             VCCSClient.authenticate.return_value = True
-            res = self._test_authn(self.test_user.mail_addresses.primary.email, 'foo')
+            user, res = self._test_authn(self.test_user.mail_addresses.primary.email, 'foo')
+            assert user.eppn == self.test_user.eppn
             assert isinstance(res, AuthnData)
 
     def test_verify_username_and_incorrect_password(self):
-        assert self._test_authn(self.test_user.mail_addresses.primary.email, 'foo') is None
+        user, authn_data = self._test_authn(self.test_user.mail_addresses.primary.email, 'foo')
+        assert user is None
+        assert authn_data is None
 
-    def _test_authn(self, username: str, password: str) -> Optional[AuthnData]:
+    def _test_authn(self, username: str, password: str) -> Tuple[Optional[IdPUser], Optional[AuthnData]]:
         data = {
             'username': username,
             'password': password,
@@ -87,7 +91,9 @@ class TestAuthentication(IdPTests):
             'username': 'foo',
             'password': 'bar',
         }
-        self.assertFalse(self.app.authn.password_authn(data))
+        user, authn_data = self.app.authn.password_authn(data)
+        assert user == None
+        self.assertFalse(authn_data)
 
     @patch('vccs_client.VCCSClient.add_credentials')
     def test_authn_known_user_wrong_password(self, mock_add_credentials):
@@ -100,7 +106,9 @@ class TestAuthentication(IdPTests):
             'username': self.test_user.mail_addresses.primary.email,
             'password': 'bar',
         }
-        self.assertFalse(self.app.authn.password_authn(data))
+        user, authn_data = self.app.authn.password_authn(data)
+        assert user is None
+        self.assertFalse(authn_data)
 
     @patch('vccs_client.VCCSClient.authenticate')
     @patch('vccs_client.VCCSClient.add_credentials')
@@ -115,7 +123,10 @@ class TestAuthentication(IdPTests):
             'username': self.test_user.mail_addresses.primary.email,
             'password': 'foo',
         }
-        self.assertTrue(self.app.authn.password_authn(data))
+        user, authn_data = self.app.authn.password_authn(data)
+        assert user is not None
+        assert user.eppn == self.test_user.eppn
+        assert authn_data is not None
 
     @patch('vccs_client.VCCSClient.authenticate')
     @patch('vccs_client.VCCSClient.add_credentials')

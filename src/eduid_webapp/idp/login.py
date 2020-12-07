@@ -503,13 +503,13 @@ def do_verify() -> WerkzeugResponse:
     }
     del password  # keep out of any exception logs
     try:
-        authninfo = current_app.authn.password_authn(login_data)
+        user, authninfo = current_app.authn.password_authn(login_data)
     except exceptions.EduidTooManyRequests as e:
         raise TooManyRequests(e.args[0])
     except exceptions.EduidForbidden as e:
         raise Forbidden(e.args[0])
 
-    if not authninfo:
+    if not user or not authninfo:
         current_app.logger.info(f'{_ticket.key}: Password authentication failed')
         _ticket.FailCount += 1
         session.sso_ticket = _ticket
@@ -517,11 +517,7 @@ def do_verify() -> WerkzeugResponse:
         current_app.logger.debug(f'Unknown user or wrong password. Redirect => {lox}')
         return redirect(lox)
 
-    if authninfo.user is None:
-        raise RuntimeError('User not authenticated')
-
     # Create SSO session
-    user = authninfo.user
     current_app.logger.debug(f'User {user} authenticated OK (SAML id {repr(_ticket.saml_req.request_id)})')
     _sso_session = SSOSession(
         user_id=user.user_id, authn_request_id=_ticket.saml_req.request_id, authn_credentials=[authninfo], idp_user=user
