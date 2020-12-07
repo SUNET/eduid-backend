@@ -68,30 +68,19 @@ class TestIdPUserDb(IdPTests):
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, 'authenticate'):
             VCCSClient.authenticate.return_value = True
-            user, res = self._test_authn(self.test_user.mail_addresses.primary.email, 'foo')
+            user, res = self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, 'foo')
             assert user.eppn == self.test_user.eppn
             assert isinstance(res, AuthnData)
 
     def test_verify_username_and_incorrect_password(self):
-        user, authn_data = self._test_authn(self.test_user.mail_addresses.primary.email, 'foo')
+        user, authn_data = self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, 'foo')
         assert user is None
         assert authn_data is None
-
-    def _test_authn(self, username: str, password: str) -> Tuple[Optional[IdPUser], Optional[AuthnData]]:
-        data = {
-            'username': username,
-            'password': password,
-        }
-        return self.app.authn.password_authn(data)
 
 
 class TestAuthentication(IdPTests):
     def test_authn_unknown_user(self):
-        data = {
-            'username': 'foo',
-            'password': 'bar',
-        }
-        user, authn_data = self.app.authn.password_authn(data)
+        user, authn_data = self.app.authn.password_authn('foo', 'bar')
         assert user == None
         self.assertFalse(authn_data)
 
@@ -102,11 +91,7 @@ class TestAuthentication(IdPTests):
         cred_id = ObjectId()
         factor = vccs_client.VCCSPasswordFactor('foo', str(cred_id), salt=None)
         self.app.authn.auth_client.add_credentials(str(self.test_user.user_id), [factor])
-        data = {
-            'username': self.test_user.mail_addresses.primary.email,
-            'password': 'bar',
-        }
-        user, authn_data = self.app.authn.password_authn(data)
+        user, authn_data = self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, 'bar')
         assert user is None
         self.assertFalse(authn_data)
 
@@ -119,14 +104,11 @@ class TestAuthentication(IdPTests):
         passwords = self.test_user.credentials.to_list()
         factor = vccs_client.VCCSPasswordFactor('foo', str(passwords[0].key), salt=passwords[0].salt)
         self.app.authn.auth_client.add_credentials(str(self.test_user.user_id), [factor])
-        data = {
-            'username': self.test_user.mail_addresses.primary.email,
-            'password': 'foo',
-        }
-        user, authn_data = self.app.authn.password_authn(data)
+        user, authn_data = self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, 'foo')
         assert user is not None
         assert user.eppn == self.test_user.eppn
         assert authn_data is not None
+        assert authn_data.cred_id == factor.credential_id
 
     @patch('vccs_client.VCCSClient.authenticate')
     @patch('vccs_client.VCCSClient.add_credentials')
@@ -145,9 +127,9 @@ class TestAuthentication(IdPTests):
         three_years_ago = datetime.datetime.now() - datetime.timedelta(days=3 * 365)
         self.app.authn.authn_store.credential_success([passwords[0].key], three_years_ago)
         with self.assertRaises(exceptions.EduidForbidden):
-            self.assertTrue(self.app.authn.password_authn(data))
+            self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, 'foo')
         # Do the same thing again to make sure we didn't accidentally update the
         # 'last successful login' timestamp when it was a successful login with an
         # expired credential.
         with self.assertRaises(exceptions.EduidForbidden):
-            self.assertTrue(self.app.authn.password_authn(data))
+            self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, 'foo')

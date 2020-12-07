@@ -497,17 +497,14 @@ def do_verify() -> WerkzeugResponse:
         current_app.logger.debug(f'Credentials not supplied. Redirect => {lox}')
         return redirect(lox)
 
-    login_data = {
-        'username': query['username'].strip(),
-        'password': password,
-    }
-    del password  # keep out of any exception logs
     try:
-        user, authninfo = current_app.authn.password_authn(login_data)
+        user, authninfo = current_app.authn.password_authn(query['username'].strip(), password)
     except exceptions.EduidTooManyRequests as e:
         raise TooManyRequests(e.args[0])
     except exceptions.EduidForbidden as e:
         raise Forbidden(e.args[0])
+    finally:
+        del password  # keep out of any exception logs
 
     if not user or not authninfo:
         current_app.logger.info(f'{_ticket.key}: Password authentication failed')

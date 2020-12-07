@@ -102,24 +102,19 @@ class IdPAuthn(object):
         assert config.mongo_uri is not None
         self.authn_store = AuthnInfoStore(uri=config.mongo_uri)
 
-    def password_authn(self, data: Dict[str, Any]) -> Tuple[Optional[IdPUser], Optional[AuthnData]]:
+    def password_authn(self, username: str, password: str) -> Tuple[Optional[IdPUser], Optional[AuthnData]]:
         """
         Authenticate someone using a username and password.
 
-        :param data: Login credentials (dict with 'username' and 'password')
-        :returns: AuthnData on success
+        :returns: The IdPUser found, and AuthnData on success
         """
-        username = data['username']
-        password = data['password']
-        del data  # keep sensitive data out of Sentry logs
-
         try:
             user = self.userdb.lookup_user(username)
         except UserHasNotCompletedSignup:
             # XXX Redirect user to some kind of info page
             return None, None
         if not user:
-            logger.info('Unknown user : {!r}'.format(username))
+            logger.info(f'Unknown user : {repr(username)}')
             # XXX we effectively disclose there was no such user by the quick
             # response in this case. Maybe send bogus auth request to backends?
             return None, None
