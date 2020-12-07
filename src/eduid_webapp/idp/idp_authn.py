@@ -41,7 +41,7 @@ from __future__ import annotations
 import logging
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Sequence, Type
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Type
 
 from bson import ObjectId
 
@@ -75,12 +75,18 @@ class AuthnData(object):
         """ Return the object in dict format (serialized for storing in MongoDB). """
         res = asdict(self)
         del res['user']
+        # rename 'timestamp' to 'authn_ts' when writing to the database to match legacy code
+        res['authn_ts'] = res.pop('timestamp')
         return res
 
     @classmethod
-    def from_dict(cls: Type[AuthnData], data: Dict[str, Any]) -> AuthnData:
+    def from_dict(cls: Type[AuthnData], data: Mapping[str, Any]) -> AuthnData:
         """ Construct element from a data dict in database format. """
-        return cls(**data)
+        _data = dict(data)  # to not modify callers data
+        # 'timestamp' is called 'authn_ts' in the database for legacy reasons
+        if 'authn_ts' in _data:
+            _data['timestamp'] = _data.pop('authn_ts')
+        return cls(**_data)
 
 
 class IdPAuthn(object):
