@@ -1,7 +1,7 @@
 eduid-am>=0.7.9
 eduid-common[webapp]>=0.22.0,==0.22.*
 eduid-msg>=0.10.9
-eduid-userdb>=0.8.1,==0.8.*
+eduid-userdb>=0.8.5,==0.8.*
 eduid_lookup_mobile>=0.1.2
 eduid_scimapi==0.3.*
 pysaml2>=6.3.0,==6.*
