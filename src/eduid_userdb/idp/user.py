@@ -57,6 +57,7 @@ _SAML_ATTRIBUTES = [
     'eduPersonAssurance',
     'eduPersonEntitlement',
     'eduPersonOrcid',
+    'eduPersonTargetedID',
     'eduPersonPrincipalName',
     'givenName',
     'mail',
