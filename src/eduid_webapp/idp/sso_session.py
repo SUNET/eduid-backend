@@ -90,7 +90,7 @@ class SSOSession:
         # Use integer format for this in the database until this code (from_dict() below) has been
         # deployed everywhere so we can switch to datetime.
         # TODO: Switch over to datetime.
-        res['authn_timestamp'] = self.authn_timestamp.timestamp()
+        res['authn_timestamp'] = int(self.authn_timestamp.timestamp())
         return res
 
     @classmethod
