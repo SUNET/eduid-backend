@@ -3,19 +3,16 @@ import json
 import unittest
 import uuid
 from dataclasses import asdict
-from datetime import datetime
-from enum import Enum
 from os import environ
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, List, Mapping, Optional, Union
 
 from bson import ObjectId
+from eduid_queue.db.message import MessageDB
 from falcon import Response
 from falcon.testing import TestClient
 
 from eduid_common.config.testing import EtcdTemporaryInstance
 from eduid_graphdb.testing import Neo4jTemporaryInstance
-from eduid_userdb.deprecation import deprecated
-from eduid_userdb.q.message import MessageDB
 from eduid_userdb.signup import SignupInviteDB
 from eduid_userdb.testing import MongoTemporaryInstance
 
@@ -27,7 +24,6 @@ from eduid_scimapi.db.groupdb import ScimApiGroup
 from eduid_scimapi.db.invitedb import ScimApiInvite
 from eduid_scimapi.db.userdb import ScimApiProfile, ScimApiUser
 from eduid_scimapi.schemas.scimbase import SCIMSchema
-from eduid_scimapi.utils import filter_none
 
 __author__ = 'lundberg'
 
