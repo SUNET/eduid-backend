@@ -40,14 +40,15 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 import pkg_resources
 from flask import Response as FlaskResponse
+from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
+from saml2.client import Saml2Client
+from saml2.response import AuthnResponse
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.cache import IdentityCache, OutstandingQueriesCache, StateCache
 from eduid_common.authn.utils import get_saml2_config
+
 from eduid_webapp.idp.app import init_idp_app
-from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
-from saml2.client import Saml2Client
-from saml2.response import AuthnResponse
 
 __author__ = 'ft'
 
