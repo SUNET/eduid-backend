@@ -30,7 +30,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          test -f test_requirements.txt && pip install -r test_requirements.txt
+          pip install -r test_requirements.txt -c constraints.txt
 
       - name: Fetch docker images
         run: |

@@ -1,0 +1,1 @@
+ecdsa>0.8  # 0.8 is python2 and breaks install
