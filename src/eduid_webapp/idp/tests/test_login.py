@@ -151,3 +151,22 @@ class IdPTestLogin(IdPTests):
 
         assert reached_state == LoginState.S3_REDIRECT_LOGGED_IN
         assert b'Access to the requested service could not be granted.' in response.data
+
+    def test_eduperson_targeted_id(self):
+        # Patch the VCCSClient so we do not need a vccs server
+        with patch.object(VCCSClient, 'authenticate'):
+            VCCSClient.authenticate.return_value = True
+            reached_state, resp = self._try_login()
+
+        assert reached_state == LoginState.S5_LOGGED_IN
+
+        authn_response = self.parse_saml_authn_response(resp)
+        session_info = authn_response.session_info()
+        attributes = session_info['ava']
+
+        test_sp_entity_id = 'https://sp.example.edu/saml2/metadata/'
+        expected_eptid = (
+            f'{self.idp_entity_id}!{test_sp_entity_id}!d537e1fd83ccd6bdb952099f5f9d32f0a015740e500921b70a3adc7ca6b4182d'
+        )
+        assert 'eduPersonTargetedID' in attributes
+        assert attributes['eduPersonTargetedID'] == [expected_eptid]

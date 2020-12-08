@@ -65,13 +65,19 @@ class LoginState(Enum):
 class IdPTests(EduidAPITestCase):
     """Base TestCase for those tests that need a full environment setup"""
 
-    def setUp(self):
-        super().setUp()
+    def setUp(
+        self,
+        init_am: bool = False,
+        am_settings: Optional[Dict[str, Any]] = None,
+        users: Optional[List[str]] = None,
+        copy_user_to_private: bool = False,
+    ):
+        super().setUp(init_am=init_am, am_settings=am_settings, users=users, copy_user_to_private=copy_user_to_private)
         self.idp_entity_id = 'https://unittest-idp.example.edu/idp.xml'
         self.relay_state = 'test-fest'
         self.sp_config = get_saml2_config(self.app.config.pysaml2_config, name='SP_CONFIG')
         # pysaml2 likes to keep state about ongoing logins, data from login to when you logout etc.
-        self._pysaml2_caches = dict()
+        self._pysaml2_caches: Dict[str, Any] = dict()
         self.pysaml2_state = StateCache(self._pysaml2_caches)  # _saml2_state in _pysaml2_caches
         self.pysaml2_identity = IdentityCache(self._pysaml2_caches)  # _saml2_identities in _pysaml2_caches
         self.pysaml2_oq = OutstandingQueriesCache(self._pysaml2_caches)  # _saml2_outstanding_queries in _pysaml2_caches
@@ -89,7 +95,12 @@ class IdPTests(EduidAPITestCase):
         datadir = pkg_resources.resource_filename(__name__, 'data')
         fn = os.path.join(datadir, 'test_SSO_conf.py')
         config.update(
-            {'pysaml2_config': fn, 'fticks_secret_key': 'test test', 'sso_cookie': {'key': 'test_sso_cookie'}}
+            {
+                'pysaml2_config': fn,
+                'fticks_secret_key': 'test test',
+                'eduperson_targeted_id_secret_key': 'eptid_secret',
+                'sso_cookie': {'key': 'test_sso_cookie'},
+            }
         )
         return config
 
