@@ -34,14 +34,13 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Type
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Mapping, Optional, Type
 
 import bson
 
 from eduid_common.misc.timeutil import utc_now
 from eduid_common.session.logindata import ExternalMfaData
-from eduid_userdb import UserDB
 from eduid_userdb.idp import IdPUser, IdPUserDb
 
 from eduid_webapp.idp.idp_authn import AuthnData
@@ -78,7 +77,7 @@ class SSOSession:
     external_mfa: Optional[ExternalMfaData] = None
     authn_timestamp: datetime = field(default_factory=utc_now)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'<{self.__class__.__name__}: uid={self.user_id}, ts={self.authn_timestamp.isoformat()}>'
 
     def to_dict(self) -> Dict[str, Any]:
@@ -88,24 +87,33 @@ class SSOSession:
         if self.external_mfa is not None:
             res['external_mfa'] = self.external_mfa.to_session_dict()
         del res['idp_user']
+        # Use integer format for this in the database until this code (from_dict() below) has been
+        # deployed everywhere so we can switch to datetime.
+        # TODO: Switch over to datetime.
+        res['authn_timestamp'] = int(self.authn_timestamp.timestamp())
         return res
 
     @classmethod
-    def from_dict(cls: Type[SSOSession], data: Dict[str, Any], userdb: IdPUserDb) -> SSOSession:
+    def from_dict(cls: Type[SSOSession], data: Mapping[str, Any], userdb: IdPUserDb) -> SSOSession:
         """ Construct element from a data dict in database format. """
 
-        data = dict(data)  # to not modify callers data
-        data['authn_credentials'] = [AuthnData.from_dict(x) for x in data['authn_credentials']]
-        if 'external_mfa' in data and data['external_mfa'] is not None:
-            data['external_mfa'] = [ExternalMfaData.from_session_dict(x) for x in data['external_mfa']]
-        if 'user_id' in data:
-            data['idp_user'] = userdb.lookup_user(data['user_id'])
-            if not data['idp_user']:
-                raise RuntimeError(f'User with id {repr(data["user_id"])} not found')
-        return cls(**data)
+        _data = dict(data)  # to not modify callers data
+        _data['authn_credentials'] = [AuthnData.from_dict(x) for x in _data['authn_credentials']]
+        if 'external_mfa' in _data and _data['external_mfa'] is not None:
+            _data['external_mfa'] = [ExternalMfaData.from_session_dict(x) for x in _data['external_mfa']]
+        if 'user_id' in _data:
+            _data['idp_user'] = userdb.lookup_user(_data['user_id'])
+            if not _data['idp_user']:
+                raise RuntimeError(f'User with id {repr(_data["user_id"])} not found')
+        # Compatibility code to convert integer format to datetime format. Keep this until nothing writes
+        # authn_timestamp as integers, and all the existing sessions have expired.
+        # TODO: Remove this code when all sessions in the database have datetime authn_timestamps.
+        if isinstance(_data.get('authn_timestamp'), int):
+            _data['authn_timestamp'] = datetime.fromtimestamp(_data['authn_timestamp'], tz=timezone.utc)
+        return cls(**_data)
 
     @property
-    def public_id(self):
+    def public_id(self) -> str:
         """
         Return a identifier for this session that can't be used to hijack sessions
         if leaked through a log file etc.

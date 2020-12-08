@@ -36,7 +36,7 @@ from __future__ import absolute_import
 import os
 import re
 from enum import Enum
-from typing import Any, Dict, Mapping, Optional, Tuple, List
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 import pkg_resources
 from flask import Response as FlaskResponse

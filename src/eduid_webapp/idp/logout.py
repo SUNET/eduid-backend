@@ -12,13 +12,14 @@
 Code handling Single Log Out requests.
 """
 import pprint
-from typing import Dict
+from typing import Dict, Sequence
 
 import saml2
 from flask import request
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT, BINDING_SOAP
 from saml2.request import LogoutRequest
 from saml2.s_utils import error_status_factory
+from saml2.saml import NameID
 from saml2.samlp import STATUS_PARTIAL_LOGOUT, STATUS_RESPONDER, STATUS_SUCCESS, STATUS_UNKNOWN_PRINCIPAL
 from werkzeug.exceptions import BadRequest, InternalServerError
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -26,6 +27,7 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 from eduid_webapp.idp import mischttp
 from eduid_webapp.idp.app import current_idp_app as current_app
 from eduid_webapp.idp.idp_saml import gen_key
+from eduid_webapp.idp.mischttp import HttpArgs
 from eduid_webapp.idp.service import Service
 from eduid_webapp.idp.sso_cache import SSOSessionId
 from eduid_webapp.idp.util import maybe_xml_to_string
@@ -40,19 +42,19 @@ class SLO(Service):
     Single Log Out service.
     """
 
-    def redirect(self):
+    def redirect(self) -> WerkzeugResponse:
         """ Expects a HTTP-redirect request """
 
         _dict = self.unpack_redirect()
         return self.perform_logout(_dict, BINDING_HTTP_REDIRECT)
 
-    def post(self):
+    def post(self) -> WerkzeugResponse:
         """ Expects a HTTP-POST request """
 
         _dict = self.unpack_post()
         return self.perform_logout(_dict, BINDING_HTTP_POST)
 
-    def soap(self):
+    def soap(self) -> WerkzeugResponse:
         """
         Single log out using HTTP_SOAP binding
         """
@@ -138,14 +140,13 @@ class SLO(Service):
         current_app.logger.debug(f'Logout of sessions {session_ids!r} / NameID {_name_id!r} result : {status_code!r}')
         return self._logout_response(req_info, status_code, req_key)
 
-    def _logout_session_ids(self, session_ids, req_key) -> str:
+    def _logout_session_ids(self, session_ids: Sequence[SSOSessionId], req_key: str) -> str:
         """
         Terminate one or more specific SSO sessions.
 
         :param session_ids: List of db keys in SSO session database
         :param req_key: Logging id of request
         :return: SAML StatusCode
-        :rtype: string
         """
         fail = 0
         for this in session_ids:
@@ -165,11 +166,11 @@ class SLO(Service):
                 fail += 1
         if fail:
             if fail == len(session_ids):
-                return STATUS_RESPONDER
-            return STATUS_PARTIAL_LOGOUT
-        return STATUS_SUCCESS
+                return str(STATUS_RESPONDER)  # use str() to ensure external value is the right type
+            return str(STATUS_PARTIAL_LOGOUT)  # use str() to ensure external value is the right type
+        return str(STATUS_SUCCESS)  # use str() to ensure external value is the right type
 
-    def _logout_name_id(self, name_id, req_key):
+    def _logout_name_id(self, name_id: NameID, req_key: str) -> str:
         """
         Terminate ALL SSO sessions found using this NameID.
 
@@ -180,11 +181,10 @@ class SLO(Service):
         :param name_id: NameID from LogoutRequest
         :param req_key: Logging id of request
         :return: SAML StatusCode
-        :rtype: string
         """
         if not name_id:
             current_app.logger.debug('No NameID provided for logout')
-            return STATUS_UNKNOWN_PRINCIPAL
+            return str(STATUS_UNKNOWN_PRINCIPAL)  # use str() to ensure external value is the right type
         try:
             # remove the authentication
             # XXX would be useful if remove_authn_statements() returned how many statements it actually removed
@@ -193,7 +193,7 @@ class SLO(Service):
         except KeyError:
             current_app.logger.exception(f'Failed removing authn')
             raise InternalServerError()
-        return STATUS_SUCCESS
+        return str(STATUS_SUCCESS)  # use str() to ensure external value is the right type
 
     def _logout_response(
         self, req_info: LogoutRequest, status_code: str, req_key: str, sign_response: bool = True
@@ -240,10 +240,10 @@ class SLO(Service):
             xmlstr = maybe_xml_to_string(response)
             current_app.logger.debug(f'Logout SAMLResponse :\n\n{xmlstr}\n\n')
 
-        ht_args = current_app.IDP.apply_binding(
+        _args = current_app.IDP.apply_binding(
             bindings[0], str(response), destination, req_info.relay_state, response=True
         )
-        # current_app.logger.debug("Apply bindings result :\n{!s}\n\n".format(pprint.pformat(ht_args)))
+        http_args = HttpArgs.from_pysaml2_dict(_args)
 
         # INFO-Log the SAML request ID, result of logout and destination
         current_app.logger.info(f'{req_key}: logout status={status_code!r}, dst={destination}')
@@ -256,7 +256,7 @@ class SLO(Service):
                 f'Creating response with binding {bindings[0]!r} instead of {req_info.binding!r} used before'
             )
 
-        res = mischttp.create_html_response(bindings[0], ht_args)
+        res = mischttp.create_html_response(bindings[0], http_args)
 
         # Delete the SSO session cookie in the browser
         _domain = current_app.config.session_cookie_domain

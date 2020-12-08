@@ -19,7 +19,7 @@ script:
   - "python3.7 -m venv venv"
   - ". venv/bin/activate"
   - "pip install -U setuptools wheel mypy"
-  - "pip install --index-url https://pypi.sunet.se -r requirements/testing.txt"
+  - "pip install --index-url https://pypi.sunet.se -r test_requirements.txt"
   - "pip freeze"
   - "make test"
   - "make typecheck"

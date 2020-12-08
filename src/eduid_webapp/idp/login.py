@@ -42,6 +42,7 @@ from eduid_webapp.idp.idp_saml import (
     IdP_SAMLRequest,
     ResponseArgs,
     SAMLParseError,
+    SamlResponse,
     SAMLValidationError,
     gen_key,
 )
@@ -66,12 +67,9 @@ class MustAuthenticate(Exception):
 class SSO(Service):
     """
     Single Sign On service.
-
-    :param sso_session: SSO session
-    :param context: IdP context
     """
 
-    def __init__(self, sso_session: SSOSession):
+    def __init__(self, sso_session: Optional[SSOSession]):
         super().__init__(sso_session)
 
     def perform_login(self, ticket: SSOLoginData) -> WerkzeugResponse:
@@ -106,7 +104,7 @@ class SSO(Service):
 
         binding_out = resp_args['binding_out']
         destination = resp_args['destination']
-        http_args = ticket.saml_req.apply_binding(resp_args, ticket.RelayState, str(saml_response))
+        http_args = ticket.saml_req.apply_binding(resp_args, ticket.RelayState, saml_response)
 
         # INFO-Log the SSO session id and the AL and destination
         current_app.logger.info(f'{ticket.key}: response authn={response_authn}, dst={destination}')
@@ -119,8 +117,13 @@ class SSO(Service):
         return mischttp.create_html_response(binding_out, http_args)
 
     def _make_saml_response(
-        self, response_authn: AuthnInfo, resp_args: ResponseArgs, user: IdPUser, ticket: SSOLoginData, sso_session
-    ):
+        self,
+        response_authn: AuthnInfo,
+        resp_args: ResponseArgs,
+        user: IdPUser,
+        ticket: SSOLoginData,
+        sso_session: SSOSession,
+    ) -> SamlResponse:
         """
         Create the SAML response using pysaml2 create_authn_response().
 
@@ -128,7 +131,7 @@ class SSO(Service):
         :param user: IdP user
         :param ticket: Login process state
 
-        :return: SAML response in lxml format
+        :return: SAML response (string)
         """
         saml_attribute_settings = SAMLAttributeSettings(
             default_eppn_scope=current_app.config.default_eppn_scope,
@@ -217,13 +220,12 @@ class SSO(Service):
                     ticket.key, attrs['ID'], attrs['InResponseTo'], assertion.get('ID')
                 )
             )
-
-            return DefusedElementTree.tostring(xml)
         except Exception as exc:
             current_app.logger.debug(f'Could not parse message as XML: {exc!r}')
             if not printed:
                 # Fall back to logging the whole response
                 current_app.logger.info(f'{ticket.key}: authn response: {saml_response}')
+        return None
 
     def _fticks_log(self, relying_party: str, authn_method: str, user_id: str) -> None:
         """
@@ -311,6 +313,9 @@ class SSO(Service):
         :param user: The user for whom the assertion will be made
         :return: Authn information
         """
+        # already checked with isinstance in perform_login() - we just need to convince mypy
+        assert self.sso_session
+
         if current_app.config.debug:
             current_app.logger.debug(f'MFA credentials logged in the ticket: {ticket.mfa_action_creds}')
             current_app.logger.debug(f'External MFA credential logged in the ticket: {ticket.mfa_action_external}')
@@ -438,7 +443,7 @@ class SSO(Service):
         return self._show_login_page(ticket, req_authn_context, redirect_uri)
 
     def _show_login_page(
-        self, ticket: SSOLoginData, requested_authn_context: Optional[str], redirect_uri
+        self, ticket: SSOLoginData, requested_authn_context: Optional[str], redirect_uri: str
     ) -> WerkzeugResponse:
         """
         Display the login form for all authentication methods.
@@ -529,19 +534,16 @@ def do_verify() -> WerkzeugResponse:
         current_app.logger.debug(f'Credentials not supplied. Redirect => {lox}')
         return redirect(lox)
 
-    login_data = {
-        'username': query['username'].strip(),
-        'password': password,
-    }
-    del password  # keep out of any exception logs
     try:
-        authninfo = current_app.authn.password_authn(login_data)
+        user, authninfo = current_app.authn.password_authn(query['username'].strip(), password)
     except exceptions.EduidTooManyRequests as e:
         raise TooManyRequests(e.args[0])
     except exceptions.EduidForbidden as e:
         raise Forbidden(e.args[0])
+    finally:
+        del password  # keep out of any exception logs
 
-    if not authninfo:
+    if not user or not authninfo:
         current_app.logger.info(f'{_ticket.key}: Password authentication failed')
         _ticket.FailCount += 1
         session.sso_ticket = _ticket
@@ -549,11 +551,7 @@ def do_verify() -> WerkzeugResponse:
         current_app.logger.debug(f'Unknown user or wrong password. Redirect => {lox}')
         return redirect(lox)
 
-    if authninfo.user is None:
-        raise RuntimeError('User not authenticated')
-
     # Create SSO session
-    user = authninfo.user
     current_app.logger.debug(f'User {user} authenticated OK (SAML id {repr(_ticket.saml_req.request_id)})')
     _sso_session = SSOSession(
         user_id=user.user_id, authn_request_id=_ticket.saml_req.request_id, authn_credentials=[authninfo], idp_user=user

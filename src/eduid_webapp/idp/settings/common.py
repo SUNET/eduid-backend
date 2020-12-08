@@ -137,7 +137,9 @@ class IdPConfig(FlaskConfig):
     preferred_url_scheme: str = 'http'
     # TTL for shared sessions.
     shared_session_ttl: int = 300
-    http_headers: str = "Content-Security-Policy:default-src 'self'; script-src 'self' 'unsafe-inline', X-Frame-Options:DENY"
+    http_headers: str = (
+        "Content-Security-Policy:default-src 'self'; script-src 'self' 'unsafe-inline', X-Frame-Options:DENY"
+    )
     privacy_link: str = "http://html.eduid.docker/privacy.html"
     # List in order of preference
     supported_digest_algorithms: List[str] = field(default_factory=lambda: ['http://www.w3.org/2001/04/xmlenc#sha256'])
@@ -147,7 +149,7 @@ class IdPConfig(FlaskConfig):
     )
     eduperson_targeted_id_secret_key: str = ''
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         # Convert sso_cookie from dict to the proper dataclass
         if isinstance(self.sso_cookie, dict):

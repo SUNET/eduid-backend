@@ -61,13 +61,16 @@ def maybe_xml_to_string(message: Union[str, bytes]) -> str:
     if isinstance(message, bytes):
         # message is returned as binary from pysaml2 in python3
         message = message.decode('utf-8')
-    message = str(message)
     try:
         from defusedxml import ElementTree as DefusedElementTree
 
         parser = DefusedElementTree.DefusedXMLParser()
         xml = DefusedElementTree.XML(message, parser)
-        return DefusedElementTree.tostring(xml).decode('utf-8')
+        _xml = DefusedElementTree.tostring(xml)
+        if not isinstance(_xml, bytes):
+            # how odd for a function called tostring to not return a string...
+            raise ValueError('DefusedElementTree.tostring() did not return bytes')
+        return _xml.decode('utf-8')
     except Exception:
         current_app.logger.exception(f'Could not parse message of type {type(message)!r} as XML')
         return message

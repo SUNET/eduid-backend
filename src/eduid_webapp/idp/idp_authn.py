@@ -39,24 +39,24 @@ such as rate limiting.
 from __future__ import annotations
 
 import logging
-import warnings
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Dict, Optional, Sequence, Type
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Type
 
 from bson import ObjectId
 
-import vccs_client
 from eduid_common.api import exceptions
 from eduid_common.authn import get_vccs_client
 from eduid_common.misc.timeutil import utc_now
 from eduid_userdb import MongoDB
 from eduid_userdb.credentials import Credential, Password
 from eduid_userdb.exceptions import UserHasNotCompletedSignup
-from eduid_userdb.idp import IdPUser
+from eduid_userdb.idp import IdPUser, IdPUserDb
+from vccs_client import VCCSClientHTTPError, VCCSPasswordFactor
 
-# TODO: Rename to logger
-module_logger = logging.getLogger(__name__)
+from eduid_webapp.idp.settings.common import IdPConfig
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -69,70 +69,62 @@ class AuthnData(object):
 
     cred_id: str
     timestamp: datetime = field(default_factory=utc_now)
-    user: Optional[IdPUser] = None  # not set if object is created from database
 
     def to_dict(self) -> Dict[str, Any]:
         """ Return the object in dict format (serialized for storing in MongoDB). """
         res = asdict(self)
-        del res['user']
+        # rename 'timestamp' to 'authn_ts' when writing to the database to match legacy code
+        res['authn_ts'] = res.pop('timestamp')
         return res
 
     @classmethod
-    def from_dict(cls: Type[AuthnData], data: Dict[str, Any]) -> AuthnData:
+    def from_dict(cls: Type[AuthnData], data: Mapping[str, Any]) -> AuthnData:
         """ Construct element from a data dict in database format. """
-        return cls(**data)
+        _data = dict(data)  # to not modify callers data
+        # 'timestamp' is called 'authn_ts' in the database for legacy reasons
+        if 'authn_ts' in _data:
+            _data['timestamp'] = _data.pop('authn_ts')
+        return cls(**_data)
 
 
 class IdPAuthn(object):
     """
-    :param logger: logging logger
     :param config: IdP configuration data
-
-    :type config: IdPConfig
     """
 
-    def __init__(self, logger: Optional[logging.Logger], config, userdb, auth_client=None, authn_store=None):
-        self.logger = logger
+    def __init__(
+        self, config: IdPConfig, userdb: IdPUserDb,
+    ):
         self.config = config
         self.userdb = userdb
-        self.auth_client = auth_client
-        if self.auth_client is None:
-            self.auth_client = get_vccs_client(config.vccs_url)
-        self.authn_store = authn_store
-        if self.authn_store is None and config.mongo_uri:
-            self.authn_store = AuthnInfoStoreMDB(uri=config.mongo_uri, logger=logger)
+        self.auth_client = get_vccs_client(config.vccs_url)
+        # already checked with isinstance in app init
+        assert config.mongo_uri is not None
+        self.authn_store = AuthnInfoStore(uri=config.mongo_uri)
 
-        if self.logger is not None:
-            warnings.warn('Object logger deprecated, using module_logger', DeprecationWarning)
-
-    def password_authn(self, data: dict) -> Optional[AuthnData]:
+    def password_authn(self, username: str, password: str) -> Tuple[Optional[IdPUser], Optional[AuthnData]]:
         """
         Authenticate someone using a username and password.
 
-        :param login_data: Login credentials (dict with 'username' and 'password')
-        :returns: AuthnData on success
+        :returns: The IdPUser found, and AuthnData on success
         """
-        username = data['username']
-        password = data['password']
-        del data  # keep sensitive data out of Sentry logs
-
         try:
             user = self.userdb.lookup_user(username)
         except UserHasNotCompletedSignup:
             # XXX Redirect user to some kind of info page
-            return None
+            return None, None
         if not user:
-            module_logger.info('Unknown user : {!r}'.format(username))
+            logger.info(f'Unknown user : {repr(username)}')
             # XXX we effectively disclose there was no such user by the quick
             # response in this case. Maybe send bogus auth request to backends?
-            return None
-        module_logger.debug(f'Found user {user}')
+            return None, None
+        logger.debug(f'Found user {user}')
 
         cred = self._verify_username_and_password2(user, password)
         if not cred:
-            return None
+            return None, None
 
-        return AuthnData(cred_id=cred.key, user=user)
+        return user, AuthnData(cred_id=cred.key)
 
     def _verify_username_and_password2(self, user: IdPUser, password: str) -> Optional[Password]:
         """
@@ -149,10 +141,10 @@ class IdPAuthn(object):
         pw_credentials = user.credentials.filter(Password).to_list()
         if self.authn_store:  # requires optional configuration
             authn_info = self.authn_store.get_user_authn_info(user)
-            if authn_info.failures_this_month() > self.config.max_authn_failures_per_month:
-                module_logger.info(
+            if authn_info.failures_this_month > self.config.max_authn_failures_per_month:
+                logger.info(
                     "User {!r} AuthN failures this month {!r} > {!r}".format(
-                        user, authn_info.failures_this_month(), self.config.max_authn_failures_per_month
+                        user, authn_info.failures_this_month, self.config.max_authn_failures_per_month
                     )
                 )
                 raise exceptions.EduidTooManyRequests("Too Many Requests")
@@ -160,10 +152,10 @@ class IdPAuthn(object):
             # Optimize list of credentials to try based on which credentials the
             # user used in the last successful authentication. This optimization
             # is based on plain assumption, no measurements whatsoever.
-            last_creds = authn_info.last_used_credentials()
+            last_creds = authn_info.last_used_credentials
             sorted_creds = sorted(pw_credentials, key=lambda x: x.credential_id not in last_creds)
             if sorted_creds != pw_credentials:
-                module_logger.debug(
+                logger.debug(
                     "Re-sorted list of credentials into\n{}\nbased on last-used {!r}".format(sorted_creds, last_creds)
                 )
                 pw_credentials = sorted_creds
@@ -182,27 +174,27 @@ class IdPAuthn(object):
         """
         for cred in pw_credentials:
             try:
-                factor = vccs_client.VCCSPasswordFactor(password, str(cred.credential_id), str(cred.salt))
+                factor = VCCSPasswordFactor(password, str(cred.credential_id), str(cred.salt))
             except ValueError as exc:
-                module_logger.info(f'User {user} password factor {cred.credential_id} unusable: {exc}')
+                logger.info(f'User {user} password factor {cred.credential_id} unusable: {exc}')
                 continue
-            module_logger.debug(f"Password-authenticating {user}/{cred.credential_id} with VCCS: {factor}")
+            logger.debug(f"Password-authenticating {user}/{cred.credential_id} with VCCS: {factor}")
             user_id = str(user.user_id)
             try:
                 if self.auth_client.authenticate(user_id, [factor]):
-                    module_logger.debug(f'VCCS authenticated user {user}')
+                    logger.debug(f'VCCS authenticated user {user}')
                     # Verify that the credential had been successfully used in the last 18 months
                     # (Kantara AL2_CM_CSM#050).
                     if self.credential_expired(cred):
-                        module_logger.info(f'User {user} credential {cred.key} has expired')
+                        logger.info(f'User {user} credential {cred.key} has expired')
                         raise exceptions.EduidForbidden('CREDENTIAL_EXPIRED')
                     self.log_authn(user, success=[cred.credential_id], failure=[])
                     return cred
-            except vccs_client.VCCSClientHTTPError as exc:
+            except VCCSClientHTTPError as exc:
                 if exc.http_code == 500:
-                    module_logger.debug(f'VCCS credential {cred.credential_id} might be revoked')
+                    logger.debug(f'VCCS credential {cred.credential_id} might be revoked')
                     continue
-        module_logger.debug(f'VCCS username-password authentication FAILED for user {user}')
+        logger.debug(f'VCCS username-password authentication FAILED for user {user}')
         self.log_authn(user, success=[], failure=[cred.credential_id for cred in pw_credentials])
         return None
 
@@ -212,19 +204,19 @@ class IdPAuthn(object):
         :param cred: Authentication credential
         """
         if not self.authn_store:  # requires optional configuration
-            module_logger.debug(f"Can't check if credential {cred.key} is expired, no authn_store available")
+            logger.debug(f"Can't check if credential {cred.key} is expired, no authn_store available")
             return False
         last_used = self.authn_store.get_credential_last_used(cred.credential_id)
         if last_used is None:
             # Can't disallow this while there is a short-path from signup to dashboard unforch...
-            module_logger.debug('Allowing never-used credential {!r}'.format(cred))
+            logger.debug('Allowing never-used credential {!r}'.format(cred))
             return False
         now = utc_now()
         delta = now - last_used
-        module_logger.debug(f'Credential {cred.key} last used {delta.days} days ago')
+        logger.debug(f'Credential {cred.key} last used {delta.days} days ago')
         return delta.days >= int(365 * 1.5)
 
-    def log_authn(self, user: IdPUser, success: Sequence[ObjectId], failure: Sequence[ObjectId]) -> None:
+    def log_authn(self, user: IdPUser, success: Sequence[str], failure: Sequence[str]) -> None:
         """
         Log user authn success as well as failures.
 
@@ -241,31 +233,43 @@ class IdPAuthn(object):
         return None
 
 
-class AuthnInfoStore(object):
+class AuthnInfoStore:
     """
-    Abstract AuthnInfoStore.
+    In this database, information about users have ObjectId _id's corresponding to user.user_id,
+    and information about credentials have string _id's.
+
+    Example:
+
+      User info:
+
+        {
+                "_id" : ObjectId("5fc5f6a318e93a5e90212c0e"),
+                "success_ts" : ISODate("2020-12-01T07:54:24.309Z"),
+                "last_credential_ids" : [
+                        "5fc5f6ab18e93a5e90212c11"
+                ],
+                "fail_count" : {
+                        "202012" : 0
+                },
+                "success_count" : {
+                        "202012" : 1
+                }
+        }
+
+      Credential info:
+
+        {
+                "_id" : "5fc5f74618e93a5e90212c16",
+                "success_ts" : ISODate("2020-12-01T07:56:58.665Z")
+        }
     """
 
-    def __init__(self, logger: Optional[logging.Logger]):
-        self.logger = logger
-
-        if self.logger is not None:
-            warnings.warn('Object logger deprecated, using module_logger', DeprecationWarning)
-
-
-class AuthnInfoStoreMDB(AuthnInfoStore):
-    """
-    This is a MongoDB version of AuthnInfoStore().
-    """
-
-    def __init__(self, uri, logger, db_name='eduid_idp_authninfo', collection_name='authn_info', **kwargs):
-        AuthnInfoStore.__init__(self, logger)
-
-        module_logger.debug("Setting up AuthnInfoStoreMDB")
+    def __init__(self, uri: str, db_name: str = 'eduid_idp_authninfo', collection_name: str = 'authn_info'):
+        logger.debug('Setting up AuthnInfoStore')
         self._db = MongoDB(db_uri=uri, db_name=db_name)
         self.collection = self._db.get_collection(collection_name)
 
-    def credential_success(self, cred_ids, ts=None):
+    def credential_success(self, cred_ids: Sequence[str], ts: Optional[datetime] = None) -> None:
         """
         Kantara AL2_CM_CSM#050 requires that any credential that is not used for
         a period of 18 months is disabled (taken to mean revoked).
@@ -276,9 +280,6 @@ class AuthnInfoStoreMDB(AuthnInfoStore):
         :param cred_ids: List of Credential ID
         :param ts: Optional timestamp
         :return: None
-
-        :type ts: datetime.datetime()
-        :type cred_ids: [bson.ObjectId]
         """
         if ts is None:
             ts = utc_now()
@@ -286,10 +287,12 @@ class AuthnInfoStoreMDB(AuthnInfoStore):
         # return meaningful data for multi=True, so it is not possible to figure out
         # which entries were actually updated :(
         for this in cred_ids:
-            self.collection.save({'_id': this, 'success_ts': ts,},)
+            self.collection.save({'_id': this, 'success_ts': ts})
         return None
 
-    def update_user(self, user_id, success, failure, ts=None):
+    def update_user(
+        self, user_id: ObjectId, success: Sequence[str], failure: Sequence[str], ts: Optional[datetime] = None
+    ) -> None:
         """
         Log authentication result data for this user.
 
@@ -309,24 +312,15 @@ class AuthnInfoStoreMDB(AuthnInfoStore):
         :param success: List of Credential Ids successfully authenticated
         :param failure: List of Credential Ids for which authentication failed
         :param ts: Optional timestamp
-        :return: None
-
-        :type user_id: bson.ObjectId
-        :type success: [bson.ObjectId]
-        :type failure: [bson.ObjectId]
-        :type ts: datetime.datetime() | None
         """
         if ts is None:
             ts = utc_now()
         this_month = (ts.year * 100) + ts.month  # format year-month as integer (e.g. 201402)
         self.collection.find_and_modify(
-            query={'_id': user_id,},
+            query={'_id': user_id},
             update={
-                '$set': {'success_ts': ts, 'last_credential_ids': success,},
-                '$inc': {
-                    'fail_count.' + str(this_month): len(failure),
-                    'success_count.' + str(this_month): len(success),
-                },
+                '$set': {'success_ts': ts, 'last_credential_ids': success},
+                '$inc': {f'fail_count.{this_month}': len(failure), f'success_count.{this_month}': len(success),},
             },
             upsert=True,
             new=True,
@@ -334,7 +328,7 @@ class AuthnInfoStoreMDB(AuthnInfoStore):
         )
         return None
 
-    def unlock_user(self, user_id, fail_count=0, ts=None):
+    def unlock_user(self, user_id: ObjectId, fail_count: int = 0, ts: Optional[datetime] = None) -> None:
         """
         Set the fail count for a specific user and month.
 
@@ -343,85 +337,61 @@ class AuthnInfoStoreMDB(AuthnInfoStore):
         :param user_id: User identifier
         :param fail_count: Number of failed attempts to put the user at
         :param ts: Optional timestamp
-
-        :type user_id: bson.ObjectId
-        :type fail_count: int
-        :type ts: datetime.datetime() | None
-
-        :return: None
         """
         if ts is None:
             ts = utc_now()
         this_month = (ts.year * 100) + ts.month  # format year-month as integer (e.g. 201402)
         self.collection.find_and_modify(
-            query={'_id': user_id,},
-            update={'$set': {'fail_count.' + str(this_month): fail_count,},},
+            query={'_id': user_id},
+            update={'$set': {f'fail_count.{this_month}': fail_count}},
             upsert=True,
             new=True,
             multi=False,
         )
         return None
 
-    def get_user_authn_info(self, user):
-        """
-        Load stored Authn information for user.
-
-        :param user: User object
-
-        :type user: IdPUser
-        :rtype: UserAuthnInfo
-        """
+    def get_user_authn_info(self, user: IdPUser) -> UserAuthnInfo:
+        """ Load stored Authn information for user. """
         data = self.collection.find({'_id': user.user_id})
         if not data.count():
-            return UserAuthnInfo({})
-        return UserAuthnInfo(data[0])
+            return UserAuthnInfo(failures_this_month=0, last_used_credentials=[])
+        return UserAuthnInfo.from_dict(data[0])
 
-    def get_credential_last_used(self, cred_id):
-        """
-        Get the timestamp for when a specific credential was last used successfully.
+    def get_credential_last_used(self, cred_id: str) -> Optional[datetime]:
+        """ Get the timestamp for when a specific credential was last used successfully.
 
-        :param cred_id: Id of credential
-        :type cred_id: bson.ObjectId
-
-        :return: None | datetime.datetime
+        :return: Time of last successful use, or None
         """
         # Locate documents written by credential_success() above
         data = self.collection.find({'_id': cred_id})
         if not data.count():
             return None
-        return data[0]['success_ts']
+        _success_ts = data[0]['success_ts']
+        if not isinstance(_success_ts, datetime):
+            raise ValueError(f'success_ts is not a datetime ({repr(_success_ts)})')
+        return _success_ts
 
 
-class UserAuthnInfo(object):
+@dataclass(frozen=True)
+class UserAuthnInfo:
     """
-    Interpret data loaded from the AuthnInfoStore.
+    Interpret data about a user loaded from the AuthnInfoStore.
     """
 
-    def __init__(self, data):
-        self._data = data
+    failures_this_month: int
+    last_used_credentials: List[str]
 
-    def failures_this_month(self, ts=None):
-        """
-        Return the number of failed login attempts for a user in a certain month.
+    @classmethod
+    def from_dict(cls: Type[UserAuthnInfo], data: Dict[str, Any], ts: Optional[datetime] = None) -> UserAuthnInfo:
+        """ Construct element from a data dict in database format. """
+        data = dict(data)  # to not modify callers data
 
-        :param ts: Optional timestamp
-
-        :return: Number of failed attempts
-
-        :type ts: datetime.datetime | None
-        :rtype: int
-        """
         if ts is None:
             ts = utc_now()
         this_month = (ts.year * 100) + ts.month  # format year-month as integer (e.g. 201402)
-        return self._data.get('fail_count', {}).get(str(this_month), 0)
 
-    def last_used_credentials(self):
-        """
-        Get the credential IDs used in the last successful authentication for this user.
+        _fail_count = data.get('fail_count', {})
+        failures_this_month = _fail_count.get(str(this_month), 0)
+        last_used_credentials = data.get('last_credential_ids', [])
 
-        :return: List of IDs
-
-        :rtype: [bson.ObjectId]
-        """
-        return self._data.get('last_credential_ids', [])
+        return cls(failures_this_month=failures_this_month, last_used_credentials=last_used_credentials)

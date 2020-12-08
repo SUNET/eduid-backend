@@ -236,7 +236,7 @@ class TestSSO(SSOIdPTests):
             elif isinstance(this, ExternalMfaData):
                 sso_session_1.external_mfa = this
             elif isinstance(this, Credential):
-                data = AuthnData(this.key, user=user)
+                data = AuthnData(this.key)
                 sso_session_1.add_authn_credential(data)
             else:
                 raise ValueError(f'Unhandled test data: {repr(this)}')
