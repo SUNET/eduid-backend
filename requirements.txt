@@ -1,10 +1,10 @@
 falcon==1.4.*
-PyYAML>=5.*
-gunicorn==19.9.0
-marshmallow-dataclass[enum,union]==7.3.*
+PyYAML==5.*
+marshmallow-dataclass[enum,union]==7.*
 python-jose==3.*
-eduid_userdb>=0.8.0,==0.8.*
-eduid_graphdb>=0.7.0,==0.7.*
-eduid_queue[client]>=0.0.2,==0.0.*
-eduid_common[api]
+eduid_userdb>=0.8.0
+eduid_graphdb>=0.7.0
+eduid_queue[client]>=0.0.2
+eduid_common[api]>=0.22.0
 langcodes==2.*
+gunicorn
