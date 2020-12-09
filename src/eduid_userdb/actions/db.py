@@ -74,7 +74,8 @@ class ActionDB(BaseDB):
         except InvalidId:
             old_format = False
             query = {'eppn': eppn_or_userid}
-        query['$or'] = [{'session': {'$exists': False}}, {'session': session}]
+        if session is not None:
+            query['$or'] = [{'session': {'$exists': False}}, {'session': session}]
         if filter_ is not None:
             query.update(filter_)
         return old_format, self._coll.find(query).sort('preference')
