@@ -35,6 +35,7 @@ from __future__ import absolute_import
 
 import os
 import re
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Mapping, Optional, Tuple
 
@@ -61,6 +62,12 @@ class LoginState(Enum):
     S4_REDIRECT_TO_ACS = 'redirect-to-acs'
     S5_LOGGED_IN = 'logged-in'
 
+
+@dataclass
+class LoginResult:
+    url: str
+    reached_state: LoginState
+    response: FlaskResponse
 
 class IdPTests(EduidAPITestCase):
     """Base TestCase for those tests that need a full environment setup"""
@@ -114,7 +121,7 @@ class IdPTests(EduidAPITestCase):
 
     def _try_login(
         self, saml2_client: Optional[Saml2Client] = None, authn_context=None, force_authn: bool = False,
-    ) -> Tuple[LoginState, FlaskResponse]:
+    ) -> LoginResult:
         """
         Try logging in to the IdP.
 
@@ -135,39 +142,39 @@ class IdPTests(EduidAPITestCase):
         with self.session_cookie_anon(self.browser) as browser:
             resp = browser.get(path)
             if resp.status_code != 200:
-                return LoginState.S0_REDIRECT, resp
+                return LoginResult(url=path, reached_state=LoginState.S0_REDIRECT, response=resp)
 
         form_data = self._extract_form_inputs(resp.data.decode('utf-8'))
         del form_data['key']  # test if key is really necessary
         form_data['username'] = self.test_user.mail_addresses.primary.email
         form_data['password'] = 'Jenka'
         if 'redirect_uri' not in form_data:
-            return LoginState.S1_LOGIN_FORM, resp
+            return LoginResult(url=path, reached_state=LoginState.S1_LOGIN_FORM, response=resp)
 
         cookies = resp.headers.get('Set-Cookie')
         if not cookies:
-            return LoginState.S1_LOGIN_FORM, resp
+            return LoginResult(url=path, reached_state=LoginState.S1_LOGIN_FORM, response=resp)
 
         with self.session_cookie_anon(self.browser) as browser:
             resp = browser.post('/verify', data=form_data, headers={'Cookie': cookies})
             if resp.status_code != 302:
-                return LoginState.S2_VERIFY, resp
+                return LoginResult(url='/verify', reached_state=LoginState.S2_VERIFY, response=resp)
 
         redirect_loc = self._extract_path_from_response(resp)
         # check that we were sent back to the login screen
         # TODO: verify that we really were logged in
         if not redirect_loc.startswith('/sso/redirect?key='):
-            return LoginState.S2_VERIFY, resp
+            return LoginResult(url='/verify', reached_state=LoginState.S2_VERIFY, response=resp)
 
         cookies = resp.headers.get('Set-Cookie')
         if not cookies:
-            return LoginState.S2_VERIFY, resp
+            return LoginResult(url='/verify', reached_state=LoginState.S2_VERIFY, response=resp)
 
         resp = self.browser.get(redirect_loc, headers={'Cookie': cookies})
         if resp.status_code != 200:
-            return LoginState.S3_REDIRECT_LOGGED_IN, resp
+            return LoginResult(url=redirect_loc, reached_state=LoginState.S3_REDIRECT_LOGGED_IN, response=resp)
 
-        return LoginState.S5_LOGGED_IN, resp
+        return LoginResult(url=redirect_loc, reached_state=LoginState.S5_LOGGED_IN, response=resp)
 
     def _extract_form_inputs(self, res: str) -> Dict[str, Any]:
         inputs = {}

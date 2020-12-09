@@ -40,12 +40,13 @@ import bson
 import pkg_resources
 from mock import patch
 
+from eduid_common.misc.timeutil import utc_now
 from eduid_common.session.logindata import SSOLoginData
 from eduid_userdb.credentials import U2F, Webauthn
 from eduid_userdb.tou import ToUEvent
 from vccs_client import VCCSClient
 
-from eduid_webapp.idp.mfa_action import add_actions as mfa_add_actions
+from eduid_webapp.idp.mfa_action import RESULT_CREDENTIAL_KEY_NAME, add_actions as mfa_add_actions
 from eduid_webapp.idp.tests.test_app import LoginState
 from eduid_webapp.idp.tests.test_SSO import SWAMID_AL2, SSOIdPTests
 from eduid_webapp.idp.tests.test_SSO import cc as CONTEXTCLASSREFS
@@ -94,9 +95,9 @@ class TestActions(SSOIdPTests):
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, 'authenticate'):
             VCCSClient.authenticate.return_value = True
-            reached_state, resp = self._try_login()
+            result = self._try_login()
 
-        assert reached_state == LoginState.S5_LOGGED_IN
+        assert result.reached_state == LoginState.S5_LOGGED_IN
 
     def test_no_actions_touevent_from_dict(self):
         # Register user acceptance for the ToU version in use
@@ -121,11 +122,11 @@ class TestActions(SSOIdPTests):
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, 'authenticate'):
             VCCSClient.authenticate.return_value = True
-            reached_state, resp = self._try_login()
+            result = self._try_login()
 
-        assert reached_state == LoginState.S3_REDIRECT_LOGGED_IN
+        assert result.reached_state == LoginState.S3_REDIRECT_LOGGED_IN
 
-        assert self.app.config.actions_app_uri in resp.location
+        assert self.app.config.actions_app_uri in result.response.location
 
     def test_add_mfa_action_no_key(self):
         self.actions.remove_action_by_id(self.test_action.action_id)
