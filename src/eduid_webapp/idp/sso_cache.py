@@ -15,18 +15,15 @@ import uuid
 import warnings
 from collections import deque
 from threading import Lock
-from typing import Any, Deque, Dict, List, Mapping, NewType, Optional, Tuple, Union, cast
+from typing import Any, Deque, Dict, List, Mapping, Optional, Tuple, Union, cast
 
 from eduid_common.misc.timeutil import utc_now
 from eduid_userdb.db import BaseDB
 from eduid_userdb.idp import IdPUserDb
 
-from eduid_webapp.idp.sso_session import SSOSession
+from eduid_webapp.idp.sso_session import SSOSession, SSOSessionId
 
 _SHA1_HEXENCODED_SIZE = 160 // 8 * 2
-
-# A distinct type for session ids
-SSOSessionId = NewType('SSOSessionId', bytes)
 
 # TODO: Rename to logger
 module_logger = logging.getLogger(__name__)
@@ -178,6 +175,7 @@ class SSOSessionCache(BaseDB):
         # Remove messages older than created_ts + ttl
         indexes = {
             'auto-discard': {'key': [('created_ts', 1)], 'expireAfterSeconds': ttl},
+            'unique-session-id': {'key': [('session_id', 1)], 'unique': True},
         }
         self.setup_indexes(indexes)
 
@@ -195,7 +193,7 @@ class SSOSessionCache(BaseDB):
             module_logger.warning(f'Remove session {repr(sid)} failed, result: {repr(res)}')
             return False
 
-    def add_session(self, username: str, session: SSOSession) -> SSOSessionId:
+    def add_session(self, session: SSOSession) -> None:
         """
         Add a new SSO session to the cache.
 
@@ -207,15 +205,9 @@ class SSOSessionCache(BaseDB):
         :param session: Session to add
         :return: Unique session identifier
         """
-        _sid = self._create_session_id()
-        _doc = {
-            'session_id': _sid,
-            'username': username,
-            'data': session.to_dict(),
-            'created_ts': utc_now(),
-        }
+        _doc = session.to_dict()
         self._coll.insert(_doc)
-        return _sid
+        return None
 
     def update_session(self, username: str, data: Mapping[str, Any]) -> None:
         """
@@ -241,8 +233,7 @@ class SSOSessionCache(BaseDB):
             raise
         if not res:
             return None
-
-        return SSOSession.from_dict(res['data'], userdb)
+        return SSOSession.from_dict(res, userdb)
 
     def get_sessions_for_user(self, username: str) -> List[SSOSessionId]:
         """
@@ -259,12 +250,3 @@ class SSOSessionCache(BaseDB):
         for this in entrys:
             res.append(this['session_id'])
         return res
-
-    def _create_session_id(self) -> SSOSessionId:
-        """
-        Create a unique value suitable for use as session identifier.
-
-        The uniqueness and unability to guess is security critical!
-        :return: session_id as bytes (to match what cookie decoding yields)
-        """
-        return SSOSessionId(bytes(str(uuid.uuid4()), 'ascii'))

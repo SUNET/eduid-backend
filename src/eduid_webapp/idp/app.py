@@ -37,6 +37,7 @@ from typing import Any, Dict, Optional, cast
 
 from flask import current_app
 
+import eduid_webapp.idp.sso_session
 from eduid_common.api import translation
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.authn.utils import init_pysaml2
@@ -46,8 +47,8 @@ from eduid_userdb.idp import IdPUserDb
 
 from eduid_webapp.idp import idp_authn, sso_cache
 from eduid_webapp.idp.settings.common import IdPConfig
-from eduid_webapp.idp.sso_cache import SSOSessionCache, SSOSessionId
-from eduid_webapp.idp.sso_session import SSOSession
+from eduid_webapp.idp.sso_cache import SSOSessionCache
+from eduid_webapp.idp.sso_session import SSOSession, SSOSessionId
 
 __author__ = 'ft'
 
@@ -144,7 +145,7 @@ class IdPApp(EduIDBaseApp):
         self.logger.debug(f'Re-created SSO session {_sso}')
         return _sso
 
-    def get_sso_session_id(self) -> Optional[sso_cache.SSOSessionId]:
+    def get_sso_session_id(self) -> Optional[eduid_webapp.idp.sso_session.SSOSessionId]:
         """
         Get the SSO session id from the IdP SSO cookie, with fallback to hopefully unused 'id' query string parameter.
 

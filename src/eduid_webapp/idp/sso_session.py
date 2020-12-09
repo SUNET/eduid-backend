@@ -33,17 +33,23 @@
 #
 from __future__ import annotations
 
+import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Mapping, Optional, Type
+from typing import Any, Dict, List, Mapping, NewType, Optional, Type
 
 import bson
+from bson import ObjectId
 
 from eduid_common.misc.timeutil import utc_now
 from eduid_common.session.logindata import ExternalMfaData
 from eduid_userdb.idp import IdPUser, IdPUserDb
 
 from eduid_webapp.idp.idp_authn import AuthnData
+
+
+# A distinct type for session ids
+SSOSessionId = NewType('SSOSessionId', bytes)
 
 
 @dataclass
@@ -61,19 +67,24 @@ class SSOSession:
     :param user_id: User id, typically MongoDB _id
     :param authn_request_id: SAML request id of request that caused authentication
     :param authn_credentials: Data about what credentials were used to authn
-    :param ts: Authentication timestamp, in UTC
+    :param authn_timestamp: Authentication timestamp, in UTC
 
-    :type user_id: bson.ObjectId | object
-    :type authn_ref: object
-    :type authn_request_id: string
-    :type authn_credentials: None | [AuthnData]
-    :type ts: int
+    # These fields are from the 'outer' scope of the session, and are
+    # duplicated here for now. Can't be changed here, since they are removed in to_dict.
+
+    :param created_ts: When the database document was created
+    :param eppn: User eduPersonPrincipalName
+
     """
 
-    user_id: bson.ObjectId
+    user_id: bson.ObjectId  # move away from this - use the eppn instead
     authn_request_id: str
     authn_credentials: List[AuthnData]
+    eppn: str
     idp_user: IdPUser  # extra info - not serialised
+    _id: Optional[ObjectId] = None
+    session_id: SSOSessionId = field(default_factory=lambda: create_session_id())
+    created_ts: datetime = field(default_factory=utc_now)
     external_mfa: Optional[ExternalMfaData] = None
     authn_timestamp: datetime = field(default_factory=utc_now)
 
@@ -81,16 +92,46 @@ class SSOSession:
         return f'<{self.__class__.__name__}: uid={self.user_id}, ts={self.authn_timestamp.isoformat()}>'
 
     def to_dict(self) -> Dict[str, Any]:
-        """ Return the object in dict format (serialized for storing in MongoDB). """
+        """ Return the object in dict format (serialized for storing in MongoDB).
+
+        For legacy reasons, some of the attributes are stored in an 'inner' scope called 'data':
+
+        {
+            '_id': ObjectId('5fcde44d56cf512b51f1ac4e'),
+            'session_id': b'ZjYzOTcwNWItYzUyOS00M2U1LWIxODQtODMxYTJhZjQ0YzA1',
+            'username': 'hubba-bubba',
+            'data': {
+                'user_id': ObjectId('5fd09748c07041072b237ae0')
+                'authn_request_id': 'id-IgHyGTmxBEORfx5NJ',
+                'authn_credentials': [
+                    {
+                        'cred_id': '5fc8b78cbdaa0bf337490db1',
+                        'authn_ts': datetime.fromisoformat('2020-09-13T12:26:40+00:00'),
+                    }
+                ],
+                'authn_timestamp': 1600000000,
+                'external_mfa': None,
+            },
+            'created_ts': datetime.fromisoformat('2020-12-07T08:14:05.744+00:00'),
+        }
+         """
         res = asdict(self)
         res['authn_credentials'] = [x.to_dict() for x in self.authn_credentials]
         if self.external_mfa is not None:
             res['external_mfa'] = self.external_mfa.to_session_dict()
+        # Remove extra fields
         del res['idp_user']
         # Use integer format for this in the database until this code (from_dict() below) has been
         # deployed everywhere so we can switch to datetime.
         # TODO: Switch over to datetime.
         res['authn_timestamp'] = int(self.authn_timestamp.timestamp())
+        # Store these attributes in an 'inner' scope (called 'data')
+        _data = {}
+        for this in ['user_id', 'authn_request_id', 'authn_credentials', 'authn_timestamp', 'external_mfa']:
+            _data[this] = res.pop(this)
+        res['data'] = _data
+        # rename 'eppn' to 'username' in the database, for legacy reasons
+        res['username'] = res.pop('eppn')
         return res
 
     @classmethod
@@ -98,6 +139,9 @@ class SSOSession:
         """ Construct element from a data dict in database format. """
 
         _data = dict(data)  # to not modify callers data
+        if 'data' in _data:
+            # move contents from 'data' to top-level of dict
+            _data.update(_data.pop('data'))
         _data['authn_credentials'] = [AuthnData.from_dict(x) for x in _data['authn_credentials']]
         if 'external_mfa' in _data and _data['external_mfa'] is not None:
             _data['external_mfa'] = [ExternalMfaData.from_session_dict(x) for x in _data['external_mfa']]
@@ -110,6 +154,9 @@ class SSOSession:
         # TODO: Remove this code when all sessions in the database have datetime authn_timestamps.
         if isinstance(_data.get('authn_timestamp'), int):
             _data['authn_timestamp'] = datetime.fromtimestamp(_data['authn_timestamp'], tz=timezone.utc)
+        # rename 'username' to 'eppn'
+        if 'eppn' not in _data:
+            _data['eppn'] = _data.pop('username')
         return cls(**_data)
 
     @property
@@ -131,3 +178,13 @@ class SSOSession:
         if not isinstance(authn, AuthnData):
             raise ValueError(f'data should be AuthnData (not {type(authn)})')
         self.authn_credentials += [authn]
+
+
+def create_session_id() -> SSOSessionId:
+    """
+    Create a unique value suitable for use as session identifier.
+
+    The uniqueness and inability to guess is security critical!
+    :return: session_id as bytes (to match what cookie decoding yields)
+    """
+    return SSOSessionId(bytes(str(uuid.uuid4()), 'ascii'))
