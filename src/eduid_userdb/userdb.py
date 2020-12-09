@@ -329,7 +329,7 @@ class UserDB(BaseDB):
 
         NOTE: Full removal of a user should never be done in the central userdb. Kantara
         requires guarantees to not re-use user identifiers (eppn and _id in eduid) and
-        we implenent that by never removing the complete document from the central userdb.
+        we implement that by never removing the complete document from the central userdb.
 
         Some other applications might have legitimate reasons to remove users from their
         private userdb collections though (like eduid-signup, at the end of the signup
