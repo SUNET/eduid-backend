@@ -554,7 +554,10 @@ def do_verify() -> WerkzeugResponse:
     # Create SSO session
     current_app.logger.debug(f'User {user} authenticated OK (SAML id {repr(_ticket.saml_req.request_id)})')
     _sso_session = SSOSession(
-        user_id=user.user_id, authn_request_id=_ticket.saml_req.request_id, authn_credentials=[authninfo], idp_user=user,
+        user_id=user.user_id,
+        authn_request_id=_ticket.saml_req.request_id,
+        authn_credentials=[authninfo],
+        idp_user=user,
         eppn=user.eppn,
     )
 
@@ -562,7 +565,7 @@ def do_verify() -> WerkzeugResponse:
     # used to avoid requiring subsequent authentication for the same user during a limited
     # period of time, by storing the session-id in a browser cookie.
     current_app.sso_sessions.save(_sso_session)
-    current_app.logger.debug(f'Created SSO session {_sso_session.session_id}')
+    current_app.logger.debug(f'Saved SSO session {repr(_sso_session.session_id)}')
 
     # INFO-Log the request id (sha1 of SAML request) and the sso_session
     current_app.logger.info(

@@ -37,7 +37,6 @@ from typing import Any, Dict, Optional, cast
 
 from flask import current_app
 
-import eduid_webapp.idp.sso_session
 from eduid_common.api import translation
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.authn.utils import init_pysaml2
@@ -45,7 +44,8 @@ from eduid_common.session import session
 from eduid_userdb.actions import ActionDB
 from eduid_userdb.idp import IdPUserDb
 
-from eduid_webapp.idp import idp_authn, sso_cache
+import eduid_webapp.idp.sso_session
+from eduid_webapp.idp import idp_authn
 from eduid_webapp.idp.settings.common import IdPConfig
 from eduid_webapp.idp.sso_cache import SSOSessionCache
 from eduid_webapp.idp.sso_session import SSOSession, SSOSessionId

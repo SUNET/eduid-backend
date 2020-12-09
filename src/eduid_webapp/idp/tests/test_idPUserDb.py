@@ -44,9 +44,9 @@ import eduid_common.authn
 import eduid_userdb
 import vccs_client
 from eduid_common.api import exceptions
+from eduid_userdb.idp import IdPUser
 from vccs_client import VCCSClient
 
-from eduid_userdb.idp import IdPUser
 from eduid_webapp.idp.idp_authn import AuthnData
 from eduid_webapp.idp.tests.test_app import IdPTests
 

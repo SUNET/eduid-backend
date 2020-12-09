@@ -47,7 +47,6 @@ from eduid_userdb.idp import IdPUser, IdPUserDb
 
 from eduid_webapp.idp.idp_authn import AuthnData
 
-
 # A distinct type for session ids
 SSOSessionId = NewType('SSOSessionId', bytes)
 

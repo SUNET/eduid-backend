@@ -35,9 +35,10 @@ from __future__ import absolute_import
 
 import os
 import re
+from base64 import b64decode
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional
 
 import pkg_resources
 from flask import Response as FlaskResponse
@@ -50,6 +51,7 @@ from eduid_common.authn.cache import IdentityCache, OutstandingQueriesCache, Sta
 from eduid_common.authn.utils import get_saml2_config
 
 from eduid_webapp.idp.app import init_idp_app
+from eduid_webapp.idp.sso_session import SSOSession
 
 __author__ = 'ft'
 
@@ -68,6 +70,8 @@ class LoginResult:
     url: str
     reached_state: LoginState
     response: FlaskResponse
+    sso_cookie_val: Optional[str] = None
+
 
 class IdPTests(EduidAPITestCase):
     """Base TestCase for those tests that need a full environment setup"""
@@ -170,11 +174,25 @@ class IdPTests(EduidAPITestCase):
         if not cookies:
             return LoginResult(url='/verify', reached_state=LoginState.S2_VERIFY, response=resp)
 
+        # Save the SSO cookie value
+        sso_cookie_val = None
+        _re = f'.*{self.app.config.sso_cookie.key}=(.+?);.*'
+        _sso_cookie_re = re.match(_re, cookies)
+        if _sso_cookie_re:
+            sso_cookie_val = _sso_cookie_re.groups()[0]
+
         resp = self.browser.get(redirect_loc, headers={'Cookie': cookies})
         if resp.status_code != 200:
-            return LoginResult(url=redirect_loc, reached_state=LoginState.S3_REDIRECT_LOGGED_IN, response=resp)
+            return LoginResult(
+                url=redirect_loc,
+                sso_cookie_val=sso_cookie_val,
+                reached_state=LoginState.S3_REDIRECT_LOGGED_IN,
+                response=resp,
+            )
 
-        return LoginResult(url=redirect_loc, reached_state=LoginState.S5_LOGGED_IN, response=resp)
+        return LoginResult(
+            url=redirect_loc, sso_cookie_val=sso_cookie_val, reached_state=LoginState.S5_LOGGED_IN, response=resp
+        )
 
     def _extract_form_inputs(self, res: str) -> Dict[str, Any]:
         inputs = {}
@@ -207,3 +225,8 @@ class IdPTests(EduidAPITestCase):
         xmlstr = bytes(form['SAMLResponse'], 'ascii')
         outstanding_queries = self.pysaml2_oq.outstanding_queries()
         return self.saml2_client.parse_authn_request_response(xmlstr, BINDING_HTTP_POST, outstanding_queries)
+
+    def get_sso_session(self, sso_cookie_val: str) -> Optional[SSOSession]:
+        if sso_cookie_val is None:
+            return None
+        return self.app.sso_sessions.get_session(b64decode(sso_cookie_val), self.app.userdb)

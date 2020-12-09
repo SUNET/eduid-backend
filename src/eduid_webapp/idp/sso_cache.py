@@ -19,6 +19,7 @@ from typing import Any, Deque, Dict, List, Mapping, Optional, Tuple, Union, cast
 from eduid_userdb.db import BaseDB
 from eduid_userdb.exceptions import EduIDDBError
 from eduid_userdb.idp import IdPUserDb
+
 from eduid_webapp.idp.sso_session import SSOSession, SSOSessionId
 
 _SHA1_HEXENCODED_SIZE = 160 // 8 * 2
