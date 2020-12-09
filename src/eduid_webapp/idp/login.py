@@ -561,7 +561,7 @@ def do_verify() -> WerkzeugResponse:
     # This session contains information about the fact that the user was authenticated. It is
     # used to avoid requiring subsequent authentication for the same user during a limited
     # period of time, by storing the session-id in a browser cookie.
-    current_app.sso_sessions.add_session(_sso_session)
+    current_app.sso_sessions.save(_sso_session)
     current_app.logger.debug(f'Created SSO session {_sso_session.session_id}')
 
     # INFO-Log the request id (sha1 of SAML request) and the sso_session

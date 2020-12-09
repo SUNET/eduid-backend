@@ -87,7 +87,7 @@ def check_for_pending_actions(
             update = True
 
         if update:
-            current_app.sso_sessions.update_session(user.user_id, sso_session.to_dict())
+            current_app.sso_sessions.save(sso_session)
 
         current_app.logger.debug(f'There are no pending actions for user {user}')
         return None

@@ -11,16 +11,14 @@
 #
 import logging
 import time
-import uuid
 import warnings
 from collections import deque
 from threading import Lock
 from typing import Any, Deque, Dict, List, Mapping, Optional, Tuple, Union, cast
 
-from eduid_common.misc.timeutil import utc_now
 from eduid_userdb.db import BaseDB
+from eduid_userdb.exceptions import EduIDDBError
 from eduid_userdb.idp import IdPUserDb
-
 from eduid_webapp.idp.sso_session import SSOSession, SSOSessionId
 
 _SHA1_HEXENCODED_SIZE = 160 // 8 * 2
@@ -168,6 +166,10 @@ class ExpiringCacheMem:
         return self._data
 
 
+class SSOSessionCacheError(EduIDDBError):
+    pass
+
+
 class SSOSessionCache(BaseDB):
     def __init__(self, db_uri: str, ttl: int, db_name: str = 'eduid_idp', collection: str = 'sso_sessions'):
         super().__init__(db_uri, db_name, collection=collection)
@@ -193,30 +195,17 @@ class SSOSessionCache(BaseDB):
             module_logger.warning(f'Remove session {repr(sid)} failed, result: {repr(res)}')
             return False
 
-    def add_session(self, session: SSOSession) -> None:
+    def save(self, session: SSOSession) -> None:
         """
-        Add a new SSO session to the cache.
+        Add a new SSO session to the cache, or update an existing one.
 
         The mapping of uid -> user (and data) is used when a user visits another SP before
         the SSO session expires, and the mapping of user -> uid is used if the user requests
         logout (SLO).
-
-        :param username: Username as string
-        :param session: Session to add
-        :return: Unique session identifier
         """
-        _doc = session.to_dict()
-        self._coll.insert(_doc)
+        result = self._coll.replace_one({'_id': session._id}, session.to_dict(), upsert=True)
+        module_logger.debug(f'Updated SSO session {session} in the db: {result}')
         return None
-
-    def update_session(self, username: str, data: Mapping[str, Any]) -> None:
-        """
-        Update a SSO session in the cache.
-
-        :param username: Username as string
-        :param data: opaque, should be SSOSession converted to dict()
-        """
-        raise NotImplementedError()
 
     def get_session(self, sid: SSOSessionId, userdb: IdPUserDb) -> Optional[SSOSession]:
         """
