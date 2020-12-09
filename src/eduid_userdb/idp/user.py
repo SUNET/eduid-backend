@@ -72,7 +72,7 @@ _SAML_ATTRIBUTES = [
 @dataclass
 class SAMLAttributeSettings:
     # Data that needs to come from IdP configuration
-    default_eppn_scope: str
+    default_eppn_scope: Optional[str]
     default_country: str
     default_country_code: str
 
