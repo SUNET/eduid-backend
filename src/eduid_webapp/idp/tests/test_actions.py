@@ -46,7 +46,8 @@ from eduid_userdb.credentials import U2F, Webauthn
 from eduid_userdb.tou import ToUEvent
 from vccs_client import VCCSClient
 
-from eduid_webapp.idp.mfa_action import RESULT_CREDENTIAL_KEY_NAME, add_actions as mfa_add_actions
+from eduid_webapp.idp.mfa_action import RESULT_CREDENTIAL_KEY_NAME
+from eduid_webapp.idp.mfa_action import add_actions as mfa_add_actions
 from eduid_webapp.idp.tests.test_app import LoginState
 from eduid_webapp.idp.tests.test_SSO import SWAMID_AL2, SSOIdPTests
 from eduid_webapp.idp.tests.test_SSO import cc as CONTEXTCLASSREFS
@@ -354,3 +355,68 @@ class TestActions(SSOIdPTests):
             action = tou_add_actions(self.test_user, mock_ticket)
             assert action.action_type == 'tou'
             assert self.num_actions == 1
+
+    def test_mfa_action_fake_completion(self):
+        """ Test returning from actions after completing an MFA actions """
+
+        # Only bother with MFA actions in this test, so mark the ToU as registered already
+        event_id = bson.ObjectId()
+        self.test_user.tou.add(
+            ToUEvent(
+                version='mock-version',
+                created_by='test_tou_plugin',
+                created_ts=datetime.utcnow(),
+                event_id=str(event_id),
+            )
+        )
+        self.actions.remove_action_by_id(self.test_action.action_id)
+
+        # Add an MFA credential to the user
+        webauthn = Webauthn(
+            keyhandle='test_key_handle',
+            credential_data='test_credential_data',
+            app_id='https://dev.eduid.se/u2f-app-id.json',
+            attest_obj='test_attest_obj',
+            description='test_description',
+        )
+        self.test_user.credentials.add(webauthn)
+        self.amdb.save(self.test_user, check_sync=False)
+
+        # Patch the VCCSClient so we do not need a vccs server
+        with patch.object(VCCSClient, 'authenticate'):
+            VCCSClient.authenticate.return_value = True
+            result = self._try_login()
+
+        assert result.reached_state == LoginState.S3_REDIRECT_LOGGED_IN
+        assert result.sso_cookie_val is not None
+
+        assert self.app.config.actions_app_uri in result.response.location
+
+        actions = self.actions.get_actions(eppn_or_userid=self.test_user.eppn, session=None)
+        logger.info(f'\n\n\nActions for user {self.test_user.eppn} now: {actions}\n\n\n')
+
+        # register a result for all MFA actions
+        for this in actions:
+            if this.action_type == 'mfa':
+                this.result = {'success': True, RESULT_CREDENTIAL_KEY_NAME: webauthn.key}
+                self.actions.update_action(this)
+
+        logger.info(f'Retrying URL {result.url}')
+
+        # Retry the last location
+        cookies = result.response.headers.get('Set-Cookie')
+        resp = self.browser.get(result.url, headers={'Cookie': cookies})
+        assert resp.status_code == 200
+
+        # now load the SSO session and make sure it has been updated with the MFA credential
+        sso_session = self.get_sso_session(result.sso_cookie_val)
+        assert sso_session is not None
+
+        assert len(sso_session.authn_credentials) == 2
+        expected_credentials_used = [x.key for x in self.test_user.credentials.to_list()]
+        credentials_used = [x.cred_id for x in sso_session.authn_credentials]
+        assert credentials_used == expected_credentials_used
+        assert sso_session.eppn == self.test_user.eppn
+        assert sso_session.user_id == self.test_user.user_id
+        assert sso_session.minutes_old <= 1
+        assert sso_session.external_mfa is None
