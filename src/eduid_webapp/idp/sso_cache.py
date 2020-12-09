@@ -182,18 +182,16 @@ class SSOSessionCache(BaseDB):
         }
         self.setup_indexes(indexes)
 
-    def remove_session(self, sid: SSOSessionId) -> Union[int, bool]:
+    def remove_session(self, session: SSOSession) -> Union[int, bool]:
         """
-        Remove entrys when SLO is executed.
-
-        :param sid: Session identifier as string
+        Remove entries when SLO is executed.
         :return: False on failure
         """
-        res = self._coll.remove({'session_id': sid}, w='majority')
+        res = self._coll.remove({'session_id': session.session_id}, w='majority')
         try:
             return int(res['n'])  # number of deleted records
         except (KeyError, TypeError):
-            module_logger.warning(f'Remove session {repr(sid)} failed, result: {repr(res)}')
+            module_logger.warning(f'Remove session {repr(session.session_id)} failed, result: {repr(res)}')
             return False
 
     def save(self, session: SSOSession) -> None:
@@ -225,18 +223,14 @@ class SSOSessionCache(BaseDB):
             return None
         return SSOSession.from_dict(res, userdb)
 
-    def get_sessions_for_user(self, username: str) -> List[SSOSessionId]:
+    def get_sessions_for_user(self, eppn: str, userdb: IdPUserDb) -> List[SSOSession]:
         """
-        Lookup all SSO session ids for a given username. Used in SLO with SOAP binding.
+        Lookup all SSO session ids for a given user. Used in SLO with SOAP binding.
 
-        :param username: The username to look for
+        :param eppn: The eppn to look for
 
-        :return: A list with zero or more SSO session ids
+        :return: A list with zero or more SSO sessions
         """
-        # TODO: Change this function to return sessions - just have to make the SSOSession objects
-        #       include the session_id first (so that Logout can call remove_session()).
-        res = []
-        entrys = self._coll.find({'username': username})
-        for this in entrys:
-            res.append(this['session_id'])
+        entrys = self._coll.find({'username': eppn})
+        res = [SSOSession.from_dict(this, userdb) for this in entrys]
         return res
