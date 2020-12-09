@@ -1,6 +1,7 @@
 """
 Exceptions thrown by the eduid_userdb database lookup functions.
 """
+from typing import Any
 
 
 class EduIDDBError(Exception):
@@ -11,7 +12,7 @@ class EduIDDBError(Exception):
     :type reason: object
     """
 
-    def __init__(self, reason):
+    def __init__(self, reason: Any):
         Exception.__init__(self)
         self.reason = reason
 

@@ -213,7 +213,7 @@ def _format_mongodb_uri(parsed_uri):
 class BaseDB(object):
     """ Base class for common db operations """
 
-    def __init__(self, db_uri, db_name, collection, safe_writes=False):
+    def __init__(self, db_uri: str, db_name: str, collection: str, safe_writes: bool=False):
 
         self._db_uri = db_uri
         self._coll_name = collection
@@ -347,14 +347,13 @@ class BaseDB(object):
         result = self._coll.delete_one(spec_or_id)
         return result.acknowledged
 
-    def is_healthy(self):
+    def is_healthy(self) -> bool:
         """
         :return: DB health status
-        :rtype: boolean
         """
         return self._db.is_healthy()
 
-    def setup_indexes(self, indexes):
+    def setup_indexes(self, indexes: Dict[str, Any]):
         """
         To update an index add a new item in indexes and remove the previous version.
         """
