@@ -85,18 +85,18 @@ def get_authn_request(
     kwargs = {
         "force_authn": str(force_authn).lower(),
     }
-    # Authn algorithms
-    if sign_alg:
-        kwargs['sign_alg'] = sign_alg
-    if digest_alg:
-        kwargs['digest_alg'] = digest_alg
     logger.debug(f'Authn request args: {kwargs}')
 
     client = Saml2Client(saml2_config)
 
     try:
         (session_id, info) = client.prepare_for_authenticate(
-            entityid=selected_idp, relay_state=came_from, binding=BINDING_HTTP_REDIRECT, **kwargs
+            entityid=selected_idp,
+            relay_state=came_from,
+            binding=BINDING_HTTP_REDIRECT,
+            sigalg=sign_alg,
+            digest_alg=digest_alg,
+            **kwargs,
         )
     except TypeError:
         logger.error('Unable to know which IdP to use')
