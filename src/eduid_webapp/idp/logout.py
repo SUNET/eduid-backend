@@ -127,7 +127,7 @@ class SLO(Service):
             # unfortunately.
             _username = current_app.IDP.ident.find_local_id(_name_id)
             current_app.logger.debug(f'Logout message name_id: {repr(_name_id)} found username {repr(_username)}')
-            sessions = current_app.sso_sessions.get_sessions_for_user(_username, current_app.userdb)
+            sessions += current_app.sso_sessions.get_sessions_for_user(_username, current_app.userdb)
 
         _session_ids = [x.session_id for x in sessions]
         current_app.logger.debug(
