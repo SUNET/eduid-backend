@@ -4,74 +4,10 @@ from __future__ import absolute_import
 
 import os
 import unittest
-from copy import deepcopy
 
 from eduid_common.config.base import FlaskConfig
-from eduid_common.config.idp import IdPConfig
 from eduid_common.config.parsers.etcd import EtcdConfigParser
 from eduid_common.config.testing import EtcdTemporaryInstance
-
-
-class TestTypedIdPConfig(unittest.TestCase):
-    def setUp(self):
-        self.etcd_instance = EtcdTemporaryInstance.get_instance()
-
-        self.common_ns = '/eduid/webapp/common/'
-        self.idp_ns = '/eduid/webapp/idp/'
-        self.common_parser = EtcdConfigParser(
-            namespace=self.common_ns, host=self.etcd_instance.host, port=self.etcd_instance.port
-        )
-        self.idp_parser = EtcdConfigParser(
-            namespace=self.idp_ns, host=self.etcd_instance.host, port=self.etcd_instance.port
-        )
-
-        self.common_config = {'eduid': {'webapp': {'common': {'devel_mode': True}}}}
-
-        self.idp_config = {'eduid': {'webapp': {'idp': {'signup_link': 'dummy'}}}}
-        self.common_parser.write_configuration(self.common_config)
-        self.idp_parser.write_configuration(self.idp_config)
-        os.environ['EDUID_CONFIG_COMMON_NS'] = '/eduid/webapp/common/'
-        os.environ['EDUID_CONFIG_NS'] = '/eduid/webapp/idp/'
-        os.environ['ETCD_HOST'] = self.etcd_instance.host
-        os.environ['ETCD_PORT'] = str(self.etcd_instance.port)
-
-    def tearDown(self) -> None:
-        self.etcd_instance.clear('/eduid')
-
-    def test_default_setting(self):
-        config = IdPConfig(app_name='idp')
-        self.assertEqual(config.devel_mode, False)
-        self.assertEqual(config.debug, False)
-        self.assertEqual(config.signup_link, '#')
-
-    def test_test_setting(self):
-        config = IdPConfig(**{'app_name': 'idp', 'devel_mode': True})
-        self.assertEqual(config.devel_mode, True)
-
-    def test_etcd_setting(self):
-        etcd_config = self.common_parser.read_configuration(silent=True)
-        etcd_config.update(self.idp_parser.read_configuration(silent=True))
-        etcd_config = {key.lower(): value for key, value in etcd_config.items()}
-        config = IdPConfig(**etcd_config)
-        self.assertEqual(config.signup_link, 'dummy')
-        self.assertEqual(config.devel_mode, True)
-
-    def test_filter_config(self):
-        etcd_config = self.common_parser.read_configuration(silent=True)
-        etcd_config.update(self.idp_parser.read_configuration(silent=True))
-        etcd_config['not_a_valid_setting'] = True
-        filtered_config = IdPConfig.filter_config(etcd_config)
-        config = IdPConfig(**filtered_config)
-        self.assertEqual(config.signup_link, 'dummy')
-        self.assertEqual(config.devel_mode, True)
-
-    def test_filter_init_config(self):
-        common_config = deepcopy(self.common_config)
-        common_config['eduid']['webapp']['common']['not_a_valid_setting'] = True
-        self.common_parser.write_configuration(common_config)
-        config = IdPConfig.init_config()
-        self.assertEqual(config.signup_link, 'dummy')
-        self.assertEqual(config.devel_mode, True)
 
 
 class TestTypedFlaskConfig(unittest.TestCase):
