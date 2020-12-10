@@ -176,7 +176,16 @@ class SSOSession:
         """ Add information about a credential successfully used in this session. """
         if not isinstance(authn, AuthnData):
             raise ValueError(f'data should be AuthnData (not {type(authn)})')
-        self.authn_credentials += [authn]
+
+        # Store only the latest use of a particular credential.
+        _creds: Dict[str, AuthnData] = {x.cred_id: x for x in self.authn_credentials}
+        # only replace if newer
+        if not authn.cred_id in _creds or authn.timestamp > _creds[authn.cred_id].timestamp:
+            _creds[authn.cred_id] = authn
+
+        # sort on cred_id to have deterministic order in tests
+        _list = list(_creds.values())
+        self.authn_credentials = sorted(_list, key=lambda x: x.cred_id)
 
 
 def create_session_id() -> SSOSessionId:
