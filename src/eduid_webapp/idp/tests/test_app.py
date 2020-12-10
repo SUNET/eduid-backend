@@ -35,8 +35,10 @@ from __future__ import absolute_import
 
 import os
 import re
+from base64 import b64decode
+from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional
 
 import pkg_resources
 from flask import Response as FlaskResponse
@@ -49,6 +51,7 @@ from eduid_common.authn.cache import IdentityCache, OutstandingQueriesCache, Sta
 from eduid_common.authn.utils import get_saml2_config
 
 from eduid_webapp.idp.app import init_idp_app
+from eduid_webapp.idp.sso_session import SSOSession
 
 __author__ = 'ft'
 
@@ -60,6 +63,14 @@ class LoginState(Enum):
     S3_REDIRECT_LOGGED_IN = 'redirect-logged-in'
     S4_REDIRECT_TO_ACS = 'redirect-to-acs'
     S5_LOGGED_IN = 'logged-in'
+
+
+@dataclass
+class LoginResult:
+    url: str
+    reached_state: LoginState
+    response: FlaskResponse
+    sso_cookie_val: Optional[str] = None
 
 
 class IdPTests(EduidAPITestCase):
@@ -114,7 +125,7 @@ class IdPTests(EduidAPITestCase):
 
     def _try_login(
         self, saml2_client: Optional[Saml2Client] = None, authn_context=None, force_authn: bool = False,
-    ) -> Tuple[LoginState, FlaskResponse]:
+    ) -> LoginResult:
         """
         Try logging in to the IdP.
 
@@ -135,39 +146,53 @@ class IdPTests(EduidAPITestCase):
         with self.session_cookie_anon(self.browser) as browser:
             resp = browser.get(path)
             if resp.status_code != 200:
-                return LoginState.S0_REDIRECT, resp
+                return LoginResult(url=path, reached_state=LoginState.S0_REDIRECT, response=resp)
 
         form_data = self._extract_form_inputs(resp.data.decode('utf-8'))
         del form_data['key']  # test if key is really necessary
         form_data['username'] = self.test_user.mail_addresses.primary.email
         form_data['password'] = 'Jenka'
         if 'redirect_uri' not in form_data:
-            return LoginState.S1_LOGIN_FORM, resp
+            return LoginResult(url=path, reached_state=LoginState.S1_LOGIN_FORM, response=resp)
 
         cookies = resp.headers.get('Set-Cookie')
         if not cookies:
-            return LoginState.S1_LOGIN_FORM, resp
+            return LoginResult(url=path, reached_state=LoginState.S1_LOGIN_FORM, response=resp)
 
         with self.session_cookie_anon(self.browser) as browser:
             resp = browser.post('/verify', data=form_data, headers={'Cookie': cookies})
             if resp.status_code != 302:
-                return LoginState.S2_VERIFY, resp
+                return LoginResult(url='/verify', reached_state=LoginState.S2_VERIFY, response=resp)
 
         redirect_loc = self._extract_path_from_response(resp)
         # check that we were sent back to the login screen
         # TODO: verify that we really were logged in
         if not redirect_loc.startswith('/sso/redirect?key='):
-            return LoginState.S2_VERIFY, resp
+            return LoginResult(url='/verify', reached_state=LoginState.S2_VERIFY, response=resp)
 
         cookies = resp.headers.get('Set-Cookie')
         if not cookies:
-            return LoginState.S2_VERIFY, resp
+            return LoginResult(url='/verify', reached_state=LoginState.S2_VERIFY, response=resp)
+
+        # Save the SSO cookie value
+        sso_cookie_val = None
+        _re = f'.*{self.app.config.sso_cookie.key}=(.+?);.*'
+        _sso_cookie_re = re.match(_re, cookies)
+        if _sso_cookie_re:
+            sso_cookie_val = _sso_cookie_re.groups()[0]
 
         resp = self.browser.get(redirect_loc, headers={'Cookie': cookies})
         if resp.status_code != 200:
-            return LoginState.S3_REDIRECT_LOGGED_IN, resp
+            return LoginResult(
+                url=redirect_loc,
+                sso_cookie_val=sso_cookie_val,
+                reached_state=LoginState.S3_REDIRECT_LOGGED_IN,
+                response=resp,
+            )
 
-        return LoginState.S5_LOGGED_IN, resp
+        return LoginResult(
+            url=redirect_loc, sso_cookie_val=sso_cookie_val, reached_state=LoginState.S5_LOGGED_IN, response=resp
+        )
 
     def _extract_form_inputs(self, res: str) -> Dict[str, Any]:
         inputs = {}
@@ -200,3 +225,8 @@ class IdPTests(EduidAPITestCase):
         xmlstr = bytes(form['SAMLResponse'], 'ascii')
         outstanding_queries = self.pysaml2_oq.outstanding_queries()
         return self.saml2_client.parse_authn_request_response(xmlstr, BINDING_HTTP_POST, outstanding_queries)
+
+    def get_sso_session(self, sso_cookie_val: str) -> Optional[SSOSession]:
+        if sso_cookie_val is None:
+            return None
+        return self.app.sso_sessions.get_session(b64decode(sso_cookie_val), self.app.userdb)

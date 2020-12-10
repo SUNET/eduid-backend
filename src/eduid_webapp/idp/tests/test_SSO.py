@@ -39,6 +39,7 @@ from typing import Mapping, Optional, Sequence
 
 import saml2.server
 import saml2.time_util
+from bson import ObjectId
 from saml2.authn_context import PASSWORDPROTECTEDTRANSPORT
 from saml2.s_utils import UnravelError
 from werkzeug.exceptions import BadRequest, Forbidden
@@ -220,7 +221,11 @@ class TestSSO(SSOIdPTests):
         ticket = self._make_login_ticket(req_class_ref)
 
         sso_session_1 = SSOSession(
-            user_id=user.user_id, authn_request_id='some-unique-id-1', authn_credentials=[], idp_user=user
+            user_id=user.user_id,
+            authn_request_id='some-unique-id-1',
+            authn_credentials=[],
+            idp_user=user,
+            eppn=user.eppn,
         )
         if 'u2f' in credentials and not user.credentials.filter(U2F).to_list():
             # add a U2F credential to the user

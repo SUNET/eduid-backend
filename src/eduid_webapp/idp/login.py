@@ -554,16 +554,20 @@ def do_verify() -> WerkzeugResponse:
     # Create SSO session
     current_app.logger.debug(f'User {user} authenticated OK (SAML id {repr(_ticket.saml_req.request_id)})')
     _sso_session = SSOSession(
-        user_id=user.user_id, authn_request_id=_ticket.saml_req.request_id, authn_credentials=[authninfo], idp_user=user
+        user_id=user.user_id,
+        authn_request_id=_ticket.saml_req.request_id,
+        authn_credentials=[authninfo],
+        idp_user=user,
+        eppn=user.eppn,
     )
 
     # This session contains information about the fact that the user was authenticated. It is
     # used to avoid requiring subsequent authentication for the same user during a limited
     # period of time, by storing the session-id in a browser cookie.
-    _session_id = current_app.sso_sessions.add_session(user.eppn, _sso_session)
-    current_app.logger.debug(f'Created SSO session {repr(_session_id)}')
+    current_app.sso_sessions.save(_sso_session)
+    current_app.logger.debug(f'Saved SSO session {repr(_sso_session.session_id)}')
 
-    # INFO-Log the request id (sha1 of SAMLrequest) and the sso_session
+    # INFO-Log the request id (sha1 of SAML request) and the sso_session
     current_app.logger.info(
         f'{_ticket.key}: login sso_session={_sso_session.public_id}, authn={authn_ref}, user={user}'
     )
@@ -576,7 +580,7 @@ def do_verify() -> WerkzeugResponse:
     current_app.logger.debug(f'Redirecting user back to me => {lox}')
     resp = redirect(lox)
     # By base64-encoding this string, we should remain interoperable with the old CherryPy based IdP. Fingers crossed.
-    b64_session_id = b64encode(_session_id)
+    b64_session_id = b64encode(_sso_session.session_id)
     # For debugging purposes, save the IdP SSO cookie value in the common session as well.
     # This is because we think we might have issues overwriting cookies in redirect responses.
     session.idp.sso_cookie_val = b64_session_id

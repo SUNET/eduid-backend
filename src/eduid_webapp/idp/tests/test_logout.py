@@ -30,10 +30,10 @@ class IdPTestLogout(IdPTests):
             # Patch the VCCSClient so we do not need a vccs server
             with patch.object(VCCSClient, 'authenticate'):
                 VCCSClient.authenticate.return_value = True
-                reached_state, response = self._try_login()
-                assert reached_state == LoginState.S5_LOGGED_IN
+                login_result = self._try_login()
+                assert login_result.reached_state == LoginState.S5_LOGGED_IN
 
-            authn_response = self.parse_saml_authn_response(response)
+            authn_response = self.parse_saml_authn_response(login_result.response)
 
             reached_state, response = self._try_logout(authn_response, BINDING_SOAP)
             assert reached_state == LogoutState.S1_LOGGED_OUT
@@ -46,10 +46,10 @@ class IdPTestLogout(IdPTests):
             # Patch the VCCSClient so we do not need a vccs server
             with patch.object(VCCSClient, 'authenticate'):
                 VCCSClient.authenticate.return_value = True
-                reached_state, response = self._try_login()
-                assert reached_state == LoginState.S5_LOGGED_IN
+                login_result = self._try_login()
+                assert login_result.reached_state == LoginState.S5_LOGGED_IN
 
-            authn_response = self.parse_saml_authn_response(response)
+            authn_response = self.parse_saml_authn_response(login_result.response)
 
             reached_state, response = self._try_logout(authn_response, BINDING_HTTP_REDIRECT)
             assert reached_state == LogoutState.S1_LOGGED_OUT

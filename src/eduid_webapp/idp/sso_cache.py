@@ -11,22 +11,18 @@
 #
 import logging
 import time
-import uuid
 import warnings
 from collections import deque
 from threading import Lock
-from typing import Any, Deque, Dict, List, Mapping, NewType, Optional, Tuple, Union, cast
+from typing import Any, Deque, Dict, List, Mapping, Optional, Tuple, Union, cast
 
-from eduid_common.misc.timeutil import utc_now
 from eduid_userdb.db import BaseDB
+from eduid_userdb.exceptions import EduIDDBError
 from eduid_userdb.idp import IdPUserDb
 
-from eduid_webapp.idp.sso_session import SSOSession
+from eduid_webapp.idp.sso_session import SSOSession, SSOSessionId
 
 _SHA1_HEXENCODED_SIZE = 160 // 8 * 2
-
-# A distinct type for session ids
-SSOSessionId = NewType('SSOSessionId', bytes)
 
 # TODO: Rename to logger
 module_logger = logging.getLogger(__name__)
@@ -171,6 +167,10 @@ class ExpiringCacheMem:
         return self._data
 
 
+class SSOSessionCacheError(EduIDDBError):
+    pass
+
+
 class SSOSessionCache(BaseDB):
     def __init__(self, db_uri: str, ttl: int, db_name: str = 'eduid_idp', collection: str = 'sso_sessions'):
         super().__init__(db_uri, db_name, collection=collection)
@@ -178,53 +178,33 @@ class SSOSessionCache(BaseDB):
         # Remove messages older than created_ts + ttl
         indexes = {
             'auto-discard': {'key': [('created_ts', 1)], 'expireAfterSeconds': ttl},
+            'unique-session-id': {'key': [('session_id', 1)], 'unique': True},
         }
         self.setup_indexes(indexes)
 
-    def remove_session(self, sid: SSOSessionId) -> Union[int, bool]:
+    def remove_session(self, session: SSOSession) -> Union[int, bool]:
         """
-        Remove entrys when SLO is executed.
-
-        :param sid: Session identifier as string
+        Remove entries when SLO is executed.
         :return: False on failure
         """
-        res = self._coll.remove({'session_id': sid}, w='majority')
+        res = self._coll.remove({'session_id': session.session_id}, w='majority')
         try:
             return int(res['n'])  # number of deleted records
         except (KeyError, TypeError):
-            module_logger.warning(f'Remove session {repr(sid)} failed, result: {repr(res)}')
+            module_logger.warning(f'Remove session {repr(session.session_id)} failed, result: {repr(res)}')
             return False
 
-    def add_session(self, username: str, session: SSOSession) -> SSOSessionId:
+    def save(self, session: SSOSession) -> None:
         """
-        Add a new SSO session to the cache.
+        Add a new SSO session to the cache, or update an existing one.
 
         The mapping of uid -> user (and data) is used when a user visits another SP before
         the SSO session expires, and the mapping of user -> uid is used if the user requests
         logout (SLO).
-
-        :param username: Username as string
-        :param session: Session to add
-        :return: Unique session identifier
         """
-        _sid = self._create_session_id()
-        _doc = {
-            'session_id': _sid,
-            'username': username,
-            'data': session.to_dict(),
-            'created_ts': utc_now(),
-        }
-        self._coll.insert(_doc)
-        return _sid
-
-    def update_session(self, username: str, data: Mapping[str, Any]) -> None:
-        """
-        Update a SSO session in the cache.
-
-        :param username: Username as string
-        :param data: opaque, should be SSOSession converted to dict()
-        """
-        raise NotImplementedError()
+        result = self._coll.replace_one({'_id': session._id}, session.to_dict(), upsert=True)
+        module_logger.debug(f'Updated SSO session {session} in the db: {result}')
+        return None
 
     def get_session(self, sid: SSOSessionId, userdb: IdPUserDb) -> Optional[SSOSession]:
         """
@@ -241,30 +221,16 @@ class SSOSessionCache(BaseDB):
             raise
         if not res:
             return None
+        return SSOSession.from_dict(res, userdb)
 
-        return SSOSession.from_dict(res['data'], userdb)
-
-    def get_sessions_for_user(self, username: str) -> List[SSOSessionId]:
+    def get_sessions_for_user(self, eppn: str, userdb: IdPUserDb) -> List[SSOSession]:
         """
-        Lookup all SSO session ids for a given username. Used in SLO with SOAP binding.
+        Lookup all SSO session ids for a given user. Used in SLO with SOAP binding.
 
-        :param username: The username to look for
+        :param eppn: The eppn to look for
 
-        :return: A list with zero or more SSO session ids
+        :return: A list with zero or more SSO sessions
         """
-        # TODO: Change this function to return sessions - just have to make the SSOSession objects
-        #       include the session_id first (so that Logout can call remove_session()).
-        res = []
-        entrys = self._coll.find({'username': username})
-        for this in entrys:
-            res.append(this['session_id'])
+        entrys = self._coll.find({'username': eppn})
+        res = [SSOSession.from_dict(this, userdb) for this in entrys]
         return res
-
-    def _create_session_id(self) -> SSOSessionId:
-        """
-        Create a unique value suitable for use as session identifier.
-
-        The uniqueness and unability to guess is security critical!
-        :return: session_id as bytes (to match what cookie decoding yields)
-        """
-        return SSOSessionId(bytes(str(uuid.uuid4()), 'ascii'))

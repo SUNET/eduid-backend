@@ -44,10 +44,11 @@ from eduid_common.session import session
 from eduid_userdb.actions import ActionDB
 from eduid_userdb.idp import IdPUserDb
 
-from eduid_webapp.idp import idp_authn, sso_cache
+import eduid_webapp.idp.sso_session
+from eduid_webapp.idp import idp_authn
 from eduid_webapp.idp.settings.common import IdPConfig
-from eduid_webapp.idp.sso_cache import SSOSessionCache, SSOSessionId
-from eduid_webapp.idp.sso_session import SSOSession
+from eduid_webapp.idp.sso_cache import SSOSessionCache
+from eduid_webapp.idp.sso_session import SSOSession, SSOSessionId
 
 __author__ = 'ft'
 
@@ -144,7 +145,7 @@ class IdPApp(EduIDBaseApp):
         self.logger.debug(f'Re-created SSO session {_sso}')
         return _sso
 
-    def get_sso_session_id(self) -> Optional[sso_cache.SSOSessionId]:
+    def get_sso_session_id(self) -> Optional[SSOSessionId]:
         """
         Get the SSO session id from the IdP SSO cookie, with fallback to hopefully unused 'id' query string parameter.
 

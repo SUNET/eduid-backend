@@ -41,23 +41,23 @@ class IdPTestLogin(IdPTests):
         assert next_url in body
 
     def test_submitting_wrong_credentials(self):
-        reached_state, resp = self._try_login()
+        result = self._try_login()
 
-        assert reached_state == LoginState.S2_VERIFY
+        assert result.reached_state == LoginState.S2_VERIFY
 
         # check that we were sent back to the login screen
-        redirect_loc = self._extract_path_from_response(resp)
+        redirect_loc = self._extract_path_from_response(result.response)
         assert redirect_loc.startswith('/sso/redirect?SAMLRequest=')
 
     def test_successful_authentication(self):
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, 'authenticate'):
             VCCSClient.authenticate.return_value = True
-            reached_state, resp = self._try_login()
+            result = self._try_login()
 
-        assert reached_state == LoginState.S5_LOGGED_IN
+        assert result.reached_state == LoginState.S5_LOGGED_IN
 
-        authn_response = self.parse_saml_authn_response(resp)
+        authn_response = self.parse_saml_authn_response(result.response)
         session_info = authn_response.session_info()
         attributes = session_info['ava']
 
@@ -68,11 +68,11 @@ class IdPTestLogin(IdPTests):
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, 'authenticate'):
             VCCSClient.authenticate.return_value = True
-            reached_state, resp = self._try_login()
+            result = self._try_login()
 
-        assert reached_state == LoginState.S5_LOGGED_IN
+        assert result.reached_state == LoginState.S5_LOGGED_IN
 
-        authn_response = self.parse_saml_authn_response(resp)
+        authn_response = self.parse_saml_authn_response(result.response)
         session_info = authn_response.session_info()
         attributes = session_info['ava']
 
@@ -87,9 +87,9 @@ class IdPTestLogin(IdPTests):
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, 'authenticate'):
             VCCSClient.authenticate.return_value = True
-            reached_state2, resp2 = self._try_login(force_authn=True)
+            result2 = self._try_login(force_authn=True)
 
-        authn_response2 = self.parse_saml_authn_response(resp2)
+        authn_response2 = self.parse_saml_authn_response(result2.response)
 
         # Make sure the second response isn't referring to the first login request
         assert authn_response.in_response_to != authn_response2.in_response_to
@@ -102,10 +102,10 @@ class IdPTestLogin(IdPTests):
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, 'authenticate'):
             VCCSClient.authenticate.return_value = True
-            reached_state, resp = self._try_login()
+            result = self._try_login()
 
-        assert reached_state == LoginState.S3_REDIRECT_LOGGED_IN
-        cookie = resp.headers['Set-Cookie']
+        assert result.reached_state == LoginState.S3_REDIRECT_LOGGED_IN
+        cookie = result.response.headers['Set-Cookie']
         assert f'{self.app.config.sso_cookie.key}=;' in cookie
         assert 'expires=Thu, 01-Jan-1970 00:00:00 GMT' in cookie
 
@@ -116,28 +116,28 @@ class IdPTestLogin(IdPTests):
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, 'authenticate'):
             VCCSClient.authenticate.return_value = True
-            reached_state, resp = self._try_login(saml2_client=saml2_client)
+            result = self._try_login(saml2_client=saml2_client)
 
-        assert reached_state == LoginState.S3_REDIRECT_LOGGED_IN
-        assert b'SAML error: Unknown Service Provider' in resp.data
+        assert result.reached_state == LoginState.S3_REDIRECT_LOGGED_IN
+        assert b'SAML error: Unknown Service Provider' in result.response.data
 
     def test_sso_to_unknown_sp(self):
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, 'authenticate'):
             VCCSClient.authenticate.return_value = True
-            reached_state, resp = self._try_login()
+            result = self._try_login()
 
-        assert reached_state == LoginState.S5_LOGGED_IN
+        assert result.reached_state == LoginState.S5_LOGGED_IN
 
         sp_config = get_saml2_config(self.app.config.pysaml2_config, name='UNKNOWN_SP_CONFIG')
         saml2_client = Saml2Client(config=sp_config)
 
         # Don't patch VCCS here to ensure a SSO is done, not a password authentication
-        reached_state, resp = self._try_login(saml2_client=saml2_client)
+        result2 = self._try_login(saml2_client=saml2_client)
 
-        assert reached_state == LoginState.S0_REDIRECT
-        assert b'SAML error: Unknown Service Provider' in resp.data
-        cookies = resp.headers['Set-Cookie']
+        assert result2.reached_state == LoginState.S0_REDIRECT
+        assert b'SAML error: Unknown Service Provider' in result2.response.data
+        cookies = result2.response.headers['Set-Cookie']
         # Ensure the pre-existing IdP SSO cookie wasn't touched
         assert self.app.config.sso_cookie_name not in cookies
 
@@ -147,20 +147,20 @@ class IdPTestLogin(IdPTests):
             VCCSClient.authenticate.return_value = True
             # request MFA, but the test user does not have any MFA credentials
             req_authn_context = requested_authn_context('https://refeds.org/profile/mfa', comparison='exact')
-            reached_state, response = self._try_login(authn_context=req_authn_context)
+            result = self._try_login(authn_context=req_authn_context)
 
-        assert reached_state == LoginState.S3_REDIRECT_LOGGED_IN
-        assert b'Access to the requested service could not be granted.' in response.data
+        assert result.reached_state == LoginState.S3_REDIRECT_LOGGED_IN
+        assert b'Access to the requested service could not be granted.' in result.response.data
 
     def test_eduperson_targeted_id(self):
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, 'authenticate'):
             VCCSClient.authenticate.return_value = True
-            reached_state, resp = self._try_login()
+            result = self._try_login()
 
-        assert reached_state == LoginState.S5_LOGGED_IN
+        assert result.reached_state == LoginState.S5_LOGGED_IN
 
-        authn_response = self.parse_saml_authn_response(resp)
+        authn_response = self.parse_saml_authn_response(result.response)
         session_info = authn_response.session_info()
         attributes = session_info['ava']
 

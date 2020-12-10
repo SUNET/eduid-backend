@@ -12,7 +12,7 @@
 Code handling Single Log Out requests.
 """
 import pprint
-from typing import Dict, Sequence
+from typing import Dict, List, Sequence
 
 import saml2
 from flask import request
@@ -29,7 +29,7 @@ from eduid_webapp.idp.app import current_idp_app as current_app
 from eduid_webapp.idp.idp_saml import gen_key
 from eduid_webapp.idp.mischttp import HttpArgs
 from eduid_webapp.idp.service import Service
-from eduid_webapp.idp.sso_cache import SSOSessionId
+from eduid_webapp.idp.sso_session import SSOSession, SSOSessionId
 from eduid_webapp.idp.util import maybe_xml_to_string
 
 # -----------------------------------------------------------------------------
@@ -114,33 +114,37 @@ class SLO(Service):
         _name_id = req_info.message.name_id
         _session_id = current_app.get_sso_session_id()
         _username = None
+        sessions: List[SSOSession] = []
         if _session_id:
             # If the binding is REDIRECT, we can get the SSO session to log out from the
             # client SSO session
-            session_ids = [SSOSessionId(_session_id)]
+            _session = current_app.sso_sessions.get_session(_session_id, current_app.userdb)
+            if _session:
+                sessions += [_session]
         else:
             # For SOAP binding, no cookie is sent - only NameID. Have to figure out
             # the user based on NameID and then destroy *all* the users SSO sessions
             # unfortunately.
             _username = current_app.IDP.ident.find_local_id(_name_id)
-            current_app.logger.debug(f'Logout message name_id: {_name_id!r} found username {_username!r}')
-            session_ids = current_app.sso_sessions.get_sessions_for_user(_username)
+            current_app.logger.debug(f'Logout message name_id: {repr(_name_id)} found username {repr(_username)}')
+            sessions = current_app.sso_sessions.get_sessions_for_user(_username, current_app.userdb)
 
+        _session_ids = [x.session_id for x in sessions]
         current_app.logger.debug(
-            f'Logout resources: name_id {_name_id!r} username {_username!r}, session_ids {session_ids!r}'
+            f'Logout resources: name_id {repr(_name_id)} username {repr(_username)}, session_ids {_session_ids}'
         )
 
-        if session_ids:
-            status_code = self._logout_session_ids(session_ids, req_key)
+        if sessions:
+            status_code = self._logout_session_ids(sessions, req_key)
         else:
             # No specific SSO session(s) were found, we have no choice but to logout ALL
             # the sessions for this NameID.
             status_code = self._logout_name_id(_name_id, req_key)
 
-        current_app.logger.debug(f'Logout of sessions {session_ids!r} / NameID {_name_id!r} result : {status_code!r}')
+        current_app.logger.debug(f'Logout of sessions {sessions!r} / NameID {_name_id!r} result : {status_code!r}')
         return self._logout_response(req_info, status_code, req_key)
 
-    def _logout_session_ids(self, session_ids: Sequence[SSOSessionId], req_key: str) -> str:
+    def _logout_session_ids(self, sessions: Sequence[SSOSession], req_key: str) -> str:
         """
         Terminate one or more specific SSO sessions.
 
@@ -149,23 +153,20 @@ class SLO(Service):
         :return: SAML StatusCode
         """
         fail = 0
-        for this in session_ids:
-            current_app.logger.debug("Logging out SSO session with key: {!s}".format(this))
+        for this in sessions:
+            current_app.logger.debug(f'Logging out SSO session: {repr(this.session_id)}')
             try:
-                _sso = current_app.sso_sessions.get_session(this, current_app.userdb)
-                if not _sso:
-                    raise KeyError('Session not found')
                 res = current_app.sso_sessions.remove_session(this)
                 current_app.logger.info(
-                    f'{req_key}: logout sso_session={_sso.public_id!r}, age={_sso.minutes_old!r}m, result={bool(res)!r}'
+                    f'{req_key}: logout sso_session={repr(this.public_id)}, age={this.minutes_old}m, result={bool(res)}'
                 )
             except KeyError:
-                current_app.logger.info(f'{req_key}: logout sso_key={this!r}, result=not_found')
+                current_app.logger.info(f'{req_key}: logout sso_key={repr(this)}, result=not_found')
                 res = 0
             if not res:
                 fail += 1
         if fail:
-            if fail == len(session_ids):
+            if fail == len(sessions):
                 return str(STATUS_RESPONDER)  # use str() to ensure external value is the right type
             return str(STATUS_PARTIAL_LOGOUT)  # use str() to ensure external value is the right type
         return str(STATUS_SUCCESS)  # use str() to ensure external value is the right type
