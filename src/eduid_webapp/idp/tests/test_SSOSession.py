@@ -38,7 +38,7 @@ class test_SSOSession(IdPTests):
 
     def test_str_method(self):
         session = SSOSession.from_dict(self.data, self.app.userdb)
-        assert str(session) == '<SSOSession: uid=012345678901234567890123, ts=2020-09-13T12:26:40+00:00>'
+        assert str(session) == '<SSOSession: eppn=hubba-bubba, ts=2020-09-13T12:26:40+00:00>'
 
     def test_with_datetime_authn_timestamp(self):
         int_session = SSOSession.from_dict(self.data, self.app.userdb)
