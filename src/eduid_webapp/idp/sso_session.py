@@ -80,7 +80,7 @@ class SSOSession:
     authn_request_id: str
     authn_credentials: List[AuthnData]
     eppn: str
-    idp_user: IdPUser  # extra info - not serialised
+    idp_user: IdPUser = field(repr=False)  # extra info - not serialised
     _id: Optional[ObjectId] = None
     session_id: SSOSessionId = field(default_factory=lambda: create_session_id())
     created_ts: datetime = field(default_factory=utc_now)
@@ -88,7 +88,7 @@ class SSOSession:
     authn_timestamp: datetime = field(default_factory=utc_now)
 
     def __str__(self) -> str:
-        return f'<{self.__class__.__name__}: uid={self.user_id}, ts={self.authn_timestamp.isoformat()}>'
+        return f'<{self.__class__.__name__}: eppn={self.eppn}, ts={self.authn_timestamp.isoformat()}>'
 
     def to_dict(self) -> Dict[str, Any]:
         """ Return the object in dict format (serialized for storing in MongoDB).
