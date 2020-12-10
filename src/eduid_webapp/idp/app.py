@@ -145,7 +145,7 @@ class IdPApp(EduIDBaseApp):
         self.logger.debug(f'Re-created SSO session {_sso}')
         return _sso
 
-    def get_sso_session_id(self) -> Optional[eduid_webapp.idp.sso_session.SSOSessionId]:
+    def get_sso_session_id(self) -> Optional[SSOSessionId]:
         """
         Get the SSO session id from the IdP SSO cookie, with fallback to hopefully unused 'id' query string parameter.
 
