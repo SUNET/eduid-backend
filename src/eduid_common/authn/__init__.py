@@ -29,6 +29,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from typing import cast
 
 import vccs_client
 
@@ -36,7 +37,7 @@ TESTING = False
 _test_client = None
 
 
-def get_vccs_client(vccs_url):
+def get_vccs_client(vccs_url: str) -> vccs_client.VCCSClient:
     """
     Instantiate a VCCS client.
     :param vccs_url: VCCS authentication backend URL
@@ -51,5 +52,5 @@ def get_vccs_client(vccs_url):
             from eduid_common.authn.testing import MockVCCSClient
 
             _test_client = MockVCCSClient()
-        return _test_client
+        return cast(vccs_client.VCCSClient, _test_client)
     return vccs_client.VCCSClient(base_url=vccs_url,)

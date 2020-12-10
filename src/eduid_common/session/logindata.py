@@ -4,7 +4,7 @@ import pprint
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from html import escape
-from typing import Dict, Mapping, Optional, TYPE_CHECKING, Type
+from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional, Type
 from urllib.parse import urlencode
 
 from eduid_userdb.credentials import Credential
@@ -35,11 +35,11 @@ class ExternalMfaData(object):
     authn_context: str
     timestamp: datetime
 
-    def to_session_dict(self):
+    def to_session_dict(self) -> Dict[str, Any]:
         return asdict(self)
 
     @classmethod
-    def from_session_dict(cls, data: Dict):
+    def from_session_dict(cls, data: Dict[str, Any]):
         return cls(**data)
 
 

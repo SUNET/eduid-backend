@@ -189,7 +189,7 @@ def maybe_xml_to_string(message, logger=None):
         return message
 
 
-def init_pysaml2(cfgfile):
+def init_pysaml2(cfgfile: str) -> server.Server:
     """
     Initialization of PySAML2.
 
