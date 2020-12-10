@@ -33,6 +33,7 @@ import logging
 import random
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
 from abc import ABC, abstractmethod
@@ -139,4 +140,5 @@ class EduidTemporaryInstance(ABC):
             self._process.wait()
             self._process = None
         self._logfile.close()
-        shutil.rmtree(self._tmpdir, ignore_errors=True)
+        if 'tmp' in self._tmpdir:
+            shutil.rmtree(self._tmpdir, ignore_errors=True)

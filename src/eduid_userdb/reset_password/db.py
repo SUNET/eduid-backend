@@ -52,7 +52,7 @@ class ResetPasswordUserDB(UserDB):
 
     UserClass = ResetPasswordUser
 
-    def __init__(self, db_uri: Optional[str], db_name: str = 'eduid_reset_password', collection: str = 'profiles'):
+    def __init__(self, db_uri: str, db_name: str = 'eduid_reset_password', collection: str = 'profiles'):
         super(ResetPasswordUserDB, self).__init__(db_uri, db_name, collection=collection)
 
     def save(self, user: User, check_sync: bool = True, old_format: Optional[bool] = None) -> bool:
@@ -61,7 +61,7 @@ class ResetPasswordUserDB(UserDB):
 
 class ResetPasswordStateDB(BaseDB):
     def __init__(
-        self, db_uri: Optional[str], db_name: str = 'eduid_reset_password', collection: str = 'password_reset_data'
+        self, db_uri: str, db_name: str = 'eduid_reset_password', collection: str = 'password_reset_data'
     ):
         super(ResetPasswordStateDB, self).__init__(db_uri, db_name, collection=collection)
 
