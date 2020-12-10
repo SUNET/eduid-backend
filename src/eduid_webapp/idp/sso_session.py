@@ -179,8 +179,12 @@ class SSOSession:
 
         # Store only the latest use of a particular credential.
         _creds: Dict[str, AuthnData] = {x.cred_id: x for x in self.authn_credentials}
+        _existing = _creds.get(authn.cred_id)
+        # TODO: remove this in the future - don't have to set tz when all SSO sessions without such have expired
+        if _existing and _existing.timestamp.tzinfo is None:
+            _existing.timestamp = _existing.timestamp.replace(tzinfo=timezone.utc)
         # only replace if newer
-        if not authn.cred_id in _creds or authn.timestamp > _creds[authn.cred_id].timestamp:
+        if not _existing or authn.timestamp > _existing.timestamp:
             _creds[authn.cred_id] = authn
 
         # sort on cred_id to have deterministic order in tests

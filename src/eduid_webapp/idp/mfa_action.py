@@ -32,6 +32,7 @@
 import datetime
 from typing import List, Optional
 
+from eduid_common.misc.timeutil import utc_now
 from eduid_common.session.logindata import ExternalMfaData, SSOLoginData
 from eduid_userdb.actions import Action
 from eduid_userdb.credentials import U2F, Webauthn
@@ -116,12 +117,12 @@ def check_authn_result(user: IdPUser, ticket: SSOLoginData, actions: List[Action
         current_app.logger.debug(f'Action {this} authn result: {this.result}')
         if this.result is None:
             continue
-        utc_now = datetime.datetime.utcnow().replace(tzinfo=None)  # thanks for not having timezone.utc, Python2
+        _utc_now = utc_now()
         if this.result.get('success') is True:
             if this.result.get('issuer') and this.result.get('authn_context'):
                 # External MFA authentication
                 ticket.mfa_action_external = ExternalMfaData(
-                    issuer=this.result['issuer'], authn_context=this.result['authn_context'], timestamp=utc_now
+                    issuer=this.result['issuer'], authn_context=this.result['authn_context'], timestamp=_utc_now
                 )
                 current_app.logger.debug(
                     f'Removing MFA action completed with external issuer {this.result.get("issuer")}'
@@ -131,7 +132,7 @@ def check_authn_result(user: IdPUser, ticket: SSOLoginData, actions: List[Action
             key = this.result.get(RESULT_CREDENTIAL_KEY_NAME)
             cred = user.credentials.find(key)
             if cred:
-                ticket.mfa_action_creds[cred.key] = utc_now
+                ticket.mfa_action_creds[cred.key] = _utc_now
                 current_app.logger.debug(f'Removing MFA action completed with {cred}')
                 current_app.actions_db.remove_action_by_id(this.action_id)
                 return True
