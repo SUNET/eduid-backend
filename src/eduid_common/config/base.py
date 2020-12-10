@@ -305,7 +305,7 @@ class BaseConfig(CommonConfig):
     # name of the magic cookie
     magic_cookie_name: Optional[str] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         # Convert redis_config from dict to the proper dataclass
         if isinstance(self.redis_config, dict):
             self.redis_config = RedisConfig(**self.redis_config)
