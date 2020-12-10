@@ -72,7 +72,7 @@ def check_for_pending_actions(
     # Check for pending actions
     pending_actions = [a for a in actions_eppn if a.result is None]
     if not pending_actions:
-        # eduid_action.mfa.idp.check_authn_result will have added the credential used
+        # eduid_webapp.idp.mfa_action.check_authn_result will have added the credential used
         # to the ticket.mfa_action_creds hash - transfer it to the session
         update = False
         for cred_key, ts in ticket.mfa_action_creds.items():
@@ -80,7 +80,7 @@ def check_for_pending_actions(
             authn = AuthnData(cred_id=cred.key, timestamp=ts)
             sso_session.add_authn_credential(authn)
             update = True
-        # eduid_action.mfa.idp.check_authn_result will have added any external mfa used to
+        # eduid_webapp.idp.mfa_action.check_authn_result will have added any external mfa used to
         # the ticket.mfa_action_external - transfer it to the session
         if ticket.mfa_action_external is not None:
             sso_session.external_mfa = ticket.mfa_action_external

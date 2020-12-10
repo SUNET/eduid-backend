@@ -2,6 +2,7 @@ from datetime import datetime
 
 from bson import ObjectId
 
+from eduid_webapp.idp.idp_authn import AuthnData
 from eduid_webapp.idp.sso_session import SSOSession
 from eduid_webapp.idp.tests.test_app import IdPTests
 
@@ -37,7 +38,7 @@ class test_SSOSession(IdPTests):
 
     def test_str_method(self):
         session = SSOSession.from_dict(self.data, self.app.userdb)
-        assert str(session) == '<SSOSession: uid=012345678901234567890123, ts=2020-09-13T12:26:40+00:00>'
+        assert str(session) == '<SSOSession: eppn=hubba-bubba, ts=2020-09-13T12:26:40+00:00>'
 
     def test_with_datetime_authn_timestamp(self):
         int_session = SSOSession.from_dict(self.data, self.app.userdb)
@@ -53,3 +54,24 @@ class test_SSOSession(IdPTests):
         session2 = SSOSession.from_dict(session1.to_dict(), self.app.userdb)
         assert session1.to_dict() == session2.to_dict()
         assert session2.to_dict() == self.data
+
+    def test_only_store_newest_credential_use(self):
+        pw = AuthnData(cred_id='password', timestamp=datetime.utcfromtimestamp(10))
+        older = AuthnData(cred_id='token', timestamp=datetime.utcfromtimestamp(20))
+        newer = AuthnData(cred_id='token', timestamp=datetime.utcfromtimestamp(30))
+
+        _data = dict(self.data)
+        _data['data']['authn_credentials'] = []
+        session1 = SSOSession.from_dict(_data, self.app.userdb)
+        session1.add_authn_credential(pw)
+        session1.add_authn_credential(older)
+        session1.add_authn_credential(newer)
+
+        assert session1.authn_credentials == [pw, newer]
+
+        session2 = SSOSession.from_dict(_data, self.app.userdb)
+        session2.add_authn_credential(pw)
+        session2.add_authn_credential(newer)
+        session2.add_authn_credential(older)
+
+        assert session2.authn_credentials == [pw, newer]

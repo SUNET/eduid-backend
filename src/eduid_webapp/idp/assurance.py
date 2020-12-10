@@ -68,14 +68,6 @@ class MissingAuthentication(AssuranceException):
 
 class AuthnState(object):
     def __init__(self, user: IdPUser, sso_session: SSOSession, logger: logging.Logger):
-        """
-
-        :param user:
-        :param sso_session:
-
-        :type user: eduid_idp.idp_user.IdPUser
-        :type sso_session: eduid_idp.sso_session.SSOSession
-        """
         self.logger = logger
 
         # authn_credentials is a list of dicts created by AuthnData.to_session_dict(), e.g.:
@@ -95,7 +87,7 @@ class AuthnState(object):
             if not cred:
                 self.logger.warning(f'Could not find credential {this.cred_id} on user {user}')
                 continue
-            self.logger.debug(f'Adding used credential: {cred}')
+            self.logger.debug(f'Adding used credential: {cred} ({this.timestamp.isoformat()}')
             self._creds += [cred]
             # until we can go to Python3 and have some... working type checks please
             if 'Password' in str(cred):
