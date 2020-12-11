@@ -18,7 +18,7 @@ import time
 from dataclasses import replace
 from hashlib import sha256
 from html import escape, unescape
-from typing import Mapping, Optional
+from typing import Dict, List, Mapping, Optional
 
 from defusedxml import ElementTree as DefusedElementTree
 from flask import make_response, redirect, render_template, request
@@ -142,14 +142,7 @@ class SSO(Service):
         # Generate eduPersonTargetedID
         if current_app.config.eduperson_targeted_id_secret_key:
             sp_identifier = resp_args.get('sp_entity_id', resp_args['destination'])
-            eduperson_targeted_id_value = self._get_eptid(relying_party=sp_identifier, user_eppn=user.eppn)
-            attributes["eduPersonTargetedID"] = [
-                {
-                    "text": eduperson_targeted_id_value,
-                    "NameQualifier": current_app.IDP.config.entityid,
-                    "SPNameQualifier": sp_identifier,
-                }
-            ]
+            attributes["eduPersonTargetedID"] = self._get_eptid(relying_party=sp_identifier, user_eppn=user.eppn)
 
         # Add a list of credentials used in a private attribute that will only be
         # released to the eduID authn component
@@ -249,7 +242,7 @@ class SSO(Service):
         current_app.logger.info(msg)
 
     @staticmethod
-    def _get_eptid(relying_party: str, user_eppn: str) -> str:
+    def _get_eptid(relying_party: str, user_eppn: str) -> List[Dict[str, str]]:
         """
         Generate eduPersonTargetedID
 
@@ -269,10 +262,13 @@ class SSO(Service):
             digestmod=sha256,
         ).hexdigest()
 
-        # Create a string in the form of idp_entity_id!sp_entity_id!opaque_sp_unique_user_id
-        eduperson_targeted_id = f'{current_app.IDP.config.entityid}!{relying_party}!{_anon_sp_userid}'
-        current_app.logger.debug(f'Generated eduPersonTargetedID: {eduperson_targeted_id}')
-        return eduperson_targeted_id
+        return [
+            {
+                "text": _anon_sp_userid,
+                "NameQualifier": current_app.IDP.config.entityid,
+                "SPNameQualifier": relying_party,
+            }
+        ]
 
     def _validate_login_request(self, ticket: SSOLoginData) -> ResponseArgs:
         """
