@@ -163,10 +163,5 @@ class IdPTestLogin(IdPTests):
         authn_response = self.parse_saml_authn_response(result.response)
         session_info = authn_response.session_info()
         attributes = session_info['ava']
-
-        test_sp_entity_id = 'https://sp.example.edu/saml2/metadata/'
-        expected_eptid = (
-            f'{self.idp_entity_id}!{test_sp_entity_id}!d537e1fd83ccd6bdb952099f5f9d32f0a015740e500921b70a3adc7ca6b4182d'
-        )
         assert 'eduPersonTargetedID' in attributes
-        assert attributes['eduPersonTargetedID'] == [expected_eptid]
+        assert attributes['eduPersonTargetedID'] == ['d537e1fd83ccd6bdb952099f5f9d32f0a015740e500921b70a3adc7ca6b4182d']
