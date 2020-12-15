@@ -1,5 +1,4 @@
-from fastapi import APIRouter
-from fastapi import Request
+from fastapi import APIRouter, Request
 from pydantic.main import BaseModel
 
 misc_router = APIRouter()
@@ -20,4 +19,3 @@ class HMACResponse(BaseModel):
 async def hmac(request: Request, keyhandle: int, data: bytes):
     hmac = await request.app.state.hasher.hmac_sha1(key_handle=keyhandle, data=data)
     return HMACResponse(keyhandle=str(keyhandle), hmac=hmac.hex())
-
