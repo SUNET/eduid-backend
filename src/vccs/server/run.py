@@ -1,6 +1,9 @@
 from asyncio import Lock
 
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
+from starlette.responses import JSONResponse
+from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
 
 from vccs.server.config import init_config
 from vccs.server.endpoints.add_creds import add_creds_router
@@ -52,6 +55,14 @@ async def startup_event():
         app.logger.info(
             f'Updated logger {_name} handlers {_old_handlers} -> {_logger.handlers} ' f'(prop: {_logger.propagate})'
         )
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    request.app.logger.warning(f'Failed parsing request: {exc}')
+    return JSONResponse(
+        {"errors": exc.errors()}, status_code=HTTP_422_UNPROCESSABLE_ENTITY
+    )
+
 
 
 if __name__ == '__main__':

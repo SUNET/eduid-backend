@@ -15,7 +15,8 @@ install_requires = [
     'pymongo>=3.6',
     'fastapi',
     'uvicorn',
-    'pyhsm'
+    'pyhsm',
+    'python-multipart',  # to parse form data
 ]
 
 testing_extras = [
