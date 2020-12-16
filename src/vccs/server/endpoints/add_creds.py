@@ -12,17 +12,17 @@ class AddCredsRequestV1(BaseModel):
     user_id: str
     version: int
 
+
 class AddCredsResponseV1(BaseModel):
     success: bool
     version: int
 
+
 class AddCredsFormResponse(BaseModel):
     """ Extra wrapping class to handle legacy requests sent as form data """
+
     add_creds_response: AddCredsResponseV1
 
-
-#class AddCredsForm(BaseModel):
-#    request: str = Form(...)
 
 @add_creds_router.post("/add_creds", response_model=AddCredsFormResponse)
 async def add_creds_legacy(req: Request, request: str = Form(...)) -> AddCredsFormResponse:
@@ -30,16 +30,21 @@ async def add_creds_legacy(req: Request, request: str = Form(...)) -> AddCredsFo
 
     class AddCredsInnerRequest(BaseModel):
         """ Requests all the way down. """
+
         add_creds: AddCredsRequestV1
 
     data = json.loads(request)
     inner = AddCredsInnerRequest(**data)
 
     req.app.logger.debug(f'Inner request: {repr(inner)}')
-    response = await add_creds(req, inner.add_creds)
-    req.app.logger.debug(f'Add creds response: {repr(response)}')
-    return AddCredsFormResponse(add_creds_response=response)
+    inner_response = await add_creds(req, inner.add_creds)
+    response = AddCredsFormResponse(add_creds_response=inner_response)
+    req.app.logger.debug(f'Add creds (form) response: {repr(response)}')
+    return response
+
 
 @add_creds_router.post("/v2/add_creds", response_model=AddCredsFormResponse)
 async def add_creds(req: Request, request: AddCredsRequestV1) -> AddCredsResponseV1:
-    return AddCredsResponseV1(version=1, success=True)
+    response = AddCredsResponseV1(version=1, success=True)
+    req.app.logger.debug(f'Add creds response: {repr(response)}')
+    return response

@@ -110,22 +110,8 @@ class CredentialDB(BaseDB):
         }
         self.setup_indexes(indexes)
 
-    def remove_credential(self, credential: Credential) -> Union[int, bool]:
-        """
-        Remove entries when SLO is executed.
-        :return: False on failure
-        """
-        res = self._coll.remove({'credential.credential_id': credential.credential_id}, w='majority')
-        try:
-            return int(res['n'])  # number of deleted records
-        except (KeyError, TypeError):
-            logger.warning(f'Remove credential {repr(credential.credential_id)} failed, result: {repr(res)}')
-            return False
-
     def save(self, credential: Credential) -> None:
-        """
-        Add a new credential to the cache, or update an existing one.
-        """
+        """ Add a new credential to the cache, or update an existing one. """
         result = self._coll.replace_one({'_id': credential._id}, credential.to_dict(), upsert=True)
         logger.debug(f'Updated credential {credential} in the db: {result}')
         return None

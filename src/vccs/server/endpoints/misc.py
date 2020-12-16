@@ -1,13 +1,38 @@
+from enum import Enum, unique
+from typing import Optional
+
 from fastapi import APIRouter, Request
 from pydantic.main import BaseModel
 
 misc_router = APIRouter()
 
+@unique
+class Status(str, Enum):
+    OK: str = 'OK'
+    FAIL: str = 'FAIL'
 
-@misc_router.get("/status")
-async def status(request: Request):
-    status = request.app.state.hasher._yhsm.info()
-    return {'yhsm': str(status)}
+class StatusResponse(BaseModel):
+    status: Status
+    add_creds_hmac: Optional[Status] = None
+    version: int = 1
+
+
+@misc_router.get("/status", response_model=StatusResponse)
+async def status(request: Request) -> StatusResponse:
+    _test_keyhandle = request.app.state.config.add_creds_password_key_handle
+    res = StatusResponse(status=Status.OK)
+    try:
+        hmac = await request.app.state.hasher.hmac_sha1(key_handle=_test_keyhandle, data=b'\0')
+        if len(hmac) >= 20:  # length of HMAC-SHA-1
+            res.add_creds_hmac = Status.OK
+        else:
+            res.add_creds_hmac = Status.FAIL
+    except Exception:
+        request.app.logger.exception(f'Failed hashing test data with key handle {_test_keyhandle}')
+        res.add_creds_hmac = Status.FAIL
+        res.status = Status.FAIL
+
+    return res
 
 
 class HMACResponse(BaseModel):
@@ -18,4 +43,4 @@ class HMACResponse(BaseModel):
 @misc_router.get("/hmac/{keyhandle}/{data}", response_model=HMACResponse)
 async def hmac(request: Request, keyhandle: int, data: bytes):
     hmac = await request.app.state.hasher.hmac_sha1(key_handle=keyhandle, data=data)
-    return HMACResponse(keyhandle=str(keyhandle), hmac=hmac.hex())
+    return HMACResponse(keyhandle=keyhandle, hmac=hmac.hex())

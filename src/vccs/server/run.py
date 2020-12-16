@@ -39,11 +39,11 @@ async def startup_event():
     Uvicorn mucks with the logging config on startup, particularly the access log. Rein it in.
     """
     import logging
-    for k,v in logging.Logger.manager.loggerDict.items():
+
+    for k, v in logging.Logger.manager.loggerDict.items():
         app.logger.debug(f'See logger {k}: {v}')
         if k == 'uvicorn.error':
             app.logger.debug(f'  {v.level} {v.propagate}')
-
 
     for _name in ['uvicorn', 'uvicorn.access', 'uvicorn.error']:
         _logger = logging.getLogger(_name)
@@ -56,16 +56,14 @@ async def startup_event():
             f'Updated logger {_name} handlers {_old_handlers} -> {_logger.handlers} ' f'(prop: {_logger.propagate})'
         )
 
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request, exc):
     request.app.logger.warning(f'Failed parsing request: {exc}')
-    return JSONResponse(
-        {"errors": exc.errors()}, status_code=HTTP_422_UNPROCESSABLE_ENTITY
-    )
-
+    return JSONResponse({"errors": exc.errors()}, status_code=HTTP_422_UNPROCESSABLE_ENTITY)
 
 
 if __name__ == '__main__':
     import uvicorn
 
-    uvicorn.run(app, host='0.0.0.0', port=8000)#, log_config=None)
+    uvicorn.run(app, host='0.0.0.0', port=8000)  # , log_config=None)
