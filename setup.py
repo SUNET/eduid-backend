@@ -1,30 +1,32 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 import os
+from pathlib import PurePath
+from typing import List
 
 from setuptools import setup
 
-here = os.path.abspath(os.path.dirname(__file__))
-README = open(os.path.join(here, 'README')).read()
+here = PurePath(__file__)
+README = open(here.with_name('README')).read()
 
 version = '0.0.1'
 
-install_requires = [
-    #'ndnkdf>=0.1',
-    'py-bcrypt>=0.3',
-    'pymongo>=3.6',
-    'fastapi',
-    'uvicorn',
-    'pyhsm',
-    'python-multipart',  # to parse form data
-]
+def load_requirements(path: PurePath) -> List[str]:
+    """ Load dependencies from a requirements.txt style file, ignoring comments etc. """
+    res = []
+    with open(path) as fd:
+        for line in fd.readlines():
+            while line.endswith('\n'):
+                line = line[:-1]
+            if not line or line.startswith('-') or line.startswith('#'):
+                continue
+            res += [line]
+    return res
 
-testing_extras = [
-    'nose==1.2.1',
-    'coverage==3.6',
-    'py-bcrypt==0.4',
-]
+install_requires = load_requirements(here.with_name('requirements.txt'))
+testing_extras = load_requirements(here.with_name('test_requirements.txt'))
 
+print(install_requires)
 setup(name='vccs_auth',
       version=version,
       description="Very Complicated Credential System - authentication backend",

@@ -1,0 +1,8 @@
+fastapi
+ndnkdf>=0.3
+py-bcrypt>=0.4
+pyhsm>=1.2.0
+pymongo>=3.6
+# python-multipart is needed to parse form data
+python-multipart
+uvicorn
