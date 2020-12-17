@@ -5,7 +5,7 @@ from fastapi import APIRouter, Form, Request
 from pydantic.main import BaseModel
 
 from vccs.server.config import VCCSConfig
-from vccs.server.db import Status
+from vccs.server.db import Status, Type
 from vccs.server.factors import RequestFactor
 from vccs.server.log import audit_log
 from vccs.server.password import authenticate_password
@@ -83,15 +83,17 @@ async def authenticate(req: Request, request: AuthenticateRequestV1) -> Authenti
                     f'result=FAIL, factor=password, credential_id={cred.credential_id}, status={cred.status.value}'
                 )
             else:
-                this_result = await authenticate_password(
-                    cred, factor, request.user_id, req.app.state.hasher, req.app.state.kdf
-                )
+                if cred.type == Type.PASSWORD:
+                    this_result = await authenticate_password(
+                        cred, factor, request.user_id, req.app.state.hasher, req.app.state.kdf
+                    )
+                else:
+                    req.app.logger.warning(f'Unsupported credential type: {repr(cred)}')
         else:
             req.app.logger.warning(f'Credential not found: {factor.credential_id}')
 
         results += [this_result]
 
     response = AuthenticateResponseV1(version=1, authenticated=all(results))
-
     req.app.logger.debug(f'Authenticate: {repr(response)}')
     return response
