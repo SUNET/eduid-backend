@@ -83,7 +83,9 @@ async def authenticate(req: Request, request: AuthenticateRequestV1) -> Authenti
                     f'result=FAIL, factor=password, credential_id={cred.credential_id}, status={cred.status.value}'
                 )
             else:
-                this_result = await authenticate_password(cred, factor, req.app.logger, request.user_id, req.app.state.hasher, req.app.state.kdf)
+                this_result = await authenticate_password(
+                    cred, factor, request.user_id, req.app.state.hasher, req.app.state.kdf
+                )
         else:
             req.app.logger.warning(f'Credential not found: {factor.credential_id}')
 
@@ -93,5 +95,3 @@ async def authenticate(req: Request, request: AuthenticateRequestV1) -> Authenti
 
     req.app.logger.debug(f'Authenticate: {repr(response)}')
     return response
-
-

@@ -51,5 +51,6 @@ def init_logging():
     return loguru_logger
     # return logging.getLogger('VCCS2')
 
+
 def audit_log(msg: str) -> None:
     loguru_logger.info(f'AUDIT: {msg}')
