@@ -50,3 +50,6 @@ def init_logging():
     loguru_logger.add(sys.stderr, format=fmt, level="DEBUG")
     return loguru_logger
     # return logging.getLogger('VCCS2')
+
+def audit_log(msg: str) -> None:
+    loguru_logger.info(f'AUDIT: {msg}')

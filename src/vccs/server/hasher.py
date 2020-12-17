@@ -88,20 +88,20 @@ class VCCSYHSMHasher(VCCSHasher):
     def load_temp_key(self, nonce, key_handle, aead):
         return self._yhsm.load_temp_key(nonce, key_handle, aead)
 
-    def safe_random(self, byte_count):
+    async def safe_random(self, byte_count: int) -> bytes:
         """
         Generate random bytes using both YubiHSM random function and host OS.
 
         Acquires a lock first if a lock instance was given at creation time.
         """
         from_os = os.urandom(byte_count)
-        self.lock_acquire()
+        await self.lock_acquire()
         try:
             from_hsm = self._yhsm.random(byte_count)
-            xored = ''.join([chr(ord(a) ^ ord(b)) for (a, b) in zip(from_hsm, from_os)])
+            xored = bytes([a ^ b for (a, b) in zip(from_hsm, from_os)])
             return xored
         finally:
-            self.lock_release()
+            await self.lock_release()
 
 
 class VCCSSoftHasher(VCCSHasher):

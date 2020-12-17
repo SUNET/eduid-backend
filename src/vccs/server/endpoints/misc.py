@@ -6,10 +6,12 @@ from pydantic.main import BaseModel
 
 misc_router = APIRouter()
 
+
 @unique
 class Status(str, Enum):
     OK: str = 'OK'
     FAIL: str = 'FAIL'
+
 
 class StatusResponse(BaseModel):
     status: Status

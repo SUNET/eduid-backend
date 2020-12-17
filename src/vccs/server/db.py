@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import asdict
+from dataclasses import asdict, field
 from enum import Enum, unique
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Dict, Mapping, Optional
 
 from bson import ObjectId
 from eduid_userdb.db import BaseDB
 from loguru import logger
 from pydantic.dataclasses import dataclass
+from pymongo.errors import DuplicateKeyError
 
 
 @unique
@@ -42,12 +43,12 @@ class Credential:
     iterations: int
     kdf: KDF
     key_handle: int
-    revision: int
     salt: str
     status: Status
     type: Type
     version: Version
-    obj_id: Optional[ObjectId] = None
+    revision: int = 1
+    obj_id: ObjectId = field(default_factory=ObjectId)
 
     @classmethod
     def from_dict(cls: Type[Credential], data: Mapping[str, Any]) -> Credential:
@@ -110,11 +111,36 @@ class CredentialDB(BaseDB):
         }
         self.setup_indexes(indexes)
 
-    def save(self, credential: Credential) -> None:
-        """ Add a new credential to the cache, or update an existing one. """
-        result = self._coll.replace_one({'_id': credential._id}, credential.to_dict(), upsert=True)
-        logger.debug(f'Updated credential {credential} in the db: {result}')
-        return None
+    def add(self, credential: Credential) -> bool:
+        """
+        Add a new credential to the database.
+        Returns True on success.
+        """
+        try:
+            result = self._coll.insert_one(credential.to_dict())
+        except DuplicateKeyError:
+            logger.warning(f'A credential with credential_id {credential.credential_id} already exists in the db')
+            return False
+        _success = result.inserted_id == credential.obj_id
+        logger.debug(f'Added credential {credential} to the db: {_success}')
+        return _success
+
+    def save(self, credential: Credential) -> bool:
+        """
+        Update an existing credential in the database.
+
+        Returns True on success.
+        """
+        # Ensure atomicity in updates
+        _revision = credential.revision
+        credential.revision += 1
+        result = self._coll.replace_one({'_id': credential.obj_id, 'revision': _revision}, credential.to_dict())
+        if result.modified_count == 1:
+            logger.debug(f'Updated credential {credential} in the db (to revision {credential.revision}): {result}')
+            return True
+        logger.warning(f'Could not update credential {credential}: {result.raw_result}')
+        credential.revision -= 1
+        return False
 
     def get_credential(self, credential_id: str) -> Optional[Credential]:
         """

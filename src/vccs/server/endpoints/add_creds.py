@@ -1,14 +1,19 @@
 import json
-from typing import Any, Dict, List, Optional
+from typing import List
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Form, Request
 from pydantic.main import BaseModel
+
+from vccs.server.config import VCCSConfig
+from vccs.server.db import KDF, Credential, Status, Type, Version
+from vccs.server.factors import RequestFactor
+from vccs.server.password import calculate_cred_hash
 
 add_creds_router = APIRouter()
 
 
 class AddCredsRequestV1(BaseModel):
-    factors: List[Dict[str, str]]
+    factors: List[RequestFactor]
     user_id: str
     version: int
 
@@ -45,6 +50,35 @@ async def add_creds_legacy(req: Request, request: str = Form(...)) -> AddCredsFo
 
 @add_creds_router.post("/v2/add_creds", response_model=AddCredsFormResponse)
 async def add_creds(req: Request, request: AddCredsRequestV1) -> AddCredsResponseV1:
-    response = AddCredsResponseV1(version=1, success=True)
+    # convenience and typing
+    _config = req.app.state.config
+    assert isinstance(_config, VCCSConfig)
+    res = True
+    for factor in request.factors:
+        _salt = (await req.app.state.hasher.safe_random(_config.add_creds_password_salt_bytes)).hex()
+        cred = Credential(
+            credential_id=factor.credential_id,
+            derived_key='',
+            iterations=_config.add_creds_password_kdf_iterations,
+            kdf=KDF.PBKDF2_HMAC_SHA512,
+            key_handle=_config.add_creds_password_key_handle,
+            salt=_salt,
+            status=Status.ACTIVE,
+            type=Type.PASSWORD,
+            version=Version.NDNv1,
+        )
+
+        cred.derived_key = H2 = await calculate_cred_hash(
+            user_id=request.user_id, H1=factor.H1, cred=cred, hasher=req.app.state.hasher, kdf=req.app.state.kdf
+        )
+        _res = req.app.state.credstore.add(cred)
+        req.app.logger.info(
+            f'AUDIT: Add credential credential_id={cred.credential_id}, H2[16]={H2[:8]}, res={repr(_res)}'
+        )
+        if not _res:
+            res = False
+
+    response = AddCredsResponseV1(version=1, success=res)
+
     req.app.logger.debug(f'Add creds response: {repr(response)}')
     return response
