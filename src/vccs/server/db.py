@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, field
 from enum import Enum, unique
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional, Union
 
 from bson import ObjectId
 from eduid_userdb.db import BaseDB
@@ -27,8 +27,9 @@ class KDF(str, Enum):
     PBKDF2_HMAC_SHA512: str = 'PBKDF2-HMAC-SHA512'
 
 
-class Type(str, Enum):
+class CredType(str, Enum):
     PASSWORD: str = 'password'
+    REVOKED: str = 'revoked'
 
 
 class CredentialPydanticConfig:
@@ -39,19 +40,13 @@ class CredentialPydanticConfig:
 @dataclass(config=CredentialPydanticConfig)
 class Credential:
     credential_id: str
-    derived_key: str
-    iterations: int
-    kdf: KDF
-    key_handle: int
-    salt: str
     status: Status
-    type: Type
-    version: Version
+    type: CredType
     revision: int = 1
     obj_id: ObjectId = field(default_factory=ObjectId)
 
     @classmethod
-    def from_dict(cls: Type[Credential], data: Mapping[str, Any]) -> Credential:
+    def from_dict(cls: CredType[Credential], data: Mapping[str, Any]) -> Credential:
         """ Construct element from a data dict in database format. """
 
         _data = dict(data)  # to not modify callers data
@@ -102,6 +97,32 @@ class Credential:
         }
 
 
+@dataclass(config=CredentialPydanticConfig)
+class _PasswordCredentialRequired:
+    derived_key: str
+    iterations: int
+    kdf: KDF
+    key_handle: int
+    salt: str
+    version: Version
+
+
+@dataclass(config=CredentialPydanticConfig)
+class PasswordCredential(Credential, _PasswordCredentialRequired):
+    pass
+
+
+@dataclass
+class _RevokedCredentialRequired:
+    reason: str
+    reference: str
+
+
+@dataclass(config=CredentialPydanticConfig)
+class RevokedCredential(Credential, _RevokedCredentialRequired):
+    pass
+
+
 class CredentialDB(BaseDB):
     def __init__(self, db_uri: str, db_name: str = 'vccs_auth_credstore', collection: str = 'credentials'):
         super().__init__(db_uri, db_name, collection=collection)
@@ -138,11 +159,12 @@ class CredentialDB(BaseDB):
         if result.modified_count == 1:
             logger.debug(f'Updated credential {credential} in the db (to revision {credential.revision}): {result}')
             return True
-        logger.warning(f'Could not update credential {credential}: {result.raw_result}')
+        logger.warning(f'Could not update credential {credential} (to revision {credential.revision}): '
+                       f'{result.raw_result}')
         credential.revision -= 1
         return False
 
-    def get_credential(self, credential_id: str) -> Optional[Credential]:
+    def get_credential(self, credential_id: str) -> Optional[Union[PasswordCredential, RevokedCredential]]:
         """
         Lookup an credential using the credential id.
 
@@ -156,4 +178,11 @@ class CredentialDB(BaseDB):
             raise
         if not res:
             return None
-        return Credential.from_dict(res)
+        if 'credential' in res:
+            _type = res['credential'].get('type')
+            if _type == CredType.PASSWORD.value:
+                return PasswordCredential.from_dict(res)
+            elif _type == CredType.REVOKED.value:
+                return RevokedCredential.from_dict(res)
+            logger.error(f'Credential {credential_id} has unknown type: {_type}')
+            return None

@@ -11,6 +11,7 @@ from vccs.server.db import CredentialDB
 from vccs.server.endpoints.add_creds import add_creds_router
 from vccs.server.endpoints.authenticate import authenticate_router
 from vccs.server.endpoints.misc import misc_router
+from vccs.server.endpoints.revoke_creds import revoke_creds_router
 from vccs.server.hasher import hasher_from_string
 from vccs.server.log import InterceptHandler, init_logging
 
@@ -41,6 +42,7 @@ class VCCS_API(FastAPI):
 app = VCCS_API()
 app.include_router(misc_router)  # , prefix='/v1')
 app.include_router(add_creds_router)
+app.include_router(revoke_creds_router)
 app.include_router(authenticate_router)
 
 

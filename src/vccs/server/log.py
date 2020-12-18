@@ -12,7 +12,7 @@ class InterceptHandler(logging.Handler):
         except ValueError:
             level = record.levelno
 
-        # Find caller from where originated the logged message
+        # Find calling function
         frame, depth = logging.currentframe(), 2
         while frame.f_code.co_filename == logging.__file__:
             frame = frame.f_back
@@ -53,4 +53,10 @@ def init_logging():
 
 
 def audit_log(msg: str) -> None:
-    loguru_logger.info(f'AUDIT: {msg}')
+    # Find calling function
+    frame, depth = logging.currentframe(), 2
+    while frame.f_code.co_filename == logging.__file__:
+        frame = frame.f_back
+        depth += 1
+
+    loguru_logger.opt(depth=depth).info(f'AUDIT: {msg}')

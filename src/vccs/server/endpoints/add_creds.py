@@ -5,7 +5,7 @@ from fastapi import APIRouter, Form, Request
 from pydantic.main import BaseModel
 
 from vccs.server.config import VCCSConfig
-from vccs.server.db import KDF, Credential, Status, Type, Version
+from vccs.server.db import CredType, KDF, PasswordCredential, Status, Version
 from vccs.server.factors import RequestFactor
 from vccs.server.password import calculate_cred_hash
 
@@ -53,32 +53,39 @@ async def add_creds(req: Request, request: AddCredsRequestV1) -> AddCredsRespons
     # convenience and typing
     _config = req.app.state.config
     assert isinstance(_config, VCCSConfig)
-    res = True
+    results =  []
     for factor in request.factors:
-        _salt = (await req.app.state.hasher.safe_random(_config.add_creds_password_salt_bytes)).hex()
-        cred = Credential(
-            credential_id=factor.credential_id,
-            derived_key='',
-            iterations=_config.add_creds_password_kdf_iterations,
-            kdf=KDF.PBKDF2_HMAC_SHA512,
-            key_handle=_config.add_creds_password_key_handle,
-            salt=_salt,
-            status=Status.ACTIVE,
-            type=Type.PASSWORD,
-            version=Version.NDNv1,
-        )
+        this_result = False
+        if factor.type == CredType.PASSWORD:
+            this_result = await _add_password_credential(_config, factor, req, request)
+        else:
+            req.app.logger.warning(f'Not adding credential with unknown type: {factor}')
+        results += [this_result]
 
-        cred.derived_key = H2 = await calculate_cred_hash(
-            user_id=request.user_id, H1=factor.H1, cred=cred, hasher=req.app.state.hasher, kdf=req.app.state.kdf
-        )
-        _res = req.app.state.credstore.add(cred)
-        req.app.logger.info(
-            f'AUDIT: Add credential credential_id={cred.credential_id}, H2[16]={H2[:8]}, res={repr(_res)}'
-        )
-        if not _res:
-            res = False
-
-    response = AddCredsResponseV1(version=1, success=res)
+    response = AddCredsResponseV1(version=1, success=all(results))
 
     req.app.logger.debug(f'Add creds response: {repr(response)}')
     return response
+
+
+async def _add_password_credential(_config, factor, req, request):
+    _salt = (await req.app.state.hasher.safe_random(_config.add_creds_password_salt_bytes)).hex()
+    cred = PasswordCredential(
+        credential_id=factor.credential_id,
+        derived_key='',
+        iterations=_config.add_creds_password_kdf_iterations,
+        kdf=KDF.PBKDF2_HMAC_SHA512,
+        key_handle=_config.add_creds_password_key_handle,
+        salt=_salt,
+        status=Status.ACTIVE,
+        type=CredType.PASSWORD,
+        version=Version.NDNv1,
+    )
+    cred.derived_key = H2 = await calculate_cred_hash(
+        user_id=request.user_id, H1=factor.H1, cred=cred, hasher=req.app.state.hasher, kdf=req.app.state.kdf
+    )
+    _res = req.app.state.credstore.add(cred)
+    req.app.logger.info(
+        f'AUDIT: Add credential credential_id={cred.credential_id}, H2[16]={H2[:8]}, res={repr(_res)}'
+    )
+    return _res
