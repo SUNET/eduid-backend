@@ -70,12 +70,14 @@ async def revoke_creds(req: Request, request: RevokeCredsRequestV1) -> RevokeCre
                 reason=factor.reason,
                 reference=factor.reference,
                 type=CredType.REVOKED,
-                status=Status.REVOKED,
+                status=Status.DISABLED,
             )
             # Overwrite the previous credential with this object
             res = req.app.state.credstore.save(revoked_cred)
-            audit_log(f'operation=revoke, reason={repr(factor.reason)}, reference={repr(factor.reference)}, '
-                      f'credential_id={cred.credential_id}, result={res}')
+            audit_log(
+                f'operation=revoke, reason={repr(factor.reason)}, reference={repr(factor.reference)}, '
+                f'credential_id={cred.credential_id}, result={res}'
+            )
             if res == True:
                 this_result = True
         else:

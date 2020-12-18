@@ -5,7 +5,7 @@ from fastapi import APIRouter, Form, Request
 from pydantic.main import BaseModel
 
 from vccs.server.config import VCCSConfig
-from vccs.server.db import CredType, KDF, PasswordCredential, Status, Version
+from vccs.server.db import KDF, CredType, PasswordCredential, Status, Version
 from vccs.server.factors import RequestFactor
 from vccs.server.password import calculate_cred_hash
 
@@ -53,7 +53,7 @@ async def add_creds(req: Request, request: AddCredsRequestV1) -> AddCredsRespons
     # convenience and typing
     _config = req.app.state.config
     assert isinstance(_config, VCCSConfig)
-    results =  []
+    results = []
     for factor in request.factors:
         this_result = False
         if factor.type == CredType.PASSWORD:
@@ -85,7 +85,5 @@ async def _add_password_credential(_config, factor, req, request):
         user_id=request.user_id, H1=factor.H1, cred=cred, hasher=req.app.state.hasher, kdf=req.app.state.kdf
     )
     _res = req.app.state.credstore.add(cred)
-    req.app.logger.info(
-        f'AUDIT: Add credential credential_id={cred.credential_id}, H2[16]={H2[:8]}, res={repr(_res)}'
-    )
+    req.app.logger.info(f'AUDIT: Add credential credential_id={cred.credential_id}, H2[16]={H2[:8]}, res={repr(_res)}')
     return _res

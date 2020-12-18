@@ -14,7 +14,7 @@ from pymongo.errors import DuplicateKeyError
 @unique
 class Status(str, Enum):
     ACTIVE: str = 'active'
-    REVOKED: str = 'revoked'
+    DISABLED: str = 'disabled'
 
 
 @unique
@@ -120,7 +120,46 @@ class _RevokedCredentialRequired:
 
 @dataclass(config=CredentialPydanticConfig)
 class RevokedCredential(Credential, _RevokedCredentialRequired):
-    pass
+    @classmethod
+    def from_dict_backwards_compat(cls: CredType[Credential], data: Mapping[str, Any]) -> Credential:
+        """ The old VCCS backend stored revoked credentials like this:
+
+        {
+            'status': 'revoked',
+            'credential_id': '4712',
+            'key_handle': 1,
+            'type': 'password',
+            'kdf': 'PBKDF2-HMAC-SHA512',
+            'derived_key': '599ab85b4539b3475...040ab2df0f',
+            'version': 'NDNv1',
+            'revocation_info': {
+                'timestamp': 1608286347,
+                'client_ip': '172.16.10.1',
+                'reason': 'Testing',
+                'reference': '',
+            },
+            'iterations': 50000,
+            'salt': '6bcd35c5f9d306494cc166a183f3da91',
+        }
+        """
+        _data = dict(data)  # to not modify callers data
+        if 'credential' in _data:
+            # move contents from 'credential' to top-level of dict
+            _data.update(_data.pop('credential'))
+        if '_id' in _data:
+            # Not supported with pydantic dataclasses:
+            #   RuntimeWarning: fields may not start with an underscore, ignoring "_id"
+            _data['obj_id'] = _data.pop('_id')
+
+        _new_data = {
+            'credential_id': _data['credential_id'],
+            'reason': _data['revocation_info']['reason'],
+            'reference': _data['revocation_info']['reference'],
+            'status': Status.DISABLED,
+            'type': CredType.REVOKED,
+        }
+
+        return cls(**_new_data)
 
 
 class CredentialDB(BaseDB):
@@ -159,8 +198,9 @@ class CredentialDB(BaseDB):
         if result.modified_count == 1:
             logger.debug(f'Updated credential {credential} in the db (to revision {credential.revision}): {result}')
             return True
-        logger.warning(f'Could not update credential {credential} (to revision {credential.revision}): '
-                       f'{result.raw_result}')
+        logger.warning(
+            f'Could not update credential {credential} (to revision {credential.revision}): ' f'{result.raw_result}'
+        )
         credential.revision -= 1
         return False
 
@@ -179,6 +219,8 @@ class CredentialDB(BaseDB):
         if not res:
             return None
         if 'credential' in res:
+            if res['credential'].get('status') == 'revoked':
+                return RevokedCredential.from_dict_backwards_compat(res)
             _type = res['credential'].get('type')
             if _type == CredType.PASSWORD.value:
                 return PasswordCredential.from_dict(res)
