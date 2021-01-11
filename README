@@ -1,0 +1,205 @@
+This is the Very Complicated Credential Service.
+
+The VCCS is en-route to becoming a complete authentication system with at
+least a SAML IdP front end, a distributed user database, separate password
+hashing servers etc.
+
+Design started from performance requirements, so a nearly complete backend
+service for password and OTP validation was the first thing to be
+implemented.
+
+
+Authentication
+==============
+
+Pseudo-code describing the authentication process ('|' denotes concatenation) :
+
+  On frontend (SAML IdP, RADIUS server etc, see python-vccs_client) :
+  -------------------------------------------------------------------
+
+  credential_id, salt, parameters = load_from_userdb(user_id)
+  T1 = (credential_id | plaintext_password)
+
+  // Get rid of plaintext as soon as possible, to avoid leaking it (logs etc.)
+  H1 = BCRYPT_PBKDF(T1, salt, parameters)
+  send_to_backend(H1, user_id, credential_id)
+
+
+  On backend (dedicated hashing servers, this is what is implemented here) :
+  --------------------------------------------------------------------------
+
+  credential_stored_hash, iterations, salt, key_handle = \
+  	load_from_private_database(credential_id)
+
+  T1 = 'A' | user_id | credential_id | H1
+  T2 = PBKDF2-HMAC-SHA512(T1, iterations=many, salt)
+  local_salt = YHSM_HMAC_SHA1(T2)
+  H2 = PBKDF2-HMAC-SHA512(T2, iterations=1, local_salt)
+
+  audit_log(frontend_id, credential_id, trunc(H2), trunc(credential_stored_hash))
+
+  return (H2 == credential_stored_hash)
+
+
+Rationale of the hashing scheme
+===============================
+
+Two algorithms was chosen
+
+  a) to not place all trust in a single algorithm
+  b) to increase the customization required by an attacker to attack this
+     particular systems. This is probably only of real relevance as counter-
+     measure to ASIC based attacks (and maybe FPGA)
+  c) to be able to do a part of the hashing as soon as possible (in the
+     front ends), while being able to scale hashing computation power easier
+     in dedicated backends
+
+bcrypt was chosen since it is generally ranked very high in strength against
+brute force attacks (bcrypt does not appear to execute faster on GPUs than
+CPUs today, although that will likely change with future GPUs).
+
+PBKDF2-HMAC-SHA512 was chosen because it is very well studied by now, as well
+as perhaps being a requirement for some. SHA512 was preferred over other SHA's
+because it currently favours the defender since it is pessimising anyone using
+only 32 bit operations (such as contemporary GPUs).
+
+
+Annotations for the hashing scheme
+==================================
+
+Authentication client code (see separate project python-vccs_client) :
+
+  T1 = credential_id | plaintext_password
+
+credential_id should be a unique identifier for this particular credential.
+An actual user might have many credentials associated with him/her. The
+credential_id should never be reused, so a changed password should generate a
+new unique credential_id and revoke the old one. This is in order to prevent
+an attacker controlling the user database from restoring old (cracked)
+credential information. The revocation status is stored in the trusted
+credential database only accessible to the backends.
+
+  // Get rid of plaintext as soon as possible, to avoid leaking it (logs etc.)
+  H1 = BCRYPT_PBKDF(T1, userdb_stored_salt)
+
+plaintext_password is the password entered in the IdP HTML login form, for
+example.
+
+userdb_stored_salt is the bcrypt salt in the current version. It is
+read from the user database and should not be sent to the backends.
+This way, an intruder on the backends will not get the full bcrypt KDF hashes
+to mount a relatively unexpensive offline attack on. The intruder will lack
+information about the 128 bits (minimum) salt so cannot feasibly attack the H1
+hashes.
+
+The computation of H1 should be performed as soon as possible in the frontend
+code, to immediately get rid of the plaintext password - hopefully before
+it ends up in a debug log, swap file, core dump or similar.
+
+This pre-hashing step has evolved from standard bcrypt(), to bcrypt() with
+the salt removed from what is sent to the backends, to the new construct
+bcrypt_pbkdf().
+
+  (http://www.openbsd.org/cgi-bin/cvsweb/src/lib/libutil/bcrypt_pbkdf.c)
+
+The reason to remove the salt is to not give an attacker at the authentication
+backends the ability to record H1's for later offline attack. The reason for
+moving to the new (and therefor less proven) bcrypt_pbkdf() is to avoid the
+standard bcrypt() limitation of only 72 characters significant input -
+something highly unintuitively for a complicated credential system.
+
+bcrypt_pbkdf still works with standard cryptographic constructs although code
+immaturity and lack of independent implementations is a concern.
+
+
+Authentication backend code :
+
+  T1 = 'A' | user_id | credential_id | H1
+
+The 'key usage' is 'A' (A for authentication). It is included in T just in
+case someone builds, say, a signing service with the same scheme, where users
+use the same password. Really, just as a precaution that will perhaps allow
+solving some future problem.
+
+user_id is a unique identifier for this user. It might be a username, an
+e-mail address, a UUID or some other type of persistent identifier of a specific
+user. It is included in the computations on the backends to prevent an
+attacker that can modify the user database to re-associate a (known) credential
+with another user to gain access to that other users account. This might or
+might not be effective, based on properties of the frontends and userdb. If an
+attacker can write to the userdb, he can probably reassociate a credential as
+well as this user_id to another user, in order to get (at least short term)
+access to that other user account.
+
+credential_id is the unique identifier of this particular credential. In the
+current implementation, this is simply an integer.
+
+H1 is the bcrypt() hash, but does not include the bcrypt salt (the bcrypt
+operation is performed on the front end). It is imperative that H1 is a part
+of the local parametrization using the YubiHSM. This prevents an attacker
+that gain access to the authentication backend from just using that access
+to calculate all the PBKDF2 salts for all the credentials, to later be used
+in an offline attack. This way, an attacker can just get the PBKDF2 salts
+for users that log in during the time period they have access to the authen-
+tication backends.
+
+
+  T2 = PBKDF2-HMAC-SHA512(T1, iter=many, salt)
+
+This is the really time consuming part of validation. The number of interations
+is stored per credential in the private credential database. This allows for
+more iterations where deemed appropriate, such as with system administrator
+accounts.
+
+
+  local_salt = YHSM_HMAC_SHA1(T)
+
+local_salt is the result of a keyed HMAC-SHA-1 calculation, done inside the
+YubiHSM. It is not computed until after the 'T2 = PBKDF2-HMAC-SHA512' above,
+so that an intruder on the authentication backends will have to do as much
+work up front to calculate local_salts of credentials. If local_salt was
+derived earlier in the process, an intruder could potentially use the
+(temporary) access to calculate lots of local_salts for use later in an
+offline attack on the full H2 accounts (by sending candidate passwords to
+the frontends to get T1 and then computing the local_salt without having
+to do the time consuming PBKDF2 in real time).
+
+The key is not possible to extract by an attacker that gains access
+to the authentication backend, and the result is 160 bits of salt per
+credential, with very good random distribution. If an attacker acquires any
+number of H2 hashes (those stored in the credential database), he will have
+to attempt on average 2^159 different possible salts per attempted plaintext,
+thus in effect multiplying the work factor for the attacker with about 10^47,
+which is a really really large number.
+
+
+  H2 = PBKDF2-HMAC-SHA512(T2, iterations=1, local_salt)
+
+H2 is the final hash, that is compared to what is stored in the credential
+database. This second PBKDF2 step is performed to mix in the local_salt
+into T2 in a good way - just like scrypt uses PBKDF2 as the final step.
+
+
+Key management
+==============
+
+The HMAC keys used to derive the locally parameterized salt (in the dedicated
+hashing servers) from the YubiHSMs should not be used indefinitely.
+
+If local password retention policy mandates users to change password every
+three years, and key management policy limits key usage to credentials created
+in a six months period, a total of seven six-months keys could be allowed to
+co-exist simultaneously in the YubiHSM.
+
+By having seven keys, the user can be authenticated for six months after the
+password expires to allow for a password change. After 3.5 years, the password
+would have to be reset using some external mechanism.
+
+NIST SP 800-57 has recommendations regarding the lifetime of an "Symmetric
+authentication key", saying that it should not be used on Originator systems
+(operation: password set) for more than two years, and not on Recipient
+systems (operation: password validation) for more than two+three years.
+
+---
+
+Fredrik Thulin <fredrik@thulin.net>, 2013-06-25
