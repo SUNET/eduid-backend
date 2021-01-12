@@ -51,6 +51,8 @@ class GroupUser(EduidSchema):
 class Group(EduidSchema):
     identifier = fields.UUID(required=True)
     display_name = fields.Str(required=True)
+    is_member = fields.Bool(required=True)
+    is_owner = fields.Bool(required=True)
     members = fields.Nested(nested=GroupUser, default=[], many=True)
     owners = fields.Nested(nested=GroupUser, default=[], many=True)
 
@@ -75,8 +77,7 @@ class IncomingInvite(EduidSchema):
 class GroupManagementResponseSchema(FluxStandardAction):
     class GroupManagementResponsePayload(EduidSchema, CSRFResponseMixin):
         user_identifier = fields.UUID(default=None)
-        member_of = fields.Nested(Group, default=[], many=True)
-        owner_of = fields.Nested(Group, default=[], many=True)
+        groups = fields.Nested(Group, default=[], many=True)
 
     payload = fields.Nested(GroupManagementResponsePayload)
 
@@ -130,8 +131,7 @@ class GroupAllInviteResponseSchema(FluxStandardAction):
 class GroupManagementAllDataResponseSchema(FluxStandardAction):
     class CombinedGroupDataInviteDataPayload(EduidSchema, CSRFResponseMixin):
         user_identifier = fields.UUID(default=None)
-        member_of = fields.Nested(Group, default=[], many=True)
-        owner_of = fields.Nested(Group, default=[], many=True)
+        groups = fields.Nested(Group, default=[], many=True)
         incoming = fields.Nested(IncomingInvite, many=True)
         outgoing = fields.Nested(OutgoingInvite, many=True)
 

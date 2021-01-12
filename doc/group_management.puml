@@ -5,11 +5,8 @@ title group_management
 legend
     GROUPS_RESPONSE: {
         "user_identifier": str|null,
-        "member_of": [
-            {"identifier": str, "display_name": str, "members": [], "owners": [{"identifier": str, "display_name": str}]},
-        ],
-        "owner_of": [
-            {"identifier": str, "display_name": str, "members": [{"identifier": str, "display_name": str}], "owners": [{"identifier": str, "display_name": str}]}
+        "groups": [
+            {"identifier": str, "display_name": str, "is_owner": bool, "is_member": bool, "members": [{"identifier": str, "display_name": str}], "owners": [{"identifier": str, "display_name": str}]}
         ]
     }
 
