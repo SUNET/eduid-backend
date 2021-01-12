@@ -81,21 +81,17 @@ def merge_group_lists(owner_groups: List[ScimApiGroup], member_groups: List[Scim
     """
     :param owner_groups: Groups the user is owner to
     :param member_groups: Groups the user is member of
-
     :return: Combined group list for user
     """
     combined_groups = {}
-    # Start with the groups the user is owner of
-    for group in owner_groups:
-        combined_groups[group.scim_id] = UserGroup.from_scimapigroup(group, is_owner=True)
-    # Add or update groups the user is member of
-    for group in member_groups:
-        # A user can be both member and owner so the group can already exist
+    for group in owner_groups + member_groups:
         if group.scim_id in combined_groups:
-            existing_group = combined_groups[group.scim_id]
-            combined_groups[group.scim_id] = replace(existing_group, is_member=True)
-        else:
-            combined_groups[group.scim_id] = UserGroup.from_scimapigroup(group, is_member=True)
+            # only process each group once, and don't overwrite owner groups with
+            # member groups (that don't show all members)
+            continue
+        combined_groups[group.scim_id] = UserGroup.from_scimapigroup(
+            group, is_owner=group in owner_groups, is_member=group in member_groups,
+        )
     return list(combined_groups.values())
 
 
