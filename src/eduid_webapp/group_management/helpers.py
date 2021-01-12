@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
+from dataclasses import asdict, dataclass, replace
 from enum import unique
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set, Union
 from uuid import UUID
 
 from flask_babel import gettext as _
@@ -8,6 +9,7 @@ from flask_babel import gettext as _
 from eduid_common.api.exceptions import MailTaskFailed
 from eduid_common.api.helpers import send_mail
 from eduid_common.api.messages import TranslatableMsg
+from eduid_graphdb.groupdb import Group as GraphGroup
 from eduid_graphdb.groupdb import User as GraphUser
 from eduid_scimapi.db.groupdb import ScimApiGroup
 from eduid_scimapi.db.userdb import ScimApiUser
@@ -38,6 +40,27 @@ class GroupManagementMsg(TranslatableMsg):
     mail_address_not_verified = 'group.mail_address_not_verified'
 
 
+@dataclass
+class UserGroup:
+    identifier: UUID
+    display_name: str
+    is_owner: bool
+    is_member: bool
+    owners: Set[Union[GraphUser, GraphGroup]]
+    members: Set[Union[GraphUser, GraphGroup]]
+
+    @classmethod
+    def from_scimapigroup(cls, group: ScimApiGroup, owner: bool = False, member: bool = False):
+        return cls(
+            identifier=group.scim_id,
+            display_name=group.display_name,
+            is_owner=owner,
+            is_member=member,
+            owners=group.graph.owners,
+            members=group.graph.members,
+        )
+
+
 def get_scim_user_by_eppn(eppn: str) -> Optional[ScimApiUser]:
     external_id = f'{eppn}@{current_app.config.scim_external_id_scope}'
     scim_user = current_app.scimapi_userdb.get_user_by_external_id(external_id=external_id)
@@ -54,19 +77,36 @@ def get_or_create_scim_user_by_eppn(eppn: str) -> ScimApiUser:
     return scim_user
 
 
-def list_of_group_data(group_list: List[ScimApiGroup]) -> List[Dict]:
+def merge_group_lists(owner_groups: List[ScimApiGroup], member_groups: List[ScimApiGroup]) -> List[UserGroup]:
+    """
+    :param owner_groups: Groups the user is owner to
+    :param member_groups: Groups the user is member of
+
+    :return: Combined group list for user
+    """
+    combined_groups = {}
+    # Start with the groups the user is owner of
+    for group in owner_groups:
+        combined_groups[group.scim_id] = UserGroup.from_scimapigroup(group, owner=True)
+    # Add or update groups the user is member of
+    for group in member_groups:
+        # A user can be both member and owner so the group can already exist
+        if group.scim_id in combined_groups:
+            existing_group = combined_groups[group.scim_id]
+            combined_groups[group.scim_id] = replace(existing_group, is_member=True)
+        else:
+            combined_groups[group.scim_id] = UserGroup.from_scimapigroup(group, member=True)
+    return list(combined_groups.values())
+
+
+def list_of_group_data(group_list: List[UserGroup]) -> List[Dict]:
     ret = []
     for group in group_list:
-        members = [
-            {'identifier': member.identifier, 'display_name': member.display_name} for member in group.graph.members
-        ]
-        owners = [{'identifier': owner.identifier, 'display_name': owner.display_name} for owner in group.graph.owners]
-        group_data = {
-            'identifier': group.scim_id,
-            'display_name': group.display_name,
-            'members': members,
-            'owners': owners,
-        }
+        members = [{'identifier': member.identifier, 'display_name': member.display_name} for member in group.members]
+        owners = [{'identifier': owner.identifier, 'display_name': owner.display_name} for owner in group.owners]
+        group_data = asdict(group)
+        group_data['owners'] = owners
+        group_data['members'] = members
         current_app.logger.debug(f'Group data: {group_data}')
         ret.append(group_data)
     return ret
@@ -75,13 +115,11 @@ def list_of_group_data(group_list: List[ScimApiGroup]) -> List[Dict]:
 def get_all_group_data(scim_user: ScimApiUser) -> Dict[str, Any]:
     member_groups = current_app.scimapi_groupdb.get_groups_for_user_identifer(scim_user.scim_id)
     owner_groups = current_app.scimapi_groupdb.get_groups_owned_by_user_identifier(scim_user.scim_id)
+    combined_groups = merge_group_lists(owner_groups=owner_groups, member_groups=member_groups)
     current_app.logger.debug(f'member_of: {member_groups}')
     current_app.logger.debug(f'owner_of: {owner_groups}')
-    return {
-        'user_identifier': scim_user.scim_id,
-        'member_of': list_of_group_data(member_groups),
-        'owner_of': list_of_group_data(owner_groups),
-    }
+    current_app.logger.debug(f'combined: {combined_groups}')
+    return {'user_identifier': scim_user.scim_id, 'groups': list_of_group_data(combined_groups)}
 
 
 def is_owner(scim_user: ScimApiUser, group_id: UUID) -> bool:
