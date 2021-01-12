@@ -50,12 +50,12 @@ class UserGroup:
     members: Set[Union[GraphUser, GraphGroup]]
 
     @classmethod
-    def from_scimapigroup(cls, group: ScimApiGroup, owner: bool = False, member: bool = False):
+    def from_scimapigroup(cls, group: ScimApiGroup, is_owner: bool = False, is_member: bool = False):
         return cls(
             identifier=group.scim_id,
             display_name=group.display_name,
-            is_owner=owner,
-            is_member=member,
+            is_owner=is_owner,
+            is_member=is_member,
             owners=group.graph.owners,
             members=group.graph.members,
         )
@@ -87,7 +87,7 @@ def merge_group_lists(owner_groups: List[ScimApiGroup], member_groups: List[Scim
     combined_groups = {}
     # Start with the groups the user is owner of
     for group in owner_groups:
-        combined_groups[group.scim_id] = UserGroup.from_scimapigroup(group, owner=True)
+        combined_groups[group.scim_id] = UserGroup.from_scimapigroup(group, is_owner=True)
     # Add or update groups the user is member of
     for group in member_groups:
         # A user can be both member and owner so the group can already exist
@@ -95,7 +95,7 @@ def merge_group_lists(owner_groups: List[ScimApiGroup], member_groups: List[Scim
             existing_group = combined_groups[group.scim_id]
             combined_groups[group.scim_id] = replace(existing_group, is_member=True)
         else:
-            combined_groups[group.scim_id] = UserGroup.from_scimapigroup(group, member=True)
+            combined_groups[group.scim_id] = UserGroup.from_scimapigroup(group, is_member=True)
     return list(combined_groups.values())
 
 
