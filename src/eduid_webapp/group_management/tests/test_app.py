@@ -34,6 +34,7 @@ import json
 from typing import Any, Optional
 from uuid import UUID
 
+import pytest
 from flask import Response
 from mock import patch
 
@@ -48,11 +49,11 @@ from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_webapp.group_management.app import init_group_management_app
 from eduid_webapp.group_management.helpers import GroupManagementMsg
 from eduid_webapp.group_management.schemas import GroupRole
-from eduid_webapp.group_management.settings.common import GroupManagementConfig
 
 __author__ = 'lundberg'
 
 
+@pytest.mark.skipif(Neo4jTemporaryInstance.get_instance()._conn is None, reason='Neo4j database not available')
 class GroupManagementTests(EduidAPITestCase):
     """Base TestCase for those tests that need a full environment setup"""
 
