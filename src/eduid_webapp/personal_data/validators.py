@@ -47,7 +47,7 @@ def validate_language(lang):
 
 
 def validate_nonempty(value):
-    if not ' '.join(value.split()):  # Remove excessive whitespace
+    if not value.strip():  # Remove whitespace
         raise ValidationError(PDataMsg.required.value)
 
 
