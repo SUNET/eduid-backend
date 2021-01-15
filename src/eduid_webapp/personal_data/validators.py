@@ -39,7 +39,7 @@ from eduid_webapp.personal_data.helpers import PDataMsg
 
 BLANKS_PATTERN = re.compile(r"^\s*$")
 
-SPECIAL_CHARACTERS_PATTERN = re.compile(r"""[`!€%&?~#@,.<>;':"\/\[\]\|{}()-=_+]""")
+SPECIAL_CHARACTERS_PATTERN = re.compile(r"""[`!€%&?~#@,.<>;':"\/\[\]\|{}()=_+]""")
 
 
 def validate_language(lang):
