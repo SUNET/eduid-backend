@@ -204,11 +204,6 @@ class PersonalDataTests(EduidAPITestCase):
         self.assertEqual(resp_data['type'], 'POST_PERSONAL_DATA_USER_FAIL')
         self.assertEqual(resp_data['payload']['error']['given_name'], ['pdata.field_required'])
 
-    def test_post_user_given_name_bad_char(self):
-        resp_data = self._post_user(mod_data={'given_name': ']pepe'})
-        self.assertEqual(resp_data['type'], 'POST_PERSONAL_DATA_USER_FAIL')
-        self.assertEqual(resp_data['payload']['error']['given_name'], ['only allow letters'])
-
     def test_post_user_no_surname(self):
         resp_data = self._post_user(mod_data={'surname': ''})
         self.assertEqual(resp_data['type'], 'POST_PERSONAL_DATA_USER_FAIL')
@@ -218,11 +213,6 @@ class PersonalDataTests(EduidAPITestCase):
         resp_data = self._post_user(mod_data={'surname': ' '})
         self.assertEqual(resp_data['type'], 'POST_PERSONAL_DATA_USER_FAIL')
         self.assertEqual(resp_data['payload']['error']['surname'], ['pdata.field_required'])
-
-    def test_post_user_surname_bad_chars(self):
-        resp_data = self._post_user(mod_data={'surname': '#pepe'})
-        self.assertEqual(resp_data['type'], 'POST_PERSONAL_DATA_USER_FAIL')
-        self.assertEqual(resp_data['payload']['error']['surname'], ['only allow letters'])
 
     def test_post_user_no_display_name(self):
         resp_data = self._post_user(mod_data={'display_name': ''})
