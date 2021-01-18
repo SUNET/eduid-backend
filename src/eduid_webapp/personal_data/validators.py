@@ -37,8 +37,6 @@ from marshmallow import ValidationError
 from eduid_webapp.personal_data.app import current_pdata_app as current_app
 from eduid_webapp.personal_data.helpers import PDataMsg
 
-SPECIAL_CHARACTERS_PATTERN = re.compile(r"""[`!€%&?~#@,.<>;':"\/\[\]\|{}()=_+]""")
-
 
 def validate_language(lang):
     available_langs = current_app.config.available_languages
@@ -49,8 +47,3 @@ def validate_language(lang):
 def validate_nonempty(value):
     if not value.strip():  # Remove whitespace
         raise ValidationError(PDataMsg.required.value)
-
-
-def validate_no_special_chars(value):
-    if SPECIAL_CHARACTERS_PATTERN.search(value):
-        raise ValidationError(PDataMsg.special_chars.value)
