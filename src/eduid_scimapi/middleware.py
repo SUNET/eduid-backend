@@ -22,8 +22,12 @@ class HandleSCIM(object):
             if req.path == '/login':
                 if req.content_type != 'application/json':
                     raise UnsupportedMediaTypeMalformed(
-                        detail=f'{req.content_type} is an unsupported media type for /login'
+                        detail=f'{req.content_type} is an unsupported media type for {req.path}'
                     )
+            elif req.path == '/notifications':
+                if req.content_type == 'text/plain; charset=UTF-8':
+                    # We know the body is json, set the correct content type
+                    req.content_type = 'application/json'
             elif req.content_type != 'application/scim+json':
                 raise UnsupportedMediaTypeMalformed(detail=f'{req.content_type} is an unsupported media type')
 
@@ -44,14 +48,14 @@ class HandleSCIM(object):
 class HandleAuthentication(object):
     def __init__(self, context: Context):
         self.context = context
-        self.no_auth_whitelist = self.context.config.no_authn_urls
-        self.context.logger.debug('No auth whitelist: {}'.format(self.no_auth_whitelist))
+        self.no_authn_urls = self.context.config.no_authn_urls
+        self.context.logger.debug('No auth allow urls: {}'.format(self.no_authn_urls))
 
     def _is_no_auth_path(self, path: str) -> bool:
-        for regex in self.no_auth_whitelist:
+        for regex in self.no_authn_urls:
             m = re.match(regex, path)
             if m is not None:
-                self.context.logger.debug('{} matched whitelist'.format(path))
+                self.context.logger.debug('{} matched allow list'.format(path))
                 return True
         return False
 
