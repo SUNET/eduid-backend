@@ -21,8 +21,6 @@ def init_api(name: str, test_config: Optional[Dict] = None, debug: bool = False)
 
     api = falcon.API(middleware=[HandleSCIM(context), HandleAuthentication(context)])
     api.req_options.media_handlers['application/scim+json'] = api.req_options.media_handlers['application/json']
-    # AWS sends json body with Content-Type text/plain; charset=UTF-8
-    api.req_options.media_handlers['text/plain; charset=UTF-8'] = api.req_options.media_handlers['application/json']
 
     # Error handlers tried in reversed declaration order
     api.add_error_handler(Exception, exceptions.unexpected_error_handler)

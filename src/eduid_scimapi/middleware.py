@@ -25,10 +25,9 @@ class HandleSCIM(object):
                         detail=f'{req.content_type} is an unsupported media type for {req.path}'
                     )
             elif req.path == '/notifications':
-                if req.content_type != 'text/plain; charset=UTF-8':
-                    raise UnsupportedMediaTypeMalformed(
-                        detail=f'{req.content_type} is an unsupported media type for {req.path}'
-                    )
+                if req.content_type == 'text/plain; charset=UTF-8':
+                    # We know the body is json, set the correct content type
+                    req.content_type = 'application/json'
             elif req.content_type != 'application/scim+json':
                 raise UnsupportedMediaTypeMalformed(detail=f'{req.content_type} is an unsupported media type')
 
