@@ -43,7 +43,7 @@ class BaseDBTestCase(unittest.TestCase):
 
     def _get_config(self) -> dict:
         config = {
-            'test': True,
+            'testing': True,
             'mongo_uri': self.mongo_uri,
             'logging_config': {
                 'version': 1,
