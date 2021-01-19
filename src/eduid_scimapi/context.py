@@ -1,17 +1,15 @@
 import logging
 import logging.config
-import sys
 from typing import Optional
 
 from eduid_queue.db.message import MessageDB
-
-from eduid_userdb.signup.invitedb import SignupInviteDB
-
 from eduid_scimapi.config import ScimApiConfig
 from eduid_scimapi.db.groupdb import ScimApiGroupDB
 from eduid_scimapi.db.invitedb import ScimApiInviteDB
 from eduid_scimapi.db.userdb import ScimApiUserDB
+from eduid_scimapi.log import init_logging
 from eduid_scimapi.utils import urlappend
+from eduid_userdb.signup.invitedb import SignupInviteDB
 
 
 class Context(object):
@@ -20,17 +18,9 @@ class Context(object):
         self.config = config
 
         # Setup logging
-        if self.config.logging_config:
-            logging.config.dictConfig(self.config.logging_config)
-            self.logger = logging.getLogger('eduid_scimapi')
-        else:
-            self.logger = logging.getLogger('eduid_scimapi')
-            self.logger.handlers = []  # Unset any other handlers
-            sh = logging.StreamHandler(sys.stdout)
-            formatter = logging.Formatter(self.config.log_format)
-            sh.setFormatter(formatter)
-            self.logger.addHandler(sh)
-            self.logger.setLevel(self.config.log_level)
+        init_logging(self.name, self.config)
+        self.logger = logging.getLogger('eduid_scimapi')
+        self.logger.info('Logging initialized')
 
         # Setup databases
         self._userdbs = {}
