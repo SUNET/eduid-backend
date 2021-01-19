@@ -14,6 +14,7 @@ class ScimApiConfig(BaseConfig):
     schema: str = 'http'
     server_name: str = 'localhost:8000'
     application_root: str = '/'
+    log_format: str = '{asctime} | {levelname:7} | {hostname} | {name:35} | {module:10} | {message}'
     neo4j_uri: str = ''
     neo4j_config: Dict = field(default_factory=dict)
     authorization_token_secret: str = 'secret'
