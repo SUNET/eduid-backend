@@ -48,11 +48,11 @@ class HandleSCIM(object):
 class HandleAuthentication(object):
     def __init__(self, context: Context):
         self.context = context
-        self.no_auth_allow = self.context.config.no_authn_urls
-        self.context.logger.debug('No auth allow urls: {}'.format(self.no_auth_allow))
+        self.no_authn_urls = self.context.config.no_authn_urls
+        self.context.logger.debug('No auth allow urls: {}'.format(self.no_authn_urls))
 
     def _is_no_auth_path(self, path: str) -> bool:
-        for regex in self.no_auth_allow:
+        for regex in self.no_authn_urls:
             m = re.match(regex, path)
             if m is not None:
                 self.context.logger.debug('{} matched allow list'.format(path))
