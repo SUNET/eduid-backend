@@ -1,9 +1,9 @@
 # common
 eduid-am>=0.7.9
-eduid-common[webapp]>=0.23.0,==0.23.*
+eduid-common[webapp]>=0.23.1,==0.23.*
 eduid-msg>=0.10.9
 eduid-userdb>=0.9.1,==0.9.*
-pysaml2>=6.3.0,==6.*
+pysaml2>=6.5.0,==6.*
 Babel>=2.6.0
 Flask>=1.1,<1.2
 Pillow>=3.0.0
