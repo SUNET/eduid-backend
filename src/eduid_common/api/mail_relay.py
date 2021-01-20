@@ -84,7 +84,7 @@ class MailRelay(object):
 
         try:
             res = rtask.get(timeout=timeout)
-            current_app.logger.info('SMS with reference {} sent. Task result: {}'.format(reference, res))
+            current_app.logger.info('email with reference {} sent. Task result: {}'.format(reference, res))
         except Exception as e:
             rtask.forget()
             raise MailTaskFailed(f'sendmail task failed: {repr(e)}')
