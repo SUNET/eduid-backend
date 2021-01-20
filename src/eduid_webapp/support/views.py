@@ -55,7 +55,7 @@ def index(support_user):
             try:
                 signup_user = current_app.support_signup_db.get_user_by_id(user_id=user.user_id)
                 user_data['signup_user'] = SupportSignupUserFilter(signup_user.to_dict())
-            except UserDoesNotExist:
+            except (UserDoesNotExist, TypeError):
                 # The user is in an old format or does not exist in the signup db
                 user_data['signup_user'] = None
 
