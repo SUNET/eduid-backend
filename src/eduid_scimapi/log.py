@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
+import logging
+import pprint
 from logging.config import dictConfig
 
-from eduid_common.api.logging import LocalContext, LoggingFilters, make_dictConfig
+from eduid_common.api.logging import LocalContext, LoggingFilters, make_dictConfig, merge_config
 from eduid_common.config.exceptions import BadConfiguration
 
 
@@ -49,5 +51,8 @@ def make_local_context(app_name: str, config: ScimApiConfig) -> LocalContext:
 def init_logging(app_name: str, config: ScimApiConfig) -> None:
     local_context = make_local_context(app_name, config)
     logging_config = make_dictConfig(local_context)
+    logging_config = merge_config(logging_config, config.logging_config)
     dictConfig(logging_config)
+    logger = logging.getLogger(__name__)
+    logger.debug(f'Logging config:\n{pprint.pformat(logging_config)}')
     return None
