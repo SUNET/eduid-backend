@@ -1,6 +1,7 @@
 builders:
   - script
 upstream:
+  - eduid-userdb
   - python-ndnkdf
 triggers:
   cron: "@weekly"
