@@ -74,6 +74,7 @@ async def authenticate(req: Request, request: AuthenticateRequestV1) -> Authenti
     assert isinstance(_config, VCCSConfig)
 
     results: List[bool] = []
+    # TODO: Make sure to respond False if request.factors is empty.
     for factor in request.factors:
         this_result = False
         cred = req.app.state.credstore.get_credential(factor.credential_id)

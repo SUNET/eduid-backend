@@ -1,16 +1,15 @@
-import logging
+from typing import List, Union
 from binascii import unhexlify
 
 from ndnkdf import NDNKDF
-
-from vccs.server.db import Credential
+from vccs.server.db import PasswordCredential
 from vccs.server.factors import RequestFactor
 from vccs.server.hasher import VCCSYHSMHasher
 from vccs.server.log import audit_log
 
 
 async def authenticate_password(
-    cred: Credential, factor: RequestFactor, user_id: str, hasher: VCCSYHSMHasher, kdf: NDNKDF
+    cred: PasswordCredential, factor: RequestFactor, user_id: str, hasher: VCCSYHSMHasher, kdf: NDNKDF
 ):
     res = False
     H2 = await calculate_cred_hash(user_id=user_id, H1=factor.H1, cred=cred, hasher=hasher, kdf=kdf)
@@ -32,7 +31,7 @@ async def authenticate_password(
     return res
 
 
-async def calculate_cred_hash(user_id: str, H1: str, cred: Credential, hasher: VCCSYHSMHasher, kdf: NDNKDF) -> str:
+async def calculate_cred_hash(user_id: str, H1: str, cred: PasswordCredential, hasher: VCCSYHSMHasher, kdf: NDNKDF) -> str:
     """
     Calculate the expected password hash value for a credential, along this
     pseudo code :
@@ -44,7 +43,8 @@ async def calculate_cred_hash(user_id: str, H1: str, cred: Credential, hasher: V
     """
     # Lock down key usage & credential to auth
     T1 = b''
-    for this in ['A', user_id, cred.credential_id, unhexlify(H1)]:
+    _components: List[Union[str, bytes]] = ['A', user_id, cred.credential_id, unhexlify(H1)]
+    for this in _components:
         # Turn strings into bytes
         if isinstance(this, str):
             _bthis = bytes(this, 'ascii')

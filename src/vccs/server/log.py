@@ -56,6 +56,7 @@ def audit_log(msg: str) -> None:
     # Find calling function
     frame, depth = logging.currentframe(), 2
     while frame.f_code.co_filename == logging.__file__:
+        assert frame.f_back  # please mypy
         frame = frame.f_back
         depth += 1
 
