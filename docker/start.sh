@@ -10,7 +10,7 @@ eduid_name=${eduid_name-'eduid-vccs'}
 base_dir=${base_dir-"/opt/eduid/${eduid_name}"}
 # These *can* be set from Puppet, but are less expected to...
 log_dir=${log_dir-'/var/log/eduid'}
-run=${run-'/opt/eduid/bin/vccs_authbackend'}
+run=${run-'/opt/eduid/VCCS2/src/vccs/server/run.py'}
 yhsm_device=${yhsm_device-'/dev/ttyACM0'}
 
 chown -R eduid: "${log_dir}" "${yhsm_device}"
