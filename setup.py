@@ -4,7 +4,7 @@ import os
 from pathlib import PurePath
 from typing import List
 
-from setuptools import setup
+from setuptools import find_packages, setup
 
 here = PurePath(__file__)
 README = open(here.with_name('README')).read()
@@ -38,6 +38,7 @@ setup(name='vccs_auth',
       author='Fredrik Thulin',
       author_email='fredrik@thulin.net',
       license='BSD',
+      packages=find_packages('src'),
       package_dir = {'': 'src'},
       zip_safe=False,
       install_requires=install_requires,
