@@ -59,4 +59,5 @@ setup(name='vccs_auth',
       extras_require={
           'testing': testing_extras,
       },
+      python_requires='>=3.7',
       )
