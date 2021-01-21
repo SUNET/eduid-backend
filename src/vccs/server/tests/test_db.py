@@ -2,7 +2,7 @@ import unittest
 
 from bson import ObjectId
 
-from vccs.server.db import Credential
+from vccs.server.db import PasswordCredential
 
 
 class TestCredential(unittest.TestCase):
@@ -25,11 +25,11 @@ class TestCredential(unittest.TestCase):
         }
 
     def test_from_dict(self):
-        cred = Credential.from_dict(self.data)
+        cred = PasswordCredential.from_dict(self.data)
         assert cred.key_handle == 8192
 
     def test_to_dict_from_dict(self):
-        cred1 = Credential.from_dict(self.data)
-        cred2 = Credential.from_dict(cred1.to_dict())
+        cred1 = PasswordCredential.from_dict(self.data)
+        cred2 = PasswordCredential.from_dict(cred1.to_dict())
         assert cred1.to_dict() == cred2.to_dict()
         assert cred2.to_dict() == self.data
