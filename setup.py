@@ -23,8 +23,22 @@ def load_requirements(path: PurePath) -> List[str]:
             res += [line]
     return res
 
+def fix_pyhsm(pkgs: List[str]) -> List[str]:
+    """ Replace hack to install pyhsm from SUNET with the real package-name,
+    to avoid this error:
+
+    python setup.py sdist bdist_wheel --universal
+    ['eduid-userdb>=0.9.1,==0.9.*', 'fastapi', 'git+https://github.com/SUNET/python-pyhsm@ft-python3-support', ...]
+    error in vccs_auth setup command: 'install_requires' must be a string or list of strings containing valid
+    project/version requirement specifiers; Parse error at "'+https:/'": Expected stringEnd
+    """
+    return ['pyhsm' if 'ft-python3-support' in x else x for x in pkgs]
+
 install_requires = load_requirements(here.with_name('requirements.txt'))
 testing_extras = load_requirements(here.with_name('test_requirements.txt'))
+
+install_requires = fix_pyhsm(install_requires)
+testing_extras = fix_pyhsm(testing_extras)
 
 print(install_requires)
 setup(name='vccs_auth',
