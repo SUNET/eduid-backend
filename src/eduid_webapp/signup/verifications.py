@@ -33,6 +33,7 @@
 
 import time
 from datetime import datetime
+from typing import Tuple
 from uuid import uuid4
 
 import requests
@@ -49,7 +50,7 @@ from eduid_webapp.signup.app import current_signup_app as current_app
 from eduid_webapp.signup.helpers import generate_eppn
 
 
-def verify_recaptcha(secret_key, captcha_response, user_ip, retries=3):
+def verify_recaptcha(secret_key: str, captcha_response: str, user_ip: str, retries: int = 3) -> bool:
     """
     Verify the recaptcha response received from the client
     against the recaptcha API.
@@ -59,13 +60,7 @@ def verify_recaptcha(secret_key, captcha_response, user_ip, retries=3):
     :param user_ip: User ip address
     :param retries: Number of times to retry sending recaptcha response
 
-    :type secret_key: str
-    :type captcha_response: str
-    :type user_ip: str
-    :type retries: int
-
     :return: True|False
-    :rtype: bool
     """
     url = 'https://www.google.com/recaptcha/api/siteverify'
     params = {'secret': secret_key, 'response': captcha_response, 'remoteip': user_ip}
@@ -93,7 +88,7 @@ def verify_recaptcha(secret_key, captcha_response, user_ip, retries=3):
     return False
 
 
-def generate_verification_link():
+def generate_verification_link() -> Tuple[str, str]:
     """
     Generate a verification code and build a verification link with it.
 
