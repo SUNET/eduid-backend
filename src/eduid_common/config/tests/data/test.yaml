@@ -1,0 +1,13 @@
+---
+test:
+  common:
+    debug: True
+    foo: 'bar'
+
+  app_one:
+    app_name: 'test_app_name'
+    number: '9'
+
+  app_two:
+    number: '10'
+    foo: 'kaka'

@@ -43,6 +43,7 @@ from dataclasses import dataclass, field, fields
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Type, TypeVar
 
 import yaml
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
@@ -92,6 +93,11 @@ class CookieConfig(object):
     httponly: bool = True
     samesite: Optional[str] = None
     max_age_seconds: Optional[int] = None  # None means this is a session cookie
+
+
+class RootConfig(BaseModel):
+    app_name: str
+    debug: bool = False
 
 
 @dataclass
