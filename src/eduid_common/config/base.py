@@ -348,14 +348,14 @@ class BaseConfig(CommonConfig):
         from eduid_common.config.parsers.etcd import EtcdConfigParser
 
         common_namespace = os.environ.get('EDUID_CONFIG_COMMON_NS', f'/eduid/{ns}/common/')
-        common_parser = EtcdConfigParser(common_namespace)
-        common_config = common_parser.read_configuration(silent=True)
+        common_parser = EtcdConfigParser(common_namespace, silent=True)
+        common_config = common_parser.read_configuration()
         config.update(common_config)
 
         namespace = os.environ.get('EDUID_CONFIG_NS', f'/eduid/{ns}/{app_name}/')
-        parser = EtcdConfigParser(namespace)
+        parser = EtcdConfigParser(namespace, silent=True)
         # Load optional app specific settings
-        app_config = parser.read_configuration(silent=True)
+        app_config = parser.read_configuration()
         config.update(app_config)
 
         # Load optional local settings
