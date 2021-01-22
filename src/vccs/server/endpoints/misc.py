@@ -9,8 +9,9 @@ misc_router = APIRouter()
 
 @unique
 class Status(str, Enum):
-    OK: str = 'OK'
-    FAIL: str = 'FAIL'
+    # STATUS_x_ is less ambiguous when pattern matching than just 'x'
+    OK: str = 'STATUS_OK_'
+    FAIL: str = 'STATUS_FAIL_'
 
 
 class StatusResponse(BaseModel):
@@ -19,7 +20,7 @@ class StatusResponse(BaseModel):
     version: int = 1
 
 
-@misc_router.get("/status", response_model=StatusResponse)
+@misc_router.get("/status/healthy", response_model=StatusResponse)
 async def status(request: Request) -> StatusResponse:
     _test_keyhandle = request.app.state.config.add_creds_password_key_handle
     res = StatusResponse(status=Status.OK)
