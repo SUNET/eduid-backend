@@ -3,8 +3,7 @@
 import os
 import unittest
 
-from eduid_common.config.base import BaseConfig
-from eduid_common.config.parsers import init_config
+from eduid_common.config.parsers import _choose_parser
 from eduid_common.config.parsers.etcd import EtcdConfigParser
 
 __author__ = 'lundberg'
@@ -18,11 +17,11 @@ class TestInitConfig(unittest.TestCase):
 
     def test_EtcdConfigParser(self):
         os.environ['EDUID_CONFIG_NS'] = '/test/ns/'
-        parser = init_config(typ=BaseConfig, ns='test', app_name='app', return_parser=True)
+        parser = _choose_parser(app_name='app', ns='test')
         self.assertIsInstance(parser, EtcdConfigParser)
 
     def test_YamlConfigParser(self):
         os.environ['EDUID_CONFIG_NS'] = '/test/ns/'
         os.environ['EDUID_CONFIG_YAML'] = '/config.yaml'
-        parser = init_config(typ=BaseConfig, ns='test', app_name='app', return_parser=True)
+        parser = _choose_parser(app_name='app', ns='test')
         self.assertIsInstance(parser, YamlConfigParser)
