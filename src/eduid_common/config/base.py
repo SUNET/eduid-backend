@@ -98,6 +98,7 @@ class CookieConfig(object):
 class RootConfig(BaseModel):
     app_name: str
     debug: bool = False
+    testing: bool = False
 
 
 @dataclass

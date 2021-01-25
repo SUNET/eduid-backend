@@ -12,10 +12,7 @@ from eduid_common.config.parsers.exceptions import ParserException
 
 
 def load_config(
-    typ: Type[TBaseConfigSubclass],
-    ns: str,
-    app_name: str,
-    test_config: Optional[Mapping[str, Any]] = None,
+    typ: Type[TBaseConfigSubclass], ns: str, app_name: str, test_config: Optional[Mapping[str, Any]] = None,
 ) -> TBaseConfigSubclass:
     """ Figure out where to load configuration from, and do it. """
     parser = _choose_parser(app_name, ns)

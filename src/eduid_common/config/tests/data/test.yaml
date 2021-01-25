@@ -12,8 +12,21 @@ test:
     number: '10'
     foo: 'kaka'
 
-  app_three:
+  test_interpolation:
     number: 3
     var_test: 'world'
     foo: 'hi ${var_test}'
+
+  test_missing_value:
+    foo: 'bar'
+
+  test_wrong_type:
+    foo: 'bar'
+    number: 0xz
+
+  test_unknown_data:
+    foo: 'bar'
+    number: 0xff
+    sanity: 'should not be rejected'
+
 
