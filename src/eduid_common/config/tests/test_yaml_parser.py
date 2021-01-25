@@ -38,3 +38,12 @@ class TestInitConfig(unittest.TestCase):
         assert config_two.foo == 'kaka'
         assert config_two.number == 10
         assert config_two.only_default == 19
+
+    def test_YamlConfig_interpolation(self):
+        os.environ['EDUID_CONFIG_NS'] = '/test/'
+        os.environ['EDUID_CONFIG_YAML'] = str(self.data_dir / 'test.yaml')
+
+        config = load_config(typ=TestConfig, ns='test', app_name='app_three')
+        assert config.number == 3
+        assert config.foo == 'hi world'
+

@@ -11,3 +11,9 @@ test:
   app_two:
     number: '10'
     foo: 'kaka'
+
+  app_three:
+    number: 3
+    var_test: 'world'
+    foo: 'hi ${var_test}'
+
