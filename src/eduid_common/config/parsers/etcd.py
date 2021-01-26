@@ -22,7 +22,7 @@ class EtcdConfigParser(BaseConfigParser):
         :param namespace: etcd namespace to read or write, ex. /eduid/webapp/common/
         :param host: Optional etcd host
         :param port: Optional etcd port
-        :param silent: set to `True` if you want silent failure for missing keys.
+        :param silent: set to `True` if you want to silently ignore etcd errors (such as EtcdConnectionFailed).
        """
         self.ns = namespace.lower()
         if not self.ns.startswith('/'):
