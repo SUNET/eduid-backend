@@ -1,13 +1,14 @@
 from setuptools import setup, find_packages
 
 
-version = '0.23.2'
+version = '0.24.0'
 
 
 requires = [
     'six >= 1.11.0',
     'setuptools >= 2.2',
     'eduid-userdb >= 0.8.0',
+    'pydantic',
 ]
 
 # Flavours

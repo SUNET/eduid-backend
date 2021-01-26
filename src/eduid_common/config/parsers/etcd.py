@@ -5,29 +5,25 @@ from __future__ import absolute_import
 import json
 import logging
 import os
+from typing import Any, Mapping, Optional
 
 import etcd
 
+from eduid_common.config.parsers.base import BaseConfigParser
 from eduid_common.config.parsers.decorators import decrypt, interpolate
 from eduid_common.config.parsers.exceptions import ParserException
 
 __author__ = 'lundberg'
 
 
-class EtcdConfigParser(object):
-    def __init__(self, namespace, host=None, port=None):
+class EtcdConfigParser(BaseConfigParser):
+    def __init__(self, namespace: str, host: Optional[str] = None, port: Optional[int] = None, silent: bool = False):
         """
         :param namespace: etcd namespace to read or write, ex. /eduid/webapp/common/
         :param host: Optional etcd host
         :param port: Optional etcd port
-
-        :type host: str | unicode
-        :type namespace: str | unicode
-        :type port: int
-
-        :return: EtcdConfigParser object
-        :rtype: EtcdConfigParser
-        """
+        :param silent: set to `True` if you want to silently ignore etcd errors (such as EtcdConnectionFailed).
+       """
         self.ns = namespace.lower()
         if not self.ns.startswith('/'):
             raise ParserException('Namespace {!s} has to start and end with a \"/\" character'.format(namespace))
@@ -39,6 +35,9 @@ class EtcdConfigParser(object):
             host = os.environ.get('ETCD_HOST', '127.0.0.1')
         if not port:
             port = int(os.environ.get('ETCD_PORT', '2379'))
+
+        self.silent = silent
+
         self.client = etcd.Client(host, port)
 
     def _fq_key(self, key):
@@ -53,12 +52,9 @@ class EtcdConfigParser(object):
 
     @interpolate
     @decrypt
-    def read_configuration(self, silent=False):
+    def read_configuration(self) -> Mapping[str, Any]:
         """
-        :param silent: set to `True` if you want silent failure for missing keys.
-        :type silent: bool
         :return: Configuration dict
-        :rtype: dict
 
         Recurse over keys in a given namespace and create a dict from the key-value pairs.
 
@@ -82,9 +78,6 @@ class EtcdConfigParser(object):
             },
             'BASIC_AUTH': 'user:secret@localhost'
         }
-
-        :return: Config dict
-        :rtype: dict
         """
         config = {}
         try:
@@ -95,26 +88,24 @@ class EtcdConfigParser(object):
                 config[key] = json.loads(child.value)
         except (etcd.EtcdKeyNotFound, etcd.EtcdConnectionFailed) as e:
             logging.info(e)
-            if not silent:
+            if not self.silent:
                 raise e
         return config
 
-    def get(self, key):
+    def get(self, key: str) -> Any:
         """
         :param key: Key to look up
-        :type key: str | unicode
 
         :return: JSON loaded value
-        :rtype: str | unicode | int | float | list | dict
         """
         value = self.client.read(self._fq_key(key)).value
         return json.loads(value)
 
-    def set(self, key, value):
+    def set(self, key: str, value: Any) -> None:
         json_value = json.dumps(value)
         self.client.write(self._fq_key(key), json_value)
 
-    def write_configuration(self, config):
+    def write_configuration(self, config: Mapping[str, Any]) -> None:
         """
         Transforms a dict using the namespace to key-value pairs that get written to
         etcd in the set namespace.
@@ -142,26 +133,25 @@ class EtcdConfigParser(object):
         /eduid/webapp/common/saml_config -> "{xmlsec_binary': '/usr/bin/xmlsec1'}"
 
 
-        :param config: Config dict
-        :type config: dict
+        :param this_config: Config dict
+        :type this_config: dict
         """
         # Remove first and last slash and create key hierarchy
         ns_keys = self.ns.lstrip('/').rstrip('/').split('/')
+        this_config = dict(config)  # do not modify callers data
         # Traverse the dict using the list of keys from the namespace
         try:
             for key in ns_keys:
-                config = config[key]
+                this_config = this_config[key]
         except KeyError as e:
-            raise ParserException('Namespace does not match configuration structure: {!s}'.format(e))
+            raise ParserException(f'Namespace does not match configuration structure: {e}')
         # Write keys and values to etcd
-        for key, value in config.items():
+        for key, value in this_config.items():
             self.set(key, value)
 
-    def write_configuration_from_yaml_file(self, file_path):
+    def write_configuration_from_yaml_file(self, file_path: str) -> None:
         """
         :param file_path: Full path to a file with yaml content
-
-        :type file_path: str | unicode
         """
         # import here since most users of this module do not write config to files and
         # thus might not need a yaml dependency

@@ -21,3 +21,4 @@ cookies-samesite-compat==0.0.*
 isort==5.6.4
 black==19.10b0
 mypy
+pydantic

@@ -17,10 +17,10 @@ class TestTypedFlaskConfig(unittest.TestCase):
         self.common_ns = '/eduid/webapp/common/'
         self.authn_ns = '/eduid/webapp/authn/'
         self.common_parser = EtcdConfigParser(
-            namespace=self.common_ns, host=self.etcd_instance.host, port=self.etcd_instance.port
+            namespace=self.common_ns, host=self.etcd_instance.host, port=self.etcd_instance.port, silent=True,
         )
         self.authn_parser = EtcdConfigParser(
-            namespace=self.authn_ns, host=self.etcd_instance.host, port=self.etcd_instance.port
+            namespace=self.authn_ns, host=self.etcd_instance.host, port=self.etcd_instance.port, silent=True,
         )
 
         self.common_config = {'eduid': {'webapp': {'common': {'devel_mode': True, 'preferred_url_scheme': 'https'}}}}
@@ -39,24 +39,24 @@ class TestTypedFlaskConfig(unittest.TestCase):
         self.etcd_instance.clear('/eduid')
 
     def test_base_default_setting(self):
-        etcd_config = self.common_parser.read_configuration(silent=True)
-        etcd_config.update(self.authn_parser.read_configuration(silent=True))
+        etcd_config = self.common_parser.read_configuration()
+        etcd_config.update(self.authn_parser.read_configuration())
         etcd_config = {key.lower(): value for key, value in etcd_config.items()}
         config = FlaskConfig(**etcd_config)
         self.assertEqual(config.log_backup_count, 10)
         self.assertEqual(config['log_backup_count'], 10)
 
     def test_flask_default_setting(self):
-        etcd_config = self.common_parser.read_configuration(silent=True)
-        etcd_config.update(self.authn_parser.read_configuration(silent=True))
+        etcd_config = self.common_parser.read_configuration()
+        etcd_config.update(self.authn_parser.read_configuration())
         etcd_config = {key.lower(): value for key, value in etcd_config.items()}
         config = FlaskConfig(**etcd_config)
         self.assertEqual(config.session_refresh_each_request, True)
         self.assertEqual(config['session_refresh_each_request'], True)
 
     def test_override_setting(self):
-        etcd_config = self.common_parser.read_configuration(silent=True)
-        etcd_config.update(self.authn_parser.read_configuration(silent=True))
+        etcd_config = self.common_parser.read_configuration()
+        etcd_config.update(self.authn_parser.read_configuration())
         etcd_config = {key.lower(): value for key, value in etcd_config.items()}
         config = FlaskConfig(**etcd_config)
         self.assertEqual(config.devel_mode, True)
@@ -68,24 +68,24 @@ class TestTypedFlaskConfig(unittest.TestCase):
         self.assertEqual(config['log_backup_count'], 100)
 
     def test_common_etcd_setting(self):
-        etcd_config = self.common_parser.read_configuration(silent=True)
-        etcd_config.update(self.authn_parser.read_configuration(silent=True))
+        etcd_config = self.common_parser.read_configuration()
+        etcd_config.update(self.authn_parser.read_configuration())
         etcd_config = {key.lower(): value for key, value in etcd_config.items()}
         config = FlaskConfig(**etcd_config)
         self.assertEqual(config.preferred_url_scheme, 'https')
         self.assertEqual(config['preferred_url_scheme'], 'https')
 
     def test_specific_etcd_setting(self):
-        etcd_config = self.common_parser.read_configuration(silent=True)
-        etcd_config.update(self.authn_parser.read_configuration(silent=True))
+        etcd_config = self.common_parser.read_configuration()
+        etcd_config.update(self.authn_parser.read_configuration())
         etcd_config = {key.lower(): value for key, value in etcd_config.items()}
         config = FlaskConfig(**etcd_config)
         self.assertEqual(config.application_root, '/services/authn')
         self.assertEqual(config['application_root'], '/services/authn')
 
     def test_filter_config(self):
-        etcd_config = self.common_parser.read_configuration(silent=True)
-        etcd_config.update(self.authn_parser.read_configuration(silent=True))
+        etcd_config = self.common_parser.read_configuration()
+        etcd_config.update(self.authn_parser.read_configuration())
         etcd_config['not_a_valid_setting'] = True
         filtered_config = FlaskConfig.filter_config(etcd_config)
         config = FlaskConfig(**filtered_config)
