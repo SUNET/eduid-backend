@@ -19,14 +19,13 @@ def get_worker_config(name: str, config_class: Type[CommonConfig] = BaseConfig) 
     :param name: Worker name
 
     :return: Configuration
-    :rtype: dict
     """
     cfg: Dict[str, Any] = {}
     app_etcd_namespace = os.environ.get('EDUID_CONFIG_NS', '/eduid/worker/{}/'.format(name))
-    common_parser = EtcdConfigParser('/eduid/worker/common/')
-    app_parser = EtcdConfigParser(app_etcd_namespace)
-    cfg.update(common_parser.read_configuration(silent=True))
-    cfg.update(app_parser.read_configuration(silent=True))
+    common_parser = EtcdConfigParser('/eduid/worker/common/', silent=True)
+    app_parser = EtcdConfigParser(app_etcd_namespace, silent=True)
+    cfg.update(common_parser.read_configuration())
+    cfg.update(app_parser.read_configuration())
     config = config_class(**cfg)
     if config.celery.broker_url == '':
         raise BadConfiguration('broker_url for celery is missing')
