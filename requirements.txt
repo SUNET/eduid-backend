@@ -9,4 +9,5 @@ py-bcrypt>=0.4
 pymongo>=3.6
 # python-multipart is needed to parse form data
 python-multipart
+PyYAML>=3.11
 uvicorn
