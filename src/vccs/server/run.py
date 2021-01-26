@@ -1,4 +1,7 @@
 from asyncio import Lock
+from typing import Any, Mapping, Optional
+
+from binascii import unhexlify
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
@@ -17,10 +20,10 @@ from vccs.server.log import InterceptHandler, init_logging
 
 
 class VCCS_API(FastAPI):
-    def __init__(self):
+    def __init__(self, test_config: Optional[Mapping[str, Any]] = None):
         super().__init__()
 
-        self.state.config = init_config()
+        self.state.config = init_config(ns='eduid/api', app_name='vccs', test_config=test_config)
 
         self.logger = init_logging()
 
@@ -29,7 +32,7 @@ class VCCS_API(FastAPI):
             name=self.state.config.yhsm_device, lock=yhsm_lock, debug=self.state.config.yhsm_debug
         )
         if self.state.config.yhsm_unlock_password:
-            self.state.hasher._yhsm.unlock(self.state.config.yhsm_unlock_password)
+            self.state.hasher._yhsm.unlock(unhexlify(self.state.config.yhsm_unlock_password))
 
         self.state.kdf = ndnkdf.NDNKDF()
 

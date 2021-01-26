@@ -1,0 +1,7 @@
+---
+eduid:
+  api:
+    vccs:
+      add_creds_password_key_handle: 1
+      yhsm_unlock_password: 'badabada'
+      mongo_uri: 'mongodb://mongodb.eduid.docker'

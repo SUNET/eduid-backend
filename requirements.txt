@@ -1,4 +1,5 @@
 eduid-userdb>=0.9.1,==0.9.*
+eduid-common>=0.24.0,==0.24.*
 fastapi
 git+https://github.com/SUNET/python-pyhsm@ft-python3-support
 #pyhsm>=1.2.0
