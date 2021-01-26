@@ -1,6 +1,7 @@
 builders:
   - script
 upstream:
+  - eduid-common
   - eduid-userdb
   - python-ndnkdf
 triggers:
