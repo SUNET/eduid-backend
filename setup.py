@@ -18,7 +18,7 @@ webapp_requires = [
     'redis >= 2.10.5',
     'pwgen == 0.4',
     'vccs_client >= 0.4.5',
-    'PyNaCl >= 1.0.1',
+    'PyNaCl >= 1.4.0',
     'python-etcd >= 0.4.5',
     'PyYAML >= 3.11',
     'bleach>=3.1.3',
@@ -38,7 +38,7 @@ idp_requires = [
     'pysaml2 >= 4.9.0',
     'redis >= 2.10.5',
     'vccs_client >= 0.4.2',
-    'PyNaCl >= 1.0.1',
+    'PyNaCl >= 1.4.0',
     'PyYAML >= 3.11',
     'statsd==3.2.1',
     'bleach>=3.1.3',
@@ -50,7 +50,7 @@ idp_extras = idp_requires + []
 
 worker_requires = [
     'python-etcd >= 0.4.5',
-    'PyNaCl >= 1.0.1',
+    'PyNaCl >= 1.4.0',
     'PyYAML >= 3.11',
 ]
 worker_extras = worker_requires + []
