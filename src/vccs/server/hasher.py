@@ -35,14 +35,26 @@
 import hmac
 import os
 import stat
+from abc import ABC
+from typing import Any, Dict, Mapping
+
+from binascii import unhexlify
 from hashlib import sha1
+
+import yaml
 
 import pyhsm
 
 
-class VCCSHasher:
+class VCCSHasher(ABC):
     def __init__(self, lock):
         self.lock = lock
+
+    def unlock(self, password: str) -> None:
+        raise NotImplementedError('Subclass should implement unlock')
+
+    def info(self) -> Any:
+        raise NotImplementedError('Subclass should implement info')
 
     def hmac_sha1(self, _key_handle, _data):
         raise NotImplementedError('Subclass should implement safe_hmac_sha1')
@@ -67,6 +79,13 @@ class VCCSYHSMHasher(VCCSHasher):
     def __init__(self, device, lock, debug=False):
         VCCSHasher.__init__(self, lock)
         self._yhsm = pyhsm.base.YHSM(device, debug)
+
+    def unlock(self, password: str) -> None:
+        """ Unlock YubiHSM on startup. The password is supposed to be hex encoded. """
+        self._yhsm.unlock(unhexlify(password))
+
+    def info(self) -> Any:
+        return self._yhsm.info()
 
     async def hmac_sha1(self, key_handle: int, data: bytes) -> bytes:
         """
@@ -111,22 +130,31 @@ class VCCSSoftHasher(VCCSHasher):
     (except perhaps separating HMAC keys from credential store).
     """
 
-    def __init__(self, keys, lock, debug=False):
+    def __init__(self, keys: Mapping[int, str], lock, debug=False):
         VCCSHasher.__init__(self, lock)
-        self.keys = keys
         self.debug = debug
+        # Covert keys from strings to bytes when loading
+        self.keys: Dict[int, bytes] = {}
+        for k,v in keys.items():
+            self.keys[k] = unhexlify(v)
 
-    def hmac_sha1(self, key_handle, data):
+    def unlock(self, password: str) -> None:
+        return None
+
+    def info(self) -> Any:
+        return f'key handles loaded: {list(self.keys.keys())}'
+
+    async def hmac_sha1(self, key_handle, data):
         """
         Perform HMAC-SHA-1 operation using YubiHSM.
 
         Acquires a lock first if a lock instance was given at creation time.
         """
-        self.lock_acquire()
+        await self.lock_acquire()
         try:
             return self.unsafe_hmac_sha1(key_handle, data)
         finally:
-            self.lock_release()
+            await self.lock_release()
 
     def unsafe_hmac_sha1(self, key_handle, data):
         if key_handle is None:
@@ -139,7 +167,7 @@ class VCCSSoftHasher(VCCSHasher):
         self.keys['TEMP_KEY'] = pt[:-4]  # skip the last four bytes which are permission bits
         return True
 
-    def safe_random(self, byte_count):
+    async def safe_random(self, byte_count):
         """
         Generate random bytes from urandom.
         """
@@ -175,10 +203,15 @@ def hasher_from_string(name: str, lock=None, debug=False):
     """
     if not lock:
         lock = NoOpLock()
+    if name.startswith('soft_hasher:'):
+        fn = name.split(':')[1]
+        with open(fn) as fd:
+            data = yaml.safe_load(fd)
+            return VCCSSoftHasher(keys=data['key_handles'], lock=lock)
     try:
         mode = os.stat(name).st_mode
         if stat.S_ISCHR(mode):
             return VCCSYHSMHasher(name, lock, debug)
-        raise ValueError("Not a character device : {!r}".format(name))
+        raise ValueError(f'Not a character device : {name}')
     except OSError:
-        raise ValueError("Unknown hasher {!r}".format(name))
+        raise ValueError(f'Unknown hasher {repr(name)}')

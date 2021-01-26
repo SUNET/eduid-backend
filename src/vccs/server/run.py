@@ -32,14 +32,14 @@ class VCCS_API(FastAPI):
             name=self.state.config.yhsm_device, lock=yhsm_lock, debug=self.state.config.yhsm_debug
         )
         if self.state.config.yhsm_unlock_password:
-            self.state.hasher._yhsm.unlock(unhexlify(self.state.config.yhsm_unlock_password))
+            self.state.hasher.unlock(unhexlify(self.state.config.yhsm_unlock_password))
 
         self.state.kdf = ndnkdf.NDNKDF()
 
         self.state.credstore = CredentialDB(db_uri=self.state.config.mongo_uri)
 
-        self.logger.info(f'Starting, YHSM {self.state.hasher}')
-        self.logger.info(f'YHSM status: {self.state.hasher._yhsm.info()}')
+        self.logger.info(f'Starting, hasher {self.state.hasher}')
+        self.logger.info(f'hasher info: {self.state.hasher.info()}')
 
 
 app = VCCS_API()

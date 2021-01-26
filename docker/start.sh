@@ -15,7 +15,7 @@ yhsm_device=${yhsm_device-'/dev/ttyACM0'}
 
 chown -R eduid: "${log_dir}" "${yhsm_device}"
 
-if [ -x /opt/eduid/src/vccs/server/run.py ]; then
+if [ -r /opt/eduid/src/vccs/server/run.py ]; then
     run=/opt/eduid/src/vccs/server/run.py
 fi
 # nice to have in docker run output, to check what
