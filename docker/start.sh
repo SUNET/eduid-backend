@@ -13,7 +13,8 @@ log_dir=${log_dir-'/var/log/eduid'}
 run=${run-'/opt/eduid/VCCS2/src/vccs/server/run.py'}
 yhsm_device=${yhsm_device-'/dev/ttyACM0'}
 
-chown -R eduid: "${log_dir}" "${yhsm_device}"
+chown -R eduid: "${log_dir}"
+test -c "${yhsm_device}" && chown -R eduid: "${yhsm_device}"
 
 if [ -r /opt/eduid/src/vccs/server/run.py ]; then
     run=/opt/eduid/src/vccs/server/run.py
