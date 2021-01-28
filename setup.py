@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 
-version = '0.24.1'
+version = '0.25.0'
 
 
 requires = [
@@ -16,7 +16,7 @@ webapp_requires = [
     'Flask>=1.1,<1.2',
     'pysaml2 >= 6.5.0,==6.*',  # version sync with IdP to avoid pip catastrophes
     'redis >= 2.10.5',
-    'pwgen == 0.4',
+    'pwgen >= 0.8.2,==0.8.*',
     'vccs_client >= 0.4.5',
     'PyNaCl >= 1.4.0',
     'python-etcd >= 0.4.5',

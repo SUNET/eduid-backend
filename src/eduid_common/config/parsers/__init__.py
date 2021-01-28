@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from typing import Any, Mapping, Optional, Type
 
-from eduid_common.config.base import TBaseConfigSubclass
+from eduid_common.config.base import TRootConfigSubclass
 from eduid_common.config.parsers.base import BaseConfigParser
 
 __author__ = 'ft'
@@ -12,8 +12,8 @@ from eduid_common.config.parsers.exceptions import ParserException
 
 
 def load_config(
-    typ: Type[TBaseConfigSubclass], ns: str, app_name: str, test_config: Optional[Mapping[str, Any]] = None,
-) -> TBaseConfigSubclass:
+    typ: Type[TRootConfigSubclass], ns: str, app_name: str, test_config: Optional[Mapping[str, Any]] = None,
+) -> TRootConfigSubclass:
     """ Figure out where to load configuration from, and do it. """
     parser = _choose_parser(app_name, ns)
 

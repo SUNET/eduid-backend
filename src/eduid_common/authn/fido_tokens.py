@@ -31,9 +31,10 @@
 #
 import base64
 import json
+import logging
 import pprint
 import warnings
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Mapping, Optional, Union
 
 from fido2 import cbor
 from fido2.client import ClientData
@@ -46,7 +47,11 @@ from u2flib_server.u2f import begin_authentication, complete_authentication
 from eduid_userdb.credentials import U2F, Webauthn
 from eduid_userdb.user import User
 
+from eduid_common.config.base import WebauthnConfigMixin, WebauthnConfigMixin2
 from eduid_common.session import session
+
+logger = logging.getLogger(__name__)
+
 
 RESULT_CREDENTIAL_KEY_NAME = 'cred_key'
 
@@ -168,9 +173,9 @@ def verify_u2f(user: User, challenge: bytes, token_response: str, u2f_valid_face
     return None
 
 
-def verify_webauthn(user, request_dict: dict, session_prefix: str) -> dict:
+def verify_webauthn(user: User, request_dict: dict, session_prefix: str, rp_id: str) -> Dict[str, Any]:
     """
-    verify received Webauthn data against the user's credentials
+    Verify received Webauthn data against the user's credentials.
     """
     req = {}
     for this in ['credentialId', 'clientDataJSON', 'authenticatorData', 'signature']:
@@ -192,7 +197,6 @@ def verify_webauthn(user, request_dict: dict, session_prefix: str) -> dict:
     credentials = get_user_credentials(user)
     fido2state = json.loads(session[session_prefix + '.webauthn.state'])
 
-    rp_id = current_app.config.fido2_rp_id  # type: ignore
     fido2rp = RelyingParty(rp_id, 'eduID')
     fido2server = _get_fido2server(credentials, fido2rp)
     matching_credentials = [

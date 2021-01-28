@@ -68,7 +68,7 @@ def start_verification():
     user = current_app.central_userdb.get_user_by_eppn('hubba-bubba')
     data = json.loads(request.query_string[17:])
     try:
-        result = verify_webauthn(user, data, 'testing')
+        result = verify_webauthn(user, data, 'testing', current_app.config.fido2_rp_id)
     except VerificationProblem:
         result = {'success': False, 'message': 'mfa.verification-problem'}
     return json.dumps(result)
