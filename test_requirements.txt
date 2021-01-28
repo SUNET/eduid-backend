@@ -5,4 +5,3 @@ pytest-cov>=2.7.1
 isort
 black
 mypy
-pydantic
