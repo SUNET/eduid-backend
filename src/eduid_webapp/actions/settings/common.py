@@ -58,5 +58,5 @@ class ActionsConfig(EduIDBaseAppConfig, WebauthnConfigMixin2):
     eidas_url: str = ''
     mfa_authn_idp: str = ''
     # The plugins for pre-authentication actions that need to be loaded
-    action_plugins: list = Field(default_factory=lambda: ["tou", "mfa"])
+    action_plugins: list = Field(default_factory=lambda: ['tou', 'mfa'])
     tou_version: str = '2017-v6'

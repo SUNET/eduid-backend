@@ -37,7 +37,8 @@ from eduid_common.authn import fido_tokens
 from eduid_common.session import session
 
 from eduid_webapp.actions.action_abc import ActionPlugin
-from eduid_webapp.actions.app import ActionsApp, current_actions_app as current_app
+from eduid_webapp.actions.app import ActionsApp
+from eduid_webapp.actions.app import current_actions_app as current_app
 from eduid_webapp.actions.helpers import ActionsMsg
 
 __author__ = 'ft'
