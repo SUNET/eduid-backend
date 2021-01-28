@@ -33,6 +33,7 @@
 
 import time
 from datetime import datetime
+from typing import Tuple
 from uuid import uuid4
 
 import requests
@@ -44,12 +45,11 @@ from eduid_userdb import MailAddress
 from eduid_userdb.logs import MailAddressProofing
 from eduid_userdb.proofing import EmailProofingElement
 from eduid_userdb.signup import SignupUser
-
 from eduid_webapp.signup.app import current_signup_app as current_app
 from eduid_webapp.signup.helpers import generate_eppn
 
 
-def verify_recaptcha(secret_key, captcha_response, user_ip, retries=3):
+def verify_recaptcha(secret_key: str, captcha_response: str, user_ip: str, retries: int = 3) -> bool:
     """
     Verify the recaptcha response received from the client
     against the recaptcha API.
@@ -59,13 +59,7 @@ def verify_recaptcha(secret_key, captcha_response, user_ip, retries=3):
     :param user_ip: User ip address
     :param retries: Number of times to retry sending recaptcha response
 
-    :type secret_key: str
-    :type captcha_response: str
-    :type user_ip: str
-    :type retries: int
-
     :return: True|False
-    :rtype: bool
     """
     url = 'https://www.google.com/recaptcha/api/siteverify'
     params = {'secret': secret_key, 'response': captcha_response, 'remoteip': user_ip}
@@ -74,11 +68,16 @@ def verify_recaptcha(secret_key, captcha_response, user_ip, retries=3):
         try:
             current_app.logger.debug('Sending the CAPTCHA response')
             verify_rs = requests.get(url, params=params, verify=True)
+            verify_rs.raise_for_status()  # raise exception status code in 400 or 500 range
             current_app.logger.debug("CAPTCHA response: {}".format(verify_rs))
-            verify_rs = verify_rs.json()
-            if verify_rs.get('success', False) is True:
+            if verify_rs.json().get('success', False) is True:
                 current_app.logger.info("Valid CAPTCHA response from " "{}".format(user_ip))
                 return True
+            current_app.logger.info(
+                "Invalid CAPTCHA response from {}: {}".format(
+                    user_ip, verify_rs.json().get('error-codes', 'Unspecified error')
+                )
+            )
         except requests.exceptions.RequestException as e:
             if not retries:
                 current_app.logger.error('Caught RequestException while ' 'sending CAPTCHA, giving up.')
@@ -86,14 +85,10 @@ def verify_recaptcha(secret_key, captcha_response, user_ip, retries=3):
             current_app.logger.warning('Caught RequestException while ' 'sending CAPTCHA, trying again.')
             current_app.logger.warning(e)
             time.sleep(0.5)
-
-    current_app.logger.info(
-        "Invalid CAPTCHA response from {}: {}".format(user_ip, verify_rs.get('error-codes', 'Unspecified error'))
-    )
     return False
 
 
-def generate_verification_link():
+def generate_verification_link() -> Tuple[str, str]:
     """
     Generate a verification code and build a verification link with it.
 
