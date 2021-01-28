@@ -134,13 +134,13 @@ class SSO(Service):
         :return: SAML response (string)
         """
         saml_attribute_settings = SAMLAttributeSettings(
-            default_eppn_scope=current_app.config.default_eppn_scope,
-            default_country=current_app.config.default_country,
-            default_country_code=current_app.config.default_country_code,
+            default_eppn_scope=current_app.conf.default_eppn_scope,
+            default_country=current_app.conf.default_country,
+            default_country_code=current_app.conf.default_country_code,
         )
         attributes = user.to_saml_attributes(saml_attribute_settings, current_app.logger)
         # Generate eduPersonTargetedID
-        if current_app.config.eduperson_targeted_id_secret_key:
+        if current_app.conf.eduperson_targeted_id_secret_key:
             sp_identifier = resp_args.get('sp_entity_id', resp_args['destination'])
             attributes["eduPersonTargetedID"] = self._get_eptid(relying_party=sp_identifier, user_eppn=user.eppn)
 
@@ -157,23 +157,23 @@ class SSO(Service):
             attributes[k] = v
         # Set digest_alg and sign_alg to a sane default value
         try:
-            resp_args['digest_alg'] = current_app.config.supported_digest_algorithms[0]
+            resp_args['digest_alg'] = current_app.conf.supported_digest_algorithms[0]
         except IndexError:
             pass
         try:
-            resp_args['sign_alg'] = current_app.config.supported_signing_algorithms[0]
+            resp_args['sign_alg'] = current_app.conf.supported_signing_algorithms[0]
         except IndexError:
             pass
         # Try to pick best signing and digest algorithms from what the SP supports
-        for digest_alg in current_app.config.supported_digest_algorithms:
+        for digest_alg in current_app.conf.supported_digest_algorithms:
             if digest_alg in ticket.saml_req.sp_digest_algs:
                 resp_args['digest_alg'] = digest_alg
                 break
-        for sign_alg in current_app.config.supported_signing_algorithms:
+        for sign_alg in current_app.conf.supported_signing_algorithms:
             if sign_alg in ticket.saml_req.sp_sign_algs:
                 resp_args['sign_alg'] = sign_alg
                 break
-        if current_app.config.debug:
+        if current_app.conf.debug:
             # Only perform expensive parse/pretty-print if debugging
             pp = pprint.PrettyPrinter()
             current_app.logger.debug(
@@ -228,15 +228,15 @@ class SSO(Service):
         :param authn_method: The URN of the authentication method used.
         :param user_id: Unique user id.
         """
-        if not current_app.config.fticks_secret_key:
+        if not current_app.conf.fticks_secret_key:
             return
         # Default format string:
         #   'F-TICKS/SWAMID/2.0#TS={ts}#RP={rp}#AP={ap}#PN={pn}#AM={am}#',
         _timestamp = time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())
         _anon_userid = hmac.new(
-            bytes(current_app.config.fticks_secret_key, 'ascii'), msg=bytes(user_id, 'ascii'), digestmod=sha256
+            bytes(current_app.conf.fticks_secret_key, 'ascii'), msg=bytes(user_id, 'ascii'), digestmod=sha256
         ).hexdigest()
-        msg = current_app.config.fticks_format_string.format(
+        msg = current_app.conf.fticks_format_string.format(
             ts=_timestamp, rp=relying_party, ap=current_app.IDP.config.entityid, pn=_anon_userid, am=authn_method,
         )
         current_app.logger.info(msg)
@@ -257,7 +257,7 @@ class SSO(Service):
         """
         _sp_user_id = f'{relying_party}-{user_eppn}'
         _anon_sp_userid = hmac.new(
-            bytes(current_app.config.eduperson_targeted_id_secret_key, 'ascii'),
+            bytes(current_app.conf.eduperson_targeted_id_secret_key, 'ascii'),
             msg=bytes(_sp_user_id, 'ascii'),
             digestmod=sha256,
         ).hexdigest()
@@ -312,7 +312,7 @@ class SSO(Service):
         # already checked with isinstance in perform_login() - we just need to convince mypy
         assert self.sso_session
 
-        if current_app.config.debug:
+        if current_app.conf.debug:
             current_app.logger.debug(f'MFA credentials logged in the ticket: {ticket.mfa_action_creds}')
             current_app.logger.debug(f'External MFA credential logged in the ticket: {ticket.mfa_action_external}')
             current_app.logger.debug(f'Credentials used in this SSO session:\n{self.sso_session.authn_credentials}')
@@ -382,7 +382,7 @@ class SSO(Service):
         _force_authn = self._should_force_authn(ticket)
 
         if self.sso_session and not _force_authn:
-            _ttl = current_app.config.sso_session_lifetime - self.sso_session.minutes_old
+            _ttl = current_app.conf.sso_session_lifetime - self.sso_session.minutes_old
             current_app.logger.info(f'{ticket.key}: proceeding sso_session={self.sso_session.public_id}, ttl={_ttl:}m')
             current_app.logger.debug(f'Continuing with Authn request {repr(ticket.saml_req.request_id)}')
             try:
@@ -454,7 +454,7 @@ class SSO(Service):
 
         :return: HTTP response
         """
-        argv = mischttp.get_default_template_arguments(current_app.config)
+        argv = mischttp.get_default_template_arguments(current_app.conf)
         argv.update(
             {
                 'action': '/verify',
@@ -586,7 +586,7 @@ def do_verify() -> WerkzeugResponse:
 def _update_ticket_samlrequest(ticket: SSOLoginData, binding: Optional[str]) -> None:
     try:
         ticket.saml_req = IdP_SAMLRequest(
-            ticket.SAMLRequest, binding or ticket.binding, current_app.IDP, logger=None, debug=current_app.config.debug
+            ticket.SAMLRequest, binding or ticket.binding, current_app.IDP, logger=None, debug=current_app.conf.debug
         )
     except (SAMLParseError, SAMLValidationError):
         current_app.logger.exception('Failed updating SAML request in SSOLoginData (ticket)')

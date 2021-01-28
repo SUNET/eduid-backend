@@ -237,7 +237,7 @@ class SLO(Service):
             req_info.message, bindings, status, sign=sign_response, issuer=issuer
         )
         # Only perform expensive parse/pretty-print if debugging
-        if current_app.config.debug:
+        if current_app.conf.debug:
             xmlstr = maybe_xml_to_string(response)
             current_app.logger.debug(f'Logout SAMLResponse :\n\n{xmlstr}\n\n')
 
@@ -260,10 +260,9 @@ class SLO(Service):
         res = mischttp.create_html_response(bindings[0], http_args)
 
         # Delete the SSO session cookie in the browser
-        _domain = current_app.config.session_cookie_domain
-        if current_app.config.sso_cookie_domain is not None:
-            _domain = current_app.config.sso_cookie_domain
         res.delete_cookie(
-            key=current_app.config.sso_cookie_name, path=current_app.config.session_cookie_path, domain=_domain,
+            key=current_app.conf.sso_cookie.key,
+            path=current_app.conf.sso_cookie.path,
+            domain=current_app.conf.sso_cookie.domain,
         )
         return res

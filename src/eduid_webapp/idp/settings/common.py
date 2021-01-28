@@ -34,14 +34,14 @@
 Configuration (file) handling for the eduID idp app.
 """
 
-from dataclasses import dataclass, field
 from typing import List, Optional
 
-from eduid_common.config.base import CookieConfig, FlaskConfig
+from pydantic import Field, validator
+
+from eduid_common.config.base import CookieConfig, EduIDBaseAppConfig
 
 
-@dataclass
-class IdPConfig(FlaskConfig):
+class IdPConfig(EduIDBaseAppConfig):
     """
     Configuration for the idp app
     """
@@ -78,7 +78,7 @@ class IdPConfig(FlaskConfig):
     verify_request_signatures: bool = False
     # Get list of usernames valid for use with the /status URL.
     # If this list is ['*'], all usernames are allowed for /status.
-    status_test_usernames: List[str] = field(default_factory=list)
+    status_test_usernames: List[str] = Field(default=[])
     # URL (string) for use in simple templating of login.html.
     signup_link: str = '#'
     # URL (string) for use in simple templating of forbidden.html.
@@ -121,18 +121,19 @@ class IdPConfig(FlaskConfig):
     # URI of the actions app.
     actions_app_uri: Optional[str] = 'http://actions.example.com/'
     # The plugins for pre-authentication actions that need to be loaded
-    action_plugins: List[str] = field(default_factory=list)
+    action_plugins: List[str] = Field(default=[])
     # The current version of the terms of use agreement.
     tou_version: str = 'version1'
-    # The interval which a user needs to reaccept an already accepted ToU (in seconds)
+    # The interval which a user needs to re-accept an already accepted ToU (in seconds)
     tou_reaccept_interval: int = 94608000
     # Name of cookie used to persist session information in the users browser.
     shared_session_cookie_name: str = 'sessid'
-    # Cookie for IdP-specific session allowing users to SSO
-    sso_cookie: CookieConfig = field(default_factory=lambda: CookieConfig(key='idpauthn'))
     # Legacy parameters for the SSO cookie. Keep in sync with sso_cookie above until removed!
     sso_cookie_name: str = 'idpauthn'
     sso_cookie_domain: Optional[str] = None
+    # Cookie for IdP-specific session allowing users to SSO.
+    # Must be specified after sso_cookie_name and sso_cookie_domain while those are present.
+    sso_cookie: CookieConfig = Field(default_factory=lambda: CookieConfig(key='idpauthn'))
     session_cookie_timeout: int = 60  # in minutes
     preferred_url_scheme: str = 'http'
     # TTL for shared sessions.
@@ -142,18 +143,20 @@ class IdPConfig(FlaskConfig):
     )
     privacy_link: str = "http://html.eduid.docker/privacy.html"
     # List in order of preference
-    supported_digest_algorithms: List[str] = field(default_factory=lambda: ['http://www.w3.org/2001/04/xmlenc#sha256'])
+    supported_digest_algorithms: List[str] = Field(default=['http://www.w3.org/2001/04/xmlenc#sha256'])
     # List in order of preference
-    supported_signing_algorithms: List[str] = field(
-        default_factory=lambda: ['http://www.w3.org/2001/04/xmldsig-more#rsa-sha256']
-    )
+    supported_signing_algorithms: List[str] = Field(default=['http://www.w3.org/2001/04/xmldsig-more#rsa-sha256'])
     eduperson_targeted_id_secret_key: str = ''
+    eduid_site_url: str
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    @validator('sso_cookie')
+    def make_sso_cookie(cls, v, values) -> CookieConfig:
         # Convert sso_cookie from dict to the proper dataclass
-        if isinstance(self.sso_cookie, dict):
-            self.sso_cookie = CookieConfig(**self.sso_cookie)
-        elif self.sso_cookie_name:
+        if isinstance(v, dict):
+            return CookieConfig(**v)
+        if 'sso_cookie_name' in values and 'sso_cookie_domain' in values:
             # let legacy parameters override as long as they are present
-            self.sso_cookie = CookieConfig(key=self.sso_cookie_name, domain=self.sso_cookie_domain)
+            return CookieConfig(key=values['sso_cookie_name'], domain=values['sso_cookie_domain'])
+        raise ValueError(
+            'sso_cookie not present, and no fallback values either (sso_cookie_name and sso_cookie_domain)'
+        )
