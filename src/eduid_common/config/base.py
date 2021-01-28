@@ -117,7 +117,7 @@ class EduidEnvironment(str, Enum):
 
 
 class EduIDBaseAppConfig(RootConfig):
-    available_languages: Mapping[str, str] = PydanticField(default_factory=lambda: {'en': 'English', 'sv': 'Svenska'})
+    available_languages: Mapping[str, str] = PydanticField(default={'en': 'English', 'sv': 'Svenska'})
     environment: EduidEnvironment = EduidEnvironment.production
     mongo_uri: str
 
