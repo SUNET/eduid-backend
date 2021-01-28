@@ -40,10 +40,12 @@ import logging
 import os
 import pprint
 from dataclasses import dataclass, field, fields
+from enum import Enum
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Type, TypeVar
 
 import yaml
 from pydantic import BaseModel
+from pydantic import Field as PydanticField
 
 logger = logging.getLogger(__name__)
 
@@ -95,10 +97,28 @@ class CookieConfig(object):
     max_age_seconds: Optional[int] = None  # None means this is a session cookie
 
 
+TRootConfigSubclass = TypeVar('TRootConfigSubclass', bound='RootConfig')
+
+
 class RootConfig(BaseModel):
     app_name: str
     debug: bool = False
     testing: bool = False
+
+
+# EduIDBaseApp is currently Flask apps
+TEduIDBaseAppConfigSubclass = TypeVar('TEduIDBaseAppConfigSubclass', bound='EduIDBaseAppConfig')
+
+class EduidEnvironment(str, Enum):
+    dev = 'dev'
+    staging = 'staging'
+    production = 'production'
+
+
+class EduIDBaseAppConfig(RootConfig):
+    available_languages: Mapping[str, str] = PydanticField(default_factory=lambda: {'en': 'English', 'sv': 'Svenska'})
+    environment: EduidEnvironment = EduidEnvironment.production
+    mongo_uri: str
 
 
 @dataclass
@@ -331,7 +351,7 @@ class BaseConfig(CommonConfig):
         cls: Type[TBaseConfigSubclass],
         ns: Optional[str] = None,
         app_name: Optional[str] = None,
-        test_config: Optional[dict] = None,
+        test_config: Optional[Mapping[str, Any]] = None,
         debug: bool = False,
     ) -> TBaseConfigSubclass:
         """
@@ -497,6 +517,11 @@ class FlaskConfig(BaseConfig):
 
 @dataclass
 class WebauthnConfigMixin:
+    fido2_rp_id: str  # 'eduid.se'
+    u2f_app_id: str  # 'https://eduid.se/u2f-app-id.json'
+    u2f_valid_facets: List[str]  # e.g. ['https://dashboard.dev.eduid.se/', 'https://idp.dev.eduid.se/']
+
+class WebauthnConfigMixin2(BaseModel):
     fido2_rp_id: str  # 'eduid.se'
     u2f_app_id: str  # 'https://eduid.se/u2f-app-id.json'
     u2f_valid_facets: List[str]  # e.g. ['https://dashboard.dev.eduid.se/', 'https://idp.dev.eduid.se/']
