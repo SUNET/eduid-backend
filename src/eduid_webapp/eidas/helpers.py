@@ -75,7 +75,7 @@ def create_authn_request(relay_state, selected_idp, required_loa, force_authn=Fa
             binding=BINDING_HTTP_REDIRECT,
             sigalg=current_app.config.authn_sign_alg,
             digest_alg=current_app.config.authn_digest_alg,
-            **kwargs
+            **kwargs,
         )
     except TypeError:
         current_app.logger.error('Unable to know which IdP to use')

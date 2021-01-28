@@ -35,6 +35,7 @@
 
 import logging
 from datetime import datetime
+from typing import cast
 
 import bson
 import pkg_resources
@@ -43,6 +44,7 @@ from mock import patch
 from eduid_common.misc.timeutil import utc_now
 from eduid_common.session.logindata import SSOLoginData
 from eduid_userdb.credentials import U2F, Webauthn
+from eduid_userdb.idp import IdPUser
 from eduid_userdb.tou import ToUEvent
 from vccs_client import VCCSClient
 
@@ -240,7 +242,7 @@ class TestActions(SSOIdPTests):
 
         with self.app.app_context():
             mock_ticket = self._make_login_ticket(req_class_ref=SWAMID_AL2, key=self.mock_session_key)
-            action = mfa_add_actions(self.test_user, mock_ticket)
+            action = mfa_add_actions(cast(IdPUser, self.test_user), mock_ticket)
             if expected_num_actions != 0:
                 assert action is not None
                 assert action.action_type == 'mfa'

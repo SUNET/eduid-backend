@@ -37,7 +37,7 @@ from eduid_common.authn import fido_tokens
 from eduid_common.session import session
 
 from eduid_webapp.actions.action_abc import ActionPlugin
-from eduid_webapp.actions.app import current_actions_app as current_app
+from eduid_webapp.actions.app import ActionsApp, current_actions_app as current_app
 from eduid_webapp.actions.helpers import ActionsMsg
 
 __author__ = 'ft'
@@ -50,14 +50,13 @@ class Plugin(ActionPlugin):
     steps = 1
 
     @classmethod
-    def includeme(cls, app):
-        mandatory_config_keys = ['eidas_url', 'mfa_authn_idp']
+    def includeme(cls, app: ActionsApp):
+        if not app.conf.eidas_url:
+            app.logger.error(f'The configuration option eidas_url is required with plugin MFA')
+        if not app.conf.mfa_authn_idp:
+            app.logger.error(f'The configuration option mfa_authn_idp is required with plugin MFA')
 
-        for item in mandatory_config_keys:
-            if not getattr(app.config, item):
-                app.logger.error(f'The "{item}" configuration option is required')
-
-        app.config.mfa_testing = False
+        app.conf.mfa_testing = False
 
     def get_config_for_bundle(self, action):
         eppn = action.eppn
@@ -66,24 +65,24 @@ class Plugin(ActionPlugin):
         if not user:
             raise self.ActionError(ActionsMsg.user_not_found)
 
-        config = fido_tokens.start_token_verification(user, self.PACKAGE_NAME, current_app.config.fido2_rp_id)
+        config = fido_tokens.start_token_verification(user, self.PACKAGE_NAME, current_app.conf.fido2_rp_id)
 
         # Explicit check for boolean True
-        if current_app.config.mfa_testing is True:
+        if current_app.conf.mfa_testing is True:
             current_app.logger.info('MFA test mode is enabled')
             config['testing'] = True
         else:
             config['testing'] = False
 
         # Add config for external mfa auth
-        config['eidas_url'] = current_app.config.eidas_url
-        config['mfa_authn_idp'] = current_app.config.mfa_authn_idp
+        config['eidas_url'] = current_app.conf.eidas_url
+        config['mfa_authn_idp'] = current_app.conf.mfa_authn_idp
 
         return config
 
     def perform_step(self, action):
         current_app.logger.debug('Performing MFA step')
-        if current_app.config.mfa_testing:
+        if current_app.conf.mfa_testing:
             current_app.logger.debug('Test mode is on, faking authentication')
             return {
                 'success': True,
@@ -125,7 +124,7 @@ class Plugin(ActionPlugin):
             challenge = session.get(self.PACKAGE_NAME + '.u2f.challenge')
             current_app.logger.debug('Challenge: {!r}'.format(challenge))
 
-            result = fido_tokens.verify_u2f(user, challenge, token_response, current_app.config.u2f_valid_facets)
+            result = fido_tokens.verify_u2f(user, challenge, token_response, current_app.conf.u2f_valid_facets)
 
             if result is not None:
                 action.result = result
@@ -135,7 +134,7 @@ class Plugin(ActionPlugin):
         elif 'authenticatorData' in req_json:
             # CTAP2/Webauthn
             try:
-                result = fido_tokens.verify_webauthn(user, req_json, self.PACKAGE_NAME)
+                result = fido_tokens.verify_webauthn(user, req_json, self.PACKAGE_NAME, current_app.conf.fido2_rp_id)
             except fido_tokens.VerificationProblem as exc:
                 raise self.ActionError(exc.msg)
 

@@ -34,12 +34,13 @@ from __future__ import absolute_import
 
 import json
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Any, Optional
 
 from bson import ObjectId
 from mock import patch
 
 from eduid_common.session import session
+from eduid_userdb import User
 from eduid_userdb.tou import ToUEvent
 
 from eduid_webapp.actions.actions.tou import Plugin
@@ -62,7 +63,7 @@ class MockRTask(object):
         return None
 
 
-def add_actions(idp_app, user, ticket):
+def add_actions(idp_app: MockIdPContext, user: User, ticket: Any) -> None:
     """
     stripped down version of eduid_idp.tou_action.add_actions
     """
