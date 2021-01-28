@@ -19,6 +19,7 @@ class TestConfig(RootConfig):
 
 # TODO: test decryption
 
+
 class TestInitConfig(unittest.TestCase):
     def setUp(self) -> None:
         self.data_dir = PurePath(__file__).with_name('data')
@@ -78,6 +79,5 @@ class TestInitConfig(unittest.TestCase):
         os.environ['EDUID_CONFIG_YAML'] = str(self.data_dir / 'test.yaml')
 
         config = load_config(typ=TestConfig, ns='test', app_name='test_unknown_data')
-        assert config.number == 0xff
+        assert config.number == 0xFF
         assert config.foo == 'bar'
-
