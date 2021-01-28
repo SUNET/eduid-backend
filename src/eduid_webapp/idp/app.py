@@ -33,18 +33,19 @@
 
 import pprint
 from base64 import b64decode
-from typing import Any, Dict, Optional, cast
+from typing import Any, Dict, Mapping, Optional, cast
 
 from flask import current_app
 
 from eduid_common.api import translation
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.authn.utils import init_pysaml2
+from eduid_common.config.base import FlaskConfig
+from eduid_common.config.parsers import load_config
 from eduid_common.session import session
 from eduid_userdb.actions import ActionDB
 from eduid_userdb.idp import IdPUserDb
 
-import eduid_webapp.idp.sso_session
 from eduid_webapp.idp import idp_authn
 from eduid_webapp.idp.settings.common import IdPConfig
 from eduid_webapp.idp.sso_cache import SSOSessionCache
@@ -54,14 +55,17 @@ __author__ = 'ft'
 
 
 class IdPApp(EduIDBaseApp):
-    def __init__(self, name: str, config: Dict[str, Any], userdb: Optional[Any] = None, **kwargs: Any) -> None:
+    def __init__(
+        self, name: str, test_config: Optional[Mapping[str, Any]] = None, userdb: Optional[Any] = None, **kwargs: Any
+    ) -> None:
+        self.conf = load_config(typ=IdPConfig, app_name=name, ns='webapp', test_config=test_config)
         # Initialise type of self.config before any parent class sets a precedent to mypy
-        self.config = IdPConfig.init_config(ns='webapp', app_name=name, test_config=config)
+        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
         super().__init__(name, **kwargs)
         # cast self.config because sometimes mypy thinks it is a FlaskConfig after super().__init__()
-        self.config: IdPConfig = cast(IdPConfig, self.config)  # type: ignore
+        self.config: FlaskConfig = cast(FlaskConfig, self.config)  # type: ignore
         # Init dbs
-        # self.private_userdb = IdPUserDB(self.config.mongo_uri)
+        # self.private_userdb = IdPUserDB(self.conf.mongo_uri)
         # Initiate external modules
         translation.init_babel(self)
 
@@ -69,32 +73,32 @@ class IdPApp(EduIDBaseApp):
         # Log both 'starting' and 'started' messages.
         self.logger.info("eduid-IdP server starting")
 
-        self.logger.debug(f"Loading PySAML2 server using cfgfile {self.config.pysaml2_config}")
-        self.IDP = init_pysaml2(self.config.pysaml2_config)
+        self.logger.debug(f'Loading PySAML2 server using cfgfile {self.conf.pysaml2_config}')
+        self.IDP = init_pysaml2(self.conf.pysaml2_config)
 
-        if self.config.sso_session_mongo_uri:
+        if self.conf.sso_session_mongo_uri:
             self.logger.info('Config parameter sso_session_mongo_uri ignored. Used mongo_uri instead.')
 
-        if self.config.mongo_uri is None:
+        if self.conf.mongo_uri is None:
             raise RuntimeError('Mongo URI is not optional for the IdP')
-        _session_ttl = self.config.sso_session_lifetime * 60
-        self.sso_sessions = SSOSessionCache(self.config.mongo_uri, ttl=_session_ttl)
+        _session_ttl = self.conf.sso_session_lifetime * 60
+        self.sso_sessions = SSOSessionCache(self.conf.mongo_uri, ttl=_session_ttl)
 
-        _login_state_ttl = (self.config.login_state_ttl + 1) * 60
+        _login_state_ttl = (self.conf.login_state_ttl + 1) * 60
         self.authn_info_db = None
         self.actions_db = None
 
-        if self.config.mongo_uri and self.config.actions_app_uri:
-            self.actions_db = ActionDB(self.config.mongo_uri)
+        if self.conf.mongo_uri and self.conf.actions_app_uri:
+            self.actions_db = ActionDB(self.conf.mongo_uri)
             self.logger.info("configured to redirect users with pending actions")
         else:
             self.logger.debug("NOT configured to redirect users with pending actions")
 
         if userdb is None:
             # This is used in tests at least
-            userdb = IdPUserDb(logger=None, mongo_uri=self.config.mongo_uri, db_name=self.config.userdb_mongo_database)
+            userdb = IdPUserDb(logger=None, mongo_uri=self.conf.mongo_uri, db_name=self.conf.userdb_mongo_database)
         self.userdb = userdb
-        self.authn = idp_authn.IdPAuthn(config=self.config, userdb=self.userdb)
+        self.authn = idp_authn.IdPAuthn(config=self.conf, userdb=self.userdb)
         self.logger.info('eduid-IdP application started')
 
     def _lookup_sso_session(self) -> Optional[SSOSession]:
@@ -107,10 +111,10 @@ class IdPApp(EduIDBaseApp):
         if session:
             self.logger.debug(f'SSO session for user {session.idp_user} found in IdP cache: {session}')
             _age = session.minutes_old
-            if _age > self.config.sso_session_lifetime:
-                self.logger.debug(f'SSO session expired (age {_age} minutes > {self.config.sso_session_lifetime})')
+            if _age > self.conf.sso_session_lifetime:
+                self.logger.debug(f'SSO session expired (age {_age} minutes > {self.conf.sso_session_lifetime})')
                 return None
-            self.logger.debug(f'SSO session is still valid (age {_age} minutes <= {self.config.sso_session_lifetime})')
+            self.logger.debug(f'SSO session is still valid (age {_age} minutes <= {self.conf.sso_session_lifetime})')
         return session
 
     def _lookup_sso_session2(self) -> Optional[SSOSession]:
@@ -154,7 +158,7 @@ class IdPApp(EduIDBaseApp):
         # local import to avoid import-loop
         from eduid_webapp.idp.mischttp import parse_query_string, read_cookie
 
-        _session_id = read_cookie(self.config.sso_cookie.key)
+        _session_id = read_cookie(self.conf.sso_cookie.key)
         if _session_id:
             # The old IdP base64 encoded the session_id, try to  remain interoperable. Fingers crossed.
             _decoded_session_id = b64decode(_session_id)
@@ -177,15 +181,14 @@ class IdPApp(EduIDBaseApp):
 current_idp_app = cast(IdPApp, current_app)
 
 
-def init_idp_app(name: str, config: Dict[str, Any]) -> IdPApp:
+def init_idp_app(name: str, test_config: Optional[Mapping[str, Any]] = None) -> IdPApp:
     """
     :param name: The name of the instance, it will affect the configuration loaded.
-    :param config: any additional configuration settings. Specially useful
-                   in test cases
+    :param test_config: Override configuration - used in tests.
 
     :return: the flask app
     """
-    app = IdPApp(name, config, handle_exceptions=False)
+    app = IdPApp(name, test_config, handle_exceptions=False)
 
     # Register views
     from eduid_webapp.idp.views import idp_views

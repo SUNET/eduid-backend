@@ -95,7 +95,7 @@ def check_for_pending_actions(
     # Pending actions found, redirect to the actions app
     current_app.logger.debug(f'There are pending actions for user {user}: {pending_actions}')
 
-    actions_uri = current_app.config.actions_app_uri
+    actions_uri = current_app.conf.actions_app_uri
     current_app.logger.info(f'Redirecting user {user} to actions app {actions_uri}')
 
     # TODO: The IdP should never _write_ to the actions namespace. Actions should _read_
@@ -118,7 +118,7 @@ def add_idp_initiated_actions(user: IdPUser, ticket: SSOLoginData) -> None:
     :param user: the authenticating user
     :param ticket: the SSO login data
     """
-    if 'mfa' in current_app.config.action_plugins:
+    if 'mfa' in current_app.conf.action_plugins:
         mfa_action.add_actions(user, ticket)
-    if 'tou' in current_app.config.action_plugins:
+    if 'tou' in current_app.conf.action_plugins:
         tou_action.add_actions(user, ticket)

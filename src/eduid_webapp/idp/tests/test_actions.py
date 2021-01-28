@@ -35,6 +35,7 @@
 
 import logging
 from datetime import datetime
+from typing import cast
 
 import bson
 import pkg_resources
@@ -43,6 +44,7 @@ from mock import patch
 from eduid_common.misc.timeutil import utc_now
 from eduid_common.session.logindata import SSOLoginData
 from eduid_userdb.credentials import U2F, Webauthn
+from eduid_userdb.idp import IdPUser
 from eduid_userdb.tou import ToUEvent
 from vccs_client import VCCSClient
 
@@ -104,7 +106,7 @@ class TestActions(SSOIdPTests):
         # Register user acceptance for the ToU version in use
         tou = ToUEvent.from_dict(
             dict(
-                version=self.app.config.tou_version,
+                version=self.app.conf.tou_version,
                 created_by='unit test',
                 created_ts=datetime.utcnow(),
                 event_id=bson.ObjectId(),
@@ -114,7 +116,7 @@ class TestActions(SSOIdPTests):
 
     def test_no_actions_touevent_init(self):
         # Register user acceptance for the ToU version in use
-        tou = ToUEvent(version=self.app.config.tou_version, created_by='unit test', event_id=str(bson.ObjectId()))
+        tou = ToUEvent(version=self.app.conf.tou_version, created_by='unit test', event_id=str(bson.ObjectId()))
         self._test_no_actions(tou)
 
     def test_add_action(self):
@@ -127,7 +129,7 @@ class TestActions(SSOIdPTests):
 
         assert result.reached_state == LoginState.S3_REDIRECT_LOGGED_IN
 
-        assert self.app.config.actions_app_uri in result.response.location
+        assert self.app.conf.actions_app_uri in result.response.location
 
     def test_add_mfa_action_no_key(self):
         self.actions.remove_action_by_id(self.test_action.action_id)
@@ -240,7 +242,7 @@ class TestActions(SSOIdPTests):
 
         with self.app.app_context():
             mock_ticket = self._make_login_ticket(req_class_ref=SWAMID_AL2, key=self.mock_session_key)
-            action = mfa_add_actions(self.test_user, mock_ticket)
+            action = mfa_add_actions(cast(IdPUser, self.test_user), mock_ticket)
             if expected_num_actions != 0:
                 assert action is not None
                 assert action.action_type == 'mfa'
@@ -390,7 +392,7 @@ class TestActions(SSOIdPTests):
         assert result.reached_state == LoginState.S3_REDIRECT_LOGGED_IN
         assert result.sso_cookie_val is not None
 
-        assert self.app.config.actions_app_uri in result.response.location
+        assert self.app.conf.actions_app_uri in result.response.location
 
         actions = self.actions.get_actions(eppn_or_userid=self.test_user.eppn, session=None)
         logger.info(f'\n\n\nActions for user {self.test_user.eppn} now: {actions}\n\n\n')

@@ -502,6 +502,7 @@ def set_new_pw_extra_security_token(
                     signature=signature,
                 ),
                 SESSION_PREFIX,
+                rp_id=current_app.config.fido2_rp_id,
             )
         except fido_tokens.VerificationProblem:
             pass

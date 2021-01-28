@@ -46,7 +46,7 @@ idp_views = Blueprint('idp', __name__, url_prefix='', template_folder='templates
 
 @idp_views.route('/', methods=['GET'])
 def index() -> WerkzeugResponse:
-    return redirect(current_app.config.eduid_site_url)
+    return redirect(current_app.conf.eduid_site_url)
 
 
 @idp_views.route('/sso/post', methods=['POST'])

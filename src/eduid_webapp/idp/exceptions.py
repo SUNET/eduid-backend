@@ -18,7 +18,7 @@ def init_exception_handlers(app: 'IdPApp') -> 'IdPApp':
         app.logger.error(f'IdP HTTPException {error}')
         response = error.get_response()
 
-        context = get_default_template_arguments(app.config)
+        context = get_default_template_arguments(app.conf)
         context['error_code'] = str(error.code)
 
         messages = {
@@ -36,7 +36,7 @@ def init_exception_handlers(app: 'IdPApp') -> 'IdPApp':
         if error.description is not None and 'USER_TERMINATED' in error.description:
             # Delete the SSO session cookie in the browser
             response.delete_cookie(
-                key=app.config.sso_cookie.key, path=app.config.sso_cookie.path, domain=app.config.sso_cookie.domain,
+                key=app.conf.sso_cookie.key, path=app.conf.sso_cookie.path, domain=app.conf.sso_cookie.domain,
             )
 
         return response

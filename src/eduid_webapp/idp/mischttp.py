@@ -176,14 +176,14 @@ def set_sso_cookie(value: str, response: WerkzeugResponse) -> WerkzeugResponse:
     :param response: Flask response object
     """
     response.set_cookie(
-        key=current_app.config.sso_cookie.key,
+        key=current_app.conf.sso_cookie.key,
         value=value,
-        domain=current_app.config.sso_cookie.domain,
-        path=current_app.config.sso_cookie.path,
-        secure=current_app.config.sso_cookie.secure,
-        httponly=current_app.config.sso_cookie.httponly,
-        samesite=current_app.config.sso_cookie.samesite,
-        max_age=current_app.config.sso_cookie.max_age_seconds,
+        domain=current_app.conf.sso_cookie.domain,
+        path=current_app.conf.sso_cookie.path,
+        secure=current_app.conf.sso_cookie.secure,
+        httponly=current_app.conf.sso_cookie.httponly,
+        samesite=current_app.conf.sso_cookie.samesite,
+        max_age=current_app.conf.sso_cookie.max_age_seconds,
     )
     _cookie = response.headers.get('Set-Cookie')
     current_app.logger.debug(f'Set SSO cookie {_cookie}')

@@ -34,6 +34,7 @@ from abc import ABCMeta, abstractmethod
 from flask import request
 
 from eduid_common.api.utils import get_static_url_for, urlappend
+from eduid_common.config.base import EduidEnvironment
 from eduid_userdb.actions.action import Action
 
 from eduid_webapp.actions.app import current_actions_app as current_app
@@ -167,18 +168,18 @@ class ActionPlugin(object):
         :returns: the url
         :raise: ActionPlugin.ActionError
         """
-        path = current_app.config.bundles_path
-        version = current_app.config.bundles_version
-        feature_cookie = request.cookies.get(current_app.config.bundles_feature_cookie)
-        if feature_cookie and feature_cookie in current_app.config.bundles_feature_version:
-            version = current_app.config.bundles_feature_version[feature_cookie]
-        bundle_name = 'eduid_action.{}.js'
-        env = current_app.config.environment
-        if env == 'dev':
-            bundle_name = 'eduid_action.{}-bundle.dev.js'
-        elif env == 'staging':
-            bundle_name = 'eduid_action.{}.staging.js'
-        base = urlappend(path, bundle_name.format(self.PLUGIN_NAME))
+        path = current_app.conf.bundles_path
+        version = current_app.conf.bundles_version
+        feature_cookie = request.cookies.get(current_app.conf.bundles_feature_cookie)
+        if feature_cookie and feature_cookie in current_app.conf.bundles_feature_version:
+            version = current_app.conf.bundles_feature_version[feature_cookie]
+        # Default to the right bundle for production
+        bundle_name = f'eduid_action.{self.PLUGIN_NAME}.js'
+        if current_app.conf.environment == EduidEnvironment.dev:
+            bundle_name = f'eduid_action.{self.PLUGIN_NAME}-bundle.dev.js'
+        elif current_app.conf.environment == EduidEnvironment.staging:
+            bundle_name = f'eduid_action.{self.PLUGIN_NAME}.staging.js'
+        base = urlappend(path, bundle_name)
         return get_static_url_for(base, version=version)
 
     @abstractmethod
