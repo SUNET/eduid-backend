@@ -343,8 +343,10 @@ class BaseConfig(CommonConfig):
         if test_config:
             # Load init time settings
             config.update(test_config)
-            logger.info(f'Using test_config:\n{pprint.pformat(config)}')
-            return cls(**config)
+            # Make sure we don't try to load config keys that are not expected as that will result in a crash
+            filtered_config = cls.filter_config(config)
+            logger.info(f'Using test_config:\n{pprint.pformat(filtered_config)}')
+            return cls(**filtered_config)
 
         from eduid_common.config.parsers.etcd import EtcdConfigParser
 
