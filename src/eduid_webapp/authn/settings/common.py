@@ -31,30 +31,33 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from typing import Mapping, Optional
 
-from dataclasses import dataclass, field
-from typing import Dict, Optional
+from pydantic import Field
 
-from eduid_common.config.base import FlaskConfig
+from eduid_common.config.base import EduIDBaseAppConfig
 
 
-@dataclass
-class AuthnConfig(FlaskConfig):
+class AuthnConfig(EduIDBaseAppConfig):
     """
     Configuration for the authn app
     """
 
+    app_name: str = 'authn'
     server_name: str = 'authn'
-    required_loa: Dict[str, str] = field(
-        default_factory=lambda: {
+    required_loa: Mapping[str, str] = Field(
+        default={
             'personal': 'http://www.swamid.se/policy/assurance/al1',
             'helpdesk': 'http://www.swamid.se/policy/assurance/al2',
             'admin': 'http://www.swamid.se/policy/assurance/al3',
         }
     )
     available_loa: str = 'http://www.swamid.se/policy/assurance/al1'
-    signup_authn_success_redirect_url: str = "https://dashboard.eduid.se"
-    signup_authn_failure_redirect_url: str = "https://dashboard.eduid.se"
-    unsolicited_response_redirect_url: str = "https://dashboard.eduid.se"
+    signup_authn_success_redirect_url: str = 'https://dashboard.eduid.se'
+    signup_authn_failure_redirect_url: str = 'https://dashboard.eduid.se'
+    unsolicited_response_redirect_url: str = 'https://dashboard.eduid.se'
     authn_sign_alg: Optional[str] = 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256'
     authn_digest_alg: Optional[str] = 'http://www.w3.org/2001/04/xmlenc#sha256'
+    saml2_login_redirect_url: str
+    saml2_logout_redirect_url: str
+    token_service_url: str

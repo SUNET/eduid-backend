@@ -36,9 +36,8 @@ import logging
 import os
 import time
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Mapping
 
-import six
 from flask import Blueprint
 from saml2.s_utils import deflate_and_base64_encode
 from six.moves.urllib_parse import quote_plus
@@ -51,6 +50,8 @@ from eduid_common.authn.eduid_saml2 import get_authn_request
 from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.authn.tests.responses import auth_response, logout_request, logout_response
 from eduid_common.authn.utils import get_location, no_authn_views
+from eduid_common.config.base import FlaskConfig
+from eduid_common.config.parsers import load_config
 from eduid_common.session import session
 
 from eduid_webapp.authn.app import authn_init_app
@@ -62,8 +63,9 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 
 
 class AuthnTestApp(AuthnBaseApp):
-    def __init__(self, name: str, config: Dict[str, Any], **kwargs):
-        self.config = AuthnConfig.init_config(ns='webapp', app_name=name, test_config=config)
+    def __init__(self, name: str, test_config: Mapping[str, Any], **kwargs):
+        self.conf = load_config(typ=AuthnConfig, app_name=name, ns='webapp', test_config=test_config)
+        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
         super().__init__(name, **kwargs)
 
 
@@ -314,14 +316,14 @@ class AuthnAPITestCase(AuthnAPITestBase):
         eppn = 'hubba-fooo'
         resp = self._signup_authn_user(eppn)
         self.assertEqual(resp.status_code, 302)
-        self.assertTrue(resp.location.startswith(self.app.config.signup_authn_success_redirect_url))
+        self.assertTrue(resp.location.startswith(self.app.conf.signup_authn_success_redirect_url))
 
     def test_signup_authn_old_user(self):
         """ A user that has verified their account should not try to use token login """
         eppn = 'hubba-bubba'
         resp = self._signup_authn_user(eppn)
         self.assertEqual(resp.status_code, 302)
-        self.assertTrue(resp.location.startswith(self.app.config.signup_authn_failure_redirect_url))
+        self.assertTrue(resp.location.startswith(self.app.conf.signup_authn_failure_redirect_url))
 
 
 class UnAuthnAPITestCase(EduidAPITestCase):
@@ -332,7 +334,12 @@ class UnAuthnAPITestCase(EduidAPITestCase):
         """
         saml_config = os.path.join(HERE, 'saml2_settings.py')
         app_config.update(
-            {'token_service_url': 'http://login', 'saml2_settings_module': saml_config,}
+            {
+                'token_service_url': 'http://login',
+                'saml2_settings_module': saml_config,
+                'saml2_login_redirect_url': '/',
+                'saml2_logout_redirect_url': '/',
+            }
         )
         return app_config
 
@@ -341,13 +348,13 @@ class UnAuthnAPITestCase(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return AuthnTestApp('testing', config=config)
+        return AuthnTestApp('testing', test_config=config)
 
     def test_no_cookie(self):
         with self.app.test_client() as c:
             resp = c.get('/')
             self.assertEqual(resp.status_code, 302)
-            self.assertTrue(resp.location.startswith(self.app.config.token_service_url))
+            self.assertTrue(resp.location.startswith(self.app.conf.token_service_url))
 
     def test_cookie(self):
         sessid = 'fb1f42420b0109020203325d750185673df252de388932a3957f522a6c43a' 'a47'
@@ -383,11 +390,17 @@ class NoAuthnAPITestCase(EduidAPITestCase):
         """
         saml_config = os.path.join(HERE, 'saml2_settings.py')
         app_config.update(
-            {'token_service_url': 'http://login', 'saml2_settings_module': saml_config, 'no_authn_urls': ['^/test$'],}
+            {
+                'token_service_url': 'http://login',
+                'saml2_settings_module': saml_config,
+                'no_authn_urls': ['^/test$'],
+                'saml2_login_redirect_url': '/',
+                'saml2_logout_redirect_url': '/',
+            }
         )
         return app_config
 
-    def load_app(self, config):
+    def load_app(self, config: Mapping[str, Any]) -> AuthnTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
@@ -403,13 +416,13 @@ class NoAuthnAPITestCase(EduidAPITestCase):
         with self.app.test_client() as c:
             resp = c.get('/test2')
             self.assertEqual(resp.status_code, 302)
-            self.assertTrue(resp.location.startswith(self.app.config.token_service_url))
+            self.assertTrue(resp.location.startswith(self.app.conf.token_service_url))
 
     def test_no_authn_util(self):
-        no_authn_urls_before = [path for path in self.app.config.no_authn_urls]
+        no_authn_urls_before = [path for path in self.app.conf.no_authn_urls]
         no_authn_path = '/test3'
         no_authn_views(self.app, [no_authn_path])
-        self.assertEqual(no_authn_urls_before + ['^{!s}$'.format(no_authn_path)], self.app.config.no_authn_urls)
+        self.assertEqual(no_authn_urls_before + ['^{!s}$'.format(no_authn_path)], self.app.conf.no_authn_urls)
 
         with self.app.test_client() as c:
             resp = c.get('/test3')
@@ -429,7 +442,7 @@ class LogoutRequestTests(AuthnAPITestBase):
             session['user_eppn'] = eppn
             response = self.app.dispatch_request()
             self.assertEqual(response.status, '302 FOUND')
-            self.assertIn(self.app.config.saml2_logout_redirect_url, response.headers['Location'])
+            self.assertIn(self.app.conf.saml2_logout_redirect_url, response.headers['Location'])
 
     def test_logout_loggedin(self):
         eppn = 'hubba-bubba'

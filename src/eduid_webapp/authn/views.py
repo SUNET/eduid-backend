@@ -95,7 +95,7 @@ def terminate() -> WerkzeugResponse:
 
 
 def _authn(action: AuthnAcsAction, force_authn=False) -> WerkzeugResponse:
-    redirect_url = current_app.config.saml2_login_redirect_url
+    redirect_url = current_app.conf.saml2_login_redirect_url
     relay_state = verify_relay_state(request.args.get('next', redirect_url), redirect_url)
 
     # In the future, we might want to support choosing the IdP somehow but for now
@@ -118,8 +118,8 @@ def _authn(action: AuthnAcsAction, force_authn=False) -> WerkzeugResponse:
         relay_state,
         idp,
         force_authn=force_authn,
-        sign_alg=current_app.config.authn_sign_alg,
-        digest_alg=current_app.config.authn_digest_alg,
+        sign_alg=current_app.conf.authn_sign_alg,
+        digest_alg=current_app.conf.authn_digest_alg,
     )
     schedule_action(action)
     current_app.logger.info(f'Redirecting the user to the IdP for {action} (relay state {relay_state})')
@@ -144,7 +144,7 @@ def assertion_consumer_service():
         action = get_action(AuthnAcsAction.login)
         return action(session_info, user)
     except UnsolicitedResponse:
-        unsolicited_response_redirect_url = current_app.config.unsolicited_response_redirect_url
+        unsolicited_response_redirect_url = current_app.conf.unsolicited_response_redirect_url
         current_app.logger.info(f'Unsolicited response. Redirecting user to {unsolicited_response_redirect_url}')
         return redirect(unsolicited_response_redirect_url)
     except BadSAMLResponse as e:
@@ -175,7 +175,7 @@ def logout():
     eppn = session.get('user_eppn')
 
     next = request.args.get('next', '')
-    location = next or current_app.config.saml2_logout_redirect_url
+    location = next or current_app.conf.saml2_logout_redirect_url
 
     if eppn is None:
         current_app.logger.info('Session cookie has expired, no logout action needed')
@@ -204,7 +204,7 @@ def logout_service():
     identity = IdentityCache(session)
     client = Saml2Client(current_app.saml2_config, state_cache=state, identity_cache=identity)
 
-    logout_redirect_url = current_app.config.saml2_logout_redirect_url
+    logout_redirect_url = current_app.conf.saml2_logout_redirect_url
     next_page = session.get('next', logout_redirect_url)
     next_page = request.args.get('next', next_page)
     next_page = request.form.get('RelayState', next_page)
@@ -247,8 +247,8 @@ def logout_service():
 @authn_views.route('/signup-authn', methods=['GET', 'POST'])
 def signup_authn():
     current_app.logger.debug('Authenticating signing up user')
-    location_on_fail = current_app.config.signup_authn_failure_redirect_url
-    location_on_success = current_app.config.signup_authn_success_redirect_url
+    location_on_fail = current_app.conf.signup_authn_failure_redirect_url
+    location_on_success = current_app.conf.signup_authn_success_redirect_url
 
     eppn = check_previous_identification(session.signup)
     if eppn is not None:
