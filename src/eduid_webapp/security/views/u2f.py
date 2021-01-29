@@ -149,7 +149,8 @@ def modify(user: User, credential_key: str, description: str) -> FluxData:
     token_to_modify.description = description
     save_and_sync_user(security_user)
     current_app.stats.count(name='u2f_token_modify')
-    return {'credentials': compile_credential_list(security_user)}
+    credentials = compile_credential_list(security_user)
+    return success_response(payload=dict(credentials=credentials))
 
 
 @u2f_views.route('/remove', methods=['POST'])
