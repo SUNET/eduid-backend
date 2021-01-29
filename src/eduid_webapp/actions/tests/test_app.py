@@ -57,7 +57,7 @@ class ActionsTests(ActionsTestCase):
         eppn = self.test_eppn
         if timestamp is None:
             timestamp = datetime.fromtimestamp(int(time.time()))
-        with self.session_cookie(self.browser) as client:
+        with self.session_cookie_anon(self.browser) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
                     sess.common.eppn = eppn
@@ -71,7 +71,7 @@ class ActionsTests(ActionsTestCase):
 
         The kwargs are passed directoly to the `prepare_session` method.
         """
-        with self.session_cookie(self.browser) as client:
+        with self.session_cookie_anon(self.browser) as client:
             self.prepare_session(client, **kwargs)
             return client.get('/config')
 
@@ -81,7 +81,7 @@ class ActionsTests(ActionsTestCase):
 
         The kwargs are passed directoly to the `prepare_session` method.
         """
-        with self.session_cookie(self.browser) as client:
+        with self.session_cookie_anon(self.browser) as client:
             self.prepare_session(client, **kwargs)
             with self.app.test_request_context('/get-actions'):
                 self.authenticate(idp_session='dummy-session')
@@ -97,7 +97,7 @@ class ActionsTests(ActionsTestCase):
         :param csrf_token: what csrf token to include in the POST params.
         :param kwargs: params for the `prepare_session` method.
         """
-        with self.session_cookie(self.browser) as client:
+        with self.session_cookie_anon(self.browser) as client:
             self.prepare_session(client, **kwargs)
             with client.session_transaction() as sess:
                 with self.app.test_request_context():

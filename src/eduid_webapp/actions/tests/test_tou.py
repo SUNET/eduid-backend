@@ -143,7 +143,7 @@ class ToUActionPluginTests(ActionsTestCase):
 
         :param post_data: to control the contents of the POSTed data.
         """
-        with self.session_cookie(self.browser) as client:
+        with self.session_cookie_anon(self.browser) as client:
             self.prepare(client, Plugin, 'tou', action_dict=TOU_ACTION)
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
@@ -246,7 +246,7 @@ class ToUActionPluginTests(ActionsTestCase):
         )
 
     def test_get_not_accept_tou(self):
-        with self.session_cookie(self.browser) as client:
+        with self.session_cookie_anon(self.browser) as client:
             self.prepare(client, Plugin, 'tou', action_dict=TOU_ACTION)
             with self.app.test_request_context():
                 with client.session_transaction() as sess:

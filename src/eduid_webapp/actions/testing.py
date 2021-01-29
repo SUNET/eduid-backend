@@ -159,12 +159,6 @@ class ActionsTestCase(EduidAPITestCase):
         config.update(more_config)
         return config
 
-    @contextmanager
-    def session_cookie(self, client: Any, server_name: str = 'localhost') -> Any:
-        with client.session_transaction() as sess:
-            client.set_cookie(server_name, key=self.app.config.session_cookie_name, value=sess.meta.cookie_val)
-        yield client
-
     def prepare_session(
         self,
         client,
