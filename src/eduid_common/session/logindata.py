@@ -73,7 +73,8 @@ class SSOLoginData(SessionNSBase):
     # query string
     query_string: str = field(init=False, repr=False)
 
-    mfa_action_creds: Dict[Credential, datetime] = field(default_factory=dict, init=False, repr=False)
+    # Hash from Credential.key to datetime when it was used
+    mfa_action_creds: Dict[str, datetime] = field(default_factory=dict, init=False, repr=False)
     mfa_action_external: Optional[ExternalMfaData] = field(default=None, init=False, repr=False)
 
     def __post_init__(self):
