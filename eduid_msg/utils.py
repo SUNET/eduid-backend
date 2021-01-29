@@ -54,7 +54,7 @@ def navet_get_official_address(navet_data: dict) -> Optional[OrderedDict]:
     return None
 
 
-def navet_get_name_and_official_address(navet_data: dict) -> Optional[OrderedDict]:
+def navet_get_name_and_official_address(navet_data: Optional[dict]) -> Optional[OrderedDict]:
     """
     :param navet_data:  Loaded JSON response from eduid-navet_service
     :return: Name and official address data objects
@@ -70,7 +70,7 @@ def navet_get_name_and_official_address(navet_data: dict) -> Optional[OrderedDic
     return None
 
 
-def navet_get_relations(navet_data: dict) -> Optional[OrderedDict]:
+def navet_get_relations(navet_data: Optional[dict]) -> Optional[OrderedDict]:
     """
     :param navet_data:  Loaded JSON response from eduid-navet_service
     :return: Relations data object
@@ -84,7 +84,7 @@ def navet_get_relations(navet_data: dict) -> Optional[OrderedDict]:
     return None
 
 
-def navet_get_person(navet_data: dict) -> Optional[OrderedDict]:
+def navet_get_person(navet_data: Optional[dict]) -> Optional[OrderedDict]:
     """
     :param navet_data: Loaded JSON response from eduid-navet_service
     :return: Personpost

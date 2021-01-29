@@ -374,7 +374,7 @@ class MessageRelay(Task):
         return result
 
     @TransactionAudit(MONGODB_URI)
-    def _get_navet_data(self, identity_number: str) -> dict:
+    def _get_navet_data(self, identity_number: str) -> Optional[dict]:
         """
         Fetch all data about a NIN from Navet.
 
@@ -389,7 +389,9 @@ class MessageRelay(Task):
                 raise NavetAPIException(repr(response))
             json_data = response.json()
             if not json_data.get('PopulationItems', False):
-                raise NavetException('No PopulationItems returned')
+                logger.info('No PopulationItems returned')
+                logger.debug(f'for nin: {identity_number}')
+                return None
             self.cache('navet_cache').add_cache_item(identity_number, json_data)
         return json_data
 
