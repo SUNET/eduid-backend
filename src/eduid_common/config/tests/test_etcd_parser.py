@@ -57,7 +57,7 @@ class TestEtcdParser(unittest.TestCase):
         test_key = {'my_bool': True, 'my_string': 'A value', 'my_list': ['One', 'Two', 3], 'my_dict': {'A': 'B'}}
 
         self.parser.write_configuration(config)
-        read_config = self.parser.read_configuration()
+        read_config = self.parser.read_configuration(self.parser.ns)
 
         self.assertEqual(test_key, read_config)
 
@@ -68,7 +68,7 @@ class TestEtcdParser(unittest.TestCase):
         }
 
         self.parser.write_configuration(config)
-        read_config = self.parser.read_configuration()
+        read_config = self.parser.read_configuration(self.parser.ns)
 
         self.assertEqual(config['test'], read_config)
 
@@ -77,7 +77,7 @@ class TestEtcdParser(unittest.TestCase):
         self.parser.set('my_set_key', 'a nice value')
         self.assertEqual(self.parser.get('my_set_key'), 'a nice value')
 
-        read_config = self.parser.read_configuration()
+        read_config = self.parser.read_configuration(self.parser.ns)
         self.assertEqual({'my_set_key': 'a nice value'}, read_config)
 
     @patch('eduid_common.config.parsers.decorators.read_secret_key')
@@ -95,7 +95,7 @@ class TestEtcdParser(unittest.TestCase):
         self.parser.set('my_set_key_encrypted', secret_value)
         self.parser.set('my_other_set_key', 'another nice value')
 
-        read_config = self.parser.read_configuration()
+        read_config = self.parser.read_configuration(self.parser.ns)
         self.assertEqual({u'my_set_key': u'a nice value', u'my_other_set_key': u'another nice value'}, read_config)
         self.assertIsInstance(read_config['my_set_key'], str)
 
@@ -117,7 +117,7 @@ class TestEtcdParser(unittest.TestCase):
         self.parser.set('my_set_key_encrypted', secret_value)
         self.parser.set('my_other_set_key', 'another nice value')
 
-        read_config = self.parser.read_configuration()
+        read_config = self.parser.read_configuration(self.parser.ns)
         self.assertEqual({u'my_set_key': 'a nåjs väljö', u'my_other_set_key': 'another nice value'}, read_config)
         self.assertIsInstance(read_config['my_set_key'], str)
 
@@ -142,21 +142,21 @@ class TestEtcdParser(unittest.TestCase):
         self.parser.set('MY_SET_KEY_encrypted', secret_value)
         self.parser.set('MY_OTHER_SET_KEY', 'another nice value')
 
-        read_config = self.parser.read_configuration()
+        read_config = self.parser.read_configuration(self.parser.ns)
         self.assertEqual({'MY_SET_KEY': 'a nice value', 'MY_OTHER_SET_KEY': 'another nice value'}, read_config)
 
     def test_interpolate(self):
         self.parser.set('my_set_key', '${my_value}')
         self.parser.set('my_value', 'a nice value')
 
-        read_config = self.parser.read_configuration()
+        read_config = self.parser.read_configuration(self.parser.ns)
         self.assertEqual({'my_set_key': 'a nice value', 'my_value': 'a nice value'}, read_config)
 
     def test_interpolate_upper(self):
         self.parser.set('my_set_key', '${MY_VALUE}')
         self.parser.set('my_value', 'a nice value')
 
-        read_config = self.parser.read_configuration()
+        read_config = self.parser.read_configuration(self.parser.ns)
         self.assertEqual({'my_set_key': 'a nice value', 'my_value': 'a nice value'}, read_config)
 
     def test_interpolate_variable_key(self):
@@ -164,7 +164,7 @@ class TestEtcdParser(unittest.TestCase):
         self.parser.set('var_my_value', 'a nice value')
         self.assertEqual('a nice value', self.parser.get('var_my_value'))
 
-        read_config = self.parser.read_configuration()
+        read_config = self.parser.read_configuration(self.parser.ns)
         self.assertEqual({'my_set_key': 'a nice value'}, read_config)
 
     def test_interpolate_variable_key_upper(self):
@@ -172,19 +172,19 @@ class TestEtcdParser(unittest.TestCase):
         self.parser.set('var_my_value', 'a nice value')
         self.assertEqual('a nice value', self.parser.get('var_my_value'))
 
-        read_config = self.parser.read_configuration()
+        read_config = self.parser.read_configuration(self.parser.ns)
         self.assertEqual({'my_set_key': 'a nice value'}, read_config)
 
     def test_interpolate_missing_key(self):
         self.parser.set('my_set_key', '${my_value}')
 
-        read_config = self.parser.read_configuration()
+        read_config = self.parser.read_configuration(self.parser.ns)
         self.assertEqual({'my_set_key': '${my_value}'}, read_config)
 
     def test_interpolate_missing_key_upper(self):
         self.parser.set('my_set_key', '${MY_VALUE}')
 
-        read_config = self.parser.read_configuration()
+        read_config = self.parser.read_configuration(self.parser.ns)
         self.assertEqual({'my_set_key': '${MY_VALUE}'}, read_config)
 
     def test_interpolate_complex_dict(self):
@@ -195,7 +195,7 @@ class TestEtcdParser(unittest.TestCase):
             'another_dict', {'string_in_sub_dict': '${my_value}', 'a_dict_in_a_dict': {'another_key': '${my_value}'}}
         )
 
-        read_config = self.parser.read_configuration()
+        read_config = self.parser.read_configuration(self.parser.ns)
 
         expected = {
             'my_set_key': 'a nice value',
@@ -213,7 +213,7 @@ class TestEtcdParser(unittest.TestCase):
             'another_dict', {'string_in_sub_dict': '${MY_VALUE}', 'a_dict_in_a_dict': {'another_key': '${MY_VALUE}'}}
         )
 
-        read_config = self.parser.read_configuration()
+        read_config = self.parser.read_configuration(self.parser.ns)
 
         expected = {
             'my_set_key': 'a nice value',
@@ -238,7 +238,7 @@ class TestEtcdParser(unittest.TestCase):
         self.parser.set('my_secret_encrypted', secret_value)
         self.parser.set('my_other_set_key', '${my_secret} is set here')
 
-        read_config = self.parser.read_configuration()
+        read_config = self.parser.read_configuration(self.parser.ns)
         self.assertEqual(
             {u'my_secret': u'a secret value', u'my_other_set_key': u'a secret value is set here'}, read_config
         )
