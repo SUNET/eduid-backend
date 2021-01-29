@@ -55,7 +55,7 @@ def get_etcd_config(namespace: Optional[str] = None) -> FrontConfig:
     if namespace is None:
         namespace = '/eduid/webapp/jsapps/'
     parser = EtcdConfigParser(namespace)
-    config = parser.read_configuration()
+    config = parser.read_configuration(path=namespace)
     config = {k.lower(): v for k, v in config.items()}
     return FrontConfig(**config)
 

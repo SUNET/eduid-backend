@@ -36,6 +36,7 @@ import os
 import struct
 from enum import unique
 from re import findall
+from typing import Optional
 
 import proquint
 from bson import ObjectId
@@ -47,7 +48,8 @@ from eduid_common.api.utils import save_and_sync_user
 from eduid_common.authn.vccs import add_password
 from eduid_common.misc.timeutil import utc_now
 from eduid_common.session import session
-from eduid_userdb.exceptions import UserOutOfSync
+from eduid_userdb.exceptions import UserOutOfSync, UserDoesNotExist, UserHasNotCompletedSignup
+from eduid_userdb.signup import SignupUser
 from eduid_userdb.tou import ToUEvent
 
 from eduid_webapp.signup.app import current_signup_app as current_app
@@ -76,7 +78,7 @@ class SignupMsg(TranslatableMsg):
     already_verified = 'signup.already-verified'
 
 
-def generate_eppn():
+def generate_eppn() -> str:
     """
     Generate a unique eduPersonPrincipalName.
 
@@ -92,10 +94,11 @@ def generate_eppn():
             current_app.central_userdb.get_user_by_eppn(eppn)
         except current_app.central_userdb.exceptions.UserDoesNotExist:
             return eppn
+    current_app.logger.critical('generate_eppn finished without finding a new unique eppn')
     abort(500)
 
 
-def check_email_status(email):
+def check_email_status(email: str) -> Optional[str]:
     """
     Check the email registration status.
 
@@ -109,18 +112,17 @@ def check_email_status(email):
     :return: status
     :rtype: string or None
     """
-    userdb = current_app.central_userdb
-    signup_db = current_app.private_userdb
     try:
-        am_user = userdb.get_user_by_mail(email, raise_on_missing=True, include_unconfirmed=False)
+        am_user = current_app.central_userdb.get_user_by_mail(email, raise_on_missing=True, include_unconfirmed=False)
         current_app.logger.debug("Found user {} with email {}".format(am_user, email))
         return 'address-used'
-    except userdb.exceptions.UserDoesNotExist:
+    except UserDoesNotExist:
         current_app.logger.debug("No user found with email {} in central userdb".format(email))
-    except userdb.exceptions.UserHasNotCompletedSignup:
+    except UserHasNotCompletedSignup:
+        # TODO: What is the implication of getting here? Should we just let the user signup again?
         current_app.logger.warning("Incomplete user found with email {} in central userdb".format(email))
 
-    signup_user = signup_db.get_user_by_pending_mail_address(email)
+    signup_user = current_app.private_userdb.get_user_by_pending_mail_address(email)
     if signup_user is not None:
         current_app.logger.debug("Found user {} with pending email {} in signup db".format(signup_user, email))
         return 'resend-code'
@@ -130,7 +132,7 @@ def check_email_status(email):
     return 'new'
 
 
-def remove_users_with_mail_address(email):
+def remove_users_with_mail_address(email: str) -> None:
     """
     Remove all users with a certain (confirmed) e-mail address from signup_db.
 
@@ -158,7 +160,7 @@ def remove_users_with_mail_address(email):
         signup_db.remove_user_by_id(user.user_id)
 
 
-def complete_registration(signup_user) -> FluxData:
+def complete_registration(signup_user: SignupUser) -> FluxData:
     """
     After a successful registration:
     * record acceptance of TOU
@@ -169,13 +171,17 @@ def complete_registration(signup_user) -> FluxData:
     * return information to be sent to the user.
 
     :param signup_user: SignupUser instance
-    :type signup_user: SignupUser
 
     :return: registration status info
     """
+    # DEBUG
+    if signup_user.mail_addresses.primary.email.lower() != signup_user.mail_addresses.primary.email:
+        raise RuntimeError()
+
     current_app.logger.info(f'Completing registration for user {signup_user}')
 
     password = _generate_password()
+    # TODO: add_password needs to understand that signup_user is a decendent from User
     if not add_password(signup_user, password, application='signup', vccs_url=current_app.config.vccs_url):
         current_app.logger.error(f'Failed adding a credential to user {signup_user}')
         return error_response(message=CommonMsg.temp_problem)
@@ -204,26 +210,23 @@ def complete_registration(signup_user) -> FluxData:
     return success_response(payload=context)
 
 
-def record_tou(user, source):
+def record_tou(signup_user: SignupUser, source: str) -> None:
     """
     Record user acceptance of terms of use.
 
-    :param user: the user that has accepted the ToU
-    :type user: eduid_userdb.signup.SignupUser
+    :param signup_user: the user that has accepted the ToU
     :param source: An identificator for the proccess during which
                    the user has accepted the ToU (e.g., "signup")
-    :type source: str
-
-    :return: None
     """
+
     event_id = ObjectId()
     created_ts = datetime.datetime.utcnow()
     tou_version = current_app.config.tou_version
     current_app.logger.info(
         'Recording ToU acceptance {!r} (version {})'
-        ' for user {} (source: {})'.format(event_id, tou_version, user, source)
+        ' for user {} (source: {})'.format(event_id, tou_version, signup_user, source)
     )
-    user.tou.add(ToUEvent(version=tou_version, created_by=source, created_ts=created_ts, event_id=str(event_id)))
+    signup_user.tou.add(ToUEvent(version=tou_version, created_by=source, created_ts=created_ts, event_id=str(event_id)))
 
 
 def _generate_password() -> str:
