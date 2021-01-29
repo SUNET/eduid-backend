@@ -57,5 +57,5 @@ def _choose_parser(app_name: str, ns: str) -> Optional[BaseConfigParser]:
         except ImportError:
             raise ParserException('EtcdConfigParser could not be imported')
 
-        parser = EtcdConfigParser(namespace=f'/{ns}/{app_name}')
+        parser = EtcdConfigParser(namespace=ns)
     return parser
