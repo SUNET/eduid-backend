@@ -10,7 +10,7 @@ from satosa.micro_services.base import ResponseMicroService
 
 from eduid_userdb import UserDB
 
-from eduid_scimapi.userdb import ScimApiUser, ScimApiUserDB
+from eduid_scimapi.db.userdb import ScimApiUser, ScimApiUserDB
 
 logger = logging.getLogger(__name__)
 
