@@ -52,7 +52,7 @@ class ActionsTests(ActionsTestCase):
         Set the (partial, not yet fully logged in) authn data in the session,
         and return the response to a GET request to the root of the service.
 
-        :param timestamp: to control the timestamp set in the session at the beginning of authn'ing
+        :param timestamp: to control the timestamp set in the session at the beginning of authentication
         """
         eppn = self.test_eppn
         if timestamp is None:
@@ -69,7 +69,7 @@ class ActionsTests(ActionsTestCase):
         """
         Prepare a mock actions session, and return the response to a request for client side configuration.
 
-        The kwargs are passed directoly to the `prepare_session` method.
+        The kwargs are passed directory to the `prepare_session` method.
         """
         with self.session_cookie_anon(self.browser) as client:
             self.prepare_session(client, **kwargs)
@@ -79,7 +79,7 @@ class ActionsTests(ActionsTestCase):
         """
         Prepare a mock actions session, and return the response to a request for pending actions information.
 
-        The kwargs are passed directoly to the `prepare_session` method.
+        The kwargs are passed directory to the `prepare_session` method.
         """
         with self.session_cookie_anon(self.browser) as client:
             self.prepare_session(client, **kwargs)
@@ -92,7 +92,7 @@ class ActionsTests(ActionsTestCase):
         """
         Prepare a mock actions session, and return the response to a POST request with action data.
 
-        The kwargs are passed directoly to the `prepare_session` method.
+        The kwargs are passed directory to the `prepare_session` method.
 
         :param csrf_token: what csrf token to include in the POST params.
         :param kwargs: params for the `prepare_session` method.
