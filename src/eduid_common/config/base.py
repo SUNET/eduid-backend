@@ -120,6 +120,11 @@ class EduIDBaseAppConfig(RootConfig):
     available_languages: Mapping[str, str] = PydanticField(default={'en': 'English', 'sv': 'Svenska'})
     environment: EduidEnvironment = EduidEnvironment.production
     mongo_uri: str
+    # Allow list of URLs that do not need authentication. Unauthenticated requests
+    # for these URLs will be served, rather than redirected to the authn service.
+    # The list is a list of regex that are matched against the path of the
+    # requested URL ex. ^/test$.
+    no_authn_urls: list = PydanticField(default=['^/status/healthy$', '^/status/sanity-check$'])
 
 
 @dataclass
@@ -314,7 +319,7 @@ class BaseConfig(CommonConfig):
     # vccs health check credentials
     vccs_check_eppn: str = ''
     vccs_check_password: str = ''
-    # Whitelist of URLs that do not need authentication. Unauthenticated requests
+    # Allow list of URLs that do not need authentication. Unauthenticated requests
     # for these URLs will be served, rather than redirected to the authn service.
     # The list is a list of regex that are matched against the path of the
     # requested URL ex. ^/test$.
