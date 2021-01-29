@@ -28,7 +28,8 @@ class TestInitConfig(unittest.TestCase):
         os.environ.clear()
 
     def test_YamlConfig(self):
-        os.environ['EDUID_CONFIG_NS'] = '/test/'
+        os.environ['EDUID_CONFIG_NS'] = '/eduid/test/app_one'
+        os.environ['EDUID_CONFIG_COMMON_NS'] = '/eduid/test/common'
         os.environ['EDUID_CONFIG_YAML'] = str(self.data_dir / 'test.yaml')
 
         config_one = load_config(typ=TestConfig, ns='test', app_name='app_one')
@@ -38,6 +39,8 @@ class TestInitConfig(unittest.TestCase):
         assert config_one.number == 9
         assert config_one.only_default == 19
 
+        os.environ['EDUID_CONFIG_NS'] = '/eduid/test/app_two'
+
         config_two = load_config(typ=TestConfig, ns='test', app_name='app_two')
         assert config_two.debug
         assert config_two.app_name == 'app_two'
@@ -46,7 +49,8 @@ class TestInitConfig(unittest.TestCase):
         assert config_two.only_default == 19
 
     def test_YamlConfig_interpolation(self):
-        os.environ['EDUID_CONFIG_NS'] = '/test/'
+        os.environ['EDUID_CONFIG_NS'] = '/eduid/test/test_interpolation'
+        os.environ['EDUID_CONFIG_COMMON_NS'] = '/eduid/test/common'
         os.environ['EDUID_CONFIG_YAML'] = str(self.data_dir / 'test.yaml')
 
         config = load_config(typ=TestConfig, ns='test', app_name='test_interpolation')
@@ -54,7 +58,8 @@ class TestInitConfig(unittest.TestCase):
         assert config.foo == 'hi world'
 
     def test_YamlConfig_missing_value(self):
-        os.environ['EDUID_CONFIG_NS'] = '/test/'
+        os.environ['EDUID_CONFIG_NS'] = '/eduid/test/test_missing_value'
+        os.environ['EDUID_CONFIG_COMMON_NS'] = '/eduid/test/common'
         os.environ['EDUID_CONFIG_YAML'] = str(self.data_dir / 'test.yaml')
 
         with pytest.raises(ValidationError) as exc_info:
@@ -63,7 +68,8 @@ class TestInitConfig(unittest.TestCase):
         assert exc_info.value.errors() == [{'loc': ('number',), 'msg': 'field required', 'type': 'value_error.missing'}]
 
     def test_YamlConfig_wrong_type(self):
-        os.environ['EDUID_CONFIG_NS'] = '/test/'
+        os.environ['EDUID_CONFIG_NS'] = '/eduid/test/test_wrong_type'
+        os.environ['EDUID_CONFIG_COMMON_NS'] = '/eduid/test/common'
         os.environ['EDUID_CONFIG_YAML'] = str(self.data_dir / 'test.yaml')
 
         with pytest.raises(ValidationError) as exc_info:
@@ -75,7 +81,8 @@ class TestInitConfig(unittest.TestCase):
 
     def test_YamlConfig_unknown_data(self):
         """ Unknown data should not be rejected because it is an operational nightmare """
-        os.environ['EDUID_CONFIG_NS'] = '/test/'
+        os.environ['EDUID_CONFIG_NS'] = '/eduid/test/test_unknown_data'
+        os.environ['EDUID_CONFIG_COMMON_NS'] = '/eduid/test/common'
         os.environ['EDUID_CONFIG_YAML'] = str(self.data_dir / 'test.yaml')
 
         config = load_config(typ=TestConfig, ns='test', app_name='test_unknown_data')
