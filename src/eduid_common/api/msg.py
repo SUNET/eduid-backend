@@ -72,7 +72,10 @@ class MsgRelay(object):
         """
         rtask = self._get_postal_address.apply_async(args=[nin])
         try:
-            return rtask.get(timeout=timeout)
+            ret = rtask.get(timeout=timeout)
+            if ret is not None:
+                return ret
+            raise MsgTaskFailed('No postal address returned from Navet')
         except Exception as e:
             rtask.forget()
             raise MsgTaskFailed(f'get_postal_address task failed: {e}')
@@ -95,7 +98,10 @@ class MsgRelay(object):
         """
         rtask = self._get_relations_to.apply_async(args=[nin, relative_nin])
         try:
-            return rtask.get(timeout=timeout)
+            ret = rtask.get(timeout=timeout)
+            if ret is not None:
+                return ret
+            raise MsgTaskFailed('No postal address returned from Navet')
         except Exception as e:
             rtask.forget()
             raise MsgTaskFailed(f'get_relations_to task failed: {e}')
