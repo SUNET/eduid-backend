@@ -35,6 +35,7 @@ from __future__ import absolute_import
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime
+from typing import Any, Mapping, Optional
 
 from bson import ObjectId
 from mock import MagicMock
@@ -45,7 +46,7 @@ from eduid_userdb.fixtures.users import mocked_user_standard
 from eduid_userdb.userdb import User
 
 from eduid_webapp.actions.action_abc import ActionPlugin
-from eduid_webapp.actions.app import actions_init_app
+from eduid_webapp.actions.app import ActionsApp, actions_init_app
 from eduid_webapp.actions.helpers import ActionsMsg
 from eduid_webapp.actions.settings.common import ActionsConfig
 
@@ -124,6 +125,9 @@ TEST_CONFIG = {
 
 
 class ActionsTestCase(EduidAPITestCase):
+
+    app: ActionsApp
+
     def setUp(self, users=None, copy_user_to_private=False, am_settings=None):
         super(ActionsTestCase, self).setUp(users=None, copy_user_to_private=False, am_settings=None)
         self.user = User.from_dict(data=mocked_user_standard.to_dict())  # make a copy of mocked_user_standard
@@ -136,7 +140,7 @@ class ActionsTestCase(EduidAPITestCase):
         self.app.actions_db._drop_whole_collection()
         super(ActionsTestCase, self).tearDown()
 
-    def load_app(self, config):
+    def load_app(self, config: Optional[Mapping[str, Any]]) -> ActionsApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
@@ -156,7 +160,7 @@ class ActionsTestCase(EduidAPITestCase):
         return config
 
     @contextmanager
-    def session_cookie(self, client, server_name='localhost'):
+    def session_cookie(self, client: Any, server_name: str = 'localhost') -> Any:
         with client.session_transaction() as sess:
             client.set_cookie(server_name, key=self.app.config.session_cookie_name, value=sess.meta.cookie_val)
         yield client

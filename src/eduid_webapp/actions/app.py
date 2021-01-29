@@ -34,12 +34,14 @@
 
 import types
 from importlib import import_module
-from typing import cast
+from typing import Any, Mapping, Optional, cast
 
 from flask import current_app, render_template, templating
 
 from eduid_common.api import am
 from eduid_common.api.app import EduIDBaseApp
+from eduid_common.config.base import FlaskConfig
+from eduid_common.config.parsers import load_config
 from eduid_userdb.actions import ActionDB
 
 from eduid_webapp.actions.settings.common import ActionsConfig
@@ -48,7 +50,7 @@ from eduid_webapp.actions.settings.common import ActionsConfig
 class PluginsRegistry(dict):
     def __init__(self, app):
         super(PluginsRegistry, self).__init__()
-        for plugin_name in app.config.action_plugins:
+        for plugin_name in app.conf.action_plugins:
             if plugin_name in self:
                 app.logger.warn("Duplicate entry point: %s" % plugin_name)
             else:
@@ -59,8 +61,8 @@ class PluginsRegistry(dict):
 
 def _get_tous(app, version=None):
     if version is None:
-        version = app.config.tou_version
-    langs = app.config.available_languages.keys()
+        version = app.conf.tou_version
+    langs = app.conf.available_languages.keys()
     tous = {}
     for lang in langs:
         name = 'tous/tou-{}-{}.txt'.format(version, lang)
@@ -73,12 +75,13 @@ def _get_tous(app, version=None):
 
 
 class ActionsApp(EduIDBaseApp):
-    def __init__(self, name: str, config: dict, **kwargs):
+    def __init__(self, name: str, test_config: Optional[Mapping[str, Any]], **kwargs):
+        self.conf = load_config(typ=ActionsConfig, app_name=name, ns='webapp', test_config=test_config)
         # Initialise type of self.config before any parent class sets a precedent to mypy
-        self.config = ActionsConfig.init_config(ns='webapp', app_name=name, test_config=config)
+        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
         super().__init__(name, **kwargs)
         # cast self.config because sometimes mypy thinks it is a FlaskConfig after super().__init__()
-        self.config: ActionsConfig = cast(ActionsConfig, self.config)  # type: ignore
+        self.config: FlaskConfig = cast(FlaskConfig, self.config)  # type: ignore
 
         from eduid_webapp.actions.views import actions_views
 
@@ -98,7 +101,7 @@ class ActionsApp(EduIDBaseApp):
 current_actions_app: ActionsApp = cast(ActionsApp, current_app)
 
 
-def actions_init_app(name: str, config: dict) -> ActionsApp:
+def actions_init_app(name: str, test_config: Mapping[str, Any] = None) -> ActionsApp:
     """
     Create an instance of an eduid actions app.
 
@@ -106,11 +109,11 @@ def actions_init_app(name: str, config: dict) -> ActionsApp:
     since the actions app is used unauthenticated.
 
     :param name: The name of the instance, it will affect the configuration loaded.
-    :param config: any additional configuration settings. Specially useful
+    :param test_config: any additional configuration settings. Specially useful
                    in test cases
     """
 
-    app = ActionsApp(name, config)
+    app = ActionsApp(name, test_config=test_config)
 
     app.logger.info(f'Init {name} app...')
 

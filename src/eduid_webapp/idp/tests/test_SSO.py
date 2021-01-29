@@ -134,8 +134,8 @@ class SSOIdPTests(IdPTests):
             self.app.logger,
             self.app.IDP,
             BadRequest,
-            self.app.config.debug,
-            self.app.config.verify_request_signatures,
+            self.app.conf.debug,
+            self.app.conf.verify_request_signatures,
         )
         # context.idp.parse_authn_request(xmlstr, binding)
         ticket = SSOLoginData(key, xmlstr, binding)

@@ -50,7 +50,7 @@ from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.cache import IdentityCache, OutstandingQueriesCache, StateCache
 from eduid_common.authn.utils import get_saml2_config
 
-from eduid_webapp.idp.app import init_idp_app
+from eduid_webapp.idp.app import IdPApp, init_idp_app
 from eduid_webapp.idp.sso_session import SSOSession
 
 __author__ = 'ft'
@@ -86,7 +86,7 @@ class IdPTests(EduidAPITestCase):
         super().setUp(init_am=init_am, am_settings=am_settings, users=users, copy_user_to_private=copy_user_to_private)
         self.idp_entity_id = 'https://unittest-idp.example.edu/idp.xml'
         self.relay_state = 'test-fest'
-        self.sp_config = get_saml2_config(self.app.config.pysaml2_config, name='SP_CONFIG')
+        self.sp_config = get_saml2_config(self.app.conf.pysaml2_config, name='SP_CONFIG')
         # pysaml2 likes to keep state about ongoing logins, data from login to when you logout etc.
         self._pysaml2_caches: Dict[str, Any] = dict()
         self.pysaml2_state = StateCache(self._pysaml2_caches)  # _saml2_state in _pysaml2_caches
@@ -94,7 +94,7 @@ class IdPTests(EduidAPITestCase):
         self.pysaml2_oq = OutstandingQueriesCache(self._pysaml2_caches)  # _saml2_outstanding_queries in _pysaml2_caches
         self.saml2_client = Saml2Client(config=self.sp_config, identity_cache=self.pysaml2_identity)
 
-    def load_app(self, config):
+    def load_app(self, config: Optional[Mapping[str, Any]]) -> IdPApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
@@ -111,6 +111,7 @@ class IdPTests(EduidAPITestCase):
                 'fticks_secret_key': 'test test',
                 'eduperson_targeted_id_secret_key': 'eptid_secret',
                 'sso_cookie': {'key': 'test_sso_cookie'},
+                'eduid_site_url': 'https://eduid.docker_dev',
             }
         )
         return config
@@ -121,7 +122,7 @@ class IdPTests(EduidAPITestCase):
             self.app.central_userdb._drop_whole_collection()
 
     def test_app_starts(self):
-        assert self.app.config.app_name == 'idp'
+        assert self.app.conf.app_name == 'idp'
 
     def _try_login(
         self, saml2_client: Optional[Saml2Client] = None, authn_context=None, force_authn: bool = False,
@@ -176,7 +177,7 @@ class IdPTests(EduidAPITestCase):
 
         # Save the SSO cookie value
         sso_cookie_val = None
-        _re = f'.*{self.app.config.sso_cookie.key}=(.+?);.*'
+        _re = f'.*{self.app.conf.sso_cookie.key}=(.+?);.*'
         _sso_cookie_re = re.match(_re, cookies)
         if _sso_cookie_re:
             sso_cookie_val = _sso_cookie_re.groups()[0]

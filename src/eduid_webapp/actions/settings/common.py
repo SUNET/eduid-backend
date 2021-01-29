@@ -35,29 +35,28 @@
 Configuration (file) handling for the eduID actions app.
 """
 
-from dataclasses import dataclass, field
 from typing import Mapping
 
-from eduid_common.config.base import FlaskConfig, WebauthnConfigMixin
+from pydantic import Field
+
+from eduid_common.config.base import EduIDBaseAppConfig, WebauthnConfigMixin2
 
 
-@dataclass
-class ActionsConfig(FlaskConfig, WebauthnConfigMixin):
+class ActionsConfig(EduIDBaseAppConfig, WebauthnConfigMixin2):
     """
     Configuration for the actions app
     """
 
     app_name: str = 'actions'
-
     bundles_path: str = ''
     bundles_version: str = ''
     bundles_feature_cookie: str = ''
-    bundles_feature_version: Mapping = field(default_factory=dict)
+    bundles_feature_version: Mapping = Field(default_factory=dict)
     idp_url: str = ''
     mfa_testing: bool = False
     generate_u2f_challenges: bool = False  # UNUSED, remove after updating config everywhere
     eidas_url: str = ''
     mfa_authn_idp: str = ''
     # The plugins for pre-authentication actions that need to be loaded
-    action_plugins: list = field(default_factory=lambda: ["tou", "mfa"])
+    action_plugins: list = Field(default=['tou', 'mfa'])
     tou_version: str = '2017-v6'

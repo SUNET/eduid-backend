@@ -270,7 +270,7 @@ class MFAActionPluginTests(ActionsTestCase):
                 base64.b64decode('3h/EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc='), 'preferred'
             )
         )
-        self.app.config.fido2_rp_id = 'idp.dev.eduid.se'
+        self.app.conf.fido2_rp_id = 'idp.dev.eduid.se'
 
         data1 = {
             'authenticatorData': 'mZ9k6EPHoJxJZNA+UuvM0JVoutZHmqelg9kXe/DSefgBAAAA/w==',

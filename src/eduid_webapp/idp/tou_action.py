@@ -52,8 +52,8 @@ def add_actions(user: IdPUser, ticket: SSOLoginData) -> Optional[Action]:
     :param user: the authenticating user
     :param ticket: the SSO login data
     """
-    version = current_app.config.tou_version
-    interval = current_app.config.tou_reaccept_interval
+    version = current_app.conf.tou_version
+    interval = current_app.conf.tou_reaccept_interval
 
     if user.tou.has_accepted(version, interval):
         current_app.logger.debug(f'User has already accepted ToU version {version!r}')

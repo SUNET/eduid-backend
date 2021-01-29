@@ -39,6 +39,7 @@ from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_userdb.exceptions import UserOutOfSync
+from eduid_userdb.signup import SignupUser
 
 from eduid_webapp.signup.app import signup_init_app
 from eduid_webapp.signup.settings.common import SignupConfig
@@ -184,7 +185,8 @@ class SignupTests(EduidAPITestCase):
         with self.session_cookie(self.browser) as client:
             with client.session_transaction():
                 with self.app.test_request_context():
-                    send_verification_mail(email)
+                    # lower because we are purposefully calling it with a mixed case mail address in tests
+                    send_verification_mail(email.lower())
                     signup_user = self.app.private_userdb.get_user_by_pending_mail_address(email)
                     code = code or signup_user.pending_mail_address.verification_code
 
@@ -230,7 +232,8 @@ class SignupTests(EduidAPITestCase):
                 client.post('/trycaptcha', data=json.dumps(data), content_type=self.content_type_json)
 
                 if data1 is None:
-                    send_verification_mail(email)
+                    # lower because we are purposefully calling it with a mixed case mail address in tests
+                    send_verification_mail(email.lower())
 
             signup_user = self.app.private_userdb.get_user_by_pending_mail_address(email)
             response = client.get('/verify-link/' + signup_user.pending_mail_address.verification_code)
@@ -309,11 +312,21 @@ class SignupTests(EduidAPITestCase):
 
     # actual tests
 
-    def test_captcha_new(self):
+    def test_captcha_new_user(self):
         response = self._captcha_new()
         data = json.loads(response.data)
         self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_SUCCESS')
         self.assertEqual(data['payload']['next'], 'new')
+
+    def test_captcha_new_user_mixed_case(self):
+        response = self._captcha_new(email='MixedCase@example.com')
+        data = json.loads(response.data)
+        self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_SUCCESS')
+        self.assertEqual(data['payload']['next'], 'new')
+        mixed_user: SignupUser = self.app.private_userdb.get_user_by_pending_mail_address('MixedCase@example.com')
+        lower_user: SignupUser = self.app.private_userdb.get_user_by_pending_mail_address('mixedcase@example.com')
+        assert mixed_user.eppn == lower_user.eppn
+        assert mixed_user.pending_mail_address.email == lower_user.pending_mail_address.email
 
     def test_captcha_new_no_key(self):
         self.app.config.recaptcha_public_key = None
@@ -329,17 +342,33 @@ class SignupTests(EduidAPITestCase):
         self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
         self.assertEqual(data['payload']['error']['csrf_token'], ['CSRF failed to validate'])
 
-    def test_captcha_repeated(self):
+    def test_captcha_existing_user(self):
         response = self._captcha_new(email='johnsmith@example.com')
         data = json.loads(response.data)
         self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
         self.assertEqual(data['payload']['message'], 'signup.registering-address-used')
 
-    def test_captcha_remove_repeated_unverified(self):
+    def test_captcha_existing_user_mixed_case(self):
+        response = self._captcha_new(email='JohnSmith@Example.com')
+        data = json.loads(response.data)
+        self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
+        self.assertEqual(data['payload']['message'], 'signup.registering-address-used')
+
+    def test_captcha_remove_existing_signup_user(self):
         response = self._captcha_new(email='johnsmith2@example.com')
         data = json.loads(response.data)
         self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_SUCCESS')
         self.assertEqual(data['payload']['next'], 'new')
+
+    def test_captcha_remove_existing_signup_user_mixed_case(self):
+        response = self._captcha_new(email='JohnSmith2@Example.com')
+        data = json.loads(response.data)
+        self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_SUCCESS')
+        self.assertEqual(data['payload']['next'], 'new')
+        mixed_user: SignupUser = self.app.private_userdb.get_user_by_pending_mail_address('JohnSmith2@example.com')
+        lower_user: SignupUser = self.app.private_userdb.get_user_by_pending_mail_address('johnsmith2@Example.com')
+        assert mixed_user.eppn == lower_user.eppn
+        assert mixed_user.pending_mail_address.email == lower_user.pending_mail_address.email
 
     def test_captcha_fail(self):
         response = self._captcha_new(recaptcha_return_value=False)
@@ -397,15 +426,23 @@ class SignupTests(EduidAPITestCase):
             self.assertIn('csrf_token', data['payload']['error'])
             self.assertIn('recaptcha_response', data['payload']['error'])
 
-    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
-    def test_resend_email(self, mock_sendmail):
+    def test_resend_email(self):
         response = self._resend_email()
 
         data = json.loads(response.data)
         self.assertEqual(data['type'], 'POST_SIGNUP_RESEND_VERIFICATION_SUCCESS')
 
-    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
-    def test_resend_email_wrong_csrf(self, mock_sendmail):
+    def test_resend_email_mixed_case(self):
+        response = self._resend_email(email='MixedCase@Example.com')
+        data = json.loads(response.data)
+        self.assertEqual(data['type'], 'POST_SIGNUP_RESEND_VERIFICATION_SUCCESS')
+
+        mixed_user: SignupUser = self.app.private_userdb.get_user_by_pending_mail_address('MixedCase@Example.com')
+        lower_user: SignupUser = self.app.private_userdb.get_user_by_pending_mail_address('mixedcase@example.com')
+        assert mixed_user.eppn == lower_user.eppn
+        assert mixed_user.pending_mail_address.email == lower_user.pending_mail_address.email
+
+    def test_resend_email_wrong_csrf(self):
         data1 = {'csrf_token': 'wrong-token'}
         response = self._resend_email(data1=data1)
 
@@ -419,6 +456,16 @@ class SignupTests(EduidAPITestCase):
         data = json.loads(response.data)
         self.assertEqual(data['type'], 'GET_SIGNUP_VERIFY_LINK_SUCCESS')
         self.assertEqual(data['payload']['status'], 'verified')
+
+    def test_verify_code_mixed_case(self):
+        response = self._verify_code(email='MixedCase@Example.com')
+        data = json.loads(response.data)
+        self.assertEqual(data['type'], 'GET_SIGNUP_VERIFY_LINK_SUCCESS')
+        self.assertEqual(data['payload']['status'], 'verified')
+        mixed_user: SignupUser = self.app.private_userdb.get_user_by_mail('MixedCase@Example.com')
+        lower_user: SignupUser = self.app.private_userdb.get_user_by_mail('mixedcase@example.com')
+        assert mixed_user.eppn == lower_user.eppn
+        assert mixed_user.mail_addresses.primary.email == lower_user.mail_addresses.primary.email
 
     def test_verify_code_unsynced(self):
         with patch('eduid_webapp.signup.helpers.save_and_sync_user') as mock_save:
@@ -435,8 +482,19 @@ class SignupTests(EduidAPITestCase):
         self.assertEqual(data['type'], 'GET_SIGNUP_VERIFY_LINK_FAIL')
         self.assertEqual(data['payload']['status'], 'already-verified')
 
+    def test_verify_existing_email_mixed_case(self):
+        response = self._verify_code(email='JohnSmith@example.com')
+
+        data = json.loads(response.data)
+        self.assertEqual(data['type'], 'GET_SIGNUP_VERIFY_LINK_FAIL')
+        self.assertEqual(data['payload']['status'], 'already-verified')
+
     def test_verify_code_after_captcha(self):
         data = self._verify_code_after_captcha()
+        self.assertEqual(data['type'], 'GET_SIGNUP_VERIFY_LINK_SUCCESS')
+
+    def test_verify_code_after_captcha_mixed_case(self):
+        data = self._verify_code_after_captcha(email='MixedCase@Example.com')
         self.assertEqual(data['type'], 'GET_SIGNUP_VERIFY_LINK_SUCCESS')
 
     def test_verify_code_after_captcha_proofing_log_error(self):
