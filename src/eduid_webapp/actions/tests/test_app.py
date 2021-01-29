@@ -52,12 +52,12 @@ class ActionsTests(ActionsTestCase):
         Set the (partial, not yet fully logged in) authn data in the session,
         and return the response to a GET request to the root of the service.
 
-        :param timestamp: to control the timestamp set in the session at the beginning of authn'ing
+        :param timestamp: to control the timestamp set in the session at the beginning of authentication
         """
         eppn = self.test_eppn
         if timestamp is None:
             timestamp = datetime.fromtimestamp(int(time.time()))
-        with self.session_cookie(self.browser) as client:
+        with self.session_cookie_anon(self.browser) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
                     sess.common.eppn = eppn
@@ -69,9 +69,9 @@ class ActionsTests(ActionsTestCase):
         """
         Prepare a mock actions session, and return the response to a request for client side configuration.
 
-        The kwargs are passed directoly to the `prepare_session` method.
+        The kwargs are passed directory to the `prepare_session` method.
         """
-        with self.session_cookie(self.browser) as client:
+        with self.session_cookie_anon(self.browser) as client:
             self.prepare_session(client, **kwargs)
             return client.get('/config')
 
@@ -79,9 +79,9 @@ class ActionsTests(ActionsTestCase):
         """
         Prepare a mock actions session, and return the response to a request for pending actions information.
 
-        The kwargs are passed directoly to the `prepare_session` method.
+        The kwargs are passed directory to the `prepare_session` method.
         """
-        with self.session_cookie(self.browser) as client:
+        with self.session_cookie_anon(self.browser) as client:
             self.prepare_session(client, **kwargs)
             with self.app.test_request_context('/get-actions'):
                 self.authenticate(idp_session='dummy-session')
@@ -92,12 +92,12 @@ class ActionsTests(ActionsTestCase):
         """
         Prepare a mock actions session, and return the response to a POST request with action data.
 
-        The kwargs are passed directoly to the `prepare_session` method.
+        The kwargs are passed directory to the `prepare_session` method.
 
         :param csrf_token: what csrf token to include in the POST params.
         :param kwargs: params for the `prepare_session` method.
         """
-        with self.session_cookie(self.browser) as client:
+        with self.session_cookie_anon(self.browser) as client:
             self.prepare_session(client, **kwargs)
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
@@ -160,13 +160,13 @@ class ActionsTests(ActionsTestCase):
     def test_post_action_no_csrf(self):
         response = self._post_action(csrf_token='')
         self._check_error_response(
-            response, type_='POST_ACTIONS_POST_ACTION_FAIL', error={'csrf_token': ['CSRF failed to validate'],},
+            response, type_='POST_ACTIONS_POST_ACTION_FAIL', error={'csrf_token': ['CSRF failed to validate']},
         )
 
     def test_post_action_wrong_csrf(self):
         response = self._post_action(csrf_token='wrong-token')
         self._check_error_response(
-            response, type_='POST_ACTIONS_POST_ACTION_FAIL', error={'csrf_token': ['CSRF failed to validate'],},
+            response, type_='POST_ACTIONS_POST_ACTION_FAIL', error={'csrf_token': ['CSRF failed to validate']},
         )
 
     def test_post_action_action_error(self):
@@ -188,19 +188,11 @@ class ActionsTests(ActionsTestCase):
         self.assertEqual(data['payload']['message'], 'test error')
 
     def test_post_action_multi_step(self):
-        with self.session_cookie(self.browser) as client:
-            self.prepare_session(client, total_steps=2)
-            with client.session_transaction() as sess:
-                with self.app.test_request_context():
-                    token = {'csrf_token': sess.get_csrf_token()}
-            # First step
-            response = client.post('/post-action', data=json.dumps(token), content_type=self.content_type_json)
-            data = json.loads(response.data)
-            self.assertEqual(data['payload']['data']['completed'], 'done')
-            self.assertEqual(data['type'], 'POST_ACTIONS_POST_ACTION_SUCCESS')
-            token = {'csrf_token': data['payload']['csrf_token']}
-            # Second step
-            response = client.post('/post-action', data=json.dumps(token), content_type=self.content_type_json)
-            data = json.loads(response.data)
-            self.assertEqual(data['payload']['data']['completed'], 'done')
-            self.assertEqual(data['type'], 'POST_ACTIONS_POST_ACTION_SUCCESS')
+        # First step
+        response1 = self._post_action(total_steps=2)
+        self._check_api_response(response1, status=200, type_='POST_ACTIONS_POST_ACTION_SUCCESS')
+        self.assertEqual(response1.json['payload']['data']['completed'], 'done')
+        # Second step
+        response2 = self._post_action(add_action=False, csrf_token=response1.json['payload']['csrf_token'])
+        self._check_api_response(response2, status=200, type_='POST_ACTIONS_POST_ACTION_SUCCESS')
+        self.assertEqual(response2.json['payload']['data']['completed'], 'done')

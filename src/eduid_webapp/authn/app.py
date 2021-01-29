@@ -30,23 +30,26 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from typing import cast
+from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.authn.utils import get_saml2_config
+from eduid_common.config.base import FlaskConfig
+from eduid_common.config.parsers import load_config
 
 from eduid_webapp.authn.settings.common import AuthnConfig
 
 
 class AuthnApp(EduIDBaseApp):
-    def __init__(self, name: str, config: dict, **kwargs):
+    def __init__(self, name: str, test_config: Optional[Mapping[str, Any]], **kwargs):
+        self.conf = load_config(typ=AuthnConfig, app_name=name, ns='webapp', test_config=test_config)
         # Initialise type of self.config before any parent class sets a precedent to mypy
-        self.config = AuthnConfig.init_config(ns='webapp', app_name=name, test_config=config)
+        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
         super().__init__(name, **kwargs)
         # cast self.config because sometimes mypy thinks it is a FlaskConfig after super().__init__()
-        self.config: AuthnConfig = cast(AuthnConfig, self.config)  # type: ignore
+        self.config: FlaskConfig = cast(FlaskConfig, self.config)  # type: ignore
 
         self.saml2_config = get_saml2_config(self.config.saml2_settings_module)
 

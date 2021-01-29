@@ -149,7 +149,7 @@ class MFAActionPluginTests(ActionsTestCase):
         :param fido2state: to control the fido2 state kept in the session
         """
         mock_complete_authn.return_value = ({'keyHandle': keyhandle}, 'dummy-touch', 'dummy-counter')
-        with self.session_cookie(self.browser) as client:
+        with self.session_cookie_anon(self.browser) as client:
             self.prepare(client, Plugin, 'mfa', action_dict=MFA_ACTION)
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
@@ -169,7 +169,7 @@ class MFAActionPluginTests(ActionsTestCase):
 
         :param prepare_session: whether to add 3rd party mfa info to the session
         """
-        with self.session_cookie(self.browser) as client:
+        with self.session_cookie_anon(self.browser) as client:
             self.prepare(client, Plugin, 'mfa', action_dict=MFA_ACTION)
             if prepare_session:
                 with client.session_transaction() as sess:

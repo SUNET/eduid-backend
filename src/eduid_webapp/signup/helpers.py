@@ -48,7 +48,7 @@ from eduid_common.api.utils import save_and_sync_user
 from eduid_common.authn.vccs import add_password
 from eduid_common.misc.timeutil import utc_now
 from eduid_common.session import session
-from eduid_userdb.exceptions import UserOutOfSync, UserDoesNotExist, UserHasNotCompletedSignup
+from eduid_userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup, UserOutOfSync
 from eduid_userdb.signup import SignupUser
 from eduid_userdb.tou import ToUEvent
 
@@ -92,7 +92,7 @@ def generate_eppn() -> str:
         eppn = proquint.uint2quint(eppn_int)
         try:
             current_app.central_userdb.get_user_by_eppn(eppn)
-        except current_app.central_userdb.exceptions.UserDoesNotExist:
+        except UserDoesNotExist:
             return eppn
     current_app.logger.critical('generate_eppn finished without finding a new unique eppn')
     abort(500)

@@ -83,7 +83,7 @@ def add_actions(user: IdPUser, ticket: SSOLoginData) -> Optional[Action]:
     if existing_actions and len(existing_actions) > 0:
         current_app.logger.debug('User has existing MFA actions - checking them')
         if check_authn_result(user, ticket, existing_actions):
-            for this in ticket.mfa_action_creds:
+            for this in ticket.mfa_action_creds.keys():
                 current_app.authn.log_authn(user, success=[this], failure=[])
             # TODO: Should we persistently log external mfa usage?
             return None
