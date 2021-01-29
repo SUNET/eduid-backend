@@ -188,19 +188,11 @@ class ActionsTests(ActionsTestCase):
         self.assertEqual(data['payload']['message'], 'test error')
 
     def test_post_action_multi_step(self):
-        with self.session_cookie(self.browser) as client:
-            self.prepare_session(client, total_steps=2)
-            with client.session_transaction() as sess:
-                with self.app.test_request_context():
-                    token = {'csrf_token': sess.get_csrf_token()}
-            # First step
-            response = client.post('/post-action', data=json.dumps(token), content_type=self.content_type_json)
-            data = json.loads(response.data)
-            self.assertEqual(data['payload']['data']['completed'], 'done')
-            self.assertEqual(data['type'], 'POST_ACTIONS_POST_ACTION_SUCCESS')
-            token = {'csrf_token': data['payload']['csrf_token']}
-            # Second step
-            response = client.post('/post-action', data=json.dumps(token), content_type=self.content_type_json)
-            data = json.loads(response.data)
-            self.assertEqual(data['payload']['data']['completed'], 'done')
-            self.assertEqual(data['type'], 'POST_ACTIONS_POST_ACTION_SUCCESS')
+        # First step
+        response1 = self._post_action(total_steps=2)
+        self._check_api_response(response1, status=200, type_='POST_ACTIONS_POST_ACTION_SUCCESS')
+        self.assertEqual(response1.json['payload']['data']['completed'], 'done')
+        # Second step
+        response2 = self._post_action(add_action=False, csrf_token=response1.json['payload']['csrf_token'])
+        self._check_api_response(response2, status=200, type_='POST_ACTIONS_POST_ACTION_SUCCESS')
+        self.assertEqual(response2.json['payload']['data']['completed'], 'done')
