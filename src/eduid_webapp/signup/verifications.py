@@ -45,6 +45,7 @@ from eduid_userdb import MailAddress
 from eduid_userdb.logs import MailAddressProofing
 from eduid_userdb.proofing import EmailProofingElement
 from eduid_userdb.signup import SignupUser
+
 from eduid_webapp.signup.app import current_signup_app as current_app
 from eduid_webapp.signup.helpers import generate_eppn
 
