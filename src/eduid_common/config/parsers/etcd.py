@@ -52,7 +52,7 @@ class EtcdConfigParser(BaseConfigParser):
 
     @interpolate
     @decrypt
-    def read_configuration(self) -> Mapping[str, Any]:
+    def read_configuration(self, path: str) -> Mapping[str, Any]:
         """
         :return: Configuration dict
 
@@ -64,7 +64,7 @@ class EtcdConfigParser(BaseConfigParser):
 
         Ex.
 
-        ns = '/eduid/webapp/common/'
+        path = '/eduid/webapp/common/'
 
         Key and value in etcd:
         /eduid/webapp/common/saml_config -> "{xmlsec_binary': '/usr/bin/xmlsec1'}"
@@ -79,10 +79,17 @@ class EtcdConfigParser(BaseConfigParser):
             'BASIC_AUTH': 'user:secret@localhost'
         }
         """
+        _path = path.lower()
+        if not _path.startswith('/'):
+            raise ParserException(f'Path {_path} has to start with a slash')
+        if not _path.endswith('/'):
+            # Be nice and fix it
+            _path = f'{_path}/'
+
         config = {}
         try:
-            for child in self.client.read(self.ns, recursive=True).children:
-                # Remove namespace
+            for child in self.client.read(_path, recursive=True).children:
+                # Remove everything but the last element of the key
                 key = child.key.split('/')[-1]
                 # Load etcd string with json to handle complex structures
                 config[key] = json.loads(child.value)

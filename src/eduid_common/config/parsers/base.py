@@ -10,5 +10,5 @@ from typing import Any, Mapping
 
 
 class BaseConfigParser(ABC):
-    def read_configuration(self) -> Mapping[str, Any]:
+    def read_configuration(self, path: str) -> Mapping[str, Any]:
         raise NotImplementedError()
