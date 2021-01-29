@@ -32,7 +32,7 @@
 
 import logging
 import pprint
-from typing import Mapping
+from typing import Mapping, Optional
 from xml.etree.ElementTree import ParseError
 
 from flask import abort, redirect, request
@@ -80,10 +80,16 @@ def get_authn_ctx(session_info):
 
 
 def get_authn_request(
-    saml2_config: SPConfig, session, came_from, selected_idp, force_authn=False, sign_alg=None, digest_alg=None
+    saml2_config: SPConfig,
+    session: EduidSession,
+    came_from: str,
+    selected_idp: str,
+    force_authn: bool = False,
+    sign_alg: Optional[str] = None,
+    digest_alg: Optional[str] = None,
 ):
     kwargs = {
-        "force_authn": str(force_authn).lower(),
+        'force_authn': str(force_authn).lower(),
     }
     logger.debug(f'Authn request args: {kwargs}')
 
