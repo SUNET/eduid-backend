@@ -409,7 +409,7 @@ msgid ""
 "Code: %(verification_code)s\n"
 msgstr ""
 "\n"
-"Din engångskod för att verifiera ditt telefonnummer hos %(site_name)s.\n"
+"Det här är din engångskod för att verifiera ditt telefonnummer hos %(site_name)s.\n"
 "\n"
 "Kod: %(verification_code)s\n"
 
