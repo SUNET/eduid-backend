@@ -69,8 +69,19 @@ def send_verification_code(user, phone):
     if state is None:
         return False
 
-    current_app.msg_relay.phone_validator(state.reference, phone, state.verification.verification_code, user.language)
-    current_app.logger.info('Sent verification sms to user {} with phone number {}.'.format(user, phone))
+    context = {
+        'site_name': current_app.config.eduid_site_name,
+        'verification_code': state.verification.verification_code,
+    }
+
+    message = render_template('phone_verification_sms.jinja2', **context)
+
+    try:
+        current_app.msg_relay.sendsms(phone_number, message, state.reference)
+    except MsgTaskFailed as e:
+        current_app.logger.error('Phone number verification sms NOT sent')
+        current_app.logger.exception(e)
+        raise e
     return True
 
 
