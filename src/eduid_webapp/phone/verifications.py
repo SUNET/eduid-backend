@@ -32,40 +32,44 @@
 #
 
 import time
+from typing import Optional
 
+from flask import render_template
+
+from eduid_common.api.exceptions import MsgTaskFailed
 from eduid_common.api.utils import get_short_hash, save_and_sync_user
+from eduid_userdb import User
 from eduid_userdb.element import DuplicateElementViolation
 from eduid_userdb.logs import PhoneNumberProofing
 from eduid_userdb.phone import PhoneNumber
-from eduid_userdb.proofing import PhoneProofingElement, PhoneProofingState
+from eduid_userdb.proofing import PhoneProofingElement, PhoneProofingState, ProofingUser
 
 from eduid_webapp.phone.app import current_phone_app as current_app
 
 
-def new_proofing_state(phone, user):
+def new_proofing_state(phone: str, user: User) -> Optional[PhoneProofingState]:
     old_state = current_app.proofing_statedb.get_state_by_eppn_and_mobile(user.eppn, phone, raise_on_missing=False)
     if old_state is not None:
         now = int(time.time())
         if int(old_state.modified_ts.timestamp()) > now - current_app.config.throttle_resend_seconds:
             return None
-        current_app.logger.debug('removing old proofing state: {!r}.'.format(old_state.to_dict()))
+        current_app.logger.info('Removing old proofing state')
+        current_app.logger.debug(f'Old proofing state: {old_state.to_dict()}')
         current_app.proofing_statedb.remove_state(old_state)
 
     verification = PhoneProofingElement(number=phone, verification_code=get_short_hash(), created_by='phone')
     proofing_state = PhoneProofingState(id=None, modified_ts=None, eppn=user.eppn, verification=verification)
     # XXX This should be an atomic transaction together with saving
-    # the user and sending the letter.
+    # the user and sending the sms.
     current_app.proofing_statedb.save(proofing_state)
-    current_app.logger.info(
-        'Created new phone number verification code for user {} and phone number {}.'.format(user, phone)
-    )
-    current_app.logger.debug('Proofing state: {!r}.'.format(proofing_state.to_dict()))
+    current_app.logger.info('Created new phone number verification state')
+    current_app.logger.debug(f'Proofing state: {proofing_state.to_dict()}')
     return proofing_state
 
 
-def send_verification_code(user, phone):
+def send_verification_code(user: User, phone_number: str) -> bool:
 
-    state = new_proofing_state(phone, user)
+    state = new_proofing_state(phone_number, user)
     if state is None:
         return False
 
@@ -82,16 +86,16 @@ def send_verification_code(user, phone):
         current_app.logger.error('Phone number verification sms NOT sent')
         current_app.logger.exception(e)
         raise e
+
+    current_app.logger.info('Phone number verification sms sent')
+    current_app.logger.debug(f'Phone number: {phone_number}')
     return True
 
 
-def verify_phone_number(state, proofing_user):
+def verify_phone_number(state: PhoneProofingState, proofing_user: ProofingUser) -> None:
     """
     :param proofing_user: ProofingUser
     :param state: Phone proofing state
-
-    :type proofing_user: eduid_userdb.proofing.ProofingUser
-    :type state: PhoneProofingState
 
     :return: None
 
@@ -118,7 +122,8 @@ def verify_phone_number(state, proofing_user):
     )
     if current_app.proofing_log.save(phone_number_proofing):
         save_and_sync_user(proofing_user)
-        current_app.logger.info('Mobile {} confirmed ' 'for user {}'.format(number, proofing_user))
+        current_app.logger.info('Phone number confirmed')
         current_app.stats.count(name='mobile_verify_success', value=1)
         current_app.proofing_statedb.remove_state(state)
-        current_app.logger.debug('Removed proofing state: {} '.format(state))
+        current_app.logger.info('Removed proofing state')
+        current_app.logger.debug(f'Proofing state: {state}')
