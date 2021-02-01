@@ -33,6 +33,8 @@
 
 from __future__ import absolute_import
 
+from typing import Optional
+
 from flask import Blueprint, abort, request
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
@@ -118,10 +120,10 @@ def post_primary(user: User, number: str):
     current_app.logger.info('Trying to save phone number as primary')
     current_app.logger.debug(f'Phone number: {number}')
 
-    phone_element: PhoneNumber = proofing_user.phone_numbers.find(number)
+    phone_element: Optional[PhoneNumber] = proofing_user.phone_numbers.find(number)
     if not phone_element:
-        current_app.logger.error('Could not save phone number as primary, data out of sync')
-        return error_response(message=CommonMsg.out_of_sync)
+        current_app.logger.error('Phone number not found, could not save it as primary')
+        return error_response(message=PhoneMsg.unknown_phone)
 
     if not phone_element.is_verified:
         current_app.logger.error('Could not save phone number as primary, phone number unconfirmed')

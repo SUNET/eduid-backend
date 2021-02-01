@@ -59,8 +59,7 @@ def new_proofing_state(phone: str, user: User) -> Optional[PhoneProofingState]:
 
     verification = PhoneProofingElement(number=phone, verification_code=get_short_hash(), created_by='phone')
     proofing_state = PhoneProofingState(id=None, modified_ts=None, eppn=user.eppn, verification=verification)
-    # XXX This should be an atomic transaction together with saving
-    # the user and sending the sms.
+    # XXX This should be an atomic transaction together with saving the user and sending the sms.
     current_app.proofing_statedb.save(proofing_state)
     current_app.logger.info('Created new phone number verification state')
     current_app.logger.debug(f'Proofing state: {proofing_state.to_dict()}')
