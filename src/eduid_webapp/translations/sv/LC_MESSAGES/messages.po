@@ -1,25 +1,25 @@
 # Translations template for eduid-webapp.
-# Copyright (C) 2020 ORGANIZATION
+# Copyright (C) 2021 ORGANIZATION
 # This file is distributed under the same license as the eduid-webapp project.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2020.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2021.
 # 
 # Translators:
-# Johan Lundberg <lundberg@sunet.se>, 2019
 # Johan Lundberg <lundberg.johan@gmail.com>, 2020
+# Johan Lundberg <lundberg@sunet.se>, 2021
 # 
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: eduid-webapp 0.2.26\n"
+"Project-Id-Version: eduid-webapp 0.2.27\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-10-22 15:27+0200\n"
+"POT-Creation-Date: 2021-02-01 12:16+0100\n"
 "PO-Revision-Date: 2018-03-27 09:25+0000\n"
-"Last-Translator: Johan Lundberg <lundberg.johan@gmail.com>, 2020\n"
+"Last-Translator: Johan Lundberg <lundberg@sunet.se>, 2021\n"
 "Language-Team: Swedish (https://www.transifex.com/sunet/teams/84844/sv/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.8.0\n"
+"Generated-By: Babel 2.9.0\n"
 "Language: sv\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
@@ -83,7 +83,7 @@ msgstr ""
 "%(code)s\n"
 "\n"
 
-#: src/eduid_webapp/group_management/helpers.py:201
+#: src/eduid_webapp/group_management/helpers.py:239
 msgid "Group invitation"
 msgstr "Gruppinbjudan"
 
@@ -130,7 +130,7 @@ msgstr ""
 "\n"
 "(Detta är ett automatiserat meddelande och går ej att svara på.)\n"
 
-#: src/eduid_webapp/idp/login.py:439
+#: src/eduid_webapp/idp/login.py:478
 msgid "Incorrect username or password"
 msgstr "Felaktigt användarnamn eller lösenord"
 
@@ -398,6 +398,21 @@ msgstr ""
 "\n"
 "Tyvärr uppstod ett problem så vi måste be dig att bekräfta ditt konto igen med något av de andra sätten att verifiera din identitet.\n"
 
+#: src/eduid_webapp/phone/templates/phone_verification_sms.jinja2:1
+#: src/eduid_webapp/reset_password/views/templates/reset_password_sms.txt.jinja2:1
+#: src/eduid_webapp/security/views/templates/reset_password_sms.txt.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"This is your one-time phone number verification code for %(site_name)s.\n"
+"\n"
+"Code: %(verification_code)s\n"
+msgstr ""
+"\n"
+"Det här är din engångskod för att verifiera ditt telefonnummer hos %(site_name)s.\n"
+"\n"
+"Kod: %(verification_code)s\n"
+
 #: src/eduid_webapp/reset_password/views/templates/reset_password_email.html.jinja2:1
 #: src/eduid_webapp/security/views/templates/reset_password_email.html.jinja2:1
 #, python-format
@@ -453,16 +468,6 @@ msgstr ""
 "Länken för återställning av ditt lösenord är giltig i %(password_reset_timeout)s timmar.\n"
 "\n"
 "(Detta är ett automatiserat meddelande och går ej att svara på.)\n"
-
-#: src/eduid_webapp/reset_password/views/templates/reset_password_sms.txt.jinja2:1
-#: src/eduid_webapp/security/views/templates/reset_password_sms.txt.jinja2:1
-#, python-format
-msgid ""
-"\n"
-"Your %(site_name)s verification code: %(verification_code)s\n"
-msgstr ""
-"\n"
-"Din %(site_name)s bekräftelsekod: %(verification_code)s\n"
 
 #: src/eduid_webapp/security/helpers.py:180
 msgid "Terminate account"
@@ -771,7 +776,7 @@ msgstr ""
 "\n"
 "    (Detta är ett automatiserat meddelande och går ej att svara på.)\n"
 
-#: src/eduid_webapp/signup/verifications.py:131
+#: src/eduid_webapp/signup/verifications.py:125
 msgid "eduid-signup verification email"
 msgstr "eduID registrering"
 

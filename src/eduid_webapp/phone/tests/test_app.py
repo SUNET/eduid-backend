@@ -40,6 +40,7 @@ from mock import patch
 from eduid_common.api.testing import EduidAPITestCase
 
 from eduid_webapp.phone.app import phone_init_app
+from eduid_webapp.phone.helpers import PhoneMsg
 from eduid_webapp.phone.settings.common import PhoneConfig
 
 
@@ -87,7 +88,7 @@ class PhoneTests(EduidAPITestCase):
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.phone.verifications.get_short_hash')
-    @patch('eduid_common.api.msg.MsgRelay.phone_validator')
+    @patch('eduid_common.api.msg.MsgRelay.sendsms')
     def _post_phone(
         self,
         mock_phone_validator: Any,
@@ -173,7 +174,7 @@ class PhoneTests(EduidAPITestCase):
 
     @patch('eduid_webapp.phone.verifications.get_short_hash')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    @patch('eduid_common.api.msg.MsgRelay.phone_validator')
+    @patch('eduid_common.api.msg.MsgRelay.sendsms')
     def _resend_code(
         self,
         mock_phone_validator: Any,
@@ -203,7 +204,7 @@ class PhoneTests(EduidAPITestCase):
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.phone.verifications.get_short_hash')
-    @patch('eduid_common.api.msg.MsgRelay.phone_validator')
+    @patch('eduid_common.api.msg.MsgRelay.sendsms')
     def _get_code_backdoor(
         self,
         mock_phone_validator: Any,
@@ -387,7 +388,7 @@ class PhoneTests(EduidAPITestCase):
         new_phone_data = json.loads(response.data)
 
         self.assertEqual('POST_PHONE_PRIMARY_FAIL', new_phone_data['type'])
-        self.assertEqual('user-out-of-sync', new_phone_data['payload']['message'])
+        self.assertEqual(PhoneMsg.unknown_phone.value, new_phone_data['payload']['message'])
 
     def test_remove(self):
         response = self._remove()
@@ -434,7 +435,7 @@ class PhoneTests(EduidAPITestCase):
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.phone.verifications.get_short_hash')
-    @patch('eduid_common.api.msg.MsgRelay.phone_validator')
+    @patch('eduid_common.api.msg.MsgRelay.sendsms')
     def test_remove_primary_other_verified(self, mock_phone_validator, mock_code_verification, mock_request_user_sync):
         mock_phone_validator.return_value = True
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -534,7 +535,7 @@ class PhoneTests(EduidAPITestCase):
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.phone.verifications.get_short_hash')
-    @patch('eduid_common.api.msg.MsgRelay.phone_validator')
+    @patch('eduid_common.api.msg.MsgRelay.sendsms')
     def test_verify(self, mock_phone_validator, mock_code_verification, mock_request_user_sync):
         mock_phone_validator.return_value = True
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -573,7 +574,7 @@ class PhoneTests(EduidAPITestCase):
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.phone.verifications.get_short_hash')
-    @patch('eduid_common.api.msg.MsgRelay.phone_validator')
+    @patch('eduid_common.api.msg.MsgRelay.sendsms')
     def test_verify_fail(self, mock_phone_validator, mock_code_verification, mock_request_user_sync):
         mock_phone_validator.return_value = True
         mock_request_user_sync.side_effect = self.request_user_sync

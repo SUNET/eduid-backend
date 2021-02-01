@@ -1,21 +1,21 @@
 # Translations template for eduid-webapp.
-# Copyright (C) 2020 ORGANIZATION
+# Copyright (C) 2021 ORGANIZATION
 # This file is distributed under the same license as the eduid-webapp project.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2020.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2021.
 # 
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: eduid-webapp 0.2.26\n"
+"Project-Id-Version: eduid-webapp 0.2.27\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-10-22 15:27+0200\n"
+"POT-Creation-Date: 2021-02-01 12:16+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.8.0\n"
+"Generated-By: Babel 2.9.0\n"
 
 #: src/eduid_webapp/email/verifications.py:70
 msgid "eduID confirmation email"
@@ -79,7 +79,7 @@ msgstr ""
 "%(code)s\n"
 "\n"
 
-#: src/eduid_webapp/group_management/helpers.py:201
+#: src/eduid_webapp/group_management/helpers.py:239
 msgid "Group invitation"
 msgstr "Group invitation"
 
@@ -127,7 +127,7 @@ msgstr ""
 "\n"
 "(This is an automated email. Please do not reply.)\n"
 
-#: src/eduid_webapp/idp/login.py:439
+#: src/eduid_webapp/idp/login.py:478
 msgid "Incorrect username or password"
 msgstr "Incorrect username or password"
 
@@ -398,6 +398,21 @@ msgstr ""
 "\n"
 "    We apologize for any inconvenience.\n"
 
+#: src/eduid_webapp/phone/templates/phone_verification_sms.jinja2:1
+#: src/eduid_webapp/reset_password/views/templates/reset_password_sms.txt.jinja2:1
+#: src/eduid_webapp/security/views/templates/reset_password_sms.txt.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"This is your one-time phone number verification code for %(site_name)s.\n"
+"\n"
+"Code: %(verification_code)s\n"
+msgstr ""
+"\n"
+"This is your one-time phone number verification code for %(site_name)s.\n"
+"\n"
+"Code: %(verification_code)s\n"
+
 #: src/eduid_webapp/reset_password/views/templates/reset_password_email.html.jinja2:1
 #: src/eduid_webapp/security/views/templates/reset_password_email.html.jinja2:1
 #, python-format
@@ -453,16 +468,6 @@ msgstr ""
 "The password reset link is valid for %(password_reset_timeout)s hours.\n"
 "\n"
 "(This is an automated email. Please do not reply.)\n"
-
-#: src/eduid_webapp/reset_password/views/templates/reset_password_sms.txt.jinja2:1
-#: src/eduid_webapp/security/views/templates/reset_password_sms.txt.jinja2:1
-#, python-format
-msgid ""
-"\n"
-"Your %(site_name)s verification code: %(verification_code)s\n"
-msgstr ""
-"\n"
-"Your %(site_name)s verification code: %(verification_code)s\n"
 
 #: src/eduid_webapp/security/helpers.py:180
 msgid "Terminate account"
@@ -772,7 +777,7 @@ msgstr ""
 "\n"
 "    (This is an automated email. Please do not reply.)\n"
 
-#: src/eduid_webapp/signup/verifications.py:131
+#: src/eduid_webapp/signup/verifications.py:125
 msgid "eduid-signup verification email"
 msgstr "eduid-signup verification email"
 
