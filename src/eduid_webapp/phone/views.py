@@ -40,7 +40,7 @@ from flask import Blueprint, abort, request
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid_common.api.exceptions import MsgTaskFailed
 from eduid_common.api.helpers import check_magic_cookie
-from eduid_common.api.messages import CommonMsg, error_response, success_response
+from eduid_common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid_common.api.utils import save_and_sync_user
 from eduid_userdb import User
 from eduid_userdb.element import PrimaryElementViolation, UserDBValueError
@@ -51,7 +51,7 @@ from eduid_userdb.proofing import ProofingUser
 from eduid_webapp.phone.app import current_phone_app as current_app
 from eduid_webapp.phone.helpers import PhoneMsg
 from eduid_webapp.phone.schemas import PhoneResponseSchema, PhoneSchema, SimplePhoneSchema, VerificationCodeSchema
-from eduid_webapp.phone.verifications import send_verification_code, verify_phone_number
+from eduid_webapp.phone.verifications import SMSThrottleException, send_verification_code, verify_phone_number
 
 phone_views = Blueprint('phone', __name__, url_prefix='', template_folder='templates')
 
@@ -59,20 +59,20 @@ phone_views = Blueprint('phone', __name__, url_prefix='', template_folder='templ
 @phone_views.route('/all', methods=['GET'])
 @MarshalWith(PhoneResponseSchema)
 @require_user
-def get_all_phones(user: User):
+def get_all_phones(user: User) -> FluxData:
     """
     view to get a listing of all phones for the logged in user.
     """
 
     phones = {'phones': user.phone_numbers.to_list_of_dicts()}
-    return phones
+    return success_response(payload=phones)
 
 
 @phone_views.route('/new', methods=['POST'])
 @UnmarshalWith(PhoneSchema)
 @MarshalWith(PhoneResponseSchema)
 @require_user
-def post_phone(user: User, number: str, verified, primary):
+def post_phone(user: User, number: str, verified, primary) -> FluxData:
     """
     view to add a new phone to the user data of the currently
     logged in user.
@@ -109,7 +109,7 @@ def post_phone(user: User, number: str, verified, primary):
 @UnmarshalWith(SimplePhoneSchema)
 @MarshalWith(PhoneResponseSchema)
 @require_user
-def post_primary(user: User, number: str):
+def post_primary(user: User, number: str) -> FluxData:
     """
     view to mark one of the (verified) phone numbers of the logged in user
     as the primary phone number.
@@ -146,7 +146,7 @@ def post_primary(user: User, number: str):
 @UnmarshalWith(VerificationCodeSchema)
 @MarshalWith(PhoneResponseSchema)
 @require_user
-def verify(user: User, code: str, number: str):
+def verify(user: User, code: str, number: str) -> FluxData:
     """
     view to mark one of the (unverified) phone numbers of the logged in user
     as verified.
@@ -191,7 +191,7 @@ def verify(user: User, code: str, number: str):
 @UnmarshalWith(SimplePhoneSchema)
 @MarshalWith(PhoneResponseSchema)
 @require_user
-def post_remove(user: User, number: str):
+def post_remove(user: User, number: str) -> FluxData:
     """
     view to remove one of the phone numbers of the logged in user.
 
@@ -230,7 +230,7 @@ def post_remove(user: User, number: str):
 @UnmarshalWith(SimplePhoneSchema)
 @MarshalWith(PhoneResponseSchema)
 @require_user
-def resend_code(user: User, number: str):
+def resend_code(user: User, number: str) -> FluxData:
     """
     view to resend a new verification code for one of the (unverified)
     phone numbers of the logged in user.
@@ -245,9 +245,9 @@ def resend_code(user: User, number: str):
         return error_response(message=CommonMsg.out_of_sync)
 
     try:
-        sent = send_verification_code(user, number)
-        if not sent:
-            return error_response(message=PhoneMsg.still_valid_code)
+        send_verification_code(user, number)
+    except SMSThrottleException:
+        return error_response(message=PhoneMsg.still_valid_code)
     except MsgTaskFailed:
         return error_response(message=CommonMsg.temp_problem)
 
