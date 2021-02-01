@@ -47,6 +47,7 @@ from eduid_common.authn.tests.test_fido_tokens import SAMPLE_WEBAUTHN_REQUEST
 from eduid_userdb.credentials import Webauthn
 from eduid_userdb.exceptions import DocumentDoesNotExist, UserDoesNotExist, UserHasNotCompletedSignup
 from eduid_userdb.fixtures.fido_credentials import webauthn_credential as sample_credential
+from eduid_userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState
 
 from eduid_webapp.reset_password.app import ResetPasswordApp, init_reset_password_app
 from eduid_webapp.reset_password.helpers import (
@@ -156,6 +157,7 @@ class ResetPasswordTests(EduidAPITestCase):
                 response = c.post('/reset/', data=json.dumps(data), content_type=self.content_type_json)
                 self.assertEqual(response.status_code, 200)
                 state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+                assert isinstance(state, ResetPasswordEmailState)
 
                 url = url_for('reset_password.config_reset_pw', _external=True)
                 with c.session_transaction() as sess:
@@ -201,6 +203,7 @@ class ResetPasswordTests(EduidAPITestCase):
                 response = c.post('/reset/', data=json.dumps(data), content_type=self.content_type_json)
                 self.assertEqual(response.status_code, 200)
                 state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+                assert isinstance(state, ResetPasswordEmailState)
 
                 # check that the user has verified data
                 user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -272,6 +275,7 @@ class ResetPasswordTests(EduidAPITestCase):
                 response = c.post('/reset/', data=json.dumps(data), content_type=self.content_type_json)
                 self.assertEqual(response.status_code, 200)
                 state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+                assert isinstance(state, ResetPasswordEmailState)
 
                 url = url_for('reset_password.config_reset_pw', _external=True)
                 with c.session_transaction() as sess:
@@ -335,24 +339,26 @@ class ResetPasswordTests(EduidAPITestCase):
                 self.assertEqual(response.status_code, 200)
 
                 user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-                state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+                state1 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+                assert isinstance(state1, ResetPasswordEmailState)
                 alternatives = get_extra_security_alternatives(user, 'dummy.session.prefix')
-                state.extra_security = alternatives
-                state.email_code.is_verified = True
-                self.app.password_reset_state_db.save(state)
-                phone_number = state.extra_security['phone_numbers'][0]
-                send_verify_phone_code(state, phone_number['number'])
+                state1.extra_security = alternatives
+                state1.email_code.is_verified = True
+                self.app.password_reset_state_db.save(state1)
+                phone_number = state1.extra_security['phone_numbers'][0]
+                send_verify_phone_code(state1, phone_number['number'])
 
                 new_password = generate_suggested_password()
 
                 url = url_for('reset_password.set_new_pw_extra_security_phone', _external=True)
-                state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+                state2 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+                assert isinstance(state2, ResetPasswordEmailAndPhoneState)
                 with c.session_transaction() as sess:
                     sess.reset_password.generated_password_hash = hash_password(new_password)
                     data = {
                         'csrf_token': sess.get_csrf_token(),
-                        'code': state.email_code.code,
-                        'phone_code': state.phone_code.code,
+                        'code': state2.email_code.code,
+                        'phone_code': state2.phone_code.code,
                         'password': new_password,
                     }
                 if data2 is not None:
@@ -413,6 +419,7 @@ class ResetPasswordTests(EduidAPITestCase):
                 self.app.central_userdb.save(user, check_sync=False)
 
                 state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+                assert isinstance(state, ResetPasswordEmailState)
                 alternatives = get_extra_security_alternatives(user, 'dummy.session.prefix')
                 state.extra_security = alternatives
                 state.email_code.is_verified = True
@@ -426,6 +433,7 @@ class ResetPasswordTests(EduidAPITestCase):
                 new_password = generate_suggested_password()
                 url = url_for('reset_password.set_new_pw_extra_security_token', _external=True)
                 state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+                assert isinstance(state, ResetPasswordEmailState)
                 with c.session_transaction() as sess:
                     sess['eduid_webapp.reset_password.views.webauthn.state'] = json.dumps(fido2state)
                     sess.reset_password.generated_password_hash = hash_password(new_password)
@@ -502,6 +510,7 @@ class ResetPasswordTests(EduidAPITestCase):
                 response = client.post('/reset/', data=json.dumps(data), content_type=self.content_type_json)
                 self.assertEqual(response.status_code, 200)
                 state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+                assert isinstance(state, ResetPasswordEmailState)
 
                 url = url_for('reset_password.config_reset_pw', _external=True)
                 with client.session_transaction() as sess:
