@@ -40,6 +40,7 @@ from mock import patch
 from eduid_common.api.testing import EduidAPITestCase
 
 from eduid_webapp.phone.app import phone_init_app
+from eduid_webapp.phone.helpers import PhoneMsg
 from eduid_webapp.phone.settings.common import PhoneConfig
 
 
@@ -387,7 +388,7 @@ class PhoneTests(EduidAPITestCase):
         new_phone_data = json.loads(response.data)
 
         self.assertEqual('POST_PHONE_PRIMARY_FAIL', new_phone_data['type'])
-        self.assertEqual('user-out-of-sync', new_phone_data['payload']['message'])
+        self.assertEqual(PhoneMsg.unknown_phone.value, new_phone_data['payload']['message'])
 
     def test_remove(self):
         response = self._remove()
