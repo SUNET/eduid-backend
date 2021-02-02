@@ -31,23 +31,24 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from typing import cast
+from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
 from eduid_common.api import am
 from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.config.base import FlaskConfig
+from eduid_common.config.parsers import load_config
 from eduid_userdb.personal_data import PersonalDataUserDB
+from eduid_webapp.personal_data.settings import PersonalDataConfig
 
 
 class PersonalDataApp(AuthnBaseApp):
-    def __init__(self, name: str, config: dict, **kwargs):
+    def __init__(self, name: str, test_config: Optional[Mapping[str, Any]], **kwargs):
+        self.conf = load_config(typ=PersonalDataConfig, app_name=name, ns='webapp', test_config=test_config)
         # Initialise type of self.config before any parent class sets a precedent to mypy
-        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=config)
+        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
         super().__init__(name, **kwargs)
-        # cast self.config because sometimes mypy thinks it is a FlaskConfig after super().__init__()
-        self.config: FlaskConfig = cast(FlaskConfig, self.config)  # type: ignore
 
         from eduid_webapp.personal_data.views import pd_views
 
@@ -61,16 +62,15 @@ class PersonalDataApp(AuthnBaseApp):
 current_pdata_app: PersonalDataApp = cast(PersonalDataApp, current_app)
 
 
-def pd_init_app(name: str, config: dict) -> PersonalDataApp:
+def pd_init_app(name: str, test_config: Optional[Mapping[str, Any]]) -> PersonalDataApp:
     """
     Create an instance of an eduid personal data app.
 
     :param name: The name of the instance, it will affect the configuration loaded.
-    :param config: any additional configuration settings. Specially useful
-                   in test cases
+    :param config: Override config, used in test cases.
     """
 
-    app = PersonalDataApp(name, config)
+    app = PersonalDataApp(name, test_config)
 
     app.logger.info(f'Init {name} app...')
 
