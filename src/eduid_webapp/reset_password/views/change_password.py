@@ -88,7 +88,7 @@ def change_password_view(user: User, old_password: str, new_password: str) -> Fl
     if not old_password or not new_password:
         return error_response(message=ResetPwMsg.chpass_no_data)
 
-    min_entropy = current_app.config.password_entropy
+    min_entropy = current_app.conf.password_entropy
     try:
         is_valid_password(new_password, user_info=get_zxcvbn_terms(user.eppn), min_entropy=min_entropy)
     except ValueError:
@@ -100,7 +100,7 @@ def change_password_view(user: User, old_password: str, new_password: str) -> Fl
 
     now = datetime.utcnow()
     delta = now - datetime.fromtimestamp(authn_ts)
-    timeout = current_app.config.chpass_timeout
+    timeout = current_app.conf.chpass_timeout
     if int(delta.total_seconds()) > timeout:
         return error_response(message=ResetPwMsg.stale_reauthn)
 
@@ -114,7 +114,7 @@ def change_password_view(user: User, old_password: str, new_password: str) -> Fl
 
     resetpw_user = ResetPasswordUser.from_user(user, current_app.private_userdb)
 
-    vccs_url = current_app.config.vccs_url
+    vccs_url = current_app.conf.vccs_url
     added = change_password(resetpw_user, new_password, old_password, 'reset-password', is_generated, vccs_url)
 
     if not added:
@@ -132,7 +132,7 @@ def change_password_view(user: User, old_password: str, new_password: str) -> Fl
     current_app.stats.count(name='security_password_changed', value=1)
     current_app.logger.info(f'Changed password for user {resetpw_user.eppn}')
 
-    next_url = current_app.config.dashboard_url
+    next_url = current_app.conf.dashboard_url
     return success_response(
         payload={
             'next_url': next_url,

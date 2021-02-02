@@ -32,30 +32,31 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import json
-from typing import Any, Optional
+from typing import Any, Dict, Mapping, Optional
 
 from mock import patch
 
 from eduid_common.api.exceptions import ApiException
 from eduid_common.api.testing import EduidAPITestCase
-from eduid_common.config.base import FlaskConfig
 
-from eduid_webapp.personal_data.app import pd_init_app
+from eduid_webapp.personal_data.app import PersonalDataApp, pd_init_app
 
 
 class PersonalDataTests(EduidAPITestCase):
+    app: PersonalDataApp
+
     def setUp(self):
         super(PersonalDataTests, self).setUp(copy_user_to_private=True)
 
-    def load_app(self, config):
+    def load_app(self, config: Mapping[str, Any]) -> PersonalDataApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         return pd_init_app('testing', config)
 
-    def update_config(self, app_config):
-        app_config.update(
+    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        config.update(
             {
                 'available_languages': {'en': 'English', 'sv': 'Svenska'},
                 'msg_broker_url': 'amqp://dummy',
@@ -63,7 +64,7 @@ class PersonalDataTests(EduidAPITestCase):
                 'celery_config': {'result_backend': 'amqp', 'task_serializer': 'json'},
             }
         )
-        return app_config
+        return config
 
     # parameterized test methods
 

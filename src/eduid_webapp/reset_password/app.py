@@ -31,13 +31,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from typing import cast
+from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
 from eduid_common.api import am, mail_relay, msg, translation
 from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.authn.utils import no_authn_views
+from eduid_common.config.base import FlaskConfig
+from eduid_common.config.parsers import load_config
 from eduid_userdb.authninfo import AuthnInfoDB
 from eduid_userdb.logs import ProofingLog
 from eduid_userdb.reset_password import ResetPasswordStateDB, ResetPasswordUserDB
@@ -48,12 +50,11 @@ __author__ = 'eperez'
 
 
 class ResetPasswordApp(AuthnBaseApp):
-    def __init__(self, name: str, config: dict, **kwargs):
+    def __init__(self, name: str, test_config: Optional[Mapping[str, Any]], **kwargs):
+        self.conf = load_config(typ=ResetPasswordConfig, app_name=name, ns='webapp', test_config=test_config)
         # Initialise type of self.config before any parent class sets a precedent to mypy
-        self.config = ResetPasswordConfig.init_config(ns='webapp', app_name=name, test_config=config)
+        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
         super().__init__(name, **kwargs)
-        # cast self.config because sometimes mypy thinks it is a FlaskConfig after super().__init__()
-        self.config: ResetPasswordConfig = cast(ResetPasswordConfig, self.config)  # type: ignore
 
         # Register views
         from eduid_webapp.reset_password.views.change_password import change_password_views
@@ -72,23 +73,21 @@ class ResetPasswordApp(AuthnBaseApp):
         translation.init_babel(self)
 
         # Init dbs
-        self.private_userdb = ResetPasswordUserDB(self.config.mongo_uri)
-        self.password_reset_state_db = ResetPasswordStateDB(self.config.mongo_uri)
-        self.proofing_log = ProofingLog(self.config.mongo_uri)
-        self.authninfo_db = AuthnInfoDB(self.config.mongo_uri)
+        self.private_userdb = ResetPasswordUserDB(self.conf.mongo_uri)
+        self.password_reset_state_db = ResetPasswordStateDB(self.conf.mongo_uri)
+        self.proofing_log = ProofingLog(self.conf.mongo_uri)
+        self.authninfo_db = AuthnInfoDB(self.conf.mongo_uri)
 
 
 current_reset_password_app: ResetPasswordApp = cast(ResetPasswordApp, current_app)
 
 
-def init_reset_password_app(name: str, config: dict) -> ResetPasswordApp:
+def init_reset_password_app(name: str, test_config: Optional[Mapping[str, Any]] = None) -> ResetPasswordApp:
     """
     :param name: The name of the instance, it will affect the configuration loaded.
-    :param config: any additional configuration settings. Specially useful
-                   in test cases
-
+    :param config: Override config. Used in tests.
     """
-    app = ResetPasswordApp(name, config)
+    app = ResetPasswordApp(name, test_config)
 
     app.logger.info(f'Init {name} app...')
 

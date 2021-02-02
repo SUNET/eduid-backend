@@ -31,26 +31,26 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-from __future__ import absolute_import
-
-from dataclasses import dataclass
-
-from eduid_common.config.base import FlaskConfig, WebauthnConfigMixin
+from eduid_common.config.base import EduIDBaseAppConfig, MagicCookieMixin, WebauthnConfigMixin2
 
 
-@dataclass
-class SecurityConfig(FlaskConfig, WebauthnConfigMixin):
+class SecurityConfig(EduIDBaseAppConfig, WebauthnConfigMixin2, MagicCookieMixin):
     """
     Configuration for the security app
     """
+
+    vccs_url: str
+    dashboard_url: str
+    token_service_url: str
+
+    app_name: str = 'security'
 
     # timeout for phone verification token, in hours
     phone_verification_timeout: int = 24
     password_length: int = 12
     password_entropy: int = 25
     chpass_timeout: int = 600
-    vccs_url: str = ''
+
     # uf2 settings
     u2f_max_allowed_tokens: int = 50  # Do not let a user register more than this amount of tokens
     u2f_max_description_length: int = 64  # Do not allow longer descriptions than this number
@@ -63,3 +63,5 @@ class SecurityConfig(FlaskConfig, WebauthnConfigMixin):
     logout_endpoint: str = '/services/authn/logout'
     # URL to send the user to after terminating the account
     termination_redirect_url: str = 'https://eduid.se'
+    eduid_site_url: str = 'https://www.eduid.se'
+    eduid_site_name: str = 'eduID'

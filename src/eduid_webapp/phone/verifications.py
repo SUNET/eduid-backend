@@ -31,7 +31,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-import time
 from datetime import timedelta
 
 from flask import render_template
@@ -56,7 +55,7 @@ def sms_throttled(state: PhoneProofingState) -> bool:
     # Do not let a user send another SMS until throttle_resend_seconds has passed
     now = utc_now()
     time_since_last_sms = now - state.modified_ts
-    throttle_seconds = timedelta(seconds=current_app.config.throttle_resend_seconds)
+    throttle_seconds = timedelta(seconds=current_app.conf.throttle_resend_seconds)
     if time_since_last_sms < throttle_seconds:
         current_app.logger.warning(f'Can not send another SMS for {throttle_seconds - time_since_last_sms}')
         return True

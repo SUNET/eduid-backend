@@ -3,7 +3,7 @@ from __future__ import absolute_import
 
 import base64
 import json
-from typing import Any, Optional
+from typing import Any, Dict, Mapping, Optional
 
 from fido2 import cbor
 from fido2.client import ClientData
@@ -13,8 +13,7 @@ from mock import patch
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_userdb.credentials import U2F, Webauthn
 
-from eduid_webapp.security.app import security_init_app
-from eduid_webapp.security.settings.common import SecurityConfig
+from eduid_webapp.security.app import SecurityApp, security_init_app
 from eduid_webapp.security.views.webauthn import get_webauthn_server
 
 __author__ = 'eperez'
@@ -138,15 +137,18 @@ CREDENTIAL_ID_2 = (
 
 
 class SecurityWebauthnTests(EduidAPITestCase):
-    def load_app(self, config):
+
+    app: SecurityApp
+
+    def load_app(self, config: Mapping[str, Any]) -> SecurityApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         return security_init_app('testing', config)
 
-    def update_config(self, app_config):
-        app_config.update(
+    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        config.update(
             {
                 'available_languages': {'en': 'English', 'sv': 'Svenska'},
                 'msg_broker_url': 'amqp://dummy',
@@ -156,9 +158,11 @@ class SecurityWebauthnTests(EduidAPITestCase):
                 'fido2_rp_id': 'localhost',
                 'u2f_app_id': 'https://eduid.se/u2f-app-id.json',
                 'u2f_valid_facets': [],
+                'vccs_url': 'https://vccs',
+                'dashboard_url': 'https://dashboard',
             }
         )
-        return app_config
+        return config
 
     def _add_token_to_user(self, registration_data, state):
         data = registration_data + (b'=' * (len(registration_data) % 4))
@@ -167,7 +171,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         client_data = ClientData(data['clientDataJSON'])
         attestation = data['attestationObject']
         att_obj = AttestationObject(attestation)
-        server = get_webauthn_server(self.app.config.fido2_rp_id)
+        server = get_webauthn_server(self.app.conf.fido2_rp_id)
         auth_data = server.register_complete(state, client_data, att_obj)
         cred_data = auth_data.credential_data
         cred_id = cred_data.credential_id
@@ -175,7 +179,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         credential = Webauthn(
             keyhandle=cred_id.hex(),
             credential_data=base64.urlsafe_b64encode(cred_data).decode('ascii'),
-            app_id=self.app.config.fido2_rp_id,
+            app_id=self.app.conf.fido2_rp_id,
             attest_obj=base64.b64encode(attestation).decode('ascii'),
             description='ctap1 token',
             created_by='test_security',

@@ -33,31 +33,34 @@
 
 import json
 import time
-from typing import Any, Optional
+from typing import Any, Dict, Mapping, Optional
 
 from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
 
-from eduid_webapp.security.app import security_init_app
+from eduid_webapp.security.app import SecurityApp, security_init_app
 
 
 class SecurityTests(EduidAPITestCase):
+
+    app: SecurityApp
+
     def setUp(self):
         super(SecurityTests, self).setUp(copy_user_to_private=True)
 
         self.test_user_eppn = 'hubba-bubba'
         self.test_user_nin = '197801011235'
 
-    def load_app(self, config):
+    def load_app(self, config: Mapping[str, Any]) -> SecurityApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         return security_init_app('testing', config)
 
-    def update_config(self, app_config):
-        app_config.update(
+    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        config.update(
             {
                 'available_languages': {'en': 'English', 'sv': 'Svenska'},
                 'msg_broker_url': 'amqp://dummy',
@@ -71,9 +74,11 @@ class SecurityTests(EduidAPITestCase):
                 'u2f_app_id': 'foo',
                 'u2f_valid_facets': [],
                 'fido2_rp_id': 'https://test.example.edu',
+                'vccs_url': 'https://vccs',
+                'dashboard_url': 'https://dashboard/',
             }
         )
-        return app_config
+        return config
 
     # parameterized test methods
 

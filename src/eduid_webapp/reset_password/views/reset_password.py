@@ -211,9 +211,9 @@ def config_reset_pw(code: str) -> FluxData:
             'email_code': state.email_code.code,
             'email_address': state.email_address,
             'extra_security': mask_alternatives(alternatives),
-            'password_entropy': current_app.config.password_entropy,
-            'password_length': current_app.config.password_length,
-            'password_service_url': current_app.config.password_service_url,
+            'password_entropy': current_app.conf.password_entropy,
+            'password_length': current_app.conf.password_length,
+            'password_service_url': current_app.conf.password_service_url,
             'zxcvbn_terms': get_zxcvbn_terms(state.eppn),
         },
     )
@@ -263,7 +263,7 @@ def _load_data(code: str, password: str) -> ResetContext:
 
     user = current_app.central_userdb.get_user_by_eppn(state.eppn, raise_on_missing=False)
 
-    min_entropy = current_app.config.password_entropy
+    min_entropy = current_app.conf.password_entropy
     try:
         is_valid_password(password, user_info=get_zxcvbn_terms(user.eppn), min_entropy=min_entropy)
     except ValueError:
@@ -353,7 +353,7 @@ def choose_extra_security_phone(code: str, phone_index: int) -> FluxData:
         now = int(time.time())
         if not isinstance(state.modified_ts, datetime):
             raise TypeError(f'Modified timestamp in state is not a datetime ({repr(state.modified_ts)})')
-        if int(state.modified_ts.timestamp()) > now - current_app.config.throttle_sms_seconds:
+        if int(state.modified_ts.timestamp()) > now - current_app.conf.throttle_sms_seconds:
             current_app.logger.info(f'Throttling reset password SMSs for: {state.eppn}')
             return error_response(message=ResetPwMsg.send_sms_throttled)
 
@@ -485,7 +485,7 @@ def set_new_pw_extra_security_token(
             raise TypeError(f'U2F challenge in session is not bytes {repr(_challenge)}')
         current_app.logger.debug(f'Challenge: {_challenge!r}')
 
-        result = fido_tokens.verify_u2f(data.user, _challenge, token_response, current_app.config.u2f_valid_facets)
+        result = fido_tokens.verify_u2f(data.user, _challenge, token_response, current_app.conf.u2f_valid_facets)
 
         if result is not None:
             success = result['success']
@@ -502,7 +502,7 @@ def set_new_pw_extra_security_token(
                     signature=signature,
                 ),
                 SESSION_PREFIX,
-                rp_id=current_app.config.fido2_rp_id,
+                rp_id=current_app.conf.fido2_rp_id,
             )
         except fido_tokens.VerificationProblem:
             pass
@@ -528,7 +528,7 @@ def get_email_code():
     Backdoor to get the email verification code in the staging or dev environments
     """
     try:
-        if check_magic_cookie(current_app.config):
+        if check_magic_cookie(current_app.conf):
             eppn = request.args.get('eppn')
             state = current_app.password_reset_state_db.get_state_by_eppn(eppn)
             return state.email_code.code
@@ -546,7 +546,7 @@ def get_phone_code():
     Backdoor to get the phone verification code in the staging or dev environments
     """
     try:
-        if check_magic_cookie(current_app.config):
+        if check_magic_cookie(current_app.conf):
             eppn = request.args.get('eppn')
             state = current_app.password_reset_state_db.get_state_by_eppn(eppn)
             return state.phone_code.code

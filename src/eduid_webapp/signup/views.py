@@ -62,32 +62,28 @@ signup_views = Blueprint('signup', __name__, url_prefix='', template_folder='tem
 @signup_views.route('/trycaptcha', methods=['POST'])
 @UnmarshalWith(RegisterEmailSchema)
 @MarshalWith(AccountCreatedResponse)
-def trycaptcha(email: str, recaptcha_response: str, tou_accepted: bool):
+def trycaptcha(email: str, recaptcha_response: str, tou_accepted: bool) -> FluxData:
     """
     Kantara requires a check for humanness even at level AL1.
     """
     if not tou_accepted:
         return error_response(message=SignupMsg.no_tou)
 
-    config = current_app.config
     recaptcha_verified = False
 
     # add a backdoor to bypass recaptcha checks for humanness,
     # to be used in testing environments for automated integration tests.
-    if check_magic_cookie(config):
+    if check_magic_cookie(current_app.conf):
         current_app.logger.info('Using BACKDOOR to verify reCaptcha during signup!')
         recaptcha_verified = True
 
     # common path with no backdoor
     if not recaptcha_verified:
         remote_ip = request.remote_addr
-        recaptcha_public_key = config.recaptcha_public_key
 
-        if recaptcha_public_key:
-            recaptcha_private_key = config.recaptcha_private_key
-            recaptcha_verified = verify_recaptcha(recaptcha_private_key, recaptcha_response, remote_ip)
+        if current_app.conf.recaptcha_public_key and current_app.conf.recaptcha_private_key:
+            recaptcha_verified = verify_recaptcha(current_app.conf.recaptcha_private_key, recaptcha_response, remote_ip)
         else:
-            recaptcha_verified = False
             current_app.logger.info('Missing configuration for reCaptcha!')
 
     if recaptcha_verified:
@@ -99,7 +95,7 @@ def trycaptcha(email: str, recaptcha_response: str, tou_accepted: bool):
             return success_response(payload=dict(next=next), message=SignupMsg.reg_new)
 
         elif next == 'resend-code':
-            return {'next': next}
+            return success_response(payload=dict(next=next))
 
         elif next == 'address-used':
             current_app.stats.count(name='address_used_error')
@@ -148,7 +144,7 @@ def get_email_code():
     Backdoor to get the email verification code in the staging or dev environments
     """
     try:
-        if check_magic_cookie(current_app.config):
+        if check_magic_cookie(current_app.conf):
             email = request.args.get('email')
             signup_user = current_app.private_userdb.get_user_by_pending_mail_address(email)
             code = signup_user.pending_mail_address.verification_code

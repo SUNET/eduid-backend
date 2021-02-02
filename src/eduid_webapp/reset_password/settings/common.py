@@ -34,18 +34,19 @@
 Configuration (file) handling for the eduID reset_password app.
 """
 
-from dataclasses import dataclass, field
-
-from eduid_common.config.base import FlaskConfig, WebauthnConfigMixin
+from eduid_common.config.base import EduIDBaseAppConfig, MagicCookieMixin, WebauthnConfigMixin2
 
 
-@dataclass
-class ResetPasswordConfig(FlaskConfig, WebauthnConfigMixin):
+class ResetPasswordConfig(EduIDBaseAppConfig, WebauthnConfigMixin2, MagicCookieMixin):
     """
     Configuration for the reset_password app
     """
 
-    app_name: str = "reset_password"
+    # VCCS URL
+    vccs_url: str
+    dashboard_url: str
+
+    app_name: str = 'reset_password'
     email_code_timeout: int = 7200
     phone_code_timeout: int = 600
     password_entropy: int = 25
@@ -60,10 +61,8 @@ class ResetPasswordConfig(FlaskConfig, WebauthnConfigMixin):
     password_generation_rounds: int = 2 ** 5
     # timeout for phone verification token, in hours
     phone_verification_timeout: int = 24
-    # timeout for reauthentication prior to changing password
+    # timeout for re-authentication prior to changing password
     chpass_timeout: int = 600
-    # VCCS URL
-    vccs_url: str = ''
     # URL to get the js app that can drive the process to reset the password
     password_reset_link: str = 'https://login.eduid.se/reset-password/'
     password_service_url: str = '/services/reset-password/'
@@ -71,3 +70,5 @@ class ResetPasswordConfig(FlaskConfig, WebauthnConfigMixin):
     generate_u2f_challenges: bool = False  # UNUSED, remove after updating config everywhere
     # Throttle sending SMSs for extra security resetting passwords
     throttle_sms_seconds: int = 300
+    eduid_site_url: str = 'https://www.eduid.se'
+    eduid_site_name: str = 'eduID'

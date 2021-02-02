@@ -2,7 +2,7 @@
 from __future__ import absolute_import
 
 import datetime
-from typing import Any
+from typing import Any, Dict, Mapping
 from urllib.parse import quote_plus
 
 from mock import patch
@@ -14,27 +14,29 @@ from eduid_userdb.credentials import Password
 from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_userdb.security import PasswordResetEmailState
 
-from eduid_webapp.security.app import security_init_app
-from eduid_webapp.security.settings.common import SecurityConfig
+from eduid_webapp.security.app import SecurityApp, security_init_app
 
 __author__ = 'lundberg'
 
 
 class SecurityResetPasswordTests(EduidAPITestCase):
+
+    app: SecurityApp
+
     def setUp(self):
         self.test_user_eppn = 'hubba-bubba'
         self.test_user_email = 'johnsmith@example.com'
         super(SecurityResetPasswordTests, self).setUp()
 
-    def load_app(self, config):
+    def load_app(self, config: Mapping[str, Any]) -> SecurityApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         return security_init_app('testing', config)
 
-    def update_config(self, app_config):
-        app_config.update(
+    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        config.update(
             {
                 'available_languages': {'en': 'English', 'sv': 'Svenska'},
                 'msg_broker_url': 'amqp://dummy',
@@ -48,9 +50,10 @@ class SecurityResetPasswordTests(EduidAPITestCase):
                 'u2f_app_id': 'foo',
                 'u2f_valid_facets': [],
                 'fido2_rp_id': 'https://test.example.edu',
+                'dashboard_url': 'https://localhost',
             }
         )
-        return app_config
+        return config
 
     def tearDown(self):
         super(SecurityResetPasswordTests, self).tearDown()
@@ -590,9 +593,9 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         mock_get_vccs_client.return_value = TestVCCSClient()
         mock_sendsms.return_value = True
 
-        self.app.config.magic_cookie = cookie_value
-        self.app.config.magic_cookie_name = cookie_name
-        self.app.config.environment = environment
+        self.app.conf.magic_cookie = cookie_value
+        self.app.conf.magic_cookie_name = cookie_name
+        self.app.conf.environment = environment
 
         self.post_email_address('johnsmith@example.com')
 
@@ -640,9 +643,9 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         mock_sendmail.return_value = True
         mock_get_vccs_client.return_value = TestVCCSClient()
 
-        self.app.config.magic_cookie = cookie_value
-        self.app.config.magic_cookie_name = cookie_name
-        self.app.config.environment = environment
+        self.app.conf.magic_cookie = cookie_value
+        self.app.conf.magic_cookie_name = cookie_name
+        self.app.conf.environment = environment
 
         self.post_email_address('johnsmith@example.com')
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)

@@ -31,13 +31,16 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from typing import cast
+
+from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
 from eduid_common.api import am, mail_relay, msg, translation
 from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.authn.utils import no_authn_views
+from eduid_common.config.base import FlaskConfig
+from eduid_common.config.parsers import load_config
 from eduid_userdb.authninfo import AuthnInfoDB
 from eduid_userdb.logs import ProofingLog
 from eduid_userdb.security import PasswordResetStateDB, SecurityUserDB
@@ -46,12 +49,11 @@ from eduid_webapp.security.settings.common import SecurityConfig
 
 
 class SecurityApp(AuthnBaseApp):
-    def __init__(self, name: str, config: dict, **kwargs):
+    def __init__(self, name: str, test_config: Optional[Mapping[str, Any]], **kwargs):
+        self.conf = load_config(typ=SecurityConfig, app_name=name, ns='webapp', test_config=test_config)
         # Initialise type of self.config before any parent class sets a precedent to mypy
-        self.config = SecurityConfig.init_config(ns='webapp', app_name=name, test_config=config)
+        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
         super().__init__(name, **kwargs)
-        # cast self.config because sometimes mypy thinks it is a FlaskConfig after super().__init__()
-        self.config: SecurityConfig = cast(SecurityConfig, self.config)  # type: ignore
 
         from eduid_webapp.security.views.reset_password import reset_password_views
         from eduid_webapp.security.views.security import security_views
@@ -80,15 +82,14 @@ class SecurityApp(AuthnBaseApp):
 current_security_app: SecurityApp = cast(SecurityApp, current_app)
 
 
-def security_init_app(name: str, config: dict) -> SecurityApp:
+def security_init_app(name: str, test_config: Optional[Mapping[str, Any]]) -> SecurityApp:
     """
     Create an instance of an eduid security (passwords) app.
 
     :param name: The name of the instance, it will affect the configuration loaded.
-    :param config: any additional configuration settings. Specially useful
-                   in test cases
+    :param config: Override config. Used in test cases.
     """
-    app = SecurityApp(name, config)
+    app = SecurityApp(name, test_config)
 
     app.logger.info(f'Init {name} app...')
 
