@@ -30,19 +30,15 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-from __future__ import absolute_import
-
-from dataclasses import dataclass
-
-from eduid_common.config.base import FlaskConfig
+from eduid_common.config.base import EduIDBaseAppConfig, MagicCookieMixin
 
 
-@dataclass
-class PhoneConfig(FlaskConfig):
+class PhoneConfig(EduIDBaseAppConfig, MagicCookieMixin):
     """
     Configuration for the phone app
     """
+
+    app_name: str = 'phone'
 
     # timeout for phone verification token, in seconds
     phone_verification_timeout: int = 7200

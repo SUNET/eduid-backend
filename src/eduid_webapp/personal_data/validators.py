@@ -39,7 +39,7 @@ from eduid_webapp.personal_data.helpers import PDataMsg
 
 
 def validate_language(lang):
-    available_langs = current_app.config.available_languages
+    available_langs = current_app.conf.available_languages
     if lang not in available_langs:
         raise ValidationError('Language {!r} is not available'.format(lang))
 

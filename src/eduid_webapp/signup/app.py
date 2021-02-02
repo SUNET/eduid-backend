@@ -31,12 +31,14 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from typing import cast
+from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
 from eduid_common.api import am, mail_relay, translation
 from eduid_common.api.app import EduIDBaseApp
+from eduid_common.config.base import FlaskConfig
+from eduid_common.config.parsers import load_config
 from eduid_userdb.logs import ProofingLog
 from eduid_userdb.signup import SignupUserDB
 
@@ -44,12 +46,11 @@ from eduid_webapp.signup.settings.common import SignupConfig
 
 
 class SignupApp(EduIDBaseApp):
-    def __init__(self, name: str, config: dict, **kwargs):
+    def __init__(self, name: str, test_config: Optional[Mapping[str, Any]], **kwargs):
+        self.conf = load_config(typ=SignupConfig, app_name=name, ns='webapp', test_config=test_config)
         # Initialise type of self.config before any parent class sets a precedent to mypy
-        self.config = SignupConfig.init_config(ns='webapp', app_name=name, test_config=config)
+        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
         super().__init__(name, **kwargs)
-        # cast self.config because sometimes mypy thinks it is a FlaskConfig after super().__init__()
-        self.config: SignupConfig = cast(SignupConfig, self.config)  # type: ignore
 
         from eduid_webapp.signup.views import signup_views
 
@@ -66,7 +67,7 @@ class SignupApp(EduIDBaseApp):
 current_signup_app: SignupApp = cast(SignupApp, current_app)
 
 
-def signup_init_app(name: str, config: dict) -> SignupApp:
+def signup_init_app(name: str, test_config: Optional[Mapping[str, Any]]) -> SignupApp:
     """
     Create an instance of an eduid signup app.
 
@@ -74,11 +75,9 @@ def signup_init_app(name: str, config: dict) -> SignupApp:
     since obviously the signup app is used unauthenticated.
 
     :param name: The name of the instance, it will affect the configuration loaded.
-    :param config: any additional configuration settings. Specially useful
-                   in test cases
+    :param config: Override config. Used in test cases.
     """
-
-    app = SignupApp(name, config)
+    app = SignupApp(name, test_config)
 
     app.logger.info(f'Init {name} app...')
 

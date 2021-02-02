@@ -44,8 +44,8 @@ def require_state(f):
     @wraps(f)
     def require_state_decorator(*args, **kwargs):
         email_code = kwargs.pop('email_code')
-        mail_expiration_time = current_app.config.email_code_timeout
-        sms_expiration_time = current_app.config.phone_code_timeout
+        mail_expiration_time = current_app.conf.email_code_timeout
+        sms_expiration_time = current_app.conf.phone_code_timeout
         try:
             state = current_app.password_reset_state_db.get_state_by_email_code(email_code)
             current_app.logger.debug(f'Found state using email_code {email_code}: {state}')
@@ -293,7 +293,7 @@ def new_password(state):
         'errors': [],
     }
     if request.method == 'POST':
-        min_entropy = current_app.config.password_entropy
+        min_entropy = current_app.conf.password_entropy
         try:
             form = ResetPasswordNewPasswordSchema(
                 zxcvbn_terms=view_context['zxcvbn_terms'], min_entropy=int(min_entropy)
@@ -318,7 +318,7 @@ def new_password(state):
                 current_app.logger.info('Password reset done removing state for user {}'.format(state.eppn))
                 current_app.password_reset_state_db.remove_state(state)
                 view_context['form_post_success'] = True
-                view_context['login_url'] = current_app.config.eduid_site_url
+                view_context['login_url'] = current_app.conf.eduid_site_url
                 return render_template('reset_password_new_password.jinja2', view_context=view_context)
 
     # Generate a random good password
@@ -337,7 +337,7 @@ def get_email_code():
     Backdoor to get the email verification code in the staging or dev environments
     """
     try:
-        if check_magic_cookie(current_app.config):
+        if check_magic_cookie(current_app.conf):
             eppn = request.args.get('eppn')
             state = current_app.password_reset_state_db.get_state_by_eppn(eppn)
             return state.email_code.code
@@ -355,7 +355,7 @@ def get_phone_code():
     Backdoor to get the phone verification code in the staging or dev environments
     """
     try:
-        if check_magic_cookie(current_app.config):
+        if check_magic_cookie(current_app.conf):
             eppn = request.args.get('eppn')
             state = current_app.password_reset_state_db.get_state_by_eppn(eppn)
             return state.phone_code.code

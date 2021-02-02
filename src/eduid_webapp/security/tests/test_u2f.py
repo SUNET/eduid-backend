@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 
 import json
+from typing import Any, Dict, Mapping
 
 from mock import patch
 from u2flib_server.model import DeviceRegistration, RegisteredKey
@@ -9,21 +10,24 @@ from u2flib_server.model import DeviceRegistration, RegisteredKey
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_userdb.credentials import U2F
 
-from eduid_webapp.security.app import security_init_app
+from eduid_webapp.security.app import SecurityApp, security_init_app
 
 __author__ = 'lundberg'
 
 
 class SecurityU2FTests(EduidAPITestCase):
-    def load_app(self, config):
+
+    app: SecurityApp
+
+    def load_app(self, config: Mapping[str, Any]) -> SecurityApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         return security_init_app('testing', config)
 
-    def update_config(self, app_config):
-        app_config.update(
+    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        config.update(
             {
                 'available_languages': {'en': 'English', 'sv': 'Svenska'},
                 'msg_broker_url': 'amqp://dummy',
@@ -34,11 +38,13 @@ class SecurityU2FTests(EduidAPITestCase):
                 'u2f_max_description_length': 50,
                 'fido2_rp_id': 'https://test.example.edu',
                 'u2f_valid_facets': ['https://test.example.edu'],
+                'vccs_url': 'https://vccs',
+                'dashboard_url': 'https://localhost',
             }
         )
-        return app_config
+        return config
 
-    def add_token_to_user(self, eppn):
+    def add_token_to_user(self, eppn: str):
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         u2f_token = U2F(
             version='version',

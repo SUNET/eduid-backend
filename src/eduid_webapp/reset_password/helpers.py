@@ -142,8 +142,8 @@ def get_pwreset_state(email_code: str) -> Union[ResetPasswordEmailState, ResetPa
 
     raises BadCode in case of problems
     """
-    mail_expiration_time = current_app.config.email_code_timeout
-    sms_expiration_time = current_app.config.phone_code_timeout
+    mail_expiration_time = current_app.conf.email_code_timeout
+    sms_expiration_time = current_app.conf.phone_code_timeout
     try:
         state = current_app.password_reset_state_db.get_state_by_email_code(email_code, raise_on_missing=True)
         current_app.logger.debug(f'Found state using email_code {email_code}: {state}')
@@ -192,10 +192,10 @@ def send_password_reset_mail(email_address: str):
     html_template = 'reset_password_email.html.jinja2'
     to_addresses = [address.email for address in user.mail_addresses.verified.to_list()]
 
-    pwreset_timeout = current_app.config.email_code_timeout // 60 // 60  # seconds to hours
+    pwreset_timeout = current_app.conf.email_code_timeout // 60 // 60  # seconds to hours
     # We must send the user to an url that does not correspond to a flask view,
     # but to a js bundle (i.e. a flask view in a *different* app)
-    resetpw_link = urlappend(current_app.config.password_reset_link, f"code/{state.email_code.code}")
+    resetpw_link = urlappend(current_app.conf.password_reset_link, f"code/{state.email_code.code}")
     context = {'reset_password_link': resetpw_link, 'password_reset_timeout': pwreset_timeout}
     subject = _('Reset password')
     try:
@@ -212,7 +212,7 @@ def generate_suggested_password() -> str:
     """
     The suggested password is hashed and saved in session to avoid form hijacking
     """
-    password_length = current_app.config.password_length
+    password_length = current_app.conf.password_length
 
     password = generate_password(length=password_length)
     password = ' '.join([password[i * 4 : i * 4 + 4] for i in range(0, math.ceil(len(password) / 4))])
@@ -261,7 +261,7 @@ def reset_user_password(user: User, state: ResetPasswordState, password: str) ->
     :param state: Password reset state
     :param password: Plain text password
     """
-    vccs_url = current_app.config.vccs_url
+    vccs_url = current_app.conf.vccs_url
 
     reset_password_user = ResetPasswordUser.from_user(user, private_userdb=current_app.private_userdb)
 
@@ -323,7 +323,7 @@ def get_extra_security_alternatives(user: User, session_prefix: str) -> dict:
 
     if credentials:
         alternatives['tokens'] = fido_tokens.start_token_verification(
-            user, session_prefix, current_app.config.fido2_rp_id
+            user, session_prefix, current_app.conf.fido2_rp_id
         )
 
     return alternatives
@@ -394,8 +394,8 @@ def send_sms(phone_number: str, text_template: str, context: Optional[dict] = No
     :param reference: Audit reference to help cross reference audit log and events
     """
     default_context = {
-        "site_url": current_app.config.eduid_site_url,
-        "site_name": current_app.config.eduid_site_name,
+        "site_url": current_app.conf.eduid_site_url,
+        "site_name": current_app.conf.eduid_site_name,
     }
     if context is None:
         context = {}

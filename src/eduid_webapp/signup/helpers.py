@@ -182,7 +182,7 @@ def complete_registration(signup_user: SignupUser) -> FluxData:
 
     password = _generate_password()
     # TODO: add_password needs to understand that signup_user is a decendent from User
-    if not add_password(signup_user, password, application='signup', vccs_url=current_app.config.vccs_url):
+    if not add_password(signup_user, password, application='signup', vccs_url=current_app.conf.vccs_url):
         current_app.logger.error(f'Failed adding a credential to user {signup_user}')
         return error_response(message=CommonMsg.temp_problem)
 
@@ -202,7 +202,7 @@ def complete_registration(signup_user: SignupUser) -> FluxData:
         "status": 'verified',
         "password": password,
         "email": signup_user.mail_addresses.primary.email,
-        "dashboard_url": current_app.config.signup_authn_url,
+        "dashboard_url": current_app.conf.signup_authn_url,
     }
 
     current_app.stats.count(name='signup_complete')
@@ -221,7 +221,7 @@ def record_tou(signup_user: SignupUser, source: str) -> None:
 
     event_id = ObjectId()
     created_ts = datetime.datetime.utcnow()
-    tou_version = current_app.config.tou_version
+    tou_version = current_app.conf.tou_version
     current_app.logger.info(
         'Recording ToU acceptance {!r} (version {})'
         ' for user {} (source: {})'.format(event_id, tou_version, signup_user, source)
@@ -231,6 +231,6 @@ def record_tou(signup_user: SignupUser, source: str) -> None:
 
 def _generate_password() -> str:
     """ Generate a random password readable to humans (groups of four characters). """
-    password = pwgen(current_app.config.password_length, no_capitalize=True, no_symbols=True)
+    password = pwgen(current_app.conf.password_length, no_capitalize=True, no_symbols=True)
     parts = findall('.{,4}', password)
     return ' '.join(parts).rstrip()
