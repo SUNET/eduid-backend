@@ -154,7 +154,7 @@ def verify(user, code, number):
     db = current_app.proofing_statedb
     try:
         state = db.get_state_by_eppn_and_mobile(proofing_user.eppn, number)
-        timeout = current_app.config.phone_verification_timeout
+        timeout = current_app.conf.phone_verification_timeout
         if state.is_expired(timeout):
             current_app.logger.info("Proofing state is expired. Removing the state.")
             current_app.logger.debug("Proofing state: {!r}".format(state))
@@ -259,7 +259,7 @@ def get_code():
     Backdoor to get the verification code in the staging or dev environments
     """
     try:
-        if check_magic_cookie(current_app.config):
+        if check_magic_cookie(current_app.conf):
             eppn = request.args.get('eppn')
             phone = request.args.get('phone')
             state = current_app.proofing_statedb.get_state_by_eppn_and_mobile(eppn, phone)

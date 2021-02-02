@@ -31,12 +31,14 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from typing import cast
+from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
 from eduid_common.api import am, msg
 from eduid_common.authn.middleware import AuthnBaseApp
+from eduid_common.config.base import FlaskConfig
+from eduid_common.config.parsers import load_config
 from eduid_userdb.logs import ProofingLog
 from eduid_userdb.proofing import PhoneProofingStateDB, PhoneProofingUserDB
 
@@ -44,12 +46,11 @@ from eduid_webapp.phone.settings.common import PhoneConfig
 
 
 class PhoneApp(AuthnBaseApp):
-    def __init__(self, name: str, config: dict, **kwargs):
+    def __init__(self, name: str, test_config: Optional[Mapping[str, Any]], **kwargs):
+        self.conf = load_config(typ=PhoneConfig, app_name=name, ns='webapp', test_config=test_config)
         # Initialise type of self.config before any parent class sets a precedent to mypy
-        self.config = PhoneConfig.init_config(ns='webapp', app_name=name, test_config=config)
+        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
         super().__init__(name, **kwargs)
-        # cast self.config because sometimes mypy thinks it is a FlaskConfig after super().__init__()
-        self.config: PhoneConfig = cast(PhoneConfig, self.config)  # type: ignore
 
         from eduid_webapp.phone.views import phone_views
 
@@ -66,7 +67,7 @@ class PhoneApp(AuthnBaseApp):
 current_phone_app: PhoneApp = cast(PhoneApp, current_app)
 
 
-def phone_init_app(name: str, config: dict) -> PhoneApp:
+def phone_init_app(name: str, test_config: Optional[Mapping[str, Any]]) -> PhoneApp:
     """
     Create an instance of an eduid phone app.
 
@@ -75,7 +76,7 @@ def phone_init_app(name: str, config: dict) -> PhoneApp:
                    in test cases
     """
 
-    app = PhoneApp(name, config)
+    app = PhoneApp(name, test_config)
 
     app.logger.info(f'Init {name} app...')
 

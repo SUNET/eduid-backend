@@ -38,6 +38,7 @@ from typing import Any, Dict, Mapping, Optional
 from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
+
 from eduid_webapp.security.app import SecurityApp, security_init_app
 
 
@@ -74,7 +75,7 @@ class SecurityTests(EduidAPITestCase):
                 'u2f_valid_facets': [],
                 'fido2_rp_id': 'https://test.example.edu',
                 'vccs_url': 'https://vccs',
-                'dashboard_url': 'https://dashboard/'
+                'dashboard_url': 'https://dashboard/',
             }
         )
         return config

@@ -32,30 +32,31 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import json
-from typing import Any, Optional
+from typing import Any, Dict, Mapping, Optional
 from urllib.parse import quote_plus
 
 from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
-
-from eduid_webapp.phone.app import phone_init_app
-from eduid_webapp.phone.settings.common import PhoneConfig
+from eduid_webapp.phone.app import PhoneApp, phone_init_app
 
 
 class PhoneTests(EduidAPITestCase):
+
+    app: PhoneApp
+
     def setUp(self):
         super(PhoneTests, self).setUp(copy_user_to_private=True)
 
-    def load_app(self, config):
+    def load_app(self, config: Mapping[str, Any]) -> PhoneApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         return phone_init_app('testing', config)
 
-    def update_config(self, app_config):
-        app_config.update(
+    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        config.update(
             {
                 'available_languages': {'en': 'English', 'sv': 'Svenska'},
                 'msg_broker_url': 'amqp://dummy',
@@ -66,7 +67,7 @@ class PhoneTests(EduidAPITestCase):
                 'throttle_resend_seconds': 300,
             }
         )
-        return app_config
+        return config
 
     # parameterized test methods
 
@@ -241,9 +242,7 @@ class PhoneTests(EduidAPITestCase):
 
                 client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
 
-                client.set_cookie(
-                    'localhost', key=self.app.config.magic_cookie_name, value=self.app.config.magic_cookie
-                )
+                client.set_cookie('localhost', key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
 
                 phone = quote_plus(phone)
                 eppn = quote_plus(eppn)
@@ -688,9 +687,9 @@ class PhoneTests(EduidAPITestCase):
         self.assertEqual(['phone.phone_duplicated'], new_phone_data2['payload']['error'].get('number'))
 
     def test_get_code_backdoor(self):
-        self.app.config.magic_cookie = 'magic-cookie'
-        self.app.config.magic_cookie_name = 'magic'
-        self.app.config.environment = 'dev'
+        self.app.conf.magic_cookie = 'magic-cookie'
+        self.app.conf.magic_cookie_name = 'magic'
+        self.app.conf.environment = 'dev'
 
         code = '0123456'
         resp = self._get_code_backdoor(code=code)
@@ -699,9 +698,9 @@ class PhoneTests(EduidAPITestCase):
         self.assertEqual(resp.data, code.encode('ascii'))
 
     def test_get_code_no_backdoor_in_pro(self):
-        self.app.config.magic_cookie = 'magic-cookie'
-        self.app.config.magic_cookie_name = 'magic'
-        self.app.config.environment = 'pro'
+        self.app.conf.magic_cookie = 'magic-cookie'
+        self.app.conf.magic_cookie_name = 'magic'
+        self.app.conf.environment = 'pro'
 
         code = '0123456'
         resp = self._get_code_backdoor(code=code)
@@ -709,9 +708,9 @@ class PhoneTests(EduidAPITestCase):
         self.assertEqual(resp.status_code, 400)
 
     def test_get_code_no_backdoor_misconfigured1(self):
-        self.app.config.magic_cookie = 'magic-cookie'
-        self.app.config.magic_cookie_name = ''
-        self.app.config.environment = 'dev'
+        self.app.conf.magic_cookie = 'magic-cookie'
+        self.app.conf.magic_cookie_name = ''
+        self.app.conf.environment = 'dev'
 
         code = '0123456'
         resp = self._get_code_backdoor(code=code)
@@ -719,9 +718,9 @@ class PhoneTests(EduidAPITestCase):
         self.assertEqual(resp.status_code, 400)
 
     def test_get_code_no_backdoor_misconfigured2(self):
-        self.app.config.magic_cookie = ''
-        self.app.config.magic_cookie_name = 'magic'
-        self.app.config.environment = 'dev'
+        self.app.conf.magic_cookie = ''
+        self.app.conf.magic_cookie_name = 'magic'
+        self.app.conf.environment = 'dev'
 
         code = '0123456'
         resp = self._get_code_backdoor(code=code)

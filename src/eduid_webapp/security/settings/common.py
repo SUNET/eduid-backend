@@ -38,6 +38,7 @@ class SecurityConfig(EduIDBaseAppConfig, WebauthnConfigMixin2, MagicCookieMixin)
     """
     Configuration for the security app
     """
+
     vccs_url: str
     dashboard_url: str
     token_service_url: str
@@ -64,5 +65,3 @@ class SecurityConfig(EduIDBaseAppConfig, WebauthnConfigMixin2, MagicCookieMixin)
     termination_redirect_url: str = 'https://eduid.se'
     eduid_site_url: str = 'https://www.eduid.se'
     eduid_site_name: str = 'eduID'
-
-

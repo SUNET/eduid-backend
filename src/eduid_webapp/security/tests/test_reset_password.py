@@ -13,6 +13,7 @@ from eduid_common.authn.testing import TestVCCSClient
 from eduid_userdb.credentials import Password
 from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_userdb.security import PasswordResetEmailState
+
 from eduid_webapp.security.app import SecurityApp, security_init_app
 
 __author__ = 'lundberg'

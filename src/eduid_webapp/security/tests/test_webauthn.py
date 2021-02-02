@@ -12,6 +12,7 @@ from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_userdb.credentials import U2F, Webauthn
+
 from eduid_webapp.security.app import SecurityApp, security_init_app
 from eduid_webapp.security.views.webauthn import get_webauthn_server
 
