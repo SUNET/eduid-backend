@@ -53,6 +53,9 @@ class SMSThrottleException(Exception):
 
 def sms_throttled(state: PhoneProofingState) -> bool:
     # Do not let a user send another SMS until throttle_resend_seconds has passed
+    if not state.modified_ts:
+        # please mypy
+        return False
     now = utc_now()
     time_since_last_sms = now - state.modified_ts
     throttle_seconds = timedelta(seconds=current_app.conf.throttle_resend_seconds)

@@ -30,13 +30,15 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from typing import cast
+from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
 from eduid_common.api import am, mail_relay, msg, oidc, translation
 from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.authn.utils import no_authn_views
+from eduid_common.config.base import FlaskConfig
+from eduid_common.config.parsers import load_config
 from eduid_userdb.logs import ProofingLog
 from eduid_userdb.proofing import OidcProofingStateDB, OidcProofingUserDB
 
@@ -46,12 +48,10 @@ __author__ = 'lundberg'
 
 
 class OIDCProofingApp(AuthnBaseApp):
-    def __init__(self, name: str, config: dict, **kwargs):
+    def __init__(self, name: str, test_config: Optional[Mapping[str, Any]], **kwargs):
+        self.conf = load_config(typ=OIDCProofingConfig, app_name=name, ns='webapp', test_config=test_config)
         # Initialise type of self.config before any parent class sets a precedent to mypy
-        self.config = OIDCProofingConfig.init_config(ns='webapp', app_name=name, test_config=config)
-        super().__init__(name, **kwargs)
-        # cast self.config because sometimes mypy thinks it is a FlaskConfig after super().__init__()
-        self.config: OIDCProofingConfig = cast(OIDCProofingConfig, self.config)  # type: ignore
+        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
 
         from eduid_webapp.oidc_proofing.views import oidc_proofing_views
 
@@ -61,7 +61,9 @@ class OIDCProofingApp(AuthnBaseApp):
         no_authn_views(self, ['/authorization-response'])
 
         # Initialize the oidc_client after views to be able to set correct redirect_uris
-        oidc.init_client(self)
+        self.oidc_client = oidc.init_client(
+            self.conf.client_registration_info, self.conf.provider_configuration_info
+        )
 
         # Init celery
         msg.init_relay(self)
@@ -72,24 +74,23 @@ class OIDCProofingApp(AuthnBaseApp):
         translation.init_babel(self)
 
         # Initialize db
-        self.private_userdb = OidcProofingUserDB(self.config.mongo_uri)
-        self.proofing_statedb = OidcProofingStateDB(self.config.mongo_uri)
-        self.proofing_log = ProofingLog(self.config.mongo_uri)
+        self.private_userdb = OidcProofingUserDB(self.conf.mongo_uri)
+        self.proofing_statedb = OidcProofingStateDB(self.conf.mongo_uri)
+        self.proofing_log = ProofingLog(self.conf.mongo_uri)
 
 
 current_oidcp_app: OIDCProofingApp = cast(OIDCProofingApp, current_app)
 
 
-def init_oidc_proofing_app(name: str, config: dict) -> OIDCProofingApp:
+def init_oidc_proofing_app(name: str, test_config: Optional[Mapping[str, Any]]) -> OIDCProofingApp:
     """
     Create an instance of an oidc proofing app.
 
     :param name: The name of the instance, it will affect the configuration loaded.
-    :param config: any additional configuration settings. Specially useful
-                   in test cases
+    :param test_config: Override config. Used in test cases.
     """
 
-    app = OIDCProofingApp(name, config)
+    app = OIDCProofingApp(name, test_config)
 
     app.logger.info(f'Init {name} app...')
 

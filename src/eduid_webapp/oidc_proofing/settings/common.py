@@ -31,26 +31,26 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from __future__ import absolute_import
 
-from dataclasses import dataclass, field
 from typing import Dict
 
-from eduid_common.config.base import FlaskConfig
+from pydantic import Field
+
+from eduid_common.config.base import EduIDBaseAppConfig
 
 
-@dataclass
-class OIDCProofingConfig(FlaskConfig):
+class OIDCProofingConfig(EduIDBaseAppConfig):
     """
     Configuration for the oidc proofing app
     """
+    app_name: str = 'oidc_proofing'
 
     # OIDC
-    client_registration_info: Dict[str, str] = field(
-        default_factory=lambda: {'client_id': 'can_not_be_empty_string', 'client_secret': ''}
+    client_registration_info: Dict[str, str] = Field(
+        default={'client_id': 'can_not_be_empty_string', 'client_secret': ''}
     )
-    provider_configuration_info: Dict[str, str] = field(
-        default_factory=lambda: {
+    provider_configuration_info: Dict[str, str] = Field(
+        default={
             'issuer': 'can_not_be_empty_string',
             'authorization_endpoint': '',
             'jwks_uri': '',

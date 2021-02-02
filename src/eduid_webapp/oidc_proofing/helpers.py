@@ -132,7 +132,7 @@ def do_authn_request(proofing_state, claims_request, redirect_url):
     if response.status_code == 200:
         current_app.logger.debug(
             'Authentication request delivered to provider {!s}'.format(
-                current_app.config.provider_configuration_info['issuer']
+                current_app.conf.provider_configuration_info['issuer']
             )
         )
         return True
@@ -143,8 +143,8 @@ def do_authn_request(proofing_state, claims_request, redirect_url):
 
 
 def send_new_verification_method_mail(user):
-    site_name = current_app.config.eduid_site_name
-    site_url = current_app.config.eduid_site_url
+    site_name = current_app.conf.eduid_site_name
+    site_url = current_app.conf.eduid_site_url
     subject = _('%(site_name)s account verification', site_name=site_name)
 
     email_address = user.mail_addresses.primary.email

@@ -30,12 +30,14 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from typing import cast
+from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
 from eduid_common.api import am, oidc
 from eduid_common.authn.middleware import AuthnBaseApp
+from eduid_common.config.base import FlaskConfig
+from eduid_common.config.parsers import load_config
 from eduid_userdb.logs import ProofingLog
 from eduid_userdb.proofing import OrcidProofingStateDB, OrcidProofingUserDB
 
@@ -45,12 +47,11 @@ __author__ = 'lundberg'
 
 
 class OrcidApp(AuthnBaseApp):
-    def __init__(self, name: str, config: dict, **kwargs):
+    def __init__(self, name: str, test_config: Optional[Mapping[str, Any]], **kwargs):
+        self.conf = load_config(typ=OrcidConfig, app_name=name, ns='webapp', test_config=test_config)
         # Initialise type of self.config before any parent class sets a precedent to mypy
-        self.config = OrcidConfig.init_config(ns='webapp', app_name=name, test_config=config)
+        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
         super().__init__(name, **kwargs)
-        # cast self.config because sometimes mypy thinks it is a FlaskConfig after super().__init__()
-        self.config: OrcidConfig = cast(OrcidConfig, self.config)  # type: ignore
 
         # Register views
         from eduid_webapp.orcid.views import orcid_views
@@ -66,20 +67,19 @@ class OrcidApp(AuthnBaseApp):
         am.init_relay(self, 'eduid_orcid')
 
         # Initialize the oidc_client
-        oidc.init_client(self)
+        self.oidc_client = oidc.init_client(self.conf.client_registration_info, self.conf.provider_configuration_info)
 
 
 current_orcid_app: OrcidApp = cast(OrcidApp, current_app)
 
 
-def init_orcid_app(name: str, config: dict) -> OrcidApp:
+def init_orcid_app(name: str, test_config: Optional[Mapping[str, Any]]) -> OrcidApp:
     """
     :param name: The name of the instance, it will affect the configuration loaded.
-    :param config: any additional configuration settings. Specially useful
-                   in test cases
+    :param test_config: Override config, used in test cases.
     """
 
-    app = OrcidApp(name, config)
+    app = OrcidApp(name, test_config)
 
     app.logger.info(f'Init {name} app...')
 

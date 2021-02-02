@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 
 import json
+from typing import Any, Dict, Mapping
 
 from mock import patch
 
@@ -10,14 +11,15 @@ from eduid_common.api.testing import EduidAPITestCase
 from eduid_userdb.orcid import OidcAuthorization, OidcIdToken, Orcid
 from eduid_userdb.proofing import ProofingUser
 
-from eduid_webapp.orcid.app import init_orcid_app
-from eduid_webapp.orcid.settings.common import OrcidConfig
+from eduid_webapp.orcid.app import OrcidApp, init_orcid_app
 
 __author__ = 'lundberg'
 
 
 class OrcidTests(EduidAPITestCase):
     """Base TestCase for those tests that need a full environment setup"""
+
+    app: OrcidApp
 
     def setUp(self):
         self.test_user_eppn = 'hubba-bubba'
@@ -68,7 +70,7 @@ class OrcidTests(EduidAPITestCase):
 
         super(OrcidTests, self).setUp()
 
-    def load_app(self, config):
+    def load_app(self, config: Mapping[str, Any]) -> OrcidApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
@@ -77,8 +79,8 @@ class OrcidTests(EduidAPITestCase):
             mock_response.return_value = self.oidc_provider_config_response
             return init_orcid_app('testing', config)
 
-    def update_config(self, app_config):
-        app_config.update(
+    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        config.update(
             {
                 'am_broker_url': 'amqp://dummy',
                 'celery_config': {'result_backend': 'amqp', 'task_serializer': 'json'},
@@ -88,7 +90,7 @@ class OrcidTests(EduidAPITestCase):
                 'orcid_verify_redirect_url': 'https://dashboard.example.com/',
             }
         )
-        return app_config
+        return config
 
     @patch('oic.oic.Client.parse_response')
     @patch('oic.oic.Client.do_user_info_request')
@@ -127,11 +129,11 @@ class OrcidTests(EduidAPITestCase):
     def test_authenticate(self):
         response = self.browser.get('/authorize')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
-        self.assertTrue(response.location.startswith(self.app.config.token_service_url))
+        self.assertTrue(response.location.startswith(self.app.conf.token_service_url))
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = browser.get('/authorize')
         self.assertEqual(response.status_code, 302)  # Authenticated request redirected to OP
-        self.assertTrue(response.location.startswith(self.app.config.provider_configuration_info['issuer']))
+        self.assertTrue(response.location.startswith(self.app.conf.provider_configuration_info['issuer']))
 
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_oidc_flow(self, mock_request_user_sync):

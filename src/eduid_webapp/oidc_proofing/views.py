@@ -90,7 +90,7 @@ def authorization_response():
     current_app.logger.debug('Trying to do userinfo request:')
     # TODO: Do we need to save anything else from the userinfo response
     userinfo = current_app.oidc_client.do_user_info_request(
-        method=current_app.config.userinfo_endpoint_method, state=authn_resp['state']
+        method=current_app.conf.userinfo_endpoint_method, state=authn_resp['state']
     )
     current_app.logger.debug('userinfo received: {!s}'.format(userinfo))
     if userinfo['sub'] != id_token['sub']:
@@ -133,7 +133,7 @@ def get_seleg_state(user):
     current_app.logger.debug('Getting state for user {!s}.'.format(user))
     try:
         proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
-        expire_time = current_app.config.seleg_expire_time_hours
+        expire_time = current_app.conf.seleg_expire_time_hours
         if helpers.is_proofing_state_expired(proofing_state, expire_time):
             current_app.proofing_statedb.remove_state(proofing_state)
             current_app.stats.count(name='seleg.proofing_state_expired')
@@ -194,7 +194,7 @@ def get_freja_state(user):
     current_app.logger.debug('Getting state for user {!s}.'.format(user))
     try:
         proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
-        expire_time = current_app.config.freja_expire_time_hours
+        expire_time = current_app.conf.freja_expire_time_hours
         if helpers.is_proofing_state_expired(proofing_state, expire_time):
             current_app.proofing_statedb.remove_state(proofing_state)
             current_app.stats.count(name='freja.proofing_state_expired')
@@ -207,18 +207,18 @@ def get_freja_state(user):
     opaque_data = helpers.create_opaque_data(proofing_state.nonce, proofing_state.token)
     valid_until = helpers.get_proofing_state_valid_until(proofing_state, expire_time)
     request_data = {
-        "iarp": current_app.config.freja_iarp,
+        "iarp": current_app.conf.freja_iarp,
         "exp": int(valid_until.astimezone(UTC()).strftime('%s')) * 1000,  # Milliseconds since 1970 in UTC
-        "proto": current_app.config.freja_response_protocol,
+        "proto": current_app.conf.freja_response_protocol,
         "opaque": opaque_data,
     }
 
-    jwk = binascii.unhexlify(current_app.config.freja_jwk_secret)
+    jwk = binascii.unhexlify(current_app.conf.freja_jwk_secret)
     jws_header = {
-        'alg': current_app.config.freja_jws_algorithm,
-        'kid': current_app.config.freja_jws_key_id,
+        'alg': current_app.conf.freja_jws_algorithm,
+        'kid': current_app.conf.freja_jws_key_id,
     }
-    jws = jose.sign(request_data, jwk, headers=jws_header, algorithm=current_app.config.freja_jws_algorithm)
+    jws = jose.sign(request_data, jwk, headers=jws_header, algorithm=current_app.conf.freja_jws_algorithm)
     return {'iaRequestData': jws}
 
 
