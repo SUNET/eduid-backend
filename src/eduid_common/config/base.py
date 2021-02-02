@@ -532,8 +532,10 @@ class WebauthnConfigMixin2(BaseModel):
     u2f_app_id: str  # 'https://eduid.se/u2f-app-id.json'
     u2f_valid_facets: List[str]  # e.g. ['https://dashboard.dev.eduid.se/', 'https://idp.dev.eduid.se/']
 
+
 class MagicCookieMixin(BaseModel):
-    # code to set in a "magic" cookie to bypass various verifications.
+    environment: EduidEnvironment = EduidEnvironment.production
+    # code to set in a "magic" cookie to bypass various verifications in test environments.
     magic_cookie: Optional[str] = None
     # name of the magic cookie
     magic_cookie_name: Optional[str] = None
