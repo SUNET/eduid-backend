@@ -109,7 +109,7 @@ def change_password(user):
     View to change the password
     """
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
-    min_entropy = current_app.config.password_entropy
+    min_entropy = current_app.conf.password_entropy
     schema = ChangePasswordSchema(zxcvbn_terms=get_zxcvbn_terms(security_user.eppn), min_entropy=int(min_entropy))
 
     if not request.data:
@@ -134,11 +134,11 @@ def change_password(user):
 
     now = datetime.utcnow()
     delta = now - datetime.fromtimestamp(authn_ts)
-    timeout = current_app.config.chpass_timeout
+    timeout = current_app.conf.chpass_timeout
     if int(delta.total_seconds()) > timeout:
         return error_response(message='chpass.stale_reauthn')
 
-    vccs_url = current_app.config.vccs_url
+    vccs_url = current_app.conf.vccs_url
     added = add_credentials(old_password, new_password, security_user, source='security', vccs_url=vccs_url)
 
     if not added:
@@ -156,7 +156,7 @@ def change_password(user):
     current_app.stats.count(name='security_password_changed', value=1)
     current_app.logger.info('Changed password for user {}'.format(security_user.eppn))
 
-    next_url = current_app.config.dashboard_url
+    next_url = current_app.conf.dashboard_url
     credentials = {
         'next_url': next_url,
         'credentials': compile_credential_list(security_user),
@@ -179,7 +179,7 @@ def delete_account(user):
     """
     current_app.logger.debug('Initiating account termination for user {}'.format(user))
 
-    ts_url = current_app.config.token_service_url
+    ts_url = current_app.conf.token_service_url
     terminate_url = urlappend(ts_url, 'terminate')
     next_url = url_for('security.account_terminated')
 
@@ -222,7 +222,7 @@ def account_terminated(user):
     del session['reauthn-for-termination']
 
     # revoke all user passwords
-    revoke_all_credentials(security_user, vccs_url=current_app.config.vccs_url)
+    revoke_all_credentials(security_user, vccs_url=current_app.conf.vccs_url)
     # Skip removing old passwords from the user at this point as a password reset will do that anyway.
     # This fixes the problem with loading users for a password reset as users without passwords triggers
     # the UserHasNotCompletedSignup check in eduid-userdb.
@@ -248,7 +248,7 @@ def account_terminated(user):
         current_app.logger.error('Account will be terminated successfully anyway.')
 
     current_app.logger.debug(f'Logging out (terminated) user {user}')
-    return redirect(f'{current_app.config.logout_endpoint}?next={current_app.config.termination_redirect_url}')
+    return redirect(f'{current_app.conf.logout_endpoint}?next={current_app.conf.termination_redirect_url}')
 
 
 @security_views.route('/remove-nin', methods=['POST'])

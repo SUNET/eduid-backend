@@ -62,14 +62,14 @@ webauthn_views = Blueprint('webauthn', __name__, url_prefix='/webauthn', templat
 @require_user
 def registration_begin(user, authenticator):
     user_webauthn_tokens = user.credentials.filter(FidoCredential)
-    if user_webauthn_tokens.count >= current_app.config.webauthn_max_allowed_tokens:
+    if user_webauthn_tokens.count >= current_app.conf.webauthn_max_allowed_tokens:
         current_app.logger.error(
-            'User tried to register more than {} tokens.'.format(current_app.config.webauthn_max_allowed_tokens)
+            'User tried to register more than {} tokens.'.format(current_app.conf.webauthn_max_allowed_tokens)
         )
         return error_response(message=SecurityMsg.max_webauthn)
 
     creds = make_credentials(user_webauthn_tokens.to_list())
-    server = get_webauthn_server(current_app.config.fido2_rp_id)
+    server = get_webauthn_server(current_app.conf.fido2_rp_id)
     if user.given_name is None or user.surname is None or user.display_name is None:
         return error_response(message=SecurityMsg.no_pdata)
 
@@ -105,7 +105,7 @@ def urlsafe_b64decode(data):
 @require_user
 def registration_complete(user, credential_id, attestation_object, client_data, description):
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
-    server = get_webauthn_server(current_app.config.fido2_rp_id)
+    server = get_webauthn_server(current_app.conf.fido2_rp_id)
     att_obj = AttestationObject(urlsafe_b64decode(attestation_object))
     cdata_obj = ClientData(urlsafe_b64decode(client_data))
     state = session['_webauthn_state_']
@@ -117,7 +117,7 @@ def registration_complete(user, credential_id, attestation_object, client_data, 
     credential = Webauthn(
         keyhandle=credential_id,
         credential_data=base64.urlsafe_b64encode(cred_data).decode('ascii'),
-        app_id=current_app.config.fido2_rp_id,
+        app_id=current_app.conf.fido2_rp_id,
         attest_obj=base64.b64encode(attestation_object.encode('utf-8')).decode('ascii'),
         description=description,
         created_by='security',

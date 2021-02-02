@@ -46,6 +46,7 @@ class SignupConfig(EduIDBaseAppConfig, MagicCookieMixin):
     tou_url: str
     vccs_url: str
     signup_url: str
+    dashboard_url: str
 
     app_name = 'signup'
     signup_authn_url: str = '/services/authn/signup-authn'
