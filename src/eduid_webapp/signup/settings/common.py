@@ -34,23 +34,28 @@
 
 from __future__ import absolute_import
 
-from dataclasses import dataclass
-
-from eduid_common.config.base import FlaskConfig
+from eduid_common.config.base import EduIDBaseAppConfig, MagicCookieMixin
 
 
-@dataclass
-class SignupConfig(FlaskConfig):
+class SignupConfig(EduIDBaseAppConfig, MagicCookieMixin):
     """
     Configuration for the signup app
     """
 
+    # Used to load the react bundle
+    bundle_path: str
+    bundle_version: str
+    # The signup app uses this to retrieve the ToU texts from the actions app
+    tou_url: str
+    vccs_url: str
+    signup_url: str
+
+    app_name = 'signup'
     signup_authn_url: str = '/services/authn/signup-authn'
     password_length: int = 10
     tou_version: str = '2018-v1'
     default_finish_url: str = 'https://www.eduid.se/'
-    # The signup app uses this to retrieve the ToU texts from the actions app
-    tou_url: str = ''
-    # Used to load the react bundle
-    bundle_path: str = 'front-build/signup-bundle.dev.js'
-    bundle_version: str = 'test'
+    eduid_site_url: str = 'https://www.eduid.se'
+    eduid_site_name: str = 'eduID'
+    recaptcha_public_key: str = ''
+    recaptcha_private_key: str = ''

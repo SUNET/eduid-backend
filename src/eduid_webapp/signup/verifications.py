@@ -97,7 +97,7 @@ def generate_verification_link() -> Tuple[str, str]:
     :rtype: pair of str
     """
     code = str(uuid4())
-    link = '{}code/{}'.format(current_app.config.signup_url, code)
+    link = '{}code/{}'.format(current_app.conf.signup_url, code)
     return link, code
 
 
@@ -128,8 +128,8 @@ def send_verification_mail(email: str) -> None:
     context = {
         "email": email,
         "verification_link": verification_link,
-        "site_name": current_app.config.eduid_site_name,
-        "site_url": current_app.config.eduid_site_url,
+        "site_name": current_app.conf.eduid_site_name,
+        "site_url": current_app.conf.eduid_site_url,
     }
 
     text = render_template("verification_email.txt.jinja2", **context)
