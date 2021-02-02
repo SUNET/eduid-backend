@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 import binascii
 import json
 import time
@@ -23,6 +20,9 @@ __author__ = 'lundberg'
 
 class OidcProofingTests(EduidAPITestCase):
     """Base TestCase for those tests that need a full environment setup"""
+
+    app: OIDCProofingApp
+
 
     def setUp(self):
         self.test_user_eppn = 'hubba-baar'

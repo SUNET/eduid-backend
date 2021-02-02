@@ -48,10 +48,12 @@ __author__ = 'lundberg'
 
 
 class OIDCProofingApp(AuthnBaseApp):
+
     def __init__(self, name: str, test_config: Optional[Mapping[str, Any]], **kwargs):
         self.conf = load_config(typ=OIDCProofingConfig, app_name=name, ns='webapp', test_config=test_config)
         # Initialise type of self.config before any parent class sets a precedent to mypy
         self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
+        super().__init__(name, **kwargs)
 
         from eduid_webapp.oidc_proofing.views import oidc_proofing_views
 
