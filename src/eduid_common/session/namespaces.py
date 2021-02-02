@@ -32,6 +32,7 @@ class Common(SessionNSBase):
     eppn: Optional[str] = None
     is_logged_in: bool = False
     login_source: Optional[LoginApplication] = None
+    preferred_language: Optional[str] = None
 
     def to_dict(self):
         res = asdict(self)
