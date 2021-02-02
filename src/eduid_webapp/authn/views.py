@@ -172,7 +172,7 @@ def logout():
     This view initiates the SAML2 Logout request
     using the pysaml2 library to create the LogoutRequest.
     """
-    eppn = session.get('user_eppn')
+    eppn = session.common.eppn
 
     next = request.args.get('next', '')
     location = next or current_app.conf.saml2_logout_redirect_url
