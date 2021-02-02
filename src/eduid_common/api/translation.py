@@ -5,6 +5,7 @@ from flask import request
 from flask_babel import Babel
 
 from eduid_common.api.app import EduIDBaseApp
+from eduid_common.session import session
 
 __author__ = 'lundberg'
 
@@ -24,7 +25,10 @@ def init_babel(app: EduIDBaseApp) -> None:
     @app.babel.localeselector
     def get_locale():
         # if a user is logged in, use the locale from the user settings
-        # XXX: TODO
+        if session.common.preferred_language is not None:
+            lang = session.common.preferred_language
+            app.logger.debug(f'Language in session: {lang}')
+            return lang
         # otherwise try to guess the language from the user accept
         # header the browser transmits. The best match wins.
         lang = request.accept_languages.best_match(app.config.supported_languages)
