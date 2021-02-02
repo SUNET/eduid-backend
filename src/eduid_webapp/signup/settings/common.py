@@ -42,9 +42,6 @@ class SignupConfig(EduIDBaseAppConfig, MagicCookieMixin):
     Configuration for the signup app
     """
 
-    # Used to load the react bundle
-    bundle_path: str
-    bundle_version: str
     # The signup app uses this to retrieve the ToU texts from the actions app
     tou_url: str
     vccs_url: str
