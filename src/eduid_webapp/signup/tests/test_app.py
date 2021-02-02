@@ -65,6 +65,7 @@ class SignupTests(EduidAPITestCase):
                 'available_languages': {'en': 'English', 'sv': 'Svenska'},
                 'signup_authn_url': '/services/authn/signup-authn',
                 'signup_url': 'https://localhost/',
+                'dashboard_url': 'https://localhost/',
                 'development': 'DEBUG',
                 'application_root': '/',
                 'log_level': 'DEBUG',

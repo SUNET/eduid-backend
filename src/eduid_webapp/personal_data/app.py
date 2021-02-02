@@ -40,6 +40,7 @@ from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.config.base import FlaskConfig
 from eduid_common.config.parsers import load_config
 from eduid_userdb.personal_data import PersonalDataUserDB
+
 from eduid_webapp.personal_data.settings import PersonalDataConfig
 
 

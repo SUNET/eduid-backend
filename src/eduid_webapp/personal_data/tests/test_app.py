@@ -38,6 +38,7 @@ from mock import patch
 
 from eduid_common.api.exceptions import ApiException
 from eduid_common.api.testing import EduidAPITestCase
+
 from eduid_webapp.personal_data.app import PersonalDataApp, pd_init_app
 
 

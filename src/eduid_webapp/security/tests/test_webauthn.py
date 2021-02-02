@@ -159,6 +159,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
                 'u2f_app_id': 'https://eduid.se/u2f-app-id.json',
                 'u2f_valid_facets': [],
                 'vccs_url': 'https://vccs',
+                'dashboard_url': 'https://dashboard',
             }
         )
         return config

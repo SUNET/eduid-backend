@@ -50,6 +50,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
                 'u2f_app_id': 'foo',
                 'u2f_valid_facets': [],
                 'fido2_rp_id': 'https://test.example.edu',
+                'dashboard_url': 'https://localhost',
             }
         )
         return config

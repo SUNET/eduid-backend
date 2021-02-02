@@ -39,6 +39,7 @@ class SecurityU2FTests(EduidAPITestCase):
                 'fido2_rp_id': 'https://test.example.edu',
                 'u2f_valid_facets': ['https://test.example.edu'],
                 'vccs_url': 'https://vccs',
+                'dashboard_url': 'https://localhost',
             }
         )
         return config
