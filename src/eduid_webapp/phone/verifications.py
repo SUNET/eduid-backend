@@ -31,56 +31,84 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-import time
+from datetime import timedelta
 
+from flask import render_template
+
+from eduid_common.api.exceptions import MsgTaskFailed
 from eduid_common.api.utils import get_short_hash, save_and_sync_user
+from eduid_common.misc.timeutil import utc_now
+from eduid_userdb import User
 from eduid_userdb.element import DuplicateElementViolation
 from eduid_userdb.logs import PhoneNumberProofing
 from eduid_userdb.phone import PhoneNumber
-from eduid_userdb.proofing import PhoneProofingElement, PhoneProofingState
+from eduid_userdb.proofing import PhoneProofingElement, PhoneProofingState, ProofingUser
 
 from eduid_webapp.phone.app import current_phone_app as current_app
 
 
-def new_proofing_state(phone, user):
-    old_state = current_app.proofing_statedb.get_state_by_eppn_and_mobile(user.eppn, phone, raise_on_missing=False)
-    if old_state is not None:
-        now = int(time.time())
-        if int(old_state.modified_ts.timestamp()) > now - current_app.conf.throttle_resend_seconds:
-            return None
-        current_app.logger.debug('removing old proofing state: {!r}.'.format(old_state.to_dict()))
-        current_app.proofing_statedb.remove_state(old_state)
+class SMSThrottleException(Exception):
+    pass
 
+
+def sms_throttled(state: PhoneProofingState) -> bool:
+    # Do not let a user send another SMS until throttle_resend_seconds has passed
+    now = utc_now()
+    time_since_last_sms = now - state.modified_ts
+    throttle_seconds = timedelta(seconds=current_app.conf.throttle_resend_seconds)
+    if time_since_last_sms < throttle_seconds:
+        current_app.logger.warning(f'Can not send another SMS for {throttle_seconds - time_since_last_sms}')
+        return True
+    return False
+
+
+def get_new_proofing_state(user: User, phone: str) -> PhoneProofingState:
+    existing_state = current_app.proofing_statedb.get_state_by_eppn_and_mobile(user.eppn, phone, raise_on_missing=False)
+    if existing_state is not None:
+        # User has not managed to verify their phone number using this state,
+        # remove it and let the user get a new one
+        if sms_throttled(existing_state):
+            raise SMSThrottleException()
+        current_app.logger.info('Removing old proofing state')
+        current_app.logger.debug(f'Old proofing state: {existing_state.to_dict()}')
+        current_app.proofing_statedb.remove_state(existing_state)
+
+    # Create a new proofing state
     verification = PhoneProofingElement(number=phone, verification_code=get_short_hash(), created_by='phone')
     proofing_state = PhoneProofingState(id=None, modified_ts=None, eppn=user.eppn, verification=verification)
-    # XXX This should be an atomic transaction together with saving
-    # the user and sending the letter.
+    # XXX This should be an atomic transaction together with saving the user and sending the sms.
     current_app.proofing_statedb.save(proofing_state)
-    current_app.logger.info(
-        'Created new phone number verification code for user {} and phone number {}.'.format(user, phone)
-    )
-    current_app.logger.debug('Proofing state: {!r}.'.format(proofing_state.to_dict()))
+    current_app.logger.info('Created phone number verification state')
+    current_app.logger.debug(f'Proofing state: {proofing_state.to_dict()}')
     return proofing_state
 
 
-def send_verification_code(user, phone):
+def send_verification_code(user: User, phone_number: str) -> None:
+    """
+    Send a SMS with a one-time verification code to the users phone number
+    """
+    state = get_new_proofing_state(user, phone_number)
+    context = {
+        'site_name': current_app.config.eduid_site_name,
+        'verification_code': state.verification.verification_code,
+    }
+    message = render_template('phone_verification_sms.jinja2', **context)
 
-    state = new_proofing_state(phone, user)
-    if state is None:
-        return False
+    try:
+        current_app.msg_relay.sendsms(phone_number, message, state.reference)
+    except MsgTaskFailed as e:
+        current_app.logger.error('Phone number verification sms NOT sent')
+        current_app.logger.exception(e)
+        raise e
 
-    current_app.msg_relay.phone_validator(state.reference, phone, state.verification.verification_code, user.language)
-    current_app.logger.info('Sent verification sms to user {} with phone number {}.'.format(user, phone))
-    return True
+    current_app.logger.info('Phone number verification sms sent')
+    current_app.logger.debug(f'Phone number: {phone_number}')
 
 
-def verify_phone_number(state, proofing_user):
+def verify_phone_number(state: PhoneProofingState, proofing_user: ProofingUser) -> None:
     """
     :param proofing_user: ProofingUser
     :param state: Phone proofing state
-
-    :type proofing_user: eduid_userdb.proofing.ProofingUser
-    :type state: PhoneProofingState
 
     :return: None
 
@@ -92,8 +120,11 @@ def verify_phone_number(state, proofing_user):
     if has_primary is None:
         new_phone.is_primary = True
     try:
+        # Try to add the new phone number element
         proofing_user.phone_numbers.add(new_phone)
     except DuplicateElementViolation:
+        # The phone number element was already added as a unverified phone number,
+        # verify it and set it as primary if no other primary number was found
         proofing_user.phone_numbers.find(number).is_verified = True
         if has_primary is None:
             proofing_user.phone_numbers.find(number).is_primary = True
@@ -107,7 +138,8 @@ def verify_phone_number(state, proofing_user):
     )
     if current_app.proofing_log.save(phone_number_proofing):
         save_and_sync_user(proofing_user)
-        current_app.logger.info('Mobile {} confirmed ' 'for user {}'.format(number, proofing_user))
+        current_app.logger.info('Phone number confirmed')
         current_app.stats.count(name='mobile_verify_success', value=1)
+        current_app.logger.info('Removing proofing state')
+        current_app.logger.debug(f'Proofing state: {state}')
         current_app.proofing_statedb.remove_state(state)
-        current_app.logger.debug('Removed proofing state: {} '.format(state))

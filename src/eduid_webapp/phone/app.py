@@ -35,7 +35,7 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid_common.api import am, msg
+from eduid_common.api import am, msg, translation
 from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.config.base import FlaskConfig
 from eduid_common.config.parsers import load_config
@@ -58,6 +58,8 @@ class PhoneApp(AuthnBaseApp):
 
         am.init_relay(self, 'eduid_phone')
         msg.init_relay(self)
+
+        translation.init_babel(self)
 
         self.private_userdb = PhoneProofingUserDB(self.config.mongo_uri)
         self.proofing_statedb = PhoneProofingStateDB(self.config.mongo_uri)
