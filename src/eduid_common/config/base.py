@@ -76,6 +76,31 @@ class CeleryConfig:
     )
     mongo_uri: Optional[str] = None
 
+class CeleryConfig2(BaseModel):
+    """
+    Celery configuration
+    """
+
+    accept_content: List[str] = PydanticField(default=['application/json'])
+    broker_url: str = ''
+    result_backend: str = 'cache'
+    result_backend_transport_options: dict = PydanticField(default={})
+    cache_backend: str = 'memory'
+    task_serializer: str = 'json'
+    task_eager_propagates: bool = False
+    task_always_eager: bool = False
+    # backwards incompatible setting that the documentation says will be the default in the future
+    broker_transport: str = ''
+    broker_transport_options: dict = PydanticField(default={'fanout_prefix': True})
+    task_routes: dict = PydanticField(
+        default={
+            'eduid_am.*': {'queue': 'am'},
+            'eduid_msg.*': {'queue': 'msg'},
+            'eduid_letter_proofing.*': {'queue': 'letter_proofing'},
+        }
+    )
+    mongo_uri: Optional[str] = None
+
 
 @dataclass(frozen=True)
 class RedisConfig(object):
@@ -532,8 +557,14 @@ class WebauthnConfigMixin2(BaseModel):
     u2f_app_id: str  # 'https://eduid.se/u2f-app-id.json'
     u2f_valid_facets: List[str]  # e.g. ['https://dashboard.dev.eduid.se/', 'https://idp.dev.eduid.se/']
 
+
 class MagicCookieMixin(BaseModel):
-    # code to set in a "magic" cookie to bypass various verifications.
+    environment: EduidEnvironment = EduidEnvironment.production
+    # code to set in a "magic" cookie to bypass various verifications in test environments.
     magic_cookie: Optional[str] = None
     # name of the magic cookie
     magic_cookie_name: Optional[str] = None
+
+
+class CeleryConfigMixin(BaseModel):
+    celery: CeleryConfig2

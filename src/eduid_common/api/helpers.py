@@ -12,7 +12,7 @@ from eduid_userdb.proofing.state import NinProofingState
 from eduid_userdb.user import User
 
 from eduid_common.api.app import EduIDBaseApp
-from eduid_common.config.base import BaseConfig
+from eduid_common.config.base import BaseConfig, EduIDBaseAppConfig, MagicCookieMixin
 
 __author__ = 'lundberg'
 
@@ -212,7 +212,7 @@ def send_mail(
     app.mail_relay.sendmail(subject, to_addresses, text, html, reference)
 
 
-def check_magic_cookie(config: BaseConfig) -> bool:
+def check_magic_cookie(config: Union[BaseConfig, MagicCookieMixin]) -> bool:
     """
     This is for use in backdoor views, to check whether the backdoor is open.
 

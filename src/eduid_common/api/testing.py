@@ -202,7 +202,7 @@ class EduidAPITestCase(CommonTestCase):
         return config
 
     @contextmanager
-    def session_cookie(self, client: Any, eppn: Optional[str], server_name: str='localhost', **kwargs):
+    def session_cookie(self, client: Any, eppn: Optional[str], server_name: str = 'localhost', **kwargs):
         with client.session_transaction(**kwargs) as sess:
             if eppn is not None:
                 sess['user_eppn'] = eppn

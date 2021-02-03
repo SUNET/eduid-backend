@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import logging
 from sys import exit
 from time import sleep
+from typing import Any, Mapping
 
 from oic.oic import Client
 from oic.oic.message import RegistrationRequest
@@ -10,27 +12,26 @@ from requests.exceptions import ConnectionError
 
 __author__ = 'lundberg'
 
+logger = logging.getLogger(__name__)
 
-def init_client(app):
+
+def init_client(client_registration_info: Mapping[str, Any], provider_configuration_info: Mapping[str, Any]) -> Client:
     oidc_client = Client(client_authn_method=CLIENT_AUTHN_METHOD)
-    oidc_client.store_registration_info(RegistrationRequest(**app.config['CLIENT_REGISTRATION_INFO']))
-    provider = app.config['PROVIDER_CONFIGURATION_INFO']['issuer']
+    oidc_client.store_registration_info(RegistrationRequest(**client_registration_info))
+    provider = provider_configuration_info['issuer']
     try:
         oidc_client.provider_config(provider)
     except ConnectionError:
-        app.logger.warning(
-            'No connection to provider {!s}. Can not start without provider configuration.'
-            ' Retrying...'.format(provider)
+        logger.warning(
+            f'No connection to provider {provider}. Can not start without provider configuration. Retrying...'
         )
         # Retry after 20 seconds so we don't get an excessive exit-restart loop
         sleep(20)
         try:
             oidc_client.provider_config(provider)
         except ConnectionError:
-            app.logger.critical(
-                'No connection to provider {!s}. Can not start without provider configuration.'
-                ' Exiting.'.format(provider)
+            logger.critical(
+                f'No connection to provider {provider}. Can not start without provider configuration. Exiting.'
             )
             exit(1)
-    app.oidc_client = oidc_client
-    return app
+    return oidc_client
