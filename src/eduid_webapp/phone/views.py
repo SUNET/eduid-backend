@@ -97,6 +97,8 @@ def post_phone(user: User, number: str, verified, primary) -> FluxData:
 
     try:
         send_verification_code(proofing_user, number)
+    except SMSThrottleException:
+        return error_response(message=PhoneMsg.still_valid_code)
     except MsgTaskFailed:
         return error_response(message=CommonMsg.temp_problem)
 

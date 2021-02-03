@@ -36,6 +36,8 @@ from time import time
 from typing import Any, Mapping
 
 from flask import redirect, request
+
+from eduid_common.session.namespaces import LoginApplication
 from saml2.ident import code
 
 from eduid_common.api.utils import verify_relay_state
@@ -64,11 +66,16 @@ def update_user_session(session_info: Mapping[str, Any], user: User) -> None:
 
     :return: None
     """
+    # Old style sessions (remove after we use only new style)
     session['_saml2_session_name_id'] = code(session_info['name_id'])
     session['eduPersonPrincipalName'] = user.eppn
-    session['user_eppn'] = user.eppn  # TODO: Remove when we have deployed and IdP that sets user_eppn
     session['user_is_logged_in'] = True
     session['eduidIdPCredentialsUsed'] = get_saml_attribute(session_info, 'eduidIdPCredentialsUsed')
+    # New style sessions
+    session.common.eppn = user.eppn
+    session.common.is_logged_in = True
+    session.common.login_source = LoginApplication.authn
+    session.common.preferred_language = user.language
 
 
 @acs_action(AuthnAcsAction.login)
