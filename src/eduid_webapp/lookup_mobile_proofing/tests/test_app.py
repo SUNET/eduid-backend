@@ -1,25 +1,23 @@
 # -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 import json
 from collections import OrderedDict
 from datetime import datetime, timedelta
+from typing import Any, Dict, Mapping
 
 from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
-
-from eduid_webapp.lookup_mobile_proofing.app import init_lookup_mobile_proofing_app
+from eduid_webapp.lookup_mobile_proofing.app import MobileProofingApp, init_lookup_mobile_proofing_app
 from eduid_webapp.lookup_mobile_proofing.helpers import MobileMsg
 from eduid_webapp.lookup_mobile_proofing.lookup_mobile_relay import LookupMobileTaskFailed
-from eduid_webapp.lookup_mobile_proofing.settings.common import MobileProofingConfig
 
 __author__ = 'lundberg'
 
 
 class LookupMobileProofingTests(EduidAPITestCase):
     """Base TestCase for those tests that need a full environment setup"""
+
+    app: MobileProofingApp
 
     def setUp(self):
         self.test_user_eppn = 'hubba-baar'
@@ -45,26 +43,26 @@ class LookupMobileProofingTests(EduidAPITestCase):
 
         super(LookupMobileProofingTests, self).setUp(users=['hubba-baar'])
 
-    def load_app(self, config):
+    def load_app(self, config: Mapping[str, Any]):
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         return init_lookup_mobile_proofing_app('testing', config)
 
-    def update_config(self, app_config):
-        app_config.update(
+    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        config.update(
             {
                 'msg_broker_url': 'amqp://dummy',
                 'am_broker_url': 'amqp://dummy',
                 'lookup_mobile_broker_url': 'amqp://dummy',
-                'celery_config': {'result_backend': 'amqp', 'task_serializer': 'json'},
+                'celery': {'result_backend': 'amqp', 'task_serializer': 'json'},
                 'environment': 'dev',
                 'magic_cookie': '',
                 'magic_cookie_name': '',
             },
         )
-        return app_config
+        return config
 
     def test_authenticate(self):
         response = self.browser.get('/proofing')
@@ -194,8 +192,8 @@ class LookupMobileProofingTests(EduidAPITestCase):
         mock_get_postal_address.return_value = None
         mock_request_user_sync.side_effect = self.request_user_sync
 
-        self.app.config.magic_cookie = 'magic-cookie'
-        self.app.config.magic_cookie_name = 'magic-cookie'
+        self.app.conf.magic_cookie = 'magic-cookie'
+        self.app.conf.magic_cookie_name = 'magic-cookie'
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -231,9 +229,9 @@ class LookupMobileProofingTests(EduidAPITestCase):
         mock_get_postal_address.return_value = None
         mock_request_user_sync.side_effect = self.request_user_sync
 
-        self.app.config.environment = 'pro'
-        self.app.config.magic_cookie = 'magic-cookie'
-        self.app.config.magic_cookie_name = 'magic-cookie'
+        self.app.conf.environment = 'pro'
+        self.app.conf.magic_cookie = 'magic-cookie'
+        self.app.conf.magic_cookie_name = 'magic-cookie'
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -267,8 +265,8 @@ class LookupMobileProofingTests(EduidAPITestCase):
         mock_get_postal_address.return_value = None
         mock_request_user_sync.side_effect = self.request_user_sync
 
-        self.app.config.magic_cookie = ''
-        self.app.config.magic_cookie_name = 'magic-cookie'
+        self.app.conf.magic_cookie = ''
+        self.app.conf.magic_cookie_name = 'magic-cookie'
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:

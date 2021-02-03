@@ -30,18 +30,12 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-from __future__ import absolute_import
-
-from dataclasses import dataclass
-
-from eduid_common.config.base import FlaskConfig
+from eduid_common.config.base import CeleryConfigMixin, EduIDBaseAppConfig, MagicCookieMixin
 
 
-@dataclass
-class MobileProofingConfig(FlaskConfig):
+class MobileProofingConfig(EduIDBaseAppConfig, CeleryConfigMixin, MagicCookieMixin):
     """
     Configuration for the lookup mobile proofing app
     """
-
+    app_name = 'lookup_mobile_proofing'
     lookup_mobile_broker_url: str = ''

@@ -4,7 +4,7 @@ __author__ = 'mathiashedstrom'
 
 
 def init_relay(app):
-    app.lookup_mobile_relay = LookupMobileRelay(app.config.celery_config)
+    app.lookup_mobile_relay = LookupMobileRelay(app.conf.celery)
     return app
 
 

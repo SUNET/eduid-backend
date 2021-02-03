@@ -85,7 +85,7 @@ def match_mobile_to_user(user, self_asserted_nin, verified_mobile_numbers):
 
     # This code is to use the backdoor that allows selenium integration tests
     # to verify a NIN by sending a magic cookie
-    if check_magic_cookie(current_app.config):
+    if check_magic_cookie(current_app.conf):
         current_app.logger.info('Using the BACKDOOR to verify a NIN through the lookup mobile app')
         user_postal_address = {
             'Name': {'GivenName': 'Magic Cookie', 'GivenNameMarking': '20', 'Surname': 'Magic Cookie'},

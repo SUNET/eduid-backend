@@ -30,12 +30,14 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from typing import cast
+from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
 from eduid_common.api import am, msg
 from eduid_common.authn.middleware import AuthnBaseApp
+from eduid_common.config.base import FlaskConfig
+from eduid_common.config.parsers import load_config
 from eduid_userdb.logs import ProofingLog
 from eduid_userdb.proofing import LookupMobileProofingUserDB
 
@@ -46,12 +48,11 @@ __author__ = 'lundberg'
 
 
 class MobileProofingApp(AuthnBaseApp):
-    def __init__(self, name: str, config: dict, **kwargs):
+    def __init__(self, name: str,  test_config: Optional[Mapping[str, Any]], **kwargs):
+        self.conf = load_config(typ=MobileProofingConfig, app_name=name, ns='webapp', test_config=test_config)
         # Initialise type of self.config before any parent class sets a precedent to mypy
-        self.config = MobileProofingConfig.init_config(ns='webapp', app_name=name, test_config=config)
+        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
         super().__init__(name, **kwargs)
-        # cast self.config because sometimes mypy thinks it is a FlaskConfig after super().__init__()
-        self.config: MobileProofingConfig = cast(MobileProofingConfig, self.config)  # type: ignore
 
         # Register views
         from eduid_webapp.lookup_mobile_proofing.views import mobile_proofing_views
@@ -71,14 +72,13 @@ class MobileProofingApp(AuthnBaseApp):
 current_mobilep_app: MobileProofingApp = cast(MobileProofingApp, current_app)
 
 
-def init_lookup_mobile_proofing_app(name: str, config: dict) -> MobileProofingApp:
+def init_lookup_mobile_proofing_app(name: str,  test_config: Optional[Mapping[str, Any]]) -> MobileProofingApp:
     """
     :param name: The name of the instance, it will affect the configuration loaded.
-    :param config: any additional configuration settings. Specially useful
-                   in test cases
+    :param test_config: Override config, used in test cases.
     """
 
-    app = MobileProofingApp(name, config)
+    app = MobileProofingApp(name, test_config)
 
     app.logger.info(f'Init {name} app...')
 
