@@ -31,29 +31,30 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from typing import cast
+from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.authn.utils import no_authn_views
+from eduid_common.config.base import FlaskConfig
+from eduid_common.config.parsers import load_config
 
 from eduid_webapp.jsconfig.settings.common import JSConfigConfig
 
 
 class JSConfigApp(EduIDBaseApp):
-    def __init__(self, name: str, config: dict, **kwargs):
+    def __init__(self, name: str, test_config: Optional[Mapping[str, Any]], **kwargs):
 
         kwargs['init_central_userdb'] = False
         kwargs['host_matching'] = True
         kwargs['static_folder'] = None
         kwargs['subdomain_matching'] = True
 
+        self.conf = load_config(typ=JSConfigConfig, app_name=name, ns='webapp', test_config=test_config)
         # Initialise type of self.config before any parent class sets a precedent to mypy
-        self.config = JSConfigConfig.init_config(ns='webapp', app_name=name, test_config=config)
+        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
         super().__init__(name, **kwargs)
-        # cast self.config because sometimes mypy thinks it is a FlaskConfig after super().__init__()
-        self.config: JSConfigConfig = cast(JSConfigConfig, self.config)  # type: ignore
 
         if not self.testing:
             self.url_map.host_matching = False
@@ -70,16 +71,15 @@ class JSConfigApp(EduIDBaseApp):
 current_jsconfig_app: JSConfigApp = cast(JSConfigApp, current_app)
 
 
-def jsconfig_init_app(name: str, config: dict) -> JSConfigApp:
+def jsconfig_init_app(name: str, test_config: Optional[Mapping[str, Any]]) -> JSConfigApp:
     """
     Create an instance of an eduid jsconfig data app.
 
     :param name: The name of the instance, it will affect the configuration loaded.
-    :param config: any additional configuration settings. Specially useful
-                   in test cases
+    :param test_config: Override config, used in test cases.
     """
 
-    app = JSConfigApp(name, config)
+    app = JSConfigApp(name, test_config)
 
     app.logger.info(f'Init {name} app...')
 

@@ -30,32 +30,29 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from typing import Dict
+
+from eduid_common.config.base import EduIDBaseAppConfig
 
 
-from collections import Mapping
-from dataclasses import dataclass, field
-
-from eduid_common.config.base import FlaskConfig
-
-
-@dataclass
-class JSConfigConfig(FlaskConfig):
+class JSConfigConfig(EduIDBaseAppConfig):
     """
     Configuration for the jsconfig app
     """
+    app_name: str = 'jsconfig'
 
     dashboard_bundle_path: str = 'front-build/dashboard-bundle.dev.js'
     dashboard_bundle_version: str = 'dev'
     # Dashboard feature toggle settings
     dashboard_bundle_feature_cookie: str = ''
-    dashboard_bundle_feature_version: Mapping = field(default_factory=dict)
+    dashboard_bundle_feature_version: Dict[str, str] = {}
     # Signup config
     signup_bundle_path: str = 'front-build/signup-bundle.dev.js'
     signup_bundle_version: str = 'dev'
     tou_url: str = '/get-tous'
     # Signup feature toggle settings
     signup_bundle_feature_cookie: str = ''
-    signup_bundle_feature_version: Mapping = field(default_factory=dict)
+    signup_bundle_feature_version: Dict[str, str] = {}
     # Login config
     login_bundle_path: str = 'front-build/login-bundle.dev.js'
     login_bundle_version: str = 'dev'
@@ -64,4 +61,4 @@ class JSConfigConfig(FlaskConfig):
     password_length: int = 12
     # Login feature toggle settings
     login_bundle_feature_cookie: str = ''
-    login_bundle_feature_version: Mapping = field(default_factory=dict)
+    login_bundle_feature_version: Dict[str, str] = {}
