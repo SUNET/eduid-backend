@@ -6,6 +6,7 @@ from flask import abort
 
 from eduid_common.api.utils import get_user
 from eduid_userdb import User
+
 from eduid_webapp.support.app import current_support_app as current_app
 
 __author__ = 'lundberg'
@@ -28,6 +29,7 @@ def get_credentials_aux_data(user: User) -> List[Dict[str, Any]]:
         credentials.append(credential_dict)
     return credentials
 
+
 def require_support_personnel(f):
     @wraps(f)
     def require_support_decorator(*args, **kwargs):
@@ -38,9 +40,7 @@ def require_support_personnel(f):
         if user.eppn in current_app.conf.support_personnel:
             kwargs['support_user'] = user
             return f(*args, **kwargs)
-        current_app.logger.warning(
-            f'{user} not in support personnel whitelist: {current_app.conf.support_personnel}'
-        )
+        current_app.logger.warning(f'{user} not in support personnel whitelist: {current_app.conf.support_personnel}')
         # Anything else is considered as an unauthorized request
         abort(403)
 

@@ -44,6 +44,7 @@ class SupportConfig(EduIDBaseAppConfig):
     """
     Configuration for the support app
     """
+
     token_service_url_logout: str
 
     app_name = 'support'
