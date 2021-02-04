@@ -6,7 +6,7 @@ test:
 	pytest --log-cli-level DEBUG
 
 reformat:
-	isort --line-width 120 --atomic --project eduid_webapp $(SOURCE)
+	isort --line-width 120 --atomic --project eduid_lookup_mobile --recursive $(SOURCE)
 	black --line-length 120 --target-version py37 --skip-string-normalization $(SOURCE)
 
 typecheck:
