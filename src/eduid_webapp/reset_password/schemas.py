@@ -34,6 +34,7 @@ from marshmallow import ValidationError, fields, validates
 
 from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid_common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
+from eduid_common.api.schemas.email import LowercaseEmail
 from eduid_common.api.schemas.validators import validate_email
 
 from eduid_webapp.reset_password.helpers import ResetPwMsg
@@ -44,15 +45,7 @@ __author__ = 'eperez'
 
 class ResetPasswordInitSchema(EduidSchema, CSRFRequestMixin):
 
-    email = fields.String(required=True)
-
-    @validates('email')
-    def validate_email_field(self, value, **kwargs):
-        # Set a new error message
-        try:
-            validate_email(value)
-        except ValidationError:
-            raise ValidationError(ResetPwMsg.invalid_email.value)
+    email = LowercaseEmail(required=True)
 
 
 class ResetPasswordEmailCodeSchema(EduidSchema, CSRFRequestMixin):
@@ -83,21 +76,6 @@ class ResetPasswordWithSecTokenSchema(ResetPasswordWithCodeSchema):
     authenticatorData = fields.String(required=True)
     clientDataJSON = fields.String(required=True)
     signature = fields.String(required=True)
-
-
-class ChpassCredentialList(EduidSchema, CSRFResponseMixin):
-    credentials = fields.Nested(CredentialSchema, many=True)
-    next_url = fields.String(required=True)
-
-
-class ChpassResponseSchema(FluxStandardAction):
-    payload = fields.Nested(ChpassCredentialList)
-
-
-class ChpassRequestSchema(EduidSchema, CSRFRequestMixin):
-
-    old_password = fields.String(required=True)
-    new_password = fields.String(required=True)
 
 
 class SuggestedPassword(EduidSchema, CSRFResponseMixin):

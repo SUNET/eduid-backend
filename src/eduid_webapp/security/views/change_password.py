@@ -42,24 +42,24 @@ from eduid_common.authn.vccs import change_password
 from eduid_common.session import session
 from eduid_userdb import User
 from eduid_userdb.exceptions import UserOutOfSync
-from eduid_userdb.reset_password import ResetPasswordUser
+from eduid_userdb.security import SecurityUser
 
-from eduid_webapp.reset_password.app import current_reset_password_app as current_app
-from eduid_webapp.reset_password.helpers import (
-    ResetPwMsg,
-    check_password,
-    compile_credential_list,
+from eduid_webapp.security.app import current_security_app as current_app
+from eduid_webapp.security.helpers import (
+    SecurityMsg,
+    compile_credential_list,  # check_password,; hash_password,
     generate_suggested_password,
     get_zxcvbn_terms,
-    hash_password,
 )
-from eduid_webapp.reset_password.schemas import (
-    ChpassRequestSchema,
-    ChpassResponseSchema,
-    SuggestedPasswordResponseSchema,
-)
+from eduid_webapp.security.schemas import ChpassRequestSchema, ChpassResponseSchema, SuggestedPasswordResponseSchema
+
+# TODO: move check_password and hash_password to eduid_common
+
 
 change_password_views = Blueprint('change_password', __name__, url_prefix='')
+
+# TODO: This is the new change password backend we should move to
+#   The blue print is not loaded at the moment
 
 
 @change_password_views.route('/suggested-password', methods=['GET'])
@@ -72,7 +72,8 @@ def get_suggested(user) -> FluxData:
     current_app.logger.debug(f'Sending new generated password for {user}')
     password = generate_suggested_password()
 
-    session.reset_password.generated_password_hash = hash_password(password)
+    # TODO: uncomment after check_password is available in eduid_common
+    # session.security.generated_password_hash = hash_password(password)
 
     return success_response(payload={'suggested_password': password}, message=None)
 
@@ -86,58 +87,60 @@ def change_password_view(user: User, old_password: str, new_password: str) -> Fl
     View to change the password
     """
     if not old_password or not new_password:
-        return error_response(message=ResetPwMsg.chpass_no_data)
+        return error_response(message=SecurityMsg.chpass_no_data)
 
     min_entropy = current_app.conf.password_entropy
     try:
         is_valid_password(new_password, user_info=get_zxcvbn_terms(user.eppn), min_entropy=min_entropy)
     except ValueError:
-        return error_response(message=ResetPwMsg.chpass_weak)
+        return error_response(message=SecurityMsg.chpass_weak)
 
     authn_ts = session.get('reauthn-for-chpass', None)
     if authn_ts is None:
-        return error_response(message=ResetPwMsg.no_reauthn)
+        return error_response(message=SecurityMsg.no_reauthn)
 
     now = datetime.utcnow()
     delta = now - datetime.fromtimestamp(authn_ts)
     timeout = current_app.conf.chpass_timeout
     if int(delta.total_seconds()) > timeout:
-        return error_response(message=ResetPwMsg.stale_reauthn)
+        return error_response(message=SecurityMsg.stale_reauthn)
 
-    hashed = session.reset_password.generated_password_hash
-    if check_password(new_password, hashed):
-        is_generated = True
-        current_app.stats.count(name='change_password_generated_password_used')
-    else:
-        is_generated = False
-        current_app.stats.count(name='change_password_custom_password_used')
+    hashed = session.security.generated_password_hash
+    is_generated = False
+    # TODO: uncomment after check_password is available in eduid_common
+    #    if check_password(new_password, hashed):
+    #        is_generated = True
+    #        current_app.stats.count(name='change_password_generated_password_used')
+    #    else:
+    #        is_generated = False
+    #        current_app.stats.count(name='change_password_custom_password_used')
 
-    resetpw_user = ResetPasswordUser.from_user(user, current_app.private_userdb)
+    security_user = SecurityUser.from_user(user, current_app.private_userdb)
 
     vccs_url = current_app.conf.vccs_url
-    added = change_password(resetpw_user, new_password, old_password, 'reset-password', is_generated, vccs_url)
+    added = change_password(security_user, new_password, old_password, 'reset-password', is_generated, vccs_url)
 
     if not added:
         current_app.logger.debug(f'Problem verifying the old credentials for {user}')
-        return error_response(message=ResetPwMsg.unrecognized_pw)
+        return error_response(message=SecurityMsg.unrecognized_pw)
 
-    resetpw_user.terminated = None
+    security_user.terminated = None
     try:
-        save_and_sync_user(resetpw_user)
+        save_and_sync_user(security_user)
     except UserOutOfSync:
         return error_response(message=CommonMsg.out_of_sync)
 
     del session['reauthn-for-chpass']
 
     current_app.stats.count(name='security_password_changed', value=1)
-    current_app.logger.info(f'Changed password for user {resetpw_user.eppn}')
+    current_app.logger.info(f'Changed password for user {security_user.eppn}')
 
     next_url = current_app.conf.dashboard_url
     return success_response(
         payload={
             'next_url': next_url,
-            'credentials': compile_credential_list(resetpw_user),
-            'message': ResetPwMsg.chpass_password_changed,
+            'credentials': compile_credential_list(security_user),
+            'message': SecurityMsg.chpass_password_changed,
         },
-        message=ResetPwMsg.chpass_password_changed,
+        message=SecurityMsg.chpass_password_changed,
     )
