@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
 
 from flask import Blueprint, abort
 
@@ -33,7 +32,7 @@ def get_state(user) -> FluxData:
     if proofing_state:
         current_app.logger.info('Found proofing state for user {}'.format(user))
         result = check_state(proofing_state)
-        if result.is_expired and current_app.config.backwards_compat_remove_expired_state:
+        if result.is_expired and current_app.conf.backwards_compat_remove_expired_state:
             current_app.logger.info(f'Backwards-compat removing expired state for user {user}')
             current_app.proofing_statedb.remove_state(proofing_state)
             current_app.stats.count('letter_expired')
@@ -183,7 +182,7 @@ def get_code(user):
     Backdoor to get the verification code in the staging or dev environments
     """
     try:
-        if check_magic_cookie(current_app.config):
+        if check_magic_cookie(current_app.conf):
             state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
             return state.nin.verification_code
     except Exception:

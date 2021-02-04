@@ -35,25 +35,29 @@
 Configuration (file) handling for the eduID eidas app.
 """
 
-from dataclasses import dataclass, field
-from typing import Dict
+from typing import Dict, Mapping
 
-from eduid_common.config.base import FlaskConfig
+from pydantic import Field
+
+from eduid_common.config.base import EduIDBaseAppConfig, MagicCookieMixin
 
 
-@dataclass
-class EidasConfig(FlaskConfig):
+class EidasConfig(EduIDBaseAppConfig, MagicCookieMixin):
     """
     Configuration for the eidas app
     """
 
-    action_url: str = ''
+    action_url: str
+    token_service_url: str
+
+    app_name: str = 'eidas'
+
     token_verify_redirect_url: str = '/profile/security'
     nin_verify_redirect_url: str = '/profile/nins'
 
     # Federation config
-    authentication_context_map: Dict[str, str] = field(
-        default_factory=lambda: {
+    authentication_context_map: Dict[str, str] = Field(
+        default={
             'loa1': 'http://id.elegnamnden.se/loa/1.0/loa1',
             'loa2': 'http://id.elegnamnden.se/loa/1.0/loa2',
             'loa3': 'http://id.elegnamnden.se/loa/1.0/loa3',
@@ -73,8 +77,8 @@ class EidasConfig(FlaskConfig):
     authn_digest_alg: str = 'http://www.w3.org/2001/04/xmlenc#sha256'
 
     # Staging nin map
-    staging_nin_map: Dict[str, str] = field(
-        default_factory=lambda: {
+    staging_nin_map: Mapping[str, str] = Field(
+        default={
             #  'test nin': 'user nin'
         }
     )

@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from __future__ import absolute_import
 
 from eduid_webapp.oidc_proofing.app import init_oidc_proofing_app
 

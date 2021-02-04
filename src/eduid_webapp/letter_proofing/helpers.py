@@ -98,7 +98,7 @@ def check_state(state: LetterProofingState) -> StateExpireInfo:
     if not isinstance(sent_dt, datetime):
         raise ValueError("SentLetterElement must have a datetime sent_ts attr if is_sent is True")
 
-    expires_at = sent_dt + timedelta(hours=current_app.config.letter_wait_time_hours)
+    expires_at = sent_dt + timedelta(hours=current_app.conf.letter_wait_time_hours)
     # Give the user until midnight the day the code expires
     expires_at = expires_at.replace(hour=23, minute=59, second=59)
 
@@ -158,9 +158,9 @@ def send_letter(user: User, proofing_state: LetterProofingState) -> str:
         proofing_state.nin.created_ts,
         user.mail_addresses.primary.email,
     )
-    if current_app.config.ekopost_debug_pdf:
+    if current_app.conf.ekopost_debug_pdf:
         # Write PDF to file instead of actually sending it if EKOPOST_DEBUG_PDF is set
-        with open(current_app.config.ekopost_debug_pdf, 'wb') as fd:
+        with open(current_app.conf.ekopost_debug_pdf, 'wb') as fd:
             fd.write(pdf_letter.getvalue())
         return 'debug mode transaction id'
     campaign_id = current_app.ekopost.send(user.eppn, pdf_letter)

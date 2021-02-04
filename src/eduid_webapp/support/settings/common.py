@@ -32,19 +32,21 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from __future__ import absolute_import
 
-from dataclasses import dataclass, field
 from typing import List
 
-from eduid_common.config.base import FlaskConfig
+from pydantic import Field
+
+from eduid_common.config.base import EduIDBaseAppConfig
 
 
-@dataclass
-class SupportConfig(FlaskConfig):
+class SupportConfig(EduIDBaseAppConfig):
     """
     Configuration for the support app
     """
 
-    support_personnel: List[str] = field(default_factory=lambda: [''])
-    token_service_url_logout: str = ''
+    token_service_url_logout: str
+
+    app_name = 'support'
+
+    support_personnel: List[str] = Field(default=[])

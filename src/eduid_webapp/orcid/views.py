@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
 
 from flask import Blueprint, redirect, request, url_for
 from oic.oic.message import AuthorizationResponse, Claims, ClaimsRequest

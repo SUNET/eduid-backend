@@ -61,7 +61,7 @@ def create_authn_request(relay_state, selected_idp, required_loa, force_authn=Fa
 
     # LOA
     current_app.logger.debug('Requesting AuthnContext {}'.format(required_loa))
-    loa_uri = current_app.config.authentication_context_map[required_loa]
+    loa_uri = current_app.conf.authentication_context_map[required_loa]
     requested_authn_context = RequestedAuthnContext(
         authn_context_class_ref=AuthnContextClassRef(text=loa_uri), comparison='exact'
     )
@@ -73,8 +73,8 @@ def create_authn_request(relay_state, selected_idp, required_loa, force_authn=Fa
             entityid=selected_idp,
             relay_state=relay_state,
             binding=BINDING_HTTP_REDIRECT,
-            sigalg=current_app.config.authn_sign_alg,
-            digest_alg=current_app.config.authn_digest_alg,
+            sigalg=current_app.conf.authn_sign_alg,
+            digest_alg=current_app.conf.authn_digest_alg,
             **kwargs,
         )
     except TypeError:
@@ -114,7 +114,7 @@ def parse_authn_response(saml_response):
 
 def is_required_loa(session_info, required_loa):
     authn_context = get_authn_ctx(session_info)
-    loa_uri = current_app.config.authentication_context_map[required_loa]
+    loa_uri = current_app.conf.authentication_context_map[required_loa]
     if authn_context == loa_uri:
         return True
     current_app.logger.error('Asserted authn context class does not match required class')
@@ -156,7 +156,7 @@ def staging_nin_remap(session_info):
     """
     attributes = session_info['ava']
     asserted_test_nin = attributes['personalIdentityNumber'][0]
-    user_nin = current_app.config.staging_nin_map.get(asserted_test_nin, None)
+    user_nin = current_app.conf.staging_nin_map.get(asserted_test_nin, None)
     if user_nin:
         attributes['personalIdentityNumber'] = [user_nin]
     return session_info

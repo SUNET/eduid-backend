@@ -48,7 +48,7 @@ def new_proofing_state(email, user):
 
     if old_state is not None:
         now = int(time.time())
-        if int(old_state.modified_ts.timestamp()) > now - current_app.config.throttle_resend_seconds:
+        if int(old_state.modified_ts.timestamp()) > now - current_app.conf.throttle_resend_seconds:
             return None
         current_app.proofing_statedb.remove_state(old_state)
         current_app.logger.info('Removed old proofing state')
@@ -73,8 +73,8 @@ def send_verification_code(email, user):
         return False
 
     link = url_for('email.verify_link', code=state.verification.verification_code, email=email, _external=True)
-    site_name = current_app.config.eduid_site_name
-    site_url = current_app.config.eduid_site_url
+    site_name = current_app.conf.eduid_site_name
+    site_url = current_app.conf.eduid_site_url
 
     context = {
         "email": email,

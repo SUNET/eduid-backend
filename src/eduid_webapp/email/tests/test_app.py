@@ -32,31 +32,32 @@
 # POSSIBILITY OF SUCH DAMAGE.
 import json
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any, Dict, Mapping, Optional
 
 from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_userdb.mail import MailAddress
 from eduid_userdb.proofing import EmailProofingElement, EmailProofingState
-
-from eduid_webapp.email.app import email_init_app
-from eduid_webapp.email.settings.common import EmailConfig
+from eduid_webapp.email.app import EmailApp, email_init_app
 
 
 class EmailTests(EduidAPITestCase):
+
+    app: EmailApp
+
     def setUp(self):
         super(EmailTests, self).setUp(copy_user_to_private=True)
 
-    def load_app(self, config):
+    def load_app(self, config: Mapping[str, Any]) -> EmailApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         return email_init_app('emails', config)
 
-    def update_config(self, app_config):
-        app_config.update(
+    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        config.update(
             {
                 'available_languages': {'en': 'English', 'sv': 'Svenska'},
                 'msg_broker_url': 'amqp://dummy',
@@ -65,13 +66,15 @@ class EmailTests(EduidAPITestCase):
                 'celery_config': {
                     'result_backend': 'amqp',
                     'task_serializer': 'json',
-                    'mongo_uri': app_config['mongo_uri'],
+                    'mongo_uri': config['mongo_uri'],
                 },
                 'email_verification_timeout': 86400,
                 'throttle_resend_seconds': 300,
+                'eduid_site_name': 'eduID TEST',
+                'eduid_site_url': 'https://eduid.dev/',
             }
         )
-        return app_config
+        return config
 
     def _remove_all_emails(self, user):
         unverified = [address for address in user.mail_addresses.to_list() if not address.is_verified]
@@ -354,7 +357,7 @@ class EmailTests(EduidAPITestCase):
 
             client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
 
-            client.set_cookie('localhost', key=self.app.config.magic_cookie_name, value=self.app.config.magic_cookie)
+            client.set_cookie('localhost', key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
 
             return client.get(f'/get-code?email={email}&eppn={eppn}')
 
@@ -404,7 +407,7 @@ class EmailTests(EduidAPITestCase):
 
     def test_post_email_with_stale_state(self):
         # set negative throttling timeout to simulate a stale state
-        self.app.config.throttle_resend_seconds = -500
+        self.app.conf.throttle_resend_seconds = -500
         eppn = self.test_user_data['eduPersonPrincipalName']
         email = 'johnsmith3@example.com'
         verification1 = EmailProofingElement(email=email, verification_code='test_code_1')
@@ -669,7 +672,7 @@ class EmailTests(EduidAPITestCase):
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     @patch('eduid_webapp.email.verifications.get_unique_hash')
     def test_verify_code_timeout(self, mock_code_verification, mock_request_user_sync, mock_sendmail):
-        self.app.config.email_verification_timeout = 0
+        self.app.conf.email_verification_timeout = 0
         response = self._verify()
 
         verify_email_data = json.loads(response.data)
@@ -763,9 +766,9 @@ class EmailTests(EduidAPITestCase):
         self.assertEqual(state.verification.verification_code, 'test_code_2')
 
     def test_get_code_backdoor(self):
-        self.app.config.magic_cookie = 'magic-cookie'
-        self.app.config.magic_cookie_name = 'magic'
-        self.app.config.environment = 'dev'
+        self.app.conf.magic_cookie = 'magic-cookie'
+        self.app.conf.magic_cookie_name = 'magic'
+        self.app.conf.environment = 'dev'
 
         code = '0123456'
         resp = self._get_code_backdoor(code=code)
@@ -774,9 +777,9 @@ class EmailTests(EduidAPITestCase):
         self.assertEqual(resp.data, code.encode('ascii'))
 
     def test_get_code_no_backdoor_in_pro(self):
-        self.app.config.magic_cookie = 'magic-cookie'
-        self.app.config.magic_cookie_name = 'magic'
-        self.app.config.environment = 'pro'
+        self.app.conf.magic_cookie = 'magic-cookie'
+        self.app.conf.magic_cookie_name = 'magic'
+        self.app.conf.environment = 'pro'
 
         code = '0123456'
         resp = self._get_code_backdoor(code=code)
@@ -784,9 +787,9 @@ class EmailTests(EduidAPITestCase):
         self.assertEqual(resp.status_code, 400)
 
     def test_get_code_no_backdoor_misconfigured1(self):
-        self.app.config.magic_cookie = 'magic-cookie'
-        self.app.config.magic_cookie_name = ''
-        self.app.config.environment = 'dev'
+        self.app.conf.magic_cookie = 'magic-cookie'
+        self.app.conf.magic_cookie_name = ''
+        self.app.conf.environment = 'dev'
 
         code = '0123456'
         resp = self._get_code_backdoor(code=code)
@@ -794,9 +797,9 @@ class EmailTests(EduidAPITestCase):
         self.assertEqual(resp.status_code, 400)
 
     def test_get_code_no_backdoor_misconfigured2(self):
-        self.app.config.magic_cookie = ''
-        self.app.config.magic_cookie_name = 'magic'
-        self.app.config.environment = 'dev'
+        self.app.conf.magic_cookie = ''
+        self.app.conf.magic_cookie_name = 'magic'
+        self.app.conf.environment = 'dev'
 
         code = '0123456'
         resp = self._get_code_backdoor(code=code)

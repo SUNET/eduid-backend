@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
 
 from datetime import timedelta
 
@@ -65,7 +64,7 @@ def create_pdf(recipient, verification_code, created_timestamp, primary_mail_add
 
     # Calculate the validity period of the verification
     # code that is to be shown in the letter.
-    max_wait = timedelta(hours=current_app.config.letter_wait_time_hours)
+    max_wait = timedelta(hours=current_app.conf.letter_wait_time_hours)
     validity_period = (created_timestamp + max_wait).strftime('%Y-%m-%d')
 
     letter_template = render_template(

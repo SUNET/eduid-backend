@@ -48,7 +48,6 @@ __author__ = 'lundberg'
 
 
 class OIDCProofingApp(AuthnBaseApp):
-
     def __init__(self, name: str, test_config: Optional[Mapping[str, Any]], **kwargs):
         self.conf = load_config(typ=OIDCProofingConfig, app_name=name, ns='webapp', test_config=test_config)
         # Initialise type of self.config before any parent class sets a precedent to mypy
@@ -63,9 +62,7 @@ class OIDCProofingApp(AuthnBaseApp):
         no_authn_views(self, ['/authorization-response'])
 
         # Initialize the oidc_client after views to be able to set correct redirect_uris
-        self.oidc_client = oidc.init_client(
-            self.conf.client_registration_info, self.conf.provider_configuration_info
-        )
+        self.oidc_client = oidc.init_client(self.conf.client_registration_info, self.conf.provider_configuration_info)
 
         # Init celery
         msg.init_relay(self)

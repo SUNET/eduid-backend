@@ -32,11 +32,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from typing import cast
+from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
 from eduid_common.api import am, mail_relay, translation
 from eduid_common.authn.middleware import AuthnBaseApp
+from eduid_common.config.base import FlaskConfig
+from eduid_common.config.parsers import load_config
 from eduid_userdb.logs import ProofingLog
 from eduid_userdb.proofing import EmailProofingStateDB, EmailProofingUserDB
 
@@ -44,12 +47,11 @@ from eduid_webapp.email.settings.common import EmailConfig
 
 
 class EmailApp(AuthnBaseApp):
-    def __init__(self, name: str, config: dict, **kwargs):
+    def __init__(self, name: str, test_config: Optional[Mapping[str, Any]], **kwargs):
+        self.conf = load_config(typ=EmailConfig, app_name=name, ns='webapp', test_config=test_config)
         # Initialise type of self.config before any parent class sets a precedent to mypy
-        self.config = EmailConfig.init_config(ns='webapp', app_name=name, test_config=config)
+        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
         super().__init__(name, **kwargs)
-        # cast self.config because sometimes mypy thinks it is a FlaskConfig after super().__init__()
-        self.config: EmailConfig = cast(EmailConfig, self.config)  # type: ignore
 
         from eduid_webapp.email.views import email_views
 
@@ -67,16 +69,15 @@ class EmailApp(AuthnBaseApp):
 current_email_app: EmailApp = cast(EmailApp, current_app)
 
 
-def email_init_app(name: str, config: dict) -> EmailApp:
+def email_init_app(name: str, test_config: Optional[Mapping[str, Any]]) -> EmailApp:
     """
     Create an instance of an eduid email app.
 
     :param name: The name of the instance, it will affect the configuration loaded.
-    :param config: any additional configuration settings. Specially useful
-                   in test cases
+    :param test_config: Override config, used in test cases.
     """
 
-    app = EmailApp(name, config)
+    app = EmailApp(name, test_config)
 
     app.logger.info('Init {} app...'.format(name))
 

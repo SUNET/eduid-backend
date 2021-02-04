@@ -218,7 +218,7 @@ class GroupManagementTests(EduidAPITestCase):
         )
 
     def test_app_starts(self):
-        assert self.app.config.app_name == "group_management"
+        assert self.app.conf.app_name == "group_management"
 
     def test_get_groups(self):
         # Add test user as group member and owner
@@ -647,7 +647,7 @@ class GroupManagementTests(EduidAPITestCase):
             )
         scim_group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         scim_user = self.app.scimapi_userdb.get_user_by_external_id(
-            f'{self.test_user2.eppn}@{self.app.config.scim_external_id_scope}'
+            f'{self.test_user2.eppn}@{self.app.conf.scim_external_id_scope}'
         )
         assert scim_group.has_member(scim_user.scim_id) is True
 
@@ -685,7 +685,7 @@ class GroupManagementTests(EduidAPITestCase):
             )
         scim_group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         scim_user = self.app.scimapi_userdb.get_user_by_external_id(
-            f'{self.test_user2.eppn}@{self.app.config.scim_external_id_scope}'
+            f'{self.test_user2.eppn}@{self.app.conf.scim_external_id_scope}'
         )
         assert scim_group.has_member(scim_user.scim_id) is False
 
@@ -789,7 +789,7 @@ class GroupManagementTests(EduidAPITestCase):
             )
         scim_group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         scim_user = self.app.scimapi_userdb.get_user_by_external_id(
-            f'{self.test_user2.eppn}@{self.app.config.scim_external_id_scope}'
+            f'{self.test_user2.eppn}@{self.app.conf.scim_external_id_scope}'
         )
         assert scim_group.has_owner(scim_user.scim_id) is True
 
@@ -827,7 +827,7 @@ class GroupManagementTests(EduidAPITestCase):
             )
         scim_group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         scim_user = self.app.scimapi_userdb.get_user_by_external_id(
-            f'{self.test_user2.eppn}@{self.app.config.scim_external_id_scope}'
+            f'{self.test_user2.eppn}@{self.app.conf.scim_external_id_scope}'
         )
         assert scim_group.has_owner(scim_user.scim_id) is False
 
