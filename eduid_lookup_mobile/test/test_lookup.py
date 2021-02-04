@@ -11,16 +11,16 @@ class TestVerifiers(LookupMobileMongoTestCase):
 
         mobile_verifier = MobileLookupClient(logger, self.lookup_mobile_settings)
 
-        self.assertEqual(mobile_verifier.find_NIN_by_mobile('+46700011222'), '200202027140')
-        self.assertEqual(mobile_verifier.find_NIN_by_mobile('+46700011333'), '197512126371')
-        self.assertEqual(mobile_verifier.find_NIN_by_mobile('+46700011777'), '197512126371')
-        self.assertEqual(mobile_verifier.find_NIN_by_mobile('+46700011999'), None)
+        self.assertEqual(mobile_verifier.find_NIN_by_mobile('+46701740610'), '200202027140')
+        self.assertEqual(mobile_verifier.find_NIN_by_mobile('+46701740608'), '197512126371')
+        self.assertEqual(mobile_verifier.find_NIN_by_mobile('+46701740609'), '197512126371')
+        self.assertEqual(mobile_verifier.find_NIN_by_mobile('+46701740699'), None)
 
     def test_find_mobiles_by_NIN(self):
         from eduid_lookup_mobile.tasks import logger
 
         mobile_verifier = MobileLookupClient(logger, self.lookup_mobile_settings)
 
-        self.assertEqual(mobile_verifier.find_mobiles_by_NIN('200202027140'), ['+46700011222'])
-        self.assertEqual(mobile_verifier.find_mobiles_by_NIN('197512126371'), ['+46700011333', '+46700011777'])
-        self.assertEqual(mobile_verifier.find_mobiles_by_NIN('197512125430'), [])
+        self.assertEqual(mobile_verifier.find_mobiles_by_NIN('200202027140'), ['+46701740610'])
+        self.assertEqual(mobile_verifier.find_mobiles_by_NIN('197512126371'), ['+46701740608', '+46701740609'])
+        self.assertEqual(mobile_verifier.find_mobiles_by_NIN('46701740699'), [])
