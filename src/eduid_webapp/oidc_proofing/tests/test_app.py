@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 import binascii
 import json
 import time
 from collections import OrderedDict
+from typing import Any, Dict
 
 from jose import jws as jose
 from mock import patch
@@ -14,16 +12,17 @@ from eduid_common.api.testing import EduidAPITestCase
 from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_userdb.locked_identity import LockedIdentityNin
 from eduid_userdb.nin import Nin
-
-from eduid_webapp.oidc_proofing.app import init_oidc_proofing_app
+from eduid_webapp.oidc_proofing.app import OIDCProofingApp, init_oidc_proofing_app
 from eduid_webapp.oidc_proofing.helpers import create_proofing_state, handle_freja_eid_userinfo
-from eduid_webapp.oidc_proofing.settings.common import OIDCProofingConfig
 
 __author__ = 'lundberg'
 
 
 class OidcProofingTests(EduidAPITestCase):
     """Base TestCase for those tests that need a full environment setup"""
+
+    app: OIDCProofingApp
+
 
     def setUp(self):
         self.test_user_eppn = 'hubba-baar'
@@ -72,7 +71,7 @@ class OidcProofingTests(EduidAPITestCase):
 
         super(OidcProofingTests, self).setUp(users=['hubba-baar'])
 
-    def load_app(self, config):
+    def load_app(self, config) -> OIDCProofingApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
@@ -81,8 +80,8 @@ class OidcProofingTests(EduidAPITestCase):
             mock_response.return_value = self.oidc_provider_config_response
             return init_oidc_proofing_app('testing', config)
 
-    def update_config(self, app_config):
-        app_config.update(
+    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        config.update(
             {
                 'msg_broker_url': 'amqp://dummy',
                 'am_broker_url': 'amqp://dummy',
@@ -97,9 +96,11 @@ class OidcProofingTests(EduidAPITestCase):
                 'freja_expire_time_hours': 336,
                 'freja_response_protocol': '1.0',
                 'seleg_expire_time_hours': 336,
+                'eduid_site_name': 'eduID TEST',
+                'eduid_site_url': 'https://dev.eduid.se/',
             }
         )
-        return app_config
+        return config
 
     @patch('oic.oic.Client.parse_response')
     @patch('oic.oic.Client.do_user_info_request')
@@ -144,9 +145,9 @@ class OidcProofingTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = json.loads(browser.get('/freja/proofing').data)
         self.assertEqual(response['type'], 'GET_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
-        jwk = binascii.unhexlify(self.app.config.freja_jwk_secret)
+        jwk = binascii.unhexlify(self.app.conf.freja_jwk_secret)
         jwt = response['payload']['iaRequestData'].encode('ascii')
-        request_data = jose.verify(jwt, [jwk], self.app.config.freja_jws_algorithm)
+        request_data = jose.verify(jwt, [jwk], self.app.conf.freja_jws_algorithm)
         expected = {
             'iarp': 'TESTRP',
             'opaque': '1' + json.dumps({'nonce': proofing_state.nonce, 'token': proofing_state.token}),
@@ -528,7 +529,7 @@ class OidcProofingTests(EduidAPITestCase):
         self.assertEqual(response['type'], 'POST_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
 
         # Set expire time to yesterday
-        self.app.config.freja_expire_time_hours = -24
+        self.app.conf.freja_expire_time_hours = -24
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = json.loads(browser.get('/freja/proofing').data)

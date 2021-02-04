@@ -52,7 +52,7 @@ def authorize(user):
         current_app.stats.count(name='authn_request')
         return redirect(authorization_url)
     # Orcid already connected to user
-    redirect_url = current_app.config.orcid_verify_redirect_url
+    redirect_url = current_app.conf.orcid_verify_redirect_url
     return redirect_with_msg(redirect_url, OrcidMsg.already_connected)
 
 
@@ -60,7 +60,7 @@ def authorize(user):
 @require_user
 def authorization_response(user):
     # Redirect url for user feedback
-    redirect_url = current_app.config.orcid_verify_redirect_url
+    redirect_url = current_app.conf.orcid_verify_redirect_url
 
     current_app.stats.count(name='authn_response')
 
@@ -105,7 +105,7 @@ def authorization_response(user):
     # do userinfo request
     current_app.logger.debug('Trying to do userinfo request:')
     userinfo = current_app.oidc_client.do_user_info_request(
-        method=current_app.config.userinfo_endpoint_method, state=authn_resp['state']
+        method=current_app.conf.userinfo_endpoint_method, state=authn_resp['state']
     )
     current_app.logger.debug('userinfo received: {!s}'.format(userinfo))
     if userinfo['sub'] != id_token['sub']:

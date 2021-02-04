@@ -30,25 +30,25 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-from __future__ import absolute_import
-
-from dataclasses import dataclass, field
 from typing import Dict
 
-from eduid_common.config.base import FlaskConfig
+from pydantic import Field
+
+from eduid_common.config.base import EduIDBaseAppConfig
 
 
-@dataclass
-class OrcidConfig(FlaskConfig):
+class OrcidConfig(EduIDBaseAppConfig):
     """
     Configuration for the orcid app
     """
+    token_service_url: str
+
+    app_name: str = 'orcid'
 
     # OIDC
-    client_registration_info: Dict[str, str] = field(default_factory=lambda: {'client_id': '', 'client_secret': ''})
-    provider_configuration_info: Dict[str, str] = field(
-        default_factory=lambda: {'issuer': '',}
+    client_registration_info: Dict[str, str] = Field(default={'client_id': '', 'client_secret': ''})
+    provider_configuration_info: Dict[str, str] = Field(
+        default={'issuer': '',}
     )
     userinfo_endpoint_method: str = 'GET'
     orcid_verify_redirect_url: str = '/profile/accountlinking'
