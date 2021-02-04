@@ -1,5 +1,4 @@
 -r requirements.txt
-mock==2.0.0
 WebTest==2.0.30
 pytest>=5.2.0
 pytest-cov>=2.7.1
