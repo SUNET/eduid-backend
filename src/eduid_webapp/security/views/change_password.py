@@ -78,7 +78,8 @@ def get_suggested(user) -> FluxData:
     current_app.logger.debug(f'Sending new generated password for {user}')
     password = generate_suggested_password()
 
-    session.security.generated_password_hash = hash_password(password)
+    # TODO: uncomment after check_password is available in eduid_common
+    # session.security.generated_password_hash = hash_password(password)
 
     return success_response(payload={'suggested_password': password}, message=None)
 
@@ -111,12 +112,14 @@ def change_password_view(user: User, old_password: str, new_password: str) -> Fl
         return error_response(message=SecurityMsg.stale_reauthn)
 
     hashed = session.security.generated_password_hash
-    if check_password(new_password, hashed):
-        is_generated = True
-        current_app.stats.count(name='change_password_generated_password_used')
-    else:
-        is_generated = False
-        current_app.stats.count(name='change_password_custom_password_used')
+    is_generated = False
+    # TODO: uncomment after check_password is available in eduid_common
+    #    if check_password(new_password, hashed):
+    #        is_generated = True
+    #        current_app.stats.count(name='change_password_generated_password_used')
+    #    else:
+    #        is_generated = False
+    #        current_app.stats.count(name='change_password_custom_password_used')
 
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
 
