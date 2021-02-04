@@ -35,16 +35,18 @@
 Configuration (file) handling for the eduID eidas app.
 """
 
-from dataclasses import dataclass
 
-from eduid_common.config.base import FlaskConfig
+from eduid_common.config.base import EduIDBaseAppConfig, MagicCookieMixin
 
 
-@dataclass
-class EmailConfig(FlaskConfig):
+class EmailConfig(EduIDBaseAppConfig, MagicCookieMixin):
     """
-    Configuration for the eidas app
+    Configuration for the email app
     """
+    eduid_site_name: str
+    eduid_site_url: str
+
+    app_name: str = 'email'
 
     email_verification_timeout: int = 86400  # seconds
     throttle_resend_seconds: int = 300

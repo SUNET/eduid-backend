@@ -156,7 +156,7 @@ def verify(user, code, email):
     db = current_app.proofing_statedb
     try:
         state = db.get_state_by_eppn_and_email(proofing_user.eppn, email)
-        timeout = current_app.config.email_verification_timeout
+        timeout = current_app.conf.email_verification_timeout
         if state.is_expired(timeout):
             current_app.logger.info("Verification code is expired. Removing the state")
             current_app.logger.debug("Proofing state: {}".format(state))
@@ -192,8 +192,8 @@ def verify_link(user):
     Used for verifying an e-mail address when the user clicks the link in the verification mail.
     """
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    redirect_url = current_app.config.email_verify_redirect_url
-    timeout = current_app.config.email_verification_timeout
+    redirect_url = current_app.conf.email_verify_redirect_url
+    timeout = current_app.conf.email_verification_timeout
     state = None
     code = None
     code_in = request.args.get('code')
@@ -313,7 +313,7 @@ def get_code(user: User):
     Backdoor to get the verification code in the staging or dev environments
     """
     try:
-        if check_magic_cookie(current_app.config):
+        if check_magic_cookie(current_app.conf):
             eppn = request.args.get('eppn')
             email = request.args.get('email')
             if not eppn or not email:
