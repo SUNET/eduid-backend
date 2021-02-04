@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 import json
 import time
-from typing import Mapping, Any, Dict, Optional
+from typing import Any, Dict, Mapping, Optional
 from unittest import skip
 from unittest.mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
+
 from eduid_webapp.security.app import SecurityApp, security_init_app
 from eduid_webapp.security.helpers import SecurityMsg
 
