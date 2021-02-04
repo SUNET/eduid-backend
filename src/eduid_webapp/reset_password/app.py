@@ -36,6 +36,7 @@ from typing import Any, Mapping, Optional, cast
 from flask import current_app
 
 from eduid_common.api import am, mail_relay, msg, translation
+from eduid_common.api.app import EduIDBaseApp
 from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.authn.utils import no_authn_views
 from eduid_common.config.base import FlaskConfig
@@ -49,22 +50,12 @@ from eduid_webapp.reset_password.settings.common import ResetPasswordConfig
 __author__ = 'eperez'
 
 
-class ResetPasswordApp(AuthnBaseApp):
+class ResetPasswordApp(EduIDBaseApp):
     def __init__(self, name: str, test_config: Optional[Mapping[str, Any]], **kwargs):
         self.conf = load_config(typ=ResetPasswordConfig, app_name=name, ns='webapp', test_config=test_config)
         # Initialise type of self.config before any parent class sets a precedent to mypy
         self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
         super().__init__(name, **kwargs)
-
-        # Register views
-        from eduid_webapp.reset_password.views.change_password import change_password_views
-        from eduid_webapp.reset_password.views.reset_password import reset_password_views
-
-        self.register_blueprint(change_password_views)
-        self.register_blueprint(reset_password_views)
-
-        # Register view path that should not be authorized
-        no_authn_views(self, [r'/reset.*', r'/new-password/?'])
 
         # Init celery
         msg.init_relay(self)
@@ -85,9 +76,13 @@ current_reset_password_app: ResetPasswordApp = cast(ResetPasswordApp, current_ap
 def init_reset_password_app(name: str, test_config: Optional[Mapping[str, Any]] = None) -> ResetPasswordApp:
     """
     :param name: The name of the instance, it will affect the configuration loaded.
-    :param config: Override config. Used in tests.
+    :param test_config: Override config. Used in tests.
     """
     app = ResetPasswordApp(name, test_config)
+    # Register views
+    from eduid_webapp.reset_password.views.reset_password import reset_password_views
+
+    app.register_blueprint(reset_password_views)
 
     app.logger.info(f'Init {name} app...')
 
