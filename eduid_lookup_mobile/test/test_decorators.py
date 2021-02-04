@@ -34,12 +34,12 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         def find_NIN_by_mobile(self, mobile_number):
             return '200202025678'
 
-        find_NIN_by_mobile(self, '+46700011222')
+        find_NIN_by_mobile(self, '+46701740699')
         c = self.db['transaction_audit']
         result = c.find()
         self.assertEqual(c.count_documents({}), 1)
         hit = result.next()
-        self.assertEqual(hit['data']['mobile_number'], '+46700011222')
+        self.assertEqual(hit['data']['mobile_number'], '+46701740699')
         self.assertTrue(hit['data']['data_returned'])
         c.delete_many({})  # Clear database
 
@@ -59,7 +59,7 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         def find_NIN_by_mobile(self, mobile_number):
             return
 
-        find_NIN_by_mobile(self, '+46700011222')
+        find_NIN_by_mobile(self, '+46701740699')
         c = self.db['transaction_audit']
         result = c.find()
         self.assertEqual(c.count_documents({}), 1)

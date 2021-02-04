@@ -1,10 +1,11 @@
+from suds.client import Client
+from suds.plugin import MessagePlugin
+
 from eduid_common.config.workers import MobConfig
 
 from eduid_lookup_mobile.decorators import TransactionAudit
 from eduid_lookup_mobile.development.development_search_result import _get_devel_search_result
 from eduid_lookup_mobile.utilities import format_mobile_number, format_NIN
-from suds.client import Client
-from suds.plugin import MessagePlugin
 
 DEFAULT_CLIENT_URL = 'http://api.teleadress.se/WSDL/nnapiwebservice.wsdl'
 DEFAULT_CLIENT_PORT = 'NNAPIWebServiceSoap'
