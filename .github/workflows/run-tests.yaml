@@ -27,6 +27,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r test_requirements.txt
 
+      - name: Fetch docker images
+        run: |
+          docker pull docker.sunet.se/eduid/mongodb:latest
+
       - name: Test with pytest
         run: |
           make test
