@@ -85,21 +85,6 @@ class ResetPasswordWithSecTokenSchema(ResetPasswordWithCodeSchema):
     signature = fields.String(required=True)
 
 
-class ChpassCredentialList(EduidSchema, CSRFResponseMixin):
-    credentials = fields.Nested(CredentialSchema, many=True)
-    next_url = fields.String(required=True)
-
-
-class ChpassResponseSchema(FluxStandardAction):
-    payload = fields.Nested(ChpassCredentialList)
-
-
-class ChpassRequestSchema(EduidSchema, CSRFRequestMixin):
-
-    old_password = fields.String(required=True)
-    new_password = fields.String(required=True)
-
-
 class SuggestedPassword(EduidSchema, CSRFResponseMixin):
 
     suggested_password = fields.String(required=True)
