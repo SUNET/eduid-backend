@@ -30,19 +30,14 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-from __future__ import absolute_import
-
-from dataclasses import dataclass
-
-from eduid_common.config.base import FlaskConfig
+from eduid_common.config.base import EduIDBaseAppConfig, MagicCookieMixin
 
 
-@dataclass
-class LetterProofingConfig(FlaskConfig):
+class LetterProofingConfig(EduIDBaseAppConfig, MagicCookieMixin):
     """
     Configuration for the letter proofing app
     """
+    app_name: str = 'letter_proofing'
 
     letter_wait_time_hours: int = 336  # 2 weeks
 

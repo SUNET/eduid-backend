@@ -189,10 +189,10 @@ class LetterProofingTests(EduidAPITestCase):
             self.assertEqual(response.status_code, 200)
 
             if cookie_value is None:
-                cookie_value = self.app.config.magic_cookie
+                cookie_value = self.app.conf.magic_cookie
 
             if add_cookie:
-                client.set_cookie('localhost', key=self.app.config.magic_cookie_name, value=cookie_value)
+                client.set_cookie('localhost', key=self.app.conf.magic_cookie_name, value=cookie_value)
 
             return client.get('/get-code')
 
@@ -362,7 +362,7 @@ class LetterProofingTests(EduidAPITestCase):
         self.send_letter(self.test_user_nin)
         json_data = self.get_state()
         self.assertIn('letter_sent', json_data['payload'])
-        self.app.config.letter_wait_time_hours = -24
+        self.app.conf.letter_wait_time_hours = -24
         json_data = self.get_state()
         self.assertTrue(json_data['payload']['letter_expired'])
         self.assertIn('letter_sent', json_data['payload'])
@@ -372,7 +372,7 @@ class LetterProofingTests(EduidAPITestCase):
         self.send_letter(self.test_user_nin)
         json_data = self.get_state()
         self.assertIn('letter_sent', json_data['payload'])
-        self.app.config.letter_wait_time_hours = -24
+        self.app.conf.letter_wait_time_hours = -24
         self.send_letter(self.test_user_nin)
         self.assertFalse(json_data['payload']['letter_expired'])
         self.assertIn('letter_sent', json_data['payload'])
@@ -435,9 +435,9 @@ class LetterProofingTests(EduidAPITestCase):
         )
 
     def test_get_code_backdoor(self):
-        self.app.config.magic_cookie = 'magic-cookie'
-        self.app.config.magic_cookie_name = 'magic'
-        self.app.config.environment = 'dev'
+        self.app.conf.magic_cookie = 'magic-cookie'
+        self.app.conf.magic_cookie_name = 'magic'
+        self.app.conf.environment = 'dev'
 
         response = self.get_code_backdoor()
         state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
@@ -445,45 +445,45 @@ class LetterProofingTests(EduidAPITestCase):
         self.assertEqual(response.data.decode('ascii'), state.nin.verification_code)
 
     def test_get_code_no_backdoor_in_pro(self):
-        self.app.config.magic_cookie = 'magic-cookie'
-        self.app.config.magic_cookie_name = 'magic'
-        self.app.config.environment = 'pro'
+        self.app.conf.magic_cookie = 'magic-cookie'
+        self.app.conf.magic_cookie_name = 'magic'
+        self.app.conf.environment = 'pro'
 
         response = self.get_code_backdoor()
 
         self.assertEqual(response.status_code, 400)
 
     def test_get_code_no_backdoor_without_cookie(self):
-        self.app.config.magic_cookie = 'magic-cookie'
-        self.app.config.magic_cookie_name = 'magic'
-        self.app.config.environment = 'dev'
+        self.app.conf.magic_cookie = 'magic-cookie'
+        self.app.conf.magic_cookie_name = 'magic'
+        self.app.conf.environment = 'dev'
 
         response = self.get_code_backdoor(add_cookie=False)
 
         self.assertEqual(response.status_code, 400)
 
     def test_get_code_no_backdoor_misconfigured1(self):
-        self.app.config.magic_cookie = 'magic-cookie'
-        self.app.config.magic_cookie_name = ''
-        self.app.config.environment = 'dev'
+        self.app.conf.magic_cookie = 'magic-cookie'
+        self.app.conf.magic_cookie_name = ''
+        self.app.conf.environment = 'dev'
 
         response = self.get_code_backdoor()
 
         self.assertEqual(response.status_code, 400)
 
     def test_get_code_no_backdoor_misconfigured2(self):
-        self.app.config.magic_cookie = ''
-        self.app.config.magic_cookie_name = 'magic'
-        self.app.config.environment = 'dev'
+        self.app.conf.magic_cookie = ''
+        self.app.conf.magic_cookie_name = 'magic'
+        self.app.conf.environment = 'dev'
 
         response = self.get_code_backdoor()
 
         self.assertEqual(response.status_code, 400)
 
     def test_get_code_no_backdoor_wrong_value(self):
-        self.app.config.magic_cookie = 'magic-cookie'
-        self.app.config.magic_cookie_name = 'magic'
-        self.app.config.environment = 'dev'
+        self.app.conf.magic_cookie = 'magic-cookie'
+        self.app.conf.magic_cookie_name = 'magic'
+        self.app.conf.environment = 'dev'
 
         response = self.get_code_backdoor(cookie_value='wrong-cookie')
 
