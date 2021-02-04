@@ -62,7 +62,7 @@ class UserGroup:
 
 
 def get_scim_user_by_eppn(eppn: str) -> Optional[ScimApiUser]:
-    external_id = f'{eppn}@{current_app.config.scim_external_id_scope}'
+    external_id = f'{eppn}@{current_app.conf.scim_external_id_scope}'
     scim_user = current_app.scimapi_userdb.get_user_by_external_id(external_id=external_id)
     return scim_user
 
@@ -70,7 +70,7 @@ def get_scim_user_by_eppn(eppn: str) -> Optional[ScimApiUser]:
 def get_or_create_scim_user_by_eppn(eppn: str) -> ScimApiUser:
     scim_user = get_scim_user_by_eppn(eppn)
     if not scim_user:
-        scim_user = ScimApiUser(external_id=f'{eppn}@{current_app.config.scim_external_id_scope}')
+        scim_user = ScimApiUser(external_id=f'{eppn}@{current_app.conf.scim_external_id_scope}')
         current_app.scimapi_userdb.save(scim_user)
         current_app.logger.info(f'Created ScimApiUser with scim_id: {scim_user.scim_id}')
         current_app.stats.count(name='user_created')
@@ -230,12 +230,12 @@ def get_incoming_invites(user: User) -> List[Dict[str, Any]]:
 
 
 def send_invite_email(invite_state: GroupInviteState):
-    text_template = current_app.config.group_invite_template_txt
-    html_template = current_app.config.group_invite_template_txt
+    text_template = current_app.conf.group_invite_template_txt
+    html_template = current_app.conf.group_invite_template_txt
 
     to_addresses = [invite_state.email_address]
     group = current_app.scimapi_groupdb.get_group_by_scim_id(invite_state.group_scim_id)
-    context = {'group_display_name': group.display_name, 'group_invite_url': current_app.config.group_invite_url}
+    context = {'group_display_name': group.display_name, 'group_invite_url': current_app.conf.group_invite_url}
     subject = _('Group invitation')
     try:
         send_mail(
