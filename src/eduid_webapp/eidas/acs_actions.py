@@ -51,7 +51,7 @@ def token_verify_action(session_info: Mapping[str, Any], user: User) -> Werkzeug
 
     :return: redirect response
     """
-    redirect_url = current_app.config.token_verify_redirect_url
+    redirect_url = current_app.conf.token_verify_redirect_url
 
     if not is_required_loa(session_info, 'loa3'):
         return redirect_with_msg(redirect_url, EidasMsg.authn_context_mismatch)
@@ -143,7 +143,7 @@ def nin_verify_action(session_info: Mapping[str, Any], user: User) -> WerkzeugRe
     :return: redirect response
     """
 
-    redirect_url = current_app.config.nin_verify_redirect_url
+    redirect_url = current_app.conf.nin_verify_redirect_url
 
     if not is_required_loa(session_info, 'loa3'):
         return redirect_with_msg(redirect_url, EidasMsg.authn_context_mismatch)
@@ -212,7 +212,7 @@ def nin_verify_BACKDOOR(user: User) -> WerkzeugResponse:
     :return: redirect response
     """
 
-    redirect_url = current_app.config.nin_verify_redirect_url
+    redirect_url = current_app.conf.nin_verify_redirect_url
 
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     asserted_nin = request.cookies.get('nin')
@@ -273,7 +273,7 @@ def mfa_authentication_action(session_info: Mapping[str, Any], user: User) -> We
         # With no redirect url just redirect the user to dashboard for a new try to log in
         # TODO: This will result in a error 400 until we put the authentication in the session
         current_app.logger.error('Missing redirect url for mfa authentication')
-        return redirect_with_msg(current_app.config.action_url, EidasMsg.no_redirect_url)
+        return redirect_with_msg(current_app.conf.action_url, EidasMsg.no_redirect_url)
 
     # We get the mfa authentication views "next" argument as base64 to avoid our request sanitation
     # to replace all & to &amp;

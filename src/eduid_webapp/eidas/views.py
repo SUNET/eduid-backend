@@ -43,7 +43,7 @@ def index(user) -> FluxData:
 @require_user
 def verify_token(user, credential_id) -> Union[FluxData, WerkzeugResponse]:
     current_app.logger.debug('verify-token called with credential_id: {}'.format(credential_id))
-    redirect_url = current_app.config.token_verify_redirect_url
+    redirect_url = current_app.conf.token_verify_redirect_url
 
     # Check if requested key id is a mfa token and if the user used that to log in
     token_to_verify = user.credentials.filter(FidoCredential).find(credential_id)
@@ -52,7 +52,7 @@ def verify_token(user, credential_id) -> Union[FluxData, WerkzeugResponse]:
     if token_to_verify.key not in session.get('eduidIdPCredentialsUsed', []):
         # If token was not used for login, reauthn the user
         current_app.logger.info('Token {} not used for login, redirecting to idp'.format(token_to_verify.key))
-        ts_url = current_app.config.token_service_url
+        ts_url = current_app.conf.token_service_url
         reauthn_url = urlappend(ts_url, 'reauthn')
         next_url = url_for('eidas.verify_token', credential_id=credential_id, _external=True)
         # Add idp arg to next_url if set
@@ -76,7 +76,7 @@ def verify_nin(user):
 
     # Backdoor for the selenium integration tests to verify NINs
     # without sending the user to an eidas idp
-    if check_magic_cookie(current_app.config):
+    if check_magic_cookie(current_app.conf):
         return nin_verify_BACKDOOR()
 
     required_loa = 'loa3'
@@ -143,7 +143,7 @@ def assertion_consumer_service():
         current_app.logger.debug('Session info:\n{!s}\n\n'.format(session_info))
 
         # Remap nin in staging environment
-        if current_app.config.environment == 'staging':
+        if current_app.conf.environment == 'staging':
             session_info = staging_nin_remap(session_info)
 
         action = get_action()
