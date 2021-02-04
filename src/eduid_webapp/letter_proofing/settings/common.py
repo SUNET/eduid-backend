@@ -37,6 +37,7 @@ class LetterProofingConfig(EduIDBaseAppConfig, MagicCookieMixin):
     """
     Configuration for the letter proofing app
     """
+
     app_name: str = 'letter_proofing'
 
     letter_wait_time_hours: int = 336  # 2 weeks

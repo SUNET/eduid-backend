@@ -29,21 +29,20 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from __future__ import absolute_import
+
 
 from enum import Enum, unique
 from time import time
 from typing import Any, Mapping
 
 from flask import redirect, request
-
-from eduid_common.session.namespaces import LoginApplication
 from saml2.ident import code
 
 from eduid_common.api.utils import verify_relay_state
 from eduid_common.authn.acs_registry import acs_action
 from eduid_common.authn.utils import get_saml_attribute
 from eduid_common.session import session
+from eduid_common.session.namespaces import LoginApplication
 from eduid_userdb import User
 
 from eduid_webapp.authn.app import current_authn_app as current_app

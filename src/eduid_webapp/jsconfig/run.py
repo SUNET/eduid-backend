@@ -31,7 +31,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from __future__ import absolute_import
 
 from eduid_webapp.jsconfig.app import jsconfig_init_app
 

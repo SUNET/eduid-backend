@@ -43,6 +43,7 @@ class OIDCProofingConfig(EduIDBaseAppConfig):
     """
     Configuration for the oidc proofing app
     """
+
     eduid_site_name: str
     eduid_site_url: str
 

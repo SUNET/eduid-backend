@@ -32,7 +32,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from __future__ import absolute_import
 
 from dataclasses import dataclass, field
 from typing import List

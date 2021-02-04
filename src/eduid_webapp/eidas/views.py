@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-
-from __future__ import absolute_import, unicode_literals
-
 from typing import Union
 
 from flask import Blueprint, abort, make_response, redirect, request, url_for

@@ -31,7 +31,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from __future__ import absolute_import
 
 from flask_babel import gettext as _
 from marshmallow import Schema, ValidationError, fields, validate, validates, validates_schema

@@ -41,6 +41,7 @@ class OrcidConfig(EduIDBaseAppConfig):
     """
     Configuration for the orcid app
     """
+
     token_service_url: str
 
     app_name: str = 'orcid'

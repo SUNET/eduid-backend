@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
 
 from eduid_webapp.support.app import current_support_app as current_app
 
