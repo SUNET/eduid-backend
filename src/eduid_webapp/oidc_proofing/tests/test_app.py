@@ -96,6 +96,8 @@ class OidcProofingTests(EduidAPITestCase):
                 'freja_expire_time_hours': 336,
                 'freja_response_protocol': '1.0',
                 'seleg_expire_time_hours': 336,
+                'eduid_site_name': 'eduID TEST',
+                'eduid_site_url': 'https://dev.eduid.se/',
             }
         )
         return config
