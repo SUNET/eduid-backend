@@ -47,7 +47,7 @@ class BaseDBTestCase(unittest.TestCase):
             'mongo_uri': self.mongo_uri,
             'logging_config': {
                 'version': 1,
-                'formatters': {'default': {'format': '%(asctime)s | %(levelname)s | %(name)s | %(message)s'}},
+                'formatters': {'default': {'format': '{asctime} | {levelname:7} | {name:35} | {message}'}},
                 'handlers': {
                     'console': {
                         'class': 'logging.StreamHandler',
