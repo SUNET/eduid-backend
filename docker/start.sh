@@ -49,7 +49,7 @@ exec start-stop-daemon --start -c eduid:eduid --exec \
      /opt/eduid/bin/gunicorn \
      --pidfile "${state_dir}/${eduid_name}.pid" \
      --user=eduid --group=eduid -- \
-     --bind 0.0.0.0:8080 \
+     --bind 0.0.0.0:8000 \
      --workers ${workers} --worker-class ${worker_class} \
      --threads ${worker_threads} --timeout ${worker_timeout} \
      --forwarded-allow-ips="${forwarded_allow_ips}" \
