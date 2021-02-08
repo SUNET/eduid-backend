@@ -43,7 +43,7 @@ from eduid_common.api.exceptions import MailTaskFailed
 from eduid_common.api.helpers import send_mail
 from eduid_common.api.messages import FluxData, TranslatableMsg, error_response, success_response
 from eduid_common.api.utils import get_short_hash, get_unique_hash, save_and_sync_user, urlappend
-from eduid_common.api.validation import is_weak_password
+from eduid_common.api.validation import is_valid_password
 from eduid_common.authn import fido_tokens
 from eduid_common.authn.utils import generate_password
 from eduid_common.authn.vccs import reset_password
@@ -336,7 +336,9 @@ def reset_user_password(
     """
     # Check the the password complexity is enough
     user_info = get_zxcvbn_terms(user)
-    if is_weak_password(password, user_info=user_info, min_entropy=current_app.conf.password_entropy):
+    try:
+        is_valid_password(password, user_info=user_info, min_entropy=current_app.conf.password_entropy)
+    except ValueError:
         return error_response(message=ResetPwMsg.resetpw_weak)
 
     reset_password_user = ResetPasswordUser.from_user(user, private_userdb=current_app.private_userdb)
