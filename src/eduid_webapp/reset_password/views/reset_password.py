@@ -94,6 +94,7 @@ from eduid_userdb.util import utc_now
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
 from eduid_webapp.reset_password.helpers import (
     ResetPwMsg,
+    StateException,
     generate_suggested_password,
     get_context,
     get_extra_security_alternatives,
@@ -188,17 +189,17 @@ def config_reset_pw(email_code: str) -> FluxData:
     * No valid user corresponds to the eppn stored in the state.
     """
     current_app.logger.info(f'Configuring password reset form for {email_code}')
-    context = get_context(email_code=email_code)
-    if context.error is not None:
-        return error_response(message=context.error)
+    try:
+        context = get_context(email_code=email_code)
+    except StateException as e:
+        return error_response(message=e.msg)
 
     verify_email_address(context.state)
 
     new_password = generate_suggested_password(password_length=current_app.conf.password_length)
     session.reset_password.generated_password_hash = hash_password(new_password)
 
-    user = current_app.central_userdb.get_user_by_eppn(context.state.eppn)
-    alternatives = get_extra_security_alternatives(user, SESSION_PREFIX)
+    alternatives = get_extra_security_alternatives(context.user, SESSION_PREFIX)
     context.state.extra_security = alternatives
     current_app.password_reset_state_db.save(context.state)
 
@@ -244,9 +245,10 @@ def set_new_pw_no_extra_security(email_code: str, password: str) -> FluxData:
     * Communication problems with the VCCS backend;
     * Synchronization problems with the central user db.
     """
-    context = get_context(email_code=email_code)
-    if context.error is not None:
-        return error_response(message=context.error)
+    try:
+        context = get_context(email_code=email_code)
+    except StateException as e:
+        return error_response(message=e.msg)
 
     current_app.logger.info(f'Reset password with state {email_code} using NO extra security for user {context.user}')
     return reset_user_password(user=context.user, state=context.state, password=password)
@@ -284,9 +286,10 @@ def choose_extra_security_phone(email_code: str, phone_index: int) -> FluxData:
     * No valid user corresponds to the eppn stored in the state;
     * Problems sending the SMS message
     """
-    context = get_context(email_code=email_code)
-    if context.error is not None:
-        return error_response(message=context.error)
+    try:
+        context = get_context(email_code=email_code)
+    except StateException as e:
+        return error_response(message=e.msg)
 
     if isinstance(context.state, ResetPasswordEmailAndPhoneState):
         now = utc_now()
@@ -344,9 +347,10 @@ def set_new_pw_extra_security_phone(email_code: str, password: str, phone_code: 
     * Communication problems with the VCCS backend;
     * Synchronization problems with the central user db.
     """
-    context = get_context(email_code=email_code)
-    if context.error is not None:
-        return error_response(message=context.error)
+    try:
+        context = get_context(email_code=email_code)
+    except StateException as e:
+        return error_response(message=e.msg)
 
     if not isinstance(context.state, ResetPasswordEmailAndPhoneState):
         raise TypeError(f'State is not ResetPasswordEmailAndPhoneState ({type(context.state)})')
@@ -399,9 +403,10 @@ def set_new_pw_extra_security_token(
     * Communication problems with the VCCS backend;
     * Synchronization problems with the central user db.
     """
-    context = get_context(email_code=email_code)
-    if context.error is not None:
-        return error_response(message=context.error)
+    try:
+        context = get_context(email_code=email_code)
+    except StateException as e:
+        return error_response(message=e.msg)
 
     # Process POSTed data
     success = False

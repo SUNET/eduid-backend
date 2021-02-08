@@ -122,32 +122,10 @@ class StateException(Exception):
         self.msg = msg
 
 
-class StateNotFound(StateException):
-    pass
-
-
-class EmailStateExpired(StateException):
-    pass
-
-
-class PhoneStateExpired(StateException):
-    pass
-
-
-class WeakPassword(Exception):
-    pass
-
-
 @dataclass
 class ResetPasswordContext:
-    state: Optional[Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState]] = None
-    user: Optional[User] = None
-    error: Optional[TranslatableMsg] = None  # If this is not None, the request should be aborted with this error
-
-    def is_valid(self) -> bool:
-        if self.state is not None and self.user is not None:
-            return True
-        raise RuntimeError('State or user was not loaded correctly. This should not happen.')
+    state: Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState]
+    user: User
 
 
 def get_context(email_code: str) -> ResetPasswordContext:
@@ -157,21 +135,14 @@ def get_context(email_code: str) -> ResetPasswordContext:
     :param email_code: User supplied password reset code
     :return: ResetPasswordContext instance
     """
-    try:
-        state = get_pwreset_state(email_code)
-    except StateNotFound:
-        return ResetPasswordContext(error=ResetPwMsg.state_not_found)
-    except EmailStateExpired:
-        return ResetPasswordContext(error=ResetPwMsg.expired_email_code)
-    except PhoneStateExpired:
-        return ResetPasswordContext(error=ResetPwMsg.expired_phone_code)
+    state = get_pwreset_state(email_code)
 
     try:
         user = current_app.central_userdb.get_user_by_eppn(state.eppn, raise_on_missing=True)
     except UserDoesNotExist as e:
         # User has been removed before reset password was completed
         current_app.logger.error(f'User not found for state {state.email_code}: {e}')
-        return ResetPasswordContext(error=ResetPwMsg.user_not_found)
+        raise StateException(msg=ResetPwMsg.user_not_found)
 
     return ResetPasswordContext(state=state, user=user)
 
@@ -190,11 +161,11 @@ def get_pwreset_state(email_code: str) -> Union[ResetPasswordEmailState, ResetPa
         assert state is not None  # assure mypy, raise_on_missing=True will make this never happen
     except DocumentDoesNotExist:
         current_app.logger.info(f'State not found: {email_code}')
-        raise StateNotFound()
+        raise StateException(msg=ResetPwMsg.state_not_found)
 
     if state.email_code.is_expired(mail_expiration_time):
         current_app.logger.info(f'State expired: {email_code}')
-        raise EmailStateExpired()
+        raise StateException(msg=ResetPwMsg.expired_email_code)
 
     if isinstance(state, ResetPasswordEmailAndPhoneState) and state.phone_code.is_expired(sms_expiration_time):
         current_app.logger.info(f'Phone code expired for state: {email_code}')
@@ -202,7 +173,7 @@ def get_pwreset_state(email_code: str) -> Union[ResetPasswordEmailState, ResetPa
         current_app.password_reset_state_db.remove_state(state)
         state = ResetPasswordEmailState(eppn=state.eppn, email_address=state.email_address, email_code=state.email_code)
         current_app.password_reset_state_db.save(state)
-        raise PhoneStateExpired()
+        raise StateException(msg=ResetPwMsg.expired_phone_code)
     return state
 
 
