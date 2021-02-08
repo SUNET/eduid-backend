@@ -75,32 +75,28 @@ supplemented with a text input for the SMS'ed code. In this case submitting the
 form will also result in resetting her password, but without unverifying any of
 her data.
 """
-import time
-from dataclasses import dataclass
-from datetime import datetime
-from typing import Optional, Union
+from datetime import datetime, timedelta
+from typing import Optional
 
 from flask import Blueprint, abort, request
 
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith
-from eduid_common.api.exceptions import MsgTaskFailed
+from eduid_common.api.exceptions import MailTaskFailed, MsgTaskFailed
 from eduid_common.api.helpers import check_magic_cookie
-from eduid_common.api.messages import FluxData, TranslatableMsg, error_response, success_response
+from eduid_common.api.messages import FluxData, error_response, success_response
 from eduid_common.api.schemas.base import FluxStandardAction
-from eduid_common.api.validation import is_valid_password
 from eduid_common.authn import fido_tokens
 from eduid_common.session import session
-from eduid_userdb import User
-from eduid_userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState
+from eduid_userdb.exceptions import UserHasNotCompletedSignup
+from eduid_userdb.reset_password import ResetPasswordEmailAndPhoneState
+from eduid_userdb.util import utc_now
 
 from eduid_webapp.reset_password.app import current_reset_password_app as current_app
 from eduid_webapp.reset_password.helpers import (
-    BadCode,
     ResetPwMsg,
-    check_password,
     generate_suggested_password,
+    get_context,
     get_extra_security_alternatives,
-    get_pwreset_state,
     get_zxcvbn_terms,
     hash_password,
     mask_alternatives,
@@ -122,7 +118,7 @@ from eduid_webapp.reset_password.schemas import (
 SESSION_PREFIX = "eduid_webapp.reset_password.views"
 
 
-reset_password_views = Blueprint('reset_password', __name__, url_prefix='/reset', template_folder='templates')
+reset_password_views = Blueprint('reset_password', __name__, url_prefix='/', template_folder='templates')
 
 
 @reset_password_views.route('/', methods=['POST'])
@@ -133,9 +129,6 @@ def init_reset_pw(email: str) -> FluxData:
     View that receives an email address to initiate a reset password process.
     It returns a message informing of the result of the operation.
 
-    Preconditions required for the call to succeed:
-    * There is a valid user corresponding to the received email address.
-
     As side effects, this view will:
     * Create a PasswordResetEmailState in the password_reset_state_db
       (holding the email address, the eppn of the user associated to the
@@ -144,23 +137,29 @@ def init_reset_pw(email: str) -> FluxData:
     * Email the generated code to the received email address.
 
     The operation can fail due to:
-    * The email address does not correspond to any valid user in the central db;
     * There is some problem sending the email.
+
+    The operation should not fail on a missing user as that effectively creates a
+    "does this email address have an eduID account?" service.
     """
     current_app.logger.info(f'Trying to send password reset email to {email}')
     try:
         send_password_reset_mail(email)
-    except BadCode as error:
-        current_app.logger.error(f'Sending password reset e-mail for {email} failed: {error}')
-        return error_response(message=error.msg)
+    except UserHasNotCompletedSignup as e:
+        # Old bug where incomplete signup users where written to the central db
+        current_app.logger.error(f'User with email {email} has to complete signup: {e}')
+        return error_response(message=ResetPwMsg.invalid_user)
+    except MailTaskFailed as e:
+        current_app.logger.error(f'Sending password reset email failed: {e}')
+        return error_response(message=ResetPwMsg.email_send_failure)
 
-    return success_response(message=ResetPwMsg.send_pw_success)
+    return success_response(message=ResetPwMsg.reset_pw_initialized)
 
 
 @reset_password_views.route('/config/', methods=['POST'])
 @UnmarshalWith(ResetPasswordEmailCodeSchema)
 @MarshalWith(FluxStandardAction)
-def config_reset_pw(code: str) -> FluxData:
+def config_reset_pw(email_code: str) -> FluxData:
     """
     View that receives an emailed reset password code and returns the
     configuration needed for the reset password form.
@@ -188,93 +187,40 @@ def config_reset_pw(code: str) -> FluxData:
     * The code has expired;
     * No valid user corresponds to the eppn stored in the state.
     """
-    current_app.logger.info(f'Configuring password reset form for {code}')
-    try:
-        state = get_pwreset_state(code)
-    except BadCode as e:
-        return error_response(message=e.msg)
+    current_app.logger.info(f'Configuring password reset form for {email_code}')
+    context = get_context(email_code=email_code)
+    if context.error is not None:
+        return error_response(message=context.error)
 
-    verify_email_address(state)
+    verify_email_address(context.state)
 
-    new_password = generate_suggested_password()
+    new_password = generate_suggested_password(password_length=current_app.conf.password_length)
     session.reset_password.generated_password_hash = hash_password(new_password)
 
-    user = current_app.central_userdb.get_user_by_eppn(state.eppn)
+    user = current_app.central_userdb.get_user_by_eppn(context.state.eppn)
     alternatives = get_extra_security_alternatives(user, SESSION_PREFIX)
-    state.extra_security = alternatives
-    current_app.password_reset_state_db.save(state)
+    context.state.extra_security = alternatives
+    current_app.password_reset_state_db.save(context.state)
 
     return success_response(
         payload={
             'csrf_token': session.get_csrf_token(),
             'suggested_password': new_password,
-            'email_code': state.email_code.code,
-            'email_address': state.email_address,
+            'email_code': context.state.email_code.code,
+            'email_address': context.state.email_address,
             'extra_security': mask_alternatives(alternatives),
             'password_entropy': current_app.conf.password_entropy,
             'password_length': current_app.conf.password_length,
             'password_service_url': current_app.conf.password_service_url,
-            'zxcvbn_terms': get_zxcvbn_terms(state.eppn),
+            'zxcvbn_terms': get_zxcvbn_terms(context.user),
         },
     )
-
-
-class BadStateOrData(Exception):
-    def __init__(self, msg):
-        self.msg = msg
-
-
-@dataclass
-class ResetContext(object):
-    state: Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState]
-    user: User
-    error: Optional[TranslatableMsg] = None  # If this is not None, the request should be aborted with this error
-
-
-def _load_data(code: str, password: str) -> ResetContext:
-    """
-    Use a code to load reset-password state from the database.
-
-    Also validates the supplied password to make sure it conforms to the eduID service
-    requirements.
-
-    :param code: User supplied password reset code
-    :param password: User supplied new password candidate
-    :return: ResetContext instance
-    """
-    try:
-        state = get_pwreset_state(code)
-    except BadCode as e:
-        return ResetContext(
-            state=None,  # type: ignore
-            user=None,  # type: ignore
-            error=e.msg,
-        )
-
-    hashed = session.reset_password.generated_password_hash
-    if check_password(password, hashed):
-        state.generated_password = True
-        current_app.logger.info('Generated password used')
-        current_app.stats.count(name=f'reset_password_generated_password_used')
-    else:
-        state.generated_password = False
-        current_app.logger.info('Custom password used')
-        current_app.stats.count(name=f'reset_password_custom_password_used')
-
-    user = current_app.central_userdb.get_user_by_eppn(state.eppn, raise_on_missing=False)
-
-    min_entropy = current_app.conf.password_entropy
-    try:
-        is_valid_password(password, user_info=get_zxcvbn_terms(user.eppn), min_entropy=min_entropy)
-    except ValueError:
-        return ResetContext(state=state, user=user, error=ResetPwMsg.chpass_weak,)
-    return ResetContext(state=state, user=user)
 
 
 @reset_password_views.route('/new-password/', methods=['POST'])
 @MarshalWith(FluxStandardAction)
 @UnmarshalWith(ResetPasswordWithCodeSchema)
-def set_new_pw(code: str, password: str) -> FluxData:
+def set_new_pw_no_extra_security(email_code: str, password: str) -> FluxData:
     """
     View that receives an emailed reset password code and a password, and sets
     the password as credential for the user, with no extra security.
@@ -298,24 +244,18 @@ def set_new_pw(code: str, password: str) -> FluxData:
     * Communication problems with the VCCS backend;
     * Synchronization problems with the central user db.
     """
-    if not password or not code:
-        return error_response(message=ResetPwMsg.missing_data)
+    context = get_context(email_code=email_code)
+    if context.error is not None:
+        return error_response(message=context.error)
 
-    data = _load_data(code, password)
-    if data.error:
-        return error_response(message=data.error)
-
-    current_app.logger.info(f'Resetting password for user {data.user}')
-    reset_user_password(data.user, data.state, password)
-    current_app.logger.info(f'Password reset done, removing state for {data.user}')
-    current_app.password_reset_state_db.remove_state(data.state)
-    return success_response(message=ResetPwMsg.pw_resetted)
+    current_app.logger.info(f'Reset password with state {email_code} using NO extra security for user {context.user}')
+    return reset_user_password(user=context.user, state=context.state, password=password)
 
 
 @reset_password_views.route('/extra-security-phone/', methods=['POST'])
 @UnmarshalWith(ResetPasswordExtraSecPhoneSchema)
 @MarshalWith(FluxStandardAction)
-def choose_extra_security_phone(code: str, phone_index: int) -> FluxData:
+def choose_extra_security_phone(email_code: str, phone_index: int) -> FluxData:
     """
     View called when the user chooses extra security (she can do that when she
     has some verified phone number). It receives an emailed reset password code
@@ -344,45 +284,43 @@ def choose_extra_security_phone(code: str, phone_index: int) -> FluxData:
     * No valid user corresponds to the eppn stored in the state;
     * Problems sending the SMS message
     """
-    try:
-        state = get_pwreset_state(code)
-    except BadCode as e:
-        return error_response(message=e.msg)
+    context = get_context(email_code=email_code)
+    if context.error is not None:
+        return error_response(message=context.error)
 
-    if isinstance(state, ResetPasswordEmailAndPhoneState):
-        now = int(time.time())
-        if not isinstance(state.modified_ts, datetime):
-            raise TypeError(f'Modified timestamp in state is not a datetime ({repr(state.modified_ts)})')
-        if int(state.modified_ts.timestamp()) > now - current_app.conf.throttle_sms_seconds:
-            current_app.logger.info(f'Throttling reset password SMSs for: {state.eppn}')
+    if isinstance(context.state, ResetPasswordEmailAndPhoneState):
+        now = utc_now()
+        if not isinstance(context.state.modified_ts, datetime):
+            raise TypeError(f'Modified timestamp in state is not a datetime ({repr(context.state.modified_ts)})')
+        if now < context.state.modified_ts + timedelta(seconds=current_app.conf.throttle_sms_seconds):
+            current_app.logger.error(f'Throttling reset password SMS for: {context.state.eppn}')
             return error_response(message=ResetPwMsg.send_sms_throttled)
 
-    current_app.logger.info(f'Password reset: choose_extra_security for user with eppn {state.eppn}')
-
+    current_app.logger.info(f'Password reset: choose_extra_security for user {context.user}')
     # Check that the email code has been validated
-    if not state.email_code.is_verified:
-        current_app.logger.info(f'User with eppn {state.eppn} has not verified their email address')
+    if not context.state.email_code.is_verified:
+        current_app.logger.info(f'User with eppn {context.state.eppn} has not verified their email address')
         return error_response(message=ResetPwMsg.email_not_validated)
 
-    if state.extra_security is None:  # please mypy
-        raise ValueError(f'User {state.eppn} trying to reset password with extra security whithout alternatives')
+    if context.state.extra_security is None:  # please mypy
+        raise ValueError(f'User {context.user} trying to reset password with extra security without alternatives')
 
-    phone_number = state.extra_security['phone_numbers'][phone_index]
-    current_app.logger.info(f'Trying to send password reset sms to user with eppn {state.eppn}')
+    phone_number = context.state.extra_security['phone_numbers'][phone_index]
+    current_app.logger.info(f'Trying to send password reset sms to user {context.user}')
     try:
-        send_verify_phone_code(state, phone_number["number"])
+        send_verify_phone_code(context.state, phone_number["number"])
     except MsgTaskFailed as e:
         current_app.logger.error(f'Sending sms failed: {e}')
         return error_response(message=ResetPwMsg.send_sms_failure)
 
-    current_app.stats.count(name='reset_password_extra_security_phone')
+    current_app.stats.count(name='extra_security_phone_sent')
     return success_response(message=ResetPwMsg.send_sms_success)
 
 
 @reset_password_views.route('/new-password-secure-phone/', methods=['POST'])
 @UnmarshalWith(NewPasswordSecurePhoneRequestSchema)
 @MarshalWith(FluxStandardAction)
-def set_new_pw_extra_security_phone(code: str, password: str, phone_code: str) -> FluxData:
+def set_new_pw_extra_security_phone(email_code: str, password: str, phone_code: str) -> FluxData:
     """
     View that receives an emailed reset password code, an SMS'ed reset password
     code, and a password, and sets the password as credential for the user, with
@@ -406,44 +344,36 @@ def set_new_pw_extra_security_phone(code: str, password: str, phone_code: str) -
     * Communication problems with the VCCS backend;
     * Synchronization problems with the central user db.
     """
-    if not password:
-        return error_response(message=ResetPwMsg.chpass_no_data)
+    context = get_context(email_code=email_code)
+    if context.error is not None:
+        return error_response(message=context.error)
 
-    data = _load_data(code, password)
-    if data.error:
-        return error_response(message=data.error)
+    if not isinstance(context.state, ResetPasswordEmailAndPhoneState):
+        raise TypeError(f'State is not ResetPasswordEmailAndPhoneState ({type(context.state)})')
 
-    if not isinstance(data.state, ResetPasswordEmailAndPhoneState):
-        raise TypeError(f'State is not ResetPasswordEmailAndPhoneState ({type(data.state)})')
-
-    if phone_code == data.state.phone_code.code:
-        if not verify_phone_number(data.state):
-            current_app.logger.info(f'Could not verify phone code for {data.state.eppn}')
+    if phone_code == context.state.phone_code.code:
+        if not verify_phone_number(context.state):
+            current_app.logger.info(f'Could not verify phone code for user {context.user}')
             return error_response(message=ResetPwMsg.phone_invalid)
-
-        current_app.logger.info(f'Phone code verified for {data.state.eppn}')
-        current_app.stats.count(name='reset_password_extra_security_phone_success')
+        current_app.logger.info(f'Phone code verified for user {context.user}')
+        current_app.stats.count(name='extra_security_phone_success')
     else:
-        current_app.logger.info(f'Could not verify phone code for {data.state.eppn}')
+        current_app.logger.info(f'Could not verify phone code for user {context.user}')
         return error_response(message=ResetPwMsg.unknown_phone_code)
 
-    current_app.logger.info(f'Resetting password for user {data.user}')
-    reset_user_password(data.user, data.state, password)
-    current_app.logger.info(f'Password reset done, removing state for {data.user}')
-    current_app.password_reset_state_db.remove_state(data.state)
-    return success_response(message=ResetPwMsg.pw_resetted)
+    return reset_user_password(user=context.user, state=context.state, password=password)
 
 
 @reset_password_views.route('/new-password-secure-token/', methods=['POST'])
 @UnmarshalWith(NewPasswordSecureTokenRequestSchema)
 @MarshalWith(FluxStandardAction)
 def set_new_pw_extra_security_token(
-    code: str,
+    email_code: str,
     password: str,
-    tokenResponse: Optional[str] = None,
-    authenticatorData: Optional[str] = None,
-    clientDataJSON: Optional[str] = None,
-    credentialId: Optional[str] = None,
+    token_response: Optional[str] = None,
+    authenticator_data: Optional[str] = None,
+    client_data_json: Optional[str] = None,
+    credential_id: Optional[str] = None,
     signature: Optional[str] = None,
 ) -> FluxData:
     """
@@ -469,57 +399,51 @@ def set_new_pw_extra_security_token(
     * Communication problems with the VCCS backend;
     * Synchronization problems with the central user db.
     """
-    data = _load_data(code, password)
-    if data.error:
-        return error_response(message=data.error)
+    context = get_context(email_code=email_code)
+    if context.error is not None:
+        return error_response(message=context.error)
 
     # Process POSTed data
     success = False
-    if tokenResponse:
+    if token_response:
         # CTAP1/U2F
-        token_response = request.get_json().get('tokenResponse', '')
         current_app.logger.debug(f'U2F token response: {token_response}')
-
         _challenge = session.get(SESSION_PREFIX + '.u2f.challenge')
         if not isinstance(_challenge, bytes):
             raise TypeError(f'U2F challenge in session is not bytes {repr(_challenge)}')
         current_app.logger.debug(f'Challenge: {_challenge!r}')
-
-        result = fido_tokens.verify_u2f(data.user, _challenge, token_response, current_app.conf.u2f_valid_facets)
-
+        result = fido_tokens.verify_u2f(context.user, _challenge, token_response, current_app.conf.u2f_valid_facets)
         if result is not None:
             success = result['success']
-
-    elif authenticatorData:
+            if success:
+                current_app.stats.count(name='extra_security_security_key_u2f_success')
+    elif authenticator_data:
         # CTAP2/Webauthn
+        request_dict = {
+            'credentialId': credential_id,
+            'clientDataJSON': client_data_json,
+            'authenticatorData': authenticator_data,
+            'signature': signature,
+        }
         try:
             result = fido_tokens.verify_webauthn(
-                data.user,
-                dict(
-                    credentialId=credentialId,
-                    clientDataJSON=clientDataJSON,
-                    authenticatorData=authenticatorData,
-                    signature=signature,
-                ),
-                SESSION_PREFIX,
+                user=context.user,
+                request_dict=request_dict,
+                session_prefix=SESSION_PREFIX,
                 rp_id=current_app.conf.fido2_rp_id,
             )
+            success = result['success']
+            if success:
+                current_app.stats.count(name='extra_security_security_key_webauthn_success')
         except fido_tokens.VerificationProblem:
             pass
-        else:
-            success = result['success']
-
     else:
-        current_app.logger.error(f'Neither U2F nor Webauthn data in request to authn {data.user}')
+        current_app.logger.error(f'Neither U2F nor webauthn data in request for {context.user}')
 
     if not success:
         return error_response(message=ResetPwMsg.fido_token_fail)
 
-    current_app.logger.info(f'Resetting password for user {data.user}')
-    reset_user_password(data.user, data.state, password)
-    current_app.logger.info(f'Password reset done, removing state for {data.user}')
-    current_app.password_reset_state_db.remove_state(data.state)
-    return success_response(message=ResetPwMsg.pw_resetted)
+    return reset_user_password(user=context.user, state=context.state, password=password, security_key_used=success)
 
 
 @reset_password_views.route('/get-email-code', methods=['GET'])

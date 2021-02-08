@@ -37,8 +37,6 @@ from flask import current_app
 
 from eduid_common.api import am, mail_relay, msg, translation
 from eduid_common.api.app import EduIDBaseApp
-from eduid_common.authn.middleware import AuthnBaseApp
-from eduid_common.authn.utils import no_authn_views
 from eduid_common.config.base import FlaskConfig
 from eduid_common.config.parsers import load_config
 from eduid_userdb.authninfo import AuthnInfoDB
