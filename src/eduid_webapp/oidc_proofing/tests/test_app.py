@@ -12,6 +12,7 @@ from eduid_common.api.testing import EduidAPITestCase
 from eduid_userdb.exceptions import DocumentDoesNotExist
 from eduid_userdb.locked_identity import LockedIdentityNin
 from eduid_userdb.nin import Nin
+
 from eduid_webapp.oidc_proofing.app import OIDCProofingApp, init_oidc_proofing_app
 from eduid_webapp.oidc_proofing.helpers import create_proofing_state, handle_freja_eid_userinfo
 
@@ -22,7 +23,6 @@ class OidcProofingTests(EduidAPITestCase):
     """Base TestCase for those tests that need a full environment setup"""
 
     app: OIDCProofingApp
-
 
     def setUp(self):
         self.test_user_eppn = 'hubba-baar'

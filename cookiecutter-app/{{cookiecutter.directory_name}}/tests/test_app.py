@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from __future__ import absolute_import
+
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_webapp.{{cookiecutter.directory_name}}.app import init_{{cookiecutter.directory_name}}_app

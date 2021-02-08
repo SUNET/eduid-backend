@@ -33,7 +33,7 @@
 
 import pprint
 from base64 import b64decode
-from typing import Any, Dict, Mapping, Optional, cast
+from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 

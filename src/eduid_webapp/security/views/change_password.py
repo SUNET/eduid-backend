@@ -45,12 +45,8 @@ from eduid_userdb.exceptions import UserOutOfSync
 from eduid_userdb.security import SecurityUser
 
 from eduid_webapp.security.app import current_security_app as current_app
-from eduid_webapp.security.helpers import (
-    SecurityMsg,
-    compile_credential_list,  # check_password,; hash_password,
-    generate_suggested_password,
-    get_zxcvbn_terms,
-)
+from eduid_webapp.security.helpers import compile_credential_list  # check_password,; hash_password,
+from eduid_webapp.security.helpers import SecurityMsg, generate_suggested_password, get_zxcvbn_terms
 from eduid_webapp.security.schemas import ChpassRequestSchema, ChpassResponseSchema, SuggestedPasswordResponseSchema
 
 # TODO: move check_password and hash_password to eduid_common

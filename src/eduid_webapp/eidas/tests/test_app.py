@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
 
 import base64
 import datetime
@@ -413,9 +412,7 @@ class EidasTests(EduidAPITestCase):
             self.assertEqual(response.status_code, 302)
             self.assertEqual(
                 response.location,
-                '{}?msg=%3AERROR%3Aeidas.token_not_in_credentials_used'.format(
-                    self.app.config.token_verify_redirect_url
-                ),
+                '{}?msg=%3AERROR%3Aeidas.token_not_in_credentials_used'.format(self.app.conf.token_verify_redirect_url),
             )
 
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
@@ -563,7 +560,7 @@ class EidasTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
         self.assertEqual(user.nins.verified.count, 0)
 
-        self.app.config.magic_cookie = 'magic-cookie'
+        self.app.conf.magic_cookie = 'magic-cookie'
 
         with self.session_cookie(self.browser, self.test_unverified_user_eppn) as browser:
             browser.set_cookie('localhost', key='magic-cookie', value='magic-cookie')
@@ -585,8 +582,8 @@ class EidasTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_unverified_user_eppn)
         self.assertEqual(user.nins.verified.count, 0)
 
-        self.app.config.magic_cookie = 'magic-cookie'
-        self.app.config.environment = 'pro'
+        self.app.conf.magic_cookie = 'magic-cookie'
+        self.app.conf.environment = 'pro'
 
         with self.session_cookie(self.browser, self.test_unverified_user_eppn) as browser:
             browser.set_cookie('localhost', key='magic-cookie', value='magic-cookie')
@@ -646,7 +643,7 @@ class EidasTests(EduidAPITestCase):
             self.assertEqual(response.status_code, 302)
             self.assertEqual(
                 response.location,
-                '{}?msg=%3AERROR%3Aeidas.nin_already_verified'.format(self.app.config.nin_verify_redirect_url),
+                '{}?msg=%3AERROR%3Aeidas.nin_already_verified'.format(self.app.conf.nin_verify_redirect_url),
             )
 
     def test_mfa_authentication_verified_user(self):
@@ -712,8 +709,8 @@ class EidasTests(EduidAPITestCase):
     @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
     @patch('eduid_common.api.am.AmRelay.request_user_sync')
     def test_nin_staging_remap_verify(self, mock_request_user_sync, mock_get_postal_address):
-        self.app.config.environment = 'staging'
-        self.app.config.staging_nin_map = {self.test_user_nin: '190102031234'}
+        self.app.conf.environment = 'staging'
+        self.app.conf.staging_nin_map = {self.test_user_nin: '190102031234'}
 
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync

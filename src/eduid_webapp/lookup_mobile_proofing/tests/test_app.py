@@ -7,6 +7,7 @@ from typing import Any, Dict, Mapping
 from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
+
 from eduid_webapp.lookup_mobile_proofing.app import MobileProofingApp, init_lookup_mobile_proofing_app
 from eduid_webapp.lookup_mobile_proofing.helpers import MobileMsg
 from eduid_webapp.lookup_mobile_proofing.lookup_mobile_relay import LookupMobileTaskFailed

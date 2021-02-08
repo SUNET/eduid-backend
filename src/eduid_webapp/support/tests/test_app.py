@@ -31,7 +31,6 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from __future__ import absolute_import
 
 from eduid_common.api.testing import EduidAPITestCase
 
@@ -59,7 +58,7 @@ class SupportAppTests(EduidAPITestCase):
 
     def update_config(self, app_config):
         app_config.update(
-            {'support_personnel': ['hubba-bubba'],}
+            {'support_personnel': ['hubba-bubba'], 'token_service_url_logout': 'https://localhost/logout',}
         )
         return app_config
 

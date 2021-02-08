@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import base64
+from typing import List, Sequence, Union
 
 from fido2 import cbor
 from fido2.client import ClientData
@@ -18,7 +17,7 @@ from eduid_common.session import session
 from eduid_userdb.credentials import Webauthn
 
 # TODO: Import FidoCredential in eduid_userdb.credentials so we can import it from there
-from eduid_userdb.credentials.fido import FidoCredential
+from eduid_userdb.credentials.fido import U2F, FidoCredential
 from eduid_userdb.security import SecurityUser
 
 from eduid_webapp.security.app import current_security_app as current_app
@@ -36,7 +35,7 @@ def get_webauthn_server(rp_id, name='eduID security API'):
     return Fido2Server(rp)
 
 
-def make_credentials(creds):
+def make_credentials(creds: Sequence[Union[Webauthn, U2F]]) -> List[AttestedCredentialData]:
     credentials = []
     for cred in creds:
         if isinstance(cred, Webauthn):
@@ -44,11 +43,13 @@ def make_credentials(creds):
             credential_data, rest = AttestedCredentialData.unpack_from(cred_data)
             if rest:
                 continue
-        else:
+        elif isinstance(cred, U2F):
             # cred is of type U2F (legacy registration)
             credential_data = AttestedCredentialData.from_ctap1(
                 cred.keyhandle.encode('ascii'), cred.public_key.encode('ascii')
             )
+        else:
+            raise ValueError(f'Unknown credential {repr(cred)}')
         credentials.append(credential_data)
     return credentials
 

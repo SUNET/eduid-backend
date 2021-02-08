@@ -1,6 +1,5 @@
 # -*- encoding: utf-8 -*-
 
-from __future__ import absolute_import
 
 import base64
 import json
@@ -27,11 +26,11 @@ class Ekopost(object):
         if self._ekopost_api is None:
             verify_ssl = True
             auth = None
-            if self.app.config.ekopost_api_verify_ssl == 'false':
+            if self.app.conf.ekopost_api_verify_ssl == 'false':
                 verify_ssl = False
-            if self.app.config.ekopost_api_user and self.app.config.ekopost_api_pw:
-                auth = (self.app.config.ekopost_api_user, self.app.config.ekopost_api_pw)
-            self._ekopost_api = Hammock(self.app.config.ekopost_api_uri, auth=auth, verify=verify_ssl)
+            if self.app.conf.ekopost_api_user and self.app.conf.ekopost_api_pw:
+                auth = (self.app.conf.ekopost_api_user, self.app.conf.ekopost_api_pw)
+            self._ekopost_api = Hammock(self.app.conf.ekopost_api_uri, auth=auth, verify=verify_ssl)
         return self._ekopost_api
 
     def send(self, eppn, document):

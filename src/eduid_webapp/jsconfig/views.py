@@ -92,9 +92,9 @@ def get_signup_config() -> dict:
     """
     Configuration for the signup front app
     """
-    if not current_app.config.tou_url:
+    if not current_app.conf.tou_url:
         raise BadConfiguration('tou_url not set')
-    tou_url = current_app.config.tou_url
+    tou_url = current_app.conf.tou_url
     # Get config from etcd
     try:
         config: Optional[FrontConfig] = get_etcd_config()
@@ -127,7 +127,7 @@ def get_signup_config() -> dict:
         current_app.logger.error('Failed fetching ToUs, and the cache is empty')
         abort(500)
 
-    config.debug = current_app.config.debug
+    config.debug = current_app.conf.debug
     config.csrf_token = session.get_csrf_token()
     config.tous = cast(Dict[str, str], tous)
     # XXX the front app consumes some settings as upper case and some as lower
@@ -161,12 +161,12 @@ def get_login_config() -> dict:
 @jsconfig_views.route('/get-bundle', methods=['GET'], subdomain="dashboard")
 def get_dashboard_bundle():
     context = {
-        'bundle': current_app.config.dashboard_bundle_path,
-        'version': current_app.config.dashboard_bundle_version,
+        'bundle': current_app.conf.dashboard_bundle_path,
+        'version': current_app.conf.dashboard_bundle_version,
     }
-    feature_cookie = request.cookies.get(current_app.config.dashboard_bundle_feature_cookie)
-    if feature_cookie and feature_cookie in current_app.config.dashboard_bundle_feature_version:
-        context['version'] = current_app.config.dashboard_bundle_feature_version[feature_cookie]
+    feature_cookie = request.cookies.get(current_app.conf.dashboard_bundle_feature_cookie)
+    if feature_cookie and feature_cookie in current_app.conf.dashboard_bundle_feature_version:
+        context['version'] = current_app.conf.dashboard_bundle_feature_version[feature_cookie]
     try:
         return render_template('load_bundle.jinja2', context=context)
     except AttributeError as e:
@@ -177,12 +177,12 @@ def get_dashboard_bundle():
 @jsconfig_views.route('/get-bundle', methods=['GET'], subdomain="signup")
 def get_signup_bundle():
     context = {
-        'bundle': current_app.config.signup_bundle_path,
-        'version': current_app.config.signup_bundle_version,
+        'bundle': current_app.conf.signup_bundle_path,
+        'version': current_app.conf.signup_bundle_version,
     }
-    feature_cookie = request.cookies.get(current_app.config.signup_bundle_feature_cookie)
-    if feature_cookie and feature_cookie in current_app.config.signup_bundle_feature_version:
-        context['version'] = current_app.config.signup_bundle_feature_version[feature_cookie]
+    feature_cookie = request.cookies.get(current_app.conf.signup_bundle_feature_cookie)
+    if feature_cookie and feature_cookie in current_app.conf.signup_bundle_feature_version:
+        context['version'] = current_app.conf.signup_bundle_feature_version[feature_cookie]
     try:
         return render_template('load_bundle.jinja2', context=context)
     except AttributeError as e:
@@ -193,12 +193,12 @@ def get_signup_bundle():
 @jsconfig_views.route('/get-bundle', methods=['GET'], subdomain="login")
 def get_login_bundle():
     context = {
-        'bundle': current_app.config.login_bundle_path,
-        'version': current_app.config.login_bundle_version,
+        'bundle': current_app.conf.login_bundle_path,
+        'version': current_app.conf.login_bundle_version,
     }
-    feature_cookie = request.cookies.get(current_app.config.login_bundle_feature_cookie)
-    if feature_cookie and feature_cookie in current_app.config.login_bundle_feature_version:
-        context['version'] = current_app.config.login_bundle_feature_version[feature_cookie]
+    feature_cookie = request.cookies.get(current_app.conf.login_bundle_feature_cookie)
+    if feature_cookie and feature_cookie in current_app.conf.login_bundle_feature_version:
+        context['version'] = current_app.conf.login_bundle_feature_version[feature_cookie]
     try:
         return render_template('load_bundle.jinja2', context=context)
     except AttributeError as e:

@@ -34,14 +34,12 @@
 Configuration (file) handling for the eduID group_management app.
 """
 
-from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Dict, Optional
 
-from eduid_common.config.base import FlaskConfig
+from eduid_common.config.base import EduIDBaseAppConfig
 
 
-@dataclass
-class GroupManagementConfig(FlaskConfig):
+class GroupManagementConfig(EduIDBaseAppConfig):
     """
     Configuration for the group_management app
     """
@@ -50,7 +48,7 @@ class GroupManagementConfig(FlaskConfig):
     scim_data_owner: str = 'eduid.se'
     scim_external_id_scope: str = 'eduid.se'
     neo4j_uri: str = ''
-    neo4j_config: Optional[dict] = None
+    neo4j_config: Optional[Dict[str, Any]] = None
     group_invite_template_html: str = 'group_invite_email.html.jinja2'
     group_invite_template_txt: str = 'group_invite_email.txt.jinja2'
     group_invite_url: str = 'https://dashboard.eduid.se'
