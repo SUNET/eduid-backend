@@ -33,7 +33,7 @@
 
 import json
 from typing import Any, Dict, List, Mapping, Optional
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 from urllib.parse import quote_plus
 
 from flask import url_for
@@ -506,7 +506,7 @@ class ResetPasswordTests(EduidAPITestCase):
 
     def test_post_email_address(self):
         response = self._post_email_address()
-        self.assertEqual(200, response.status_code)
+        self._check_success_response(response, msg=ResetPwMsg.reset_pw_initialized, type_='POST_RESET_PASSWORD_SUCCESS')
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
         self.assertEqual(state.email_address, 'johnsmith@example.com')
 
@@ -514,36 +514,41 @@ class ResetPasswordTests(EduidAPITestCase):
         from eduid_common.api.exceptions import MailTaskFailed
 
         response = self._post_email_address(sendmail_return=False, sendmail_side_effect=MailTaskFailed)
-        self.assertEqual(200, response.status_code)
-        self.assertEqual('POST_RESET_PASSWORD_FAIL', response.json['type'])
-        self.assertEqual(ResetPwMsg.email_send_failure.value, response.json['payload']['message'])
+        self._check_error_response(response, msg=ResetPwMsg.email_send_failure, type_='POST_RESET_PASSWORD_FAIL')
 
     @patch('eduid_userdb.userdb.UserDB.get_user_by_mail')
-    def test_post_email_uncomplete_signup(self, mock_get_user: Any):
+    def test_post_email_uncomplete_signup(self, mock_get_user: Mock):
         mock_get_user.side_effect = UserHasNotCompletedSignup('incomplete signup')
         response = self._post_email_address()
-        self.assertEqual(200, response.status_code)
-        self.assertEqual('POST_RESET_PASSWORD_FAIL', response.json['type'])
-        self.assertEqual(ResetPwMsg.invalid_user.value, response.json['payload']['message'])
+        self._check_error_response(response, msg=ResetPwMsg.invalid_user, type_='POST_RESET_PASSWORD_FAIL')
 
     def test_post_unknown_email_address(self):
         data = {'email': 'unknown@unplaced.un'}
         response = self._post_email_address(data1=data)
-        self.assertEqual(200, response.status_code)
-        self.assertEqual('POST_RESET_PASSWORD_SUCCESS', response.json['type'])
+        self._check_success_response(response, msg=ResetPwMsg.reset_pw_initialized, type_='POST_RESET_PASSWORD_SUCCESS')
 
     def test_post_invalid_email_address(self):
         data = {'email': 'invalid-address'}
         response = self._post_email_address(data1=data)
-        self.assertEqual(200, response.status_code)
-        self.assertEqual('POST_RESET_PASSWORD_FAIL', response.json['type'])
-        self.assertEqual(['Not a valid email address.'], response.json['payload']['error']['email'])
+        self._check_error_response(
+            response, type_='POST_RESET_PASSWORD_FAIL', payload={'error': {'email': ['Not a valid email address.']}},
+        )
 
     def test_post_reset_code(self):
         response = self._post_reset_code()
-        self.assertEqual(200, response.status_code)
-        self.assertEqual('XXXXXXXXXX09', response.json['payload']['extra_security']['phone_numbers'][0]['number'])
-        self.assertEqual('POST_RESET_PASSWORD_CONFIG_SUCCESS', response.json['type'])
+        self._check_success_response(
+            response,
+            type_='POST_RESET_PASSWORD_CONFIG_SUCCESS',
+            payload={
+                'email_address': 'johnsmith@example.com',
+                'extra_security': {'phone_numbers': [{'index': 0, 'number': 'XXXXXXXXXX09'}]},
+                'password_entropy': 25,
+                'password_length': 12,
+                'password_service_url': '/services/reset-password/',
+                'success': True,
+                'zxcvbn_terms': ['John', 'Smith', 'John', 'Smith', 'johnsmith', 'johnsmith2'],
+            },
+        )
 
     def test_post_reset_code_unknown_email(self):
         data1 = {'email': 'unknown@unknown.com'}
@@ -557,14 +562,24 @@ class ResetPasswordTests(EduidAPITestCase):
             user.phone_numbers.remove(number.key)
         self.app.central_userdb.save(user)
         response = self._post_reset_code()
-        self.assertEqual(200, response.status_code)
-        self.assertEqual(response.json['payload']['extra_security'], {})
-        self.assertEqual(response.json['type'], 'POST_RESET_PASSWORD_CONFIG_SUCCESS')
+        self._check_success_response(
+            response,
+            type_='POST_RESET_PASSWORD_CONFIG_SUCCESS',
+            payload={
+                'email_address': 'johnsmith@example.com',
+                'extra_security': {},
+                'password_entropy': 25,
+                'password_length': 12,
+                'password_service_url': '/services/reset-password/',
+                'success': True,
+                'zxcvbn_terms': ['John', 'Smith', 'John', 'Smith', 'johnsmith', 'johnsmith2'],
+            },
+        )
 
     def test_post_reset_wrong_code(self):
         data2 = {'email_code': 'wrong-code'}
         response = self._post_reset_code(data2=data2)
-        self._check_success_response(response, type_='POST_RESET_PASSWORD_CONFIG_FAIL', msg=ResetPwMsg.state_not_found)
+        self._check_error_response(response, type_='POST_RESET_PASSWORD_CONFIG_FAIL', msg=ResetPwMsg.state_not_found)
 
     def test_post_reset_wrong_csrf(self):
         data2 = {'csrf_token': 'wrong-code'}
@@ -604,9 +619,7 @@ class ResetPasswordTests(EduidAPITestCase):
     def test_post_reset_password_weak(self):
         data2 = {'password': 'pw'}
         response = self._post_reset_password(data2=data2)
-        self._check_success_response(
-            response, type_='POST_RESET_PASSWORD_NEW_PASSWORD_FAIL', msg=ResetPwMsg.resetpw_weak
-        )
+        self._check_error_response(response, type_='POST_RESET_PASSWORD_NEW_PASSWORD_FAIL', msg=ResetPwMsg.resetpw_weak)
 
     def test_post_reset_password_no_csrf(self):
         data2 = {'csrf_token': ''}
@@ -618,7 +631,7 @@ class ResetPasswordTests(EduidAPITestCase):
     def test_post_reset_password_wrong_code(self):
         data2 = {'email_code': 'wrong-code'}
         response = self._post_reset_password(data2=data2)
-        self._check_success_response(
+        self._check_error_response(
             response, type_='POST_RESET_PASSWORD_NEW_PASSWORD_FAIL', msg=ResetPwMsg.state_not_found
         )
 
@@ -650,14 +663,14 @@ class ResetPasswordTests(EduidAPITestCase):
         from eduid_common.api.exceptions import MsgTaskFailed
 
         response = self._post_choose_extra_sec(sendsms_side_effect=MsgTaskFailed())
-        self._check_success_response(
+        self._check_error_response(
             response, type_='POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL', msg=ResetPwMsg.send_sms_failure
         )
 
     def test_post_choose_extra_sec_throttled(self):
         self.app.conf.throttle_sms_seconds = 300
         response = self._post_choose_extra_sec(repeat=True)
-        self._check_success_response(
+        self._check_error_response(
             response, type_='POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL', msg=ResetPwMsg.send_sms_throttled
         )
 
@@ -671,7 +684,7 @@ class ResetPasswordTests(EduidAPITestCase):
     def test_post_choose_extra_sec_wrong_code(self):
         data2 = {'email_code': 'wrong-code'}
         response = self._post_choose_extra_sec(data2=data2)
-        self._check_success_response(
+        self._check_error_response(
             response, type_='POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL', msg=ResetPwMsg.email_not_validated
         )
 
@@ -686,13 +699,13 @@ class ResetPasswordTests(EduidAPITestCase):
         self._check_error_response(
             response,
             type_='POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL',
-            error={'csrf_token': ['CSRF failed to validate'],},
+            error={'csrf_token': ['CSRF failed to validate']},
         )
 
     def test_post_choose_extra_sec_wrong_final_code(self):
         data3 = {'email_code': 'wrong-code'}
         response = self._post_choose_extra_sec(data3=data3)
-        self._check_success_response(
+        self._check_error_response(
             response, type_='POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL', msg=ResetPwMsg.state_not_found
         )
 
@@ -713,7 +726,7 @@ class ResetPasswordTests(EduidAPITestCase):
     def test_post_reset_password_secure_phone_verify_fail(self, mock_verify: Any):
         mock_verify.return_value = False
         response = self._post_reset_password_secure_phone()
-        self._check_success_response(
+        self._check_error_response(
             response, type_='POST_RESET_PASSWORD_NEW_PASSWORD_SECURE_PHONE_FAIL', msg=ResetPwMsg.phone_invalid
         )
 
@@ -729,21 +742,21 @@ class ResetPasswordTests(EduidAPITestCase):
     def test_post_reset_password_secure_phone_wrong_email_code(self):
         data2 = {'email_code': 'wrong-code'}
         response = self._post_reset_password_secure_phone(data2=data2)
-        self._check_success_response(
+        self._check_error_response(
             response, type_='POST_RESET_PASSWORD_NEW_PASSWORD_SECURE_PHONE_FAIL', msg=ResetPwMsg.state_not_found
         )
 
     def test_post_reset_password_secure_phone_wrong_sms_code(self):
         data2 = {'phone_code': 'wrong-code'}
         response = self._post_reset_password_secure_phone(data2=data2)
-        self._check_success_response(
+        self._check_error_response(
             response, type_='POST_RESET_PASSWORD_NEW_PASSWORD_SECURE_PHONE_FAIL', msg=ResetPwMsg.unknown_phone_code,
         )
 
     def test_post_reset_password_secure_phone_weak_password(self):
         data2 = {'password': 'pw'}
         response = self._post_reset_password_secure_phone(data2=data2)
-        self._check_success_response(
+        self._check_error_response(
             response, type_='POST_RESET_PASSWORD_NEW_PASSWORD_SECURE_PHONE_FAIL', msg=ResetPwMsg.resetpw_weak
         )
 
@@ -786,14 +799,14 @@ class ResetPasswordTests(EduidAPITestCase):
             'credential_data': 'AAAAAAAAAAAAAAAAAAAAAABAi3KjBT0t5TPm693T0O0f4zyiwvdu9cY8BegCjiVvq_FS-ZmPcvXipFvHvD5CH6ZVRR3nsVsOla0Cad3fbtUA_aUBAgMmIAEhWCCiwDYGxl1LnRMqooWm0aRR9YbBG2LZ84BMNh_4rHkA9yJYIIujMrUOpGekbXjgMQ8M13ZsBD_cROSPB79eGz2Nw1ZE'
         }
         response = self._post_reset_password_secure_token(credential_data=credential_data)
-        self._check_success_response(
+        self._check_error_response(
             response, type_='POST_RESET_PASSWORD_NEW_PASSWORD_SECURE_TOKEN_FAIL', msg=ResetPwMsg.fido_token_fail
         )
 
     def test_post_reset_password_secure_token_wrong_request(self):
         data2 = {'authenticatorData': 'Wrong-authenticatorData----UMmBLDxB7n3apMPQAAAAAAA'}
         response = self._post_reset_password_secure_token(data2=data2)
-        self._check_success_response(
+        self._check_error_response(
             response, type_='POST_RESET_PASSWORD_NEW_PASSWORD_SECURE_TOKEN_FAIL', msg=ResetPwMsg.fido_token_fail
         )
 
@@ -809,28 +822,28 @@ class ResetPasswordTests(EduidAPITestCase):
     def test_post_reset_password_secure_token_wrong_code(self):
         data2 = {'email_code': 'wrong-code'}
         response = self._post_reset_password_secure_token(data2=data2)
-        self._check_success_response(
+        self._check_error_response(
             response, type_='POST_RESET_PASSWORD_NEW_PASSWORD_SECURE_TOKEN_FAIL', msg=ResetPwMsg.state_not_found
         )
 
     def test_post_reset_password_secure_token_weak_password(self):
         data2 = {'password': 'pw'}
         response = self._post_reset_password_secure_token(data2=data2)
-        self._check_success_response(
+        self._check_error_response(
             response, type_='POST_RESET_PASSWORD_NEW_PASSWORD_SECURE_TOKEN_FAIL', msg=ResetPwMsg.resetpw_weak
         )
 
     def test_post_reset_password_secure_email_timeout(self):
         self.app.conf.email_code_timeout = 0
         response = self._post_reset_password_secure_phone()
-        self._check_success_response(
+        self._check_error_response(
             response, type_='POST_RESET_PASSWORD_NEW_PASSWORD_SECURE_PHONE_FAIL', msg=ResetPwMsg.expired_email_code,
         )
 
     def test_post_reset_password_secure_phone_timeout(self):
         self.app.conf.phone_code_timeout = 0
         response = self._post_reset_password_secure_phone()
-        self._check_success_response(
+        self._check_error_response(
             response, type_='POST_RESET_PASSWORD_NEW_PASSWORD_SECURE_PHONE_FAIL', msg=ResetPwMsg.expired_phone_code,
         )
 
