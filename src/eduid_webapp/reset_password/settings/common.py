@@ -61,10 +61,8 @@ class ResetPasswordConfig(EduIDBaseAppConfig, WebauthnConfigMixin2, MagicCookieM
     password_generation_rounds: int = 2 ** 5
     # timeout for phone verification token, in hours
     phone_verification_timeout: int = 24
-    # timeout for re-authentication prior to changing password
-    chpass_timeout: int = 600
     # URL to get the js app that can drive the process to reset the password
-    password_reset_link: str = 'https://login.eduid.se/reset-password/'
+    password_reset_link: str = 'https://login.eduid.se/reset-password/email-code'
     password_service_url: str = '/services/reset-password/'
     # webauthn stuff
     generate_u2f_challenges: bool = False  # UNUSED, remove after updating config everywhere
