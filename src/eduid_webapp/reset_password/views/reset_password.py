@@ -206,7 +206,10 @@ def verify_email(email_code: str) -> FluxData:
     except StateException as e:
         return error_response(message=e.msg)
 
-    verify_email_address(context.state)
+    # TODO: Split this view to verify email address view and configuration view
+    # Do not verify the email address again if it has been done already using this state
+    if context.state.email_code.is_verified is False:
+        verify_email_address(context.state)
 
     new_password = generate_suggested_password(password_length=current_app.conf.password_length)
     session.reset_password.generated_password_hash = hash_password(new_password)
