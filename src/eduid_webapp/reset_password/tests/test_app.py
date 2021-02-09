@@ -698,8 +698,10 @@ class ResetPasswordTests(EduidAPITestCase):
 
     def test_post_choose_extra_sec_bad_phone_index(self):
         data3 = {'phone_index': '3'}
-        with self.assertRaises(IndexError):
-            self._post_choose_extra_sec(data3=data3)
+        response = self._post_choose_extra_sec(data3=data3)
+        self._check_error_response(
+            response, type_='POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL', msg=ResetPwMsg.unknown_phone_number
+        )
 
     def test_post_choose_extra_sec_wrong_csrf_token(self):
         data3 = {'csrf_token': 'wrong-token'}

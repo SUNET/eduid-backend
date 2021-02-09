@@ -319,12 +319,17 @@ def choose_extra_security_phone(email_code: str, phone_index: int) -> FluxData:
     if context.state.extra_security is None:  # please mypy
         raise ValueError(f'User {context.user} trying to reset password with extra security without alternatives')
 
-    phone_number = context.state.extra_security['phone_numbers'][phone_index]
+    try:
+        phone_number = context.state.extra_security['phone_numbers'][phone_index]
+    except IndexError:
+        current_app.logger.exception(f'Phone number at index {phone_index} does not exist')
+        return error_response(message=ResetPwMsg.unknown_phone_number)
+
     current_app.logger.info(f'Trying to send password reset sms to user {context.user}')
     try:
         send_verify_phone_code(context.state, phone_number["number"])
-    except MsgTaskFailed as e:
-        current_app.logger.error(f'Sending sms failed: {e}')
+    except MsgTaskFailed:
+        current_app.logger.exception(f'Sending sms failed')
         return error_response(message=ResetPwMsg.send_sms_failure)
 
     current_app.stats.count(name='extra_security_phone_sent')

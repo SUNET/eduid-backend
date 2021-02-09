@@ -76,6 +76,8 @@ class ResetPwMsg(TranslatableMsg):
     # The user has sent an SMS'ed code that corresponds to no known password
     # reset request
     unknown_phone_code = 'resetpw.phone-code-unknown'
+    # The phone number choice is out of bounds
+    unknown_phone_number = 'resetpw.phone-number-unknown'
     # The user has sent a code that has expired
     expired_email_code = 'resetpw.expired-email-code'
     # The user has sent an SMS'ed code that has expired
@@ -91,10 +93,10 @@ class ResetPwMsg(TranslatableMsg):
     # There was some problem sending the SMS with the (extra security) code.
     send_sms_throttled = 'resetpw.sms-throttled'
     # Sending the SMS with the (extra security) code has been throttled.
-    send_sms_failure = 'resetpw.sms-failed'
+    send_sms_failure = 'resetpw.send-sms-failed'
     # A new (extra security) code has been generated and sent by SMS
     # successfully
-    send_sms_success = 'resetpw.sms-success'
+    send_sms_success = 'resetpw.send-sms-success'
     # The phone number has not been verified. Should not happen.
     phone_invalid = 'resetpw.phone-invalid'
     # No user was found corresponding to the password reset state. Should not
