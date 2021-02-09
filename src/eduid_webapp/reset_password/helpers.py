@@ -104,17 +104,10 @@ class ResetPwMsg(TranslatableMsg):
     email_not_validated = 'resetpw.email-not-validated'
     # User has not completed signup
     invalid_user = 'resetpw.incomplete-user'
-    # the user has chosen extra security with a security key but has failed to
-    # produce evidence of it.
-    hwtoken_fail = 'security-key-fail'
-    # No webauthn data in the request
-    mfa_no_data = 'mfa.no-request-data'
     # extra security with fido tokens failed - wrong token
     fido_token_fail = 'resetpw.fido-token-fail'
     # The password chosen is too weak
     resetpw_weak = 'resetpw.weak-password'
-    # email address validation error
-    invalid_email = 'Invalid email address'
 
 
 class StateException(Exception):
@@ -178,8 +171,7 @@ def get_pwreset_state(email_code: str) -> Union[ResetPasswordEmailState, ResetPa
 
 
 def is_generated_password(password: str) -> bool:
-    hashed = session.reset_password.generated_password_hash
-    if check_password(password, hashed):
+    if check_password(password, session.reset_password.generated_password_hash):
         current_app.logger.info('Generated password used')
         current_app.stats.count(name='generated_password_used')
         return True
@@ -215,7 +207,7 @@ def send_password_reset_mail(email_address: str) -> None:
     try:
         send_mail(subject, to_addresses, text_template, html_template, current_app, context, state.reference)
     except MailTaskFailed as e:
-        current_app.logger.error(f'Sending password reset e-mail failed: {e}')
+        current_app.logger.error(f'Sending password reset e-mail failed')
         current_app.logger.debug(f'email address: {email_address}')
         raise e
 

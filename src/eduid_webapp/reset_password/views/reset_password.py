@@ -146,12 +146,12 @@ def init_reset_pw(email: str) -> FluxData:
     current_app.logger.info(f'Trying to send password reset email to {email}')
     try:
         send_password_reset_mail(email)
-    except UserHasNotCompletedSignup as e:
+    except UserHasNotCompletedSignup:
         # Old bug where incomplete signup users where written to the central db
-        current_app.logger.error(f'User with email {email} has to complete signup: {e}')
+        current_app.logger.exception(f'User with email {email} has to complete signup')
         return error_response(message=ResetPwMsg.invalid_user)
-    except MailTaskFailed as e:
-        current_app.logger.error(f'Sending password reset email failed: {e}')
+    except MailTaskFailed:
+        current_app.logger.exception(f'Sending password reset email failed')
         return error_response(message=ResetPwMsg.email_send_failure)
 
     return success_response(message=ResetPwMsg.reset_pw_initialized)
