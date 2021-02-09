@@ -21,8 +21,5 @@ class MessagesTests(unittest.TestCase):
         self.assertEqual(ResetPwMsg.user_not_found.value, 'resetpw.user-not-found')
         self.assertEqual(ResetPwMsg.email_not_validated.value, 'resetpw.email-not-validated')
         self.assertEqual(ResetPwMsg.invalid_user.value, 'resetpw.incomplete-user')
-        self.assertEqual(ResetPwMsg.hwtoken_fail.value, 'security-key-fail')
-        self.assertEqual(ResetPwMsg.mfa_no_data.value, 'mfa.no-request-data')
         self.assertEqual(ResetPwMsg.fido_token_fail.value, 'resetpw.fido-token-fail')
         self.assertEqual(ResetPwMsg.resetpw_weak.value, 'resetpw.weak-password')
-        self.assertEqual(ResetPwMsg.invalid_email.value, 'Invalid email address')
