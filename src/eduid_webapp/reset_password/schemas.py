@@ -39,14 +39,36 @@ from eduid_common.api.schemas.email import LowercaseEmail
 __author__ = 'eperez'
 
 
-class ResetPasswordInitSchema(EduidSchema):
+class ResetPasswordEmailRequestSchema(EduidSchema, CSRFRequestMixin):
 
     email = LowercaseEmail(required=True)
 
 
-class ResetPasswordEmailCodeSchema(EduidSchema, CSRFRequestMixin):
+class ResetPasswordEmailCodeRequestSchema(EduidSchema, CSRFRequestMixin):
 
     email_code = fields.String(required=True)
+
+
+class ResetPasswordResponseSchema(FluxStandardAction):
+    class ResetPasswordResponsePayload(EduidSchema, CSRFResponseMixin):
+        pass
+
+    payload = fields.Nested(ResetPasswordResponsePayload)
+
+
+class ResetPasswordVerifyEmailResponseSchema(FluxStandardAction):
+    class ResetPasswordVerifyEmailResponsePayload(EduidSchema, CSRFResponseMixin):
+        suggested_password = fields.String(required=True)
+        email_code = fields.String(required=True)
+        email_address = fields.String(required=True)
+        extra_security = fields.Dict(required=True)
+        password_entropy = fields.Integer(required=True)
+        password_length = fields.Integer(required=True)
+        password_service_url = fields.String(required=True)
+        success = fields.Bool(required=True)
+        zxcvbn_terms = fields.List(required=True, cls_or_instance=fields.String)
+
+    payload = fields.Nested(ResetPasswordVerifyEmailResponsePayload)
 
 
 class ResetPasswordExtraSecPhoneSchema(EduidSchema, CSRFRequestMixin):
@@ -74,14 +96,11 @@ class ResetPasswordWithSecTokenSchema(ResetPasswordWithCodeSchema):
     signature = fields.String(required=True)
 
 
-class SuggestedPassword(EduidSchema, CSRFResponseMixin):
-
-    suggested_password = fields.String(required=True)
-
-
 class SuggestedPasswordResponseSchema(FluxStandardAction):
+    class SuggestedPasswordPayload(EduidSchema, CSRFResponseMixin):
+        suggested_password = fields.String(required=True)
 
-    payload = fields.Nested(SuggestedPassword, many=False)
+    payload = fields.Nested(SuggestedPasswordPayload, many=False)
 
 
 class NewPasswordSecurePhoneRequestSchema(EduidSchema, CSRFRequestMixin):

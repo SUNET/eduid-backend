@@ -84,10 +84,10 @@ from eduid_common.api.decorators import MarshalWith, UnmarshalWith
 from eduid_common.api.exceptions import MailTaskFailed, MsgTaskFailed
 from eduid_common.api.helpers import check_magic_cookie
 from eduid_common.api.messages import FluxData, error_response, success_response
-from eduid_common.api.schemas.base import FluxStandardAction
+from eduid_common.api.schemas.csrf import CSRFResponse
 from eduid_common.authn import fido_tokens
 from eduid_common.session import session
-from eduid_userdb.exceptions import UserHasNotCompletedSignup, UserDoesNotExist
+from eduid_userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup
 from eduid_userdb.reset_password import ResetPasswordEmailAndPhoneState
 from eduid_userdb.util import utc_now
 
@@ -110,9 +110,11 @@ from eduid_webapp.reset_password.helpers import (
 from eduid_webapp.reset_password.schemas import (
     NewPasswordSecurePhoneRequestSchema,
     NewPasswordSecureTokenRequestSchema,
-    ResetPasswordEmailCodeSchema,
+    ResetPasswordEmailCodeRequestSchema,
+    ResetPasswordEmailRequestSchema,
     ResetPasswordExtraSecPhoneSchema,
-    ResetPasswordInitSchema,
+    ResetPasswordResponseSchema,
+    ResetPasswordVerifyEmailResponseSchema,
     ResetPasswordWithCodeSchema,
 )
 
@@ -122,10 +124,19 @@ SESSION_PREFIX = "eduid_webapp.reset_password.views"
 reset_password_views = Blueprint('reset_password', __name__, url_prefix='/', template_folder='templates')
 
 
+@reset_password_views.route('/', methods=['GET'])
+@MarshalWith(CSRFResponse)
+def init_reset_pw() -> FluxData:
+    """
+    Used only to get a csrf token, this can move to jsconfig if any other config is needed
+    """
+    return success_response()
+
+
 @reset_password_views.route('/', methods=['POST'])
-@UnmarshalWith(ResetPasswordInitSchema)
-@MarshalWith(FluxStandardAction)
-def init_reset_pw(email: str) -> FluxData:
+@UnmarshalWith(ResetPasswordEmailRequestSchema)
+@MarshalWith(ResetPasswordResponseSchema)
+def start_reset_pw(email: str) -> FluxData:
     """
     View that receives an email address to initiate a reset password process.
     It returns a message informing of the result of the operation.
@@ -158,10 +169,10 @@ def init_reset_pw(email: str) -> FluxData:
     return success_response(message=ResetPwMsg.reset_pw_initialized)
 
 
-@reset_password_views.route('/config/', methods=['POST'])
-@UnmarshalWith(ResetPasswordEmailCodeSchema)
-@MarshalWith(FluxStandardAction)
-def config_reset_pw(email_code: str) -> FluxData:
+@reset_password_views.route('/verify-email/', methods=['POST'])
+@UnmarshalWith(ResetPasswordEmailCodeRequestSchema)
+@MarshalWith(ResetPasswordVerifyEmailResponseSchema)
+def verify_email(email_code: str) -> FluxData:
     """
     View that receives an emailed reset password code and returns the
     configuration needed for the reset password form.
@@ -206,7 +217,6 @@ def config_reset_pw(email_code: str) -> FluxData:
 
     return success_response(
         payload={
-            'csrf_token': session.get_csrf_token(),
             'suggested_password': new_password,
             'email_code': context.state.email_code.code,
             'email_address': context.state.email_address,
@@ -220,8 +230,8 @@ def config_reset_pw(email_code: str) -> FluxData:
 
 
 @reset_password_views.route('/new-password/', methods=['POST'])
-@MarshalWith(FluxStandardAction)
 @UnmarshalWith(ResetPasswordWithCodeSchema)
+@MarshalWith(ResetPasswordResponseSchema)
 def set_new_pw_no_extra_security(email_code: str, password: str) -> FluxData:
     """
     View that receives an emailed reset password code and a password, and sets
@@ -257,7 +267,7 @@ def set_new_pw_no_extra_security(email_code: str, password: str) -> FluxData:
 
 @reset_password_views.route('/extra-security-phone/', methods=['POST'])
 @UnmarshalWith(ResetPasswordExtraSecPhoneSchema)
-@MarshalWith(FluxStandardAction)
+@MarshalWith(ResetPasswordResponseSchema)
 def choose_extra_security_phone(email_code: str, phone_index: int) -> FluxData:
     """
     View called when the user chooses extra security (she can do that when she
@@ -321,9 +331,9 @@ def choose_extra_security_phone(email_code: str, phone_index: int) -> FluxData:
     return success_response(message=ResetPwMsg.send_sms_success)
 
 
-@reset_password_views.route('/new-password-secure-phone/', methods=['POST'])
+@reset_password_views.route('/new-password-extra-security-phone/', methods=['POST'])
 @UnmarshalWith(NewPasswordSecurePhoneRequestSchema)
-@MarshalWith(FluxStandardAction)
+@MarshalWith(ResetPasswordResponseSchema)
 def set_new_pw_extra_security_phone(email_code: str, password: str, phone_code: str) -> FluxData:
     """
     View that receives an emailed reset password code, an SMS'ed reset password
@@ -369,9 +379,9 @@ def set_new_pw_extra_security_phone(email_code: str, password: str, phone_code: 
     return reset_user_password(user=context.user, state=context.state, password=password)
 
 
-@reset_password_views.route('/new-password-secure-token/', methods=['POST'])
+@reset_password_views.route('/new-password-extra-security-token/', methods=['POST'])
 @UnmarshalWith(NewPasswordSecureTokenRequestSchema)
-@MarshalWith(FluxStandardAction)
+@MarshalWith(ResetPasswordResponseSchema)
 def set_new_pw_extra_security_token(
     email_code: str,
     password: str,
