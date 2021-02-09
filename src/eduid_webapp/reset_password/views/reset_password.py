@@ -87,7 +87,7 @@ from eduid_common.api.messages import FluxData, error_response, success_response
 from eduid_common.api.schemas.base import FluxStandardAction
 from eduid_common.authn import fido_tokens
 from eduid_common.session import session
-from eduid_userdb.exceptions import UserHasNotCompletedSignup
+from eduid_userdb.exceptions import UserHasNotCompletedSignup, UserDoesNotExist
 from eduid_userdb.reset_password import ResetPasswordEmailAndPhoneState
 from eduid_userdb.util import utc_now
 
@@ -138,14 +138,15 @@ def init_reset_pw(email: str) -> FluxData:
     * Email the generated code to the received email address.
 
     The operation can fail due to:
+    * The e-mail address is not found
     * There is some problem sending the email.
-
-    The operation should not fail on a missing user as that effectively creates a
-    "does this email address have an eduID account?" service.
     """
     current_app.logger.info(f'Trying to send password reset email to {email}')
     try:
         send_password_reset_mail(email)
+    except UserDoesNotExist:
+        current_app.logger.error(f'No user with email {email} found')
+        return error_response(message=ResetPwMsg.user_not_found)
     except UserHasNotCompletedSignup:
         # Old bug where incomplete signup users where written to the central db
         current_app.logger.exception(f'User with email {email} has to complete signup')
@@ -386,7 +387,7 @@ def set_new_pw_extra_security_token(
     extra security.
 
     Preconditions required for the call to succeed:
-    * A PasswordResetEmailAndTokenState object in the password_reset_state_db
+    * A PasswordResetEmailState object in the password_reset_state_db
       keyed by the received code.
     * A flag in said state object indicating that the emailed code has already
       been verified.

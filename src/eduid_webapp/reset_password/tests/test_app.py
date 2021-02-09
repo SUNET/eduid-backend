@@ -525,7 +525,7 @@ class ResetPasswordTests(EduidAPITestCase):
     def test_post_unknown_email_address(self):
         data = {'email': 'unknown@unplaced.un'}
         response = self._post_email_address(data1=data)
-        self._check_success_response(response, msg=ResetPwMsg.reset_pw_initialized, type_='POST_RESET_PASSWORD_SUCCESS')
+        self._check_error_response(response, msg=ResetPwMsg.user_not_found, type_='POST_RESET_PASSWORD_FAIL')
 
     def test_post_invalid_email_address(self):
         data = {'email': 'invalid-address'}

@@ -186,9 +186,9 @@ def send_password_reset_mail(email_address: str) -> None:
     """
     try:
         user = current_app.central_userdb.get_user_by_mail(email_address)
-    except DocumentDoesNotExist:
+    except DocumentDoesNotExist as e:
         current_app.logger.error(f'Cannot send reset password mail to an unknown email address: {email_address}')
-        return None
+        raise e
 
     # User found, create a new state
     state = ResetPasswordEmailState(eppn=user.eppn, email_address=email_address, email_code=get_unique_hash())
