@@ -38,9 +38,8 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app, render_template, templating
 
-from eduid_common.api import am
+from eduid_common.api.am import AmRelay
 from eduid_common.api.app import EduIDBaseApp
-from eduid_common.config.base import FlaskConfig
 from eduid_common.config.parsers import load_config
 from eduid_userdb.actions import ActionDB
 
@@ -52,10 +51,10 @@ class PluginsRegistry(dict):
         super(PluginsRegistry, self).__init__()
         for plugin_name in app.conf.action_plugins:
             if plugin_name in self:
-                app.logger.warn("Duplicate entry point: %s" % plugin_name)
+                app.logger.warn(f'Duplicate entry point: {plugin_name}')
             else:
-                app.logger.debug("Registering entry point: %s" % plugin_name)
-                module = import_module('eduid_webapp.actions.actions.{}'.format(plugin_name))
+                app.logger.debug(f'Registering entry point: {plugin_name}')
+                module = import_module(f'eduid_webapp.actions.actions.{plugin_name}')
                 self[plugin_name] = getattr(module, 'Plugin')
 
 
@@ -65,31 +64,24 @@ def _get_tous(app, version=None):
     langs = app.conf.available_languages.keys()
     tous = {}
     for lang in langs:
-        name = 'tous/tou-{}-{}.txt'.format(version, lang)
+        name = f'tous/tou-{version}-{lang}.txt'
         try:
             tous[lang] = render_template(name)
         except templating.TemplateNotFound:
-            app.logger.error('TOU template {} not found'.format(name))
+            app.logger.error(f'ToU template {name} not found')
             pass
     return tous
 
 
 class ActionsApp(EduIDBaseApp):
-    def __init__(self, name: str, test_config: Optional[Mapping[str, Any]], **kwargs):
-        self.conf = load_config(typ=ActionsConfig, app_name=name, ns='webapp', test_config=test_config)
-        # Initialise type of self.config before any parent class sets a precedent to mypy
-        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
-        super().__init__(name, **kwargs)
-        # cast self.config because sometimes mypy thinks it is a FlaskConfig after super().__init__()
-        self.config: FlaskConfig = cast(FlaskConfig, self.config)  # type: ignore
+    def __init__(self, config: ActionsConfig, **kwargs):
+        super().__init__(config, **kwargs)
 
-        from eduid_webapp.actions.views import actions_views
+        self.conf = config
 
-        self.register_blueprint(actions_views)
+        self.am_relay = AmRelay(config)
 
-        am.init_relay(self, f'eduid_{name}')
-
-        self.actions_db = ActionDB(self.config.mongo_uri)
+        self.actions_db = ActionDB(config.mongo_uri)
 
         self.plugins = PluginsRegistry(self)
         for plugin in self.plugins.values():
@@ -101,7 +93,7 @@ class ActionsApp(EduIDBaseApp):
 current_actions_app: ActionsApp = cast(ActionsApp, current_app)
 
 
-def actions_init_app(name: str, test_config: Mapping[str, Any] = None) -> ActionsApp:
+def actions_init_app(name: str = 'actions', test_config: Optional[Mapping[str, Any]] = None) -> ActionsApp:
     """
     Create an instance of an eduid actions app.
 
@@ -109,12 +101,16 @@ def actions_init_app(name: str, test_config: Mapping[str, Any] = None) -> Action
     since the actions app is used unauthenticated.
 
     :param name: The name of the instance, it will affect the configuration loaded.
-    :param test_config: any additional configuration settings. Specially useful
-                   in test cases
+    :param test_config: Override config, used in test cases.
     """
+    config = load_config(typ=ActionsConfig, app_name=name, ns='webapp', test_config=test_config)
 
-    app = ActionsApp(name, test_config=test_config)
+    app = ActionsApp(config)
 
-    app.logger.info(f'Init {name} app...')
+    app.logger.info(f'Init {config.app_name} app...')
+
+    from eduid_webapp.actions.views import actions_views
+
+    app.register_blueprint(actions_views)
 
     return app

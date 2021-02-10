@@ -34,10 +34,9 @@
 
 from eduid_webapp.reset_password.app import init_reset_password_app
 
-name = 'reset_password'
-app = init_reset_password_app(name, {})
+app = init_reset_password_app()
 
 
 if __name__ == '__main__':
-    app.logger.info('Starting {} app...'.format(name))
+    app.logger.info(f'Starting {app} app...')
     app.run()

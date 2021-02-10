@@ -34,17 +34,17 @@ from typing import Dict
 
 from pydantic import Field
 
-from eduid_common.config.base import EduIDBaseAppConfig
+from eduid_common.config.base import AmConfigMixin, EduIDBaseAppConfig
 
 
-class OrcidConfig(EduIDBaseAppConfig):
+class OrcidConfig(EduIDBaseAppConfig, AmConfigMixin):
     """
     Configuration for the orcid app
     """
 
-    token_service_url: str
-
     app_name: str = 'orcid'
+
+    token_service_url: str
 
     # OIDC
     client_registration_info: Dict[str, str] = Field(default={'client_id': '', 'client_secret': ''})

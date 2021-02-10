@@ -6,8 +6,9 @@ from flask import Blueprint
 from eduid_common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
 from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid_common.api.helpers import add_nin_to_user, verify_nin_for_user
-from eduid_common.api.messages import CommonMsg, error_response
+from eduid_common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid_common.api.schemas.csrf import CSRFResponse
+from eduid_userdb import User
 
 from eduid_webapp.lookup_mobile_proofing import schemas
 from eduid_webapp.lookup_mobile_proofing.app import current_mobilep_app as current_app
@@ -31,9 +32,9 @@ def get_state(user):
 @MarshalWith(schemas.LookupMobileProofingResponseSchema)
 @can_verify_identity
 @require_user
-def proofing(user, nin):
-    current_app.logger.info('Trying to verify nin via mobile number for user {}.'.format(user))
-    current_app.logger.debug('NIN: {!s}.'.format(nin))
+def proofing(user: User, nin: str) -> FluxData:
+    current_app.logger.info(f'Trying to verify nin via mobile number for user {user}.')
+    current_app.logger.debug(f'NIN: {nin}.')
 
     # Add nin as not verified to the user
     proofing_state = create_proofing_state(user, nin)
@@ -58,7 +59,7 @@ def proofing(user, nin):
             # Verify nin for user
             if not verify_nin_for_user(user, proofing_state, proofing_log_entry):
                 return error_response(message=CommonMsg.temp_problem)
-            return {'success': True, 'message': str(MobileMsg.verify_success.value)}
+            return success_response(message=MobileMsg.verify_success)
         except AmTaskFailed:
             current_app.logger.exception(f'Verifying nin for user {user} failed')
             return error_response(message=CommonMsg.temp_problem)

@@ -31,19 +31,29 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from eduid_common.config.base import EduIDBaseAppConfig, MagicCookieMixin, WebauthnConfigMixin2
+from eduid_common.config.base import (
+    AmConfigMixin,
+    EduIDBaseAppConfig,
+    MagicCookieMixin,
+    MailConfigMixin,
+    MsgConfigMixin,
+    WebauthnConfigMixin2,
+)
 
 
-class SecurityConfig(EduIDBaseAppConfig, WebauthnConfigMixin2, MagicCookieMixin):
+class SecurityConfig(
+    EduIDBaseAppConfig, WebauthnConfigMixin2, MagicCookieMixin, AmConfigMixin, MsgConfigMixin, MailConfigMixin
+):
     """
     Configuration for the security app
     """
 
+    app_name: str = 'security'
+
     vccs_url: str
     dashboard_url: str
     token_service_url: str
-
-    app_name: str = 'security'
+    eduid_static_url: str
 
     # timeout for phone verification token, in hours
     phone_verification_timeout: int = 24

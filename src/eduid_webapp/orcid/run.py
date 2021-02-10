@@ -33,10 +33,9 @@
 
 from eduid_webapp.orcid.app import init_orcid_app
 
-name = 'orcid'
-app = init_orcid_app(name, {})
+app = init_orcid_app()
 
 
 if __name__ == '__main__':
-    app.logger.info('Starting {} app...'.format(name))
+    app.logger.info(f'Starting {app}...')
     app.run()

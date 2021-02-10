@@ -37,6 +37,9 @@ from typing import Any, Mapping, Optional, cast
 from flask import current_app
 
 from eduid_common.api import am, mail_relay, msg, translation
+from eduid_common.api.am import AmRelay
+from eduid_common.api.mail_relay import MailRelay
+from eduid_common.api.msg import MsgRelay
 from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.authn.utils import no_authn_views
 from eduid_common.config.base import FlaskConfig
@@ -49,48 +52,50 @@ from eduid_webapp.security.settings.common import SecurityConfig
 
 
 class SecurityApp(AuthnBaseApp):
-    def __init__(self, name: str, test_config: Optional[Mapping[str, Any]], **kwargs):
-        self.conf = load_config(typ=SecurityConfig, app_name=name, ns='webapp', test_config=test_config)
-        # Initialise type of self.config before any parent class sets a precedent to mypy
-        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
-        super().__init__(name, **kwargs)
+    def __init__(self, config: SecurityConfig, **kwargs):
+        super().__init__(config, **kwargs)
 
-        from eduid_webapp.security.views.reset_password import reset_password_views
-        from eduid_webapp.security.views.security import security_views
-        from eduid_webapp.security.views.u2f import u2f_views
-        from eduid_webapp.security.views.webauthn import webauthn_views
+        self.conf = config
 
-        self.register_blueprint(security_views)
-        self.register_blueprint(u2f_views)
-        self.register_blueprint(webauthn_views)
-        self.register_blueprint(reset_password_views)
+        self.am_relay = AmRelay(config)
+        self.msg_relay = MsgRelay(config)
+        self.mail_relay = MailRelay(config)
 
-        # Register view path that should not be authorized
-        no_authn_views(self, ['/reset-password.*'])
-
-        am.init_relay(self, f'eduid_{name}')
-        msg.init_relay(self)
-        mail_relay.init_relay(self)
-        translation.init_babel(self)
-
-        self.private_userdb = SecurityUserDB(self.config.mongo_uri)
-        self.authninfo_db = AuthnInfoDB(self.config.mongo_uri)
-        self.password_reset_state_db = PasswordResetStateDB(self.config.mongo_uri)
-        self.proofing_log = ProofingLog(self.config.mongo_uri)
+        self.private_userdb = SecurityUserDB(config.mongo_uri)
+        self.authninfo_db = AuthnInfoDB(config.mongo_uri)
+        self.password_reset_state_db = PasswordResetStateDB(config.mongo_uri)
+        self.proofing_log = ProofingLog(config.mongo_uri)
 
 
 current_security_app: SecurityApp = cast(SecurityApp, current_app)
 
 
-def security_init_app(name: str, test_config: Optional[Mapping[str, Any]]) -> SecurityApp:
+def security_init_app(name: str = 'security', test_config: Optional[Mapping[str, Any]] = None) -> SecurityApp:
     """
     Create an instance of an eduid security (passwords) app.
 
     :param name: The name of the instance, it will affect the configuration loaded.
-    :param config: Override config. Used in test cases.
+    :param test_config: Override config. Used in test cases.
     """
-    app = SecurityApp(name, test_config)
+    config = load_config(typ=SecurityConfig, app_name=name, ns='webapp', test_config=test_config)
 
-    app.logger.info(f'Init {name} app...')
+    app = SecurityApp(config)
+
+    app.logger.info(f'Init {app}...')
+
+    from eduid_webapp.security.views.reset_password import reset_password_views
+    from eduid_webapp.security.views.security import security_views
+    from eduid_webapp.security.views.u2f import u2f_views
+    from eduid_webapp.security.views.webauthn import webauthn_views
+
+    app.register_blueprint(security_views)
+    app.register_blueprint(u2f_views)
+    app.register_blueprint(webauthn_views)
+    app.register_blueprint(reset_password_views)
+
+    # Register view path that should not be authorized
+    no_authn_views(config, ['/reset-password.*'])
+
+    translation.init_babel(app)
 
     return app

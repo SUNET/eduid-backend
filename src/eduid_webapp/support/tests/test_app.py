@@ -30,12 +30,11 @@
 # LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
+from typing import Any, Dict, Mapping
 
 from eduid_common.api.testing import EduidAPITestCase
 
-from eduid_webapp.support.app import support_init_app
-from eduid_webapp.support.settings.common import SupportConfig
+from eduid_webapp.support.app import SupportApp, support_init_app
 
 __author__ = 'lundberg'
 
@@ -43,24 +42,26 @@ __author__ = 'lundberg'
 class SupportAppTests(EduidAPITestCase):
     """Base TestCase for those tests that need a full environment setup"""
 
+    app: SupportApp
+
     def setUp(self):
         super(SupportAppTests, self).setUp()
 
         self.test_user_eppn = 'hubba-bubba'
         self.client = self.app.test_client()
 
-    def load_app(self, config):
+    def load_app(self, config: Mapping[str, Any]) -> SupportApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         return support_init_app('testing', config)
 
-    def update_config(self, app_config):
-        app_config.update(
+    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        config.update(
             {'support_personnel': ['hubba-bubba'], 'token_service_url_logout': 'https://localhost/logout',}
         )
-        return app_config
+        return config
 
     def test_authenticate(self):
         response = self.client.get('/')

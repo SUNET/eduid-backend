@@ -30,14 +30,11 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-
 from eduid_webapp.group_management.app import init_group_management_app
 
-name = 'group_management'
-app = init_group_management_app(name, {})
+app = init_group_management_app()
 
 
 if __name__ == '__main__':
-    app.logger.info('Starting {} app...'.format(name))
+    app.logger.info(f'Starting {app}...')
     app.run()

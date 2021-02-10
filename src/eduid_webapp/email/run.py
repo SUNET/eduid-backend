@@ -34,9 +34,8 @@
 
 from eduid_webapp.email.app import email_init_app
 
-name = 'email'
-app = email_init_app(name, {})
+app = email_init_app()
 
 if __name__ == '__main__':
-    app.logger.info('Starting {} app...'.format(name))
+    app.logger.info(f'Starting {app}...')
     app.run()

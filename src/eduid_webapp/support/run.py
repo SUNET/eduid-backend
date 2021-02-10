@@ -34,9 +34,8 @@
 
 from eduid_webapp.support.app import support_init_app
 
-name = 'support'
-app = support_init_app(name, {})
+app = support_init_app()
 
 if __name__ == '__main__':
-    app.logger.info('Starting {} app...'.format(name))
+    app.logger.info(f'Starting {app}...')
     app.run()

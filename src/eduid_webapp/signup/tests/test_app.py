@@ -57,7 +57,7 @@ class SignupTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return signup_init_app('signup', config)
+        return signup_init_app(name='signup', test_config=config)
 
     def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         config.update(
@@ -69,8 +69,6 @@ class SignupTests(EduidAPITestCase):
                 'development': 'DEBUG',
                 'application_root': '/',
                 'log_level': 'DEBUG',
-                'am_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/am',
-                'msg_broker_url': 'amqp://eduid:eduid_pw@rabbitmq/msg',
                 'password_length': 10,
                 'vccs_url': 'http://turq:13085/',
                 'tou_version': '2018-v1',

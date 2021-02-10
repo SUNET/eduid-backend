@@ -34,9 +34,8 @@
 
 from eduid_webapp.phone.app import phone_init_app
 
-name = 'phone'
-app = phone_init_app(name, {})
+app = phone_init_app()
 
 if __name__ == '__main__':
-    app.logger.info('Starting {} app...'.format(name))
+    app.logger.info(f'Starting {app}...')
     app.run()

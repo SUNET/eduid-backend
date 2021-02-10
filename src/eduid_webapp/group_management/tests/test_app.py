@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import json
-from typing import Any, Optional
+from typing import Any, Dict, Mapping, Optional
 from uuid import UUID
 
 import pytest
@@ -46,7 +46,7 @@ from eduid_scimapi.db.userdb import ScimApiUser
 from eduid_userdb import User
 from eduid_userdb.exceptions import DocumentDoesNotExist
 
-from eduid_webapp.group_management.app import init_group_management_app
+from eduid_webapp.group_management.app import GroupManagementApp, init_group_management_app
 from eduid_webapp.group_management.helpers import GroupManagementMsg
 from eduid_webapp.group_management.schemas import GroupRole
 
@@ -57,6 +57,7 @@ __author__ = 'lundberg'
 class GroupManagementTests(EduidAPITestCase):
     """Base TestCase for those tests that need a full environment setup"""
 
+    app: GroupManagementApp
     neo4j_instance: Neo4jTemporaryInstance
     neo4j_uri: str
 
@@ -97,15 +98,21 @@ class GroupManagementTests(EduidAPITestCase):
         self.test_user2.mail_addresses.remove('johnsmith@example.com')
         self.app.central_userdb.save(self.test_user2)
 
-    def load_app(self, config):
+    def load_app(self, config: Mapping[str, Any]) -> GroupManagementApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return init_group_management_app('testing', config)
+        return init_group_management_app(test_config=config)
 
-    def update_config(self, config):
-        config.update({'neo4j_uri': self.neo4j_uri, 'neo4j_config': {'encrypted': False}})
+    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        config.update(
+            {
+                'eduid_site_url': 'https://test.eduid.se/',
+                'neo4j_config': {'encrypted': False},
+                'neo4j_uri': self.neo4j_uri,
+            }
+        )
         return config
 
     def tearDown(self):

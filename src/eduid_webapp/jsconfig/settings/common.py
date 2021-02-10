@@ -39,7 +39,10 @@ class JSConfigConfig(EduIDBaseAppConfig):
     """
     Configuration for the jsconfig app
     """
+
     app_name: str = 'jsconfig'
+
+    eduid_static_url: str
 
     dashboard_bundle_path: str = 'front-build/dashboard-bundle.dev.js'
     dashboard_bundle_version: str = 'dev'
@@ -62,3 +65,5 @@ class JSConfigConfig(EduIDBaseAppConfig):
     # Login feature toggle settings
     login_bundle_feature_cookie: str = ''
     login_bundle_feature_version: Dict[str, str] = {}
+
+    mongo_uri: str = 'mongo_uri_not_used_in_jsconfig'

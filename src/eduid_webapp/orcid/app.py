@@ -34,9 +34,9 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid_common.api import am, oidc
+from eduid_common.api import oidc
+from eduid_common.api.am import AmRelay
 from eduid_common.authn.middleware import AuthnBaseApp
-from eduid_common.config.base import FlaskConfig
 from eduid_common.config.parsers import load_config
 from eduid_userdb.logs import ProofingLog
 from eduid_userdb.proofing import OrcidProofingStateDB, OrcidProofingUserDB
@@ -47,40 +47,40 @@ __author__ = 'lundberg'
 
 
 class OrcidApp(AuthnBaseApp):
-    def __init__(self, name: str, test_config: Optional[Mapping[str, Any]], **kwargs):
-        self.conf = load_config(typ=OrcidConfig, app_name=name, ns='webapp', test_config=test_config)
-        # Initialise type of self.config before any parent class sets a precedent to mypy
-        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
-        super().__init__(name, **kwargs)
+    def __init__(self, config: OrcidConfig, **kwargs):
+        super().__init__(config, **kwargs)
 
-        # Register views
-        from eduid_webapp.orcid.views import orcid_views
-
-        self.register_blueprint(orcid_views)
+        self.conf = config
 
         # Init dbs
-        self.private_userdb = OrcidProofingUserDB(self.config.mongo_uri)
-        self.proofing_statedb = OrcidProofingStateDB(self.config.mongo_uri)
-        self.proofing_log = ProofingLog(self.config.mongo_uri)
+        self.private_userdb = OrcidProofingUserDB(config.mongo_uri)
+        self.proofing_statedb = OrcidProofingStateDB(config.mongo_uri)
+        self.proofing_log = ProofingLog(config.mongo_uri)
 
         # Init celery
-        am.init_relay(self, 'eduid_orcid')
+        self.am_relay = AmRelay(config)
 
         # Initialize the oidc_client
-        self.oidc_client = oidc.init_client(self.conf.client_registration_info, self.conf.provider_configuration_info)
+        self.oidc_client = oidc.init_client(config.client_registration_info, config.provider_configuration_info)
 
 
 current_orcid_app: OrcidApp = cast(OrcidApp, current_app)
 
 
-def init_orcid_app(name: str, test_config: Optional[Mapping[str, Any]]) -> OrcidApp:
+def init_orcid_app(name: str = 'orcid', test_config: Optional[Mapping[str, Any]] = None) -> OrcidApp:
     """
     :param name: The name of the instance, it will affect the configuration loaded.
     :param test_config: Override config, used in test cases.
     """
+    config = load_config(typ=OrcidConfig, app_name=name, ns='webapp', test_config=test_config)
 
-    app = OrcidApp(name, test_config)
+    app = OrcidApp(config)
 
     app.logger.info(f'Init {name} app...')
+
+    # Register views
+    from eduid_webapp.orcid.views import orcid_views
+
+    app.register_blueprint(orcid_views)
 
     return app

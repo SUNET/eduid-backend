@@ -33,7 +33,7 @@
 import math
 from dataclasses import dataclass
 from enum import unique
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional, Union
 
 import bcrypt
 from flask import render_template
@@ -47,6 +47,7 @@ from eduid_common.api.validation import is_valid_password
 from eduid_common.authn import fido_tokens
 from eduid_common.authn.utils import generate_password
 from eduid_common.authn.vccs import reset_password
+from eduid_common.config.base import EduidEnvironment
 from eduid_common.session import session
 from eduid_userdb.exceptions import DocumentDoesNotExist, UserDoesNotExist
 from eduid_userdb.logs import MailAddressProofing, PhoneNumberProofing
@@ -413,29 +414,31 @@ def send_verify_phone_code(state: ResetPasswordEmailState, phone_number: str):
 
     template = 'reset_password_sms.txt.jinja2'
     context = {'verification_code': phone_state.phone_code.code}
-    send_sms(phone_state.phone_number, template, context, phone_state.reference)
+    send_sms(
+        phone_number=phone_state.phone_number, text_template=template, reference=phone_state.reference, context=context
+    )
     current_app.logger.info(f'Sent password reset sms to user with eppn: {state.eppn}')
-    current_app.logger.debug(f'Sent password reset sms with code: {phone_state.phone_code.code}')
+    if current_app.conf.debug and current_app.conf.environment in [EduidEnvironment.staging, EduidEnvironment.dev]:
+        current_app.logger.debug(f'Sent password reset sms with code: {phone_state.phone_code.code}')
     current_app.logger.debug(f'Phone number: {phone_state.phone_number}')
 
 
-def send_sms(phone_number: str, text_template: str, context: Optional[dict] = None, reference: Optional[str] = None):
+def send_sms(phone_number: str, text_template: str, reference: str, context: Optional[Mapping[str, Any]] = None):
     """
     :param phone_number: the recipient of the sms
     :param text_template: message as a jinja template
     :param context: template context
     :param reference: Audit reference to help cross reference audit log and events
     """
-    default_context = {
-        "site_url": current_app.conf.eduid_site_url,
-        "site_name": current_app.conf.eduid_site_name,
+    _context = {
+        'site_url': current_app.conf.eduid_site_url,
+        'site_name': current_app.conf.eduid_site_name,
     }
-    if context is None:
-        context = {}
-    context.update(default_context)
+    if context is not None:
+        _context.update(context)
 
-    message = render_template(text_template, **context)
-    current_app.msg_relay.sendsms(phone_number, message, reference)
+    message = render_template(text_template, **_context)
+    current_app.msg_relay.sendsms(recipient=phone_number, message=message, reference=reference)
 
 
 def verify_phone_number(state: ResetPasswordEmailAndPhoneState) -> bool:

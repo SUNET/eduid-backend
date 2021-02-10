@@ -34,9 +34,9 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid_common.api import am, msg
+from eduid_common.api.am import AmRelay
+from eduid_common.api.msg import MsgRelay
 from eduid_common.authn.middleware import AuthnBaseApp
-from eduid_common.config.base import FlaskConfig
 from eduid_common.config.parsers import load_config
 from eduid_userdb.logs import ProofingLog
 from eduid_userdb.proofing import LetterProofingStateDB, LetterProofingUserDB
@@ -48,43 +48,43 @@ __author__ = 'lundberg'
 
 
 class LetterProofingApp(AuthnBaseApp):
-    def __init__(self, name: str, test_config: Optional[Mapping[str, Any]], **kwargs):
-        self.conf = load_config(typ=LetterProofingConfig, app_name=name, ns='webapp', test_config=test_config)
-        # Initialise type of self.config before any parent class sets a precedent to mypy
-        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
-        super().__init__(name, **kwargs)
+    def __init__(self, config: LetterProofingConfig, **kwargs):
+        super().__init__(config, **kwargs)
 
-        # Register views
-        from eduid_webapp.letter_proofing.views import letter_proofing_views
-
-        self.register_blueprint(letter_proofing_views)
+        self.conf = config
 
         # Init dbs
-        self.private_userdb = LetterProofingUserDB(self.config.mongo_uri)
-        self.proofing_statedb = LetterProofingStateDB(self.config.mongo_uri)
-        self.proofing_log = ProofingLog(self.config.mongo_uri)
+        self.private_userdb = LetterProofingUserDB(config.mongo_uri)
+        self.proofing_statedb = LetterProofingStateDB(config.mongo_uri)
+        self.proofing_log = ProofingLog(config.mongo_uri)
+
         # Init celery
-        msg.init_relay(self)
-        am.init_relay(self, 'eduid_letter_proofing')
+        self.msg_relay = MsgRelay(config)
+        self.am_relay = AmRelay(config)
+
         # Initiate external modules
         self.ekopost = Ekopost(self)
 
 
-def get_current_app() -> LetterProofingApp:
-    """Teach pycharm about app"""
-    return current_app  # type: ignore
+current_letterp_app = cast(LetterProofingApp, current_app)
 
 
-current_letterp_app = get_current_app()
-
-
-def init_letter_proofing_app(name: str, test_config: Optional[Mapping[str, Any]]) -> LetterProofingApp:
+def init_letter_proofing_app(
+    name: str = 'letter_proofing', test_config: Optional[Mapping[str, Any]] = None
+) -> LetterProofingApp:
     """
     :param name: The name of the instance, it will affect the configuration loaded.
     :param test_config: Override config, used in test cases.
     """
-    app = LetterProofingApp(name, test_config)
+    config = load_config(typ=LetterProofingConfig, app_name=name, ns='webapp', test_config=test_config)
+
+    app = LetterProofingApp(config)
 
     app.logger.info(f'Init {name} app...')
+
+    # Register views
+    from eduid_webapp.letter_proofing.views import letter_proofing_views
+
+    app.register_blueprint(letter_proofing_views)
 
     return app

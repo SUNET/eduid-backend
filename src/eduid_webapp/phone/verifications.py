@@ -92,7 +92,7 @@ def send_verification_code(user: User, phone_number: str) -> None:
     """
     state = get_new_proofing_state(user, phone_number)
     context = {
-        'site_name': current_app.config.eduid_site_name,
+        'site_name': current_app.conf.eduid_site_name,
         'verification_code': state.verification.verification_code,
     }
     message = render_template('phone_verification_sms.jinja2', **context)

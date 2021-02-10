@@ -36,7 +36,10 @@ from typing import Any, Mapping, Optional, cast
 from flask import current_app
 
 from eduid_common.api import am, mail_relay, msg, translation
+from eduid_common.api.am import AmRelay
 from eduid_common.api.app import EduIDBaseApp
+from eduid_common.api.mail_relay import MailRelay
+from eduid_common.api.msg import MsgRelay
 from eduid_common.config.base import FlaskConfig
 from eduid_common.config.parsers import load_config
 from eduid_userdb.authninfo import AuthnInfoDB
@@ -49,17 +52,15 @@ __author__ = 'eperez'
 
 
 class ResetPasswordApp(EduIDBaseApp):
-    def __init__(self, name: str, test_config: Optional[Mapping[str, Any]], **kwargs):
-        self.conf = load_config(typ=ResetPasswordConfig, app_name=name, ns='webapp', test_config=test_config)
-        # Initialise type of self.config before any parent class sets a precedent to mypy
-        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
-        super().__init__(name, **kwargs)
+    def __init__(self, config: ResetPasswordConfig, **kwargs):
+        super().__init__(config, **kwargs)
+
+        self.conf = config
 
         # Init celery
-        msg.init_relay(self)
-        am.init_relay(self, 'eduid_reset_password')
-        mail_relay.init_relay(self)
-        translation.init_babel(self)
+        self.msg_relay = MsgRelay(config)
+        self.am_relay = AmRelay(config)
+        self.mail_relay = MailRelay(config)
 
         # Init dbs
         self.private_userdb = ResetPasswordUserDB(self.conf.mongo_uri)
@@ -71,17 +72,24 @@ class ResetPasswordApp(EduIDBaseApp):
 current_reset_password_app: ResetPasswordApp = cast(ResetPasswordApp, current_app)
 
 
-def init_reset_password_app(name: str, test_config: Optional[Mapping[str, Any]] = None) -> ResetPasswordApp:
+def init_reset_password_app(
+    name: str = 'reset_password', test_config: Optional[Mapping[str, Any]] = None
+) -> ResetPasswordApp:
     """
     :param name: The name of the instance, it will affect the configuration loaded.
     :param test_config: Override config. Used in tests.
     """
-    app = ResetPasswordApp(name, test_config)
+    config = load_config(typ=ResetPasswordConfig, app_name=name, ns='webapp', test_config=test_config)
+
+    app = ResetPasswordApp(config)
+
+    app.logger.info(f'Init {app}...')
+
     # Register views
     from eduid_webapp.reset_password.views.reset_password import reset_password_views
 
     app.register_blueprint(reset_password_views)
 
-    app.logger.info(f'Init {name} app...')
+    translation.init_babel(app)
 
     return app
