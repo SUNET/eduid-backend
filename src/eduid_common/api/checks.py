@@ -142,14 +142,13 @@ def check_mail() -> bool:
 def check_vccs() -> bool:
     if not isinstance(current_app.conf, VCCSConfigMixin):
         return True
-    if not current_app.conf.vccs_url:
-        return True
-    eppn = current_app.conf.vccs_check_eppn
     # Do not force this check if not configured
-    if not eppn:
+    if not current_app.conf.vccs_check_eppn:
         return True
     try:
-        user = current_app.central_userdb.get_user_by_eppn(eppn=eppn, raise_on_missing=False)
+        user = current_app.central_userdb.get_user_by_eppn(
+            eppn=current_app.conf.vccs_check_eppn, raise_on_missing=False
+        )
         vccs_url = current_app.conf.vccs_url
         password = current_app.conf.vccs_check_password
         if user and check_password(password=password, user=user, vccs_url=vccs_url):

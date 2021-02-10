@@ -1,35 +1,29 @@
 # -*- coding: utf-8 -*-
-from typing import Union
+
+import logging
 
 import eduid_am
-from flask import current_app
 
 from eduid_userdb import User
 from eduid_userdb.exceptions import LockedIdentityViolation
 
-from eduid_common.api.app import EduIDBaseApp
 from eduid_common.api.exceptions import AmTaskFailed
-from eduid_common.config.base import CeleryConfig, CeleryConfig2
+from eduid_common.config.base import AmConfigMixin
 
 __author__ = 'lundberg'
 
-
-def init_relay(app: EduIDBaseApp, application_name: str) -> None:
-    """
-    :param config: Celery configuration parameters
-    :param application_name: Name to help am find the entry point for the am plugin
-    """
-    app.am_relay = AmRelay(app.conf.celery, application_name)
-    return None
+logger = logging.getLogger(__name__)
 
 
 class AmRelay(object):
-    def __init__(self, config: Union[CeleryConfig, CeleryConfig2], relay_for: str):
+    def __init__(self, config: AmConfigMixin):
         """
         :param config: celery config
         :param relay_for: Name of application to relay for
         """
-        self.relay_for = relay_for
+        self.relay_for = f'eduid_{config.app_name}'
+        if config.am_relay_for_override is not None:
+            self.relay_for = config.am_relay_for_override
 
         eduid_am.init_app(config)
         # these have to be imported _after_ eduid_am.init_app()
@@ -52,21 +46,21 @@ class AmRelay(object):
         try:
             user_id = str(user.user_id)
         except (AttributeError, ValueError) as e:
-            current_app.logger.error(f'Bad user_id in sync request: {e}')
+            logger.error(f'Bad user_id in sync request: {e}')
             raise ValueError('Missing user_id. Can only propagate changes for eduid_userdb.User users.')
 
-        current_app.logger.debug(f"Asking Attribute Manager to sync user {user}")
+        logger.debug(f"Asking Attribute Manager to sync user {user}")
         rtask = self._update_attrs.delay(self.relay_for, user_id)
         try:
             result = rtask.get(timeout=timeout)
-            current_app.logger.debug(f"Attribute Manager sync result: {result} for user {user}")
+            logger.debug(f'Attribute Manager sync result: {result} for user {user}')
             return result
         except LockedIdentityViolation as e:
             rtask.forget()
             raise e
         except Exception as e:
             rtask.forget()
-            current_app.logger.exception(f"Failed Attribute Manager sync request for user {user}")
+            logger.exception(f'Failed Attribute Manager sync request for user {user}')
             raise AmTaskFailed(f'request_user_sync task failed: {e}')
 
     def ping(self, timeout: int = 1) -> str:
