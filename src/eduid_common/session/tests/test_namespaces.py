@@ -1,29 +1,32 @@
 import logging
-import unittest
 from datetime import datetime
+from typing import Any, Mapping
 
 from eduid_common.api.testing import EduidAPITestCase
-from eduid_common.misc.timeutil import utc_now
+from eduid_common.config.parsers import load_config
 from eduid_common.session import EduidSession
 from eduid_common.session.eduid_session import SessionFactory
 from eduid_common.session.meta import SessionMeta
-from eduid_common.session.redis_session import RedisEncryptedSession
-from eduid_common.session.tests.test_eduid_session import SessionTestApp
+from eduid_common.session.tests.test_eduid_session import SessionTestApp, SessionTestConfig
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
 class TestIdPNamespace(EduidAPITestCase):
-    def load_app(self, config):
+
+    app: SessionTestApp
+
+    def load_app(self, test_config: Mapping[str, Any]) -> SessionTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         logger.debug('Starting SessionTestApp')
-        app = SessionTestApp('testing', config)
+        config = load_config(typ=SessionTestConfig, app_name='testing', ns='webapp', test_config=test_config)
+        app = SessionTestApp(config)
         logger.debug('Started SessionTestApp')
-        app.session_interface = SessionFactory(app.config)
+        app.session_interface = SessionFactory(app.conf)
         return app
 
     def test_to_dict_from_dict(self):

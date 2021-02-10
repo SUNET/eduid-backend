@@ -1,26 +1,33 @@
 # -*- coding: utf-8 -*-
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.authn.utils import no_authn_views
-from eduid_common.config.base import FlaskConfig
+from eduid_common.config.base import EduIDBaseAppConfig
+from eduid_common.config.parsers import load_config
 from eduid_common.session import session
 from eduid_common.session.namespaces import LoginApplication
 
 __author__ = 'lundberg'
 
 
+class SessionTestConfig(EduIDBaseAppConfig):
+    pass
+
+
 class SessionTestApp(AuthnBaseApp):
-    def __init__(self, name: str, config: Dict[str, Any], **kwargs):
-        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=config)
-        super().__init__(name, **kwargs)
+    def __init__(self, config: SessionTestConfig, **kwargs):
+        super().__init__(config, **kwargs)
+
+        self.conf = config
 
 
-def session_init_app(name, config):
-    app = SessionTestApp(name, config, init_central_userdb=False)
-    app = no_authn_views(app, ['/unauthenticated'])
+def session_init_app(name, test_config: Mapping[str, Any]) -> SessionTestApp:
+    config = load_config(typ=SessionTestConfig, app_name=name, ns='webapp', test_config=test_config)
+    app = SessionTestApp(config, init_central_userdb=False)
+    no_authn_views(config, ['/unauthenticated'])
 
     @app.route('/authenticated')
     def authenticated():
@@ -70,6 +77,9 @@ def session_init_app(name, config):
 
 
 class EduidSessionTests(EduidAPITestCase):
+
+    app: SessionTestApp
+
     def setUp(
         self,
         init_am: bool = False,
@@ -80,14 +90,14 @@ class EduidSessionTests(EduidAPITestCase):
         self.test_user_eppn = 'hubba-bubba'
         super().setUp(init_am=init_am, am_settings=am_settings, users=users, copy_user_to_private=copy_user_to_private)
 
-    def load_app(self, config):
+    def load_app(self, config: Mapping[str, Any]) -> SessionTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         return session_init_app('testing', config)
 
-    def update_config(self, config):
+    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         config.update(
             {'debug': True, 'log_level': 'DEBUG', 'no_authn_urls': [],}
         )
