@@ -49,7 +49,7 @@ class MsgRelay(object):
     def get_language(lang: str) -> str:
         return LANGUAGE_MAPPING.get(lang, 'en_US')
 
-    def get_postal_address(self, nin: str, timeout: int = 25) -> Optional[dict]:
+    def get_postal_address(self, nin: str, timeout: int = 25) -> dict:
         """
         :param nin: Swedish national identity number
         :param timeout: Max wait time for task to finish
