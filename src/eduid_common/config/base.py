@@ -618,7 +618,6 @@ class MsgConfigMixin(CeleryConfigMixin):
     """ Config used by MsgRelay """
 
     eduid_site_name: str = 'eduID'
-    validation_url: str
 
 
 class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, RedisConfigMixin):

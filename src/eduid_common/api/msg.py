@@ -100,47 +100,6 @@ class MsgRelay(object):
             rtask.forget()
             raise MsgTaskFailed(f'get_relations_to task failed: {e}')
 
-    def phone_validator(
-        self,
-        reference: str,
-        targetphone: str,
-        code: str,
-        language: str,
-        template_name: str = 'mobile-validator',
-        timeout: int = 25,
-    ) -> None:
-        """
-            The template keywords are:
-                * sitename: (eduID by default)
-                * sitelink: (the url dashboard)
-                * code: the verification code
-                * phonenumber: the phone number to verify
-        """
-        warnings.warn("This function will be removed. Use sendsms instead.", DeprecationWarning)
-        logger.info(f'Trying to send phone validation SMS with reference: {reference}')
-        content = {
-            'sitename': self.conf.eduid_site_name,
-            'sitelink': self.conf.validation_url,
-            'code': code,
-            'phonenumber': targetphone,
-        }
-        lang = self.get_language(language)
-        template = TEMPLATES_RELATION.get(template_name)
-
-        rtask = self._send_message.apply_async(args=['sms', reference, content, targetphone, template, lang])
-        try:
-            res = rtask.get(timeout=timeout)
-            logger.debug(
-                f"SENT mobile validator message code: {code} phone number: {targetphone} with reference {reference}"
-            )
-            logger.debug(
-                f"Extra debug: Send message result: {repr(res)},"
-                f" parameters:\n{repr(['sms', reference, content, targetphone, template, lang])}"
-            )
-        except Exception as e:
-            rtask.forget()
-            raise MsgTaskFailed(f'phone_validator task failed: {e}')
-
     def sendsms(self, recipient: str, message: str, reference: str, timeout: int = 25) -> None:
         """
         :param recipient: the recipient of the sms
