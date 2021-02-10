@@ -184,7 +184,7 @@ class EduidSessionTests(EduidAPITestCase):
             keyvalues = cookie[1].split(';')
             for keyvalue in keyvalues:
                 value = keyvalue.split('=')
-                if value == self.app.config.session_cookie_name:
+                if value == self.app.conf.flask.session_cookie_name:
                     self.assertEqual('', value)
                 elif value == 'expires':
                     self.assertEqual('Thu, 01-Jan-1970 00:00:00 GMT', value)

@@ -207,7 +207,7 @@ class EduidAPITestCase(CommonTestCase):
             if eppn is not None:
                 sess['user_eppn'] = eppn
                 sess['user_is_logged_in'] = True
-            client.set_cookie(server_name, key=self.app.config.session_cookie_name, value=sess.meta.cookie_val)
+            client.set_cookie(server_name, key=self.app.conf.flask.session_cookie_name, value=sess.meta.cookie_val)
         yield client
 
     @contextmanager
@@ -357,7 +357,7 @@ class CSRFTestClient(FlaskClient):
         csrf_headers = {
             'X-Requested-With': 'XMLHttpRequest',
             'Referer': test_host,
-            'X-Forwarded-Host': self.application.config.server_name,
+            'X-Forwarded-Host': self.application.conf.flask.server_name,
         }
         if kw.pop('custom_csrf_headers', True):
             if 'headers' in kw:

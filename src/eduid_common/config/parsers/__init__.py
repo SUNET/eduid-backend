@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional, Type
 
-from eduid_common.config.base import TRootConfigSubclass
+from eduid_common.config.base import FlaskConfig, TRootConfigSubclass
 from eduid_common.config.parsers.base import BaseConfigParser
 
 __author__ = 'ft'
@@ -23,14 +23,26 @@ def load_config(
     if not parser:
         raise ParserException('Could not find a suitable config parser')
 
+    config: Dict[str, Any]
+
     if test_config:
-        return typ(**test_config)
+        config = dict(test_config)
+    else:
+        common_config = parser.read_configuration(common_path)
+        app_config = parser.read_configuration(app_path)
 
-    common_config = parser.read_configuration(common_path)
-    app_config = parser.read_configuration(app_path)
+        config = dict(common_config)
+        config.update(app_config)
 
-    config: Dict[str, Any] = dict(common_config)
-    config.update(app_config)
+    if 'secret_key' in config:
+        # Looks like there could be a FlaskConfig mixed into the config
+        config['flask'] = FlaskConfig(**config)
+
+    if 'celery_config' in config and not 'celery' in config:
+        config['celery'] = config['celery_config']
+
+    if 'app_name' not in config:
+        config['app_name'] = app_name
 
     return typ(**config)
 
