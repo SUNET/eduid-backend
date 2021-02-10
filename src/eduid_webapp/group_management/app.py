@@ -43,6 +43,7 @@ from eduid_common.config.parsers import load_config
 from eduid_scimapi.db.groupdb import ScimApiGroupDB
 from eduid_scimapi.db.userdb import ScimApiUserDB
 from eduid_userdb.group_management import GroupManagementInviteStateDB
+
 from eduid_webapp.group_management.settings.common import GroupManagementConfig
 
 __author__ = 'lundberg'

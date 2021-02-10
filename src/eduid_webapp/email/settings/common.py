@@ -43,6 +43,7 @@ class EmailConfig(EduIDBaseAppConfig, MagicCookieMixin):
     """
     Configuration for the email app
     """
+
     eduid_site_name: str
     eduid_site_url: str
 

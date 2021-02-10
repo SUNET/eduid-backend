@@ -39,6 +39,7 @@ class JSConfigConfig(EduIDBaseAppConfig):
     """
     Configuration for the jsconfig app
     """
+
     app_name: str = 'jsconfig'
 
     dashboard_bundle_path: str = 'front-build/dashboard-bundle.dev.js'
