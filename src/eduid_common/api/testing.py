@@ -52,7 +52,7 @@ from eduid_userdb.testing import AbstractMockedUserDB
 from eduid_common.api.logging import LocalContext, make_dictConfig
 from eduid_common.api.messages import TranslatableMsg
 from eduid_common.api.testing_base import CommonTestCase
-from eduid_common.config.base import RedisConfig
+from eduid_common.config.base import RedisConfig, RedisConfig2
 from eduid_common.session import EduidSession
 from eduid_common.session.testing import RedisTemporaryInstance
 
@@ -80,6 +80,9 @@ TEST_CONFIG = {
     'jsonify_prettyprint_regular': True,
     'mongo_uri': 'mongodb://localhost',
     'token_service_url': 'http://test.localhost/',
+    'eduid_site_name': 'eduID TESTING',
+    'eduid_static_url': 'https://testing.eduid.se/static/',
+    'celery': {},
 }
 
 
@@ -139,14 +142,8 @@ class EduidAPITestCase(CommonTestCase):
         # settings
         config = deepcopy(TEST_CONFIG)
         self.settings = self.update_config(config)
-        self.settings['redis_config'] = RedisConfig(host='localhost', port=self.redis_instance.port)
+        self.settings['redis_config'] = RedisConfig2(host='localhost', port=self.redis_instance.port)
         self.settings['mongo_uri'] = self.tmp_db.uri
-        # 'CELERY' is the key used in workers, and 'CELERY_CONFIG' is used in webapps.
-        # self.am_settings is initialized by the super-class MongoTestCase.
-        #
-        # We need to copy this data from am_settings to config, because AM will be
-        # re-initialized in load_app() below.
-        self.settings['celery_config'] = self.am_settings['celery']
 
         self.app = self.load_app(self.settings)
         if not getattr(self, 'browser', False):
@@ -353,7 +350,9 @@ class CSRFTestClient(FlaskClient):
         This could also be done with updating FlaskClient.environ_base with the below header keys but
         that makes it harder to override per call to post.
         """
-        test_host = '{}://{}'.format(self.application.config.preferred_url_scheme, self.application.config.server_name)
+        test_host = '{}://{}'.format(
+            self.application.conf.flask.preferred_url_scheme, self.application.conf.flask.server_name
+        )
         csrf_headers = {
             'X-Requested-With': 'XMLHttpRequest',
             'Referer': test_host,
