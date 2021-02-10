@@ -30,38 +30,56 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from marshmallow import ValidationError, fields, validates
+from marshmallow import fields
 
 from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid_common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 from eduid_common.api.schemas.email import LowercaseEmail
-from eduid_common.api.schemas.validators import validate_email
-
-from eduid_webapp.reset_password.helpers import ResetPwMsg
-from eduid_webapp.security.schemas import CredentialSchema
 
 __author__ = 'eperez'
 
 
-class ResetPasswordInitSchema(EduidSchema, CSRFRequestMixin):
+class ResetPasswordEmailRequestSchema(EduidSchema, CSRFRequestMixin):
 
     email = LowercaseEmail(required=True)
 
 
-class ResetPasswordEmailCodeSchema(EduidSchema, CSRFRequestMixin):
+class ResetPasswordEmailCodeRequestSchema(EduidSchema, CSRFRequestMixin):
 
-    code = fields.String(required=True)
+    email_code = fields.String(required=True)
+
+
+class ResetPasswordResponseSchema(FluxStandardAction):
+    class ResetPasswordResponsePayload(EduidSchema, CSRFResponseMixin):
+        pass
+
+    payload = fields.Nested(ResetPasswordResponsePayload)
+
+
+class ResetPasswordVerifyEmailResponseSchema(FluxStandardAction):
+    class ResetPasswordVerifyEmailResponsePayload(EduidSchema, CSRFResponseMixin):
+        suggested_password = fields.String(required=True)
+        email_code = fields.String(required=True)
+        email_address = fields.String(required=True)
+        extra_security = fields.Dict(required=True)
+        password_entropy = fields.Integer(required=True)
+        password_length = fields.Integer(required=True)
+        password_service_url = fields.String(required=True)
+        success = fields.Bool(required=True)
+        zxcvbn_terms = fields.List(required=True, cls_or_instance=fields.String)
+
+    payload = fields.Nested(ResetPasswordVerifyEmailResponsePayload)
 
 
 class ResetPasswordExtraSecPhoneSchema(EduidSchema, CSRFRequestMixin):
 
-    code = fields.String(required=True)
+    email_code = fields.String(required=True)
     phone_index = fields.Integer(required=True)
 
 
 class ResetPasswordWithCodeSchema(EduidSchema, CSRFRequestMixin):
 
-    code = fields.String(required=True)
+    email_code = fields.String(required=True)
     password = fields.String(required=True)
 
 
@@ -72,35 +90,32 @@ class ResetPasswordWithPhoneCodeSchema(ResetPasswordWithCodeSchema):
 
 class ResetPasswordWithSecTokenSchema(ResetPasswordWithCodeSchema):
 
-    credentialId = fields.String(required=True)
-    authenticatorData = fields.String(required=True)
-    clientDataJSON = fields.String(required=True)
+    authenticator_data = fields.String(required=False, data_key='authenticatorData')
+    client_data_json = fields.String(required=False, data_key='clientDataJSON')
+    credential_id = fields.String(required=False, data_key='credentialId')
     signature = fields.String(required=True)
 
 
-class SuggestedPassword(EduidSchema, CSRFResponseMixin):
-
-    suggested_password = fields.String(required=True)
-
-
 class SuggestedPasswordResponseSchema(FluxStandardAction):
+    class SuggestedPasswordPayload(EduidSchema, CSRFResponseMixin):
+        suggested_password = fields.String(required=True)
 
-    payload = fields.Nested(SuggestedPassword, many=False)
+    payload = fields.Nested(SuggestedPasswordPayload, many=False)
 
 
 class NewPasswordSecurePhoneRequestSchema(EduidSchema, CSRFRequestMixin):
 
-    code = fields.String(required=True)
+    email_code = fields.String(required=True)
     password = fields.String(required=True)
     phone_code = fields.String(required=True)
 
 
 class NewPasswordSecureTokenRequestSchema(EduidSchema, CSRFRequestMixin):
 
-    code = fields.String(required=True)
+    email_code = fields.String(required=True)
     password = fields.String(required=True)
-    tokenResponse = fields.String(required=False)
-    authenticatorData = fields.String(required=False)
-    clientDataJSON = fields.String(required=False)
-    credentialId = fields.String(required=False)
+    token_response = fields.String(required=False, data_key='tokenResponse')
+    authenticator_data = fields.String(required=False, data_key='authenticatorData')
+    client_data_json = fields.String(required=False, data_key='clientDataJSON')
+    credential_id = fields.String(required=False, data_key='credentialId')
     signature = fields.String(required=False)
