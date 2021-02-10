@@ -601,6 +601,25 @@ class VCCSConfigMixin(BaseModel):
     vccs_check_password: str
 
 
+class AmConfigMixin(CeleryConfigMixin):
+    """ Config used by AmRelay """
+
+    app_name: str
+    am_relay_for_override: Optional[str]  # only set this if f'eduid_{app_name}' is not right
+
+
+class MailConfigMixin(CeleryConfigMixin):
+    """ Config used by MailRelay """
+
+    mail_default_from: str = 'no-reply@eduid.se'
+
+
+class MsgConfigMixin(CeleryConfigMixin):
+    """ Config used by MsgRelay """
+
+    eduid_site_name: str = 'eduID'
+
+
 class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, RedisConfigMixin):
     available_languages: Mapping[str, str] = PydanticField(default={'en': 'English', 'sv': 'Svenska'})
     environment: EduidEnvironment = EduidEnvironment.production

@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
+import logging
 import warnings
-from typing import List, Optional, Union
-
-from flask import current_app
+from typing import List
 
 import eduid_msg
 
-from eduid_common.api.app import EduIDBaseApp
 from eduid_common.api.exceptions import MsgTaskFailed
-from eduid_common.config.base import CeleryConfig, CeleryConfig2
+from eduid_common.config.base import MsgConfigMixin
 
 __author__ = 'lundberg'
+
+logger = logging.getLogger(__name__)
+
 
 TEMPLATES_RELATION = {
     'mobile-validator': 'mobile-confirm',
@@ -25,17 +26,10 @@ LANGUAGE_MAPPING = {
 }
 
 
-def init_relay(app: EduIDBaseApp) -> None:
-    """
-    :param app: Flask app
-    """
-    app.msg_relay = MsgRelay(app.conf.celery)  # type: ignore
-    return None
-
-
 class MsgRelay(object):
-    def __init__(self, settings: Union[CeleryConfig, CeleryConfig2]):
-        eduid_msg.init_app(settings)
+    def __init__(self, config: MsgConfigMixin):
+        self.conf = config
+        eduid_msg.init_app(config.celery)
         # these have to be imported _after_ eduid_msg.init_app()
         from eduid_msg.tasks import get_postal_address, get_relations_to, pong, send_message, sendsms
 
@@ -89,7 +83,7 @@ class MsgRelay(object):
             B = child (barn)
             FA = father
             MO = mother
-            VF = some kind of legal guardian status. Childs typically have ['B', 'VF'] it seems.
+            VF = some kind of legal guardian status. Children typically have ['B', 'VF'] it seems.
 
         :param nin: Swedish National Identity Number
         :param relative_nin: Another Swedish National Identity Number
@@ -106,47 +100,6 @@ class MsgRelay(object):
             rtask.forget()
             raise MsgTaskFailed(f'get_relations_to task failed: {e}')
 
-    def phone_validator(
-        self,
-        reference: str,
-        targetphone: str,
-        code: str,
-        language: str,
-        template_name: str = 'mobile-validator',
-        timeout: int = 25,
-    ) -> None:
-        """
-            The template keywords are:
-                * sitename: (eduID by default)
-                * sitelink: (the url dashboard)
-                * code: the verification code
-                * phonenumber: the phone number to verify
-        """
-        warnings.warn("This function will be removed. Use sendsms instead.", DeprecationWarning)
-        current_app.logger.info('Trying to send phone validation SMS with reference: {}'.format(reference))
-        content = {
-            'sitename': current_app.config.get('EDUID_SITE_NAME'),
-            'sitelink': current_app.config.get('VALIDATION_URL'),
-            'code': code,
-            'phonenumber': targetphone,
-        }
-        lang = self.get_language(language)
-        template = TEMPLATES_RELATION.get(template_name)
-
-        rtask = self._send_message.apply_async(args=['sms', reference, content, targetphone, template, lang])
-        try:
-            res = rtask.get(timeout=timeout)
-            current_app.logger.debug(
-                f"SENT mobile validator message code: {code} phone number: {targetphone} with reference {reference}"
-            )
-            current_app.logger.debug(
-                f"Extra debug: Send message result: {repr(res)},"
-                f" parameters:\n{repr(['sms', reference, content, targetphone, template, lang])}"
-            )
-        except Exception as e:
-            rtask.forget()
-            raise MsgTaskFailed(f'phone_validator task failed: {e}')
-
     def sendsms(self, recipient: str, message: str, reference: str, timeout: int = 25) -> None:
         """
         :param recipient: the recipient of the sms
@@ -154,13 +107,13 @@ class MsgRelay(object):
         :param reference: Audit reference to help cross reference audit log and events
         :param timeout: Max wait time for task to finish
         """
-        current_app.logger.info('Trying to send SMS with reference: {}'.format(reference))
-        current_app.logger.debug(u'Recipient: {}. Message: {}'.format(recipient, message))
+        logger.info(f'Trying to send SMS with reference: {reference}')
+        logger.debug(f'Recipient: {recipient}. Message: {message}')
         rtask = self._send_sms.apply_async(args=[recipient, message, reference])
 
         try:
             res = rtask.get(timeout=timeout)
-            current_app.logger.info('SMS with reference {} sent. Task result: {}'.format(reference, res))
+            logger.info(f'SMS with reference {reference} sent. Task result: {res}')
         except Exception as e:
             rtask.forget()
             raise MsgTaskFailed(f'sendsms task failed: {repr(e)}')

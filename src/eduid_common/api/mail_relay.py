@@ -29,24 +29,23 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
+import logging
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import List, Optional, Union
-
-from flask import current_app
+from typing import List, Optional
 
 import eduid_msg
 
-from eduid_common.api.app import EduIDBaseApp
 from eduid_common.api.exceptions import MailTaskFailed
-from eduid_common.config.base import CeleryConfig, CeleryConfig2
+from eduid_common.config.base import MailConfigMixin
+
+logger = logging.getLogger(__name__)
 
 
 class MailRelay(object):
-    def __init__(self, settings: Union[CeleryConfig, CeleryConfig2]):
-        self.settings = settings
-        eduid_msg.init_app(settings)
+    def __init__(self, config: MailConfigMixin):
+        self.mail_from = config.mail_default_from
+        eduid_msg.init_app(config.celery)
         # this import has to happen _after_ init_app
         from eduid_msg.tasks import pong, sendmail
 
@@ -61,7 +60,7 @@ class MailRelay(object):
         html: Optional[str] = None,
         reference: Optional[str] = None,
         timeout: int = 25,
-    ):
+    ) -> None:
         """
         :param subject: Message subject
         :param recipients: List of recipients
@@ -70,37 +69,29 @@ class MailRelay(object):
         :param reference: Audit reference to help cross reference audit log and events
         :param timeout: Max wait time for task to finish
         """
-        sender = current_app.config["MAIL_DEFAULT_FROM"]
         msg = MIMEMultipart('alternative')
         msg['Subject'] = subject
-        msg['From'] = sender
+        msg['From'] = self.mail_from
         msg['To'] = ', '.join(recipients)
         if text:
             msg.attach(MIMEText(text, 'plain', 'utf-8'))
         if html:
             msg.attach(MIMEText(html, 'html', 'utf-8'))
 
-        current_app.logger.debug(u'About to send email:\n\n {}'.format(msg.as_string()))
-        rtask = self._sendmail.apply_async(args=[sender, recipients, msg.as_string(), reference])
+        logger.debug(f'About to send email:\n\n {msg.as_string()}')
+        rtask = self._sendmail.apply_async(args=[self.mail_from, recipients, msg.as_string(), reference])
 
         try:
             res = rtask.get(timeout=timeout)
-            current_app.logger.info('email with reference {} sent. Task result: {}'.format(reference, res))
+            logger.info(f'email with reference {reference} sent. Task result: {res}')
         except Exception as e:
             rtask.forget()
             raise MailTaskFailed(f'sendmail task failed: {repr(e)}')
 
-        current_app.logger.info(u'Sent email {} to {} with subject {}'.format(rtask, recipients, subject))
+        logger.info(f'Sent email {rtask} to {recipients} with subject {subject}')
+        return None
 
     def ping(self):
         rtask = self._pong.delay()
         result = rtask.get(timeout=1)
         return result
-
-
-def init_relay(app: EduIDBaseApp) -> None:
-    """
-    :param app: Flask app
-    """
-    app.mail_relay = MailRelay(app.config['CELERY_CONFIG'])
-    return None
