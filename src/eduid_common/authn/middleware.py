@@ -57,12 +57,12 @@ class AuthnBaseApp(EduIDBaseApp, metaclass=ABCMeta):
     def __call__(self, environ: dict, start_response: Callable) -> Union[Response, list]:
         next_url = get_current_url(environ)
         next_path = list(urlparse(next_url))[2]
-        whitelist = self.config.no_authn_urls
-        no_context_logger.debug('No auth whitelist: {}'.format(whitelist))
-        for regex in whitelist:
+        allowlist = self.conf.no_authn_urls
+        no_context_logger.debug(f'Checking if URL path {next_path} matches no auth allow list: {allowlist}')
+        for regex in allowlist:
             m = re.match(regex, next_path)
             if m is not None:
-                no_context_logger.debug('{} matched whitelist'.format(next_path))
+                no_context_logger.debug(f'{next_path} matched allow list')
                 return super(AuthnBaseApp, self).__call__(environ, start_response)
 
         with self.request_context(environ):
@@ -75,7 +75,7 @@ class AuthnBaseApp(EduIDBaseApp, metaclass=ABCMeta):
                 # If HTTP_COOKIE is not removed self.request_context(environ) below
                 # will try to look up the Session data in the backend
 
-        ts_url = urlappend(self.config.token_service_url, 'login')
+        ts_url = urlappend(self.conf.token_service_url, 'login')
 
         params = {'next': next_url}
 

@@ -32,7 +32,7 @@
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from flask import current_app
 
@@ -40,10 +40,11 @@ import eduid_msg
 
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.api.exceptions import MailTaskFailed
+from eduid_common.config.base import CeleryConfig, CeleryConfig2
 
 
 class MailRelay(object):
-    def __init__(self, settings):
+    def __init__(self, settings: Union[CeleryConfig, CeleryConfig2]):
         self.settings = settings
         eduid_msg.init_app(settings)
         # this import has to happen _after_ init_app

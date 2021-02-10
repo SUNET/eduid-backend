@@ -32,12 +32,11 @@
 #
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
-from typing import Dict, Mapping, Optional, cast
+from typing import Dict, Mapping, Optional
 
 from flask import Blueprint, Response, current_app, jsonify
 
 from eduid_common.api.checks import CheckResult
-from eduid_common.config.base import BaseConfig
 
 status_views = Blueprint('status', __name__, url_prefix='/status')
 
@@ -52,8 +51,7 @@ SIMPLE_CACHE: Dict[str, SimpleCacheItem] = dict()
 
 
 def cached_json_response(key: str, data: Optional[dict] = None) -> Optional[Response]:
-    config = cast(BaseConfig, current_app.config)  # Please mypy
-    cache_for_seconds = config.status_cache_seconds
+    cache_for_seconds = current_app.conf.status_cache_seconds
     now = datetime.utcnow()
     if SIMPLE_CACHE.get(key) is not None:
         if now < SIMPLE_CACHE[key].expire_time:

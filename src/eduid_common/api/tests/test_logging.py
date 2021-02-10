@@ -1,42 +1,34 @@
 # -*- coding: utf-8 -*-
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Mapping
 
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.api.logging import merge_config
 from eduid_common.api.testing import EduidAPITestCase
-from eduid_common.config.base import FlaskConfig
+from eduid_common.config.base import EduIDBaseAppConfig
 
 __author__ = 'lundberg'
 
+from eduid_common.config.parsers import load_config
+
 
 class LoggingTestApp(EduIDBaseApp):
-    def __init__(self, name: str, config: Dict[str, Any], **kwargs):
-        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=config)
-        super().__init__(name, **kwargs)
+    pass
 
 
 class LoggingTest(EduidAPITestCase):
-    def setUp(
-        self,
-        init_am: bool = False,
-        am_settings: Optional[Dict[str, Any]] = None,
-        users: Optional[List[str]] = None,
-        copy_user_to_private: bool = False,
-    ):
 
-        super(LoggingTest, self).setUp(
-            init_am=init_am, am_settings=am_settings, users=users, copy_user_to_private=copy_user_to_private
-        )
+    app: LoggingTestApp
 
-    def load_app(self, config):
+    def load_app(self, test_config: Mapping[str, Any]) -> LoggingTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return LoggingTestApp('test_app', config)
+        config = load_config(typ=EduIDBaseAppConfig, app_name='test_app', ns='webapp', test_config=test_config)
+        return LoggingTestApp(config)
 
-    def update_config(self, config):
+    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         return config
 
     def tearDown(self):

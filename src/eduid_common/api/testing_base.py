@@ -62,27 +62,6 @@ class CommonTestCase(MongoTestCase):
         """
         super(CommonTestCase, self).setUp(init_am=init_am, am_settings=am_settings)
 
-        # setup AM
-        celery_settings = {
-            'broker_transport': 'memory',
-            'broker_url': 'memory://',
-            'task_eager_propagates': True,
-            'task_always_eager': True,
-            'result_backend': 'cache',
-            'cache_backend': 'memory',
-        }
-        # Be sure to NOT tell AttributeManager about the temporary mongodb instance.
-        # If we do, one or more plugins may open DB connections that never gets closed.
-        mongo_uri = None
-        if am_settings:
-            want_mongo_uri = am_settings.pop('want_mongo_uri', False)
-            if want_mongo_uri:
-                mongo_uri = self.tmp_db.uri
-        else:
-            am_settings = {}
-        am_settings['celery'] = celery_settings
-        self.am_settings = AmConfig(**am_settings)
-        self.am_settings.mongo_uri = mongo_uri
         # Set up etcd
         self.etcd_instance = EtcdTemporaryInstance.get_instance()
         os.environ.update({'ETCD_PORT': str(self.etcd_instance.port)})

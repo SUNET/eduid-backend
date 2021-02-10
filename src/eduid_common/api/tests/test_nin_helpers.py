@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from typing import Any, Dict
+from typing import Any, Dict, Mapping
 
 from mock import MagicMock, patch
 
@@ -15,27 +15,28 @@ from eduid_userdb.user import User
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.api.helpers import add_nin_to_user, set_user_names_from_offical_address, verify_nin_for_user
 from eduid_common.api.testing import EduidAPITestCase, normalised_data
-from eduid_common.config.base import FlaskConfig
+from eduid_common.config.base import EduIDBaseAppConfig
+from eduid_common.config.parsers import load_config
 from eduid_common.session.eduid_session import SessionFactory
 
 __author__ = 'lundberg'
 
 
 class HelpersTestApp(EduIDBaseApp):
-    def __init__(self, name: str, config: Dict[str, Any], **kwargs):
-        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=config)
-        super().__init__(name, **kwargs)
-        self.session_interface = SessionFactory(self.config)
+    def __init__(self, name: str, test_config: Mapping[str, Any], **kwargs):
+        self.conf = load_config(typ=EduIDBaseAppConfig, app_name=name, ns='webapp', test_config=test_config)
+        super().__init__(self.conf, **kwargs)
+        self.session_interface = SessionFactory(self.conf)
         # Init databases
-        self.private_userdb = LetterProofingUserDB(self.config.mongo_uri)
-        self.proofing_statedb = LetterProofingStateDB(self.config.mongo_uri)
-        self.proofing_log = ProofingLog(self.config.mongo_uri)
+        self.private_userdb = LetterProofingUserDB(self.conf.mongo_uri)
+        self.proofing_statedb = LetterProofingStateDB(self.conf.mongo_uri)
+        self.proofing_log = ProofingLog(self.conf.mongo_uri)
         # Init celery
         self.am_relay = MagicMock()
 
 
 class NinHelpersTest(EduidAPITestCase):
-    def update_config(self, config):
+    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """
         Called from the parent class, so that we can update the configuration
         according to the needs of this test case.
@@ -45,7 +46,7 @@ class NinHelpersTest(EduidAPITestCase):
         )
         return config
 
-    def load_app(self, config):
+    def load_app(self, config: Mapping[str, Any]) -> HelpersTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.

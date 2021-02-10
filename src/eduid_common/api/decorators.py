@@ -6,7 +6,7 @@ import inspect
 import warnings
 from functools import wraps
 
-from flask import abort, current_app, jsonify, request
+from flask import abort, jsonify, request
 from marshmallow.exceptions import ValidationError
 from six import string_types
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -42,25 +42,6 @@ def require_user(f):
         return f(*args, **kwargs)
 
     return require_user_decorator
-
-
-def require_support_personnel(f):
-    @wraps(f)
-    def require_support_decorator(*args, **kwargs):
-        user = get_user()
-        # If the logged in user is whitelisted then we
-        # pass on the request to the decorated view
-        # together with the eppn of the logged in user.
-        if user.eppn in current_app.config['SUPPORT_PERSONNEL']:
-            kwargs['support_user'] = user
-            return f(*args, **kwargs)
-        current_app.logger.warning(
-            '{!s} not in support personnel whitelist: {!s}'.format(user, current_app.config['SUPPORT_PERSONNEL'])
-        )
-        # Anything else is considered as an unauthorized request
-        abort(403)
-
-    return require_support_decorator
 
 
 def can_verify_identity(f):

@@ -31,7 +31,7 @@ def init_babel(app: EduIDBaseApp) -> None:
             return lang
         # otherwise try to guess the language from the user accept
         # header the browser transmits. The best match wins.
-        lang = request.accept_languages.best_match(app.config.supported_languages)
+        lang = request.accept_languages.best_match(app.conf.available_languages)
         app.logger.debug(f'Language (best match) for request: {lang}')
         return lang
 

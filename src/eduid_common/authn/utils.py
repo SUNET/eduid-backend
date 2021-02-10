@@ -50,6 +50,8 @@ from eduid_common.api.utils import urlappend
 # From https://stackoverflow.com/a/39757388
 # The TYPE_CHECKING constant is always False at runtime, so the import won't be evaluated, but mypy
 # (and other type-checking tools) will evaluate the contents of that block.
+from eduid_common.config.base import EduIDBaseAppConfig
+
 if TYPE_CHECKING:
     from eduid_common.api.app import EduIDBaseApp
 
@@ -109,22 +111,17 @@ def get_saml_attribute(session_info: Mapping[str, Any], attr_name: str) -> Optio
     return None
 
 
-def no_authn_views(app: 'EduIDBaseApp', paths: Sequence[str]):
+def no_authn_views(config: EduIDBaseAppConfig, paths: Sequence[str]) -> None:
     """
-    :param app: Flask app
+    :param config: Configuration to modify with extra no_authn_urls
     :param paths: Paths that does not require authentication
-
-    :return: Flask app
-    :rtype: flask.Flask
     """
-    app_root = app.config.get('APPLICATION_ROOT')
-    if app_root is None:
-        app_root = ''
+    app_root = config.flask.application_root
     for path in paths:
         no_auth_regex = '^{!s}$'.format(urlappend(app_root, path))
-        if no_auth_regex not in app.config['NO_AUTHN_URLS']:
-            app.config['NO_AUTHN_URLS'].append(no_auth_regex)
-    return app
+        if no_auth_regex not in config.no_authn_urls:
+            config.no_authn_urls.append(no_auth_regex)
+    return None
 
 
 def generate_password(length=12):

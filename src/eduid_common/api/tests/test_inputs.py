@@ -32,7 +32,7 @@
 #
 
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Mapping
 from urllib.parse import unquote
 
 from flask import Blueprint, make_response, request
@@ -46,7 +46,8 @@ from eduid_common.api.decorators import UnmarshalWith
 from eduid_common.api.schemas.base import EduidSchema
 from eduid_common.api.schemas.csrf import CSRFRequestMixin
 from eduid_common.api.testing import EduidAPITestCase
-from eduid_common.config.base import FlaskConfig
+from eduid_common.config.base import EduIDBaseAppConfig, FlaskConfig
+from eduid_common.config.parsers import load_config
 from eduid_common.session.eduid_session import SessionFactory
 
 logger = logging.getLogger(__name__)
@@ -119,28 +120,31 @@ def values_view():
 
 
 class InputsTestApp(EduIDBaseApp):
-    def __init__(self, name: str, config: Dict[str, Any], **kwargs):
-        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=config)
-        super().__init__(name, **kwargs)
+    def __init__(self, config: EduIDBaseAppConfig):
+        super().__init__(config)
+
+        self.conf = config
+
+        self.central_userdb = UserDB(config.mongo_uri, 'eduid_am')
+        self.session_interface = SessionFactory(config)
 
 
 class InputsTests(EduidAPITestCase):
-    def update_config(self, config):
+    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """
         Called from the parent class, so that we can update the configuration
         according to the needs of this test case.
         """
         return config
 
-    def load_app(self, config):
+    def load_app(self, test_config: Mapping[str, Any]) -> InputsTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        app = InputsTestApp('testing', config)
+        config = load_config(typ=EduIDBaseAppConfig, app_name='testing', ns='webapp', test_config=test_config)
+        app = InputsTestApp(config)
         app.register_blueprint(test_views)
-        app.central_userdb = UserDB(app.config.mongo_uri, 'eduid_am')
-        app.session_interface = SessionFactory(app.config)
         return app
 
     def test_get_param(self):

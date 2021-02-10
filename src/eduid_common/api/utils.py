@@ -190,9 +190,9 @@ def get_static_url_for(f: str, version: Optional[str] = None) -> str:
     """
     Get the static url for a file and optionally have a version argument appended for cache busting.
     """
-    static_url = current_app.config['EDUID_STATIC_URL']
+    static_url = current_app.conf.eduid_static_url
     if version is not None:
-        static_url = urlappend(current_app.config['EDUID_STATIC_URL'], version)
+        static_url = urlappend(current_app.conf.eduid_static_url, version)
     return urlappend(static_url, f)
 
 
@@ -233,11 +233,11 @@ def verify_relay_state(
 
     if logger is None:
         logger = current_app.logger
-    logger.debug('Checking if relay state {} is safe'.format(relay_state))
+    logger.debug(f'Checking if relay state {relay_state} is safe')
     if url_scheme is None:
         url_scheme = current_app.config['PREFERRED_URL_SCHEME']
     if safe_domain is None:
-        safe_domain = current_app.config['SAFE_RELAY_DOMAIN']
+        safe_domain = current_app.conf.safe_relay_domain
     parsed_relay_state = urlparse(relay_state)
 
     # If relay state is only a path

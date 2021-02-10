@@ -33,8 +33,7 @@
 import base64
 import json
 from copy import deepcopy
-from dataclasses import dataclass, field
-from typing import cast
+from typing import Any, Dict, Mapping
 
 from flask import Blueprint, current_app, request
 from mock import patch
@@ -46,18 +45,13 @@ from eduid_userdb.fixtures.users import new_user_example
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.fido_tokens import VerificationProblem, start_token_verification, verify_webauthn
-from eduid_common.config.base import FlaskConfig
+from eduid_common.config.base import EduIDBaseAppConfig, WebauthnConfigMixin2
+from eduid_common.config.parsers import load_config
 
 
-@dataclass
-class MockFidoConfig(FlaskConfig):
+class MockFidoConfig(EduIDBaseAppConfig, WebauthnConfigMixin2):
     mfa_testing: bool = True
     generate_u2f_challenges: bool = True
-    u2f_app_id: str = 'https://eduid.se/u2f-app-id.json'
-    fido2_rp_id: str = 'idp.dev.eduid.se'
-    u2f_valid_facets: list = field(
-        default_factory=lambda: ['https://dashboard.dev.eduid.se', 'https://idp.dev.eduid.se']
-    )
 
 
 views = Blueprint('testing', 'testing', url_prefix='')
@@ -65,21 +59,22 @@ views = Blueprint('testing', 'testing', url_prefix='')
 
 @views.route('/start', methods=["GET"])
 def start_verification():
+    current_app.logger.info('Endpoint start_verification called')
     user = current_app.central_userdb.get_user_by_eppn('hubba-bubba')
     data = json.loads(request.query_string[17:])
     try:
-        result = verify_webauthn(user, data, 'testing', current_app.config.fido2_rp_id)
+        result = verify_webauthn(user, data, 'testing', current_app.conf.fido2_rp_id)
     except VerificationProblem:
         result = {'success': False, 'message': 'mfa.verification-problem'}
+    current_app.logger.info(f'Endpoint start_verification result: {result}')
     return json.dumps(result)
 
 
 class MockFidoApp(EduIDBaseApp):
-    def __init__(self, name: str, config: dict, **kwargs):
-        self.config = MockFidoConfig(**config)
-        super(MockFidoApp, self).__init__(name, **kwargs)
-        self.config: MockFidoConfig = cast(MockFidoConfig, self.config)
-        self.register_blueprint(views)
+    def __init__(self, config: MockFidoConfig):
+        super().__init__(config)
+
+        self.conf = config
 
 
 SAMPLE_WEBAUTHN_REQUEST = {
@@ -92,31 +87,41 @@ SAMPLE_WEBAUTHN_REQUEST = {
 
 
 class FidoTokensTestCase(EduidAPITestCase):
+
+    app: MockFidoApp
+
     def setUp(self):
-        super(FidoTokensTestCase, self).setUp()
+        super().setUp()
         self.webauthn_credential = webauthn_credential
         self.u2f_credential = u2f_credential
         self.test_user = User.from_dict(data=new_user_example.to_dict())
 
-    def load_app(self, config):
+    def load_app(self, test_config: Mapping[str, Any]) -> MockFidoApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return MockFidoApp('testing', config)
+        config = load_config(typ=MockFidoConfig, app_name='testing', ns='webapp', test_config=test_config)
+        app = MockFidoApp(config)
+        app.register_blueprint(views)
+        return app
 
-    def update_config(self, app_config):
-        app_config.update(
+    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        config.update(
             {
+                'app_name': 'testing',
                 'available_languages': {'en': 'English', 'sv': 'Svenska'},
                 'celery_config': {
                     'result_backend': 'amqp',
                     'task_serializer': 'json',
-                    'mongo_uri': app_config['mongo_uri'],
+                    'mongo_uri': config['mongo_uri'],
                 },
+                'u2f_app_id': 'https://eduid.se/u2f-app-id.json',
+                'fido2_rp_id': 'idp.dev.eduid.se',
+                'u2f_valid_facets': ['https://dashboard.dev.eduid.se', 'https://idp.dev.eduid.se'],
             }
         )
-        return app_config
+        return config
 
     def test_u2f_start_verification(self):
         # Add a working U2F credential for this test
@@ -128,7 +133,7 @@ class FidoTokensTestCase(EduidAPITestCase):
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction():
                 with self.app.test_request_context():
-                    config = start_token_verification(self.test_user, 'testing', self.app.config.fido2_rp_id)
+                    config = start_token_verification(self.test_user, 'testing', self.app.conf.fido2_rp_id)
                     assert 'u2fdata' not in config
                     assert 'webauthn_options' in config
                     s = config['webauthn_options']
@@ -148,7 +153,7 @@ class FidoTokensTestCase(EduidAPITestCase):
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction():
                 with self.app.test_request_context():
-                    config = start_token_verification(self.test_user, 'testing', self.app.config.fido2_rp_id)
+                    config = start_token_verification(self.test_user, 'testing', self.app.conf.fido2_rp_id)
                     assert 'u2fdata' not in config
                     assert 'webauthn_options' in config
                     s = config['webauthn_options']
@@ -182,7 +187,7 @@ class FidoTokensTestCase(EduidAPITestCase):
 
     @patch('fido2.cose.ES256.verify')
     def test_webauthn_verify_wrong_origin(self, mock_verify):
-        self.app.config.fido2_rp_id = 'wrong.rp.id'
+        self.app.conf.fido2_rp_id = 'wrong.rp.id'
         mock_verify.return_value = True
         # Add a working U2F credential for this test
         self.test_user.credentials.add(self.webauthn_credential)

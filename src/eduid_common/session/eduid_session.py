@@ -11,7 +11,7 @@ from flask import Request as FlaskRequest
 from flask import Response as FlaskResponse
 from flask.sessions import SessionInterface, SessionMixin
 
-from eduid_common.config.base import FlaskConfig
+from eduid_common.config.base import EduIDBaseAppConfig
 from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.session.logindata import SSOLoginData
 from eduid_common.session.meta import SessionMeta
@@ -244,20 +244,20 @@ class EduidSession(SessionMixin, MutableMapping):
         """
         if self._invalidated:
             response.delete_cookie(
-                key=self.app.config.session_cookie_name,
-                path=self.app.config.session_cookie_path,
-                domain=self.app.config.session_cookie_domain,
+                key=self.app.conf.flask.session_cookie_name,
+                path=self.app.conf.flask.session_cookie_path,
+                domain=self.app.conf.flask.session_cookie_domain,
             )
             return
         response.set_cookie(
-            key=self.app.config.session_cookie_name,
+            key=self.app.conf.flask.session_cookie_name,
             value=self.meta.cookie_val,
-            domain=self.app.config.session_cookie_domain,
-            path=self.app.config.session_cookie_path,
-            secure=self.app.config.session_cookie_secure,
-            httponly=self.app.config.session_cookie_httponly,
-            samesite=self.app.config.session_cookie_samesite,
-            max_age=self.app.config.permanent_session_lifetime,
+            domain=self.app.conf.flask.session_cookie_domain,
+            path=self.app.conf.flask.session_cookie_path,
+            secure=self.app.conf.flask.session_cookie_secure,
+            httponly=self.app.conf.flask.session_cookie_httponly,
+            samesite=self.app.conf.flask.session_cookie_samesite,
+            max_age=self.app.conf.flask.permanent_session_lifetime,
         )
 
     def new_csrf_token(self) -> str:
@@ -317,12 +317,12 @@ class SessionFactory(SessionInterface):
     :param config: the configuration for the session
     """
 
-    def __init__(self, config: FlaskConfig):
-        if config.secret_key is None:
-            raise BadConfiguration('secret_key not set in config')
+    def __init__(self, config: EduIDBaseAppConfig):
+        if config.flask.secret_key is None:
+            raise BadConfiguration('flask.secret_key not set in config')
 
-        ttl = 2 * config.permanent_session_lifetime
-        self.manager = SessionManager(config.redis_config, ttl=ttl, app_secret=config.secret_key)
+        ttl = 2 * config.flask.permanent_session_lifetime
+        self.manager = SessionManager(config.redis_config, ttl=ttl, app_secret=config.flask.secret_key)
 
     # Return type not specified because 'Return type of "open_session" incompatible with supertype "SessionInterface"'
     def open_session(self, app: EduIDBaseApp, request: FlaskRequest):  # -> EduidSession:
@@ -330,7 +330,7 @@ class SessionFactory(SessionInterface):
         See flask.session.SessionInterface
         """
         # Load token from cookie
-        cookie_name = app.config.session_cookie_name
+        cookie_name = app.conf.flask.session_cookie_name
         cookie_val = request.cookies.get(cookie_name, None)
         logger.debug(f'Session cookie {cookie_name} == {cookie_val}')
 
