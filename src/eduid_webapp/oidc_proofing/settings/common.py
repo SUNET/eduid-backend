@@ -36,18 +36,18 @@ from typing import Dict
 
 from pydantic import Field
 
-from eduid_common.config.base import EduIDBaseAppConfig
+from eduid_common.config.base import CeleryConfigMixin, EduIDBaseAppConfig
 
 
-class OIDCProofingConfig(EduIDBaseAppConfig):
+class OIDCProofingConfig(EduIDBaseAppConfig, CeleryConfigMixin):
     """
     Configuration for the oidc proofing app
     """
 
-    eduid_site_name: str
-    eduid_site_url: str
-
     app_name: str = 'oidc_proofing'
+
+    eduid_site_name: str = 'eduID'
+    eduid_site_url: str
 
     # OIDC
     client_registration_info: Dict[str, str] = Field(

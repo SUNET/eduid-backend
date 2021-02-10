@@ -6,7 +6,7 @@ import datetime
 import os
 import urllib
 from collections import OrderedDict
-from typing import Any
+from typing import Any, Mapping
 from unittest import TestCase
 
 import six
@@ -15,13 +15,13 @@ from mock import patch
 from eduid_common.api.messages import redirect_with_msg
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.authn.cache import OutstandingQueriesCache
+from eduid_common.config.base import EduidEnvironment
 from eduid_userdb.credentials import U2F, Webauthn
 from eduid_userdb.credentials.fido import FidoCredential
 
 from eduid_webapp.eidas.acs_actions import EidasAcsAction
-from eduid_webapp.eidas.app import init_eidas_app
+from eduid_webapp.eidas.app import EidasApp, init_eidas_app
 from eduid_webapp.eidas.helpers import EidasMsg
-from eduid_webapp.eidas.settings.common import EidasConfig
 
 __author__ = 'lundberg'
 
@@ -30,6 +30,8 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 
 class EidasTests(EduidAPITestCase):
     """Base TestCase for those tests that need a full environment setup"""
+
+    app: EidasApp
 
     def setUp(self):
         self.test_user_eppn = 'hubba-bubba'
@@ -121,7 +123,7 @@ class EidasTests(EduidAPITestCase):
 
         super(EidasTests, self).setUp(users=['hubba-bubba', 'hubba-baar'])
 
-    def load_app(self, config):
+    def load_app(self, config: Mapping[str, Any]) -> EidasApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
@@ -583,7 +585,7 @@ class EidasTests(EduidAPITestCase):
         self.assertEqual(user.nins.verified.count, 0)
 
         self.app.conf.magic_cookie = 'magic-cookie'
-        self.app.conf.environment = 'pro'
+        self.app.conf.environment = EduidEnvironment.production
 
         with self.session_cookie(self.browser, self.test_unverified_user_eppn) as browser:
             browser.set_cookie('localhost', key='magic-cookie', value='magic-cookie')

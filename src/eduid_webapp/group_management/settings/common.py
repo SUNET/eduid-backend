@@ -36,15 +36,19 @@ Configuration (file) handling for the eduID group_management app.
 
 from typing import Any, Dict, Optional
 
-from eduid_common.config.base import EduIDBaseAppConfig
+from eduid_common.config.base import CeleryConfigMixin, EduIDBaseAppConfig
 
 
-class GroupManagementConfig(EduIDBaseAppConfig):
+class GroupManagementConfig(EduIDBaseAppConfig, CeleryConfigMixin):
     """
     Configuration for the group_management app
     """
 
     app_name: str = 'group_management'
+
+    eduid_site_name: str = 'eduID'
+    eduid_site_url: str
+
     scim_data_owner: str = 'eduid.se'
     scim_external_id_scope: str = 'eduid.se'
     neo4j_uri: str = ''

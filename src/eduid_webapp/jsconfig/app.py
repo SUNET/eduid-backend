@@ -44,43 +44,43 @@ from eduid_webapp.jsconfig.settings.common import JSConfigConfig
 
 
 class JSConfigApp(EduIDBaseApp):
-    def __init__(self, name: str, test_config: Optional[Mapping[str, Any]], **kwargs):
+    def __init__(self, config: JSConfigConfig, **kwargs):
 
         kwargs['init_central_userdb'] = False
         kwargs['host_matching'] = True
         kwargs['static_folder'] = None
         kwargs['subdomain_matching'] = True
 
-        self.conf = load_config(typ=JSConfigConfig, app_name=name, ns='webapp', test_config=test_config)
-        # Initialise type of self.config before any parent class sets a precedent to mypy
-        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
-        super().__init__(name, **kwargs)
+        super().__init__(config, **kwargs)
+
+        self.conf = config
 
         if not self.testing:
             self.url_map.host_matching = False
-
-        from eduid_webapp.jsconfig.views import jsconfig_views
-
-        self.register_blueprint(jsconfig_views)
-
-        # Register view path that should not be authorized
-        no_auth_paths = ['/get-bundle', '/signup/config']
-        no_authn_views(self, no_auth_paths)
 
 
 current_jsconfig_app: JSConfigApp = cast(JSConfigApp, current_app)
 
 
-def jsconfig_init_app(name: str, test_config: Optional[Mapping[str, Any]]) -> JSConfigApp:
+def jsconfig_init_app(name: str = 'jsconfig', test_config: Optional[Mapping[str, Any]] = None) -> JSConfigApp:
     """
     Create an instance of an eduid jsconfig data app.
 
     :param name: The name of the instance, it will affect the configuration loaded.
     :param test_config: Override config, used in test cases.
     """
+    config = load_config(typ=JSConfigConfig, app_name=name, ns='webapp', test_config=test_config)
 
-    app = JSConfigApp(name, test_config)
+    app = JSConfigApp(config)
 
-    app.logger.info(f'Init {name} app...')
+    app.logger.info(f'Init {app}...')
+
+    from eduid_webapp.jsconfig.views import jsconfig_views
+
+    app.register_blueprint(jsconfig_views)
+
+    # Register view path that should not be authorized
+    no_auth_paths = ['/get-bundle', '/signup/config']
+    no_authn_views(config, no_auth_paths)
 
     return app

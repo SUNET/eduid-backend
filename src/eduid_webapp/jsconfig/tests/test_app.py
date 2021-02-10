@@ -33,17 +33,20 @@
 
 import json
 import os
+from typing import Any, Dict, Mapping
 
 from mock import patch
 
 from eduid_common.api.testing import EduidAPITestCase
 from eduid_common.config.parsers.etcd import EtcdConfigParser
 
-from eduid_webapp.jsconfig.app import jsconfig_init_app
-from eduid_webapp.jsconfig.settings.common import JSConfigConfig
+from eduid_webapp.jsconfig.app import JSConfigApp, jsconfig_init_app
 
 
 class JSConfigTests(EduidAPITestCase):
+
+    app: JSConfigApp
+
     def setUp(self):
         super(JSConfigTests, self).setUp(copy_user_to_private=False)
 
@@ -62,18 +65,18 @@ class JSConfigTests(EduidAPITestCase):
         os.environ['ETCD_HOST'] = self.etcd_instance.host
         os.environ['ETCD_PORT'] = str(self.etcd_instance.port)
 
-    def load_app(self, config):
+    def load_app(self, config: Mapping[str, Any]) -> JSConfigApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        app = jsconfig_init_app('jsconfig', config)
+        app = jsconfig_init_app(test_config=config)
         self.browser = app.test_client(allow_subdomain_redirects=True)
         app.url_map.host_matching = False
         return app
 
-    def update_config(self, app_config):
-        app_config.update(
+    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        config.update(
             {
                 'server_name': 'example.com',
                 'tou_url': 'dummy-url',
@@ -84,9 +87,10 @@ class JSConfigTests(EduidAPITestCase):
                 'signup_bundle_version': 'dummy-signup-version',
                 'login_bundle_path': 'dummy-login-bundle',
                 'login_bundle_version': 'dummy-login-version',
+                'eduid_static_url': '/static',
             }
         )
-        return app_config
+        return config
 
     def test_get_dashboard_config(self):
         eppn = self.test_user_data['eduPersonPrincipalName']

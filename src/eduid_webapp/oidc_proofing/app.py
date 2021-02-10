@@ -35,6 +35,9 @@ from typing import Any, Mapping, Optional, cast
 from flask import current_app
 
 from eduid_common.api import am, mail_relay, msg, oidc, translation
+from eduid_common.api.am import AmRelay
+from eduid_common.api.mail_relay import MailRelay
+from eduid_common.api.msg import MsgRelay
 from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.authn.utils import no_authn_views
 from eduid_common.config.base import FlaskConfig
@@ -48,26 +51,18 @@ __author__ = 'lundberg'
 
 
 class OIDCProofingApp(AuthnBaseApp):
-    def __init__(self, name: str, test_config: Optional[Mapping[str, Any]], **kwargs):
-        self.conf = load_config(typ=OIDCProofingConfig, app_name=name, ns='webapp', test_config=test_config)
-        # Initialise type of self.config before any parent class sets a precedent to mypy
-        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
-        super().__init__(name, **kwargs)
+    def __init__(self, config: OIDCProofingConfig, **kwargs):
+        super().__init__(config, **kwargs)
 
-        from eduid_webapp.oidc_proofing.views import oidc_proofing_views
+        self.conf = config
 
-        self.register_blueprint(oidc_proofing_views)
-
-        # Register view path that should not be authorized
-        no_authn_views(self, ['/authorization-response'])
-
-        # Initialize the oidc_client after views to be able to set correct redirect_uris
-        self.oidc_client = oidc.init_client(self.conf.client_registration_info, self.conf.provider_configuration_info)
+        # Provide type, although the actual assignment happens in init_oidc_proofing_app below
+        self.oidc_client: oidc.Client
 
         # Init celery
-        msg.init_relay(self)
-        am.init_relay(self, 'eduid_oidc_proofing')
-        mail_relay.init_relay(self)
+        self.msg_relay = MsgRelay(config.celery)
+        self.am_relay = AmRelay(config.celery, 'eduid_oidc_proofing')
+        self.mail_relay = MailRelay(config.celery)
 
         # Init babel
         translation.init_babel(self)
@@ -81,16 +76,29 @@ class OIDCProofingApp(AuthnBaseApp):
 current_oidcp_app: OIDCProofingApp = cast(OIDCProofingApp, current_app)
 
 
-def init_oidc_proofing_app(name: str, test_config: Optional[Mapping[str, Any]]) -> OIDCProofingApp:
+def init_oidc_proofing_app(
+    name: str = 'oidc_proofing', test_config: Optional[Mapping[str, Any]] = None
+) -> OIDCProofingApp:
     """
     Create an instance of an oidc proofing app.
 
     :param name: The name of the instance, it will affect the configuration loaded.
     :param test_config: Override config. Used in test cases.
     """
+    config = load_config(typ=OIDCProofingConfig, app_name=name, ns='webapp', test_config=test_config)
 
-    app = OIDCProofingApp(name, test_config)
+    app = OIDCProofingApp(config)
 
-    app.logger.info(f'Init {name} app...')
+    app.logger.info(f'Init {app}...')
+
+    from eduid_webapp.oidc_proofing.views import oidc_proofing_views
+
+    app.register_blueprint(oidc_proofing_views)
+
+    # Register view path that should not be authorized
+    no_authn_views(config, ['/authorization-response'])
+
+    # Initialize the oidc_client after views to be able to set correct redirect_uris
+    app.oidc_client = oidc.init_client(config.client_registration_info, config.provider_configuration_info)
 
     return app

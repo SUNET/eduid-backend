@@ -31,14 +31,14 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from typing import cast
 from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid_common.api import am, mail_relay, translation
+from eduid_common.api import translation
+from eduid_common.api.am import AmRelay
+from eduid_common.api.mail_relay import MailRelay
 from eduid_common.authn.middleware import AuthnBaseApp
-from eduid_common.config.base import FlaskConfig
 from eduid_common.config.parsers import load_config
 from eduid_userdb.logs import ProofingLog
 from eduid_userdb.proofing import EmailProofingStateDB, EmailProofingUserDB
@@ -47,38 +47,40 @@ from eduid_webapp.email.settings.common import EmailConfig
 
 
 class EmailApp(AuthnBaseApp):
-    def __init__(self, name: str, test_config: Optional[Mapping[str, Any]], **kwargs):
-        self.conf = load_config(typ=EmailConfig, app_name=name, ns='webapp', test_config=test_config)
-        # Initialise type of self.config before any parent class sets a precedent to mypy
-        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
-        super().__init__(name, **kwargs)
+    def __init__(self, config: EmailConfig, **kwargs):
+        super().__init__(config, **kwargs)
 
-        from eduid_webapp.email.views import email_views
+        self.conf = config
 
-        self.register_blueprint(email_views)
+        # Init celery
+        self.am_relay = AmRelay(config.celery, 'eduid_eidas')
+        self.mail_relay = MailRelay(config.celery)
 
-        am.init_relay(self, 'eduid_email')
-        mail_relay.init_relay(self)
         translation.init_babel(self)
 
-        self.private_userdb = EmailProofingUserDB(self.config.mongo_uri)
-        self.proofing_statedb = EmailProofingStateDB(self.config.mongo_uri)
-        self.proofing_log = ProofingLog(self.config.mongo_uri)
+        self.private_userdb = EmailProofingUserDB(config.mongo_uri)
+        self.proofing_statedb = EmailProofingStateDB(config.mongo_uri)
+        self.proofing_log = ProofingLog(config.mongo_uri)
 
 
 current_email_app: EmailApp = cast(EmailApp, current_app)
 
 
-def email_init_app(name: str, test_config: Optional[Mapping[str, Any]]) -> EmailApp:
+def email_init_app(name: str = 'email', test_config: Optional[Mapping[str, Any]] = None) -> EmailApp:
     """
     Create an instance of an eduid email app.
 
     :param name: The name of the instance, it will affect the configuration loaded.
     :param test_config: Override config, used in test cases.
     """
+    config = load_config(typ=EmailConfig, app_name=name, ns='webapp', test_config=test_config)
 
-    app = EmailApp(name, test_config)
+    app = EmailApp(config)
 
-    app.logger.info('Init {} app...'.format(name))
+    app.logger.info(f'Init {app}...')
+
+    from eduid_webapp.email.views import email_views
+
+    app.register_blueprint(email_views)
 
     return app

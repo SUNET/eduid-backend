@@ -31,7 +31,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime
 from typing import Any, Mapping, Optional
@@ -47,7 +46,6 @@ from eduid_userdb.userdb import User
 from eduid_webapp.actions.action_abc import ActionPlugin
 from eduid_webapp.actions.app import ActionsApp, actions_init_app
 from eduid_webapp.actions.helpers import ActionsMsg
-from eduid_webapp.actions.settings.common import ActionsConfig
 
 
 class MockIdPContext:

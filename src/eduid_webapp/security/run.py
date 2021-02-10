@@ -34,9 +34,8 @@
 
 from eduid_webapp.security.app import security_init_app
 
-name = 'security'
-app = security_init_app(name, {})
+app = security_init_app()
 
 if __name__ == '__main__':
-    app.logger.info('Starting {} app...'.format(name))
+    app.logger.info(f'Starting {app} app...')
     app.run()

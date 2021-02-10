@@ -137,7 +137,9 @@ def assertion_consumer_service():
     try:
         session_info = get_authn_response(current_app.saml2_config, session, xmlstr)
         current_app.logger.debug('Trying to locate the user authenticated by the IdP')
-        user = authenticate(current_app, session_info)
+        user = authenticate(
+            session_info, strip_suffix=current_app.conf.saml2_strip_saml_user_suffix, userdb=current_app.central_userdb
+        )
         if user is None:
             current_app.logger.error('Could not find the user identified by the IdP')
             raise Forbidden("Access not authorized")
@@ -185,7 +187,7 @@ def logout():
 
     current_app.logger.debug('Logout process started for user {}'.format(user))
 
-    return saml_logout(current_app, user, location)
+    return saml_logout(current_app.saml2_config, user, location)
 
 
 @authn_views.route('/saml2-ls', methods=['POST'])

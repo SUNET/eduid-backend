@@ -34,19 +34,20 @@
 Configuration (file) handling for the eduID reset_password app.
 """
 
-from eduid_common.config.base import EduIDBaseAppConfig, MagicCookieMixin, WebauthnConfigMixin2
+from eduid_common.config.base import CeleryConfigMixin, EduIDBaseAppConfig, MagicCookieMixin, WebauthnConfigMixin2
 
 
-class ResetPasswordConfig(EduIDBaseAppConfig, WebauthnConfigMixin2, MagicCookieMixin):
+class ResetPasswordConfig(EduIDBaseAppConfig, WebauthnConfigMixin2, MagicCookieMixin, CeleryConfigMixin):
     """
     Configuration for the reset_password app
     """
+
+    app_name: str = 'reset_password'
 
     # VCCS URL
     vccs_url: str
     dashboard_url: str
 
-    app_name: str = 'reset_password'
     email_code_timeout: int = 7200
     phone_code_timeout: int = 600
     password_entropy: int = 25

@@ -30,49 +30,45 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
 from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid_common.api import mail_relay, translation
+from eduid_common.api import translation
+from eduid_common.api.mail_relay import MailRelay
 from eduid_common.authn.middleware import AuthnBaseApp
-from eduid_common.config.base import FlaskConfig
-from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.config.parsers import load_config
 from eduid_scimapi.db.groupdb import ScimApiGroupDB
 from eduid_scimapi.db.userdb import ScimApiUserDB
 from eduid_userdb.group_management import GroupManagementInviteStateDB
+
 from eduid_webapp.group_management.settings.common import GroupManagementConfig
 
 __author__ = 'lundberg'
 
 
 class GroupManagementApp(AuthnBaseApp):
-    def __init__(self, name: str, test_config: Optional[Mapping[str, Any]], **kwargs):
-        self.conf = load_config(typ=GroupManagementConfig, app_name=name, ns='webapp', test_config=test_config)
-        # Initialise type of self.config before any parent class sets a precedent to mypy
-        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
-        super().__init__(name, **kwargs)
+    def __init__(self, config: GroupManagementConfig, **kwargs):
+        super().__init__(config, **kwargs)
+
+        self.conf = config
 
         # Init dbs
-        if self.config.mongo_uri is None:
-            raise BadConfiguration('mongo_uri not set')
-        self.invite_state_db = GroupManagementInviteStateDB(self.config.mongo_uri)
-        _owner = self.conf.scim_data_owner.replace(
+        self.invite_state_db = GroupManagementInviteStateDB(config.mongo_uri)
+        _owner = config.scim_data_owner.replace(
             '.', '_'
         )  # dot is a name separator in mongodb, so replace dots with underscores
-        self.scimapi_userdb = ScimApiUserDB(db_uri=self.config.mongo_uri, collection=f'{_owner}__users')
+        self.scimapi_userdb = ScimApiUserDB(db_uri=config.mongo_uri, collection=f'{_owner}__users')
         self.scimapi_groupdb = ScimApiGroupDB(
-            neo4j_uri=self.conf.neo4j_uri,
-            neo4j_config=self.conf.neo4j_config,
-            scope=self.conf.scim_data_owner,
-            mongo_uri=self.config.mongo_uri,
+            neo4j_uri=config.neo4j_uri,
+            neo4j_config=config.neo4j_config,
+            scope=config.scim_data_owner,
+            mongo_uri=config.mongo_uri,
             mongo_dbname='eduid_scimapi',
             mongo_collection=f'{_owner}__groups',
         )
         # Init celery
-        mail_relay.init_relay(self)
+        self.mail_relay = MailRelay(config.celery)
 
         # Init translation
         translation.init_babel(self)
@@ -81,14 +77,20 @@ class GroupManagementApp(AuthnBaseApp):
 current_group_management_app = cast(GroupManagementApp, current_app)
 
 
-def init_group_management_app(name: str, test_config: Optional[Mapping[str, Any]]) -> GroupManagementApp:
+def init_group_management_app(
+    name: str = 'group_management', test_config: Optional[Mapping[str, Any]] = None
+) -> GroupManagementApp:
     """
     :param name: The name of the instance, it will affect the configuration loaded.
     :param test_config: Override config, used in test cases.
 
     :return: the flask app
     """
-    app = GroupManagementApp(name, test_config)
+    config = load_config(typ=GroupManagementConfig, app_name=name, ns='webapp', test_config=test_config)
+
+    app = GroupManagementApp(config)
+
+    app.logger.info(f'Init {app}...')
 
     # Register views
     from eduid_webapp.group_management.views.group import group_management_views

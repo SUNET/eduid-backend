@@ -31,10 +31,10 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from eduid_common.config.base import EduIDBaseAppConfig, MagicCookieMixin, WebauthnConfigMixin2
+from eduid_common.config.base import CeleryConfigMixin, EduIDBaseAppConfig, MagicCookieMixin, WebauthnConfigMixin2
 
 
-class SecurityConfig(EduIDBaseAppConfig, WebauthnConfigMixin2, MagicCookieMixin):
+class SecurityConfig(EduIDBaseAppConfig, WebauthnConfigMixin2, MagicCookieMixin, CeleryConfigMixin):
     """
     Configuration for the security app
     """
@@ -42,6 +42,7 @@ class SecurityConfig(EduIDBaseAppConfig, WebauthnConfigMixin2, MagicCookieMixin)
     vccs_url: str
     dashboard_url: str
     token_service_url: str
+    eduid_static_url: str
 
     app_name: str = 'security'
 

@@ -30,10 +30,10 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from eduid_common.config.base import EduIDBaseAppConfig, MagicCookieMixin
+from eduid_common.config.base import CeleryConfigMixin, EduIDBaseAppConfig, MagicCookieMixin
 
 
-class LetterProofingConfig(EduIDBaseAppConfig, MagicCookieMixin):
+class LetterProofingConfig(EduIDBaseAppConfig, MagicCookieMixin, CeleryConfigMixin):
     """
     Configuration for the letter proofing app
     """

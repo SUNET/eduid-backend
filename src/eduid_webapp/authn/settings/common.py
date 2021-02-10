@@ -60,4 +60,8 @@ class AuthnConfig(EduIDBaseAppConfig):
     authn_digest_alg: Optional[str] = 'http://www.w3.org/2001/04/xmlenc#sha256'
     saml2_login_redirect_url: str
     saml2_logout_redirect_url: str
+    saml2_settings_module: str
+    saml2_strip_saml_user_suffix: str
+
     token_service_url: str
+    safe_relay_domain: str = 'eduid.se'

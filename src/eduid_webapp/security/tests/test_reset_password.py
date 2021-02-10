@@ -39,9 +39,6 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         config.update(
             {
                 'available_languages': {'en': 'English', 'sv': 'Svenska'},
-                'msg_broker_url': 'amqp://dummy',
-                'am_broker_url': 'amqp://dummy',
-                'celery_config': {'result_backend': 'amqp', 'task_serializer': 'json'},
                 'vccs_url': 'http://vccs',
                 'email_code_timeout': 7200,
                 'phone_code_timeout': 600,
@@ -71,12 +68,12 @@ class SecurityResetPasswordTests(EduidAPITestCase):
 
     def verify_email_address(self, state):
         with self.app.test_client() as c:
-            response = c.get('/reset-password/email/{}'.format(state.email_code.code))
+            response = c.get(f'/reset-password/email/{state.email_code.code}')
 
             self.assertEqual(response.status_code, 302)
             self.assertEqual(
                 response.location,
-                'http://{}/reset-password/extra-security/{}'.format(self.app.config.server_name, state.email_code.code),
+                f'http://{self.app.conf.flask.server_name}/reset-password/extra-security/{state.email_code.code}',
             )
             self.assertEqual(self.app.proofing_log.db_count(), 1)
 

@@ -147,7 +147,7 @@ def generate_suggested_password():
 
 
 @deprecated("Remove once the password reset views are served from their own webapp")
-def send_sms(phone_number: str, text_template: str, context: Optional[dict] = None, reference: Optional[str] = None):
+def send_sms(phone_number: str, text_template: str, reference: str, context: Optional[dict] = None):
     """
     :param phone_number: the recipient of the sms
     :param text_template: message as a jinja template
@@ -252,7 +252,7 @@ def verify_email_address(state):
 
 
 @deprecated("Remove once the password reset views are served from their own webapp")
-def send_verify_phone_code(state, phone_number):
+def send_verify_phone_code(state, phone_number: str):
     state = PasswordResetEmailAndPhoneState.from_email_state(
         state, phone_number=phone_number, phone_code=get_short_hash()
     )
@@ -260,7 +260,7 @@ def send_verify_phone_code(state, phone_number):
 
     template = 'reset_password_sms.txt.jinja2'
     context = {'verification_code': state.phone_code.code}
-    send_sms(state.phone_number, template, context, state.reference)
+    send_sms(phone_number=state.phone_number, text_template=template, reference=state.reference, context=context)
     current_app.logger.info('Sent password reset sms to user {}'.format(state.eppn))
     current_app.logger.debug('Phone number: {}'.format(state.phone_number))
 

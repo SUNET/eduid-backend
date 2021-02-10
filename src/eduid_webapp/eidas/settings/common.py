@@ -39,10 +39,10 @@ from typing import Dict, Mapping
 
 from pydantic import Field
 
-from eduid_common.config.base import EduIDBaseAppConfig, MagicCookieMixin
+from eduid_common.config.base import CeleryConfigMixin, EduIDBaseAppConfig, MagicCookieMixin
 
 
-class EidasConfig(EduIDBaseAppConfig, MagicCookieMixin):
+class EidasConfig(EduIDBaseAppConfig, MagicCookieMixin, CeleryConfigMixin):
     """
     Configuration for the eidas app
     """
@@ -82,3 +82,6 @@ class EidasConfig(EduIDBaseAppConfig, MagicCookieMixin):
             #  'test nin': 'user nin'
         }
     )
+
+    saml2_settings_module: str
+    safe_relay_domain: str = 'eduid.se'

@@ -35,9 +35,10 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid_common.api import am, mail_relay, translation
+from eduid_common.api import translation
+from eduid_common.api.am import AmRelay
 from eduid_common.api.app import EduIDBaseApp
-from eduid_common.config.base import FlaskConfig
+from eduid_common.api.mail_relay import MailRelay
 from eduid_common.config.parsers import load_config
 from eduid_userdb.logs import ProofingLog
 from eduid_userdb.signup import SignupUserDB
@@ -46,28 +47,22 @@ from eduid_webapp.signup.settings.common import SignupConfig
 
 
 class SignupApp(EduIDBaseApp):
-    def __init__(self, name: str, test_config: Optional[Mapping[str, Any]], **kwargs):
-        self.conf = load_config(typ=SignupConfig, app_name=name, ns='webapp', test_config=test_config)
-        # Initialise type of self.config before any parent class sets a precedent to mypy
-        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
-        super().__init__(name, **kwargs)
+    def __init__(self, config: SignupConfig, **kwargs):
+        super().__init__(config, **kwargs)
 
-        from eduid_webapp.signup.views import signup_views
+        self.conf = config
 
-        self.register_blueprint(signup_views)
+        self.am_relay = AmRelay(config.celery, 'eduid_signup')
+        self.mail_relay = MailRelay(config.celery)
 
-        am.init_relay(self, 'eduid_signup')
-        mail_relay.init_relay(self)
-        translation.init_babel(self)
-
-        self.private_userdb = SignupUserDB(self.config.mongo_uri, 'eduid_signup')
-        self.proofing_log = ProofingLog(self.config.mongo_uri)
+        self.private_userdb = SignupUserDB(config.mongo_uri, 'eduid_signup')
+        self.proofing_log = ProofingLog(config.mongo_uri)
 
 
 current_signup_app: SignupApp = cast(SignupApp, current_app)
 
 
-def signup_init_app(name: str, test_config: Optional[Mapping[str, Any]]) -> SignupApp:
+def signup_init_app(name: str = 'signup', test_config: Optional[Mapping[str, Any]] = None) -> SignupApp:
     """
     Create an instance of an eduid signup app.
 
@@ -75,10 +70,18 @@ def signup_init_app(name: str, test_config: Optional[Mapping[str, Any]]) -> Sign
     since obviously the signup app is used unauthenticated.
 
     :param name: The name of the instance, it will affect the configuration loaded.
-    :param config: Override config. Used in test cases.
+    :param test_config: Override config. Used in test cases.
     """
-    app = SignupApp(name, test_config)
+    config = load_config(typ=SignupConfig, app_name=name, ns='webapp', test_config=test_config)
 
-    app.logger.info(f'Init {name} app...')
+    app = SignupApp(config)
+
+    app.logger.info(f'Init {app}...')
+
+    from eduid_webapp.signup.views import signup_views
+
+    app.register_blueprint(signup_views)
+
+    translation.init_babel(app)
 
     return app

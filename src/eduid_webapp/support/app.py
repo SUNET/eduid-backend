@@ -37,7 +37,6 @@ from flask import current_app
 from jinja2.exceptions import UndefinedError
 
 from eduid_common.authn.middleware import AuthnBaseApp
-from eduid_common.config.base import FlaskConfig
 from eduid_common.config.parsers import load_config
 from eduid_userdb.support import db
 
@@ -45,27 +44,20 @@ from eduid_webapp.support.settings.common import SupportConfig
 
 
 class SupportApp(AuthnBaseApp):
-    def __init__(self, name: str, test_config: Optional[Mapping[str, Any]], **kwargs):
-        self.conf = load_config(typ=SupportConfig, app_name=name, ns='webapp', test_config=test_config)
-        # Initialise type of self.config before any parent class sets a precedent to mypy
-        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
-        super().__init__(name, **kwargs)
+    def __init__(self, config: SupportConfig, **kwargs):
+        super().__init__(config, **kwargs)
 
-        from eduid_webapp.support.views import support_views
+        self.conf = config
 
-        self.register_blueprint(support_views)
-
-        self.support_user_db = db.SupportUserDB(self.conf.mongo_uri)
-        self.support_authn_db = db.SupportAuthnInfoDB(self.conf.mongo_uri)
-        self.support_proofing_log_db = db.SupportProofingLogDB(self.conf.mongo_uri)
-        self.support_signup_db = db.SupportSignupUserDB(self.conf.mongo_uri)
-        self.support_actions_db = db.SupportActionsDB(self.conf.mongo_uri)
-        self.support_letter_proofing_db = db.SupportLetterProofingDB(self.conf.mongo_uri)
-        self.support_oidc_proofing_db = db.SupportOidcProofingDB(self.conf.mongo_uri)
-        self.support_email_proofing_db = db.SupportEmailProofingDB(self.conf.mongo_uri)
-        self.support_phone_proofing_db = db.SupportPhoneProofingDB(self.conf.mongo_uri)
-
-        register_template_funcs(self)
+        self.support_user_db = db.SupportUserDB(config.mongo_uri)
+        self.support_authn_db = db.SupportAuthnInfoDB(config.mongo_uri)
+        self.support_proofing_log_db = db.SupportProofingLogDB(config.mongo_uri)
+        self.support_signup_db = db.SupportSignupUserDB(config.mongo_uri)
+        self.support_actions_db = db.SupportActionsDB(config.mongo_uri)
+        self.support_letter_proofing_db = db.SupportLetterProofingDB(config.mongo_uri)
+        self.support_oidc_proofing_db = db.SupportOidcProofingDB(config.mongo_uri)
+        self.support_email_proofing_db = db.SupportEmailProofingDB(config.mongo_uri)
+        self.support_phone_proofing_db = db.SupportPhoneProofingDB(config.mongo_uri)
 
 
 current_support_app: SupportApp = cast(SupportApp, current_app)
@@ -98,15 +90,23 @@ def register_template_funcs(app: SupportApp) -> None:
     return None
 
 
-def support_init_app(name: str, test_config: Optional[Mapping[str, Any]]) -> SupportApp:
+def support_init_app(name: str = 'support', test_config: Optional[Mapping[str, Any]] = None) -> SupportApp:
     """
     Create an instance of an eduid support app.
 
     :param name: The name of the instance, it will affect the configuration loaded.
     :param test_config: Override config, used in test cases.
     """
-    app = SupportApp(name, test_config)
+    config = load_config(typ=SupportConfig, app_name=name, ns='webapp', test_config=test_config)
 
-    app.logger.info(f'Init {name} app...')
+    app = SupportApp(config)
+
+    app.logger.info(f'Init {app}...')
+
+    from eduid_webapp.support.views import support_views
+
+    app.register_blueprint(support_views)
+
+    register_template_funcs(app)
 
     return app

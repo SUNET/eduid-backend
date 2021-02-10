@@ -36,17 +36,18 @@ Configuration (file) handling for the eduID eidas app.
 """
 
 
-from eduid_common.config.base import EduIDBaseAppConfig, MagicCookieMixin
+from eduid_common.config.base import CeleryConfigMixin, EduIDBaseAppConfig, MagicCookieMixin
 
 
-class EmailConfig(EduIDBaseAppConfig, MagicCookieMixin):
+class EmailConfig(EduIDBaseAppConfig, MagicCookieMixin, CeleryConfigMixin):
     """
     Configuration for the email app
     """
-    eduid_site_name: str
-    eduid_site_url: str
 
     app_name: str = 'email'
+
+    eduid_site_name: str = 'eduID'
+    eduid_site_url: str
 
     email_verification_timeout: int = 86400  # seconds
     throttle_resend_seconds: int = 300

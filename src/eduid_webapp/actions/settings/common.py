@@ -39,13 +39,15 @@ from typing import Mapping
 
 from pydantic import Field
 
-from eduid_common.config.base import EduIDBaseAppConfig, WebauthnConfigMixin2
+from eduid_common.config.base import CeleryConfigMixin, EduIDBaseAppConfig, WebauthnConfigMixin2
 
 
-class ActionsConfig(EduIDBaseAppConfig, WebauthnConfigMixin2):
+class ActionsConfig(EduIDBaseAppConfig, WebauthnConfigMixin2, CeleryConfigMixin):
     """
     Configuration for the actions app
     """
+
+    eduid_static_url: str
 
     app_name: str = 'actions'
     bundles_path: str = ''
