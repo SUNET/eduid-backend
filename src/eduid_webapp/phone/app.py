@@ -53,8 +53,8 @@ class PhoneApp(AuthnBaseApp):
         self.conf = config
 
         # Init celery
-        self.am_relay = AmRelay(config.celery, 'eduid_phone')
-        self.msg_relay = MsgRelay(config.celery)
+        self.am_relay = AmRelay(config)
+        self.msg_relay = MsgRelay(config)
 
         self.private_userdb = PhoneProofingUserDB(config.mongo_uri)
         self.proofing_statedb = PhoneProofingStateDB(config.mongo_uri)

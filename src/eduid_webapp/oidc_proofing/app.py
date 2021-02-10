@@ -60,9 +60,9 @@ class OIDCProofingApp(AuthnBaseApp):
         self.oidc_client: oidc.Client
 
         # Init celery
-        self.msg_relay = MsgRelay(config.celery)
-        self.am_relay = AmRelay(config.celery, 'eduid_oidc_proofing')
-        self.mail_relay = MailRelay(config.celery)
+        self.msg_relay = MsgRelay(config)
+        self.am_relay = AmRelay(config)
+        self.mail_relay = MailRelay(config)
 
         # Init babel
         translation.init_babel(self)

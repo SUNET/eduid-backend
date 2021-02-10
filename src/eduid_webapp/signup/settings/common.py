@@ -31,13 +31,15 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from eduid_common.config.base import CeleryConfigMixin, EduIDBaseAppConfig, MagicCookieMixin
+from eduid_common.config.base import AmConfigMixin, EduIDBaseAppConfig, MagicCookieMixin, MailConfigMixin
 
 
-class SignupConfig(EduIDBaseAppConfig, MagicCookieMixin, CeleryConfigMixin):
+class SignupConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MailConfigMixin):
     """
     Configuration for the signup app
     """
+
+    app_name = 'signup'
 
     # The signup app uses this to retrieve the ToU texts from the actions app
     tou_url: str
@@ -45,7 +47,6 @@ class SignupConfig(EduIDBaseAppConfig, MagicCookieMixin, CeleryConfigMixin):
     signup_url: str
     dashboard_url: str
 
-    app_name = 'signup'
     signup_authn_url: str = '/services/authn/signup-authn'
     password_length: int = 10
     tou_version: str = '2018-v1'

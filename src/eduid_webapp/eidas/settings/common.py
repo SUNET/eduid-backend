@@ -39,18 +39,18 @@ from typing import Dict, Mapping
 
 from pydantic import Field
 
-from eduid_common.config.base import CeleryConfigMixin, EduIDBaseAppConfig, MagicCookieMixin
+from eduid_common.config.base import AmConfigMixin, EduIDBaseAppConfig, MagicCookieMixin, MsgConfigMixin
 
 
-class EidasConfig(EduIDBaseAppConfig, MagicCookieMixin, CeleryConfigMixin):
+class EidasConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MsgConfigMixin):
     """
     Configuration for the eidas app
     """
 
+    app_name: str = 'eidas'
+
     action_url: str
     token_service_url: str
-
-    app_name: str = 'eidas'
 
     token_verify_redirect_url: str = '/profile/security'
     nin_verify_redirect_url: str = '/profile/nins'

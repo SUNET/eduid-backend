@@ -34,10 +34,19 @@
 Configuration (file) handling for the eduID reset_password app.
 """
 
-from eduid_common.config.base import CeleryConfigMixin, EduIDBaseAppConfig, MagicCookieMixin, WebauthnConfigMixin2
+from eduid_common.config.base import (
+    AmConfigMixin,
+    EduIDBaseAppConfig,
+    MagicCookieMixin,
+    MailConfigMixin,
+    MsgConfigMixin,
+    WebauthnConfigMixin2,
+)
 
 
-class ResetPasswordConfig(EduIDBaseAppConfig, WebauthnConfigMixin2, MagicCookieMixin, CeleryConfigMixin):
+class ResetPasswordConfig(
+    EduIDBaseAppConfig, WebauthnConfigMixin2, MagicCookieMixin, AmConfigMixin, MsgConfigMixin, MailConfigMixin
+):
     """
     Configuration for the reset_password app
     """

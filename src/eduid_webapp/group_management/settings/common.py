@@ -36,10 +36,10 @@ Configuration (file) handling for the eduID group_management app.
 
 from typing import Any, Dict, Optional
 
-from eduid_common.config.base import CeleryConfigMixin, EduIDBaseAppConfig
+from eduid_common.config.base import EduIDBaseAppConfig, MailConfigMixin
 
 
-class GroupManagementConfig(EduIDBaseAppConfig, CeleryConfigMixin):
+class GroupManagementConfig(EduIDBaseAppConfig, MailConfigMixin):
     """
     Configuration for the group_management app
     """
@@ -49,10 +49,11 @@ class GroupManagementConfig(EduIDBaseAppConfig, CeleryConfigMixin):
     eduid_site_name: str = 'eduID'
     eduid_site_url: str
 
-    scim_data_owner: str = 'eduid.se'
-    scim_external_id_scope: str = 'eduid.se'
-    neo4j_uri: str = ''
-    neo4j_config: Optional[Dict[str, Any]] = None
     group_invite_template_html: str = 'group_invite_email.html.jinja2'
     group_invite_template_txt: str = 'group_invite_email.txt.jinja2'
     group_invite_url: str = 'https://dashboard.eduid.se'
+    mail_default_from: str = 'no-reply@eduid.se'
+    neo4j_config: Optional[Dict[str, Any]] = None
+    neo4j_uri: str = ''
+    scim_data_owner: str = 'eduid.se'
+    scim_external_id_scope: str = 'eduid.se'

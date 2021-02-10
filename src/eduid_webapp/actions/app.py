@@ -79,7 +79,7 @@ class ActionsApp(EduIDBaseApp):
 
         self.conf = config
 
-        self.am_relay = AmRelay(config.celery, f'eduid_{config.app_name}')
+        self.am_relay = AmRelay(config)
 
         self.actions_db = ActionDB(config.mongo_uri)
 

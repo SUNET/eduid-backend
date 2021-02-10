@@ -36,10 +36,10 @@ from typing import Dict
 
 from pydantic import Field
 
-from eduid_common.config.base import CeleryConfigMixin, EduIDBaseAppConfig
+from eduid_common.config.base import AmConfigMixin, EduIDBaseAppConfig, MailConfigMixin, MsgConfigMixin
 
 
-class OIDCProofingConfig(EduIDBaseAppConfig, CeleryConfigMixin):
+class OIDCProofingConfig(EduIDBaseAppConfig, MsgConfigMixin, AmConfigMixin, MailConfigMixin):
     """
     Configuration for the oidc proofing app
     """

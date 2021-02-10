@@ -35,10 +35,8 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid_common.api import am
 from eduid_common.api.am import AmRelay
 from eduid_common.authn.middleware import AuthnBaseApp
-from eduid_common.config.base import FlaskConfig
 from eduid_common.config.parsers import load_config
 from eduid_userdb.personal_data import PersonalDataUserDB
 
@@ -52,7 +50,7 @@ class PersonalDataApp(AuthnBaseApp):
         self.conf = config
 
         # Init celery
-        self.am_relay = AmRelay(config.celery, 'eduid_personal_data')
+        self.am_relay = AmRelay(config)
 
         self.private_userdb = PersonalDataUserDB(config.mongo_uri)
 

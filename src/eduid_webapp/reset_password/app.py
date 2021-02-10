@@ -58,9 +58,9 @@ class ResetPasswordApp(EduIDBaseApp):
         self.conf = config
 
         # Init celery
-        self.msg_relay = MsgRelay(config.celery)
-        self.am_relay = AmRelay(config.celery, 'eduid_reset_password')
-        self.mail_relay = MailRelay(config.celery)
+        self.msg_relay = MsgRelay(config)
+        self.am_relay = AmRelay(config)
+        self.mail_relay = MailRelay(config)
 
         # Init dbs
         self.private_userdb = ResetPasswordUserDB(self.conf.mongo_uri)

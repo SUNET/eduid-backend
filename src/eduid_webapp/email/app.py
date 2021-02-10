@@ -53,8 +53,8 @@ class EmailApp(AuthnBaseApp):
         self.conf = config
 
         # Init celery
-        self.am_relay = AmRelay(config.celery, 'eduid_eidas')
-        self.mail_relay = MailRelay(config.celery)
+        self.am_relay = AmRelay(config)
+        self.mail_relay = MailRelay(config)
 
         translation.init_babel(self)
 

@@ -52,8 +52,8 @@ class SignupApp(EduIDBaseApp):
 
         self.conf = config
 
-        self.am_relay = AmRelay(config.celery, 'eduid_signup')
-        self.mail_relay = MailRelay(config.celery)
+        self.am_relay = AmRelay(config)
+        self.mail_relay = MailRelay(config)
 
         self.private_userdb = SignupUserDB(config.mongo_uri, 'eduid_signup')
         self.proofing_log = ProofingLog(config.mongo_uri)

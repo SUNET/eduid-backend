@@ -57,9 +57,9 @@ class SecurityApp(AuthnBaseApp):
 
         self.conf = config
 
-        self.am_relay = AmRelay(config.celery, 'eduid_security')
-        self.msg_relay = MsgRelay(config.celery)
-        self.mail_relay = MailRelay(config.celery)
+        self.am_relay = AmRelay(config)
+        self.msg_relay = MsgRelay(config)
+        self.mail_relay = MailRelay(config)
 
         self.private_userdb = SecurityUserDB(config.mongo_uri)
         self.authninfo_db = AuthnInfoDB(config.mongo_uri)

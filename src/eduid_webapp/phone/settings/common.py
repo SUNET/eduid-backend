@@ -30,17 +30,15 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from eduid_common.config.base import CeleryConfigMixin, EduIDBaseAppConfig, MagicCookieMixin
+from eduid_common.config.base import AmConfigMixin, EduIDBaseAppConfig, MagicCookieMixin, MsgConfigMixin
 
 
-class PhoneConfig(EduIDBaseAppConfig, MagicCookieMixin, CeleryConfigMixin):
+class PhoneConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MsgConfigMixin):
     """
     Configuration for the phone app
     """
 
     app_name: str = 'phone'
-
-    eduid_site_name: str = 'eduID'
 
     # timeout for phone verification token, in seconds
     phone_verification_timeout: int = 7200

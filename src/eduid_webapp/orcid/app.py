@@ -58,7 +58,7 @@ class OrcidApp(AuthnBaseApp):
         self.proofing_log = ProofingLog(config.mongo_uri)
 
         # Init celery
-        self.am_relay = AmRelay(config.celery, 'eduid_orcid')
+        self.am_relay = AmRelay(config)
 
         # Initialize the oidc_client
         self.oidc_client = oidc.init_client(config.client_registration_info, config.provider_configuration_info)

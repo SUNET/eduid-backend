@@ -36,10 +36,10 @@ Configuration (file) handling for the eduID eidas app.
 """
 
 
-from eduid_common.config.base import CeleryConfigMixin, EduIDBaseAppConfig, MagicCookieMixin
+from eduid_common.config.base import AmConfigMixin, EduIDBaseAppConfig, MagicCookieMixin, MailConfigMixin
 
 
-class EmailConfig(EduIDBaseAppConfig, MagicCookieMixin, CeleryConfigMixin):
+class EmailConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MailConfigMixin):
     """
     Configuration for the email app
     """
@@ -50,5 +50,6 @@ class EmailConfig(EduIDBaseAppConfig, MagicCookieMixin, CeleryConfigMixin):
     eduid_site_url: str
 
     email_verification_timeout: int = 86400  # seconds
-    throttle_resend_seconds: int = 300
     email_verify_redirect_url: str = '/profile/emails'
+    mail_default_from: str = 'no-reply@eduid.se'
+    throttle_resend_seconds: int = 300

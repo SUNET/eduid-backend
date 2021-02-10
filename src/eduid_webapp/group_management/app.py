@@ -67,11 +67,9 @@ class GroupManagementApp(AuthnBaseApp):
             mongo_dbname='eduid_scimapi',
             mongo_collection=f'{_owner}__groups',
         )
-        # Init celery
-        self.mail_relay = MailRelay(config.celery)
 
-        # Init translation
-        translation.init_babel(self)
+        # Init celery
+        self.mail_relay = MailRelay(config)
 
 
 current_group_management_app = cast(GroupManagementApp, current_app)
@@ -98,6 +96,9 @@ def init_group_management_app(
 
     app.register_blueprint(group_management_views)
     app.register_blueprint(group_invite_views)
+
+    # Init translation
+    translation.init_babel(app)
 
     app.logger.info('{!s} initialized'.format(name))
     return app

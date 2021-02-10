@@ -59,8 +59,8 @@ class LetterProofingApp(AuthnBaseApp):
         self.proofing_log = ProofingLog(config.mongo_uri)
 
         # Init celery
-        self.msg_relay = MsgRelay(config.celery)
-        self.am_relay = AmRelay(config.celery, 'eduid_letter_proofing')
+        self.msg_relay = MsgRelay(config)
+        self.am_relay = AmRelay(config)
 
         # Initiate external modules
         self.ekopost = Ekopost(self)

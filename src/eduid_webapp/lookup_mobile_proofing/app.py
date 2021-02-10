@@ -59,8 +59,8 @@ class MobileProofingApp(AuthnBaseApp):
 
         # Init celery
         self.lookup_mobile_relay = LookupMobileRelay(config.celery)
-        self.msg_relay = MsgRelay(config.celery)
-        self.am_relay = AmRelay(config.celery, 'eduid_lookup_mobile_proofing')
+        self.msg_relay = MsgRelay(config)
+        self.am_relay = AmRelay(config)
 
 
 current_mobilep_app = cast(MobileProofingApp, current_app)

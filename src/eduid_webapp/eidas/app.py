@@ -31,8 +31,8 @@ class EidasApp(AuthnBaseApp):
         self.proofing_log = ProofingLog(config.mongo_uri)
 
         # Init celery
-        self.am_relay = AmRelay(config.celery, 'eduid_eidas')
-        self.msg_relay = MsgRelay(config.celery)
+        self.am_relay = AmRelay(config)
+        self.msg_relay = MsgRelay(config)
 
 
 current_eidas_app: EidasApp = cast(EidasApp, current_app)
