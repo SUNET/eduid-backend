@@ -33,10 +33,9 @@
 
 from eduid_webapp.eidas.app import init_eidas_app
 
-name = 'eidas'
-app = init_eidas_app(name, {})
+app = init_eidas_app()
 
 
 if __name__ == '__main__':
-    app.logger.info('Starting {} app...'.format(name))
+    app.logger.info(f'Starting {app}...')
     app.run()

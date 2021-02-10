@@ -29,14 +29,11 @@
 # LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
-
 from eduid_webapp.lookup_mobile_proofing.app import init_lookup_mobile_proofing_app
 
-name = 'lookup_mobile_proofing'
-app = init_lookup_mobile_proofing_app(name, {})
+app = init_lookup_mobile_proofing_app()
 
 
 if __name__ == '__main__':
-    app.logger.info('Starting {} app...'.format(name))
+    app.logger.info(f'Starting {app}...')
     app.run()

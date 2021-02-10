@@ -34,9 +34,8 @@
 
 from eduid_webapp.jsconfig.app import jsconfig_init_app
 
-name = 'jsconfig'
-app = jsconfig_init_app(name, {})
+app = jsconfig_init_app()
 
 if __name__ == '__main__':
-    app.logger.info('Starting {} app...'.format(name))
+    app.logger.info(f'Starting {app}...')
     app.run()

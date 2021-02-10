@@ -1,5 +1,5 @@
-from eduid_common.config.base import EduIDBaseAppConfig
+from eduid_common.config.base import AmConfigMixin, EduIDBaseAppConfig
 
 
-class PersonalDataConfig(EduIDBaseAppConfig):
+class PersonalDataConfig(EduIDBaseAppConfig, AmConfigMixin):
     app_name: str = 'personal_data'

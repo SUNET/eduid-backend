@@ -82,7 +82,7 @@ class ResetPasswordTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return init_reset_password_app('testing', config)
+        return init_reset_password_app(test_config=config)
 
     def update_config(self, config: Dict[str, Any]):
         config.update(

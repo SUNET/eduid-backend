@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import unique
+from typing import Optional
 
 from eduid_common.api.messages import TranslatableMsg, error_response, success_response
 from eduid_common.api.utils import get_short_hash

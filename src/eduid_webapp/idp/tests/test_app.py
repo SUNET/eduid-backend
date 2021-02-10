@@ -98,9 +98,9 @@ class IdPTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return init_idp_app('testing', config)
+        return init_idp_app(test_config=config)
 
-    def update_config(self, config):
+    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         config = super().update_config(config)
         datadir = pkg_resources.resource_filename(__name__, 'data')
         fn = os.path.join(datadir, 'test_SSO_conf.py')

@@ -34,9 +34,8 @@
 
 from eduid_webapp.personal_data.app import pd_init_app
 
-name = 'personal_data'
-app = pd_init_app(name, {})
+app = pd_init_app()
 
 if __name__ == '__main__':
-    app.logger.info('Starting {} app...'.format(name))
+    app.logger.info(f'Starting {app} app...')
     app.run()

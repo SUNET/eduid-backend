@@ -33,10 +33,9 @@
 
 from eduid_webapp.letter_proofing.app import init_letter_proofing_app
 
-name = 'letter_proofing'
-app = init_letter_proofing_app(name, {})
+app = init_letter_proofing_app()
 
 
 if __name__ == '__main__':
-    app.logger.info('Starting {} app...'.format(name))
+    app.logger.info(f'Starting {app}...')
     app.run()

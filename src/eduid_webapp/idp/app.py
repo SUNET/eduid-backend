@@ -40,7 +40,6 @@ from flask import current_app
 from eduid_common.api import translation
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.authn.utils import init_pysaml2
-from eduid_common.config.base import FlaskConfig
 from eduid_common.config.parsers import load_config
 from eduid_common.session import session
 from eduid_userdb.actions import ActionDB
@@ -55,15 +54,11 @@ __author__ = 'ft'
 
 
 class IdPApp(EduIDBaseApp):
-    def __init__(
-        self, name: str, test_config: Optional[Mapping[str, Any]] = None, userdb: Optional[Any] = None, **kwargs: Any
-    ) -> None:
-        self.conf = load_config(typ=IdPConfig, app_name=name, ns='webapp', test_config=test_config)
-        # Initialise type of self.config before any parent class sets a precedent to mypy
-        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
-        super().__init__(name, **kwargs)
-        # cast self.config because sometimes mypy thinks it is a FlaskConfig after super().__init__()
-        self.config: FlaskConfig = cast(FlaskConfig, self.config)  # type: ignore
+    def __init__(self, config: IdPConfig, userdb: Optional[Any] = None, **kwargs: Any) -> None:
+        super().__init__(config, **kwargs)
+
+        self.conf = config
+
         # Init dbs
         # self.private_userdb = IdPUserDB(self.conf.mongo_uri)
         # Initiate external modules
@@ -73,32 +68,32 @@ class IdPApp(EduIDBaseApp):
         # Log both 'starting' and 'started' messages.
         self.logger.info("eduid-IdP server starting")
 
-        self.logger.debug(f'Loading PySAML2 server using cfgfile {self.conf.pysaml2_config}')
-        self.IDP = init_pysaml2(self.conf.pysaml2_config)
+        self.logger.debug(f'Loading PySAML2 server using cfgfile {config.pysaml2_config}')
+        self.IDP = init_pysaml2(config.pysaml2_config)
 
-        if self.conf.sso_session_mongo_uri:
+        if config.sso_session_mongo_uri:
             self.logger.info('Config parameter sso_session_mongo_uri ignored. Used mongo_uri instead.')
 
-        if self.conf.mongo_uri is None:
+        if config.mongo_uri is None:
             raise RuntimeError('Mongo URI is not optional for the IdP')
-        _session_ttl = self.conf.sso_session_lifetime * 60
-        self.sso_sessions = SSOSessionCache(self.conf.mongo_uri, ttl=_session_ttl)
+        _session_ttl = config.sso_session_lifetime * 60
+        self.sso_sessions = SSOSessionCache(config.mongo_uri, ttl=_session_ttl)
 
-        _login_state_ttl = (self.conf.login_state_ttl + 1) * 60
+        _login_state_ttl = (config.login_state_ttl + 1) * 60
         self.authn_info_db = None
         self.actions_db = None
 
-        if self.conf.mongo_uri and self.conf.actions_app_uri:
-            self.actions_db = ActionDB(self.conf.mongo_uri)
+        if config.mongo_uri and config.actions_app_uri:
+            self.actions_db = ActionDB(config.mongo_uri)
             self.logger.info("configured to redirect users with pending actions")
         else:
             self.logger.debug("NOT configured to redirect users with pending actions")
 
         if userdb is None:
             # This is used in tests at least
-            userdb = IdPUserDb(logger=None, mongo_uri=self.conf.mongo_uri, db_name=self.conf.userdb_mongo_database)
+            userdb = IdPUserDb(logger=None, mongo_uri=config.mongo_uri, db_name=config.userdb_mongo_database)
         self.userdb = userdb
-        self.authn = idp_authn.IdPAuthn(config=self.conf, userdb=self.userdb)
+        self.authn = idp_authn.IdPAuthn(config=config, userdb=self.userdb)
         self.logger.info('eduid-IdP application started')
 
     def _lookup_sso_session(self) -> Optional[SSOSession]:
@@ -181,14 +176,16 @@ class IdPApp(EduIDBaseApp):
 current_idp_app = cast(IdPApp, current_app)
 
 
-def init_idp_app(name: str, test_config: Optional[Mapping[str, Any]] = None) -> IdPApp:
+def init_idp_app(name: str = 'idp', test_config: Optional[Mapping[str, Any]] = None) -> IdPApp:
     """
     :param name: The name of the instance, it will affect the configuration loaded.
     :param test_config: Override configuration - used in tests.
 
     :return: the flask app
     """
-    app = IdPApp(name, test_config, handle_exceptions=False)
+    config = load_config(typ=IdPConfig, app_name=name, ns='webapp', test_config=test_config)
+
+    app = IdPApp(config, handle_exceptions=False)
 
     # Register views
     from eduid_webapp.idp.views import idp_views

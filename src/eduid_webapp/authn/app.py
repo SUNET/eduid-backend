@@ -30,32 +30,24 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from typing import Any, Mapping, Optional, cast
+from typing import Any, Mapping, Optional
 
 from flask import current_app
 
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.authn.utils import get_saml2_config
-from eduid_common.config.base import FlaskConfig
 from eduid_common.config.parsers import load_config
 
 from eduid_webapp.authn.settings.common import AuthnConfig
 
 
 class AuthnApp(EduIDBaseApp):
-    def __init__(self, name: str, test_config: Optional[Mapping[str, Any]], **kwargs):
-        self.conf = load_config(typ=AuthnConfig, app_name=name, ns='webapp', test_config=test_config)
-        # Initialise type of self.config before any parent class sets a precedent to mypy
-        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
-        super().__init__(name, **kwargs)
-        # cast self.config because sometimes mypy thinks it is a FlaskConfig after super().__init__()
-        self.config: FlaskConfig = cast(FlaskConfig, self.config)  # type: ignore
+    def __init__(self, config: AuthnConfig, **kwargs):
+        super().__init__(config, **kwargs)
 
-        self.saml2_config = get_saml2_config(self.config.saml2_settings_module)
+        self.conf = config
 
-        from eduid_webapp.authn.views import authn_views
-
-        self.register_blueprint(authn_views)
+        self.saml2_config = get_saml2_config(config.saml2_settings_module)
 
 
 def get_current_app() -> AuthnApp:
@@ -66,17 +58,23 @@ def get_current_app() -> AuthnApp:
 current_authn_app = get_current_app()
 
 
-def authn_init_app(name: str, config: dict) -> AuthnApp:
+def authn_init_app(name: str = 'authn', test_config: Optional[Mapping[str, Any]] = None) -> AuthnApp:
     """
     Create an instance of an authentication app.
 
     :param name: The name of the instance, it will affect the configuration file
                  loaded from the filesystem.
-    :param config: any additional configuration settings. Specially useful
+    :param test_config: any additional configuration settings. Specially useful
                    in test cases
     """
-    app = AuthnApp(name, config)
+    config = load_config(typ=AuthnConfig, app_name=name, ns='webapp', test_config=test_config)
 
-    app.logger.info(f'Init {name} app...')
+    app = AuthnApp(config)
+
+    app.logger.info(f'Init {app}...')
+
+    from eduid_webapp.authn.views import authn_views
+
+    app.register_blueprint(authn_views)
 
     return app

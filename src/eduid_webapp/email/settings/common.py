@@ -32,7 +32,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 """
-Configuration (file) handling for the eduID eidas app.
+Configuration (file) handling for the eduID email app.
 """
 
 

@@ -36,7 +36,7 @@ import logging
 import os
 import time
 from datetime import datetime
-from typing import Any, Mapping
+from typing import Any, Dict, Mapping
 
 from flask import Blueprint
 from saml2.s_utils import deflate_and_base64_encode
@@ -50,11 +50,10 @@ from eduid_common.authn.eduid_saml2 import get_authn_request
 from eduid_common.authn.middleware import AuthnBaseApp
 from eduid_common.authn.tests.responses import auth_response, logout_request, logout_response
 from eduid_common.authn.utils import get_location, no_authn_views
-from eduid_common.config.base import FlaskConfig
 from eduid_common.config.parsers import load_config
 from eduid_common.session import session
 
-from eduid_webapp.authn.app import authn_init_app
+from eduid_webapp.authn.app import AuthnApp, authn_init_app
 from eduid_webapp.authn.settings.common import AuthnConfig
 
 logger = logging.getLogger(__name__)
@@ -62,38 +61,36 @@ logger = logging.getLogger(__name__)
 HERE = os.path.abspath(os.path.dirname(__file__))
 
 
-class AuthnTestApp(AuthnBaseApp):
-    def __init__(self, name: str, test_config: Mapping[str, Any], **kwargs):
-        self.conf = load_config(typ=AuthnConfig, app_name=name, ns='webapp', test_config=test_config)
-        self.config = FlaskConfig.init_config(ns='webapp', app_name=name, test_config=test_config)
-        super().__init__(name, **kwargs)
-
-
 class AuthnAPITestBase(EduidAPITestCase):
-    def update_config(self, app_config):
+    """ Test cases for the real eduid-authn app """
+
+    app: AuthnApp
+
+    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """
         Called from the parent class, so that we can update the configuration
         according to the needs of this test case.
         """
         saml_config = os.path.join(HERE, 'saml2_settings.py')
-        app_config.update(
+        config.update(
             {
+                'safe_relay_domain': 'test.localhost',
                 'saml2_login_redirect_url': '/',
                 'saml2_logout_redirect_url': '/logged-out',
                 'saml2_settings_module': saml_config,
-                'signup_authn_success_redirect_url': 'http://test.localhost/success',
+                'saml2_strip_saml_user_suffix': '@test.eduid.se',
                 'signup_authn_failure_redirect_url': 'http://test.localhost/failure',
-                'safe_relay_domain': 'test.localhost',
+                'signup_authn_success_redirect_url': 'http://test.localhost/success',
             }
         )
-        return app_config
+        return config
 
-    def load_app(self, config):
+    def load_app(self, test_config: Mapping[str, Any]) -> AuthnApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return authn_init_app('testing', config)
+        return authn_init_app(test_config=test_config)
 
     def add_outstanding_query(self, came_from: str) -> str:
         """
@@ -209,21 +206,20 @@ class AuthnAPITestBase(EduidAPITestCase):
             self.assertEqual(resp.location, came_from)
             check_fn()
 
-    def dump_session_cookie(self, session_id):
+    def dump_session_cookie(self, session_id: str) -> str:
         """
         Get a cookie corresponding to an authenticated session.
 
         :param session_id: the token for the session
-        :type session_id: str
 
         :return: the cookie
         """
         return dump_cookie(
-            self.app.config.session_cookie_name,
+            self.app.conf.flask.session_cookie_name,
             session_id,
-            max_age=float(self.app.config.permanent_session_lifetime),
-            path=self.app.config.session_cookie_path,
-            domain=self.app.config.session_cookie_domain,
+            max_age=float(self.app.conf.flask.permanent_session_lifetime),
+            path=self.app.conf.flask.session_cookie_path,
+            domain=self.app.conf.flask.session_cookie_domain,
         )
 
 
@@ -232,8 +228,10 @@ class AuthnAPITestCase(AuthnAPITestBase):
     Tests to check the different modes of authentication.
     """
 
+    app: AuthnApp
+
     def setUp(self):
-        super(AuthnAPITestCase, self).setUp(users=['hubba-bubba', 'hubba-fooo'])
+        super().setUp(users=['hubba-bubba', 'hubba-fooo'])
 
     def test_login_authn(self):
         self.authn('/login')
@@ -306,7 +304,9 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
         with self.app.test_client() as c:
             with self.app.test_request_context('/signup-authn'):
-                c.set_cookie('test.localhost', key=self.app.config.session_cookie_name, value=session.meta.cookie_val)
+                c.set_cookie(
+                    'test.localhost', key=self.app.conf.flask.session_cookie_name, value=session.meta.cookie_val
+                )
                 session.common.eppn = eppn
                 session.signup.ts = timestamp
 
@@ -326,29 +326,41 @@ class AuthnAPITestCase(AuthnAPITestBase):
         self.assertTrue(resp.location.startswith(self.app.conf.signup_authn_failure_redirect_url))
 
 
+class AuthnTestApp(AuthnBaseApp):
+    def __init__(self, config: AuthnConfig, **kwargs):
+        super().__init__(config, **kwargs)
+        self.conf = config
+
+
 class UnAuthnAPITestCase(EduidAPITestCase):
-    def update_config(self, app_config):
+    """ Tests for a fictitious app based on AuthnBaseApp """
+
+    app: AuthnTestApp
+
+    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """
         Called from the parent class, so that we can update the configuration
         according to the needs of this test case.
         """
         saml_config = os.path.join(HERE, 'saml2_settings.py')
-        app_config.update(
+        config.update(
             {
-                'token_service_url': 'http://login',
-                'saml2_settings_module': saml_config,
                 'saml2_login_redirect_url': '/',
                 'saml2_logout_redirect_url': '/',
+                'saml2_settings_module': saml_config,
+                'saml2_strip_saml_user_suffix': '@test.eduid.se',
+                'token_service_url': 'http://login',
             }
         )
-        return app_config
+        return config
 
-    def load_app(self, config):
+    def load_app(self, test_config: Mapping[str, Any]) -> AuthnTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return AuthnTestApp('testing', test_config=config)
+        config = load_config(typ=AuthnConfig, app_name='testing', ns='webapp', test_config=test_config)
+        return AuthnTestApp(config)
 
     def test_no_cookie(self):
         with self.app.test_client() as c:
@@ -365,6 +377,10 @@ class UnAuthnAPITestCase(EduidAPITestCase):
 
 
 class NoAuthnAPITestCase(EduidAPITestCase):
+    """ Tests for a fictitious app based on AuthnBaseApp """
+
+    app: AuthnTestApp
+
     def setUp(self):
         super(NoAuthnAPITestCase, self).setUp()
         test_views = Blueprint('testing', __name__)
@@ -383,29 +399,31 @@ class NoAuthnAPITestCase(EduidAPITestCase):
 
         self.app.register_blueprint(test_views)
 
-    def update_config(self, app_config):
+    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """
         Called from the parent class, so that we can update the configuration
         according to the needs of this test case.
         """
         saml_config = os.path.join(HERE, 'saml2_settings.py')
-        app_config.update(
+        config.update(
             {
-                'token_service_url': 'http://login',
-                'saml2_settings_module': saml_config,
                 'no_authn_urls': ['^/test$'],
                 'saml2_login_redirect_url': '/',
                 'saml2_logout_redirect_url': '/',
+                'saml2_settings_module': saml_config,
+                'saml2_strip_saml_user_suffix': '@test.eduid.se',
+                'token_service_url': 'http://login',
             }
         )
-        return app_config
+        return config
 
-    def load_app(self, config: Mapping[str, Any]) -> AuthnTestApp:
+    def load_app(self, test_config: Mapping[str, Any]) -> AuthnTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return AuthnTestApp('testing', config)
+        config = load_config(typ=AuthnConfig, app_name='testing', ns='webapp', test_config=test_config)
+        return AuthnTestApp(config)
 
     def test_no_authn(self):
         with self.app.test_client() as c:
@@ -421,7 +439,7 @@ class NoAuthnAPITestCase(EduidAPITestCase):
     def test_no_authn_util(self):
         no_authn_urls_before = [path for path in self.app.conf.no_authn_urls]
         no_authn_path = '/test3'
-        no_authn_views(self.app, [no_authn_path])
+        no_authn_views(self.app.conf, [no_authn_path])
         self.assertEqual(no_authn_urls_before + ['^{!s}$'.format(no_authn_path)], self.app.conf.no_authn_urls)
 
         with self.app.test_client() as c:
