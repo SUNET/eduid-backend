@@ -63,7 +63,7 @@ from eduid_common.api.middleware import PrefixMiddleware
 from eduid_common.api.request import Request
 from eduid_common.api.utils import init_template_functions
 from eduid_common.authn.utils import no_authn_views
-from eduid_common.config.base import FlaskConfig
+from eduid_common.config.base import EduIDBaseAppConfig, FlaskConfig
 from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.config.parsers.etcd import EtcdConfigParser
 from eduid_common.session.eduid_session import SessionFactory
@@ -82,28 +82,25 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
     Base class for eduID apps, initializing common features and facilities.
     """
 
-    def __init__(self, name: str, init_central_userdb: bool = True, handle_exceptions: bool = True, **kwargs):
+    def __init__(
+        self, config: EduIDBaseAppConfig, init_central_userdb: bool = True, handle_exceptions: bool = True, **kwargs
+    ):
         """
-        :param name: name of the app
-        :param config_class: the dataclass with configuration settings
-        :param config: a dict with configuration settings, used in tests to
-                       override defaults.
-        :param init_central_userdb: whether the app requires access to the
-                                    central user db.
+        :param config: EduID Flask app configuration subclass
+        :param init_central_userdb: Whether the app requires access to the central user db.
+        :param handle_exceptions: Whether to install exception handler or not.
         """
-        if not isinstance(self.config, FlaskConfig):
-            raise TypeError('self.config is not a (subclass of) FlaskConfig')
+        super().__init__(config.app_name, **kwargs)
+        _flask_config = {x.upper(): v for x, v in config.flask.to_mapping().items()}
+        self.config.from_mapping(_flask_config)
 
-        _saved_config = self.config
-        super().__init__(name, **kwargs)
-        self.config: FlaskConfig = _saved_config  # type: ignore
+        # Check for required configuration
+        for this in ['SECRET_KEY', 'APPLICATION_ROOT', 'SERVER_NAME']:
+            if this not in self.config:
+                raise BadConfiguration(f'Flask configuration variable {this} is missing')
 
         if DEBUG:
             init_app_debug(self)
-
-        # Check that SECRET_KEY is set
-        if not self.config.secret_key:
-            raise BadConfiguration('SECRET_KEY is missing')
 
         # App setup
         self.wsgi_app = ProxyFix(self.wsgi_app)  # type: ignore
@@ -112,7 +109,7 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
 
         # Set app url prefix to APPLICATION_ROOT
         self.wsgi_app = PrefixMiddleware(  # type: ignore
-            self.wsgi_app, prefix=self.config.application_root, server_name=self.config.server_name,
+            self.wsgi_app, prefix=self.config['APPLICATION_ROOT'], server_name=self.config['SERVER_NAME'],
         )
 
         # Allow legacy samesite cookie support

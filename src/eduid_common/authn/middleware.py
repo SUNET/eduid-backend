@@ -75,7 +75,7 @@ class AuthnBaseApp(EduIDBaseApp, metaclass=ABCMeta):
                 # If HTTP_COOKIE is not removed self.request_context(environ) below
                 # will try to look up the Session data in the backend
 
-        ts_url = urlappend(self.config.token_service_url, 'login')
+        ts_url = urlappend(self.conf.token_service_url, 'login')
 
         params = {'next': next_url}
 

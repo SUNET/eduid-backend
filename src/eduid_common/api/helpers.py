@@ -192,8 +192,8 @@ def send_mail(
     :param context: template context
     :param reference: Audit reference to help cross reference audit log and events
     """
-    site_name = app.config.eduid_site_name
-    site_url = app.config.eduid_site_url
+    site_name = app.conf.eduid_site_name  # type: ignore
+    site_url = app.conf.eduid_site_url  # type: ignore
 
     default_context = {
         "site_url": site_url,
