@@ -32,7 +32,7 @@
 
 import logging
 import pprint
-from typing import Mapping, Optional
+from typing import Any, Mapping, Optional
 from xml.etree.ElementTree import ParseError
 
 from flask import abort, redirect, request
@@ -42,6 +42,8 @@ from saml2.ident import decode
 from saml2.response import LogoutResponse, UnsolicitedResponse
 from werkzeug.wrappers import Response
 
+from eduid_userdb import UserDB
+from eduid_userdb.exceptions import MultipleUsersReturned, UserDoesNotExist
 from eduid_userdb.user import User
 
 from eduid_common.api.app import EduIDBaseApp
@@ -172,18 +174,15 @@ def get_authn_response(saml2_config: SPConfig, session: EduidSession, raw_respon
     return session_info
 
 
-def authenticate(app, session_info):
+def authenticate(session_info: Mapping[str, Any], strip_suffix: Optional[str], userdb: UserDB) -> Optional[User]:
     """
     Locate a user using the identity found in the SAML assertion.
 
-    :param request: Request object
     :param session_info: Session info received by pysaml2 client
+    :param strip_suffix: SAML scope to strip from the end of the eppn
+    :param userdb: In what database to look for the user
 
-    :returns: User
-
-    :type request: Request()
-    :type session_info: dict()
-    :rtype: User or None
+    :returns: User, if found
     """
     if session_info is None:
         raise TypeError('Session info is None')
@@ -197,50 +196,47 @@ def authenticate(app, session_info):
 
     # eduPersonPrincipalName might be scoped and the scope (e.g. "@example.com")
     # might have to be removed before looking for the user in the database.
-    strip_suffix = app.config.get('SAML2_STRIP_SAML_USER_SUFFIX', '')
     if strip_suffix:
         if saml_user.endswith(strip_suffix):
             saml_user = saml_user[: -len(strip_suffix)]
 
-    logger.debug('Looking for user with eduPersonPrincipalName == {!r}'.format(saml_user))
+    logger.debug(f'Looking for user with eduPersonPrincipalName == {repr(saml_user)}')
     try:
-        user = app.central_userdb.get_user_by_eppn(saml_user)
-    except app.central_userdb.exceptions.UserDoesNotExist:
-        logger.error('No user with eduPersonPrincipalName = {!r} found'.format(saml_user))
-    except app.central_userdb.exceptions.MultipleUsersReturned:
-        logger.error("There are more than one user with eduPersonPrincipalName = {!r}".format(saml_user))
-    else:
-        return user
+        return userdb.get_user_by_eppn(saml_user)
+    except UserDoesNotExist:
+        logger.error(f'No user with eduPersonPrincipalName = {repr(saml_user)} found')
+    except MultipleUsersReturned:
+        logger.error(f'There are more than one user with eduPersonPrincipalName == {repr(saml_user)}')
     return None
 
 
-def saml_logout(current_app: EduIDBaseApp, user: User, location: str) -> Response:
+def saml_logout(sp_config: SPConfig, user: User, location: str) -> Response:
     """
     SAML Logout Request initiator.
     This function initiates the SAML2 Logout request
     using the pysaml2 library to create the LogoutRequest.
     """
     if '_saml2_session_name_id' not in session:
-        current_app.logger.warning(f'The session does not contain the subject id for user {user}')
+        logger.warning(f'The session does not contain the subject id for user {user}')
         session.invalidate()
-        current_app.logger.info(f'Invalidated session for {user}')
-        current_app.logger.info(f'Redirection user to {location} for logout')
+        logger.info(f'Invalidated session for {user}')
+        logger.info(f'Redirection user to {location} for logout')
         return redirect(location)
 
     # Since we have a subject_id, call the IdP using SOAP to do a global logout
 
     state = StateCache(session)  # _saml2_state in the session
     identity = IdentityCache(session)  # _saml2_identities in the session
-    client = Saml2Client(current_app.saml2_config, state_cache=state, identity_cache=identity)
+    client = Saml2Client(sp_config, state_cache=state, identity_cache=identity)
 
     _subject_id = decode(session['_saml2_session_name_id'])
-    current_app.logger.info(f'Initiating global logout for {_subject_id}')
+    logger.info(f'Initiating global logout for {_subject_id}')
     logouts = client.global_logout(_subject_id)
-    current_app.logger.debug(f'Logout response: {logouts}')
+    logger.debug(f'Logout response: {logouts}')
 
     # Invalidate session, now that Saml2Client is done with the information within.
     session.invalidate()
-    current_app.logger.info(f'Invalidated session for {user}')
+    logger.info(f'Invalidated session for {user}')
 
     loresponse = list(logouts.values())[0]
     # loresponse is a dict for REDIRECT binding, and LogoutResponse for SOAP binding
@@ -249,10 +245,10 @@ def saml_logout(current_app: EduIDBaseApp, user: User, location: str) -> Respons
             location = verify_relay_state(request.form.get('RelayState', location), location)
             return redirect(location)
         else:
-            current_app.logger.error(f'The logout response was not OK: {loresponse}')
+            logger.error(f'The logout response was not OK: {loresponse}')
             abort(500)
 
     headers_tuple = loresponse[1]['headers']
     location = headers_tuple[0][1]
-    current_app.logger.info(f"Redirecting {user} to {location} after successful logout")
+    logger.info(f'Redirecting {user} to {location} after successful logout')
     return redirect(location)

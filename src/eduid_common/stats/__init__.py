@@ -15,6 +15,8 @@ __author__ = 'ft'
 
 from abc import ABC, abstractmethod
 
+from eduid_common.config.base import StatsConfigMixin
+
 
 class AppStats(ABC):
     @abstractmethod
@@ -54,13 +56,11 @@ class Statsd(AppStats):
         self.client.incr('{}.count'.format(name), count=value)
 
 
-# importing EduIDBaseApp in this module leads to a circular import :(
-def init_app_stats(app) -> AppStats:
+def init_app_stats(config: StatsConfigMixin) -> AppStats:
     _stats: AppStats
-    stats_host = app.config.stats_host
-    if not stats_host:
+    if not config.stats_host:
         _stats = NoOpStats()
     else:
-        stats_port = app.config.stats_port
-        _stats = Statsd(host=stats_host, port=stats_port, prefix=app.name)
+        stats_port = config.stats_port
+        _stats = Statsd(host=config.stats_host, port=stats_port, prefix=config.app_name)
     return _stats

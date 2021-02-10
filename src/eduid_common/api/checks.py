@@ -3,13 +3,13 @@ import sys
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from os import environ
-from typing import Dict, Optional, cast
+from typing import Optional
 
 import redis
 from flask import current_app
 
 from eduid_common.authn.vccs import check_password
-from eduid_common.config.base import BaseConfig
+from eduid_common.config.base import VCCSConfigMixin
 from eduid_common.session.redis_session import get_redis_pool
 
 __author__ = 'lundberg'
@@ -83,8 +83,7 @@ def check_mongo() -> bool:
 
 
 def check_redis() -> bool:
-    config = cast(BaseConfig, current_app.config)  # Please mypy
-    pool = get_redis_pool(config.redis_config)
+    pool = get_redis_pool(current_app.conf.redis_config)
     client = redis.StrictRedis(connection_pool=pool)
     try:
         pong = client.ping()
@@ -141,17 +140,18 @@ def check_mail() -> bool:
 
 
 def check_vccs() -> bool:
-    config = cast(BaseConfig, current_app.config)  # Please mypy
-    if not config.vccs_url:
+    if not isinstance(current_app.conf, VCCSConfigMixin):
         return True
-    eppn = config.vccs_check_eppn
+    if not current_app.conf.vccs_url:
+        return True
+    eppn = current_app.conf.vccs_check_eppn
     # Do not force this check if not configured
     if not eppn:
         return True
     try:
         user = current_app.central_userdb.get_user_by_eppn(eppn=eppn, raise_on_missing=False)
-        vccs_url = config.vccs_url
-        password = config.vccs_check_password
+        vccs_url = current_app.conf.vccs_url
+        password = current_app.conf.vccs_check_password
         if user and check_password(password=password, user=user, vccs_url=vccs_url):
             return True
     except Exception as exc:

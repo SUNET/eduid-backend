@@ -116,20 +116,20 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         self.wsgi_app = CookiesSameSiteCompatMiddleware(self.wsgi_app, self.config)  # type: ignore
 
         # Initialize shared features
-        init_logging(self)
+        init_logging(config)
         if handle_exceptions:
             init_exception_handlers(self)
         init_sentry(self)
         init_template_functions(self)
-        self.stats = init_app_stats(self)
-        self.session_interface = SessionFactory(self.config)
-        self.failure_info: Dict[str, FailCountItem] = dict()
+        self.stats = init_app_stats(config)
+        self.session_interface = SessionFactory(config)
 
         if init_central_userdb:
-            self.central_userdb = UserDB(self.config.mongo_uri, 'eduid_am')
+            self.central_userdb = UserDB(config.mongo_uri, 'eduid_am')
 
         # Set up generic health check views
-        init_status_views(self)
+        self.failure_info: Dict[str, FailCountItem] = dict()
+        init_status_views(self, config)
 
     def run_health_checks(
         self,
@@ -218,7 +218,7 @@ def get_app_config(name: str, config: Optional[dict] = None) -> dict:
     return config
 
 
-def init_status_views(app: EduIDBaseApp) -> EduIDBaseApp:
+def init_status_views(app: EduIDBaseApp, config: EduIDBaseAppConfig) -> None:
     """
     Register status views for any app, and configure them as public.
     """
@@ -227,5 +227,5 @@ def init_status_views(app: EduIDBaseApp) -> EduIDBaseApp:
     app.register_blueprint(status_views)
     # Register status paths for unauthorized requests
     status_paths = ['/status/healthy', '/status/sanity-check']
-    app = no_authn_views(app, status_paths)
-    return app
+    no_authn_views(config, status_paths)
+    return None

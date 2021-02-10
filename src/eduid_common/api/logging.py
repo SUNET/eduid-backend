@@ -11,6 +11,7 @@ from os import environ
 from pprint import pformat
 from typing import TYPE_CHECKING, Any, Dict, List, Sequence
 
+from eduid_common.config.base import LoggingConfigMixin
 from eduid_common.config.exceptions import BadConfiguration
 
 # From https://stackoverflow.com/a/39757388
@@ -145,7 +146,7 @@ def merge_config(base_config: Dict[str, Any], new_config: Dict[str, Any]) -> Dic
     return base_config
 
 
-def init_logging(app: EduIDBaseApp) -> None:
+def init_logging(config: LoggingConfigMixin) -> None:
     """
     Init logging in a Flask app using dictConfig.
 
@@ -153,15 +154,15 @@ def init_logging(app: EduIDBaseApp) -> None:
 
     Merges optional dictConfig from settings before initializing (config key 'logging_config').
     """
-    local_context = make_local_context(app)
+    local_context = make_local_context(config)
     logging_config = make_dictConfig(local_context)
 
-    logging_config = merge_config(logging_config, app.config.logging_config)
+    logging_config = merge_config(logging_config, config.logging_config)
 
     logging.config.dictConfig(logging_config)
-    if app.debug:
-        app.logger.debug(f'Logging config:\n{pformat(logging_config)}')
-    app.logger.info('Logging configured')
+    if config.debug:
+        logging.debug(f'Logging config:\n{pformat(logging_config)}')
+    logging.info('Logging configured')
     return None
 
 
@@ -192,32 +193,32 @@ class LocalContext:
         return res
 
 
-def make_local_context(app: EduIDBaseApp) -> LocalContext:
+def make_local_context(config: LoggingConfigMixin) -> LocalContext:
     """
     Local context is a place to put parameters for filters and formatters in logging dictConfigs.
 
     To provide typing and order, we keep them in a neat dataclass.
     """
-    log_format = app.config.log_format
+    log_format = config.log_format
     if not log_format:
         log_format = DEFAULT_FORMAT
 
-    log_level = app.config.log_level
-    if app.debug:
+    log_level = config.log_level
+    if config.debug:
         # Flask expects to be able to debug log in debug mode
         log_level = 'DEBUG'
 
     filters = [LoggingFilters.NAMES, LoggingFilters.SESSION_USER]
 
-    relative_time = app.config.testing
+    relative_time = config.testing
 
     try:
         local_context = LocalContext(
             level=log_level,
             format=log_format,
-            app_name=app.name,
-            app_debug=app.debug,
-            debug_eppns=app.config.debug_eppns,
+            app_name=config.app_name,
+            app_debug=config.debug,
+            debug_eppns=config.debug_eppns,
             filters=filters,
             relative_time=relative_time,
         )
