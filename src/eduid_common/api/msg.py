@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import warnings
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from flask import current_app
 
@@ -8,7 +8,7 @@ import eduid_msg
 
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.api.exceptions import MsgTaskFailed
-from eduid_common.config.base import CeleryConfig
+from eduid_common.config.base import CeleryConfig, CeleryConfig2
 
 __author__ = 'lundberg'
 
@@ -29,14 +29,14 @@ def init_relay(app: EduIDBaseApp) -> None:
     """
     :param app: Flask app
     """
-    app.msg_relay = MsgRelay(app.config.celery_config)
+    app.msg_relay = MsgRelay(app.conf.celery)  # type: ignore
     return None
 
 
 class MsgRelay(object):
-    def __init__(self, settings: CeleryConfig):
+    def __init__(self, settings: Union[CeleryConfig, CeleryConfig2]):
         eduid_msg.init_app(settings)
-        # these have to be imported _after_ eduid_am.init_app()
+        # these have to be imported _after_ eduid_msg.init_app()
         from eduid_msg.tasks import get_postal_address, get_relations_to, pong, send_message, sendsms
 
         self._get_postal_address = get_postal_address

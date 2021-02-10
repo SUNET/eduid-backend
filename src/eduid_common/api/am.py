@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from typing import Union
 
 import eduid_am
 from flask import current_app
@@ -8,22 +9,22 @@ from eduid_userdb.exceptions import LockedIdentityViolation
 
 from eduid_common.api.app import EduIDBaseApp
 from eduid_common.api.exceptions import AmTaskFailed
-from eduid_common.config.base import CeleryConfig
+from eduid_common.config.base import CeleryConfig, CeleryConfig2
 
 __author__ = 'lundberg'
 
 
 def init_relay(app: EduIDBaseApp, application_name: str) -> None:
     """
-    :param app: Flask app
+    :param config: Celery configuration parameters
     :param application_name: Name to help am find the entry point for the am plugin
     """
-    app.am_relay = AmRelay(app.config.celery_config, application_name)
+    app.am_relay = AmRelay(app.conf.celery, application_name)
     return None
 
 
 class AmRelay(object):
-    def __init__(self, config: CeleryConfig, relay_for: str):
+    def __init__(self, config: Union[CeleryConfig, CeleryConfig2], relay_for: str):
         """
         :param config: celery config
         :param relay_for: Name of application to relay for
