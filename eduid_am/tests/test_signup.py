@@ -15,10 +15,10 @@ M = mocked_user_standard.to_dict()
 
 class AttributeFetcherTests(AMTestCase):
     def setUp(self):
-        am_settings = {'want_mongo_uri': True, 'new_user_date': '2001-01-01'}
-        super(AttributeFetcherTests, self).setUp(am_settings=am_settings)
+        am_settings = {'new_user_date': '2001-01-01'}
+        super().setUp(am_settings=am_settings)
 
-        self.fetcher = eduid_signup(self.am_settings)
+        self.fetcher = self.af_registry['eduid_signup']
 
         for userdoc in self.amdb._get_all_docs():
             signup_user = SignupUser.from_dict(userdoc)

@@ -82,12 +82,13 @@ class MessageTest(AMTestCase):
     """
 
     def setUp(self):
-        super(MessageTest, self).setUp(am_settings={'want_mongo_uri': True})
+        super().setUp(want_mongo_uri=True)
         self.private_db = AmTestUserDb(db_uri=self.tmp_db.uri, db_name='eduid_am_test')
         # register fake AMP plugin named 'test'
-        self.am.af_registry['test'] = FakeAttributeFetcher(AmConfig(**{'mongo_uri': self.tmp_db.uri}))
+        AmConfig(app_name='message_test', mongo_uri=self.tmp_db.uri)
+        self.am.af_registry['test'] = FakeAttributeFetcher(AmConfig(app_name='message_test', mongo_uri=self.tmp_db.uri))
         # register fake AMP plugin named 'bad'
-        self.am.af_registry['bad'] = BadAttributeFetcher(AmConfig(**{'mongo_uri': self.tmp_db.uri}))
+        self.am.af_registry['bad'] = BadAttributeFetcher(AmConfig(app_name='message_test', mongo_uri=self.tmp_db.uri))
 
     def test_insert(self):
         """
