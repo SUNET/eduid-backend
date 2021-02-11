@@ -2,21 +2,17 @@ from copy import deepcopy
 
 import bson
 
-from eduid_userdb.exceptions import UserDoesNotExist, UserHasUnknownData
-from eduid_userdb.fixtures.users import mocked_user_standard
-from eduid_userdb.signup import SignupUser
-
-from eduid_am.ams import eduid_signup
 from eduid_am.testing import AMTestCase
 from eduid_am.tests.test_proofing_fetchers import USER_DATA
-
-M = mocked_user_standard.to_dict()
+from eduid_userdb.exceptions import UserDoesNotExist
+from eduid_userdb.fixtures.users import mocked_user_standard
+from eduid_userdb.signup import SignupUser
 
 
 class AttributeFetcherTests(AMTestCase):
     def setUp(self):
         am_settings = {'new_user_date': '2001-01-01'}
-        super().setUp(am_settings=am_settings)
+        super().setUp(am_settings=am_settings, am_users=[mocked_user_standard])
 
         self.fetcher = self.af_registry['eduid_signup']
 
@@ -29,7 +25,7 @@ class AttributeFetcherTests(AMTestCase):
             self.fetcher.fetch_attrs(bson.ObjectId('000000000000000000000000'))
 
     def test_existing_user_from_db(self):
-        fetched = self.fetcher.fetch_attrs(bson.ObjectId(M['_id']))
+        fetched = self.fetcher.fetch_attrs(mocked_user_standard.user_id)
 
         expected_passwords = [
             {

@@ -46,15 +46,10 @@ logger = logging.getLogger(__name__)
 
 
 class AMTestCase(WorkerTestCase):
-    """TestCase with an embedded Attribute Manager.
-    """
+    """ TestCase with an embedded Attribute Manager. """
 
-    def setUp(self, am_settings: Optional[Dict[str, Any]] = None, want_mongo_uri: bool = True):
-        """
-        Test case initialization.
-
-        """
-        super().setUp(am_settings=am_settings, want_mongo_uri=want_mongo_uri)
+    def setUp(self, am_settings: Optional[Dict[str, Any]] = None, want_mongo_uri: bool = True, **kwargs):
+        super().setUp(am_settings=am_settings, want_mongo_uri=want_mongo_uri, **kwargs)
         self.af_registry = AFRegistry()
 
         self.maxDiff = None
