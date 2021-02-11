@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from typing import Type, TypeVar
 
-from eduid_common.config.base import WorkerConfig
 from eduid_common.config.exceptions import BadConfiguration
 from eduid_common.config.parsers import load_config
 
@@ -17,7 +16,7 @@ def get_worker_config(name: str, config_class: Type[TWorkerConfigSubclass]) -> T
 
     :return: Configuration
     """
-    config = load_config(typ=config_class, app_name=name, ns='/eduid/worker')
+    config = load_config(typ=config_class, app_name=name, ns='worker')
     if not config.celery.broker_url:
         raise BadConfiguration('broker_url for celery is missing')
     return config
