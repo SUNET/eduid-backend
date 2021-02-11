@@ -20,6 +20,7 @@ class ScimApiConfig(RootConfig, LoggingConfigMixin):
     authorization_token_secret: str = 'secret'
     authorization_token_expire: int = 5 * 60
     no_authn_urls: List[str] = Field(default=['^/login$', '^/status/healthy$'])
+    status_cache_seconds: int = 10
     data_owners: List[str] = Field(default=['eduid.se'])
     # Invite config
     invite_url: str = ''
