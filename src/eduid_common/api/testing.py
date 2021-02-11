@@ -31,7 +31,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import json
-import logging
 import logging.config
 import pprint
 import sys
@@ -47,12 +46,11 @@ from flask.testing import FlaskClient
 from eduid_userdb import User
 from eduid_userdb.db import BaseDB
 from eduid_userdb.fixtures.users import new_completed_signup_user_example, new_unverified_user_example, new_user_example
-from eduid_userdb.testing import AbstractMockedUserDB
+from eduid_userdb.testing import AbstractMockedUserDB, MongoTemporaryInstance
 
-from eduid_common.api.logging import LocalContext, make_dictConfig
 from eduid_common.api.messages import TranslatableMsg
 from eduid_common.api.testing_base import CommonTestCase
-from eduid_common.config.base import RedisConfig, RedisConfig2
+from eduid_common.config.base import RedisConfig
 from eduid_common.session import EduidSession
 from eduid_common.session.testing import RedisTemporaryInstance
 
@@ -108,41 +106,28 @@ class EduidAPITestCase(CommonTestCase):
     See the `load_app` and `update_config` methods below before subclassing.
     """
 
-    # This concept with a class variable is broken - doesn't provide isolation between tests.
-    # Do what we can and initialise it empty here, and then fill it in __init__.
-    MockedUserDB = APIMockedUserDB
-
-    def setUp(
-        self,
-        init_am: bool = False,
-        am_settings: Optional[Dict[str, Any]] = None,
-        users: Optional[List[str]] = None,
-        copy_user_to_private: bool = False,
-    ):
-        # Set up provisional logging to capture logs from test setup too
-        self._init_logging()
-
+    def setUp(self, users: Optional[List[str]] = None, copy_user_to_private: bool = False, **kwargs):
         # test users
-        self.MockedUserDB.test_users = {}
         if users is None:
             users = ['hubba-bubba']
-        for this in users:
-            _user = _standard_test_users.get(this)
-            if _user is not None:
-                self.MockedUserDB.test_users[this] = _user.to_dict()
+
+        # Make a list of User object to be saved to the new temporary mongodb instance
+        am_users = [_standard_test_users[x] for x in users]
+
+        super().setUp(am_users=am_users, **kwargs)
 
         self.user = None  # type: ignore
         # Initialize some convenience variables on self based on the first user in `users'
         self.test_user_data = _standard_test_users[users[0]].to_dict()
         self.test_user = User.from_dict(self.test_user_data)
 
-        super(EduidAPITestCase, self).setUp(init_am=init_am, am_settings=am_settings, users=users)
         # Set up Redis for shared sessions
         self.redis_instance = RedisTemporaryInstance.get_instance()
         # settings
         config = deepcopy(TEST_CONFIG)
         self.settings = self.update_config(config)
-        self.settings['redis_config'] = RedisConfig2(host='localhost', port=self.redis_instance.port)
+        self.settings['redis_config'] = RedisConfig(host='localhost', port=self.redis_instance.port)
+        assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
         self.settings['mongo_uri'] = self.tmp_db.uri
 
         self.app = self.load_app(self.settings)
@@ -155,6 +140,7 @@ class EduidAPITestCase(CommonTestCase):
 
         if copy_user_to_private:
             data = self.test_user.to_dict()
+            logging.info(f'Copying test-user {self.test_user} to private_userdb {self.app.private_userdb}')
             self.app.private_userdb.save(self.app.private_userdb.UserClass.from_dict(data=data), check_sync=False)
 
     def tearDown(self):
@@ -327,17 +313,6 @@ class EduidAPITestCase(CommonTestCase):
             else:
                 logger.info(f'Test case got unexpected response ({response.status_code}):\n{response.data}')
             raise
-
-    def _init_logging(self):
-        local_context = LocalContext(
-            app_debug=True,
-            app_name='testing',
-            format='{asctime} | {levelname:7} | {name:35} | {message}',
-            level='DEBUG',
-            relative_time=True,
-        )
-        logging_config = make_dictConfig(local_context)
-        logging.config.dictConfig(logging_config)
 
 
 class CSRFTestClient(FlaskClient):

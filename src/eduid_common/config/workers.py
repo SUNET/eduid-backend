@@ -31,57 +31,56 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from dataclasses import dataclass, field
-from typing import Optional
+from typing import Any, Optional
 
-from eduid_common.config.base import CommonConfig
+from pydantic import Field
+
+from eduid_common.config.base import WorkerConfig
 
 
-@dataclass
-class AmConfig(CommonConfig):
+class AmConfig(WorkerConfig):
     """
     Configuration for the attribute manager celery worker
     """
 
     new_user_date: str = '2001-01-01'
-    action_plugins: list = field(default_factory=lambda: ['tou'])
+    action_plugins: list = Field(default_factory=lambda: ['tou'])
 
 
-@dataclass
-class MsgConfig(CommonConfig):
+class MsgConfig(WorkerConfig):
     """
     Configuration for the msg celery worker
     """
 
-    mongo_dbname: str = 'eduid_msg'
-    template_dir: str = ''
     audit: bool = True
+    devel_mode: bool = False
+    mail_certfile: str = ''
     mail_host: str = 'localhost'
+    mail_keyfile: str = ''
+    mail_password: str = ''
     mail_port: int = 25
     mail_starttls: bool = False
-    mail_keyfile: str = ''
-    mail_certfile: str = ''
     mail_username: str = ''
-    mail_password: str = ''
-    # for celery. tasks per second - None for no rate limit
-    message_rate_limit: Optional[int] = None
-    # Navet
-    navet_api_uri: str = ''
-    navet_api_verify_ssl: bool = False
-    navet_api_user: str = ''
+    message_rate_limit: Optional[int] = None  # for celery. tasks per second - None for no rate limit
+    # TODO: Purge everything about the MM API
+    mm_api_uri: str = 'MM-API-not-available'
+    mm_default_subject: str = 'MM-API-not-available'
+    mongo_dbname: str = 'eduid_msg'
     navet_api_pw: str = ''
-    # SMS
+    navet_api_uri: str = ''
+    navet_api_user: str = ''
+    navet_api_verify_ssl: bool = False
     sms_acc: str = ''
     sms_key: str = ''
     sms_sender: str = 'eduID'
+    template_dir: str = ''
 
 
-@dataclass
-class MobConfig(CommonConfig):
+class MobConfig(WorkerConfig):
     """
     Configuration for the lookup mobile celery worker
     """
 
     log_path: str = ''
-    teleadress_client_user: str = ''
     teleadress_client_password: str = ''
+    teleadress_client_user: str = ''

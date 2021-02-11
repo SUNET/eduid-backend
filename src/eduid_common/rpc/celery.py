@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
+from typing import Optional
 
 from celery import Celery
 
+from eduid_common.config.base import CeleryConfig
 
-def init_celery(name, config=None, **kwargs):
+
+def init_celery(name: str, config: Optional[CeleryConfig], **kwargs) -> Celery:
     """
     Initialize Celery.
 
@@ -13,14 +14,9 @@ def init_celery(name, config=None, **kwargs):
     :param config: Celery configuration
     :param kwargs: Extra arguments passed to Celery
 
-    :type name: str
-    :type config: dict
-    :type init_callable: callable or None
-
     :return: Celery instance
-    :rtype: celery.Celery
     """
     if config is not None:
-        kwargs['config_source'] = config
+        kwargs['config_source'] = config.dict()
 
     return Celery(name, **kwargs)
