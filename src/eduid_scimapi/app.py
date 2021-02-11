@@ -2,6 +2,8 @@ from typing import Dict, Optional
 
 import falcon
 
+from eduid_common.config.parsers import load_config
+
 from eduid_scimapi import exceptions
 from eduid_scimapi.config import ScimApiConfig
 from eduid_scimapi.context import Context
@@ -14,9 +16,9 @@ from eduid_scimapi.resources.status import HealthCheckResource
 from eduid_scimapi.resources.users import UsersResource, UsersSearchResource
 
 
-def init_api(name: str, test_config: Optional[Dict] = None, debug: bool = False) -> falcon.API:
-    config = ScimApiConfig.init_config(ns='api', app_name=name, test_config=test_config, debug=debug)
-    context = Context(name=name, config=config)
+def init_api(name: str = 'scimapi', test_config: Optional[Dict] = None) -> falcon.API:
+    config = load_config(typ=ScimApiConfig, app_name=name, ns='api', test_config=test_config)
+    context = Context(config=config)
     context.logger.info(f'Starting {name} app')
 
     api = falcon.API(middleware=[HandleSCIM(context), HandleAuthentication(context)])

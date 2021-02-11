@@ -11,6 +11,7 @@ from eduid_queue.db.message import MessageDB
 from falcon import Response
 from falcon.testing import TestClient
 
+from eduid_common.config.parsers import load_config
 from eduid_common.config.testing import EtcdTemporaryInstance
 from eduid_graphdb.testing import Neo4jTemporaryInstance
 from eduid_userdb.signup import SignupInviteDB
@@ -107,8 +108,8 @@ class ScimApiTestCase(MongoNeoTestCase):
 
     def setUp(self) -> None:
         self.test_config = self._get_config()
-        config = ScimApiConfig.init_config(test_config=self.test_config, debug=True)
-        self.context = Context(name='test_app', config=config)
+        config = load_config(typ=ScimApiConfig, app_name='scimapi', ns='api', test_config=self.test_config)
+        self.context = Context(config=config)
 
         # TODO: more tests for scoped groups when that is implemented
         self.data_owner = 'eduid.se'
@@ -117,7 +118,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         self.signup_invitedb = SignupInviteDB(db_uri=config.mongo_uri)
         self.messagedb = MessageDB(db_uri=config.mongo_uri)
 
-        api = init_api(name='test_api', test_config=self.test_config, debug=True)
+        api = init_api(name='test_api', test_config=self.test_config)
         self.client = TestClient(api)
         self.headers = {
             'Content-Type': 'application/scim+json',

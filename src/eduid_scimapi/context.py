@@ -3,18 +3,20 @@ import logging.config
 from typing import Optional
 
 from eduid_queue.db.message import MessageDB
+
+from eduid_userdb.signup.invitedb import SignupInviteDB
+
 from eduid_scimapi.config import ScimApiConfig
 from eduid_scimapi.db.groupdb import ScimApiGroupDB
 from eduid_scimapi.db.invitedb import ScimApiInviteDB
 from eduid_scimapi.db.userdb import ScimApiUserDB
 from eduid_scimapi.log import init_logging
 from eduid_scimapi.utils import urlappend
-from eduid_userdb.signup.invitedb import SignupInviteDB
 
 
 class Context(object):
-    def __init__(self, name: str, config: ScimApiConfig):
-        self.name = name
+    def __init__(self, config: ScimApiConfig):
+        self.name = config.app_name
         self.config = config
 
         # Setup logging
@@ -43,7 +45,7 @@ class Context(object):
 
     @property
     def base_url(self) -> str:
-        base_url = f'{self.config.schema}://{self.config.server_name}'
+        base_url = f'{self.config.protocol}://{self.config.server_name}'
         if self.config.application_root:
             return urlappend(base_url, self.config.application_root)
         return base_url

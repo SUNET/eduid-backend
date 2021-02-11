@@ -6,7 +6,6 @@ from logging.config import dictConfig
 from eduid_common.api.logging import LocalContext, LoggingFilters, make_dictConfig, merge_config
 from eduid_common.config.exceptions import BadConfiguration
 
-
 __author__ = 'lundberg'
 
 from eduid_scimapi.config import ScimApiConfig

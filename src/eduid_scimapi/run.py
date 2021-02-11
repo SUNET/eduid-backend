@@ -10,5 +10,4 @@ DEBUG = os.environ.get('EDUID_APP_DEBUG', False)
 if DEBUG:
     stderr.writelines('----- WARNING! EDUID_APP_DEBUG is enabled -----\n')
 
-name = 'scimapi'
-api = init_api(name, {}, debug=bool(DEBUG))
+api = init_api()

@@ -2,6 +2,7 @@ import logging
 from typing import Optional
 from uuid import UUID, uuid4
 
+from eduid_common.config.parsers import load_config
 from eduid_graphdb.groupdb import Group as GraphGroup
 
 from eduid_scimapi.config import ScimApiConfig
@@ -16,8 +17,8 @@ class TestGroupDB(MongoNeoTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.test_config = self._get_config()
-        config = ScimApiConfig.init_config(test_config=self.test_config, debug=True)
-        self.context = Context(name='test_app', config=config)
+        config = load_config(typ=ScimApiConfig, app_name='scimapi', ns='api', test_config=self.test_config)
+        self.context = Context(config=config)
         self.groupdb = self.context.get_groupdb('eduid.se')
 
         for i in range(9):

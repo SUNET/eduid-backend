@@ -5,6 +5,6 @@ python-jose==3.*
 eduid_userdb>=0.8.0
 eduid_graphdb>=0.7.0
 eduid_queue[client]>=0.0.2
-eduid_common[api]>=0.22.0
+eduid_common[api]>=0.31.0
 langcodes==2.*
 gunicorn
