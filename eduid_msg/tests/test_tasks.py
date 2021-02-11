@@ -77,7 +77,7 @@ class TestTasks(MsgMongoTestCase):
         status = send_message.delay('sms', 'reference', self.msg_dict, '+466666', 'test.tmpl', 'sv_SE').get()
 
         # Test that the template was actually used in send_message function call to the sms service
-        template = load_template(self.msg_settings.get('TEMPLATE_DIR'), 'test.tmpl', self.msg_dict, 'sv_SE')
+        template = load_template(self.msg_settings.template_dir, 'test.tmpl', self.msg_dict, 'sv_SE')
         expected = [call(template.encode('utf-8'), 'Test sender', '+466666', prio=2)]
         self.assertEqual(sms_mock.mock_calls, expected)
         self.assertTrue(status)
@@ -128,7 +128,7 @@ class TestTasks(MsgMongoTestCase):
         self.assertEqual(transaction_id, 'ab6895f8-7203-4695-b083-ca89d68bf346')
 
         # Test that the template was actually used in send_message function call to the mm service
-        template = load_template(self.msg_settings.get('TEMPLATE_DIR'), 'test.tmpl', self.msg_dict, 'sv_SE')
+        template = load_template(self.msg_settings.template_dir, 'test.tmpl', self.msg_dict, 'sv_SE')
         reachable_data = json.dumps({"identity_number": recipient})
         message_data = json.dumps(
             {

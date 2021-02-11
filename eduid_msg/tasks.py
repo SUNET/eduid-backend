@@ -10,16 +10,15 @@ from typing import List, Optional, Union
 from celery import Task
 from celery.task import periodic_task, task
 from celery.utils.log import get_task_logger
-
-from eduid_userdb.exceptions import ConnectionError
+from hammock import Hammock
 
 from eduid_msg.cache import CacheMDB
 from eduid_msg.common import celery
 from eduid_msg.decorators import TransactionAudit
-from eduid_msg.exceptions import NavetAPIException, NavetException
+from eduid_msg.exceptions import NavetAPIException
 from eduid_msg.utils import load_template, navet_get_name_and_official_address, navet_get_relations
 from eduid_msg.worker import worker_config
-from hammock import Hammock
+from eduid_userdb.exceptions import ConnectionError
 
 if celery is None:
     raise RuntimeError('Must call eduid_msg.init_app before importing tasks')
@@ -59,7 +58,7 @@ class MessageRelay(Task):
     _navet_api = None
     _config = worker_config
     MONGODB_URI = _config.mongo_uri
-    MM_API_URI = _config['MM_API_URI'] if 'MM_API_URI' in _config else DEFAULT_MM_API_URI
+    MM_API_URI = _config.mm_api_uri if _config.mm_api_uri else DEFAULT_MM_API_URI
     NAVET_API_URI = _config.navet_api_uri
     if _config.audit == 'true':
         TransactionAudit.enable()
