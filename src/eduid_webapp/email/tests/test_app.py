@@ -47,8 +47,8 @@ class EmailTests(EduidAPITestCase):
 
     app: EmailApp
 
-    def setUp(self):
-        super(EmailTests, self).setUp(copy_user_to_private=True)
+    def setUp(self, **kwargs):
+        super().setUp(copy_user_to_private=True)
 
     def load_app(self, config: Mapping[str, Any]) -> EmailApp:
         """
@@ -61,17 +61,9 @@ class EmailTests(EduidAPITestCase):
         config.update(
             {
                 'available_languages': {'en': 'English', 'sv': 'Svenska'},
-                'msg_broker_url': 'amqp://dummy',
-                'am_broker_url': 'amqp://dummy',
                 'email_verify_redirect_url': '/profile/',
-                'celery_config': {
-                    'result_backend': 'amqp',
-                    'task_serializer': 'json',
-                    'mongo_uri': config['mongo_uri'],
-                },
                 'email_verification_timeout': 86400,
                 'throttle_resend_seconds': 300,
-                'eduid_site_name': 'eduID TEST',
                 'eduid_site_url': 'https://eduid.dev/',
             }
         )

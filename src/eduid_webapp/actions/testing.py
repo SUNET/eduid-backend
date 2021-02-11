@@ -126,7 +126,7 @@ class ActionsTestCase(EduidAPITestCase):
     app: ActionsApp
 
     def setUp(self, users=None, copy_user_to_private=False, am_settings=None):
-        super(ActionsTestCase, self).setUp(users=None, copy_user_to_private=False, am_settings=None)
+        super(ActionsTestCase, self).setUp(users=None)
         self.user = User.from_dict(data=mocked_user_standard.to_dict())  # make a copy of mocked_user_standard
         self.user.modified_ts = datetime.utcnow()
         self.app.central_userdb.save(self.user, check_sync=False)

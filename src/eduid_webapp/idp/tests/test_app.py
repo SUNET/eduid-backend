@@ -30,8 +30,6 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-
 import os
 import re
 from base64 import b64decode
@@ -76,13 +74,9 @@ class IdPTests(EduidAPITestCase):
     """Base TestCase for those tests that need a full environment setup"""
 
     def setUp(
-        self,
-        init_am: bool = False,
-        am_settings: Optional[Dict[str, Any]] = None,
-        users: Optional[List[str]] = None,
-        copy_user_to_private: bool = False,
+        self, users: Optional[List[str]] = None, copy_user_to_private: bool = False,
     ):
-        super().setUp(init_am=init_am, am_settings=am_settings, users=users, copy_user_to_private=copy_user_to_private)
+        super().setUp(users=users, copy_user_to_private=copy_user_to_private)
         self.idp_entity_id = 'https://unittest-idp.example.edu/idp.xml'
         self.relay_state = 'test-fest'
         self.sp_config = get_saml2_config(self.app.conf.pysaml2_config, name='SP_CONFIG')

@@ -58,7 +58,7 @@ class MobileProofingApp(AuthnBaseApp):
         self.proofing_log = ProofingLog(config.mongo_uri)
 
         # Init celery
-        self.lookup_mobile_relay = LookupMobileRelay(config.celery)
+        self.lookup_mobile_relay = LookupMobileRelay(config)
         self.msg_relay = MsgRelay(config)
         self.am_relay = AmRelay(config)
 
