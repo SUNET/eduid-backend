@@ -54,15 +54,20 @@ USER_DATA = {
 }
 
 
-class AttributeFetcherOldToNewUsersTests(AMTestCase):
+class ProofingTestCase(AMTestCase):
     def setUp(self):
         super().setUp()
         self.user_data = deepcopy(USER_DATA)
 
+        # Copy all user documents from the AM database into the private database used
+        # by _all_ the fetchers available through self.af_registry.
         for userdoc in self.amdb._get_all_docs():
             proofing_user = ProofingUser.from_dict(userdoc)
             for fetcher in self.af_registry.values():
                 fetcher.private_db.save(proofing_user, check_sync=False)
+
+
+class AttributeFetcherOldToNewUsersTests(ProofingTestCase):
 
     def test_invalid_user(self):
         for fetcher in self.af_registry:
@@ -291,20 +296,7 @@ class AttributeFetcherOldToNewUsersTests(AMTestCase):
             self.assertDictEqual(actual_update, expected_update)
 
 
-class AttributeFetcherNINProofingTests(AMTestCase):
-    def setUp(self):
-        super().setUp()
-        self.user_data = deepcopy(USER_DATA)
-
-        for userdoc in self.amdb._get_all_docs():
-            proofing_user = ProofingUser.from_dict(userdoc)
-            for fetcher in self.af_registry.values():
-                fetcher.private_db.save(proofing_user, check_sync=False)
-
-    #def tearDown(self):
-    #    for fetcher in self.af_registry:
-    #        self.af_registry[fetcher].private_db._drop_whole_collection()
-    #    super().tearDown()
+class AttributeFetcherNINProofingTests(ProofingTestCase):
 
     def test_invalid_user(self):
         for fetcher in self.af_registry.values():
@@ -515,15 +507,7 @@ class AttributeFetcherNINProofingTests(AMTestCase):
         assert fetched == expected, 'Fetched letter proofing data with appended attributes has unexpected data'
 
 
-class AttributeFetcherEmailProofingTests(AMTestCase):
-    def setUp(self):
-        super().setUp()
-        self.user_data = deepcopy(USER_DATA)
-
-    #def tearDown(self):
-    #    for fetcher in self.af_registry:
-    #        self.af_registry[fetcher].private_db._drop_whole_collection()
-    #    super().tearDown()
+class AttributeFetcherEmailProofingTests(ProofingTestCase):
 
     def test_invalid_user(self):
         fetcher = self.af_registry['eduid_email']
@@ -594,19 +578,11 @@ class AttributeFetcherEmailProofingTests(AMTestCase):
         )
 
 
-class AttributeFetcherPhoneProofingTests(AMTestCase):
+class AttributeFetcherPhoneProofingTests(ProofingTestCase):
+
     def setUp(self):
         super().setUp()
-        self.user_data = deepcopy(USER_DATA)
         self.fetcher = self.af_registry['eduid_phone']
-        for userdoc in self.amdb._get_all_docs():
-            proofing_user = ProofingUser.from_dict(userdoc)
-            self.fetcher.private_db.save(proofing_user, check_sync=False)
-
-    #def tearDown(self):
-    #    for fetcher in self.af_registry:
-    #        self.af_registry[fetcher].private_db._drop_whole_collection()
-    #    super(AttributeFetcherPhoneProofingTests, self).tearDown()
 
     def test_invalid_user(self):
         with self.assertRaises(UserDoesNotExist):
@@ -638,16 +614,10 @@ class AttributeFetcherPhoneProofingTests(AMTestCase):
             self.fetcher.fetch_attrs(user_id)
 
 
-class AttributeFetcherPersonalDataTests(AMTestCase):
+class AttributeFetcherPersonalDataTests(ProofingTestCase):
     def setUp(self):
         super().setUp()
-        self.user_data = deepcopy(USER_DATA)
         self.fetcher = self.af_registry['eduid_personal_data']
-
-    #def tearDown(self):
-    #    for fetcher in self.af_registry:
-    #        self.af_registry[fetcher].private_db._drop_whole_collection()
-    #    super(AttributeFetcherPersonalDataTests, self).tearDown()
 
     def test_invalid_user(self):
         with self.assertRaises(UserDoesNotExist):
@@ -698,16 +668,10 @@ class AttributeFetcherPersonalDataTests(AMTestCase):
         )
 
 
-class AttributeFetcherSecurityTests(AMTestCase):
+class AttributeFetcherSecurityTests(ProofingTestCase):
     def setUp(self):
         super().setUp()
-        self.user_data = deepcopy(USER_DATA)
         self.fetcher = self.af_registry['eduid_security']
-
-    #def tearDown(self):
-    #    for fetcher in self.af_registry:
-    #        self.af_registry[fetcher].private_db._drop_whole_collection()
-    #    super(AttributeFetcherSecurityTests, self).tearDown()
 
     def test_invalid_user(self):
         with self.assertRaises(UserDoesNotExist):
@@ -776,16 +740,10 @@ class AttributeFetcherSecurityTests(AMTestCase):
         assert fetched == expected, 'Wrong data fetched by security fetcher'
 
 
-class AttributeFetcherResetPasswordTests(AMTestCase):
+class AttributeFetcherResetPasswordTests(ProofingTestCase):
     def setUp(self):
         super().setUp()
-        self.user_data = deepcopy(USER_DATA)
         self.fetcher = self.af_registry['eduid_reset_password']
-
-    #def tearDown(self):
-    #    for fetcher in self.af_registry:
-    #        self.af_registry[fetcher].private_db._drop_whole_collection()
-    #    super(AttributeFetcherResetPasswordTests, self).tearDown()
 
     def test_invalid_user(self):
         with self.assertRaises(UserDoesNotExist):
@@ -854,16 +812,10 @@ class AttributeFetcherResetPasswordTests(AMTestCase):
         assert fetched == expected, 'Wrong data fetched by reset password fetcher'
 
 
-class AttributeFetcherOrcidTests(AMTestCase):
+class AttributeFetcherOrcidTests(ProofingTestCase):
     def setUp(self):
         super().setUp()
-        self.user_data = deepcopy(USER_DATA)
         self.fetcher = self.af_registry['eduid_orcid']
-
-    #def tearDown(self):
-    #    for fetcher in self.af_registry:
-    #        self.af_registry[fetcher].private_db._drop_whole_collection()
-    #    super(AttributeFetcherOrcidTests, self).tearDown()
 
     def test_invalid_user(self):
         with self.assertRaises(UserDoesNotExist):
