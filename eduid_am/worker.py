@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import eduid_am.common as common
 from eduid_common.config.workers import AmConfig
 from eduid_common.rpc.celery import init_celery
