@@ -45,7 +45,7 @@ from abc import ABC
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Sequence, Type, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 import pymongo
 
@@ -286,14 +286,7 @@ class MongoTestCase(DictTestCase):
     A test can access the port using the attribute `port`
     """
 
-    fixtures: list = []
-
-    MockedUserDB: Type[AbstractMockedUserDB] = MockedUserDB
-
-    user = User.from_dict(mocked_user_standard.to_dict())
-    mock_users_patches: list = []
-
-    def setUp(self):
+    def setUp(self, am_users: Optional[List[User]] = None):
         """
         Test case initialization.
 
@@ -317,6 +310,7 @@ class MongoTestCase(DictTestCase):
         """
         super().setUp()
         self.tmp_db = MongoTemporaryInstance.get_instance()
+        assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
         self.amdb = UserDB(self.tmp_db.uri, 'eduid_am')
 
         mongo_settings = {
@@ -329,13 +323,10 @@ class MongoTestCase(DictTestCase):
         else:
             self.settings.update(mongo_settings)
 
-        # Set up test users in the MongoDB. Read the users from MockedUserDB, which might
-        # be overridden by subclasses.
-        _foo_userdb = self.MockedUserDB(self.mock_users_patches)
-        for userdoc in _foo_userdb.all_userdocs():
-            this = deepcopy(userdoc)  # deep-copy to not have side effects between tests
-            user = User.from_dict(data=this)
-            self.amdb.save(user, check_sync=False, old_format=False)
+        if am_users:
+            # Set up test users in the MongoDB.
+            for user in am_users:
+                self.amdb.save(user, check_sync=False)
 
     def tearDown(self):
         for userdoc in self.amdb._get_all_docs():
