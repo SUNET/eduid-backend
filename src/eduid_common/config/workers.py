@@ -81,6 +81,7 @@ class MobConfig(WorkerConfig):
     Configuration for the lookup mobile celery worker
     """
 
+    devel_mode: bool = False
     log_path: str = ''
     teleadress_client_password: str = ''
     teleadress_client_user: str = ''
