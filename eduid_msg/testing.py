@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pkg_resources
 
 from eduid_common.config.workers import MsgConfig
@@ -12,6 +10,7 @@ class MsgMongoTestCase(MongoTestCase):
         data_dir = pkg_resources.resource_filename(__name__, 'tests/data')
         if init_msg:
             settings = {
+                'app_name': 'testing',
                 'celery': {
                     'broker_transport': 'memory',
                     'broker_url': 'memory://',
@@ -26,7 +25,7 @@ class MsgMongoTestCase(MongoTestCase):
                 'sms_key': 'bar',
                 'sms_sender': 'Test sender',
                 'template_dir': data_dir,
-                'message_rate_limit': '2/m',
+                'message_rate_limit': 2,
             }
             self.msg_settings = MsgConfig(**settings)
             # initialize eduid_msg without requiring config in etcd
