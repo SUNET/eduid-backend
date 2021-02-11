@@ -1,15 +1,8 @@
-from typing import Union
-
 import eduid_lookup_mobile
 
 __author__ = 'mathiashedstrom'
 
-from eduid_common.config.base import CeleryConfig, CeleryConfig2
-
-
-def init_relay(app):
-    app.lookup_mobile_relay = LookupMobileRelay(app.conf.celery)
-    return app
+from eduid_common.config.base import CeleryConfigMixin
 
 
 class LookupMobileTaskFailed(Exception):
@@ -17,8 +10,8 @@ class LookupMobileTaskFailed(Exception):
 
 
 class LookupMobileRelay(object):
-    def __init__(self, config: Union[CeleryConfig, CeleryConfig2]):
-        eduid_lookup_mobile.init_app(config)
+    def __init__(self, config: CeleryConfigMixin):
+        eduid_lookup_mobile.init_app(config.celery)
         # these have to be imported _after_ eduid_lookup_mobile.init_app()
         from eduid_lookup_mobile.tasks import find_mobiles_by_NIN, find_NIN_by_mobile
 
