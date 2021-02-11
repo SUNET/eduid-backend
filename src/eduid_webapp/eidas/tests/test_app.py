@@ -137,9 +137,6 @@ class EidasTests(EduidAPITestCase):
                 'token_verify_redirect_url': 'http://test.localhost/profile',
                 'nin_verify_redirect_url': 'http://test.localhost/profile',
                 'action_url': 'http://idp.test.localhost/action',
-                'msg_broker_url': 'amqp://dummy',
-                'am_broker_url': 'amqp://dummy',
-                'celery_config': {'result_backend': 'amqp', 'task_serializer': 'json'},
                 'saml2_settings_module': saml_config,
                 'safe_relay_domain': 'localhost',
                 'authentication_context_map': {

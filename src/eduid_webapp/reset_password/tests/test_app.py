@@ -30,7 +30,6 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
 import json
 from typing import Any, Dict, List, Mapping, Optional
 from unittest.mock import Mock, patch
@@ -65,17 +64,11 @@ class ResetPasswordTests(EduidAPITestCase):
     app: ResetPasswordApp
 
     def setUp(
-        self,
-        init_am: bool = False,
-        am_settings: Optional[Dict[str, Any]] = None,
-        users: Optional[List[str]] = None,
-        copy_user_to_private: bool = False,
+        self, users: Optional[List[str]] = None, copy_user_to_private: bool = False,
     ):
         self.test_user_eppn = 'hubba-bubba'
         self.test_user_email = 'johnsmith@example.com'
-        super(ResetPasswordTests, self).setUp(
-            init_am=init_am, am_settings=am_settings, users=users, copy_user_to_private=copy_user_to_private
-        )
+        super().setUp(users=users, copy_user_to_private=copy_user_to_private)
 
     def load_app(self, config: Optional[Mapping[str, Any]]) -> ResetPasswordApp:
         """
@@ -88,9 +81,6 @@ class ResetPasswordTests(EduidAPITestCase):
         config.update(
             {
                 'available_languages': {'en': 'English', 'sv': 'Svenska'},
-                'msg_broker_url': 'amqp://dummy',
-                'am_broker_url': 'amqp://dummy',
-                'celery_config': {'result_backend': 'amqp', 'task_serializer': 'json'},
                 'vccs_url': 'http://vccs',
                 'email_code_timeout': 7200,
                 'phone_code_timeout': 600,
