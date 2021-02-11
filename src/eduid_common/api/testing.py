@@ -46,7 +46,7 @@ from flask.testing import FlaskClient
 from eduid_userdb import User
 from eduid_userdb.db import BaseDB
 from eduid_userdb.fixtures.users import new_completed_signup_user_example, new_unverified_user_example, new_user_example
-from eduid_userdb.testing import AbstractMockedUserDB
+from eduid_userdb.testing import AbstractMockedUserDB, MongoTemporaryInstance
 
 from eduid_common.api.messages import TranslatableMsg
 from eduid_common.api.testing_base import CommonTestCase
@@ -106,22 +106,15 @@ class EduidAPITestCase(CommonTestCase):
     See the `load_app` and `update_config` methods below before subclassing.
     """
 
-    # This concept with a class variable is broken - doesn't provide isolation between tests.
-    # Do what we can and initialise it empty here, and then fill it in __init__.
-    MockedUserDB = APIMockedUserDB
-
-    def setUp(
-        self, users: Optional[List[str]] = None, copy_user_to_private: bool = False,
-    ):
-        super().setUp()
+    def setUp(self, users: Optional[List[str]] = None, copy_user_to_private: bool = False, **kwargs):
         # test users
-        self.MockedUserDB.test_users = {}
         if users is None:
             users = ['hubba-bubba']
-        for this in users:
-            _user = _standard_test_users.get(this)
-            if _user is not None:
-                self.MockedUserDB.test_users[this] = _user.to_dict()
+
+        # Make a list of User object to be saved to the new temporary mongodb instance
+        am_users = [_standard_test_users[x] for x in users]
+
+        super().setUp(am_users=am_users, **kwargs)
 
         self.user = None  # type: ignore
         # Initialize some convenience variables on self based on the first user in `users'
@@ -134,6 +127,7 @@ class EduidAPITestCase(CommonTestCase):
         config = deepcopy(TEST_CONFIG)
         self.settings = self.update_config(config)
         self.settings['redis_config'] = RedisConfig(host='localhost', port=self.redis_instance.port)
+        assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
         self.settings['mongo_uri'] = self.tmp_db.uri
 
         self.app = self.load_app(self.settings)

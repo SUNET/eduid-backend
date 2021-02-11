@@ -33,6 +33,7 @@ from typing import cast
 
 from mock import patch
 
+from eduid_userdb.fixtures.users import new_user_example
 from eduid_userdb.testing import MongoTestCase
 from vccs_client import VCCSClient
 
@@ -42,7 +43,7 @@ from eduid_common.authn.testing import MockVCCSClient
 
 class VCCSTestCase(MongoTestCase):
     def setUp(self):
-        super(VCCSTestCase, self).setUp()
+        super().setUp(am_users=[new_user_example])
         self.vccs_client = cast(VCCSClient, MockVCCSClient())
         self.user = self.amdb.get_user_by_mail('johnsmith@example.com')
 

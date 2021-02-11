@@ -32,9 +32,10 @@
 #
 import logging
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
-from eduid_userdb.testing import MongoTestCase
+from eduid_userdb import User
+from eduid_userdb.testing import MongoTemporaryInstance, MongoTestCase
 
 from eduid_common.api.logging import LocalContext, make_dictConfig
 from eduid_common.config.testing import EtcdTemporaryInstance
@@ -46,14 +47,14 @@ logger = logging.getLogger(__name__)
 class CommonTestCase(MongoTestCase):
     """ Base Test case for eduID webapps and workers """
 
-    def setUp(self,):
+    def setUp(self, **kwargs):
         """
         set up tests
         """
         # Set up provisional logging to capture logs from test setup too
         self._init_logging()
 
-        super().setUp()
+        super().setUp(**kwargs)
 
         # Set up etcd
         self.etcd_instance = EtcdTemporaryInstance.get_instance()
@@ -76,13 +77,11 @@ class WorkerTestCase(CommonTestCase):
     Base Test case for eduID celery workers
     """
 
-    def setUp(
-        self, am_settings: Optional[Dict[str, Any]] = None, want_mongo_uri: bool = True,
-    ):
+    def setUp(self, am_settings: Optional[Dict[str, Any]] = None, want_mongo_uri: bool = True, **kwargs):
         """
         set up tests
         """
-        super().setUp()
+        super().setUp(**kwargs)
 
         settings = {
             'app_name': 'testing',
@@ -102,6 +101,7 @@ class WorkerTestCase(CommonTestCase):
         if am_settings:
             settings.update(am_settings)
         if want_mongo_uri:
+            assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
             settings['mongo_uri'] = self.tmp_db.uri
 
         am_config = AmConfig(**settings)
