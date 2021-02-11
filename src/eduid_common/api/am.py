@@ -25,7 +25,7 @@ class AmRelay(object):
         if config.am_relay_for_override is not None:
             self.relay_for = config.am_relay_for_override
 
-        eduid_am.init_app(config)
+        eduid_am.init_app(config.celery)
         # these have to be imported _after_ eduid_am.init_app()
         from eduid_am.tasks import pong, update_attributes_keep_result
 
