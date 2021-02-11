@@ -10,12 +10,9 @@ class ScimApiConfig(RootConfig, LoggingConfigMixin):
     Configuration for the SCIM API app
     """
 
-    app_name: str = 'scimapi'
-    testing: bool = False
     protocol: str = 'http'
     server_name: str = 'localhost:8000'
     application_root: str = '/'
-    logging_config: dict = Field(default={})
     log_format: str = '{asctime} | {levelname:7} | {hostname} | {name:35} | {module:10} | {message}'
     mongo_uri: str = ''
     neo4j_uri: str = ''
