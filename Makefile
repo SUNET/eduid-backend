@@ -1,5 +1,7 @@
 SOURCE=	src
 EDUIDUSERDB= ../eduid-userdb/src
+EDUIDAM= ../eduid-am/eduid_am
+EDUIDMSG= ../eduid_msg/eduid_msg
 
 test:
 	pytest
@@ -12,4 +14,4 @@ typecheck:
 	mypy --ignore-missing-imports $(SOURCE)
 
 typecheck_extra:
-	mypy --ignore-missing-imports $(EDUIDUSERDB) $(SOURCE)
+	mypy --ignore-missing-imports $(EDUIDUSERDB) $(EDUIDAM) $(EDUIDMSG) $(SOURCE)
