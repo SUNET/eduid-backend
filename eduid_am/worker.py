@@ -1,14 +1,10 @@
-from __future__ import absolute_import
-
-from eduid_common.config.base import CommonConfig
+import eduid_am.common as common
 from eduid_common.config.workers import AmConfig
 from eduid_common.rpc.celery import init_celery
 from eduid_common.rpc.worker import get_worker_config
 from eduid_userdb import UserDB
 
-import eduid_am.common as common
-
-worker_config: AmConfig = AmConfig()
+worker_config = AmConfig(app_name='app_name_NOT_SET')
 
 if common.celery is None:
     worker_config = get_worker_config('am', config_class=AmConfig)

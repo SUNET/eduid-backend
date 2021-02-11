@@ -1,5 +1,5 @@
-eduid_common[worker]>=0.8.0
-eduid_userdb>=0.6.1
+eduid-common[worker]>=0.31.0,==0.31.*
+eduid-userdb>=0.10.0,==0.10.*
 python-dateutil>=2.1
 vine<5.0.0a1  # Version mismatch problem
 kombu==4.5.0  # Stable release until celery[redis]==4.4.*

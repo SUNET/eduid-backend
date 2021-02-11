@@ -4,14 +4,17 @@ The eduID Attribute Manager package.
 Copyright (c) 2013, 2014, 2015, 2018 SUNET. All rights reserved.
 See the file LICENSE.txt for full license statement.
 """
-from __future__ import absolute_import
+from typing import Optional
 
+from celery import Celery
+
+from eduid_common.config.base import CeleryConfig
 from eduid_common.rpc.celery import init_celery
 
 import eduid_am.common as common
 
 
-def init_app(config):
+def init_app(config: Optional[CeleryConfig]) -> Celery:
     common.celery = init_celery('am', config)
     return common.celery
 

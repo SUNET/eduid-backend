@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
+from typing import Dict
+
+from bson import ObjectId
 from celery.utils.log import get_task_logger
 
 from eduid_userdb.exceptions import DocumentDoesNotExist, LockedIdentityViolation, UserDBValueError
 from eduid_userdb.locked_identity import LockedIdentityList, LockedIdentityNin
+from eduid_userdb.userdb import UserDB
 
 __author__ = 'lundberg'
 
@@ -163,17 +167,12 @@ def unverify_nins(userdb, user_id, nins):
     return count
 
 
-def check_locked_identity(userdb, user_id, attributes, app_name):
+def check_locked_identity(userdb: UserDB, user_id: ObjectId, attributes: Dict, app_name: str) -> Dict:
     """
     :param userdb: Central userdb
     :param user_id: User document _id
     :param attributes: attributes to update
     :param app_name: calling application name, like 'eduid_signup'
-
-    :type userdb: eduid_userdb.userdb.UserDB
-    :type user_id: bson.ObjectId
-    :type attributes: dict
-    :type app_name: string
 
     :return: attributes to update
     :rtype: dict
@@ -203,17 +202,15 @@ def check_locked_identity(userdb, user_id, attributes, app_name):
     locked_nin = locked_identities.find('nin')
     # Create a new locked nin if it does not already exist
     if not locked_nin:
-        locked_nin = LockedIdentityNin.from_dict(
-            dict(
-                number=nin['number'], created_by=nin.get('created_by', app_name), created_ts=nin.get('created_ts', True)
-            )
+        locked_nin = LockedIdentityNin(
+            number=nin['number'], created_by=nin.get('created_by', app_name), created_ts=nin.get('created_ts', True)
         )
         locked_identities.add(locked_nin)
 
     # Check nin to be set against locked nin
     if nin['number'] != locked_nin.number:
-        logger.error('Verfied nin does not match locked identity for user with id {}'.format(user_id))
-        raise LockedIdentityViolation('Verfied nin does not match locked identity for user with id {}'.format(user_id))
+        logger.error(f'Verified nin does not match locked identity for user with id {user_id}')
+        raise LockedIdentityViolation(f'Verified nin does not match locked identity for user with id {user_id}')
 
     attributes['$set']['locked_identity'] = locked_identities.to_list_of_dicts()
     return attributes

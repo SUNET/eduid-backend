@@ -36,41 +36,25 @@ Code used in unit tests of various eduID applications.
 
 __author__ = 'leifj'
 
-import atexit
 import logging
-import random
-import subprocess
-import time
-import unittest
-from copy import deepcopy
-from datetime import date, timedelta
+from typing import Any, Dict, Optional
 
-import pymongo
-from bson import ObjectId
-
-from eduid_common.api.testing_base import CommonTestCase
-from eduid_userdb import User, UserDB
-from eduid_userdb.dashboard.user import DashboardUser
+from eduid_am.fetcher_registry import AFRegistry
+from eduid_common.api.testing_base import WorkerTestCase
 
 logger = logging.getLogger(__name__)
 
 
-class AMTestCase(CommonTestCase):
-    """TestCase with an embedded Attribute Manager.
-    """
+class AMTestCase(WorkerTestCase):
+    """ TestCase with an embedded Attribute Manager. """
 
-    def setUp(self, am_settings=None):
-        """
-        Test case initialization.
+    def setUp(self, am_settings: Optional[Dict[str, Any]] = None, want_mongo_uri: bool = True, **kwargs):
+        super().setUp(am_settings=am_settings, want_mongo_uri=want_mongo_uri, **kwargs)
+        self.af_registry = AFRegistry()
 
-        """
-        super(AMTestCase, self).setUp(am_settings=am_settings)
-        import eduid_am
+        self.maxDiff = None
 
-        celery = eduid_am.init_app(self.am_settings.celery)
-        import eduid_am.worker
-
-        eduid_am.worker.worker_config = self.am_settings
-        logger.debug('Initialized AM with config:\n{!r}'.format(self.am_settings))
-
-        self.am = eduid_am.get_attribute_manager(celery)
+    def tearDown(self):
+        for fetcher in self.af_registry:
+            self.af_registry[fetcher].private_db._drop_whole_collection()
+        super().tearDown()

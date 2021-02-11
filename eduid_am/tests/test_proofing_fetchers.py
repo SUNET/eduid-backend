@@ -4,15 +4,12 @@ from copy import deepcopy
 
 import bson
 
+from eduid_am.testing import AMTestCase
 from eduid_userdb.exceptions import UserDoesNotExist
 from eduid_userdb.personal_data import PersonalDataUser
 from eduid_userdb.proofing import ProofingUser
 from eduid_userdb.reset_password import ResetPasswordUser
 from eduid_userdb.security import SecurityUser
-
-import eduid_am.ams
-from eduid_am.fetcher_registry import AFRegistry
-from eduid_am.testing import AMTestCase
 
 USER_DATA = {
     'givenName': 'Testaren',
@@ -57,29 +54,20 @@ USER_DATA = {
 }
 
 
-class AttributeFetcherOldToNewUsersTests(AMTestCase):
+class ProofingTestCase(AMTestCase):
     def setUp(self):
-        am_settings = {'want_mongo_uri': True}
-        super(AttributeFetcherOldToNewUsersTests, self).setUp(am_settings=am_settings)
+        super().setUp()
         self.user_data = deepcopy(USER_DATA)
-        self.af_registry = AFRegistry(self.am_settings)
-        for attr in dir(eduid_am.ams):
-            if attr.startswith('eduid_'):
-                af_class = getattr(eduid_am.ams, attr)
-                if type(af_class) is type:
-                    self.af_registry[attr] = af_class(self.am_settings)
 
+        # Copy all user documents from the AM database into the private database used
+        # by _all_ the fetchers available through self.af_registry.
         for userdoc in self.amdb._get_all_docs():
             proofing_user = ProofingUser.from_dict(userdoc)
             for fetcher in self.af_registry.values():
                 fetcher.private_db.save(proofing_user, check_sync=False)
 
-        self.maxDiff = None
 
-    def tearDown(self):
-        for fetcher in self.af_registry:
-            self.af_registry[fetcher].private_db._drop_whole_collection()
-        super(AttributeFetcherOldToNewUsersTests, self).tearDown()
+class AttributeFetcherOldToNewUsersTests(ProofingTestCase):
 
     def test_invalid_user(self):
         for fetcher in self.af_registry:
@@ -308,29 +296,7 @@ class AttributeFetcherOldToNewUsersTests(AMTestCase):
             self.assertDictEqual(actual_update, expected_update)
 
 
-class AttributeFetcherNINProofingTests(AMTestCase):
-    def setUp(self):
-        am_settings = {'want_mongo_uri': True}
-        super(AttributeFetcherNINProofingTests, self).setUp(am_settings=am_settings)
-        self.user_data = deepcopy(USER_DATA)
-        self.af_registry = AFRegistry(self.am_settings)
-        for attr in dir(eduid_am.ams):
-            if attr.startswith('eduid_'):
-                af_class = getattr(eduid_am.ams, attr)
-                if type(af_class) is type:
-                    self.af_registry[attr] = af_class(self.am_settings)
-
-        for userdoc in self.amdb._get_all_docs():
-            proofing_user = ProofingUser.from_dict(userdoc)
-            for fetcher in self.af_registry.values():
-                fetcher.private_db.save(proofing_user, check_sync=False)
-
-        self.maxDiff = None
-
-    def tearDown(self):
-        for fetcher in self.af_registry:
-            self.af_registry[fetcher].private_db._drop_whole_collection()
-        super(AttributeFetcherNINProofingTests, self).tearDown()
+class AttributeFetcherNINProofingTests(ProofingTestCase):
 
     def test_invalid_user(self):
         for fetcher in self.af_registry.values():
@@ -387,7 +353,6 @@ class AttributeFetcherNINProofingTests(AMTestCase):
             )
 
     def test_append_attributes_letter_proofing_data(self):
-        self.maxDiff = None
         self.user_data.update(
             {
                 "letter_proofing_data": [
@@ -542,23 +507,7 @@ class AttributeFetcherNINProofingTests(AMTestCase):
         assert fetched == expected, 'Fetched letter proofing data with appended attributes has unexpected data'
 
 
-class AttributeFetcherEmailProofingTests(AMTestCase):
-    def setUp(self):
-        am_settings = {'want_mongo_uri': True}
-        super(AttributeFetcherEmailProofingTests, self).setUp(am_settings=am_settings)
-        self.user_data = deepcopy(USER_DATA)
-        self.af_registry = AFRegistry(self.am_settings)
-        # for userdoc in self.amdb._get_all_docs():
-        #    proofing_user = ProofingUser.from_dict(userdoc)
-        #    for context in self.plugin_contexts:
-        #        context.private_db.save(proofing_user, check_sync=False)
-
-        self.maxDiff = None
-
-    def tearDown(self):
-        for fetcher in self.af_registry:
-            self.af_registry[fetcher].private_db._drop_whole_collection()
-        super(AttributeFetcherEmailProofingTests, self).tearDown()
+class AttributeFetcherEmailProofingTests(ProofingTestCase):
 
     def test_invalid_user(self):
         fetcher = self.af_registry['eduid_email']
@@ -629,21 +578,11 @@ class AttributeFetcherEmailProofingTests(AMTestCase):
         )
 
 
-class AttributeFetcherPhoneProofingTests(AMTestCase):
-    def setUp(self):
-        am_settings = {'want_mongo_uri': True}
-        super(AttributeFetcherPhoneProofingTests, self).setUp(am_settings=am_settings)
-        self.user_data = deepcopy(USER_DATA)
-        self.af_registry = AFRegistry(self.am_settings)
-        self.fetcher = self.af_registry['eduid_phone']
-        for userdoc in self.amdb._get_all_docs():
-            proofing_user = ProofingUser.from_dict(userdoc)
-            self.fetcher.private_db.save(proofing_user, check_sync=False)
+class AttributeFetcherPhoneProofingTests(ProofingTestCase):
 
-    def tearDown(self):
-        for fetcher in self.af_registry:
-            self.af_registry[fetcher].private_db._drop_whole_collection()
-        super(AttributeFetcherPhoneProofingTests, self).tearDown()
+    def setUp(self):
+        super().setUp()
+        self.fetcher = self.af_registry['eduid_phone']
 
     def test_invalid_user(self):
         with self.assertRaises(UserDoesNotExist):
@@ -675,20 +614,10 @@ class AttributeFetcherPhoneProofingTests(AMTestCase):
             self.fetcher.fetch_attrs(user_id)
 
 
-class AttributeFetcherPersonalDataTests(AMTestCase):
+class AttributeFetcherPersonalDataTests(ProofingTestCase):
     def setUp(self):
-        am_settings = {'want_mongo_uri': True}
-        super(AttributeFetcherPersonalDataTests, self).setUp(am_settings=am_settings)
-        self.user_data = deepcopy(USER_DATA)
-        self.af_registry = AFRegistry(self.am_settings)
+        super().setUp()
         self.fetcher = self.af_registry['eduid_personal_data']
-
-        self.maxDiff = None
-
-    def tearDown(self):
-        for fetcher in self.af_registry:
-            self.af_registry[fetcher].private_db._drop_whole_collection()
-        super(AttributeFetcherPersonalDataTests, self).tearDown()
 
     def test_invalid_user(self):
         with self.assertRaises(UserDoesNotExist):
@@ -739,20 +668,10 @@ class AttributeFetcherPersonalDataTests(AMTestCase):
         )
 
 
-class AttributeFetcherSecurityTests(AMTestCase):
+class AttributeFetcherSecurityTests(ProofingTestCase):
     def setUp(self):
-        am_settings = {'want_mongo_uri': True}
-        super(AttributeFetcherSecurityTests, self).setUp(am_settings=am_settings)
-        self.user_data = deepcopy(USER_DATA)
-        self.af_registry = AFRegistry(self.am_settings)
+        super().setUp()
         self.fetcher = self.af_registry['eduid_security']
-
-        self.maxDiff = None
-
-    def tearDown(self):
-        for fetcher in self.af_registry:
-            self.af_registry[fetcher].private_db._drop_whole_collection()
-        super(AttributeFetcherSecurityTests, self).tearDown()
 
     def test_invalid_user(self):
         with self.assertRaises(UserDoesNotExist):
@@ -821,20 +740,10 @@ class AttributeFetcherSecurityTests(AMTestCase):
         assert fetched == expected, 'Wrong data fetched by security fetcher'
 
 
-class AttributeFetcherResetPasswordTests(AMTestCase):
+class AttributeFetcherResetPasswordTests(ProofingTestCase):
     def setUp(self):
-        am_settings = {'want_mongo_uri': True}
-        super(AttributeFetcherResetPasswordTests, self).setUp(am_settings=am_settings)
-        self.user_data = deepcopy(USER_DATA)
-        self.af_registry = AFRegistry(self.am_settings)
+        super().setUp()
         self.fetcher = self.af_registry['eduid_reset_password']
-
-        self.maxDiff = None
-
-    def tearDown(self):
-        for fetcher in self.af_registry:
-            self.af_registry[fetcher].private_db._drop_whole_collection()
-        super(AttributeFetcherResetPasswordTests, self).tearDown()
 
     def test_invalid_user(self):
         with self.assertRaises(UserDoesNotExist):
@@ -903,20 +812,10 @@ class AttributeFetcherResetPasswordTests(AMTestCase):
         assert fetched == expected, 'Wrong data fetched by reset password fetcher'
 
 
-class AttributeFetcherOrcidTests(AMTestCase):
+class AttributeFetcherOrcidTests(ProofingTestCase):
     def setUp(self):
-        am_settings = {'want_mongo_uri': True}
-        super(AttributeFetcherOrcidTests, self).setUp(am_settings=am_settings)
-        self.user_data = deepcopy(USER_DATA)
-        self.af_registry = AFRegistry(self.am_settings)
+        super().setUp()
         self.fetcher = self.af_registry['eduid_orcid']
-
-        self.maxDiff = None
-
-    def tearDown(self):
-        for fetcher in self.af_registry:
-            self.af_registry[fetcher].private_db._drop_whole_collection()
-        super(AttributeFetcherOrcidTests, self).tearDown()
 
     def test_invalid_user(self):
         with self.assertRaises(UserDoesNotExist):

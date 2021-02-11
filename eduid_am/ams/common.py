@@ -32,16 +32,12 @@
 __author__ = 'eperez'
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 import bson
-import pymongo.errors
 from celery.utils.log import get_task_logger
 
 from eduid_common.config.workers import AmConfig
-from eduid_userdb.actions.tou import ToUUserDB
-from eduid_userdb.exceptions import UserDoesNotExist
 from eduid_userdb.userdb import UserDB
 
 logger = get_task_logger(__name__)
@@ -53,8 +49,12 @@ class AttributeFetcher(ABC):
     whitelist_unset_attrs: List[str]
 
     def __init__(self, worker_config: AmConfig):
+        if not isinstance(worker_config, AmConfig):
+            raise TypeError('AttributeFetcher config should be AmConfig')
         self.conf = worker_config
-        self.private_db = self.get_user_db(worker_config.mongo_uri)
+        self.private_db: Optional[UserDB] = None
+        if worker_config.mongo_uri:
+            self.private_db = self.get_user_db(worker_config.mongo_uri)
 
     @classmethod
     @abstractmethod
@@ -72,9 +72,11 @@ class AttributeFetcher(ABC):
         """
 
         attributes = {}
-        logger.debug('Trying to get user with _id: {} from {}.'.format(user_id, self.private_db))
+        logger.debug(f'Trying to get user with _id: {user_id} from {self.private_db}.')
+        if not self.private_db:
+            raise RuntimeError('No database initialised')
         user = self.private_db.get_user_by_id(user_id)
-        logger.debug('User: {} found.'.format(user))
+        logger.debug(f'User: {user} found.')
 
         user_dict = user.to_dict()
 
