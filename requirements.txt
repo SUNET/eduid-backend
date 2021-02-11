@@ -1,6 +1,6 @@
 six >= 1.11.0
-eduid-userdb >= 0.4.6b0
-eduid_common[worker]>=0.4.1b24
+eduid-common[worker]>=0.31.0,==0.31.*
+eduid-userdb>=0.10.0,==0.10.*
 suds-jurko >= 0.6
 phonenumbers >= 8.9.3
 vine<5.0.0a1,>=1.1.3
