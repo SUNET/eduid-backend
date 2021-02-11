@@ -2,7 +2,7 @@
 import logging
 import pprint
 
-from falcon import Request, Response, HTTP_200
+from falcon import HTTP_200, Request, Response
 
 from eduid_scimapi.resources.base import BaseResource
 
