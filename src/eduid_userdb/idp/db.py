@@ -43,6 +43,7 @@ from typing import Optional, Union
 from bson import ObjectId
 
 from eduid_userdb import UserDB
+
 from .user import IdPUser
 
 # TODO: Rename to logger

@@ -33,7 +33,6 @@ import logging
 import random
 import shutil
 import subprocess
-import sys
 import tempfile
 import time
 from abc import ABC, abstractmethod

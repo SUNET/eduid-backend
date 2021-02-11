@@ -213,7 +213,7 @@ def _format_mongodb_uri(parsed_uri):
 class BaseDB(object):
     """ Base class for common db operations """
 
-    def __init__(self, db_uri: str, db_name: str, collection: str, safe_writes: bool=False):
+    def __init__(self, db_uri: str, db_name: str, collection: str, safe_writes: bool = False):
 
         self._db_uri = db_uri
         self._coll_name = collection
