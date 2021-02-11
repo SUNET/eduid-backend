@@ -50,7 +50,7 @@ class Credential(VerifiedElement):
 
     Adds 'proofing_method' to VerifiedElement. Maybe that could benefit the
     main VerifiedElement, but after a short discussion we chose to add it
-    only for credentials until we know we want it for other types of verifed
+    only for credentials until we know we want it for other types of verified
     elements too.
 
     There is some use of these objects as keys in dicts in eduid-IdP,

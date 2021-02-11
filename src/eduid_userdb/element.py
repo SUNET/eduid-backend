@@ -83,8 +83,6 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Type, TypeVar
 
-from six import string_types
-
 from eduid_userdb.exceptions import EduIDUserDBError, UserDBValueError
 
 __author__ = 'ft'
