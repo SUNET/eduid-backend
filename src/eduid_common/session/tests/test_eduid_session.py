@@ -81,14 +81,10 @@ class EduidSessionTests(EduidAPITestCase):
     app: SessionTestApp
 
     def setUp(
-        self,
-        init_am: bool = False,
-        am_settings: Optional[Dict[str, Any]] = None,
-        users: Optional[List[str]] = None,
-        copy_user_to_private: bool = False,
+        self, users: Optional[List[str]] = None, copy_user_to_private: bool = False,
     ):
         self.test_user_eppn = 'hubba-bubba'
-        super().setUp(init_am=init_am, am_settings=am_settings, users=users, copy_user_to_private=copy_user_to_private)
+        super().setUp(users=users, copy_user_to_private=copy_user_to_private)
 
     def load_app(self, config: Mapping[str, Any]) -> SessionTestApp:
         """

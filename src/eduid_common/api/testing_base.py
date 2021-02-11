@@ -30,15 +30,13 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-from __future__ import absolute_import
-
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from eduid_userdb.testing import MongoTestCase
 
+from eduid_common.api.logging import LocalContext, make_dictConfig
 from eduid_common.config.testing import EtcdTemporaryInstance
 from eduid_common.config.workers import AmConfig
 
@@ -46,22 +44,75 @@ logger = logging.getLogger(__name__)
 
 
 class CommonTestCase(MongoTestCase):
-    """
-    Base Test case for eduID webapps and celery workers
-    """
+    """ Base Test case for eduID webapps and workers """
 
-    def setUp(
-        self,
-        init_am: bool = False,
-        am_settings: Optional[Dict[str, Any]] = None,
-        users: Optional[List[str]] = None,
-        copy_user_to_private: bool = False,
-    ):
+    def setUp(self,):
         """
         set up tests
         """
-        super(CommonTestCase, self).setUp(init_am=init_am, am_settings=am_settings)
+        # Set up provisional logging to capture logs from test setup too
+        self._init_logging()
+
+        super().setUp()
 
         # Set up etcd
         self.etcd_instance = EtcdTemporaryInstance.get_instance()
         os.environ.update({'ETCD_PORT': str(self.etcd_instance.port)})
+
+    def _init_logging(self):
+        local_context = LocalContext(
+            app_debug=True,
+            app_name='testing',
+            format='{asctime} | {levelname:7} | {name:35} | {message}',
+            level='DEBUG',
+            relative_time=True,
+        )
+        logging_config = make_dictConfig(local_context)
+        logging.config.dictConfig(logging_config)
+
+
+class WorkerTestCase(CommonTestCase):
+    """
+    Base Test case for eduID celery workers
+    """
+
+    def setUp(
+        self, am_settings: Optional[Dict[str, Any]] = None, want_mongo_uri: bool = True,
+    ):
+        """
+        set up tests
+        """
+        super().setUp()
+
+        settings = {
+            'app_name': 'testing',
+            'celery': {
+                'broker_transport': 'memory',
+                'broker_url': 'memory://',
+                'task_eager_propagates': True,
+                'task_always_eager': True,
+                'result_backend': 'cache',
+                'cache_backend': 'memory',
+            },
+            # Be sure to NOT tell AttributeManager about the temporary mongodb instance.
+            # If we do, one or more plugins may open DB connections that never gets closed.
+            'mongo_uri': None,
+        }
+
+        if am_settings:
+            settings.update(am_settings)
+        if want_mongo_uri:
+            settings['mongo_uri'] = self.tmp_db.uri
+
+        am_config = AmConfig(**settings)
+
+        # initialize eduid_am without requiring config in etcd
+        import eduid_am
+
+        celery = eduid_am.init_app(am_config.celery)
+        import eduid_am.worker
+
+        eduid_am.worker.worker_config = am_config
+        logger.debug(f'Initialized AM with config:\n{am_config}')
+
+        self.am = eduid_am.get_attribute_manager(celery)

@@ -31,7 +31,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import json
-import logging
 import logging.config
 import pprint
 import sys
@@ -49,7 +48,6 @@ from eduid_userdb.db import BaseDB
 from eduid_userdb.fixtures.users import new_completed_signup_user_example, new_unverified_user_example, new_user_example
 from eduid_userdb.testing import AbstractMockedUserDB
 
-from eduid_common.api.logging import LocalContext, make_dictConfig
 from eduid_common.api.messages import TranslatableMsg
 from eduid_common.api.testing_base import CommonTestCase
 from eduid_common.config.base import RedisConfig
@@ -113,15 +111,9 @@ class EduidAPITestCase(CommonTestCase):
     MockedUserDB = APIMockedUserDB
 
     def setUp(
-        self,
-        init_am: bool = False,
-        am_settings: Optional[Dict[str, Any]] = None,
-        users: Optional[List[str]] = None,
-        copy_user_to_private: bool = False,
+        self, users: Optional[List[str]] = None, copy_user_to_private: bool = False,
     ):
-        # Set up provisional logging to capture logs from test setup too
-        self._init_logging()
-
+        super().setUp()
         # test users
         self.MockedUserDB.test_users = {}
         if users is None:
@@ -136,7 +128,6 @@ class EduidAPITestCase(CommonTestCase):
         self.test_user_data = _standard_test_users[users[0]].to_dict()
         self.test_user = User.from_dict(self.test_user_data)
 
-        super(EduidAPITestCase, self).setUp(init_am=init_am, am_settings=am_settings, users=users)
         # Set up Redis for shared sessions
         self.redis_instance = RedisTemporaryInstance.get_instance()
         # settings
@@ -155,6 +146,7 @@ class EduidAPITestCase(CommonTestCase):
 
         if copy_user_to_private:
             data = self.test_user.to_dict()
+            logging.info(f'Copying test-user {self.test_user} to private_userdb {self.app.private_userdb}')
             self.app.private_userdb.save(self.app.private_userdb.UserClass.from_dict(data=data), check_sync=False)
 
     def tearDown(self):
@@ -327,17 +319,6 @@ class EduidAPITestCase(CommonTestCase):
             else:
                 logger.info(f'Test case got unexpected response ({response.status_code}):\n{response.data}')
             raise
-
-    def _init_logging(self):
-        local_context = LocalContext(
-            app_debug=True,
-            app_name='testing',
-            format='{asctime} | {levelname:7} | {name:35} | {message}',
-            level='DEBUG',
-            relative_time=True,
-        )
-        logging_config = make_dictConfig(local_context)
-        logging.config.dictConfig(logging_config)
 
 
 class CSRFTestClient(FlaskClient):
