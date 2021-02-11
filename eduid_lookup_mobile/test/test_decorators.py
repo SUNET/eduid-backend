@@ -9,9 +9,9 @@ from eduid_lookup_mobile.testing import LookupMobileMongoTestCase
 
 class TestTransactionAudit(LookupMobileMongoTestCase):
     def setUp(self):
-        super(TestTransactionAudit, self).setUp()
+        super().setUp()
         # need to set self.mongo_uri and db for the TransactionAudit decorator
-        self.conf = MsgConfig(**{'mongo_uri': self.tmp_db.uri})
+        self.conf = MsgConfig(app_name='testing', mongo_uri=self.tmp_db.uri)
         self.db = self.tmp_db.conn['eduid_lookup_mobile']
 
         self.transaction_audit = True

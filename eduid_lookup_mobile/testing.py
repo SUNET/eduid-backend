@@ -6,9 +6,10 @@ from eduid_userdb.testing import MongoTestCase
 
 class LookupMobileMongoTestCase(MongoTestCase):
     def setUp(self, init_lookup_mobile=True):
-        super(LookupMobileMongoTestCase, self).setUp()
+        super().setUp()
         if init_lookup_mobile:
             settings = {
+                'app_name': 'testing',
                 'celery': {
                     'broker_transport': 'memory',
                     'broker_url': 'memory://',
