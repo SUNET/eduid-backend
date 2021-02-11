@@ -60,9 +60,7 @@ class ResetPasswordUserDB(UserDB):
 
 
 class ResetPasswordStateDB(BaseDB):
-    def __init__(
-        self, db_uri: str, db_name: str = 'eduid_reset_password', collection: str = 'password_reset_data'
-    ):
+    def __init__(self, db_uri: str, db_name: str = 'eduid_reset_password', collection: str = 'password_reset_data'):
         super(ResetPasswordStateDB, self).__init__(db_uri, db_name, collection=collection)
 
     def get_state_by_email_code(

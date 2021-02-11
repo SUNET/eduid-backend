@@ -5,6 +5,7 @@ from bson import ObjectId
 import eduid_userdb.db as db
 from eduid_userdb.testing import MongoTestCase
 
+from eduid_userdb.fixtures.users import new_unverified_user_example, mocked_user_standard_2, new_user_example
 
 class DummyDatabase(object):
     def __init__(self, name):
@@ -78,12 +79,12 @@ class TestMongoDB(TestCase):
 
 
 class TestDB(MongoTestCase):
-    def setUp(self, init_am=False, am_settings=None):
-        super().setUp(init_am=init_am, am_settings=am_settings)
-        self.doc_count = len(list(self.MockedUserDB().all_userdocs()))
+    def setUp(self):
+        self._am_users = [new_unverified_user_example, mocked_user_standard_2, new_user_example]
+        super().setUp(am_users=self._am_users)
 
     def test_db_count(self):
-        self.assertEqual(self.doc_count, self.amdb.db_count())
+        self.assertEqual(len(self._am_users), self.amdb.db_count())
 
     def test_db_count_limit(self):
         self.assertEqual(1, self.amdb.db_count(limit=1))
@@ -93,7 +94,7 @@ class TestDB(MongoTestCase):
         self.assertEqual(1, self.amdb.db_count(spec={'_id': ObjectId('012345678901234567890123')}))
 
     def test_get_documents_by_filter_skip(self):
-        docs = self.amdb._get_documents_by_filter(spec={}, skip=1)
+        docs = self.amdb._get_documents_by_filter(spec={}, skip=2)
         self.assertEqual(1, len(docs))
 
     def test_get_documents_by_filter_limit(self):

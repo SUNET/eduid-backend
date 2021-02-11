@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
-
-from .db import ProofingLog
-from .element import (
+from eduid_userdb.logs.db import ProofingLog
+from eduid_userdb.logs.element import (
     LetterProofing,
     MailAddressProofing,
     MFATokenProofing,

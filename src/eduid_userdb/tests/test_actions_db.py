@@ -81,7 +81,7 @@ TOU_ACTION_USERID = {
 
 class TestActionsDB(MongoTestCase):
     def setUp(self):
-        super(TestActionsDB, self).setUp(None, None)
+        super().setUp()
         self.actionsdb = ActionDB(self.tmp_db.uri)
         self.actionsdb.add_action(data=TOU_ACTION)
         self.actionsdb.add_action(data=DUMMY_ACTION)
