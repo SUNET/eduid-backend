@@ -34,12 +34,14 @@ import bson
 
 import eduid_userdb
 from eduid_userdb import User
+from eduid_userdb.fixtures.users import mocked_user_standard
 from eduid_userdb.testing import MongoTestCase
 
 
 class TestUserDB(MongoTestCase):
     def setUp(self):
-        super(TestUserDB, self).setUp(None, None)
+        self.user = mocked_user_standard
+        super().setUp(am_users=[self.user])
 
     def test_get_user_by_id(self):
         """ Test get_user_by_id """
@@ -89,7 +91,7 @@ class TestUserDB(MongoTestCase):
 
 class TestUserDB_mail(MongoTestCase):
     def setUp(self):
-        super(TestUserDB_mail, self).setUp(None, None)
+        super().setUp()
         data1 = {
             u'_id': bson.ObjectId(),
             u'eduPersonPrincipalName': u'mail-test1',
@@ -142,7 +144,7 @@ class TestUserDB_mail(MongoTestCase):
 
 class TestUserDB_phone(MongoTestCase):
     def setUp(self):
-        super(TestUserDB_phone, self).setUp(None, None)
+        super().setUp()
         data1 = {
             u'_id': bson.ObjectId(),
             u'eduPersonPrincipalName': u'phone-test1',
@@ -206,7 +208,7 @@ class TestUserDB_phone(MongoTestCase):
 
 class TestUserDB_nin(MongoTestCase):
     def setUp(self):
-        super(TestUserDB_nin, self).setUp(None, None)
+        super().setUp()
         data1 = {
             u'_id': bson.ObjectId(),
             u'eduPersonPrincipalName': u'nin-test1',

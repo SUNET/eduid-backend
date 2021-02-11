@@ -29,16 +29,10 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from datetime import datetime
 
-import bson
-
-import eduid_userdb
-from eduid_userdb import User
 from eduid_userdb.reset_password import (
     ResetPasswordEmailAndPhoneState,
     ResetPasswordEmailState,
-    ResetPasswordState,
     ResetPasswordStateDB,
 )
 from eduid_userdb.testing import MongoTestCase
@@ -46,7 +40,7 @@ from eduid_userdb.testing import MongoTestCase
 
 class TestResetPasswordStateDB(MongoTestCase):
     def setUp(self):
-        super(TestResetPasswordStateDB, self).setUp(None, None)
+        super().setUp()
         self.resetpw_db = ResetPasswordStateDB(self.tmp_db.uri, 'eduid_reset_password')
 
     def test_email_state(self):

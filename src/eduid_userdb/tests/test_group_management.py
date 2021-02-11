@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from pymongo.errors import DuplicateKeyError
 
+from eduid_userdb.fixtures.users import mocked_user_standard
 from eduid_userdb.group_management import GroupInviteState, GroupManagementInviteStateDB, GroupRole
 from eduid_userdb.testing import MongoTestCase
 
@@ -11,7 +12,8 @@ __author__ = 'lundberg'
 
 class TestResetGroupInviteStateDB(MongoTestCase):
     def setUp(self, **kwargs):
-        super().setUp(None, None)
+        super().setUp()
+        self.user = mocked_user_standard
         self.invite_state_db = GroupManagementInviteStateDB(self.tmp_db.uri)
 
     def test_invite_state(self):
