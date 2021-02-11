@@ -93,11 +93,10 @@ def login_action(session_info, user):
     update_user_session(session_info, user)
     current_app.stats.count('login_success')
 
-    # redirect the user to the view where he came from
+    # redirect the user to the view they came from
     relay_state = verify_relay_state(request.form.get('RelayState', '/'))
     current_app.logger.debug('Redirecting to the RelayState: ' + relay_state)
     response = redirect(location=relay_state)
-    # session.set_cookie(response)  #XXX: Is the explicit set_cookie needed?
     current_app.logger.info('Redirecting user {} to {!r}'.format(user, relay_state))
     return response
 
@@ -160,7 +159,7 @@ def _reauthn(reason, session_info, user):
     # Set reason for reauthn in session
     session[reason] = int(time())
 
-    # redirect the user to the view where they came from
+    # redirect the user to the view they came from
     relay_state = verify_relay_state(request.form.get('RelayState', '/'))
     current_app.logger.debug('Redirecting to the RelayState: ' + relay_state)
     return redirect(location=relay_state)

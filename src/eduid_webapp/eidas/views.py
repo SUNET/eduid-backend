@@ -121,7 +121,7 @@ def _authn(
         schedule_action(action)
         current_app.logger.info('Redirecting the user to {} for {}'.format(idp, action))
         return redirect(get_location(authn_request))
-    abort(make_response('IdP ({}) not found in metadata'.format(idp), 404))
+    abort(make_response('Requested IdP not found in metadata', 404))
 
 
 @eidas_views.route('/saml2-acs', methods=['POST'])
