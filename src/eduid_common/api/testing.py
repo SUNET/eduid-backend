@@ -52,7 +52,7 @@ from eduid_userdb.testing import AbstractMockedUserDB
 from eduid_common.api.logging import LocalContext, make_dictConfig
 from eduid_common.api.messages import TranslatableMsg
 from eduid_common.api.testing_base import CommonTestCase
-from eduid_common.config.base import RedisConfig, RedisConfig2
+from eduid_common.config.base import RedisConfig
 from eduid_common.session import EduidSession
 from eduid_common.session.testing import RedisTemporaryInstance
 
@@ -142,7 +142,7 @@ class EduidAPITestCase(CommonTestCase):
         # settings
         config = deepcopy(TEST_CONFIG)
         self.settings = self.update_config(config)
-        self.settings['redis_config'] = RedisConfig2(host='localhost', port=self.redis_instance.port)
+        self.settings['redis_config'] = RedisConfig(host='localhost', port=self.redis_instance.port)
         self.settings['mongo_uri'] = self.tmp_db.uri
 
         self.app = self.load_app(self.settings)

@@ -88,7 +88,7 @@ import redis
 import redis.sentinel
 from saml2.saml import NameID
 
-from eduid_common.config.base import RedisConfig, RedisConfig2
+from eduid_common.config.base import RedisConfig
 from eduid_common.session.meta import SessionMeta
 
 logger = logging.getLogger(__name__)
@@ -102,7 +102,7 @@ class SessionManager(object):
 
     def __init__(
         self,
-        redis_config: Union[RedisConfig, RedisConfig2],
+        redis_config: RedisConfig,
         app_secret: str,
         ttl: int = 600,
         whitelist: Optional[List[str]] = None,
@@ -163,7 +163,7 @@ class SessionManager(object):
         return res
 
 
-def get_redis_pool(cfg: Union[RedisConfig, RedisConfig2]):
+def get_redis_pool(cfg: RedisConfig):
     logger.debug(f'Redis configuration: {cfg}')
     if cfg.sentinel_hosts and cfg.sentinel_service_name:
         host_port = [(x, cfg.port) for x in cfg.sentinel_hosts]

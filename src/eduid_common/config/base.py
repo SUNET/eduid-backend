@@ -36,64 +36,29 @@ Configuration (file) handling for eduID IdP.
 
 from __future__ import annotations
 
-import logging
-import os
-import pprint
-from dataclasses import asdict, dataclass, field, fields
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Type, TypeVar
+from typing import Any, List, Mapping, Optional, Sequence, TypeVar
 
-import yaml
-from pydantic import BaseModel
-from pydantic import Field as PydanticField
-
-logger = logging.getLogger(__name__)
+from pydantic import BaseModel, Field
 
 
-@dataclass
-class CeleryConfig:
+class CeleryConfig(BaseModel):
     """
     Celery configuration
     """
 
-    accept_content: List[str] = field(default_factory=lambda: ["application/json"])
+    accept_content: List[str] = Field(default=['application/json'])
     broker_url: str = ''
     result_backend: str = 'cache'
-    result_backend_transport_options: dict = field(default_factory=dict)
+    result_backend_transport_options: dict = Field(default={})
     cache_backend: str = 'memory'
     task_serializer: str = 'json'
     task_eager_propagates: bool = False
     task_always_eager: bool = False
     # backwards incompatible setting that the documentation says will be the default in the future
     broker_transport: str = ''
-    broker_transport_options: dict = field(default_factory=lambda: {"fanout_prefix": True})
-    task_routes: dict = field(
-        default_factory=lambda: {
-            'eduid_am.*': {'queue': 'am'},
-            'eduid_msg.*': {'queue': 'msg'},
-            'eduid_letter_proofing.*': {'queue': 'letter_proofing'},
-        }
-    )
-    mongo_uri: Optional[str] = None
-
-
-class CeleryConfig2(BaseModel):
-    """
-    Celery configuration
-    """
-
-    accept_content: List[str] = PydanticField(default=['application/json'])
-    broker_url: str = ''
-    result_backend: str = 'cache'
-    result_backend_transport_options: dict = PydanticField(default={})
-    cache_backend: str = 'memory'
-    task_serializer: str = 'json'
-    task_eager_propagates: bool = False
-    task_always_eager: bool = False
-    # backwards incompatible setting that the documentation says will be the default in the future
-    broker_transport: str = ''
-    broker_transport_options: dict = PydanticField(default={'fanout_prefix': True})
-    task_routes: dict = PydanticField(
+    broker_transport_options: dict = Field(default={'fanout_prefix': True})
+    task_routes: dict = Field(
         default={
             'eduid_am.*': {'queue': 'am'},
             'eduid_msg.*': {'queue': 'msg'},
@@ -103,8 +68,7 @@ class CeleryConfig2(BaseModel):
     mongo_uri: Optional[str] = None
 
 
-@dataclass(frozen=True)
-class RedisConfig(object):
+class RedisConfig(BaseModel):
     port: int = 6379
     db: int = 0
     host: Optional[str] = None
@@ -112,16 +76,7 @@ class RedisConfig(object):
     sentinel_service_name: Optional[str] = None
 
 
-class RedisConfig2(BaseModel):
-    port: int = 6379
-    db: int = 0
-    host: Optional[str] = None
-    sentinel_hosts: Optional[Sequence[str]] = None
-    sentinel_service_name: Optional[str] = None
-
-
-@dataclass(frozen=True)
-class CookieConfig(object):
+class CookieConfig(BaseModel):
     key: str
     domain: Optional[str] = None
     path: str = '/'
@@ -150,289 +105,16 @@ class EduidEnvironment(str, Enum):
     production = 'production'
 
 
-@dataclass
-class CommonConfig:
+class WorkerConfig(RootConfig):
     """
-    Configuration common to all web apps and celery workers
+    Configuration common to all celery workers
     """
 
-    devel_mode: bool = False
     # mongo uri
     mongo_uri: Optional[str] = None
-    # Celery config -- duplicated for backwards compat
-    celery_config: CeleryConfig = field(default_factory=CeleryConfig)
-    celery: CeleryConfig = field(default_factory=CeleryConfig)
+    celery: CeleryConfig = Field(default_factory=CeleryConfig)
     audit: bool = False
     transaction_audit: bool = False
-    validation_url: str = ''
-
-    @classmethod
-    def filter_config(cls, config: Mapping) -> Mapping:
-        # Only try to load the key, value pairs that config class cls expects
-        field_names = set(f.name for f in fields(cls))
-        filtered_config = {k: v for k, v in config.items() if k in field_names}
-        return filtered_config
-
-    def __post_init__(self):
-        """
-        Set celery configuration as a typed dataclass
-        """
-        for conf in (self.celery, self.celery_config):
-            if isinstance(conf, dict):
-                self.celery_config = CeleryConfig(**conf)
-                break
-        self.celery = self.celery_config
-
-    def __getitem__(self, attr: str) -> Any:
-        """
-        This is a dict method, used on the configuration dicts by either
-        flask or celery
-        """
-        try:
-            return self.__getattribute__(attr.lower())
-        except AttributeError:
-            raise KeyError(f'{self} has no {attr} attr')
-
-    def __setitem__(self, attr: str, value: Any):
-        """
-        This is a dict method, used on the configuration dicts by either
-        flask or celery
-        """
-        setattr(self, attr.lower(), value)
-
-    def get(self, key: str, default: Any = None) -> Any:
-        """
-        This is a dict method, used on the configuration dicts by either
-        flask or celery
-        """
-        try:
-            return self.__getattribute__(key.lower())
-        except AttributeError:
-            return default
-
-    def __contains__(self, key: str) -> bool:
-        """
-        This is a dict method, used on the configuration dicts by either
-        flask or celery
-        """
-        return hasattr(self, key.lower())
-
-    def update(self, config: dict):
-        """
-        This is a dict method, used on the configuration dicts by either
-        flask or celery
-        """
-        for key, value in config.items():
-            setattr(self, key, value)
-
-    def setdefault(self, key: str, value: Any):
-        """
-        This is a dict method, used on the configuration dicts by either
-        flask or celery
-        """
-        key = key.lower()
-        if not getattr(self, key):
-            setattr(self, key, value)
-            return value
-        return getattr(self, key)
-
-    @classmethod
-    def defaults(cls) -> dict:
-        """
-        get a dict with the default values for all configuration keys
-        """
-        return {
-            key: val
-            for key, val in cls.__dict__.items()
-            if isinstance(key, str) and not key.startswith('_') and not callable(val)
-        }
-
-    def to_dict(self) -> dict:
-        """
-        get a dict with all configured values
-        """
-        return {
-            key: val
-            for key, val in self.__dict__.items()
-            if isinstance(key, str) and not key.startswith('_') and not callable(val)
-        }
-
-
-TBaseConfigSubclass = TypeVar('TBaseConfigSubclass', bound='BaseConfig')
-
-
-@dataclass
-class BaseConfig(CommonConfig):
-    """
-    Configuration common to all web apps, roughly equivalent to the
-    "eduid/webapp/common" namespace in etcd - excluding Flask's own
-    configuration
-    """
-
-    debug: bool = False
-    # If this list contains anything, debug logging will only be performed for these users
-    debug_eppns: Sequence[str] = field(default_factory=list)
-    # These below are configuration keys used in the webapps, common to most
-    # or at least to several of them.
-
-    # name of the app, which coincides with its namespace in etcd
-    app_name: str = ''
-    eduid_site_name: str = 'eduID'
-    eduid_site_url: str = 'https://www.eduid.se'
-    eduid_static_url: str = 'https://www.eduid.se/static/'
-    safe_relay_domain: str = 'eduid.se'
-    # environment=(dev|staging|pro)
-    environment: str = 'pro'
-    development: bool = False
-    # enable disable debug mode
-    logging_config: dict = field(default_factory=dict)
-    log_level: str = 'INFO'
-    log_file: Optional[str] = None
-    log_max_bytes: int = 1000000  # 1 MB
-    log_backup_count: int = 10  # 10 x 1 MB
-    log_format: str = '{asctime} | {levelname:7} | {hostname} | {eppn:9} | {name:35} | {module:10} | {message}'
-    log_type: List[str] = field(default_factory=lambda: ['stream'])
-    logger: Optional[logging.Logger] = None
-    redis_config: RedisConfig = field(default_factory=RedisConfig)
-    # Redis config
-    # The Redis host to use for session storage.
-    redis_host: Optional[str] = None
-    # The port of the Redis server (integer).
-    redis_port: int = 6379
-    # The Redis database number (integer).
-    redis_db: int = 0
-    # Redis sentinel hosts, comma separated
-    redis_sentinel_hosts: Optional[List[str]] = None
-    # The Redis sentinel 'service name'.
-    redis_sentinel_service_name: str = 'redis-cluster'
-    saml2_logout_redirect_url: str = 'https://eduid.se/'
-    saml2_login_redirect_url: str = ''
-    saml2_settings_module: str = ''
-    saml2_strip_saml_user_suffix: bool = False
-    saml2_user_main_attribute: str = 'eduPersonPrincipalName'
-    token_service_url: str = ''  # the eduid-authn service
-    new_user_date: str = ''
-    sms_sender: str = ''
-    mail_starttls: bool = False
-    template_dir: str = ''
-    mail_host: str = ''
-    mail_port: str = ''
-    am_broker_url: str = ''
-    msg_broker_url: str = ''
-    teleadress_client_user: str = ''
-    teleadress_client_password: str = ''
-    available_languages: Dict[str, str] = field(default_factory=lambda: {'en': 'English', 'sv': 'Svenska'})
-    supported_languages: Dict[str, str] = field(default_factory=lambda: {'en': 'English', 'sv': 'Svenska'})
-    mail_default_from: str = 'no-reply@eduid.se'
-    static_url: str = ''
-    dashboard_url: str = ''
-    reset_passwd_url: str = ''
-    default_finish_url: str = ''
-    faq_link: str = ''
-    students_link: str = ''
-    staff_link: str = ''
-    technicians_link: str = ''
-    tou_url: str = ''
-    # set absolute URL so it can be included in emails
-    signup_url: str = ''
-    # URL to use with VCCS client. BCP is to have an nginx or similar on
-    # localhost that will proxy requests to a currently available backend
-    # using TLS.
-    vccs_url: str = ''
-    # vccs health check credentials
-    vccs_check_eppn: str = ''
-    vccs_check_password: str = ''
-    # Allow list of URLs that do not need authentication. Unauthenticated requests
-    # for these URLs will be served, rather than redirected to the authn service.
-    # The list is a list of regex that are matched against the path of the
-    # requested URL ex. ^/test$.
-    no_authn_urls: list = field(default_factory=lambda: ["^/status/healthy$", "^/status/sanity-check$"])
-    # The plugins for pre-authentication actions that need to be loaded
-    action_plugins: list = field(default_factory=lambda: ["tou", "mfa"])
-    # The current version of the terms of use agreement.
-    tou_version: str = '2017-v6'
-    current_tou_version: str = '2017-v6'  # backwards compat
-    stats_host: str = ''
-    stats_port: int = 8125
-    sentry_dsn: Optional[str] = None
-    status_cache_seconds: int = 10
-    # code to set in a "magic" cookie to bypass various verifications.
-    magic_cookie: Optional[str] = None
-    # name of the magic cookie
-    magic_cookie_name: Optional[str] = None
-
-    def __post_init__(self) -> None:
-        # Convert redis_config from dict to the proper dataclass
-        if isinstance(self.redis_config, dict):
-            self.redis_config = RedisConfig(**self.redis_config)
-        # Backwards compat
-        if self.redis_host or self.redis_sentinel_hosts:
-            self.redis_config = RedisConfig(
-                port=self.redis_port,
-                db=self.redis_db,
-                host=self.redis_host,
-                sentinel_hosts=self.redis_sentinel_hosts,
-                sentinel_service_name=self.redis_sentinel_service_name,
-            )
-
-    @classmethod
-    def init_config(
-        cls: Type[TBaseConfigSubclass],
-        ns: Optional[str] = None,
-        app_name: Optional[str] = None,
-        test_config: Optional[Mapping[str, Any]] = None,
-        debug: bool = False,
-    ) -> TBaseConfigSubclass:
-        """
-        Initialize configuration with values from etcd (or with test values)
-        """
-        config: Dict[str, Any] = {
-            'debug': debug,
-        }
-        if test_config:
-            # Load init time settings
-            config.update(test_config)
-            # Make sure we don't try to load config keys that are not expected as that will result in a crash
-            filtered_config = cls.filter_config(config)
-            logger.info(f'Using test_config:\n{pprint.pformat(filtered_config)}')
-            return cls(**filtered_config)
-
-        from eduid_common.config.parsers.etcd import EtcdConfigParser
-
-        namespace = os.environ.get('EDUID_CONFIG_NS', f'/eduid/{ns}/{app_name}/')
-        common_namespace = os.environ.get('EDUID_CONFIG_COMMON_NS', f'/eduid/{ns}/common/')
-        parser = EtcdConfigParser(namespace, silent=True)
-        common_config = parser.read_configuration(common_namespace)
-        config.update(common_config)
-
-        # Load optional app specific settings
-        app_config = parser.read_configuration(namespace)
-        config.update(app_config)
-
-        # Load optional local settings
-        local_config_path = os.environ.get('LOCAL_CFG_FILE')
-        if local_config_path is not None and os.path.exists(local_config_path):
-            logger.debug(f'LOCAL_CFG_FILE is set and file {local_config_path} exist')
-            with open(local_config_path) as f:
-                local_config = yaml.safe_load(f)
-                for key, value in local_config.items():
-                    config[key.lower()] = value
-                    logger.debug(f'Added config key {key} from local file')
-
-        # Make sure we don't try to load config keys that are not expected as that will result in a crash
-        filtered_config = cls.filter_config(config)
-        config_keys = set(config.keys())
-        filtered_keys = set(filtered_config.keys())
-        if config_keys != filtered_keys:
-            logger.warning(f'Keys removed before config loading: {config_keys - filtered_keys}')
-
-        # Save config to a file in /dev/shm for introspection
-        fd_int = os.open(f'/dev/shm/{app_name}_config.yaml', os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-        with open(fd_int, 'w') as fd:
-            fd.write('---\n')
-            yaml.safe_dump(filtered_config, fd)
-
-        return cls(**filtered_config)
 
 
 class FlaskConfig(BaseModel):
@@ -473,7 +155,7 @@ class FlaskConfig(BaseModel):
     # the name of the session cookie
     session_cookie_name: str = 'sessid'
     # Sets a cookie with legacy SameSite=None, the SameSite key and value is omitted
-    cookies_samesite_compat: list = PydanticField(default=[('sessid', 'sessid_samesite_compat')])
+    cookies_samesite_compat: list = Field(default=[('sessid', 'sessid_samesite_compat')])
     # the domain for the session cookie. If this is not set, the cookie will
     # be valid for all subdomains of SERVER_NAME.
     session_cookie_domain: Optional[str] = None
@@ -545,13 +227,6 @@ class FlaskConfig(BaseModel):
         return self.dict()
 
 
-@dataclass
-class WebauthnConfigMixin:
-    fido2_rp_id: str  # 'eduid.se'
-    u2f_app_id: str  # 'https://eduid.se/u2f-app-id.json'
-    u2f_valid_facets: List[str]  # e.g. ['https://dashboard.dev.eduid.se/', 'https://idp.dev.eduid.se/']
-
-
 class WebauthnConfigMixin2(BaseModel):
     fido2_rp_id: str  # 'eduid.se'
     u2f_app_id: str  # 'https://eduid.se/u2f-app-id.json'
@@ -567,7 +242,7 @@ class MagicCookieMixin(BaseModel):
 
 
 class CeleryConfigMixin(BaseModel):
-    celery: CeleryConfig2
+    celery: CeleryConfig
 
 
 class LoggingConfigMixin(BaseModel):
@@ -575,10 +250,10 @@ class LoggingConfigMixin(BaseModel):
     testing: bool = False
     debug: bool = False
     # If this list contains anything, debug logging will only be performed for these users
-    debug_eppns: Sequence[str] = PydanticField(default=[])
+    debug_eppns: Sequence[str] = Field(default=[])
     log_format: str = '{asctime} | {levelname:7} | {hostname} | {eppn:9} | {name:35} | {module:10} | {message}'
     log_level: str = 'INFO'
-    logging_config: dict = PydanticField(default={})
+    logging_config: dict = Field(default={})
 
 
 class StatsConfigMixin(BaseModel):
@@ -588,7 +263,7 @@ class StatsConfigMixin(BaseModel):
 
 
 class RedisConfigMixin(BaseModel):
-    redis_config: RedisConfig2 = PydanticField(default=RedisConfig2())
+    redis_config: RedisConfig = Field(default=RedisConfig())
 
 
 class VCCSConfigMixin(BaseModel):
@@ -621,15 +296,15 @@ class MsgConfigMixin(CeleryConfigMixin):
 
 
 class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, RedisConfigMixin):
-    available_languages: Mapping[str, str] = PydanticField(default={'en': 'English', 'sv': 'Svenska'})
+    available_languages: Mapping[str, str] = Field(default={'en': 'English', 'sv': 'Svenska'})
     environment: EduidEnvironment = EduidEnvironment.production
-    flask: FlaskConfig = PydanticField(default=FlaskConfig())
+    flask: FlaskConfig = Field(default=FlaskConfig())
     mongo_uri: str
     # Allow list of URLs that do not need authentication. Unauthenticated requests
     # for these URLs will be served, rather than redirected to the authn service.
     # The list is a list of regex that are matched against the path of the
     # requested URL ex. ^/test$.
-    no_authn_urls: list = PydanticField(default=['^/status/healthy$', '^/status/sanity-check$'])
+    no_authn_urls: list = Field(default=['^/status/healthy$', '^/status/sanity-check$'])
     status_cache_seconds: int = 10
     # All AuthnBaseApps need this to redirect not-logged-in requests to the authn service
     token_service_url: str

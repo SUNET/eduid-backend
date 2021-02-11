@@ -34,7 +34,7 @@ import json
 import logging
 import pprint
 import warnings
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Dict, List, Optional
 
 from fido2 import cbor
 from fido2.client import ClientData
@@ -42,12 +42,11 @@ from fido2.ctap2 import AttestedCredentialData, AuthenticatorData
 from fido2.server import Fido2Server, RelyingParty, U2FFido2Server
 from fido2.utils import websafe_decode
 from flask import current_app
-from u2flib_server.u2f import begin_authentication, complete_authentication
+from u2flib_server.u2f import complete_authentication
 
 from eduid_userdb.credentials import U2F, Webauthn
 from eduid_userdb.user import User
 
-from eduid_common.config.base import WebauthnConfigMixin, WebauthnConfigMixin2
 from eduid_common.session import session
 
 logger = logging.getLogger(__name__)
