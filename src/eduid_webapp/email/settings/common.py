@@ -32,11 +32,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 """
-Configuration (file) handling for the eduID eidas app.
+Configuration (file) handling for the eduID email app.
 """
 
 
-from eduid_common.config.base import AmConfigMixin, EduIDBaseAppConfig, MagicCookieMixin, MailConfigMixin
+from eduid_common.config.base import EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MailConfigMixin
 
 
 class EmailConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MailConfigMixin):
@@ -44,12 +44,11 @@ class EmailConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MailConfi
     Configuration for the email app
     """
 
-    app_name: str = 'email'
-
-    eduid_site_name: str = 'eduID'
+    eduid_site_name: str
     eduid_site_url: str
 
+    app_name: str = 'email'
+
     email_verification_timeout: int = 86400  # seconds
-    email_verify_redirect_url: str = '/profile/emails'
-    mail_default_from: str = 'no-reply@eduid.se'
     throttle_resend_seconds: int = 300
+    email_verify_redirect_url: str = '/profile/emails'
