@@ -40,9 +40,6 @@ import json
 import logging
 import unittest
 import uuid
-import warnings
-from abc import ABC
-from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
@@ -51,17 +48,10 @@ import pymongo
 
 from eduid_userdb import User, UserDB
 from eduid_userdb.dashboard.user import DashboardUser
-from eduid_userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
 from eduid_userdb.testing.temp_instance import EduidTemporaryInstance
 
 logger = logging.getLogger(__name__)
 
-
-MONGO_URI_AM_TEST = 'mongodb://localhost:27017/eduid_userdb_test'
-MONGO_URI_TEST = 'mongodb://localhost:27017/eduid_dashboard_test'
-
-# eduid_userdb.db.DEFAULT_MONGODB_URI = MONGO_URI_AM_TEST
-# eduid_userdb.db.DEFAULT_MONGODB_NAME = 'eduid_userdb_test'
 
 class MongoTemporaryInstance(EduidTemporaryInstance):
     """Singleton to manage a temporary MongoDB instance
@@ -72,12 +62,12 @@ class MongoTemporaryInstance(EduidTemporaryInstance):
 
     @property
     def command(self) -> Sequence[str]:
-        return ['docker', 'run', '--rm', '-p', '{!s}:27017'.format(self._port), 'docker.sunet.se/eduid/mongodb:latest']
+        return ['docker', 'run', '--rm', '-p', f'{self._port!s}:27017', 'docker.sunet.se/eduid/mongodb:latest']
 
     def setup_conn(self) -> bool:
         try:
             self._conn = pymongo.MongoClient('localhost', self._port)
-            logger.info('Connected to temporary mongodb instance: {}'.format(self._conn))
+            logger.info(f'Connected to temporary mongodb instance: {self._conn}')
         except pymongo.errors.ConnectionFailure:
             return False
         return True
@@ -90,11 +80,11 @@ class MongoTemporaryInstance(EduidTemporaryInstance):
 
     @property
     def uri(self):
-        return 'mongodb://localhost:{}'.format(self.port)
+        return f'mongodb://localhost:{self.port}'
 
     def shutdown(self):
         if self._conn:
-            logger.info('Closing connection {}'.format(self._conn))
+            logger.info(f'Closing connection {self._conn}')
             self._conn.close()
             self._conn = None
         super().shutdown()

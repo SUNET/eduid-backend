@@ -45,7 +45,7 @@ class PersonalDataUserDB(UserDB):
     UserClass = PersonalDataUser
 
     def __init__(self, db_uri, db_name='eduid_personal_data', collection='profiles'):
-        super(PersonalDataUserDB, self).__init__(db_uri, db_name, collection=collection)
+        super().__init__(db_uri, db_name, collection=collection)
 
-    def save(self, user, check_sync=True, old_format=False):
-        super(PersonalDataUserDB, self).save(user, check_sync=check_sync, old_format=old_format)
+    def save(self, user, check_sync=True):
+        super().save(user, check_sync=check_sync)

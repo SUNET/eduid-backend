@@ -279,10 +279,10 @@ class UserDB(BaseDB):
             warnings.warn('old_format supplied - deprecated and ignored', DeprecationWarning)
 
         if not isinstance(user, self.UserClass):
-            raise EduIDUserDBError('user is not of type {}'.format(self.UserClass))
+            raise EduIDUserDBError(f'user is not of type {self.UserClass}')
 
         if not isinstance(user.user_id, ObjectId):
-            raise AssertionError('user.user_id is not of type {}'.format(ObjectId))
+            raise AssertionError(f'user.user_id is not of type {ObjectId}')
 
         # XXX add modified_by info. modified_ts alone is not unique when propagated to eduid_am.
 
@@ -292,11 +292,7 @@ class UserDB(BaseDB):
             # profile has never been modified through the dashboard.
             # possibly just created in signup.
             result = self._coll.replace_one({'_id': user.user_id}, user.to_dict(), upsert=True)
-            logger.debug(
-                "{!s} Inserted new user {!r} into {!r} (old_format={!r}): {!r})".format(
-                    self, user, self._coll_name, old_format, result
-                )
-            )
+            logger.debug(f'{self} Inserted new user {user} into {self._coll_name}: {repr(result)})')
             import pprint
 
             extra_debug = pprint.pformat(user.to_dict())
@@ -312,8 +308,7 @@ class UserDB(BaseDB):
                 if db_user:
                     db_ts = db_user['modified_ts']
                 logger.debug(
-                    f"{self} FAILED Updating user {user} (ts {modified}) in {self._coll_name}"
-                    f" (old_format={old_format}). ts in db = {db_ts}"
+                    f'{self} FAILED Updating user {user} (ts {modified}) in {self._coll_name}, ts in db = {db_ts}'
                 )
                 raise eduid_userdb.exceptions.UserOutOfSync('Stale user object can\'t be saved')
             logger.debug(f"{self} Updated user {user} (ts {modified}) in {self._coll_name}: {result}")

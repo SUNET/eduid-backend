@@ -133,8 +133,7 @@ class ProofingStateDB(BaseDB):
                 if db_state:
                     db_ts = db_state['modified_ts']
                 logging.error(
-                    "{} FAILED Updating state {} (ts {}) in {}). "
-                    "ts in db = {!s}".format(self, state, modified, self._coll_name, db_ts)
+                    f'{self} FAILED Updating state {state} (ts {modified}) in {self._coll_name}). ts in db = {db_ts!s}'
                 )
                 raise DocumentOutOfSync('Stale state object can\'t be saved')
 

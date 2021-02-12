@@ -108,13 +108,11 @@ class User(object):
             raise UserIsRevoked(f'User {self.user_id}/{self.eppn} was revoked at {self.revoked_ts}')
 
     def __str__(self):
-        return '<eduID {!s}: {!s}/{!s}>'.format(self.__class__.__name__, self.eppn, self.user_id,)
+        return f'<eduID {self.__class__.__name__}: {self.eppn}/{self.user_id}>'
 
     def __eq__(self, other):
         if self.__class__ is not other.__class__:
-            raise TypeError(
-                'Trying to compare objects of different class {!r} - {!r} '.format(self.__class__, other.__class__)
-            )
+            raise TypeError(f'Trying to compare objects of different class {other.__class__} != {self.__class__}')
         return self.to_dict() == other.to_dict()
 
     @classmethod
