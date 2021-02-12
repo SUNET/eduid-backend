@@ -1,5 +1,5 @@
-import datetime
 import unittest
+from datetime import datetime
 from hashlib import sha256
 
 from bson import ObjectId
@@ -8,9 +8,9 @@ from six import string_types
 from eduid_userdb import LockedIdentityNin, OidcAuthorization, OidcIdToken, Orcid
 from eduid_userdb.credentials import METHOD_SWAMID_AL2_MFA, CredentialList
 from eduid_userdb.exceptions import EduIDUserDBError, UserHasNotCompletedSignup, UserIsRevoked
-from eduid_userdb.mail import MailAddressList
+from eduid_userdb.mail import MailAddress, MailAddressList
 from eduid_userdb.nin import NinList
-from eduid_userdb.phone import PhoneNumberList
+from eduid_userdb.phone import PhoneNumber, PhoneNumberList
 from eduid_userdb.profile import Profile, ProfileList
 from eduid_userdb.tou import ToUList
 from eduid_userdb.user import SubjectType, User
@@ -104,7 +104,7 @@ class _AbstractUserTestCase:
         data['surname'] = 'not signup-incomplete anymore'
         data['passwords'] = [
             {
-                u'created_ts': datetime.datetime(2014, 9, 4, 8, 57, 7, 362000),
+                u'created_ts': datetime.fromisoformat('2014-09-04T08:57:07.362000'),
                 u'credential_id': str(ObjectId()),
                 u'salt': u'salt',
                 u'created_by': u'dashboard',
@@ -126,7 +126,7 @@ class _AbstractUserTestCase:
         data = {
             '_id': ObjectId(),
             'eduPersonPrincipalName': 'binib-mufus',
-            'revoked_ts': datetime.datetime(2015, 5, 26, 8, 33, 56, 826000),
+            'revoked_ts': datetime.fromisoformat('2015-05-26T08:33:56.826000'),
             'passwords': [],
         }
         with self.assertRaises(UserIsRevoked):
@@ -140,7 +140,7 @@ class _AbstractUserTestCase:
             u'mailAliases': [{u'email': mail, u'verified': True}],
             u'passwords': [
                 {
-                    u'created_ts': datetime.datetime(2014, 9, 4, 8, 57, 7, 362000),
+                    u'created_ts': datetime.fromisoformat('2014-09-04T08:57:07.362000'),
                     u'credential_id': str(ObjectId()),
                     u'salt': u'salt',
                     u'source': u'dashboard',
@@ -162,7 +162,7 @@ class _AbstractUserTestCase:
             u'mailAliases': [{u'email': mail, u'verified': False}],
             u'passwords': [
                 {
-                    u'created_ts': datetime.datetime(2014, 9, 4, 8, 57, 7, 362000),
+                    u'created_ts': datetime.fromisoformat('2014-09-04T08:57:07.362000'),
                     u'credential_id': str(ObjectId()),
                     u'salt': u'salt',
                     u'source': u'dashboard',
@@ -189,7 +189,7 @@ class _AbstractUserTestCase:
             ],
             u'passwords': [
                 {
-                    u'created_ts': datetime.datetime(2014, 9, 4, 8, 57, 7, 362000),
+                    u'created_ts': datetime.fromisoformat('2014-09-04T08:57:07.362000'),
                     u'credential_id': str(ObjectId()),
                     u'salt': u'salt',
                     u'source': u'dashboard',
@@ -210,7 +210,7 @@ class _AbstractUserTestCase:
             u'mailAliases': [{u'email': mail, u'verified': True, u'csrf': u'6ae1d4e95305b72318a683883e70e3b8e302cd75'}],
             u'passwords': [
                 {
-                    u'created_ts': datetime.datetime(2014, 9, 4, 8, 57, 7, 362000),
+                    u'created_ts': datetime.fromisoformat('2014-09-04T08:57:07.362000'),
                     u'credential_id': str(ObjectId()),
                     u'salt': u'salt',
                     u'source': u'dashboard',
@@ -236,11 +236,11 @@ class _AbstractUserTestCase:
         _time1 = self.user1.modified_ts
         assert _time1 is None
         # update to current time
-        self.user1.modified_ts = datetime.datetime.utcnow()
+        self.user1.modified_ts = datetime.utcnow()
         _time2 = self.user1.modified_ts
         self.assertNotEqual(_time1, _time2)
         # set to a datetime instance
-        self.user1.modified_ts = datetime.datetime.utcnow()
+        self.user1.modified_ts = datetime.utcnow()
         self.assertNotEqual(_time2, self.user1.modified_ts)
 
     def test_two_unverified_non_primary_phones(self):
@@ -272,7 +272,7 @@ class _AbstractUserTestCase:
             ],
             u'passwords': [
                 {
-                    u'created_ts': datetime.datetime(2014, 6, 29, 17, 52, 37, 830000),
+                    u'created_ts': datetime.fromisoformat('2014-06-29T17:52:37.830000'),
                     u'credential_id': str(ObjectId()),
                     u'salt': u'$NDNv1H1$foo$32$32$',
                     u'source': u'dashboard',
@@ -313,7 +313,7 @@ class _AbstractUserTestCase:
             ],
             u'passwords': [
                 {
-                    u'created_ts': datetime.datetime(2014, 6, 29, 17, 52, 37, 830000),
+                    u'created_ts': datetime.fromisoformat('2014-06-29T17:52:37.830000'),
                     u'credential_id': str(ObjectId()),
                     u'salt': u'$NDNv1H1$foo$32$32$',
                     u'source': u'dashboard',
@@ -346,7 +346,7 @@ class _AbstractUserTestCase:
             ],
             u'passwords': [
                 {
-                    u'created_ts': datetime.datetime(2014, 6, 29, 17, 52, 37, 830000),
+                    u'created_ts': datetime.fromisoformat('2014-06-29T17:52:37.830000'),
                     u'credential_id': str(ObjectId()),
                     u'salt': u'$NDNv1H1$foo$32$32$',
                     u'source': u'dashboard',
@@ -374,7 +374,7 @@ class _AbstractUserTestCase:
             ],
             u'passwords': [
                 {
-                    u'created_ts': datetime.datetime(2014, 6, 29, 17, 52, 37, 830000),
+                    u'created_ts': datetime.fromisoformat('2014-06-29T17:52:37.830000'),
                     u'id': ObjectId(),
                     u'salt': u'$NDNv1H1$foo$32$32$',
                     u'source': u'dashboard',
@@ -411,7 +411,7 @@ class _AbstractUserTestCase:
             'event_type': 'tou_event',
             'version': '1',
             'created_by': 'unit test',
-            'created_ts': datetime.datetime.utcnow(),
+            'created_ts': datetime.utcnow(),
         }
         tou_events = ToUList([tou_dict])
         data = self.data1
@@ -427,7 +427,7 @@ class _AbstractUserTestCase:
         user = User.from_dict(data)
         self.assertTrue(user.locked_identity)
         self.assertIsInstance(user.locked_identity.find('nin').created_by, string_types)
-        self.assertIsInstance(user.locked_identity.find('nin').created_ts, datetime.datetime)
+        self.assertIsInstance(user.locked_identity.find('nin').created_ts, datetime)
         self.assertIsInstance(user.locked_identity.find('nin').identity_type, string_types)
         self.assertIsInstance(user.locked_identity.find('nin').number, string_types)
 
@@ -442,7 +442,7 @@ class _AbstractUserTestCase:
 
         locked_nin = user.locked_identity.find('nin')
         self.assertIsInstance(locked_nin.created_by, string_types)
-        self.assertIsInstance(locked_nin.created_ts, datetime.datetime)
+        self.assertIsInstance(locked_nin.created_ts, datetime)
         self.assertIsInstance(locked_nin.identity_type, string_types)
         self.assertIsInstance(locked_nin.number, string_types)
 
@@ -457,14 +457,14 @@ class _AbstractUserTestCase:
         old_user = User.from_dict(user.to_dict())
         self.assertEqual(user.locked_identity.count, 1)
         self.assertIsInstance(old_user.locked_identity.to_list()[0].created_by, string_types)
-        self.assertIsInstance(old_user.locked_identity.to_list()[0].created_ts, datetime.datetime)
+        self.assertIsInstance(old_user.locked_identity.to_list()[0].created_ts, datetime)
         self.assertIsInstance(old_user.locked_identity.to_list()[0].identity_type, string_types)
         self.assertIsInstance(old_user.locked_identity.to_list()[0].number, string_types)
 
         new_user = User.from_dict(user.to_dict())
         self.assertEqual(user.locked_identity.count, 1)
         self.assertIsInstance(new_user.locked_identity.to_list()[0].created_by, string_types)
-        self.assertIsInstance(new_user.locked_identity.to_list()[0].created_ts, datetime.datetime)
+        self.assertIsInstance(new_user.locked_identity.to_list()[0].created_ts, datetime)
         self.assertIsInstance(new_user.locked_identity.to_list()[0].identity_type, string_types)
         self.assertIsInstance(new_user.locked_identity.to_list()[0].number, string_types)
 
@@ -508,7 +508,7 @@ class _AbstractUserTestCase:
         old_user = User.from_dict(user.to_dict())
         self.assertIsNotNone(old_user.orcid)
         self.assertIsInstance(old_user.orcid.created_by, string_types)
-        self.assertIsInstance(old_user.orcid.created_ts, datetime.datetime)
+        self.assertIsInstance(old_user.orcid.created_ts, datetime)
         self.assertIsInstance(old_user.orcid.id, string_types)
         self.assertIsInstance(old_user.orcid.oidc_authz, OidcAuthorization)
         self.assertIsInstance(old_user.orcid.oidc_authz.id_token, OidcIdToken)
@@ -516,7 +516,7 @@ class _AbstractUserTestCase:
         new_user = User.from_dict(user.to_dict())
         self.assertIsNotNone(new_user.orcid)
         self.assertIsInstance(new_user.orcid.created_by, string_types)
-        self.assertIsInstance(new_user.orcid.created_ts, datetime.datetime)
+        self.assertIsInstance(new_user.orcid.created_ts, datetime)
         self.assertIsInstance(new_user.orcid.id, string_types)
         self.assertIsInstance(new_user.orcid.oidc_authz, OidcAuthorization)
         self.assertIsInstance(new_user.orcid.oidc_authz.id_token, OidcIdToken)
@@ -596,7 +596,7 @@ class TestUser(unittest.TestCase, _AbstractUserTestCase):
             u'mail': u'user@example.net',
             u'mailAliases': [
                 {
-                    u'added_timestamp': datetime.datetime(2014, 12, 18, 11, 25, 19, 804000),
+                    u'added_timestamp': datetime.fromisoformat('2014-12-18T11:25:19.804000'),
                     u'email': u'user@example.net',
                     u'verified': True,
                     u'primary': True,
@@ -604,7 +604,7 @@ class TestUser(unittest.TestCase, _AbstractUserTestCase):
             ],
             u'passwords': [
                 {
-                    u'created_ts': datetime.datetime(2014, 11, 24, 16, 22, 49, 188000),
+                    u'created_ts': datetime.fromisoformat('2014-11-24T16:22:49.188000'),
                     u'credential_id': '54735b588a7d2a2c4ec3e7d0',
                     u'salt': u'$NDNv1H1$315d7$32$32$',
                     u'created_by': u'dashboard',
@@ -627,14 +627,14 @@ class TestUser(unittest.TestCase, _AbstractUserTestCase):
             u'mailAliases': [
                 {u'email': u'someone+test1@gmail.com', u'verified': True},
                 {
-                    u'added_timestamp': datetime.datetime(2014, 12, 17, 14, 35, 14, 728000),
+                    u'added_timestamp': datetime.fromisoformat('2014-12-17T14:35:14.728000'),
                     u'email': u'some.one@gmail.com',
                     u'verified': True,
                 },
             ],
             u'phone': [
                 {
-                    u'created_ts': datetime.datetime(2014, 12, 18, 9, 11, 35, 78000),
+                    u'created_ts': datetime.fromisoformat('2014-12-18T09:11:35.078000'),
                     u'number': u'+46702222222',
                     u'primary': True,
                     u'verified': True,
@@ -642,7 +642,7 @@ class TestUser(unittest.TestCase, _AbstractUserTestCase):
             ],
             u'passwords': [
                 {
-                    u'created_ts': datetime.datetime(2015, 2, 11, 13, 58, 42, 327000),
+                    u'created_ts': datetime.fromisoformat('2015-02-11T13:58:42.327000'),
                     u'id': ObjectId('54db60128a7d2a26e8690cda'),
                     u'salt': u'$NDNv1H1$db011fc$32$32$',
                     u'is_generated': False,
@@ -661,7 +661,7 @@ class TestUser(unittest.TestCase, _AbstractUserTestCase):
             u'profiles': [
                 {
                     'created_by': 'test application',
-                    'created_ts': datetime.datetime(2020, 2, 4, 17, 42, 33, 696751),
+                    'created_ts': datetime.fromisoformat('2020-02-04T17:42:33.696751'),
                     'owner': 'test owner 1',
                     'schema': 'test schema',
                     'profile_data': {
@@ -701,7 +701,7 @@ class TestNewUser(unittest.TestCase, _AbstractUserTestCase):
         mail = 'user@example.net'
         mailAliases_list = [
             {
-                'created_ts': datetime.datetime(2014, 12, 18, 11, 25, 19, 804000),
+                'created_ts': datetime.fromisoformat('2014-12-18T11:25:19.804000'),
                 'email': 'user@example.net',
                 'verified': True,
                 'primary': True,
@@ -710,7 +710,7 @@ class TestNewUser(unittest.TestCase, _AbstractUserTestCase):
         mail_addresses = MailAddressList(mailAliases_list)
         password_list = [
             {
-                'created_ts': datetime.datetime(2014, 11, 24, 16, 22, 49, 188000),
+                'created_ts': datetime.fromisoformat('2014-11-24T16:22:49.188000'),
                 'credential_id': '54735b588a7d2a2c4ec3e7d0',
                 'salt': '$NDNv1H1$315d7$32$32$',
                 'created_by': 'dashboard',
@@ -721,7 +721,7 @@ class TestNewUser(unittest.TestCase, _AbstractUserTestCase):
         nin_list = [
             {
                 'number': '197801012345',
-                'created_ts': datetime.datetime(2014, 11, 24, 16, 22, 49, 188000),
+                'created_ts': datetime.fromisoformat('2014-11-24T16:22:49.188000'),
                 'verified': True,
                 'primary': True,
                 'created_by': 'dashboard',
@@ -782,7 +782,7 @@ class TestNewUser(unittest.TestCase, _AbstractUserTestCase):
         phone_numbers = PhoneNumberList(phone_list)
         password_list = [
             {
-                'created_ts': datetime.datetime(2015, 2, 11, 13, 58, 42, 327000),
+                'created_ts': datetime.fromisoformat('2015-02-11T13:58:42.327000'),
                 'id': ObjectId('54db60128a7d2a26e8690cda'),
                 'salt': '$NDNv1H1$db011fc$32$32$',
                 'is_generated': False,
@@ -801,7 +801,7 @@ class TestNewUser(unittest.TestCase, _AbstractUserTestCase):
         passwords = CredentialList(password_list)
         profile_dict = {
             'created_by': 'test application',
-            'created_ts': datetime.datetime(2020, 2, 4, 17, 42, 33, 696751),
+            'created_ts': datetime.fromisoformat('2020-02-04T17:42:33.696751'),
             'owner': 'test owner 1',
             'schema': 'test schema',
             'profile_data': {
