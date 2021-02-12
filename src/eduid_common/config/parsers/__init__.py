@@ -59,7 +59,6 @@ def load_config(
     return res
 
 
-
 def _choose_parser(app_name: str, ns: str) -> Optional[BaseConfigParser]:
     """
     Choose a parser to use for this app.
@@ -78,7 +77,7 @@ def _choose_parser(app_name: str, ns: str) -> Optional[BaseConfigParser]:
     yaml_file = os.environ.get('EDUID_CONFIG_YAML')
     if yaml_file:
         try:
-            from eduid_common.config.parsers.yaml import YamlConfigParser
+            from eduid_common.config.parsers.yaml_parser import YamlConfigParser
 
             parser = YamlConfigParser(path=Path(yaml_file))
         except ImportError:
