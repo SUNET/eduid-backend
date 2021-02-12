@@ -8,7 +8,7 @@ from eduid_common.config.parsers.etcd import EtcdConfigParser
 
 __author__ = 'lundberg'
 
-from eduid_common.config.parsers.yaml import YamlConfigParser
+from eduid_common.config.parsers.yaml_parser import YamlConfigParser
 
 
 class TestInitConfig(unittest.TestCase):

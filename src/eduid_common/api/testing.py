@@ -46,7 +46,7 @@ from flask.testing import FlaskClient
 from eduid_userdb import User
 from eduid_userdb.db import BaseDB
 from eduid_userdb.fixtures.users import new_completed_signup_user_example, new_unverified_user_example, new_user_example
-from eduid_userdb.testing import AbstractMockedUserDB, MongoTemporaryInstance
+from eduid_userdb.testing import MongoTemporaryInstance
 
 from eduid_common.api.messages import TranslatableMsg
 from eduid_common.api.testing_base import CommonTestCase
@@ -89,14 +89,6 @@ _standard_test_users = {
     'hubba-baar': new_unverified_user_example,
     'hubba-fooo': new_completed_signup_user_example,
 }
-
-
-class APIMockedUserDB(AbstractMockedUserDB):
-
-    test_users: Dict[str, Any] = {}
-
-    def __init__(self, _patches):
-        pass
 
 
 class EduidAPITestCase(CommonTestCase):
