@@ -11,7 +11,7 @@ from os import environ
 from pprint import pformat
 from typing import TYPE_CHECKING, Any, Dict, List, Sequence
 
-from eduid_common.config.base import LoggingConfigMixin
+from eduid_common.config.base import LoggingConfigMixin, LoggingFilters
 from eduid_common.config.exceptions import BadConfiguration
 
 # From https://stackoverflow.com/a/39757388
@@ -164,16 +164,6 @@ def init_logging(config: LoggingConfigMixin) -> None:
         logging.debug(f'Logging config:\n{pformat(logging_config)}')
     logging.info('Logging configured')
     return None
-
-
-@unique
-class LoggingFilters(Enum):
-    """ Identifiers to coherently map elements in LocalContext.filters to filter classes. """
-
-    DEBUG_TRUE: str = 'require_debug_true'
-    DEBUG_FALSE: str = 'require_debug_false'
-    NAMES: str = 'app_filter'
-    SESSION_USER: str = 'user_filter'
 
 
 @dataclass
