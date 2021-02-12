@@ -63,48 +63,6 @@ MONGO_URI_TEST = 'mongodb://localhost:27017/eduid_dashboard_test'
 # eduid_userdb.db.DEFAULT_MONGODB_URI = MONGO_URI_AM_TEST
 # eduid_userdb.db.DEFAULT_MONGODB_NAME = 'eduid_userdb_test'
 
-
-# Also used in the APIMockedUserDB at eduid_common.api.testing
-class AbstractMockedUserDB(ABC):
-    def get_user(self, userid):
-        if userid not in self.test_users:
-            raise self.UserDoesNotExist
-        return User(deepcopy(self.test_users.get(userid)))
-
-    def all_users(self):
-        for user in self.test_users.values():
-            yield User(deepcopy(user))
-
-    def all_userdocs(self):
-        for user in self.test_users.values():
-            yield deepcopy(user)
-
-
-class MockedUserDB(AbstractMockedUserDB, UserDB):
-    """
-    Some mock users used in different tests.
-
-    Need to do deepcopy everywhere to better isolate tests from each other - since this is
-    an in-memory database, one test might manipulate the returned data and could otherwise
-    potentially affect other tests using the same data.
-    """
-
-    test_users = {
-        'johnsmith@example.com': mocked_user_standard.to_dict(),
-        'johnsmith@example.org': mocked_user_standard_2.to_dict(),
-    }
-
-    def __init__(self, users=[]):
-        import pprint
-
-        for user in users:
-            mail = user.get('mail', '')
-            if mail in self.test_users:
-                logger.debug("Updating MockedUser {!r} with:\n{!s}".format(mail, pprint.pformat(user)))
-                self.test_users[mail].update(user)
-                logger.debug("New MockedUser {!r}:\n{!s}".format(mail, pprint.pformat(self.test_users[mail])))
-
-
 class MongoTemporaryInstance(EduidTemporaryInstance):
     """Singleton to manage a temporary MongoDB instance
 
