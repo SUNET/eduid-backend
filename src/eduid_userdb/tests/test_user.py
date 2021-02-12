@@ -6,7 +6,7 @@ from bson import ObjectId
 from six import string_types
 
 from eduid_userdb import LockedIdentityNin, OidcAuthorization, OidcIdToken, Orcid
-from eduid_userdb.credentials import METHOD_SWAMID_AL2_MFA, CredentialList
+from eduid_userdb.credentials import METHOD_SWAMID_AL2_MFA, U2F, CredentialList, Password
 from eduid_userdb.exceptions import EduIDUserDBError, UserHasNotCompletedSignup, UserIsRevoked
 from eduid_userdb.mail import MailAddress, MailAddressList
 from eduid_userdb.nin import NinList
@@ -698,7 +698,6 @@ class TestNewUser(unittest.TestCase, _AbstractUserTestCase):
     def _setup_user1(self):
         _id = ObjectId('547357c3d00690878ae9b620')
         eppn = 'guvat-nalif'
-        mail = 'user@example.net'
         mailAliases_list = [
             {
                 'created_ts': datetime.fromisoformat('2014-12-18T11:25:19.804000'),
@@ -746,10 +745,6 @@ class TestNewUser(unittest.TestCase, _AbstractUserTestCase):
         self.data1 = self.user1.to_dict()
 
     def _setup_user2(self):
-        _id = ObjectId('549190b5d00690878ae9b622')
-        display_name = 'Some \xf6ne'
-        eppn = 'birub-gagoz'
-        given_name = 'Some'
         mailAliases_list = [
             MailAddress(email='someone+test1@gmail.com', is_verified=True),
             MailAddress(
@@ -759,7 +754,6 @@ class TestNewUser(unittest.TestCase, _AbstractUserTestCase):
                 is_primary=True,
             ),
         ]
-        mail_addresses = MailAddressList(mailAliases_list)
         phone_list = [
             PhoneNumber(
                 number='+46702222222',
@@ -768,57 +762,47 @@ class TestNewUser(unittest.TestCase, _AbstractUserTestCase):
                 is_verified=True,
             )
         ]
-        phone_numbers = PhoneNumberList(phone_list)
-        password_list = [
-            {
-                'created_ts': datetime.fromisoformat('2015-02-11T13:58:42.327000'),
-                'id': ObjectId('54db60128a7d2a26e8690cda'),
-                'salt': '$NDNv1H1$db011fc$32$32$',
-                'is_generated': False,
-                'source': 'dashboard',
-            },
-            {
-                'version': 'U2F_V2',
-                'app_id': 'unit test',
-                'keyhandle': 'U2F SWAMID AL2',
-                'public_key': 'foo',
-                'verified': True,
-                'proofing_method': METHOD_SWAMID_AL2_MFA,
-                'proofing_version': 'testing',
-            },
+        credential_list = [
+            Password(
+                created_ts=datetime.fromisoformat('2015-02-11T13:58:42.327000'),
+                credential_id='54db60128a7d2a26e8690cda',
+                salt='$NDNv1H1$db011fc$32$32$',
+                is_generated=False,
+                created_by='dashboard',
+            ),
+            U2F(
+                version='U2F_V2',
+                app_id='unit test',
+                keyhandle='U2F SWAMID AL2',
+                public_key='foo',
+                is_verified=True,
+                proofing_method=METHOD_SWAMID_AL2_MFA,
+                proofing_version='testing',
+            ),
         ]
-        passwords = CredentialList(password_list)
-        profile_dict = {
-            'created_by': 'test application',
-            'created_ts': datetime.fromisoformat('2020-02-04T17:42:33.696751'),
-            'owner': 'test owner 1',
-            'schema': 'test schema',
-            'profile_data': {
+        profile = Profile(created_by='test application',
+            created_ts=datetime.fromisoformat('2020-02-04T17:42:33.696751'),
+            owner='test owner 1',
+            schema='test schema',
+            profile_data={
                 'a_string': 'I am a string',
                 'an_int': 3,
                 'a_list': ['eins', 2, 'drei'],
                 'a_map': {'some': 'data'},
-            },
-        }
-        profile = Profile(**profile_dict)
-        profile_list = [profile]
-        profiles = ProfileList(profile_list)
-        language = 'sv'
-        surname = '\xf6ne'
-        subject = 'physical person'
+            })
 
         self.user2 = User(
-            user_id=_id,
-            eppn=eppn,
-            display_name=display_name,
-            given_name=given_name,
-            mail_addresses=mail_addresses,
-            phone_numbers=phone_numbers,
-            credentials=passwords,
-            profiles=profiles,
-            language=language,
-            surname=surname,
-            subject=SubjectType(subject),
+            user_id=ObjectId('549190b5d00690878ae9b622'),
+            eppn='birub-gagoz',
+            display_name='Some \xf6ne',
+            given_name='Some',
+            mail_addresses=MailAddressList(mailAliases_list),
+            phone_numbers=PhoneNumberList(phone_list),
+            credentials=CredentialList(credential_list),
+            profiles=ProfileList([profile]),
+            language='sv',
+            surname='\xf6ne',
+            subject=SubjectType('physical person'),
         )
 
         self.data2 = self.user2.to_dict()
@@ -868,7 +852,7 @@ class TestNewUser(unittest.TestCase, _AbstractUserTestCase):
         to_dict_result = phone_numbers.to_list_of_dicts()
         assert to_dict_result == phone_list
 
-    def test_passwords_new_format(self):
+    def test_passwords_from_dict(self):
         """
         Test that we get back a dict identical to the one we put in for old-style userdb data.
         """
