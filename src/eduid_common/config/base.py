@@ -105,6 +105,15 @@ class EduidEnvironment(str, Enum):
     production = 'production'
 
 
+class LoggingFilters(str, Enum):
+    """ Identifiers to coherently map elements in LocalContext.filters to filter classes in logging dictConfig. """
+
+    DEBUG_TRUE: str = 'require_debug_true'
+    DEBUG_FALSE: str = 'require_debug_false'
+    NAMES: str = 'app_filter'
+    SESSION_USER: str = 'user_filter'
+
+
 class WorkerConfig(RootConfig):
     """
     Configuration common to all celery workers
@@ -253,6 +262,7 @@ class LoggingConfigMixin(BaseModel):
     debug_eppns: Sequence[str] = Field(default=[])
     log_format: str = '{asctime} | {levelname:7} | {hostname} | {eppn:9} | {name:35} | {module:10} | {message}'
     log_level: str = 'INFO'
+    log_filters: Sequence[LoggingFilters] = Field(default=[LoggingFilters.NAMES, LoggingFilters.SESSION_USER])
     logging_config: dict = Field(default={})
 
 

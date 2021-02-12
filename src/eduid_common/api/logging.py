@@ -11,7 +11,7 @@ from os import environ
 from pprint import pformat
 from typing import TYPE_CHECKING, Any, Dict, List, Sequence
 
-from eduid_common.config.base import LoggingConfigMixin
+from eduid_common.config.base import LoggingConfigMixin, LoggingFilters
 from eduid_common.config.exceptions import BadConfiguration
 
 # From https://stackoverflow.com/a/39757388
@@ -166,16 +166,6 @@ def init_logging(config: LoggingConfigMixin) -> None:
     return None
 
 
-@unique
-class LoggingFilters(Enum):
-    """ Identifiers to coherently map elements in LocalContext.filters to filter classes. """
-
-    DEBUG_TRUE: str = 'require_debug_true'
-    DEBUG_FALSE: str = 'require_debug_false'
-    NAMES: str = 'app_filter'
-    SESSION_USER: str = 'user_filter'
-
-
 @dataclass
 class LocalContext:
     level: str  # 'DEBUG', 'INFO' etc.
@@ -184,7 +174,7 @@ class LocalContext:
     app_debug: bool  # Is the app in debug mode? Corresponding to current_app.debug
     # optionally filter debug messages to only be emitted if eppn is in this list
     debug_eppns: Sequence[str] = field(default_factory=list)
-    filters: List[LoggingFilters] = field(default_factory=list)  # filters to activate
+    filters: Sequence[LoggingFilters] = field(default_factory=list)  # filters to activate
     relative_time: bool = False  # use relative time as {asctime}
 
     def to_dict(self) -> Dict[str, Any]:
@@ -208,8 +198,6 @@ def make_local_context(config: LoggingConfigMixin) -> LocalContext:
         # Flask expects to be able to debug log in debug mode
         log_level = 'DEBUG'
 
-    filters = [LoggingFilters.NAMES, LoggingFilters.SESSION_USER]
-
     relative_time = config.testing
 
     try:
@@ -219,7 +207,7 @@ def make_local_context(config: LoggingConfigMixin) -> LocalContext:
             app_name=config.app_name,
             app_debug=config.debug,
             debug_eppns=config.debug_eppns,
-            filters=filters,
+            filters=config.log_filters,
             relative_time=relative_time,
         )
     except (KeyError, AttributeError) as e:
