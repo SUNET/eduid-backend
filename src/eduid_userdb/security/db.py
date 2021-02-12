@@ -51,8 +51,8 @@ class SecurityUserDB(UserDB):
     def __init__(self, db_uri, db_name='eduid_security', collection='profiles'):
         super(SecurityUserDB, self).__init__(db_uri, db_name, collection=collection)
 
-    def save(self, user, check_sync=True, old_format=False):
-        super(SecurityUserDB, self).save(user, check_sync=check_sync, old_format=old_format)
+    def save(self, user, check_sync=True):
+        super(SecurityUserDB, self).save(user, check_sync=check_sync)
 
 
 # @deprecated("Remove once the password reset views are served from their own webapp")

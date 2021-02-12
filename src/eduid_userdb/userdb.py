@@ -269,15 +269,11 @@ class UserDB(BaseDB):
             logger.error("MultipleUsersReturned, {!r} = {!r}".format(attr, value))
             raise MultipleUsersReturned(e.reason)
 
-    def save(self, user: User, check_sync: bool = True, old_format: Optional[bool] = None) -> bool:
+    def save(self, user: User, check_sync: bool = True) -> bool:
         """
         :param user: UserClass object
         :param check_sync: Ensure the user hasn't been updated in the database since it was loaded
-        :param old_format: Deprecated. Ignored.
         """
-        if old_format is not None:
-            warnings.warn('old_format supplied - deprecated and ignored', DeprecationWarning)
-
         if not isinstance(user, self.UserClass):
             raise EduIDUserDBError(f'user is not of type {self.UserClass}')
 
