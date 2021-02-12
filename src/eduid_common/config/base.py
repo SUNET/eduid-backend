@@ -253,7 +253,7 @@ class LoggingConfigMixin(BaseModel):
     debug_eppns: Sequence[str] = Field(default=[])
     log_format: str = '{asctime} | {levelname:7} | {hostname} | {eppn:9} | {name:35} | {module:10} | {message}'
     log_level: str = 'INFO'
-    log_filters: List[str] = Field(default=['app_filter', 'user_filter'])
+    log_filters: Sequence[Enum] = Field(default=['app_filter', 'user_filter'])
     logging_config: dict = Field(default={})
 
 
