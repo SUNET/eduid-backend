@@ -174,7 +174,7 @@ class LocalContext:
     app_debug: bool  # Is the app in debug mode? Corresponding to current_app.debug
     # optionally filter debug messages to only be emitted if eppn is in this list
     debug_eppns: Sequence[str] = field(default_factory=list)
-    filters: List[LoggingFilters] = field(default_factory=list)  # filters to activate
+    filters: Sequence[LoggingFilters] = field(default_factory=list)  # filters to activate
     relative_time: bool = False  # use relative time as {asctime}
 
     def to_dict(self) -> Dict[str, Any]:
@@ -198,11 +198,6 @@ def make_local_context(config: LoggingConfigMixin) -> LocalContext:
         # Flask expects to be able to debug log in debug mode
         log_level = 'DEBUG'
 
-    try:
-        filters = [LoggingFilters(filter_name) for filter_name in config.log_filters]
-    except ValueError as e:
-        raise BadConfiguration(message=f'Could not initialize log filters: {e}')
-
     relative_time = config.testing
 
     try:
@@ -212,7 +207,7 @@ def make_local_context(config: LoggingConfigMixin) -> LocalContext:
             app_name=config.app_name,
             app_debug=config.debug,
             debug_eppns=config.debug_eppns,
-            filters=filters,
+            filters=config.log_filters,
             relative_time=relative_time,
         )
     except (KeyError, AttributeError) as e:
