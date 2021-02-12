@@ -40,9 +40,6 @@ import json
 import logging
 import unittest
 import uuid
-import warnings
-from abc import ABC
-from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
@@ -51,58 +48,9 @@ import pymongo
 
 from eduid_userdb import User, UserDB
 from eduid_userdb.dashboard.user import DashboardUser
-from eduid_userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
 from eduid_userdb.testing.temp_instance import EduidTemporaryInstance
 
 logger = logging.getLogger(__name__)
-
-
-MONGO_URI_AM_TEST = 'mongodb://localhost:27017/eduid_userdb_test'
-MONGO_URI_TEST = 'mongodb://localhost:27017/eduid_dashboard_test'
-
-# eduid_userdb.db.DEFAULT_MONGODB_URI = MONGO_URI_AM_TEST
-# eduid_userdb.db.DEFAULT_MONGODB_NAME = 'eduid_userdb_test'
-
-
-# Also used in the APIMockedUserDB at eduid_common.api.testing
-class AbstractMockedUserDB(ABC):
-    def get_user(self, userid):
-        if userid not in self.test_users:
-            raise self.UserDoesNotExist
-        return User(deepcopy(self.test_users.get(userid)))
-
-    def all_users(self):
-        for user in self.test_users.values():
-            yield User(deepcopy(user))
-
-    def all_userdocs(self):
-        for user in self.test_users.values():
-            yield deepcopy(user)
-
-
-class MockedUserDB(AbstractMockedUserDB, UserDB):
-    """
-    Some mock users used in different tests.
-
-    Need to do deepcopy everywhere to better isolate tests from each other - since this is
-    an in-memory database, one test might manipulate the returned data and could otherwise
-    potentially affect other tests using the same data.
-    """
-
-    test_users = {
-        'johnsmith@example.com': mocked_user_standard.to_dict(),
-        'johnsmith@example.org': mocked_user_standard_2.to_dict(),
-    }
-
-    def __init__(self, users=[]):
-        import pprint
-
-        for user in users:
-            mail = user.get('mail', '')
-            if mail in self.test_users:
-                logger.debug("Updating MockedUser {!r} with:\n{!s}".format(mail, pprint.pformat(user)))
-                self.test_users[mail].update(user)
-                logger.debug("New MockedUser {!r}:\n{!s}".format(mail, pprint.pformat(self.test_users[mail])))
 
 
 class MongoTemporaryInstance(EduidTemporaryInstance):
@@ -114,12 +62,12 @@ class MongoTemporaryInstance(EduidTemporaryInstance):
 
     @property
     def command(self) -> Sequence[str]:
-        return ['docker', 'run', '--rm', '-p', '{!s}:27017'.format(self._port), 'docker.sunet.se/eduid/mongodb:latest']
+        return ['docker', 'run', '--rm', '-p', f'{self._port!s}:27017', 'docker.sunet.se/eduid/mongodb:latest']
 
     def setup_conn(self) -> bool:
         try:
             self._conn = pymongo.MongoClient('localhost', self._port)
-            logger.info('Connected to temporary mongodb instance: {}'.format(self._conn))
+            logger.info(f'Connected to temporary mongodb instance: {self._conn}')
         except pymongo.errors.ConnectionFailure:
             return False
         return True
@@ -132,11 +80,11 @@ class MongoTemporaryInstance(EduidTemporaryInstance):
 
     @property
     def uri(self):
-        return 'mongodb://localhost:{}'.format(self.port)
+        return f'mongodb://localhost:{self.port}'
 
     def shutdown(self):
         if self._conn:
-            logger.info('Closing connection {}'.format(self._conn))
+            logger.info(f'Closing connection {self._conn}')
             self._conn.close()
             self._conn = None
         super().shutdown()
@@ -197,86 +145,7 @@ def normalised_data(
     raise TypeError('normalised_data not called on dict (or list of dicts)')
 
 
-class DictTestCase(unittest.TestCase):
-    """
-    """
-
-    maxDiff = None
-    warnings.warn(
-        'DictTestCase deprecated - use testing.normalised_data instead', category=DeprecationWarning, stacklevel=2
-    )
-
-    @classmethod
-    def normalize_users(cls, users: List[Dict[str, Any]]):
-        """
-        Remove timestamps that in general are created at different times
-        normalize the names of some attributes
-        """
-        for user in users:
-            cls.normalize_elem(user)
-
-            if 'mailAliases' in user:
-                cls.normalize_data(user['mailAliases'], [])
-
-            if 'passwords' in user:
-                cls.normalize_data(user['passwords'], [])
-
-            if 'phone' in user:
-                cls.normalize_data(user['phone'], [])
-
-            if 'profiles' in user:
-                cls.normalize_data(user['profiles'], [])
-
-            if 'nins' in user:
-                cls.normalize_data(user['nins'], [])
-
-    @classmethod
-    def normalize_data(cls, expected: List[Dict[str, Any]], obtained: List[Dict[str, Any]]):
-        """
-        Remove timestamps that in general are created at different times
-        normalize the names of some attributes
-        remove attributes set to None
-        """
-        for elist in (expected, obtained):
-            for elem in elist:
-                cls.normalize_elem(elem)
-
-    @classmethod
-    def normalize_elem(cls, elem: Dict[str, Any]):
-        if 'created_ts' in elem:
-            assert isinstance(elem['created_ts'], datetime)
-            del elem['created_ts']
-
-        if 'modified_ts' in elem:
-            if elem['modified_ts'] is not None:
-                assert isinstance(elem['modified_ts'], datetime)
-            del elem['modified_ts']
-
-        if 'verified_ts' in elem:
-            if elem['verified_ts'] is not None:
-                assert isinstance(elem['verified_ts'], datetime)
-            del elem['verified_ts']
-
-        if 'terminated' in elem:
-            if elem['terminated'] is not None:
-                assert isinstance(elem['terminated'], datetime)
-            del elem['terminated']
-
-        if 'application' in elem:
-            elem['created_by'] = elem.pop('application')
-
-        if 'source' in elem:
-            elem['created_by'] = elem.pop('source')
-
-        if 'credential_id' in elem:
-            elem['id'] = elem.pop('credential_id')
-
-        for key in elem:
-            if isinstance(elem[key], dict):
-                cls.normalize_elem(elem[key])
-
-
-class MongoTestCase(DictTestCase):
+class MongoTestCase(unittest.TestCase):
     """TestCase with an embedded MongoDB temporary instance.
 
     Each test runs on a temporary instance of MongoDB. The instance will
@@ -286,7 +155,7 @@ class MongoTestCase(DictTestCase):
     A test can access the port using the attribute `port`
     """
 
-    def setUp(self, am_users: Optional[List[User]] = None):
+    def setUp(self, am_users: Optional[List[User]] = None, **kwargs):
         """
         Test case initialization.
 

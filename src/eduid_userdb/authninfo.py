@@ -1,10 +1,5 @@
 # -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 import logging
-
-from bson import ObjectId
 
 from eduid_userdb.credentials import U2F, Password, Webauthn
 from eduid_userdb.userdb import BaseDB

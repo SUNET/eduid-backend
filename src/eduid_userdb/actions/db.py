@@ -67,18 +67,16 @@ class ActionDB(BaseDB):
         session: Optional[str],
         filter_: Optional[dict] = None,
         match_no_session: bool = True,
-    ) -> Tuple[bool, Cursor]:
-        old_format = True
+    ) -> Cursor:
         try:
             query = {'user_oid': ObjectId(str(eppn_or_userid))}
         except InvalidId:
-            old_format = False
             query = {'eppn': eppn_or_userid}
         if session is not None:
             query['$or'] = [{'session': {'$exists': False}}, {'session': session}]
         if filter_ is not None:
             query.update(filter_)
-        return old_format, self._coll.find(query).sort('preference')
+        return self._coll.find(query).sort('preference')
 
     def get_actions(
         self, eppn_or_userid: Union[str, ObjectId], session: Optional[str], action_type: Optional[str] = None
@@ -93,7 +91,7 @@ class ActionDB(BaseDB):
         :param session: The actions session for the user
         :param action_type: The type of action to be performed ('mfa', 'tou', ...)
         """
-        _, actions = self._read_actions_from_db(eppn_or_userid, session)
+        actions = self._read_actions_from_db(eppn_or_userid, session)
 
         if action_type is None:
             # Don't filter on action type, return all actions for user(+session)
@@ -128,7 +126,7 @@ class ActionDB(BaseDB):
         if params is not None:
             filter_['params'] = params
 
-        old_format, actions = self._read_actions_from_db(eppn_or_userid, session, filter_)
+        actions = self._read_actions_from_db(eppn_or_userid, session, filter_)
         return len(list(actions)) > 0
 
     def get_next_action(self, eppn_or_userid, session=None):
@@ -148,7 +146,7 @@ class ActionDB(BaseDB):
         :rtype: eduid_userdb.actions:Action or None
         """
         filter_ = {'result': None}
-        old_format, actions = self._read_actions_from_db(eppn_or_userid, session, filter_)
+        actions = self._read_actions_from_db(eppn_or_userid, session, filter_)
         for this in actions:
             # return first element in list
             return Action.from_dict(this)

@@ -3,9 +3,9 @@ from unittest import TestCase
 from bson import ObjectId
 
 import eduid_userdb.db as db
+from eduid_userdb.fixtures.users import mocked_user_standard_2, new_unverified_user_example, new_user_example
 from eduid_userdb.testing import MongoTestCase
 
-from eduid_userdb.fixtures.users import new_unverified_user_example, mocked_user_standard_2, new_user_example
 
 class DummyDatabase(object):
     def __init__(self, name):

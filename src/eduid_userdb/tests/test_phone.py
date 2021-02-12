@@ -1,11 +1,11 @@
 import copy
 import datetime
+import unittest
 
 import eduid_userdb.element
 import eduid_userdb.exceptions
 from eduid_userdb.element import Element
 from eduid_userdb.phone import PhoneNumber, PhoneNumberList
-from eduid_userdb.testing import DictTestCase
 
 __author__ = 'ft'
 
@@ -34,7 +34,7 @@ _four_dict = {
 }
 
 
-class TestPhoneNumberList(DictTestCase):
+class TestPhoneNumberList(unittest.TestCase):
     def setUp(self):
         self.empty = PhoneNumberList([])
         self.one = PhoneNumberList([_one_dict])
@@ -47,27 +47,18 @@ class TestPhoneNumberList(DictTestCase):
             PhoneNumberList('bad input data')
 
     def test_to_list(self):
-        self.assertEqual([], self.empty.to_list(), list)
-        self.assertIsInstance(self.one.to_list(), list)
+        assert self.empty.to_list_of_dicts() == []
+        assert isinstance(self.one.to_list(), list)
 
-        self.assertEqual(1, len(self.one.to_list()))
+        assert len(self.one.to_list()) == 1
 
     def test_to_list_of_dicts(self):
-        self.assertEqual([], self.empty.to_list_of_dicts(), list)
+        assert self.empty.to_list_of_dicts() == []
 
-        # remove added timestamps
         one_dict_list = self.one.to_list_of_dicts()
-        self.normalize_data(one_dict_list, [])
+        expected = [_one_dict]
 
-        _one_dict_list = [_one_dict]
-
-        assert (
-            _one_dict_list[0]['primary'] == one_dict_list[0]['primary']
-        ), 'Created one phone list has wrong is_primary'
-        assert (
-            _one_dict_list[0]['verified'] == one_dict_list[0]['verified']
-        ), 'Created one phone list has wrong is_verified'
-        assert _one_dict_list[0]['number'] == one_dict_list[0]['number'], 'Created one phone list has wrong number'
+        assert one_dict_list == expected
 
     def test_find(self):
         match = self.one.find('+46700000001')
@@ -81,8 +72,6 @@ class TestPhoneNumberList(DictTestCase):
         self.one.add(second)
         expected = self.two.to_list_of_dicts()
         got = self.one.to_list_of_dicts()
-        # remove timestamps added at different times
-        self.normalize_data(expected, got)
 
         assert got == expected, 'Adding a phone number to a list results in wrong data'
 
@@ -97,8 +86,6 @@ class TestPhoneNumberList(DictTestCase):
 
         expected = self.three.to_list_of_dicts()
         got = this.to_list_of_dicts()
-        # remove timestamps added at different times
-        self.normalize_data(expected, got)
 
         assert got == expected, 'Phone number list contains wrong data'
 
@@ -119,8 +106,6 @@ class TestPhoneNumberList(DictTestCase):
         now_two = self.three.remove('+46700000003')
         expected = self.two.to_list_of_dicts()
         got = now_two.to_list_of_dicts()
-        # remove timestamps - added at different times
-        self.normalize_data(expected, got)
 
         assert got == expected, 'Phone list has wrong data after removing phone'
 
@@ -211,7 +196,7 @@ class TestPhoneNumberList(DictTestCase):
             PhoneNumberList([one])
 
 
-class TestPhoneNumber(DictTestCase):
+class TestPhoneNumber(unittest.TestCase):
     def setUp(self):
         self.empty = PhoneNumberList([])
         self.one = PhoneNumberList([_one_dict])

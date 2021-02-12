@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from eduid_userdb.credentials.base import Credential
 from eduid_userdb.credentials.fido import U2F, FidoCredential, Webauthn, u2f_from_dict, webauthn_from_dict
 from eduid_userdb.credentials.list import CredentialList

@@ -1,12 +1,12 @@
 import copy
 import datetime
+import unittest
 from unittest import TestCase
 
 import eduid_userdb.element
 import eduid_userdb.exceptions
 from eduid_userdb.element import Element
 from eduid_userdb.nin import Nin, NinList
-from eduid_userdb.tests import DictTestCase
 
 __author__ = 'ft'
 
@@ -29,7 +29,7 @@ _three_dict = {
 }
 
 
-class TestNinList(DictTestCase):
+class TestNinList(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None  # Make pytest show full diffs
         self.empty = NinList([])
@@ -64,8 +64,6 @@ class TestNinList(DictTestCase):
         expected = self.two.to_list_of_dicts()
         obtained = self.one.to_list_of_dicts()
 
-        self.normalize_data(expected, obtained)
-
         assert obtained == expected, 'List with removed NIN has unexpected data'
 
     def test_add_duplicate(self):
@@ -79,8 +77,6 @@ class TestNinList(DictTestCase):
 
         expected = self.three.to_list_of_dicts()
         obtained = this.to_list_of_dicts()
-
-        self.normalize_data(expected, obtained)
 
         assert obtained == expected, 'List with added mail address has unexpected data'
 
@@ -102,8 +98,6 @@ class TestNinList(DictTestCase):
 
         expected = self.two.to_list_of_dicts()
         obtained = now_two.to_list_of_dicts()
-
-        self.normalize_data(expected, obtained)
 
         assert obtained == expected, 'List with removed NIN has unexpected data'
 

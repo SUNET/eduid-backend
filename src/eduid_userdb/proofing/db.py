@@ -59,8 +59,8 @@ class ProofingStateDB(BaseDB):
 
     ProofingStateClass: Type[ProofingState] = ProofingState
 
-    def __init__(self, db_uri, db_name, collection='proofing_data'):
-        BaseDB.__init__(self, db_uri, db_name, collection)
+    def __init__(self, db_uri: str, db_name: str, collection='proofing_data'):
+        super().__init__(db_uri, db_name, collection)
 
     def get_state_by_eppn(self, eppn, raise_on_missing=True):
         """
@@ -133,8 +133,7 @@ class ProofingStateDB(BaseDB):
                 if db_state:
                     db_ts = db_state['modified_ts']
                 logging.error(
-                    "{} FAILED Updating state {} (ts {}) in {}). "
-                    "ts in db = {!s}".format(self, state, modified, self._coll_name, db_ts)
+                    f'{self} FAILED Updating state {state} (ts {modified}) in {self._coll_name}). ts in db = {db_ts!s}'
                 )
                 raise DocumentOutOfSync('Stale state object can\'t be saved')
 
@@ -154,15 +153,15 @@ class ProofingStateDB(BaseDB):
 class LetterProofingStateDB(ProofingStateDB):
     ProofingStateClass = LetterProofingState
 
-    def __init__(self, db_uri, db_name='eduid_idproofing_letter'):
-        ProofingStateDB.__init__(self, db_uri, db_name)
+    def __init__(self, db_uri: str, db_name: str = 'eduid_idproofing_letter'):
+        super().__init__(db_uri, db_name)
 
 
 class EmailProofingStateDB(ProofingStateDB):
     ProofingStateClass = EmailProofingState
 
-    def __init__(self, db_uri, db_name='eduid_email'):
-        ProofingStateDB.__init__(self, db_uri, db_name)
+    def __init__(self, db_uri: str, db_name: str = 'eduid_email'):
+        super().__init__(db_uri, db_name)
 
     def get_state_by_eppn_and_email(
         self, eppn: str, email: str, raise_on_missing: bool = True
@@ -190,7 +189,7 @@ class EmailProofingStateDB(ProofingStateDB):
 class PhoneProofingStateDB(ProofingStateDB):
     ProofingStateClass = PhoneProofingState
 
-    def __init__(self, db_uri, db_name='eduid_phone'):
+    def __init__(self, db_uri: str, db_name: str = 'eduid_phone'):
         ProofingStateDB.__init__(self, db_uri, db_name)
 
     def get_state_by_eppn_and_mobile(self, eppn, number, raise_on_missing=True):
@@ -249,57 +248,57 @@ class OidcStateDB(ProofingStateDB):
 class OidcProofingStateDB(OidcStateDB):
     ProofingStateClass = OidcProofingState
 
-    def __init__(self, db_uri, db_name='eduid_oidc_proofing'):
-        OidcStateDB.__init__(self, db_uri, db_name)
+    def __init__(self, db_uri: str, db_name: str = 'eduid_oidc_proofing'):
+        super().__init__(db_uri, db_name)
 
 
 class OrcidProofingStateDB(OidcStateDB):
     ProofingStateClass = OrcidProofingState
 
-    def __init__(self, db_uri, db_name='eduid_orcid'):
-        OidcStateDB.__init__(self, db_uri, db_name)
+    def __init__(self, db_uri: str, db_name: str = 'eduid_orcid'):
+        super().__init__(db_uri, db_name)
 
 
 class ProofingUserDB(UserDB):
     UserClass = ProofingUser
 
-    def __init__(self, db_uri, db_name, collection='profiles'):
-        super(ProofingUserDB, self).__init__(db_uri, db_name, collection=collection)
+    def __init__(self, db_uri: str, db_name: str, collection: str = 'profiles'):
+        super().__init__(db_uri, db_name, collection=collection)
 
-    def save(self, user, check_sync=True, old_format: Optional[bool] = None):
-        super(ProofingUserDB, self).save(user, check_sync=check_sync, old_format=old_format)
+    def save(self, user, check_sync=True):
+        super().save(user, check_sync=check_sync)
 
 
 class LetterProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri, db_name='eduid_idproofing_letter'):
-        ProofingUserDB.__init__(self, db_uri, db_name)
+    def __init__(self, db_uri: str, db_name: str = 'eduid_idproofing_letter'):
+        super().__init__(db_uri, db_name)
 
 
 class OidcProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri, db_name='eduid_oidc_proofing'):
-        ProofingUserDB.__init__(self, db_uri, db_name)
+    def __init__(self, db_uri: str, db_name: str = 'eduid_oidc_proofing'):
+        super().__init__(db_uri, db_name)
 
 
 class PhoneProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri, db_name='eduid_phone'):
-        ProofingUserDB.__init__(self, db_uri, db_name)
+    def __init__(self, db_uri: str, db_name: str = 'eduid_phone'):
+        super().__init__(db_uri, db_name)
 
 
 class EmailProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri, db_name='eduid_email'):
-        ProofingUserDB.__init__(self, db_uri, db_name)
+    def __init__(self, db_uri: str, db_name: str = 'eduid_email'):
+        super().__init__(db_uri, db_name)
 
 
 class LookupMobileProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri, db_name='eduid_lookup_mobile_proofing'):
-        ProofingUserDB.__init__(self, db_uri, db_name)
+    def __init__(self, db_uri: str, db_name: str = 'eduid_lookup_mobile_proofing'):
+        super().__init__(db_uri, db_name)
 
 
 class OrcidProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri, db_name='eduid_orcid'):
-        ProofingUserDB.__init__(self, db_uri, db_name)
+    def __init__(self, db_uri: str, db_name: str = 'eduid_orcid'):
+        super().__init__(db_uri, db_name)
 
 
 class EidasProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri, db_name='eduid_eidas'):
-        ProofingUserDB.__init__(self, db_uri, db_name)
+    def __init__(self, db_uri: str, db_name: str = 'eduid_eidas'):
+        super().__init__(db_uri, db_name)
