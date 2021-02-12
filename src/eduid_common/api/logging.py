@@ -208,7 +208,10 @@ def make_local_context(config: LoggingConfigMixin) -> LocalContext:
         # Flask expects to be able to debug log in debug mode
         log_level = 'DEBUG'
 
-    filters = [LoggingFilters.NAMES, LoggingFilters.SESSION_USER]
+    try:
+        filters = [LoggingFilters(filter_name) for filter_name in config.log_filters]
+    except ValueError as e:
+        raise BadConfiguration(message=f'Could not initialize log filters: {e}')
 
     relative_time = config.testing
 
