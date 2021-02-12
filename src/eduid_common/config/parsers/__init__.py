@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
+import json
 import os
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional, Type
+
+import yaml
 
 from eduid_common.config.base import FlaskConfig, TRootConfigSubclass
 from eduid_common.config.parsers.base import BaseConfigParser
@@ -44,7 +47,17 @@ def load_config(
     if 'app_name' not in config:
         config['app_name'] = app_name
 
-    return typ(**config)
+    res = typ(**config)
+
+    # Save config to a file in /dev/shm for introspection
+    fd_int = os.open(f'/dev/shm/{app_name}_config.yaml', os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with open(fd_int, 'w') as fd:
+        fd.write('---\n')
+        # have to take the detour over json to get things like enums serialised to strings
+        yaml.safe_dump(json.loads(res.json()), fd)
+
+    return res
+
 
 
 def _choose_parser(app_name: str, ns: str) -> Optional[BaseConfigParser]:
