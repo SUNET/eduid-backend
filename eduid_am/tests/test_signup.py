@@ -7,6 +7,7 @@ from eduid_am.tests.test_proofing_fetchers import USER_DATA
 from eduid_userdb.exceptions import UserDoesNotExist
 from eduid_userdb.fixtures.users import mocked_user_standard
 from eduid_userdb.signup import SignupUser
+from eduid_userdb.testing import normalised_data
 
 
 class AttributeFetcherTests(AMTestCase):
@@ -27,28 +28,8 @@ class AttributeFetcherTests(AMTestCase):
     def test_existing_user_from_db(self):
         fetched = self.fetcher.fetch_attrs(mocked_user_standard.user_id)
 
-        expected_passwords = [
-            {
-                'created_by': 'signup',
-                'credential_id': '112345678901234567890123',
-                'is_generated': False,
-                'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
-            }
-        ]
-        self.normalize_data(fetched['$set']['passwords'], expected_passwords)
-
-        expected_emails = [
-            {
-                'created_by': 'signup',
-                'email': 'johnsmith@example.com',
-                'primary': True,
-                'verified': True,
-                'verified_by': 'signup',
-            },
-            {'email': 'johnsmith2@example.com', 'primary': False, 'verified': True},
-            {'email': 'johnsmith3@example.com', 'primary': False, 'verified': False},
-        ]
-        self.normalize_data(fetched['$set']['mailAliases'], expected_emails)
+        expected_passwords = mocked_user_standard.passwords.to_list_of_dicts()
+        expected_emails = mocked_user_standard.mail_addresses.to_list_of_dicts()
 
         expected = {
             '$set': {
@@ -58,7 +39,10 @@ class AttributeFetcherTests(AMTestCase):
             }
         }
 
-        assert fetched == expected
+        # normalise expected too since otherwise expected timestamps won't have timezone, but fetched timestamps will
+        expected = normalised_data(expected)
+
+        assert normalised_data(fetched) == expected
 
     def test_existing_user(self):
         user_data = deepcopy(USER_DATA)
@@ -90,10 +74,8 @@ class AttributeFetcherTests(AMTestCase):
         fetched = self.fetcher.fetch_attrs(user.user_id)
 
         expected_passwords = [{'credential_id': u'123', 'is_generated': False, 'salt': u'456',}]
-        self.normalize_data(fetched['$set']['passwords'], expected_passwords)
 
         expected_emails = [{'verified': True, 'primary': True, 'email': 'john@example.com'}]
-        self.normalize_data(fetched['$set']['mailAliases'], expected_emails)
 
         expected = {
             '$set': {
@@ -103,7 +85,7 @@ class AttributeFetcherTests(AMTestCase):
             }
         }
 
-        assert fetched == expected, 'Wrong data fetched by signup fetcher'
+        assert normalised_data(fetched) == expected, 'Wrong data fetched by signup fetcher'
 
     def test_malicious_attributes(self):
         user_data = deepcopy(USER_DATA)
