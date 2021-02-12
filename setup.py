@@ -7,7 +7,7 @@ version = '0.31.1'
 requires = [
     'six >= 1.11.0',
     'setuptools >= 2.2',
-    'eduid-userdb >= 0.10.0,==0.10.*',
+    'eduid-userdb >= 0.11.0,==0.11.*',
     'pydantic',
 ]
 
