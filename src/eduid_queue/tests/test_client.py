@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from unittest import TestCase, skip
 
 from eduid_userdb.exceptions import DocumentDoesNotExist
-from eduid_userdb.testing import MongoTestCase, normalised_data
+from eduid_userdb.testing import normalised_data
 
 from eduid_queue.db import Payload, RawPayload, TestPayload
 from eduid_queue.db.message import EduidInviteEmail, MessageDB
