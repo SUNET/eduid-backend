@@ -743,41 +743,30 @@ class TestNewUser(unittest.TestCase, _AbstractUserTestCase):
             language=language,
         )
 
-        self.data1 = {
-            '_id': _id,
-            'eduPersonPrincipalName': eppn,
-            'mail': mail,
-            'mailAliases': mail_addresses.to_list_of_dicts(),
-            'passwords': passwords.to_list_of_dicts(),
-            'nins': nins.to_list_of_dicts(),
-            'subject': subject,
-            'eduPersonEntitlement': entitlements,
-            'preferredLanguage': language,
-        }
+        self.data1 = self.user1.to_dict()
 
     def _setup_user2(self):
         _id = ObjectId('549190b5d00690878ae9b622')
         display_name = 'Some \xf6ne'
         eppn = 'birub-gagoz'
         given_name = 'Some'
-        mail = 'some.one@gmail.com'
         mailAliases_list = [
-            {'email': 'someone+test1@gmail.com', 'verified': True},
-            {
-                'created_ts': datetime.datetime(2014, 12, 17, 14, 35, 14, 728000),
-                'email': 'some.one@gmail.com',
-                'verified': True,
-                'primary': True,
-            },
+            MailAddress(email='someone+test1@gmail.com', is_verified=True),
+            MailAddress(
+                email='some.one@gmail.com',
+                created_ts=datetime.fromisoformat('2014-12-17T14:35:14.728000'),
+                is_verified=True,
+                is_primary=True,
+            ),
         ]
         mail_addresses = MailAddressList(mailAliases_list)
         phone_list = [
-            {
-                'created_ts': datetime.datetime(2014, 12, 18, 9, 11, 35, 78000),
-                'number': '+46702222222',
-                'primary': True,
-                'verified': True,
-            }
+            PhoneNumber(
+                number='+46702222222',
+                created_ts=datetime.fromisoformat('2014-12-18T09:11:35.078000'),
+                is_primary=True,
+                is_verified=True,
+            )
         ]
         phone_numbers = PhoneNumberList(phone_list)
         password_list = [
@@ -832,37 +821,84 @@ class TestNewUser(unittest.TestCase, _AbstractUserTestCase):
             subject=SubjectType(subject),
         )
 
-        self.data2 = {
-            '_id': _id,
-            'displayName': display_name,
-            'eduPersonPrincipalName': eppn,
-            'givenName': given_name,
-            'mail': mail,
-            'mailAliases': mail_addresses.to_list_of_dicts(),
-            'phone': phone_numbers.to_list_of_dicts(),
-            'passwords': passwords.to_list_of_dicts(),
-            'profiles': profiles.to_list_of_dicts(),
-            'preferredLanguage': language,
-            'surname': surname,
-            'subject': subject,
-        }
+        self.data2 = self.user2.to_dict()
 
-    def test_mail_addresses_to_new_userdb_format(self):
+    def test_mail_addresses_from_dict(self):
+        """
+        Test that we get back a correct list of dicts for old-style userdb data.
+        """
+        mailAliases_list = [
+            {'email': 'someone+test1@gmail.com', 'verified': True},
+            {
+                'created_ts': datetime.fromisoformat('2014-12-17T14:35:14.728000'),
+                'email': 'some.one@gmail.com',
+                'verified': True,
+                'primary': True,
+            },
+        ]
+        mail_addresses = MailAddressList(mailAliases_list)
+
+        to_dict_output = mail_addresses.to_list_of_dicts()
+
+        # The {'email': 'someone+test1@gmail.com', 'verified': True} should've beem flagged as primary: False
+        found = False
+        for this in to_dict_output:
+            if this['email'] == 'someone+test1@gmail.com':
+                assert this['primary'] == False
+                # now delete the marking from the to_list_of_dicts output to be able to compare it to the input below
+                del this['primary']
+                found = True
+        assert found == True, 'The non-primary e-mail in the input dict was not marked as non-primary'
+
+        assert to_dict_output == mailAliases_list
+
+    def test_phone_numbers_from_dict(self):
         """
         Test that we get back a dict identical to the one we put in for old-style userdb data.
         """
-        to_dict_result = self.user1.mail_addresses.to_list_of_dicts()
-        self.assertEqual(to_dict_result, self.data1['mailAliases'])
-
-    def test_phone_numbers(self):
-        """
-        Test that we get back a dict identical to the one we put in for old-style userdb data.
-        """
-        to_dict_result = self.user2.phone_numbers.to_list_of_dicts()
-        self.assertEqual(to_dict_result, self.data2['phone'])
+        phone_list = [
+            {
+                'created_ts': datetime.fromisoformat('2014-12-18T09:11:35.078000'),
+                'number': '+46702222222',
+                'primary': True,
+                'verified': True,
+            }
+        ]
+        phone_numbers = PhoneNumberList(phone_list)
+        to_dict_result = phone_numbers.to_list_of_dicts()
+        assert to_dict_result == phone_list
 
     def test_passwords_new_format(self):
         """
         Test that we get back a dict identical to the one we put in for old-style userdb data.
         """
-        self.assertEqual(self.user1.credentials.to_list_of_dicts(), self.data1['passwords'])
+        first = {
+            'created_ts': datetime.fromisoformat('2015-02-11T13:58:42.327000'),
+            'id': ObjectId('54db60128a7d2a26e8690cda'),
+            'salt': '$NDNv1H1$db011fc$32$32$',
+            'is_generated': False,
+            'source': 'dashboard',
+        }
+        second = {
+            'version': 'U2F_V2',
+            'app_id': 'unit test',
+            'keyhandle': 'U2F SWAMID AL2',
+            'public_key': 'foo',
+            'verified': True,
+            'proofing_method': METHOD_SWAMID_AL2_MFA,
+            'proofing_version': 'testing',
+        }
+
+        password_list = [first, second]
+        passwords = CredentialList(password_list)
+
+        to_dict_result = passwords.to_list_of_dicts()
+
+        # adjust for expected changes
+        first['created_by'] = first.pop('source')
+        first['credential_id'] = str(first.pop('id'))
+        second['description'] = ''
+
+        expected = [first, second]
+
+        assert to_dict_result == expected
