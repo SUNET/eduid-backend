@@ -38,7 +38,7 @@ import warnings
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum, unique
-from typing import Any, Dict, List, Optional, Type, TypeVar, cast
+from typing import Any, Dict, List, Mapping, Optional, Type, TypeVar, cast
 
 import bson
 
@@ -116,11 +116,11 @@ class User(object):
         return self.to_dict() == other.to_dict()
 
     @classmethod
-    def from_dict(cls: Type[TUserSubclass], data: Dict[str, Any]) -> TUserSubclass:
+    def from_dict(cls: Type[TUserSubclass], data: Mapping[str, Any]) -> TUserSubclass:
         """
         Construct user from a data dict.
         """
-        data_in = copy.deepcopy(data)  # to not modify callers data
+        data_in = dict(copy.deepcopy(data))  # to not modify callers data
 
         data_in = cls.check_or_use_data(data_in)
 
