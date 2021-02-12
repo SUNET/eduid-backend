@@ -30,11 +30,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from __future__ import absolute_import
-
 import logging
-
-from pymongo.errors import DuplicateKeyError
 
 from eduid_userdb.db import BaseDB
 from eduid_userdb.deprecation import deprecated

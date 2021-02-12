@@ -2,9 +2,6 @@
 #
 # Helper functions to log proofing events.
 #
-
-from __future__ import absolute_import
-
 import logging
 from dataclasses import dataclass, fields
 from typing import Any, Dict, Type, TypeVar

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from bson import ObjectId
 
 from eduid_userdb.credentials.base import Credential
