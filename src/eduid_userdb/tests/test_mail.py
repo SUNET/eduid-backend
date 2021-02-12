@@ -1,12 +1,12 @@
 import copy
 import datetime
+import unittest
 from unittest import TestCase
 
 import eduid_userdb.element
 import eduid_userdb.exceptions
 from eduid_userdb.element import Element
 from eduid_userdb.mail import MailAddress, MailAddressList
-from eduid_userdb.tests import DictTestCase
 
 __author__ = 'ft'
 
@@ -29,7 +29,7 @@ _three_dict = {
 }
 
 
-class TestMailAddressList(DictTestCase):
+class TestMailAddressList(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
         self.empty = MailAddressList([])
@@ -64,8 +64,6 @@ class TestMailAddressList(DictTestCase):
         expected = self.two.to_list_of_dicts()
         obtained = self.one.to_list_of_dicts()
 
-        self.normalize_data(expected, obtained)
-
         assert obtained == expected, 'Wrong data after adding mail address to list'
 
     def test_add_duplicate(self):
@@ -79,8 +77,6 @@ class TestMailAddressList(DictTestCase):
 
         expected = self.three.to_list_of_dicts()
         obtained = this.to_list_of_dicts()
-
-        self.normalize_data(expected, obtained)
 
         assert obtained == expected, 'Wrong data in mail address list'
 
@@ -104,8 +100,6 @@ class TestMailAddressList(DictTestCase):
 
         expected = self.two.to_list_of_dicts()
         obtained = now_two.to_list_of_dicts()
-
-        self.normalize_data(expected, obtained)
 
         assert obtained == expected, 'Wrong data after removing email from list'
 

@@ -1,3 +1,4 @@
+import unittest
 from hashlib import sha256
 
 from bson.objectid import ObjectId
@@ -5,7 +6,6 @@ from bson.objectid import ObjectId
 import eduid_userdb.element
 import eduid_userdb.exceptions
 from eduid_userdb.credentials import U2F, CredentialList, Password
-from eduid_userdb.tests import DictTestCase
 
 __author__ = 'lundberg'
 
@@ -15,6 +15,7 @@ __author__ = 'lundberg'
 #    'source': 'signup',
 #    'created_ts': datetime.datetime.utcnow(),
 # }}
+from eduid_userdb.testing import normalised_data
 
 _one_dict = {
     'credential_id': '111111111111111111111111',
@@ -44,7 +45,7 @@ def _keyid(key):
     return 'sha256:' + sha256(key['keyhandle'].encode('utf-8') + key['public_key'].encode('utf-8')).hexdigest()
 
 
-class TestCredentialList(DictTestCase):
+class TestCredentialList(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None  # make pytest always show full diffs
         self.empty = CredentialList([])
@@ -65,8 +66,6 @@ class TestCredentialList(DictTestCase):
 
         expected = [_one_dict]
         obtained = self.one.to_list_of_dicts()
-
-        self.normalize_data(expected, obtained)
 
         assert obtained == expected, 'Credential list with one password not as expected'
 
@@ -97,8 +96,6 @@ class TestCredentialList(DictTestCase):
         expected = self.two.to_list_of_dicts()
         obtained = self.one.to_list_of_dicts()
 
-        self.normalize_data(expected, obtained)
-
         assert obtained == expected, 'List of credentials with added credential different than expected'
 
     def test_add_duplicate(self):
@@ -113,8 +110,6 @@ class TestCredentialList(DictTestCase):
         expected = self.three.to_list_of_dicts()
         obtained = this.to_list_of_dicts()
 
-        self.normalize_data(expected, obtained)
-
         assert obtained == expected, 'List of credentials with added password different than expected'
 
     def test_remove(self):
@@ -122,8 +117,6 @@ class TestCredentialList(DictTestCase):
 
         expected = self.two.to_list_of_dicts()
         obtained = now_two.to_list_of_dicts()
-
-        self.normalize_data(expected, obtained)
 
         assert obtained == expected, 'List of credentials with removed credential different than expected'
 

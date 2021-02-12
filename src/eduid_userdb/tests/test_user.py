@@ -1,4 +1,5 @@
 import datetime
+import unittest
 from hashlib import sha256
 
 from bson import ObjectId
@@ -11,7 +12,6 @@ from eduid_userdb.mail import MailAddressList
 from eduid_userdb.nin import NinList
 from eduid_userdb.phone import PhoneNumberList
 from eduid_userdb.profile import Profile, ProfileList
-from eduid_userdb.tests import DictTestCase
 from eduid_userdb.tou import ToUList
 from eduid_userdb.user import SubjectType, User
 
@@ -48,8 +48,6 @@ class _AbstractUserTestCase:
         expected = self.data1['passwords']
         obtained = self.user1.credentials.to_list_of_dicts()
 
-        self.normalize_data(expected, obtained)
-
         assert obtained == expected
 
     def test_obsolete_attributes(self):
@@ -66,8 +64,6 @@ class _AbstractUserTestCase:
         expected = self.user1.to_dict()
         obtained = user.to_dict()
 
-        self.normalize_users([expected, obtained])
-
         assert obtained == expected
 
         data = self.data2
@@ -76,8 +72,6 @@ class _AbstractUserTestCase:
 
         expected = self.user2.to_dict()
         obtained = user.to_dict()
-
-        self.normalize_users([expected, obtained])
 
         assert obtained == expected
 
@@ -122,8 +116,6 @@ class _AbstractUserTestCase:
 
         expected = data['passwords']
         obtained = user.credentials.to_list_of_dicts()
-
-        self.normalize_data(expected, obtained)
 
         assert obtained == expected
 
@@ -570,8 +562,6 @@ class _AbstractUserTestCase:
         )
         out = user.to_dict()['phone']
 
-        self.normalize_data(phone, out)
-
         assert phone == out, 'The phone objects differ when using both phone and mobile'
 
     def test_both_sn_and_surname(self):
@@ -598,7 +588,7 @@ class _AbstractUserTestCase:
         self.assertEqual(new_user2.eppn, 'birub-gagoz')
 
 
-class TestUser(DictTestCase, _AbstractUserTestCase):
+class TestUser(unittest.TestCase, _AbstractUserTestCase):
     def setUp(self):
         self.data1 = {
             u'_id': ObjectId('547357c3d00690878ae9b620'),
@@ -697,12 +687,10 @@ class TestUser(DictTestCase, _AbstractUserTestCase):
         expected = self.data2['phone']
         obtained = to_dict_result
 
-        self.normalize_data(expected, obtained)
-
         assert obtained == expected
 
 
-class TestNewUser(DictTestCase, _AbstractUserTestCase):
+class TestNewUser(unittest.TestCase, _AbstractUserTestCase):
     def setUp(self):
         self._setup_user1()
         self._setup_user2()

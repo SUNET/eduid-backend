@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
+import unittest
 
 import eduid_userdb.element
 import eduid_userdb.exceptions
 from eduid_userdb.orcid import OidcAuthorization, OidcIdToken, Orcid
-from eduid_userdb.testing import DictTestCase
 
 __author__ = 'lundberg'
 
@@ -31,7 +31,7 @@ token_response = {
 }
 
 
-class TestOrcid(DictTestCase):
+class TestOrcid(unittest.TestCase):
 
     maxDiff = None
 
@@ -57,9 +57,10 @@ class TestOrcid(DictTestCase):
         dict_1 = id_token_1.to_dict()
         dict_2 = id_token_2.to_dict()
 
-        self.normalize_data([dict_1], [dict_2])
+        del dict_2['created_ts']
+        del dict_2['modified_ts']
 
-        assert dict_1 == dict_2, ''
+        assert dict_1 == dict_2
 
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
             OidcIdToken.from_dict(None)
@@ -87,9 +88,10 @@ class TestOrcid(DictTestCase):
         dict_1 = oidc_authz_1.to_dict()
         dict_2 = oidc_authz_2.to_dict()
 
-        self.normalize_data([dict_1], [dict_2])
+        del dict_2['created_ts']
+        del dict_2['modified_ts']
 
-        assert dict_1 == dict_2, ''
+        assert dict_1 == dict_2
 
         with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
             OidcAuthorization.from_dict(None)
@@ -114,9 +116,7 @@ class TestOrcid(DictTestCase):
         dict_1 = orcid_1.to_dict()
         dict_2 = orcid_2.to_dict()
 
-        self.normalize_data([dict_1], [dict_2])
-
-        assert dict_1 == dict_2, ''
+        assert dict_1 == dict_2
 
         with self.assertRaises(TypeError):
             data = orcid_1.to_dict()
