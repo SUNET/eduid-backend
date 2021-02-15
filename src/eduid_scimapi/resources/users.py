@@ -6,7 +6,7 @@ from falcon import Request, Response
 from marshmallow import ValidationError
 from pymongo.errors import DuplicateKeyError
 
-from eduid_scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber
+from eduid_scimapi.db.common import ScimApiEmail, ScimApiEvent, ScimApiName, ScimApiPhoneNumber
 from eduid_scimapi.db.userdb import ScimApiProfile, ScimApiUser
 from eduid_scimapi.exceptions import BadRequest, NotFound
 from eduid_scimapi.middleware import ctx_groupdb, ctx_userdb
@@ -29,6 +29,7 @@ from eduid_scimapi.schemas.user import (
     Profile,
     UserCreateRequest,
     UserCreateRequestSchema,
+    UserEvent,
     UserResponse,
     UserResponseSchema,
     UserUpdateRequest,
@@ -65,6 +66,9 @@ class UsersResource(SCIMResource):
         # Convert one type of Profile into another
         _profiles = {k: Profile(attributes=v.attributes, data=v.data) for k, v in db_user.profiles.items()}
 
+        # Convert events from DB format (ScimApiEvent) to UserEvents
+        _events = [UserEvent.from_dict(event.to_dict()) for event in db_user.events]
+
         user = UserResponse(
             id=db_user.scim_id,
             external_id=db_user.external_id,
@@ -75,7 +79,7 @@ class UsersResource(SCIMResource):
             groups=self._get_user_groups(req=req, db_user=db_user),
             meta=meta,
             schemas=list(schemas),  # extra list() needed to work with _both_ mypy and marshmallow
-            nutid_user_v1=NutidUserExtensionV1(profiles=_profiles),
+            nutid_user_v1=NutidUserExtensionV1(profiles=_profiles, events=_events,),
         )
 
         resp.set_header("Location", location)
@@ -169,6 +173,19 @@ class UsersResource(SCIMResource):
                 for this in db_user.profiles.keys():
                     if this not in update_request.nutid_user_v1.profiles:
                         self.context.logger.info(f'Profile {this}/{db_user.profiles[this]} removed')
+                        nutid_changed = True
+
+                db_user_event_ids = [event.id for event in db_user.events]
+                for this in update_request.nutid_user_v1.events:
+                    if this.id not in db_user_event_ids:
+                        # TODO: Sanity check events
+                        # Convert event from UserEvent to ScimApiEvent before saving it in the database
+                        _event = ScimApiEvent.from_dict(this.to_dict())
+                        self.context.logger.info(f'Event {this} not found on user')
+                        self.context.logger.info(f'Event AS DICT {this.to_dict()} not found on user')
+                        self.context.logger.info(f'Added event {_event} to user')
+                        db_user.events += [_event]
+                        db_user_event_ids += [this.id]
                         nutid_changed = True
 
                 if nutid_changed:

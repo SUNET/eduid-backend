@@ -11,7 +11,7 @@ from uuid import UUID
 from bson import ObjectId
 
 from eduid_scimapi.db.basedb import ScimApiBaseDB
-from eduid_scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
+from eduid_scimapi.db.common import ScimApiEmail, ScimApiEvent, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
 
 __author__ = 'ft'
 
@@ -32,6 +32,7 @@ class ScimApiUser:
     created: datetime = field(default_factory=lambda: datetime.utcnow())
     last_modified: datetime = field(default_factory=lambda: datetime.utcnow())
     profiles: Dict[str, ScimApiProfile] = field(default_factory=lambda: {})
+    events: List[ScimApiEvent] = field(default_factory=lambda: [])
 
     @property
     def etag(self):
@@ -43,6 +44,7 @@ class ScimApiUser:
         res['_id'] = res.pop('user_id')
         res['emails'] = [email.to_dict() for email in self.emails]
         res['phone_numbers'] = [phone_number.to_dict() for phone_number in self.phone_numbers]
+        res['events'] = [event.to_dict() for event in self.events]
         return res
 
     @classmethod
@@ -59,6 +61,8 @@ class ScimApiUser:
         this['phone_numbers'] = [ScimApiPhoneNumber.from_dict(number) for number in data.get('phone_numbers', [])]
         # Profiles
         this['profiles'] = {k: ScimApiProfile.from_dict(v) for k, v in data['profiles'].items()}
+        # Events
+        this['events'] = [ScimApiEvent.from_dict(event) for event in data.get('events', [])]
         return cls(**this)
 
 

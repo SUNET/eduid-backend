@@ -1,12 +1,15 @@
-from dataclasses import dataclass, field
+# from __future__ import annotations
+
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Mapping, Optional
 from uuid import UUID
 
 from marshmallow import fields
 from marshmallow_dataclass import class_schema
+from marshmallow_enum import EnumField
 
+from eduid_scimapi.db.common import EventLevel
 from eduid_scimapi.schemas.scimbase import (
     BaseCreateRequest,
     BaseResponse,
@@ -31,21 +34,31 @@ class Profile:
     data: Dict[str, Any] = field(default_factory=dict, metadata={'marshmallow_field': fields.Dict(), 'required': False})
 
 
-class EventLevel(Enum):
-    DEBUG = 'debug'
-    INFO = 'info'
-    WARNING = 'warning'
-    ERROR = 'error'
-
-
 @dataclass(frozen=True)
 class UserEvent:
-    id: UUID
     timestamp: datetime
     expires_at: datetime
-    level: EventLevel
     source: str
     data: Dict[str, Any]
+    level: EventLevel = field(metadata={'marshmallow_field': EnumField(EventLevel, required=True, by_value=True)})
+    id: UUID = fields.UUID(required=True)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """ Return data in a format that the UserResponseSchema().dump() can handle """
+        return asdict(self)
+
+    @classmethod
+    # def from_dict(cls: Type[UserEvent], data: Mapping[str, Any]) -> UserEvent:
+    def from_dict(cls, data: Mapping[str, Any]):
+        """
+        Create a UserEvent from a dict.
+
+        This dict can be the result from ScimApiEvent.to_dict(), where EventLevel is a string.
+        """
+        _data = dict(data)
+        if isinstance(_data['level'], str):
+            _data['level'] = EventLevel(_data['level'])
+        return cls(**_data)
 
 
 @dataclass(frozen=True)

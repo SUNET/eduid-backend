@@ -5,16 +5,19 @@ from collections import Mapping
 from dataclasses import asdict
 from datetime import datetime, timedelta
 from typing import Optional
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import bson
 from bson import ObjectId
+from pydantic import UUID4
 
 from eduid_userdb.testing import normalised_data
+from eduid_userdb.util import utc_now
 
+from eduid_scimapi.db.common import EventLevel
 from eduid_scimapi.db.userdb import ScimApiProfile, ScimApiUser
 from eduid_scimapi.schemas.scimbase import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
-from eduid_scimapi.schemas.user import NutidUserExtensionV1, Profile, UserResponse, UserResponseSchema
+from eduid_scimapi.schemas.user import NutidUserExtensionV1, Profile, UserEvent, UserResponse, UserResponseSchema
 from eduid_scimapi.testing import ScimApiTestCase
 from eduid_scimapi.utils import filter_none, make_etag
 
@@ -528,3 +531,32 @@ class TestUserResource(ScimApiTestCase):
         self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json.get('schemas'))
         resources = response.json.get('Resources')
         return resources
+
+    def test_update_user_with_event(self):
+        db_user = self.add_user(identifier=str(uuid4()), profiles={'test': self.test_profile})
+        req = {
+            'schemas': [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_USER_V1.value],
+            'id': str(db_user.scim_id),
+            'externalId': 'test-id-1',
+            SCIMSchema.NUTID_USER_V1.value: {
+                'profiles': {
+                    'test': {'attributes': {'displayName': 'New display name'}, 'data': {'test_key': 'new value'}}
+                },
+                'events': [
+                    {
+                        'id': str(uuid4()),
+                        'timestamp': utc_now().isoformat(),
+                        'expires_at': utc_now().isoformat(),
+                        'level': 'info',
+                        'source': 'test',
+                        'data': {'v': 1},
+                    }
+                ],
+            },
+        }
+        self.headers['IF-MATCH'] = make_etag(db_user.version)
+        response = self.client.simulate_put(
+            path=f'/Users/{db_user.scim_id}', body=self.as_json(req), headers=self.headers
+        )
+        db_user = self.userdb.get_user_by_scim_id(response.json['id'])
+        self._assertUserUpdateSuccess(req, response, db_user)
