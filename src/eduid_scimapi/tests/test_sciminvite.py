@@ -130,7 +130,8 @@ class TestScimInvite(unittest.TestCase):
             'inviterName': 'Test Inviter Name',
             'sendEmail': True,
             SCIMSchema.NUTID_USER_V1.value: {
-                'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}}
+                'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}},
+                'events': [],
             },
             'meta': {
                 'created': '2020-02-25T15:52:59.745000',
@@ -370,7 +371,8 @@ class TestInviteResource(ScimApiTestCase):
             'inviterName': 'Test Inviter Name',
             'sendEmail': True,
             SCIMSchema.NUTID_USER_V1.value: {
-                'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}}
+                'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}},
+                'events': [],
             },
         }
 
@@ -407,7 +409,8 @@ class TestInviteResource(ScimApiTestCase):
             'inviterName': 'Test Inviter Name',
             'sendEmail': False,
             SCIMSchema.NUTID_USER_V1.value: {
-                'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}}
+                'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}},
+                'events': [],
             },
         }
 

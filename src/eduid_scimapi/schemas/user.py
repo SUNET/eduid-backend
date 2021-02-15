@@ -1,4 +1,6 @@
 from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
@@ -12,11 +14,9 @@ from eduid_scimapi.schemas.scimbase import (
     BaseUpdateRequest,
     Email,
     LanguageTagField,
-    Meta,
     Name,
     PhoneNumber,
     SCIMSchema,
-    SCIMSchemaValue,
     SubResource,
 )
 
@@ -31,6 +31,23 @@ class Profile:
     data: Dict[str, Any] = field(default_factory=dict, metadata={'marshmallow_field': fields.Dict(), 'required': False})
 
 
+class EventLevel(Enum):
+    DEBUG = 'debug'
+    INFO = 'info'
+    WARNING = 'warning'
+    ERROR = 'error'
+
+
+@dataclass(frozen=True)
+class UserEvent:
+    id: UUID
+    timestamp: datetime
+    expires_at: datetime
+    level: EventLevel
+    source: str
+    data: Dict[str, Any]
+
+
 @dataclass(frozen=True)
 class NutidUserExtensionV1:
     profiles: Dict[str, Profile] = field(
@@ -39,6 +56,10 @@ class NutidUserExtensionV1:
             'marshmallow_field': fields.Dict(keys=fields.Str, values=fields.Nested(class_schema(Profile))),
             'required': False,
         },
+    )
+    events: List[UserEvent] = field(
+        default_factory=list,
+        metadata={'marshmallow_field': fields.List(fields.Nested(class_schema(UserEvent))), 'required': False,},
     )
 
 

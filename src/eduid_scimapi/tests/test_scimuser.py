@@ -87,7 +87,8 @@ class TestScimUser(unittest.TestCase):
             "externalId": "hubba-bubba@eduid.se",
             "groups": [],
             SCIMSchema.NUTID_USER_V1.value: {
-                "profiles": {"student": {"attributes": {"displayName": "Test"}, "data": {}}}
+                "profiles": {"student": {"attributes": {"displayName": "Test"}, "data": {}}},
+                "events": [],
             },
             "id": "9784e1bf-231b-4eb8-b315-52eb46dd7c4b",
             "meta": {
@@ -149,7 +150,7 @@ class TestScimUser(unittest.TestCase):
             'schemas': [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_USER_V1.value],
             "id": "a7851d21-eab9-4caa-ba5d-49653d65c452",
             "phoneNumbers": [],
-            SCIMSchema.NUTID_USER_V1.value: {"profiles": {"student": {"data": {}, "attributes": {}}}},
+            SCIMSchema.NUTID_USER_V1.value: {"profiles": {"student": {"data": {}, "attributes": {}}}, "events": [],},
             "meta": {
                 "version": "W/\"5e81c5f849ac2cd87580e502\"",
                 "created": "2020-03-30T10:12:08.528000",
@@ -230,9 +231,7 @@ class TestUserResource(ScimApiTestCase):
         db_user = self.add_user(identifier=str(uuid4()), external_id='test-id-1', profiles={'test': self.test_profile})
         response = self.client.simulate_get(path=f'/Users/{db_user.scim_id}', headers=self.headers)
 
-        _req = {
-            SCIMSchema.NUTID_USER_V1.value: {'profiles': {'test': asdict(self.test_profile)}},
-        }
+        _req = {SCIMSchema.NUTID_USER_V1.value: {'profiles': {'test': asdict(self.test_profile)}, 'events': [],}}
         self._assertUserUpdateSuccess(_req, response, db_user)
 
     def test_create_users_with_no_external_id(self):
@@ -248,7 +247,10 @@ class TestUserResource(ScimApiTestCase):
             'phoneNumbers': [{'primary': True, 'type': 'mobile', 'value': 'tel:+1-202-456-1414'}],
             'preferredLanguage': 'en',
             SCIMSchema.NUTID_USER_V1.value: {
-                'profiles': {'test': {'attributes': {'displayName': 'Test User 1'}, 'data': {'test_key': 'test_value'}}}
+                'profiles': {
+                    'test': {'attributes': {'displayName': 'Test User 1'}, 'data': {'test_key': 'test_value'}}
+                },
+                'events': [],
             },
         }
         response = self.client.simulate_post(path='/Users/', body=self.as_json(req), headers=self.headers)
@@ -263,7 +265,10 @@ class TestUserResource(ScimApiTestCase):
         req = {
             'schemas': [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_USER_V1.value],
             SCIMSchema.NUTID_USER_V1.value: {
-                'profiles': {'test': {'attributes': {'displayName': 'Test User 1'}, 'data': {'test_key': 'test_value'}}}
+                'profiles': {
+                    'test': {'attributes': {'displayName': 'Test User 1'}, 'data': {'test_key': 'test_value'}}
+                },
+                'events': [],
             },
         }
         response = self.client.simulate_post(path='/Users/', body=self.as_json(req), headers=self.headers)
@@ -304,7 +309,8 @@ class TestUserResource(ScimApiTestCase):
             SCIMSchema.NUTID_USER_V1.value: {
                 'profiles': {
                     'test': {'attributes': {'displayName': 'New display name'}, 'data': {'test_key': 'new value'}}
-                }
+                },
+                'events': [],
             },
         }
         self.headers['IF-MATCH'] = make_etag(db_user.version)
@@ -324,7 +330,9 @@ class TestUserResource(ScimApiTestCase):
             'phoneNumbers': [{'primary': True, 'type': 'mobile', 'value': 'tel:+1-202-456-1414'}],
             'preferredLanguage': 'en',
             SCIMSchema.NUTID_USER_V1.value: {
-                'profiles': {'test': {'attributes': {'displayName': 'Test User 1'}, 'data': {'test_key': 'test_value'}}}
+                'profiles': {
+                    'test': {'attributes': {'displayName': 'Test User 1'}, 'data': {'test_key': 'test_value'}}
+                },
             },
         }
         create_response = self.client.simulate_post(path='/Users/', body=self.as_json(req), headers=self.headers)
@@ -345,7 +353,8 @@ class TestUserResource(ScimApiTestCase):
                         'attributes': {'displayName': 'Another display name'},
                         'data': {'test_key': 'another value'},
                     }
-                }
+                },
+                'events': [],
             },
         }
         self.headers['IF-MATCH'] = create_response.headers['etag']
@@ -365,7 +374,8 @@ class TestUserResource(ScimApiTestCase):
             SCIMSchema.NUTID_USER_V1.value: {
                 'profiles': {
                     'test': {'attributes': {'displayName': 'New display name'}, 'data': {'test_key': 'new value'}}
-                }
+                },
+                'events': [],
             },
         }
         self.headers['IF-MATCH'] = make_etag(db_user.version)
