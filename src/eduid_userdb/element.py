@@ -87,6 +87,8 @@ from eduid_userdb.exceptions import EduIDUserDBError, UserDBValueError
 
 __author__ = 'ft'
 
+from eduid_userdb.util import utc_now
+
 
 class ElementError(EduIDUserDBError):
     """
@@ -138,8 +140,8 @@ class Element:
     """
 
     created_by: Optional[str] = None
-    created_ts: datetime = field(default_factory=datetime.utcnow)
-    modified_ts: datetime = field(default_factory=datetime.utcnow)
+    created_ts: datetime = field(default_factory=utc_now)
+    modified_ts: datetime = field(default_factory=utc_now)
     # This is a short-term hack to deploy new dataclass based elements without
     # any changes to data in the production database. Remove after a burn-in period.
     _no_created_ts_in_db: bool = False
