@@ -30,9 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import logging
-import warnings
 from datetime import datetime
-from typing import Mapping, Optional, Type
+from typing import Mapping, Type
 
 from bson import ObjectId
 from bson.errors import InvalidId
