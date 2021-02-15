@@ -17,12 +17,206 @@ from eduid_userdb.user import SubjectType, User
 
 __author__ = 'ft'
 
+from eduid_userdb.util import utc_now
+
 
 def _keyid(kh):
     return 'sha256:' + sha256(kh.encode('utf-8')).hexdigest()
 
 
-class _AbstractUserTestCase:
+class TestNewUser(unittest.TestCase):
+    def setUp(self):
+        self.data1 = {
+            u'_id': ObjectId('547357c3d00690878ae9b620'),
+            u'eduPersonPrincipalName': u'guvat-nalif',
+            u'mail': u'user@example.net',
+            u'mailAliases': [
+                {
+                    u'added_timestamp': datetime.fromisoformat('2014-12-18T11:25:19.804000'),
+                    u'email': u'user@example.net',
+                    u'verified': True,
+                    u'primary': True,
+                }
+            ],
+            u'passwords': [
+                {
+                    u'created_ts': datetime.fromisoformat('2014-11-24T16:22:49.188000'),
+                    u'credential_id': '54735b588a7d2a2c4ec3e7d0',
+                    u'salt': u'$NDNv1H1$315d7$32$32$',
+                    u'created_by': u'dashboard',
+                    u'is_generated': False,
+                }
+            ],
+            u'norEduPersonNIN': [u'197801012345'],
+            u'subject': u'physical person',
+            u'eduPersonEntitlement': [u'http://foo.example.org'],
+            u'preferredLanguage': u'en',
+        }
+
+        self.data2 = {
+            u'_id': ObjectId('549190b5d00690878ae9b622'),
+            u'displayName': u'Some \xf6ne',
+            u'eduPersonPrincipalName': u'birub-gagoz',
+            u'givenName': u'Some',
+            u'mail': u'some.one@gmail.com',
+            u'mailAliases': [
+                {u'email': u'someone+test1@gmail.com', u'verified': True},
+                {
+                    u'added_timestamp': datetime.fromisoformat('2014-12-17T14:35:14.728000'),
+                    u'email': u'some.one@gmail.com',
+                    u'verified': True,
+                },
+            ],
+            u'phone': [
+                {
+                    u'created_ts': datetime.fromisoformat('2014-12-18T09:11:35.078000'),
+                    u'number': u'+46702222222',
+                    u'primary': True,
+                    u'verified': True,
+                }
+            ],
+            u'passwords': [
+                {
+                    u'created_ts': datetime.fromisoformat('2015-02-11T13:58:42.327000'),
+                    u'id': ObjectId('54db60128a7d2a26e8690cda'),
+                    u'salt': u'$NDNv1H1$db011fc$32$32$',
+                    u'is_generated': False,
+                    u'source': u'dashboard',
+                },
+                {
+                    'version': 'U2F_V2',
+                    'app_id': 'unit test',
+                    'keyhandle': 'U2F SWAMID AL2',
+                    'public_key': 'foo',
+                    'verified': True,
+                    'proofing_method': METHOD_SWAMID_AL2_MFA,
+                    'proofing_version': 'testing',
+                },
+            ],
+            u'profiles': [
+                {
+                    'created_by': 'test application',
+                    'created_ts': datetime.fromisoformat('2020-02-04T17:42:33.696751'),
+                    'owner': 'test owner 1',
+                    'schema': 'test schema',
+                    'profile_data': {
+                        'a_string': 'I am a string',
+                        'an_int': 3,
+                        'a_list': ['eins', 2, 'drei'],
+                        'a_map': {'some': 'data'},
+                    },
+                }
+            ],
+            u'preferredLanguage': u'sv',
+            u'surname': u'\xf6ne',
+            u'subject': u'physical person',
+        }
+
+        self._setup_user1()
+        self._setup_user2()
+
+    def _setup_user1(self):
+        mailAliases_list = [
+            MailAddress(
+                created_ts=datetime.fromisoformat('2014-12-18T11:25:19.804000'),
+                email='user@example.net',
+                is_verified=True,
+                is_primary=True,
+            )
+        ]
+        password_list = [
+            Password(
+                created_ts=datetime.fromisoformat('2014-11-24T16:22:49.188000'),
+                credential_id='54735b588a7d2a2c4ec3e7d0',
+                salt='$NDNv1H1$315d7$32$32$',
+                created_by='dashboard',
+                is_generated=False,
+            )
+        ]
+
+        nin_list = [
+            Nin(
+                number='197801012345',
+                created_ts=datetime.fromisoformat('2014-11-24T16:22:49.188000'),
+                is_verified=True,
+                is_primary=True,
+                created_by='dashboard',
+            )
+        ]
+        self.user1 = User(
+            user_id=ObjectId('547357c3d00690878ae9b620'),
+            eppn='guvat-nalif',
+            mail_addresses=MailAddressList(mailAliases_list),
+            credentials=CredentialList(password_list),
+            nins=NinList(nin_list),
+            subject=SubjectType('physical person'),
+            entitlements=[u'http://foo.example.org'],
+            language='en',
+        )
+
+    def _setup_user2(self):
+        mailAliases_list = [
+            MailAddress(email='someone+test1@gmail.com', is_verified=True),
+            MailAddress(
+                email='some.one@gmail.com',
+                created_ts=datetime.fromisoformat('2014-12-17T14:35:14.728000'),
+                is_verified=True,
+                is_primary=True,
+            ),
+        ]
+        phone_list = [
+            PhoneNumber(
+                number='+46702222222',
+                created_ts=datetime.fromisoformat('2014-12-18T09:11:35.078000'),
+                is_primary=True,
+                is_verified=True,
+            )
+        ]
+        credential_list = [
+            Password(
+                created_ts=datetime.fromisoformat('2015-02-11T13:58:42.327000'),
+                credential_id='54db60128a7d2a26e8690cda',
+                salt='$NDNv1H1$db011fc$32$32$',
+                is_generated=False,
+                created_by='dashboard',
+            ),
+            U2F(
+                version='U2F_V2',
+                app_id='unit test',
+                keyhandle='U2F SWAMID AL2',
+                public_key='foo',
+                is_verified=True,
+                proofing_method=METHOD_SWAMID_AL2_MFA,
+                proofing_version='testing',
+            ),
+        ]
+        profile = Profile(
+            created_by='test application',
+            created_ts=datetime.fromisoformat('2020-02-04T17:42:33.696751'),
+            owner='test owner 1',
+            schema='test schema',
+            profile_data={
+                'a_string': 'I am a string',
+                'an_int': 3,
+                'a_list': ['eins', 2, 'drei'],
+                'a_map': {'some': 'data'},
+            },
+        )
+
+        self.user2 = User(
+            user_id=ObjectId('549190b5d00690878ae9b622'),
+            eppn='birub-gagoz',
+            display_name='Some \xf6ne',
+            given_name='Some',
+            mail_addresses=MailAddressList(mailAliases_list),
+            phone_numbers=PhoneNumberList(phone_list),
+            credentials=CredentialList(credential_list),
+            profiles=ProfileList([profile]),
+            language='sv',
+            surname='\xf6ne',
+            subject=SubjectType('physical person'),
+        )
+
     def test_user_id(self):
         self.assertEqual(self.user1.user_id, self.data1['_id'])
 
@@ -48,13 +242,18 @@ class _AbstractUserTestCase:
         expected = self.data1['passwords']
         obtained = self.user1.credentials.to_list_of_dicts()
 
+        # modified_ts is added when not present, verify it is current
+        modified_ts = obtained[0].pop('modified_ts')
+        now = utc_now()
+        assert (now - modified_ts).total_seconds() < 2
+
         assert obtained == expected
 
     def test_obsolete_attributes(self):
         """
         Test that some obsolete attributes don't cause parse failures.
         """
-        data = self.data1
+        data = self.user1.to_dict()
         data['postalAddress'] = {'foo': 'bar'}
         data['date'] = 'anything'
         data['csrf'] = 'long and secret string'
@@ -66,7 +265,7 @@ class _AbstractUserTestCase:
 
         assert obtained == expected
 
-        data = self.data2
+        data = self.user2.to_dict()
         data['phone'][0]['verification_code'] = '123456789'
         user = User.from_dict(data)
 
@@ -587,220 +786,6 @@ class _AbstractUserTestCase:
         new_user2 = User.from_dict(data)
         self.assertEqual(new_user2.eppn, 'birub-gagoz')
 
-
-class TestUser(unittest.TestCase, _AbstractUserTestCase):
-    def setUp(self):
-        self.data1 = {
-            u'_id': ObjectId('547357c3d00690878ae9b620'),
-            u'eduPersonPrincipalName': u'guvat-nalif',
-            u'mail': u'user@example.net',
-            u'mailAliases': [
-                {
-                    u'added_timestamp': datetime.fromisoformat('2014-12-18T11:25:19.804000'),
-                    u'email': u'user@example.net',
-                    u'verified': True,
-                    u'primary': True,
-                }
-            ],
-            u'passwords': [
-                {
-                    u'created_ts': datetime.fromisoformat('2014-11-24T16:22:49.188000'),
-                    u'credential_id': '54735b588a7d2a2c4ec3e7d0',
-                    u'salt': u'$NDNv1H1$315d7$32$32$',
-                    u'created_by': u'dashboard',
-                    u'is_generated': False,
-                }
-            ],
-            u'norEduPersonNIN': [u'197801012345'],
-            u'subject': u'physical person',
-            u'eduPersonEntitlement': [u'http://foo.example.org'],
-            u'preferredLanguage': u'en',
-        }
-        self.user1 = User.from_dict(self.data1)
-
-        self.data2 = {
-            u'_id': ObjectId('549190b5d00690878ae9b622'),
-            u'displayName': u'Some \xf6ne',
-            u'eduPersonPrincipalName': u'birub-gagoz',
-            u'givenName': u'Some',
-            u'mail': u'some.one@gmail.com',
-            u'mailAliases': [
-                {u'email': u'someone+test1@gmail.com', u'verified': True},
-                {
-                    u'added_timestamp': datetime.fromisoformat('2014-12-17T14:35:14.728000'),
-                    u'email': u'some.one@gmail.com',
-                    u'verified': True,
-                },
-            ],
-            u'phone': [
-                {
-                    u'created_ts': datetime.fromisoformat('2014-12-18T09:11:35.078000'),
-                    u'number': u'+46702222222',
-                    u'primary': True,
-                    u'verified': True,
-                }
-            ],
-            u'passwords': [
-                {
-                    u'created_ts': datetime.fromisoformat('2015-02-11T13:58:42.327000'),
-                    u'id': ObjectId('54db60128a7d2a26e8690cda'),
-                    u'salt': u'$NDNv1H1$db011fc$32$32$',
-                    u'is_generated': False,
-                    u'source': u'dashboard',
-                },
-                {
-                    'version': 'U2F_V2',
-                    'app_id': 'unit test',
-                    'keyhandle': 'U2F SWAMID AL2',
-                    'public_key': 'foo',
-                    'verified': True,
-                    'proofing_method': METHOD_SWAMID_AL2_MFA,
-                    'proofing_version': 'testing',
-                },
-            ],
-            u'profiles': [
-                {
-                    'created_by': 'test application',
-                    'created_ts': datetime.fromisoformat('2020-02-04T17:42:33.696751'),
-                    'owner': 'test owner 1',
-                    'schema': 'test schema',
-                    'profile_data': {
-                        'a_string': 'I am a string',
-                        'an_int': 3,
-                        'a_list': ['eins', 2, 'drei'],
-                        'a_map': {'some': 'data'},
-                    },
-                }
-            ],
-            u'preferredLanguage': u'sv',
-            u'surname': u'\xf6ne',
-            u'subject': u'physical person',
-        }
-        self.user2 = User.from_dict(self.data2)
-
-    def test_phone_numbers(self):
-        """
-        Test that we get back a dict identical to the one we put in for old-style userdb data.
-        """
-        to_dict_result = self.user2.phone_numbers.to_list_of_dicts()
-
-        expected = self.data2['phone']
-        obtained = to_dict_result
-
-        assert obtained == expected
-
-
-class TestNewUser(unittest.TestCase, _AbstractUserTestCase):
-    def setUp(self):
-        self._setup_user1()
-        self._setup_user2()
-
-    def _setup_user1(self):
-        mailAliases_list = [
-            MailAddress(
-                created_ts=datetime.fromisoformat('2014-12-18T11:25:19.804000'),
-                email='user@example.net',
-                is_verified=True,
-                is_primary=True,
-            )
-        ]
-        password_list = [
-            Password(
-                created_ts=datetime.fromisoformat('2014-11-24T16:22:49.188000'),
-                credential_id='54735b588a7d2a2c4ec3e7d0',
-                salt='$NDNv1H1$315d7$32$32$',
-                created_by='dashboard',
-                is_generated=False,
-            )
-        ]
-
-        nin_list = [
-            Nin(
-                number='197801012345',
-                created_ts=datetime.fromisoformat('2014-11-24T16:22:49.188000'),
-                is_verified=True,
-                is_primary=True,
-                created_by='dashboard',
-            )
-        ]
-        self.user1 = User(
-            user_id=ObjectId('547357c3d00690878ae9b620'),
-            eppn='guvat-nalif',
-            mail_addresses=MailAddressList(mailAliases_list),
-            credentials=CredentialList(password_list),
-            nins=NinList(nin_list),
-            subject=SubjectType('physical person'),
-            entitlements=[u'http://foo.example.org'],
-            language='en',
-        )
-
-        self.data1 = self.user1.to_dict()
-
-    def _setup_user2(self):
-        mailAliases_list = [
-            MailAddress(email='someone+test1@gmail.com', is_verified=True),
-            MailAddress(
-                email='some.one@gmail.com',
-                created_ts=datetime.fromisoformat('2014-12-17T14:35:14.728000'),
-                is_verified=True,
-                is_primary=True,
-            ),
-        ]
-        phone_list = [
-            PhoneNumber(
-                number='+46702222222',
-                created_ts=datetime.fromisoformat('2014-12-18T09:11:35.078000'),
-                is_primary=True,
-                is_verified=True,
-            )
-        ]
-        credential_list = [
-            Password(
-                created_ts=datetime.fromisoformat('2015-02-11T13:58:42.327000'),
-                credential_id='54db60128a7d2a26e8690cda',
-                salt='$NDNv1H1$db011fc$32$32$',
-                is_generated=False,
-                created_by='dashboard',
-            ),
-            U2F(
-                version='U2F_V2',
-                app_id='unit test',
-                keyhandle='U2F SWAMID AL2',
-                public_key='foo',
-                is_verified=True,
-                proofing_method=METHOD_SWAMID_AL2_MFA,
-                proofing_version='testing',
-            ),
-        ]
-        profile = Profile(
-            created_by='test application',
-            created_ts=datetime.fromisoformat('2020-02-04T17:42:33.696751'),
-            owner='test owner 1',
-            schema='test schema',
-            profile_data={
-                'a_string': 'I am a string',
-                'an_int': 3,
-                'a_list': ['eins', 2, 'drei'],
-                'a_map': {'some': 'data'},
-            },
-        )
-
-        self.user2 = User(
-            user_id=ObjectId('549190b5d00690878ae9b622'),
-            eppn='birub-gagoz',
-            display_name='Some \xf6ne',
-            given_name='Some',
-            mail_addresses=MailAddressList(mailAliases_list),
-            phone_numbers=PhoneNumberList(phone_list),
-            credentials=CredentialList(credential_list),
-            profiles=ProfileList([profile]),
-            language='sv',
-            surname='\xf6ne',
-            subject=SubjectType('physical person'),
-        )
-
-        self.data2 = self.user2.to_dict()
-
     def test_mail_addresses_from_dict(self):
         """
         Test that we get back a correct list of dicts for old-style userdb data.
@@ -880,3 +865,19 @@ class TestNewUser(unittest.TestCase, _AbstractUserTestCase):
         expected = [first, second]
 
         assert to_dict_result == expected
+
+    def test_phone_numbers(self):
+        """
+        Test that we get back a dict identical to the one we put in for old-style userdb data.
+        """
+        to_dict_result = self.user2.phone_numbers.to_list_of_dicts()
+
+        expected = self.data2['phone']
+        obtained = to_dict_result
+
+        # modified_ts is added when not present, verify it is current
+        modified_ts = obtained[0].pop('modified_ts')
+        now = utc_now()
+        assert (now - modified_ts).total_seconds() < 2
+
+        assert obtained == expected
