@@ -4,9 +4,11 @@ import logging
 from dataclasses import asdict
 from email.message import EmailMessage
 from gettext import gettext as _
-from typing import Optional, cast
+from typing import Any, Mapping, Optional, cast
 
 from aiosmtplib import SMTP, SMTPResponse
+
+from eduid_common.config.parsers import load_config
 
 from eduid_queue.config import QueueWorkerConfig
 from eduid_queue.db import QueueItem
@@ -21,11 +23,10 @@ __author__ = 'lundberg'
 
 
 class MailQueueWorker(QueueWorker):
-    def __init__(self, app_name: str, test_config: Optional[dict] = None):
-        worker_config = QueueWorkerConfig.init_config(ns='queue', app_name=app_name, test_config=test_config)
+    def __init__(self, config: QueueWorkerConfig):
         # Register which queue items this worker should try to grab
         payloads = [EduidInviteEmail]
-        super().__init__(config=worker_config, handle_payloads=payloads)
+        super().__init__(config=config, handle_payloads=payloads)
 
         self._smtp: Optional[SMTP] = None
         self._jinja2 = Jinja2Env()
@@ -118,6 +119,11 @@ class MailQueueWorker(QueueWorker):
         return Status(success=True, message=ret.message)
 
 
+def init_mail_worker(name: str = 'mail_worker', test_config: Optional[Mapping[str, Any]] = None) -> MailQueueWorker:
+    config = load_config(typ=QueueWorkerConfig, app_name=name, ns='queue', test_config=test_config)
+    return MailQueueWorker(config=config)
+
+
 def start_worker():
-    worker = MailQueueWorker(app_name='mail_worker')
+    worker = init_mail_worker()
     exit(asyncio.run(worker.run()))

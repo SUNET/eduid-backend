@@ -6,7 +6,7 @@ from typing import List, Sequence
 from unittest import IsolatedAsyncioTestCase, TestCase
 
 import pymongo
-from pymongo.errors import NotMasterError, ServerSelectionTimeoutError
+from pymongo.errors import NotMasterError
 
 from eduid_userdb.testing import MongoTemporaryInstance
 
