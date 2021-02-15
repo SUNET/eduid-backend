@@ -9,7 +9,7 @@ from eduid_userdb import LockedIdentityNin, OidcAuthorization, OidcIdToken, Orci
 from eduid_userdb.credentials import METHOD_SWAMID_AL2_MFA, U2F, CredentialList, Password
 from eduid_userdb.exceptions import EduIDUserDBError, UserHasNotCompletedSignup, UserIsRevoked
 from eduid_userdb.mail import MailAddress, MailAddressList
-from eduid_userdb.nin import NinList
+from eduid_userdb.nin import Nin, NinList
 from eduid_userdb.phone import PhoneNumber, PhoneNumberList
 from eduid_userdb.profile import Profile, ProfileList
 from eduid_userdb.tou import ToUList
@@ -696,50 +696,42 @@ class TestNewUser(unittest.TestCase, _AbstractUserTestCase):
         self._setup_user2()
 
     def _setup_user1(self):
-        _id = ObjectId('547357c3d00690878ae9b620')
-        eppn = 'guvat-nalif'
         mailAliases_list = [
-            {
-                'created_ts': datetime.fromisoformat('2014-12-18T11:25:19.804000'),
-                'email': 'user@example.net',
-                'verified': True,
-                'primary': True,
-            }
+            MailAddress(
+                created_ts=datetime.fromisoformat('2014-12-18T11:25:19.804000'),
+                email='user@example.net',
+                is_verified=True,
+                is_primary=True,
+            )
         ]
-        mail_addresses = MailAddressList(mailAliases_list)
         password_list = [
-            {
-                'created_ts': datetime.fromisoformat('2014-11-24T16:22:49.188000'),
-                'credential_id': '54735b588a7d2a2c4ec3e7d0',
-                'salt': '$NDNv1H1$315d7$32$32$',
-                'created_by': 'dashboard',
-                'is_generated': False,
-            }
+            Password(
+                created_ts=datetime.fromisoformat('2014-11-24T16:22:49.188000'),
+                credential_id='54735b588a7d2a2c4ec3e7d0',
+                salt='$NDNv1H1$315d7$32$32$',
+                created_by='dashboard',
+                is_generated=False,
+            )
         ]
-        passwords = CredentialList(password_list)
-        nin_list = [
-            {
-                'number': '197801012345',
-                'created_ts': datetime.fromisoformat('2014-11-24T16:22:49.188000'),
-                'verified': True,
-                'primary': True,
-                'created_by': 'dashboard',
-            }
-        ]
-        nins = NinList(nin_list)
-        subject = 'physical person'
-        entitlements = [u'http://foo.example.org']
-        language = 'en'
 
+        nin_list = [
+            Nin(
+                number='197801012345',
+                created_ts=datetime.fromisoformat('2014-11-24T16:22:49.188000'),
+                is_verified=True,
+                is_primary=True,
+                created_by='dashboard',
+            )
+        ]
         self.user1 = User(
-            user_id=_id,
-            eppn=eppn,
-            mail_addresses=mail_addresses,
-            credentials=passwords,
-            nins=nins,
-            subject=SubjectType(subject),
-            entitlements=entitlements,
-            language=language,
+            user_id=ObjectId('547357c3d00690878ae9b620'),
+            eppn='guvat-nalif',
+            mail_addresses=MailAddressList(mailAliases_list),
+            credentials=CredentialList(password_list),
+            nins=NinList(nin_list),
+            subject=SubjectType('physical person'),
+            entitlements=[u'http://foo.example.org'],
+            language='en',
         )
 
         self.data1 = self.user1.to_dict()
@@ -780,7 +772,8 @@ class TestNewUser(unittest.TestCase, _AbstractUserTestCase):
                 proofing_version='testing',
             ),
         ]
-        profile = Profile(created_by='test application',
+        profile = Profile(
+            created_by='test application',
             created_ts=datetime.fromisoformat('2020-02-04T17:42:33.696751'),
             owner='test owner 1',
             schema='test schema',
@@ -789,7 +782,8 @@ class TestNewUser(unittest.TestCase, _AbstractUserTestCase):
                 'an_int': 3,
                 'a_list': ['eins', 2, 'drei'],
                 'a_map': {'some': 'data'},
-            })
+            },
+        )
 
         self.user2 = User(
             user_id=ObjectId('549190b5d00690878ae9b622'),
