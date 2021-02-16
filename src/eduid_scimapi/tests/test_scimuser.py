@@ -213,10 +213,20 @@ class TestUserResource(ScimApiTestCase):
 
         # If the request has NUTID profiles, ensure they are present in the response
         if SCIMSchema.NUTID_USER_V1.value in req:
+            req_nutid = req[SCIMSchema.NUTID_USER_V1.value]
+            resp_nutid = response.json.get(SCIMSchema.NUTID_USER_V1.value)
+            # There will be extra events in the response, but we should verify that any events
+            # in the request are returned in the response
+            req_event_ids = [x['id'] for x in req_nutid['events']]
+            resp_event_ids = [x['id'] for x in resp_nutid['events']]
+            for event_id in req_event_ids:
+                assert event_id in resp_event_ids, f'Event {event_id} in request not present in response'
+            # Now that we've checked the events, remove them from both request and response
+            # before checking for unknown data below
+            del req_nutid['events']
+            del resp_nutid['events']
             self.assertEqual(
-                req[SCIMSchema.NUTID_USER_V1.value],
-                response.json.get(SCIMSchema.NUTID_USER_V1.value),
-                'Unexpected NUTID user data in response',
+                req_nutid, resp_nutid, 'Unexpected NUTID user data in response',
             )
         elif SCIMSchema.NUTID_USER_V1.value in response.json:
             self.fail(f'Unexpected {SCIMSchema.NUTID_USER_V1.value} in the response')

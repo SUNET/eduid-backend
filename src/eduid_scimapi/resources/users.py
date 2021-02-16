@@ -1,12 +1,15 @@
 from dataclasses import asdict, replace
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Sequence, Tuple
+from uuid import uuid4
 
 from falcon import Request, Response
 from marshmallow import ValidationError
 from pymongo.errors import DuplicateKeyError
 
-from eduid_scimapi.db.common import ScimApiEmail, ScimApiEvent, ScimApiName, ScimApiPhoneNumber
+from eduid_userdb.util import utc_now
+
+from eduid_scimapi.db.common import EventLevel, ScimApiEmail, ScimApiEvent, ScimApiName, ScimApiPhoneNumber
 from eduid_scimapi.db.userdb import ScimApiProfile, ScimApiUser
 from eduid_scimapi.exceptions import BadRequest, NotFound
 from eduid_scimapi.middleware import ctx_groupdb, ctx_userdb
@@ -181,9 +184,6 @@ class UsersResource(SCIMResource):
                         # TODO: Sanity check events
                         # Convert event from UserEvent to ScimApiEvent before saving it in the database
                         _event = ScimApiEvent.from_dict(this.to_dict())
-                        self.context.logger.info(f'Event {this} not found on user')
-                        self.context.logger.info(f'Event AS DICT {this.to_dict()} not found on user')
-                        self.context.logger.info(f'Added event {_event} to user')
                         db_user.events += [_event]
                         db_user_event_ids += [this.id]
                         nutid_changed = True
@@ -194,6 +194,17 @@ class UsersResource(SCIMResource):
                         db_user.profiles[profile_name] = db_profile
 
             if core_changed or nutid_changed:
+                _now = utc_now()
+                _expires_at = _now + timedelta(days=5)
+                _update_event = ScimApiEvent(
+                    id=uuid4(),
+                    timestamp=_now,
+                    expires_at=_expires_at,
+                    source='eduID SCIM API',
+                    level=EventLevel.INFO,
+                    data={'v': 1, 'status': 'UPDATED', 'message': 'User was updated',},
+                )
+                db_user.events += [_update_event]
                 self._save_user(req, db_user)
 
             self._db_user_to_response(req=req, resp=resp, db_user=db_user)
