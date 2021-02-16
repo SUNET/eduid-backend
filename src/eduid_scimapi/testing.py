@@ -44,22 +44,14 @@ class BaseDBTestCase(unittest.TestCase):
 
     def _get_config(self) -> dict:
         config = {
+            'debug': True,
             'testing': True,
             'mongo_uri': self.mongo_uri,
             'logging_config': {
-                'version': 1,
-                'formatters': {'default': {'format': '{asctime} | {levelname:7} | {name:35} | {message}'}},
-                'handlers': {
-                    'console': {
-                        'class': 'logging.StreamHandler',
-                        'formatter': 'default',
-                        'level': 'DEBUG',
-                        'stream': 'ext://sys.stdout',
-                    }
-                },
                 'loggers': {
                     #'eduid_groupdb': {'handlers': ['console'], 'level': 'DEBUG'},
-                    'root': {'handlers': ['console'], 'level': 'INFO'},
+                    'neo4j': {'handlers': ['console'], 'level': 'WARNING'},
+                    'root': {'handlers': ['console'], 'level': 'DEBUG'},
                 },
             },
         }
