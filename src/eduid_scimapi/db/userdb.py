@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import logging
 import uuid
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Type
 from uuid import UUID
@@ -15,6 +15,7 @@ from eduid_scimapi.db.common import ScimApiEmail, ScimApiEvent, ScimApiName, Sci
 
 __author__ = 'ft'
 
+from eduid_scimapi.db.eventdb import ScimApiEventDB
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,8 @@ class ScimApiUser:
     last_modified: datetime = field(default_factory=lambda: datetime.utcnow())
     profiles: Dict[str, ScimApiProfile] = field(default_factory=lambda: {})
     events: List[ScimApiEvent] = field(default_factory=lambda: [])
+    # list of unsaved events
+    _new_events: List[ScimApiEvent] = field(default_factory=lambda: [], repr=False)
 
     @property
     def etag(self):
@@ -45,6 +48,7 @@ class ScimApiUser:
         res['emails'] = [email.to_dict() for email in self.emails]
         res['phone_numbers'] = [phone_number.to_dict() for phone_number in self.phone_numbers]
         res['events'] = [event.to_dict() for event in self.events]
+        del res['_new_events']
         return res
 
     @classmethod
@@ -65,9 +69,15 @@ class ScimApiUser:
         this['events'] = [ScimApiEvent.from_dict(event) for event in data.get('events', [])]
         return cls(**this)
 
+    def add_event(self, event: ScimApiEvent) -> None:
+        event = replace(event, scim_user_id=self.scim_id)
+        self.events += [event]
+        self._new_events += [event]
+        return None
+
 
 class ScimApiUserDB(ScimApiBaseDB):
-    def __init__(self, db_uri: str, collection: str, db_name='eduid_scimapi'):
+    def __init__(self, db_uri: str, collection: str, eventdb: ScimApiEventDB, db_name='eduid_scimapi'):
         super().__init__(db_uri, db_name, collection=collection)
         # Create an index so that scim_id and external_id is unique per data owner
         indexes = {
@@ -79,9 +89,16 @@ class ScimApiUserDB(ScimApiBaseDB):
             },
         }
         self.setup_indexes(indexes)
+        self._eventdb = eventdb
 
     def save(self, user: ScimApiUser) -> bool:
         user_dict = user.to_dict()
+
+        # events go into eventdb
+        del user_dict['events']
+        for _event in user._new_events:
+            self._eventdb.save(_event)
+        user._new_events = []
 
         if 'profiles' in user_dict:
             # don't save the special PoC eduid profiles in the database (bson does not allow dots in keys)
@@ -121,22 +138,24 @@ class ScimApiUserDB(ScimApiBaseDB):
         return self.remove_document(user.user_id)
 
     def get_user_by_scim_id(self, scim_id: str) -> Optional[ScimApiUser]:
-        docs = self._get_document_by_attr('scim_id', scim_id, raise_on_missing=False)
-        if docs:
-            return ScimApiUser.from_dict(docs)
+        doc = self._get_document_by_attr('scim_id', scim_id, raise_on_missing=False)
+        if doc:
+            return self._document_to_user(doc)
         return None
 
     def get_user_by_external_id(self, external_id: str) -> Optional[ScimApiUser]:
-        docs = self._get_document_by_attr('external_id', external_id, raise_on_missing=False)
-        if docs:
-            return ScimApiUser.from_dict(docs)
+        doc = self._get_document_by_attr('external_id', external_id, raise_on_missing=False)
+        if doc:
+            return self._document_to_user(doc)
         return None
 
     # TODO: Not used, remove?
     def get_user_by_scoped_attribute(self, scope: str, attr: str, value: Any) -> Optional[ScimApiUser]:
         docs = self._get_documents_by_filter(spec={f'profiles.{scope}.{attr}': value}, raise_on_missing=False)
         if len(docs) == 1:
-            return ScimApiUser.from_dict(docs[0])
+            user = ScimApiUser.from_dict(docs[0])
+            user.events = self._eventdb.get_events_by_scim_user_id(user.scim_id)
+            return user
         return None
 
     def get_users_by_last_modified(
@@ -148,8 +167,13 @@ class ScimApiUserDB(ScimApiBaseDB):
             raise ValueError('Invalid filter operator')
         spec = {'last_modified': {mongo_operator: value}}
         docs, total_count = self._get_documents_and_count_by_filter(spec=spec, limit=limit, skip=skip)
-        users = [ScimApiUser.from_dict(x) for x in docs]
+        users = [self._document_to_user(x) for x in docs]
         return users, total_count
 
     def user_exists(self, scim_id: str) -> bool:
         return bool(self.db_count(spec={'scim_id': scim_id}, limit=1))
+
+    def _document_to_user(self, doc: Mapping[str, Any]) -> ScimApiUser:
+        user = ScimApiUser.from_dict(doc)
+        user.events = self._eventdb.get_events_by_scim_user_id(user.scim_id)
+        return user

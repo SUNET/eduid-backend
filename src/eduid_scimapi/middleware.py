@@ -4,6 +4,7 @@ from falcon import Request, Response
 from jose import ExpiredSignatureError, jwt
 
 from eduid_scimapi.context import Context
+from eduid_scimapi.db.eventdb import ScimApiEventDB
 from eduid_scimapi.db.groupdb import ScimApiGroupDB
 from eduid_scimapi.db.invitedb import ScimApiInviteDB
 from eduid_scimapi.db.userdb import ScimApiUserDB
@@ -98,6 +99,11 @@ class HandleAuthentication(object):
 def ctx_userdb(req: Request) -> ScimApiUserDB:
     """ Retrieve the userdb put in the request context by the middleware in a way that mypy can understand. """
     return req.context['userdb']
+
+
+def ctx_eventdb(req: Request) -> ScimApiEventDB:
+    """ Retrieve the eventdb put in the request context by the middleware in a way that mypy can understand. """
+    return req.context['eventdb']
 
 
 def ctx_groupdb(req: Request) -> ScimApiGroupDB:

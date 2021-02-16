@@ -5,19 +5,16 @@ from collections import Mapping
 from dataclasses import asdict
 from datetime import datetime, timedelta
 from typing import Optional
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import bson
 from bson import ObjectId
-from pydantic import UUID4
 
-from eduid_userdb.testing import normalised_data
 from eduid_userdb.util import utc_now
 
-from eduid_scimapi.db.common import EventLevel
 from eduid_scimapi.db.userdb import ScimApiProfile, ScimApiUser
 from eduid_scimapi.schemas.scimbase import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
-from eduid_scimapi.schemas.user import NutidUserExtensionV1, Profile, UserEvent, UserResponse, UserResponseSchema
+from eduid_scimapi.schemas.user import NutidUserExtensionV1, Profile, UserResponse, UserResponseSchema
 from eduid_scimapi.testing import ScimApiTestCase
 from eduid_scimapi.utils import filter_none, make_etag
 

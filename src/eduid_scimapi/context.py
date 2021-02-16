@@ -7,6 +7,7 @@ from eduid_queue.db.message import MessageDB
 from eduid_userdb.signup.invitedb import SignupInviteDB
 
 from eduid_scimapi.config import ScimApiConfig
+from eduid_scimapi.db.eventdb import ScimApiEventDB
 from eduid_scimapi.db.groupdb import ScimApiGroupDB
 from eduid_scimapi.db.invitedb import ScimApiInviteDB
 from eduid_scimapi.db.userdb import ScimApiUserDB
@@ -26,11 +27,16 @@ class Context(object):
 
         # Setup databases
         self._userdbs = {}
+        self._eventdbs = {}
         self._groupdbs = {}
         self._invitedbs = {}
         for data_owner in self.config.data_owners:
             _owner = data_owner.replace('.', '_')  # replace dots with underscores
-            self._userdbs[data_owner] = ScimApiUserDB(db_uri=self.config.mongo_uri, collection=f'{_owner}__users')
+            _eventdb = ScimApiEventDB(db_uri=self.config.mongo_uri, collection=f'{_owner}__events')
+            self._eventdbs[data_owner] = _eventdb
+            self._userdbs[data_owner] = ScimApiUserDB(
+                db_uri=self.config.mongo_uri, eventdb=_eventdb, collection=f'{_owner}__users'
+            )
             self._groupdbs[data_owner] = ScimApiGroupDB(
                 neo4j_uri=self.config.neo4j_uri,
                 neo4j_config=self.config.neo4j_config,

@@ -9,7 +9,7 @@ from marshmallow import fields
 from marshmallow_dataclass import class_schema
 from marshmallow_enum import EnumField
 
-from eduid_scimapi.db.common import EventLevel
+from eduid_scimapi.db.common import EventLevel, ScimApiEvent
 from eduid_scimapi.schemas.scimbase import (
     BaseCreateRequest,
     BaseResponse,
@@ -36,10 +36,10 @@ class Profile:
 
 @dataclass(frozen=True)
 class UserEvent:
-    timestamp: datetime
-    expires_at: datetime
-    source: str
     data: Dict[str, Any]
+    expires_at: Optional[datetime]
+    source: Optional[str]
+    timestamp: Optional[datetime]
     level: EventLevel = field(metadata={'marshmallow_field': EnumField(EventLevel, required=True, by_value=True)})
     id: UUID = fields.UUID(required=True)
 
@@ -50,15 +50,24 @@ class UserEvent:
     @classmethod
     # def from_dict(cls: Type[UserEvent], data: Mapping[str, Any]) -> UserEvent:
     def from_dict(cls, data: Mapping[str, Any]):
-        """
-        Create a UserEvent from a dict.
-
-        This dict can be the result from ScimApiEvent.to_dict(), where EventLevel is a string.
-        """
+        """ Create a UserEvent from a dict. """
         _data = dict(data)
         if isinstance(_data['level'], str):
             _data['level'] = EventLevel(_data['level'])
         return cls(**_data)
+
+    @classmethod
+    # def from_scim_api_event(cls: Type[UserEvent], event: ScimApiEvent) -> UserEvent:
+    def from_scim_api_event(cls, event: ScimApiEvent):
+        """ Create a UserEvent from a ScimApiEvent. """
+        return cls(
+            data=event.data,
+            expires_at=event.expires_at,
+            source=event.source,
+            timestamp=event.timestamp,
+            level=event.level,
+            id=event.scim_event_id,
+        )
 
 
 @dataclass(frozen=True)

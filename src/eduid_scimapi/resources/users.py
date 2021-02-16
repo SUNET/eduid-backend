@@ -1,15 +1,13 @@
 from dataclasses import asdict, replace
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Sequence, Tuple
-from uuid import uuid4
 
 from falcon import Request, Response
 from marshmallow import ValidationError
 from pymongo.errors import DuplicateKeyError
 
-from eduid_userdb.util import utc_now
-
 from eduid_scimapi.db.common import EventLevel, ScimApiEmail, ScimApiEvent, ScimApiName, ScimApiPhoneNumber
+from eduid_scimapi.db.eventdb import add_api_event
 from eduid_scimapi.db.userdb import ScimApiProfile, ScimApiUser
 from eduid_scimapi.exceptions import BadRequest, NotFound
 from eduid_scimapi.middleware import ctx_groupdb, ctx_userdb
@@ -70,7 +68,7 @@ class UsersResource(SCIMResource):
         _profiles = {k: Profile(attributes=v.attributes, data=v.data) for k, v in db_user.profiles.items()}
 
         # Convert events from DB format (ScimApiEvent) to UserEvents
-        _events = [UserEvent.from_dict(event.to_dict()) for event in db_user.events]
+        _events = [UserEvent.from_scim_api_event(event) for event in db_user.events]
 
         user = UserResponse(
             id=db_user.scim_id,
@@ -82,7 +80,7 @@ class UsersResource(SCIMResource):
             groups=self._get_user_groups(req=req, db_user=db_user),
             meta=meta,
             schemas=list(schemas),  # extra list() needed to work with _both_ mypy and marshmallow
-            nutid_user_v1=NutidUserExtensionV1(profiles=_profiles, events=_events,),
+            nutid_user_v1=NutidUserExtensionV1(profiles=_profiles, events=_events),
         )
 
         resp.set_header("Location", location)
@@ -156,6 +154,7 @@ class UsersResource(SCIMResource):
                     core_changed = True
 
             nutid_changed = False
+            events_changed = False
             if SCIMSchema.NUTID_USER_V1 in update_request.schemas:
                 # Look for changes in profiles
                 for this in update_request.nutid_user_v1.profiles.keys():
@@ -178,15 +177,15 @@ class UsersResource(SCIMResource):
                         self.context.logger.info(f'Profile {this}/{db_user.profiles[this]} removed')
                         nutid_changed = True
 
-                db_user_event_ids = [event.id for event in db_user.events]
+                db_user_event_ids = [event.scim_event_id for event in db_user.events]
                 for this in update_request.nutid_user_v1.events:
                     if this.id not in db_user_event_ids:
                         # TODO: Sanity check events
                         # Convert event from UserEvent to ScimApiEvent before saving it in the database
-                        _event = ScimApiEvent.from_dict(this.to_dict())
-                        db_user.events += [_event]
+                        _event = ScimApiEvent.from_user_event(this, scim_user_id=db_user.scim_id)
+                        db_user.add_event(_event)
                         db_user_event_ids += [this.id]
-                        nutid_changed = True
+                        events_changed = True
 
                 if nutid_changed:
                     for profile_name, profile in update_request.nutid_user_v1.profiles.items():
@@ -194,17 +193,8 @@ class UsersResource(SCIMResource):
                         db_user.profiles[profile_name] = db_profile
 
             if core_changed or nutid_changed:
-                _now = utc_now()
-                _expires_at = _now + timedelta(days=5)
-                _update_event = ScimApiEvent(
-                    id=uuid4(),
-                    timestamp=_now,
-                    expires_at=_expires_at,
-                    source='eduID SCIM API',
-                    level=EventLevel.INFO,
-                    data={'v': 1, 'status': 'UPDATED', 'message': 'User was updated',},
-                )
-                db_user.events += [_update_event]
+                add_api_event(db_user, EventLevel.INFO, status='UPDATED', message='User was updated')
+            if core_changed or nutid_changed or events_changed:
                 self._save_user(req, db_user)
 
             self._db_user_to_response(req=req, resp=resp, db_user=db_user)
@@ -276,6 +266,8 @@ class UsersResource(SCIMResource):
                 preferred_language=create_request.preferred_language,
                 profiles=profiles,
             )
+            add_api_event(db_user, EventLevel.INFO, status='CREATED', message='User was created')
+
             self._save_user(req, db_user)
 
             self._db_user_to_response(req=req, resp=resp, db_user=db_user)
