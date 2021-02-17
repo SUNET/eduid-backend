@@ -10,6 +10,7 @@ from uuid import uuid4
 import bson
 from bson import ObjectId
 
+from eduid_userdb.testing import normalised_data
 from eduid_userdb.util import utc_now
 
 from eduid_scimapi.db.userdb import ScimApiProfile, ScimApiUser
@@ -190,20 +191,12 @@ class TestUserResource(ScimApiTestCase):
         # Validate user update specifics
         assert user.external_id == response.json.get('externalId'), 'user.externalId != response.json.get("externalId")'
         self._assertName(user.name, response.json.get('name'))
-        # TODO: Need newer eduid-userdb for working normalised_data
-        # assert normalised_data([email.to_dict() for email in user.emails]) == normalised_data(
-        #    response.json.get('emails', [])
-        # ), 'user.emails != response.json.get("email")'
-        # assert normalised_data([number.to_dict() for number in user.phone_numbers]) == normalised_data(
-        #    response.json.get('phone_numbers', []),
-        # ), 'user.phone_numbers != response.json.get("phone_numbers")'
-        # TODO: Remove the two following tests after eduid-userdb is updated
-        for email in user.emails:
-            for key, value in filter_none(email.to_dict()).items():
-                assert value == response.json.get('emails', [])[0][key]
-        for number in user.phone_numbers:
-            for key, value in filter_none(number.to_dict()).items():
-                assert value == response.json.get('phoneNumbers', [])[0][key]
+        _expected_emails = filter_none(normalised_data([email.to_dict() for email in user.emails]))
+        _obtained_emails = filter_none(normalised_data(response.json.get('emails', [])))
+        assert _obtained_emails == _expected_emails, 'response.json.get("email") != user.emails'
+        _expected_phones = filter_none(normalised_data([number.to_dict() for number in user.phone_numbers]))
+        _obtained_phones = filter_none(normalised_data(response.json.get('phoneNumbers', [])))
+        assert _obtained_phones == _expected_phones, 'response.json.get("phoneNumbers") != user.phone_numbers'
         assert user.preferred_language == response.json.get(
             'preferredLanguage'
         ), 'user.preferred_language != response.json.get("preferredLanguage")'
@@ -556,7 +549,7 @@ class TestUserResource(ScimApiTestCase):
                         'expires_at': utc_now().isoformat(),
                         'level': 'info',
                         'source': 'test',
-                        'data': {'v': 1},
+                        'data': {'v': 1, 'important': False,},
                     }
                 ],
             },
