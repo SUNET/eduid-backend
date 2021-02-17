@@ -40,18 +40,27 @@ class ScimApiEventDB(ScimApiBaseDB):
             return [ScimApiEvent.from_dict(this) for this in docs]
         return []
 
+    def get_event_by_scim_id(self, scim_id: str) -> typing.Optional[ScimApiEvent]:
+        doc = self._get_document_by_attr('scim_event_id', scim_id, raise_on_missing=False)
+        if not doc:
+            return None
+        return ScimApiEvent.from_dict(doc)
 
-def add_api_event(db_user: 'ScimApiUser', level: EventLevel, status: str, message: str) -> None:
+
+
+def add_api_event(event_db: ScimApiEventDB, db_user: 'ScimApiUser', level: EventLevel, status: str, message: str) -> None:
     """ Add an event with source=this-API to a user. """
     _now = utc_now()
     _expires_at = _now + timedelta(days=5)
-    _update_event = ScimApiEvent(
+    _event = ScimApiEvent(
         scim_event_id=uuid4(),
         scim_user_id=db_user.scim_id,
+        scim_user_external_id=db_user.external_id,
         timestamp=_now,
         expires_at=_expires_at,
-        source='eduID SCIM API',
+        data_owner='eduID SCIM API',
         level=level,
         data={'v': 1, 'status': status, 'message': message},
     )
-    db_user.add_event(_update_event)
+    event_db.save(_event)
+    return None

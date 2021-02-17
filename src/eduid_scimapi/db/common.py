@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import typing
+import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -11,14 +12,22 @@ from uuid import UUID
 
 from bson import ObjectId
 
+from eduid_scimapi.schemas.scimbase import EmailType, PhoneNumberType
 from eduid_userdb.util import utc_now
 
-from eduid_scimapi.schemas.scimbase import EmailType, PhoneNumberType
-
 if typing.TYPE_CHECKING:
-    from eduid_scimapi.schemas.user import UserEvent
+    from eduid_scimapi.schemas.event import UserEvent
 
 __author__ = 'lundberg'
+
+
+@dataclass
+class ScimApiEndpointMixin:
+    """ The elements common to all SCIM endpoints """
+    scim_id: UUID = field(default_factory=lambda: uuid.uuid4())
+    version: ObjectId = field(default_factory=lambda: ObjectId())
+    created: datetime = field(default_factory=lambda: datetime.utcnow())
+    last_modified: datetime = field(default_factory=lambda: datetime.utcnow())
 
 
 @dataclass(frozen=True)
@@ -102,15 +111,20 @@ class EventLevel(Enum):
     ERROR = 'error'
 
 
-@dataclass(frozen=True)
-class ScimApiEvent:
+@dataclass
+class _ScimApiEventRequired:
     scim_event_id: UUID
     scim_user_id: UUID
+    scim_user_external_id: str
     level: EventLevel
-    source: str
+    data_owner: str
     data: Dict[str, Any]
     expires_at: datetime
     timestamp: datetime
+
+
+@dataclass
+class ScimApiEvent(ScimApiEndpointMixin, _ScimApiEventRequired):
     event_id: ObjectId = field(default_factory=lambda: ObjectId())  # mongodb document _id
 
     def to_dict(self) -> Dict[str, Any]:
@@ -139,6 +153,6 @@ class ScimApiEvent:
             level=user_event.level,
             scim_event_id=user_event.id,
             scim_user_id=scim_user_id,
-            source=user_event.source,
+            data_owner=user_event.data_owner,
             timestamp=utc_now(),
         )

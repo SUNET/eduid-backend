@@ -131,7 +131,6 @@ class TestScimInvite(unittest.TestCase):
             'sendEmail': True,
             SCIMSchema.NUTID_USER_V1.value: {
                 'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}},
-                'events': [],
             },
             'meta': {
                 'created': '2020-02-25T15:52:59.745000',
@@ -372,12 +371,12 @@ class TestInviteResource(ScimApiTestCase):
             'sendEmail': True,
             SCIMSchema.NUTID_USER_V1.value: {
                 'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}},
-                'events': [],
             },
         }
 
         response = self.client.simulate_post(path=f'/Invites/', body=self.as_json(req), headers=self.headers)
         self._assertResponse200(response)
+        j = response.json
         db_invite = self.invitedb.get_invite_by_scim_id(response.json.get('id'))
         reference = SCIMReference(data_owner=self.data_owner, scim_id=db_invite.scim_id)
         signup_invite = self.signup_invitedb.get_invite_by_reference(reference)
@@ -410,7 +409,6 @@ class TestInviteResource(ScimApiTestCase):
             'sendEmail': False,
             SCIMSchema.NUTID_USER_V1.value: {
                 'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}},
-                'events': [],
             },
         }
 

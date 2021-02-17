@@ -48,6 +48,10 @@ def init_api(name: str = 'scimapi', test_config: Optional[Dict] = None) -> falco
     api.add_route('/Invites/{scim_id}', InvitesResource(context=context))
     api.add_route('/Invites/.search', InviteSearchResource(context=context))
 
+    # Events
+    api.add_route('/Events/', InvitesResource(context=context))
+    api.add_route('/Events/{scim_id}', InvitesResource(context=context))
+
     # Status
     api.add_route('/status/healthy', HealthCheckResource(context=context))
 

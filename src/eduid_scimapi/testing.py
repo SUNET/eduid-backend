@@ -109,6 +109,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         self.invitedb = self.context.get_invitedb(self.data_owner)
         self.signup_invitedb = SignupInviteDB(db_uri=config.mongo_uri)
         self.messagedb = MessageDB(db_uri=config.mongo_uri)
+        self.eventdb = self.context.get_eventdb(self.data_owner)
 
         api = init_api(name='test_api', test_config=self.test_config)
         self.client = TestClient(api)
@@ -219,4 +220,5 @@ class ScimApiTestCase(MongoNeoTestCase):
 
     @staticmethod
     def _assertResponse200(response: Response):
-        assert 200 == response.status_code, f'{response.json.get("detail", "No error detail in response")}'
+        _detail = response.json.get('detail', 'No error detail in response')
+        assert response.status_code == 200, f'Response status was not 200 ({response.status_code}), {_detail}'
