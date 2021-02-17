@@ -154,10 +154,11 @@ def send_letter(user: User, proofing_state: LetterProofingState) -> str:
     """
     # Create the letter as a PDF-document and send it to our letter sender service
     pdf_letter = pdf.create_pdf(
-        proofing_state.proofing_letter.address,
-        proofing_state.nin.verification_code,
-        proofing_state.nin.created_ts,
-        user.mail_addresses.primary.email,
+        recipient=proofing_state.proofing_letter.address,
+        verification_code=proofing_state.nin.verification_code,
+        created_timestamp=proofing_state.nin.created_ts,
+        primary_mail_address=user.mail_addresses.primary.email,
+        letter_wait_time_hours=current_app.conf.letter_wait_time_hours,
     )
     if current_app.conf.ekopost_debug_pdf:
         # Write PDF to file instead of actually sending it if EKOPOST_DEBUG_PDF is set
