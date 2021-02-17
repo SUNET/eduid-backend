@@ -34,6 +34,7 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
+from eduid_common.api import translation
 from eduid_common.api.am import AmRelay
 from eduid_common.api.msg import MsgRelay
 from eduid_common.authn.middleware import AuthnBaseApp
@@ -86,5 +87,7 @@ def init_letter_proofing_app(
     from eduid_webapp.letter_proofing.views import letter_proofing_views
 
     app.register_blueprint(letter_proofing_views)
+
+    translation.init_babel(app)
 
     return app

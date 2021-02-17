@@ -68,7 +68,7 @@ def create_pdf(recipient, verification_code, created_timestamp, primary_mail_add
     validity_period = (created_timestamp + max_wait).strftime('%Y-%m-%d')
 
     letter_template = render_template(
-        'letter.html',
+        'letter.jinja2',
         recipient_name=name,
         recipient_care_of=care_of,
         recipient_address=address,
