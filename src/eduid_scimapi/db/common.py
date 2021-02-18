@@ -12,8 +12,9 @@ from uuid import UUID
 
 from bson import ObjectId
 
-from eduid_scimapi.schemas.scimbase import EmailType, PhoneNumberType
 from eduid_userdb.util import utc_now
+
+from eduid_scimapi.schemas.scimbase import EmailType, PhoneNumberType
 
 if typing.TYPE_CHECKING:
     from eduid_scimapi.schemas.event import UserEvent
@@ -24,6 +25,7 @@ __author__ = 'lundberg'
 @dataclass
 class ScimApiEndpointMixin:
     """ The elements common to all SCIM endpoints """
+
     scim_id: UUID = field(default_factory=lambda: uuid.uuid4())
     version: ObjectId = field(default_factory=lambda: ObjectId())
     created: datetime = field(default_factory=lambda: datetime.utcnow())
@@ -113,11 +115,10 @@ class EventLevel(Enum):
 
 @dataclass
 class _ScimApiEventRequired:
-    scim_event_id: UUID
     scim_user_id: UUID
     scim_user_external_id: str
     level: EventLevel
-    data_owner: str
+    source: str
     data: Dict[str, Any]
     expires_at: datetime
     timestamp: datetime
@@ -125,34 +126,23 @@ class _ScimApiEventRequired:
 
 @dataclass
 class ScimApiEvent(ScimApiEndpointMixin, _ScimApiEventRequired):
-    event_id: ObjectId = field(default_factory=lambda: ObjectId())  # mongodb document _id
+    db_id: ObjectId = field(default_factory=lambda: ObjectId())  # mongodb document _id
 
     def to_dict(self) -> Dict[str, Any]:
         data = asdict(self)
-        data['_id'] = data.pop('event_id')
-        data['scim_event_id'] = str(self.scim_event_id)
-        data['scim_user_id'] = str(self.scim_user_id)
+        data['_id'] = data.pop('db_id')
         data['level'] = self.level.value
+        data['scim_id'] = str(self.scim_id)
+        data['scim_user_id'] = str(self.scim_user_id)
         return data
 
     @classmethod
     def from_dict(cls: Type[ScimApiEvent], data: Mapping[str, Any]) -> ScimApiEvent:
         _data = dict(data)
-        for _to_uuid in ['scim_event_id', 'scim_user_id']:
-            _data[_to_uuid] = UUID(_data[_to_uuid])
-        _data['level'] = EventLevel(_data['level'])
         if '_id' in _data:
-            _data['event_id'] = _data.pop('_id')
+            _data['db_id'] = _data.pop('_id')
+        _data['level'] = EventLevel(_data['level'])
+        for _to_uuid in ['scim_id', 'scim_user_id']:
+            if not isinstance(_data[_to_uuid], UUID):
+                _data[_to_uuid] = UUID(_data[_to_uuid])
         return cls(**_data)
-
-    @classmethod
-    def from_user_event(cls: Type[ScimApiEvent], user_event: 'UserEvent', scim_user_id: UUID) -> ScimApiEvent:
-        return cls(
-            data=user_event.data,
-            expires_at=user_event.expires_at,
-            level=user_event.level,
-            scim_event_id=user_event.id,
-            scim_user_id=scim_user_id,
-            data_owner=user_event.data_owner,
-            timestamp=utc_now(),
-        )

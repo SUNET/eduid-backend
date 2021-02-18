@@ -32,9 +32,7 @@ class Context(object):
         self._invitedbs = {}
         for data_owner in self.config.data_owners:
             _owner = data_owner.replace('.', '_')  # replace dots with underscores
-            self._userdbs[data_owner] = ScimApiUserDB(
-                db_uri=self.config.mongo_uri, collection=f'{_owner}__users'
-            )
+            self._userdbs[data_owner] = ScimApiUserDB(db_uri=self.config.mongo_uri, collection=f'{_owner}__users')
             self._groupdbs[data_owner] = ScimApiGroupDB(
                 neo4j_uri=self.config.neo4j_uri,
                 neo4j_config=self.config.neo4j_config,

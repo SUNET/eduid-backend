@@ -108,6 +108,7 @@ class SCIMSchema(Enum):
     NUTID_USER_V1 = 'https://scim.eduid.se/schema/nutid/user/v1'
     NUTID_GROUP_V1 = 'https://scim.eduid.se/schema/nutid/group/v1'
     NUTID_INVITE_V1 = 'https://scim.eduid.se/schema/nutid/invite/v1'
+    NUTID_EVENT_V1 = 'https://scim.eduid.se/schema/nutid/event/v1'
     DEBUG_V1 = 'https://scim.eduid.se/schema/nutid-DEBUG/v1'
 
 
@@ -118,6 +119,7 @@ class SCIMResourceType(Enum):
     USER = 'User'
     GROUP = 'Group'
     INVITE = 'Invite'
+    EVENT = 'Event'
 
 
 class EmailType(Enum):

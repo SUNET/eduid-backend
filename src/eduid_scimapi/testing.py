@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Mapping, Optional, Union
 from bson import ObjectId
 from eduid_queue.db.message import MessageDB
 from falcon import Response
-from falcon.testing import TestClient
+from falcon.testing import Result, TestClient
 
 from eduid_common.config.parsers import load_config
 from eduid_common.config.testing import EtcdTemporaryInstance
@@ -219,6 +219,6 @@ class ScimApiTestCase(MongoNeoTestCase):
             ), f'{first}:{db_name_dict.get(first)} != {second}:{response_name.get(second)}'
 
     @staticmethod
-    def _assertResponse200(response: Response):
+    def _assertResponse200(response: Result):
         _detail = response.json.get('detail', 'No error detail in response')
         assert response.status_code == 200, f'Response status was not 200 ({response.status_code}), {_detail}'

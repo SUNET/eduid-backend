@@ -10,13 +10,14 @@ from uuid import uuid4
 import bson
 from bson import ObjectId
 
+from eduid_userdb.testing import normalised_data
+
 from eduid_scimapi.db.userdb import ScimApiProfile, ScimApiUser
 from eduid_scimapi.schemas.event import EventResponse
 from eduid_scimapi.schemas.scimbase import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
 from eduid_scimapi.schemas.user import NutidUserExtensionV1, Profile, UserResponse, UserResponseSchema
 from eduid_scimapi.testing import ScimApiTestCase
 from eduid_scimapi.utils import filter_none, make_etag
-from eduid_userdb.testing import normalised_data
 
 logger = logging.getLogger(__name__)
 
@@ -259,7 +260,6 @@ class TestUserResource(ScimApiTestCase):
         event = events[0]
         assert event.scim_user_external_id == req['externalId']
         assert event.data['status'] == 'CREATED'
-
 
     def test_create_user_no_external_id(self):
         req = {
