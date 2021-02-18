@@ -103,11 +103,6 @@ def ctx_userdb(req: Request) -> ScimApiUserDB:
     return req.context['userdb']
 
 
-def ctx_eventdb(req: Request) -> ScimApiEventDB:
-    """ Retrieve the eventdb put in the request context by the middleware in a way that mypy can understand. """
-    return req.context['eventdb']
-
-
 def ctx_groupdb(req: Request) -> ScimApiGroupDB:
     """ Retrieve the groupdb put in the request context by the middleware in a way that mypy can understand. """
     return req.context['groupdb']
@@ -116,3 +111,8 @@ def ctx_groupdb(req: Request) -> ScimApiGroupDB:
 def ctx_invitedb(req: Request) -> ScimApiInviteDB:
     """ Retrieve the invitedb put in the request context by the middleware in a way that mypy can understand. """
     return req.context['invitedb']
+
+
+def ctx_eventdb(req: Request) -> ScimApiEventDB:
+    """ Retrieve the eventdb put in the request context by the middleware in a way that mypy can understand. """
+    return req.context['eventdb']

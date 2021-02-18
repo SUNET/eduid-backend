@@ -8,7 +8,6 @@ from typing import Any, Dict, List, Mapping, Optional, Union
 
 from bson import ObjectId
 from eduid_queue.db.message import MessageDB
-from falcon import Response
 from falcon.testing import Result, TestClient
 
 from eduid_common.config.parsers import load_config

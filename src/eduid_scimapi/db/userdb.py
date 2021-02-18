@@ -33,7 +33,6 @@ class ScimApiUser(ScimApiEndpointMixin):
     phone_numbers: List[ScimApiPhoneNumber] = field(default_factory=list)
     preferred_language: Optional[str] = None
     profiles: Dict[str, ScimApiProfile] = field(default_factory=lambda: {})
-    events: List[ScimApiEvent] = field(default_factory=lambda: [])
 
     @property
     def etag(self):
@@ -61,8 +60,6 @@ class ScimApiUser(ScimApiEndpointMixin):
         this['phone_numbers'] = [ScimApiPhoneNumber.from_dict(number) for number in data.get('phone_numbers', [])]
         # Profiles
         this['profiles'] = {k: ScimApiProfile.from_dict(v) for k, v in data['profiles'].items()}
-        # Events
-        this['events'] = [ScimApiEvent.from_dict(event) for event in data.get('events', [])]
         return cls(**this)
 
 
@@ -123,13 +120,13 @@ class ScimApiUserDB(ScimApiBaseDB):
     def get_user_by_scim_id(self, scim_id: str) -> Optional[ScimApiUser]:
         doc = self._get_document_by_attr('scim_id', scim_id, raise_on_missing=False)
         if doc:
-            return self._document_to_user(doc)
+            return ScimApiUser.from_dict(doc)
         return None
 
     def get_user_by_external_id(self, external_id: str) -> Optional[ScimApiUser]:
         doc = self._get_document_by_attr('external_id', external_id, raise_on_missing=False)
         if doc:
-            return self._document_to_user(doc)
+            return ScimApiUser.from_dict(doc)
         return None
 
     def get_users_by_last_modified(
@@ -141,11 +138,8 @@ class ScimApiUserDB(ScimApiBaseDB):
             raise ValueError('Invalid filter operator')
         spec = {'last_modified': {mongo_operator: value}}
         docs, total_count = self._get_documents_and_count_by_filter(spec=spec, limit=limit, skip=skip)
-        users = [self._document_to_user(x) for x in docs]
+        users = [ScimApiUser.from_dict(x) for x in docs]
         return users, total_count
 
     def user_exists(self, scim_id: str) -> bool:
         return bool(self.db_count(spec={'scim_id': scim_id}, limit=1))
-
-    def _document_to_user(self, doc: Mapping[str, Any]) -> ScimApiUser:
-        return ScimApiUser.from_dict(doc)

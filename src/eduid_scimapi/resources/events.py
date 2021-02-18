@@ -9,8 +9,13 @@ from eduid_scimapi.db.common import ScimApiEvent
 from eduid_scimapi.exceptions import BadRequest, NotFound
 from eduid_scimapi.middleware import ctx_eventdb, ctx_userdb
 from eduid_scimapi.resources.base import SCIMResource
-from eduid_scimapi.schemas.event import EventCreateRequest, EventCreateRequestSchema, EventResponse, \
-    EventResponseSchema, NutidEventExtensionV1
+from eduid_scimapi.schemas.event import (
+    EventCreateRequest,
+    EventCreateRequestSchema,
+    EventResponse,
+    EventResponseSchema,
+    NutidEventExtensionV1,
+)
 from eduid_scimapi.schemas.scimbase import Meta, SCIMResourceType, SCIMSchema
 from eduid_scimapi.utils import make_etag
 
@@ -44,7 +49,7 @@ class EventsResource(SCIMResource):
                 user_external_id=db_event.scim_user_external_id,
                 expires_at=db_event.expires_at,
                 timestamp=db_event.timestamp,
-            )
+            ),
         )
 
         resp.set_header("Location", location)

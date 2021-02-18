@@ -27,9 +27,9 @@ class Context(object):
 
         # Setup databases
         self._userdbs = {}
-        self._eventdbs = {}
         self._groupdbs = {}
         self._invitedbs = {}
+        self._eventdbs = {}
         for data_owner in self.config.data_owners:
             _owner = data_owner.replace('.', '_')  # replace dots with underscores
             self._userdbs[data_owner] = ScimApiUserDB(db_uri=self.config.mongo_uri, collection=f'{_owner}__users')

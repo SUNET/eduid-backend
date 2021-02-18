@@ -4,11 +4,12 @@ from uuid import UUID, uuid4
 
 from falcon.testing import Result
 
+from eduid_userdb.testing import normalised_data
+
 from eduid_scimapi.db.common import EventLevel
 from eduid_scimapi.schemas.event import EventResponse, EventResponseSchema, NutidEventExtensionV1
 from eduid_scimapi.schemas.scimbase import SCIMSchema
 from eduid_scimapi.testing import ScimApiTestCase
-from eduid_userdb.testing import normalised_data
 
 
 @dataclass
@@ -26,11 +27,8 @@ class TestInviteResource(ScimApiTestCase):
         super().tearDown()
         self.eventdb._drop_whole_collection()
 
-    def _create_event(self, event: Dict[str, Any], expect_success: bool=True) -> ApiResult:
-        req = {
-            'schemas': [SCIMSchema.NUTID_EVENT_V1.value],
-            SCIMSchema.NUTID_EVENT_V1.value: event
-        }
+    def _create_event(self, event: Dict[str, Any], expect_success: bool = True) -> ApiResult:
+        req = {'schemas': [SCIMSchema.NUTID_EVENT_V1.value], SCIMSchema.NUTID_EVENT_V1.value: event}
         result = self.client.simulate_post(path='/Events/', body=self.as_json(req), headers=self.headers)
         if expect_success:
             self._assertResponse200(result)
@@ -45,12 +43,12 @@ class TestInviteResource(ScimApiTestCase):
 
     def test_create_event(self):
         user = self.add_user(identifier=str(uuid4()), external_id='test@example.org')
-        event =  {
-                'userId': str(user.scim_id),
-                'userExternalId': user.external_id,
-                'level': EventLevel.DEBUG.value,
-                'data': {'create_test': True},
-            }
+        event = {
+            'userId': str(user.scim_id),
+            'userExternalId': user.external_id,
+            'level': EventLevel.DEBUG.value,
+            'data': {'create_test': True},
+        }
         response = self._create_event(event=event)
 
         # check that the create resulted in an event in the database
@@ -66,12 +64,12 @@ class TestInviteResource(ScimApiTestCase):
 
     def test_create_and_fetch_event(self):
         user = self.add_user(identifier=str(uuid4()), external_id='test@example.org')
-        event =  {
-                'userId': str(user.scim_id),
-                'userExternalId': user.external_id,
-                'level': EventLevel.DEBUG.value,
-                'data': {'create_test': True},
-            }
+        event = {
+            'userId': str(user.scim_id),
+            'userExternalId': user.external_id,
+            'level': EventLevel.DEBUG.value,
+            'data': {'create_test': True},
+        }
         created = self._create_event(event=event)
 
         # check that the create resulted in an event in the database

@@ -51,6 +51,7 @@ class NutidEventV1:
 class EventCreateRequest(BaseCreateRequest, NutidEventV1):
     pass
 
+
 @dataclass(frozen=True)
 class EventResponse(BaseResponse, NutidEventV1):
     pass
