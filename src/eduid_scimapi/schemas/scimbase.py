@@ -8,6 +8,7 @@ from uuid import UUID
 
 from bson import ObjectId
 from bson.errors import InvalidId
+from dateutil.parser import ParserError, parse
 from langcodes import standardize_tag
 from marshmallow import Schema, ValidationError, fields, missing, post_dump, pre_load, validate
 from marshmallow_dataclass import NewType, class_schema
@@ -69,18 +70,24 @@ class DateTimeField(fields.Field):
     """
     The attribute value MUST be encoded as a valid xsd:dateTime as specified in Section 3.3.7 of
     XML-Schema (https://www.w3.org/TR/xmlschema11-2/) and MUST include both a date and a time.
+
+    Example of a valid string: '2021-02-19T08:23:42+00:00'. Seconds is allowed to have decimals,
+        so this is also valid: '2021-02-19T08:23:42.123456+00:00'
     """
 
     def _deserialize(self, value: str, attr, data, **kwargs):
         try:
-            return datetime.strptime(value, '%Y-%m-%dT%H:%M:%S%z')
-        except ValueError as e:
+            return parse(value)  # Be liberal in what you accept...
+        except ParserError as e:
             raise ValidationError(f'{e}')
 
     def _serialize(self, value: datetime, attr, obj, **kwargs):
         if value is None:
             return missing
-        return datetime.strftime(value, '%Y-%m-%dT%H:%M:%S%z')
+        # When we load a datetime from mongodb, it will have milliseconds and not microseconds
+        # so in order to be consistent we truncate microseconds to milliseconds always.
+        milliseconds = value.microsecond // 1000
+        return datetime.isoformat(value.replace(microsecond=milliseconds * 1000))
 
 
 class LanguageTagField(fields.Field):
@@ -159,7 +166,9 @@ class SubResource:
 @dataclass(frozen=True)
 class Meta:
     location: str = field(metadata={'required': True})
-    last_modified: datetime = field(metadata={'data_key': 'lastModified', 'required': True})
+    last_modified: datetime = field(
+        metadata={'marshmallow_field': DateTimeField(data_key='lastModified'), 'required': True}
+    )
     resource_type: SCIMResourceType = field(metadata={'data_key': 'resourceType', 'by_value': True, 'required': True})
     created: datetime = field(metadata={'required': True})
     version: ObjectId = field(metadata={'marshmallow_field': VersionField(), 'required': True})

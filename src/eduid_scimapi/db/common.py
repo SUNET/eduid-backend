@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import typing
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
@@ -16,9 +15,6 @@ from eduid_userdb.util import utc_now
 
 from eduid_scimapi.schemas.scimbase import EmailType, PhoneNumberType
 
-if typing.TYPE_CHECKING:
-    from eduid_scimapi.schemas.event import UserEvent
-
 __author__ = 'lundberg'
 
 
@@ -28,8 +24,8 @@ class ScimApiEndpointMixin:
 
     scim_id: UUID = field(default_factory=lambda: uuid.uuid4())
     version: ObjectId = field(default_factory=lambda: ObjectId())
-    created: datetime = field(default_factory=lambda: datetime.utcnow())
-    last_modified: datetime = field(default_factory=lambda: datetime.utcnow())
+    created: datetime = field(default_factory=lambda: utc_now())
+    last_modified: datetime = field(default_factory=lambda: utc_now())
 
 
 @dataclass(frozen=True)
@@ -116,7 +112,7 @@ class EventLevel(Enum):
 @dataclass
 class _ScimApiEventRequired:
     scim_user_id: UUID
-    scim_user_external_id: str
+    scim_user_external_id: Optional[str]
     level: EventLevel
     source: str
     data: Dict[str, Any]
