@@ -11,7 +11,7 @@ from uuid import UUID
 from bson import ObjectId
 
 from eduid_scimapi.db.basedb import ScimApiBaseDB
-from eduid_scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
+from eduid_scimapi.db.common import ScimApiEmail, ScimApiEndpointMixin, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
 from eduid_scimapi.utils import filter_none
 
 __author__ = 'lundberg'
@@ -21,9 +21,8 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class ScimApiInvite:
+class ScimApiInvite(ScimApiEndpointMixin):
     invite_id: ObjectId = field(default_factory=lambda: ObjectId())
-    scim_id: UUID = field(default_factory=lambda: uuid.uuid4())
     external_id: Optional[str] = None
     name: ScimApiName = field(default_factory=lambda: ScimApiName())
     emails: List[ScimApiEmail] = field(default_factory=list)
@@ -33,9 +32,6 @@ class ScimApiInvite:
     preferred_language: Optional[str] = field(default=None)
     completed: Optional[datetime] = field(default=None)
     profiles: Dict[str, ScimApiProfile] = field(default_factory=lambda: {})
-    version: ObjectId = field(default_factory=lambda: ObjectId())
-    created: datetime = field(default_factory=lambda: datetime.utcnow())
-    last_modified: datetime = field(default_factory=lambda: datetime.utcnow())
 
     def to_dict(self) -> Dict[str, Any]:
         res = asdict(self)
