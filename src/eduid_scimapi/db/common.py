@@ -104,7 +104,7 @@ class ScimApiPhoneNumber:
 
 
 @dataclass
-class ScimApiResourceRef:
+class ScimApiEventResource:
     resource_type: SCIMResourceType
     scim_id: UUID
     external_id: Optional[str]
@@ -116,7 +116,7 @@ class ScimApiResourceRef:
         return data
 
     @classmethod
-    def from_dict(cls: Type[ScimApiResourceRef], data: Mapping[str, Any]) -> ScimApiResourceRef:
+    def from_dict(cls: Type[ScimApiEventResource], data: Mapping[str, Any]) -> ScimApiEventResource:
         _data = dict(data)
         _data['resource_type'] = SCIMResourceType(_data['resource_type'])
         _data['scim_id'] = UUID(_data['scim_id'])
@@ -132,7 +132,7 @@ class EventLevel(Enum):
 
 @dataclass
 class _ScimApiEventRequired:
-    ref: ScimApiResourceRef
+    resource: ScimApiEventResource
     level: EventLevel
     source: str
     data: Dict[str, Any]
@@ -149,7 +149,7 @@ class ScimApiEvent(ScimApiEndpointMixin, _ScimApiEventRequired):
         data['_id'] = data.pop('db_id')
         data['level'] = self.level.value
         data['scim_id'] = str(self.scim_id)
-        data['ref'] = self.ref.to_dict()
+        data['resource'] = self.resource.to_dict()
         return data
 
     @classmethod
@@ -159,5 +159,5 @@ class ScimApiEvent(ScimApiEndpointMixin, _ScimApiEventRequired):
             _data['db_id'] = _data.pop('_id')
         _data['level'] = EventLevel(_data['level'])
         _data['scim_id'] = UUID(_data['scim_id'])
-        _data['ref'] = ScimApiResourceRef.from_dict(_data['ref'])
+        _data['resource'] = ScimApiEventResource.from_dict(_data['resource'])
         return cls(**_data)

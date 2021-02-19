@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 from eduid_userdb.util import utc_now
 
 from eduid_scimapi.db.basedb import ScimApiBaseDB
-from eduid_scimapi.db.common import EventLevel, ScimApiEvent, ScimApiResourceRef
+from eduid_scimapi.db.common import EventLevel, ScimApiEvent, ScimApiEventResource
 from eduid_scimapi.db.userdb import ScimApiUser
 from eduid_scimapi.schemas.scimbase import SCIMResourceType
 
@@ -42,8 +42,8 @@ class ScimApiEventDB(ScimApiBaseDB):
 
     def get_events_by_scim_user_id(self, scim_user_id: UUID) -> List[ScimApiEvent]:
         filter = {
-            'ref.scim_id': str(scim_user_id),
-            'ref.resource_type': SCIMResourceType.USER.value,
+            'resource.scim_id': str(scim_user_id),
+            'resource.resource_type': SCIMResourceType.USER.value,
         }
         docs = self._get_documents_by_filter(filter, raise_on_missing=False)
         if docs:
@@ -63,7 +63,7 @@ def add_api_event(event_db: ScimApiEventDB, db_user: ScimApiUser, level: EventLe
     _expires_at = _now + timedelta(days=1)
     _event = ScimApiEvent(
         scim_id=uuid4(),
-        ref=ScimApiResourceRef(
+        resource=ScimApiEventResource(
             resource_type=SCIMResourceType.USER, scim_id=db_user.scim_id, external_id=db_user.external_id
         ),
         timestamp=_now,

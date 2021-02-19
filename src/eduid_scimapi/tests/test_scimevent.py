@@ -45,7 +45,7 @@ class TestEventResource(ScimApiTestCase):
     def test_create_event(self):
         user = self.add_user(identifier=str(uuid4()), external_id='test@example.org')
         event = {
-            'ref': {
+            'resource': {
                 'resourceType': SCIMResourceType.USER.value,
                 'id': str(user.scim_id),
                 'externalId': user.external_id,
@@ -60,9 +60,9 @@ class TestEventResource(ScimApiTestCase):
         assert len(events) == 1
         db_event = events[0]
         # Verify what went into the database
-        assert db_event.ref.resource_type == SCIMResourceType.USER
-        assert db_event.ref.scim_id == user.scim_id
-        assert db_event.ref.external_id == user.external_id
+        assert db_event.resource.resource_type == SCIMResourceType.USER
+        assert db_event.resource.scim_id == user.scim_id
+        assert db_event.resource.external_id == user.external_id
         assert db_event.data == event['data']
         # Verify what is returned in the response
         assert result.response.id == db_event.scim_id
@@ -70,7 +70,7 @@ class TestEventResource(ScimApiTestCase):
     def test_create_and_fetch_event(self):
         user = self.add_user(identifier=str(uuid4()), external_id='test@example.org')
         event = {
-            'ref': {
+            'resource': {
                 'resourceType': SCIMResourceType.USER.value,
                 'id': str(user.scim_id),
                 'externalId': user.external_id,
@@ -114,7 +114,12 @@ class TestEventResource(ScimApiTestCase):
                 'level': 'debug',
                 'source': 'eduid.se',
                 'timestamp': db_event.timestamp.isoformat(),
-                'ref': {'resourceType': 'User', 'id': str(user.scim_id), 'externalId': user.external_id,},
+                'resource': {
+                    'resourceType': 'User',
+                    'id': str(user.scim_id),
+                    'externalId': user.external_id,
+                    'location': f'http://localhost:8000/Users/{user.scim_id}',
+                },
             },
         }
         assert fetched.result.json == expected

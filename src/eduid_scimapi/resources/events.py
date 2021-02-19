@@ -5,7 +5,7 @@ from typing import Optional
 from falcon import Request, Response
 from marshmallow import ValidationError
 
-from eduid_scimapi.db.common import ScimApiEndpointMixin, ScimApiEvent, ScimApiResourceRef
+from eduid_scimapi.db.common import ScimApiEndpointMixin, ScimApiEvent, ScimApiEventResource
 from eduid_scimapi.exceptions import BadRequest, NotFound
 from eduid_scimapi.middleware import ctx_eventdb, ctx_userdb
 from eduid_scimapi.resources.base import SCIMResource
@@ -15,7 +15,7 @@ from eduid_scimapi.schemas.event import (
     EventResponse,
     EventResponseSchema,
     NutidEventExtensionV1,
-    NutidResourceRef,
+    NutidEventResource,
 )
 from eduid_scimapi.schemas.scimbase import Meta, SCIMResourceType, SCIMSchema
 from eduid_scimapi.utils import make_etag
@@ -27,7 +27,7 @@ from eduid_userdb.util import utc_now
 
 class EventsResource(SCIMResource):
     def _db_event_to_response(self, req: Request, resp: Response, db_event: ScimApiEvent):
-        location = self.url_for("Events", db_event.scim_id)
+        location = self.resource_url(SCIMResourceType.EVENT, db_event.scim_id)
         meta = Meta(
             location=location,
             last_modified=db_event.last_modified,
@@ -47,10 +47,11 @@ class EventsResource(SCIMResource):
                 source=db_event.source,
                 expires_at=db_event.expires_at,
                 timestamp=db_event.timestamp,
-                ref=NutidResourceRef(
-                    resource_type=db_event.ref.resource_type,
-                    scim_id=db_event.ref.scim_id,
-                    external_id=db_event.ref.external_id,
+                resource=NutidEventResource(
+                    resource_type=db_event.resource.resource_type,
+                    scim_id=db_event.resource.scim_id,
+                    external_id=db_event.resource.external_id,
+                    location=self.resource_url(db_event.resource.resource_type, db_event.resource.scim_id),
                 ),
             ),
         )
@@ -109,11 +110,11 @@ class EventsResource(SCIMResource):
             if create_request.nutid_event_v1.timestamp < earliest_allowed:
                 raise BadRequest(detail='timestamp is too old')
 
-        referenced = _get_scim_referenced(req, create_request.nutid_event_v1.ref)
+        referenced = _get_scim_referenced(req, create_request.nutid_event_v1.resource)
         if not referenced:
             raise BadRequest(detail='referenced object not found')
         if referenced.external_id:
-            if referenced.external_id != create_request.nutid_event_v1.ref.external_id:
+            if referenced.external_id != create_request.nutid_event_v1.resource.external_id:
                 raise BadRequest(detail='incorrect externalId')
 
         _timestamp = utc_now()
@@ -122,8 +123,8 @@ class EventsResource(SCIMResource):
         _expires_at = utc_now() + timedelta(days=1)
 
         event = ScimApiEvent(
-            ref=ScimApiResourceRef(
-                resource_type=create_request.nutid_event_v1.ref.resource_type,
+            resource=ScimApiEventResource(
+                resource_type=create_request.nutid_event_v1.resource.resource_type,
                 scim_id=referenced.scim_id,
                 external_id=referenced.external_id,
             ),
@@ -139,7 +140,7 @@ class EventsResource(SCIMResource):
         self._db_event_to_response(req, resp, event)
 
 
-def _get_scim_referenced(req: Request, ref: NutidResourceRef) -> Optional[ScimApiEndpointMixin]:
-    if ref.resource_type == SCIMResourceType.USER:
-        return ctx_userdb(req).get_user_by_scim_id(str(ref.scim_id))
+def _get_scim_referenced(req: Request, resource: NutidEventResource) -> Optional[ScimApiEndpointMixin]:
+    if resource.resource_type == SCIMResourceType.USER:
+        return ctx_userdb(req).get_user_by_scim_id(str(resource.scim_id))
     return None

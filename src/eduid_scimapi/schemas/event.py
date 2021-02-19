@@ -9,7 +9,7 @@ from marshmallow import fields
 from marshmallow_dataclass import NewType, class_schema
 from marshmallow_enum import EnumField
 
-from eduid_scimapi.db.common import EventLevel, ScimApiResourceRef
+from eduid_scimapi.db.common import EventLevel, ScimApiEventResource
 from eduid_scimapi.schemas.scimbase import (
     BaseCreateRequest,
     BaseResponse,
@@ -28,10 +28,11 @@ SCIMResourceTypeValue = NewType(
 
 
 @dataclass
-class NutidResourceRef:
+class NutidEventResource:
     resource_type: SCIMResourceTypeValue = field(metadata={'data_key': 'resourceType', 'required': True})
     scim_id: UUID = field(metadata={'data_key': 'id', 'required': True})
     external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId'})
+    location: Optional[str] = field(default=None, metadata={'data_key': 'location', 'required': False})
 
 
 @dataclass(frozen=True)
@@ -41,7 +42,7 @@ class NutidEventExtensionV1:
     when creating an event: user_id, (external_id), level, data
     """
 
-    ref: NutidResourceRef = field(metadata={'required': True})
+    resource: NutidEventResource = field(metadata={'required': True})
     level: EventLevel = field(
         default=EventLevel.INFO, metadata={'marshmallow_field': EnumField(EventLevel, required=True, by_value=True)}
     )
