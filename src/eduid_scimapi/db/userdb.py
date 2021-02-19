@@ -6,31 +6,32 @@ import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Type
-from uuid import UUID
 
 from bson import ObjectId
 
 from eduid_scimapi.db.basedb import ScimApiBaseDB
-from eduid_scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
+from eduid_scimapi.db.common import (
+    ScimApiEmail,
+    ScimApiEndpointMixin,
+    ScimApiEvent,
+    ScimApiName,
+    ScimApiPhoneNumber,
+    ScimApiProfile,
+)
 
 __author__ = 'ft'
-
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
-class ScimApiUser:
+class ScimApiUser(ScimApiEndpointMixin):
     user_id: ObjectId = field(default_factory=lambda: ObjectId())
-    scim_id: UUID = field(default_factory=lambda: uuid.uuid4())
     external_id: Optional[str] = None
     name: ScimApiName = field(default_factory=lambda: ScimApiName())
     emails: List[ScimApiEmail] = field(default_factory=list)
     phone_numbers: List[ScimApiPhoneNumber] = field(default_factory=list)
     preferred_language: Optional[str] = None
-    version: ObjectId = field(default_factory=lambda: ObjectId())
-    created: datetime = field(default_factory=lambda: datetime.utcnow())
-    last_modified: datetime = field(default_factory=lambda: datetime.utcnow())
     profiles: Dict[str, ScimApiProfile] = field(default_factory=lambda: {})
 
     @property
@@ -117,22 +118,15 @@ class ScimApiUserDB(ScimApiBaseDB):
         return self.remove_document(user.user_id)
 
     def get_user_by_scim_id(self, scim_id: str) -> Optional[ScimApiUser]:
-        docs = self._get_document_by_attr('scim_id', scim_id, raise_on_missing=False)
-        if docs:
-            return ScimApiUser.from_dict(docs)
+        doc = self._get_document_by_attr('scim_id', scim_id, raise_on_missing=False)
+        if doc:
+            return ScimApiUser.from_dict(doc)
         return None
 
     def get_user_by_external_id(self, external_id: str) -> Optional[ScimApiUser]:
-        docs = self._get_document_by_attr('external_id', external_id, raise_on_missing=False)
-        if docs:
-            return ScimApiUser.from_dict(docs)
-        return None
-
-    # TODO: Not used, remove?
-    def get_user_by_scoped_attribute(self, scope: str, attr: str, value: Any) -> Optional[ScimApiUser]:
-        docs = self._get_documents_by_filter(spec={f'profiles.{scope}.{attr}': value}, raise_on_missing=False)
-        if len(docs) == 1:
-            return ScimApiUser.from_dict(docs[0])
+        doc = self._get_document_by_attr('external_id', external_id, raise_on_missing=False)
+        if doc:
+            return ScimApiUser.from_dict(doc)
         return None
 
     def get_users_by_last_modified(

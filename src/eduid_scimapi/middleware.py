@@ -4,6 +4,7 @@ from falcon import Request, Response
 from jose import ExpiredSignatureError, jwt
 
 from eduid_scimapi.context import Context
+from eduid_scimapi.db.eventdb import ScimApiEventDB
 from eduid_scimapi.db.groupdb import ScimApiGroupDB
 from eduid_scimapi.db.invitedb import ScimApiInviteDB
 from eduid_scimapi.db.userdb import ScimApiUserDB
@@ -70,6 +71,7 @@ class HandleAuthentication(object):
             req.context['userdb'] = self.context.get_userdb(req.context['data_owner'])
             req.context['groupdb'] = self.context.get_groupdb(req.context['data_owner'])
             req.context['invitedb'] = self.context.get_invitedb(req.context['data_owner'])
+            req.context['eventdb'] = self.context.get_eventdb(req.context['data_owner'])
             return
 
         token = req.auth[len('Bearer ') :]
@@ -88,6 +90,7 @@ class HandleAuthentication(object):
         req.context['userdb'] = self.context.get_userdb(data_owner)
         req.context['groupdb'] = self.context.get_groupdb(data_owner)
         req.context['invitedb'] = self.context.get_invitedb(data_owner)
+        req.context['eventdb'] = self.context.get_eventdb(data_owner)
 
         self.context.logger.debug(f'Bearer token data owner: {data_owner}')
 
@@ -108,3 +111,8 @@ def ctx_groupdb(req: Request) -> ScimApiGroupDB:
 def ctx_invitedb(req: Request) -> ScimApiInviteDB:
     """ Retrieve the invitedb put in the request context by the middleware in a way that mypy can understand. """
     return req.context['invitedb']
+
+
+def ctx_eventdb(req: Request) -> ScimApiEventDB:
+    """ Retrieve the eventdb put in the request context by the middleware in a way that mypy can understand. """
+    return req.context['eventdb']

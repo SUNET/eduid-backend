@@ -2,12 +2,31 @@
 
 from __future__ import annotations
 
+import uuid
 from dataclasses import asdict, dataclass, field
+from datetime import datetime
+from enum import Enum
 from typing import Any, Dict, Mapping, Optional, Type, Union
+from uuid import UUID
 
-from eduid_scimapi.schemas.scimbase import EmailType, PhoneNumberType
+from bson import ObjectId
+
+from eduid_userdb.util import utc_now
+
+from eduid_scimapi.schemas.scimbase import EmailType, PhoneNumberType, SCIMResourceType
 
 __author__ = 'lundberg'
+
+
+@dataclass
+class ScimApiEndpointMixin:
+    """ The elements common to all SCIM endpoints """
+
+    scim_id: UUID = field(default_factory=lambda: uuid.uuid4())
+    external_id: Optional[str] = None
+    version: ObjectId = field(default_factory=lambda: ObjectId())
+    created: datetime = field(default_factory=lambda: utc_now())
+    last_modified: datetime = field(default_factory=lambda: utc_now())
 
 
 @dataclass(frozen=True)
@@ -82,3 +101,63 @@ class ScimApiPhoneNumber:
         if data.get('type') is not None:
             number_type = PhoneNumberType(data['type'])
         return cls(value=data['value'], display=data.get('display'), type=number_type, primary=data.get('primary'))
+
+
+@dataclass
+class ScimApiEventResource:
+    resource_type: SCIMResourceType
+    scim_id: UUID
+    external_id: Optional[str]
+
+    def to_dict(self) -> Dict[str, Any]:
+        data = asdict(self)
+        data['scim_id'] = str(self.scim_id)
+        data['resource_type'] = self.resource_type.value
+        return data
+
+    @classmethod
+    def from_dict(cls: Type[ScimApiEventResource], data: Mapping[str, Any]) -> ScimApiEventResource:
+        _data = dict(data)
+        _data['resource_type'] = SCIMResourceType(_data['resource_type'])
+        _data['scim_id'] = UUID(_data['scim_id'])
+        return cls(**_data)
+
+
+class EventLevel(Enum):
+    DEBUG = 'debug'
+    INFO = 'info'
+    WARNING = 'warning'
+    ERROR = 'error'
+
+
+@dataclass
+class _ScimApiEventRequired:
+    resource: ScimApiEventResource
+    level: EventLevel
+    source: str
+    data: Dict[str, Any]
+    expires_at: datetime
+    timestamp: datetime
+
+
+@dataclass
+class ScimApiEvent(ScimApiEndpointMixin, _ScimApiEventRequired):
+    db_id: ObjectId = field(default_factory=lambda: ObjectId())  # mongodb document _id
+
+    def to_dict(self) -> Dict[str, Any]:
+        data = asdict(self)
+        data['_id'] = data.pop('db_id')
+        data['level'] = self.level.value
+        data['scim_id'] = str(self.scim_id)
+        data['resource'] = self.resource.to_dict()
+        return data
+
+    @classmethod
+    def from_dict(cls: Type[ScimApiEvent], data: Mapping[str, Any]) -> ScimApiEvent:
+        _data = dict(data)
+        if '_id' in _data:
+            _data['db_id'] = _data.pop('_id')
+        _data['level'] = EventLevel(_data['level'])
+        _data['scim_id'] = UUID(_data['scim_id'])
+        _data['resource'] = ScimApiEventResource.from_dict(_data['resource'])
+        return cls(**_data)

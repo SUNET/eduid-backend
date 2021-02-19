@@ -1,4 +1,5 @@
 from typing import Union
+from uuid import UUID
 
 from falcon import Request
 
@@ -6,6 +7,7 @@ from eduid_scimapi.context import Context
 from eduid_scimapi.db.groupdb import ScimApiGroup
 from eduid_scimapi.db.invitedb import ScimApiInvite
 from eduid_scimapi.db.userdb import ScimApiUser
+from eduid_scimapi.schemas.scimbase import SCIMResourceType
 from eduid_scimapi.utils import make_etag, urlappend
 
 
@@ -21,6 +23,9 @@ class BaseResource(object):
         for arg in args:
             url = urlappend(url, f'{arg}')
         return url
+
+    def resource_url(self, resource_type: SCIMResourceType, scim_id: UUID) -> str:
+        return self.url_for(resource_type.value + 's', str(scim_id))
 
 
 class SCIMResource(BaseResource):

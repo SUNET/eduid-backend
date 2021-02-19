@@ -7,6 +7,7 @@ from eduid_queue.db.message import MessageDB
 from eduid_userdb.signup.invitedb import SignupInviteDB
 
 from eduid_scimapi.config import ScimApiConfig
+from eduid_scimapi.db.eventdb import ScimApiEventDB
 from eduid_scimapi.db.groupdb import ScimApiGroupDB
 from eduid_scimapi.db.invitedb import ScimApiInviteDB
 from eduid_scimapi.db.userdb import ScimApiUserDB
@@ -28,6 +29,7 @@ class Context(object):
         self._userdbs = {}
         self._groupdbs = {}
         self._invitedbs = {}
+        self._eventdbs = {}
         for data_owner in self.config.data_owners:
             _owner = data_owner.replace('.', '_')  # replace dots with underscores
             self._userdbs[data_owner] = ScimApiUserDB(db_uri=self.config.mongo_uri, collection=f'{_owner}__users')
@@ -40,6 +42,7 @@ class Context(object):
                 mongo_collection=f'{_owner}__groups',
             )
             self._invitedbs[data_owner] = ScimApiInviteDB(db_uri=self.config.mongo_uri, collection=f'{_owner}__invites')
+            self._eventdbs[data_owner] = ScimApiEventDB(db_uri=self.config.mongo_uri, collection=f'{_owner}__events')
         self.signup_invitedb = SignupInviteDB(db_uri=self.config.mongo_uri)
         self.messagedb = MessageDB(db_uri=self.config.mongo_uri)
 
@@ -58,3 +61,6 @@ class Context(object):
 
     def get_invitedb(self, data_owner: str) -> Optional[ScimApiInviteDB]:
         return self._invitedbs.get(data_owner)
+
+    def get_eventdb(self, data_owner: str) -> Optional[ScimApiEventDB]:
+        return self._eventdbs.get(data_owner)

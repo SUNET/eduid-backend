@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
-from uuid import UUID
 
 from marshmallow import fields
 from marshmallow_dataclass import class_schema
@@ -12,11 +11,9 @@ from eduid_scimapi.schemas.scimbase import (
     BaseUpdateRequest,
     Email,
     LanguageTagField,
-    Meta,
     Name,
     PhoneNumber,
     SCIMSchema,
-    SCIMSchemaValue,
     SubResource,
 )
 
@@ -49,7 +46,6 @@ class Group(SubResource):
 
 @dataclass(frozen=True)
 class User:
-    external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId', 'required': False})
     name: Name = field(default_factory=lambda: Name(), metadata={'required': False})
     emails: List[Email] = field(default_factory=list)
     phone_numbers: List[PhoneNumber] = field(default_factory=list, metadata={'data_key': 'phoneNumbers'})

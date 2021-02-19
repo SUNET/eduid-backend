@@ -17,6 +17,7 @@ from eduid_graphdb.groupdb import GroupDB
 from eduid_graphdb.groupdb import User as GraphUser
 
 from eduid_scimapi.db.basedb import ScimApiBaseDB
+from eduid_scimapi.db.common import ScimApiEndpointMixin
 from eduid_scimapi.schemas.group import Group as SCIMGroup
 
 __author__ = 'lundberg'
@@ -37,13 +38,13 @@ class GroupExtensions(object):
 
 
 @dataclass
-class ScimApiGroup:
+class _ScimApiGroupRequired:
     display_name: str
+
+
+@dataclass
+class ScimApiGroup(ScimApiEndpointMixin, _ScimApiGroupRequired):
     group_id: ObjectId = field(default_factory=lambda: ObjectId())
-    scim_id: UUID = field(default_factory=lambda: uuid.uuid4())
-    version: ObjectId = field(default_factory=lambda: ObjectId())
-    created: datetime = field(default_factory=lambda: datetime.utcnow())
-    last_modified: datetime = field(default_factory=lambda: datetime.utcnow())
     extensions: GroupExtensions = field(default_factory=lambda: GroupExtensions())
     graph: GraphGroup = field(init=False)
 

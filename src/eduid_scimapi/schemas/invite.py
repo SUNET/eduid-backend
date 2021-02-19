@@ -15,13 +15,11 @@ from eduid_scimapi.schemas.scimbase import (
     DateTimeField,
     Email,
     LanguageTagField,
-    Meta,
     Name,
     PhoneNumber,
     SCIMSchema,
-    SCIMSchemaValue,
 )
-from eduid_scimapi.schemas.user import NutidUserExtensionV1, UserCreateRequest, UserResponse
+from eduid_scimapi.schemas.user import NutidUserExtensionV1
 
 __author__ = 'lundberg'
 

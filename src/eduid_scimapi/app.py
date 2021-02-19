@@ -8,10 +8,10 @@ from eduid_scimapi import exceptions
 from eduid_scimapi.config import ScimApiConfig
 from eduid_scimapi.context import Context
 from eduid_scimapi.middleware import HandleAuthentication, HandleSCIM
+from eduid_scimapi.resources.events import EventsResource
 from eduid_scimapi.resources.groups import GroupSearchResource, GroupsResource
 from eduid_scimapi.resources.invites import InviteSearchResource, InvitesResource
 from eduid_scimapi.resources.login import LoginResource
-from eduid_scimapi.resources.notifications import NotificationLoggingResource
 from eduid_scimapi.resources.status import HealthCheckResource
 from eduid_scimapi.resources.users import UsersResource, UsersSearchResource
 
@@ -49,8 +49,9 @@ def init_api(name: str = 'scimapi', test_config: Optional[Dict] = None) -> falco
     api.add_route('/Invites/{scim_id}', InvitesResource(context=context))
     api.add_route('/Invites/.search', InviteSearchResource(context=context))
 
-    # Notification logging
-    api.add_route('/notifications', NotificationLoggingResource(context=context))
+    # Events
+    api.add_route('/Events/', EventsResource(context=context))
+    api.add_route('/Events/{scim_id}', EventsResource(context=context))
 
     # Status
     api.add_route('/status/healthy', HealthCheckResource(context=context))

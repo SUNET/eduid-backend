@@ -124,13 +124,13 @@ class TestScimInvite(unittest.TestCase):
             'externalId': 'hubba-bubba@eduid.se',
             'id': '9784e1bf-231b-4eb8-b315-52eb46dd7c4b',
             'groups': [],
-            'expiresAt': '2020-08-23T15:52:59+0000',
+            'expiresAt': '2020-08-23T15:52:59+00:00',
             'finishURL': 'https://finish.example.com',
             'inviteURL': 'https://signup.eduid.se/invitation/scim/abc123',
             'inviterName': 'Test Inviter Name',
             'sendEmail': True,
             SCIMSchema.NUTID_USER_V1.value: {
-                'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}}
+                'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}},
             },
             'meta': {
                 'created': '2020-02-25T15:52:59.745000',
@@ -151,7 +151,7 @@ class TestScimInvite(unittest.TestCase):
             ],
             'preferredLanguage': 'se-SV',
         }
-        self.assertDictEqual(expected, json.loads(scim))
+        assert json.loads(scim) == expected
 
 
 class TestInviteResource(ScimApiTestCase):
@@ -370,7 +370,7 @@ class TestInviteResource(ScimApiTestCase):
             'inviterName': 'Test Inviter Name',
             'sendEmail': True,
             SCIMSchema.NUTID_USER_V1.value: {
-                'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}}
+                'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}},
             },
         }
 
@@ -407,7 +407,7 @@ class TestInviteResource(ScimApiTestCase):
             'inviterName': 'Test Inviter Name',
             'sendEmail': False,
             SCIMSchema.NUTID_USER_V1.value: {
-                'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}}
+                'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}},
             },
         }
 

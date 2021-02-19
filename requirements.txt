@@ -8,3 +8,4 @@ eduid_queue[client]>=0.0.2
 eduid_common[api]>=0.31.0
 langcodes==2.*
 gunicorn
+python-dateutil==2.8.*

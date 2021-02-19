@@ -8,8 +8,7 @@ from typing import Any, Dict, List, Mapping, Optional, Union
 
 from bson import ObjectId
 from eduid_queue.db.message import MessageDB
-from falcon import Response
-from falcon.testing import TestClient
+from falcon.testing import Result, TestClient
 
 from eduid_common.config.parsers import load_config
 from eduid_common.config.testing import EtcdTemporaryInstance
@@ -44,22 +43,14 @@ class BaseDBTestCase(unittest.TestCase):
 
     def _get_config(self) -> dict:
         config = {
+            'debug': True,
             'testing': True,
             'mongo_uri': self.mongo_uri,
             'logging_config': {
-                'version': 1,
-                'formatters': {'default': {'format': '{asctime} | {levelname:7} | {name:35} | {message}'}},
-                'handlers': {
-                    'console': {
-                        'class': 'logging.StreamHandler',
-                        'formatter': 'default',
-                        'level': 'DEBUG',
-                        'stream': 'ext://sys.stdout',
-                    }
-                },
                 'loggers': {
                     #'eduid_groupdb': {'handlers': ['console'], 'level': 'DEBUG'},
-                    'root': {'handlers': ['console'], 'level': 'INFO'},
+                    'neo4j': {'handlers': ['console'], 'level': 'WARNING'},
+                    'root': {'handlers': ['console'], 'level': 'DEBUG'},
                 },
             },
         }
@@ -117,6 +108,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         self.invitedb = self.context.get_invitedb(self.data_owner)
         self.signup_invitedb = SignupInviteDB(db_uri=config.mongo_uri)
         self.messagedb = MessageDB(db_uri=config.mongo_uri)
+        self.eventdb = self.context.get_eventdb(self.data_owner)
 
         api = init_api(name='test_api', test_config=self.test_config)
         self.client = TestClient(api)
@@ -226,5 +218,6 @@ class ScimApiTestCase(MongoNeoTestCase):
             ), f'{first}:{db_name_dict.get(first)} != {second}:{response_name.get(second)}'
 
     @staticmethod
-    def _assertResponse200(response: Response):
-        assert 200 == response.status_code, f'{response.json.get("detail", "No error detail in response")}'
+    def _assertResponse200(response: Result):
+        _detail = response.json.get('detail', 'No error detail in response')
+        assert response.status_code == 200, f'Response status was not 200 ({response.status_code}), {_detail}'
