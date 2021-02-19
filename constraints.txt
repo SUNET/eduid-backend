@@ -1,1 +1,12 @@
 ecdsa>0.8  # 0.8 is python2 and breaks install
+# These takes a long time
+cryptography>=3.3.2
+bleach>=3.2.3
+Babel>=2.8.1
+PyYAML>=5.3.1
+redis>=3.5.2
+ecdsa>=0.16.1
+future>=0.18.2
+python-dateutil>=2.8.0
+pysaml2>=6.5.1
+marshmallow>=3.9.1
