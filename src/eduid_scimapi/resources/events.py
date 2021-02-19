@@ -35,13 +35,12 @@ class EventsResource(SCIMResource):
             version=db_event.version,
         )
 
-        schemas = [SCIMSchema.NUTID_EVENT_V1]
+        schemas = [SCIMSchema.NUTID_EVENT_CORE_V1, SCIMSchema.NUTID_EVENT_V1]
         response = EventResponse(
             id=db_event.scim_id,
             meta=meta,
             schemas=list(schemas),  # extra list() needed to work with _both_ mypy and marshmallow
             nutid_event_v1=NutidEventExtensionV1(
-                id=db_event.scim_id,
                 level=db_event.level,
                 data=db_event.data,
                 source=db_event.source,
@@ -74,12 +73,25 @@ class EventsResource(SCIMResource):
                Authorization: Bearer h480djs93hd8
                Content-Length: ...
 
-                {
-                    'schemas': ['https://scim.eduid.se/schema/nutid/event/v1'],
-                    'https://scim.eduid.se/schema/nutid/event/v1': {
-                        ...
-                    }
-                }
+               {
+                   'schemas': ['https://scim.eduid.se/schema/nutid/event/core-v1',
+                               'https://scim.eduid.se/schema/nutid/event/v1'],
+                   'id': '58e67ce5-0f81-4c53-8c19-36f4500bc873',
+                   'meta': {
+                       'created': '2021-02-18T14:36:15.212000+00:00',
+                       'lastModified': '2021-02-18T14:36:15.212000+00:00',
+                       'location': 'http://localhost:8000/Events/58e67ce5-0f81-4c53-8c19-36f4500bc873',
+                       'resourceType': 'Event',
+                       'version': 'W/"602e7b5fd8c4f38aefddac5b"'},
+                   'https://scim.eduid.se/schema/nutid/event/v1': {
+                       'data': {'create_test': True},
+                       'expiresAt': '2021-02-23T14:36:15+0000',
+                       'level': 'debug',
+                       'source': 'eduid.se',
+                       'timestamp': '2021-02-18T14:36:15+0000',
+                       'userExternalId': 'test@example.org',
+                       'userId': '199745a8-a4f5-46b9-9ae9-531da967bfb1'},
+               }
         """
         self.context.logger.info(f'Creating event')
         try:
@@ -89,6 +101,13 @@ class EventsResource(SCIMResource):
             raise BadRequest(detail=f"{e}")
         if create_request.nutid_event_v1.source:
             raise BadRequest(detail='source is read-only')
+        if create_request.nutid_event_v1.expires_at:
+            raise BadRequest(detail='expiresAt is read-only')
+
+        if create_request.nutid_event_v1.timestamp:
+            earliest_allowed = utc_now() - timedelta(days=1)
+            if create_request.nutid_event_v1.timestamp < earliest_allowed:
+                raise BadRequest(detail='timestamp is too old')
 
         user = ctx_userdb(req).get_user_by_scim_id(create_request.nutid_event_v1.user_id)
         if not user:
@@ -98,7 +117,9 @@ class EventsResource(SCIMResource):
                 raise BadRequest(detail='incorrect externalId')
 
         _timestamp = utc_now()
-        _expires_at = _timestamp + timedelta(days=5)
+        if create_request.nutid_event_v1.timestamp:
+            _timestamp = create_request.nutid_event_v1.timestamp
+        _expires_at = utc_now() + timedelta(days=1)
 
         event = ScimApiEvent(
             scim_user_id=user.scim_id,

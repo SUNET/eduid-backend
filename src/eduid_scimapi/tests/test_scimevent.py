@@ -1,15 +1,15 @@
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
+from datetime import timedelta
 from typing import Any, Dict
 from uuid import UUID, uuid4
 
 from falcon.testing import Result
 
-from eduid_userdb.testing import normalised_data
-
 from eduid_scimapi.db.common import EventLevel
 from eduid_scimapi.schemas.event import EventResponse, EventResponseSchema, NutidEventExtensionV1
 from eduid_scimapi.schemas.scimbase import SCIMSchema
 from eduid_scimapi.testing import ScimApiTestCase
+from eduid_scimapi.utils import make_etag
 
 
 @dataclass
@@ -49,7 +49,7 @@ class TestInviteResource(ScimApiTestCase):
             'level': EventLevel.DEBUG.value,
             'data': {'create_test': True},
         }
-        response = self._create_event(event=event)
+        result = self._create_event(event=event)
 
         # check that the create resulted in an event in the database
         events = self.eventdb.get_events_by_scim_user_id(user.scim_id)
@@ -59,8 +59,7 @@ class TestInviteResource(ScimApiTestCase):
         assert db_event.scim_user_external_id == user.external_id
         assert db_event.data == event['data']
         # Verify what is returned in the response
-        response_event = response.result.json[SCIMSchema.NUTID_EVENT_V1.value]
-        assert response_event['id'] == str(db_event.scim_id)
+        assert result.response.id == db_event.scim_id
 
     def test_create_and_fetch_event(self):
         user = self.add_user(identifier=str(uuid4()), external_id='test@example.org')
@@ -68,7 +67,7 @@ class TestInviteResource(ScimApiTestCase):
             'userId': str(user.scim_id),
             'userExternalId': user.external_id,
             'level': EventLevel.DEBUG.value,
-            'data': {'create_test': True},
+            'data': {'create_fetch_test': True},
         }
         created = self._create_event(event=event)
 
@@ -78,8 +77,36 @@ class TestInviteResource(ScimApiTestCase):
         db_event = events[0]
 
         # Now fetch the event using SCIM
-        fetched = self._fetch_event(created.event.id)
-        assert fetched.event.id == db_event.scim_id
+        fetched = self._fetch_event(created.response.id)
+        assert fetched.response.id == db_event.scim_id
 
-        # Verify that create and fetch returned the same data
+        # Verify that create and fetch returned the same data.
+        # Compare as dict first because the output is easier to read.
+        assert asdict(created.event) == asdict(fetched.event)
         assert created.event == fetched.event
+
+        # For once, verify the actual SCIM message format too
+        expected = {
+            'schemas': [
+                'https://scim.eduid.se/schema/nutid/event/core-v1',
+                'https://scim.eduid.se/schema/nutid/event/v1',
+            ],
+            'id': str(db_event.scim_id),
+            'meta': {
+                'created': db_event.created.isoformat(),
+                'lastModified': db_event.last_modified.isoformat(),
+                'location': f'http://localhost:8000/Events/{db_event.scim_id}',
+                'resourceType': 'Event',
+                'version': make_etag(db_event.version),
+            },
+            'https://scim.eduid.se/schema/nutid/event/v1': {
+                'data': {'create_fetch_test': True},
+                'expiresAt': (db_event.timestamp + timedelta(days=1)).isoformat(),
+                'level': 'debug',
+                'source': 'eduid.se',
+                'timestamp': db_event.timestamp.isoformat(),
+                'userExternalId': user.external_id,
+                'userId': str(user.scim_id),
+            },
+        }
+        assert fetched.result.json == expected

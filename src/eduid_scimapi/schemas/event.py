@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, Optional
 from uuid import UUID, uuid4
 
 from marshmallow import fields
 from marshmallow_dataclass import class_schema
 from marshmallow_enum import EnumField
 
-from eduid_scimapi.db.common import EventLevel, ScimApiEvent
+from eduid_scimapi.db.common import EventLevel
 from eduid_scimapi.schemas.scimbase import BaseCreateRequest, BaseResponse, BaseSchema, DateTimeField, SCIMSchema
 
 __author__ = 'ft'
@@ -21,7 +21,6 @@ class NutidEventExtensionV1:
     when creating an event: user_id, (external_id), level, data
     """
 
-    id: UUID = field(default_factory=uuid4, metadata={'marshmallow_field': fields.UUID(required=False)})
     level: EventLevel = field(
         default=EventLevel.INFO, metadata={'marshmallow_field': EnumField(EventLevel, required=True, by_value=True)}
     )

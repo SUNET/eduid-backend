@@ -116,6 +116,7 @@ class SCIMSchema(Enum):
     NUTID_GROUP_V1 = 'https://scim.eduid.se/schema/nutid/group/v1'
     NUTID_INVITE_V1 = 'https://scim.eduid.se/schema/nutid/invite/v1'
     NUTID_EVENT_V1 = 'https://scim.eduid.se/schema/nutid/event/v1'
+    NUTID_EVENT_CORE_V1 = 'https://scim.eduid.se/schema/nutid/event/core-v1'
     DEBUG_V1 = 'https://scim.eduid.se/schema/nutid-DEBUG/v1'
 
 
@@ -219,6 +220,9 @@ class PhoneNumber:
 
 @dataclass(frozen=True)
 class BaseResponse:
+    """ This is basically the implementation of the common attributes defined in RFC7643 #3.1. (Common Attributes) """
+
+    # TODO: Add externalId here (required: False)
     id: UUID = field(metadata={'required': True})
     meta: Meta = field(metadata={'required': True})
     schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})

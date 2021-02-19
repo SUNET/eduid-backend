@@ -8,10 +8,7 @@ from eduid_userdb.util import utc_now
 
 from eduid_scimapi.db.basedb import ScimApiBaseDB
 from eduid_scimapi.db.common import EventLevel, ScimApiEvent
-
-if typing.TYPE_CHECKING:
-    from eduid_scimapi.db.userdb import ScimApiUser
-
+from eduid_scimapi.db.userdb import ScimApiUser
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +16,14 @@ logger = logging.getLogger(__name__)
 class ScimApiEventDB(ScimApiBaseDB):
     def __init__(self, db_uri: str, collection: str, db_name='eduid_scimapi'):
         super().__init__(db_uri, db_name, collection=collection)
+        indexes = {
+            # Remove messages older than expires_at datetime
+            'auto-discard': {'key': [('expires_at', 1)], 'expireAfterSeconds': 0},
+            # Ensure unique scim_id
+            'unique-scimid': {'key': [('scim_id', 1)], 'unique': True},
+        }
+        self.setup_indexes(indexes)
+
         # TODO: Create index to ensure unique event_id
 
     def save(self, event: ScimApiEvent) -> bool:
@@ -47,12 +52,10 @@ class ScimApiEventDB(ScimApiBaseDB):
         return ScimApiEvent.from_dict(doc)
 
 
-def add_api_event(
-    event_db: ScimApiEventDB, db_user: 'ScimApiUser', level: EventLevel, status: str, message: str
-) -> None:
-    """ Add an event with source=this-API to a user. """
+def add_api_event(event_db: ScimApiEventDB, db_user: ScimApiUser, level: EventLevel, status: str, message: str) -> None:
+    """ Add an event with source=this-API. """
     _now = utc_now()
-    _expires_at = _now + timedelta(days=5)
+    _expires_at = _now + timedelta(days=1)
     _event = ScimApiEvent(
         scim_id=uuid4(),
         scim_user_id=db_user.scim_id,
