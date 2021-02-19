@@ -31,7 +31,7 @@ pyXMLSecurity[PKCS11]==0.21
 hammock>=0.2.4
 xhtml2pdf>=0.2.2
 # lookup_mobile_proofing
-eduid_lookup_mobile>=0.0.6b3
+eduid_lookup_mobile==0.2.*
 # oidc_proofing
 python-jose>=3.0.1
 qrcode>=5.1
