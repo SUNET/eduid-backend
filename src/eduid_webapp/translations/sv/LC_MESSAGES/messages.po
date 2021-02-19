@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: eduid-webapp 0.2.27\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2021-02-01 12:16+0100\n"
+"POT-Creation-Date: 2021-02-18 10:23+0100\n"
 "PO-Revision-Date: 2018-03-27 09:25+0000\n"
 "Last-Translator: Johan Lundberg <lundberg@sunet.se>, 2021\n"
 "Language-Team: Swedish (https://www.transifex.com/sunet/teams/84844/sv/)\n"
@@ -199,9 +199,9 @@ msgstr ""
 
 #: src/eduid_webapp/idp/templates/credential_expired.jinja2:19
 #: src/eduid_webapp/idp/templates/user_terminated.jinja2:19
-#: src/eduid_webapp/reset_password/helpers.py:200
-#: src/eduid_webapp/security/helpers.py:219
-#: src/eduid_webapp/security/views/reset_password.py:98
+#: src/eduid_webapp/reset_password/helpers.py:209
+#: src/eduid_webapp/security/helpers.py:218
+#: src/eduid_webapp/security/views/reset_password.py:97
 #: src/eduid_webapp/security/views/templates/reset_password.jinja2:28
 msgid "Reset password"
 msgstr "Återställ lösenord"
@@ -366,7 +366,66 @@ msgstr ""
 "\t  <p>För att få tillgång till kontot igen så måste lösenordet återställas.</p>\n"
 "\t"
 
-#: src/eduid_webapp/oidc_proofing/helpers.py:148
+#: src/eduid_webapp/letter_proofing/templates/letter.jinja2:66
+#, python-format
+msgid ""
+"\n"
+"<div id=\"text_frame\" style=\"font-size: 12pt\">\n"
+"    <h4>Welcome to confirm your eduID account</h4>\n"
+"\n"
+"    <div id=\"notice-frame\">\n"
+"        <div style=\"padding-top: 15px; margin-left: 15px;\">\n"
+"            Username: %(recipient_primary_mail_address)s<br/>\n"
+"            Confirmation code: %(recipient_verification_code)s<br/>\n"
+"            <strong>The code is valid until %(recipient_validity_period)s.</strong><br/>\n"
+"        </div>\n"
+"    </div>\n"
+"    <div style=\"padding-top: 50px;\">\n"
+"        <strong>Instructions:</strong>\n"
+"    </div>\n"
+"    <ol>\n"
+"        <li>Log in to https://dashboard.eduid.se with the username above and the\n"
+"            password you used when you created your account.\n"
+"        </li>\n"
+"        <li>Open the tab \"Identity\".</li>\n"
+"        <li>Click the card \"BY POST\" below \"Verify your id number\".</li>\n"
+"        <li>Input the confirmation code in the window that opens.</li>\n"
+"        <li>Click \"OK\".</li>\n"
+"    </ol>\n"
+"    <div style=\"padding-top: 50px;\">\n"
+"        If you did not request this letter from eduID then please report it to support@eduid.se.\n"
+"    </div>\n"
+"</div>\n"
+msgstr ""
+"\n"
+"<div id=\"text_frame\" style=\"font-size: 12pt\">\n"
+"    <h4>Välkommen att bekräfta ditt eduID-konto</h4>\n"
+"\n"
+"    <div id=\"notice-frame\">\n"
+"        <div style=\"padding-top: 15px; margin-left: 15px;\">\n"
+"            Användarnamn: %(recipient_primary_mail_address)s<br/>\n"
+"            Bekräftelsekod: %(recipient_verification_code)s<br/>\n"
+"            <strong>Koden är giltig till och med: %(recipient_validity_period)s</strong><br/>\n"
+"        </div>\n"
+"    </div>\n"
+"    <div style=\"padding-top: 50px;\">\n"
+"        <strong>Instruktioner:</strong>\n"
+"    </div>\n"
+"    <ol>\n"
+"        <li>Logga in på https://dashboard.eduid.se med användarnamnet ovan och det\n"
+"            lösenord som du använde när du skapade ditt konto.\n"
+"        </li>\n"
+"        <li>Öppna fliken \"Identitet\".</li>\n"
+"        <li>Klicka på rutan \"VIA POST\" under \"Bekräfta ditt personnummer\".</li>\n"
+"        <li>Skriv in bekräftelsekoden i rutan som öppnas.</li>\n"
+"        <li>Klicka på \"OK\".</li>\n"
+"    </ol>\n"
+"    <div style=\"padding-top: 50px;\">\n"
+"        Om du inte har begärt en kod från eduID vänligen rapportera detta till support@eduid.se.\n"
+"    </div>\n"
+"</div>\n"
+
+#: src/eduid_webapp/oidc_proofing/helpers.py:129
 #, python-format
 msgid "%(site_name)s account verification"
 msgstr "%(site_name)skontobekräftning"
@@ -469,144 +528,144 @@ msgstr ""
 "\n"
 "(Detta är ett automatiserat meddelande och går ej att svara på.)\n"
 
-#: src/eduid_webapp/security/helpers.py:180
+#: src/eduid_webapp/security/helpers.py:179
 msgid "Terminate account"
 msgstr "Avsluta konto"
 
-#: src/eduid_webapp/security/schemas.py:225
+#: src/eduid_webapp/security/schemas.py:230
 msgid "Invalid email address"
 msgstr "Ogiltig e-postadress"
 
-#: src/eduid_webapp/security/schemas.py:238
+#: src/eduid_webapp/security/schemas.py:243
 msgid "Please enter a code"
 msgstr "Ange en kod"
 
-#: src/eduid_webapp/security/schemas.py:254
+#: src/eduid_webapp/security/schemas.py:259
 msgid "Please enter a password"
 msgstr "Ange ett lösenord"
 
-#: src/eduid_webapp/security/schemas.py:256
+#: src/eduid_webapp/security/schemas.py:261
 msgid "Please repeat the password"
 msgstr "Repetera lösenordet"
 
-#: src/eduid_webapp/security/schemas.py:258
+#: src/eduid_webapp/security/schemas.py:263
 msgid "Passwords does not match"
 msgstr "Lösenorden är olika"
 
-#: src/eduid_webapp/security/schemas.py:266
+#: src/eduid_webapp/security/schemas.py:271
 msgid "Please use a stronger password"
 msgstr "Lösenordet är inte tillräckligt starkt"
 
-#: src/eduid_webapp/security/views/reset_password.py:55
+#: src/eduid_webapp/security/views/reset_password.py:54
 msgid "404 Not found"
 msgstr "404 Hittades inte"
 
-#: src/eduid_webapp/security/views/reset_password.py:56
+#: src/eduid_webapp/security/views/reset_password.py:55
 msgid "The requested state can not be found."
 msgstr "Kunde inte ladda sparad status"
 
-#: src/eduid_webapp/security/views/reset_password.py:58
-#: src/eduid_webapp/security/views/reset_password.py:68
-#: src/eduid_webapp/security/views/reset_password.py:146
-#: src/eduid_webapp/security/views/reset_password.py:221
+#: src/eduid_webapp/security/views/reset_password.py:57
+#: src/eduid_webapp/security/views/reset_password.py:67
+#: src/eduid_webapp/security/views/reset_password.py:145
+#: src/eduid_webapp/security/views/reset_password.py:220
 msgid "Reset your password"
 msgstr "Återställ ditt lösenord"
 
-#: src/eduid_webapp/security/views/reset_password.py:65
+#: src/eduid_webapp/security/views/reset_password.py:64
 msgid "Link expired"
 msgstr "Länken har gått ut"
 
-#: src/eduid_webapp/security/views/reset_password.py:66
+#: src/eduid_webapp/security/views/reset_password.py:65
 msgid "The password reset link has expired."
 msgstr "Länken för lösenordsåterställning har gått ut."
 
-#: src/eduid_webapp/security/views/reset_password.py:81
+#: src/eduid_webapp/security/views/reset_password.py:80
 msgid "SMS code expired"
 msgstr "SMS-koden har gått ut"
 
-#: src/eduid_webapp/security/views/reset_password.py:82
+#: src/eduid_webapp/security/views/reset_password.py:81
 msgid "The phone verification has expired."
 msgstr "Telefonbekräftelsen har gått ut."
 
-#: src/eduid_webapp/security/views/reset_password.py:84
-#: src/eduid_webapp/security/views/reset_password.py:240
+#: src/eduid_webapp/security/views/reset_password.py:83
+#: src/eduid_webapp/security/views/reset_password.py:239
 msgid "Resend code or try another way"
 msgstr "Skicka en ny kod eller byt säkerhetsmetod"
 
-#: src/eduid_webapp/security/views/reset_password.py:99
+#: src/eduid_webapp/security/views/reset_password.py:98
 msgid "Enter an email address registered to your account below"
 msgstr "Ange en e-postadress som är registrerad på ditt konto"
 
-#: src/eduid_webapp/security/views/reset_password.py:103
+#: src/eduid_webapp/security/views/reset_password.py:102
 msgid "Reset password message sent. Check your email to continue."
 msgstr ""
 "Ett meddelande om lösenordsåterställning har skickats. Kolla din e-post för "
 "att fortsätta."
 
+#: src/eduid_webapp/security/views/reset_password.py:119
+#: src/eduid_webapp/security/views/reset_password.py:142
+#: src/eduid_webapp/security/views/reset_password.py:193
+#: src/eduid_webapp/security/views/reset_password.py:259
+msgid "Temporary technical problem"
+msgstr "Temporärt tekniskt fel"
+
 #: src/eduid_webapp/security/views/reset_password.py:120
 #: src/eduid_webapp/security/views/reset_password.py:143
 #: src/eduid_webapp/security/views/reset_password.py:194
 #: src/eduid_webapp/security/views/reset_password.py:260
-msgid "Temporary technical problem"
-msgstr "Temporärt tekniskt fel"
-
-#: src/eduid_webapp/security/views/reset_password.py:121
-#: src/eduid_webapp/security/views/reset_password.py:144
-#: src/eduid_webapp/security/views/reset_password.py:195
-#: src/eduid_webapp/security/views/reset_password.py:261
 msgid "Please try again."
 msgstr "Vänligen försök igen."
 
-#: src/eduid_webapp/security/views/reset_password.py:123
-#: src/eduid_webapp/security/views/reset_password.py:199
-#: src/eduid_webapp/security/views/reset_password.py:265
+#: src/eduid_webapp/security/views/reset_password.py:122
+#: src/eduid_webapp/security/views/reset_password.py:198
+#: src/eduid_webapp/security/views/reset_password.py:264
 msgid "Try again"
 msgstr "Försök igen"
 
-#: src/eduid_webapp/security/views/reset_password.py:156
+#: src/eduid_webapp/security/views/reset_password.py:155
 msgid "Extra security"
 msgstr "Extra säkerhet"
 
-#: src/eduid_webapp/security/views/reset_password.py:157
+#: src/eduid_webapp/security/views/reset_password.py:156
 msgid "Choose an option to enhance the security"
 msgstr "Välj en metod för att öka säkerheten"
 
-#: src/eduid_webapp/security/views/reset_password.py:168
+#: src/eduid_webapp/security/views/reset_password.py:167
 msgid "Email address not validated"
 msgstr "E-postadressen kunde inte valideras"
 
-#: src/eduid_webapp/security/views/reset_password.py:169
+#: src/eduid_webapp/security/views/reset_password.py:168
 msgid "Please use the password reset link that you have in your email."
 msgstr ""
 "Var vänlig och använd återställningslänken som skickats till din "
 "e-postsadress."
 
-#: src/eduid_webapp/security/views/reset_password.py:218
+#: src/eduid_webapp/security/views/reset_password.py:217
 msgid "Something went wrong"
 msgstr "Något gick fel"
 
-#: src/eduid_webapp/security/views/reset_password.py:219
+#: src/eduid_webapp/security/views/reset_password.py:218
 msgid "Please restart the password reset procedure."
 msgstr "Var vänlig och börja om lösenordsåterställningen."
 
-#: src/eduid_webapp/security/views/reset_password.py:235
+#: src/eduid_webapp/security/views/reset_password.py:234
 #: src/eduid_webapp/security/views/templates/reset_password_verify_phone.jinja2:30
 msgid "Verify phone number"
 msgstr "Bekräfta telefonnummer"
 
-#: src/eduid_webapp/security/views/reset_password.py:236
+#: src/eduid_webapp/security/views/reset_password.py:235
 msgid "Enter the code you received via SMS"
 msgstr "Ange bekräftelsekoden som har skickats med SMS"
 
-#: src/eduid_webapp/security/views/reset_password.py:271
+#: src/eduid_webapp/security/views/reset_password.py:270
 msgid "Invalid code. Please try again."
 msgstr "Felaktig bekräftelsekod. Vänligen försök igen."
 
-#: src/eduid_webapp/security/views/reset_password.py:281
+#: src/eduid_webapp/security/views/reset_password.py:280
 msgid "New password"
 msgstr "Nytt lösenord"
 
-#: src/eduid_webapp/security/views/reset_password.py:282
+#: src/eduid_webapp/security/views/reset_password.py:281
 msgid ""
 "\n"
 "            Please choose a new password for your eduID account. A strong password has been generated for you.\n"
@@ -776,7 +835,7 @@ msgstr ""
 "\n"
 "    (Detta är ett automatiserat meddelande och går ej att svara på.)\n"
 
-#: src/eduid_webapp/signup/verifications.py:125
+#: src/eduid_webapp/signup/verifications.py:127
 msgid "eduid-signup verification email"
 msgstr "eduID registrering"
 
