@@ -5,7 +5,7 @@ from typing import Optional
 from falcon import Request, Response
 from marshmallow import ValidationError
 
-from eduid_scimapi.db.common import ScimApiEvent
+from eduid_scimapi.db.common import ScimApiEndpointMixin, ScimApiEvent, ScimApiResourceRef
 from eduid_scimapi.exceptions import BadRequest, NotFound
 from eduid_scimapi.middleware import ctx_eventdb, ctx_userdb
 from eduid_scimapi.resources.base import SCIMResource
@@ -15,6 +15,7 @@ from eduid_scimapi.schemas.event import (
     EventResponse,
     EventResponseSchema,
     NutidEventExtensionV1,
+    NutidResourceRef,
 )
 from eduid_scimapi.schemas.scimbase import Meta, SCIMResourceType, SCIMSchema
 from eduid_scimapi.utils import make_etag
@@ -44,10 +45,13 @@ class EventsResource(SCIMResource):
                 level=db_event.level,
                 data=db_event.data,
                 source=db_event.source,
-                user_id=str(db_event.scim_user_id),
-                user_external_id=db_event.scim_user_external_id,
                 expires_at=db_event.expires_at,
                 timestamp=db_event.timestamp,
+                ref=NutidResourceRef(
+                    resource_type=db_event.ref.resource_type,
+                    scim_id=db_event.ref.scim_id,
+                    external_id=db_event.ref.external_id,
+                ),
             ),
         )
 
@@ -76,21 +80,17 @@ class EventsResource(SCIMResource):
                {
                    'schemas': ['https://scim.eduid.se/schema/nutid/event/core-v1',
                                'https://scim.eduid.se/schema/nutid/event/v1'],
-                   'id': '58e67ce5-0f81-4c53-8c19-36f4500bc873',
-                   'meta': {
-                       'created': '2021-02-18T14:36:15.212000+00:00',
-                       'lastModified': '2021-02-18T14:36:15.212000+00:00',
-                       'location': 'http://localhost:8000/Events/58e67ce5-0f81-4c53-8c19-36f4500bc873',
-                       'resourceType': 'Event',
-                       'version': 'W/"602e7b5fd8c4f38aefddac5b"'},
                    'https://scim.eduid.se/schema/nutid/event/v1': {
+                       'ref': {'resourceType': 'User',
+                               'id': '199745a8-a4f5-46b9-9ae9-531da967bfb1',
+                               'externalId': 'test@example.org'
+                               },
                        'data': {'create_test': True},
-                       'expiresAt': '2021-02-23T14:36:15+0000',
+                       'expiresAt': '2021-02-23T14:36:15+00:00',
                        'level': 'debug',
                        'source': 'eduid.se',
-                       'timestamp': '2021-02-18T14:36:15+0000',
-                       'userExternalId': 'test@example.org',
-                       'userId': '199745a8-a4f5-46b9-9ae9-531da967bfb1'},
+                       'timestamp': '2021-02-18T14:36:15+00:00'
+                       }
                }
         """
         self.context.logger.info(f'Creating event')
@@ -98,7 +98,7 @@ class EventsResource(SCIMResource):
             create_request: EventCreateRequest = EventCreateRequestSchema().load(req.media)
             self.context.logger.debug(create_request)
         except ValidationError as e:
-            raise BadRequest(detail=f"{e}")
+            raise BadRequest(detail=str(e))
         if create_request.nutid_event_v1.source:
             raise BadRequest(detail='source is read-only')
         if create_request.nutid_event_v1.expires_at:
@@ -109,11 +109,11 @@ class EventsResource(SCIMResource):
             if create_request.nutid_event_v1.timestamp < earliest_allowed:
                 raise BadRequest(detail='timestamp is too old')
 
-        user = ctx_userdb(req).get_user_by_scim_id(create_request.nutid_event_v1.user_id)
-        if not user:
-            raise BadRequest(detail='user not found')
-        if create_request.nutid_event_v1.user_external_id:
-            if user.external_id != create_request.nutid_event_v1.user_external_id:
+        referenced = _get_scim_referenced(req, create_request.nutid_event_v1.ref)
+        if not referenced:
+            raise BadRequest(detail='referenced object not found')
+        if referenced.external_id:
+            if referenced.external_id != create_request.nutid_event_v1.ref.external_id:
                 raise BadRequest(detail='incorrect externalId')
 
         _timestamp = utc_now()
@@ -122,8 +122,11 @@ class EventsResource(SCIMResource):
         _expires_at = utc_now() + timedelta(days=1)
 
         event = ScimApiEvent(
-            scim_user_id=user.scim_id,
-            scim_user_external_id=user.external_id,
+            ref=ScimApiResourceRef(
+                resource_type=create_request.nutid_event_v1.ref.resource_type,
+                scim_id=referenced.scim_id,
+                external_id=referenced.external_id,
+            ),
             level=create_request.nutid_event_v1.level,
             source=req.context['data_owner'],
             data=create_request.nutid_event_v1.data,
@@ -134,3 +137,9 @@ class EventsResource(SCIMResource):
         ctx_eventdb(req).save(event)
 
         self._db_event_to_response(req, resp, event)
+
+
+def _get_scim_referenced(req: Request, ref: NutidResourceRef) -> Optional[ScimApiEndpointMixin]:
+    if ref.resource_type == SCIMResourceType.USER:
+        return ctx_userdb(req).get_user_by_scim_id(str(ref.scim_id))
+    return None

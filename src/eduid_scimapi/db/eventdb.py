@@ -7,8 +7,9 @@ from uuid import UUID, uuid4
 from eduid_userdb.util import utc_now
 
 from eduid_scimapi.db.basedb import ScimApiBaseDB
-from eduid_scimapi.db.common import EventLevel, ScimApiEvent
+from eduid_scimapi.db.common import EventLevel, ScimApiEvent, ScimApiResourceRef
 from eduid_scimapi.db.userdb import ScimApiUser
+from eduid_scimapi.schemas.scimbase import SCIMResourceType
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,11 @@ class ScimApiEventDB(ScimApiBaseDB):
         return result.acknowledged
 
     def get_events_by_scim_user_id(self, scim_user_id: UUID) -> List[ScimApiEvent]:
-        docs = self._get_documents_by_attr('scim_user_id', str(scim_user_id), raise_on_missing=False)
+        filter = {
+            'ref.scim_id': str(scim_user_id),
+            'ref.resource_type': SCIMResourceType.USER.value,
+        }
+        docs = self._get_documents_by_filter(filter, raise_on_missing=False)
         if docs:
             return [ScimApiEvent.from_dict(this) for this in docs]
         return []
@@ -58,8 +63,9 @@ def add_api_event(event_db: ScimApiEventDB, db_user: ScimApiUser, level: EventLe
     _expires_at = _now + timedelta(days=1)
     _event = ScimApiEvent(
         scim_id=uuid4(),
-        scim_user_id=db_user.scim_id,
-        scim_user_external_id=db_user.external_id,
+        ref=ScimApiResourceRef(
+            resource_type=SCIMResourceType.USER, scim_id=db_user.scim_id, external_id=db_user.external_id
+        ),
         timestamp=_now,
         expires_at=_expires_at,
         source='eduID SCIM API',

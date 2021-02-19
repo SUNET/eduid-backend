@@ -1,17 +1,37 @@
 # -*- coding: utf-8 -*-
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum
 from typing import Any, Dict, Optional
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from marshmallow import fields
-from marshmallow_dataclass import class_schema
+from marshmallow_dataclass import NewType, class_schema
 from marshmallow_enum import EnumField
 
-from eduid_scimapi.db.common import EventLevel
-from eduid_scimapi.schemas.scimbase import BaseCreateRequest, BaseResponse, BaseSchema, DateTimeField, SCIMSchema
+from eduid_scimapi.db.common import EventLevel, ScimApiResourceRef
+from eduid_scimapi.schemas.scimbase import (
+    BaseCreateRequest,
+    BaseResponse,
+    BaseSchema,
+    DateTimeField,
+    SCIMResourceType,
+    SCIMSchema,
+)
 
 __author__ = 'ft'
+
+
+SCIMResourceTypeValue = NewType(
+    'SCIMResourceTypeValue', SCIMResourceType, field=EnumField, enum=SCIMResourceType, by_value=True
+)
+
+
+@dataclass
+class NutidResourceRef:
+    resource_type: SCIMResourceTypeValue = field(metadata={'data_key': 'resourceType', 'required': True})
+    scim_id: UUID = field(metadata={'data_key': 'id', 'required': True})
+    external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId'})
 
 
 @dataclass(frozen=True)
@@ -21,6 +41,7 @@ class NutidEventExtensionV1:
     when creating an event: user_id, (external_id), level, data
     """
 
+    ref: NutidResourceRef = field(metadata={'required': True})
     level: EventLevel = field(
         default=EventLevel.INFO, metadata={'marshmallow_field': EnumField(EventLevel, required=True, by_value=True)}
     )
@@ -35,8 +56,6 @@ class NutidEventExtensionV1:
         default=None, metadata={'marshmallow_field': DateTimeField(data_key='timestamp'), 'required': False}
     )
     source: Optional[str] = field(default=None, metadata={'data_key': 'source', 'required': False})
-    user_id: Optional[str] = field(default=None, metadata={'data_key': 'userId', 'required': True})
-    user_external_id: Optional[str] = field(default=None, metadata={'data_key': 'userExternalId', 'required': False})
 
 
 @dataclass(frozen=True)

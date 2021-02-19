@@ -6,8 +6,9 @@ from uuid import UUID, uuid4
 from falcon.testing import Result
 
 from eduid_scimapi.db.common import EventLevel
+from eduid_scimapi.resources.base import SCIMResource
 from eduid_scimapi.schemas.event import EventResponse, EventResponseSchema, NutidEventExtensionV1
-from eduid_scimapi.schemas.scimbase import SCIMSchema
+from eduid_scimapi.schemas.scimbase import SCIMResourceType, SCIMSchema
 from eduid_scimapi.testing import ScimApiTestCase
 from eduid_scimapi.utils import make_etag
 
@@ -19,7 +20,7 @@ class ApiResult:
     response: EventResponse
 
 
-class TestInviteResource(ScimApiTestCase):
+class TestEventResource(ScimApiTestCase):
     def setUp(self) -> None:
         super().setUp()
 
@@ -44,8 +45,11 @@ class TestInviteResource(ScimApiTestCase):
     def test_create_event(self):
         user = self.add_user(identifier=str(uuid4()), external_id='test@example.org')
         event = {
-            'userId': str(user.scim_id),
-            'userExternalId': user.external_id,
+            'ref': {
+                'resourceType': SCIMResourceType.USER.value,
+                'id': str(user.scim_id),
+                'externalId': user.external_id,
+            },
             'level': EventLevel.DEBUG.value,
             'data': {'create_test': True},
         }
@@ -56,7 +60,9 @@ class TestInviteResource(ScimApiTestCase):
         assert len(events) == 1
         db_event = events[0]
         # Verify what went into the database
-        assert db_event.scim_user_external_id == user.external_id
+        assert db_event.ref.resource_type == SCIMResourceType.USER
+        assert db_event.ref.scim_id == user.scim_id
+        assert db_event.ref.external_id == user.external_id
         assert db_event.data == event['data']
         # Verify what is returned in the response
         assert result.response.id == db_event.scim_id
@@ -64,8 +70,11 @@ class TestInviteResource(ScimApiTestCase):
     def test_create_and_fetch_event(self):
         user = self.add_user(identifier=str(uuid4()), external_id='test@example.org')
         event = {
-            'userId': str(user.scim_id),
-            'userExternalId': user.external_id,
+            'ref': {
+                'resourceType': SCIMResourceType.USER.value,
+                'id': str(user.scim_id),
+                'externalId': user.external_id,
+            },
             'level': EventLevel.DEBUG.value,
             'data': {'create_fetch_test': True},
         }
@@ -105,8 +114,7 @@ class TestInviteResource(ScimApiTestCase):
                 'level': 'debug',
                 'source': 'eduid.se',
                 'timestamp': db_event.timestamp.isoformat(),
-                'userExternalId': user.external_id,
-                'userId': str(user.scim_id),
+                'ref': {'resourceType': 'User', 'id': str(user.scim_id), 'externalId': user.external_id,},
             },
         }
         assert fetched.result.json == expected

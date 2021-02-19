@@ -8,7 +8,7 @@ from uuid import UUID
 
 from bson import ObjectId
 from bson.errors import InvalidId
-from dateutil.parser import ParserError, parse
+from dateutil.parser import ParserError, parse  # type: ignore
 from langcodes import standardize_tag
 from marshmallow import Schema, ValidationError, fields, missing, post_dump, pre_load, validate
 from marshmallow_dataclass import NewType, class_schema
@@ -120,7 +120,7 @@ class SCIMSchema(Enum):
     DEBUG_V1 = 'https://scim.eduid.se/schema/nutid-DEBUG/v1'
 
 
-SCIMSchemaValue = NewType('SCIMSchemaValue', Enum, field=EnumField, enum=SCIMSchema, by_value=True)
+SCIMSchemaValue = NewType('SCIMSchemaValue', SCIMSchema, field=EnumField, enum=SCIMSchema, by_value=True)
 
 
 class SCIMResourceType(Enum):
@@ -222,21 +222,23 @@ class PhoneNumber:
 class BaseResponse:
     """ This is basically the implementation of the common attributes defined in RFC7643 #3.1. (Common Attributes) """
 
-    # TODO: Add externalId here (required: False)
     id: UUID = field(metadata={'required': True})
     meta: Meta = field(metadata={'required': True})
     schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
+    external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId', 'required': False})
 
 
 @dataclass(frozen=True)
 class BaseCreateRequest:
     schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
+    external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId', 'required': False})
 
 
 @dataclass(frozen=True)
 class BaseUpdateRequest:
     id: UUID = field(metadata={'required': True})
     schemas: List[SCIMSchemaValue] = field(default_factory=list, metadata={'required': True})
+    external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId', 'required': False})
 
 
 @dataclass(frozen=True)

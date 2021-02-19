@@ -258,7 +258,7 @@ class TestUserResource(ScimApiTestCase):
         events = self.eventdb.get_events_by_scim_user_id(db_user.scim_id)
         assert len(events) == 1
         event = events[0]
-        assert event.scim_user_external_id == req['externalId']
+        assert event.ref.external_id == req['externalId']
         assert event.data['status'] == 'CREATED'
 
     def test_create_user_no_external_id(self):

@@ -13,7 +13,7 @@ from bson import ObjectId
 
 from eduid_userdb.util import utc_now
 
-from eduid_scimapi.schemas.scimbase import EmailType, PhoneNumberType
+from eduid_scimapi.schemas.scimbase import EmailType, PhoneNumberType, SCIMResourceType
 
 __author__ = 'lundberg'
 
@@ -23,6 +23,7 @@ class ScimApiEndpointMixin:
     """ The elements common to all SCIM endpoints """
 
     scim_id: UUID = field(default_factory=lambda: uuid.uuid4())
+    external_id: Optional[str] = None
     version: ObjectId = field(default_factory=lambda: ObjectId())
     created: datetime = field(default_factory=lambda: utc_now())
     last_modified: datetime = field(default_factory=lambda: utc_now())
@@ -102,6 +103,26 @@ class ScimApiPhoneNumber:
         return cls(value=data['value'], display=data.get('display'), type=number_type, primary=data.get('primary'))
 
 
+@dataclass
+class ScimApiResourceRef:
+    resource_type: SCIMResourceType
+    scim_id: UUID
+    external_id: Optional[str]
+
+    def to_dict(self) -> Dict[str, Any]:
+        data = asdict(self)
+        data['scim_id'] = str(self.scim_id)
+        data['resource_type'] = self.resource_type.value
+        return data
+
+    @classmethod
+    def from_dict(cls: Type[ScimApiResourceRef], data: Mapping[str, Any]) -> ScimApiResourceRef:
+        _data = dict(data)
+        _data['resource_type'] = SCIMResourceType(_data['resource_type'])
+        _data['scim_id'] = UUID(_data['scim_id'])
+        return cls(**_data)
+
+
 class EventLevel(Enum):
     DEBUG = 'debug'
     INFO = 'info'
@@ -111,8 +132,7 @@ class EventLevel(Enum):
 
 @dataclass
 class _ScimApiEventRequired:
-    scim_user_id: UUID
-    scim_user_external_id: Optional[str]
+    ref: ScimApiResourceRef
     level: EventLevel
     source: str
     data: Dict[str, Any]
@@ -129,7 +149,7 @@ class ScimApiEvent(ScimApiEndpointMixin, _ScimApiEventRequired):
         data['_id'] = data.pop('db_id')
         data['level'] = self.level.value
         data['scim_id'] = str(self.scim_id)
-        data['scim_user_id'] = str(self.scim_user_id)
+        data['ref'] = self.ref.to_dict()
         return data
 
     @classmethod
@@ -138,7 +158,6 @@ class ScimApiEvent(ScimApiEndpointMixin, _ScimApiEventRequired):
         if '_id' in _data:
             _data['db_id'] = _data.pop('_id')
         _data['level'] = EventLevel(_data['level'])
-        for _to_uuid in ['scim_id', 'scim_user_id']:
-            if not isinstance(_data[_to_uuid], UUID):
-                _data[_to_uuid] = UUID(_data[_to_uuid])
+        _data['scim_id'] = UUID(_data['scim_id'])
+        _data['ref'] = ScimApiResourceRef.from_dict(_data['ref'])
         return cls(**_data)
