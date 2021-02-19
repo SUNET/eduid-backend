@@ -1,6 +1,6 @@
 # common
 eduid-am>=0.7.9
-eduid-common[webapp]>=0.31.0,==0.31.*
+eduid-common[webapp]>=0.31.2,==0.31.*
 eduid-msg>=0.10.9
 eduid-userdb>=0.11.0,==0.11.*
 pysaml2>=6.5.0,==6.*
