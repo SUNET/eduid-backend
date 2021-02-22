@@ -160,9 +160,9 @@ def send_letter(user: User, proofing_state: LetterProofingState) -> str:
         primary_mail_address=user.mail_addresses.primary.email,
         letter_wait_time_hours=current_app.conf.letter_wait_time_hours,
     )
-    if current_app.conf.ekopost_debug_pdf:
-        # Write PDF to file instead of actually sending it if EKOPOST_DEBUG_PDF is set
-        with open(current_app.conf.ekopost_debug_pdf, 'wb') as fd:
+    if current_app.conf.ekopost_debug_pdf_path is not None:
+        # Write PDF to file instead of actually sending it if ekopost_debug_pdf_path is set
+        with open(current_app.conf.ekopost_debug_pdf_path, 'wb') as fd:
             fd.write(pdf_letter.getvalue())
         return 'debug mode transaction id'
     campaign_id = current_app.ekopost.send(user.eppn, pdf_letter)
