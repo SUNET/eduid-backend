@@ -49,12 +49,12 @@ class LetterProofingConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, 
     ekopost_api_user: str = ''
     ekopost_api_pw: str = ''
     # Print in color (CMYK) or set to false for black and white.
-    ekopost_api_color = False
+    ekopost_api_color: bool = False
     # Send with 'priority' to deliver within one working day after printing, or send with 'economy' to deliver
     # within four working days after printing.
-    ekopost_api_postage = 'priority'
+    ekopost_api_postage: str = 'priority'
     # Use 'simplex' to print on one page or 'duplex' to print on both front and back.
-    ekopost_api_plex = 'simplex'
+    ekopost_api_plex: str = 'simplex'
     ekopost_debug_pdf_path: Optional[str] = None
 
     # Remove expired states on GET /proofing if this is set to True
