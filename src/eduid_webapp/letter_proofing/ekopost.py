@@ -21,10 +21,10 @@ class Ekopost:
         self.config = config
 
         auth = None
-        if self.config.ekopost_api_user and self.config.ekopost_api_pw:
-            auth = (self.config.ekopost_api_user, self.config.ekopost_api_pw)
+        if config.ekopost_api_user and config.ekopost_api_pw:
+            auth = (config.ekopost_api_user, config.ekopost_api_pw)
 
-        self.ekopost_api = Hammock(self.config.ekopost_api_uri, auth=auth, verify=self.config.ekopost_api_verify_ssl)
+        self.ekopost_api = Hammock(config.ekopost_api_uri, auth=auth, verify=config.ekopost_api_verify_ssl)
 
     def send(self, eppn, document):
         """
