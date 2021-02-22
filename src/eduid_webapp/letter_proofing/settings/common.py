@@ -30,6 +30,8 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from typing import Optional
+
 from eduid_common.config.base import AmConfigMixin, EduIDBaseAppConfig, MagicCookieMixin, MsgConfigMixin
 
 
@@ -43,10 +45,10 @@ class LetterProofingConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, 
     letter_wait_time_hours: int = 336  # 2 weeks
 
     ekopost_api_uri: str = 'https://api.ekopost.se'
-    ekopost_api_verify_ssl: str = 'true'
+    ekopost_api_verify_ssl: bool = True
     ekopost_api_user: str = ''
     ekopost_api_pw: str = ''
-    ekopost_debug_pdf: str = ''
+    ekopost_debug_pdf_path: Optional[str] = None
 
     # Remove expired states on GET /proofing if this is set to True
     backwards_compat_remove_expired_state: bool = False
