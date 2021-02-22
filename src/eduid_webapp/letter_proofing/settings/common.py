@@ -55,6 +55,8 @@ class LetterProofingConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, 
     ekopost_api_postage: str = 'priority'
     # Use 'simplex' to print on one page or 'duplex' to print on both front and back.
     ekopost_api_plex: str = 'simplex'
+    # Setting ekopost_debug_pdf to a path means that the other ekopost settings will be ignored and that the pdf
+    # only will be written to to the supplied path, not sent to the letter service.
     ekopost_debug_pdf_path: Optional[str] = None
 
     # Remove expired states on GET /proofing if this is set to True
