@@ -64,7 +64,7 @@ class LetterProofingApp(AuthnBaseApp):
         self.am_relay = AmRelay(config)
 
         # Initiate external modules
-        self.ekopost = Ekopost(self)
+        self.ekopost = Ekopost(self.conf)
 
 
 current_letterp_app = cast(LetterProofingApp, current_app)

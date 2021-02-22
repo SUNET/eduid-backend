@@ -7,6 +7,8 @@ from datetime import datetime
 
 from hammock import Hammock
 
+from eduid_webapp.letter_proofing.settings.common import LetterProofingConfig
+
 __author__ = 'john'
 
 
@@ -14,23 +16,15 @@ class EkopostException(Exception):
     pass
 
 
-class Ekopost(object):
+class Ekopost:
+    def __init__(self, config: LetterProofingConfig):
+        self.config = config
 
-    _ekopost_api = None
+        auth = None
+        if self.config.ekopost_api_user and self.config.ekopost_api_pw:
+            auth = (self.config.ekopost_api_user, self.config.ekopost_api_pw)
 
-    def __init__(self, app):
-        self.app = app
-
-    @property
-    def ekopost_api(self):
-        if self._ekopost_api is None:
-            auth = None
-            if self.app.conf.ekopost_api_user and self.app.conf.ekopost_api_pw:
-                auth = (self.app.conf.ekopost_api_user, self.app.conf.ekopost_api_pw)
-            self._ekopost_api = Hammock(
-                self.app.conf.ekopost_api_uri, auth=auth, verify=self.app.conf.ekopost_api_verify_ssl
-            )
-        return self._ekopost_api
+        self.ekopost_api = Hammock(self.config.ekopost_api_uri, auth=auth, verify=self.config.ekopost_api_verify_ssl)
 
     def send(self, eppn, document):
         """
@@ -50,7 +44,16 @@ class Ekopost(object):
 
         # Create a campaign and the envelope that it should contain
         campaign = self._create_campaign(letter_id, output_date, 'eduID')
-        envelope = self._create_envelope(campaign['id'], letter_id)
+        color = 'false'
+        if self.config.ekopost_api_color:
+            color = 'true'
+        envelope = self._create_envelope(
+            campaign_id=campaign['id'],
+            name=letter_id,
+            color=color,
+            postage=self.config.ekopost_api_postage,
+            plex=self.config.ekopost_api_plex,
+        )
 
         # Include the PDF-document to send
         self._create_content(campaign['id'], envelope['id'], document.getvalue())
