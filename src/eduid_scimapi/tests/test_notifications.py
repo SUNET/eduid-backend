@@ -4,7 +4,7 @@ from uuid import uuid4
 import boto3
 from moto import mock_sns
 
-from eduid_scimapi.db.common import EventLevel
+from eduid_scimapi.db.eventdb import EventLevel
 from eduid_scimapi.schemas.scimbase import SCIMResourceType, SCIMSchema
 from eduid_scimapi.testing import ScimApiTestCase
 

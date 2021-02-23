@@ -6,7 +6,7 @@ import logging
 import pprint
 import uuid
 from dataclasses import asdict, dataclass, field, replace
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple, Type, Union
 from uuid import UUID
 
@@ -17,8 +17,8 @@ from eduid_graphdb.groupdb import GroupDB
 from eduid_graphdb.groupdb import User as GraphUser
 
 from eduid_scimapi.db.basedb import ScimApiBaseDB
-from eduid_scimapi.db.common import ScimApiEndpointMixin
-from eduid_scimapi.schemas.group import Group as SCIMGroup
+from eduid_scimapi.db.common import ScimApiResourceBase
+from eduid_scimapi.schemas.group import GroupCreateRequest, GroupUpdateRequest
 
 __author__ = 'lundberg'
 
@@ -43,7 +43,7 @@ class _ScimApiGroupRequired:
 
 
 @dataclass
-class ScimApiGroup(ScimApiEndpointMixin, _ScimApiGroupRequired):
+class ScimApiGroup(ScimApiResourceBase, _ScimApiGroupRequired):
     group_id: ObjectId = field(default_factory=lambda: ObjectId())
     extensions: GroupExtensions = field(default_factory=lambda: GroupExtensions())
     graph: GraphGroup = field(init=False)

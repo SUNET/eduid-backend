@@ -5,7 +5,8 @@ from typing import Optional
 from falcon import Request, Response
 from marshmallow import ValidationError
 
-from eduid_scimapi.db.common import ScimApiEndpointMixin, ScimApiEvent, ScimApiEventResource
+from eduid_scimapi.db.common import ScimApiResourceBase
+from eduid_scimapi.db.eventdb import ScimApiEvent, ScimApiEventResource
 from eduid_scimapi.exceptions import BadRequest, NotFound
 from eduid_scimapi.middleware import ctx_eventdb, ctx_userdb
 from eduid_scimapi.resources.base import SCIMResource
@@ -140,7 +141,7 @@ class EventsResource(SCIMResource):
         self._db_event_to_response(req, resp, event)
 
 
-def _get_scim_referenced(req: Request, resource: NutidEventResource) -> Optional[ScimApiEndpointMixin]:
+def _get_scim_referenced(req: Request, resource: NutidEventResource) -> Optional[ScimApiResourceBase]:
     if resource.resource_type == SCIMResourceType.USER:
         return ctx_userdb(req).get_user_by_scim_id(str(resource.scim_id))
     return None

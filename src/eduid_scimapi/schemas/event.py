@@ -8,7 +8,7 @@ from marshmallow import fields
 from marshmallow_dataclass import NewType, class_schema
 from marshmallow_enum import EnumField
 
-from eduid_scimapi.db.common import EventLevel
+from eduid_scimapi.db.eventdb import EventLevel
 from eduid_scimapi.schemas.scimbase import (
     BaseCreateRequest,
     BaseResponse,

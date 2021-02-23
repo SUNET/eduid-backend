@@ -10,14 +10,7 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple, Type
 from bson import ObjectId
 
 from eduid_scimapi.db.basedb import ScimApiBaseDB
-from eduid_scimapi.db.common import (
-    ScimApiEmail,
-    ScimApiEndpointMixin,
-    ScimApiEvent,
-    ScimApiName,
-    ScimApiPhoneNumber,
-    ScimApiProfile,
-)
+from eduid_scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile, ScimApiResourceBase
 
 __author__ = 'ft'
 
@@ -25,9 +18,8 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class ScimApiUser(ScimApiEndpointMixin):
+class ScimApiUser(ScimApiResourceBase):
     user_id: ObjectId = field(default_factory=lambda: ObjectId())
-    external_id: Optional[str] = None
     name: ScimApiName = field(default_factory=lambda: ScimApiName())
     emails: List[ScimApiEmail] = field(default_factory=list)
     phone_numbers: List[ScimApiPhoneNumber] = field(default_factory=list)

@@ -6,17 +6,16 @@ from uuid import UUID
 from falcon import HTTP_201, HTTP_204, Request, Response
 from marshmallow.exceptions import ValidationError
 
+from eduid_scimapi.db.eventdb import EventLevel, EventStatus, add_api_event
 from eduid_scimapi.db.groupdb import ScimApiGroup
 from eduid_scimapi.exceptions import BadRequest, NotFound
 from eduid_scimapi.middleware import ctx_groupdb, ctx_userdb
 from eduid_scimapi.resources.base import BaseResource, SCIMResource
 from eduid_scimapi.schemas.group import (
-    Group,
     GroupCreateRequestSchema,
     GroupMember,
     GroupResponse,
     GroupResponseSchema,
-    GroupUpdateRequest,
     GroupUpdateRequestSchema,
     NutidGroupExtensionV1,
 )

@@ -4,14 +4,14 @@ import copy
 import logging
 import uuid
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Type
 from uuid import UUID
 
 from bson import ObjectId
 
 from eduid_scimapi.db.basedb import ScimApiBaseDB
-from eduid_scimapi.db.common import ScimApiEmail, ScimApiEndpointMixin, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
+from eduid_scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile, ScimApiResourceBase
 from eduid_scimapi.utils import filter_none
 
 __author__ = 'lundberg'
@@ -21,9 +21,8 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class ScimApiInvite(ScimApiEndpointMixin):
+class ScimApiInvite(ScimApiResourceBase):
     invite_id: ObjectId = field(default_factory=lambda: ObjectId())
-    external_id: Optional[str] = None
     name: ScimApiName = field(default_factory=lambda: ScimApiName())
     emails: List[ScimApiEmail] = field(default_factory=list)
     phone_numbers: List[ScimApiPhoneNumber] = field(default_factory=list)
