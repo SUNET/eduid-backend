@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 from dataclasses import dataclass, field, replace
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from os import environ
 from typing import Dict, Mapping, Optional
 
@@ -96,9 +96,13 @@ class StatusResource(BaseResource):
 
 
 class HealthCheckResource(StatusResource):
+    def __init__(self, context: Context):
+        super().__init__(context=context)
+        self.default_data_owner = list(self.context.config.data_owners.keys())[0]
+
     def _check_mongo(self):
-        user_db = self.context.get_userdb(self.context.config.data_owners[0])
-        group_db = self.context.get_groupdb(self.context.config.data_owners[0])
+        user_db = self.context.get_userdb(self.default_data_owner)
+        group_db = self.context.get_groupdb(self.default_data_owner)
         try:
             user_db.is_healthy()
             group_db.is_healthy()
@@ -110,7 +114,7 @@ class HealthCheckResource(StatusResource):
             return False
 
     def _check_neo4j(self):
-        group_db = self.context.get_groupdb(self.context.config.data_owners[0])
+        group_db = self.context.get_groupdb(self.default_data_owner)
         try:
             # TODO: Implement is_healthy
             # db.is_healthy()

@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
-from uuid import UUID
 
 from marshmallow import fields
 from marshmallow_dataclass import class_schema
@@ -10,9 +9,7 @@ from eduid_scimapi.schemas.scimbase import (
     BaseResponse,
     BaseSchema,
     BaseUpdateRequest,
-    Meta,
     SCIMSchema,
-    SCIMSchemaValue,
     SubResource,
 )
 
