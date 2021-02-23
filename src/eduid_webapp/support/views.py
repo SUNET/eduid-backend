@@ -42,7 +42,7 @@ def index(support_user):
                 return render_template(
                     'index.html',
                     support_user=support_user,
-                    token_service_url_logout=current_app.conf.token_service_url_logout,
+                    logout_url=current_app.conf.token_service_url_logout,
                     error="No users matched the search query",
                 )
 
@@ -74,11 +74,11 @@ def index(support_user):
         return render_template(
             'index.html',
             support_user=support_user,
-            token_service_url_logout=current_app.conf.token_service_url_logout,
+            logout_url=current_app.conf.token_service_url_logout,
             users=users,
             search_query=search_query,
         )
     else:
         return render_template(
-            'index.html', support_user=support_user, token_service_url_logout=current_app.conf.token_service_url_logout
+            'index.html', support_user=support_user, logout_url=current_app.conf.token_service_url_logout
         )
