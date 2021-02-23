@@ -40,7 +40,10 @@ def index(support_user):
                     )
                 )
                 return render_template(
-                    'index.html', support_user=support_user, error="No users matched the search query"
+                    'index.html',
+                    support_user=support_user,
+                    token_service_url_logout=current_app.conf.token_service_url_logout,
+                    error="No users matched the search query",
                 )
 
         current_app.logger.info('Support personnel {} searched for {}'.format(support_user, search_query))
@@ -68,6 +71,14 @@ def index(support_user):
             user_data['phone_proofings'] = current_app.support_phone_proofing_db.get_proofing_states(eppn=user.eppn)
             users.append(user_data)
 
-        return render_template('index.html', support_user=support_user, users=users, search_query=search_query)
+        return render_template(
+            'index.html',
+            support_user=support_user,
+            token_service_url_logout=current_app.conf.token_service_url_logout,
+            users=users,
+            search_query=search_query,
+        )
     else:
-        return render_template('index.html', support_user=support_user)
+        return render_template(
+            'index.html', support_user=support_user, token_service_url_logout=current_app.conf.token_service_url_logout
+        )
