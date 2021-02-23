@@ -12,6 +12,7 @@ from eduid_scimapi.db.groupdb import ScimApiGroupDB
 from eduid_scimapi.db.invitedb import ScimApiInviteDB
 from eduid_scimapi.db.userdb import ScimApiUserDB
 from eduid_scimapi.log import init_logging
+from eduid_scimapi.notifications import NotificationRelay
 from eduid_scimapi.utils import urlappend
 
 
@@ -53,6 +54,9 @@ class Context(object):
             )
         self.signup_invitedb = SignupInviteDB(db_uri=self.config.mongo_uri)
         self.messagedb = MessageDB(db_uri=self.config.mongo_uri)
+
+        # Setup notifications
+        self.notification_relay = NotificationRelay(self.config)
 
     @property
     def base_url(self) -> str:
