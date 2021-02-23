@@ -55,7 +55,7 @@ class TestEventResource(ScimApiTestCase):
         result = self._create_event(event=event)
 
         # check that the create resulted in an event in the database
-        events = self.eventdb.get_events_by_scim_obj_id(user.scim_id, SCIMResourceType.USER)
+        events = self.eventdb.get_events_by_resource(SCIMResourceType.USER, scim_id=user.scim_id)
         assert len(events) == 1
         db_event = events[0]
         # Verify what went into the database
@@ -80,7 +80,7 @@ class TestEventResource(ScimApiTestCase):
         created = self._create_event(event=event)
 
         # check that the create resulted in an event in the database
-        events = self.eventdb.get_events_by_scim_obj_id(user.scim_id, SCIMResourceType.USER)
+        events = self.eventdb.get_events_by_resource(SCIMResourceType.USER, scim_id=user.scim_id)
         assert len(events) == 1
         db_event = events[0]
 

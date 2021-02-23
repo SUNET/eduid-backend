@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
@@ -110,11 +112,17 @@ class ScimApiEventDB(ScimApiBaseDB):
 
         return result.acknowledged
 
-    def get_events_by_scim_obj_id(self, scim_id: UUID, resource_type: SCIMResourceType) -> List[ScimApiEvent]:
+    def get_events_by_resource(
+        self, resource_type: SCIMResourceType, scim_id: Optional[UUID] = None, external_id: Optional[str] = None
+    ) -> List[ScimApiEvent]:
         filter = {
-            'resource.scim_id': str(scim_id),
             'resource.resource_type': resource_type.value,
         }
+        if scim_id is not None:
+            filter['resource.scim_id'] = str(scim_id)
+        if external_id is not None:
+            filter['resource.external_id'] = external_id
+
         docs = self._get_documents_by_filter(filter, raise_on_missing=False)
         if docs:
             return [ScimApiEvent.from_dict(this) for this in docs]

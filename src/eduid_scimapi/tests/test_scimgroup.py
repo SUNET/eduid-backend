@@ -223,7 +223,7 @@ class TestGroupResource_POST(TestGroupResource):
         self._assertGroupUpdateSuccess(req, response, db_group)
 
         # check that the action resulted in an event in the database
-        events = self.eventdb.get_events_by_scim_obj_id(db_group.scim_id, SCIMResourceType.GROUP)
+        events = self.eventdb.get_events_by_resource(SCIMResourceType.GROUP, db_group.scim_id)
         assert len(events) == 1
         event = events[0]
         assert event.resource.external_id == req['externalId']
@@ -309,7 +309,7 @@ class TestGroupResource_PUT(TestGroupResource):
         self._assertGroupUpdateSuccess(req, response, db_group)
 
         # check that the action resulted in an event in the database
-        events = self.eventdb.get_events_by_scim_obj_id(db_group.scim_id, SCIMResourceType.GROUP)
+        events = self.eventdb.get_events_by_resource(SCIMResourceType.GROUP, db_group.scim_id)
         assert len(events) == 2
         event = events[0]
         assert event.resource.external_id == req['externalId']
@@ -502,7 +502,7 @@ class TestGroupResource_DELETE(TestGroupResource):
         self.assertIsNone(db_group2)
 
         # check that the action resulted in an event in the database
-        events = self.eventdb.get_events_by_scim_obj_id(db_group1.scim_id, SCIMResourceType.GROUP)
+        events = self.eventdb.get_events_by_resource(SCIMResourceType.GROUP, db_group1.scim_id)
         assert len(events) == 1
         event = events[0]
         assert event.resource.external_id is None

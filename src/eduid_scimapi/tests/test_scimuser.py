@@ -255,7 +255,7 @@ class TestUserResource(ScimApiTestCase):
         self._assertUserUpdateSuccess(req, response, db_user)
 
         # check that the action resulted in an event in the database
-        events = self.eventdb.get_events_by_scim_obj_id(db_user.scim_id, SCIMResourceType.USER)
+        events = self.eventdb.get_events_by_resource(SCIMResourceType.USER, db_user.scim_id)
         assert len(events) == 1
         event = events[0]
         assert event.resource.external_id == req['externalId']
@@ -321,7 +321,7 @@ class TestUserResource(ScimApiTestCase):
         self._assertUserUpdateSuccess(req, response, db_user)
 
         # check that the action resulted in an event in the database
-        events = self.eventdb.get_events_by_scim_obj_id(db_user.scim_id, SCIMResourceType.USER)
+        events = self.eventdb.get_events_by_resource(SCIMResourceType.USER, db_user.scim_id)
         assert len(events) == 1
         event = events[0]
         assert event.resource.external_id == req['externalId']
