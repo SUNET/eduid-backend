@@ -30,19 +30,27 @@ class Context(object):
         self._groupdbs = {}
         self._invitedbs = {}
         self._eventdbs = {}
-        for data_owner in self.config.data_owners:
-            _owner = data_owner.replace('.', '_')  # replace dots with underscores
-            self._userdbs[data_owner] = ScimApiUserDB(db_uri=self.config.mongo_uri, collection=f'{_owner}__users')
-            self._groupdbs[data_owner] = ScimApiGroupDB(
+        for data_owner_id, data_owner in self.config.data_owners.items():
+            db_name = data_owner_id.replace('.', '_')  # replace dots with underscores
+            if data_owner.db_name is not None:
+                # If data_owner.db_name is set for this data owner use that instead of the default db_name
+                db_name = data_owner.db_name
+
+            self._userdbs[data_owner_id] = ScimApiUserDB(db_uri=self.config.mongo_uri, collection=f'{db_name}__users')
+            self._groupdbs[data_owner_id] = ScimApiGroupDB(
                 neo4j_uri=self.config.neo4j_uri,
                 neo4j_config=self.config.neo4j_config,
-                scope=data_owner,
+                scope=data_owner_id,
                 mongo_uri=self.config.mongo_uri,
                 mongo_dbname='eduid_scimapi',
-                mongo_collection=f'{_owner}__groups',
+                mongo_collection=f'{db_name}__groups',
             )
-            self._invitedbs[data_owner] = ScimApiInviteDB(db_uri=self.config.mongo_uri, collection=f'{_owner}__invites')
-            self._eventdbs[data_owner] = ScimApiEventDB(db_uri=self.config.mongo_uri, collection=f'{_owner}__events')
+            self._invitedbs[data_owner_id] = ScimApiInviteDB(
+                db_uri=self.config.mongo_uri, collection=f'{db_name}__invites'
+            )
+            self._eventdbs[data_owner_id] = ScimApiEventDB(
+                db_uri=self.config.mongo_uri, collection=f'{db_name}__events'
+            )
         self.signup_invitedb = SignupInviteDB(db_uri=self.config.mongo_uri)
         self.messagedb = MessageDB(db_uri=self.config.mongo_uri)
 
