@@ -82,8 +82,8 @@ class HandleAuthentication(object):
             raise Unauthorized(detail='Signature expired')
 
         data_owner = claims.get('data_owner')
-        if not self.context.get_userdb(data_owner):
-            self.context.logger.info(f'No database available for data_owner {repr(data_owner)}')
+        if data_owner not in self.context.config.data_owners:
+            self.context.logger.error(f'Data owner {repr(data_owner)} not configured')
             raise Unauthorized(detail='Unknown data_owner')
 
         req.context['data_owner'] = data_owner

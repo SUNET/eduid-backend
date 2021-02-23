@@ -6,7 +6,7 @@ import logging
 import pprint
 import uuid
 from dataclasses import asdict, dataclass, field, replace
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple, Type, Union
 from uuid import UUID
 
@@ -17,8 +17,8 @@ from eduid_graphdb.groupdb import GroupDB
 from eduid_graphdb.groupdb import User as GraphUser
 
 from eduid_scimapi.db.basedb import ScimApiBaseDB
-from eduid_scimapi.db.common import ScimApiEndpointMixin
-from eduid_scimapi.schemas.group import Group as SCIMGroup
+from eduid_scimapi.db.common import ScimApiResourceBase
+from eduid_scimapi.schemas.group import GroupCreateRequest, GroupUpdateRequest
 
 __author__ = 'lundberg'
 
@@ -43,7 +43,7 @@ class _ScimApiGroupRequired:
 
 
 @dataclass
-class ScimApiGroup(ScimApiEndpointMixin, _ScimApiGroupRequired):
+class ScimApiGroup(ScimApiResourceBase, _ScimApiGroupRequired):
     group_id: ObjectId = field(default_factory=lambda: ObjectId())
     extensions: GroupExtensions = field(default_factory=lambda: GroupExtensions())
     graph: GraphGroup = field(init=False)
@@ -148,21 +148,23 @@ class ScimApiGroupDB(ScimApiBaseDB):
 
         return result.acknowledged
 
-    def create_group(self, scim_group: SCIMGroup) -> ScimApiGroup:
+    def create_group(self, create_request: GroupCreateRequest) -> ScimApiGroup:
         group = ScimApiGroup(
-            extensions=GroupExtensions(data=scim_group.nutid_group_v1.data), display_name=scim_group.display_name
+            external_id=create_request.external_id,
+            extensions=GroupExtensions(data=create_request.nutid_group_v1.data),
+            display_name=create_request.display_name,
         )
-        group.graph = GraphGroup(identifier=str(group.scim_id), display_name=scim_group.display_name)
+        group.graph = GraphGroup(identifier=str(group.scim_id), display_name=create_request.display_name)
         if not self.save(group):
             logger.error(f'Creating group {group} failed')
             raise RuntimeError('Group creation failed')
         return group
 
-    def update_group(self, scim_group: SCIMGroup, db_group: ScimApiGroup) -> ScimApiGroup:
+    def update_group(self, update_request: GroupUpdateRequest, db_group: ScimApiGroup) -> Tuple[ScimApiGroup, bool]:
         changed = False
         updated_members = set()
         logger.info(f'Updating group {str(db_group.scim_id)}')
-        for this in scim_group.members:
+        for this in update_request.members:
             if this.is_user:
                 _member = db_group.graph.get_member_user(identifier=str(this.value))
                 _new_member = None if _member else GraphUser(identifier=str(this.value), display_name=this.display)
@@ -185,24 +187,31 @@ class ScimApiGroupDB(ScimApiBaseDB):
                 # no change, retain member as-is
                 updated_members.add(_member)
 
-        if db_group.graph.display_name != scim_group.display_name:
+        if db_group.graph.display_name != update_request.display_name:
             changed = True
-            logger.debug(f'Changed display name for group: {db_group.graph.display_name} -> {scim_group.display_name}')
-            db_group.graph = replace(db_group.graph, display_name=scim_group.display_name)
+            db_group.graph = replace(db_group.graph, display_name=update_request.display_name)
+            logger.debug(
+                f'Changed display name for group: {db_group.graph.display_name} -> {update_request.display_name}'
+            )
+
+        if db_group.external_id != update_request.external_id:
+            changed = True
+            db_group.external_id = update_request.external_id
+            logger.debug(f'Changed external id for group: {db_group.external_id} -> {update_request.external_id}')
 
         # Check if there where new, changed or removed members
         if db_group.graph.members != updated_members:
             changed = True
+            db_group.graph = replace(db_group.graph, members=updated_members)
             logger.debug(f'Old members: {db_group.graph.members}')
             logger.debug(f'New members: {updated_members}')
-            db_group.graph = replace(db_group.graph, members=updated_members)
 
-        _sg_ext = GroupExtensions(data=scim_group.nutid_group_v1.data)
+        _sg_ext = GroupExtensions(data=update_request.nutid_group_v1.data)
         if db_group.extensions != _sg_ext:
             changed = True
+            db_group.extensions = _sg_ext
             logger.debug(f'Old extensions: {db_group.extensions}')
             logger.debug(f'New extensions: {_sg_ext}')
-            db_group.extensions = _sg_ext
 
         if changed:
             logger.info(f'Group {str(db_group.scim_id)} changed. Saving.')
@@ -211,7 +220,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
             else:
                 logger.warning(f'Update of group {db_group} probably failed')
 
-        return db_group
+        return db_group, changed
 
     def get_groups(self) -> List[ScimApiGroup]:
         docs = self._get_documents_by_filter({}, raise_on_missing=False)

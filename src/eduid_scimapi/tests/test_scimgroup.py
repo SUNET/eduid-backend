@@ -4,7 +4,7 @@ __author__ = 'lundberg'
 
 import logging
 from dataclasses import asdict
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, List, Mapping, Optional, Set, Union
 from uuid import UUID, uuid4
 
@@ -15,6 +15,7 @@ from eduid_graphdb.groupdb import Group as GraphGroup
 from eduid_graphdb.groupdb import User as GraphUser
 from eduid_userdb.testing import normalised_data
 
+from eduid_scimapi.db.eventdb import EventStatus
 from eduid_scimapi.db.groupdb import GroupExtensions, ScimApiGroup
 from eduid_scimapi.db.userdb import ScimApiUser
 from eduid_scimapi.schemas.group import GroupMember, GroupResponse
@@ -206,7 +207,12 @@ class TestGroupResource_GET(TestGroupResource):
 
 class TestGroupResource_POST(TestGroupResource):
     def test_create_group(self):
-        req = {'schemas': [SCIMSchema.CORE_20_GROUP.value], 'displayName': 'Test Group 1', 'members': []}
+        req = {
+            'schemas': [SCIMSchema.CORE_20_GROUP.value],
+            'displayName': 'Test Group 1',
+            'externalId': 'a-group',
+            'members': [],
+        }
         response = self.client.simulate_post(path='/Groups/', body=self.as_json(req), headers=self.headers)
 
         # Load the created group from the database, ensuring it was in fact created
@@ -215,6 +221,13 @@ class TestGroupResource_POST(TestGroupResource):
         db_group = _groups[0]
 
         self._assertGroupUpdateSuccess(req, response, db_group)
+
+        # check that the action resulted in an event in the database
+        events = self.eventdb.get_events_by_resource(SCIMResourceType.GROUP, db_group.scim_id)
+        assert len(events) == 1
+        event = events[0]
+        assert event.resource.external_id == req['externalId']
+        assert event.data['status'] == EventStatus.CREATED.value
 
     def test_schema_violation(self):
         # request missing displayName
@@ -270,9 +283,11 @@ class TestGroupResource_PUT(TestGroupResource):
             },
         ]
         db_group.display_name = 'Another display name'
+        db_group.external_id = 'external id'
         req = {
             'schemas': [SCIMSchema.CORE_20_GROUP.value, SCIMSchema.NUTID_GROUP_V1.value],
             'id': str(db_group.scim_id),
+            'externalId': db_group.external_id,
             'displayName': db_group.display_name,
             'members': members,
             SCIMSchema.NUTID_GROUP_V1.value: {'data': {'test': 'updated'}},
@@ -292,6 +307,13 @@ class TestGroupResource_PUT(TestGroupResource):
             path=f'/Groups/{db_group.scim_id}', body=self.as_json(req), headers=self.headers
         )
         self._assertGroupUpdateSuccess(req, response, db_group)
+
+        # check that the action resulted in an event in the database
+        events = self.eventdb.get_events_by_resource(SCIMResourceType.GROUP, db_group.scim_id)
+        assert len(events) == 2
+        event = events[0]
+        assert event.resource.external_id == req['externalId']
+        assert event.data['status'] == EventStatus.UPDATED.value
 
     def test_add_member_to_existing_group(self):
         db_group = self.add_group(uuid4(), 'Test Group 1')
@@ -478,6 +500,13 @@ class TestGroupResource_DELETE(TestGroupResource):
         # Verify the group is no longer in the database
         db_group2 = self.groupdb.get_group_by_scim_id(group.scim_id)
         self.assertIsNone(db_group2)
+
+        # check that the action resulted in an event in the database
+        events = self.eventdb.get_events_by_resource(SCIMResourceType.GROUP, db_group1.scim_id)
+        assert len(events) == 1
+        event = events[0]
+        assert event.resource.external_id is None
+        assert event.data['status'] == EventStatus.DELETED.value
 
     def test_version_mismatch(self):
         group = self.add_group(uuid4(), 'Test Group 1')

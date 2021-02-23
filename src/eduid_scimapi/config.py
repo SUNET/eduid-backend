@@ -1,11 +1,22 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 from eduid_common.config.base import LoggingConfigMixin, RootConfig
 
 
-class ScimApiConfig(RootConfig, LoggingConfigMixin):
+class DataOwner(BaseModel):
+    db_name: Optional[str] = None
+    notify: List[str] = []
+
+
+class AWSMixin(BaseModel):
+    aws_access_key_id: Optional[str] = None
+    aws_secret_access_key: Optional[str] = None
+    aws_region: Optional[str] = None
+
+
+class ScimApiConfig(RootConfig, LoggingConfigMixin, AWSMixin):
     """
     Configuration for the SCIM API app
     """
@@ -21,7 +32,7 @@ class ScimApiConfig(RootConfig, LoggingConfigMixin):
     authorization_token_expire: int = 5 * 60
     no_authn_urls: List[str] = Field(default=['^/login$', '^/status/healthy$'])
     status_cache_seconds: int = 10
-    data_owners: List[str] = Field(default=['eduid.se'])
+    data_owners: Dict[str, DataOwner] = Field(default={})
     # Invite config
     invite_url: str = ''
     invite_expire: int = 180 * 86400  # 180 days

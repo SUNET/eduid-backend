@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from dataclasses import asdict
-from datetime import datetime, timezone
+from datetime import datetime
 from unittest import TestCase
 from uuid import uuid4
 

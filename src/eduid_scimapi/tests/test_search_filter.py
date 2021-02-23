@@ -1,5 +1,5 @@
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime
 
 from eduid_scimapi.exceptions import BadRequest
 from eduid_scimapi.search import parse_search_filter

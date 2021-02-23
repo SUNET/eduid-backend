@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
 from typing import Any, Dict, Optional
 from uuid import UUID
 
@@ -9,7 +8,7 @@ from marshmallow import fields
 from marshmallow_dataclass import NewType, class_schema
 from marshmallow_enum import EnumField
 
-from eduid_scimapi.db.common import EventLevel, ScimApiEventResource
+from eduid_scimapi.db.eventdb import EventLevel
 from eduid_scimapi.schemas.scimbase import (
     BaseCreateRequest,
     BaseResponse,

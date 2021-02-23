@@ -29,7 +29,6 @@ NIN_RE = re.compile(r'^(18|19|20)\d{2}(0[1-9]|1[0-2])\d{2}\d{4}$')
 
 @dataclass(frozen=True)
 class NutidInviteV1:
-    external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId', 'required': False})
     name: Name = field(default_factory=lambda: Name(), metadata={'required': False})
     emails: List[Email] = field(default_factory=list)
     phone_numbers: List[PhoneNumber] = field(default_factory=list, metadata={'data_key': 'phoneNumbers'})

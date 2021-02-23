@@ -6,11 +6,11 @@ from falcon import Request, Response
 from marshmallow import ValidationError
 from pymongo.errors import DuplicateKeyError
 
-from eduid_scimapi.db.common import EventLevel, ScimApiEmail, ScimApiName, ScimApiPhoneNumber
-from eduid_scimapi.db.eventdb import add_api_event
+from eduid_scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber
+from eduid_scimapi.db.eventdb import EventLevel, EventStatus, add_api_event
 from eduid_scimapi.db.userdb import ScimApiProfile, ScimApiUser
 from eduid_scimapi.exceptions import BadRequest, NotFound
-from eduid_scimapi.middleware import ctx_eventdb, ctx_groupdb, ctx_userdb
+from eduid_scimapi.middleware import ctx_groupdb, ctx_userdb
 from eduid_scimapi.resources.base import BaseResource, SCIMResource
 from eduid_scimapi.schemas.scimbase import (
     Email,
@@ -179,7 +179,15 @@ class UsersResource(SCIMResource):
 
             if core_changed or nutid_changed:
                 self._save_user(req, db_user)
-                add_api_event(ctx_eventdb(req), db_user, EventLevel.INFO, status='UPDATED', message='User was updated')
+                add_api_event(
+                    context=self.context,
+                    data_owner=req.context['data_owner'],
+                    db_obj=db_user,
+                    resource_type=SCIMResourceType.USER,
+                    level=EventLevel.INFO,
+                    status=EventStatus.UPDATED,
+                    message='User was updated',
+                )
 
             self._db_user_to_response(req=req, resp=resp, db_user=db_user)
         except ValidationError as e:
@@ -252,7 +260,15 @@ class UsersResource(SCIMResource):
             )
 
             self._save_user(req, db_user)
-            add_api_event(ctx_eventdb(req), db_user, EventLevel.INFO, status='CREATED', message='User was created')
+            add_api_event(
+                context=self.context,
+                data_owner=req.context['data_owner'],
+                db_obj=db_user,
+                resource_type=SCIMResourceType.USER,
+                level=EventLevel.INFO,
+                status=EventStatus.CREATED,
+                message='User was created',
+            )
 
             self._db_user_to_response(req=req, resp=resp, db_user=db_user)
         except ValidationError as e:

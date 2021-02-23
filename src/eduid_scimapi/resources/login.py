@@ -11,7 +11,7 @@ class LoginResource(BaseResource):
     def on_post(self, req: Request, resp: Response):
         self.context.logger.info(f'Logging in')
         data_owner = req.media['data_owner']
-        if data_owner not in self.context._userdbs:
+        if data_owner not in self.context.config.data_owners:
             raise Unauthorized()
         now = datetime.datetime.now(tz=datetime.timezone.utc)
         expire = now + datetime.timedelta(seconds=self.context.config.authorization_token_expire)

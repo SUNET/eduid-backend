@@ -14,6 +14,7 @@ from eduid_userdb.signup import Invite as SignupInvite
 from eduid_userdb.signup import InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
 
 from eduid_scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
+from eduid_scimapi.db.eventdb import EventStatus
 from eduid_scimapi.db.invitedb import ScimApiInvite
 from eduid_scimapi.schemas.invite import InviteResponse, InviteResponseSchema
 from eduid_scimapi.schemas.scimbase import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
@@ -349,6 +350,7 @@ class TestInviteResource(ScimApiTestCase):
 
         req = {
             'schemas': [SCIMSchema.NUTID_INVITE_V1.value, SCIMSchema.NUTID_USER_V1.value],
+            'externalId': 'external id',
             'name': {
                 'familyName': 'Testsson',
                 'formatted': 'Test T. Testsson',
@@ -381,6 +383,13 @@ class TestInviteResource(ScimApiTestCase):
         signup_invite = self.signup_invitedb.get_invite_by_reference(reference)
         self._assertUpdateSuccess(req, response, db_invite, signup_invite)
         self.assertEqual(1, self.messagedb.db_count())
+
+        # check that the action resulted in an event in the database
+        events = self.eventdb.get_events_by_resource(SCIMResourceType.INVITE, db_invite.scim_id)
+        assert len(events) == 1
+        event = events[0]
+        assert event.resource.external_id == req['externalId']
+        assert event.data['status'] == EventStatus.CREATED.value
 
     def test_create_invite_do_not_send_email(self):
 
@@ -432,6 +441,12 @@ class TestInviteResource(ScimApiTestCase):
         reference = SCIMReference(data_owner=self.data_owner, scim_id=db_invite.scim_id)
         self.assertIsNone(self.invitedb.get_invite_by_scim_id(str(db_invite.scim_id)))
         self.assertIsNone(self.signup_invitedb.get_invite_by_reference(reference))
+
+        # check that the action resulted in an event in the database
+        events = self.eventdb.get_events_by_resource(SCIMResourceType.INVITE, db_invite.scim_id)
+        assert len(events) == 1
+        event = events[0]
+        assert event.data['status'] == EventStatus.DELETED.value
 
     def test_search_user_last_modified(self):
         db_invite1 = self.add_invite()

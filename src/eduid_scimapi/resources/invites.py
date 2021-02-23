@@ -13,6 +13,7 @@ from eduid_userdb.signup import Invite as SignupInvite
 from eduid_userdb.signup import InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
 
 from eduid_scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
+from eduid_scimapi.db.eventdb import EventLevel, EventStatus, add_api_event
 from eduid_scimapi.db.invitedb import ScimApiInvite
 from eduid_scimapi.exceptions import BadRequest, NotFound
 from eduid_scimapi.middleware import ctx_invitedb
@@ -225,6 +226,7 @@ class InvitesResource(SCIMResource):
             profiles[profile_name] = ScimApiProfile(attributes=profile.attributes, data=profile.data)
 
         db_invite = ScimApiInvite(
+            external_id=create_request.external_id,
             name=ScimApiName(**asdict(create_request.name)),
             emails=[ScimApiEmail(**asdict(email)) for email in create_request.emails],
             phone_numbers=[ScimApiPhoneNumber(**asdict(number)) for number in create_request.phone_numbers],
@@ -238,6 +240,17 @@ class InvitesResource(SCIMResource):
         ctx_invitedb(req).save(db_invite)
         if signup_invite.send_email:
             self._send_invite_mail(signup_invite)
+
+        add_api_event(
+            context=self.context,
+            data_owner=req.context['data_owner'],
+            db_obj=db_invite,
+            resource_type=SCIMResourceType.INVITE,
+            level=EventLevel.INFO,
+            status=EventStatus.CREATED,
+            message='Invite was created',
+        )
+
         self._db_invite_to_response(req, resp, db_invite, signup_invite)
 
     def on_delete(self, req: Request, resp: Response, scim_id: str):
@@ -258,8 +271,18 @@ class InvitesResource(SCIMResource):
 
         # Remove scim invite
         res = ctx_invitedb(req).remove(db_invite)
-        self.context.logger.debug(f'Remove invite result: {res}')
 
+        add_api_event(
+            context=self.context,
+            data_owner=req.context['data_owner'],
+            db_obj=db_invite,
+            resource_type=SCIMResourceType.INVITE,
+            level=EventLevel.INFO,
+            status=EventStatus.DELETED,
+            message='Group was deleted',
+        )
+
+        self.context.logger.debug(f'Remove invite result: {res}')
         resp.status = HTTP_204
 
 

@@ -5,7 +5,8 @@ from typing import Optional
 from falcon import Request, Response
 from marshmallow import ValidationError
 
-from eduid_scimapi.db.common import ScimApiEndpointMixin, ScimApiEvent, ScimApiEventResource
+from eduid_scimapi.db.common import ScimApiResourceBase
+from eduid_scimapi.db.eventdb import ScimApiEvent, ScimApiEventResource
 from eduid_scimapi.exceptions import BadRequest, NotFound
 from eduid_scimapi.middleware import ctx_eventdb, ctx_userdb
 from eduid_scimapi.resources.base import SCIMResource
@@ -134,13 +135,18 @@ class EventsResource(SCIMResource):
             expires_at=_expires_at,
             timestamp=_timestamp,
         )
-
         ctx_eventdb(req).save(event)
+
+        # Send notification
+        message = self.context.notification_relay.format_message(
+            version=1, data={'location': self.resource_url(SCIMResourceType.EVENT, event.scim_id)}
+        )
+        self.context.notification_relay.notify(data_owner=req.context['data_owner'], message=message)
 
         self._db_event_to_response(req, resp, event)
 
 
-def _get_scim_referenced(req: Request, resource: NutidEventResource) -> Optional[ScimApiEndpointMixin]:
+def _get_scim_referenced(req: Request, resource: NutidEventResource) -> Optional[ScimApiResourceBase]:
     if resource.resource_type == SCIMResourceType.USER:
         return ctx_userdb(req).get_user_by_scim_id(str(resource.scim_id))
     return None

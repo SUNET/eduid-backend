@@ -5,8 +5,7 @@ from uuid import UUID, uuid4
 
 from falcon.testing import Result
 
-from eduid_scimapi.db.common import EventLevel
-from eduid_scimapi.resources.base import SCIMResource
+from eduid_scimapi.db.eventdb import EventLevel
 from eduid_scimapi.schemas.event import EventResponse, EventResponseSchema, NutidEventExtensionV1
 from eduid_scimapi.schemas.scimbase import SCIMResourceType, SCIMSchema
 from eduid_scimapi.testing import ScimApiTestCase
@@ -56,7 +55,7 @@ class TestEventResource(ScimApiTestCase):
         result = self._create_event(event=event)
 
         # check that the create resulted in an event in the database
-        events = self.eventdb.get_events_by_scim_user_id(user.scim_id)
+        events = self.eventdb.get_events_by_resource(SCIMResourceType.USER, scim_id=user.scim_id)
         assert len(events) == 1
         db_event = events[0]
         # Verify what went into the database
@@ -81,7 +80,7 @@ class TestEventResource(ScimApiTestCase):
         created = self._create_event(event=event)
 
         # check that the create resulted in an event in the database
-        events = self.eventdb.get_events_by_scim_user_id(user.scim_id)
+        events = self.eventdb.get_events_by_resource(SCIMResourceType.USER, scim_id=user.scim_id)
         assert len(events) == 1
         db_event = events[0]
 
