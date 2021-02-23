@@ -136,6 +136,7 @@ class ScimApiTestCase(MongoNeoTestCase):
     def tearDown(self):
         super().tearDown()
         self.userdb._drop_whole_collection()
+        self.eventdb._drop_whole_collection()
         self.etcd_instance.clear('/eduid/api/')
 
     def _assertScimError(

@@ -12,8 +12,8 @@ from bson import ObjectId
 
 from eduid_userdb.testing import normalised_data
 
+from eduid_scimapi.db.eventdb import EventStatus
 from eduid_scimapi.db.userdb import ScimApiProfile, ScimApiUser
-from eduid_scimapi.schemas.event import EventResponse
 from eduid_scimapi.schemas.scimbase import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
 from eduid_scimapi.schemas.user import NutidUserExtensionV1, Profile, UserResponse, UserResponseSchema
 from eduid_scimapi.testing import ScimApiTestCase
@@ -254,12 +254,12 @@ class TestUserResource(ScimApiTestCase):
 
         self._assertUserUpdateSuccess(req, response, db_user)
 
-        # check that the create resulted in an event in the database
-        events = self.eventdb.get_events_by_scim_user_id(db_user.scim_id)
+        # check that the action resulted in an event in the database
+        events = self.eventdb.get_events_by_scim_obj_id(db_user.scim_id, SCIMResourceType.USER)
         assert len(events) == 1
         event = events[0]
         assert event.resource.external_id == req['externalId']
-        assert event.data['status'] == 'CREATED'
+        assert event.data['status'] == EventStatus.CREATED.value
 
     def test_create_user_no_external_id(self):
         req = {
@@ -319,6 +319,13 @@ class TestUserResource(ScimApiTestCase):
         self._assertResponse200(response)
         db_user = self.userdb.get_user_by_scim_id(response.json['id'])
         self._assertUserUpdateSuccess(req, response, db_user)
+
+        # check that the action resulted in an event in the database
+        events = self.eventdb.get_events_by_scim_obj_id(db_user.scim_id, SCIMResourceType.USER)
+        assert len(events) == 1
+        event = events[0]
+        assert event.resource.external_id == req['externalId']
+        assert event.data['status'] == EventStatus.UPDATED.value
 
     def test_update_user_change_properties(self):
         # Create the user

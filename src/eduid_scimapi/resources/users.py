@@ -179,7 +179,15 @@ class UsersResource(SCIMResource):
 
             if core_changed or nutid_changed:
                 self._save_user(req, db_user)
-                add_api_event(ctx_eventdb(req), db_user, EventLevel.INFO, status='UPDATED', message='User was updated')
+                add_api_event(
+                    context=self.context,
+                    data_owner=req.context['data_owner'],
+                    db_obj=db_user,
+                    resource_type=SCIMResourceType.USER,
+                    level=EventLevel.INFO,
+                    status=EventStatus.UPDATED,
+                    message='User was updated',
+                )
 
             self._db_user_to_response(req=req, resp=resp, db_user=db_user)
         except ValidationError as e:
@@ -252,7 +260,15 @@ class UsersResource(SCIMResource):
             )
 
             self._save_user(req, db_user)
-            add_api_event(ctx_eventdb(req), db_user, EventLevel.INFO, status='CREATED', message='User was created')
+            add_api_event(
+                context=self.context,
+                data_owner=req.context['data_owner'],
+                db_obj=db_user,
+                resource_type=SCIMResourceType.USER,
+                level=EventLevel.INFO,
+                status=EventStatus.CREATED,
+                message='User was created',
+            )
 
             self._db_user_to_response(req=req, resp=resp, db_user=db_user)
         except ValidationError as e:

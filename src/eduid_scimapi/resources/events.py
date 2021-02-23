@@ -135,8 +135,13 @@ class EventsResource(SCIMResource):
             expires_at=_expires_at,
             timestamp=_timestamp,
         )
-
         ctx_eventdb(req).save(event)
+
+        # Send notification
+        message = self.context.notification_relay.format_message(
+            version=1, data={'location': self.resource_url(SCIMResourceType.EVENT, event.scim_id)}
+        )
+        self.context.notification_relay.notify(data_owner=req.context['data_owner'], message=message)
 
         self._db_event_to_response(req, resp, event)
 

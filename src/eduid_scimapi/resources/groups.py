@@ -173,7 +173,7 @@ class GroupsResource(SCIMResource):
         """
         self.context.logger.info('Updating group')
         try:
-            update_request: GroupUpdateRequest = GroupUpdateRequestSchema().load(req.media)
+            update_request = GroupUpdateRequestSchema().load(req.media)
         except ValidationError as e:
             raise BadRequest(detail=f"{e}")
         self.context.logger.debug(update_request)
@@ -181,13 +181,6 @@ class GroupsResource(SCIMResource):
             self.context.logger.error(f'Id mismatch')
             self.context.logger.debug(f'{scim_id} != {update_request.id}')
             raise BadRequest(detail='Id mismatch')
-
-        # Please mypy as GroupUpdateRequest no longer inherit from Group
-        group = Group(
-            display_name=update_request.display_name,
-            members=update_request.members,
-            nutid_group_v1=update_request.nutid_group_v1,
-        )
 
         self.context.logger.info(f"Fetching group {scim_id}")
         db_group = ctx_groupdb(req).get_group_by_scim_id(str(update_request.id))
@@ -201,7 +194,7 @@ class GroupsResource(SCIMResource):
 
         # Check that members exists in their respective db
         self.context.logger.info(f'Checking if group and user members exists')
-        for member in group.members:
+        for member in update_request.members:
             if member.is_group:
                 if not ctx_groupdb(req).group_exists(str(member.value)):
                     self.context.logger.error(f'Group {member.value} not found')
@@ -211,11 +204,23 @@ class GroupsResource(SCIMResource):
                     self.context.logger.error(f'User {member.value} not found')
                     raise BadRequest(detail=f'User {member.value} not found')
 
-        updated_group = ctx_groupdb(req).update_group(scim_group=group, db_group=db_group)
+        updated_group, changed = ctx_groupdb(req).update_group(update_request=update_request, db_group=db_group)
         # Load the group from the database to ensure results are consistent with subsequent GETs.
         # For example, timestamps have higher resolution in updated_group than after a load.
         db_group = ctx_groupdb(req).get_group_by_scim_id(str(updated_group.scim_id))
         assert db_group  # please mypy
+
+        if changed:
+            add_api_event(
+                context=self.context,
+                data_owner=req.context['data_owner'],
+                db_obj=db_group,
+                resource_type=SCIMResourceType.GROUP,
+                level=EventLevel.INFO,
+                status=EventStatus.UPDATED,
+                message='Group was updated',
+            )
+
         self._db_group_to_response(resp, db_group)
 
     def on_post(self, req: Request, resp: Response):
@@ -250,15 +255,26 @@ class GroupsResource(SCIMResource):
         """
         self.context.logger.info('Creating group')
         try:
-            group: Group = GroupCreateRequestSchema().load(req.media)
+            create_request = GroupCreateRequestSchema().load(req.media)
         except ValidationError as e:
             raise BadRequest(detail=f"{e}")
-        self.context.logger.debug(group)
-        created_group = ctx_groupdb(req).create_group(scim_group=group)
+        self.context.logger.debug(create_request)
+        created_group = ctx_groupdb(req).create_group(create_request=create_request)
         # Load the group from the database to ensure results are consistent with subsequent GETs.
         # For example, timestamps have higher resolution in created_group than after a load.
         db_group = ctx_groupdb(req).get_group_by_scim_id(str(created_group.scim_id))
         assert db_group  # please mypy
+
+        add_api_event(
+            context=self.context,
+            data_owner=req.context['data_owner'],
+            db_obj=db_group,
+            resource_type=SCIMResourceType.GROUP,
+            level=EventLevel.INFO,
+            status=EventStatus.CREATED,
+            message='Group was created',
+        )
+
         self._db_group_to_response(resp, db_group)
         resp.status = HTTP_201
 
@@ -274,8 +290,18 @@ class GroupsResource(SCIMResource):
             raise BadRequest(detail="Version mismatch")
 
         res = ctx_groupdb(req).remove_group(db_group)
-        self.context.logger.debug(f'Remove group result: {res}')
 
+        add_api_event(
+            context=self.context,
+            data_owner=req.context['data_owner'],
+            db_obj=db_group,
+            resource_type=SCIMResourceType.GROUP,
+            level=EventLevel.INFO,
+            status=EventStatus.DELETED,
+            message='Group was deleted',
+        )
+
+        self.context.logger.debug(f'Remove group result: {res}')
         resp.status = HTTP_204
 
 
