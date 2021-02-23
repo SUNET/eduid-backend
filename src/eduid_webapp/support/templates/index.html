@@ -9,7 +9,7 @@
 <body>
     <div class="container">
         <div class="pull-right">
-            <form id="logout-form" class="form-inline" method="GET" action="{{ config.token_service_url_logout }}">
+            <form id="logout-form" class="form-inline" method="GET" action="{{ logout_url }}">
                 <div class="form-group">
                     {{ support_user.display_name }}
                     <input type="hidden" name="csrf" value="{{ session.get_csrf_token() }}">
@@ -27,7 +27,7 @@
         {% if error %}
             <h3>{{ error }}</h3>
         {% endif %}
-    
+
         {% if users %}
             <hr />
             <h3>{{users|length}} user{% if users|length > 1 %}s were{% else %} was{% endif %} found using query "{{ search_query }}":</h3>
