@@ -44,11 +44,7 @@ class TestEventResource(ScimApiTestCase):
     def test_create_event(self):
         user = self.add_user(identifier=str(uuid4()), external_id='test@example.org')
         event = {
-            'resource': {
-                'resourceType': SCIMResourceType.USER.value,
-                'id': str(user.scim_id),
-                'externalId': user.external_id,
-            },
+            'resource': {'resourceType': SCIMResourceType.USER.value, 'id': str(user.scim_id)},
             'level': EventLevel.DEBUG.value,
             'data': {'create_test': True},
         }
@@ -69,11 +65,7 @@ class TestEventResource(ScimApiTestCase):
     def test_create_and_fetch_event(self):
         user = self.add_user(identifier=str(uuid4()), external_id='test@example.org')
         event = {
-            'resource': {
-                'resourceType': SCIMResourceType.USER.value,
-                'id': str(user.scim_id),
-                'externalId': user.external_id,
-            },
+            'resource': {'resourceType': SCIMResourceType.USER.value, 'id': str(user.scim_id)},
             'level': EventLevel.DEBUG.value,
             'data': {'create_fetch_test': True},
         }

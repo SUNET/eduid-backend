@@ -30,8 +30,8 @@ SCIMResourceTypeValue = NewType(
 class NutidEventResource:
     resource_type: SCIMResourceTypeValue = field(metadata={'data_key': 'resourceType', 'required': True})
     scim_id: UUID = field(metadata={'data_key': 'id', 'required': True})
-    external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId'})
-    location: Optional[str] = field(default=None, metadata={'data_key': 'location', 'required': False})
+    external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId', 'required': False})
+    location: Optional[str] = field(default=None, metadata={'required': False})
 
 
 @dataclass(frozen=True)

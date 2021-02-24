@@ -101,22 +101,29 @@ class EventsResource(SCIMResource):
             self.context.logger.debug(create_request)
         except ValidationError as e:
             raise BadRequest(detail=str(e))
+
+        # TODO: Instead of checking input here we should use dump_only for the fields in the schema
         if create_request.nutid_event_v1.source:
             raise BadRequest(detail='source is read-only')
         if create_request.nutid_event_v1.expires_at:
             raise BadRequest(detail='expiresAt is read-only')
+        if create_request.nutid_event_v1.resource.external_id:
+            raise BadRequest(detail='resource.externalId is read-only')
+        if create_request.nutid_event_v1.resource.location:
+            raise BadRequest(detail='resource.location is read-only')
 
+        # TODO: This check should move to schema validation
         if create_request.nutid_event_v1.timestamp:
             earliest_allowed = utc_now() - timedelta(days=1)
             if create_request.nutid_event_v1.timestamp < earliest_allowed:
                 raise BadRequest(detail='timestamp is too old')
 
-        referenced = _get_scim_referenced(req, create_request.nutid_event_v1.resource)
-        if not referenced:
-            raise BadRequest(detail='referenced object not found')
-        if referenced.external_id:
-            if referenced.external_id != create_request.nutid_event_v1.resource.external_id:
-                raise BadRequest(detail='incorrect externalId')
+        try:
+            referenced = _get_scim_referenced(req, create_request.nutid_event_v1.resource)
+            if not referenced:
+                raise BadRequest(detail='referenced object not found')
+        except NotImplementedError as e:
+            raise BadRequest(detail=f'{e}')
 
         _timestamp = utc_now()
         if create_request.nutid_event_v1.timestamp:
