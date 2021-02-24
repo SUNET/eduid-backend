@@ -71,7 +71,7 @@ class DateTimeField(fields.Field):
     The attribute value MUST be encoded as a valid xsd:dateTime as specified in Section 3.3.7 of
     XML-Schema (https://www.w3.org/TR/xmlschema11-2/) and MUST include both a date and a time.
 
-    Example of a valid string: '2021-02-19T08:23:42+00:00'. Seconds is allowed to have decimals,
+    Example of a valid string: '2021-02-19T08:23:42+00:00'. Seconds are allowed to have decimals,
         so this is also valid: '2021-02-19T08:23:42.123456+00:00'
     """
 
