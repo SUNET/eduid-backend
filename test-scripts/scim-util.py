@@ -15,6 +15,8 @@ logger = logging.getLogger(__name__)
 Args = NewType('Args', argparse.Namespace)
 NUTID_USER_V1 = 'https://scim.eduid.se/schema/nutid/user/v1'
 NUTID_GROUP_V1 = 'https://scim.eduid.se/schema/nutid/group/v1'
+EVENT_CORE_V1 = 'https://scim.eduid.se/schema/nutid/event/core-v1'
+NUTID_EVENT_V1 = 'https://scim.eduid.se/schema/nutid/event/v1'
 
 
 def parse_args() -> Args:
@@ -176,6 +178,31 @@ def put_group(api: str, scim_id: str, data: Dict[str, Any], token: Optional[str]
     logger.info(f'Update result:\n{json.dumps(res, sort_keys=True, indent=4)}')
 
 
+def post_event(
+    api: str,
+    resource_scim_id: str,
+    resource_type: str,
+    level: str = 'info',
+    data: Optional[Dict[str, Any]] = None,
+    token: Optional[str] = None,
+) -> None:
+
+    event = {
+        'resource': {'resourceType': resource_type, 'id': resource_scim_id},
+        'level': level,
+    }
+
+    if data is not None:
+        event.update({'data': data})
+
+    headers = {'content-type': 'application/scim+json'}
+    scim = {'schemas': [EVENT_CORE_V1, NUTID_EVENT_V1], NUTID_EVENT_V1: event}
+
+    logger.info(f'Creating SCIM event:\n{json.dumps(scim, sort_keys=True, indent=4)}\n')
+    res = scim_request(requests.post, f'{api}/Events/', data=scim, headers=headers, token=token)
+    logger.info(f'Update result:\n{json.dumps(res, sort_keys=True, indent=4)}')
+
+
 def process_login(api: str, params: Mapping[str, Any]) -> Optional[str]:
     url = params['url']
     data_owner = params['data_owner']
@@ -224,6 +251,13 @@ def process_users(api: str, ops: Mapping[str, Any], token: Optional[str] = None)
         elif op == 'put':
             for scim_id in ops[op]:
                 put_user(api, scim_id, ops[op][scim_id]['profiles'])
+                post_event(
+                    api,
+                    resource_scim_id=scim_id,
+                    resource_type='User',
+                    token=token,
+                    data={'scim-util-run-completed': True, 'action': 'PUT user'},
+                )
         else:
             logger.error(f'Unknown "user" operation {op}')
 
@@ -253,6 +287,13 @@ def process_groups(api: str, ops: Mapping[str, Any], token: Optional[str] = None
         elif op == 'put':
             for scim_id in ops[op]:
                 put_group(api, scim_id, data=ops[op][scim_id], token=token)
+                post_event(
+                    api,
+                    resource_scim_id=scim_id,
+                    resource_type='Group',
+                    token=token,
+                    data={'scim-util-run-completed': True, 'action': 'PUT group'},
+                )
 
 
 def main(args: Args) -> bool:
