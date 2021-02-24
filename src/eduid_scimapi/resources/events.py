@@ -8,7 +8,7 @@ from marshmallow import ValidationError
 from eduid_scimapi.db.common import ScimApiResourceBase
 from eduid_scimapi.db.eventdb import ScimApiEvent, ScimApiEventResource
 from eduid_scimapi.exceptions import BadRequest, NotFound
-from eduid_scimapi.middleware import ctx_eventdb, ctx_userdb
+from eduid_scimapi.middleware import ctx_eventdb, ctx_groupdb, ctx_invitedb, ctx_userdb
 from eduid_scimapi.resources.base import SCIMResource
 from eduid_scimapi.schemas.event import (
     EventCreateRequest,
@@ -101,11 +101,18 @@ class EventsResource(SCIMResource):
             self.context.logger.debug(create_request)
         except ValidationError as e:
             raise BadRequest(detail=str(e))
+
+        # TODO: Instead of checking input here we should use dump_only for the fields in the schema
         if create_request.nutid_event_v1.source:
             raise BadRequest(detail='source is read-only')
         if create_request.nutid_event_v1.expires_at:
             raise BadRequest(detail='expiresAt is read-only')
+        if create_request.nutid_event_v1.resource.external_id:
+            raise BadRequest(detail='resource.externalId is read-only')
+        if create_request.nutid_event_v1.resource.location:
+            raise BadRequest(detail='resource.location is read-only')
 
+        # TODO: This check should move to schema validation
         if create_request.nutid_event_v1.timestamp:
             earliest_allowed = utc_now() - timedelta(days=1)
             if create_request.nutid_event_v1.timestamp < earliest_allowed:
@@ -114,9 +121,6 @@ class EventsResource(SCIMResource):
         referenced = _get_scim_referenced(req, create_request.nutid_event_v1.resource)
         if not referenced:
             raise BadRequest(detail='referenced object not found')
-        if referenced.external_id:
-            if referenced.external_id != create_request.nutid_event_v1.resource.external_id:
-                raise BadRequest(detail='incorrect externalId')
 
         _timestamp = utc_now()
         if create_request.nutid_event_v1.timestamp:
@@ -149,4 +153,10 @@ class EventsResource(SCIMResource):
 def _get_scim_referenced(req: Request, resource: NutidEventResource) -> Optional[ScimApiResourceBase]:
     if resource.resource_type == SCIMResourceType.USER:
         return ctx_userdb(req).get_user_by_scim_id(str(resource.scim_id))
-    return None
+    elif resource.resource_type == SCIMResourceType.GROUP:
+        return ctx_groupdb(req).get_group_by_scim_id(str(resource.scim_id))
+    elif resource.resource_type == SCIMResourceType.INVITE:
+        return ctx_invitedb(req).get_invite_by_scim_id(str(resource.scim_id))
+    elif resource.resource_type == SCIMResourceType.EVENT:
+        raise BadRequest(detail=f'Events can not refer to other events')
+    raise BadRequest(detail=f'Events for resource {resource.resource_type.value} not implemented')

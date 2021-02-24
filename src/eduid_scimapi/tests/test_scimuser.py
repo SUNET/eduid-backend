@@ -177,7 +177,6 @@ class TestUserResource(ScimApiTestCase):
 
     def _assertUserUpdateSuccess(self, req: Mapping, response, user: ScimApiUser):
         """ Function to validate successful responses to SCIM calls that update a user according to a request. """
-        self._assertResponse200(response)
 
         if response.json.get('schemas') == [SCIMSchema.ERROR.value]:
             self.fail(f'Got SCIM error response ({response.status}):\n{response.json}')
@@ -247,7 +246,7 @@ class TestUserResource(ScimApiTestCase):
             },
         }
         response = self.client.simulate_post(path='/Users/', body=self.as_json(req), headers=self.headers)
-        self._assertResponse200(response)
+        self._assertResponse(response, status_code=201)
         # Load the created user from the database, ensuring it was in fact created
         db_user = self.userdb.get_user_by_external_id(req['externalId'])
         self.assertIsNotNone(db_user, 'Created user not found in the database')
@@ -271,7 +270,7 @@ class TestUserResource(ScimApiTestCase):
             },
         }
         response = self.client.simulate_post(path='/Users/', body=self.as_json(req), headers=self.headers)
-        self._assertResponse200(response)
+        self._assertResponse(response, status_code=201)
 
         # Load the created user from the database, ensuring it was in fact created
         db_user = self.userdb.get_user_by_scim_id(response.json['id'])
@@ -316,7 +315,7 @@ class TestUserResource(ScimApiTestCase):
         response = self.client.simulate_put(
             path=f'/Users/{db_user.scim_id}', body=self.as_json(req), headers=self.headers
         )
-        self._assertResponse200(response)
+        self._assertResponse(response)
         db_user = self.userdb.get_user_by_scim_id(response.json['id'])
         self._assertUserUpdateSuccess(req, response, db_user)
 
@@ -343,7 +342,7 @@ class TestUserResource(ScimApiTestCase):
             },
         }
         create_response = self.client.simulate_post(path='/Users/', body=self.as_json(req), headers=self.headers)
-        self._assertResponse200(create_response)
+        self._assertResponse(create_response, status_code=201)
 
         # Update the user
         req = {
@@ -367,7 +366,7 @@ class TestUserResource(ScimApiTestCase):
         response = self.client.simulate_put(
             path=f'/Users/{create_response.json["id"]}', body=self.as_json(req), headers=self.headers
         )
-        self._assertResponse200(response)
+        self._assertResponse(response)
 
         db_user = self.userdb.get_user_by_scim_id(response.json['id'])
         self._assertUserUpdateSuccess(req, response, db_user)
@@ -388,7 +387,7 @@ class TestUserResource(ScimApiTestCase):
         response = self.client.simulate_put(
             path=f'/Users/{db_user.scim_id}', body=self.as_json(req), headers=self.headers
         )
-        self._assertResponse200(response)
+        self._assertResponse(response)
         db_user = self.userdb.get_user_by_scim_id(response.json['id'])
         self._assertUserUpdateSuccess(req, response, db_user)
 
@@ -497,7 +496,7 @@ class TestUserResource(ScimApiTestCase):
         logger.info(f'Search response:\n{response.json}')
         if return_json:
             return response.json
-        self._assertResponse200(response)
+        self._assertResponse(response)
         expected_schemas = [SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value]
         response_schemas = response.json.get('schemas')
         self.assertIsInstance(response_schemas, list, 'Response schemas not present, or not a list')
