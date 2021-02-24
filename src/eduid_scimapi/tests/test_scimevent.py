@@ -13,7 +13,7 @@ from eduid_scimapi.utils import make_etag
 
 
 @dataclass
-class ApiResult:
+class EventApiResult:
     result: Result
     event: NutidEventExtensionV1
     response: EventResponse
@@ -27,19 +27,19 @@ class TestEventResource(ScimApiTestCase):
         super().tearDown()
         self.eventdb._drop_whole_collection()
 
-    def _create_event(self, event: Dict[str, Any], expect_success: bool = True) -> ApiResult:
+    def _create_event(self, event: Dict[str, Any], expect_success: bool = True) -> EventApiResult:
         req = {'schemas': [SCIMSchema.NUTID_EVENT_V1.value], SCIMSchema.NUTID_EVENT_V1.value: event}
         result = self.client.simulate_post(path='/Events/', body=self.as_json(req), headers=self.headers)
         if expect_success:
             self._assertResponse(result)
         response: EventResponse = EventResponseSchema().load(result.json)
-        return ApiResult(event=response.nutid_event_v1, result=result, response=response)
+        return EventApiResult(event=response.nutid_event_v1, result=result, response=response)
 
-    def _fetch_event(self, event_id: UUID) -> ApiResult:
+    def _fetch_event(self, event_id: UUID) -> EventApiResult:
         result = self.client.simulate_get(path=f'/Events/{str(event_id)}', headers=self.headers)
         self._assertResponse(result)
         response: EventResponse = EventResponseSchema().load(result.json)
-        return ApiResult(event=response.nutid_event_v1, result=result, response=response)
+        return EventApiResult(event=response.nutid_event_v1, result=result, response=response)
 
     def test_create_event(self):
         user = self.add_user(identifier=str(uuid4()), external_id='test@example.org')

@@ -1,11 +1,12 @@
 import json
 import logging
 import unittest
-from collections import Mapping
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
-from typing import Optional
-from uuid import uuid4
+from typing import Any, Dict, Mapping, Optional
+from uuid import UUID, uuid4
+
+from falcon.testing import Result
 
 import bson
 from bson import ObjectId
@@ -15,7 +16,7 @@ from eduid_userdb.testing import normalised_data
 from eduid_scimapi.db.eventdb import EventStatus
 from eduid_scimapi.db.userdb import ScimApiProfile, ScimApiUser
 from eduid_scimapi.schemas.scimbase import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
-from eduid_scimapi.schemas.user import NutidUserExtensionV1, Profile, UserResponse, UserResponseSchema
+from eduid_scimapi.schemas.user import NutidUserExtensionV1, Profile, User, UserResponse, UserResponseSchema
 from eduid_scimapi.testing import ScimApiTestCase
 from eduid_scimapi.utils import filter_none, make_etag
 
@@ -170,6 +171,14 @@ class TestScimUser(unittest.TestCase):
         self.assertTrue(x)
 
 
+@dataclass
+class UserApiResult:
+    request: Mapping[str, Any]
+    result: Result
+    nutid_user: NutidUserExtensionV1
+    response: UserResponse
+
+
 class TestUserResource(ScimApiTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -220,6 +229,37 @@ class TestUserResource(ScimApiTestCase):
     #    resources = response.json.get('Resources')
     #    self.assertEqual(self.userdb.db_count(), len(resources))
 
+    def _create_user(self, req: Dict[str, Any], expect_success: bool = True) -> UserApiResult:
+        if 'schemas' not in req:
+            _schemas = [SCIMSchema.CORE_20_USER.value]
+            if SCIMSchema.NUTID_USER_V1.value in req:
+                _schemas += [SCIMSchema.NUTID_USER_V1.value]
+            req['schemas'] = _schemas
+        result = self.client.simulate_post(path='/Users/', body=self.as_json(req), headers=self.headers)
+        if expect_success:
+            self._assertResponse(result, status_code=201)
+        response: UserResponse = UserResponseSchema().load(result.json)
+        return UserApiResult(request=req, nutid_user=response.nutid_user_v1, result=result, response=response)
+
+    def _update_user(
+        self, req: Dict[str, Any], scim_id: UUID, version: Optional[ObjectId], expect_success: bool = True
+    ) -> UserApiResult:
+        if 'schemas' not in req:
+            _schemas = [SCIMSchema.CORE_20_USER.value]
+            if SCIMSchema.NUTID_USER_V1.value in req:
+                _schemas += [SCIMSchema.NUTID_USER_V1.value]
+            req['schemas'] = _schemas
+        if 'id' not in req:
+            req['id'] = str(scim_id)
+        _headers = dict(self.headers)  # copy
+        if version:
+            _headers['IF-MATCH'] = make_etag(version)
+        result = self.client.simulate_put(path=f'/Users/{scim_id}', body=self.as_json(req), headers=_headers)
+        if expect_success:
+            self._assertResponse(result)
+        response: UserResponse = UserResponseSchema().load(result.json)
+        return UserApiResult(request=req, nutid_user=response.nutid_user_v1, result=result, response=response)
+
     def test_get_user(self):
         db_user = self.add_user(identifier=str(uuid4()), external_id='test-id-1', profiles={'test': self.test_profile})
         response = self.client.simulate_get(path=f'/Users/{db_user.scim_id}', headers=self.headers)
@@ -233,7 +273,6 @@ class TestUserResource(ScimApiTestCase):
 
     def test_create_user(self):
         req = {
-            'schemas': [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_USER_V1.value],
             'externalId': 'test-id-1',
             'name': {'familyName': 'Testsson', 'givenName': 'Test', 'middleName': 'Testaren'},
             'emails': [{'primary': True, 'type': 'home', 'value': 'test@example.com'}],
@@ -245,13 +284,13 @@ class TestUserResource(ScimApiTestCase):
                 },
             },
         }
-        response = self.client.simulate_post(path='/Users/', body=self.as_json(req), headers=self.headers)
-        self._assertResponse(response, status_code=201)
+        result = self._create_user(req)
+
         # Load the created user from the database, ensuring it was in fact created
         db_user = self.userdb.get_user_by_external_id(req['externalId'])
         self.assertIsNotNone(db_user, 'Created user not found in the database')
 
-        self._assertUserUpdateSuccess(req, response, db_user)
+        self._assertUserUpdateSuccess(result.request, result.result, db_user)
 
         # check that the action resulted in an event in the database
         events = self.eventdb.get_events_by_resource(SCIMResourceType.USER, db_user.scim_id)
@@ -259,6 +298,38 @@ class TestUserResource(ScimApiTestCase):
         event = events[0]
         assert event.resource.external_id == req['externalId']
         assert event.data['status'] == EventStatus.CREATED.value
+
+    def test_create_and_update_user(self):
+        """ Test that creating a user and then updating it without changes only results in one event """
+        req = {
+            'externalId': 'test-id-1',
+            'name': {'familyName': 'Testsson', 'givenName': 'Test', 'middleName': 'Testaren'},
+            'emails': [{'primary': True, 'type': 'home', 'value': 'test@example.com'}],
+            'phoneNumbers': [{'primary': True, 'type': 'mobile', 'value': 'tel:+1-202-456-1414'}],
+            'preferredLanguage': 'en',
+            SCIMSchema.NUTID_USER_V1.value: {
+                'profiles': {
+                    'test': {'attributes': {'displayName': 'Test User 1'}, 'data': {'test_key': 'test_value'}}
+                },
+            },
+        }
+        result1 = self._create_user(req)
+
+        # check that the action resulted in an event in the database
+        events1 = self.eventdb.get_events_by_resource(SCIMResourceType.USER, result1.response.id)
+        assert len(events1) == 1
+        event = events1[0]
+        assert event.resource.external_id == req['externalId']
+        assert event.data['status'] == EventStatus.CREATED.value
+
+        # Update the user without making any changes
+        result2 = self._update_user(req, result1.response.id, result1.response.meta.version)
+        # Make sure the version wasn't updated
+        assert result1.response.meta.version == result2.response.meta.version
+        # Make sure no additional event was created
+        events2 = self.eventdb.get_events_by_resource(SCIMResourceType.USER, result2.response.id)
+        assert len(events2) == 1
+        assert events1 == events2
 
     def test_create_user_no_external_id(self):
         req = {

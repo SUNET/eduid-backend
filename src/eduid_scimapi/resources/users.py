@@ -158,7 +158,7 @@ class UsersResource(SCIMResource):
                             f'Adding profile {this}/{update_request.nutid_user_v1.profiles[this]} to user'
                         )
                         nutid_changed = True
-                    elif update_request.nutid_user_v1.profiles[this] != db_user.profiles[this]:
+                    elif update_request.nutid_user_v1.profiles[this].to_dict() != db_user.profiles[this].to_dict():
                         self.context.logger.info(
                             f'Profile {this}/{update_request.nutid_user_v1.profiles[this]} updated'
                         )
@@ -177,6 +177,7 @@ class UsersResource(SCIMResource):
                         db_profile = ScimApiProfile(attributes=profile.attributes, data=profile.data)
                         db_user.profiles[profile_name] = db_profile
 
+            self.context.logger.debug(f'Core changed: {core_changed}, nutid_changed: {nutid_changed}')
             if core_changed or nutid_changed:
                 self._save_user(req, db_user)
                 add_api_event(
@@ -188,6 +189,8 @@ class UsersResource(SCIMResource):
                     status=EventStatus.UPDATED,
                     message='User was updated',
                 )
+            else:
+                self.context.logger.info(f'No changes detected')
 
             self._db_user_to_response(req=req, resp=resp, db_user=db_user)
         except ValidationError as e:
