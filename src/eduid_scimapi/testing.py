@@ -220,6 +220,8 @@ class ScimApiTestCase(MongoNeoTestCase):
             ), f'{first}:{db_name_dict.get(first)} != {second}:{response_name.get(second)}'
 
     @staticmethod
-    def _assertResponse200(response: Result):
+    def _assertResponse(response: Result, status_code: int = 200):
         _detail = response.json.get('detail', 'No error detail in response')
-        assert response.status_code == 200, f'Response status was not 200 ({response.status_code}), {_detail}'
+        assert (
+            response.status_code == status_code
+        ), f'Response status was not {status_code} ({response.status_code}), {_detail}'

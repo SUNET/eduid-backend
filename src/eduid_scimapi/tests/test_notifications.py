@@ -32,7 +32,7 @@ class TestNotifications(ScimApiTestCase):
 
         req = {'schemas': [SCIMSchema.CORE_20_USER.value], 'externalId': 'test-id-1'}
         response = self.client.simulate_post(path='/Users/', body=self.as_json(req), headers=self.headers)
-        self._assertResponse200(response)
+        self._assertResponse(response, status_code=201)
 
     @mock_sns
     def test_create_group_notification(self):
@@ -42,7 +42,7 @@ class TestNotifications(ScimApiTestCase):
 
         req = {'schemas': [SCIMSchema.CORE_20_GROUP.value], 'externalId': 'test-id-1', 'displayName': 'Test Group'}
         response = self.client.simulate_post(path='/Groups/', body=self.as_json(req), headers=self.headers)
-        self._assertResponse200(response)
+        self._assertResponse(response, status_code=201)
 
     @mock_sns
     def test_create_event_notification(self):
@@ -58,4 +58,4 @@ class TestNotifications(ScimApiTestCase):
         }
         req = {'schemas': [SCIMSchema.NUTID_EVENT_V1.value], SCIMSchema.NUTID_EVENT_V1.value: event}
         result = self.client.simulate_post(path='/Events/', body=self.as_json(req), headers=self.headers)
-        self._assertResponse200(result)
+        self._assertResponse(result)

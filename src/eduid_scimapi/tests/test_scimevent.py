@@ -31,13 +31,13 @@ class TestEventResource(ScimApiTestCase):
         req = {'schemas': [SCIMSchema.NUTID_EVENT_V1.value], SCIMSchema.NUTID_EVENT_V1.value: event}
         result = self.client.simulate_post(path='/Events/', body=self.as_json(req), headers=self.headers)
         if expect_success:
-            self._assertResponse200(result)
+            self._assertResponse(result)
         response: EventResponse = EventResponseSchema().load(result.json)
         return ApiResult(event=response.nutid_event_v1, result=result, response=response)
 
     def _fetch_event(self, event_id: UUID) -> ApiResult:
         result = self.client.simulate_get(path=f'/Events/{str(event_id)}', headers=self.headers)
-        self._assertResponse200(result)
+        self._assertResponse(result)
         response: EventResponse = EventResponseSchema().load(result.json)
         return ApiResult(event=response.nutid_event_v1, result=result, response=response)
 

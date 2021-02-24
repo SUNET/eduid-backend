@@ -2,7 +2,7 @@ from dataclasses import asdict, replace
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from falcon import Request, Response
+from falcon import Request, Response, HTTP_201
 from marshmallow import ValidationError
 from pymongo.errors import DuplicateKeyError
 
@@ -271,6 +271,7 @@ class UsersResource(SCIMResource):
             )
 
             self._db_user_to_response(req=req, resp=resp, db_user=db_user)
+            resp.status = HTTP_201
         except ValidationError as e:
             raise BadRequest(detail=f"{e}")
 

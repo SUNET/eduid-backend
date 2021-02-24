@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from eduid_queue.db import QueueItem, SenderInfo
 from eduid_queue.db.message import EduidInviteEmail
-from falcon import HTTP_204, Request, Response
+from falcon import HTTP_204, Request, Response, HTTP_201
 from marshmallow import ValidationError
 
 from eduid_userdb.signup import Invite as SignupInvite
@@ -252,6 +252,7 @@ class InvitesResource(SCIMResource):
         )
 
         self._db_invite_to_response(req, resp, db_invite, signup_invite)
+        resp.status = HTTP_201
 
     def on_delete(self, req: Request, resp: Response, scim_id: str):
         self.context.logger.info(f'Deleting invite {scim_id}')
