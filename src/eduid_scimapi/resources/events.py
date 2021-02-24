@@ -118,12 +118,9 @@ class EventsResource(SCIMResource):
             if create_request.nutid_event_v1.timestamp < earliest_allowed:
                 raise BadRequest(detail='timestamp is too old')
 
-        try:
-            referenced = _get_scim_referenced(req, create_request.nutid_event_v1.resource)
-            if not referenced:
-                raise BadRequest(detail='referenced object not found')
-        except NotImplementedError as e:
-            raise BadRequest(detail=f'{e}')
+        referenced = _get_scim_referenced(req, create_request.nutid_event_v1.resource)
+        if not referenced:
+            raise BadRequest(detail='referenced object not found')
 
         _timestamp = utc_now()
         if create_request.nutid_event_v1.timestamp:
@@ -156,8 +153,10 @@ class EventsResource(SCIMResource):
 def _get_scim_referenced(req: Request, resource: NutidEventResource) -> Optional[ScimApiResourceBase]:
     if resource.resource_type == SCIMResourceType.USER:
         return ctx_userdb(req).get_user_by_scim_id(str(resource.scim_id))
-    if resource.resource_type == SCIMResourceType.GROUP:
+    elif resource.resource_type == SCIMResourceType.GROUP:
         return ctx_groupdb(req).get_group_by_scim_id(str(resource.scim_id))
-    if resource.resource_type == SCIMResourceType.INVITE:
+    elif resource.resource_type == SCIMResourceType.INVITE:
         return ctx_invitedb(req).get_invite_by_scim_id(str(resource.scim_id))
-    raise NotImplementedError(f'Events for resource {resource.resource_type.value} not implemented')
+    elif resource.resource_type == SCIMResourceType.EVENT:
+        raise BadRequest(detail=f'Events can not refer to other events')
+    raise BadRequest(detail=f'Events for resource {resource.resource_type.value} not implemented')
