@@ -23,4 +23,7 @@ class YamlConfigParser(BaseConfigParser):
                 continue
             data = data[this]
 
-        return data
+        # lowercase all keys
+        lc_data = {k.lower(): v for k, v in data.items()}
+
+        return lc_data
