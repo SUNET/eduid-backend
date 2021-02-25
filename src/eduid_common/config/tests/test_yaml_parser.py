@@ -88,3 +88,14 @@ class TestInitConfig(unittest.TestCase):
         config = load_config(typ=TestConfig, ns='test', app_name='test_unknown_data')
         assert config.number == 0xFF
         assert config.foo == 'bar'
+
+    def test_YamlConfig_mixed_case_keys(self):
+        """ For legacy reasons, all keys should be lowercased """
+        os.environ['EDUID_CONFIG_NS'] = '/eduid/test/test_mixed_case_keys'
+        os.environ['EDUID_CONFIG_COMMON_NS'] = '/eduid/test/common'
+        os.environ['EDUID_CONFIG_YAML'] = str(self.data_dir / 'test.yaml')
+
+        config = load_config(typ=TestConfig, ns='test', app_name='test_mixed_case_keys')
+        assert config.number == 1
+        assert config.foo == 'bar'
+        assert config.app_name == 'test_mixed_case_keys'

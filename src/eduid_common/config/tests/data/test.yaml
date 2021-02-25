@@ -35,4 +35,9 @@ eduid:
       number: 0xff
       sanity: 'should not be rejected'
 
+    test_mixed_case_keys:
+      app_NAME: 'test_mixed_case_keys'
+      FOO: 'bar'
+      number: 1
+
 
