@@ -2,7 +2,7 @@ from dataclasses import asdict, replace
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from falcon import Request, Response, HTTP_201
+from falcon import HTTP_201, Request, Response
 from marshmallow import ValidationError
 from pymongo.errors import DuplicateKeyError
 

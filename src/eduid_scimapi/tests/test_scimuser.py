@@ -6,10 +6,9 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, Mapping, Optional
 from uuid import UUID, uuid4
 
-from falcon.testing import Result
-
 import bson
 from bson import ObjectId
+from falcon.testing import Result
 
 from eduid_userdb.testing import normalised_data
 
