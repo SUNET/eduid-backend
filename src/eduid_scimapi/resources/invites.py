@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from eduid_queue.db import QueueItem, SenderInfo
 from eduid_queue.db.message import EduidInviteEmail
-from falcon import HTTP_204, Request, Response, HTTP_201
+from falcon import HTTP_201, HTTP_204, Request, Response
 from marshmallow import ValidationError
 
 from eduid_userdb.signup import Invite as SignupInvite
@@ -23,6 +23,7 @@ from eduid_scimapi.schemas.invite import (
     InviteCreateRequestSchema,
     InviteResponse,
     InviteResponseSchema,
+    NutidInviteExtensionV1,
 )
 from eduid_scimapi.schemas.scimbase import (
     Email,
@@ -49,32 +50,34 @@ class InvitesResource(SCIMResource):
     ) -> SignupInvite:
         invite_reference = SCIMReference(data_owner=req.context['data_owner'], scim_id=db_invite.scim_id)
 
-        if create_request.send_email is False:
+        if create_request.nutid_invite_v1.send_email is False:
             # Generate a shorter code if the code will reach the invitee on paper or other analog media
             invite_code = get_short_hash()
         else:
             invite_code = get_unique_hash()
 
         mails_addresses = [
-            InviteMailAddress(email=email.value, primary=email.primary) for email in create_request.emails
+            InviteMailAddress(email=email.value, primary=email.primary)
+            for email in create_request.nutid_invite_v1.emails
         ]
         phone_numbers = [
-            InvitePhoneNumber(number=number.value, primary=number.primary) for number in create_request.phone_numbers
+            InvitePhoneNumber(number=number.value, primary=number.primary)
+            for number in create_request.nutid_invite_v1.phone_numbers
         ]
 
         signup_invite = SignupInvite(
             invite_code=invite_code,
             invite_type=InviteType.SCIM,
             invite_reference=invite_reference,
-            display_name=create_request.name.formatted,
-            given_name=create_request.name.given_name,
-            surname=create_request.name.family_name,
-            nin=create_request.national_identity_number,
-            inviter_name=create_request.inviter_name,
-            send_email=create_request.send_email,
+            display_name=create_request.nutid_invite_v1.name.formatted,
+            given_name=create_request.nutid_invite_v1.name.given_name,
+            surname=create_request.nutid_invite_v1.name.family_name,
+            nin=create_request.nutid_invite_v1.national_identity_number,
+            inviter_name=create_request.nutid_invite_v1.inviter_name,
+            send_email=create_request.nutid_invite_v1.send_email,
             mail_addresses=mails_addresses,
             phone_numbers=phone_numbers,
-            finish_url=create_request.finish_url,
+            finish_url=create_request.nutid_invite_v1.finish_url,
             expires_at=datetime.utcnow() + timedelta(seconds=self.context.config.invite_expire),
         )
         return signup_invite
@@ -91,11 +94,9 @@ class InvitesResource(SCIMResource):
             version=db_invite.version,
         )
 
-        schemas = [SCIMSchema.NUTID_INVITE_V1, SCIMSchema.NUTID_USER_V1]
+        schemas = [SCIMSchema.NUTID_INVITE_CORE_V1, SCIMSchema.NUTID_INVITE_V1, SCIMSchema.NUTID_USER_V1]
         _profiles = {k: Profile(attributes=v.attributes, data=v.data) for k, v in db_invite.profiles.items()}
-        invite = InviteResponse(
-            id=db_invite.scim_id,
-            external_id=db_invite.external_id,
+        invite_extension = NutidInviteExtensionV1(
             completed=db_invite.completed,
             name=Name(**asdict(db_invite.name)),
             emails=[Email(**asdict(email)) for email in db_invite.emails],
@@ -103,23 +104,28 @@ class InvitesResource(SCIMResource):
             national_identity_number=db_invite.nin,
             preferred_language=db_invite.preferred_language,
             groups=db_invite.groups,
-            meta=meta,
-            schemas=list(schemas),  # extra list() needed to work with _both_ mypy and marshmallow
             send_email=signup_invite.send_email,
             finish_url=signup_invite.finish_url,
             expires_at=signup_invite.expires_at,
             inviter_name=signup_invite.inviter_name,
-            nutid_user_v1=NutidUserExtensionV1(profiles=_profiles),
         )
-
         # Only add invite url in response if no email should be sent to the invitee
         if signup_invite.send_email is False:
             invite_url = f'{self.context.config.invite_url}/{signup_invite.invite_code}'
-            invite = replace(invite, invite_url=invite_url)
+            invite_extension = replace(invite_extension, invite_url=invite_url)
+
+        scim_invite = InviteResponse(
+            id=db_invite.scim_id,
+            external_id=db_invite.external_id,
+            meta=meta,
+            schemas=list(schemas),  # extra list() needed to work with _both_ mypy and marshmallow
+            nutid_invite_v1=invite_extension,
+            nutid_user_v1=NutidUserExtensionV1(profiles=_profiles),
+        )
 
         resp.set_header("Location", location)
         resp.set_header("ETag", make_etag(db_invite.version))
-        resp.media = InviteResponseSchema().dump(invite)
+        resp.media = InviteResponseSchema().dump(scim_invite)
 
     @staticmethod
     def _create_signup_ref(req: Request, db_invite: ScimApiInvite):
@@ -227,12 +233,14 @@ class InvitesResource(SCIMResource):
 
         db_invite = ScimApiInvite(
             external_id=create_request.external_id,
-            name=ScimApiName(**asdict(create_request.name)),
-            emails=[ScimApiEmail(**asdict(email)) for email in create_request.emails],
-            phone_numbers=[ScimApiPhoneNumber(**asdict(number)) for number in create_request.phone_numbers],
-            nin=create_request.national_identity_number,
-            preferred_language=create_request.preferred_language,
-            groups=create_request.groups,
+            name=ScimApiName(**asdict(create_request.nutid_invite_v1.name)),
+            emails=[ScimApiEmail(**asdict(email)) for email in create_request.nutid_invite_v1.emails],
+            phone_numbers=[
+                ScimApiPhoneNumber(**asdict(number)) for number in create_request.nutid_invite_v1.phone_numbers
+            ],
+            nin=create_request.nutid_invite_v1.national_identity_number,
+            preferred_language=create_request.nutid_invite_v1.preferred_language,
+            groups=create_request.nutid_invite_v1.groups,
             profiles=profiles,
         )
         signup_invite = self._create_signup_invite(req, resp, create_request, db_invite)
