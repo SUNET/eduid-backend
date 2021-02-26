@@ -1,5 +1,5 @@
 six >= 1.11.0
-eduid-common[worker]>=0.31.0,==0.31.*
+eduid-common[worker]>=0.32.0,==0.32.*
 eduid-userdb>=0.11.0,==0.11.*
 suds-jurko >= 0.6
 phonenumbers >= 8.9.3
