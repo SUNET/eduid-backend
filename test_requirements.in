@@ -1,0 +1,12 @@
+-r requirements.in
+-c requirements.txt
+-r webapp_requirements.in
+-c webapp_requirements.txt
+-r worker_requirements.in
+-c worker_requirements.txt
+isort==5.6.4
+black==19.10b0
+mypy
+mock == 0.1.0
+pytest>=5.2.0
+pytest-cov>=2.7.1

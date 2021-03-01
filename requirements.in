@@ -1,0 +1,4 @@
+eduid-userdb >= 0.11.0,==0.11.*
+pydantic
+setuptools
+six
