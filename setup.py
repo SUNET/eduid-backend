@@ -9,7 +9,7 @@ def load_requirements(path: PurePath) -> List[str]:
     res = []
     with open(path) as fd:
         for line in fd.readlines():
-            while line.endswith('\n'):
+            while line.endswith('\n') or line.endswith('\\'):
                 line = line[:-1]
             line = line.strip()
             if not line or line.startswith('-') or line.startswith('#'):
