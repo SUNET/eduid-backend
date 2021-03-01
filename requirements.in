@@ -1,0 +1,8 @@
+six
+eduid-common[worker]>=0.32.0,==0.32.*
+eduid-userdb>=0.11.0,==0.11.*
+suds-jurko
+phonenumbers
+vine
+kombu
+celery[redis]
