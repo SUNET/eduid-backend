@@ -1,6 +1,7 @@
 SOURCE=	eduid_am
 EDUIDCOMMON= ../eduid-common/src
 EDUIDUSERDB= ../eduid-userdb/src
+PIPCOMPILE= pip-compile --generate-hashes --extra-index-url https://pypi.sunet.se/simple
 
 test:
 	pytest
@@ -16,7 +17,9 @@ typecheck_extra:
 	mypy --ignore-missing-imports $(EDUIDCOMMON) $(EDUIDUSERDB) $(SOURCE)
 
 requirements.txt:: requirements.in
-	CUSTOM_COMPILE_COMMAND="make $@" pip-compile --extra-index-url https://pypi.sunet.se/simple < $< > $@
+	CUSTOM_COMPILE_COMMAND="make update_deps" $(PIPCOMPILE) < $< > $@
 
-test_requirements.txt:: test_requirements.in
-	CUSTOM_COMPILE_COMMAND="make $@" pip-compile --extra-index-url https://pypi.sunet.se/simple < $< > $@
+test_requirements.txt:: requirements.in test_requirements.in
+	CUSTOM_COMPILE_COMMAND="make update_deps" $(PIPCOMPILE) < $< > $@
+
+update_deps: requirements.txt test_requirements.txt
