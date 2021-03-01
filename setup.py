@@ -21,7 +21,7 @@ version = '0.32.1'
 
 
 here = PurePath(__file__)
-README = open(here.with_name('README')).read()
+README = open(here.with_name('README.txt')).read()
 
 install_requires = load_requirements(here.with_name('requirements.txt'))
 test_requires = load_requirements(here.with_name('test_requirements.txt'))
@@ -51,6 +51,5 @@ setup(
         'api': load_requirements(here.with_name('api_requirements.txt')),
         'nodeps': [],
     },
-    entry_points="""
-      """,
+    python_requires='>=3.7',
 )
