@@ -14,3 +14,9 @@ typecheck:
 
 typecheck_extra:
 	mypy --ignore-missing-imports $(EDUIDCOMMON) $(EDUIDUSERDB) $(SOURCE)
+
+requirements.txt:: requirements.in
+	CUSTOM_COMPILE_COMMAND="make $@" pip-compile --extra-index-url https://pypi.sunet.se/simple < $< > $@
+
+test_requirements.txt:: test_requirements.in
+	CUSTOM_COMPILE_COMMAND="make $@" pip-compile --extra-index-url https://pypi.sunet.se/simple < $< > $@
