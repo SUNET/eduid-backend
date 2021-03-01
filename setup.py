@@ -1,23 +1,34 @@
 import os
+from pathlib import PurePath
+from typing import List
 
 from setuptools import setup, find_packages
 
 __author__ = 'ft'
 
-here = os.path.abspath(os.path.dirname(__file__))
-README_fn = os.path.join(here, 'README.rst')
-README = 'eduID User Database interface module'
-if os.path.exists(README_fn):
-    README = open(README_fn).read()
-
 version = '0.11.1'
 
-install_requires = [
-    'pymongo >= 3.6',
-    'six',
-]
 
-testing_extras = ['pytest>=5.2.0' 'pytest-cov>=2.7.1']
+def load_requirements(path: PurePath) -> List[str]:
+    """ Load dependencies from a requirements.txt style file, ignoring comments etc. """
+    res = []
+    with open(path) as fd:
+        for line in fd.readlines():
+            while line.endswith('\n'):
+                line = line[:-1]
+            line = line.strip()
+            if not line or line.startswith('-') or line.startswith('#'):
+                continue
+            res += [line]
+    return res
+
+
+here = PurePath(__file__)
+README = open(here.with_name('README.rst')).read()
+
+install_requires = load_requirements(here.with_name('requirements.txt'))
+test_requires = load_requirements(here.with_name('test_requirements.txt'))
+
 
 setup(
     name='eduid-userdb',
@@ -34,17 +45,8 @@ setup(
     license='BSD',
     packages=find_packages('src'),
     package_dir={'': 'src'},
-    #   packages=['eduid_userdb',
-    #             'eduid_userdb.signup',
-    #             'eduid_userdb.dashboard',
-    #             'eduid_userdb.actions',
-    #             'eduid_userdb.actions.tou',
-    #             'eduid_userdb.actions.chpass',
-    #             'eduid_userdb.proofing',
-    #             ],
-    # include_package_data=True,
-    # package_data = { },
     zip_safe=False,
     install_requires=install_requires,
-    extras_require={'testing': testing_extras,},
+    test_requires=test_requires,
+    extras_require={'testing': [],},
 )
