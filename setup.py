@@ -11,6 +11,7 @@ def load_requirements(path: PurePath) -> List[str]:
         for line in fd.readlines():
             while line.endswith('\n'):
                 line = line[:-1]
+            line = line.strip()
             if not line or line.startswith('-') or line.startswith('#'):
                 continue
             res += [line]
