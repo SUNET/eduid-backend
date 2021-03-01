@@ -28,7 +28,7 @@ NIN_RE = re.compile(r'^(18|19|20)\d{2}(0[1-9]|1[0-2])\d{2}\d{4}$')
 
 
 @dataclass(frozen=True)
-class NutidInviteV1:
+class NutidInviteExtensionV1:
     name: Name = field(default_factory=lambda: Name(), metadata={'required': False})
     emails: List[Email] = field(default_factory=list)
     phone_numbers: List[PhoneNumber] = field(default_factory=list, metadata={'data_key': 'phoneNumbers'})
@@ -52,6 +52,14 @@ class NutidInviteV1:
     expires_at: Optional[datetime] = field(
         default=None, metadata={'marshmallow_field': DateTimeField(data_key='expiresAt')}
     )
+
+
+@dataclass(frozen=True)
+class NutidInviteV1:
+    nutid_invite_v1: NutidInviteExtensionV1 = field(
+        default_factory=lambda: NutidInviteExtensionV1(),
+        metadata={'data_key': SCIMSchema.NUTID_INVITE_V1.value, 'required': True},
+    )
     nutid_user_v1: NutidUserExtensionV1 = field(
         default_factory=lambda: NutidUserExtensionV1(),
         metadata={'data_key': SCIMSchema.NUTID_USER_V1.value, 'required': False},
@@ -65,11 +73,11 @@ class InviteCreateRequest(BaseCreateRequest, NutidInviteV1):
     @validates_schema
     def validate_schema(self, data, **kwargs):
         # Validate that at least one email address were provided if an invite email should be sent
-        if data['send_email'] is True and len(data['emails']) == 0:
+        if data['nutid_invite_v1'].send_email is True and len(data['nutid_invite_v1'].emails) == 0:
             raise ValidationError('There must be an email address to be able to send an invite mail.')
         # Validate that there is a primary email address if more than one is requested
-        if len(data['emails']) > 1:
-            primary_addresses = [email for email in data['emails'] if email.primary is True]
+        if len(data['nutid_invite_v1'].emails) > 1:
+            primary_addresses = [email for email in data['nutid_invite_v1'].emails if email.primary is True]
             if len(primary_addresses) != 1:
                 raise ValidationError('There must be exactly one primary email address.')
 
@@ -81,5 +89,4 @@ class InviteResponse(NutidInviteV1, BaseResponse):
 
 NutidInviteV1Schema = class_schema(NutidInviteV1, base_schema=BaseSchema)
 InviteCreateRequestSchema = class_schema(InviteCreateRequest, base_schema=BaseSchema)
-# InviteUpdateRequestSchema = class_schema(UserUpdateRequest, base_schema=BaseSchema)
 InviteResponseSchema = class_schema(InviteResponse, base_schema=BaseSchema)

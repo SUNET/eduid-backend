@@ -13,7 +13,7 @@ testing_extras = [
     if len(x) > 0 and not x.startswith('-')
 ]
 
-version = '0.5.1'
+version = '0.5.2'
 
 setup(
     name='eduid-scimapi',
