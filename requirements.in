@@ -1,0 +1,6 @@
+motor==2.*
+aiosmtplib==1.*
+Babel==2.*
+Jinja2==2.*
+eduid-userdb>=0.8.*
+eduid-common[worker]>=0.18.1
