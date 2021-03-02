@@ -6,17 +6,17 @@
 #
 --extra-index-url https://pypi.sunet.se/simple
 
-amqp==2.6.1 \
-    --hash=sha256:70cdb10628468ff14e57ec2f751c7aa9e48e7e3651cfd62d431213c0c4e58f21 \
-    --hash=sha256:aa7f313fb887c91f15474c1229907a04dac0b8135822d6603437803424c0aa59
+amqp==5.0.5 \
+    --hash=sha256:1e759a7f202d910939de6eca45c23a107f6b71111f41d1282c648e9ac3d21901 \
+    --hash=sha256:affdd263d8b8eb3c98170b78bf83867cdb6a14901d586e00ddb65bfe2f0c4e60
     # via kombu
 billiard==3.6.3.0 \
     --hash=sha256:bff575450859a6e0fbc2f9877d9b715b0bbc07c3565bb7ed2280526a0cdf5ede \
     --hash=sha256:d91725ce6425f33a97dfa72fb6bfef0e47d4652acd98a032bd1a7fbf06d5fa6a
     # via celery
-celery[redis]==4.3.1 \
-    --hash=sha256:5a60a56bfaa264058897721e5c122e2868665edcf9f82f6c7b0a4333ba036c35 \
-    --hash=sha256:efd01061a064e1b52d5068848af6ce9beb328550a345e0c49f63427c81fad836
+celery[redis]==5.0.5 \
+    --hash=sha256:5e8d364e058554e83bbb116e8377d90c79be254785f357cb2cec026e79febe13 \
+    --hash=sha256:f4efebe6f8629b0da2b8e529424de376494f5b7a743c321c8a2ddc2b1414921c
     # via -r requirements.in
 cffi==1.14.5 \
     --hash=sha256:005a36f41773e148deac64b08f233873a4d0c18b053d37da83f6af4d9087b813 \
@@ -57,6 +57,25 @@ cffi==1.14.5 \
     --hash=sha256:f2d45f97ab6bb54753eab54fffe75aaf3de4ff2341c9daee1987ee1837636f1d \
     --hash=sha256:fd78e5fee591709f32ef6edb9a015b4aa1a5022598e36227500c8f4e02328d9c
     # via pynacl
+click-didyoumean==0.0.3 \
+    --hash=sha256:112229485c9704ff51362fe34b2d4f0b12fc71cc20f6d2b3afabed4b8bfa6aeb
+    # via celery
+click-plugins==1.1.1 \
+    --hash=sha256:46ab999744a9d831159c3411bb0c79346d94a444df9a3a3742e9ed63645f264b \
+    --hash=sha256:5d262006d3222f5057fd81e1623d4443e41dcda5dc815c06b442aa3c02889fc8
+    # via celery
+click-repl==0.1.6 \
+    --hash=sha256:9c4c3d022789cae912aad8a3f5e1d7c2cdd016ee1225b5212ad3e8691563cda5 \
+    --hash=sha256:b9f29d52abc4d6059f8e276132a111ab8d94980afe6a5432b9d996544afa95d5
+    # via celery
+click==7.1.2 \
+    --hash=sha256:d2b5255c7c6349bc1bd1e59e08cd12acbbd63ce649f2588755783aa94dfb6b1a \
+    --hash=sha256:dacca89f4bfadd5de3d7489b7c8a566eee0d3676333fbb50030263894c38c0dc
+    # via
+    #   celery
+    #   click-didyoumean
+    #   click-plugins
+    #   click-repl
 dnspython==2.1.0 \
     --hash=sha256:95d12f6ef0317118d2a1a6fc49aac65ffec7eb8087474158f42f26a639135216 \
     --hash=sha256:e4a87f0b573201a0f3727fa18a516b055fd1107e0e5477cded4a2de497df1dd4
@@ -71,9 +90,9 @@ eduid-userdb==0.11.1 \
     # via
     #   -r requirements.in
     #   eduid-common
-kombu==4.5.0 \
-    --hash=sha256:389ba09e03b15b55b1a7371a441c894fd8121d174f5583bbbca032b9ea8c9edd \
-    --hash=sha256:7b92303af381ef02fad6899fd5f5a9a96031d781356cd8e505fa54ae5ddee181
+kombu==5.0.2 \
+    --hash=sha256:6dc509178ac4269b0e66ab4881f70a2035c33d3a622e20585f965986a5182006 \
+    --hash=sha256:f4965fba0a4718d47d470beeb5d6446e3357a62402b16c510b6a2f251e05ac3c
     # via
     #   -r requirements.in
     #   celery
@@ -81,6 +100,10 @@ phonenumbers==8.12.18 \
     --hash=sha256:0aa0f5e1382d292a7ff2f8bc08673126521461c7f908e0220756449a734d8fef \
     --hash=sha256:f60b1cc7b424cdadf5c291ed839d1c623a46ca1e4d0a04d3e85d1fdf754c1a26
     # via -r requirements.in
+prompt-toolkit==3.0.16 \
+    --hash=sha256:0fa02fa80363844a4ab4b8d6891f62dd0645ba672723130423ca4037b80c1974 \
+    --hash=sha256:62c811e46bd09130fb11ab759012a4ae385ce4fb2073442d1898867a824183bd
+    # via click-repl
 pycparser==2.20 \
     --hash=sha256:2d475327684562c3a96cc71adf7dc8c4f0565175cf86b6d7a404ff4c771f15f0 \
     --hash=sha256:7582ad22678f0fcd81102833f60ef8d0e57288b6b5fb00323d101be910e35705
@@ -233,6 +256,7 @@ six==1.15.0 \
     --hash=sha256:8b74bedcbbbaca38ff6d7491d76f2b06b3592611af620f8426e82dddb04a5ced
     # via
     #   -r requirements.in
+    #   click-repl
     #   eduid-common
     #   eduid-userdb
     #   pynacl
@@ -249,13 +273,17 @@ urllib3==1.26.3 \
     --hash=sha256:1b465e494e3e0d8939b50680403e3aedaa2bc434b7d5af64dfd3c958d7f5ae80 \
     --hash=sha256:de3eedaad74a2683334e282005cd8d7f22f4d55fa690a2a1020a416cb0a47e73
     # via python-etcd
-vine==1.3.0 \
-    --hash=sha256:133ee6d7a9016f177ddeaf191c1f58421a1dcc6ee9a42c58b34bed40e1d2cd87 \
-    --hash=sha256:ea4947cc56d1fd6f2095c8d543ee25dad966f78692528e68b4fada11ba3f98af
+vine==5.0.0 \
+    --hash=sha256:4c9dceab6f76ed92105027c49c823800dd33cacce13bdedc5b914e3514b7fb30 \
+    --hash=sha256:7d3b1624a953da82ef63462013bbd271d3eb75751489f9807598e8f340bd637e
     # via
     #   -r requirements.in
     #   amqp
     #   celery
+wcwidth==0.2.5 \
+    --hash=sha256:beb4802a9cebb9144e99086eff703a642a13d6a0052920003a230f3294bbe784 \
+    --hash=sha256:c4d647b99872929fdb7bdcaa4fbe7f01413ed3d98077df798530e5b04f116c83
+    # via prompt-toolkit
 
 # WARNING: The following packages were not pinned, but pip requires them to be
 # pinned when the requirements file includes hashes. Consider using the --allow-unsafe flag.
