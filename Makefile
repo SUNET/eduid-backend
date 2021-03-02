@@ -12,6 +12,6 @@ typecheck:
 	mypy --ignore-missing-imports $(SOURCE)
 
 %ments.txt: %ments.in
-	CUSTOM_COMPILE_COMMAND="make update_deps" $(PIPCOMPILE) < $< > $@
+	CUSTOM_COMPILE_COMMAND="make update_deps" $(PIPCOMPILE) $< > $@
 
 update_deps: $(patsubst %ments.in,%ments.txt,$(wildcard *ments.in))
