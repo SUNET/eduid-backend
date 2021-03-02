@@ -1,5 +1,6 @@
 import os
 from pathlib import PurePath
+from typing import List
 
 from setuptools import setup, find_packages
 
@@ -50,4 +51,5 @@ setup(
     test_requires=test_requires,
     extras_require={'testing': [],},
     test_suite='eduid_am',
+    python_requires='>=3.7',
 )
