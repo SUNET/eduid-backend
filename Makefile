@@ -1,7 +1,7 @@
-SOURCE=	eduid_am
-EDUIDCOMMON= ../eduid-common/src
-EDUIDUSERDB= ../eduid-userdb/src
-PIPCOMPILE= pip-compile --generate-hashes --extra-index-url https://pypi.sunet.se/simple
+SOURCE=		eduid_am
+EDUIDCOMMON=	../eduid-common/src
+EDUIDUSERDB=	../eduid-userdb/src
+PIPCOMPILE=	pip-compile --generate-hashes --extra-index-url https://pypi.sunet.se/simple
 
 test:
 	pytest
@@ -16,10 +16,7 @@ typecheck:
 typecheck_extra:
 	mypy --ignore-missing-imports $(EDUIDCOMMON) $(EDUIDUSERDB) $(SOURCE)
 
-requirements.txt:: requirements.in
-	CUSTOM_COMPILE_COMMAND="make update_deps" $(PIPCOMPILE) < $< > $@
+%ments.txt: %ments.in
+	CUSTOM_COMPILE_COMMAND="make update_deps" $(PIPCOMPILE) $< > $@
 
-test_requirements.txt:: requirements.in test_requirements.in
-	CUSTOM_COMPILE_COMMAND="make update_deps" $(PIPCOMPILE) < $< > $@
-
-update_deps: requirements.txt test_requirements.txt
+update_deps: $(patsubst %ments.in,%ments.txt,$(wildcard *ments.in))
