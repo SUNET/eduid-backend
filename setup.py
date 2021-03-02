@@ -26,7 +26,7 @@ def load_requirements(path: PurePath) -> List[str]:
 
 
 here = PurePath(__file__)
-README = open(here.with_name('README.rst')).read()
+README = open(here.with_name('README.md')).read()
 
 install_requires = load_requirements(here.with_name('requirements.txt'))
 test_requires = load_requirements(here.with_name('test_requirements.txt'))
