@@ -4,6 +4,7 @@ from time import time
 from eduid_userdb.db import MongoDB
 
 
+# TODO: Update to use mongodb built-in expiry
 class CacheMDB(object):
 
     _init_collections: dict = {}
