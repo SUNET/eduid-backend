@@ -1,6 +1,7 @@
-SOURCE=	eduid_lookup_mobile
-EDUIDCOMMON= ../eduid-common/src
-EDUIDUSERDB= ../eduid-userdb/src
+SOURCE=		eduid_lookup_mobile
+EDUIDCOMMON=	../eduid-common/src
+EDUIDUSERDB=	../eduid-userdb/src
+PIPCOMPILE=	pip-compile --generate-hashes --extra-index-url https://pypi.sunet.se/simple
 
 test:
 	pytest --log-cli-level DEBUG
@@ -15,3 +16,7 @@ typecheck:
 typecheck_extra:
 	mypy --ignore-missing-imports $(EDUIDCOMMON) $(EDUIDUSERDB) $(SOURCE)
 
+%ments.txt: %ments.in
+	CUSTOM_COMPILE_COMMAND="make update_deps" $(PIPCOMPILE) $< > $@
+
+update_deps: $(patsubst %ments.in,%ments.txt,$(wildcard *ments.in))
