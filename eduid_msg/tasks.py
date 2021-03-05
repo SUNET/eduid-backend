@@ -2,13 +2,13 @@
 
 import json
 import smtplib
+import sys
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from time import time
 from typing import List, Optional, Union
 
 from celery import Task
-from celery.task import periodic_task, task
 from celery.utils.log import get_task_logger
 from hammock import Hammock
 
@@ -43,6 +43,7 @@ DEFAULT_NAVET_API_URI = 'http://{0}:{1}'.format(DEFAULT_NAVET_API_HOST, DEFAULT_
 
 logger = get_task_logger(__name__)
 _CACHE: dict = {}
+_CACHE_EXPIRE_TS: Optional[datetime] = None
 MESSAGE_RATE_LIMIT = worker_config.message_rate_limit
 
 
@@ -466,7 +467,7 @@ class MessageRelay(Task):
         raise ConnectionError('Database not healthy')
 
 
-@task(bind=True, base=MessageRelay)
+@celery.task(bind=True, base=MessageRelay)
 def is_reachable(self, identity_number: str) -> bool:
     """
     Check if the user is registered with Swedish government mailbox service.
@@ -484,7 +485,7 @@ def is_reachable(self, identity_number: str) -> bool:
     assert False  # make mypy happy
 
 
-@task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
+@celery.task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
 def send_message(
     self: MessageRelay,
     message_type: str,
@@ -514,7 +515,7 @@ def send_message(
     assert False  # make mypy happy
 
 
-@task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
+@celery.task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
 def sendmail(
     self: MessageRelay,
     sender: str,
@@ -540,7 +541,7 @@ def sendmail(
     assert False  # make mypy happy
 
 
-@task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
+@celery.task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
 def sendsms(
     self: MessageRelay, recipient: str, message: str, reference: str, max_retry_seconds: Optional[int] = None
 ) -> str:
@@ -560,7 +561,7 @@ def sendsms(
     assert False  # make mypy happy
 
 
-@task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
+@celery.task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
 def get_postal_address(self: MessageRelay, identity_number: str) -> Optional[OrderedDict]:
     """
     Retrieve name and postal address from the Swedish population register using a Swedish national
@@ -579,7 +580,7 @@ def get_postal_address(self: MessageRelay, identity_number: str) -> Optional[Ord
     assert False  # make mypy happy
 
 
-@task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
+@celery.task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
 def get_relations_to(self: MessageRelay, identity_number: str, relative_nin: str) -> List[str]:
     """
     Get the relative status between identity_number and relative_nin.
@@ -628,7 +629,7 @@ def get_relations_to(self: MessageRelay, identity_number: str, relative_nin: str
     assert False  # make mypy happy
 
 
-@task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
+@celery.task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
 def set_audit_log_postal_address(self, audit_reference: str) -> bool:
     """
     Looks in the transaction audit collection for the audit reference and make a postal address lookup and adds the
@@ -641,17 +642,27 @@ def set_audit_log_postal_address(self, audit_reference: str) -> bool:
         raise e
 
 
-@periodic_task(run_every=timedelta(minutes=5))
 def cache_expire():
     """
     Periodic function executed every 5 minutes to expire cached items.
     """
     global _CACHE
     for cache in _CACHE.keys():
-        logger.debug(f"Invoking expire_cache at {datetime.fromtimestamp(time(), None)} for {cache}")
+        logger.info(f'Invoking expire_cache at {datetime.utcnow()} for {cache}')
         _CACHE[cache].expire_cache_items()
 
 
-@task(bind=True, base=MessageRelay)
+@celery.task(bind=True, base=MessageRelay)
 def pong(self):
+    # Periodic tasks require celery beat with celery 5. This whole expiration thing
+    # should be replaced with mongodb built in data expiration, so just use this hack for now.
+    global _CACHE_EXPIRE_TS
+    if _CACHE_EXPIRE_TS is None:
+        _CACHE_EXPIRE_TS = datetime.utcnow() + timedelta(minutes=5)
+
+    if datetime.now() > _CACHE_EXPIRE_TS:
+        cache_expire()
+        _CACHE_EXPIRE_TS = datetime.utcnow() + timedelta(minutes=10)
+
+    logger.error(f'PONG FROM {self}')
     return self.pong()

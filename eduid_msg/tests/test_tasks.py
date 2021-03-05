@@ -1,5 +1,7 @@
 import json
 
+import pytest
+from celery.exceptions import Retry
 from mock import MagicMock, call, patch
 
 from eduid_msg.testing import MsgMongoTestCase
@@ -85,10 +87,10 @@ class TestTasks(MsgMongoTestCase):
     def test_send_message_invalid_phone_number(self):
         from eduid_msg.tasks import send_message
 
-        try:
+        with pytest.raises(Retry) as exc_info:
             send_message.delay('sms', 'reference', self.msg_dict, '+466666a', 'test.tmpl', 'sv_SE').get()
-        except ValueError as e:
-            self.assertEqual(e.args[0], "'to' is not a valid phone number")
+
+        assert exc_info.value.excs == 'ValueError("\'to\' is not a valid phone number")'
 
     @patch('smscom.SMSClient.send', side_effect=Exception('Unrecoverable error'))
     def test_send_message_sms_exception(self, sms_mock):
