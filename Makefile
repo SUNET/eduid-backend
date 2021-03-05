@@ -2,7 +2,7 @@ SOURCE=		src
 EDUIDUSERDB=	../eduid-userdb/src
 EDUIDAM=	../eduid-am/eduid_am
 EDUIDMSG=	../eduid_msg/eduid_msg
-PIPCOMPILE=	pip-compile --generate-hashes --extra-index-url https://pypi.sunet.se/simple
+PIPCOMPILE=	pip-compile -v --upgrade --generate-hashes --extra-index-url https://pypi.sunet.se/simple
 
 
 test:
