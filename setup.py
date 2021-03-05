@@ -8,7 +8,7 @@ from setuptools import setup, find_packages
 __author__ = 'mathiashedstrom'
 
 
-version = '0.2.2'
+version = '0.2.3'
 
 
 def load_requirements(path: PurePath) -> List[str]:
