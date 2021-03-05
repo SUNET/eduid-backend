@@ -1,8 +1,7 @@
-import os
 from pathlib import PurePath
 from typing import List
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 __author__ = 'ft'
 
@@ -49,4 +48,5 @@ setup(
     install_requires=install_requires,
     test_requires=test_requires,
     extras_require={'testing': [],},
+    python_requires='>=3.7',
 )
