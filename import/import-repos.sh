@@ -18,7 +18,8 @@ for mod in ${SUBMODULES}; do
     git remote add --fetch "old_${mod}" https://github.com/SUNET/${mod}.git
 
     # Merge the files from old_a/master into new/master
-    git merge "old_${mod}"/master --allow-unrelated-histories
+    git merge "old_${mod}"/master --allow-unrelated-histories || \
+	git merge "old_${mod}"/main --allow-unrelated-histories
 
     # Move the old_a repo files and folders into a subdirectory so they don't collide with the other repo coming later
     rm -rf "import/${mod}"
