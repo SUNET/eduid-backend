@@ -36,6 +36,7 @@ class TestBaseWorker(QueueAsyncioTest):
     def setUp(self) -> None:
         super().setUp()
         self.config = QueueWorkerConfig(
+            app_name='testing',
             testing=True,
             mongo_uri=self.mongo_uri,
             mongo_collection=self.mongo_collection,

@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from dataclasses import dataclass
-
-from eduid_common.config.base import BaseConfig
+from eduid_common.config.base import LoggingConfigMixin, RootConfig
 
 __author__ = 'lundberg'
 
 
-@dataclass
-class QueueWorkerConfig(BaseConfig):
+class QueueWorkerConfig(RootConfig, LoggingConfigMixin):
     """
     Configuration for eduid-queue workers
     """
