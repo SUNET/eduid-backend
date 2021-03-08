@@ -1,7 +1,7 @@
 SOURCE=		src
 EDUIDCOMMON=	../eduid-common/src
 EDUIDUSERDB=	../eduid-userdb/src
-PIPCOMPILE=	pip-compile --generate-hashes --extra-index-url https://pypi.sunet.se/simple
+PIPCOMPILE=	pip-compile -v --generate-hashes --extra-index-url https://pypi.sunet.se/simple
 
 test:
 	pytest
