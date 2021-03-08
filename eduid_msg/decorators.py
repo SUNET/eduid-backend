@@ -44,7 +44,8 @@ class TransactionAudit(object):
     def disable(cls):
         cls.enabled = False
 
-    def _filter(self, func, data, *args, **kwargs):
+    @staticmethod
+    def _filter(func, data, *args, **kwargs):
         if data is False:
             return data
         if func == '_get_navet_data':
@@ -58,7 +59,7 @@ class TransactionAudit(object):
                 'template': args[5],
             }
         elif func == 'sendmail':
-            return {'type': 'mail', 'recipient': args[1], 'send_errors': data, 'audit_reference': args[3]}
+            return {'type': 'mail', 'recipient': args[2], 'send_errors': data, 'audit_reference': args[4]}
         elif func == 'sendsms':
             return {'type': 'sms', 'recipient': args[1], 'transaction_id': data, 'audit_reference': args[3]}
         return data
