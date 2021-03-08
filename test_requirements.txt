@@ -6,10 +6,13 @@
 #
 --extra-index-url https://pypi.sunet.se/simple
 
-amqp==2.6.1 \
-    --hash=sha256:70cdb10628468ff14e57ec2f751c7aa9e48e7e3651cfd62d431213c0c4e58f21 \
-    --hash=sha256:aa7f313fb887c91f15474c1229907a04dac0b8135822d6603437803424c0aa59
-    # via kombu
+amqp==5.0.5 \
+    --hash=sha256:1e759a7f202d910939de6eca45c23a107f6b71111f41d1282c648e9ac3d21901 \
+    --hash=sha256:affdd263d8b8eb3c98170b78bf83867cdb6a14901d586e00ddb65bfe2f0c4e60
+    # via
+    #   eduid-am
+    #   eduid-msg
+    #   kombu
 appdirs==1.4.4 \
     --hash=sha256:7d5d0167b2b1ba821647616af46a749d1c653740dd0d2415100fe26e27afdf41 \
     --hash=sha256:a841dacd6b99318a741b166adb07e19ee71a274450e68237b4650ca1055ab128
@@ -23,7 +26,10 @@ attrs==20.3.0 \
 billiard==3.6.3.0 \
     --hash=sha256:bff575450859a6e0fbc2f9877d9b715b0bbc07c3565bb7ed2280526a0cdf5ede \
     --hash=sha256:d91725ce6425f33a97dfa72fb6bfef0e47d4652acd98a032bd1a7fbf06d5fa6a
-    # via celery
+    # via
+    #   celery
+    #   eduid-am
+    #   eduid-msg
 black==19.10b0 \
     --hash=sha256:1b30e59be925fafc1ee4565e5e08abef6b03fe455102883820fe5ee2e4734e0b \
     --hash=sha256:c2edb73a08e9e0e6f65a0e6af18b059b8b1cdd5bef997d7a0b181df93dc81539
@@ -35,16 +41,18 @@ bleach==3.3.0 \
 blinker==1.4 \
     --hash=sha256:471aee25f3992bd325afa3772f1063dbdbbca947a041b8b89466dc00d606f8b6
     # via flask-mail
-celery[redis]==4.3.1 \
-    --hash=sha256:5a60a56bfaa264058897721e5c122e2868665edcf9f82f6c7b0a4333ba036c35 \
-    --hash=sha256:efd01061a064e1b52d5068848af6ce9beb328550a345e0c49f63427c81fad836
+celery[redis]==5.0.5 \
+    --hash=sha256:5e8d364e058554e83bbb116e8377d90c79be254785f357cb2cec026e79febe13 \
+    --hash=sha256:f4efebe6f8629b0da2b8e529424de376494f5b7a743c321c8a2ddc2b1414921c
     # via
     #   eduid-am
     #   eduid-msg
 certifi==2020.12.5 \
     --hash=sha256:1a4995114262bffbc2413b159f2a1a480c969de6e6eb13ee966d470af86af59c \
     --hash=sha256:719a74fb9e33b9bd44cc7f3a8d94bc35e4049deebe19ba7d8e108280cfd59830
-    # via requests
+    # via
+    #   eduid-msg
+    #   requests
 cffi==1.14.5 \
     --hash=sha256:005a36f41773e148deac64b08f233873a4d0c18b053d37da83f6af4d9087b813 \
     --hash=sha256:0857f0ae312d855239a55c81ef453ee8fd24136eaba8e87a2eceba644c0d4c06 \
@@ -85,16 +93,46 @@ cffi==1.14.5 \
     --hash=sha256:fd78e5fee591709f32ef6edb9a015b4aa1a5022598e36227500c8f4e02328d9c
     # via
     #   cryptography
+    #   eduid-am
+    #   eduid-msg
     #   pynacl
 chardet==4.0.0 \
     --hash=sha256:0d6f53a15db4120f2b08c94f11e7d93d2c911ee118b6b30a04ec3ee8310179fa \
     --hash=sha256:f864054d66fd9118f2e67044ac8981a54775ec5b67aed0441892edb553d21da5
-    # via requests
+    # via
+    #   eduid-msg
+    #   requests
+click-didyoumean==0.0.3 \
+    --hash=sha256:112229485c9704ff51362fe34b2d4f0b12fc71cc20f6d2b3afabed4b8bfa6aeb
+    # via
+    #   celery
+    #   eduid-am
+    #   eduid-msg
+click-plugins==1.1.1 \
+    --hash=sha256:46ab999744a9d831159c3411bb0c79346d94a444df9a3a3742e9ed63645f264b \
+    --hash=sha256:5d262006d3222f5057fd81e1623d4443e41dcda5dc815c06b442aa3c02889fc8
+    # via
+    #   celery
+    #   eduid-am
+    #   eduid-msg
+click-repl==0.1.6 \
+    --hash=sha256:9c4c3d022789cae912aad8a3f5e1d7c2cdd016ee1225b5212ad3e8691563cda5 \
+    --hash=sha256:b9f29d52abc4d6059f8e276132a111ab8d94980afe6a5432b9d996544afa95d5
+    # via
+    #   celery
+    #   eduid-am
+    #   eduid-msg
 click==7.1.2 \
     --hash=sha256:d2b5255c7c6349bc1bd1e59e08cd12acbbd63ce649f2588755783aa94dfb6b1a \
     --hash=sha256:dacca89f4bfadd5de3d7489b7c8a566eee0d3676333fbb50030263894c38c0dc
     # via
     #   black
+    #   celery
+    #   click-didyoumean
+    #   click-plugins
+    #   click-repl
+    #   eduid-am
+    #   eduid-msg
     #   flask
 cookies-samesite-compat==0.0.1 \
     --hash=sha256:2d2921799d79aebd5a3d3dc6cfd6f877eb7aef6c644a65574df43bb763cd715b \
@@ -179,10 +217,13 @@ defusedxml==0.7.0 \
 dnspython==2.1.0 \
     --hash=sha256:95d12f6ef0317118d2a1a6fc49aac65ffec7eb8087474158f42f26a639135216 \
     --hash=sha256:e4a87f0b573201a0f3727fa18a516b055fd1107e0e5477cded4a2de497df1dd4
-    # via python-etcd
-eduid-am==0.7.9 \
-    --hash=sha256:2d07b0c8b5accbef465533bd9da6f9759f137e3d192256444ecf56c9bfec2087 \
-    --hash=sha256:b5fcdc29bcad7a8c025189a995ef5429028e9a9aa1fb4a07149bb2c8fe5fbd8d
+    # via
+    #   eduid-am
+    #   eduid-msg
+    #   python-etcd
+eduid-am==0.7.10 \
+    --hash=sha256:3097df913b8883f108cff89293a6c13fac2346511bebb53c72d80c528a625b48 \
+    --hash=sha256:6b3b5be6bb237fb0f42ad72036153cdc0151f819f5a5e5a0a1c7d81530714d8c
     # via -r webapp_requirements.in
 eduid-common[worker]==0.32.1 \
     --hash=sha256:865d19655432011e303de8fd291cc766340574f674b589ad3bec54f17cd4cfa2 \
@@ -190,9 +231,9 @@ eduid-common[worker]==0.32.1 \
     # via
     #   eduid-am
     #   eduid-msg
-eduid-msg==0.11.0 \
-    --hash=sha256:4c4f5695a68d4216ded01898f76c4ef466f9646bcd5d8c5770bb7b5d26c10e1a \
-    --hash=sha256:80d6c57d95fc3d0d3e87d3fa673355160122bde900a90770981724d1b53a081c
+eduid-msg==0.11.1 \
+    --hash=sha256:9f069727c45a8129cca6e3728862e99082b3558ca94a4cee13700462122d9885 \
+    --hash=sha256:c8a32664780eb5e5ebb222ac9629405e7470ae7a470fbe46a65de284236501df
     # via -r webapp_requirements.in
 eduid-userdb==0.11.1 \
     --hash=sha256:50903e186b2ed05168fd0b52fbc346205c39ccc6fecfc5040ba5c3fa5be8915f \
@@ -225,11 +266,21 @@ hammock==0.2.4 \
 httplib2==0.19.0 \
     --hash=sha256:749c32603f9bf16c1277f59531d502e8f1c2ca19901ae653b49c4ed698f0820e \
     --hash=sha256:e0d428dad43c72dbce7d163b7753ffc7a39c097e6788ef10f4198db69b92f08e
-    # via pysmscom
+    # via
+    #   eduid-msg
+    #   pysmscom
 idna==2.10 \
     --hash=sha256:b307872f855b18632ce0c21c5e45be78c0ea7ae4c15c828c20788b26921eb3f6 \
     --hash=sha256:b97d804b1e9b523befed77c48dacec60e6dcb0b5391d57af6a65a312a90648c0
-    # via requests
+    # via
+    #   eduid-msg
+    #   requests
+importlib-metadata==3.7.0 \
+    --hash=sha256:24499ffde1b80be08284100393955842be4a59c7c16bbf2738aad0e464a8e0aa \
+    --hash=sha256:c6af5dbf1126cd959c4a8d8efd61d4d3c83bddb0459a17e554284a077574b614
+    # via
+    #   eduid-am
+    #   eduid-msg
 importlib-resources==5.1.2 \
     --hash=sha256:642586fc4740bd1cad7690f836b3321309402b20b332529f25617ff18e8e1370 \
     --hash=sha256:ebab3efe74d83b04d6bf5cd9a17f0c5c93e60fb60f30c90f56265fce4682a469
@@ -252,9 +303,9 @@ jinja2==2.11.3 \
     # via
     #   eduid-msg
     #   flask
-kombu==4.5.0 \
-    --hash=sha256:389ba09e03b15b55b1a7371a441c894fd8121d174f5583bbbca032b9ea8c9edd \
-    --hash=sha256:7b92303af381ef02fad6899fd5f5a9a96031d781356cd8e505fa54ae5ddee181
+kombu==5.0.2 \
+    --hash=sha256:6dc509178ac4269b0e66ab4881f70a2035c33d3a622e20585f965986a5182006 \
+    --hash=sha256:f4965fba0a4718d47d470beeb5d6446e3357a62402b16c510b6a2f251e05ac3c
     # via
     #   celery
     #   eduid-am
@@ -312,7 +363,9 @@ markupsafe==1.1.1 \
     --hash=sha256:e249096428b3ae81b08327a63a485ad0878de3fb939049038579ac0ef61e17e7 \
     --hash=sha256:e8313f01ba26fbbe36c7be1966a7b7424942f670f38e666995b88d012765b9be \
     --hash=sha256:feb7b34d6325451ef96bc0e36e1a6c0c1c64bc1fbec4b854f4529e51887b1621
-    # via jinja2
+    # via
+    #   eduid-msg
+    #   jinja2
 marshmallow==3.10.0 \
     --hash=sha256:4ab2fdb7f36eb61c3665da67a7ce281c8900db08d72ba6bf0e695828253581f7 \
     --hash=sha256:eca81d53aa4aafbc0e20566973d0d2e50ce8bf0ee15165bb799bec0df1e50177
@@ -363,6 +416,13 @@ pluggy==0.13.1 \
     --hash=sha256:15b2acde666561e1298d71b523007ed7364de07029219b604cf808bfa1c765b0 \
     --hash=sha256:966c145cd83c96502c3c3868f50408687b38434af77734af1e9ca461a4081d2d
     # via pytest
+prompt-toolkit==3.0.16 \
+    --hash=sha256:0fa02fa80363844a4ab4b8d6891f62dd0645ba672723130423ca4037b80c1974 \
+    --hash=sha256:62c811e46bd09130fb11ab759012a4ae385ce4fb2073442d1898867a824183bd
+    # via
+    #   click-repl
+    #   eduid-am
+    #   eduid-msg
 pwgen==0.8.2.post0 \
     --hash=sha256:4723279de6f2a5e8e1ab49374334c920d423c5e3d2c224ae5bf82b57b3ac2b3f
     # via -r webapp_requirements.in
@@ -376,7 +436,10 @@ py==1.10.0 \
 pycparser==2.20 \
     --hash=sha256:2d475327684562c3a96cc71adf7dc8c4f0565175cf86b6d7a404ff4c771f15f0 \
     --hash=sha256:7582ad22678f0fcd81102833f60ef8d0e57288b6b5fb00323d101be910e35705
-    # via cffi
+    # via
+    #   cffi
+    #   eduid-am
+    #   eduid-msg
 pydantic==1.8.1 \
     --hash=sha256:0c40162796fc8d0aa744875b60e4dc36834db9f2a25dbf9ba9664b1915a23850 \
     --hash=sha256:20d42f1be7c7acc352b3d09b0cf505a9fab9deb93125061b376fbe1f06a5459f \
@@ -403,7 +466,9 @@ pydantic==1.8.1 \
     # via
     #   -c requirements.txt
     #   -r requirements.in
+    #   eduid-am
     #   eduid-common
+    #   eduid-msg
 pymongo==3.11.3 \
     --hash=sha256:0384d76b409278ddb34ac19cdc4664511685959bf719adbdc051875ded4689aa \
     --hash=sha256:05e2bda928a3a6bc6ddff9e5a8579d41928b75d7417b18f9a67c82bb52150ac6 \
@@ -470,6 +535,8 @@ pymongo==3.11.3 \
     --hash=sha256:f6748c447feeadda059719ef5ab1fb9d84bd370e205b20049a0e8b45ef4ad593
     # via
     #   -c requirements.txt
+    #   eduid-am
+    #   eduid-msg
     #   eduid-userdb
     #   vccs-client
 pynacl==1.4.0 \
@@ -494,6 +561,7 @@ pynacl==1.4.0 \
     # via
     #   -r webapp_requirements.in
     #   -r worker_requirements.in
+    #   eduid-am
     #   eduid-common
     #   eduid-msg
 pyopenssl==20.0.1 \
@@ -504,6 +572,7 @@ pyparsing==2.4.7 \
     --hash=sha256:c203ec8783bf771a155b207279b9bccb8dea02d8f0c9e5f8ead507bc3246ecc1 \
     --hash=sha256:ef9d7589ef3c200abe66653d3f1ab1033c3c419ae9b9bdb1240a85b024efc88b
     # via
+    #   eduid-msg
     #   httplib2
     #   packaging
 pysaml2==6.5.1+sunet \
@@ -536,6 +605,7 @@ python-etcd==0.4.5 \
     # via
     #   -r webapp_requirements.in
     #   -r worker_requirements.in
+    #   eduid-am
     #   eduid-common
     #   eduid-msg
 python-u2flib-server==5.0.1 \
@@ -546,6 +616,8 @@ pytz==2021.1 \
     --hash=sha256:eb10ce3e7736052ed3623d49975ce333bcd712c7bb19a58b9e2089d4057d0798
     # via
     #   celery
+    #   eduid-am
+    #   eduid-msg
     #   pysaml2
 pyyaml==5.4.1 \
     --hash=sha256:08682f6b72c722394747bddaf0aa62277e02557c0fd1c42cb853016a38f8dedf \
@@ -572,6 +644,7 @@ pyyaml==5.4.1 \
     # via
     #   -r webapp_requirements.in
     #   -r worker_requirements.in
+    #   eduid-am
     #   eduid-common
     #   eduid-msg
 redis==3.5.3 \
@@ -580,6 +653,8 @@ redis==3.5.3 \
     # via
     #   -r webapp_requirements.in
     #   celery
+    #   eduid-am
+    #   eduid-msg
 regex==2020.11.13 \
     --hash=sha256:02951b7dacb123d8ea6da44fe45ddd084aa6777d4b2454fa0da61d569c6fa538 \
     --hash=sha256:0d08e71e70c0237883d0bef12cad5145b84c3705e9c6a588b2a9c7080e5af2a4 \
@@ -627,6 +702,7 @@ requests==2.25.1 \
     --hash=sha256:27973dd4a904a4f13b263a19c866c13b92a39ed1c964655f025f3f8d3d75b804 \
     --hash=sha256:c210084e36a42ae6b9219e00e48287def368a26d03a048ddad7bfee44f75871e
     # via
+    #   eduid-msg
     #   hammock
     #   pysaml2
 simplejson==3.17.2 \
@@ -683,7 +759,10 @@ six==1.15.0 \
     #   -c requirements.txt
     #   -r requirements.in
     #   bleach
+    #   click-repl
+    #   eduid-am
     #   eduid-common
+    #   eduid-msg
     #   eduid-userdb
     #   fido2
     #   pynacl
@@ -743,26 +822,37 @@ typing-extensions==3.7.4.3 \
     --hash=sha256:dafc7639cde7f1b6e1acc0f457842a83e722ccca8eef5270af2d74792619a89f
     # via
     #   -c requirements.txt
+    #   eduid-am
+    #   eduid-msg
     #   mypy
     #   pydantic
 urllib3==1.26.3 \
     --hash=sha256:1b465e494e3e0d8939b50680403e3aedaa2bc434b7d5af64dfd3c958d7f5ae80 \
     --hash=sha256:de3eedaad74a2683334e282005cd8d7f22f4d55fa690a2a1020a416cb0a47e73
     # via
+    #   eduid-am
+    #   eduid-msg
     #   python-etcd
     #   requests
 vccs-client==0.4.7 \
     --hash=sha256:808f07993657f5d029225713e543a8bc8054743153512f28b4f67ef845527885 \
     --hash=sha256:8bf7f4ca2e74c279f646611b5ca2aade2ecbf1f68850a7a9e000e4951ec99e8c
     # via -r webapp_requirements.in
-vine==1.3.0 \
-    --hash=sha256:133ee6d7a9016f177ddeaf191c1f58421a1dcc6ee9a42c58b34bed40e1d2cd87 \
-    --hash=sha256:ea4947cc56d1fd6f2095c8d543ee25dad966f78692528e68b4fada11ba3f98af
+vine==5.0.0 \
+    --hash=sha256:4c9dceab6f76ed92105027c49c823800dd33cacce13bdedc5b914e3514b7fb30 \
+    --hash=sha256:7d3b1624a953da82ef63462013bbd271d3eb75751489f9807598e8f340bd637e
     # via
     #   amqp
     #   celery
     #   eduid-am
     #   eduid-msg
+wcwidth==0.2.5 \
+    --hash=sha256:beb4802a9cebb9144e99086eff703a642a13d6a0052920003a230f3294bbe784 \
+    --hash=sha256:c4d647b99872929fdb7bdcaa4fbe7f01413ed3d98077df798530e5b04f116c83
+    # via
+    #   eduid-am
+    #   eduid-msg
+    #   prompt-toolkit
 webencodings==0.5.1 \
     --hash=sha256:a0af1213f3c2226497a97e2b3aa01a7e4bee4f403f95be16fc9acd2947514a78 \
     --hash=sha256:b36a1c245f2d304965eb4e0a82848379241dc04b865afcc4aab16748587e1923
@@ -775,6 +865,13 @@ xmlschema==1.5.2 \
     --hash=sha256:df7bf5d6d23f5f32d50e573f9ad75a2456029009909b63607560916b0584f89e \
     --hash=sha256:f821ce780f84c7e61ca1ccf32f23aec400446e74fa5cc888450af7604ce2291f
     # via pysaml2
+zipp==3.4.1 \
+    --hash=sha256:3607921face881ba3e026887d8150cca609d517579abe052ac81fc5aeffdbd76 \
+    --hash=sha256:51cb66cc54621609dd593d1787f286ee42a5c0adbb4b29abea5a63edc3e03098
+    # via
+    #   eduid-am
+    #   eduid-msg
+    #   importlib-metadata
 zxcvbn==4.4.28 \
     --hash=sha256:151bd816817e645e9064c354b13544f85137ea3320ca3be1fb6873ea75ef7dc1
     # via -r webapp_requirements.in
