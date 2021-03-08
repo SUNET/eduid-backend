@@ -1,0 +1,16 @@
+*.pyc
+*~
+\#*
+.*~
+.coverage
+*.egg-info
+build/
+dist/
+env
+venv
+metadata.xml
+.idea
+.*.swp
+coverage.xml
+nosetests.xml
+.mypy_cache
