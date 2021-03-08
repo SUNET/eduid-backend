@@ -3,7 +3,7 @@ from typing import List
 
 from setuptools import find_packages, setup
 
-version = '0.0.2'
+version = '0.0.3'
 
 
 def load_requirements(path: PurePath) -> List[str]:
