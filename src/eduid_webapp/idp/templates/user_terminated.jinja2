@@ -1,0 +1,25 @@
+{% extends "base.jinja2" %}
+
+{% block nav_class_home %}active{% endblock %}
+
+{% block contents %}
+
+        <div class="jumbotron">
+
+          <legend class="">{{ _("User terminated") }}</legend>
+
+          {% trans %}
+          <p>This user account has been terminated.</p>
+	  <p>To regain access to the account, a reset of the credential is necessary.</p>
+	  {% endtrans %}
+
+	  <div class="form-actions" style="margin-bottom: 0;">
+            <!-- Button -->
+            <span>
+              <a class="btn btn-primary btn-large" href="{{ password_reset_link }}" target="_blank">{{ _("Reset password") }}</a>
+            </span>
+          </div>
+        </div>
+
+{% endblock %}
+

@@ -1,0 +1,19 @@
+<p>För eduID.se gäller generellt:</p>
+
+<ul>
+    <li>att all användning av användarkonton ska följa Sveriges lagar och förordningar,</li>
+    <li>att man är sanningsenlig vid uppgivande av personlig information som namn, kontaktuppgifter el. dyl,</li>
+    <li>att användarkonton, lösenord och koder är personliga och får endast användas av innehavaren,</li>
+    <li>att SUNET:s etiska regler reglerar övrig tillåten användning. SUNET fördömer som oetiskt när någon</li>
+    <ul>
+        <li>försöker få tillgång till nätverksresurser utan att ha rätt till det</li>
+        <li>försöker dölja sin användaridentitet</li>
+        <li>försöker störa eller avbryta den avsedda användningen av nätverken</li>
+        <li>uppenbart slösar med tillgängliga resurser (personal, maskinvara eller programvara)</li>
+        <li>försöker skada eller förstöra den datorbaserade informationen</li>
+        <li>gör intrång i andras privatliv</li>
+        <li>försöker förolämpa eller förnedra andra</li>
+    </ul>
+</ul>
+
+<p>Den som överträder, eller misstänks överträda, ovanstående regler kan stängas av från eduID.se. Dessutom kan rättsliga åtgärder komma att vidtas.</p>

@@ -1,0 +1,54 @@
+@startuml
+start
+
+partition "Invite API" {
+    :Invite request:
+    ""{""
+      ""send_mail:  bool,""
+      ""finish_url: str,""
+      ""user_info:  {mail: str, display_name: str, ...},""
+    ""}"";
+
+    if (invite to user_info.mail exists?) then (yes)
+        :Request response:
+        ""{""
+            ""error: True,""
+            ""reason: signup.invite_exists,""
+        ""}"";
+        stop
+    else (no)
+        if (send_mail?) then (yes)
+            :Request response:
+            ""{""
+                ""resource_id: UUID,""
+                ""expires_at: datetime""
+            ""}"";
+            :e-mail with invite link sent to user_info.mail;
+            stop
+        else (no)
+            :Request response:
+            ""{""
+                ""resource_id: UUID,""
+                ""expires_at: datetime,""
+                ""invite_link: str""
+            ""}"";
+            stop
+        endif
+    endif
+}
+
+partition "User signup" {
+    :user follows link;
+    if (send_mail?) then (yes)
+    else (no)
+        :signup asks user to confirm e-mail address;
+        :validation link is sent to the e-mail address;
+        :user follows the validation e-mail link;
+    endif
+    :ToU;
+    :captcha;
+    :set password;
+}
+
+stop
+@enduml

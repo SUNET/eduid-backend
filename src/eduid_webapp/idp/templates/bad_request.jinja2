@@ -1,0 +1,18 @@
+{% extends "base.jinja2" %}
+
+{% block nav_class_home %}active{% endblock %}
+
+{% block contents %}
+
+      <div class="jumbotron">
+
+          <legend class="">{{ _("Bad Request") }}</legend>
+
+          {{ error_details }}
+
+          {% trans %}<p>The login request could not be processed.</p>
+          <p>Try emptying the browsers cache and re-initiate login.</p>{% endtrans %}
+
+      </div>
+
+{% endblock %}

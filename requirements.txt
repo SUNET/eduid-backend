@@ -1,0 +1,44 @@
+# common
+eduid-am>=0.7.9
+eduid-common[webapp]>=0.32.1,==0.32.*
+eduid-msg>=0.10.9
+eduid-userdb>=0.11.0,==0.11.*
+pysaml2>=6.5.0,==6.*
+Babel>=2.6.0
+Flask>=1.1,<1.2
+Pillow>=3.0.0
+bleach>=2.1.4
+fido2==0.6.0
+flask-babel>=0.11.2
+html5lib>=1.0.1
+idna>=2.1,<2.8
+marshmallow-enum==1.5.*
+marshmallow>=3.0,==3.*
+oic>=1.2.1
+pynacl>=1.0.1
+python-etcd>=0.4.3
+redis>=3.2.0,==3.*
+zxcvbn>=4.4.27,==4.*
+# actions
+eduid-action>=0.2.4
+# eidas
+python-dateutil==2.8.*
+# group_management
+eduid_scimapi==0.4.*
+# idp
+pyXMLSecurity[PKCS11]==0.21
+# letter_proofing
+hammock>=0.2.4
+xhtml2pdf>=0.2.2
+# lookup_mobile_proofing
+eduid_lookup_mobile==0.2.*
+# oidc_proofing
+python-jose>=3.0.1
+qrcode>=5.1
+# security
+cryptography>=2.0.3
+pyOpenSSL>=17.3.0
+python-u2flib-server>=5.0.0
+# signup
+proquint==0.2.1
+

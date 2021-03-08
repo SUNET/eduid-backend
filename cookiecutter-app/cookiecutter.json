@@ -1,0 +1,5 @@
+{
+  "author": "Your name",
+  "directory_name": "Snake case package name/app name, ex mobile_proofing",
+  "class_name": "Camel case class name, ex MobileProofing"
+}
