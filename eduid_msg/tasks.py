@@ -61,7 +61,7 @@ class MessageRelay(Task):
     MONGODB_URI = _config.mongo_uri
     MM_API_URI = _config.mm_api_uri if _config.mm_api_uri else DEFAULT_MM_API_URI
     NAVET_API_URI = _config.navet_api_uri
-    if _config.audit == 'true':
+    if _config.audit is True:
         TransactionAudit.enable()
 
     @property
