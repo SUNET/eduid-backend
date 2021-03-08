@@ -89,6 +89,8 @@ cffi==1.14.5 \
     # via
     #   -c requirements.txt
     #   cryptography
+    #   eduid-common
+    #   eduid-queue
     #   pynacl
 chardet==4.0.0 \
     --hash=sha256:0d6f53a15db4120f2b08c94f11e7d93d2c911ee118b6b30a04ec3ee8310179fa \
@@ -171,6 +173,8 @@ dnspython==2.1.0 \
     --hash=sha256:e4a87f0b573201a0f3727fa18a516b055fd1107e0e5477cded4a2de497df1dd4
     # via
     #   -c requirements.txt
+    #   eduid-common
+    #   eduid-queue
     #   python-etcd
 docker==4.4.4 \
     --hash=sha256:d3393c878f575d3a9ca3b94471a3c89a6d960b35feb92f033c0de36cc9d934db \
@@ -182,9 +186,9 @@ ecdsa==0.14.1 \
     # via
     #   -c requirements.txt
     #   python-jose
-eduid-common[api,worker]==0.32.1 \
-    --hash=sha256:865d19655432011e303de8fd291cc766340574f674b589ad3bec54f17cd4cfa2 \
-    --hash=sha256:aca1fd93a4c0d1d9fc6a5961a506296ba8e0a90dca937aab46f46f5529abd00c
+eduid-common[api,worker]==0.32.2 \
+    --hash=sha256:53694ccf5d2b2fd4cf454f6965b7aae382d36d299bdec83adecd062224f8ac3e \
+    --hash=sha256:5f63f5c86b546ddc93a8c41337d6297b356f34cefeb8a141fe3fbbe975428201
     # via
     #   -c requirements.txt
     #   -r requirements.in
@@ -195,9 +199,9 @@ eduid-graphdb==0.7.1 \
     # via
     #   -c requirements.txt
     #   -r requirements.in
-eduid-queue[client]==0.0.2 \
-    --hash=sha256:c48bd931a05b4cf2b6ef5dee74d14cbe1d6caa6c18a1ef3886e4c13b646afc7a \
-    --hash=sha256:fc1be746edcdef3c4371de75efa485394215a039932fb811da8a375c3cf580d4
+eduid-queue[client]==0.0.3 \
+    --hash=sha256:18e5f9351ea8b76a8c4556f5e6093fde699e6ca388d114a9a48f99693ce393c2 \
+    --hash=sha256:ed470633bc0556f6bc4e6c3f0b09b411bcaadf2c4635dec25fa3f52282574f23
     # via
     #   -c requirements.txt
     #   -r requirements.in
@@ -356,6 +360,7 @@ markupsafe==1.1.1 \
     --hash=sha256:feb7b34d6325451ef96bc0e36e1a6c0c1c64bc1fbec4b854f4529e51887b1621
     # via
     #   -c requirements.txt
+    #   eduid-queue
     #   jinja2
     #   moto
 marshmallow-dataclass[enum,union]==7.3.0 \
@@ -467,6 +472,8 @@ pycparser==2.20 \
     # via
     #   -c requirements.txt
     #   cffi
+    #   eduid-common
+    #   eduid-queue
 pydantic==1.8.1 \
     --hash=sha256:0c40162796fc8d0aa744875b60e4dc36834db9f2a25dbf9ba9664b1915a23850 \
     --hash=sha256:20d42f1be7c7acc352b3d09b0cf505a9fab9deb93125061b376fbe1f06a5459f \
@@ -493,6 +500,7 @@ pydantic==1.8.1 \
     # via
     #   -c requirements.txt
     #   eduid-common
+    #   eduid-queue
 pymongo==3.11.3 \
     --hash=sha256:0384d76b409278ddb34ac19cdc4664511685959bf719adbdc051875ded4689aa \
     --hash=sha256:05e2bda928a3a6bc6ddff9e5a8579d41928b75d7417b18f9a67c82bb52150ac6 \
@@ -559,6 +567,8 @@ pymongo==3.11.3 \
     --hash=sha256:f6748c447feeadda059719ef5ab1fb9d84bd370e205b20049a0e8b45ef4ad593
     # via
     #   -c requirements.txt
+    #   eduid-common
+    #   eduid-queue
     #   eduid-userdb
     #   motor
 pynacl==1.4.0 \
@@ -583,6 +593,7 @@ pynacl==1.4.0 \
     # via
     #   -c requirements.txt
     #   eduid-common
+    #   eduid-queue
 pyparsing==2.4.7 \
     --hash=sha256:c203ec8783bf771a155b207279b9bccb8dea02d8f0c9e5f8ead507bc3246ecc1 \
     --hash=sha256:ef9d7589ef3c200abe66653d3f1ab1033c3c419ae9b9bdb1240a85b024efc88b
@@ -610,6 +621,7 @@ python-etcd==0.4.5 \
     # via
     #   -c requirements.txt
     #   eduid-common
+    #   eduid-queue
 python-jose==3.2.0 \
     --hash=sha256:4e4192402e100b5fb09de5a8ea6bcc39c36ad4526341c123d401e2561720335b \
     --hash=sha256:67d7dfff599df676b04a996520d9be90d6cdb7e6dd10b4c7cacc0c3e2e92f2be
@@ -628,6 +640,7 @@ pytz==2021.1 \
     # via
     #   -c requirements.txt
     #   babel
+    #   eduid-queue
     #   moto
     #   neo4j
 pyyaml==5.4.1 \
@@ -656,6 +669,7 @@ pyyaml==5.4.1 \
     #   -c requirements.txt
     #   -r requirements.in
     #   eduid-common
+    #   eduid-queue
 regex==2020.11.13 \
     --hash=sha256:02951b7dacb123d8ea6da44fe45ddd084aa6777d4b2454fa0da61d569c6fa538 \
     --hash=sha256:0d08e71e70c0237883d0bef12cad5145b84c3705e9c6a588b2a9c7080e5af2a4 \
@@ -730,6 +744,7 @@ six==1.15.0 \
     #   docker
     #   ecdsa
     #   eduid-common
+    #   eduid-queue
     #   eduid-userdb
     #   falcon
     #   moto
@@ -737,7 +752,6 @@ six==1.15.0 \
     #   python-dateutil
     #   python-jose
     #   responses
-    #   websocket-client
 toml==0.10.2 \
     --hash=sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b \
     --hash=sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f
@@ -785,6 +799,8 @@ typing-extensions==3.7.4.3 \
     # via
     #   -c requirements.txt
     #   black
+    #   eduid-common
+    #   eduid-queue
     #   mypy
     #   pydantic
     #   typing-inspect
@@ -801,6 +817,8 @@ urllib3==1.26.3 \
     # via
     #   -c requirements.txt
     #   botocore
+    #   eduid-common
+    #   eduid-queue
     #   python-etcd
     #   requests
     #   responses
