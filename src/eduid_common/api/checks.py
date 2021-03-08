@@ -71,6 +71,8 @@ def check_restart(key, restart: int, terminate: int) -> bool:
 
 
 def check_mongo() -> bool:
+    if not hasattr(current_app, 'central_userdb'):
+        return True
     db = current_app.central_userdb
     try:
         db.is_healthy()

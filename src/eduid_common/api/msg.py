@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import logging
-import warnings
 from typing import List
 
 import eduid_msg
