@@ -1,7 +1,7 @@
 -r requirements.in
 -c requirements.txt
 Flask>=1.1,<1.2
-pysaml2 >= 6.5.0,==6.*  # version sync with IdP to avoid pip catastrophes
+pysaml2 >= 6.5.1+sunet
 redis >= 2.10.5
 pwgen >= 0.8.2,==0.8.*
 vccs_client >= 0.4.5

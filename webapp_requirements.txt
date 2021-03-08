@@ -381,9 +381,9 @@ pyparsing==2.4.7 \
     # via
     #   httplib2
     #   packaging
-pysaml2==6.5.1 \
-    --hash=sha256:6dc798aae0e2d43425cd3c720da1aea1b99e52c7e7d87d3666c8854f35e862f6 \
-    --hash=sha256:f79d7b2a416f1b187643a459b2abc24ae049b663e4c15f0adb93b2f3245ede3e
+pysaml2==6.5.1+sunet \
+    --hash=sha256:136fe46f91c82fd33dbbb0f7c1b7442eb387d9769d1236246c6a6c16714b09b1 \
+    --hash=sha256:8c9e1815191f6068ba8b7b759351d9bee74714120a4b85340540d2c8825da49a
     # via -r webapp_requirements.in
 pysmscom==0.9 \
     --hash=sha256:0e45dacf73dedf379f1f8e17b976dc950b2c0d91c9e7d9b82d3a59b2c27b4ed1 \
