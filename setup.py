@@ -8,7 +8,7 @@ __author__ = 'ft'
 
 
 
-version = '0.5.2'
+version = '0.5.3'
 
 def load_requirements(path: PurePath) -> List[str]:
     """ Load dependencies from a requirements.txt style file, ignoring comments etc. """
