@@ -1,6 +1,7 @@
-SOURCE=	src
-EDUIDCOMMON= ../eduid-common/src
-EDUIDUSERDB= ../eduid-userdb/src
+SOURCE=		src
+EDUIDCOMMON=	../eduid-common/src
+EDUIDUSERDB=	../eduid-userdb/src
+PIPCOMPILE=	pip-compile -v --generate-hashes --extra-index-url https://pypi.sunet.se/simple
 
 test:
 	pytest
@@ -25,3 +26,8 @@ update_translations:
 
 compile_translations:
 	python setup.py compile_catalog --use-fuzzy
+
+%ments.txt: %ments.in
+	CUSTOM_COMPILE_COMMAND="make update_deps" $(PIPCOMPILE) $< > $@
+
+update_deps: $(patsubst %ments.in,%ments.txt,$(wildcard *ments.in))
