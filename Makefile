@@ -1,5 +1,5 @@
 SOURCE=		src test-scripts
-PIPCOMPILE=	pip-compile --generate-hashes --extra-index-url https://pypi.sunet.se/simple
+PIPCOMPILE=	pip-compile -v --generate-hashes --extra-index-url https://pypi.sunet.se/simple
 
 reformat:
 	isort --line-width 120 --atomic --project eduid_scimapi --recursive $(SOURCE)
