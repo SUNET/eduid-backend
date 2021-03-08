@@ -3,6 +3,7 @@ import asyncio
 from datetime import timedelta
 from os import environ
 
+from eduid_common.config.parsers import load_config
 from eduid_userdb.util import utc_now
 
 from eduid_queue.config import QueueWorkerConfig
@@ -35,13 +36,14 @@ class TestBaseWorker(QueueAsyncioTest):
 
     def setUp(self) -> None:
         super().setUp()
-        self.config = QueueWorkerConfig(
-            app_name='testing',
-            testing=True,
-            mongo_uri=self.mongo_uri,
-            mongo_collection=self.mongo_collection,
-            periodic_min_retry_wait_in_seconds=1,
-        )
+        self.test_config = {
+            'testing': True,
+            'mongo_uri': self.mongo_uri,
+            'mongo_collection': self.mongo_collection,
+            'periodic_min_retry_wait_in_seconds': 1,
+        }
+        self.config = load_config(typ=QueueWorkerConfig, app_name='test', ns='queue', test_config=self.test_config)
+
         self.db.register_handler(TestPayload)
 
     async def asyncSetUp(self) -> None:

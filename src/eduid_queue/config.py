@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
+from typing import Sequence
 
-from eduid_common.config.base import LoggingConfigMixin, RootConfig
+from eduid_common.config.base import LoggingConfigMixin, LoggingFilters, RootConfig
 
 __author__ = 'lundberg'
 
@@ -10,7 +11,6 @@ class QueueWorkerConfig(RootConfig, LoggingConfigMixin):
     Configuration for eduid-queue workers
     """
 
-    testing: bool = False
     mongo_uri: str = ''
     mongo_collection: str = ''
     periodic_interval: int = 10
@@ -18,6 +18,7 @@ class QueueWorkerConfig(RootConfig, LoggingConfigMixin):
     max_retries: int = 10
     audit: bool = True
     log_format: str = '{asctime} | {levelname:7} | {hostname} | {name:35} | {module:10} | {message}'
+    log_filters: Sequence[LoggingFilters] = [LoggingFilters.NAMES]
     # Mail worker
     mail_host: str = 'localhost'
     mail_port: int = 25
