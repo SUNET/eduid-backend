@@ -1,0 +1,12 @@
+falcon==1.4.*
+PyYAML==5.*
+marshmallow-dataclass[enum,union]==7.3.*
+python-jose==3.*
+eduid_userdb>=0.8.0
+eduid_graphdb>=0.7.0
+eduid_queue[client]>=0.0.2
+eduid_common[api]>=0.31.0
+langcodes==2.*
+boto3==1.17.*
+gunicorn
+python-dateutil==2.8.*
