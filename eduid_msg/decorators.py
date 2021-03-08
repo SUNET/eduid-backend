@@ -59,7 +59,7 @@ class TransactionAudit(object):
                 'template': args[5],
             }
         elif func == 'sendmail':
-            return {'type': 'mail', 'recipient': args[1], 'send_errors': data, 'audit_reference': args[3]}
+            return {'type': 'mail', 'recipient': args[2], 'send_errors': data, 'audit_reference': args[4]}
         elif func == 'sendsms':
             return {'type': 'sms', 'recipient': args[1], 'transaction_id': data, 'audit_reference': args[3]}
         return data
