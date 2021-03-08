@@ -15,7 +15,7 @@ function replace {
 git checkout src
 
 git checkout move-imported-files-to-new-structure
-git branch -D update-imports
+git branch -D update-imports || true
 git checkout -b update-imports
 
 
@@ -57,3 +57,5 @@ replace src/eduid/common/api/translation.py "eduid_webapp" "eduid.webapp"
 sed -i -e "s#self.eduid.userdb#self.eduid_userdb#g" src/eduid/satosa/scimapi/scim_attributes.py
 
 replace src/eduid/workers/ "class eduid.workers." "class eduid_"
+
+git commit -m "update imports after moving imported files" src/

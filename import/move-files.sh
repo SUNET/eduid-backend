@@ -18,7 +18,7 @@ function move {
 }
 
 git checkout import-old-repos
-git branch -D move-imported-files-to-new-structure
+git branch -D move-imported-files-to-new-structure || true
 git checkout -b move-imported-files-to-new-structure
 
 move import/eduid-am/eduid_am				src/eduid/workers/am
@@ -31,3 +31,5 @@ move import/eduid-scimapi/src/eduid_scimapi/		src/eduid/scimapi
 move import/eduid-scimapi/src/eduid_satosa_plugins/	src/eduid/satosa
 move import/eduid-userdb/src/eduid_userdb/		src/eduid/userdb
 move import/eduid-webapp/src/eduid_webapp/		src/eduid/webapp
+
+git commit -m "move imported files to new directory strucure"
