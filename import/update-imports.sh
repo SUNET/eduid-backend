@@ -12,10 +12,10 @@ function replace {
     done
 }
 
-git checkout src
+git checkout src || true
 
 git checkout move-imported-files-to-new-structure
-git branch -D update-imports
+git branch -D update-imports || true
 git checkout -b update-imports
 
 
@@ -47,6 +47,8 @@ replace src/ "eduid_common.authn."	"eduid.common.authn."
 replace src/ "eduid_common.config."	"eduid.common.config."
 
 replace src/ "eduid_webapp.actions."	"eduid.webapp.actions."
+replace src/ "patch('eduid_webapp."	"patch('eduid.webapp."
+replace src/ "patch('eduid_userdb."	"patch('eduid.userdb."
 
 replace src/ "eduid_am.tasks"		"eduid.workers.am.tasks"
 
@@ -57,3 +59,5 @@ replace src/eduid/common/api/translation.py "eduid_webapp" "eduid.webapp"
 sed -i -e "s#self.eduid.userdb#self.eduid_userdb#g" src/eduid/satosa/scimapi/scim_attributes.py
 
 replace src/eduid/workers/ "class eduid.workers." "class eduid_"
+
+git commit -m "update imports after moving imported files" src/
