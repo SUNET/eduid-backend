@@ -47,6 +47,8 @@ replace src/ "eduid_common.authn."	"eduid.common.authn."
 replace src/ "eduid_common.config."	"eduid.common.config."
 
 replace src/ "eduid_webapp.actions."	"eduid.webapp.actions."
+replace src/ "patch('eduid_webapp."	"patch('eduid.webapp."
+replace src/ "patch('eduid_userdb."	"patch('eduid.userdb."
 
 replace src/ "eduid_am.tasks"		"eduid.workers.am.tasks"
 
