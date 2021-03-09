@@ -151,9 +151,6 @@ class SecurityWebauthnTests(EduidAPITestCase):
         config.update(
             {
                 'available_languages': {'en': 'English', 'sv': 'Svenska'},
-                'msg_broker_url': 'amqp://dummy',
-                'am_broker_url': 'amqp://dummy',
-                'celery_config': {'result_backend': 'amqp', 'task_serializer': 'json'},
                 'webauthn_max_allowed_tokens': 10,
                 'fido2_rp_id': 'localhost',
                 'u2f_app_id': 'https://eduid.se/u2f-app-id.json',

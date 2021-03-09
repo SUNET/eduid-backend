@@ -85,13 +85,6 @@ class LetterProofingTests(EduidAPITestCase):
                 'ekopost_api_user': 'ekopost_user',
                 'ekopost_api_pw': 'secret',
                 'letter_wait_time_hours': 336,
-                'msg_broker_url': 'amqp://dummy',
-                'am_broker_url': 'amqp://dummy',
-                'celery_config': {
-                    'result_backend': 'amqp',
-                    'task_serializer': 'json',
-                    'mongo_uri': app_config['mongo_uri'],
-                },
             }
         )
         return app_config

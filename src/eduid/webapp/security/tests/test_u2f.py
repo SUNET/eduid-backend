@@ -30,9 +30,6 @@ class SecurityU2FTests(EduidAPITestCase):
         config.update(
             {
                 'available_languages': {'en': 'English', 'sv': 'Svenska'},
-                'msg_broker_url': 'amqp://dummy',
-                'am_broker_url': 'amqp://dummy',
-                'celery_config': {'result_backend': 'amqp', 'task_serializer': 'json'},
                 'u2f_app_id': 'https://eduid.se/u2f-app-id.json',
                 'u2f_max_allowed_tokens': 2,
                 'u2f_max_description_length': 50,

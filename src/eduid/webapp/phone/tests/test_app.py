@@ -61,9 +61,6 @@ class PhoneTests(EduidAPITestCase):
         config.update(
             {
                 'available_languages': {'en': 'English', 'sv': 'Svenska'},
-                'msg_broker_url': 'amqp://dummy',
-                'am_broker_url': 'amqp://dummy',
-                'celery_config': {'result_backend': 'amqp', 'task_serializer': 'json'},
                 'phone_verification_timeout': 7200,
                 'default_country_code': '46',
                 'throttle_resend_seconds': 300,

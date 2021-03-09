@@ -34,9 +34,6 @@ class ChangePasswordTests(EduidAPITestCase):
         config.update(
             {
                 'available_languages': {'en': 'English', 'sv': 'Svenska'},
-                'msg_broker_url': 'amqp://dummy',
-                'am_broker_url': 'amqp://dummy',
-                'celery_config': {'result_backend': 'amqp', 'task_serializer': 'json'},
                 'vccs_url': 'http://vccs',
                 'email_code_timeout': 7200,
                 'phone_code_timeout': 600,

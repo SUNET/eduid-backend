@@ -147,9 +147,6 @@ class CreatePDFTest(EduidAPITestCase):
         app_config.update(
             {
                 'letter_wait_time_hours': 336,
-                'msg_broker_url': 'amqp://dummy',
-                'am_broker_url': 'amqp://dummy',
-                'celery_config': {'result_backend': 'amqp', 'task_serializer': 'json'},
             }
         )
         return app_config

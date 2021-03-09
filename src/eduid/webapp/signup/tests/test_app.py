@@ -80,11 +80,6 @@ class SignupTests(EduidAPITestCase):
                 'technicians_link': 'https://www.eduid.se/tekniker.html',
                 'staff_link': 'https://www.eduid.se/personal.html',
                 'faq_link': 'https://www.eduid.se/faq.html',
-                'celery_config': {
-                    'result_backend': 'amqp',
-                    'task_serializer': 'json',
-                    'mongo_uri': config['mongo_uri'],
-                },
                 'environment': 'dev',
             }
         )

@@ -111,11 +111,6 @@ class FidoTokensTestCase(EduidAPITestCase):
             {
                 'app_name': 'testing',
                 'available_languages': {'en': 'English', 'sv': 'Svenska'},
-                'celery_config': {
-                    'result_backend': 'amqp',
-                    'task_serializer': 'json',
-                    'mongo_uri': config['mongo_uri'],
-                },
                 'u2f_app_id': 'https://eduid.se/u2f-app-id.json',
                 'fido2_rp_id': 'idp.dev.eduid.se',
                 'u2f_valid_facets': ['https://dashboard.dev.eduid.se', 'https://idp.dev.eduid.se'],

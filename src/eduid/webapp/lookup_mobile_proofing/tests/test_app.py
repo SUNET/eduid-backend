@@ -54,10 +54,6 @@ class LookupMobileProofingTests(EduidAPITestCase):
     def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         config.update(
             {
-                'msg_broker_url': 'amqp://dummy',
-                'am_broker_url': 'amqp://dummy',
-                'lookup_mobile_broker_url': 'amqp://dummy',
-                'celery': {'result_backend': 'amqp', 'task_serializer': 'json'},
                 'environment': 'dev',
                 'magic_cookie': '',
                 'magic_cookie_name': '',

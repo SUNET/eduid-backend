@@ -83,9 +83,6 @@ class OidcProofingTests(EduidAPITestCase):
     def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         config.update(
             {
-                'msg_broker_url': 'amqp://dummy',
-                'am_broker_url': 'amqp://dummy',
-                'celery_config': {'result_backend': 'amqp', 'task_serializer': 'json'},
                 'provider_configuration_info': {'issuer': 'https://example.com/op/'},
                 'client_registration_info': {'client_id': 'test_client', 'client_secret': 'secret'},
                 'userinfo_endpoint_method': 'POST',

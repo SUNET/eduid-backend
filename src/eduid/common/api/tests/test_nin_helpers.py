@@ -36,15 +36,6 @@ class HelpersTestApp(EduIDBaseApp):
 
 
 class NinHelpersTest(EduidAPITestCase):
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Called from the parent class, so that we can update the configuration
-        according to the needs of this test case.
-        """
-        config.update(
-            {'am_broker_url': 'amqp://dummy', 'celery_config': {'result_backend': 'amqp', 'task_serializer': 'json'},}
-        )
-        return config
 
     def load_app(self, config: Mapping[str, Any]) -> HelpersTestApp:
         """

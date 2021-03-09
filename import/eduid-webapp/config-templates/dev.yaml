@@ -18,12 +18,6 @@ eduid:
             SAML2_USER_MAIN_ATTRIBUTE: eduPersonPrincipalName
             SAML2_STRIP_SAML_USER_SUFFIX: "@local.eduid.se"
             TOKEN_SERVICE_URL: http://authn.eduid.docker:8080/
-            CELERY_CONFIG:
-                CELERY_RESULT_BACKEND: amqp
-                CELERY_TASK_SERIALIZER: json
-                # Avoid broken connections across firewall by disabling pool
-                # http://docs.celeryproject.org/en/latest/configuration.html#broker-pool-limit
-                BROKER_POOL_LIMIT: 0
         authn:
             SERVER_NAME: authn.eduid.docker:8080
             SECRET_KEY: supersecretkey
@@ -36,8 +30,6 @@ eduid:
             LOG_FILE: /var/log/eduid/letter_proofing.log
             LOG_LEVEL: DEBUG
             MONGO_URI: mongodb://eduid_letter_proofing:eduid_letter_proofing_pw@mongodb.eduid_dev
-            MSG_BROKER_URL: amqp://eduid:eduid_pw@rabbitmq/msg
-            AM_BROKER_URL: amqp://eduid:eduid_pw@rabbitmq/am
             # Setting EKOPOST_DEBUG_PDF to a path means that the other EKOPOST settings will be ignored
             # and that the pdf only will be written to to the supplied path, not sent to the letter service.
             EKOPOST_DEBUG_PDF: /opt/eduid/eduid-letter-proofing/run/
@@ -49,7 +41,6 @@ eduid:
             SECRET_KEY: supersecretkey
             LOG_FILE: /var/log/eduid/oidc_proofing.log
             LOG_LEVEL: DEBUG
-            AM_BROKER_URL: amqp://eduid:eduid_pw@rabbitmq/am
             CLIENT_REGISTRATION_INFO:
                 client_id: client1
                 client_secret: abcdef
