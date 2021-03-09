@@ -42,7 +42,6 @@ class MessageRelay(Task):
     _sms_sender = None
     _navet_api = None
     _config = worker_config
-    MONGODB_URI = _config.mongo_uri
     NAVET_API_URI = _config.navet_api_uri
     if _config.audit is True:
         TransactionAudit.enable(_config.mongo_uri)
@@ -89,6 +88,7 @@ class MessageRelay(Task):
 
     def cache(self, cache_name, ttl=7200):
         global _CACHE
+        cfg = worker_config
         if cache_name not in _CACHE:
             _CACHE[cache_name] = CacheMDB(
                 self._config.mongo_uri, self._config.mongo_dbname, cache_name, ttl=ttl, expiration_freq=120
@@ -107,7 +107,7 @@ class MessageRelay(Task):
             logger.error('Task failed with db exception ConnectionError. Reloading db.')
             self.reload_db()
 
-    @TransactionAudit(MONGODB_URI)
+    @TransactionAudit()
     def send_message(
         self,
         message_type: str,
@@ -247,7 +247,7 @@ class MessageRelay(Task):
         )
         return result
 
-    @TransactionAudit(MONGODB_URI)
+    @TransactionAudit()
     def _get_navet_data(self, identity_number: str) -> Optional[dict]:
         """
         Fetch all data about a NIN from Navet.
@@ -284,7 +284,7 @@ class MessageRelay(Task):
                 return True
         return False
 
-    @TransactionAudit(MONGODB_URI)
+    @TransactionAudit()
     def sendmail(
         self, sender: str, recipients: list, message: str, reference: str, max_retry_seconds: Optional[int] = None
     ) -> dict:
@@ -312,7 +312,7 @@ class MessageRelay(Task):
 
         return self.smtp.sendmail(sender, recipients, message)
 
-    @TransactionAudit(MONGODB_URI)
+    @TransactionAudit()
     def sendsms(self, recipient: str, message: str, reference: str, max_retry_seconds: Optional[int] = None) -> str:
         """
         Send sms

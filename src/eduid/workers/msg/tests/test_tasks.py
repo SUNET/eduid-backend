@@ -3,7 +3,6 @@ from celery.exceptions import Retry
 from mock import MagicMock, call, patch
 
 from eduid.workers.msg.testing import MsgMongoTestCase
-from eduid.workers.msg.utils import load_template
 
 
 class MockException(Exception):

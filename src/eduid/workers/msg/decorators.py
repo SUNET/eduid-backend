@@ -11,7 +11,7 @@ class TransactionAudit(object):
     db_name: str = 'eduid_msg'
     collection_name: str = 'transaction_audit'
 
-    def __init__(self, _some_db_uri):
+    def __init__(self):
         self._conn = None
         self.collection = None
 

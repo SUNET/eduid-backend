@@ -80,7 +80,14 @@ TEST_CONFIG = {
     'token_service_url': 'http://test.localhost/',
     'eduid_site_name': 'eduID TESTING',
     'eduid_static_url': 'https://testing.eduid.se/static/',
-    'celery': {},
+    'celery': {
+        'broker_transport': 'memory',
+        'broker_url': 'memory://',
+        'task_eager_propagates': True,
+        'task_always_eager': True,
+        'result_backend': 'cache',
+        'cache_backend': 'memory',
+    },
 }
 
 
@@ -121,6 +128,7 @@ class EduidAPITestCase(CommonTestCase):
         self.settings['redis_config'] = RedisConfig(host='localhost', port=self.redis_instance.port)
         assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
         self.settings['mongo_uri'] = self.tmp_db.uri
+        self.settings['celery']['mongo_uri'] = self.tmp_db.uri
 
         self.app = self.load_app(self.settings)
         if not getattr(self, 'browser', False):

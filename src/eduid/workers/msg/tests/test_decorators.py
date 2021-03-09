@@ -9,7 +9,7 @@ class TestTransactionAudit(MsgMongoTestCase):
         TransactionAudit.enable(self.msg_settings.mongo_uri, db_name='test')
 
     def test_transaction_audit(self):
-        @TransactionAudit(self.msg_settings.mongo_uri)
+        @TransactionAudit()
         def no_name():
             return {'baka': 'kaka'}
 
@@ -24,7 +24,7 @@ class TestTransactionAudit(MsgMongoTestCase):
         # Check the contents
         assert result.next()['data']['baka'] == 'kaka'
 
-        @TransactionAudit(self.msg_settings.mongo_uri)
+        @TransactionAudit()
         def _get_navet_data(arg1, arg2):
             return {'baka', 'kaka'}
 
@@ -32,7 +32,7 @@ class TestTransactionAudit(MsgMongoTestCase):
         result = c.find_one({'data': {'identity_number': '1111'}})
         self.assertEqual(result['data']['identity_number'], '1111')
 
-        @TransactionAudit(self.msg_settings.mongo_uri)
+        @TransactionAudit()
         def send_message(_self, message_type, reference, message_dict, recipient, template, language, subject=None):
             return 'kaka'
 
@@ -54,7 +54,7 @@ class TestTransactionAudit(MsgMongoTestCase):
         c.delete_many({})  # Clear database
         TransactionAudit.disable()
 
-        @TransactionAudit(self.msg_settings.mongo_uri)
+        @TransactionAudit()
         def no_name():
             return {'baka': 'kaka'}
 
@@ -65,7 +65,7 @@ class TestTransactionAudit(MsgMongoTestCase):
 
         TransactionAudit.enable(self.msg_settings.mongo_uri)
 
-        @TransactionAudit(self.msg_settings.mongo_uri)
+        @TransactionAudit()
         def no_name2():
             return {'baka': 'kaka'}
 
