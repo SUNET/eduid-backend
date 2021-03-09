@@ -15,15 +15,15 @@ typecheck_extra:
 	mypy --ignore-missing-imports $(SOURCE)
 
 update_translations:
-	python setup.py extract_messages
-	python setup.py update_catalog
+	pybabel extract -k _ -k gettext -k ngettext --mapping=babel.cfg --width=120 --output=src/eduid/webapp/translations/messages.pot src/eduid/webapp/
+	pybabel update --input-file=src/eduid/webapp/translations/messages.pot --output-dir=src/eduid/webapp/translations/ --ignore-obsolete
 	$(info --- INFO ---)
 	$(info Upload message.pot to Transifex, translate.)
 	$(info Download for_use_X.po to translations/XX/LC_MESSAGES/messages.po.)
 	$(info --- INFO ---)
 
 compile_translations:
-	python setup.py compile_catalog --use-fuzzy
+	pybabel compile --directory=src/eduid/webapp/translations/ --use-fuzzy
 
 %ments.txt: %ments.in
 	CUSTOM_COMPILE_COMMAND="make update_deps" $(PIPCOMPILE) $<
