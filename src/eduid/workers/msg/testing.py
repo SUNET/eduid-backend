@@ -1,7 +1,16 @@
+import logging
+
 import pkg_resources
 
+from eduid.common.api.msg import MsgRelay
+from eduid.common.config.base import MsgConfigMixin
 from eduid.common.config.workers import MsgConfig
 from eduid.userdb.testing import MongoTestCase
+
+logger = logging.getLogger(__name__)
+
+class MsgTestConfig(MsgConfigMixin):
+    pass
 
 
 class MsgMongoTestCase(MongoTestCase):
@@ -27,11 +36,16 @@ class MsgMongoTestCase(MongoTestCase):
                 'template_dir': data_dir,
                 'message_rate_limit': 2,
             }
-            self.msg_settings = MsgConfig(**settings)
+            self.msg_settings = MsgTestConfig(**settings)
             # initialize eduid.workers.msg without requiring config in etcd
             import eduid.workers.msg
 
-            self.msg = eduid.workers.msg.init_app(self.msg_settings.celery)
+            celery = eduid.workers.msg.init_app(self.msg_settings.celery)
+            self.msg = celery
             import eduid.workers.msg.worker
 
             eduid.workers.msg.worker.worker_config = self.msg_settings
+            logger.debug(f'Initialised message_relay with config:\n{self.msg_settings}')
+
+            self.msg_relay = MsgRelay(self.msg_settings)
+

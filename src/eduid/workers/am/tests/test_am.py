@@ -110,13 +110,7 @@ class MessageTest(AMTestCase):
         # Save the user in the eduid.workers.am_test database
         self.private_db.save(test_user)
 
-        # It is important to not import eduid.workers.am.tasks before the Celery config has been
-        # set up (done in MongoTestCase.setUp()). Since Celery uses decorators, it will
-        # have instantiated AttributeManagers without the right config if the import is
-        # done prior to the Celery app configuration.
-        from eduid.workers.am.tasks import update_attributes
-
-        update_attributes.delay(app_name='test', user_id=str(_id))
+        self.am.delay(app_name='test', user_id=str(_id))
 
         # verify the user has been propagated to the amdb
         am_user = self.amdb.get_user_by_id(_id)
@@ -148,13 +142,7 @@ class MessageTest(AMTestCase):
         am_user = self.amdb.get_user_by_id(_id)
         self.assertNotEqual(am_user.eppn, 'teste-teste')
 
-        # It is important to not import eduid.workers.am.tasks before the Celery config has been
-        # set up (done in MongoTestCase.setUp()). Since Celery uses decorators, it will
-        # have instantiated AttributeManagers without the right config if the import is
-        # done prior to the Celery app configuration.
-        from eduid.workers.am.tasks import update_attributes
-
-        update_attributes.delay(app_name='test', user_id=str(_id))
+        self.am.delay(app_name='test', user_id=str(_id))
 
         # verify the user has been propagated to the amdb
         am_user = self.amdb.get_user_by_id(_id)
@@ -181,11 +169,5 @@ class MessageTest(AMTestCase):
         am_user = self.amdb.get_user_by_id(_id)
         self.assertNotEqual(am_user.eppn, 'teste-teste')
 
-        # It is important to not import eduid.workers.am.tasks before the Celery config has been
-        # set up (done in MongoTestCase.setUp()). Since Celery uses decorators, it will
-        # have instantiated AttributeManagers without the right config if the import is
-        # done prior to the Celery app configuration.
-        from eduid.workers.am.tasks import update_attributes
-
         with self.assertRaises(eduid.userdb.exceptions.EduIDDBError):
-            update_attributes.delay(app_name='bad', user_id=str(_id))
+            self.am.delay(app_name='bad', user_id=str(_id))

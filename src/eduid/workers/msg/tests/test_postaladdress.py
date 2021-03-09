@@ -2,9 +2,9 @@
 __author__ = 'lundberg'
 
 import json
+from pathlib import PurePath
 from unittest import TestCase
 
-import pkg_resources
 from mock import MagicMock
 
 from eduid.workers.msg import utils
@@ -12,10 +12,10 @@ from eduid.workers.msg import utils
 
 class TestPostalAddress(TestCase):
     def setUp(self):
-        data_dir = pkg_resources.resource_filename(__name__, 'data')
+        fn = PurePath(__file__).with_name('data') / 'navet.json'
         self.response = MagicMock()
         self.response.status_code = 200
-        self.response.json.return_value = json.load(open('%s/navet.json' % data_dir))
+        self.response.json.return_value = json.load(open(fn, 'r'))
         self.request = json.dumps({'identity_number': '197609272393'})
         self.navet = MagicMock()
         self.navet.personpost.navetnotification.POST = self.MockPost

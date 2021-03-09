@@ -181,7 +181,5 @@ class TestTasks(MsgMongoTestCase):
         self.assertEqual(status, "Anonymous")
 
     def test_ping(self):
-        from eduid.workers.msg.tasks import pong
-
-        ret = pong.delay().get()
+        ret = self.msg_relay.ping()
         self.assertEqual(ret, 'pong')

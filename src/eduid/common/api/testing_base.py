@@ -32,14 +32,12 @@
 #
 import logging
 import os
-from typing import Any, Dict, List, Optional
-
-from eduid.userdb import User
-from eduid.userdb.testing import MongoTemporaryInstance, MongoTestCase
+from typing import Any, Dict, Optional
 
 from eduid.common.api.logging import LocalContext, make_dictConfig
 from eduid.common.config.testing import EtcdTemporaryInstance
 from eduid.common.config.workers import AmConfig
+from eduid.userdb.testing import MongoTemporaryInstance, MongoTestCase
 
 logger = logging.getLogger(__name__)
 

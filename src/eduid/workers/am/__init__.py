@@ -4,7 +4,7 @@ The eduID Attribute Manager package.
 Copyright (c) 2013, 2014, 2015, 2018 SUNET. All rights reserved.
 See the file LICENSE.txt for full license statement.
 """
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from celery import Celery
 
@@ -13,13 +13,16 @@ from eduid.common.rpc.celery import init_celery
 
 import eduid.workers.am.common as common
 
+if TYPE_CHECKING:
+    from eduid.workers.am.tasks import AttributeManager
+
 
 def init_app(config: Optional[CeleryConfig]) -> Celery:
     common.celery = init_celery('am', config)
     return common.celery
 
 
-def get_attribute_manager(celery_app):
+def get_attribute_manager(celery_app: Celery) -> 'AttributeManager':
     """
     Get an AttributeManager Celery task instance.
 

@@ -664,5 +664,4 @@ def pong(self):
         cache_expire()
         _CACHE_EXPIRE_TS = datetime.utcnow() + timedelta(minutes=10)
 
-    logger.error(f'PONG FROM {self}')
     return self.pong()

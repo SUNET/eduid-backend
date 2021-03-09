@@ -55,6 +55,6 @@ class AMTestCase(WorkerTestCase):
         self.maxDiff = None
 
     def tearDown(self):
-        for fetcher in self.af_registry:
-            self.af_registry[fetcher].private_db._drop_whole_collection()
+        for fetcher in self.af_registry.values():
+            fetcher.private_db._drop_whole_collection()
         super().tearDown()
