@@ -2,7 +2,7 @@ SOURCE=	src
 PIPCOMPILE=	pip-compile --generate-hashes --extra-index-url https://pypi.sunet.se/simple
 
 test:
-	pytest --log-cli-level DEBUG
+	PYTHONPATH=$(abspath .)/src pytest --log-cli-level DEBUG
 
 reformat:
 	isort --line-width 120 --atomic --project eduid $(SOURCE)
