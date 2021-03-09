@@ -6,10 +6,10 @@ from eduid.workers.msg.testing import MsgMongoTestCase
 class TestTransactionAudit(MsgMongoTestCase):
     def setUp(self, init_msg=True):
         super(TestTransactionAudit, self).setUp(init_msg=init_msg)
-        TransactionAudit.enable()
+        TransactionAudit.enable(self.msg_settings.mongo_uri)
 
     def test_transaction_audit(self):
-        @TransactionAudit(self.msg_settings.mongo_uri, db_name='test')
+        @TransactionAudit(self.msg_settings.mongo_uri)
         def no_name():
             return {'baka': 'kaka'}
 
@@ -20,7 +20,7 @@ class TestTransactionAudit(MsgMongoTestCase):
         self.assertEqual(c.count_documents({}), 1)
         self.assertEqual(result.next()['data']['baka'], 'kaka')
 
-        @TransactionAudit(self.msg_settings.mongo_uri, db_name='test')
+        @TransactionAudit(self.msg_settings.mongo_uri)
         def _get_navet_data(arg1, arg2):
             return {'baka', 'kaka'}
 
@@ -28,7 +28,7 @@ class TestTransactionAudit(MsgMongoTestCase):
         result = c.find_one({'data': {'identity_number': '1111'}})
         self.assertEqual(result['data']['identity_number'], '1111')
 
-        @TransactionAudit(self.msg_settings.mongo_uri, db_name='test')
+        @TransactionAudit(self.msg_settings.mongo_uri)
         def send_message(_self, message_type, reference, message_dict, recipient, template, language, subject=None):
             return 'kaka'
 
@@ -50,7 +50,7 @@ class TestTransactionAudit(MsgMongoTestCase):
         c.delete_many({})  # Clear database
         TransactionAudit.disable()
 
-        @TransactionAudit(self.msg_settings.mongo_uri, db_name='test')
+        @TransactionAudit(self.msg_settings.mongo_uri)
         def no_name():
             return {'baka': 'kaka'}
 
@@ -59,9 +59,9 @@ class TestTransactionAudit(MsgMongoTestCase):
         result = c.find({})
         self.assertEqual(c.count_documents({}), 0)
 
-        TransactionAudit.enable()
+        TransactionAudit.enable(self.msg_settings.mongo_uri)
 
-        @TransactionAudit(self.msg_settings.mongo_uri, db_name='test')
+        @TransactionAudit(self.msg_settings.mongo_uri)
         def no_name2():
             return {'baka': 'kaka'}
 

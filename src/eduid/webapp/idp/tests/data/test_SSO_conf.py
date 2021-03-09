@@ -9,7 +9,7 @@ except ImportError:
     get_xmlsec_binary = None
 
 if get_xmlsec_binary:
-    xmlsec_path = get_xmlsec_binary(["/opt/local/bin"])
+    xmlsec_path = get_xmlsec_binary(["/usr/bin"])
 else:
     xmlsec_path = '/usr/bin/xmlsec1'
 

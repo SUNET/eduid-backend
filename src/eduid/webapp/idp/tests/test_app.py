@@ -35,6 +35,7 @@ import re
 from base64 import b64decode
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import PurePath
 from typing import Any, Dict, List, Mapping, Optional
 
 import pkg_resources
@@ -96,11 +97,10 @@ class IdPTests(EduidAPITestCase):
 
     def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         config = super().update_config(config)
-        datadir = pkg_resources.resource_filename(__name__, 'data')
-        fn = os.path.join(datadir, 'test_SSO_conf.py')
+        fn = PurePath(__file__).with_name('data') / 'test_SSO_conf.py'
         config.update(
             {
-                'pysaml2_config': fn,
+                'pysaml2_config': str(fn),
                 'fticks_secret_key': 'test test',
                 'eduperson_targeted_id_secret_key': 'eptid_secret',
                 'sso_cookie': {'key': 'test_sso_cookie'},

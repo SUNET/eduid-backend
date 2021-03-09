@@ -1,17 +1,18 @@
 from datetime import datetime
 from inspect import isclass
+from typing import Optional
 
 from eduid.userdb.db import MongoDB
 
 
 class TransactionAudit(object):
     enabled = False
+    db_uri: Optional[str] = None
+    db_name: str = 'eduid_msg'
+    collection_name: str = 'transaction_audit'
 
-    def __init__(self, db_uri, db_name='eduid_msg', collection_name='transaction_audit'):
+    def __init__(self, _some_db_uri):
         self._conn = None
-        self.db_uri = db_uri
-        self.db_name = db_name
-        self.collection_name = collection_name
         self.collection = None
 
     def __call__(self, f):
@@ -27,17 +28,22 @@ class TransactionAudit(object):
                     'data': self._filter(f.__name__, ret, *args, **kwargs),
                     'created_at': date,
                 }
-                self.collection.insert_one(doc)
+                if self.collection:
+                    self.collection.insert_one(doc)
             return ret
 
         if self._conn is None or not self._conn.is_healthy():
-            self._conn = MongoDB(self.db_uri)
-            db = self._conn.get_database(self.db_name)
-            self.collection = db[self.collection_name]
+            if self.db_uri:
+                self._conn = MongoDB(self.db_uri)
+                self.collection = self._conn.get_collection(self.collection_name, database_name=self.db_name)
         return audit
 
     @classmethod
-    def enable(cls):
+    def enable(cls, db_uri: str):
+        #if not isinstance(db_uri, str) or not db_uri:
+        #    raise ValueError('Invalid db_uri passed to TransactionAudit')
+        if isinstance(db_uri, str):
+            cls.db_uri = db_uri
         cls.enabled = True
 
     @classmethod

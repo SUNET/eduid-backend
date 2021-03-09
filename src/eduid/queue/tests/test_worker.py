@@ -11,7 +11,11 @@ from eduid.queue.db import QueueItem, TestPayload
 from eduid.queue.testing import QueueAsyncioTest
 from eduid.queue.workers.base import QueueWorker
 
+import logging
+
 __author__ = 'lundberg'
+
+logger = logging.getLogger(__name__)
 
 
 class QueueTestWorker(QueueWorker):
@@ -66,8 +70,7 @@ class TestBaseWorker(QueueAsyncioTest):
         queue_item = self.create_queue_item(expires_at, discard_at, payload)
         # Client saves new queue item
         self.db.save(queue_item)
-        await asyncio.sleep(0.5)  # Allow worker to run
-        assert self.db.get_item_by_id(queue_item.item_id, raise_on_missing=False) is None
+        await self._assert_item_gets_processed(queue_item)
 
     async def test_worker_expired_item(self):
         """
@@ -84,5 +87,16 @@ class TestBaseWorker(QueueAsyncioTest):
         self.db.save(queue_item)
         # Start worker after save to fake that the item has expired unhandled in the queue
         self.tasks = [asyncio.create_task(self.worker.run())]
-        await asyncio.sleep(0.5)  # Allow worker to run
-        assert self.db.get_item_by_id(queue_item.item_id, raise_on_missing=False) is None
+        await self._assert_item_gets_processed(queue_item)
+
+    async def _assert_item_gets_processed(self, queue_item: QueueItem):
+        end_time = utc_now() + timedelta(seconds=10)
+        fetched = False
+        while utc_now() < end_time:
+            await asyncio.sleep(0.5)  # Allow worker to run
+            fetched = self.db.get_item_by_id(queue_item.item_id, raise_on_missing=False)
+            if not fetched:
+                logger.info(f'Queue item {queue_item.item_id} was processed')
+                break
+            logger.info(f'Queue item {queue_item.item_id} not processed yet')
+        assert fetched is None
