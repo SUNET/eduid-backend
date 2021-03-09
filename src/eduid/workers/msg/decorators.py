@@ -39,11 +39,13 @@ class TransactionAudit(object):
         return audit
 
     @classmethod
-    def enable(cls, db_uri: str):
+    def enable(cls, db_uri: str, db_name: Optional[str] = None):
         #if not isinstance(db_uri, str) or not db_uri:
         #    raise ValueError('Invalid db_uri passed to TransactionAudit')
         if isinstance(db_uri, str):
             cls.db_uri = db_uri
+        if db_name is not None:
+            cls.db_name = db_name
         cls.enabled = True
 
     @classmethod

@@ -30,11 +30,10 @@ class MsgRelay(object):
         self.conf = config
         eduid.workers.msg.init_app(config.celery)
         # these have to be imported _after_ eduid.workers.msg.init_app()
-        from eduid.workers.msg.tasks import get_postal_address, get_relations_to, pong, send_message, sendsms
+        from eduid.workers.msg.tasks import get_postal_address, get_relations_to, pong, sendsms
 
         self._get_postal_address = get_postal_address
         self._get_relations_to = get_relations_to
-        self._send_message = send_message
         self._send_sms = sendsms
         self._pong = pong
 

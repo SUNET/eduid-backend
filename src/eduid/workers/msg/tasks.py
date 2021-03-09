@@ -2,43 +2,28 @@
 
 import json
 import smtplib
-import sys
 from collections import OrderedDict
 from datetime import datetime, timedelta
-from time import time
-from typing import List, Optional, Union
+from typing import List, Optional
 
 from celery import Task
 from celery.utils.log import get_task_logger
 from hammock import Hammock
 
+from eduid.userdb.exceptions import ConnectionError
 from eduid.workers.msg.cache import CacheMDB
 from eduid.workers.msg.common import celery
 from eduid.workers.msg.decorators import TransactionAudit
 from eduid.workers.msg.exceptions import NavetAPIException
 from eduid.workers.msg.utils import load_template, navet_get_name_and_official_address, navet_get_relations
 from eduid.workers.msg.worker import worker_config
-from eduid.userdb.exceptions import ConnectionError
 
 if celery is None:
     raise RuntimeError('Must call eduid.workers.msg.init_app before importing tasks')
 
 
-DEFAULT_MONGODB_HOST = 'localhost'
-DEFAULT_MONGODB_PORT = 27017
-DEFAULT_MONGODB_NAME = 'eduid_msg'
-DEFAULT_MONGODB_URI = 'mongodb://%s:%d/%s' % (DEFAULT_MONGODB_HOST, DEFAULT_MONGODB_PORT, DEFAULT_MONGODB_NAME)
-
 TRANSACTION_AUDIT_DB = 'eduid_msg'
 TRANSACTION_AUDIT_COLLECTION = 'transaction_audit'
-
-DEFAULT_MM_API_HOST = 'eduid-mm-service.docker'
-DEFAULT_MM_API_PORT = 8080
-DEFAULT_MM_API_URI = 'http://{0}:{1}'.format(DEFAULT_MM_API_HOST, DEFAULT_MM_API_PORT)
-
-DEFAULT_NAVET_API_HOST = 'eduid-navet-service.docker'
-DEFAULT_NAVET_API_PORT = 8080
-DEFAULT_NAVET_API_URI = 'http://{0}:{1}'.format(DEFAULT_NAVET_API_HOST, DEFAULT_NAVET_API_PORT)
 
 
 logger = get_task_logger(__name__)
@@ -55,11 +40,9 @@ class MessageRelay(Task):
     abstract = True
     _sms = None
     _sms_sender = None
-    _mm_api = None
     _navet_api = None
     _config = worker_config
     MONGODB_URI = _config.mongo_uri
-    MM_API_URI = _config.mm_api_uri if _config.mm_api_uri else DEFAULT_MM_API_URI
     NAVET_API_URI = _config.navet_api_uri
     if _config.audit is True:
         TransactionAudit.enable(_config.mongo_uri)
@@ -93,18 +76,6 @@ class MessageRelay(Task):
         return _smtp
 
     @property
-    def mm_api(self):
-        if self._mm_api is None:
-            verify_ssl = True
-            auth = None
-            if self._config.mm_api_verify_ssl == 'false':
-                verify_ssl = False
-            if self._config.mm_api_user and self._config.mm_api_pw:
-                auth = (self._config.mm_api_user, self._config.mm_api_pw)
-            self._mm_api = Hammock(self.MM_API_URI, auth=auth, verify=verify_ssl)
-        return self._mm_api
-
-    @property
     def navet_api(self):
         if self._navet_api is None:
             verify_ssl = True
@@ -135,70 +106,6 @@ class MessageRelay(Task):
         if isinstance(exc, ConnectionError):
             logger.error('Task failed with db exception ConnectionError. Reloading db.')
             self.reload_db()
-
-    def is_reachable(self, identity_number: str) -> Union[bool, str]:
-        """
-        Check if the user is registered with Swedish government mailbox service.
-
-        :param identity_number: User social security number
-        :return: True if the user is reachable, False if the user is not registered with the government mailbox service.
-                 'Anonymous' if the user is registered but has not confirmed their identity with the government mailbox
-                  service.
-                 'Sender_not' if the sender (you) is blocked by the recipient.
-        """
-        result = self.cache('recipient_cache', 7200).get_cache_item(identity_number)
-
-        if result is None:
-            result = self._get_is_reachable(identity_number)
-            if result['AccountStatus']['Type'] == 'Secure' and result['SenderAccepted']:
-                self.cache('recipient_cache').add_cache_item(identity_number, result)
-
-        if result['AccountStatus']['Type'] == 'Secure':
-            if result['SenderAccepted']:
-                return True
-            else:
-                return 'Sender_not'
-        elif result['AccountStatus']['Type'] == 'Not':
-            return False
-        elif result['AccountStatus']['Type'] == 'Anonymous':
-            return 'Anonymous'
-        return False
-
-    def get_mailbox_url(self, identity_number: str) -> Optional[str]:
-        """
-        :param identity_number: User social security number
-        :return: Returns mailbox URL if the user exist and accept messages from the sender.
-        """
-        result = self.cache('recipient_cache', 7200).get_cache_item(identity_number)
-        if result is None:
-            result = self._get_is_reachable(identity_number)
-            if result['AccountStatus']['Type'] == 'Secure' and result['SenderAccepted']:
-                self.cache('recipient_cache').add_cache_item(identity_number, result)
-
-        if result['AccountStatus']['Type'] == 'Secure':
-            if result['SenderAccepted']:
-                return result['AccountStatus']['ServiceSupplier']['ServiceAddress']
-        return None
-
-    @TransactionAudit(MONGODB_URI)
-    def _get_is_reachable(self, identity_number: str) -> dict:
-        # Users always reachable in devel mode
-        conf = self._config
-        if conf.devel_mode is True:
-            logger.debug(f"Faking that NIN {identity_number} is reachable")
-            return {
-                'AccountStatus': {'Type': 'Secure', 'ServiceSupplier': 'devel_mode'},
-                'SenderAccepted': 'devel_mode',
-            }
-        data = json.dumps({'identity_number': identity_number})
-        response = self.mm_api.user.reachable.POST(data=data)
-        if response.status_code == 200:
-            return response.json()
-        error = 'MM API is_reachable response: {0} {1}'.format(
-            response.status_code, response.json().get('message', 'No message')
-        )
-        logger.error(error)
-        raise RuntimeError(error)
 
     @TransactionAudit(MONGODB_URI)
     def send_message(
@@ -245,45 +152,12 @@ class MessageRelay(Task):
             except Exception as e:  # XXX: smscom only raises Exception right now
                 logger.error(f'SMS task failed: {e}')
                 raise e
-
-        elif message_type == 'mm':
-            logger.debug("Sending MM to '%s' using language '%s'" % (recipient, language))
-            reachable = self.is_reachable(recipient)
-
-            if reachable is not True:
-                logger.debug(f"User not reachable - reason: {reachable}")
-                if isinstance(reachable, str):
-                    return reachable
-                return None
-
-            if subject is None:
-                subject = f'{conf.mm_default_subject}'  # make mypy happy
-
-            status = self._send_mm_message(recipient, subject, 'text/html', language.replace('_', ''), msg)
         else:
             logger.error(f'Unknown message type: {message_type}')
             raise NotImplementedError(f'message_type {message_type} is not implemented')
 
         logger.debug(f'send_message result: {status}')
         return status
-
-    def _send_mm_message(self, recipient: str, subject: str, content_type: str, language: str, message: str) -> str:
-        data = json.dumps(
-            {
-                'recipient': recipient,
-                'subject': subject,
-                'content_type': content_type,
-                'language': language,
-                'message': message,
-            }
-        )
-        response = self.mm_api.message.send.POST(data=data)
-        logger.debug(f"_send_mm_message response for recipient '{recipient}': '{repr(response)}'")
-        if response.status_code == 200:
-            return response.json()['transaction_id']
-        error = f"MM API send message response: {response.status_code} {response.json().get('message', 'No message')}"
-        logger.error(error)
-        raise RuntimeError(error)
 
     def get_postal_address(self, identity_number: str) -> Optional[OrderedDict]:
         """
@@ -466,53 +340,6 @@ class MessageRelay(Task):
             return 'pong'
         raise ConnectionError('Database not healthy')
 
-
-@celery.task(bind=True, base=MessageRelay)
-def is_reachable(self, identity_number: str) -> bool:
-    """
-    Check if the user is registered with Swedish government mailbox service.
-
-    :param self: base clas
-    :param identity_number: Swedish national identity number
-    :return: True if the user is reachable, otherwise False
-    """
-    try:
-        return self.is_reachable(identity_number)
-    except Exception as e:
-        logger.error(f'is_reachable task error: {e}', exc_info=True)
-        # self.retry raises Retry exception, assert False will not be reached
-        self.retry(default_retry_delay=1, max_retries=3, exc=e)
-    assert False  # make mypy happy
-
-
-@celery.task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
-def send_message(
-    self: MessageRelay,
-    message_type: str,
-    reference: str,
-    message_dict: dict,
-    recipient: str,
-    template: str,
-    language: str,
-    subject: Optional[str] = None,
-) -> str:
-    """
-    :param self: base class
-    :param message_type: Message notification type (sms or mm)
-    :param reference: Audit reference to help cross reference audit log and events
-    :param message_dict: A dict of key value pairs used in the template of choice
-    :param recipient: Recipient phone number or social security number (depends on the choice of message_type)
-    :param template: Name of the message template to use
-    :param language: Preferred language for the template
-    :param subject: Optional message subject
-    """
-    try:
-        return self.send_message(message_type, reference, message_dict, recipient, template, language, subject)
-    except Exception as e:
-        logger.error(f'send_message task error: {e}', exc_info=True)
-        # self.retry raises Retry exception, assert False will not be reached
-        self.retry(default_retry_delay=1, max_retries=3, exc=e)
-    assert False  # make mypy happy
 
 
 @celery.task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)

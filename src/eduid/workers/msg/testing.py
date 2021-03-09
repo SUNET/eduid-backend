@@ -1,22 +1,27 @@
 import logging
+from pathlib import PurePath
 
 import pkg_resources
 
+from eduid.common.api.mail_relay import MailRelay
 from eduid.common.api.msg import MsgRelay
-from eduid.common.config.base import MsgConfigMixin
+from eduid.common.config.base import EduIDBaseAppConfig, MailConfigMixin, MsgConfigMixin
 from eduid.common.config.workers import MsgConfig
 from eduid.userdb.testing import MongoTestCase
 
 logger = logging.getLogger(__name__)
 
-class MsgTestConfig(MsgConfigMixin):
+class MsgTestConfig(MsgConfig, MsgConfigMixin):
+    pass
+
+class MailTestConfig(EduIDBaseAppConfig, MailConfigMixin):
     pass
 
 
 class MsgMongoTestCase(MongoTestCase):
     def setUp(self, init_msg=True):
-        super(MsgMongoTestCase, self).setUp()
-        data_dir = pkg_resources.resource_filename(__name__, 'tests/data')
+        super().setUp()
+        data_path = PurePath(__file__).with_name('tests') / 'data'
         if init_msg:
             settings = {
                 'app_name': 'testing',
@@ -33,7 +38,7 @@ class MsgMongoTestCase(MongoTestCase):
                 'sms_acc': 'foo',
                 'sms_key': 'bar',
                 'sms_sender': 'Test sender',
-                'template_dir': data_dir,
+                'template_dir': str(data_path),
                 'message_rate_limit': 2,
             }
             self.msg_settings = MsgTestConfig(**settings)
@@ -48,4 +53,4 @@ class MsgMongoTestCase(MongoTestCase):
             logger.debug(f'Initialised message_relay with config:\n{self.msg_settings}')
 
             self.msg_relay = MsgRelay(self.msg_settings)
-
+            self.mail_relay = MailRelay(MailTestConfig(**settings, token_service_url='foo'))

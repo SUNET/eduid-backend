@@ -62,9 +62,6 @@ class MsgConfig(WorkerConfig):
     mail_starttls: bool = False
     mail_username: str = ''
     message_rate_limit: Optional[int] = None  # for celery. tasks per second - None for no rate limit
-    # TODO: Purge everything about the MM API
-    mm_api_uri: str = 'MM-API-not-available'
-    mm_default_subject: str = 'MM-API-not-available'
     mongo_dbname: str = 'eduid_msg'
     navet_api_pw: str = ''
     navet_api_uri: str = ''

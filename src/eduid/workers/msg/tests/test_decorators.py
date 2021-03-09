@@ -6,19 +6,23 @@ from eduid.workers.msg.testing import MsgMongoTestCase
 class TestTransactionAudit(MsgMongoTestCase):
     def setUp(self, init_msg=True):
         super(TestTransactionAudit, self).setUp(init_msg=init_msg)
-        TransactionAudit.enable(self.msg_settings.mongo_uri)
+        TransactionAudit.enable(self.msg_settings.mongo_uri, db_name='test')
 
     def test_transaction_audit(self):
         @TransactionAudit(self.msg_settings.mongo_uri)
         def no_name():
             return {'baka': 'kaka'}
 
+        # Invoke transaction logging by calling the function that is decorated with TransactionAudit
         no_name()
+
         db = self.tmp_db.conn['test']
         c = db['transaction_audit']
         result = c.find({})
-        self.assertEqual(c.count_documents({}), 1)
-        self.assertEqual(result.next()['data']['baka'], 'kaka')
+        # Check that an audit entry was created
+        assert c.count_documents({}) == 1
+        # Check the contents
+        assert result.next()['data']['baka'] == 'kaka'
 
         @TransactionAudit(self.msg_settings.mongo_uri)
         def _get_navet_data(arg1, arg2):
