@@ -44,9 +44,9 @@ from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
 from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from eduid_userdb import UserDB
+from eduid.userdb import UserDB
 
-from eduid_common.api.checks import (
+from eduid.common.api.checks import (
     CheckResult,
     FailCountItem,
     check_am,
@@ -56,18 +56,18 @@ from eduid_common.api.checks import (
     check_redis,
     check_vccs,
 )
-from eduid_common.api.debug import init_app_debug
-from eduid_common.api.exceptions import init_exception_handlers, init_sentry
-from eduid_common.api.logging import init_logging
-from eduid_common.api.middleware import PrefixMiddleware
-from eduid_common.api.request import Request
-from eduid_common.api.utils import init_template_functions
-from eduid_common.authn.utils import no_authn_views
-from eduid_common.config.base import EduIDBaseAppConfig, FlaskConfig
-from eduid_common.config.exceptions import BadConfiguration
-from eduid_common.config.parsers.etcd import EtcdConfigParser
-from eduid_common.session.eduid_session import SessionFactory
-from eduid_common.stats import init_app_stats
+from eduid.common.api.debug import init_app_debug
+from eduid.common.api.exceptions import init_exception_handlers, init_sentry
+from eduid.common.api.logging import init_logging
+from eduid.common.api.middleware import PrefixMiddleware
+from eduid.common.api.request import Request
+from eduid.common.api.utils import init_template_functions
+from eduid.common.authn.utils import no_authn_views
+from eduid.common.config.base import EduIDBaseAppConfig, FlaskConfig
+from eduid.common.config.exceptions import BadConfiguration
+from eduid.common.config.parsers.etcd import EtcdConfigParser
+from eduid.common.session.eduid_session import SessionFactory
+from eduid.common.stats import init_app_stats
 
 DEBUG = os.environ.get('EDUID_APP_DEBUG', False)
 if DEBUG:
@@ -186,7 +186,7 @@ def get_app_config(name: str, config: Optional[dict] = None) -> dict:
     keys, load them as well.
     """
     warnings.warn(
-        "This function will be removed in a future version of eduid_common. Use 'BaseConfig.init_config()' instead.",
+        "This function will be removed in a future version of eduid.common. Use 'BaseConfig.init_config()' instead.",
         DeprecationWarning,
         stacklevel=2,
     )
@@ -222,7 +222,7 @@ def init_status_views(app: EduIDBaseApp, config: EduIDBaseAppConfig) -> None:
     """
     Register status views for any app, and configure them as public.
     """
-    from eduid_common.api.views.status import status_views
+    from eduid.common.api.views.status import status_views
 
     app.register_blueprint(status_views)
     # Register status paths for unauthorized requests

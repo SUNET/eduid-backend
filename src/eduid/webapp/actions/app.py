@@ -38,12 +38,12 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app, render_template, templating
 
-from eduid_common.api.am import AmRelay
-from eduid_common.api.app import EduIDBaseApp
-from eduid_common.config.parsers import load_config
-from eduid_userdb.actions import ActionDB
+from eduid.common.api.am import AmRelay
+from eduid.common.api.app import EduIDBaseApp
+from eduid.common.config.parsers import load_config
+from eduid.userdb.actions import ActionDB
 
-from eduid_webapp.actions.settings.common import ActionsConfig
+from eduid.webapp.actions.settings.common import ActionsConfig
 
 
 class PluginsRegistry(dict):
@@ -54,7 +54,7 @@ class PluginsRegistry(dict):
                 app.logger.warn(f'Duplicate entry point: {plugin_name}')
             else:
                 app.logger.debug(f'Registering entry point: {plugin_name}')
-                module = import_module(f'eduid_webapp.actions.actions.{plugin_name}')
+                module = import_module(f'eduid.webapp.actions.actions.{plugin_name}')
                 self[plugin_name] = getattr(module, 'Plugin')
 
 
@@ -109,7 +109,7 @@ def actions_init_app(name: str = 'actions', test_config: Optional[Mapping[str, A
 
     app.logger.info(f'Init {config.app_name} app...')
 
-    from eduid_webapp.actions.views import actions_views
+    from eduid.webapp.actions.views import actions_views
 
     app.register_blueprint(actions_views)
 

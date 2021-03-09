@@ -34,16 +34,16 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid_common.api import translation
-from eduid_common.api.am import AmRelay
-from eduid_common.api.msg import MsgRelay
-from eduid_common.authn.middleware import AuthnBaseApp
-from eduid_common.config.parsers import load_config
-from eduid_userdb.logs import ProofingLog
-from eduid_userdb.proofing import LetterProofingStateDB, LetterProofingUserDB
+from eduid.common.api import translation
+from eduid.common.api.am import AmRelay
+from eduid.common.api.msg import MsgRelay
+from eduid.common.authn.middleware import AuthnBaseApp
+from eduid.common.config.parsers import load_config
+from eduid.userdb.logs import ProofingLog
+from eduid.userdb.proofing import LetterProofingStateDB, LetterProofingUserDB
 
-from eduid_webapp.letter_proofing.ekopost import Ekopost
-from eduid_webapp.letter_proofing.settings.common import LetterProofingConfig
+from eduid.webapp.letter_proofing.ekopost import Ekopost
+from eduid.webapp.letter_proofing.settings.common import LetterProofingConfig
 
 __author__ = 'lundberg'
 
@@ -84,7 +84,7 @@ def init_letter_proofing_app(
     app.logger.info(f'Init {name} app...')
 
     # Register views
-    from eduid_webapp.letter_proofing.views import letter_proofing_views
+    from eduid.webapp.letter_proofing.views import letter_proofing_views
 
     app.register_blueprint(letter_proofing_views)
 

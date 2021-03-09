@@ -8,19 +8,19 @@ from typing import Optional
 from flask import render_template, url_for
 from flask_babel import gettext as _
 
-from eduid_common.api.decorators import deprecated
-from eduid_common.api.helpers import send_mail
-from eduid_common.api.messages import TranslatableMsg
-from eduid_common.api.utils import get_short_hash, get_unique_hash, save_and_sync_user
-from eduid_common.authn.utils import generate_password
-from eduid_common.authn.vccs import reset_password
-from eduid_common.session import session
-from eduid_userdb.exceptions import UserHasNotCompletedSignup
-from eduid_userdb.logs import MailAddressProofing, PhoneNumberProofing
-from eduid_userdb.security import PasswordResetEmailAndPhoneState, PasswordResetEmailState, SecurityUser
+from eduid.common.api.decorators import deprecated
+from eduid.common.api.helpers import send_mail
+from eduid.common.api.messages import TranslatableMsg
+from eduid.common.api.utils import get_short_hash, get_unique_hash, save_and_sync_user
+from eduid.common.authn.utils import generate_password
+from eduid.common.authn.vccs import reset_password
+from eduid.common.session import session
+from eduid.userdb.exceptions import UserHasNotCompletedSignup
+from eduid.userdb.logs import MailAddressProofing, PhoneNumberProofing
+from eduid.userdb.security import PasswordResetEmailAndPhoneState, PasswordResetEmailState, SecurityUser
 
-from eduid_webapp.security.app import current_security_app as current_app
-from eduid_webapp.security.schemas import ConvertRegisteredKeys
+from eduid.webapp.security.app import current_security_app as current_app
+from eduid.webapp.security.schemas import ConvertRegisteredKeys
 
 __author__ = 'lundberg'
 
@@ -74,7 +74,7 @@ class SecurityMsg(TranslatableMsg):
 def credentials_to_registered_keys(user_u2f_tokens):
     """
     :param user_u2f_tokens: List of users U2F credentials
-    :type user_u2f_tokens: eduid_userdb.credentials.CredentialList
+    :type user_u2f_tokens: eduid.userdb.credentials.CredentialList
 
     :return: List of registered keys
     :rtype: list
@@ -87,7 +87,7 @@ def credentials_to_registered_keys(user_u2f_tokens):
 def compile_credential_list(security_user):
     """
     :param security_user: User
-    :type security_user: eduid_userdb.security.SecurityUser
+    :type security_user: eduid.userdb.security.SecurityUser
     :return: List of augmented credentials
     :rtype: list
     """
@@ -114,7 +114,7 @@ def remove_nin_from_user(security_user, nin):
     :param security_user: Private userdb user
     :param nin: NIN to remove
 
-    :type security_user: eduid_userdb.security.SecurityUser
+    :type security_user: eduid.userdb.security.SecurityUser
     :type nin: str
 
     :return: None

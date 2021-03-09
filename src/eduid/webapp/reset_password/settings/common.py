@@ -34,7 +34,7 @@
 Configuration (file) handling for the eduID reset_password app.
 """
 
-from eduid_common.config.base import (
+from eduid.common.config.base import (
     AmConfigMixin,
     EduIDBaseAppConfig,
     MagicCookieMixin,

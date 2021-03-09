@@ -36,19 +36,19 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid_common.api import am, mail_relay, msg, translation
-from eduid_common.api.am import AmRelay
-from eduid_common.api.mail_relay import MailRelay
-from eduid_common.api.msg import MsgRelay
-from eduid_common.authn.middleware import AuthnBaseApp
-from eduid_common.authn.utils import no_authn_views
-from eduid_common.config.base import FlaskConfig
-from eduid_common.config.parsers import load_config
-from eduid_userdb.authninfo import AuthnInfoDB
-from eduid_userdb.logs import ProofingLog
-from eduid_userdb.security import PasswordResetStateDB, SecurityUserDB
+from eduid.common.api import am, mail_relay, msg, translation
+from eduid.common.api.am import AmRelay
+from eduid.common.api.mail_relay import MailRelay
+from eduid.common.api.msg import MsgRelay
+from eduid.common.authn.middleware import AuthnBaseApp
+from eduid.common.authn.utils import no_authn_views
+from eduid.common.config.base import FlaskConfig
+from eduid.common.config.parsers import load_config
+from eduid.userdb.authninfo import AuthnInfoDB
+from eduid.userdb.logs import ProofingLog
+from eduid.userdb.security import PasswordResetStateDB, SecurityUserDB
 
-from eduid_webapp.security.settings.common import SecurityConfig
+from eduid.webapp.security.settings.common import SecurityConfig
 
 
 class SecurityApp(AuthnBaseApp):
@@ -83,10 +83,10 @@ def security_init_app(name: str = 'security', test_config: Optional[Mapping[str,
 
     app.logger.info(f'Init {app}...')
 
-    from eduid_webapp.security.views.reset_password import reset_password_views
-    from eduid_webapp.security.views.security import security_views
-    from eduid_webapp.security.views.u2f import u2f_views
-    from eduid_webapp.security.views.webauthn import webauthn_views
+    from eduid.webapp.security.views.reset_password import reset_password_views
+    from eduid.webapp.security.views.security import security_views
+    from eduid.webapp.security.views.u2f import u2f_views
+    from eduid.webapp.security.views.webauthn import webauthn_views
 
     app.register_blueprint(security_views)
     app.register_blueprint(u2f_views)

@@ -5,15 +5,15 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid_common.api.am import AmRelay
-from eduid_common.api.msg import MsgRelay
-from eduid_common.authn.middleware import AuthnBaseApp
-from eduid_common.authn.utils import get_saml2_config, no_authn_views
-from eduid_common.config.parsers import load_config
-from eduid_userdb.logs.db import ProofingLog
-from eduid_userdb.proofing.db import EidasProofingUserDB
+from eduid.common.api.am import AmRelay
+from eduid.common.api.msg import MsgRelay
+from eduid.common.authn.middleware import AuthnBaseApp
+from eduid.common.authn.utils import get_saml2_config, no_authn_views
+from eduid.common.config.parsers import load_config
+from eduid.userdb.logs.db import ProofingLog
+from eduid.userdb.proofing.db import EidasProofingUserDB
 
-from eduid_webapp.eidas.settings.common import EidasConfig
+from eduid.webapp.eidas.settings.common import EidasConfig
 
 __author__ = 'lundberg'
 
@@ -59,7 +59,7 @@ def init_eidas_app(name: str = 'eidas', test_config: Optional[Mapping[str, Any]]
     app.logger.info(f'Init {app}...')
 
     # Register views
-    from eduid_webapp.eidas.views import eidas_views
+    from eduid.webapp.eidas.views import eidas_views
 
     app.register_blueprint(eidas_views)
 

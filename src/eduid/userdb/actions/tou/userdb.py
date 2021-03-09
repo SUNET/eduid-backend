@@ -32,8 +32,8 @@
 
 __author__ = 'ft'
 
-from eduid_userdb.actions.tou import ToUUser
-from eduid_userdb.userdb import UserDB
+from eduid.userdb.actions.tou import ToUUser
+from eduid.userdb.userdb import UserDB
 
 
 class ToUUserDB(UserDB):

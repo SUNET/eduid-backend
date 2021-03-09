@@ -2,7 +2,7 @@ import datetime
 from hashlib import sha256
 from unittest import TestCase
 
-from eduid_userdb.credentials import CredentialList
+from eduid.userdb.credentials import CredentialList
 
 __author__ = 'lundberg'
 

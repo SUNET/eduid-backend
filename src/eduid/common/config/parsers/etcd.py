@@ -9,9 +9,9 @@ from typing import Any, Mapping, Optional
 
 import etcd
 
-from eduid_common.config.parsers.base import BaseConfigParser
-from eduid_common.config.parsers.decorators import decrypt, interpolate
-from eduid_common.config.parsers.exceptions import ParserException
+from eduid.common.config.parsers.base import BaseConfigParser
+from eduid.common.config.parsers.decorators import decrypt, interpolate
+from eduid.common.config.parsers.exceptions import ParserException
 
 __author__ = 'lundberg'
 

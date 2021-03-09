@@ -2,13 +2,13 @@
 
 from typing import Any, Dict, List, Mapping, Optional
 
-from eduid_common.api.testing import EduidAPITestCase
-from eduid_common.authn.middleware import AuthnBaseApp
-from eduid_common.authn.utils import no_authn_views
-from eduid_common.config.base import EduIDBaseAppConfig
-from eduid_common.config.parsers import load_config
-from eduid_common.session import session
-from eduid_common.session.namespaces import LoginApplication
+from eduid.common.api.testing import EduidAPITestCase
+from eduid.common.authn.middleware import AuthnBaseApp
+from eduid.common.authn.utils import no_authn_views
+from eduid.common.config.base import EduIDBaseAppConfig
+from eduid.common.config.parsers import load_config
+from eduid.common.session import session
+from eduid.common.session.namespaces import LoginApplication
 
 __author__ = 'lundberg'
 

@@ -32,7 +32,7 @@
 #
 
 
-from eduid_webapp.jsconfig.app import jsconfig_init_app
+from eduid.webapp.jsconfig.app import jsconfig_init_app
 
 app = jsconfig_init_app()
 

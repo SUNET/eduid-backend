@@ -10,7 +10,7 @@ from typing import Any, Dict, Mapping, Optional
 
 import bson
 
-from eduid_userdb.exceptions import UserDBValueError
+from eduid.userdb.exceptions import UserDBValueError
 
 __author__ = 'lundberg'
 

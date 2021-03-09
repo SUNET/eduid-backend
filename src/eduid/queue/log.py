@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 from logging.config import dictConfig
 
-from eduid_common.api.logging import LocalContext, LoggingFilters, make_dictConfig
-from eduid_common.config.exceptions import BadConfiguration
+from eduid.common.api.logging import LocalContext, LoggingFilters, make_dictConfig
+from eduid.common.config.exceptions import BadConfiguration
 
-from eduid_queue.config import QueueWorkerConfig
+from eduid.queue.config import QueueWorkerConfig
 
 __author__ = 'lundberg'
 

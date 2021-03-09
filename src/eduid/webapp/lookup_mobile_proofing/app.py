@@ -34,15 +34,15 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid_common.api.am import AmRelay
-from eduid_common.api.msg import MsgRelay
-from eduid_common.authn.middleware import AuthnBaseApp
-from eduid_common.config.parsers import load_config
-from eduid_userdb.logs import ProofingLog
-from eduid_userdb.proofing import LookupMobileProofingUserDB
+from eduid.common.api.am import AmRelay
+from eduid.common.api.msg import MsgRelay
+from eduid.common.authn.middleware import AuthnBaseApp
+from eduid.common.config.parsers import load_config
+from eduid.userdb.logs import ProofingLog
+from eduid.userdb.proofing import LookupMobileProofingUserDB
 
-from eduid_webapp.lookup_mobile_proofing.lookup_mobile_relay import LookupMobileRelay
-from eduid_webapp.lookup_mobile_proofing.settings.common import MobileProofingConfig
+from eduid.webapp.lookup_mobile_proofing.lookup_mobile_relay import LookupMobileRelay
+from eduid.webapp.lookup_mobile_proofing.settings.common import MobileProofingConfig
 
 __author__ = 'lundberg'
 
@@ -80,7 +80,7 @@ def init_lookup_mobile_proofing_app(
     app.logger.info(f'Init {app}...')
 
     # Register views
-    from eduid_webapp.lookup_mobile_proofing.views import mobile_proofing_views
+    from eduid.webapp.lookup_mobile_proofing.views import mobile_proofing_views
 
     app.register_blueprint(mobile_proofing_views)
 

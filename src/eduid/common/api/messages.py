@@ -39,7 +39,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from flask import redirect
 from werkzeug.wrappers import Response as WerkzeugResponse
 
-from eduid_common.api.schemas.models import FluxResponseStatus
+from eduid.common.api.schemas.models import FluxResponseStatus
 
 
 @unique

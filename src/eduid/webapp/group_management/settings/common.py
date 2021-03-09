@@ -36,7 +36,7 @@ Configuration (file) handling for the eduID group_management app.
 
 from typing import Any, Dict, Optional
 
-from eduid_common.config.base import EduIDBaseAppConfig, MailConfigMixin
+from eduid.common.config.base import EduIDBaseAppConfig, MailConfigMixin
 
 
 class GroupManagementConfig(EduIDBaseAppConfig, MailConfigMixin):

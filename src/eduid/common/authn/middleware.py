@@ -40,10 +40,10 @@ from flask import current_app
 from werkzeug.wrappers import Response
 from werkzeug.wsgi import get_current_url
 
-from eduid_common.api.app import EduIDBaseApp
-from eduid_common.api.utils import urlappend
-from eduid_common.session import session
-from eduid_common.session.redis_session import NoSessionDataFoundException
+from eduid.common.api.app import EduIDBaseApp
+from eduid.common.api.utils import urlappend
+from eduid.common.session import session
+from eduid.common.session.redis_session import NoSessionDataFoundException
 
 no_context_logger = logging.getLogger(__name__)
 

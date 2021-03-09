@@ -2,13 +2,13 @@
 from datetime import datetime, timedelta
 from unittest import TestCase, skip
 
-from eduid_userdb.exceptions import DocumentDoesNotExist
-from eduid_userdb.testing import normalised_data
+from eduid.userdb.exceptions import DocumentDoesNotExist
+from eduid.userdb.testing import normalised_data
 
-from eduid_queue.db import Payload, RawPayload, TestPayload
-from eduid_queue.db.message import EduidInviteEmail, MessageDB
-from eduid_queue.db.queue_item import QueueItem, SenderInfo
-from eduid_queue.testing import EduidQueueTestCase
+from eduid.queue.db import Payload, RawPayload, TestPayload
+from eduid.queue.db.message import EduidInviteEmail, MessageDB
+from eduid.queue.db.queue_item import QueueItem, SenderInfo
+from eduid.queue.testing import EduidQueueTestCase
 
 __author__ = 'lundberg'
 

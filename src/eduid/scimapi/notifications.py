@@ -7,7 +7,7 @@ from typing import Any, Dict, List
 
 import boto3
 
-from eduid_scimapi.config import ScimApiConfig
+from eduid.scimapi.config import ScimApiConfig
 
 logger = logging.getLogger(__name__)
 

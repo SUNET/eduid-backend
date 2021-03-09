@@ -35,15 +35,15 @@ from uuid import UUID
 from flask import Blueprint
 from pymongo.errors import DuplicateKeyError
 
-from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid_common.api.exceptions import MailTaskFailed
-from eduid_common.api.messages import CommonMsg, FluxData, error_response, success_response
-from eduid_userdb import User
-from eduid_userdb.exceptions import EduIDDBError
-from eduid_userdb.group_management import GroupInviteState, GroupRole
+from eduid.common.api.decorators import MarshalWith, UnmarshalWith, require_user
+from eduid.common.api.exceptions import MailTaskFailed
+from eduid.common.api.messages import CommonMsg, FluxData, error_response, success_response
+from eduid.userdb import User
+from eduid.userdb.exceptions import EduIDDBError
+from eduid.userdb.group_management import GroupInviteState, GroupRole
 
-from eduid_webapp.group_management.app import current_group_management_app as current_app
-from eduid_webapp.group_management.helpers import (
+from eduid.webapp.group_management.app import current_group_management_app as current_app
+from eduid.webapp.group_management.helpers import (
     GroupManagementMsg,
     accept_group_invitation,
     get_incoming_invites,
@@ -53,7 +53,7 @@ from eduid_webapp.group_management.helpers import (
     is_owner,
     send_invite_email,
 )
-from eduid_webapp.group_management.schemas import (
+from eduid.webapp.group_management.schemas import (
     GroupAllInviteResponseSchema,
     GroupIncomingInviteResponseSchema,
     GroupInviteRequestSchema,

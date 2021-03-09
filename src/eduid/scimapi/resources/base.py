@@ -3,12 +3,12 @@ from uuid import UUID
 
 from falcon import Request
 
-from eduid_scimapi.context import Context
-from eduid_scimapi.db.groupdb import ScimApiGroup
-from eduid_scimapi.db.invitedb import ScimApiInvite
-from eduid_scimapi.db.userdb import ScimApiUser
-from eduid_scimapi.schemas.scimbase import SCIMResourceType
-from eduid_scimapi.utils import make_etag, urlappend
+from eduid.scimapi.context import Context
+from eduid.scimapi.db.groupdb import ScimApiGroup
+from eduid.scimapi.db.invitedb import ScimApiInvite
+from eduid.scimapi.db.userdb import ScimApiUser
+from eduid.scimapi.schemas.scimbase import SCIMResourceType
+from eduid.scimapi.utils import make_etag, urlappend
 
 
 class BaseResource(object):

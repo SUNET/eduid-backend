@@ -2,7 +2,7 @@
 
 import unittest
 
-from eduid_webapp.eidas.helpers import EidasMsg
+from eduid.webapp.eidas.helpers import EidasMsg
 
 
 class MessagesTests(unittest.TestCase):

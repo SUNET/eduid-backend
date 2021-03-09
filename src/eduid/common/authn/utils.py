@@ -45,15 +45,15 @@ from pwgen import pwgen
 from saml2 import server
 from saml2.config import SPConfig
 
-from eduid_common.api.utils import urlappend
+from eduid.common.api.utils import urlappend
 
 # From https://stackoverflow.com/a/39757388
 # The TYPE_CHECKING constant is always False at runtime, so the import won't be evaluated, but mypy
 # (and other type-checking tools) will evaluate the contents of that block.
-from eduid_common.config.base import EduIDBaseAppConfig
+from eduid.common.config.base import EduIDBaseAppConfig
 
 if TYPE_CHECKING:
-    from eduid_common.api.app import EduIDBaseApp
+    from eduid.common.api.app import EduIDBaseApp
 
 logger = logging.getLogger(__name__)
 
@@ -138,7 +138,7 @@ def check_previous_identification(session_ns):
 
     :return: The eppn in case the check is successful, None otherwise
     """
-    from eduid_common.session import session
+    from eduid.common.session import session
 
     eppn = session.common.eppn
     if eppn is None:

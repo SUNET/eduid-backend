@@ -35,12 +35,12 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid_common.api.app import EduIDBaseApp
-from eduid_common.authn.utils import no_authn_views
-from eduid_common.config.base import FlaskConfig
-from eduid_common.config.parsers import load_config
+from eduid.common.api.app import EduIDBaseApp
+from eduid.common.authn.utils import no_authn_views
+from eduid.common.config.base import FlaskConfig
+from eduid.common.config.parsers import load_config
 
-from eduid_webapp.jsconfig.settings.common import JSConfigConfig
+from eduid.webapp.jsconfig.settings.common import JSConfigConfig
 
 
 class JSConfigApp(EduIDBaseApp):
@@ -75,7 +75,7 @@ def jsconfig_init_app(name: str = 'jsconfig', test_config: Optional[Mapping[str,
 
     app.logger.info(f'Init {app}...')
 
-    from eduid_webapp.jsconfig.views import jsconfig_views
+    from eduid.webapp.jsconfig.views import jsconfig_views
 
     app.register_blueprint(jsconfig_views)
 

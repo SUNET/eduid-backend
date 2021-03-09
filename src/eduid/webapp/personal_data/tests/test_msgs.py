@@ -2,7 +2,7 @@
 
 import unittest
 
-from eduid_webapp.personal_data.helpers import PDataMsg
+from eduid.webapp.personal_data.helpers import PDataMsg
 
 
 class MessagesTests(unittest.TestCase):

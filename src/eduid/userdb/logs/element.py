@@ -8,7 +8,7 @@ from typing import Any, Dict, Type, TypeVar
 
 import six
 
-from eduid_userdb.element import Element
+from eduid.userdb.element import Element
 
 __author__ = 'lundberg'
 

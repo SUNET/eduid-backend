@@ -36,7 +36,7 @@ from typing import Dict, Mapping, Optional
 
 from flask import Blueprint, Response, current_app, jsonify
 
-from eduid_common.api.checks import CheckResult
+from eduid.common.api.checks import CheckResult
 
 status_views = Blueprint('status', __name__, url_prefix='/status')
 

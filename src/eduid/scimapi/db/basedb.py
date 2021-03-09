@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from typing import List, Mapping, Optional, Tuple
 
-from eduid_userdb.db import BaseDB
+from eduid.userdb.db import BaseDB
 
 __author__ = 'lundberg'
 

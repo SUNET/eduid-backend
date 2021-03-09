@@ -2,14 +2,14 @@
 __author__ = 'lundberg'
 
 #
-#  This is a copy of decorators.py in the eduid_msg project. Both should be move in to a
+#  This is a copy of decorators.py in the eduid.workers.msg project. Both should be move in to a
 #  logging module at a later stage.
 #
 
 from datetime import datetime
 from inspect import isclass
 
-from eduid_userdb.db import MongoDB
+from eduid.userdb.db import MongoDB
 
 
 class TransactionAudit(object):

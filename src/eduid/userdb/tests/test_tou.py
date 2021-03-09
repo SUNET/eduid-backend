@@ -4,12 +4,12 @@ from unittest import TestCase
 
 import bson
 
-from eduid_userdb.actions.tou import ToUUser
-from eduid_userdb.credentials import CredentialList
-from eduid_userdb.event import Event, EventList
-from eduid_userdb.exceptions import UserMissingData
-from eduid_userdb.fixtures.users import new_user_example
-from eduid_userdb.tou import ToUEvent, ToUList
+from eduid.userdb.actions.tou import ToUUser
+from eduid.userdb.credentials import CredentialList
+from eduid.userdb.event import Event, EventList
+from eduid.userdb.exceptions import UserMissingData
+from eduid.userdb.fixtures.users import new_user_example
+from eduid.userdb.tou import ToUEvent, ToUList
 
 __author__ = 'ft'
 

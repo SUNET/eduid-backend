@@ -32,7 +32,7 @@
 #
 from dataclasses import dataclass
 
-from eduid_userdb.user import User
+from eduid.userdb.user import User
 
 
 @dataclass

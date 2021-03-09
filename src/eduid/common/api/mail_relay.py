@@ -34,10 +34,10 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import List, Optional
 
-import eduid_msg
+import eduid.workers.msg
 
-from eduid_common.api.exceptions import MailTaskFailed
-from eduid_common.config.base import MailConfigMixin
+from eduid.common.api.exceptions import MailTaskFailed
+from eduid.common.config.base import MailConfigMixin
 
 logger = logging.getLogger(__name__)
 
@@ -45,9 +45,9 @@ logger = logging.getLogger(__name__)
 class MailRelay(object):
     def __init__(self, config: MailConfigMixin):
         self.mail_from = config.mail_default_from
-        eduid_msg.init_app(config.celery)
+        eduid.workers.msg.init_app(config.celery)
         # this import has to happen _after_ init_app
-        from eduid_msg.tasks import pong, sendmail
+        from eduid.workers.msg.tasks import pong, sendmail
 
         self._sendmail = sendmail
         self._pong = pong

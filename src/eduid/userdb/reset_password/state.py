@@ -38,7 +38,7 @@ from typing import Any, Dict, Optional, Type, TypeVar, Union
 
 import bson
 
-from eduid_userdb.reset_password.element import CodeElement
+from eduid.userdb.reset_password.element import CodeElement
 
 TResetPasswordStateSubclass = TypeVar('TResetPasswordStateSubclass', bound='ResetPasswordState')
 

@@ -37,7 +37,7 @@ from typing import Optional
 
 from werkzeug.exceptions import InternalServerError
 
-from eduid_webapp.actions.testing import ActionsTestCase
+from eduid.webapp.actions.testing import ActionsTestCase
 
 
 class ActionsTests(ActionsTestCase):

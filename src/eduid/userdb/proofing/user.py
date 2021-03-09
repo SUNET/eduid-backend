@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from eduid_userdb.dashboard.user import DashboardUser
+from eduid.userdb.dashboard.user import DashboardUser
 
 __author__ = 'lundberg'
 

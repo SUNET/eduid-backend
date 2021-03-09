@@ -35,11 +35,11 @@
 import logging
 from typing import List, Optional
 
-from eduid_userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, Credential
-from eduid_userdb.idp import IdPUser
+from eduid.userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, Credential
+from eduid.userdb.idp import IdPUser
 
-from eduid_webapp.idp.idp_saml import AuthnInfo
-from eduid_webapp.idp.sso_session import SSOSession
+from eduid.webapp.idp.idp_saml import AuthnInfo
+from eduid.webapp.idp.sso_session import SSOSession
 
 """
 Assurance Level functionality.

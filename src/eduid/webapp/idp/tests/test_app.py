@@ -43,12 +43,12 @@ from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.response import AuthnResponse
 
-from eduid_common.api.testing import EduidAPITestCase
-from eduid_common.authn.cache import IdentityCache, OutstandingQueriesCache, StateCache
-from eduid_common.authn.utils import get_saml2_config
+from eduid.common.api.testing import EduidAPITestCase
+from eduid.common.authn.cache import IdentityCache, OutstandingQueriesCache, StateCache
+from eduid.common.authn.utils import get_saml2_config
 
-from eduid_webapp.idp.app import IdPApp, init_idp_app
-from eduid_webapp.idp.sso_session import SSOSession
+from eduid.webapp.idp.app import IdPApp, init_idp_app
+from eduid.webapp.idp.sso_session import SSOSession
 
 __author__ = 'ft'
 

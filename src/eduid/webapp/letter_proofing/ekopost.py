@@ -7,7 +7,7 @@ from datetime import datetime
 
 from hammock import Hammock
 
-from eduid_webapp.letter_proofing.settings.common import LetterProofingConfig
+from eduid.webapp.letter_proofing.settings.common import LetterProofingConfig
 
 __author__ = 'john'
 

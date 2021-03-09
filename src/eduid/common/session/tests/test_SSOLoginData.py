@@ -35,7 +35,7 @@
 
 import unittest
 
-from eduid_common.session.logindata import SSOLoginData
+from eduid.common.session.logindata import SSOLoginData
 
 
 class TestSSOLoginData(unittest.TestCase):

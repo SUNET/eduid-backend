@@ -35,7 +35,7 @@ from typing import Mapping, Optional
 
 from pydantic import Field
 
-from eduid_common.config.base import EduIDBaseAppConfig
+from eduid.common.config.base import EduIDBaseAppConfig
 
 
 class AuthnConfig(EduIDBaseAppConfig):

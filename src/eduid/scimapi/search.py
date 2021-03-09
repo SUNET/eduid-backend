@@ -3,7 +3,7 @@ import re
 from dataclasses import dataclass
 from typing import Union
 
-from eduid_scimapi.exceptions import BadRequest
+from eduid.scimapi.exceptions import BadRequest
 
 logger = logging.getLogger(__name__)
 

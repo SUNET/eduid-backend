@@ -1,7 +1,7 @@
 from datetime import datetime
 from unittest import TestCase
 
-from eduid_userdb.element import Element, PrimaryElement, PrimaryElementViolation, VerifiedElement
+from eduid.userdb.element import Element, PrimaryElement, PrimaryElementViolation, VerifiedElement
 
 
 class TestElements(TestCase):

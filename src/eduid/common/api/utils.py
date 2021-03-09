@@ -9,9 +9,9 @@ from uuid import uuid4
 import six
 from flask import Request, current_app
 
-from eduid_userdb.exceptions import EduIDUserDBError, MultipleUsersReturned, UserDBValueError, UserDoesNotExist
+from eduid.userdb.exceptions import EduIDUserDBError, MultipleUsersReturned, UserDBValueError, UserDoesNotExist
 
-from eduid_common.api.exceptions import ApiException
+from eduid.common.api.exceptions import ApiException
 
 
 def get_unique_hash():
@@ -31,7 +31,7 @@ def update_modified_ts(user):
     This need should go away once there is a global version number on the user document.
 
     :param user: User object from the central userdb
-    :type user: eduid_userdb.User
+    :type user: eduid.userdb.User
 
     :return: None
     """
@@ -68,9 +68,9 @@ def update_modified_ts(user):
 def get_user():
     """
     :return: Central userdb user
-    :rtype: eduid_userdb.user.User
+    :rtype: eduid.userdb.user.User
     """
-    from eduid_common.session import session
+    from eduid.common.session import session
 
     eppn = session.get('user_eppn', None)
     if not eppn:

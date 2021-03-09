@@ -10,11 +10,11 @@ from fido2.client import ClientData
 from fido2.ctap2 import AttestationObject
 from mock import patch
 
-from eduid_common.api.testing import EduidAPITestCase
-from eduid_userdb.credentials import U2F, Webauthn
+from eduid.common.api.testing import EduidAPITestCase
+from eduid.userdb.credentials import U2F, Webauthn
 
-from eduid_webapp.security.app import SecurityApp, security_init_app
-from eduid_webapp.security.views.webauthn import get_webauthn_server
+from eduid.webapp.security.app import SecurityApp, security_init_app
+from eduid.webapp.security.views.webauthn import get_webauthn_server
 
 __author__ = 'eperez'
 
@@ -280,7 +280,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
 
             return json.loads(response2.data)
 
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     def _finish_register_key(
         self,
         mock_request_user_sync: Any,
@@ -326,7 +326,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
             )
             return json.loads(response2.data)
 
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     def _dont_remove_last(
         self,
         mock_request_user_sync: Any,
@@ -367,7 +367,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
             response2 = client.post('/webauthn/remove', data=json.dumps(data), content_type=self.content_type_json)
             return json.loads(response2.data)
 
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     def _remove(
         self,
         mock_request_user_sync: Any,

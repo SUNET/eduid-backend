@@ -34,12 +34,12 @@ from typing import Dict, Optional, Type, Union
 
 from bson import ObjectId
 
-from eduid_userdb.db import BaseDB
-from eduid_userdb.exceptions import MultipleDocumentsReturned
+from eduid.userdb.db import BaseDB
+from eduid.userdb.exceptions import MultipleDocumentsReturned
 
-from eduid_queue.db.payload import Payload
-from eduid_queue.db.queue_item import QueueItem
-from eduid_queue.exceptions import PayloadNotRegistered
+from eduid.queue.db.payload import Payload
+from eduid.queue.db.queue_item import QueueItem
+from eduid.queue.exceptions import PayloadNotRegistered
 
 logger = logging.getLogger(__name__)
 

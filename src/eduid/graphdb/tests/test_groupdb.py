@@ -5,10 +5,10 @@ from typing import Dict, Union
 from bson import ObjectId
 from neo4j import basic_auth
 
-from eduid_graphdb.exceptions import VersionMismatch
-from eduid_graphdb.groupdb import Group, GroupDB, User
-from eduid_graphdb.groupdb.db import Role
-from eduid_graphdb.testing import Neo4jTestCase
+from eduid.graphdb.exceptions import VersionMismatch
+from eduid.graphdb.groupdb import Group, GroupDB, User
+from eduid.graphdb.groupdb.db import Role
+from eduid.graphdb.testing import Neo4jTestCase
 
 __author__ = 'lundberg'
 

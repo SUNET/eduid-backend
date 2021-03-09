@@ -36,10 +36,10 @@ from typing import Any, Dict, Mapping, Optional
 
 from mock import patch
 
-from eduid_common.api.exceptions import ApiException
-from eduid_common.api.testing import EduidAPITestCase
+from eduid.common.api.exceptions import ApiException
+from eduid.common.api.testing import EduidAPITestCase
 
-from eduid_webapp.personal_data.app import PersonalDataApp, pd_init_app
+from eduid.webapp.personal_data.app import PersonalDataApp, pd_init_app
 
 
 class PersonalDataTests(EduidAPITestCase):
@@ -98,7 +98,7 @@ class PersonalDataTests(EduidAPITestCase):
 
             return json.loads(response2.data)
 
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     def _post_user(self, mock_request_user_sync: Any, mod_data: Optional[dict] = None):
         """
         POST personal data for some user

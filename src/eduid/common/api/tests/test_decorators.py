@@ -2,10 +2,10 @@ from unittest.case import TestCase
 
 import flask
 
-from eduid_common.api.decorators import MarshalWith
-from eduid_common.api.messages import FluxData, error_response, success_response
-from eduid_common.api.schemas.base import FluxStandardAction
-from eduid_common.api.tests.test_messages import TestsMsg
+from eduid.common.api.decorators import MarshalWith
+from eduid.common.api.messages import FluxData, error_response, success_response
+from eduid.common.api.schemas.base import FluxStandardAction
+from eduid.common.api.tests.test_messages import TestsMsg
 
 test_views = flask.Blueprint('test', __name__, url_prefix='/test', template_folder='templates')
 

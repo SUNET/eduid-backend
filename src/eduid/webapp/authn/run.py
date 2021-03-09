@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from eduid_webapp.authn.app import authn_init_app
+from eduid.webapp.authn.app import authn_init_app
 
 app = authn_init_app()
 

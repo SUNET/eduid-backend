@@ -13,12 +13,12 @@ from typing import List, Sequence, Type
 
 from motor.motor_asyncio import AsyncIOMotorClient
 
-from eduid_common.api.logging import init_logging
+from eduid.common.api.logging import init_logging
 
-from eduid_queue.config import QueueWorkerConfig
-from eduid_queue.db import Payload, QueueItem
-from eduid_queue.db.change_event import ChangeEvent, OperationType
-from eduid_queue.db.worker import AsyncQueueDB
+from eduid.queue.config import QueueWorkerConfig
+from eduid.queue.db import Payload, QueueItem
+from eduid.queue.db.change_event import ChangeEvent, OperationType
+from eduid.queue.db.worker import AsyncQueueDB
 
 __author__ = 'lundberg'
 

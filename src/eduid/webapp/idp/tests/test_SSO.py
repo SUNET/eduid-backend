@@ -44,18 +44,18 @@ from saml2.authn_context import PASSWORDPROTECTEDTRANSPORT
 from saml2.s_utils import UnravelError
 from werkzeug.exceptions import BadRequest, Forbidden
 
-from eduid_common.misc.timeutil import utc_now
-from eduid_common.session.logindata import ExternalMfaData, SSOLoginData
-from eduid_userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, U2F, Credential, Password
-from eduid_userdb.idp import IdPUser
-from eduid_userdb.nin import Nin, NinList
+from eduid.common.misc.timeutil import utc_now
+from eduid.common.session.logindata import ExternalMfaData, SSOLoginData
+from eduid.userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, U2F, Credential, Password
+from eduid.userdb.idp import IdPUser
+from eduid.userdb.nin import Nin, NinList
 
-from eduid_webapp.idp.idp_authn import AuthnData
-from eduid_webapp.idp.idp_saml import IdP_SAMLRequest
-from eduid_webapp.idp.login import SSO
-from eduid_webapp.idp.sso_session import SSOSession
-from eduid_webapp.idp.tests.test_app import IdPTests
-from eduid_webapp.idp.util import b64encode
+from eduid.webapp.idp.idp_authn import AuthnData
+from eduid.webapp.idp.idp_saml import IdP_SAMLRequest
+from eduid.webapp.idp.login import SSO
+from eduid.webapp.idp.sso_session import SSOSession
+from eduid.webapp.idp.tests.test_app import IdPTests
+from eduid.webapp.idp.util import b64encode
 
 SWAMID_AL1 = 'http://www.swamid.se/policy/assurance/al1'
 SWAMID_AL2 = 'http://www.swamid.se/policy/assurance/al2'

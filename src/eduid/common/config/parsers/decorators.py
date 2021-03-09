@@ -7,7 +7,7 @@ from typing import Mapping, Optional
 
 from nacl import encoding, exceptions, secret
 
-from eduid_common.config.parsers.exceptions import SecretKeyException
+from eduid.common.config.parsers.exceptions import SecretKeyException
 
 __author__ = 'lundberg'
 

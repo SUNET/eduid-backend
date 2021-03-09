@@ -2,7 +2,7 @@
 import os
 from sys import stderr
 
-from eduid_scimapi.app import init_api
+from eduid.scimapi.app import init_api
 
 __author__ = 'lundberg'
 

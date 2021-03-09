@@ -2,10 +2,10 @@
 import os
 import unittest
 
-from eduid_common.config.base import EduIDBaseAppConfig, FlaskConfig, RootConfig
-from eduid_common.config.parsers import load_config
-from eduid_common.config.parsers.etcd import EtcdConfigParser
-from eduid_common.config.testing import EtcdTemporaryInstance
+from eduid.common.config.base import EduIDBaseAppConfig, FlaskConfig, RootConfig
+from eduid.common.config.parsers import load_config
+from eduid.common.config.parsers.etcd import EtcdConfigParser
+from eduid.common.config.testing import EtcdTemporaryInstance
 
 
 class TestTypedFlaskConfig(unittest.TestCase):

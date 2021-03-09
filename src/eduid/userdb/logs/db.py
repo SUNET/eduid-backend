@@ -2,7 +2,7 @@
 
 import logging
 
-from eduid_userdb.db import BaseDB
+from eduid.userdb.db import BaseDB
 
 __author__ = 'lundberg'
 
@@ -21,7 +21,7 @@ class LogDB(BaseDB):
     def save(self, log_element):
         """
         @param log_element:
-        @type log_element: eduid_userdb.logs.element.LogElement
+        @type log_element: eduid.userdb.logs.element.LogElement
         @return: Boolean
         @rtype: bool
         """

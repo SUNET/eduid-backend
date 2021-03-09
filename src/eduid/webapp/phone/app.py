@@ -35,15 +35,15 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid_common.api import translation
-from eduid_common.api.am import AmRelay
-from eduid_common.api.msg import MsgRelay
-from eduid_common.authn.middleware import AuthnBaseApp
-from eduid_common.config.parsers import load_config
-from eduid_userdb.logs import ProofingLog
-from eduid_userdb.proofing import PhoneProofingStateDB, PhoneProofingUserDB
+from eduid.common.api import translation
+from eduid.common.api.am import AmRelay
+from eduid.common.api.msg import MsgRelay
+from eduid.common.authn.middleware import AuthnBaseApp
+from eduid.common.config.parsers import load_config
+from eduid.userdb.logs import ProofingLog
+from eduid.userdb.proofing import PhoneProofingStateDB, PhoneProofingUserDB
 
-from eduid_webapp.phone.settings.common import PhoneConfig
+from eduid.webapp.phone.settings.common import PhoneConfig
 
 
 class PhoneApp(AuthnBaseApp):
@@ -77,7 +77,7 @@ def phone_init_app(name: str = 'phone', test_config: Optional[Mapping[str, Any]]
 
     app.logger.info(f'Init {name} app...')
 
-    from eduid_webapp.phone.views import phone_views
+    from eduid.webapp.phone.views import phone_views
 
     app.register_blueprint(phone_views)
 

@@ -2,7 +2,7 @@
 
 import unittest
 
-from eduid_webapp.email.helpers import EmailMsg
+from eduid.webapp.email.helpers import EmailMsg
 
 
 class MessagesTests(unittest.TestCase):

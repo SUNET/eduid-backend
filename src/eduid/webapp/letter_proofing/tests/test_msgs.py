@@ -2,7 +2,7 @@
 
 import unittest
 
-from eduid_webapp.letter_proofing.helpers import LetterMsg
+from eduid.webapp.letter_proofing.helpers import LetterMsg
 
 
 class MessagesTests(unittest.TestCase):

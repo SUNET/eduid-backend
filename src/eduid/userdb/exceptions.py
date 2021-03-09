@@ -1,5 +1,5 @@
 """
-Exceptions thrown by the eduid_userdb database lookup functions.
+Exceptions thrown by the eduid.userdb database lookup functions.
 """
 from typing import Any
 

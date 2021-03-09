@@ -88,8 +88,8 @@ import redis
 import redis.sentinel
 from saml2.saml import NameID
 
-from eduid_common.config.base import RedisConfig
-from eduid_common.session.meta import SessionMeta
+from eduid.common.config.base import RedisConfig
+from eduid.common.session.meta import SessionMeta
 
 logger = logging.getLogger(__name__)
 

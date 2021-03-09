@@ -7,8 +7,8 @@ from typing import Dict, Mapping, Optional
 
 from falcon import Request, Response
 
-from eduid_scimapi.context import Context
-from eduid_scimapi.resources.base import BaseResource
+from eduid.scimapi.context import Context
+from eduid.scimapi.resources.base import BaseResource
 
 __author__ = 'lundberg'
 

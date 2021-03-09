@@ -1,8 +1,8 @@
-import eduid_lookup_mobile
+import eduid.workers.lookup_mobile
 
 __author__ = 'mathiashedstrom'
 
-from eduid_common.config.base import CeleryConfigMixin
+from eduid.common.config.base import CeleryConfigMixin
 
 
 class LookupMobileTaskFailed(Exception):
@@ -11,9 +11,9 @@ class LookupMobileTaskFailed(Exception):
 
 class LookupMobileRelay(object):
     def __init__(self, config: CeleryConfigMixin):
-        eduid_lookup_mobile.init_app(config.celery)
-        # these have to be imported _after_ eduid_lookup_mobile.init_app()
-        from eduid_lookup_mobile.tasks import find_mobiles_by_NIN, find_NIN_by_mobile
+        eduid.workers.lookup_mobile.init_app(config.celery)
+        # these have to be imported _after_ eduid.workers.lookup_mobile.init_app()
+        from eduid.workers.lookup_mobile.tasks import find_mobiles_by_NIN, find_NIN_by_mobile
 
         self._find_mobiles_by_NIN = find_mobiles_by_NIN
         self._find_NIN_by_mobile = find_NIN_by_mobile

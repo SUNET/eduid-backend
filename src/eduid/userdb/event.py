@@ -39,8 +39,8 @@ from typing import Any, Dict, List, Optional, Type, TypeVar
 
 from bson import ObjectId
 
-from eduid_userdb.element import DuplicateElementViolation, Element, ElementList
-from eduid_userdb.exceptions import BadEvent, UserDBValueError
+from eduid.userdb.element import DuplicateElementViolation, Element, ElementList
+from eduid.userdb.exceptions import BadEvent, UserDBValueError
 
 
 # Unique type for the events 'key' property. Not created with EventId = NewType('EventId', ObjectId)
@@ -158,7 +158,7 @@ def event_from_dict(data: Dict[str, Any]):
     if 'event_type' not in data:
         raise UserDBValueError('No event type specified')
     if data['event_type'] == 'tou_event':
-        from eduid_userdb.tou import ToUEvent  # avoid cyclic dependency by importing this here
+        from eduid.userdb.tou import ToUEvent  # avoid cyclic dependency by importing this here
 
         return ToUEvent.from_dict(data=data)
     raise BadEvent('Unknown event_type in data: {!s}'.format(data['event_type']))

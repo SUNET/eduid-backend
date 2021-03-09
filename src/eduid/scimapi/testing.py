@@ -7,23 +7,23 @@ from os import environ
 from typing import Any, Dict, List, Mapping, Optional, Union
 
 from bson import ObjectId
-from eduid_queue.db.message import MessageDB
+from eduid.queue.db.message import MessageDB
 from falcon.testing import Result, TestClient
 
-from eduid_common.config.parsers import load_config
-from eduid_common.config.testing import EtcdTemporaryInstance
-from eduid_graphdb.testing import Neo4jTemporaryInstance
-from eduid_userdb.signup import SignupInviteDB
-from eduid_userdb.testing import MongoTemporaryInstance
+from eduid.common.config.parsers import load_config
+from eduid.common.config.testing import EtcdTemporaryInstance
+from eduid.graphdb.testing import Neo4jTemporaryInstance
+from eduid.userdb.signup import SignupInviteDB
+from eduid.userdb.testing import MongoTemporaryInstance
 
-from eduid_scimapi.app import init_api
-from eduid_scimapi.config import ScimApiConfig
-from eduid_scimapi.context import Context
-from eduid_scimapi.db.common import ScimApiName
-from eduid_scimapi.db.groupdb import ScimApiGroup
-from eduid_scimapi.db.invitedb import ScimApiInvite
-from eduid_scimapi.db.userdb import ScimApiProfile, ScimApiUser
-from eduid_scimapi.schemas.scimbase import SCIMSchema
+from eduid.scimapi.app import init_api
+from eduid.scimapi.config import ScimApiConfig
+from eduid.scimapi.context import Context
+from eduid.scimapi.db.common import ScimApiName
+from eduid.scimapi.db.groupdb import ScimApiGroup
+from eduid.scimapi.db.invitedb import ScimApiInvite
+from eduid.scimapi.db.userdb import ScimApiProfile, ScimApiUser
+from eduid.scimapi.schemas.scimbase import SCIMSchema
 
 __author__ = 'lundberg'
 

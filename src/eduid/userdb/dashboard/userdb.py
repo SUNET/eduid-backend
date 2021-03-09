@@ -32,8 +32,8 @@
 import logging
 from typing import Type
 
-from eduid_userdb import User, UserDB
-from eduid_userdb.dashboard import DashboardUser
+from eduid.userdb import User, UserDB
+from eduid.userdb.dashboard import DashboardUser
 
 __author__ = 'ft'
 

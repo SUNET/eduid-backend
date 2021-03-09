@@ -1,8 +1,8 @@
 from pathlib import Path
 from typing import Any, Mapping
 
-from eduid_common.config.parsers import BaseConfigParser
-from eduid_common.config.parsers.decorators import decrypt, interpolate
+from eduid.common.config.parsers import BaseConfigParser
+from eduid.common.config.parsers.decorators import decrypt, interpolate
 
 
 class YamlConfigParser(BaseConfigParser):

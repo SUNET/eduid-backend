@@ -4,7 +4,7 @@ from flask import render_template
 from werkzeug.exceptions import HTTPException
 from werkzeug.wrappers import Response as WerkzeugResponse
 
-from eduid_webapp.idp.mischttp import get_default_template_arguments
+from eduid.webapp.idp.mischttp import get_default_template_arguments
 
 if TYPE_CHECKING:
     from app import IdPApp

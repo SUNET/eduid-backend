@@ -37,18 +37,18 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid_common.api import translation
-from eduid_common.api.app import EduIDBaseApp
-from eduid_common.authn.utils import init_pysaml2
-from eduid_common.config.parsers import load_config
-from eduid_common.session import session
-from eduid_userdb.actions import ActionDB
-from eduid_userdb.idp import IdPUserDb
+from eduid.common.api import translation
+from eduid.common.api.app import EduIDBaseApp
+from eduid.common.authn.utils import init_pysaml2
+from eduid.common.config.parsers import load_config
+from eduid.common.session import session
+from eduid.userdb.actions import ActionDB
+from eduid.userdb.idp import IdPUserDb
 
-from eduid_webapp.idp import idp_authn
-from eduid_webapp.idp.settings.common import IdPConfig
-from eduid_webapp.idp.sso_cache import SSOSessionCache
-from eduid_webapp.idp.sso_session import SSOSession, SSOSessionId
+from eduid.webapp.idp import idp_authn
+from eduid.webapp.idp.settings.common import IdPConfig
+from eduid.webapp.idp.sso_cache import SSOSessionCache
+from eduid.webapp.idp.sso_session import SSOSession, SSOSessionId
 
 __author__ = 'ft'
 
@@ -151,7 +151,7 @@ class IdPApp(EduIDBaseApp):
         :return: SSO session id
         """
         # local import to avoid import-loop
-        from eduid_webapp.idp.mischttp import parse_query_string, read_cookie
+        from eduid.webapp.idp.mischttp import parse_query_string, read_cookie
 
         _session_id = read_cookie(self.conf.sso_cookie.key)
         if _session_id:
@@ -188,11 +188,11 @@ def init_idp_app(name: str = 'idp', test_config: Optional[Mapping[str, Any]] = N
     app = IdPApp(config, handle_exceptions=False)
 
     # Register views
-    from eduid_webapp.idp.views import idp_views
+    from eduid.webapp.idp.views import idp_views
 
     app.register_blueprint(idp_views)
 
-    from eduid_webapp.idp.exceptions import init_exception_handlers
+    from eduid.webapp.idp.exceptions import init_exception_handlers
 
     app = init_exception_handlers(app)
 

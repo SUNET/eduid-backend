@@ -3,7 +3,7 @@ from unittest import TestCase
 
 import bson
 
-from eduid_userdb.actions.action import Action
+from eduid.userdb.actions.action import Action
 
 __author__ = 'eperez'
 

@@ -39,27 +39,27 @@ import bcrypt
 from flask import render_template
 from flask_babel import gettext as _
 
-from eduid_common.api.exceptions import MailTaskFailed
-from eduid_common.api.helpers import send_mail
-from eduid_common.api.messages import FluxData, TranslatableMsg, error_response, success_response
-from eduid_common.api.utils import get_short_hash, get_unique_hash, save_and_sync_user, urlappend
-from eduid_common.api.validation import is_valid_password
-from eduid_common.authn import fido_tokens
-from eduid_common.authn.utils import generate_password
-from eduid_common.authn.vccs import reset_password
-from eduid_common.config.base import EduidEnvironment
-from eduid_common.session import session
-from eduid_userdb.exceptions import DocumentDoesNotExist, UserDoesNotExist
-from eduid_userdb.logs import MailAddressProofing, PhoneNumberProofing
-from eduid_userdb.reset_password import (
+from eduid.common.api.exceptions import MailTaskFailed
+from eduid.common.api.helpers import send_mail
+from eduid.common.api.messages import FluxData, TranslatableMsg, error_response, success_response
+from eduid.common.api.utils import get_short_hash, get_unique_hash, save_and_sync_user, urlappend
+from eduid.common.api.validation import is_valid_password
+from eduid.common.authn import fido_tokens
+from eduid.common.authn.utils import generate_password
+from eduid.common.authn.vccs import reset_password
+from eduid.common.config.base import EduidEnvironment
+from eduid.common.session import session
+from eduid.userdb.exceptions import DocumentDoesNotExist, UserDoesNotExist
+from eduid.userdb.logs import MailAddressProofing, PhoneNumberProofing
+from eduid.userdb.reset_password import (
     ResetPasswordEmailAndPhoneState,
     ResetPasswordEmailState,
     ResetPasswordState,
     ResetPasswordUser,
 )
-from eduid_userdb.user import User
+from eduid.userdb.user import User
 
-from eduid_webapp.reset_password.app import current_reset_password_app as current_app
+from eduid.webapp.reset_password.app import current_reset_password_app as current_app
 
 
 @unique

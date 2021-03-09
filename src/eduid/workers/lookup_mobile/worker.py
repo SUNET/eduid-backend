@@ -1,8 +1,8 @@
-from eduid_common.config.workers import MobConfig
-from eduid_common.rpc.celery import init_celery
-from eduid_common.rpc.worker import get_worker_config
+from eduid.common.config.workers import MobConfig
+from eduid.common.rpc.celery import init_celery
+from eduid.common.rpc.worker import get_worker_config
 
-import eduid_lookup_mobile.common as common
+import eduid.workers.lookup_mobile.common as common
 
 worker_config: MobConfig = MobConfig(app_name='app_name_NOT_SET')
 

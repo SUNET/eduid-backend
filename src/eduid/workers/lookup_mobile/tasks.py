@@ -2,12 +2,12 @@ from __future__ import absolute_import
 
 from celery.utils.log import get_task_logger
 
-from eduid_lookup_mobile.client.mobile_lookup_client import MobileLookupClient
-from eduid_lookup_mobile.common import celery
-from eduid_lookup_mobile.worker import worker_config
+from eduid.workers.lookup_mobile.client.mobile_lookup_client import MobileLookupClient
+from eduid.workers.lookup_mobile.common import celery
+from eduid.workers.lookup_mobile.worker import worker_config
 
 if celery is None:
-    raise RuntimeError('Must call eduid_lookup_mobile.init_app before importing tasks')
+    raise RuntimeError('Must call eduid.workers.lookup_mobile.init_app before importing tasks')
 
 logger = get_task_logger(__name__)
 

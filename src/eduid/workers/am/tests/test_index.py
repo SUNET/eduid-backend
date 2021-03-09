@@ -3,9 +3,9 @@ __author__ = 'lundberg'
 
 import unittest
 
-from eduid_userdb import UserDB
+from eduid.userdb import UserDB
 
-from eduid_am.testing import AMTestCase
+from eduid.workers.am.testing import AMTestCase
 
 
 @unittest.skip("Not working yet")

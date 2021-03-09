@@ -11,10 +11,10 @@ from marshmallow.exceptions import ValidationError
 from six import string_types
 from werkzeug.wrappers import Response as WerkzeugResponse
 
-from eduid_common.api.messages import FluxData, error_response
-from eduid_common.api.schemas.models import FluxFailResponse, FluxResponseStatus, FluxSuccessResponse
-from eduid_common.api.utils import get_user
-from eduid_common.session import session
+from eduid.common.api.messages import FluxData, error_response
+from eduid.common.api.schemas.models import FluxFailResponse, FluxResponseStatus, FluxSuccessResponse
+from eduid.common.api.utils import get_user
+from eduid.common.session import session
 
 __author__ = 'lundberg'
 
@@ -196,7 +196,7 @@ def deprecated(reason):
         raise TypeError(repr(type(reason)))
 
 
-@deprecated('Use eduid_common.api.decorators.deprecated instead')
+@deprecated('Use eduid.common.api.decorators.deprecated instead')
 class Deprecated(object):
     """
     Mark deprecated functions with this decorator.

@@ -11,11 +11,11 @@ from flask import Request as FlaskRequest
 from flask import Response as FlaskResponse
 from flask.sessions import SessionInterface, SessionMixin
 
-from eduid_common.config.base import EduIDBaseAppConfig
-from eduid_common.config.exceptions import BadConfiguration
-from eduid_common.session.logindata import SSOLoginData
-from eduid_common.session.meta import SessionMeta
-from eduid_common.session.namespaces import (
+from eduid.common.config.base import EduIDBaseAppConfig
+from eduid.common.config.exceptions import BadConfiguration
+from eduid.common.session.logindata import SSOLoginData
+from eduid.common.session.meta import SessionMeta
+from eduid.common.session.namespaces import (
     Actions,
     Common,
     IdP_Namespace,
@@ -24,13 +24,13 @@ from eduid_common.session.namespaces import (
     SessionNSBase,
     Signup,
 )
-from eduid_common.session.redis_session import RedisEncryptedSession, SessionManager, SessionOutOfSync
+from eduid.common.session.redis_session import RedisEncryptedSession, SessionManager, SessionOutOfSync
 
 if TYPE_CHECKING:
     # From https://stackoverflow.com/a/39757388
     # The TYPE_CHECKING constant is always False at runtime, so the import won't be evaluated, but mypy
     # (and other type-checking tools) will evaluate the contents of this block.
-    from eduid_common.api.app import EduIDBaseApp
+    from eduid.common.api.app import EduIDBaseApp
 
     # keep pycharm from optimising away the above import
     assert EduIDBaseApp
@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 class EduidSession(SessionMixin, MutableMapping):
     """
     Session implementing the flask.sessions.SessionMixin interface.
-    It uses the Session defined in eduid_common.session.session
+    It uses the Session defined in eduid.common.session.session
     to store the session data in redis.
     """
 

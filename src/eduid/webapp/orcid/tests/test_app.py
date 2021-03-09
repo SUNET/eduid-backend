@@ -6,11 +6,11 @@ from typing import Any, Dict, Mapping
 
 from mock import patch
 
-from eduid_common.api.testing import EduidAPITestCase
-from eduid_userdb.orcid import OidcAuthorization, OidcIdToken, Orcid
-from eduid_userdb.proofing import ProofingUser
+from eduid.common.api.testing import EduidAPITestCase
+from eduid.userdb.orcid import OidcAuthorization, OidcIdToken, Orcid
+from eduid.userdb.proofing import ProofingUser
 
-from eduid_webapp.orcid.app import OrcidApp, init_orcid_app
+from eduid.webapp.orcid.app import OrcidApp, init_orcid_app
 
 __author__ = 'lundberg'
 
@@ -134,7 +134,7 @@ class OrcidTests(EduidAPITestCase):
         self.assertEqual(response.status_code, 302)  # Authenticated request redirected to OP
         self.assertTrue(response.location.startswith(self.app.conf.provider_configuration_info['issuer']))
 
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     def test_oidc_flow(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
 
@@ -174,7 +174,7 @@ class OrcidTests(EduidAPITestCase):
         self.assertEqual(response['payload']['orcid']['given_name'], self.orcid_element.given_name)
         self.assertEqual(response['payload']['orcid']['family_name'], self.orcid_element.family_name)
 
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     def test_remove_orcid(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
 

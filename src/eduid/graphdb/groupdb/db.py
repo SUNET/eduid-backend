@@ -9,10 +9,10 @@ from neo4j import READ_ACCESS, WRITE_ACCESS, Record, Transaction
 from neo4j.exceptions import ClientError, ConstraintError
 from neo4j.graph import Graph
 
-from eduid_graphdb import BaseGraphDB
-from eduid_graphdb.exceptions import EduIDGroupDBError, VersionMismatch
-from eduid_graphdb.groupdb.group import Group
-from eduid_graphdb.groupdb.user import User
+from eduid.graphdb import BaseGraphDB
+from eduid.graphdb.exceptions import EduIDGroupDBError, VersionMismatch
+from eduid.graphdb.groupdb.group import Group
+from eduid.graphdb.groupdb.user import User
 
 __author__ = 'lundberg'
 

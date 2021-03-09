@@ -37,26 +37,26 @@ from datetime import datetime
 from bson import ObjectId
 from flask import request
 
-from eduid_userdb.actions import Action
-from eduid_userdb.actions.tou import ToUUser, ToUUserDB
-from eduid_userdb.tou import ToUEvent
+from eduid.userdb.actions import Action
+from eduid.userdb.actions.tou import ToUUser, ToUUserDB
+from eduid.userdb.tou import ToUEvent
 
-from eduid_webapp.actions.action_abc import ActionPlugin
-from eduid_webapp.actions.app import current_actions_app as current_app
-from eduid_webapp.actions.helpers import ActionsMsg
+from eduid.webapp.actions.action_abc import ActionPlugin
+from eduid.webapp.actions.app import current_actions_app as current_app
+from eduid.webapp.actions.helpers import ActionsMsg
 
 
 class Plugin(ActionPlugin):
 
     PLUGIN_NAME = 'tou'
-    PACKAGE_NAME = 'eduid_webapp.actions.actions.tou'
+    PACKAGE_NAME = 'eduid.webapp.actions.actions.tou'
     steps = 1
 
     def __init__(self):
         super(Plugin, self).__init__()
 
-        # This import has to happen _after_ eduid_am has been initialized
-        from eduid_am.tasks import update_attributes_keep_result
+        # This import has to happen _after_ eduid.workers.am has been initialized
+        from eduid.workers.am.tasks import update_attributes_keep_result
 
         self._update_attributes = update_attributes_keep_result
 

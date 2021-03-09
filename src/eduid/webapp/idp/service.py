@@ -18,9 +18,9 @@ from typing import Any, Dict, Optional
 from flask import request
 from werkzeug.wrappers import Response as WerkzeugResponse
 
-from eduid_webapp.idp import mischttp
-from eduid_webapp.idp.app import current_idp_app as current_app
-from eduid_webapp.idp.sso_session import SSOSession
+from eduid.webapp.idp import mischttp
+from eduid.webapp.idp.app import current_idp_app as current_app
+from eduid.webapp.idp.sso_session import SSOSession
 
 
 class Service(ABC):

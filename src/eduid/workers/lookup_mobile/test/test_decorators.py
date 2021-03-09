@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 __author__ = 'lundberg'
 
-from eduid_common.config.workers import MsgConfig
+from eduid.common.config.workers import MsgConfig
 
-from eduid_lookup_mobile.decorators import TransactionAudit
-from eduid_lookup_mobile.testing import LookupMobileMongoTestCase
+from eduid.workers.lookup_mobile.decorators import TransactionAudit
+from eduid.workers.lookup_mobile.testing import LookupMobileMongoTestCase
 
 
 class TestTransactionAudit(LookupMobileMongoTestCase):

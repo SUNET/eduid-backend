@@ -5,12 +5,12 @@ from typing import Optional
 from falcon import Request, Response
 from marshmallow import ValidationError
 
-from eduid_scimapi.db.common import ScimApiResourceBase
-from eduid_scimapi.db.eventdb import ScimApiEvent, ScimApiEventResource
-from eduid_scimapi.exceptions import BadRequest, NotFound
-from eduid_scimapi.middleware import ctx_eventdb, ctx_groupdb, ctx_invitedb, ctx_userdb
-from eduid_scimapi.resources.base import SCIMResource
-from eduid_scimapi.schemas.event import (
+from eduid.scimapi.db.common import ScimApiResourceBase
+from eduid.scimapi.db.eventdb import ScimApiEvent, ScimApiEventResource
+from eduid.scimapi.exceptions import BadRequest, NotFound
+from eduid.scimapi.middleware import ctx_eventdb, ctx_groupdb, ctx_invitedb, ctx_userdb
+from eduid.scimapi.resources.base import SCIMResource
+from eduid.scimapi.schemas.event import (
     EventCreateRequest,
     EventCreateRequestSchema,
     EventResponse,
@@ -18,12 +18,12 @@ from eduid_scimapi.schemas.event import (
     NutidEventExtensionV1,
     NutidEventResource,
 )
-from eduid_scimapi.schemas.scimbase import Meta, SCIMResourceType, SCIMSchema
-from eduid_scimapi.utils import make_etag
+from eduid.scimapi.schemas.scimbase import Meta, SCIMResourceType, SCIMSchema
+from eduid.scimapi.utils import make_etag
 
 __author__ = 'lundberg'
 
-from eduid_userdb.util import utc_now
+from eduid.userdb.util import utc_now
 
 
 class EventsResource(SCIMResource):

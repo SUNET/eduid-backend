@@ -6,8 +6,8 @@ from flask import current_app, request
 from marshmallow import Schema, ValidationError, fields, post_load, pre_dump, validates
 from six.moves.urllib.parse import urlsplit
 
-from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
-from eduid_common.session import session
+from eduid.common.api.schemas.base import EduidSchema, FluxStandardAction
+from eduid.common.session import session
 
 __author__ = 'lundberg'
 

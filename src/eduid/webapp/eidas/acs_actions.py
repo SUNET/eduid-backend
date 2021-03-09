@@ -9,25 +9,25 @@ from flask import redirect, request
 from six.moves.urllib_parse import urlsplit, urlunsplit
 from werkzeug.wrappers import Response as WerkzeugResponse
 
-from eduid_common.api.decorators import require_user
-from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
-from eduid_common.api.helpers import verify_nin_for_user
-from eduid_common.api.messages import CommonMsg, redirect_with_msg
-from eduid_common.api.utils import save_and_sync_user, urlappend, verify_relay_state
-from eduid_common.authn.acs_registry import acs_action
-from eduid_common.authn.eduid_saml2 import get_authn_ctx
-from eduid_common.authn.utils import get_saml_attribute
-from eduid_common.session import session
+from eduid.common.api.decorators import require_user
+from eduid.common.api.exceptions import AmTaskFailed, MsgTaskFailed
+from eduid.common.api.helpers import verify_nin_for_user
+from eduid.common.api.messages import CommonMsg, redirect_with_msg
+from eduid.common.api.utils import save_and_sync_user, urlappend, verify_relay_state
+from eduid.common.authn.acs_registry import acs_action
+from eduid.common.authn.eduid_saml2 import get_authn_ctx
+from eduid.common.authn.utils import get_saml_attribute
+from eduid.common.session import session
 
-# TODO: Import FidoCredential in eduid_userdb.credential.__init__
-from eduid_userdb import User
-from eduid_userdb.credentials.fido import FidoCredential
-from eduid_userdb.logs import MFATokenProofing, SwedenConnectProofing
-from eduid_userdb.proofing.state import NinProofingElement, NinProofingState
-from eduid_userdb.proofing.user import ProofingUser
+# TODO: Import FidoCredential in eduid.userdb.credential.__init__
+from eduid.userdb import User
+from eduid.userdb.credentials.fido import FidoCredential
+from eduid.userdb.logs import MFATokenProofing, SwedenConnectProofing
+from eduid.userdb.proofing.state import NinProofingElement, NinProofingState
+from eduid.userdb.proofing.user import ProofingUser
 
-from eduid_webapp.eidas.app import current_eidas_app as current_app
-from eduid_webapp.eidas.helpers import EidasMsg, is_required_loa, is_valid_reauthn
+from eduid.webapp.eidas.app import current_eidas_app as current_app
+from eduid.webapp.eidas.helpers import EidasMsg, is_required_loa, is_valid_reauthn
 
 __author__ = 'lundberg'
 

@@ -32,12 +32,12 @@
 #
 import logging
 
-from eduid_userdb.db import BaseDB
-from eduid_userdb.deprecation import deprecated
-from eduid_userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
-from eduid_userdb.security.state import PasswordResetEmailAndPhoneState, PasswordResetEmailState
-from eduid_userdb.security.user import SecurityUser
-from eduid_userdb.userdb import UserDB
+from eduid.userdb.db import BaseDB
+from eduid.userdb.deprecation import deprecated
+from eduid.userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
+from eduid.userdb.security.state import PasswordResetEmailAndPhoneState, PasswordResetEmailState
+from eduid.userdb.security.user import SecurityUser
+from eduid.userdb.userdb import UserDB
 
 logger = logging.getLogger(__name__)
 

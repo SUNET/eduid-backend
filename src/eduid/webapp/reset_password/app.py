@@ -35,18 +35,18 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid_common.api import am, mail_relay, msg, translation
-from eduid_common.api.am import AmRelay
-from eduid_common.api.app import EduIDBaseApp
-from eduid_common.api.mail_relay import MailRelay
-from eduid_common.api.msg import MsgRelay
-from eduid_common.config.base import FlaskConfig
-from eduid_common.config.parsers import load_config
-from eduid_userdb.authninfo import AuthnInfoDB
-from eduid_userdb.logs import ProofingLog
-from eduid_userdb.reset_password import ResetPasswordStateDB, ResetPasswordUserDB
+from eduid.common.api import am, mail_relay, msg, translation
+from eduid.common.api.am import AmRelay
+from eduid.common.api.app import EduIDBaseApp
+from eduid.common.api.mail_relay import MailRelay
+from eduid.common.api.msg import MsgRelay
+from eduid.common.config.base import FlaskConfig
+from eduid.common.config.parsers import load_config
+from eduid.userdb.authninfo import AuthnInfoDB
+from eduid.userdb.logs import ProofingLog
+from eduid.userdb.reset_password import ResetPasswordStateDB, ResetPasswordUserDB
 
-from eduid_webapp.reset_password.settings.common import ResetPasswordConfig
+from eduid.webapp.reset_password.settings.common import ResetPasswordConfig
 
 __author__ = 'eperez'
 
@@ -86,7 +86,7 @@ def init_reset_password_app(
     app.logger.info(f'Init {app}...')
 
     # Register views
-    from eduid_webapp.reset_password.views.reset_password import reset_password_views
+    from eduid.webapp.reset_password.views.reset_password import reset_password_views
 
     app.register_blueprint(reset_password_views)
 

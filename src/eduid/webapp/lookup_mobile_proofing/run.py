@@ -29,7 +29,7 @@
 # LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-from eduid_webapp.lookup_mobile_proofing.app import init_lookup_mobile_proofing_app
+from eduid.webapp.lookup_mobile_proofing.app import init_lookup_mobile_proofing_app
 
 app = init_lookup_mobile_proofing_app()
 

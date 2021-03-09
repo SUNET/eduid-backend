@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 from marshmallow import fields
 from marshmallow_dataclass import class_schema
 
-from eduid_scimapi.schemas.scimbase import (
+from eduid.scimapi.schemas.scimbase import (
     BaseCreateRequest,
     BaseResponse,
     BaseSchema,

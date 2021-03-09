@@ -7,9 +7,9 @@ import unittest
 from mock import patch
 from nacl import encoding, secret
 
-from eduid_common.config.parsers import decorators
-from eduid_common.config.parsers.etcd import EtcdConfigParser
-from eduid_common.config.testing import EtcdTemporaryInstance
+from eduid.common.config.parsers import decorators
+from eduid.common.config.parsers.etcd import EtcdConfigParser
+from eduid.common.config.testing import EtcdTemporaryInstance
 
 __author__ = 'lundberg'
 
@@ -80,7 +80,7 @@ class TestEtcdParser(unittest.TestCase):
         read_config = self.parser.read_configuration(self.parser.ns)
         self.assertEqual({'my_set_key': 'a nice value'}, read_config)
 
-    @patch('eduid_common.config.parsers.decorators.read_secret_key')
+    @patch('eduid.common.config.parsers.decorators.read_secret_key')
     def test_decrypt(self, mock_read_secret_key):
         mock_read_secret_key.return_value = bytes(b'A' * secret.SecretBox.KEY_SIZE)
 
@@ -99,7 +99,7 @@ class TestEtcdParser(unittest.TestCase):
         self.assertEqual({u'my_set_key': u'a nice value', u'my_other_set_key': u'another nice value'}, read_config)
         self.assertIsInstance(read_config['my_set_key'], str)
 
-    @patch('eduid_common.config.parsers.decorators.read_secret_key')
+    @patch('eduid.common.config.parsers.decorators.read_secret_key')
     def test_decrypt_non_ascii(self, mock_read_secret_key):
         mock_read_secret_key.return_value = bytes(b'A' * secret.SecretBox.KEY_SIZE)
 
@@ -121,7 +121,7 @@ class TestEtcdParser(unittest.TestCase):
         self.assertEqual({u'my_set_key': 'a nåjs väljö', u'my_other_set_key': 'another nice value'}, read_config)
         self.assertIsInstance(read_config['my_set_key'], str)
 
-    @patch('eduid_common.config.parsers.decorators.read_secret_key')
+    @patch('eduid.common.config.parsers.decorators.read_secret_key')
     def test_decrypt_multi_key(self, mock_read_secret_key):
 
         mock_read_secret_key.return_value = bytes(b'A' * secret.SecretBox.KEY_SIZE)
@@ -223,7 +223,7 @@ class TestEtcdParser(unittest.TestCase):
         }
         self.assertEqual(expected, read_config)
 
-    @patch('eduid_common.config.parsers.decorators.read_secret_key')
+    @patch('eduid.common.config.parsers.decorators.read_secret_key')
     def test_decrypt_interpolate(self, mock_read_secret_key):
         mock_read_secret_key.return_value = bytes(b'A' * secret.SecretBox.KEY_SIZE)
 

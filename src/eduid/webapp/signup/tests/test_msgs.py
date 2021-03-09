@@ -2,7 +2,7 @@
 
 import unittest
 
-from eduid_webapp.signup.helpers import SignupMsg
+from eduid.webapp.signup.helpers import SignupMsg
 
 
 class MessagesTests(unittest.TestCase):

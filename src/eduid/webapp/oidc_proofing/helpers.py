@@ -11,15 +11,15 @@ from flask import render_template
 from flask_babel import gettext as _
 from oic.oic import ClaimsRequest
 
-from eduid_common.api.helpers import number_match_proofing, verify_nin_for_user
-from eduid_common.api.messages import TranslatableMsg
-from eduid_common.api.utils import get_unique_hash
-from eduid_userdb import User
-from eduid_userdb.logs import SeLegProofing, SeLegProofingFrejaEid
-from eduid_userdb.proofing import OidcProofingState, ProofingUser
-from eduid_userdb.proofing.element import NinProofingElement
+from eduid.common.api.helpers import number_match_proofing, verify_nin_for_user
+from eduid.common.api.messages import TranslatableMsg
+from eduid.common.api.utils import get_unique_hash
+from eduid.userdb import User
+from eduid.userdb.logs import SeLegProofing, SeLegProofingFrejaEid
+from eduid.userdb.proofing import OidcProofingState, ProofingUser
+from eduid.userdb.proofing.element import NinProofingElement
 
-from eduid_webapp.oidc_proofing.app import current_oidcp_app as current_app
+from eduid.webapp.oidc_proofing.app import current_oidcp_app as current_app
 
 __author__ = 'lundberg'
 

@@ -14,7 +14,7 @@ from marshmallow import Schema, ValidationError, fields, missing, post_dump, pre
 from marshmallow_dataclass import NewType, class_schema
 from marshmallow_enum import EnumField
 
-from eduid_scimapi.utils import make_etag
+from eduid.scimapi.utils import make_etag
 
 __author__ = 'lundberg'
 

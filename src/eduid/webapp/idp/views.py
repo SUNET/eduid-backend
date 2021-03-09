@@ -34,9 +34,9 @@
 from flask import Blueprint, redirect, request
 from werkzeug.wrappers import Response as WerkzeugResponse
 
-from eduid_webapp.idp.app import current_idp_app as current_app
-from eduid_webapp.idp.login import SSO, do_verify
-from eduid_webapp.idp.logout import SLO
+from eduid.webapp.idp.app import current_idp_app as current_app
+from eduid.webapp.idp.login import SSO, do_verify
+from eduid.webapp.idp.logout import SLO
 
 __author__ = 'ft'
 

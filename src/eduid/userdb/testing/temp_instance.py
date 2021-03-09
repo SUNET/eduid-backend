@@ -38,7 +38,7 @@ import time
 from abc import ABC, abstractmethod
 from typing import Any, Optional, Sequence, Type
 
-from eduid_userdb.util import utc_now
+from eduid.userdb.util import utc_now
 
 logger = logging.getLogger(__name__)
 

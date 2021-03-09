@@ -6,15 +6,15 @@ import bson
 from celery import Task
 from celery.utils.log import get_task_logger
 
-from eduid_userdb import UserDB
-from eduid_userdb.exceptions import ConnectionError, LockedIdentityViolation, UserDoesNotExist
+from eduid.userdb import UserDB
+from eduid.userdb.exceptions import ConnectionError, LockedIdentityViolation, UserDoesNotExist
 
-from eduid_am.common import celery
-from eduid_am.consistency_checks import check_locked_identity, unverify_duplicates
-from eduid_am.fetcher_registry import AFRegistry
+from eduid.workers.am.common import celery
+from eduid.workers.am.consistency_checks import check_locked_identity, unverify_duplicates
+from eduid.workers.am.fetcher_registry import AFRegistry
 
 if celery is None:
-    raise RuntimeError('Must call eduid_am.init_app before importing tasks')
+    raise RuntimeError('Must call eduid.workers.am.init_app before importing tasks')
 
 logger = get_task_logger(__name__)
 
@@ -26,7 +26,7 @@ class AttributeManager(Task):
     abstract = True  # This means Celery won't register this as another task
 
     def __init__(self):
-        from eduid_am.worker import worker_config
+        from eduid.workers.am.worker import worker_config
 
         self.worker_config = worker_config
         self.default_db_uri = worker_config.mongo_uri

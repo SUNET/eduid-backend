@@ -1,8 +1,8 @@
 import unittest
 from datetime import datetime
 
-from eduid_scimapi.exceptions import BadRequest
-from eduid_scimapi.search import parse_search_filter
+from eduid.scimapi.exceptions import BadRequest
+from eduid.scimapi.search import parse_search_filter
 
 
 class TestSearchFilter(unittest.TestCase):

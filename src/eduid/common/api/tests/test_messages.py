@@ -34,7 +34,7 @@
 from enum import unique
 from unittest import TestCase
 
-from eduid_common.api.messages import (
+from eduid.common.api.messages import (
     CommonMsg,
     TranslatableMsg,
     error_response,
@@ -42,7 +42,7 @@ from eduid_common.api.messages import (
     redirect_with_msg,
     success_response,
 )
-from eduid_common.api.schemas.models import FluxResponseStatus
+from eduid.common.api.schemas.models import FluxResponseStatus
 
 
 @unique

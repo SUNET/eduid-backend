@@ -11,14 +11,14 @@ from os import environ
 from pprint import pformat
 from typing import TYPE_CHECKING, Any, Dict, List, Sequence
 
-from eduid_common.config.base import LoggingConfigMixin, LoggingFilters
-from eduid_common.config.exceptions import BadConfiguration
+from eduid.common.config.base import LoggingConfigMixin, LoggingFilters
+from eduid.common.config.exceptions import BadConfiguration
 
 # From https://stackoverflow.com/a/39757388
 # The TYPE_CHECKING constant is always False at runtime, so the import won't be evaluated, but mypy
 # (and other type-checking tools) will evaluate the contents of that block.
 if TYPE_CHECKING:
-    from eduid_common.api.app import EduIDBaseApp
+    from eduid.common.api.app import EduIDBaseApp
 
 
 __author__ = 'lundberg'
@@ -90,7 +90,7 @@ class UserFilter(logging.Filter):
 
     def filter(self, record: logging.LogRecord) -> bool:
         # Local import to decouple logging code from flask
-        from eduid_common.session import session
+        from eduid.common.session import session
 
         eppn = ''
         if session:
@@ -226,20 +226,20 @@ def make_dictConfig(local_context: LocalContext) -> Dict[str, Any]:
 
     _available_filters = {
         # A filter that adds various hostname/container name information to the log records
-        LoggingFilters.NAMES: {'()': 'eduid_common.api.logging.AppFilter', 'app_name': 'cfg://local_context.app_name',},
+        LoggingFilters.NAMES: {'()': 'eduid.common.api.logging.AppFilter', 'app_name': 'cfg://local_context.app_name',},
         # Only log debug messages if Flask app.debug is False
         LoggingFilters.DEBUG_FALSE: {
-            '()': 'eduid_common.api.logging.RequireDebugFalse',
+            '()': 'eduid.common.api.logging.RequireDebugFalse',
             'app_debug': 'cfg://local_context.app_debug',
         },
         # Only log debug messages if Flask app.debug is True
         LoggingFilters.DEBUG_TRUE: {
-            '()': 'eduid_common.api.logging.RequireDebugTrue',
+            '()': 'eduid.common.api.logging.RequireDebugTrue',
             'app_debug': 'cfg://local_context.app_debug',
         },
         # A filter that adds relative time to the log records
         LoggingFilters.SESSION_USER: {
-            '()': 'eduid_common.api.logging.UserFilter',
+            '()': 'eduid.common.api.logging.UserFilter',
             'debug_eppns': 'cfg://local_context.debug_eppns',
         },
     }
@@ -257,7 +257,7 @@ def make_dictConfig(local_context: LocalContext) -> Dict[str, Any]:
         # Formatters
         'formatters': {
             'default': {
-                '()': 'eduid_common.api.logging.EduidFormatter',
+                '()': 'eduid.common.api.logging.EduidFormatter',
                 'relative_time': 'cfg://local_context.relative_time',
                 'fmt': 'cfg://local_context.format',
             },

@@ -83,11 +83,11 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Type, TypeVar
 
-from eduid_userdb.exceptions import EduIDUserDBError, UserDBValueError
+from eduid.userdb.exceptions import EduIDUserDBError, UserDBValueError
 
 __author__ = 'ft'
 
-from eduid_userdb.util import utc_now
+from eduid.userdb.util import utc_now
 
 
 class ElementError(EduIDUserDBError):

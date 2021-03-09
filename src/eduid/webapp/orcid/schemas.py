@@ -2,9 +2,9 @@
 
 from marshmallow import fields
 
-from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
-from eduid_common.api.schemas.csrf import CSRFResponseMixin
-from eduid_common.api.schemas.orcid import OrcidSchema
+from eduid.common.api.schemas.base import EduidSchema, FluxStandardAction
+from eduid.common.api.schemas.csrf import CSRFResponseMixin
+from eduid.common.api.schemas.orcid import OrcidSchema
 
 __author__ = 'lundberg'
 

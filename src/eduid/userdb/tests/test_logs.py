@@ -3,9 +3,9 @@
 from copy import deepcopy
 from unittest import TestCase
 
-from eduid_userdb.fixtures.users import mocked_user_standard
-from eduid_userdb.logs.db import ProofingLog
-from eduid_userdb.logs.element import (
+from eduid.userdb.fixtures.users import mocked_user_standard
+from eduid.userdb.logs.db import ProofingLog
+from eduid.userdb.logs.element import (
     LetterProofing,
     MailAddressProofing,
     PhoneNumberProofing,
@@ -15,8 +15,8 @@ from eduid_userdb.logs.element import (
     TeleAdressProofing,
     TeleAdressProofingRelation,
 )
-from eduid_userdb.testing import MongoTemporaryInstance
-from eduid_userdb.user import User
+from eduid.userdb.testing import MongoTemporaryInstance
+from eduid.userdb.user import User
 
 __author__ = 'lundberg'
 

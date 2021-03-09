@@ -36,11 +36,11 @@ from typing import Any, Mapping, Optional, cast
 from flask import current_app
 from jinja2.exceptions import UndefinedError
 
-from eduid_common.authn.middleware import AuthnBaseApp
-from eduid_common.config.parsers import load_config
-from eduid_userdb.support import db
+from eduid.common.authn.middleware import AuthnBaseApp
+from eduid.common.config.parsers import load_config
+from eduid.userdb.support import db
 
-from eduid_webapp.support.settings.common import SupportConfig
+from eduid.webapp.support.settings.common import SupportConfig
 
 
 class SupportApp(AuthnBaseApp):
@@ -103,7 +103,7 @@ def support_init_app(name: str = 'support', test_config: Optional[Mapping[str, A
 
     app.logger.info(f'Init {app}...')
 
-    from eduid_webapp.support.views import support_views
+    from eduid.webapp.support.views import support_views
 
     app.register_blueprint(support_views)
 

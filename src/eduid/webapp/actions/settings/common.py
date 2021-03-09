@@ -39,7 +39,7 @@ from typing import Mapping
 
 from pydantic import Field
 
-from eduid_common.config.base import AmConfigMixin, EduIDBaseAppConfig, WebauthnConfigMixin2
+from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig, WebauthnConfigMixin2
 
 
 class ActionsConfig(EduIDBaseAppConfig, WebauthnConfigMixin2, AmConfigMixin):

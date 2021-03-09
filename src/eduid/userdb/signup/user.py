@@ -37,14 +37,14 @@ from typing import Any, Dict, Optional
 
 import bson
 
-from eduid_userdb.proofing import EmailProofingElement
-from eduid_userdb.user import User
+from eduid.userdb.proofing import EmailProofingElement
+from eduid.userdb.user import User
 
 
 @dataclass
 class SignupUser(User):
     """
-    Subclass of eduid_userdb.User with eduid Signup application specific data.
+    Subclass of eduid.userdb.User with eduid Signup application specific data.
     """
 
     social_network: str = ''

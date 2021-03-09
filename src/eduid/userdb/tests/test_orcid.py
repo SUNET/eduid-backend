@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import unittest
 
-import eduid_userdb.element
-import eduid_userdb.exceptions
-from eduid_userdb.orcid import OidcAuthorization, OidcIdToken, Orcid
+import eduid.userdb.element
+import eduid.userdb.exceptions
+from eduid.userdb.orcid import OidcAuthorization, OidcIdToken, Orcid
 
 __author__ = 'lundberg'
 
@@ -62,7 +62,7 @@ class TestOrcid(unittest.TestCase):
 
         assert dict_1 == dict_2
 
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+        with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
             OidcIdToken.from_dict(None)
 
     def test_oidc_authz(self):
@@ -93,7 +93,7 @@ class TestOrcid(unittest.TestCase):
 
         assert dict_1 == dict_2
 
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+        with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
             OidcAuthorization.from_dict(None)
 
     def test_orcid(self):
@@ -123,5 +123,5 @@ class TestOrcid(unittest.TestCase):
             data['unknown_key'] = 'test'
             Orcid.from_dict(data)
 
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+        with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
             Orcid.from_dict(None)

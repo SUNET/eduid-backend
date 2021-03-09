@@ -12,17 +12,17 @@ from jose import jws as jose
 from oic.oic.message import AuthorizationResponse, Claims, ClaimsRequest
 from six import BytesIO
 
-from eduid_common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
-from eduid_common.api.exceptions import TaskFailed
-from eduid_common.api.helpers import add_nin_to_user
-from eduid_common.api.messages import CommonMsg, error_response
-from eduid_userdb.exceptions import DocumentDoesNotExist
-from eduid_userdb.proofing import ProofingUser
-from eduid_userdb.util import UTC
+from eduid.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
+from eduid.common.api.exceptions import TaskFailed
+from eduid.common.api.helpers import add_nin_to_user
+from eduid.common.api.messages import CommonMsg, error_response
+from eduid.userdb.exceptions import DocumentDoesNotExist
+from eduid.userdb.proofing import ProofingUser
+from eduid.userdb.util import UTC
 
-from eduid_webapp.oidc_proofing import helpers, schemas
-from eduid_webapp.oidc_proofing.app import current_oidcp_app as current_app
-from eduid_webapp.oidc_proofing.helpers import OIDCMsg
+from eduid.webapp.oidc_proofing import helpers, schemas
+from eduid.webapp.oidc_proofing.app import current_oidcp_app as current_app
+from eduid.webapp.oidc_proofing.helpers import OIDCMsg
 
 __author__ = 'lundberg'
 

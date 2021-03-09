@@ -1,6 +1,6 @@
 import unittest
 
-from eduid_common.api.validation import is_valid_password
+from eduid.common.api.validation import is_valid_password
 
 
 class TestIsValidPassword(unittest.TestCase):

@@ -35,15 +35,15 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid_common.api import translation
-from eduid_common.api.am import AmRelay
-from eduid_common.api.mail_relay import MailRelay
-from eduid_common.authn.middleware import AuthnBaseApp
-from eduid_common.config.parsers import load_config
-from eduid_userdb.logs import ProofingLog
-from eduid_userdb.proofing import EmailProofingStateDB, EmailProofingUserDB
+from eduid.common.api import translation
+from eduid.common.api.am import AmRelay
+from eduid.common.api.mail_relay import MailRelay
+from eduid.common.authn.middleware import AuthnBaseApp
+from eduid.common.config.parsers import load_config
+from eduid.userdb.logs import ProofingLog
+from eduid.userdb.proofing import EmailProofingStateDB, EmailProofingUserDB
 
-from eduid_webapp.email.settings.common import EmailConfig
+from eduid.webapp.email.settings.common import EmailConfig
 
 
 class EmailApp(AuthnBaseApp):
@@ -79,7 +79,7 @@ def email_init_app(name: str = 'email', test_config: Optional[Mapping[str, Any]]
 
     app.logger.info(f'Init {app}...')
 
-    from eduid_webapp.email.views import email_views
+    from eduid.webapp.email.views import email_views
 
     app.register_blueprint(email_views)
 

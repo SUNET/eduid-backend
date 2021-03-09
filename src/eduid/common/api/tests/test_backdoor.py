@@ -34,12 +34,12 @@ from typing import Any, Dict, Mapping
 
 from flask import Blueprint, abort, current_app, request
 
-from eduid_common.api.app import EduIDBaseApp
-from eduid_common.api.helpers import check_magic_cookie
-from eduid_common.api.testing import EduidAPITestCase
-from eduid_common.config.base import EduIDBaseAppConfig, MagicCookieMixin
-from eduid_common.config.parsers import load_config
-from eduid_common.session.eduid_session import SessionFactory
+from eduid.common.api.app import EduIDBaseApp
+from eduid.common.api.helpers import check_magic_cookie
+from eduid.common.api.testing import EduidAPITestCase
+from eduid.common.config.base import EduIDBaseAppConfig, MagicCookieMixin
+from eduid.common.config.parsers import load_config
+from eduid.common.session.eduid_session import SessionFactory
 
 test_views = Blueprint('test', __name__)
 

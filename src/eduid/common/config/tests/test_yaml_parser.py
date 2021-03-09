@@ -5,8 +5,8 @@ from pathlib import PurePath
 import pytest
 from pydantic import ValidationError
 
-from eduid_common.config.base import RootConfig
-from eduid_common.config.parsers import load_config
+from eduid.common.config.base import RootConfig
+from eduid.common.config.parsers import load_config
 
 __author__ = 'ft'
 

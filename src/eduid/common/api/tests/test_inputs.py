@@ -39,16 +39,16 @@ from flask import Blueprint, make_response, request
 from marshmallow import ValidationError, fields
 from werkzeug.http import dump_cookie
 
-from eduid_userdb import UserDB
+from eduid.userdb import UserDB
 
-from eduid_common.api.app import EduIDBaseApp
-from eduid_common.api.decorators import UnmarshalWith
-from eduid_common.api.schemas.base import EduidSchema
-from eduid_common.api.schemas.csrf import CSRFRequestMixin
-from eduid_common.api.testing import EduidAPITestCase
-from eduid_common.config.base import EduIDBaseAppConfig, FlaskConfig
-from eduid_common.config.parsers import load_config
-from eduid_common.session.eduid_session import SessionFactory
+from eduid.common.api.app import EduIDBaseApp
+from eduid.common.api.decorators import UnmarshalWith
+from eduid.common.api.schemas.base import EduidSchema
+from eduid.common.api.schemas.csrf import CSRFRequestMixin
+from eduid.common.api.testing import EduidAPITestCase
+from eduid.common.config.base import EduIDBaseAppConfig, FlaskConfig
+from eduid.common.config.parsers import load_config
+from eduid.common.session.eduid_session import SessionFactory
 
 logger = logging.getLogger(__name__)
 

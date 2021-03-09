@@ -4,11 +4,11 @@ from unittest import TestCase
 
 import bson
 
-import eduid_userdb.element
-import eduid_userdb.exceptions
-from eduid_userdb.element import Element
-from eduid_userdb.event import EventList
-from eduid_userdb.tou import ToUEvent, ToUList
+import eduid.userdb.element
+import eduid.userdb.exceptions
+from eduid.userdb.element import Element
+from eduid.userdb.event import EventList
+from eduid.userdb.tou import ToUEvent, ToUList
 
 __author__ = 'ft'
 
@@ -48,7 +48,7 @@ class TestEventList(TestCase):
         self.three = EventList([_one_dict, _two_dict, _three_dict])
 
     def test_init_bad_data(self):
-        with self.assertRaises(eduid_userdb.element.UserDBValueError):
+        with self.assertRaises(eduid.userdb.element.UserDBValueError):
             EventList('bad input data')
 
     def test_to_list(self):
@@ -84,7 +84,7 @@ class TestEventList(TestCase):
         data = deepcopy(_two_dict)
         data['version'] = 'other version'
         dup = ToUEvent.from_dict(data)
-        with self.assertRaises(eduid_userdb.element.DuplicateElementViolation):
+        with self.assertRaises(eduid.userdb.element.DuplicateElementViolation):
             self.two.add(dup)
 
     def test_add_event(self):
@@ -97,7 +97,7 @@ class TestEventList(TestCase):
             'created_by': 'tests',
         }
         new = Element.from_dict(elemdict)
-        with self.assertRaises(eduid_userdb.element.UserDBValueError):
+        with self.assertRaises(eduid.userdb.element.UserDBValueError):
             self.one.add(new)
 
     def test_remove(self):
@@ -105,7 +105,7 @@ class TestEventList(TestCase):
         self.assertEqual(self.two.to_list_of_dicts(), now_two.to_list_of_dicts())
 
     def test_remove_unknown(self):
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+        with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
             self.one.remove('+46709999999')
 
     def test_unknown_event_type(self):
@@ -113,7 +113,7 @@ class TestEventList(TestCase):
             'event_type': 'unknown_event',
             'id': bson.ObjectId(),
         }
-        with self.assertRaises(eduid_userdb.exceptions.BadEvent) as cm:
+        with self.assertRaises(eduid.userdb.exceptions.BadEvent) as cm:
             EventList([e1])
         exc = cm.exception
         self.assertIn('Unknown event_type', exc.reason)

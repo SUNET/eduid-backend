@@ -8,18 +8,18 @@ from flask import Blueprint
 from OpenSSL import crypto
 from u2flib_server.u2f import begin_authentication, begin_registration, complete_authentication, complete_registration
 
-from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid_common.api.messages import FluxData, error_response, success_response
-from eduid_common.api.schemas.u2f import U2FEnrollResponseSchema, U2FSignResponseSchema
-from eduid_common.api.utils import save_and_sync_user
-from eduid_common.session import session
-from eduid_userdb import User
-from eduid_userdb.credentials import U2F
-from eduid_userdb.security import SecurityUser
+from eduid.common.api.decorators import MarshalWith, UnmarshalWith, require_user
+from eduid.common.api.messages import FluxData, error_response, success_response
+from eduid.common.api.schemas.u2f import U2FEnrollResponseSchema, U2FSignResponseSchema
+from eduid.common.api.utils import save_and_sync_user
+from eduid.common.session import session
+from eduid.userdb import User
+from eduid.userdb.credentials import U2F
+from eduid.userdb.security import SecurityUser
 
-from eduid_webapp.security.app import current_security_app as current_app
-from eduid_webapp.security.helpers import SecurityMsg, compile_credential_list, credentials_to_registered_keys
-from eduid_webapp.security.schemas import (
+from eduid.webapp.security.app import current_security_app as current_app
+from eduid.webapp.security.helpers import SecurityMsg, compile_credential_list, credentials_to_registered_keys
+from eduid.webapp.security.schemas import (
     BindU2FRequestSchema,
     EnrollU2FTokenResponseSchema,
     ModifyU2FTokenRequestSchema,

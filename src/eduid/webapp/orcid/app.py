@@ -34,14 +34,14 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid_common.api import oidc
-from eduid_common.api.am import AmRelay
-from eduid_common.authn.middleware import AuthnBaseApp
-from eduid_common.config.parsers import load_config
-from eduid_userdb.logs import ProofingLog
-from eduid_userdb.proofing import OrcidProofingStateDB, OrcidProofingUserDB
+from eduid.common.api import oidc
+from eduid.common.api.am import AmRelay
+from eduid.common.authn.middleware import AuthnBaseApp
+from eduid.common.config.parsers import load_config
+from eduid.userdb.logs import ProofingLog
+from eduid.userdb.proofing import OrcidProofingStateDB, OrcidProofingUserDB
 
-from eduid_webapp.orcid.settings.common import OrcidConfig
+from eduid.webapp.orcid.settings.common import OrcidConfig
 
 __author__ = 'lundberg'
 
@@ -79,7 +79,7 @@ def init_orcid_app(name: str = 'orcid', test_config: Optional[Mapping[str, Any]]
     app.logger.info(f'Init {name} app...')
 
     # Register views
-    from eduid_webapp.orcid.views import orcid_views
+    from eduid.webapp.orcid.views import orcid_views
 
     app.register_blueprint(orcid_views)
 

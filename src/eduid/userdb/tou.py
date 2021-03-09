@@ -38,8 +38,8 @@ import datetime
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Type
 
-from eduid_userdb.event import Event, EventList
-from eduid_userdb.exceptions import EduIDUserDBError, UserDBValueError
+from eduid.userdb.event import Event, EventList
+from eduid.userdb.exceptions import EduIDUserDBError, UserDBValueError
 
 
 @dataclass

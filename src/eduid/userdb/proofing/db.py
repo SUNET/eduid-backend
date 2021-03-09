@@ -35,9 +35,9 @@ import logging
 from operator import itemgetter
 from typing import ClassVar, Optional, Type, TypeVar
 
-from eduid_userdb.db import BaseDB
-from eduid_userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
-from eduid_userdb.proofing.state import (
+from eduid.userdb.db import BaseDB
+from eduid.userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
+from eduid.userdb.proofing.state import (
     EmailProofingState,
     LetterProofingState,
     OidcProofingState,
@@ -45,8 +45,8 @@ from eduid_userdb.proofing.state import (
     PhoneProofingState,
     ProofingState,
 )
-from eduid_userdb.proofing.user import ProofingUser
-from eduid_userdb.userdb import UserDB
+from eduid.userdb.proofing.user import ProofingUser
+from eduid.userdb.userdb import UserDB
 
 logger = logging.getLogger(__name__)
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from eduid_userdb.proofing.db import (
+from eduid.userdb.proofing.db import (
     EidasProofingUserDB,
     EmailProofingStateDB,
     EmailProofingUserDB,
@@ -14,12 +14,12 @@ from eduid_userdb.proofing.db import (
     PhoneProofingStateDB,
     PhoneProofingUserDB,
 )
-from eduid_userdb.proofing.element import EmailProofingElement, NinProofingElement, PhoneProofingElement
-from eduid_userdb.proofing.state import (
+from eduid.userdb.proofing.element import EmailProofingElement, NinProofingElement, PhoneProofingElement
+from eduid.userdb.proofing.state import (
     EmailProofingState,
     LetterProofingState,
     OidcProofingState,
     OrcidProofingState,
     PhoneProofingState,
 )
-from eduid_userdb.proofing.user import ProofingUser
+from eduid.userdb.proofing.user import ProofingUser

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from eduid_graphdb.groupdb.db import GroupDB
-from eduid_graphdb.groupdb.group import Group
-from eduid_graphdb.groupdb.user import User
+from eduid.graphdb.groupdb.db import GroupDB
+from eduid.graphdb.groupdb.group import Group
+from eduid.graphdb.groupdb.user import User
 
 __author__ = 'lundberg'

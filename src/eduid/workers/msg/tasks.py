@@ -12,16 +12,16 @@ from celery import Task
 from celery.utils.log import get_task_logger
 from hammock import Hammock
 
-from eduid_msg.cache import CacheMDB
-from eduid_msg.common import celery
-from eduid_msg.decorators import TransactionAudit
-from eduid_msg.exceptions import NavetAPIException
-from eduid_msg.utils import load_template, navet_get_name_and_official_address, navet_get_relations
-from eduid_msg.worker import worker_config
-from eduid_userdb.exceptions import ConnectionError
+from eduid.workers.msg.cache import CacheMDB
+from eduid.workers.msg.common import celery
+from eduid.workers.msg.decorators import TransactionAudit
+from eduid.workers.msg.exceptions import NavetAPIException
+from eduid.workers.msg.utils import load_template, navet_get_name_and_official_address, navet_get_relations
+from eduid.workers.msg.worker import worker_config
+from eduid.userdb.exceptions import ConnectionError
 
 if celery is None:
-    raise RuntimeError('Must call eduid_msg.init_app before importing tasks')
+    raise RuntimeError('Must call eduid.workers.msg.init_app before importing tasks')
 
 
 DEFAULT_MONGODB_HOST = 'localhost'
@@ -396,7 +396,7 @@ class MessageRelay(Task):
         return json_data
 
     def set_audit_log_postal_address(self, audit_reference: str) -> bool:
-        from eduid_userdb import MongoDB
+        from eduid.userdb import MongoDB
 
         conn = MongoDB(self.MONGODB_URI)
         db = conn.get_database(TRANSACTION_AUDIT_DB)

@@ -34,16 +34,16 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, Mapping, Optional, TypeVar, Union
 
-from eduid_userdb.db import BaseDB
-from eduid_userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
-from eduid_userdb.reset_password.state import (
+from eduid.userdb.db import BaseDB
+from eduid.userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
+from eduid.userdb.reset_password.state import (
     ResetPasswordEmailAndPhoneState,
     ResetPasswordEmailState,
     ResetPasswordState,
 )
-from eduid_userdb.reset_password.user import ResetPasswordUser
-from eduid_userdb.user import User
-from eduid_userdb.userdb import UserDB
+from eduid.userdb.reset_password.user import ResetPasswordUser
+from eduid.userdb.user import User
+from eduid.userdb.userdb import UserDB
 
 logger = logging.getLogger(__name__)
 

@@ -35,9 +35,9 @@ import logging
 from dataclasses import replace
 from typing import Any, Dict, List, Optional
 
-from eduid_userdb.db import BaseDB
-from eduid_userdb.exceptions import DocumentOutOfSync
-from eduid_userdb.group_management.state import GroupInviteState, GroupRole
+from eduid.userdb.db import BaseDB
+from eduid.userdb.exceptions import DocumentOutOfSync
+from eduid.userdb.group_management.state import GroupInviteState, GroupRole
 
 logger = logging.getLogger(__name__)
 

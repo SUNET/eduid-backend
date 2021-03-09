@@ -4,13 +4,13 @@ from copy import deepcopy
 
 import bson
 
-from eduid_am.testing import AMTestCase
-from eduid_userdb.exceptions import UserDoesNotExist
-from eduid_userdb.personal_data import PersonalDataUser
-from eduid_userdb.proofing import ProofingUser
-from eduid_userdb.reset_password import ResetPasswordUser
-from eduid_userdb.security import SecurityUser
-from eduid_userdb.testing import normalised_data
+from eduid.workers.am.testing import AMTestCase
+from eduid.userdb.exceptions import UserDoesNotExist
+from eduid.userdb.personal_data import PersonalDataUser
+from eduid.userdb.proofing import ProofingUser
+from eduid.userdb.reset_password import ResetPasswordUser
+from eduid.userdb.security import SecurityUser
+from eduid.userdb.testing import normalised_data
 
 USER_DATA = {
     'givenName': 'Testaren',

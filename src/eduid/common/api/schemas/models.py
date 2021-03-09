@@ -3,7 +3,7 @@
 from enum import Enum, unique
 from typing import Any, Dict
 
-from eduid_common.api.utils import get_flux_type
+from eduid.common.api.utils import get_flux_type
 
 __author__ = 'lundberg'
 

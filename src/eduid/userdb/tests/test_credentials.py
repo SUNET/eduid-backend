@@ -3,9 +3,9 @@ from hashlib import sha256
 
 from bson.objectid import ObjectId
 
-import eduid_userdb.element
-import eduid_userdb.exceptions
-from eduid_userdb.credentials import U2F, CredentialList, Password
+import eduid.userdb.element
+import eduid.userdb.exceptions
+from eduid.userdb.credentials import U2F, CredentialList, Password
 
 __author__ = 'lundberg'
 
@@ -15,7 +15,7 @@ __author__ = 'lundberg'
 #    'source': 'signup',
 #    'created_ts': datetime.datetime.utcnow(),
 # }}
-from eduid_userdb.testing import normalised_data
+from eduid.userdb.testing import normalised_data
 
 _one_dict = {
     'credential_id': '111111111111111111111111',
@@ -100,7 +100,7 @@ class TestCredentialList(unittest.TestCase):
 
     def test_add_duplicate(self):
         dup = self.two.find(ObjectId('222222222222222222222222'))
-        with self.assertRaises(eduid_userdb.element.DuplicateElementViolation):
+        with self.assertRaises(eduid.userdb.element.DuplicateElementViolation):
             self.two.add(dup)
 
     def test_add_password(self):
@@ -121,7 +121,7 @@ class TestCredentialList(unittest.TestCase):
         assert obtained == expected, 'List of credentials with removed credential different than expected'
 
     def test_remove_unknown(self):
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+        with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
             self.one.remove(ObjectId('55002741d00690878ae9b603'))
 
     def test_generated(self):

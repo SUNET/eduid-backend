@@ -35,8 +35,8 @@ from copy import deepcopy
 
 from bson import ObjectId
 
-from eduid_userdb.actions.db import ActionDB
-from eduid_userdb.testing import MongoTestCase
+from eduid.userdb.actions.db import ActionDB
+from eduid.userdb.testing import MongoTestCase
 
 logger = logging.getLogger(__name__)
 

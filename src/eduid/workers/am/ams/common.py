@@ -37,8 +37,8 @@ from typing import List, Optional
 import bson
 from celery.utils.log import get_task_logger
 
-from eduid_common.config.workers import AmConfig
-from eduid_userdb.userdb import UserDB
+from eduid.common.config.workers import AmConfig
+from eduid.userdb.userdb import UserDB
 
 logger = get_task_logger(__name__)
 
@@ -60,7 +60,7 @@ class AttributeFetcher(ABC):
     @abstractmethod
     def get_user_db(cls, mongo_uri: str) -> UserDB:
         '''
-        return an instance of the subclass of eduid_userdb.userdb.UserDB
+        return an instance of the subclass of eduid.userdb.userdb.UserDB
         corresponding to the database holding the data to be fetched.
         '''
 

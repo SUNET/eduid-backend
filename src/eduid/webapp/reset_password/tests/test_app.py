@@ -37,16 +37,16 @@ from urllib.parse import quote_plus
 
 from flask import url_for
 
-from eduid_common.api.testing import EduidAPITestCase
-from eduid_common.authn.testing import TestVCCSClient
-from eduid_common.authn.tests.test_fido_tokens import SAMPLE_WEBAUTHN_REQUEST
-from eduid_userdb.credentials import Password, Webauthn
-from eduid_userdb.exceptions import DocumentDoesNotExist, UserHasNotCompletedSignup
-from eduid_userdb.fixtures.fido_credentials import webauthn_credential as sample_credential
-from eduid_userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState
+from eduid.common.api.testing import EduidAPITestCase
+from eduid.common.authn.testing import TestVCCSClient
+from eduid.common.authn.tests.test_fido_tokens import SAMPLE_WEBAUTHN_REQUEST
+from eduid.userdb.credentials import Password, Webauthn
+from eduid.userdb.exceptions import DocumentDoesNotExist, UserHasNotCompletedSignup
+from eduid.userdb.fixtures.fido_credentials import webauthn_credential as sample_credential
+from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState
 
-from eduid_webapp.reset_password.app import ResetPasswordApp, init_reset_password_app
-from eduid_webapp.reset_password.helpers import (
+from eduid.webapp.reset_password.app import ResetPasswordApp, init_reset_password_app
+from eduid.webapp.reset_password.helpers import (
     ResetPwMsg,
     generate_suggested_password,
     get_extra_security_alternatives,
@@ -100,7 +100,7 @@ class ResetPasswordTests(EduidAPITestCase):
 
     # Parameterized test methods
 
-    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
     def _post_email_address(
         self,
         mock_sendmail: Any,
@@ -155,8 +155,8 @@ class ResetPasswordTests(EduidAPITestCase):
                 data.update(data2)
             return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch('eduid_common.authn.vccs.get_vccs_client')
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.authn.vccs.get_vccs_client')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     def _post_reset_password(
         self,
         mock_request_user_sync: Any,
@@ -207,9 +207,9 @@ class ResetPasswordTests(EduidAPITestCase):
 
             return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch('eduid_common.authn.vccs.get_vccs_client')
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    @patch('eduid_common.api.msg.MsgRelay.sendsms')
+    @patch('eduid.common.authn.vccs.get_vccs_client')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.api.msg.MsgRelay.sendsms')
     def _post_choose_extra_sec(
         self,
         mock_sendsms: Any,
@@ -271,9 +271,9 @@ class ResetPasswordTests(EduidAPITestCase):
                 response = c.post(extra_security_phone_url, data=json.dumps(data), content_type=self.content_type_json)
             return response
 
-    @patch('eduid_common.authn.vccs.get_vccs_client')
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    @patch('eduid_common.api.msg.MsgRelay.sendsms')
+    @patch('eduid.common.authn.vccs.get_vccs_client')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.api.msg.MsgRelay.sendsms')
     def _post_reset_password_secure_phone(
         self,
         mock_sendsms: Any,
@@ -329,8 +329,8 @@ class ResetPasswordTests(EduidAPITestCase):
 
         return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch('eduid_common.authn.vccs.get_vccs_client')
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.authn.vccs.get_vccs_client')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     @patch('fido2.cose.ES256.verify')
     def _post_reset_password_secure_token(
         self,
@@ -419,9 +419,9 @@ class ResetPasswordTests(EduidAPITestCase):
             eppn = quote_plus(self.test_user_eppn)
             return client.get(f'/get-email-code?eppn={eppn}')
 
-    @patch('eduid_common.authn.vccs.get_vccs_client')
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    @patch('eduid_common.api.msg.MsgRelay.sendsms')
+    @patch('eduid.common.authn.vccs.get_vccs_client')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.api.msg.MsgRelay.sendsms')
     def _get_phone_code_backdoor(
         self,
         mock_sendsms: Any,
@@ -507,12 +507,12 @@ class ResetPasswordTests(EduidAPITestCase):
         self.assertEqual(state.email_address, 'johnsmith@example.com')
 
     def test_post_email_address_sendmail_fail(self):
-        from eduid_common.api.exceptions import MailTaskFailed
+        from eduid.common.api.exceptions import MailTaskFailed
 
         response = self._post_email_address(sendmail_return=False, sendmail_side_effect=MailTaskFailed)
         self._check_error_response(response, msg=ResetPwMsg.email_send_failure, type_='POST_RESET_PASSWORD_FAIL')
 
-    @patch('eduid_userdb.userdb.UserDB.get_user_by_mail')
+    @patch('eduid.userdb.userdb.UserDB.get_user_by_mail')
     def test_post_email_uncomplete_signup(self, mock_get_user: Mock):
         mock_get_user.side_effect = UserHasNotCompletedSignup('incomplete signup')
         response = self._post_email_address()
@@ -658,7 +658,7 @@ class ResetPasswordTests(EduidAPITestCase):
 
     def test_post_choose_extra_sec_sms_fail(self):
         self.app.conf.throttle_sms_seconds = 300
-        from eduid_common.api.exceptions import MsgTaskFailed
+        from eduid.common.api.exceptions import MsgTaskFailed
 
         response = self._post_choose_extra_sec(sendsms_side_effect=MsgTaskFailed())
         self._check_error_response(
@@ -724,7 +724,7 @@ class ResetPasswordTests(EduidAPITestCase):
         verified_nins = user.nins.verified.to_list()
         self.assertEqual(2, len(verified_nins))
 
-    @patch('eduid_webapp.reset_password.views.reset_password.verify_phone_number')
+    @patch('eduid.webapp.reset_password.views.reset_password.verify_phone_number')
     def test_post_reset_password_secure_phone_verify_fail(self, mock_verify: Any):
         mock_verify.return_value = False
         response = self._post_reset_password_secure_phone()

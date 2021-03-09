@@ -37,9 +37,9 @@ from typing import Any, Dict, Mapping, Optional
 
 from mock import patch
 
-from eduid_common.api.testing import EduidAPITestCase
+from eduid.common.api.testing import EduidAPITestCase
 
-from eduid_webapp.security.app import SecurityApp, security_init_app
+from eduid.webapp.security.app import SecurityApp, security_init_app
 
 
 class SecurityTests(EduidAPITestCase):
@@ -105,9 +105,9 @@ class SecurityTests(EduidAPITestCase):
 
             return client.post('/terminate-account', data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
-    @patch('eduid_webapp.security.views.security.revoke_all_credentials')
+    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.webapp.security.views.security.revoke_all_credentials')
     def _account_terminated(
         self,
         mock_revoke: Any,
@@ -136,7 +136,7 @@ class SecurityTests(EduidAPITestCase):
 
             return client.get('/account-terminated')
 
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     def _remove_nin(self, mock_request_user_sync: Any, data1: Optional[dict] = None, unverify: bool = True):
         """
         Send a POST request to remove a NIN from the test user, possibly
@@ -167,7 +167,7 @@ class SecurityTests(EduidAPITestCase):
 
                 return client.post('/remove-nin', data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     def _add_nin(self, mock_request_user_sync: Any, data1: Optional[dict] = None, remove: bool = True):
         """
         Send a POST request to add a NIN to the test user, possibly removing his primary, verified NIN.
@@ -231,9 +231,9 @@ class SecurityTests(EduidAPITestCase):
         self.assertEqual(response.json['type'], 'GET_SECURITY_ACCOUNT_TERMINATED_FAIL')
         self.assertEqual(response.json['payload']['message'], 'security.stale_authn_info')
 
-    @patch('eduid_webapp.security.views.security.send_termination_mail')
+    @patch('eduid.webapp.security.views.security.send_termination_mail')
     def test_account_terminated_sendmail_fail(self, mock_send: Any):
-        from eduid_common.api.exceptions import MsgTaskFailed
+        from eduid.common.api.exceptions import MsgTaskFailed
 
         mock_send.side_effect = MsgTaskFailed()
         response = self._account_terminated(reauthn=int(time.time()))
@@ -241,7 +241,7 @@ class SecurityTests(EduidAPITestCase):
         self.assertEqual(response.location, 'http://test.localhost/services/authn/logout?next=https://eduid.se')
 
     def test_account_terminated_mail_fail(self):
-        from eduid_common.api.exceptions import MsgTaskFailed
+        from eduid.common.api.exceptions import MsgTaskFailed
 
         response = self._account_terminated(sendmail_side_effect=MsgTaskFailed())
         self.assertEqual(response.status_code, 400)
@@ -260,9 +260,9 @@ class SecurityTests(EduidAPITestCase):
         self.assertEqual(user.nins.count, 1)
         self.assertEqual(user.nins.verified.count, 1)
 
-    @patch('eduid_webapp.security.views.security.remove_nin_from_user')
+    @patch('eduid.webapp.security.views.security.remove_nin_from_user')
     def test_remove_nin_no_nin(self, mock_remove: Any):
-        from eduid_common.api.exceptions import AmTaskFailed
+        from eduid.common.api.exceptions import AmTaskFailed
 
         mock_remove.side_effect = AmTaskFailed()
         response = self._remove_nin()
@@ -288,7 +288,7 @@ class SecurityTests(EduidAPITestCase):
         self.assertEqual(user.nins.count, 2)
         self.assertEqual(user.nins.verified.count, 2)
 
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     def test_not_remove_non_existant_nin(self, mock_request_user_sync):
         data1 = {'nin': '190102031234'}
         response = self._remove_nin(data1=data1, unverify=False)
@@ -318,9 +318,9 @@ class SecurityTests(EduidAPITestCase):
         self.assertEqual(user.nins.count, 2)
         self.assertEqual(user.nins.verified.count, 2)
 
-    @patch('eduid_webapp.security.views.security.add_nin_to_user')
+    @patch('eduid.webapp.security.views.security.add_nin_to_user')
     def test_add_nin_task_failed(self, mock_add):
-        from eduid_common.api.exceptions import AmTaskFailed
+        from eduid.common.api.exceptions import AmTaskFailed
 
         mock_add.side_effect = AmTaskFailed()
         response = self._add_nin()
@@ -431,12 +431,12 @@ class SecurityTests(EduidAPITestCase):
             sec_data = json.loads(response2.data)
             self.assertEqual(sec_data['type'], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
 
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     def test_change_passwd_no_csrf(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
-            with patch('eduid_webapp.security.views.security.add_credentials', return_value=True):
+            with patch('eduid.webapp.security.views.security.add_credentials', return_value=True):
                 with client.session_transaction() as sess:
                     sess['reauthn-for-chpass'] = int(time.time())
                 data = {'new_password': 'j7/E >pO9 ,$Sr O0;&', 'old_password': '5678'}
@@ -448,12 +448,12 @@ class SecurityTests(EduidAPITestCase):
                 self.assertEqual(sec_data['payload']['message'], 'chpass.weak-password')
                 self.assertEqual(sec_data['type'], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
 
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     def test_change_passwd_wrong_csrf(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
-            with patch('eduid_webapp.security.views.security.add_credentials', return_value=True):
+            with patch('eduid.webapp.security.views.security.add_credentials', return_value=True):
                 with client.session_transaction() as sess:
                     sess['reauthn-for-chpass'] = int(time.time())
                     data = {'csrf_token': '0000', 'new_password': 'j7/E >pO9 ,$Sr O0;&', 'old_password': '5678'}
@@ -463,12 +463,12 @@ class SecurityTests(EduidAPITestCase):
                 self.assertEqual(sec_data['payload']['message'], 'csrf.try_again')
                 self.assertEqual(sec_data['type'], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
 
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     def test_change_passwd_weak(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
-            with patch('eduid_webapp.security.views.security.add_credentials', return_value=True):
+            with patch('eduid.webapp.security.views.security.add_credentials', return_value=True):
                 with self.app.test_request_context():
                     with client.session_transaction() as sess:
                         sess['reauthn-for-chpass'] = int(time.time())
@@ -481,12 +481,12 @@ class SecurityTests(EduidAPITestCase):
                 self.assertEqual(sec_data['payload']['message'], 'chpass.weak-password')
                 self.assertEqual(sec_data['type'], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
 
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     def test_change_passwd(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
-            with patch('eduid_webapp.security.views.security.add_credentials', return_value=True):
+            with patch('eduid.webapp.security.views.security.add_credentials', return_value=True):
                 with self.app.test_request_context():
                     with client.session_transaction() as sess:
                         sess['reauthn-for-chpass'] = int(time.time())

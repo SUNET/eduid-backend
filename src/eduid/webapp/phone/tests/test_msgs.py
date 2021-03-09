@@ -2,7 +2,7 @@
 
 import unittest
 
-from eduid_webapp.phone.helpers import PhoneMsg
+from eduid.webapp.phone.helpers import PhoneMsg
 
 
 class MessagesTests(unittest.TestCase):

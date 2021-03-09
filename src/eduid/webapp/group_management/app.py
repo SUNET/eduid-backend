@@ -34,15 +34,15 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid_common.api import translation
-from eduid_common.api.mail_relay import MailRelay
-from eduid_common.authn.middleware import AuthnBaseApp
-from eduid_common.config.parsers import load_config
-from eduid_scimapi.db.groupdb import ScimApiGroupDB
-from eduid_scimapi.db.userdb import ScimApiUserDB
-from eduid_userdb.group_management import GroupManagementInviteStateDB
+from eduid.common.api import translation
+from eduid.common.api.mail_relay import MailRelay
+from eduid.common.authn.middleware import AuthnBaseApp
+from eduid.common.config.parsers import load_config
+from eduid.scimapi.db.groupdb import ScimApiGroupDB
+from eduid.scimapi.db.userdb import ScimApiUserDB
+from eduid.userdb.group_management import GroupManagementInviteStateDB
 
-from eduid_webapp.group_management.settings.common import GroupManagementConfig
+from eduid.webapp.group_management.settings.common import GroupManagementConfig
 
 __author__ = 'lundberg'
 
@@ -91,8 +91,8 @@ def init_group_management_app(
     app.logger.info(f'Init {app}...')
 
     # Register views
-    from eduid_webapp.group_management.views.group import group_management_views
-    from eduid_webapp.group_management.views.invite import group_invite_views
+    from eduid.webapp.group_management.views.group import group_management_views
+    from eduid.webapp.group_management.views.invite import group_invite_views
 
     app.register_blueprint(group_management_views)
     app.register_blueprint(group_invite_views)

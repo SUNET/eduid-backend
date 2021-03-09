@@ -2,14 +2,14 @@
 
 from typing import Any, Dict, Mapping
 
-from eduid_common.api.app import EduIDBaseApp
-from eduid_common.api.logging import merge_config
-from eduid_common.api.testing import EduidAPITestCase
-from eduid_common.config.base import EduIDBaseAppConfig
+from eduid.common.api.app import EduIDBaseApp
+from eduid.common.api.logging import merge_config
+from eduid.common.api.testing import EduidAPITestCase
+from eduid.common.config.base import EduIDBaseAppConfig
 
 __author__ = 'lundberg'
 
-from eduid_common.config.parsers import load_config
+from eduid.common.config.parsers import load_config
 
 
 class LoggingTestApp(EduIDBaseApp):
@@ -39,11 +39,11 @@ class LoggingTest(EduidAPITestCase):
             'version': 1,
             'disable_existing_loggers': False,
             'formatters': {
-                'default': {'()': 'eduid_common.api.logging.EduidFormatter', 'fmt': 'cfg://local_context.format'},
+                'default': {'()': 'eduid.common.api.logging.EduidFormatter', 'fmt': 'cfg://local_context.format'},
             },
             'filters': {
-                'app_filter': {'()': 'eduid_common.api.logging.AppFilter', 'app_name': 'cfg://local_context.app_name',},
-                'user_filter': {'()': 'eduid_common.api.logging.UserFilter',},
+                'app_filter': {'()': 'eduid.common.api.logging.AppFilter', 'app_name': 'cfg://local_context.app_name',},
+                'user_filter': {'()': 'eduid.common.api.logging.UserFilter',},
             },
             'handlers': {
                 'console': {

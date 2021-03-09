@@ -1,10 +1,10 @@
 from bson import ObjectId
 
-from eduid_userdb.credentials.base import Credential
-from eduid_userdb.credentials.fido import u2f_from_dict, webauthn_from_dict
-from eduid_userdb.credentials.password import password_from_dict
-from eduid_userdb.element import DuplicateElementViolation, ElementList
-from eduid_userdb.exceptions import UserHasUnknownData
+from eduid.userdb.credentials.base import Credential
+from eduid.userdb.credentials.fido import u2f_from_dict, webauthn_from_dict
+from eduid.userdb.credentials.password import password_from_dict
+from eduid.userdb.element import DuplicateElementViolation, ElementList
+from eduid.userdb.exceptions import UserHasUnknownData
 
 
 class CredentialList(ElementList):

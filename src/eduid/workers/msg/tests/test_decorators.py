@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
-from eduid_msg.decorators import TransactionAudit
-from eduid_msg.testing import MsgMongoTestCase
+from eduid.workers.msg.decorators import TransactionAudit
+from eduid.workers.msg.testing import MsgMongoTestCase
 
 
 class TestTransactionAudit(MsgMongoTestCase):

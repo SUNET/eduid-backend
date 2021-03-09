@@ -2,8 +2,8 @@ from unittest import TestCase
 
 from marshmallow_dataclass import class_schema
 
-from eduid_scimapi.schemas.scimbase import BaseSchema
-from eduid_scimapi.schemas.user import NutidUserExtensionV1
+from eduid.scimapi.schemas.scimbase import BaseSchema
+from eduid.scimapi.schemas.user import NutidUserExtensionV1
 
 
 class TestProfile(TestCase):

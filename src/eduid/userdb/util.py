@@ -49,7 +49,7 @@ class UTC(datetime.tzinfo):
         return datetime.timedelta(0)
 
 
-# NOTE: This function is copied from eduid_common.misc.timeutil because eduid-userdb can't import eduid-common
+# NOTE: This function is copied from eduid.common.misc.timeutil because eduid-userdb can't import eduid-common
 def utc_now() -> datetime.datetime:
     """ Return current time with tz=UTC """
     return datetime.datetime.now(tz=datetime.timezone.utc)

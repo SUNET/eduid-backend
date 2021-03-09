@@ -36,7 +36,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Dict, Mapping, Type, Union
 
-from eduid_userdb.element import Element
+from eduid.userdb.element import Element
 
 
 @dataclass

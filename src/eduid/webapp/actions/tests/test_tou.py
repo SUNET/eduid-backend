@@ -39,12 +39,12 @@ from typing import Any, Optional
 from bson import ObjectId
 from mock import patch
 
-from eduid_common.session import session
-from eduid_userdb import User
-from eduid_userdb.tou import ToUEvent
+from eduid.common.session import session
+from eduid.userdb import User
+from eduid.userdb.tou import ToUEvent
 
-from eduid_webapp.actions.actions.tou import Plugin
-from eduid_webapp.actions.testing import ActionsTestCase, MockIdPContext
+from eduid.webapp.actions.actions.tou import Plugin
+from eduid.webapp.actions.testing import ActionsTestCase, MockIdPContext
 
 __author__ = 'eperez'
 
@@ -167,7 +167,7 @@ class ToUActionPluginTests(ActionsTestCase):
         data = self._get_config(tou_version='not-existing-version')
         self.assertEqual(data['payload']['message'], 'tou.no-tou')
 
-    @patch('eduid_am.tasks.update_attributes_keep_result.delay')
+    @patch('eduid.workers.am.tasks.update_attributes_keep_result.delay')
     def test_get_accept_tou(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.mock_update_attributes
         #  verify the user hasn't previously accepted the test version
@@ -187,7 +187,7 @@ class ToUActionPluginTests(ActionsTestCase):
             user.tou.has_accepted(TOU_ACTION['params']['version'], reaccept_interval=self.reaccept_interval)
         )
 
-    @patch('eduid_am.tasks.update_attributes_keep_result.delay')
+    @patch('eduid.workers.am.tasks.update_attributes_keep_result.delay')
     def test_reaccept_tou_no_modified_ts(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.mock_update_attributes
         #  verify the users previous ToU acceptance has expired
@@ -214,7 +214,7 @@ class ToUActionPluginTests(ActionsTestCase):
             user.tou.has_accepted(TOU_ACTION['params']['version'], reaccept_interval=self.reaccept_interval)
         )
 
-    @patch('eduid_am.tasks.update_attributes_keep_result.delay')
+    @patch('eduid.workers.am.tasks.update_attributes_keep_result.delay')
     def test_reaccept_tou(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.mock_update_attributes
         #  verify the users previous ToU acceptance has expired

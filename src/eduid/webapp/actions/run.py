@@ -32,7 +32,7 @@
 #
 
 
-from eduid_webapp.actions.app import actions_init_app
+from eduid.webapp.actions.app import actions_init_app
 
 app = actions_init_app(name='actions2')
 

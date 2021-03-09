@@ -33,11 +33,11 @@ from abc import ABCMeta, abstractmethod
 
 from flask import request
 
-from eduid_common.api.utils import get_static_url_for, urlappend
-from eduid_common.config.base import EduidEnvironment
-from eduid_userdb.actions.action import Action
+from eduid.common.api.utils import get_static_url_for, urlappend
+from eduid.common.config.base import EduidEnvironment
+from eduid.userdb.actions.action import Action
 
-from eduid_webapp.actions.app import current_actions_app as current_app
+from eduid.webapp.actions.app import current_actions_app as current_app
 
 
 class ActionError(Exception):
@@ -63,7 +63,7 @@ class ActionError(Exception):
     Example code, in the actions app (obj is an action object,
     an instance of a class that extends ActionPlugin,
     defined in a plugin, and actions_db is an instance of
-    eduid_userdb.actions.db.ActionsDB)::
+    eduid.userdb.actions.db.ActionsDB)::
 
       try:
           obj.perform_step(action)
@@ -111,7 +111,7 @@ class ActionPlugin(object):
     //DEPRECATED==
     ==============
 
-    The derived classes are placed in ``eduid_webapp.actions.actions``, in
+    The derived classes are placed in ``eduid.webapp.actions.actions``, in
     their own modules named with the appropriate action name.
 
     During the initialization of the actions app, if it receives a
@@ -125,7 +125,7 @@ class ActionPlugin(object):
     ActionError = ActionError
 
     PLUGIN_NAME = 'dummy'
-    PACKAGE_NAME = 'eduid_webapp.actions.actions.' + PLUGIN_NAME
+    PACKAGE_NAME = 'eduid.webapp.actions.actions.' + PLUGIN_NAME
 
     class ValidationError(Exception):
         """

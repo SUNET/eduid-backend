@@ -32,10 +32,10 @@
 
 import bson
 
-import eduid_userdb
-from eduid_userdb import User
-from eduid_userdb.fixtures.users import mocked_user_standard
-from eduid_userdb.testing import MongoTestCase
+import eduid.userdb
+from eduid.userdb import User
+from eduid.userdb.fixtures.users import mocked_user_standard
+from eduid.userdb.testing import MongoTestCase
 
 
 class TestUserDB(MongoTestCase):
@@ -85,7 +85,7 @@ class TestUserDB(MongoTestCase):
 
     def test_get_user_by_eppn_not_found(self):
         """ Test user lookup using unknown """
-        with self.assertRaises(eduid_userdb.exceptions.UserDoesNotExist):
+        with self.assertRaises(eduid.userdb.exceptions.UserDoesNotExist):
             self.amdb.get_user_by_eppn('abc123')
 
 
@@ -123,7 +123,7 @@ class TestUserDB_mail(MongoTestCase):
 
     def test_get_user_by_mail_unknown(self):
         """ Test searching for unknown e-mail address """
-        with self.assertRaises(eduid_userdb.exceptions.UserDoesNotExist):
+        with self.assertRaises(eduid.userdb.exceptions.UserDoesNotExist):
             self.amdb.get_user_by_mail('abc123@example.edu')
 
         res = self.amdb.get_user_by_mail('abc123@example.edu', raise_on_missing=False)
@@ -138,7 +138,7 @@ class TestUserDB_mail(MongoTestCase):
         ids = [x.user_id for x in res]
         self.assertEqual(ids, [self.user1.user_id, self.user2.user_id])
 
-        with self.assertRaises(eduid_userdb.exceptions.MultipleUsersReturned):
+        with self.assertRaises(eduid.userdb.exceptions.MultipleUsersReturned):
             self.amdb.get_user_by_mail('test@gmail.com', include_unconfirmed=True)
 
 
@@ -187,7 +187,7 @@ class TestUserDB_phone(MongoTestCase):
 
     def test_get_user_by_phone_unknown(self):
         """ Test searching for unknown e-phone address """
-        with self.assertRaises(eduid_userdb.exceptions.UserDoesNotExist):
+        with self.assertRaises(eduid.userdb.exceptions.UserDoesNotExist):
             self.amdb.get_user_by_phone('abc123@example.edu')
 
         res = self.amdb.get_user_by_phone('abc123@example.edu', raise_on_missing=False)
@@ -202,7 +202,7 @@ class TestUserDB_phone(MongoTestCase):
         ids = [x.user_id for x in res]
         self.assertEqual(ids, [self.user1.user_id, self.user2.user_id])
 
-        with self.assertRaises(eduid_userdb.exceptions.MultipleUsersReturned):
+        with self.assertRaises(eduid.userdb.exceptions.MultipleUsersReturned):
             self.amdb.get_user_by_phone('+11111111111', include_unconfirmed=True)
 
 
@@ -254,7 +254,7 @@ class TestUserDB_nin(MongoTestCase):
 
     def test_get_user_by_nin_unknown(self):
         """ Test searching for unknown e-nin address """
-        with self.assertRaises(eduid_userdb.exceptions.UserDoesNotExist):
+        with self.assertRaises(eduid.userdb.exceptions.UserDoesNotExist):
             self.amdb.get_user_by_nin('77777777777')
 
         res = self.amdb.get_user_by_nin('77777777777', raise_on_missing=False)
@@ -269,5 +269,5 @@ class TestUserDB_nin(MongoTestCase):
         ids = [x.user_id for x in res]
         self.assertEqual(ids, [self.user1.user_id, self.user2.user_id])
 
-        with self.assertRaises(eduid_userdb.exceptions.MultipleUsersReturned):
+        with self.assertRaises(eduid.userdb.exceptions.MultipleUsersReturned):
             self.amdb.get_user_by_nin('11111111111', include_unconfirmed=True)

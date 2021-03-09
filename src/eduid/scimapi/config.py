@@ -2,7 +2,7 @@ from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
-from eduid_common.config.base import LoggingConfigMixin, RootConfig
+from eduid.common.config.base import LoggingConfigMixin, RootConfig
 
 
 class DataOwner(BaseModel):

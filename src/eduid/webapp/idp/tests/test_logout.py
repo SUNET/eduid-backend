@@ -12,7 +12,7 @@ from saml2.response import AuthnResponse, LogoutResponse
 
 from vccs_client import VCCSClient
 
-from eduid_webapp.idp.tests.test_app import IdPTests, LoginState
+from eduid.webapp.idp.tests.test_app import IdPTests, LoginState
 
 logger = logging.getLogger(__name__)
 

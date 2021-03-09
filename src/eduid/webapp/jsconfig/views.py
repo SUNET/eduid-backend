@@ -36,14 +36,14 @@ from typing import Dict, Optional, cast
 import requests
 from flask import Blueprint, abort, render_template, request
 
-from eduid_common.api.decorators import MarshalWith
-from eduid_common.api.schemas.base import FluxStandardAction
-from eduid_common.config.exceptions import BadConfiguration
-from eduid_common.config.parsers.etcd import EtcdConfigParser, etcd
-from eduid_common.session import session
+from eduid.common.api.decorators import MarshalWith
+from eduid.common.api.schemas.base import FluxStandardAction
+from eduid.common.config.exceptions import BadConfiguration
+from eduid.common.config.parsers.etcd import EtcdConfigParser, etcd
+from eduid.common.session import session
 
-from eduid_webapp.jsconfig.app import current_jsconfig_app as current_app
-from eduid_webapp.jsconfig.settings.front import FrontConfig
+from eduid.webapp.jsconfig.app import current_jsconfig_app as current_app
+from eduid.webapp.jsconfig.settings.front import FrontConfig
 
 jsconfig_views = Blueprint('jsconfig', __name__, url_prefix='', template_folder='templates')
 

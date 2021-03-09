@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from eduid_userdb.support.db import (
+from eduid.userdb.support.db import (
     SupportActionsDB,
     SupportAuthnInfoDB,
     SupportEmailProofingDB,
@@ -9,6 +9,6 @@ from eduid_userdb.support.db import (
     SupportProofingDB,
     SupportProofingLogDB,
 )
-from eduid_userdb.support.user import SupportSignupUser, SupportUser
+from eduid.userdb.support.user import SupportSignupUser, SupportUser
 
 __author__ = 'lundberg'

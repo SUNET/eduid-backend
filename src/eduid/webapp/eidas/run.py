@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from eduid_webapp.eidas.app import init_eidas_app
+from eduid.webapp.eidas.app import init_eidas_app
 
 app = init_eidas_app()
 

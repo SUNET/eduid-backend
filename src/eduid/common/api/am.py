@@ -2,13 +2,13 @@
 
 import logging
 
-import eduid_am
+import eduid.workers.am
 
-from eduid_userdb import User
-from eduid_userdb.exceptions import LockedIdentityViolation
+from eduid.userdb import User
+from eduid.userdb.exceptions import LockedIdentityViolation
 
-from eduid_common.api.exceptions import AmTaskFailed
-from eduid_common.config.base import AmConfigMixin
+from eduid.common.api.exceptions import AmTaskFailed
+from eduid.common.config.base import AmConfigMixin
 
 __author__ = 'lundberg'
 
@@ -25,9 +25,9 @@ class AmRelay(object):
         if config.am_relay_for_override is not None:
             self.relay_for = config.am_relay_for_override
 
-        eduid_am.init_app(config.celery)
-        # these have to be imported _after_ eduid_am.init_app()
-        from eduid_am.tasks import pong, update_attributes_keep_result
+        eduid.workers.am.init_app(config.celery)
+        # these have to be imported _after_ eduid.workers.am.init_app()
+        from eduid.workers.am.tasks import pong, update_attributes_keep_result
 
         self._update_attrs = update_attributes_keep_result
         self._pong = pong
@@ -47,7 +47,7 @@ class AmRelay(object):
             user_id = str(user.user_id)
         except (AttributeError, ValueError) as e:
             logger.error(f'Bad user_id in sync request: {e}')
-            raise ValueError('Missing user_id. Can only propagate changes for eduid_userdb.User users.')
+            raise ValueError('Missing user_id. Can only propagate changes for eduid.userdb.User users.')
 
         logger.debug(f"Asking Attribute Manager to sync user {user}")
         rtask = self._update_attrs.delay(self.relay_for, user_id)

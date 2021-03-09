@@ -7,7 +7,7 @@ from unittest import TestCase
 import pkg_resources
 from mock import MagicMock
 
-from eduid_msg import utils
+from eduid.workers.msg import utils
 
 
 class TestPostalAddress(TestCase):

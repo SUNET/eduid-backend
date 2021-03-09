@@ -8,13 +8,13 @@ from typing import Any, Dict
 from jose import jws as jose
 from mock import patch
 
-from eduid_common.api.testing import EduidAPITestCase
-from eduid_userdb.exceptions import DocumentDoesNotExist
-from eduid_userdb.locked_identity import LockedIdentityNin
-from eduid_userdb.nin import Nin
+from eduid.common.api.testing import EduidAPITestCase
+from eduid.userdb.exceptions import DocumentDoesNotExist
+from eduid.userdb.locked_identity import LockedIdentityNin
+from eduid.userdb.nin import Nin
 
-from eduid_webapp.oidc_proofing.app import OIDCProofingApp, init_oidc_proofing_app
-from eduid_webapp.oidc_proofing.helpers import create_proofing_state, handle_freja_eid_userinfo
+from eduid.webapp.oidc_proofing.app import OIDCProofingApp, init_oidc_proofing_app
+from eduid.webapp.oidc_proofing.helpers import create_proofing_state, handle_freja_eid_userinfo
 
 __author__ = 'lundberg'
 
@@ -175,9 +175,9 @@ class OidcProofingTests(EduidAPITestCase):
         self.assertEqual(response['type'], 'POST_OIDC_PROOFING_FREJA_PROOFING_FAIL')
         self.assertEqual(response['payload']['error']['csrf_token'], ['CSRF failed to validate'])
 
-    @patch('eduid_webapp.oidc_proofing.helpers.do_authn_request')
-    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.webapp.oidc_proofing.helpers.do_authn_request')
+    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     def test_seleg_flow(self, mock_request_user_sync, mock_get_postal_address, mock_oidc_call):
         mock_oidc_call.return_value = True
         mock_get_postal_address.return_value = self.mock_address
@@ -220,10 +220,10 @@ class OidcProofingTests(EduidAPITestCase):
         self.assertEqual(user.nins.primary.is_verified, True)
         self.assertEqual(self.app.proofing_log.db_count(), 1)
 
-    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid_webapp.oidc_proofing.helpers.do_authn_request')
-    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid.webapp.oidc_proofing.helpers.do_authn_request')
+    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     def test_seleg_flow_low_score(self, mock_request_user_sync, mock_get_postal_address, mock_oidc_call, mock_sendmail):
         mock_sendmail.return_value = True
         mock_oidc_call.return_value = True
@@ -265,9 +265,9 @@ class OidcProofingTests(EduidAPITestCase):
         self.assertEqual(user.nins.verified.count, 0)
         self.assertEqual(self.app.proofing_log.db_count(), 0)
 
-    @patch('eduid_webapp.oidc_proofing.helpers.do_authn_request')
-    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.webapp.oidc_proofing.helpers.do_authn_request')
+    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     def test_seleg_flow_previously_added_nin(self, mock_request_user_sync, mock_get_postal_address, mock_oidc_call):
         mock_oidc_call.return_value = True
         mock_get_postal_address.return_value = self.mock_address
@@ -314,9 +314,9 @@ class OidcProofingTests(EduidAPITestCase):
         self.assertEqual(user.nins.primary.is_verified, True)
         self.assertEqual(self.app.proofing_log.db_count(), 1)
 
-    @patch('eduid_webapp.oidc_proofing.helpers.do_authn_request')
-    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.webapp.oidc_proofing.helpers.do_authn_request')
+    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     def test_seleg_flow_previously_added_wrong_nin(
         self, mock_request_user_sync, mock_get_postal_address, mock_oidc_call
     ):
@@ -365,9 +365,9 @@ class OidcProofingTests(EduidAPITestCase):
         self.assertEqual(user.nins.primary.is_verified, True)
         self.assertEqual(self.app.proofing_log.db_count(), 1)
 
-    @patch('eduid_webapp.oidc_proofing.helpers.do_authn_request')
-    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.webapp.oidc_proofing.helpers.do_authn_request')
+    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     def test_freja_flow(self, mock_request_user_sync, mock_get_postal_address, mock_oidc_call):
         mock_oidc_call.return_value = True
         mock_get_postal_address.return_value = self.mock_address
@@ -412,9 +412,9 @@ class OidcProofingTests(EduidAPITestCase):
         self.assertEqual(user.nins.primary.is_verified, True)
         self.assertEqual(self.app.proofing_log.db_count(), 1)
 
-    @patch('eduid_webapp.oidc_proofing.helpers.do_authn_request')
-    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.webapp.oidc_proofing.helpers.do_authn_request')
+    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     def test_freja_flow_previously_added_nin(self, mock_request_user_sync, mock_get_postal_address, mock_oidc_call):
         mock_oidc_call.return_value = True
         mock_get_postal_address.return_value = self.mock_address
@@ -459,9 +459,9 @@ class OidcProofingTests(EduidAPITestCase):
         self.assertEqual(user.nins.primary.is_verified, True)
         self.assertEqual(self.app.proofing_log.db_count(), 1)
 
-    @patch('eduid_webapp.oidc_proofing.helpers.do_authn_request')
-    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.webapp.oidc_proofing.helpers.do_authn_request')
+    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     def test_freja_flow_previously_added_wrong_nin(
         self, mock_request_user_sync, mock_get_postal_address, mock_oidc_call
     ):
@@ -508,9 +508,9 @@ class OidcProofingTests(EduidAPITestCase):
         self.assertEqual(user.nins.primary.is_verified, True)
         self.assertEqual(self.app.proofing_log.db_count(), 1)
 
-    @patch('eduid_webapp.oidc_proofing.helpers.do_authn_request')
-    @patch('eduid_common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.webapp.oidc_proofing.helpers.do_authn_request')
+    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     def test_freja_flow_expired_state(self, mock_request_user_sync, mock_get_postal_address, mock_oidc_call):
         mock_oidc_call.return_value = True
         mock_get_postal_address.return_value = self.mock_address
@@ -539,8 +539,8 @@ class OidcProofingTests(EduidAPITestCase):
         with self.assertRaises(DocumentDoesNotExist):
             self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
 
-    @patch('eduid_webapp.oidc_proofing.helpers.do_authn_request')
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.webapp.oidc_proofing.helpers.do_authn_request')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     def test_seleg_locked_identity(self, mock_request_user_sync, mock_oidc_call):
         mock_oidc_call.return_value = True
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -580,8 +580,8 @@ class OidcProofingTests(EduidAPITestCase):
             response = json.loads(response.data)
         self.assertEqual(response['type'], 'POST_OIDC_PROOFING_PROOFING_FAIL')
 
-    @patch('eduid_webapp.oidc_proofing.helpers.do_authn_request')
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.webapp.oidc_proofing.helpers.do_authn_request')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     def test_freja_locked_identity(self, mock_request_user_sync, mock_oidc_call):
         mock_oidc_call.return_value = True
         mock_request_user_sync.side_effect = self.request_user_sync

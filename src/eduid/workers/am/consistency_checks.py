@@ -6,9 +6,9 @@ from typing import Dict
 from bson import ObjectId
 from celery.utils.log import get_task_logger
 
-from eduid_userdb.exceptions import DocumentDoesNotExist, LockedIdentityViolation, UserDBValueError
-from eduid_userdb.locked_identity import LockedIdentityList, LockedIdentityNin
-from eduid_userdb.userdb import UserDB
+from eduid.userdb.exceptions import DocumentDoesNotExist, LockedIdentityViolation, UserDBValueError
+from eduid.userdb.locked_identity import LockedIdentityList, LockedIdentityNin
+from eduid.userdb.userdb import UserDB
 
 __author__ = 'lundberg'
 
@@ -26,7 +26,7 @@ def unverify_duplicates(userdb, user_id, attributes):
     :param user_id: User document _id
     :param attributes: attributes to update
 
-    :type userdb: eduid_userdb.userdb.UserDB
+    :type userdb: eduid.userdb.userdb.UserDB
     :type user_id: bson.ObjectId
     :type attributes: dict
 
@@ -49,7 +49,7 @@ def unverify_mail_aliases(userdb, user_id, mail_aliases):
     :param mail_aliases: sub dict of attributes
 
 
-    :type userdb: eduid_userdb.userdb.UserDB
+    :type userdb: eduid.userdb.userdb.UserDB
     :type user_id: bson.ObjectId
     :type mail_aliases: dict
 
@@ -90,7 +90,7 @@ def unverify_phones(userdb, user_id, phones):
     :param user_id: User document _id
     :param phones: sub dict of attributes
 
-    :type userdb: eduid_userdb.userdb.UserDB
+    :type userdb: eduid.userdb.userdb.UserDB
     :type user_id: bson.ObjectId
     :type phones: dict
 
@@ -131,7 +131,7 @@ def unverify_nins(userdb, user_id, nins):
     :param user_id: User document _id
     :param nins: sub dict of attributes
 
-    :type userdb: eduid_userdb.userdb.UserDB
+    :type userdb: eduid.userdb.userdb.UserDB
     :type user_id: bson.ObjectId
     :type nins: dict
 

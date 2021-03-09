@@ -13,12 +13,12 @@ from saml2.response import SAMLError
 from saml2.saml import AuthnContextClassRef
 from saml2.samlp import RequestedAuthnContext
 
-from eduid_common.api.messages import TranslatableMsg
-from eduid_common.authn.cache import IdentityCache, OutstandingQueriesCache
-from eduid_common.authn.eduid_saml2 import BadSAMLResponse, get_authn_ctx
-from eduid_common.session import session
+from eduid.common.api.messages import TranslatableMsg
+from eduid.common.authn.cache import IdentityCache, OutstandingQueriesCache
+from eduid.common.authn.eduid_saml2 import BadSAMLResponse, get_authn_ctx
+from eduid.common.session import session
 
-from eduid_webapp.eidas.app import current_eidas_app as current_app
+from eduid.webapp.eidas.app import current_eidas_app as current_app
 
 __author__ = 'lundberg'
 

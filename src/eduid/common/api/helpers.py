@@ -5,14 +5,14 @@ from typing import List, Optional, Type, Union
 
 from flask import current_app, render_template, request
 
-from eduid_userdb.logs.element import ProofingLogElement
-from eduid_userdb.nin import Nin
-from eduid_userdb.proofing import ProofingUser
-from eduid_userdb.proofing.state import NinProofingState
-from eduid_userdb.user import User
+from eduid.userdb.logs.element import ProofingLogElement
+from eduid.userdb.nin import Nin
+from eduid.userdb.proofing import ProofingUser
+from eduid.userdb.proofing.state import NinProofingState
+from eduid.userdb.user import User
 
-from eduid_common.api.app import EduIDBaseApp
-from eduid_common.config.base import MagicCookieMixin
+from eduid.common.api.app import EduIDBaseApp
+from eduid.common.config.base import MagicCookieMixin
 
 __author__ = 'lundberg'
 
@@ -22,11 +22,11 @@ def set_user_names_from_offical_address(proofing_user, proofing_log_entry):
     :param proofing_user: Proofing app private userdb user
     :param proofing_log_entry: Proofing log entry element
 
-    :type proofing_user: eduid_userdb.proofing.ProofingUser
-    :type proofing_log_entry: eduid_userdb.log.element.NinProofingLogElement
+    :type proofing_user: eduid.userdb.proofing.ProofingUser
+    :type proofing_log_entry: eduid.userdb.log.element.NinProofingLogElement
 
     :returns: User object
-    :rtype: eduid_userdb.proofing.ProofingUser
+    :rtype: eduid.userdb.proofing.ProofingUser
     """
     navet_data = proofing_log_entry.user_postal_address
     name = navet_data['Name']
@@ -59,8 +59,8 @@ def number_match_proofing(user, proofing_state, number):
     :param proofing_state: Proofing state for user
     :param number: National identityt number
 
-    :type user: eduid_userdb.user.User
-    :type proofing_state: eduid_userdb.proofing.OidcProofingState
+    :type user: eduid.userdb.user.User
+    :type proofing_state: eduid.userdb.proofing.OidcProofingState
     :type number: six.string_types
 
     :return: True|False

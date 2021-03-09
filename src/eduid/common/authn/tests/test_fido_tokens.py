@@ -38,15 +38,15 @@ from typing import Any, Dict, Mapping
 from flask import Blueprint, current_app, request
 from mock import patch
 
-from eduid_userdb import User
-from eduid_userdb.fixtures.fido_credentials import u2f_credential, webauthn_credential
-from eduid_userdb.fixtures.users import new_user_example
+from eduid.userdb import User
+from eduid.userdb.fixtures.fido_credentials import u2f_credential, webauthn_credential
+from eduid.userdb.fixtures.users import new_user_example
 
-from eduid_common.api.app import EduIDBaseApp
-from eduid_common.api.testing import EduidAPITestCase
-from eduid_common.authn.fido_tokens import VerificationProblem, start_token_verification, verify_webauthn
-from eduid_common.config.base import EduIDBaseAppConfig, WebauthnConfigMixin2
-from eduid_common.config.parsers import load_config
+from eduid.common.api.app import EduIDBaseApp
+from eduid.common.api.testing import EduidAPITestCase
+from eduid.common.authn.fido_tokens import VerificationProblem, start_token_verification, verify_webauthn
+from eduid.common.config.base import EduIDBaseAppConfig, WebauthnConfigMixin2
+from eduid.common.config.parsers import load_config
 
 
 class MockFidoConfig(EduIDBaseAppConfig, WebauthnConfigMixin2):

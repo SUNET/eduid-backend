@@ -29,8 +29,8 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from eduid_userdb.signup import SignupUser
-from eduid_userdb.userdb import UserDB
+from eduid.userdb.signup import SignupUser
+from eduid.userdb.userdb import UserDB
 
 __author__ = 'ft'
 

@@ -35,7 +35,7 @@ from typing import Sequence
 
 import redis
 
-from eduid_userdb.testing import EduidTemporaryInstance
+from eduid.userdb.testing import EduidTemporaryInstance
 
 logger = logging.getLogger(__name__)
 

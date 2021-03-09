@@ -32,7 +32,7 @@
 #
 from datetime import datetime
 
-from eduid_userdb.nin import Nin
+from eduid.userdb.nin import Nin
 
 dashboard_primary_nin = Nin.from_dict(
     {

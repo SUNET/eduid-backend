@@ -28,7 +28,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from eduid_queue.db.message.db import MessageDB
-from eduid_queue.db.message.payload import EduidInviteEmail
+from eduid.queue.db.message.db import MessageDB
+from eduid.queue.db.message.payload import EduidInviteEmail
 
 __author__ = 'lundberg'

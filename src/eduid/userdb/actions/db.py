@@ -37,9 +37,9 @@ from bson.errors import InvalidId
 from pymongo.cursor import Cursor
 from pymongo.results import DeleteResult
 
-from eduid_userdb.actions import Action
-from eduid_userdb.db import BaseDB
-from eduid_userdb.exceptions import ActionDBError
+from eduid.userdb.actions import Action
+from eduid.userdb.db import BaseDB
+from eduid.userdb.exceptions import ActionDBError
 
 logger = logging.getLogger(__name__)
 
@@ -143,7 +143,7 @@ class ActionDB(BaseDB):
         :type eppn_or_userid: str
         :type session: str
 
-        :rtype: eduid_userdb.actions:Action or None
+        :rtype: eduid.userdb.actions:Action or None
         """
         filter_ = {'result': None}
         actions = self._read_actions_from_db(eppn_or_userid, session, filter_)

@@ -2,15 +2,15 @@ from __future__ import absolute_import
 
 from bson import ObjectId
 
-import eduid_userdb
-from eduid_common.config.base import FlaskConfig
-from eduid_common.config.workers import AmConfig
-from eduid_userdb.exceptions import EduIDUserDBError, MultipleUsersReturned, UserDoesNotExist
-from eduid_userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
-from eduid_userdb.locked_identity import LockedIdentityList, LockedIdentityNin
+import eduid.userdb
+from eduid.common.config.base import FlaskConfig
+from eduid.common.config.workers import AmConfig
+from eduid.userdb.exceptions import EduIDUserDBError, MultipleUsersReturned, UserDoesNotExist
+from eduid.userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
+from eduid.userdb.locked_identity import LockedIdentityList, LockedIdentityNin
 
-from eduid_am.consistency_checks import check_locked_identity, unverify_duplicates
-from eduid_am.testing import AMTestCase
+from eduid.workers.am.consistency_checks import check_locked_identity, unverify_duplicates
+from eduid.workers.am.testing import AMTestCase
 
 
 class TestTasks(AMTestCase):
@@ -45,7 +45,7 @@ class TestTasks(AMTestCase):
         user2_doc = user1.to_dict()
         user2_doc['_id'] = ObjectId()  # make up a new unique identifier
         del user2_doc['modified_ts']  # defeat sync-check mechanism
-        self.amdb.save(eduid_userdb.User.from_dict(user2_doc))
+        self.amdb.save(eduid.userdb.User.from_dict(user2_doc))
         with self.assertRaises(MultipleUsersReturned):
             self.amdb.get_user_by_mail(mocked_user_standard.mail_addresses.primary.email)
 

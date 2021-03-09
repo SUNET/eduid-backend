@@ -8,7 +8,7 @@ from uuid import UUID
 from marshmallow import ValidationError, validate, validates_schema
 from marshmallow_dataclass import class_schema
 
-from eduid_scimapi.schemas.scimbase import (
+from eduid.scimapi.schemas.scimbase import (
     BaseCreateRequest,
     BaseResponse,
     BaseSchema,
@@ -19,7 +19,7 @@ from eduid_scimapi.schemas.scimbase import (
     PhoneNumber,
     SCIMSchema,
 )
-from eduid_scimapi.schemas.user import NutidUserExtensionV1
+from eduid.scimapi.schemas.user import NutidUserExtensionV1
 
 __author__ = 'lundberg'
 

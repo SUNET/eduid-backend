@@ -1,6 +1,6 @@
 __author__ = 'mathiashedstrom'
 
-from eduid_lookup_mobile.development import nin_mobile_db
+from eduid.workers.lookup_mobile.development import nin_mobile_db
 
 
 class DevelopResult(object):

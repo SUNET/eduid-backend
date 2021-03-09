@@ -31,7 +31,7 @@
 #
 
 
-from eduid_webapp.oidc_proofing.app import init_oidc_proofing_app
+from eduid.webapp.oidc_proofing.app import init_oidc_proofing_app
 
 name = 'oidc_proofing'
 app = init_oidc_proofing_app(name, {})

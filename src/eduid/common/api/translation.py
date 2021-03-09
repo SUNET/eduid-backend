@@ -4,8 +4,8 @@ import pkg_resources
 from flask import request
 from flask_babel import Babel
 
-from eduid_common.api.app import EduIDBaseApp
-from eduid_common.session import session
+from eduid.common.api.app import EduIDBaseApp
+from eduid.common.session import session
 
 __author__ = 'lundberg'
 
@@ -16,7 +16,7 @@ def init_babel(app: EduIDBaseApp) -> None:
     """
     conf_translations_dirs = app.config.get('BABEL_TRANSLATION_DIRECTORIES', '')
     # Add pkg_resource path to translation directory as the default location does not work
-    pkg_translations_dir = pkg_resources.resource_filename('eduid_webapp', 'translations')
+    pkg_translations_dir = pkg_resources.resource_filename('eduid.webapp', 'translations')
     app.config['BABEL_TRANSLATION_DIRECTORIES'] = f'{conf_translations_dirs};{pkg_translations_dir}'
     app.babel = Babel(app)
     app.logger.info('Translation directories: {}'.format([path for path in app.babel.translation_directories]))

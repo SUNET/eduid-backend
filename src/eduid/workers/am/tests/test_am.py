@@ -5,18 +5,18 @@ from typing import Any, Dict
 
 from bson import ObjectId
 
-import eduid_userdb
-from eduid_common.config.workers import AmConfig
-from eduid_userdb.exceptions import UserDoesNotExist
+import eduid.userdb
+from eduid.common.config.workers import AmConfig
+from eduid.userdb.exceptions import UserDoesNotExist
 
-from eduid_am.ams.common import AttributeFetcher
-from eduid_am.testing import AMTestCase
+from eduid.workers.am.ams.common import AttributeFetcher
+from eduid.workers.am.testing import AMTestCase
 
 __author__ = 'leifj'
 
 
 @dataclass
-class AmTestUser(eduid_userdb.User):
+class AmTestUser(eduid.userdb.User):
     """
     User class for the 'test' plugin below.
     """
@@ -24,7 +24,7 @@ class AmTestUser(eduid_userdb.User):
     uid: str = ''
 
 
-class AmTestUserDb(eduid_userdb.UserDB):
+class AmTestUserDb(eduid.userdb.UserDB):
     """
     UserDB for the 'test' plugin below.
     """
@@ -97,7 +97,7 @@ class MessageTest(AMTestCase):
         calling the plugin (above) which is registered with the am in the test setup below.
         """
         _id = ObjectId()
-        with self.assertRaises(eduid_userdb.exceptions.UserDoesNotExist):
+        with self.assertRaises(eduid.userdb.exceptions.UserDoesNotExist):
             self.amdb.get_user_by_id(_id)
 
         userdoc = {
@@ -107,14 +107,14 @@ class MessageTest(AMTestCase):
             'passwords': [{'id': ObjectId('112345678901234567890123'), 'salt': '$NDNv1H1$9c81...545$32$32$',}],
         }
         test_user = AmTestUser.from_dict(userdoc)
-        # Save the user in the eduid_am_test database
+        # Save the user in the eduid.workers.am_test database
         self.private_db.save(test_user)
 
-        # It is important to not import eduid_am.tasks before the Celery config has been
+        # It is important to not import eduid.workers.am.tasks before the Celery config has been
         # set up (done in MongoTestCase.setUp()). Since Celery uses decorators, it will
         # have instantiated AttributeManagers without the right config if the import is
         # done prior to the Celery app configuration.
-        from eduid_am.tasks import update_attributes
+        from eduid.workers.am.tasks import update_attributes
 
         update_attributes.delay(app_name='test', user_id=str(_id))
 
@@ -142,17 +142,17 @@ class MessageTest(AMTestCase):
         # Save the user in the central database
         user_dict = test_user.to_dict()
         del user_dict['uid']
-        central_user = eduid_userdb.User.from_dict(user_dict)
+        central_user = eduid.userdb.User.from_dict(user_dict)
         self.amdb.save(central_user, check_sync=False)
 
         am_user = self.amdb.get_user_by_id(_id)
         self.assertNotEqual(am_user.eppn, 'teste-teste')
 
-        # It is important to not import eduid_am.tasks before the Celery config has been
+        # It is important to not import eduid.workers.am.tasks before the Celery config has been
         # set up (done in MongoTestCase.setUp()). Since Celery uses decorators, it will
         # have instantiated AttributeManagers without the right config if the import is
         # done prior to the Celery app configuration.
-        from eduid_am.tasks import update_attributes
+        from eduid.workers.am.tasks import update_attributes
 
         update_attributes.delay(app_name='test', user_id=str(_id))
 
@@ -175,17 +175,17 @@ class MessageTest(AMTestCase):
         # Save the user in the central database
         user_dict = test_user.to_dict()
         del user_dict['uid']
-        central_user = eduid_userdb.User.from_dict(user_dict)
+        central_user = eduid.userdb.User.from_dict(user_dict)
         self.amdb.save(central_user, check_sync=False)
 
         am_user = self.amdb.get_user_by_id(_id)
         self.assertNotEqual(am_user.eppn, 'teste-teste')
 
-        # It is important to not import eduid_am.tasks before the Celery config has been
+        # It is important to not import eduid.workers.am.tasks before the Celery config has been
         # set up (done in MongoTestCase.setUp()). Since Celery uses decorators, it will
         # have instantiated AttributeManagers without the right config if the import is
         # done prior to the Celery app configuration.
-        from eduid_am.tasks import update_attributes
+        from eduid.workers.am.tasks import update_attributes
 
-        with self.assertRaises(eduid_userdb.exceptions.EduIDDBError):
+        with self.assertRaises(eduid.userdb.exceptions.EduIDDBError):
             update_attributes.delay(app_name='bad', user_id=str(_id))

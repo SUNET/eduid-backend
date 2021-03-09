@@ -39,7 +39,7 @@ For more information on these structures, see werkzeug.datastructures.
 To use this request, assign it to the `request_class` attribute
 of the Flask application::
 
-    >>> from eduid_common.api.request import Request
+    >>> from eduid.common.api.request import Request
     >>> from flask import Flask
     >>> app = Flask('name')
     >>> app.request_class =  Request
@@ -51,7 +51,7 @@ from werkzeug._compat import iteritems, itervalues
 from werkzeug.datastructures import EnvironHeaders, ImmutableMultiDict, ImmutableTypeConversionDict
 from werkzeug.utils import cached_property
 
-from eduid_common.api.sanitation import SanitationProblem, Sanitizer
+from eduid.common.api.sanitation import SanitationProblem, Sanitizer
 
 
 class SanitationMixin(Sanitizer):
@@ -264,7 +264,7 @@ class Request(BaseRequest, SanitationMixin):
     def headers(self):
         """
         The headers from the WSGI environ as immutable and sanitized
-        :class:`~eduid_common.api.request.SanitizedEnvironHeaders`.
+        :class:`~eduid.common.api.request.SanitizedEnvironHeaders`.
         """
         return SanitizedEnvironHeaders(self.environ)
 

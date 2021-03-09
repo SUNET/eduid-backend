@@ -9,8 +9,8 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple, Type
 
 from bson import ObjectId
 
-from eduid_scimapi.db.basedb import ScimApiBaseDB
-from eduid_scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile, ScimApiResourceBase
+from eduid.scimapi.db.basedb import ScimApiBaseDB
+from eduid.scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile, ScimApiResourceBase
 
 __author__ = 'ft'
 

@@ -34,7 +34,7 @@ from datetime import datetime
 
 from bson import ObjectId
 
-from eduid_userdb.credentials import Password
+from eduid.userdb.credentials import Password
 
 signup_password = Password.from_dict(
     {

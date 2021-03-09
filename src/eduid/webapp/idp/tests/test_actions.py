@@ -41,19 +41,19 @@ import bson
 import pkg_resources
 from mock import patch
 
-from eduid_common.misc.timeutil import utc_now
-from eduid_common.session.logindata import SSOLoginData
-from eduid_userdb.credentials import U2F, Webauthn
-from eduid_userdb.idp import IdPUser
-from eduid_userdb.tou import ToUEvent
+from eduid.common.misc.timeutil import utc_now
+from eduid.common.session.logindata import SSOLoginData
+from eduid.userdb.credentials import U2F, Webauthn
+from eduid.userdb.idp import IdPUser
+from eduid.userdb.tou import ToUEvent
 from vccs_client import VCCSClient
 
-from eduid_webapp.idp.mfa_action import RESULT_CREDENTIAL_KEY_NAME
-from eduid_webapp.idp.mfa_action import add_actions as mfa_add_actions
-from eduid_webapp.idp.tests.test_app import LoginState
-from eduid_webapp.idp.tests.test_SSO import SWAMID_AL2, SSOIdPTests
-from eduid_webapp.idp.tests.test_SSO import cc as CONTEXTCLASSREFS
-from eduid_webapp.idp.tou_action import add_actions as tou_add_actions
+from eduid.webapp.idp.mfa_action import RESULT_CREDENTIAL_KEY_NAME
+from eduid.webapp.idp.mfa_action import add_actions as mfa_add_actions
+from eduid.webapp.idp.tests.test_app import LoginState
+from eduid.webapp.idp.tests.test_SSO import SWAMID_AL2, SSOIdPTests
+from eduid.webapp.idp.tests.test_SSO import cc as CONTEXTCLASSREFS
+from eduid.webapp.idp.tou_action import add_actions as tou_add_actions
 
 logger = logging.getLogger(__name__)
 

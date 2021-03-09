@@ -38,14 +38,14 @@ from typing import Any, Mapping, Optional
 from bson import ObjectId
 from mock import MagicMock
 
-from eduid_common.api.testing import EduidAPITestCase
-from eduid_common.session import session
-from eduid_userdb.fixtures.users import mocked_user_standard
-from eduid_userdb.userdb import User
+from eduid.common.api.testing import EduidAPITestCase
+from eduid.common.session import session
+from eduid.userdb.fixtures.users import mocked_user_standard
+from eduid.userdb.userdb import User
 
-from eduid_webapp.actions.action_abc import ActionPlugin
-from eduid_webapp.actions.app import ActionsApp, actions_init_app
-from eduid_webapp.actions.helpers import ActionsMsg
+from eduid.webapp.actions.action_abc import ActionPlugin
+from eduid.webapp.actions.app import ActionsApp, actions_init_app
+from eduid.webapp.actions.helpers import ActionsMsg
 
 
 class MockIdPContext:

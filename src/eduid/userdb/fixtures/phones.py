@@ -32,7 +32,7 @@
 #
 from datetime import datetime
 
-from eduid_userdb.phone import PhoneNumber
+from eduid.userdb.phone import PhoneNumber
 
 dashboard_primary_phone = PhoneNumber.from_dict(
     {

@@ -4,10 +4,10 @@ from typing import Any, Dict, List
 
 from flask import abort
 
-from eduid_common.api.utils import get_user
-from eduid_userdb import User
+from eduid.common.api.utils import get_user
+from eduid.userdb import User
 
-from eduid_webapp.support.app import current_support_app as current_app
+from eduid.webapp.support.app import current_support_app as current_app
 
 __author__ = 'lundberg'
 
@@ -15,7 +15,7 @@ __author__ = 'lundberg'
 def get_credentials_aux_data(user: User) -> List[Dict[str, Any]]:
     """
     :param user: User object
-    :type user: eduid_userdb.user.User
+    :type user: eduid.userdb.user.User
     :return: Augmented credentials list
     :rtype: list
     """

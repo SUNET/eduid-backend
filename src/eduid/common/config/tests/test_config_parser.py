@@ -3,12 +3,12 @@
 import os
 import unittest
 
-from eduid_common.config.parsers import _choose_parser
-from eduid_common.config.parsers.etcd import EtcdConfigParser
+from eduid.common.config.parsers import _choose_parser
+from eduid.common.config.parsers.etcd import EtcdConfigParser
 
 __author__ = 'lundberg'
 
-from eduid_common.config.parsers.yaml_parser import YamlConfigParser
+from eduid.common.config.parsers.yaml_parser import YamlConfigParser
 
 
 class TestInitConfig(unittest.TestCase):

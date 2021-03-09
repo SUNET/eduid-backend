@@ -3,13 +3,13 @@ import re
 from falcon import Request, Response
 from jose import ExpiredSignatureError, jwt
 
-from eduid_scimapi.context import Context
-from eduid_scimapi.db.eventdb import ScimApiEventDB
-from eduid_scimapi.db.groupdb import ScimApiGroupDB
-from eduid_scimapi.db.invitedb import ScimApiInviteDB
-from eduid_scimapi.db.userdb import ScimApiUserDB
-from eduid_scimapi.exceptions import Unauthorized, UnsupportedMediaTypeMalformed
-from eduid_scimapi.resources.base import BaseResource
+from eduid.scimapi.context import Context
+from eduid.scimapi.db.eventdb import ScimApiEventDB
+from eduid.scimapi.db.groupdb import ScimApiGroupDB
+from eduid.scimapi.db.invitedb import ScimApiInviteDB
+from eduid.scimapi.db.userdb import ScimApiUserDB
+from eduid.scimapi.exceptions import Unauthorized, UnsupportedMediaTypeMalformed
+from eduid.scimapi.resources.base import BaseResource
 
 
 class HandleSCIM(object):

@@ -41,14 +41,14 @@ from bson import ObjectId
 from flask import render_template
 from flask_babel import gettext as _
 
-from eduid_common.config.base import EduidEnvironment
-from eduid_userdb import MailAddress
-from eduid_userdb.logs import MailAddressProofing
-from eduid_userdb.proofing import EmailProofingElement
-from eduid_userdb.signup import SignupUser
+from eduid.common.config.base import EduidEnvironment
+from eduid.userdb import MailAddress
+from eduid.userdb.logs import MailAddressProofing
+from eduid.userdb.proofing import EmailProofingElement
+from eduid.userdb.signup import SignupUser
 
-from eduid_webapp.signup.app import current_signup_app as current_app
-from eduid_webapp.signup.helpers import generate_eppn
+from eduid.webapp.signup.app import current_signup_app as current_app
+from eduid.webapp.signup.helpers import generate_eppn
 
 
 def verify_recaptcha(secret_key: str, captcha_response: str, user_ip: str, retries: int = 3) -> bool:

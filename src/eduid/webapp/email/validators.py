@@ -33,9 +33,9 @@
 
 from marshmallow import ValidationError
 
-from eduid_common.api.utils import get_user
+from eduid.common.api.utils import get_user
 
-from eduid_webapp.email.helpers import EmailMsg
+from eduid.webapp.email.helpers import EmailMsg
 
 
 def email_exists(email):

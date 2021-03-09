@@ -1,4 +1,4 @@
-from eduid_common.session.meta import SessionMeta
+from eduid.common.session.meta import SessionMeta
 
 
 class TestSessionCookie:

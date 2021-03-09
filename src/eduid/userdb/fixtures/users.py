@@ -34,9 +34,9 @@ from datetime import datetime
 
 from bson import ObjectId
 
-from eduid_userdb import Orcid
-from eduid_userdb.credentials import CredentialList
-from eduid_userdb.fixtures.email_addresses import (
+from eduid.userdb import Orcid
+from eduid.userdb.credentials import CredentialList
+from eduid.userdb.fixtures.email_addresses import (
     johnsmith2_example_com,
     johnsmith2_example_com_old,
     johnsmith2_example_org,
@@ -46,27 +46,27 @@ from eduid_userdb.fixtures.email_addresses import (
     johnsmith_example_com_old,
     johnsmith_example_org,
 )
-from eduid_userdb.fixtures.locked_identities import dashboard_locked_nin
-from eduid_userdb.fixtures.nins import dashboard_primary_nin, dashboard_verified_nin
-from eduid_userdb.fixtures.orcid import dashboard_orcid
-from eduid_userdb.fixtures.passwords import old_password, signup_password, signup_password_2
-from eduid_userdb.fixtures.pending_emails import johnsmith2_example_com_pending
-from eduid_userdb.fixtures.phones import (
+from eduid.userdb.fixtures.locked_identities import dashboard_locked_nin
+from eduid.userdb.fixtures.nins import dashboard_primary_nin, dashboard_verified_nin
+from eduid.userdb.fixtures.orcid import dashboard_orcid
+from eduid.userdb.fixtures.passwords import old_password, signup_password, signup_password_2
+from eduid.userdb.fixtures.pending_emails import johnsmith2_example_com_pending
+from eduid.userdb.fixtures.phones import (
     dashboard_primary_phone,
     dashboard_unverified_phone,
     dashboard_verified_phone,
     old_primary_phone,
     old_unverified_phone,
 )
-from eduid_userdb.fixtures.postal_addresses import old_postal_addresses
-from eduid_userdb.fixtures.tous import signup_2016_v1
-from eduid_userdb.locked_identity import LockedIdentityList
-from eduid_userdb.mail import MailAddressList
-from eduid_userdb.nin import NinList
-from eduid_userdb.phone import PhoneNumberList
-from eduid_userdb.signup.user import SignupUser
-from eduid_userdb.tou import ToUList
-from eduid_userdb.user import SubjectType, User
+from eduid.userdb.fixtures.postal_addresses import old_postal_addresses
+from eduid.userdb.fixtures.tous import signup_2016_v1
+from eduid.userdb.locked_identity import LockedIdentityList
+from eduid.userdb.mail import MailAddressList
+from eduid.userdb.nin import NinList
+from eduid.userdb.phone import PhoneNumberList
+from eduid.userdb.signup.user import SignupUser
+from eduid.userdb.tou import ToUList
+from eduid.userdb.user import SubjectType, User
 
 mocked_user_standard = User(
     eppn='hubba-bubba',

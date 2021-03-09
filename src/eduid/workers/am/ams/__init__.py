@@ -10,9 +10,9 @@ from typing import List
 
 from celery.utils.log import get_task_logger
 
-from eduid_userdb.actions.tou import ToUUserDB
-from eduid_userdb.personal_data import PersonalDataUserDB
-from eduid_userdb.proofing import (
+from eduid.userdb.actions.tou import ToUUserDB
+from eduid.userdb.personal_data import PersonalDataUserDB
+from eduid.userdb.proofing import (
     EidasProofingUserDB,
     EmailProofingUserDB,
     LetterProofingUserDB,
@@ -21,11 +21,11 @@ from eduid_userdb.proofing import (
     OrcidProofingUserDB,
     PhoneProofingUserDB,
 )
-from eduid_userdb.reset_password import ResetPasswordUserDB
-from eduid_userdb.security import SecurityUserDB
-from eduid_userdb.signup import SignupUserDB
+from eduid.userdb.reset_password import ResetPasswordUserDB
+from eduid.userdb.security import SecurityUserDB
+from eduid.userdb.signup import SignupUserDB
 
-from eduid_am.ams.common import AttributeFetcher
+from eduid.workers.am.ams.common import AttributeFetcher
 
 logger = get_task_logger(__name__)
 

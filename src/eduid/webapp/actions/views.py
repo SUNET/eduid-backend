@@ -38,16 +38,16 @@ import json
 from flask import Blueprint, abort, redirect, render_template, request, url_for
 from six.moves.urllib_parse import urlsplit, urlunsplit
 
-from eduid_common.api.decorators import MarshalWith, UnmarshalWith
-from eduid_common.api.messages import CommonMsg, error_response, success_response
-from eduid_common.api.schemas.base import FluxStandardAction
-from eduid_common.authn.utils import check_previous_identification
-from eduid_common.session import session
-from eduid_userdb.actions import Action
+from eduid.common.api.decorators import MarshalWith, UnmarshalWith
+from eduid.common.api.messages import CommonMsg, error_response, success_response
+from eduid.common.api.schemas.base import FluxStandardAction
+from eduid.common.authn.utils import check_previous_identification
+from eduid.common.session import session
+from eduid.userdb.actions import Action
 
-from eduid_webapp.actions.app import current_actions_app as current_app
-from eduid_webapp.actions.helpers import ActionsMsg, get_next_action
-from eduid_webapp.actions.schemas import PostActionRequestSchema, PostActionResponseSchema
+from eduid.webapp.actions.app import current_actions_app as current_app
+from eduid.webapp.actions.helpers import ActionsMsg, get_next_action
+from eduid.webapp.actions.schemas import PostActionRequestSchema, PostActionResponseSchema
 
 actions_views = Blueprint('actions', __name__, url_prefix='', template_folder='templates')
 

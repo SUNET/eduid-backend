@@ -4,8 +4,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, Type
 
-from eduid_userdb.element import Element, ElementList
-from eduid_userdb.exceptions import EduIDUserDBError
+from eduid.userdb.element import Element, ElementList
+from eduid.userdb.exceptions import EduIDUserDBError
 
 __author__ = 'lundberg'
 

@@ -12,7 +12,7 @@ from saml2.samlp import RequestedAuthnContext
 from saml2.sigver import verify_redirect_signature
 from werkzeug.exceptions import HTTPException
 
-from eduid_webapp.idp.mischttp import HttpArgs
+from eduid.webapp.idp.mischttp import HttpArgs
 
 ResponseArgs = NewType('ResponseArgs', Dict[str, Any])
 
@@ -86,7 +86,7 @@ class IdP_SAMLRequest(object):
         # Only perform expensive parse/pretty-print if debugging
         if debug:
             # Local import to avoid circular imports
-            from eduid_webapp.idp.util import maybe_xml_to_string
+            from eduid.webapp.idp.util import maybe_xml_to_string
 
             xmlstr = maybe_xml_to_string(self._req_info.xmlstr)
             module_logger.debug(

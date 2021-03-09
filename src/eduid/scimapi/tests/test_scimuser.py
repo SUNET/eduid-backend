@@ -10,14 +10,14 @@ import bson
 from bson import ObjectId
 from falcon.testing import Result
 
-from eduid_userdb.testing import normalised_data
+from eduid.userdb.testing import normalised_data
 
-from eduid_scimapi.db.eventdb import EventStatus
-from eduid_scimapi.db.userdb import ScimApiProfile, ScimApiUser
-from eduid_scimapi.schemas.scimbase import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
-from eduid_scimapi.schemas.user import NutidUserExtensionV1, Profile, User, UserResponse, UserResponseSchema
-from eduid_scimapi.testing import ScimApiTestCase
-from eduid_scimapi.utils import filter_none, make_etag
+from eduid.scimapi.db.eventdb import EventStatus
+from eduid.scimapi.db.userdb import ScimApiProfile, ScimApiUser
+from eduid.scimapi.schemas.scimbase import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
+from eduid.scimapi.schemas.user import NutidUserExtensionV1, Profile, User, UserResponse, UserResponseSchema
+from eduid.scimapi.testing import ScimApiTestCase
+from eduid.scimapi.utils import filter_none, make_etag
 
 logger = logging.getLogger(__name__)
 

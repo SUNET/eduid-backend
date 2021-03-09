@@ -32,10 +32,10 @@ import logging
 from dataclasses import replace
 from typing import Optional
 
-from eduid_userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
-from eduid_userdb.signup import Invite, SCIMReference
-from eduid_userdb.signup.invite import InviteReference
-from eduid_userdb.userdb import BaseDB
+from eduid.userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
+from eduid.userdb.signup import Invite, SCIMReference
+from eduid.userdb.signup.invite import InviteReference
+from eduid.userdb.userdb import BaseDB
 
 __author__ = 'lundberg'
 

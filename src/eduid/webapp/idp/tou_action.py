@@ -34,11 +34,11 @@ __author__ = 'eperez'
 
 from typing import Optional
 
-from eduid_common.session.logindata import SSOLoginData
-from eduid_userdb.actions import Action
-from eduid_userdb.idp import IdPUser
+from eduid.common.session.logindata import SSOLoginData
+from eduid.userdb.actions import Action
+from eduid.userdb.idp import IdPUser
 
-from eduid_webapp.idp.app import current_idp_app as current_app
+from eduid.webapp.idp.app import current_idp_app as current_app
 
 
 def add_actions(user: IdPUser, ticket: SSOLoginData) -> Optional[Action]:

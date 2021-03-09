@@ -1,7 +1,7 @@
 import pkg_resources
 
-from eduid_common.config.workers import MsgConfig
-from eduid_userdb.testing import MongoTestCase
+from eduid.common.config.workers import MsgConfig
+from eduid.userdb.testing import MongoTestCase
 
 
 class MsgMongoTestCase(MongoTestCase):
@@ -28,10 +28,10 @@ class MsgMongoTestCase(MongoTestCase):
                 'message_rate_limit': 2,
             }
             self.msg_settings = MsgConfig(**settings)
-            # initialize eduid_msg without requiring config in etcd
-            import eduid_msg
+            # initialize eduid.workers.msg without requiring config in etcd
+            import eduid.workers.msg
 
-            self.msg = eduid_msg.init_app(self.msg_settings.celery)
-            import eduid_msg.worker
+            self.msg = eduid.workers.msg.init_app(self.msg_settings.celery)
+            import eduid.workers.msg.worker
 
-            eduid_msg.worker.worker_config = self.msg_settings
+            eduid.workers.msg.worker.worker_config = self.msg_settings

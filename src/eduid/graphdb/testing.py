@@ -9,8 +9,8 @@ from typing import Optional, Sequence
 
 from neo4j.exceptions import ServiceUnavailable
 
-from eduid_graphdb.db import Neo4jDB
-from eduid_userdb.testing import EduidTemporaryInstance
+from eduid.graphdb.db import Neo4jDB
+from eduid.userdb.testing import EduidTemporaryInstance
 
 __author__ = 'lundberg'
 

@@ -32,8 +32,8 @@
 #
 from marshmallow import fields
 
-from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
-from eduid_common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
+from eduid.common.api.schemas.base import EduidSchema, FluxStandardAction
+from eduid.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 
 
 class PostActionRequestSchema(EduidSchema, CSRFRequestMixin):

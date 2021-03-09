@@ -3,13 +3,13 @@ import asyncio
 from datetime import timedelta
 from os import environ
 
-from eduid_common.config.parsers import load_config
-from eduid_userdb.util import utc_now
+from eduid.common.config.parsers import load_config
+from eduid.userdb.util import utc_now
 
-from eduid_queue.config import QueueWorkerConfig
-from eduid_queue.db import QueueItem, TestPayload
-from eduid_queue.testing import QueueAsyncioTest
-from eduid_queue.workers.base import QueueWorker
+from eduid.queue.config import QueueWorkerConfig
+from eduid.queue.db import QueueItem, TestPayload
+from eduid.queue.testing import QueueAsyncioTest
+from eduid.queue.workers.base import QueueWorker
 
 __author__ = 'lundberg'
 

@@ -34,7 +34,7 @@ from datetime import datetime
 
 from bson import ObjectId
 
-from eduid_userdb.tou import ToUEvent
+from eduid.userdb.tou import ToUEvent
 
 signup_2016_v1 = ToUEvent.from_dict(
     {

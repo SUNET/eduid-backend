@@ -43,16 +43,16 @@ from bson import ObjectId
 from flask import abort
 from pwgen import pwgen
 
-from eduid_common.api.messages import CommonMsg, FluxData, TranslatableMsg, error_response, success_response
-from eduid_common.api.utils import save_and_sync_user
-from eduid_common.authn.vccs import add_password
-from eduid_common.misc.timeutil import utc_now
-from eduid_common.session import session
-from eduid_userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup, UserOutOfSync
-from eduid_userdb.signup import SignupUser
-from eduid_userdb.tou import ToUEvent
+from eduid.common.api.messages import CommonMsg, FluxData, TranslatableMsg, error_response, success_response
+from eduid.common.api.utils import save_and_sync_user
+from eduid.common.authn.vccs import add_password
+from eduid.common.misc.timeutil import utc_now
+from eduid.common.session import session
+from eduid.userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup, UserOutOfSync
+from eduid.userdb.signup import SignupUser
+from eduid.userdb.tou import ToUEvent
 
-from eduid_webapp.signup.app import current_signup_app as current_app
+from eduid.webapp.signup.app import current_signup_app as current_app
 
 
 @unique

@@ -2,7 +2,7 @@
 
 import unittest
 
-from eduid_webapp.orcid.helpers import OrcidMsg
+from eduid.webapp.orcid.helpers import OrcidMsg
 
 
 class MessagesTests(unittest.TestCase):

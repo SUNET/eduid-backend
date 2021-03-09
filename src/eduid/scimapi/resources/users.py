@@ -6,13 +6,13 @@ from falcon import HTTP_201, Request, Response
 from marshmallow import ValidationError
 from pymongo.errors import DuplicateKeyError
 
-from eduid_scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber
-from eduid_scimapi.db.eventdb import EventLevel, EventStatus, add_api_event
-from eduid_scimapi.db.userdb import ScimApiProfile, ScimApiUser
-from eduid_scimapi.exceptions import BadRequest, NotFound
-from eduid_scimapi.middleware import ctx_groupdb, ctx_userdb
-from eduid_scimapi.resources.base import BaseResource, SCIMResource
-from eduid_scimapi.schemas.scimbase import (
+from eduid.scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber
+from eduid.scimapi.db.eventdb import EventLevel, EventStatus, add_api_event
+from eduid.scimapi.db.userdb import ScimApiProfile, ScimApiUser
+from eduid.scimapi.exceptions import BadRequest, NotFound
+from eduid.scimapi.middleware import ctx_groupdb, ctx_userdb
+from eduid.scimapi.resources.base import BaseResource, SCIMResource
+from eduid.scimapi.schemas.scimbase import (
     Email,
     ListResponse,
     ListResponseSchema,
@@ -24,7 +24,7 @@ from eduid_scimapi.schemas.scimbase import (
     SearchRequest,
     SearchRequestSchema,
 )
-from eduid_scimapi.schemas.user import (
+from eduid.scimapi.schemas.user import (
     Group,
     NutidUserExtensionV1,
     Profile,
@@ -35,8 +35,8 @@ from eduid_scimapi.schemas.user import (
     UserUpdateRequest,
     UserUpdateRequestSchema,
 )
-from eduid_scimapi.search import SearchFilter, parse_search_filter
-from eduid_scimapi.utils import make_etag
+from eduid.scimapi.search import SearchFilter, parse_search_filter
+from eduid.scimapi.utils import make_etag
 
 
 class UsersResource(SCIMResource):

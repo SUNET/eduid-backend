@@ -1,4 +1,4 @@
-from eduid_common.config.base import AmConfigMixin, EduIDBaseAppConfig
+from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig
 
 
 class PersonalDataConfig(EduIDBaseAppConfig, AmConfigMixin):

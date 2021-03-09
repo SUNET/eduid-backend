@@ -40,13 +40,13 @@ from bson import ObjectId
 from fido2.server import Fido2Server
 from mock import patch
 
-from eduid_common.session import session
-from eduid_userdb.credentials import U2F
-from eduid_userdb.fixtures.users import mocked_user_standard
+from eduid.common.session import session
+from eduid.userdb.credentials import U2F
+from eduid.userdb.fixtures.users import mocked_user_standard
 
-from eduid_webapp.actions.actions.mfa import Plugin
-from eduid_webapp.actions.helpers import ActionsMsg
-from eduid_webapp.actions.testing import ActionsTestCase, MockIdPContext
+from eduid.webapp.actions.actions.mfa import Plugin
+from eduid.webapp.actions.helpers import ActionsMsg
+from eduid.webapp.actions.testing import ActionsTestCase, MockIdPContext
 
 __author__ = 'ft'
 
@@ -133,7 +133,7 @@ class MFAActionPluginTests(ActionsTestCase):
             response = self.app.dispatch_request()
             return json.loads(response.data)
 
-    @patch('eduid_common.authn.fido_tokens.complete_authentication')
+    @patch('eduid.common.authn.fido_tokens.complete_authentication')
     def _action(
         self,
         mock_complete_authn,
@@ -153,7 +153,7 @@ class MFAActionPluginTests(ActionsTestCase):
             self.prepare(client, Plugin, 'mfa', action_dict=MFA_ACTION)
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
-                    sess['eduid_webapp.actions.actions.mfa.webauthn.state'] = fido2_state
+                    sess['eduid.webapp.actions.actions.mfa.webauthn.state'] = fido2_state
                     csrf_token = sess.get_csrf_token()
                 data = {
                     'csrf_token': csrf_token,
@@ -248,7 +248,7 @@ class MFAActionPluginTests(ActionsTestCase):
             response, type_='POST_ACTIONS_POST_ACTION_FAIL', error={'csrf_token': ['CSRF failed to validate'],},
         )
 
-    @patch('eduid_common.authn.fido_tokens.complete_authentication')
+    @patch('eduid.common.authn.fido_tokens.complete_authentication')
     def test_action_webauthn_legacy_token(self, mock_complete_authn):
         # mock_complete_authn.return_value = ({'keyHandle': 'test_key_handle'},
         #        'dummy-touch', 'dummy-counter')

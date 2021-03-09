@@ -2,7 +2,7 @@
 
 import unittest
 
-from eduid_webapp.security.helpers import SecurityMsg
+from eduid.webapp.security.helpers import SecurityMsg
 
 
 class MessagesTests(unittest.TestCase):

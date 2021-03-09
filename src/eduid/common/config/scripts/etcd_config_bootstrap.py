@@ -5,7 +5,7 @@
 #
 # Upstream source of this file:
 #
-#   eduid-common/src/eduid_common/config/scripts/etcd_config_bootstrap.py
+#   eduid-common/src/eduid.common.config.scripts/etcd_config_bootstrap.py
 #
 
 import argparse

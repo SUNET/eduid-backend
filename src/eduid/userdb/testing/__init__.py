@@ -46,9 +46,9 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 import pymongo
 
-from eduid_userdb import User, UserDB
-from eduid_userdb.dashboard.user import DashboardUser
-from eduid_userdb.testing.temp_instance import EduidTemporaryInstance
+from eduid.userdb import User, UserDB
+from eduid.userdb.dashboard.user import DashboardUser
+from eduid.userdb.testing.temp_instance import EduidTemporaryInstance
 
 logger = logging.getLogger(__name__)
 
@@ -165,7 +165,7 @@ class MongoTestCase(unittest.TestCase):
 
         Usage:
 
-            from eduid_am.celery import celery, get_attribute_manager
+            from eduid.workers.am.celery import celery, get_attribute_manager
 
             class MyTest(MongoTestCase):
 

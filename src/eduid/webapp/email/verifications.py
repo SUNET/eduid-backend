@@ -36,11 +36,11 @@ import time
 from flask import current_app, render_template, url_for
 from flask_babel import gettext as _
 
-from eduid_common.api.utils import get_unique_hash, save_and_sync_user
-from eduid_userdb.element import DuplicateElementViolation
-from eduid_userdb.logs import MailAddressProofing
-from eduid_userdb.mail import MailAddress
-from eduid_userdb.proofing import EmailProofingElement, EmailProofingState
+from eduid.common.api.utils import get_unique_hash, save_and_sync_user
+from eduid.userdb.element import DuplicateElementViolation
+from eduid.userdb.logs import MailAddressProofing
+from eduid.userdb.mail import MailAddress
+from eduid.userdb.proofing import EmailProofingElement, EmailProofingState
 
 
 def new_proofing_state(email, user):
@@ -99,7 +99,7 @@ def verify_mail_address(state, proofing_user):
     :param proofing_user: ProofingUser
     :param state: E-mail proofing state
 
-    :type proofing_user: eduid_userdb.proofing.ProofingUser
+    :type proofing_user: eduid.userdb.proofing.ProofingUser
     :type state: EmailProofingState
 
     :return: None

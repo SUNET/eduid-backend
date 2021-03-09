@@ -32,7 +32,7 @@
 #
 from typing import Dict
 
-from eduid_common.config.base import EduIDBaseAppConfig
+from eduid.common.config.base import EduIDBaseAppConfig
 
 
 class JSConfigConfig(EduIDBaseAppConfig):

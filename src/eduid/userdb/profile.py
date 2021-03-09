@@ -5,8 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, List, Mapping, Optional
 
-from eduid_userdb.element import DuplicateElementViolation, Element, ElementList
-from eduid_userdb.exceptions import UserDBValueError
+from eduid.userdb.element import DuplicateElementViolation, Element, ElementList
+from eduid.userdb.exceptions import UserDBValueError
 
 __author__ = 'lundberg'
 

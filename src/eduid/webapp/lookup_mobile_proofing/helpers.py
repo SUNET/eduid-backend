@@ -3,17 +3,17 @@
 import time
 from enum import unique
 
-from eduid_common.api.helpers import check_magic_cookie
-from eduid_common.api.messages import TranslatableMsg
-from eduid_lookup_mobile.utilities import format_NIN
-from eduid_userdb import User
-from eduid_userdb.logs import TeleAdressProofing, TeleAdressProofingRelation
-from eduid_userdb.proofing.element import NinProofingElement
-from eduid_userdb.proofing.state import NinProofingState
-from eduid_userdb.proofing.user import ProofingUser
+from eduid.common.api.helpers import check_magic_cookie
+from eduid.common.api.messages import TranslatableMsg
+from eduid.workers.lookup_mobile.utilities import format_NIN
+from eduid.userdb import User
+from eduid.userdb.logs import TeleAdressProofing, TeleAdressProofingRelation
+from eduid.userdb.proofing.element import NinProofingElement
+from eduid.userdb.proofing.state import NinProofingState
+from eduid.userdb.proofing.user import ProofingUser
 
-from eduid_webapp.lookup_mobile_proofing.app import current_mobilep_app as current_app
-from eduid_webapp.lookup_mobile_proofing.lookup_mobile_relay import LookupMobileTaskFailed
+from eduid.webapp.lookup_mobile_proofing.app import current_mobilep_app as current_app
+from eduid.webapp.lookup_mobile_proofing.lookup_mobile_relay import LookupMobileTaskFailed
 
 __author__ = 'lundberg'
 
@@ -74,7 +74,7 @@ def match_mobile_to_user(user, self_asserted_nin, verified_mobile_numbers):
     :param self_asserted_nin: Self asserted national identity number
     :param verified_mobile_numbers: Verified mobile numbers
 
-    :type user: eduid_userdb.user.User
+    :type user: eduid.userdb.user.User
     :type self_asserted_nin: six.string_types
     :type verified_mobile_numbers: list
 

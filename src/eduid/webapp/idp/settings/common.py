@@ -38,7 +38,7 @@ from typing import List, Optional
 
 from pydantic import Field, validator
 
-from eduid_common.config.base import CookieConfig, EduIDBaseAppConfig
+from eduid.common.config.base import CookieConfig, EduIDBaseAppConfig
 
 
 class IdPConfig(EduIDBaseAppConfig):
@@ -48,7 +48,7 @@ class IdPConfig(EduIDBaseAppConfig):
 
     app_name: str = 'idp'
     # pysaml2 configuration file. Separate config file with SAML related parameters.
-    pysaml2_config: str = 'eduid_common.authn.idp_conf'
+    pysaml2_config: str = 'eduid.common.authn.idp_conf'
     # SAML F-TICKS user anonymization key. If this is set, the IdP will log FTICKS data
     # on every login.
     fticks_secret_key: Optional[str] = None
@@ -58,7 +58,7 @@ class IdPConfig(EduIDBaseAppConfig):
     static_dir: Optional[str] = None
     # URL to static resources that can be used in templates
     static_link: str = '#'
-    #  UserDB database name. eduid_am for old userdb, eduid_userdb for new
+    #  UserDB database name. eduid.workers.am for old userdb, eduid.userdb for new
     userdb_mongo_database: str = 'eduid_am'
     # MongoDB connection URI (string). See MongoDB documentation for details.
     userdb_mongo_uri: Optional[str] = None

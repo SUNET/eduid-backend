@@ -37,10 +37,10 @@ from typing import Any, Dict, Mapping
 
 from mock import patch
 
-from eduid_common.api.testing import EduidAPITestCase
-from eduid_common.config.parsers.etcd import EtcdConfigParser
+from eduid.common.api.testing import EduidAPITestCase
+from eduid.common.config.parsers.etcd import EtcdConfigParser
 
-from eduid_webapp.jsconfig.app import JSConfigApp, jsconfig_init_app
+from eduid.webapp.jsconfig.app import JSConfigApp, jsconfig_init_app
 
 
 class JSConfigTests(EduidAPITestCase):
@@ -105,7 +105,7 @@ class JSConfigTests(EduidAPITestCase):
             self.assertEqual(config_data['payload']['dashboard_url'], 'dummy-url')
             self.assertEqual(config_data['payload']['static_faq_url'], '')
 
-    @patch('eduid_webapp.jsconfig.views.requests.get')
+    @patch('eduid.webapp.jsconfig.views.requests.get')
     def test_get_signup_config(self, mock_request_get):
         class MockResponse:
             status_code = 200
@@ -158,7 +158,7 @@ class JSConfigTests(EduidAPITestCase):
         # XXX Here we access the view by exposing it in a different path - the
         # production manner of distinguishing it (throught its subdomain) does
         # not work with the test client
-        from eduid_webapp.jsconfig import views
+        from eduid.webapp.jsconfig import views
 
         views.jsconfig_views.route('/get-signup-bundle', methods=['GET'])(views.get_signup_bundle)
         self.app.register_blueprint(views.jsconfig_views)
@@ -176,7 +176,7 @@ class JSConfigTests(EduidAPITestCase):
         # XXX Here we access the view by exposing it in a different path - the
         # production manner of distinguishing it (throught its subdomain) does
         # not work with the test client
-        from eduid_webapp.jsconfig import views
+        from eduid.webapp.jsconfig import views
 
         views.jsconfig_views.route('/get-login-bundle', methods=['GET'])(views.get_login_bundle)
         self.app.register_blueprint(views.jsconfig_views)

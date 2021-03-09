@@ -35,9 +35,9 @@ import re
 
 from marshmallow import ValidationError
 
-from eduid_common.api.utils import get_user
+from eduid.common.api.utils import get_user
 
-from eduid_webapp.phone.app import current_phone_app as current_app
+from eduid.webapp.phone.app import current_phone_app as current_app
 
 
 def normalize_to_e_164(number):

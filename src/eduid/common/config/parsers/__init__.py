@@ -6,12 +6,12 @@ from typing import Any, Dict, Mapping, Optional, Type
 
 import yaml
 
-from eduid_common.config.base import FlaskConfig, TRootConfigSubclass
-from eduid_common.config.parsers.base import BaseConfigParser
+from eduid.common.config.base import FlaskConfig, TRootConfigSubclass
+from eduid.common.config.parsers.base import BaseConfigParser
 
 __author__ = 'ft'
 
-from eduid_common.config.parsers.exceptions import ParserException
+from eduid.common.config.parsers.exceptions import ParserException
 
 
 def load_config(
@@ -77,14 +77,14 @@ def _choose_parser(app_name: str, ns: str) -> Optional[BaseConfigParser]:
     yaml_file = os.environ.get('EDUID_CONFIG_YAML')
     if yaml_file:
         try:
-            from eduid_common.config.parsers.yaml_parser import YamlConfigParser
+            from eduid.common.config.parsers.yaml_parser import YamlConfigParser
 
             parser = YamlConfigParser(path=Path(yaml_file))
         except ImportError:
             raise ParserException('YamlConfigParser could not be imported')
     if not parser:
         try:
-            from eduid_common.config.parsers.etcd import EtcdConfigParser
+            from eduid.common.config.parsers.etcd import EtcdConfigParser
         except ImportError:
             raise ParserException('EtcdConfigParser could not be imported')
 

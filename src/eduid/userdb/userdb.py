@@ -37,10 +37,10 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from pymongo import ReturnDocument
 
-import eduid_userdb.exceptions
-from eduid_userdb.db import BaseDB
-from eduid_userdb.exceptions import DocumentDoesNotExist, EduIDUserDBError, MultipleUsersReturned, UserDoesNotExist
-from eduid_userdb.user import User
+import eduid.userdb.exceptions
+from eduid.userdb.db import BaseDB
+from eduid.userdb.exceptions import DocumentDoesNotExist, EduIDUserDBError, MultipleUsersReturned, UserDoesNotExist
+from eduid.userdb.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +75,7 @@ class UserDB(BaseDB):
         logger.debug("{!s} connected to database".format(self))
         # XXX Backwards compatibility.
         # Was: provide access to our backends exceptions to users of this class
-        self.exceptions = eduid_userdb.exceptions
+        self.exceptions = eduid.userdb.exceptions
 
     def __repr__(self):
         return '<eduID {!s}: {!s} {!r} (returning {!s})>'.format(
@@ -279,7 +279,7 @@ class UserDB(BaseDB):
         if not isinstance(user.user_id, ObjectId):
             raise AssertionError(f'user.user_id is not of type {ObjectId}')
 
-        # XXX add modified_by info. modified_ts alone is not unique when propagated to eduid_am.
+        # XXX add modified_by info. modified_ts alone is not unique when propagated to eduid.workers.am.
 
         modified = user.modified_ts
         user.modified_ts = datetime.utcnow()
@@ -305,7 +305,7 @@ class UserDB(BaseDB):
                 logger.debug(
                     f'{self} FAILED Updating user {user} (ts {modified}) in {self._coll_name}, ts in db = {db_ts}'
                 )
-                raise eduid_userdb.exceptions.UserOutOfSync('Stale user object can\'t be saved')
+                raise eduid.userdb.exceptions.UserOutOfSync('Stale user object can\'t be saved')
             logger.debug(f"{self} Updated user {user} (ts {modified}) in {self._coll_name}: {result}")
             import pprint
 
@@ -358,7 +358,7 @@ class UserDB(BaseDB):
             logger.debug(f'Tried to update/insert document: {query_filter} with operations: {operations}')
             error_msg = f'Invalid update operator: {bad_operators}'
             logger.error(error_msg)
-            raise eduid_userdb.exceptions.EduIDDBError(error_msg)
+            raise eduid.userdb.exceptions.EduIDDBError(error_msg)
 
         updated_doc = self._coll.find_one_and_update(
             filter=query_filter, update=operations, return_document=ReturnDocument.AFTER, upsert=True

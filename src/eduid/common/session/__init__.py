@@ -33,7 +33,7 @@
 
 from flask import session as flask_session
 
-from eduid_common.session.eduid_session import EduidSession
+from eduid.common.session.eduid_session import EduidSession
 
 
 # Ugly hack to get make type checks/hints to work

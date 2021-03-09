@@ -2,12 +2,12 @@ from copy import deepcopy
 
 import bson
 
-from eduid_am.testing import AMTestCase
-from eduid_am.tests.test_proofing_fetchers import USER_DATA
-from eduid_userdb.exceptions import UserDoesNotExist
-from eduid_userdb.fixtures.users import mocked_user_standard
-from eduid_userdb.signup import SignupUser
-from eduid_userdb.testing import normalised_data
+from eduid.workers.am.testing import AMTestCase
+from eduid.workers.am.tests.test_proofing_fetchers import USER_DATA
+from eduid.userdb.exceptions import UserDoesNotExist
+from eduid.userdb.fixtures.users import mocked_user_standard
+from eduid.userdb.signup import SignupUser
+from eduid.userdb.testing import normalised_data
 
 
 class AttributeFetcherTests(AMTestCase):

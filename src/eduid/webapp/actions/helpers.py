@@ -34,10 +34,10 @@ from enum import unique
 
 from flask import abort
 
-from eduid_common.api.messages import TranslatableMsg
-from eduid_common.session import session
+from eduid.common.api.messages import TranslatableMsg
+from eduid.common.session import session
 
-from eduid_webapp.actions.app import current_actions_app as current_app
+from eduid.webapp.actions.app import current_actions_app as current_app
 
 
 @unique

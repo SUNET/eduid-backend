@@ -34,18 +34,18 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid_common.api import am, mail_relay, msg, oidc, translation
-from eduid_common.api.am import AmRelay
-from eduid_common.api.mail_relay import MailRelay
-from eduid_common.api.msg import MsgRelay
-from eduid_common.authn.middleware import AuthnBaseApp
-from eduid_common.authn.utils import no_authn_views
-from eduid_common.config.base import FlaskConfig
-from eduid_common.config.parsers import load_config
-from eduid_userdb.logs import ProofingLog
-from eduid_userdb.proofing import OidcProofingStateDB, OidcProofingUserDB
+from eduid.common.api import am, mail_relay, msg, oidc, translation
+from eduid.common.api.am import AmRelay
+from eduid.common.api.mail_relay import MailRelay
+from eduid.common.api.msg import MsgRelay
+from eduid.common.authn.middleware import AuthnBaseApp
+from eduid.common.authn.utils import no_authn_views
+from eduid.common.config.base import FlaskConfig
+from eduid.common.config.parsers import load_config
+from eduid.userdb.logs import ProofingLog
+from eduid.userdb.proofing import OidcProofingStateDB, OidcProofingUserDB
 
-from eduid_webapp.oidc_proofing.settings.common import OIDCProofingConfig
+from eduid.webapp.oidc_proofing.settings.common import OIDCProofingConfig
 
 __author__ = 'lundberg'
 
@@ -91,7 +91,7 @@ def init_oidc_proofing_app(
 
     app.logger.info(f'Init {app}...')
 
-    from eduid_webapp.oidc_proofing.views import oidc_proofing_views
+    from eduid.webapp.oidc_proofing.views import oidc_proofing_views
 
     app.register_blueprint(oidc_proofing_views)
 

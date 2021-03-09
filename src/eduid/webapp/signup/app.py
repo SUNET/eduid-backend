@@ -35,15 +35,15 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid_common.api import translation
-from eduid_common.api.am import AmRelay
-from eduid_common.api.app import EduIDBaseApp
-from eduid_common.api.mail_relay import MailRelay
-from eduid_common.config.parsers import load_config
-from eduid_userdb.logs import ProofingLog
-from eduid_userdb.signup import SignupUserDB
+from eduid.common.api import translation
+from eduid.common.api.am import AmRelay
+from eduid.common.api.app import EduIDBaseApp
+from eduid.common.api.mail_relay import MailRelay
+from eduid.common.config.parsers import load_config
+from eduid.userdb.logs import ProofingLog
+from eduid.userdb.signup import SignupUserDB
 
-from eduid_webapp.signup.settings.common import SignupConfig
+from eduid.webapp.signup.settings.common import SignupConfig
 
 
 class SignupApp(EduIDBaseApp):
@@ -78,7 +78,7 @@ def signup_init_app(name: str = 'signup', test_config: Optional[Mapping[str, Any
 
     app.logger.info(f'Init {app}...')
 
-    from eduid_webapp.signup.views import signup_views
+    from eduid.webapp.signup.views import signup_views
 
     app.register_blueprint(signup_views)
 

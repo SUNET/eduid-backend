@@ -32,7 +32,7 @@
 #
 
 
-from eduid_webapp.support.app import support_init_app
+from eduid.webapp.support.app import support_init_app
 
 app = support_init_app()
 

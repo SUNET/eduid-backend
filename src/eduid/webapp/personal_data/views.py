@@ -34,15 +34,15 @@
 
 from flask import Blueprint
 
-from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid_common.api.messages import CommonMsg, error_response, success_response
-from eduid_common.api.utils import save_and_sync_user
-from eduid_userdb.exceptions import UserOutOfSync
-from eduid_userdb.personal_data import PersonalDataUser
+from eduid.common.api.decorators import MarshalWith, UnmarshalWith, require_user
+from eduid.common.api.messages import CommonMsg, error_response, success_response
+from eduid.common.api.utils import save_and_sync_user
+from eduid.userdb.exceptions import UserOutOfSync
+from eduid.userdb.personal_data import PersonalDataUser
 
-from eduid_webapp.personal_data.app import current_pdata_app as current_app
-from eduid_webapp.personal_data.helpers import PDataMsg
-from eduid_webapp.personal_data.schemas import (
+from eduid.webapp.personal_data.app import current_pdata_app as current_app
+from eduid.webapp.personal_data.helpers import PDataMsg
+from eduid.webapp.personal_data.schemas import (
     AllDataResponseSchema,
     NinsResponseSchema,
     PersonalDataRequestSchema,

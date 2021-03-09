@@ -5,19 +5,19 @@ from hashlib import sha256
 from bson import ObjectId
 from six import string_types
 
-from eduid_userdb import LockedIdentityNin, OidcAuthorization, OidcIdToken, Orcid
-from eduid_userdb.credentials import METHOD_SWAMID_AL2_MFA, U2F, CredentialList, Password
-from eduid_userdb.exceptions import EduIDUserDBError, UserHasNotCompletedSignup, UserIsRevoked
-from eduid_userdb.mail import MailAddress, MailAddressList
-from eduid_userdb.nin import Nin, NinList
-from eduid_userdb.phone import PhoneNumber, PhoneNumberList
-from eduid_userdb.profile import Profile, ProfileList
-from eduid_userdb.tou import ToUList
-from eduid_userdb.user import SubjectType, User
+from eduid.userdb import LockedIdentityNin, OidcAuthorization, OidcIdToken, Orcid
+from eduid.userdb.credentials import METHOD_SWAMID_AL2_MFA, U2F, CredentialList, Password
+from eduid.userdb.exceptions import EduIDUserDBError, UserHasNotCompletedSignup, UserIsRevoked
+from eduid.userdb.mail import MailAddress, MailAddressList
+from eduid.userdb.nin import Nin, NinList
+from eduid.userdb.phone import PhoneNumber, PhoneNumberList
+from eduid.userdb.profile import Profile, ProfileList
+from eduid.userdb.tou import ToUList
+from eduid.userdb.user import SubjectType, User
 
 __author__ = 'ft'
 
-from eduid_userdb.util import utc_now
+from eduid.userdb.util import utc_now
 
 
 def _keyid(kh):

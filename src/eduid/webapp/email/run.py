@@ -32,7 +32,7 @@
 #
 
 
-from eduid_webapp.email.app import email_init_app
+from eduid.webapp.email.app import email_init_app
 
 app = email_init_app()
 

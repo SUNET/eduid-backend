@@ -8,9 +8,9 @@ from typing import Optional
 import redis
 from flask import current_app
 
-from eduid_common.authn.vccs import check_password
-from eduid_common.config.base import VCCSConfigMixin
-from eduid_common.session.redis_session import get_redis_pool
+from eduid.common.authn.vccs import check_password
+from eduid.common.config.base import VCCSConfigMixin
+from eduid.common.session.redis_session import get_redis_pool
 
 __author__ = 'lundberg'
 

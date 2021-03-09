@@ -35,14 +35,14 @@ __author__ = 'eperez'
 from dataclasses import dataclass
 from typing import Any, Dict
 
-from eduid_userdb.exceptions import UserMissingData
-from eduid_userdb.user import User
+from eduid.userdb.exceptions import UserMissingData
+from eduid.userdb.user import User
 
 
 @dataclass
 class ToUUser(User):
     """
-    Subclass of eduid_userdb.User
+    Subclass of eduid.userdb.User
     """
 
     @classmethod

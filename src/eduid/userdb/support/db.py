@@ -4,11 +4,11 @@ from typing import Type
 
 from bson import ObjectId
 
-from eduid_userdb.signup import SignupUserDB
-from eduid_userdb.support import models
-from eduid_userdb.support.models import GenericFilterDict
-from eduid_userdb.support.user import SupportSignupUser, SupportUser
-from eduid_userdb.userdb import BaseDB, UserDB
+from eduid.userdb.signup import SignupUserDB
+from eduid.userdb.support import models
+from eduid.userdb.support.models import GenericFilterDict
+from eduid.userdb.support.user import SupportSignupUser, SupportUser
+from eduid.userdb.userdb import BaseDB, UserDB
 
 __author__ = 'lundberg'
 

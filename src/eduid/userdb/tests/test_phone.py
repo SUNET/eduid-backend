@@ -2,10 +2,10 @@ import copy
 import datetime
 import unittest
 
-import eduid_userdb.element
-import eduid_userdb.exceptions
-from eduid_userdb.element import Element
-from eduid_userdb.phone import PhoneNumber, PhoneNumberList
+import eduid.userdb.element
+import eduid.userdb.exceptions
+from eduid.userdb.element import Element
+from eduid.userdb.phone import PhoneNumber, PhoneNumberList
 
 __author__ = 'ft'
 
@@ -43,7 +43,7 @@ class TestPhoneNumberList(unittest.TestCase):
         self.four = PhoneNumberList([_three_dict, _four_dict])
 
     def test_init_bad_data(self):
-        with self.assertRaises(eduid_userdb.element.UserDBValueError):
+        with self.assertRaises(eduid.userdb.element.UserDBValueError):
             PhoneNumberList('bad input data')
 
     def test_to_list(self):
@@ -77,7 +77,7 @@ class TestPhoneNumberList(unittest.TestCase):
 
     def test_add_duplicate(self):
         dup = self.two.find(self.two.primary.number)
-        with self.assertRaises(eduid_userdb.element.DuplicateElementViolation):
+        with self.assertRaises(eduid.userdb.element.DuplicateElementViolation):
             self.two.add(dup)
 
     def test_add_phonenumber(self):
@@ -90,8 +90,8 @@ class TestPhoneNumberList(unittest.TestCase):
         assert got == expected, 'Phone number list contains wrong data'
 
     def test_add_another_primary(self):
-        new = eduid_userdb.phone.phone_from_dict({'number': '+46700000009', 'verified': True, 'primary': True,})
-        with self.assertRaises(eduid_userdb.element.PrimaryElementViolation):
+        new = eduid.userdb.phone.phone_from_dict({'number': '+46700000009', 'verified': True, 'primary': True,})
+        with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
             self.one.add(new)
 
     def test_add_wrong_type(self):
@@ -99,7 +99,7 @@ class TestPhoneNumberList(unittest.TestCase):
             'created_by': 'foo',
         }
         new = Element.from_dict(elemdict)
-        with self.assertRaises(eduid_userdb.element.UserDBValueError):
+        with self.assertRaises(eduid.userdb.element.UserDBValueError):
             self.one.add(new)
 
     def test_remove(self):
@@ -110,11 +110,11 @@ class TestPhoneNumberList(unittest.TestCase):
         assert got == expected, 'Phone list has wrong data after removing phone'
 
     def test_remove_unknown(self):
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+        with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
             self.one.remove('+46709999999')
 
     def test_remove_primary(self):
-        with self.assertRaises(eduid_userdb.element.PrimaryElementViolation):
+        with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
             self.two.remove(self.two.primary.number)
 
     def test_remove_primary_single(self):
@@ -167,11 +167,11 @@ class TestPhoneNumberList(unittest.TestCase):
         self.two.primary = match.number
 
     def test_set_unknown_as_primary(self):
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+        with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
             self.one.primary = '+46709999999'
 
     def test_set_unverified_as_primary(self):
-        with self.assertRaises(eduid_userdb.element.PrimaryElementViolation):
+        with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
             self.three.primary = '+46700000003'
 
     def test_change_primary(self):
@@ -186,13 +186,13 @@ class TestPhoneNumberList(unittest.TestCase):
         two = copy.deepcopy(_two_dict)
         one['primary'] = True
         two['primary'] = True
-        with self.assertRaises(eduid_userdb.element.PrimaryElementViolation):
+        with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
             PhoneNumberList([one, two])
 
     def test_unverified_primary(self):
         one = copy.deepcopy(_one_dict)
         one['verified'] = False
-        with self.assertRaises(eduid_userdb.element.PrimaryElementViolation):
+        with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
             PhoneNumberList([one])
 
 
@@ -236,7 +236,7 @@ class TestPhoneNumber(unittest.TestCase):
 
     def test_changing_is_verified_on_primary(self):
         this = self.one.primary
-        with self.assertRaises(eduid_userdb.element.PrimaryElementViolation):
+        with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
             this.is_verified = False
 
     def test_changing_is_verified(self):

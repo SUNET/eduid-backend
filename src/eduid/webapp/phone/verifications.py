@@ -35,16 +35,16 @@ from datetime import timedelta
 
 from flask import render_template
 
-from eduid_common.api.exceptions import MsgTaskFailed
-from eduid_common.api.utils import get_short_hash, save_and_sync_user
-from eduid_common.misc.timeutil import utc_now
-from eduid_userdb import User
-from eduid_userdb.element import DuplicateElementViolation
-from eduid_userdb.logs import PhoneNumberProofing
-from eduid_userdb.phone import PhoneNumber
-from eduid_userdb.proofing import PhoneProofingElement, PhoneProofingState, ProofingUser
+from eduid.common.api.exceptions import MsgTaskFailed
+from eduid.common.api.utils import get_short_hash, save_and_sync_user
+from eduid.common.misc.timeutil import utc_now
+from eduid.userdb import User
+from eduid.userdb.element import DuplicateElementViolation
+from eduid.userdb.logs import PhoneNumberProofing
+from eduid.userdb.phone import PhoneNumber
+from eduid.userdb.proofing import PhoneProofingElement, PhoneProofingState, ProofingUser
 
-from eduid_webapp.phone.app import current_phone_app as current_app
+from eduid.webapp.phone.app import current_phone_app as current_app
 
 
 class SMSThrottleException(Exception):

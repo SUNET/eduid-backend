@@ -28,7 +28,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from eduid_userdb.signup.invite import Invite, InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
-from eduid_userdb.signup.invitedb import SignupInviteDB
-from eduid_userdb.signup.user import SignupUser
-from eduid_userdb.signup.userdb import SignupUserDB
+from eduid.userdb.signup.invite import Invite, InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
+from eduid.userdb.signup.invitedb import SignupInviteDB
+from eduid.userdb.signup.user import SignupUser
+from eduid.userdb.signup.userdb import SignupUserDB

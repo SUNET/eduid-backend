@@ -8,14 +8,14 @@ from flask import Blueprint, abort, redirect, render_template, request, url_for
 from flask_babel import gettext as _
 from marshmallow import ValidationError
 
-from eduid_common.api.exceptions import MailTaskFailed, MsgTaskFailed
-from eduid_common.api.helpers import check_magic_cookie
-from eduid_common.session import session
-from eduid_userdb.exceptions import DocumentDoesNotExist
-from eduid_userdb.security.state import PasswordResetEmailAndPhoneState, PasswordResetEmailState
+from eduid.common.api.exceptions import MailTaskFailed, MsgTaskFailed
+from eduid.common.api.helpers import check_magic_cookie
+from eduid.common.session import session
+from eduid.userdb.exceptions import DocumentDoesNotExist
+from eduid.userdb.security.state import PasswordResetEmailAndPhoneState, PasswordResetEmailState
 
-from eduid_webapp.security.app import current_security_app as current_app
-from eduid_webapp.security.helpers import (
+from eduid.webapp.security.app import current_security_app as current_app
+from eduid.webapp.security.helpers import (
     generate_suggested_password,
     get_extra_security_alternatives,
     get_zxcvbn_terms,
@@ -26,7 +26,7 @@ from eduid_webapp.security.helpers import (
     verify_email_address,
     verify_phone_number,
 )
-from eduid_webapp.security.schemas import (
+from eduid.webapp.security.schemas import (
     ResetPasswordEmailSchema,
     ResetPasswordExtraSecuritySchema,
     ResetPasswordNewPasswordSchema,

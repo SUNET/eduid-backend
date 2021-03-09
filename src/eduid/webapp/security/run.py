@@ -32,7 +32,7 @@
 #
 
 
-from eduid_webapp.security.app import security_init_app
+from eduid.webapp.security.app import security_init_app
 
 app = security_init_app()
 

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from eduid_userdb.credentials import U2F, Password, Webauthn
-from eduid_userdb.userdb import BaseDB
+from eduid.userdb.credentials import U2F, Password, Webauthn
+from eduid.userdb.userdb import BaseDB
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ class AuthnInfoDB(BaseDB):
     def get_authn_info(self, user):
         """
         :param user: User object
-        :type user: eduid_userdb.user.User
+        :type user: eduid.userdb.user.User
         :return: {credential.key: {type, created_ts, success_ts}} for each user credential
         :rtype: dict
         """

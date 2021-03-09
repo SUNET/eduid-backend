@@ -33,13 +33,13 @@
 
 from flask import request
 
-from eduid_common.authn import fido_tokens
-from eduid_common.session import session
+from eduid.common.authn import fido_tokens
+from eduid.common.session import session
 
-from eduid_webapp.actions.action_abc import ActionPlugin
-from eduid_webapp.actions.app import ActionsApp
-from eduid_webapp.actions.app import current_actions_app as current_app
-from eduid_webapp.actions.helpers import ActionsMsg
+from eduid.webapp.actions.action_abc import ActionPlugin
+from eduid.webapp.actions.app import ActionsApp
+from eduid.webapp.actions.app import current_actions_app as current_app
+from eduid.webapp.actions.helpers import ActionsMsg
 
 __author__ = 'ft'
 
@@ -47,7 +47,7 @@ __author__ = 'ft'
 class Plugin(ActionPlugin):
 
     PLUGIN_NAME = 'mfa'
-    PACKAGE_NAME = 'eduid_webapp.actions.actions.mfa'
+    PACKAGE_NAME = 'eduid.webapp.actions.actions.mfa'
     steps = 1
 
     @classmethod

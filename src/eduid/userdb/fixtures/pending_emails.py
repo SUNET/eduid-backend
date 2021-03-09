@@ -32,7 +32,7 @@
 #
 from datetime import datetime
 
-from eduid_userdb.proofing import EmailProofingElement
+from eduid.userdb.proofing import EmailProofingElement
 
 johnsmith2_example_com_pending = EmailProofingElement.from_dict(
     {

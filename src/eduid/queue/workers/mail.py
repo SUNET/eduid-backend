@@ -8,14 +8,14 @@ from typing import Any, Mapping, Optional, cast
 
 from aiosmtplib import SMTP, SMTPResponse
 
-from eduid_common.config.parsers import load_config
+from eduid.common.config.parsers import load_config
 
-from eduid_queue.config import QueueWorkerConfig
-from eduid_queue.db import QueueItem
-from eduid_queue.db.message import EduidInviteEmail
-from eduid_queue.db.queue_item import Status
-from eduid_queue.helpers import Jinja2Env
-from eduid_queue.workers.base import QueueWorker
+from eduid.queue.config import QueueWorkerConfig
+from eduid.queue.db import QueueItem
+from eduid.queue.db.message import EduidInviteEmail
+from eduid.queue.db.queue_item import Status
+from eduid.queue.helpers import Jinja2Env
+from eduid.queue.workers.base import QueueWorker
 
 logger = logging.getLogger(__name__)
 

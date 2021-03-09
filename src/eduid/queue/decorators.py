@@ -1,7 +1,7 @@
 from datetime import datetime
 from inspect import isclass
 
-from eduid_userdb.db import MongoDB
+from eduid.userdb.db import MongoDB
 
 
 # TODO: Refactor but keep transaction audit document structure

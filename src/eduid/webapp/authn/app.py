@@ -34,11 +34,11 @@ from typing import Any, Mapping, Optional
 
 from flask import current_app
 
-from eduid_common.api.app import EduIDBaseApp
-from eduid_common.authn.utils import get_saml2_config
-from eduid_common.config.parsers import load_config
+from eduid.common.api.app import EduIDBaseApp
+from eduid.common.authn.utils import get_saml2_config
+from eduid.common.config.parsers import load_config
 
-from eduid_webapp.authn.settings.common import AuthnConfig
+from eduid.webapp.authn.settings.common import AuthnConfig
 
 
 class AuthnApp(EduIDBaseApp):
@@ -73,7 +73,7 @@ def authn_init_app(name: str = 'authn', test_config: Optional[Mapping[str, Any]]
 
     app.logger.info(f'Init {app}...')
 
-    from eduid_webapp.authn.views import authn_views
+    from eduid.webapp.authn.views import authn_views
 
     app.register_blueprint(authn_views)
 

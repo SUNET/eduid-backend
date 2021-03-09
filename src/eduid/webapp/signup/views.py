@@ -33,21 +33,21 @@
 
 from flask import Blueprint, abort, request
 
-from eduid_common.api.decorators import MarshalWith, UnmarshalWith
-from eduid_common.api.helpers import check_magic_cookie
-from eduid_common.api.messages import CommonMsg, FluxData, error_response, success_response
-from eduid_common.api.schemas.base import FluxStandardAction
-from eduid_userdb.exceptions import EduIDUserDBError
+from eduid.common.api.decorators import MarshalWith, UnmarshalWith
+from eduid.common.api.helpers import check_magic_cookie
+from eduid.common.api.messages import CommonMsg, FluxData, error_response, success_response
+from eduid.common.api.schemas.base import FluxStandardAction
+from eduid.userdb.exceptions import EduIDUserDBError
 
-from eduid_webapp.signup.app import current_signup_app as current_app
-from eduid_webapp.signup.helpers import (
+from eduid.webapp.signup.app import current_signup_app as current_app
+from eduid.webapp.signup.helpers import (
     SignupMsg,
     check_email_status,
     complete_registration,
     remove_users_with_mail_address,
 )
-from eduid_webapp.signup.schemas import AccountCreatedResponse, EmailSchema, RegisterEmailSchema
-from eduid_webapp.signup.verifications import (
+from eduid.webapp.signup.schemas import AccountCreatedResponse, EmailSchema, RegisterEmailSchema
+from eduid.webapp.signup.verifications import (
     AlreadyVerifiedException,
     CodeDoesNotExist,
     ProofingLogFailure,

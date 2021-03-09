@@ -6,12 +6,12 @@ from uuid import UUID
 from falcon import HTTP_201, HTTP_204, Request, Response
 from marshmallow.exceptions import ValidationError
 
-from eduid_scimapi.db.eventdb import EventLevel, EventStatus, add_api_event
-from eduid_scimapi.db.groupdb import ScimApiGroup
-from eduid_scimapi.exceptions import BadRequest, NotFound
-from eduid_scimapi.middleware import ctx_groupdb, ctx_userdb
-from eduid_scimapi.resources.base import BaseResource, SCIMResource
-from eduid_scimapi.schemas.group import (
+from eduid.scimapi.db.eventdb import EventLevel, EventStatus, add_api_event
+from eduid.scimapi.db.groupdb import ScimApiGroup
+from eduid.scimapi.exceptions import BadRequest, NotFound
+from eduid.scimapi.middleware import ctx_groupdb, ctx_userdb
+from eduid.scimapi.resources.base import BaseResource, SCIMResource
+from eduid.scimapi.schemas.group import (
     GroupCreateRequestSchema,
     GroupMember,
     GroupResponse,
@@ -19,7 +19,7 @@ from eduid_scimapi.schemas.group import (
     GroupUpdateRequestSchema,
     NutidGroupExtensionV1,
 )
-from eduid_scimapi.schemas.scimbase import (
+from eduid.scimapi.schemas.scimbase import (
     ListResponse,
     ListResponseSchema,
     Meta,
@@ -28,8 +28,8 @@ from eduid_scimapi.schemas.scimbase import (
     SearchRequest,
     SearchRequestSchema,
 )
-from eduid_scimapi.search import SearchFilter, parse_search_filter
-from eduid_scimapi.utils import make_etag
+from eduid.scimapi.search import SearchFilter, parse_search_filter
+from eduid.scimapi.utils import make_etag
 
 
 class GroupsResource(SCIMResource):

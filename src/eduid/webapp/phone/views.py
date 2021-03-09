@@ -36,21 +36,21 @@ from typing import Optional
 
 from flask import Blueprint, abort, request
 
-from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid_common.api.exceptions import MsgTaskFailed
-from eduid_common.api.helpers import check_magic_cookie
-from eduid_common.api.messages import CommonMsg, FluxData, error_response, success_response
-from eduid_common.api.utils import save_and_sync_user
-from eduid_userdb import User
-from eduid_userdb.element import PrimaryElementViolation, UserDBValueError
-from eduid_userdb.exceptions import DocumentDoesNotExist, UserOutOfSync
-from eduid_userdb.phone import PhoneNumber
-from eduid_userdb.proofing import ProofingUser
+from eduid.common.api.decorators import MarshalWith, UnmarshalWith, require_user
+from eduid.common.api.exceptions import MsgTaskFailed
+from eduid.common.api.helpers import check_magic_cookie
+from eduid.common.api.messages import CommonMsg, FluxData, error_response, success_response
+from eduid.common.api.utils import save_and_sync_user
+from eduid.userdb import User
+from eduid.userdb.element import PrimaryElementViolation, UserDBValueError
+from eduid.userdb.exceptions import DocumentDoesNotExist, UserOutOfSync
+from eduid.userdb.phone import PhoneNumber
+from eduid.userdb.proofing import ProofingUser
 
-from eduid_webapp.phone.app import current_phone_app as current_app
-from eduid_webapp.phone.helpers import PhoneMsg
-from eduid_webapp.phone.schemas import PhoneResponseSchema, PhoneSchema, SimplePhoneSchema, VerificationCodeSchema
-from eduid_webapp.phone.verifications import SMSThrottleException, send_verification_code, verify_phone_number
+from eduid.webapp.phone.app import current_phone_app as current_app
+from eduid.webapp.phone.helpers import PhoneMsg
+from eduid.webapp.phone.schemas import PhoneResponseSchema, PhoneSchema, SimplePhoneSchema, VerificationCodeSchema
+from eduid.webapp.phone.verifications import SMSThrottleException, send_verification_code, verify_phone_number
 
 phone_views = Blueprint('phone', __name__, url_prefix='', template_folder='templates')
 

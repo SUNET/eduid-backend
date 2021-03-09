@@ -43,7 +43,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from eduid_userdb import User
+from eduid.userdb import User
 
 # TODO: Rename to logger after removing logger argument from to_saml_attributes method
 module_logger = logging.getLogger(__name__)
@@ -79,7 +79,7 @@ class SAMLAttributeSettings:
 
 class IdPUser(User):
     """
-    Wrapper class for eduid_userdb.User adding functions useful in the IdP.
+    Wrapper class for eduid.userdb.User adding functions useful in the IdP.
     """
 
     def to_saml_attributes(

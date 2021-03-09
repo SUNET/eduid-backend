@@ -39,8 +39,8 @@ __author__ = 'leifj'
 import logging
 from typing import Any, Dict, Optional
 
-from eduid_am.fetcher_registry import AFRegistry
-from eduid_common.api.testing_base import WorkerTestCase
+from eduid.workers.am.fetcher_registry import AFRegistry
+from eduid.common.api.testing_base import WorkerTestCase
 
 logger = logging.getLogger(__name__)
 

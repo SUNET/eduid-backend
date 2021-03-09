@@ -34,12 +34,12 @@ import logging
 import os
 from typing import Any, Dict, List, Optional
 
-from eduid_userdb import User
-from eduid_userdb.testing import MongoTemporaryInstance, MongoTestCase
+from eduid.userdb import User
+from eduid.userdb.testing import MongoTemporaryInstance, MongoTestCase
 
-from eduid_common.api.logging import LocalContext, make_dictConfig
-from eduid_common.config.testing import EtcdTemporaryInstance
-from eduid_common.config.workers import AmConfig
+from eduid.common.api.logging import LocalContext, make_dictConfig
+from eduid.common.config.testing import EtcdTemporaryInstance
+from eduid.common.config.workers import AmConfig
 
 logger = logging.getLogger(__name__)
 
@@ -106,13 +106,13 @@ class WorkerTestCase(CommonTestCase):
 
         am_config = AmConfig(**settings)
 
-        # initialize eduid_am without requiring config in etcd
-        import eduid_am
+        # initialize eduid.workers.am without requiring config in etcd
+        import eduid.workers.am
 
-        celery = eduid_am.init_app(am_config.celery)
-        import eduid_am.worker
+        celery = eduid.workers.am.init_app(am_config.celery)
+        import eduid.workers.am.worker
 
-        eduid_am.worker.worker_config = am_config
+        eduid.workers.am.worker.worker_config = am_config
         logger.debug(f'Initialized AM with config:\n{am_config}')
 
-        self.am = eduid_am.get_attribute_manager(celery)
+        self.am = eduid.workers.am.get_attribute_manager(celery)

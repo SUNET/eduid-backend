@@ -2,9 +2,9 @@ from unittest import TestCase
 
 from bson import ObjectId
 
-import eduid_userdb.db as db
-from eduid_userdb.fixtures.users import mocked_user_standard_2, new_unverified_user_example, new_user_example
-from eduid_userdb.testing import MongoTestCase
+import eduid.userdb.db as db
+from eduid.userdb.fixtures.users import mocked_user_standard_2, new_unverified_user_example, new_user_example
+from eduid.userdb.testing import MongoTestCase
 
 
 class DummyDatabase(object):

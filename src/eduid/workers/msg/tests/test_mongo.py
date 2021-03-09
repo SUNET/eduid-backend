@@ -1,4 +1,4 @@
-from eduid_msg.testing import MsgMongoTestCase
+from eduid.workers.msg.testing import MsgMongoTestCase
 
 
 class MessageTest(MsgMongoTestCase):

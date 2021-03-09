@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from typing import Sequence
 
-from eduid_common.config.base import LoggingConfigMixin, LoggingFilters, RootConfig
+from eduid.common.config.base import LoggingConfigMixin, LoggingFilters, RootConfig
 
 __author__ = 'lundberg'
 

@@ -2,12 +2,12 @@ import logging
 from datetime import datetime
 from typing import Any, Mapping
 
-from eduid_common.api.testing import EduidAPITestCase
-from eduid_common.config.parsers import load_config
-from eduid_common.session import EduidSession
-from eduid_common.session.eduid_session import SessionFactory
-from eduid_common.session.meta import SessionMeta
-from eduid_common.session.tests.test_eduid_session import SessionTestApp, SessionTestConfig
+from eduid.common.api.testing import EduidAPITestCase
+from eduid.common.config.parsers import load_config
+from eduid.common.session import EduidSession
+from eduid.common.session.eduid_session import SessionFactory
+from eduid.common.session.meta import SessionMeta
+from eduid.common.session.tests.test_eduid_session import SessionTestApp, SessionTestConfig
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)

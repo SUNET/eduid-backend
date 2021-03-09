@@ -8,8 +8,8 @@ from typing import Any, Dict, Optional, Type, TypeVar, Union
 
 import bson
 
-from eduid_userdb.deprecation import deprecated
-from eduid_userdb.security.element import CodeElement
+from eduid.userdb.deprecation import deprecated
+from eduid.userdb.security.element import CodeElement
 
 __author__ = 'lundberg'
 

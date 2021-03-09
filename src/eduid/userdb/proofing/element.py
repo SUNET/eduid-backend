@@ -36,7 +36,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, Mapping, Optional, Type, TypeVar
 
-from eduid_userdb.element import Element, VerifiedElement
+from eduid.userdb.element import Element, VerifiedElement
 
 __author__ = 'lundberg'
 

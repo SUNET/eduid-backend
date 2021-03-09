@@ -4,15 +4,15 @@ from datetime import datetime, timedelta
 from enum import unique
 from typing import Optional
 
-from eduid_common.api.messages import TranslatableMsg, error_response, success_response
-from eduid_common.api.utils import get_short_hash
-from eduid_common.misc.timeutil import utc_now
-from eduid_userdb import User
-from eduid_userdb.proofing import LetterProofingState, NinProofingElement
-from eduid_userdb.proofing.element import SentLetterElement
+from eduid.common.api.messages import TranslatableMsg, error_response, success_response
+from eduid.common.api.utils import get_short_hash
+from eduid.common.misc.timeutil import utc_now
+from eduid.userdb import User
+from eduid.userdb.proofing import LetterProofingState, NinProofingElement
+from eduid.userdb.proofing.element import SentLetterElement
 
-from eduid_webapp.letter_proofing import pdf
-from eduid_webapp.letter_proofing.app import current_letterp_app as current_app
+from eduid.webapp.letter_proofing import pdf
+from eduid.webapp.letter_proofing.app import current_letterp_app as current_app
 
 __author__ = 'lundberg'
 

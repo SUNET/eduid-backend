@@ -5,10 +5,10 @@ from typing import Any, Dict, Mapping, Optional
 from unittest import skip
 from unittest.mock import patch
 
-from eduid_common.api.testing import EduidAPITestCase
+from eduid.common.api.testing import EduidAPITestCase
 
-from eduid_webapp.security.app import SecurityApp, security_init_app
-from eduid_webapp.security.helpers import SecurityMsg
+from eduid.webapp.security.app import SecurityApp, security_init_app
+from eduid.webapp.security.helpers import SecurityMsg
 
 
 @skip('Not used yet')
@@ -70,7 +70,7 @@ class ChangePasswordTests(EduidAPITestCase):
 
             return client.get('/suggested-password')
 
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     def _change_password(
         self,
         mock_request_user_sync: Any,
@@ -103,7 +103,7 @@ class ChangePasswordTests(EduidAPITestCase):
 
                 return client.post('/change-password', data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     def _get_suggested_and_change(
         self, mock_request_user_sync: Any, data1: Optional[dict] = None, authenticate: bool = True
     ):
@@ -120,9 +120,9 @@ class ChangePasswordTests(EduidAPITestCase):
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.app.test_request_context():
             with self.session_cookie(self.browser, eppn) as client:
-                with patch('eduid_common.authn.vccs.VCCSClient.add_credentials', return_value=True):
-                    with patch('eduid_common.authn.vccs.VCCSClient.revoke_credentials', return_value=True):
-                        with patch('eduid_common.authn.vccs.VCCSClient.authenticate', return_value=authenticate):
+                with patch('eduid.common.authn.vccs.VCCSClient.add_credentials', return_value=True):
+                    with patch('eduid.common.authn.vccs.VCCSClient.revoke_credentials', return_value=True):
+                        with patch('eduid.common.authn.vccs.VCCSClient.authenticate', return_value=authenticate):
                             with client.session_transaction() as sess:
                                 sess['reauthn-for-chpass'] = int(time.time())
                             response2 = client.get('/suggested-password')
@@ -131,7 +131,7 @@ class ChangePasswordTests(EduidAPITestCase):
                             password = passwd['payload']['suggested_password']
 
                             with client.session_transaction() as sess:
-                                # TODO: uncomment after check_password is available in eduid_common
+                                # TODO: uncomment after check_password is available in eduid.common
                                 # sess.security.generated_password_hash = hash_password(password)
                                 data = {
                                     'csrf_token': sess.get_csrf_token(),
@@ -154,7 +154,7 @@ class ChangePasswordTests(EduidAPITestCase):
         passwd = json.loads(response.data)
         self.assertEqual(passwd['type'], "GET_CHANGE_PASSWORD_SUGGESTED_PASSWORD_SUCCESS")
 
-    @patch('eduid_webapp.security.views.change_password.change_password')
+    @patch('eduid.webapp.security.views.change_password.change_password')
     def test_change_passwd(self, mock_change_password):
         mock_change_password.return_value = True
 
@@ -199,7 +199,7 @@ class ChangePasswordTests(EduidAPITestCase):
             response, type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL', msg=SecurityMsg.stale_reauthn
         )
 
-    @patch('eduid_webapp.security.views.change_password.change_password')
+    @patch('eduid.webapp.security.views.change_password.change_password')
     def test_change_passwd_no_csrf(self, mock_change_password):
         mock_change_password.return_value = True
 
@@ -212,7 +212,7 @@ class ChangePasswordTests(EduidAPITestCase):
             error={'csrf_token': ['CSRF failed to validate'],},
         )
 
-    @patch('eduid_webapp.security.views.change_password.change_password')
+    @patch('eduid.webapp.security.views.change_password.change_password')
     def test_change_passwd_wrong_csrf(self, mock_change_password):
         mock_change_password.return_value = True
 
@@ -225,7 +225,7 @@ class ChangePasswordTests(EduidAPITestCase):
             error={'csrf_token': ['CSRF failed to validate'],},
         )
 
-    @patch('eduid_webapp.security.views.change_password.change_password')
+    @patch('eduid.webapp.security.views.change_password.change_password')
     def test_change_passwd_weak(self, mock_change_password):
         mock_change_password.return_value = True
 

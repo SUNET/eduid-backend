@@ -7,9 +7,9 @@ from typing import List, Mapping, Optional, Set, Union
 
 from bson import ObjectId
 
-from eduid_graphdb.exceptions import MultipleGroupsReturned, MultipleUsersReturned
-from eduid_graphdb.groupdb.user import User
-from eduid_graphdb.helpers import neo4j_ts_to_dt
+from eduid.graphdb.exceptions import MultipleGroupsReturned, MultipleUsersReturned
+from eduid.graphdb.groupdb.user import User
+from eduid.graphdb.helpers import neo4j_ts_to_dt
 
 __author__ = 'lundberg'
 

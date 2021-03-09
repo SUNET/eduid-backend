@@ -2,7 +2,7 @@
 
 import unittest
 
-from eduid_webapp.oidc_proofing.helpers import OIDCMsg
+from eduid.webapp.oidc_proofing.helpers import OIDCMsg
 
 
 class MessagesTests(unittest.TestCase):

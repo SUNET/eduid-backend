@@ -1,5 +1,5 @@
-from eduid_lookup_mobile.client.mobile_lookup_client import MobileLookupClient
-from eduid_lookup_mobile.testing import LookupMobileMongoTestCase
+from eduid.workers.lookup_mobile.client.mobile_lookup_client import MobileLookupClient
+from eduid.workers.lookup_mobile.testing import LookupMobileMongoTestCase
 
 
 class TestVerifiers(LookupMobileMongoTestCase):
@@ -7,7 +7,7 @@ class TestVerifiers(LookupMobileMongoTestCase):
         super(TestVerifiers, self).setUp()
 
     def test_find_NIN_by_mobile(self):
-        from eduid_lookup_mobile.tasks import logger
+        from eduid.workers.lookup_mobile.tasks import logger
 
         mobile_verifier = MobileLookupClient(logger, self.lookup_mobile_settings)
 
@@ -17,7 +17,7 @@ class TestVerifiers(LookupMobileMongoTestCase):
         self.assertEqual(mobile_verifier.find_NIN_by_mobile('+46701740699'), None)
 
     def test_find_mobiles_by_NIN(self):
-        from eduid_lookup_mobile.tasks import logger
+        from eduid.workers.lookup_mobile.tasks import logger
 
         mobile_verifier = MobileLookupClient(logger, self.lookup_mobile_settings)
 

@@ -33,12 +33,12 @@ from typing import cast
 
 from mock import patch
 
-from eduid_userdb.fixtures.users import new_user_example
-from eduid_userdb.testing import MongoTestCase
+from eduid.userdb.fixtures.users import new_user_example
+from eduid.userdb.testing import MongoTestCase
 from vccs_client import VCCSClient
 
-from eduid_common.authn import vccs as vccs_module
-from eduid_common.authn.testing import MockVCCSClient
+from eduid.common.authn import vccs as vccs_module
+from eduid.common.authn.testing import MockVCCSClient
 
 
 class VCCSTestCase(MongoTestCase):
@@ -159,7 +159,7 @@ class VCCSTestCase(MongoTestCase):
         self.assertTrue(result3.is_generated)
 
     def test_change_password_error_adding(self):
-        from eduid_common.authn.testing import MockVCCSClient
+        from eduid.common.authn.testing import MockVCCSClient
 
         with patch.object(MockVCCSClient, 'add_credentials'):
             MockVCCSClient.add_credentials.return_value = False
@@ -177,7 +177,7 @@ class VCCSTestCase(MongoTestCase):
     def test_reset_password_error_revoking(self):
         from vccs_client import VCCSClientHTTPError
 
-        from eduid_common.authn.testing import MockVCCSClient
+        from eduid.common.authn.testing import MockVCCSClient
 
         def mock_revoke_creds(*args):
             raise VCCSClientHTTPError('dummy', 500)

@@ -27,17 +27,17 @@ from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest, Forbidden, InternalServerError, TooManyRequests
 from werkzeug.wrappers import Response as WerkzeugResponse
 
-from eduid_common.api import exceptions
-from eduid_common.session import session
-from eduid_common.session.logindata import SSOLoginData
-from eduid_userdb.idp import IdPUser
-from eduid_userdb.idp.user import SAMLAttributeSettings
+from eduid.common.api import exceptions
+from eduid.common.session import session
+from eduid.common.session.logindata import SSOLoginData
+from eduid.userdb.idp import IdPUser
+from eduid.userdb.idp.user import SAMLAttributeSettings
 
-from eduid_webapp.idp import assurance, mischttp
-from eduid_webapp.idp.app import current_idp_app as current_app
-from eduid_webapp.idp.assurance import AssuranceException, MissingMultiFactor, WrongMultiFactor
-from eduid_webapp.idp.idp_actions import check_for_pending_actions
-from eduid_webapp.idp.idp_saml import (
+from eduid.webapp.idp import assurance, mischttp
+from eduid.webapp.idp.app import current_idp_app as current_app
+from eduid.webapp.idp.assurance import AssuranceException, MissingMultiFactor, WrongMultiFactor
+from eduid.webapp.idp.idp_actions import check_for_pending_actions
+from eduid.webapp.idp.idp_saml import (
     AuthnInfo,
     IdP_SAMLRequest,
     ResponseArgs,
@@ -46,9 +46,9 @@ from eduid_webapp.idp.idp_saml import (
     SAMLValidationError,
     gen_key,
 )
-from eduid_webapp.idp.service import Service
-from eduid_webapp.idp.sso_session import SSOSession
-from eduid_webapp.idp.util import b64encode, get_requested_authn_context
+from eduid.webapp.idp.service import Service
+from eduid.webapp.idp.sso_session import SSOSession
+from eduid.webapp.idp.util import b64encode, get_requested_authn_context
 
 
 class MustAuthenticate(Exception):

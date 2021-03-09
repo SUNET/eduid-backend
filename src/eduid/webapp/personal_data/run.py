@@ -32,7 +32,7 @@
 #
 
 
-from eduid_webapp.personal_data.app import pd_init_app
+from eduid.webapp.personal_data.app import pd_init_app
 
 app = pd_init_app()
 

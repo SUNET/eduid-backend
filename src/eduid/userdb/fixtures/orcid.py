@@ -33,7 +33,7 @@
 
 from datetime import datetime
 
-from eduid_userdb.orcid import Orcid
+from eduid.userdb.orcid import Orcid
 
 dashboard_orcid = Orcid.from_dict(
     {

@@ -4,8 +4,8 @@ import pytest
 from celery.exceptions import Retry
 from mock import MagicMock, call, patch
 
-from eduid_msg.testing import MsgMongoTestCase
-from eduid_msg.utils import load_template
+from eduid.workers.msg.testing import MsgMongoTestCase
+from eduid.workers.msg.utils import load_template
 
 
 class TestTasks(MsgMongoTestCase):
@@ -73,7 +73,7 @@ class TestTasks(MsgMongoTestCase):
 
     @patch('smscom.SMSClient.send')
     def test_send_message_sms(self, sms_mock):
-        from eduid_msg.tasks import send_message
+        from eduid.workers.msg.tasks import send_message
 
         sms_mock.return_value = True
         status = send_message.delay('sms', 'reference', self.msg_dict, '+466666', 'test.tmpl', 'sv_SE').get()
@@ -85,7 +85,7 @@ class TestTasks(MsgMongoTestCase):
         self.assertTrue(status)
 
     def test_send_message_invalid_phone_number(self):
-        from eduid_msg.tasks import send_message
+        from eduid.workers.msg.tasks import send_message
 
         with pytest.raises(Retry) as exc_info:
             send_message.delay('sms', 'reference', self.msg_dict, '+466666a', 'test.tmpl', 'sv_SE').get()
@@ -94,7 +94,7 @@ class TestTasks(MsgMongoTestCase):
 
     @patch('smscom.SMSClient.send', side_effect=Exception('Unrecoverable error'))
     def test_send_message_sms_exception(self, sms_mock):
-        from eduid_msg.tasks import send_message
+        from eduid.workers.msg.tasks import send_message
 
         sms_mock.return_value = True
         with self.assertRaises(Exception):
@@ -102,7 +102,7 @@ class TestTasks(MsgMongoTestCase):
 
     @patch('eduid_msg.tasks.MessageRelay.mm_api')
     def test_is_reachable_cache(self, api_mock):
-        from eduid_msg.tasks import is_reachable
+        from eduid.workers.msg.tasks import is_reachable
 
         response = self.response()
         response.data = self.recipient_ok
@@ -115,7 +115,7 @@ class TestTasks(MsgMongoTestCase):
 
     @patch('eduid_msg.tasks.MessageRelay.mm_api')
     def test_send_message_mm(self, api_mock):
-        from eduid_msg.tasks import send_message
+        from eduid.workers.msg.tasks import send_message
 
         reachable_response = self.response()
         reachable_response.data = self.recipient_ok
@@ -146,7 +146,7 @@ class TestTasks(MsgMongoTestCase):
 
     @patch('eduid_msg.tasks.MessageRelay.mm_api')
     def test_send_message_mm_sender_not_accepted(self, api_mock):
-        from eduid_msg.tasks import send_message
+        from eduid.workers.msg.tasks import send_message
 
         reachable_response = self.response()
         reachable_response.data = self.recipient_sender_not
@@ -158,7 +158,7 @@ class TestTasks(MsgMongoTestCase):
 
     @patch('eduid_msg.tasks.MessageRelay.mm_api')
     def test_send_message_mm_recipient_not_existing(self, api_mock):
-        from eduid_msg.tasks import send_message
+        from eduid.workers.msg.tasks import send_message
 
         reachable_response = self.response()
         reachable_response.data = self.recipient_not
@@ -170,7 +170,7 @@ class TestTasks(MsgMongoTestCase):
 
     @patch('eduid_msg.tasks.MessageRelay.mm_api')
     def test_send_message_mm_recipient_anonymous(self, api_mock):
-        from eduid_msg.tasks import send_message
+        from eduid.workers.msg.tasks import send_message
 
         reachable_response = self.response()
         reachable_response.data = self.recipient_anon
@@ -181,7 +181,7 @@ class TestTasks(MsgMongoTestCase):
         self.assertEqual(status, "Anonymous")
 
     def test_ping(self):
-        from eduid_msg.tasks import pong
+        from eduid.workers.msg.tasks import pong
 
         ret = pong.delay().get()
         self.assertEqual(ret, 'pong')

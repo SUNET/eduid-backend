@@ -38,7 +38,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
-from eduid_userdb.element import VerifiedElement
+from eduid.userdb.element import VerifiedElement
 
 __author__ = 'ft'
 

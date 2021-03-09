@@ -39,10 +39,10 @@ from saml2.metadata import entity_descriptor
 from werkzeug.exceptions import Forbidden
 from werkzeug.wrappers import Response as WerkzeugResponse
 
-from eduid_common.api.utils import verify_relay_state
-from eduid_common.authn.acs_registry import get_action, schedule_action
-from eduid_common.authn.cache import IdentityCache, StateCache
-from eduid_common.authn.eduid_saml2 import (
+from eduid.common.api.utils import verify_relay_state
+from eduid.common.authn.acs_registry import get_action, schedule_action
+from eduid.common.authn.cache import IdentityCache, StateCache
+from eduid.common.authn.eduid_saml2 import (
     BadSAMLResponse,
     UnsolicitedResponse,
     authenticate,
@@ -50,12 +50,12 @@ from eduid_common.authn.eduid_saml2 import (
     get_authn_response,
     saml_logout,
 )
-from eduid_common.authn.utils import check_previous_identification, get_location
-from eduid_common.session import session
+from eduid.common.authn.utils import check_previous_identification, get_location
+from eduid.common.session import session
 
-from eduid_webapp.authn import acs_actions  # acs_action needs to be imported to be loaded
-from eduid_webapp.authn.acs_actions import AuthnAcsAction
-from eduid_webapp.authn.app import current_authn_app as current_app
+from eduid.webapp.authn import acs_actions  # acs_action needs to be imported to be loaded
+from eduid.webapp.authn.acs_actions import AuthnAcsAction
+from eduid.webapp.authn.app import current_authn_app as current_app
 
 assert acs_actions  # make sure nothing optimises away the import of this, as it is needed to execute @acs_actions
 

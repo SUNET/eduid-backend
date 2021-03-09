@@ -1,7 +1,7 @@
 from datetime import datetime
 from time import time
 
-from eduid_userdb.db import MongoDB
+from eduid.userdb.db import MongoDB
 
 
 # TODO: Update to use mongodb built-in expiry

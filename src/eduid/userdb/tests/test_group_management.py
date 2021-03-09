@@ -3,9 +3,9 @@ from uuid import uuid4
 
 from pymongo.errors import DuplicateKeyError
 
-from eduid_userdb.fixtures.users import mocked_user_standard
-from eduid_userdb.group_management import GroupInviteState, GroupManagementInviteStateDB, GroupRole
-from eduid_userdb.testing import MongoTestCase
+from eduid.userdb.fixtures.users import mocked_user_standard
+from eduid.userdb.group_management import GroupInviteState, GroupManagementInviteStateDB, GroupRole
+from eduid.userdb.testing import MongoTestCase
 
 __author__ = 'lundberg'
 

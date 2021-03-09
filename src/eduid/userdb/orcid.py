@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Type
 
-from eduid_userdb.element import Element, VerifiedElement
+from eduid.userdb.element import Element, VerifiedElement
 
 __author__ = 'lundberg'
 
@@ -61,7 +61,7 @@ class OidcIdToken(Element, _OidcIdTokenRequired):
         """
         data = super()._from_dict_transform(data)
 
-        # these keys appear in the data sample in the eduid_userdb.tests.test_orcid module
+        # these keys appear in the data sample in the eduid.userdb.tests.test_orcid module
         for key in ('at_hash', 'family_name', 'given_name', 'jti'):
             if key in data:
                 del data[key]
@@ -103,7 +103,7 @@ class OidcAuthorization(Element, _OidcAuthorizationRequired):
         """
         data = super()._from_dict_transform(data)
 
-        # these keys appear in the data sample in the eduid_userdb.tests.test_orcid module
+        # these keys appear in the data sample in the eduid.userdb.tests.test_orcid module
         for key in ('name', 'orcid', 'scope'):
             if key in data:
                 del data[key]

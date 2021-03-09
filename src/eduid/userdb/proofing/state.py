@@ -41,8 +41,8 @@ from typing import Mapping, MutableMapping, Optional, Set
 
 import bson
 
-from eduid_userdb.exceptions import UserDBValueError
-from eduid_userdb.proofing.element import (
+from eduid.userdb.exceptions import UserDBValueError
+from eduid.userdb.proofing.element import (
     EmailProofingElement,
     NinProofingElement,
     PhoneProofingElement,

@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from eduid_webapp.orcid.app import init_orcid_app
+from eduid.webapp.orcid.app import init_orcid_app
 
 app = init_orcid_app()
 

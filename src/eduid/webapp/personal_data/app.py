@@ -35,12 +35,12 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid_common.api.am import AmRelay
-from eduid_common.authn.middleware import AuthnBaseApp
-from eduid_common.config.parsers import load_config
-from eduid_userdb.personal_data import PersonalDataUserDB
+from eduid.common.api.am import AmRelay
+from eduid.common.authn.middleware import AuthnBaseApp
+from eduid.common.config.parsers import load_config
+from eduid.userdb.personal_data import PersonalDataUserDB
 
-from eduid_webapp.personal_data.settings import PersonalDataConfig
+from eduid.webapp.personal_data.settings import PersonalDataConfig
 
 
 class PersonalDataApp(AuthnBaseApp):
@@ -71,7 +71,7 @@ def pd_init_app(name: str = 'personal_data', test_config: Optional[Mapping[str, 
 
     app.logger.info(f'Init {app}...')
 
-    from eduid_webapp.personal_data.views import pd_views
+    from eduid.webapp.personal_data.views import pd_views
 
     app.register_blueprint(pd_views)
 

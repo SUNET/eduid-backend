@@ -2,18 +2,18 @@ from typing import Dict, Optional
 
 import falcon
 
-from eduid_common.config.parsers import load_config
+from eduid.common.config.parsers import load_config
 
-from eduid_scimapi import exceptions
-from eduid_scimapi.config import ScimApiConfig
-from eduid_scimapi.context import Context
-from eduid_scimapi.middleware import HandleAuthentication, HandleSCIM
-from eduid_scimapi.resources.events import EventsResource
-from eduid_scimapi.resources.groups import GroupSearchResource, GroupsResource
-from eduid_scimapi.resources.invites import InviteSearchResource, InvitesResource
-from eduid_scimapi.resources.login import LoginResource
-from eduid_scimapi.resources.status import HealthCheckResource
-from eduid_scimapi.resources.users import UsersResource, UsersSearchResource
+from eduid.scimapi import exceptions
+from eduid.scimapi.config import ScimApiConfig
+from eduid.scimapi.context import Context
+from eduid.scimapi.middleware import HandleAuthentication, HandleSCIM
+from eduid.scimapi.resources.events import EventsResource
+from eduid.scimapi.resources.groups import GroupSearchResource, GroupsResource
+from eduid.scimapi.resources.invites import InviteSearchResource, InvitesResource
+from eduid.scimapi.resources.login import LoginResource
+from eduid.scimapi.resources.status import HealthCheckResource
+from eduid.scimapi.resources.users import UsersResource, UsersSearchResource
 
 
 def init_api(name: str = 'scimapi', test_config: Optional[Dict] = None) -> falcon.API:

@@ -3,8 +3,8 @@ import datetime
 from falcon import Request, Response
 from jose import jwt
 
-from eduid_scimapi.exceptions import Unauthorized
-from eduid_scimapi.resources.base import BaseResource
+from eduid.scimapi.exceptions import Unauthorized
+from eduid.scimapi.resources.base import BaseResource
 
 
 class LoginResource(BaseResource):

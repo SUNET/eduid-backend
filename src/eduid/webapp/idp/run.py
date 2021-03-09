@@ -30,7 +30,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from eduid_webapp.idp.app import init_idp_app
+from eduid.webapp.idp.app import init_idp_app
 
 app = init_idp_app()
 

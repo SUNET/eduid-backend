@@ -42,17 +42,17 @@ from typing import Any, Dict, List, Mapping, Optional, Type, TypeVar, cast
 
 import bson
 
-from eduid_userdb.credentials import CredentialList
-from eduid_userdb.db import BaseDB
-from eduid_userdb.element import UserDBValueError
-from eduid_userdb.exceptions import UserHasNotCompletedSignup, UserIsRevoked
-from eduid_userdb.locked_identity import LockedIdentityList
-from eduid_userdb.mail import MailAddressList
-from eduid_userdb.nin import NinList
-from eduid_userdb.orcid import Orcid
-from eduid_userdb.phone import PhoneNumberList
-from eduid_userdb.profile import ProfileList
-from eduid_userdb.tou import ToUList
+from eduid.userdb.credentials import CredentialList
+from eduid.userdb.db import BaseDB
+from eduid.userdb.element import UserDBValueError
+from eduid.userdb.exceptions import UserHasNotCompletedSignup, UserIsRevoked
+from eduid.userdb.locked_identity import LockedIdentityList
+from eduid.userdb.mail import MailAddressList
+from eduid.userdb.nin import NinList
+from eduid.userdb.orcid import Orcid
+from eduid.userdb.phone import PhoneNumberList
+from eduid.userdb.profile import ProfileList
+from eduid.userdb.tou import ToUList
 
 TUserSubclass = TypeVar('TUserSubclass', bound='User')
 
@@ -236,7 +236,7 @@ class User(object):
         :return: User proper
         """
         # We cast here to avoid importing UserDB at the module level thus creating a circular import
-        from eduid_userdb import UserDB
+        from eduid.userdb import UserDB
 
         private_userdb = cast(UserDB, private_userdb)
 

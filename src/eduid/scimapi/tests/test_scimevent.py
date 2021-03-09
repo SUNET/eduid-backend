@@ -5,11 +5,11 @@ from uuid import UUID, uuid4
 
 from falcon.testing import Result
 
-from eduid_scimapi.db.eventdb import EventLevel
-from eduid_scimapi.schemas.event import EventResponse, EventResponseSchema, NutidEventExtensionV1
-from eduid_scimapi.schemas.scimbase import SCIMResourceType, SCIMSchema
-from eduid_scimapi.testing import ScimApiTestCase
-from eduid_scimapi.utils import make_etag
+from eduid.scimapi.db.eventdb import EventLevel
+from eduid.scimapi.schemas.event import EventResponse, EventResponseSchema, NutidEventExtensionV1
+from eduid.scimapi.schemas.scimbase import SCIMResourceType, SCIMSchema
+from eduid.scimapi.testing import ScimApiTestCase
+from eduid.scimapi.utils import make_etag
 
 
 @dataclass

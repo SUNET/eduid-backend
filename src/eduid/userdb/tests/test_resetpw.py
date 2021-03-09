@@ -30,8 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from eduid_userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState, ResetPasswordStateDB
-from eduid_userdb.testing import MongoTestCase
+from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState, ResetPasswordStateDB
+from eduid.userdb.testing import MongoTestCase
 
 
 class TestResetPasswordStateDB(MongoTestCase):

@@ -41,11 +41,11 @@ from typing import Any, Dict, List, Mapping, NewType, Optional, Type
 import bson
 from bson import ObjectId
 
-from eduid_common.misc.timeutil import utc_now
-from eduid_common.session.logindata import ExternalMfaData
-from eduid_userdb.idp import IdPUser, IdPUserDb
+from eduid.common.misc.timeutil import utc_now
+from eduid.common.session.logindata import ExternalMfaData
+from eduid.userdb.idp import IdPUser, IdPUserDb
 
-from eduid_webapp.idp.idp_authn import AuthnData
+from eduid.webapp.idp.idp_authn import AuthnData
 
 # A distinct type for session ids
 SSOSessionId = NewType('SSOSessionId', bytes)

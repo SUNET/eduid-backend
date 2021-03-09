@@ -7,12 +7,12 @@ from html import escape
 from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional, Type
 from urllib.parse import urlencode
 
-from eduid_userdb.credentials import Credential
+from eduid.userdb.credentials import Credential
 
-from eduid_common.session.namespaces import SessionNSBase
+from eduid.common.session.namespaces import SessionNSBase
 
 if TYPE_CHECKING:
-    from eduid_webapp.idp.idp_saml import IdP_SAMLRequest
+    from eduid.webapp.idp.idp_saml import IdP_SAMLRequest
 
 #
 # Copyright (c) 2013, 2014, 2016 NORDUnet A/S. All rights reserved.

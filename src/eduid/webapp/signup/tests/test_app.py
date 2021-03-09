@@ -37,12 +37,12 @@ from typing import Any, Dict, Mapping, Optional
 
 from mock import patch
 
-from eduid_common.api.testing import EduidAPITestCase
-from eduid_userdb.exceptions import UserOutOfSync
-from eduid_userdb.signup import SignupUser
+from eduid.common.api.testing import EduidAPITestCase
+from eduid.userdb.exceptions import UserOutOfSync
+from eduid.userdb.signup import SignupUser
 
-from eduid_webapp.signup.app import SignupApp, signup_init_app
-from eduid_webapp.signup.verifications import send_verification_mail
+from eduid.webapp.signup.app import SignupApp, signup_init_app
+from eduid.webapp.signup.verifications import send_verification_mail
 
 
 class SignupTests(EduidAPITestCase):
@@ -92,8 +92,8 @@ class SignupTests(EduidAPITestCase):
 
     # parameterized test methods
 
-    @patch('eduid_webapp.signup.views.verify_recaptcha')
-    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid.webapp.signup.views.verify_recaptcha')
+    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
     def _captcha_new(
         self,
         mock_sendmail: Any,
@@ -130,8 +130,8 @@ class SignupTests(EduidAPITestCase):
                         )
             return client.post('/trycaptcha', data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch('eduid_webapp.signup.views.verify_recaptcha')
-    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid.webapp.signup.views.verify_recaptcha')
+    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
     def _resend_email(
         self, mock_sendmail: Any, mock_recaptcha: Any, data1: Optional[dict] = None, email: str = 'dummy@example.com'
     ):
@@ -153,9 +153,9 @@ class SignupTests(EduidAPITestCase):
 
             return client.post('/resend-verification', data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch('eduid_webapp.signup.views.verify_recaptcha')
-    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.webapp.signup.views.verify_recaptcha')
+    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     @patch('vccs_client.VCCSClient.add_credentials')
     def _verify_code(
         self,
@@ -186,9 +186,9 @@ class SignupTests(EduidAPITestCase):
 
                     return client.get('/verify-link/' + code)
 
-    @patch('eduid_webapp.signup.views.verify_recaptcha')
-    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.webapp.signup.views.verify_recaptcha')
+    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     @patch('vccs_client.VCCSClient.add_credentials')
     def _verify_code_after_captcha(
         self,
@@ -233,9 +233,9 @@ class SignupTests(EduidAPITestCase):
             response = client.get('/verify-link/' + signup_user.pending_mail_address.verification_code)
             return json.loads(response.data)
 
-    @patch('eduid_webapp.signup.views.verify_recaptcha')
-    @patch('eduid_common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.webapp.signup.views.verify_recaptcha')
+    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     @patch('vccs_client.VCCSClient.add_credentials')
     def _get_code_backdoor(
         self,
@@ -402,7 +402,7 @@ class SignupTests(EduidAPITestCase):
         self.assertEqual(data['type'], 'POST_SIGNUP_TRYCAPTCHA_FAIL')
 
     def test_captcha_unsynced(self):
-        with patch('eduid_webapp.signup.helpers.save_and_sync_user') as mock_save:
+        with patch('eduid.webapp.signup.helpers.save_and_sync_user') as mock_save:
             mock_save.side_effect = UserOutOfSync('unsync')
             response = self._captcha_new()
             data = json.loads(response.data)
@@ -462,7 +462,7 @@ class SignupTests(EduidAPITestCase):
         assert mixed_user.mail_addresses.primary.email == lower_user.mail_addresses.primary.email
 
     def test_verify_code_unsynced(self):
-        with patch('eduid_webapp.signup.helpers.save_and_sync_user') as mock_save:
+        with patch('eduid.webapp.signup.helpers.save_and_sync_user') as mock_save:
             mock_save.side_effect = UserOutOfSync('unsync')
             response = self._verify_code()
             data = json.loads(response.data)
@@ -492,9 +492,9 @@ class SignupTests(EduidAPITestCase):
         self.assertEqual(data['type'], 'GET_SIGNUP_VERIFY_LINK_SUCCESS')
 
     def test_verify_code_after_captcha_proofing_log_error(self):
-        from eduid_webapp.signup.verifications import ProofingLogFailure
+        from eduid.webapp.signup.verifications import ProofingLogFailure
 
-        with patch('eduid_webapp.signup.views.verify_email_code') as mock_verify:
+        with patch('eduid.webapp.signup.views.verify_email_code') as mock_verify:
             mock_verify.side_effect = ProofingLogFailure('fail')
             data = self._verify_code_after_captcha()
             self.assertEqual(data['type'], 'GET_SIGNUP_VERIFY_LINK_FAIL')

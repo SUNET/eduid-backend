@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from unittest import TestCase
 from uuid import uuid4
 
-from eduid_userdb.signup import Invite, InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
+from eduid.userdb.signup import Invite, InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
 
 
 class TestSignupInvite(TestCase):

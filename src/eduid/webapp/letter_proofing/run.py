@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from eduid_webapp.letter_proofing.app import init_letter_proofing_app
+from eduid.webapp.letter_proofing.app import init_letter_proofing_app
 
 app = init_letter_proofing_app()
 

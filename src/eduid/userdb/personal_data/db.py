@@ -32,8 +32,8 @@
 #
 import logging
 
-from eduid_userdb.personal_data.user import PersonalDataUser
-from eduid_userdb.userdb import UserDB
+from eduid.userdb.personal_data.user import PersonalDataUser
+from eduid.userdb.userdb import UserDB
 
 logger = logging.getLogger(__name__)
 

@@ -36,7 +36,7 @@ from typing import Dict
 
 from pydantic import Field
 
-from eduid_common.config.base import AmConfigMixin, EduIDBaseAppConfig, MailConfigMixin, MsgConfigMixin
+from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig, MailConfigMixin, MsgConfigMixin
 
 
 class OIDCProofingConfig(EduIDBaseAppConfig, MsgConfigMixin, AmConfigMixin, MailConfigMixin):

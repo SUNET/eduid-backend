@@ -3,10 +3,10 @@ from unittest import TestCase
 import nacl
 import pytest
 
-from eduid_common.config.base import RedisConfig
-from eduid_common.session.meta import SessionMeta
-from eduid_common.session.redis_session import RedisEncryptedSession, SessionManager, SessionOutOfSync
-from eduid_common.session.testing import RedisTemporaryInstance
+from eduid.common.config.base import RedisConfig
+from eduid.common.session.meta import SessionMeta
+from eduid.common.session.redis_session import RedisEncryptedSession, SessionManager, SessionOutOfSync
+from eduid.common.session.testing import RedisTemporaryInstance
 
 
 class TestSession(TestCase):

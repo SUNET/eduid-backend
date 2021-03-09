@@ -38,14 +38,14 @@ from typing import Any, Mapping
 from flask import redirect, request
 from saml2.ident import code
 
-from eduid_common.api.utils import verify_relay_state
-from eduid_common.authn.acs_registry import acs_action
-from eduid_common.authn.utils import get_saml_attribute
-from eduid_common.session import session
-from eduid_common.session.namespaces import LoginApplication
-from eduid_userdb import User
+from eduid.common.api.utils import verify_relay_state
+from eduid.common.authn.acs_registry import acs_action
+from eduid.common.authn.utils import get_saml_attribute
+from eduid.common.session import session
+from eduid.common.session.namespaces import LoginApplication
+from eduid.userdb import User
 
-from eduid_webapp.authn.app import current_authn_app as current_app
+from eduid.webapp.authn.app import current_authn_app as current_app
 
 
 @unique
@@ -87,7 +87,7 @@ def login_action(session_info, user):
     :type session_info: dict
 
     :param user: the authenticated user
-    :type user: eduid_userdb.User
+    :type user: eduid.userdb.User
     """
     current_app.logger.info("User {} logging in.".format(user))
     update_user_session(session_info, user)
@@ -112,7 +112,7 @@ def chpass_action(session_info, user):
     :type session_info: dict
 
     :param user: the authenticated user
-    :type user: eduid_userdb.User
+    :type user: eduid.userdb.User
     """
     current_app.stats.count('reauthn_chpass_success')
     return _reauthn('reauthn-for-chpass', session_info, user)
@@ -129,7 +129,7 @@ def term_account_action(session_info, user):
     :type session_info: dict
 
     :param user: the authenticated user
-    :type user: eduid_userdb.User
+    :type user: eduid.userdb.User
     """
     current_app.stats.count('reauthn_termination_success')
     return _reauthn('reauthn-for-termination', session_info, user)
@@ -146,7 +146,7 @@ def reauthn_account_action(session_info, user):
     :type session_info: dict
 
     :param user: the authenticated user
-    :type user: eduid_userdb.User
+    :type user: eduid.userdb.User
     """
     current_app.stats.count('reauthn_success')
     return _reauthn('reauthn', session_info, user)

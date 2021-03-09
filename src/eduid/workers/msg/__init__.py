@@ -8,10 +8,10 @@ from typing import Optional
 
 from celery import Celery
 
-from eduid_common.config.base import CeleryConfig
-from eduid_common.rpc.celery import init_celery as _init_celery
+from eduid.common.config.base import CeleryConfig
+from eduid.common.rpc.celery import init_celery as _init_celery
 
-import eduid_msg.common as common
+import eduid.workers.msg.common as common
 
 
 def init_app(config: Optional[CeleryConfig]) -> Celery:
@@ -23,7 +23,7 @@ def get_message_relay(celery_app):
     """
     Function that return a celery task list.
     """
-    import eduid_msg.tasks
+    import eduid.workers.msg.tasks
 
     return celery_app.tasks['eduid_msg.tasks.send_message']
 
@@ -32,6 +32,6 @@ def get_mail_relay(celery_app):
     """
     Function that return a celery task list.
     """
-    import eduid_msg.tasks
+    import eduid.workers.msg.tasks
 
     return celery_app.tasks['eduid_msg.tasks.sendmail']

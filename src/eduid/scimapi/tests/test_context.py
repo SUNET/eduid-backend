@@ -1,8 +1,8 @@
-from eduid_common.config.parsers import load_config
+from eduid.common.config.parsers import load_config
 
-from eduid_scimapi.config import ScimApiConfig
-from eduid_scimapi.context import Context
-from eduid_scimapi.testing import ScimApiTestCase
+from eduid.scimapi.config import ScimApiConfig
+from eduid.scimapi.context import Context
+from eduid.scimapi.testing import ScimApiTestCase
 
 
 class TestContext(ScimApiTestCase):

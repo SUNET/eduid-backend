@@ -34,16 +34,16 @@ from uuid import UUID
 
 from flask import Blueprint
 
-from eduid_common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid_common.api.messages import CommonMsg, FluxData, error_response, success_response
-from eduid_graphdb.groupdb import User as GraphUser
-from eduid_scimapi.db.groupdb import ScimApiGroup
-from eduid_userdb import User
-from eduid_userdb.exceptions import EduIDDBError
-from eduid_userdb.group_management import GroupRole
+from eduid.common.api.decorators import MarshalWith, UnmarshalWith, require_user
+from eduid.common.api.messages import CommonMsg, FluxData, error_response, success_response
+from eduid.graphdb.groupdb import User as GraphUser
+from eduid.scimapi.db.groupdb import ScimApiGroup
+from eduid.userdb import User
+from eduid.userdb.exceptions import EduIDDBError
+from eduid.userdb.group_management import GroupRole
 
-from eduid_webapp.group_management.app import current_group_management_app as current_app
-from eduid_webapp.group_management.helpers import (
+from eduid.webapp.group_management.app import current_group_management_app as current_app
+from eduid.webapp.group_management.helpers import (
     GroupManagementMsg,
     get_all_group_data,
     get_incoming_invites,
@@ -53,7 +53,7 @@ from eduid_webapp.group_management.helpers import (
     is_owner,
     remove_user_from_group,
 )
-from eduid_webapp.group_management.schemas import (
+from eduid.webapp.group_management.schemas import (
     GroupCreateRequestSchema,
     GroupDeleteRequestSchema,
     GroupManagementAllDataResponseSchema,

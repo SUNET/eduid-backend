@@ -30,7 +30,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from eduid_userdb.credentials import U2F, Webauthn
+from eduid.userdb.credentials import U2F, Webauthn
 
 webauthn_credential = Webauthn.from_dict(
     dict(

@@ -42,13 +42,13 @@ from saml2.ident import decode
 from saml2.response import LogoutResponse, UnsolicitedResponse
 from werkzeug.wrappers import Response
 
-from eduid_userdb import UserDB
-from eduid_userdb.exceptions import MultipleUsersReturned, UserDoesNotExist
-from eduid_userdb.user import User
+from eduid.userdb import UserDB
+from eduid.userdb.exceptions import MultipleUsersReturned, UserDoesNotExist
+from eduid.userdb.user import User
 
-from eduid_common.api.app import EduIDBaseApp
-from eduid_common.api.utils import verify_relay_state
-from eduid_common.session import EduidSession, session
+from eduid.common.api.app import EduIDBaseApp
+from eduid.common.api.utils import verify_relay_state
+from eduid.common.session import EduidSession, session
 
 from .cache import IdentityCache, OutstandingQueriesCache, StateCache
 from .utils import SPConfig, get_saml_attribute

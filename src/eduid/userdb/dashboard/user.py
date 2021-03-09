@@ -41,8 +41,8 @@ from typing import Optional, Union
 
 import bson
 
-from eduid_userdb import User
-from eduid_userdb.exceptions import UserDBValueError, UserOutOfSync
+from eduid.userdb import User
+from eduid.userdb.exceptions import UserDBValueError, UserOutOfSync
 
 log = logging.getLogger('eduiddashboard')
 
@@ -50,7 +50,7 @@ log = logging.getLogger('eduiddashboard')
 @dataclass
 class DashboardUser(User):
     """
-    Subclass of eduid_userdb.User with eduid Dashboard application specific data.
+    Subclass of eduid.userdb.User with eduid Dashboard application specific data.
     """
 
     def add_letter_proofing_data(self, data):

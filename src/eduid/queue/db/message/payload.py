@@ -31,7 +31,7 @@
 from dataclasses import dataclass
 from typing import Mapping
 
-from eduid_queue.db import Payload
+from eduid.queue.db import Payload
 
 __author__ = 'lundberg'
 

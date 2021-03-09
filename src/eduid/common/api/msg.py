@@ -2,10 +2,10 @@
 import logging
 from typing import List
 
-import eduid_msg
+import eduid.workers.msg
 
-from eduid_common.api.exceptions import MsgTaskFailed
-from eduid_common.config.base import MsgConfigMixin
+from eduid.common.api.exceptions import MsgTaskFailed
+from eduid.common.config.base import MsgConfigMixin
 
 __author__ = 'lundberg'
 
@@ -28,9 +28,9 @@ LANGUAGE_MAPPING = {
 class MsgRelay(object):
     def __init__(self, config: MsgConfigMixin):
         self.conf = config
-        eduid_msg.init_app(config.celery)
-        # these have to be imported _after_ eduid_msg.init_app()
-        from eduid_msg.tasks import get_postal_address, get_relations_to, pong, send_message, sendsms
+        eduid.workers.msg.init_app(config.celery)
+        # these have to be imported _after_ eduid.workers.msg.init_app()
+        from eduid.workers.msg.tasks import get_postal_address, get_relations_to, pong, send_message, sendsms
 
         self._get_postal_address = get_postal_address
         self._get_relations_to = get_relations_to

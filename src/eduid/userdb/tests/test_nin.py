@@ -3,10 +3,10 @@ import datetime
 import unittest
 from unittest import TestCase
 
-import eduid_userdb.element
-import eduid_userdb.exceptions
-from eduid_userdb.element import Element
-from eduid_userdb.nin import Nin, NinList
+import eduid.userdb.element
+import eduid.userdb.exceptions
+from eduid.userdb.element import Element
+from eduid.userdb.nin import Nin, NinList
 
 __author__ = 'ft'
 
@@ -38,7 +38,7 @@ class TestNinList(unittest.TestCase):
         self.three = NinList([_one_dict, _two_dict, _three_dict])
 
     def test_init_bad_data(self):
-        with self.assertRaises(eduid_userdb.element.UserDBValueError):
+        with self.assertRaises(eduid.userdb.element.UserDBValueError):
             NinList('bad input data')
 
     def test_to_list(self):
@@ -68,7 +68,7 @@ class TestNinList(unittest.TestCase):
 
     def test_add_duplicate(self):
         dup = self.two.find(self.two.primary.number)
-        with self.assertRaises(eduid_userdb.element.DuplicateElementViolation):
+        with self.assertRaises(eduid.userdb.element.DuplicateElementViolation):
             self.two.add(dup)
 
     def test_add_mailaddress(self):
@@ -81,8 +81,8 @@ class TestNinList(unittest.TestCase):
         assert obtained == expected, 'List with added mail address has unexpected data'
 
     def test_add_another_primary(self):
-        new = eduid_userdb.nin.nin_from_dict({'number': '+46700000009', 'verified': True, 'primary': True,})
-        with self.assertRaises(eduid_userdb.element.PrimaryElementViolation):
+        new = eduid.userdb.nin.nin_from_dict({'number': '+46700000009', 'verified': True, 'primary': True,})
+        with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
             self.one.add(new)
 
     def test_add_wrong_type(self):
@@ -90,7 +90,7 @@ class TestNinList(unittest.TestCase):
             'created_by': 'tests',
         }
         new = Element.from_dict(elemdict)
-        with self.assertRaises(eduid_userdb.element.UserDBValueError):
+        with self.assertRaises(eduid.userdb.element.UserDBValueError):
             self.one.add(new)
 
     def test_remove(self):
@@ -102,11 +102,11 @@ class TestNinList(unittest.TestCase):
         assert obtained == expected, 'List with removed NIN has unexpected data'
 
     def test_remove_unknown(self):
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+        with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
             self.one.remove('+46709999999')
 
     def test_remove_primary(self):
-        with self.assertRaises(eduid_userdb.element.PrimaryElementViolation):
+        with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
             self.two.remove(self.two.primary.number)
 
     def test_remove_primary_single(self):
@@ -128,11 +128,11 @@ class TestNinList(unittest.TestCase):
         self.two.primary = match.number
 
     def test_set_unknown_as_primary(self):
-        with self.assertRaises(eduid_userdb.exceptions.UserDBValueError):
+        with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
             self.one.primary = '+46709999999'
 
     def test_set_unverified_as_primary(self):
-        with self.assertRaises(eduid_userdb.element.PrimaryElementViolation):
+        with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
             self.three.primary = '197803033456'
 
     def test_change_primary(self):
@@ -147,13 +147,13 @@ class TestNinList(unittest.TestCase):
         two = copy.deepcopy(_two_dict)
         one['primary'] = True
         two['primary'] = True
-        with self.assertRaises(eduid_userdb.element.PrimaryElementViolation):
+        with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
             NinList([one, two])
 
     def test_bad_input_unverified_primary(self):
         one = copy.deepcopy(_one_dict)
         one['verified'] = False
-        with self.assertRaises(eduid_userdb.element.PrimaryElementViolation):
+        with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
             this = NinList([one])
 
 
@@ -181,7 +181,7 @@ class TestNin(TestCase):
 
     def test_changing_is_verified_on_primary(self):
         this = self.one.primary
-        with self.assertRaises(eduid_userdb.element.PrimaryElementViolation):
+        with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
             this.is_verified = False
 
     def test_changing_is_verified(self):

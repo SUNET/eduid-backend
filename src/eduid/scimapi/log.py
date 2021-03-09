@@ -3,12 +3,12 @@ import logging
 import pprint
 from logging.config import dictConfig
 
-from eduid_common.api.logging import LocalContext, LoggingFilters, make_dictConfig, merge_config
-from eduid_common.config.exceptions import BadConfiguration
+from eduid.common.api.logging import LocalContext, LoggingFilters, make_dictConfig, merge_config
+from eduid.common.config.exceptions import BadConfiguration
 
 __author__ = 'lundberg'
 
-from eduid_scimapi.config import ScimApiConfig
+from eduid.scimapi.config import ScimApiConfig
 
 DEFAULT_FORMAT = '{asctime} | {levelname:7} | {hostname} | {name:35} | {module:10} | {message}'
 

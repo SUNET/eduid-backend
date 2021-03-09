@@ -35,16 +35,16 @@ from typing import Any, Mapping
 
 from werkzeug.exceptions import NotFound
 
-from eduid_common.api.testing import EduidAPITestCase
-from eduid_common.authn.middleware import AuthnBaseApp
-from eduid_common.config.base import EduIDBaseAppConfig
-from eduid_common.config.parsers import load_config
+from eduid.common.api.testing import EduidAPITestCase
+from eduid.common.authn.middleware import AuthnBaseApp
+from eduid.common.config.base import EduIDBaseAppConfig
+from eduid.common.config.parsers import load_config
 
 
 class AuthnTestApp(AuthnBaseApp):
     def __init__(self, name: str, test_config: Mapping[str, Any], **kwargs):
         # This should be an AuthnConfig instance, but an EduIDBaseAppConfig instance suffices for these
-        # tests and we don't want eduid_common to depend on eduid_webapp.
+        # tests and we don't want eduid.common to depend on eduid.webapp.
         self.conf = load_config(typ=EduIDBaseAppConfig, app_name=name, ns='webapp', test_config=test_config)
         super().__init__(self.conf, **kwargs)
 

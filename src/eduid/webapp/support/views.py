@@ -3,11 +3,11 @@
 
 from flask import Blueprint, render_template, request
 
-from eduid_userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup
-from eduid_userdb.support.models import SupportSignupUserFilter, SupportUserFilter
+from eduid.userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup
+from eduid.userdb.support.models import SupportSignupUserFilter, SupportUserFilter
 
-from eduid_webapp.support.app import current_support_app as current_app
-from eduid_webapp.support.helpers import get_credentials_aux_data, require_support_personnel
+from eduid.webapp.support.app import current_support_app as current_app
+from eduid.webapp.support.helpers import get_credentials_aux_data, require_support_personnel
 
 support_views = Blueprint('support', __name__, url_prefix='', template_folder='templates')
 

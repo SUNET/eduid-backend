@@ -32,7 +32,7 @@
 #
 
 
-from eduid_webapp.reset_password.app import init_reset_password_app
+from eduid.webapp.reset_password.app import init_reset_password_app
 
 app = init_reset_password_app()
 

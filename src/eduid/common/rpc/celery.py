@@ -3,7 +3,7 @@ from typing import Optional
 
 from celery import Celery
 
-from eduid_common.config.base import CeleryConfig
+from eduid.common.config.base import CeleryConfig
 
 
 def init_celery(name: str, config: Optional[CeleryConfig], **kwargs) -> Celery:

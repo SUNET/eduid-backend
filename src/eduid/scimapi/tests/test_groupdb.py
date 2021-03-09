@@ -2,13 +2,13 @@ import logging
 from typing import Optional
 from uuid import UUID, uuid4
 
-from eduid_common.config.parsers import load_config
-from eduid_graphdb.groupdb import Group as GraphGroup
+from eduid.common.config.parsers import load_config
+from eduid.graphdb.groupdb import Group as GraphGroup
 
-from eduid_scimapi.config import ScimApiConfig
-from eduid_scimapi.context import Context
-from eduid_scimapi.db.groupdb import GroupExtensions, ScimApiGroup
-from eduid_scimapi.testing import MongoNeoTestCase
+from eduid.scimapi.config import ScimApiConfig
+from eduid.scimapi.context import Context
+from eduid.scimapi.db.groupdb import GroupExtensions, ScimApiGroup
+from eduid.scimapi.testing import MongoNeoTestCase
 
 logger = logging.getLogger(__name__)
 

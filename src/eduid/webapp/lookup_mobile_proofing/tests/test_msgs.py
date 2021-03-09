@@ -2,7 +2,7 @@
 
 import unittest
 
-from eduid_webapp.lookup_mobile_proofing.helpers import MobileMsg
+from eduid.webapp.lookup_mobile_proofing.helpers import MobileMsg
 
 
 class MessagesTests(unittest.TestCase):

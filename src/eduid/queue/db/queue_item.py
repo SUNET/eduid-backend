@@ -35,7 +35,7 @@ from typing import Dict, Optional
 
 from bson import ObjectId
 
-from eduid_queue.db.payload import Payload, RawPayload
+from eduid.queue.db.payload import Payload, RawPayload
 
 __author__ = 'lundberg'
 

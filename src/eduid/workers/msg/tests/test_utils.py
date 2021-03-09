@@ -2,7 +2,7 @@ from unittest import TestCase
 
 import pkg_resources
 
-from eduid_msg.utils import load_template
+from eduid.workers.msg.utils import load_template
 
 
 class TestUtils(TestCase):

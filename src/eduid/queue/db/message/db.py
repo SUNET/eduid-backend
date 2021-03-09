@@ -28,7 +28,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from eduid_queue.db import QueueDB
+from eduid.queue.db import QueueDB
 
 __author__ = 'lundberg'
 

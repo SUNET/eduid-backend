@@ -4,28 +4,28 @@ from datetime import datetime, timedelta
 from os import environ
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from eduid_queue.db import QueueItem, SenderInfo
-from eduid_queue.db.message import EduidInviteEmail
+from eduid.queue.db import QueueItem, SenderInfo
+from eduid.queue.db.message import EduidInviteEmail
 from falcon import HTTP_201, HTTP_204, Request, Response
 from marshmallow import ValidationError
 
-from eduid_userdb.signup import Invite as SignupInvite
-from eduid_userdb.signup import InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
+from eduid.userdb.signup import Invite as SignupInvite
+from eduid.userdb.signup import InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
 
-from eduid_scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
-from eduid_scimapi.db.eventdb import EventLevel, EventStatus, add_api_event
-from eduid_scimapi.db.invitedb import ScimApiInvite
-from eduid_scimapi.exceptions import BadRequest, NotFound
-from eduid_scimapi.middleware import ctx_invitedb
-from eduid_scimapi.resources.base import BaseResource, SCIMResource
-from eduid_scimapi.schemas.invite import (
+from eduid.scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
+from eduid.scimapi.db.eventdb import EventLevel, EventStatus, add_api_event
+from eduid.scimapi.db.invitedb import ScimApiInvite
+from eduid.scimapi.exceptions import BadRequest, NotFound
+from eduid.scimapi.middleware import ctx_invitedb
+from eduid.scimapi.resources.base import BaseResource, SCIMResource
+from eduid.scimapi.schemas.invite import (
     InviteCreateRequest,
     InviteCreateRequestSchema,
     InviteResponse,
     InviteResponseSchema,
     NutidInviteExtensionV1,
 )
-from eduid_scimapi.schemas.scimbase import (
+from eduid.scimapi.schemas.scimbase import (
     Email,
     ListResponse,
     ListResponseSchema,
@@ -37,9 +37,9 @@ from eduid_scimapi.schemas.scimbase import (
     SearchRequest,
     SearchRequestSchema,
 )
-from eduid_scimapi.schemas.user import NutidUserExtensionV1, Profile
-from eduid_scimapi.search import SearchFilter, parse_search_filter
-from eduid_scimapi.utils import get_short_hash, get_unique_hash, make_etag
+from eduid.scimapi.schemas.user import NutidUserExtensionV1, Profile
+from eduid.scimapi.search import SearchFilter, parse_search_filter
+from eduid.scimapi.utils import get_short_hash, get_unique_hash, make_etag
 
 __author__ = 'lundberg'
 

@@ -15,7 +15,7 @@ __author__ = 'ft'
 
 from abc import ABC, abstractmethod
 
-from eduid_common.config.base import StatsConfigMixin
+from eduid.common.config.base import StatsConfigMixin
 
 
 class AppStats(ABC):

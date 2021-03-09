@@ -33,14 +33,14 @@
 
 from marshmallow import fields
 
-from eduid_common.api.schemas.base import EduidSchema, FluxStandardAction
-from eduid_common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
-from eduid_common.api.schemas.nin import NinSchema
-from eduid_common.api.schemas.orcid import OrcidSchema
+from eduid.common.api.schemas.base import EduidSchema, FluxStandardAction
+from eduid.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
+from eduid.common.api.schemas.nin import NinSchema
+from eduid.common.api.schemas.orcid import OrcidSchema
 
-from eduid_webapp.email.schemas import EmailSchema
-from eduid_webapp.personal_data.validators import validate_language, validate_nonempty
-from eduid_webapp.phone.schemas import PhoneSchema
+from eduid.webapp.email.schemas import EmailSchema
+from eduid.webapp.personal_data.validators import validate_language, validate_nonempty
+from eduid.webapp.phone.schemas import PhoneSchema
 
 __author__ = 'eperez'
 

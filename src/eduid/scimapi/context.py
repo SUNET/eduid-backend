@@ -2,18 +2,18 @@ import logging
 import logging.config
 from typing import Optional
 
-from eduid_queue.db.message import MessageDB
+from eduid.queue.db.message import MessageDB
 
-from eduid_userdb.signup.invitedb import SignupInviteDB
+from eduid.userdb.signup.invitedb import SignupInviteDB
 
-from eduid_scimapi.config import ScimApiConfig
-from eduid_scimapi.db.eventdb import ScimApiEventDB
-from eduid_scimapi.db.groupdb import ScimApiGroupDB
-from eduid_scimapi.db.invitedb import ScimApiInviteDB
-from eduid_scimapi.db.userdb import ScimApiUserDB
-from eduid_scimapi.log import init_logging
-from eduid_scimapi.notifications import NotificationRelay
-from eduid_scimapi.utils import urlappend
+from eduid.scimapi.config import ScimApiConfig
+from eduid.scimapi.db.eventdb import ScimApiEventDB
+from eduid.scimapi.db.groupdb import ScimApiGroupDB
+from eduid.scimapi.db.invitedb import ScimApiInviteDB
+from eduid.scimapi.db.userdb import ScimApiUserDB
+from eduid.scimapi.log import init_logging
+from eduid.scimapi.notifications import NotificationRelay
+from eduid.scimapi.utils import urlappend
 
 
 class Context(object):

@@ -3,9 +3,9 @@ import datetime
 from hashlib import sha256
 from unittest import TestCase
 
-import eduid_userdb.element
-import eduid_userdb.exceptions
-from eduid_userdb.credentials import U2F, CredentialList
+import eduid.userdb.element
+import eduid.userdb.exceptions
+from eduid.userdb.credentials import U2F, CredentialList
 
 __author__ = 'lundberg'
 

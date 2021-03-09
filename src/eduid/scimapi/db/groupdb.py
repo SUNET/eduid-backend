@@ -12,13 +12,13 @@ from uuid import UUID
 
 from bson import ObjectId
 
-from eduid_graphdb.groupdb import Group as GraphGroup
-from eduid_graphdb.groupdb import GroupDB
-from eduid_graphdb.groupdb import User as GraphUser
+from eduid.graphdb.groupdb import Group as GraphGroup
+from eduid.graphdb.groupdb import GroupDB
+from eduid.graphdb.groupdb import User as GraphUser
 
-from eduid_scimapi.db.basedb import ScimApiBaseDB
-from eduid_scimapi.db.common import ScimApiResourceBase
-from eduid_scimapi.schemas.group import GroupCreateRequest, GroupUpdateRequest
+from eduid.scimapi.db.basedb import ScimApiBaseDB
+from eduid.scimapi.db.common import ScimApiResourceBase
+from eduid.scimapi.schemas.group import GroupCreateRequest, GroupUpdateRequest
 
 __author__ = 'lundberg'
 

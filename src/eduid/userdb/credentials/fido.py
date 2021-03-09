@@ -38,7 +38,7 @@ from dataclasses import dataclass
 from hashlib import sha256
 from typing import Any, Dict, Optional
 
-from eduid_userdb.credentials import Credential
+from eduid.userdb.credentials import Credential
 
 __author__ = 'ft'
 

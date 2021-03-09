@@ -7,10 +7,10 @@ from typing import Any, Dict, Mapping
 from mock import patch
 from u2flib_server.model import DeviceRegistration, RegisteredKey
 
-from eduid_common.api.testing import EduidAPITestCase
-from eduid_userdb.credentials import U2F
+from eduid.common.api.testing import EduidAPITestCase
+from eduid.userdb.credentials import U2F
 
-from eduid_webapp.security.app import SecurityApp, security_init_app
+from eduid.webapp.security.app import SecurityApp, security_init_app
 
 __author__ = 'lundberg'
 
@@ -115,7 +115,7 @@ class SecurityU2FTests(EduidAPITestCase):
     @patch('cryptography.x509.load_der_x509_certificate')
     @patch('OpenSSL.crypto.dump_certificate')
     @patch('u2flib_server.model.U2fRegisterRequest.complete')
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     def test_bind_key(self, mock_request_user_sync, mock_u2f_register_complete, mock_dump_cert, mock_load_cert):
         mock_dump_cert.return_value = b'der_cert'
         mock_load_cert.return_value = b'pem_cert'
@@ -205,7 +205,7 @@ class SecurityU2FTests(EduidAPITestCase):
             self.assertIsNotNone(verify_data['payload']['counter'])
             self.assertIsNotNone(verify_data['payload']['touch'])
 
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     def test_modify(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data['eduPersonPrincipalName']
@@ -231,7 +231,7 @@ class SecurityU2FTests(EduidAPITestCase):
                 if credential['key'] == 'keyHandle':
                     self.assertEqual(credential['description'], 'test description')
 
-    @patch('eduid_common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.api.am.AmRelay.request_user_sync')
     def test_remove(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data['eduPersonPrincipalName']

@@ -3,17 +3,17 @@
 
 from flask import Blueprint
 
-from eduid_common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
-from eduid_common.api.exceptions import AmTaskFailed, MsgTaskFailed
-from eduid_common.api.helpers import add_nin_to_user, verify_nin_for_user
-from eduid_common.api.messages import CommonMsg, FluxData, error_response, success_response
-from eduid_common.api.schemas.csrf import CSRFResponse
-from eduid_userdb import User
+from eduid.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
+from eduid.common.api.exceptions import AmTaskFailed, MsgTaskFailed
+from eduid.common.api.helpers import add_nin_to_user, verify_nin_for_user
+from eduid.common.api.messages import CommonMsg, FluxData, error_response, success_response
+from eduid.common.api.schemas.csrf import CSRFResponse
+from eduid.userdb import User
 
-from eduid_webapp.lookup_mobile_proofing import schemas
-from eduid_webapp.lookup_mobile_proofing.app import current_mobilep_app as current_app
-from eduid_webapp.lookup_mobile_proofing.helpers import MobileMsg, create_proofing_state, match_mobile_to_user
-from eduid_webapp.lookup_mobile_proofing.lookup_mobile_relay import LookupMobileTaskFailed
+from eduid.webapp.lookup_mobile_proofing import schemas
+from eduid.webapp.lookup_mobile_proofing.app import current_mobilep_app as current_app
+from eduid.webapp.lookup_mobile_proofing.helpers import MobileMsg, create_proofing_state, match_mobile_to_user
+from eduid.webapp.lookup_mobile_proofing.lookup_mobile_relay import LookupMobileTaskFailed
 
 __author__ = 'lundberg'
 

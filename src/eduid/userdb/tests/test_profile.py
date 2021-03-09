@@ -2,8 +2,8 @@
 
 from unittest import TestCase
 
-from eduid_userdb.element import DuplicateElementViolation
-from eduid_userdb.profile import Profile, ProfileList
+from eduid.userdb.element import DuplicateElementViolation
+from eduid.userdb.profile import Profile, ProfileList
 
 __author__ = 'lundberg'
 

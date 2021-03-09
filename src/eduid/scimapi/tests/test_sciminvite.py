@@ -10,17 +10,17 @@ from typing import Any, Dict, Mapping, Optional
 
 from bson import ObjectId
 
-from eduid_userdb.signup import Invite as SignupInvite
-from eduid_userdb.signup import InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
+from eduid.userdb.signup import Invite as SignupInvite
+from eduid.userdb.signup import InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
 
-from eduid_scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
-from eduid_scimapi.db.eventdb import EventStatus
-from eduid_scimapi.db.invitedb import ScimApiInvite
-from eduid_scimapi.schemas.invite import InviteResponse, InviteResponseSchema, NutidInviteExtensionV1
-from eduid_scimapi.schemas.scimbase import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
-from eduid_scimapi.schemas.user import NutidUserExtensionV1, Profile
-from eduid_scimapi.testing import ScimApiTestCase
-from eduid_scimapi.utils import filter_none, make_etag
+from eduid.scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
+from eduid.scimapi.db.eventdb import EventStatus
+from eduid.scimapi.db.invitedb import ScimApiInvite
+from eduid.scimapi.schemas.invite import InviteResponse, InviteResponseSchema, NutidInviteExtensionV1
+from eduid.scimapi.schemas.scimbase import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
+from eduid.scimapi.schemas.user import NutidUserExtensionV1, Profile
+from eduid.scimapi.testing import ScimApiTestCase
+from eduid.scimapi.utils import filter_none, make_etag
 
 logger = logging.getLogger(__name__)
 

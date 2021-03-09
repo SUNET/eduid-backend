@@ -2,9 +2,9 @@ from datetime import datetime, timezone
 
 from bson import ObjectId
 
-from eduid_webapp.idp.idp_authn import AuthnData
-from eduid_webapp.idp.sso_session import SSOSession
-from eduid_webapp.idp.tests.test_app import IdPTests
+from eduid.webapp.idp.idp_authn import AuthnData
+from eduid.webapp.idp.sso_session import SSOSession
+from eduid.webapp.idp.tests.test_app import IdPTests
 
 
 class test_SSOSession(IdPTests):

@@ -32,7 +32,7 @@
 #
 
 
-from eduid_webapp.phone.app import phone_init_app
+from eduid.webapp.phone.app import phone_init_app
 
 app = phone_init_app()
 

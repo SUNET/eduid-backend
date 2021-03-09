@@ -44,17 +44,17 @@ from six.moves.urllib_parse import quote_plus
 from werkzeug.exceptions import NotFound
 from werkzeug.http import dump_cookie
 
-from eduid_common.api.testing import EduidAPITestCase
-from eduid_common.authn.cache import OutstandingQueriesCache
-from eduid_common.authn.eduid_saml2 import get_authn_request
-from eduid_common.authn.middleware import AuthnBaseApp
-from eduid_common.authn.tests.responses import auth_response, logout_request, logout_response
-from eduid_common.authn.utils import get_location, no_authn_views
-from eduid_common.config.parsers import load_config
-from eduid_common.session import session
+from eduid.common.api.testing import EduidAPITestCase
+from eduid.common.authn.cache import OutstandingQueriesCache
+from eduid.common.authn.eduid_saml2 import get_authn_request
+from eduid.common.authn.middleware import AuthnBaseApp
+from eduid.common.authn.tests.responses import auth_response, logout_request, logout_response
+from eduid.common.authn.utils import get_location, no_authn_views
+from eduid.common.config.parsers import load_config
+from eduid.common.session import session
 
-from eduid_webapp.authn.app import AuthnApp, authn_init_app
-from eduid_webapp.authn.settings.common import AuthnConfig
+from eduid.webapp.authn.app import AuthnApp, authn_init_app
+from eduid.webapp.authn.settings.common import AuthnConfig
 
 logger = logging.getLogger(__name__)
 

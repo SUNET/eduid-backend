@@ -5,8 +5,8 @@ from datetime import datetime
 from typing import List
 from unittest import TestCase
 
-from eduid_userdb.proofing.element import NinProofingElement, SentLetterElement
-from eduid_userdb.proofing.state import LetterProofingState, OidcProofingState, ProofingState
+from eduid.userdb.proofing.element import NinProofingElement, SentLetterElement
+from eduid.userdb.proofing.state import LetterProofingState, OidcProofingState, ProofingState
 
 __author__ = 'lundberg'
 

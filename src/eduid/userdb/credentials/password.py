@@ -39,7 +39,7 @@ from typing import Any, Dict, Type
 
 import bson
 
-from eduid_userdb.credentials import Credential
+from eduid.userdb.credentials import Credential
 
 __author__ = 'lundberg'
 

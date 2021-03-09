@@ -35,7 +35,7 @@ from typing import Any, Optional
 
 from pydantic import Field
 
-from eduid_common.config.base import WorkerConfig
+from eduid.common.config.base import WorkerConfig
 
 
 class AmConfig(WorkerConfig):

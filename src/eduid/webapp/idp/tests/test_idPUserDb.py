@@ -40,19 +40,19 @@ from typing import Optional, Tuple
 from bson import ObjectId
 from mock import patch
 
-import eduid_common.authn
-import eduid_userdb
+import eduid.common.authn
+import eduid.userdb
 import vccs_client
-from eduid_common.api import exceptions
-from eduid_userdb.idp import IdPUser
+from eduid.common.api import exceptions
+from eduid.userdb.idp import IdPUser
 from vccs_client import VCCSClient
 
-from eduid_webapp.idp.idp_authn import AuthnData
-from eduid_webapp.idp.tests.test_app import IdPTests
+from eduid.webapp.idp.idp_authn import AuthnData
+from eduid.webapp.idp.tests.test_app import IdPTests
 
 logger = logging.getLogger(__name__)
 
-eduid_common.authn.TESTING = True
+eduid.common.authn.TESTING = True
 
 
 class TestIdPUserDb(IdPTests):
@@ -87,7 +87,7 @@ class TestAuthentication(IdPTests):
     @patch('vccs_client.VCCSClient.add_credentials')
     def test_authn_known_user_wrong_password(self, mock_add_credentials):
         mock_add_credentials.return_value = False
-        assert isinstance(self.test_user, eduid_userdb.User)
+        assert isinstance(self.test_user, eduid.userdb.User)
         cred_id = ObjectId()
         factor = vccs_client.VCCSPasswordFactor('foo', str(cred_id), salt=None)
         self.app.authn.auth_client.add_credentials(str(self.test_user.user_id), [factor])
@@ -100,7 +100,7 @@ class TestAuthentication(IdPTests):
     def test_authn_known_user_right_password(self, mock_add_credentials, mock_authenticate):
         mock_add_credentials.return_value = True
         mock_authenticate.return_value = True
-        assert isinstance(self.test_user, eduid_userdb.User)
+        assert isinstance(self.test_user, eduid.userdb.User)
         passwords = self.test_user.credentials.to_list()
         factor = vccs_client.VCCSPasswordFactor('foo', str(passwords[0].key), salt=passwords[0].salt)
         self.app.authn.auth_client.add_credentials(str(self.test_user.user_id), [factor])
@@ -115,7 +115,7 @@ class TestAuthentication(IdPTests):
     def test_authn_expired_credential(self, mock_add_credentials, mock_authenticate):
         mock_add_credentials.return_value = False
         mock_authenticate.return_value = True
-        assert isinstance(self.test_user, eduid_userdb.User)
+        assert isinstance(self.test_user, eduid.userdb.User)
         passwords = self.test_user.credentials.to_list()
         factor = vccs_client.VCCSPasswordFactor('foo', str(passwords[0].key), salt=passwords[0].salt)
         self.app.authn.auth_client.add_credentials(str(self.test_user.user_id), [factor])

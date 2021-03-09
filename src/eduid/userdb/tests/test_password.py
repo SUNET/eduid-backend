@@ -3,7 +3,7 @@ from unittest import TestCase
 
 from bson.objectid import ObjectId
 
-from eduid_userdb.credentials import CredentialList
+from eduid.userdb.credentials import CredentialList
 
 __author__ = 'lundberg'
 

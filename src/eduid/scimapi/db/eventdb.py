@@ -9,15 +9,15 @@ from uuid import UUID, uuid4
 
 from bson import ObjectId
 
-from eduid_userdb.util import utc_now
+from eduid.userdb.util import utc_now
 
-from eduid_scimapi.db.basedb import ScimApiBaseDB
-from eduid_scimapi.db.common import ScimApiResourceBase
-from eduid_scimapi.schemas.scimbase import SCIMResourceType
-from eduid_scimapi.utils import urlappend
+from eduid.scimapi.db.basedb import ScimApiBaseDB
+from eduid.scimapi.db.common import ScimApiResourceBase
+from eduid.scimapi.schemas.scimbase import SCIMResourceType
+from eduid.scimapi.utils import urlappend
 
 if TYPE_CHECKING:
-    from eduid_scimapi.context import Context
+    from eduid.scimapi.context import Context
 
 logger = logging.getLogger(__name__)
 
