@@ -42,7 +42,7 @@ import unittest
 import uuid
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Type, Union, cast
 
 import pymongo
 
@@ -88,6 +88,10 @@ class MongoTemporaryInstance(EduidTemporaryInstance):
             self._conn.close()
             self._conn = None
         super().shutdown()
+
+    @classmethod
+    def get_instance(cls: Type[MongoTemporaryInstance], max_retry_seconds: int = 20) -> MongoTemporaryInstance:
+        return cast(MongoTemporaryInstance, super().get_instance(max_retry_seconds=max_retry_seconds))
 
 
 class SortEncoder(json.JSONEncoder):
