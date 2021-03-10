@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+from typing import Optional
 
 import eduid.workers.am
 
@@ -32,13 +33,14 @@ class AmRelay(object):
         self._update_attrs = update_attributes_keep_result
         self._pong = pong
 
-    def request_user_sync(self, user: User, timeout: int = 25) -> bool:
+    def request_user_sync(self, user: User, timeout: int = 25, relay_for_override: Optional[str] = None) -> bool:
         """
         Use Celery to ask eduid-am worker to propagate changes from our
         private UserDB into the central UserDB.
 
         :param user: User object
         :param timeout: Max wait time for task to finish
+        :param relay_for_override: Used in tests to 'spoof' sync requests.
 
         :return: True if successful
         """
@@ -49,8 +51,11 @@ class AmRelay(object):
             logger.error(f'Bad user_id in sync request: {e}')
             raise ValueError('Missing user_id. Can only propagate changes for eduid.userdb.User users.')
 
-        logger.debug(f"Asking Attribute Manager to sync user {user}")
-        rtask = self._update_attrs.delay(self.relay_for, user_id)
+        _relay_for = self.relay_for
+        if relay_for_override:
+            _relay_for = relay_for_override
+        logger.debug(f'Asking Attribute Manager to sync user {user} from {_relay_for}')
+        rtask = self._update_attrs.delay(_relay_for, user_id)
         try:
             result = rtask.get(timeout=timeout)
             logger.debug(f'Attribute Manager sync result: {result} for user {user}')

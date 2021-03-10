@@ -119,7 +119,6 @@ class WorkerConfig(RootConfig):
     Configuration common to all celery workers
     """
 
-    # mongo uri
     mongo_uri: Optional[str] = None
     celery: CeleryConfig = Field(default_factory=CeleryConfig)
     audit: bool = False

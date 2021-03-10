@@ -34,10 +34,13 @@ import logging
 import os
 from typing import Any, Dict, Optional
 
+from eduid.common.api.am import AmRelay
 from eduid.common.api.logging import LocalContext, make_dictConfig
+from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig
 from eduid.common.config.testing import EtcdTemporaryInstance
 from eduid.common.config.workers import AmConfig
 from eduid.userdb.testing import MongoTemporaryInstance, MongoTestCase
+from eduid.workers.am.common import AmWorkerSingleton
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +73,10 @@ class CommonTestCase(MongoTestCase):
         logging.config.dictConfig(logging_config)
 
 
+class AmTestConfig(EduIDBaseAppConfig, AmConfigMixin):
+    pass
+
+
 class WorkerTestCase(CommonTestCase):
     """
     Base Test case for eduID celery workers
@@ -94,6 +101,7 @@ class WorkerTestCase(CommonTestCase):
             # Be sure to NOT tell AttributeManager about the temporary mongodb instance.
             # If we do, one or more plugins may open DB connections that never gets closed.
             'mongo_uri': None,
+            'token_service_url': 'foo'
         }
 
         if am_settings:
@@ -102,15 +110,7 @@ class WorkerTestCase(CommonTestCase):
             assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
             settings['mongo_uri'] = self.tmp_db.uri
 
-        am_config = AmConfig(**settings)
+        am_config = AmTestConfig(**settings)
+        AmWorkerSingleton.update_config(AmConfig(**settings))
 
-        # initialize eduid.workers.am without requiring config in etcd
-        import eduid.workers.am
-
-        celery = eduid.workers.am.init_app(am_config.celery)
-        import eduid.workers.am.worker
-
-        eduid.workers.am.worker.worker_config = am_config
-        logger.debug(f'Initialized AM with config:\n{am_config}')
-
-        self.am = eduid.workers.am.get_attribute_manager(celery)
+        self.am_relay = AmRelay(am_config)

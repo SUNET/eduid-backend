@@ -7,6 +7,7 @@ class TestVerifiers(LookupMobileMongoTestCase):
         super(TestVerifiers, self).setUp()
 
     def test_find_NIN_by_mobile(self):
+        # TODO: Actually connects to teleadress?
         from eduid.workers.lookup_mobile.tasks import logger
 
         mobile_verifier = MobileLookupClient(logger, self.lookup_mobile_settings)
@@ -17,6 +18,7 @@ class TestVerifiers(LookupMobileMongoTestCase):
         self.assertEqual(mobile_verifier.find_NIN_by_mobile('+46701740699'), None)
 
     def test_find_mobiles_by_NIN(self):
+        # TODO: Actually connects to teleadress?
         from eduid.workers.lookup_mobile.tasks import logger
 
         mobile_verifier = MobileLookupClient(logger, self.lookup_mobile_settings)

@@ -22,7 +22,7 @@ def init_app(config: Optional[CeleryConfig]) -> Celery:
     return common.celery
 
 
-def get_attribute_manager(celery_app: Celery) -> 'AttributeManager':
+def Xget_attribute_manager(celery_app: Celery) -> 'AttributeManager':
     """
     Get an AttributeManager Celery task instance.
 

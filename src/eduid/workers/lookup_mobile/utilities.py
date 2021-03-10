@@ -1,13 +1,14 @@
 __author__ = 'mathiashedstrom'
 
 import re
+from typing import Optional
 
 import phonenumbers
 
 
-def format_NIN(nin):
+def format_NIN(nin: Optional[str]) -> Optional[str]:
     if nin is None:
-        return
+        return None
 
     # Remove all non-digits
     nin = re.sub(r"\D", '', nin)

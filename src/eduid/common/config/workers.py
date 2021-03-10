@@ -42,7 +42,6 @@ class AmConfig(WorkerConfig):
     """
     Configuration for the attribute manager celery worker
     """
-
     new_user_date: str = '2001-01-01'
     action_plugins: list = Field(default_factory=lambda: ['tou'])
 
@@ -61,7 +60,6 @@ class MsgConfig(WorkerConfig):
     mail_port: int = 25
     mail_starttls: bool = False
     mail_username: str = ''
-    message_rate_limit: Optional[int] = None  # for celery. tasks per second - None for no rate limit
     mongo_dbname: str = 'eduid_msg'
     navet_api_pw: str = ''
     navet_api_uri: str = ''

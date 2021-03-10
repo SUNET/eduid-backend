@@ -1,18 +1,18 @@
-import eduid.workers.am.common as common
+import sys
+
 from eduid.common.config.workers import AmConfig
-from eduid.common.rpc.celery import init_celery
 from eduid.common.rpc.worker import get_worker_config
 from eduid.userdb import UserDB
+from eduid.workers.am.common import AmWorkerSingleton
 
-worker_config = AmConfig(app_name='app_name_NOT_SET')
+# This is the Celery worker's entrypoint module - should not be imported anywhere!
+if 'celery' not in sys.argv[0]:
+    raise RuntimeError('Do not import the Celery worker entrypoint module')
 
-if common.celery is None:
-    worker_config = get_worker_config('am', config_class=AmConfig)
-    celery = init_celery('eduid_am', config=worker_config.celery, include=['eduid.workers.am.tasks'])
+app = AmWorkerSingleton.celery
 
-    # When Celery starts the worker, it expects there to be a 'celery' in the module it loads,
-    # but our tasks expect to find the Celery instance in common.celery - so copy it there
-    common.celery = celery
+AmWorkerSingleton.update_config(get_worker_config('am', config_class=AmConfig))
+
 
 
 def setup_indexes(db_uri, db_name, collection):
@@ -34,5 +34,6 @@ def setup_indexes(db_uri, db_name, collection):
     userdb.close()
 
 
-if worker_config.mongo_uri:
-    setup_indexes(worker_config.mongo_uri, 'eduid_am', 'attributes')
+if AmWorkerSingleton.am_config.mongo_uri:
+    # TODO: Try and move this to the userdb AmDb init instead - only run if writes are allowed?
+    setup_indexes(AmWorkerSingleton.am_config.mongo_uri, 'eduid_am', 'attributes')

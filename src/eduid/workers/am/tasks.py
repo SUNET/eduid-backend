@@ -1,6 +1,5 @@
-from __future__ import absolute_import
-
 import warnings
+from typing import Optional
 
 import bson
 from celery import Task
@@ -8,15 +7,12 @@ from celery.utils.log import get_task_logger
 
 from eduid.userdb import UserDB
 from eduid.userdb.exceptions import ConnectionError, LockedIdentityViolation, UserDoesNotExist
-
-from eduid.workers.am.common import celery
+from eduid.workers.am.common import AmWorkerSingleton
 from eduid.workers.am.consistency_checks import check_locked_identity, unverify_duplicates
-from eduid.workers.am.fetcher_registry import AFRegistry
-
-if celery is None:
-    raise RuntimeError('Must call eduid.workers.am.init_app before importing tasks')
 
 logger = get_task_logger(__name__)
+
+app = AmWorkerSingleton.celery
 
 
 class AttributeManager(Task):
@@ -26,23 +22,17 @@ class AttributeManager(Task):
     abstract = True  # This means Celery won't register this as another task
 
     def __init__(self):
-        from eduid.workers.am.worker import worker_config
+        self._userdb: Optional[UserDB] = None
 
-        self.worker_config = worker_config
-        self.default_db_uri = worker_config.mongo_uri
-        self.userdb = None
-        self.af_registry = None
-        self.init_db()
-        self.init_af_registry()
-
-    def init_db(self):
-        if self.default_db_uri is not None:
+    @property
+    def userdb(self) -> Optional[UserDB]:
+        if self._userdb:
+            return self._userdb
+        if AmWorkerSingleton.am_config.mongo_uri:
             # self.userdb is the UserDB to which AM will write the updated users. This setting will
             # be None when this class is instantiated on the 'client' side (e.g. in a microservice)
-            self.userdb = UserDB(self.default_db_uri, 'eduid_am', 'attributes')
-
-    def init_af_registry(self):
-        self.af_registry = AFRegistry(self.worker_config)
+            self._userdb = UserDB(AmWorkerSingleton.am_config.mongo_uri, 'eduid_am', 'attributes')
+        return self._userdb
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         # The most common problem when tasks raise exceptions is that mongodb has switched master,
@@ -50,11 +40,11 @@ class AttributeManager(Task):
         # let's just reload all databases (self.userdb here and the plugins databases) when we
         # get an exception
         logger.exception('Task failed. Reloading db and plugins.')
-        self.init_db()
-        self.init_af_registry()
+        self._userdb = None
+        AmWorkerSingleton.af_registry.reset()
 
 
-@celery.task(bind=True, ignore_results=True, base=AttributeManager)
+@app.task(bind=True, ignore_results=True, base=AttributeManager)
 def update_attributes(self: AttributeManager, app_name: str, user_id: str) -> None:
     """
     Task executing on the Celery worker service as an RPC called from
@@ -68,7 +58,7 @@ def update_attributes(self: AttributeManager, app_name: str, user_id: str) -> No
     _update_attributes(self, app_name, user_id)
 
 
-@celery.task(bind=True, base=AttributeManager)
+@app.task(bind=True, base=AttributeManager)
 def update_attributes_keep_result(self: AttributeManager, app_name: str, user_id: str) -> bool:
     """
     This task is exactly the same as update_attributes, except that
@@ -85,7 +75,7 @@ def _update_attributes(task: AttributeManager, app_name: str, user_id: str) -> b
     logger.debug(f'Update attributes called for {user_id} by {app_name}')
 
     try:
-        attribute_fetcher = task.af_registry[app_name]
+        attribute_fetcher = AmWorkerSingleton.af_registry.get_fetcher(app_name)
         logger.debug(f"Attribute fetcher for {app_name}: {repr(attribute_fetcher)}")
     except KeyError as e:
         logger.error(f'Attribute fetcher for {app_name} is not installed')
@@ -127,7 +117,7 @@ def _update_attributes(task: AttributeManager, app_name: str, user_id: str) -> b
     return True
 
 
-@celery.task(bind=True, base=AttributeManager)
+@app.task(bind=True, base=AttributeManager)
 def pong(self, app_name):
     if self.default_db_uri and self.userdb.is_healthy():
         return f'pong for {app_name}'

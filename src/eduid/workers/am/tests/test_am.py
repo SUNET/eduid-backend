@@ -10,6 +10,7 @@ from eduid.common.config.workers import AmConfig
 from eduid.userdb.exceptions import UserDoesNotExist
 
 from eduid.workers.am.ams.common import AttributeFetcher
+from eduid.workers.am.common import AmWorkerSingleton
 from eduid.workers.am.testing import AMTestCase
 
 __author__ = 'leifj'
@@ -86,9 +87,9 @@ class MessageTest(AMTestCase):
         self.private_db = AmTestUserDb(db_uri=self.tmp_db.uri, db_name='eduid_am_test')
         # register fake AMP plugin named 'test'
         AmConfig(app_name='message_test', mongo_uri=self.tmp_db.uri)
-        self.am.af_registry['test'] = FakeAttributeFetcher(AmConfig(app_name='message_test', mongo_uri=self.tmp_db.uri))
+        AmWorkerSingleton.af_registry.add_fetcher('test', FakeAttributeFetcher(AmConfig(app_name='message_test', mongo_uri=self.tmp_db.uri)))
         # register fake AMP plugin named 'bad'
-        self.am.af_registry['bad'] = BadAttributeFetcher(AmConfig(app_name='message_test', mongo_uri=self.tmp_db.uri))
+        AmWorkerSingleton.af_registry.add_fetcher('bad', BadAttributeFetcher(AmConfig(app_name='message_test', mongo_uri=self.tmp_db.uri)))
 
     def test_insert(self):
         """
@@ -110,7 +111,7 @@ class MessageTest(AMTestCase):
         # Save the user in the eduid.workers.am_test database
         self.private_db.save(test_user)
 
-        self.am.delay(app_name='test', user_id=str(_id))
+        self.am_relay.request_user_sync(test_user, relay_for_override='test')
 
         # verify the user has been propagated to the amdb
         am_user = self.amdb.get_user_by_id(_id)
@@ -142,7 +143,7 @@ class MessageTest(AMTestCase):
         am_user = self.amdb.get_user_by_id(_id)
         self.assertNotEqual(am_user.eppn, 'teste-teste')
 
-        self.am.delay(app_name='test', user_id=str(_id))
+        self.am_relay.request_user_sync(test_user, relay_for_override='test')
 
         # verify the user has been propagated to the amdb
         am_user = self.amdb.get_user_by_id(_id)
@@ -170,4 +171,4 @@ class MessageTest(AMTestCase):
         self.assertNotEqual(am_user.eppn, 'teste-teste')
 
         with self.assertRaises(eduid.userdb.exceptions.EduIDDBError):
-            self.am.delay(app_name='bad', user_id=str(_id))
+            self.am_relay.request_user_sync(test_user, relay_for_override='bad')
