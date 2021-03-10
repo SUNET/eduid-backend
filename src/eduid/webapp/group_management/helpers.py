@@ -195,10 +195,11 @@ def get_outgoing_invites(user: User) -> List[Dict[str, Any]]:
                 owner_invites.append({'email_address': state.email_address})
             if state.role == GroupRole.MEMBER:
                 member_invites.append({'email_address': state.email_address})
-        group_invite = {'group_identifier': group.scim_id,
-                        'owner_invites': owner_invites,
-                        'member_invites': member_invites,
-                        }
+        group_invite = {
+            'group_identifier': group.scim_id,
+            'owner_invites': owner_invites,
+            'member_invites': member_invites,
+        }
         invites.append(group_invite)
     current_app.logger.debug(f'outgoing invites: {invites}')
     return invites

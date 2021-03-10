@@ -86,6 +86,7 @@ class InviteCreateRequest(BaseCreateRequest, NutidInviteV1):
         if data['nutid_invite_v1'].inviter_name is None:
             raise ValidationError('Missing inviterName')
 
+
 @dataclass(frozen=True)
 class InviteResponse(NutidInviteV1, BaseResponse):
     pass

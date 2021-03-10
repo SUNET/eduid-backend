@@ -72,7 +72,7 @@ class IdPTests(EduidAPITestCase):
     """Base TestCase for those tests that need a full environment setup"""
 
     def setUp(
-        self,*args, **kwargs,
+        self, *args, **kwargs,
     ):
         super().setUp(*args, **kwargs)
         self.idp_entity_id = 'https://unittest-idp.example.edu/idp.xml'

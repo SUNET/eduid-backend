@@ -119,7 +119,6 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
         return cast(Neo4jTemporaryInstance, super().get_instance(max_retry_seconds=max_retry_seconds))
 
 
-
 class Neo4jTestCase(unittest.TestCase):
     """
     Base test case that sets up a temporary Neo4j instance

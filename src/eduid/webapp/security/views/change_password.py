@@ -101,7 +101,7 @@ def change_password_view(user: User, old_password: str, new_password: str) -> Fl
         return error_response(message=SecurityMsg.stale_reauthn)
 
     # TODO: uncomment after check_password is available in eduid.common
-    #hashed = session.security.generated_password_hash
+    # hashed = session.security.generated_password_hash
     is_generated = False
     #
     #    if check_password(new_password, hashed):

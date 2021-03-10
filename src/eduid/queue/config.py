@@ -10,6 +10,7 @@ class QueueWorkerConfig(RootConfig, LoggingConfigMixin):
     """
     Configuration for eduid-queue workers
     """
+
     environment: EduidEnvironment = EduidEnvironment.production
     mongo_uri: str = ''
     mongo_collection: str = ''
