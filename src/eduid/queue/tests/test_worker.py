@@ -3,6 +3,7 @@ import asyncio
 import logging
 from datetime import timedelta
 from os import environ
+from typing import Optional
 
 from eduid.common.config.parsers import load_config
 from eduid.queue.config import QueueWorkerConfig
@@ -89,7 +90,7 @@ class TestBaseWorker(QueueAsyncioTest):
 
     async def _assert_item_gets_processed(self, queue_item: QueueItem):
         end_time = utc_now() + timedelta(seconds=10)
-        fetched = False
+        fetched: Optional[QueueItem] = None
         while utc_now() < end_time:
             await asyncio.sleep(0.5)  # Allow worker to run
             fetched = self.db.get_item_by_id(queue_item.item_id, raise_on_missing=False)

@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 from typing import Sequence
 
-from eduid.common.config.base import LoggingConfigMixin, LoggingFilters, RootConfig
+from eduid.common.config.base import EduidEnvironment, LoggingConfigMixin, LoggingFilters, MailConfigMixin, RootConfig
 
 __author__ = 'lundberg'
 
 
-class QueueWorkerConfig(RootConfig, LoggingConfigMixin):
+class QueueWorkerConfig(RootConfig, LoggingConfigMixin, MailConfigMixin):
     """
     Configuration for eduid-queue workers
     """
-
+    environment: EduidEnvironment = EduidEnvironment.production
     mongo_uri: str = ''
     mongo_collection: str = ''
     periodic_interval: int = 10
@@ -27,3 +27,4 @@ class QueueWorkerConfig(RootConfig, LoggingConfigMixin):
     mail_certfile: str = ''
     mail_username: str = ''
     mail_password: str = ''
+

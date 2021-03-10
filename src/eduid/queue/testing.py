@@ -47,7 +47,7 @@ class MongoTemporaryInstanceReplicaSet(MongoTemporaryInstance):
             self._conn = pymongo.MongoClient(host='localhost', port=self.port, replicaSet='rs0')
         except pymongo.errors.ConnectionFailure as e:
             with self._logfile as f:
-                f.writelines(f'{e}')
+                f.writelines([str(e)])
             return False
         return True
 
