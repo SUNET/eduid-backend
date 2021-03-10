@@ -36,6 +36,7 @@ pydantic
 pymongo>=3.6
 pynacl>=1.0.1
 pysaml2>=6.5.0,==6.*
+pysmscom>=0.9
 python-dateutil
 python-dateutil==2.8.*
 python-dateutil==2.8.*
