@@ -1,5 +1,5 @@
-SOURCE=	src
-PIPCOMPILE=	pip-compile --generate-hashes --extra-index-url https://pypi.sunet.se/simple
+SOURCE=		src/eduid
+PIPCOMPILE=	pip-compile -v --generate-hashes --extra-index-url https://pypi.sunet.se/simple
 
 test:
 	PYTHONPATH=$(abspath .)/src pytest --log-cli-level DEBUG
@@ -9,9 +9,6 @@ reformat:
 	black --line-length 120 --target-version py38 --skip-string-normalization $(SOURCE)
 
 typecheck:
-	mypy --ignore-missing-imports $(SOURCE)
-
-typecheck_extra:
 	mypy --ignore-missing-imports $(SOURCE)
 
 update_translations:
