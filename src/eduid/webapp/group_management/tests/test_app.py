@@ -126,7 +126,10 @@ class GroupManagementTests(EduidAPITestCase):
     def _add_scim_user(self, scim_id: UUID, eppn: str) -> ScimApiUser:
         scim_user = ScimApiUser(scim_id=scim_id, external_id=f'{eppn}@eduid.se')
         self.app.scimapi_userdb.save(scim_user)
-        return self.app.scimapi_userdb.get_user_by_scim_id(str(scim_user.scim_id))
+        scim_api_user = self.app.scimapi_userdb.get_user_by_scim_id(str(scim_user.scim_id))
+        if not scim_api_user:
+            raise RuntimeError('Failed to get created ScimApiUser')
+        return scim_api_user
 
     def _add_scim_group(
         self, scim_id: UUID, display_name: str, extensions: Optional[GroupExtensions] = None
