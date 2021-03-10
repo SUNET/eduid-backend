@@ -131,6 +131,7 @@ class ToUActionPluginTests(ActionsTestCase):
         """
         mock_idp_app = MockIdPContext(self.app.actions_db, tou_version=tou_version)
         with self.app.test_request_context('/config'):
+            assert self.user
             add_actions(mock_idp_app, self.user, None)
             self.authenticate()
             response = self.app.dispatch_request()

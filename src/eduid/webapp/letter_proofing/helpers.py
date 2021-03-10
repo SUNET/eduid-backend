@@ -151,6 +151,10 @@ def send_letter(user: User, proofing_state: LetterProofingState) -> str:
 
     :return: Transaction id
     """
+    if not proofing_state.proofing_letter.address:
+        raise ValueError('No address in proofing_state')
+    if not proofing_state.nin.verification_code:
+        raise ValueError('No verification_code in proofing_state')
     # Create the letter as a PDF-document and send it to our letter sender service
     pdf_letter = pdf.create_pdf(
         recipient=proofing_state.proofing_letter.address,

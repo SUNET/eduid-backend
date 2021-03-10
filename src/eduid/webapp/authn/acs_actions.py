@@ -70,6 +70,8 @@ def update_user_session(session_info: Mapping[str, Any], user: User) -> None:
     session['user_is_logged_in'] = True
     session['eduidIdPCredentialsUsed'] = get_saml_attribute(session_info, 'eduidIdPCredentialsUsed')
     # New style sessions
+    if not session.common:
+        return None
     session.common.eppn = user.eppn
     session.common.is_logged_in = True
     session.common.login_source = LoginApplication.authn

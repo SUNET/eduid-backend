@@ -108,6 +108,9 @@ def do_authn_request(proofing_state: OidcProofingState, claims_request: ClaimsRe
     current_app.logger.debug('AuthenticationRequest args:')
     current_app.logger.debug(oidc_args)
 
+    if not current_app.oidc_client.authorization_endpoint:
+        raise RuntimeError('No OIDC client authorization endpoint')
+
     response = requests.post(current_app.oidc_client.authorization_endpoint, data=oidc_args)
     if response.status_code == 200:
         current_app.logger.debug(

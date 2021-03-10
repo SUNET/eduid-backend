@@ -127,7 +127,6 @@ class EduidAPITestCase(CommonTestCase):
         self.settings['redis_config'] = RedisConfig(host='localhost', port=self.redis_instance.port)
         assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
         self.settings['mongo_uri'] = self.tmp_db.uri
-        self.settings['celery']['mongo_uri'] = self.tmp_db.uri
 
         self.app = self.load_app(self.settings)
         if not getattr(self, 'browser', False):
