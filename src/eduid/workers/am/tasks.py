@@ -40,8 +40,8 @@ class AttributeManager(Task):
         # let's just reload all databases (self.userdb here and the plugins databases) when we
         # get an exception
         logger.exception('Task failed. Reloading db and plugins.')
-        self.init_db()
-        self.init_af_registry()
+        self._userdb = None
+        AmWorkerSingleton.af_registry.reset()
 
 
 @app.task(bind=True, ignore_results=True, base=AttributeManager)
@@ -75,7 +75,7 @@ def _update_attributes(task: AttributeManager, app_name: str, user_id: str) -> b
     logger.debug(f'Update attributes called for {user_id} by {app_name}')
 
     try:
-        attribute_fetcher = AmWorkerSingleton.af_registry[app_name]
+        attribute_fetcher = AmWorkerSingleton.af_registry.get_fetcher(app_name)
         logger.debug(f"Attribute fetcher for {app_name}: {repr(attribute_fetcher)}")
     except KeyError as e:
         logger.error(f'Attribute fetcher for {app_name} is not installed')

@@ -15,8 +15,8 @@ class MobTestConfig(EduIDBaseAppConfig, CeleryConfigMixin):
 
 
 class LookupMobileMongoTestCase(MongoTestCase):
-    def setUp(self, init_lookup_mobile=True):
-        super().setUp()
+    def setUp(self, init_lookup_mobile=True, **kwargs):
+        super().setUp(**kwargs)
         if init_lookup_mobile:
             settings = {
                 'app_name': 'testing',
@@ -37,6 +37,6 @@ class LookupMobileMongoTestCase(MongoTestCase):
             self.lookup_mobile_settings = MobConfig(**settings)
 
             MobWorkerSingleton.update_config(self.lookup_mobile_settings)
-            logger.debug(f'Initialised message_relay with config:\n{self.lookup_mobile_settings}')
+            logger.debug(f'Initialised lookup_mobile with config:\n{self.lookup_mobile_settings}')
 
             self.lookup_mobile_relay = LookupMobileRelay(MobTestConfig(**settings))
