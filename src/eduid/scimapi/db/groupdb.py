@@ -116,6 +116,13 @@ class ScimApiGroupDB(ScimApiBaseDB):
         }
         self.setup_indexes(indexes)
 
+    def _get_graph_group(self, scim_id: str) -> GraphGroup:
+        # TODO: Teach get_group raise_on_missing
+        graph_group = self.graphdb.get_group(scim_id)
+        if graph_group is None:
+            raise RuntimeError(f'Group {scim_id} found in mongodb, but not in graphdb')
+        return graph_group
+
     def save(self, group: ScimApiGroup) -> bool:
         group_dict = group.to_dict()
 
@@ -163,6 +170,10 @@ class ScimApiGroupDB(ScimApiBaseDB):
         changed = False
         updated_members = set()
         logger.info(f'Updating group {str(db_group.scim_id)}')
+        # please mypy
+        _member: Optional[Union[GraphUser, GraphGroup]]
+        _new_member: Optional[Union[GraphUser, GraphGroup]]
+
         for this in update_request.members:
             if this.is_user:
                 _member = db_group.graph.get_member_user(identifier=str(this.value))
@@ -174,15 +185,15 @@ class ScimApiGroupDB(ScimApiBaseDB):
                 raise ValueError(f"Don't recognise member {this}")
 
             # Add a new member
-            if _new_member:
+            if _new_member is not None:
                 updated_members.add(_new_member)
                 logger.debug(f'Added new member: {_new_member}')
             # Update member attributes if they changed
-            elif _member.display_name != this.display:
+            elif _member is not None and _member.display_name != this.display:
                 logger.debug(f'Changed display name for existing member: {_member.display_name} -> {this.display}')
                 _member = replace(_member, display_name=this.display)
                 updated_members.add(_member)
-            else:
+            elif _member is not None:
                 # no change, retain member as-is
                 updated_members.add(_member)
 
@@ -226,7 +237,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
         res: List[ScimApiGroup] = []
         for doc in docs:
             group = ScimApiGroup.from_dict(doc)
-            group.graph = self.graphdb.get_group(str(group.scim_id))
+            group.graph = self._get_graph_group(str(group.scim_id))
             res += [group]
         return res
 
@@ -234,10 +245,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
         doc = self._get_document_by_attr('scim_id', scim_id, raise_on_missing=False)
         if doc:
             group = ScimApiGroup.from_dict(doc)
-            # TODO: Teach get_group raise_on_missing
-            group.graph = self.graphdb.get_group(scim_id)
-            if group.graph is None:
-                raise RuntimeError(f'Group {scim_id} found in mongodb, but not in graphdb')
+            group.graph = self._get_graph_group(scim_id)
             return group
         return None
 
@@ -252,7 +260,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
         res: List[ScimApiGroup] = []
         for this in docs:
             group = ScimApiGroup.from_dict(this)
-            group.graph = self.graphdb.get_group(str(group.scim_id))
+            group.graph = self._get_graph_group(str(group.scim_id))
             res += [group]
         return res, count
 

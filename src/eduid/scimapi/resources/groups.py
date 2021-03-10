@@ -35,12 +35,12 @@ from eduid.scimapi.utils import make_etag
 class GroupsResource(SCIMResource):
     def _get_group_members(self, db_group: ScimApiGroup) -> List[GroupMember]:
         members = []
-        for member in db_group.graph.member_users:
-            ref = self.url_for("Users", member.identifier)
-            members.append(GroupMember(value=UUID(member.identifier), ref=ref, display=member.display_name))
-        for member in db_group.graph.member_groups:
-            ref = self.url_for("Groups", member.identifier)
-            members.append(GroupMember(value=UUID(member.identifier), ref=ref, display=member.display_name))
+        for user_member in db_group.graph.member_users:
+            ref = self.url_for("Users", user_member.identifier)
+            members.append(GroupMember(value=UUID(user_member.identifier), ref=ref, display=user_member.display_name))
+        for group_member in db_group.graph.member_groups:
+            ref = self.url_for("Groups", group_member.identifier)
+            members.append(GroupMember(value=UUID(group_member.identifier), ref=ref, display=group_member.display_name))
         return members
 
     def _db_group_to_response(self, resp: Response, db_group: ScimApiGroup) -> None:

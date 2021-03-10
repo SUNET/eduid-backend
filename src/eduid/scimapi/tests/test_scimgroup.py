@@ -76,10 +76,11 @@ class TestGroupResource(ScimApiTestCase):
         self, group: ScimApiGroup, member: Union[ScimApiUser, ScimApiGroup], display_name: str
     ) -> ScimApiGroup:
         if isinstance(member, ScimApiUser):
-            member = GraphUser(identifier=str(member.scim_id), display_name=display_name)
+            user_member = GraphUser(identifier=str(member.scim_id), display_name=display_name)
+            group.add_member(user_member)
         elif isinstance(member, ScimApiGroup):
-            member = GraphGroup(identifier=str(member.scim_id), display_name=display_name)
-        group.add_member(member)
+            group_member = GraphGroup(identifier=str(member.scim_id), display_name=display_name)
+            group.add_member(group_member)
         assert self.groupdb  # mypy doesn't know setUp will be called
         self.groupdb.save(group)
         return group

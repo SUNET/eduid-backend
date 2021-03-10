@@ -232,15 +232,15 @@ class TestInviteResource(ScimApiTestCase):
         ]
 
         signup_invite = SignupInvite(
-            invite_code=invite_data.get('invite_code'),
+            invite_code=invite_data.get('invite_code', 'invite_code not set'),
             invite_type=InviteType.SCIM,
             invite_reference=SCIMReference(data_owner=self.data_owner, scim_id=db_invite.scim_id),
             display_name=invite_data.get('name', {}).get('formatted'),
             given_name=invite_data.get('name', {}).get('given_name'),
             surname=invite_data.get('name', {}).get('family_name'),
             nin=invite_data.get('national_identity_number'),
-            inviter_name=invite_data.get('inviter_name'),
-            send_email=invite_data.get('send_email'),
+            inviter_name=invite_data.get('inviter_name', 'inviter_name not set'),
+            send_email=invite_data.get('send_email', False),
             mail_addresses=mails_addresses,
             phone_numbers=phone_numbers,
             finish_url=invite_data.get('finish_url'),
@@ -407,6 +407,34 @@ class TestInviteResource(ScimApiTestCase):
         event = events[0]
         assert event.resource.external_id == req['externalId']
         assert event.data['status'] == EventStatus.CREATED.value
+
+    def test_create_invite_missing_mandatory_attributes(self):
+
+        req = {
+            'schemas': [
+                SCIMSchema.NUTID_INVITE_CORE_V1.value,
+                SCIMSchema.NUTID_INVITE_V1.value,
+                SCIMSchema.NUTID_USER_V1.value,
+            ],
+            SCIMSchema.NUTID_INVITE_V1.value: {
+                'inviterName': 'Test Inviter Name',
+                'sendEmail': False,
+            },
+        }
+
+        req1 = copy(req)
+        del req1[SCIMSchema.NUTID_INVITE_V1.value]['inviterName']
+        response = self.client.simulate_post(path=f'/Invites/', body=self.as_json(req1), headers=self.headers)
+        self._assertResponse(response, status_code=400)
+        assert response.json == {'schemas': ['urn:ietf:params:scim:api:messages:2.0:Error'],
+                                 'detail': "{'_schema': ['Missing inviterName']}", 'status': 400}
+
+        req2 = copy(req)
+        del req2[SCIMSchema.NUTID_INVITE_V1.value]['sendEmail']
+        response = self.client.simulate_post(path=f'/Invites/', body=self.as_json(req2), headers=self.headers)
+        self._assertResponse(response, status_code=400)
+        assert response.json == {'schemas': ['urn:ietf:params:scim:api:messages:2.0:Error'],
+                                 'detail': "{'_schema': ['Missing sendEmail']}", 'status': 400}
 
     def test_create_invite_do_not_send_email(self):
 

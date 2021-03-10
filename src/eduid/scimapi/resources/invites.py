@@ -64,6 +64,10 @@ class InvitesResource(SCIMResource):
             for number in create_request.nutid_invite_v1.phone_numbers
         ]
 
+        # please mypy (schema validation makes sure they are not None)
+        assert create_request.nutid_invite_v1.inviter_name is not None
+        assert create_request.nutid_invite_v1.send_email is not None
+
         signup_invite = SignupInvite(
             invite_code=invite_code,
             invite_type=InviteType.SCIM,
@@ -172,6 +176,8 @@ class InvitesResource(SCIMResource):
             raise NotFound(detail='Invite not found')
         ref = self._create_signup_ref(req, db_invite)
         signup_invite = self.context.signup_invitedb.get_invite_by_reference(ref)
+        if signup_invite is None:
+            raise NotFound(detail='Invite reference not found')
         self._db_invite_to_response(req, resp, db_invite, signup_invite)
 
     def on_post(self, req: Request, resp: Response):
@@ -275,7 +281,8 @@ class InvitesResource(SCIMResource):
         # Remove signup invite
         ref = self._create_signup_ref(req, db_invite)
         signup_invite = self.context.signup_invitedb.get_invite_by_reference(ref)
-        self.context.signup_invitedb.remove_document(signup_invite.invite_id)
+        if signup_invite:
+            self.context.signup_invitedb.remove_document(signup_invite.invite_id)
 
         # Remove scim invite
         res = ctx_invitedb(req).remove(db_invite)

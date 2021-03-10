@@ -80,7 +80,11 @@ class InviteCreateRequest(BaseCreateRequest, NutidInviteV1):
             primary_addresses = [email for email in data['nutid_invite_v1'].emails if email.primary is True]
             if len(primary_addresses) != 1:
                 raise ValidationError('There must be exactly one primary email address.')
-
+        # Validate that inviter_name and send_email is not None
+        if data['nutid_invite_v1'].send_email is None:
+            raise ValidationError('Missing sendEmail')
+        if data['nutid_invite_v1'].inviter_name is None:
+            raise ValidationError('Missing inviterName')
 
 @dataclass(frozen=True)
 class InviteResponse(NutidInviteV1, BaseResponse):
