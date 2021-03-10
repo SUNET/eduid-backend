@@ -8,6 +8,7 @@ from typing import Any, Mapping, Optional, cast
 
 from aiosmtplib import SMTP, SMTPResponse
 
+from eduid.common.config.base import EduidEnvironment
 from eduid.common.config.parsers import load_config
 from eduid.queue.config import QueueWorkerConfig
 from eduid.queue.db import QueueItem
@@ -60,8 +61,7 @@ class MailQueueWorker(QueueWorker):
         """
 
         # Just log the mail if in development mode
-        devel_mode = self.config.devel_mode
-        if devel_mode is True:
+        if self.config.environment == EduidEnvironment.dev:
             logger.debug('sendmail task:')
             logger.debug(
                 f"\nType: email\nReference: {reference}\nSender: {sender}\nRecipients: {recipients}\n"
