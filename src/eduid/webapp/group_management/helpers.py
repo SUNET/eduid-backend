@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass
 from enum import unique
 from typing import Any, Dict, List, Optional, Set, Union
 from uuid import UUID
@@ -188,12 +188,17 @@ def get_outgoing_invites(user: User) -> List[Dict[str, Any]]:
             states = current_app.invite_state_db.get_states_by_group_scim_id(str(group.scim_id))
         except DocumentDoesNotExist:
             continue
-        group_invite = {'group_identifier': group.scim_id, 'owner_invites': [], 'member_invites': []}
+        owner_invites = []
+        member_invites = []
         for state in states:
             if state.role == GroupRole.OWNER:
-                group_invite['owner_invites'].append({'email_address': state.email_address})
+                owner_invites.append({'email_address': state.email_address})
             if state.role == GroupRole.MEMBER:
-                group_invite['member_invites'].append({'email_address': state.email_address})
+                member_invites.append({'email_address': state.email_address})
+        group_invite = {'group_identifier': group.scim_id,
+                        'owner_invites': owner_invites,
+                        'member_invites': member_invites,
+                        }
         invites.append(group_invite)
     current_app.logger.debug(f'outgoing invites: {invites}')
     return invites
@@ -234,6 +239,8 @@ def send_invite_email(invite_state: GroupInviteState):
 
     to_addresses = [invite_state.email_address]
     group = current_app.scimapi_groupdb.get_group_by_scim_id(invite_state.group_scim_id)
+    if not group:
+        raise ValueError(f'Group {invite_state.group_scim_id} not found')
     context = {'group_display_name': group.display_name, 'group_invite_url': current_app.conf.group_invite_url}
     subject = _('Group invitation')
     try:
