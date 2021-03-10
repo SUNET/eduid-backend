@@ -1,7 +1,17 @@
-from __future__ import absolute_import
+import logging
+
+from eduid.common.config.base import CeleryConfigMixin, EduIDBaseAppConfig
+from eduid.webapp.lookup_mobile_proofing.lookup_mobile_relay import LookupMobileRelay
 
 from eduid.common.config.workers import MobConfig
 from eduid.userdb.testing import MongoTestCase
+from eduid.workers.lookup_mobile.common import MobWorkerSingleton
+
+logger = logging.getLogger(__name__)
+
+
+class MobTestConfig(EduIDBaseAppConfig, CeleryConfigMixin):
+    pass
 
 
 class LookupMobileMongoTestCase(MongoTestCase):
@@ -21,12 +31,12 @@ class LookupMobileMongoTestCase(MongoTestCase):
                 'log_path': '',
                 'teleadress_client_user': 'TEST',
                 'teleadress_client_password': 'TEST',
+                'mongo_uri': self.tmp_db.uri,
+                'token_service_url': 'foo',
             }
             self.lookup_mobile_settings = MobConfig(**settings)
-            # initialize eduid.workers.lookup_mobile without requiring config in etcd
-            from eduid.workers.lookup_mobile import init_app
 
-            self.lookup_mobile = init_app(self.lookup_mobile_settings.celery)
-            import eduid.workers.lookup_mobile.worker
+            MobWorkerSingleton.update_config(self.lookup_mobile_settings)
+            logger.debug(f'Initialised message_relay with config:\n{self.lookup_mobile_settings}')
 
-            eduid.workers.lookup_mobile.worker.worker_config = self.lookup_mobile_settings
+            self.lookup_mobile_relay = LookupMobileRelay(MobTestConfig(**settings))

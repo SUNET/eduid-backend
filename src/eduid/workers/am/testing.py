@@ -50,6 +50,7 @@ class AMTestCase(WorkerTestCase):
 
     def setUp(self, am_settings: Optional[Dict[str, Any]] = None, want_mongo_uri: bool = True, **kwargs):
         super().setUp(am_settings=am_settings, want_mongo_uri=want_mongo_uri, **kwargs)
+        # TODO: remove
         self.af_registry = AFRegistry()
 
         self.maxDiff = None

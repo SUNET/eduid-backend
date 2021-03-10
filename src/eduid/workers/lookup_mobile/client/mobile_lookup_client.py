@@ -1,3 +1,5 @@
+from typing import Dict, List, Optional
+
 from suds.client import Client
 from suds.plugin import MessagePlugin
 
@@ -25,7 +27,7 @@ class MobileLookupClient(object):
         self.conf = config
 
         # enable transaction logging if configured
-        self.transaction_audit = self.conf.transaction_audit == 'true' and self.conf.mongo_uri
+        self.transaction_audit = self.conf.transaction_audit and self.conf.mongo_uri
 
         self.client = Client(DEFAULT_CLIENT_URL)
         self.client.set_options(port=DEFAULT_CLIENT_PORT)
@@ -35,7 +37,7 @@ class MobileLookupClient(object):
         self.DEFAULT_CLIENT_USER = str(self.conf.teleadress_client_user)
 
     @TransactionAudit()
-    def find_mobiles_by_NIN(self, national_identity_number, number_region=None):
+    def find_mobiles_by_NIN(self, national_identity_number: str, number_region=None) -> List[str]:
         national_identity_number = format_NIN(national_identity_number)
         person_information = self._search_by_SSNo(national_identity_number)
 
@@ -47,7 +49,7 @@ class MobileLookupClient(object):
         return person_information['Mobiles']
 
     @TransactionAudit()
-    def find_NIN_by_mobile(self, mobile_number):
+    def find_NIN_by_mobile(self, mobile_number) -> Optional[str]:
         person_information = self._search_by_mobile(mobile_number)
         if not person_information or person_information['nin'] is None:
             self.logger.debug("Did not get search result from mobile number: {m_number}".format(m_number=mobile_number))
@@ -77,7 +79,7 @@ class MobileLookupClient(object):
 
         return result.record_list[0].record
 
-    def _search_by_SSNo(self, national_identity_number):
+    def _search_by_SSNo(self, national_identity_number: str) -> Dict[str, List[str]]:
         person_search = self.client.factory.create(DEFAULT_CLIENT_PERSON_CLASS)
 
         # Set the eduid user id and password
@@ -100,7 +102,7 @@ class MobileLookupClient(object):
 
         return {'Mobiles': mobile_numbers}
 
-    def _search_by_mobile(self, mobile_number):
+    def _search_by_mobile(self, mobile_number: str) -> Dict[str, str]:
         person_search = self.client.factory.create(DEFAULT_CLIENT_PERSON_CLASS)
 
         # Set the eduid user id and password
