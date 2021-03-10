@@ -38,6 +38,7 @@ __author__ = 'leifj'
 
 import logging
 from copy import deepcopy
+from typing import Optional
 
 import bson
 import pytest
@@ -45,6 +46,7 @@ import pytest
 from eduid.common.api.testing_base import WorkerTestCase
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.proofing import ProofingUser
+from eduid.workers.am.ams import AttributeFetcher
 from eduid.workers.am.common import AmWorkerSingleton
 
 logger = logging.getLogger(__name__)
@@ -104,8 +106,8 @@ class AMTestCase(WorkerTestCase):
 
 class ProofingTestCase(AMTestCase):
 
-    fetcher_name = None
-    fetcher = None
+    fetcher_name: Optional[str] = None
+    fetcher: Optional[AttributeFetcher] = None
 
     def setUp(self, **kwargs):
         super().setUp(**kwargs)
