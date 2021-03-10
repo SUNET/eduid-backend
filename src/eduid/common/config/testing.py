@@ -30,8 +30,10 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from __future__ import annotations
+
 import logging
-from typing import Sequence
+from typing import Sequence, Type, cast
 
 import etcd
 
@@ -92,3 +94,7 @@ class EtcdTemporaryInstance(EduidTemporaryInstance):
             self._conn.delete(key=key, recursive=True, dir=True)
         except etcd.EtcdKeyNotFound:
             pass
+
+    @classmethod
+    def get_instance(cls: Type[EtcdTemporaryInstance], max_retry_seconds: int = 20) -> EtcdTemporaryInstance:
+        return cast(EtcdTemporaryInstance, super().get_instance(max_retry_seconds=max_retry_seconds))

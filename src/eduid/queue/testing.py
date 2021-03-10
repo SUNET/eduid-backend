@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
+from __future__ import annotations
+
 import time
 from asyncio import Task
 from datetime import datetime
-from typing import List, Sequence
+from typing import List, Sequence, Type, cast
 from unittest import IsolatedAsyncioTestCase, TestCase
 
 import pymongo
@@ -48,6 +50,10 @@ class MongoTemporaryInstanceReplicaSet(MongoTemporaryInstance):
                 f.writelines(f'{e}')
             return False
         return True
+
+    @classmethod
+    def get_instance(cls: Type[MongoTemporaryInstanceReplicaSet], max_retry_seconds: int = 20) -> MongoTemporaryInstanceReplicaSet:
+        return cast(MongoTemporaryInstanceReplicaSet, super().get_instance(max_retry_seconds=max_retry_seconds))
 
     @property
     def uri(self):

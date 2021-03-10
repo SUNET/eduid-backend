@@ -5,7 +5,7 @@ import logging
 import random
 import unittest
 from os import environ
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Type, cast
 
 from neo4j.exceptions import ServiceUnavailable
 
@@ -113,6 +113,11 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
                 s.run(f'DROP CONSTRAINT {constraint["name"]}')
             for index in s.run("CALL db.indexes"):
                 s.run(f'DROP INDEX {index["name"]}')
+
+    @classmethod
+    def get_instance(cls: Type[Neo4jTemporaryInstance], max_retry_seconds: int = 20) -> Neo4jTemporaryInstance:
+        return cast(Neo4jTemporaryInstance, super().get_instance(max_retry_seconds=max_retry_seconds))
+
 
 
 class Neo4jTestCase(unittest.TestCase):
