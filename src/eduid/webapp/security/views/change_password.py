@@ -100,9 +100,10 @@ def change_password_view(user: User, old_password: str, new_password: str) -> Fl
     if int(delta.total_seconds()) > timeout:
         return error_response(message=SecurityMsg.stale_reauthn)
 
-    hashed = session.security.generated_password_hash
-    is_generated = False
     # TODO: uncomment after check_password is available in eduid.common
+    #hashed = session.security.generated_password_hash
+    is_generated = False
+    #
     #    if check_password(new_password, hashed):
     #        is_generated = True
     #        current_app.stats.count(name='change_password_generated_password_used')

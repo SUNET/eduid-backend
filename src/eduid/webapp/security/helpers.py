@@ -33,6 +33,8 @@ class SecurityMsg(TranslatableMsg):
 
     # Too much time passed since re-authn for account termination
     stale_reauthn = 'security.stale_authn_info'
+    # No reauthn
+    no_reauthn = 'security.no_reauthn'
     # removing a verified NIN is not allowed
     rm_verified = 'nins.verified_no_rm'
     # success removing nin
@@ -68,6 +70,14 @@ class SecurityMsg(TranslatableMsg):
     rm_webauthn = 'security.webauthn-token-removed'
     # token to remove not found
     no_webauthn = 'security.webauthn-token-notfound'
+    # old_password or new_password missing
+    chpass_no_data = 'security.change_password_no_data'
+    # weak password
+    chpass_weak = 'security.change_password_weak'
+    # wrong old password
+    unrecognized_pw = 'security.change_password_wrong_old_password'
+    # change password successfully completed
+    chpass_password_changed = 'security.change_password_complete'
 
 
 def credentials_to_registered_keys(user_u2f_tokens):
