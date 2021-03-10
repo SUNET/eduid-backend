@@ -6,7 +6,7 @@ from eduid.common.config.base import EduidEnvironment, LoggingConfigMixin, Loggi
 __author__ = 'lundberg'
 
 
-class QueueWorkerConfig(RootConfig, LoggingConfigMixin, MailConfigMixin):
+class QueueWorkerConfig(RootConfig, LoggingConfigMixin):
     """
     Configuration for eduid-queue workers
     """
@@ -27,4 +27,4 @@ class QueueWorkerConfig(RootConfig, LoggingConfigMixin, MailConfigMixin):
     mail_certfile: str = ''
     mail_username: str = ''
     mail_password: str = ''
-
+    mail_default_from: str = 'no-reply@eduid.se'
