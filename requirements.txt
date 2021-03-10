@@ -205,6 +205,10 @@ html5lib==1.1 \
     # via
     #   -r requirements.in
     #   xhtml2pdf
+httplib2==0.19.0 \
+    --hash=sha256:749c32603f9bf16c1277f59531d502e8f1c2ca19901ae653b49c4ed698f0820e \
+    --hash=sha256:e0d428dad43c72dbce7d163b7753ffc7a39c097e6788ef10f4198db69b92f08e
+    # via pysmscom
 idna==2.10 \
     --hash=sha256:b307872f855b18632ce0c21c5e45be78c0ea7ae4c15c828c20788b26921eb3f6 \
     --hash=sha256:b97d804b1e9b523befed77c48dacec60e6dcb0b5391d57af6a65a312a90648c0
@@ -659,13 +663,19 @@ pyopenssl==20.0.1 \
 pyparsing==2.4.7 \
     --hash=sha256:c203ec8783bf771a155b207279b9bccb8dea02d8f0c9e5f8ead507bc3246ecc1 \
     --hash=sha256:ef9d7589ef3c200abe66653d3f1ab1033c3c419ae9b9bdb1240a85b024efc88b
-    # via packaging
+    # via
+    #   httplib2
+    #   packaging
 pypdf2==1.26.0 \
     --hash=sha256:e28f902f2f0a1603ea95ebe21dff311ef09be3d0f0ef29a3e44a932729564385
     # via xhtml2pdf
 pysaml2==6.5.1+sunet \
     --hash=sha256:136fe46f91c82fd33dbbb0f7c1b7442eb387d9769d1236246c6a6c16714b09b1 \
     --hash=sha256:8c9e1815191f6068ba8b7b759351d9bee74714120a4b85340540d2c8825da49a
+    # via -r requirements.in
+pysmscom==0.9 \
+    --hash=sha256:0e45dacf73dedf379f1f8e17b976dc950b2c0d91c9e7d9b82d3a59b2c27b4ed1 \
+    --hash=sha256:bd4a9c770f5ef93438182c4c1dbc265a0a45e823998c742dd0d50e984bd0b363
     # via -r requirements.in
 python-bidi==0.4.2 \
     --hash=sha256:50eef6f6a0bbdd685f9e8c207f3c9050f5b578d0a46e37c76a9c4baea2cc2e13 \
@@ -861,6 +871,7 @@ six==1.15.0 \
     #   pynacl
     #   pyopenssl
     #   pysaml2
+    #   pysmscom
     #   python-bidi
     #   python-dateutil
     #   python-jose
