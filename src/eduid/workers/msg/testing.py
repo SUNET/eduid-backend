@@ -1,13 +1,12 @@
 import logging
 from pathlib import PurePath
 
-import pkg_resources
-
 from eduid.common.api.mail_relay import MailRelay
 from eduid.common.api.msg import MsgRelay
 from eduid.common.config.base import EduIDBaseAppConfig, MailConfigMixin, MsgConfigMixin
 from eduid.common.config.workers import MsgConfig
 from eduid.userdb.testing import MongoTestCase
+from eduid.workers.msg.common import MsgWorkerSingleton
 
 logger = logging.getLogger(__name__)
 
@@ -42,14 +41,8 @@ class MsgMongoTestCase(MongoTestCase):
                 'message_rate_limit': 2,
             }
             self.msg_settings = MsgTestConfig(**settings)
-            # initialize eduid.workers.msg without requiring config in etcd
-            import eduid.workers.msg
 
-            celery = eduid.workers.msg.init_app(self.msg_settings.celery)
-            self.msg = celery
-            import eduid.workers.msg.worker
-
-            eduid.workers.msg.worker.worker_config = self.msg_settings
+            MsgWorkerSingleton.update_config(self.msg_settings)
             logger.debug(f'Initialised message_relay with config:\n{self.msg_settings}')
 
             self.msg_relay = MsgRelay(self.msg_settings)

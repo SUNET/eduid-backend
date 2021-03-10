@@ -9,17 +9,14 @@ from typing import List, Optional
 from celery import Task
 from celery.utils.log import get_task_logger
 from hammock import Hammock
+from smscom import SMSClient
 
 from eduid.userdb.exceptions import ConnectionError
 from eduid.workers.msg.cache import CacheMDB
-from eduid.workers.msg.common import celery
+from eduid.workers.msg.common import MsgWorkerSingleton
 from eduid.workers.msg.decorators import TransactionAudit
 from eduid.workers.msg.exceptions import NavetAPIException
 from eduid.workers.msg.utils import load_template, navet_get_name_and_official_address, navet_get_relations
-from eduid.workers.msg.worker import worker_config
-
-if celery is None:
-    raise RuntimeError('Must call eduid.workers.msg.init_app before importing tasks')
 
 
 TRANSACTION_AUDIT_DB = 'eduid_msg'
@@ -30,67 +27,53 @@ logger = get_task_logger(__name__)
 _CACHE: dict = {}
 _CACHE_EXPIRE_TS: Optional[datetime] = None
 
+app = MsgWorkerSingleton.celery
 
-class MessageRelay(Task):
+
+class MessageSender(Task):
     """
     Singleton that stores reusable objects.
     """
 
     abstract = True
-    _sms = None
-    _sms_sender = None
-    _navet_api = None
-    _config = worker_config
-    NAVET_API_URI = _config.navet_api_uri
-    if _config.audit is True:
-        TransactionAudit.enable(_config.mongo_uri)
+
+    _sms: Optional[SMSClient] = None
+    _navet: Optional[Hammock] = None
 
     @property
-    def sms(self):
+    def sms(self) -> SMSClient:
         if self._sms is None:
-            from smscom import SMSClient
-
-            self._sms = SMSClient(self._config.sms_acc, self._config.sms_key)
-            self._sms_sender = self._config.sms_sender
+            self._sms = SMSClient(MsgWorkerSingleton.msg_config.sms_acc, MsgWorkerSingleton.msg_config.sms_key)
         return self._sms
 
     @property
     def smtp(self):
-        host = self._config.mail_host
-        port = self._config.mail_port
-        _smtp = smtplib.SMTP(host, port)
-        starttls = self._config.mail_starttls
-        if starttls:
-            keyfile = self._config.mail_keyfile
-            certfile = self._config.mail_certfile
-            if keyfile and certfile:
-                _smtp.starttls(keyfile, certfile)
+        config = MsgWorkerSingleton.msg_config
+        _smtp = smtplib.SMTP(config.mail_host, config.mail_port)
+        if config.mail_starttls:
+            if config.mail_keyfile and config.mail_certfile:
+                _smtp.starttls(config.mail_keyfile, config.mail_certfile)
             else:
                 _smtp.starttls()
-        username = self._config.mail_username
-        password = self._config.mail_password
-        if username and password:
-            _smtp.login(username, password)
+        if config.mail_username and config.mail_password:
+            _smtp.login(config.mail_username, config.mail_password)
         return _smtp
 
     @property
     def navet_api(self):
         if self._navet_api is None:
-            verify_ssl = True
+            config = MsgWorkerSingleton.msg_config
             auth = None
-            if self._config.navet_api_verify_ssl == 'false':
-                verify_ssl = False
-            if self._config.navet_api_user and self._config.navet_api_pw:
-                auth = (self._config.navet_api_user, self._config.navet_api_pw)
-            self._navet_api = Hammock(self.NAVET_API_URI, auth=auth, verify=verify_ssl)
+            if config.navet_api_user and config.navet_api_pw:
+                auth = (config.navet_api_user, config.navet_api_pw)
+            self._navet_api = Hammock(config.navet_api_uri, auth=auth, verify=config.navet_api_verify_ssl)
         return self._navet_api
 
     def cache(self, cache_name, ttl=7200):
         global _CACHE
-        cfg = worker_config
         if cache_name not in _CACHE:
             _CACHE[cache_name] = CacheMDB(
-                self._config.mongo_uri, self._config.mongo_dbname, cache_name, ttl=ttl, expiration_freq=120
+                MsgWorkerSingleton.msg_config.mongo_uri, MsgWorkerSingleton.msg_config.mongo_dbname, cache_name, ttl=ttl, expiration_freq=120
             )
         return _CACHE[cache_name]
 
@@ -131,7 +114,7 @@ class MessageRelay(Task):
                  message has been delivered to the users mailbox service by calling
                  check_distribution_status(message_id), if unsuccessful an error message is returned.
         """
-        conf = self._config
+        conf = MsgWorkerSingleton.msg_config
 
         msg = load_template(conf.template_dir, template, message_dict, language)
 
@@ -147,7 +130,7 @@ class MessageRelay(Task):
             logger.debug(f"Sending SMS to {recipient} using template {template} and language {language}")
             try:
                 msg_bytes = msg.encode('utf-8')
-                status = self.sms.send(msg_bytes, self._sms_sender, recipient, prio=2)
+                status = self.sms.send(msg_bytes, MsgWorkerSingleton.msg_config.sms_sender, recipient, prio=2)
             except Exception as e:  # XXX: smscom only raises Exception right now
                 logger.error(f'SMS task failed: {e}')
                 raise e
@@ -166,8 +149,7 @@ class MessageRelay(Task):
         :return: dict containing name and postal address
         """
         # Only log the message if devel_mode is enabled
-        conf = self._config
-        if conf.devel_mode is True:
+        if MsgWorkerSingleton.msg_config.devel_mode is True:
             return self.get_devel_postal_address()
 
         data = self._get_navet_data(identity_number)
@@ -205,8 +187,7 @@ class MessageRelay(Task):
         :return: dict containing name and postal address
         """
         # Only log the message if devel_mode is enabled
-        conf = self._config
-        if conf.devel_mode is True:
+        if MsgWorkerSingleton.msg_config.devel_mode is True:
             return self.get_devel_relations()
 
         data = self._get_navet_data(identity_number)
@@ -300,8 +281,7 @@ class MessageRelay(Task):
         """
 
         # Just log the mail if in development mode
-        conf = self._config
-        if conf.devel_mode is True:
+        if MsgWorkerSingleton.msg_config.devel_mode is True:
             logger.debug('sendmail task:')
             logger.debug(
                 f"\nType: email\nReference: {reference}\nSender: {sender}\nRecipients: {recipients}\n"
@@ -325,13 +305,12 @@ class MessageRelay(Task):
         """
 
         # Just log the sms if in development mode
-        conf = self._config
-        if conf.devel_mode is True:
+        if MsgWorkerSingleton.msg_config.devel_mode is True:
             logger.debug('sendsms task:')
             logger.debug(f"\nType: sms\nReference: {reference}\nRecipient: {recipient}\nMessage:\n{message}")
             return 'devel_mode'
 
-        return self.sms.send(message, self._sms_sender, recipient, prio=2)
+        return self.sms.send(message, MsgWorkerSingleton.msg_config.sms_sender, recipient, prio=2)
 
     def pong(self):
         # Leverage cache to test mongo db health
@@ -341,9 +320,9 @@ class MessageRelay(Task):
 
 
 
-@celery.task(bind=True, base=MessageRelay)
+@app.task(bind=True, base=MessageSender)
 def sendmail(
-    self: MessageRelay,
+    self: MessageSender,
     sender: str,
     recipients: list,
     message: str,
@@ -367,9 +346,9 @@ def sendmail(
     assert False  # make mypy happy
 
 
-@celery.task(bind=True, base=MessageRelay)
+@app.task(bind=True, base=MessageSender)
 def sendsms(
-    self: MessageRelay, recipient: str, message: str, reference: str, max_retry_seconds: Optional[int] = None
+    self: MessageSender, recipient: str, message: str, reference: str, max_retry_seconds: Optional[int] = None
 ) -> str:
     """
     :param self: base class
@@ -387,8 +366,8 @@ def sendsms(
     assert False  # make mypy happy
 
 
-@celery.task(bind=True, base=MessageRelay)
-def get_postal_address(self: MessageRelay, identity_number: str) -> Optional[OrderedDict]:
+@app.task(bind=True, base=MessageSender)
+def get_postal_address(self: MessageSender, identity_number: str) -> Optional[OrderedDict]:
     """
     Retrieve name and postal address from the Swedish population register using a Swedish national
     identity number.
@@ -406,8 +385,8 @@ def get_postal_address(self: MessageRelay, identity_number: str) -> Optional[Ord
     assert False  # make mypy happy
 
 
-@celery.task(bind=True, base=MessageRelay)
-def get_relations_to(self: MessageRelay, identity_number: str, relative_nin: str) -> List[str]:
+@app.task(bind=True, base=MessageSender)
+def get_relations_to(self: MessageSender, identity_number: str, relative_nin: str) -> List[str]:
     """
     Get the relative status between identity_number and relative_nin.
 
@@ -455,7 +434,7 @@ def get_relations_to(self: MessageRelay, identity_number: str, relative_nin: str
     assert False  # make mypy happy
 
 
-@celery.task(bind=True, base=MessageRelay)
+@app.task(bind=True, base=MessageSender)
 def set_audit_log_postal_address(self, audit_reference: str) -> bool:
     """
     Looks in the transaction audit collection for the audit reference and make a postal address lookup and adds the
@@ -478,7 +457,7 @@ def cache_expire():
         _CACHE[cache].expire_cache_items()
 
 
-@celery.task(bind=True, base=MessageRelay)
+@app.task(bind=True, base=MessageSender)
 def pong(self):
     # Periodic tasks require celery beat with celery 5. This whole expiration thing
     # should be replaced with mongodb built in data expiration, so just use this hack for now.
