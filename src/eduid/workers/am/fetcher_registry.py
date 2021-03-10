@@ -21,7 +21,7 @@ class AFRegistry:
     def __init__(self):
         self._fetchers: Dict[str, AttributeFetcher] = {}
 
-    def get_fetcher(self, key: str) -> Optional[AttributeFetcher]:
+    def get_fetcher(self, key: str) -> AttributeFetcher:
         if key not in self._fetchers:
             # Dynamically look for a fetcher with that name in the eduid.workers.am.ams module
             af_class = getattr(eduid.workers.am.ams, key, None)

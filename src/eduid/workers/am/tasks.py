@@ -75,17 +75,20 @@ def _update_attributes(task: AttributeManager, app_name: str, user_id: str) -> b
     logger.debug(f'Update attributes called for {user_id} by {app_name}')
 
     try:
+        _id = bson.ObjectId(user_id)
+    except bson.errors.InvalidId:
+        logger.error(f'Invalid user_id {user_id} from app {app_name}')
+        raise ValueError('Invalid user_id')
+
+    try:
         attribute_fetcher = AmWorkerSingleton.af_registry.get_fetcher(app_name)
         logger.debug(f"Attribute fetcher for {app_name}: {repr(attribute_fetcher)}")
     except KeyError as e:
         logger.error(f'Attribute fetcher for {app_name} is not installed')
         raise RuntimeError(f'Missing attribute fetcher, {e}')
 
-    try:
-        _id = bson.ObjectId(user_id)
-    except bson.errors.InvalidId:
-        logger.error(f'Invalid user_id {user_id} from app {app_name}')
-        raise ValueError('Invalid user_id')
+    if not task.userdb:
+        raise RuntimeError('Task has no userdb')
 
     try:
         attributes = attribute_fetcher.fetch_attrs(_id)
