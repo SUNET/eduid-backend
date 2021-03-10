@@ -61,7 +61,6 @@ class MsgConfig(WorkerConfig):
     mail_port: int = 25
     mail_starttls: bool = False
     mail_username: str = ''
-    message_rate_limit: Optional[int] = None  # for celery. tasks per second - None for no rate limit
     mongo_dbname: str = 'eduid_msg'
     navet_api_pw: str = ''
     navet_api_uri: str = ''

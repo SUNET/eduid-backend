@@ -29,7 +29,6 @@ TRANSACTION_AUDIT_COLLECTION = 'transaction_audit'
 logger = get_task_logger(__name__)
 _CACHE: dict = {}
 _CACHE_EXPIRE_TS: Optional[datetime] = None
-MESSAGE_RATE_LIMIT = worker_config.message_rate_limit
 
 
 class MessageRelay(Task):
@@ -342,7 +341,7 @@ class MessageRelay(Task):
 
 
 
-@celery.task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
+@celery.task(bind=True, base=MessageRelay)
 def sendmail(
     self: MessageRelay,
     sender: str,
@@ -368,7 +367,7 @@ def sendmail(
     assert False  # make mypy happy
 
 
-@celery.task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
+@celery.task(bind=True, base=MessageRelay)
 def sendsms(
     self: MessageRelay, recipient: str, message: str, reference: str, max_retry_seconds: Optional[int] = None
 ) -> str:
@@ -388,7 +387,7 @@ def sendsms(
     assert False  # make mypy happy
 
 
-@celery.task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
+@celery.task(bind=True, base=MessageRelay)
 def get_postal_address(self: MessageRelay, identity_number: str) -> Optional[OrderedDict]:
     """
     Retrieve name and postal address from the Swedish population register using a Swedish national
@@ -407,7 +406,7 @@ def get_postal_address(self: MessageRelay, identity_number: str) -> Optional[Ord
     assert False  # make mypy happy
 
 
-@celery.task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
+@celery.task(bind=True, base=MessageRelay)
 def get_relations_to(self: MessageRelay, identity_number: str, relative_nin: str) -> List[str]:
     """
     Get the relative status between identity_number and relative_nin.
@@ -456,7 +455,7 @@ def get_relations_to(self: MessageRelay, identity_number: str, relative_nin: str
     assert False  # make mypy happy
 
 
-@celery.task(bind=True, base=MessageRelay, rate_limit=MESSAGE_RATE_LIMIT)
+@celery.task(bind=True, base=MessageRelay)
 def set_audit_log_postal_address(self, audit_reference: str) -> bool:
     """
     Looks in the transaction audit collection for the audit reference and make a postal address lookup and adds the
