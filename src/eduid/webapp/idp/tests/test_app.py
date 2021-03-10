@@ -30,7 +30,6 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-import os
 import re
 from base64 import b64decode
 from dataclasses import dataclass
@@ -38,7 +37,6 @@ from enum import Enum
 from pathlib import PurePath
 from typing import Any, Dict, List, Mapping, Optional
 
-import pkg_resources
 from flask import Response as FlaskResponse
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
@@ -74,9 +72,9 @@ class IdPTests(EduidAPITestCase):
     """Base TestCase for those tests that need a full environment setup"""
 
     def setUp(
-        self, users: Optional[List[str]] = None, copy_user_to_private: bool = False,
+        self,*args, **kwargs,
     ):
-        super().setUp(users=users, copy_user_to_private=copy_user_to_private)
+        super().setUp(*args, **kwargs)
         self.idp_entity_id = 'https://unittest-idp.example.edu/idp.xml'
         self.relay_state = 'test-fest'
         self.sp_config = get_saml2_config(self.app.conf.pysaml2_config, name='SP_CONFIG')

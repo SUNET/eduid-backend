@@ -48,14 +48,14 @@ logger = logging.getLogger(__name__)
 class CommonTestCase(MongoTestCase):
     """ Base Test case for eduID webapps and workers """
 
-    def setUp(self, **kwargs):
+    def setUp(self, *args, **kwargs):
         """
         set up tests
         """
         # Set up provisional logging to capture logs from test setup too
         self._init_logging()
 
-        super().setUp(**kwargs)
+        super().setUp(*args, **kwargs)
 
         # Set up etcd
         self.etcd_instance = EtcdTemporaryInstance.get_instance()
@@ -82,11 +82,11 @@ class WorkerTestCase(CommonTestCase):
     Base Test case for eduID celery workers
     """
 
-    def setUp(self, am_settings: Optional[Dict[str, Any]] = None, want_mongo_uri: bool = True, **kwargs):
+    def setUp(self, *args, am_settings: Optional[Dict[str, Any]] = None, want_mongo_uri: bool = True, **kwargs):
         """
         set up tests
         """
-        super().setUp(**kwargs)
+        super().setUp(*args, **kwargs)
 
         settings = {
             'app_name': 'testing',

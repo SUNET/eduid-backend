@@ -104,7 +104,7 @@ class EduidAPITestCase(CommonTestCase):
     See the `load_app` and `update_config` methods below before subclassing.
     """
 
-    def setUp(self, users: Optional[List[str]] = None, copy_user_to_private: bool = False, **kwargs):
+    def setUp(self, *args, users: Optional[List[str]] = None, copy_user_to_private: bool = False, **kwargs):
         # test users
         if users is None:
             users = ['hubba-bubba']
@@ -112,7 +112,7 @@ class EduidAPITestCase(CommonTestCase):
         # Make a list of User object to be saved to the new temporary mongodb instance
         am_users = [_standard_test_users[x] for x in users]
 
-        super().setUp(am_users=am_users, **kwargs)
+        super().setUp(*args, am_users=am_users, **kwargs)
 
         self.user = None  # type: ignore
         # Initialize some convenience variables on self based on the first user in `users'

@@ -62,12 +62,10 @@ class ResetPasswordTests(EduidAPITestCase):
 
     app: ResetPasswordApp
 
-    def setUp(
-        self, users: Optional[List[str]] = None, copy_user_to_private: bool = False,
-    ):
+    def setUp(self, *args, **kwargs):
         self.test_user_eppn = 'hubba-bubba'
         self.test_user_email = 'johnsmith@example.com'
-        super().setUp(users=users, copy_user_to_private=copy_user_to_private)
+        super().setUp(*args, **kwargs)
 
     def load_app(self, config: Optional[Mapping[str, Any]]) -> ResetPasswordApp:
         """
