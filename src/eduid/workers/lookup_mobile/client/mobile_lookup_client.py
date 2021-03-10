@@ -37,25 +37,27 @@ class MobileLookupClient(object):
 
     @TransactionAudit()
     def find_mobiles_by_NIN(self, national_identity_number: str, number_region=None) -> List[str]:
-        national_identity_number = format_NIN(national_identity_number)
-        person_information = self._search_by_SSNo(national_identity_number)
-
-        if not person_information or person_information['Mobiles'] is None:
-            self.logger.debug("Did not get search result from nin: {nin}".format(nin=national_identity_number))
+        formatted_nin = format_NIN(national_identity_number)
+        if not formatted_nin:
+            self.logger.error(f'Invalid NIN input: {national_identity_number}')
             return []
 
-        person_information['Mobiles'] = format_mobile_number(person_information['Mobiles'], number_region)
-        return person_information['Mobiles']
+        mobiles = self._search_by_SSNo(formatted_nin)
+
+        if not mobiles:
+            self.logger.debug(f'Did not get search result from nin: {formatted_nin}')
+            return []
+
+        return format_mobile_number(mobiles, number_region)
 
     @TransactionAudit()
     def find_NIN_by_mobile(self, mobile_number) -> Optional[str]:
-        person_information = self._search_by_mobile(mobile_number)
-        if not person_information or person_information['nin'] is None:
-            self.logger.debug("Did not get search result from mobile number: {m_number}".format(m_number=mobile_number))
-            return
+        nin = self._search_by_mobile(mobile_number)
+        if not nin:
+            self.logger.debug(f'Did not get search result from mobile number: {mobile_number}')
+            return None
 
-        found_nin = format_NIN(person_information['nin'])
-        return found_nin
+        return format_NIN(nin)
 
     def _search(self, param):
         # Start the search
@@ -78,7 +80,7 @@ class MobileLookupClient(object):
 
         return result.record_list[0].record
 
-    def _search_by_SSNo(self, national_identity_number: str) -> Dict[str, List[str]]:
+    def _search_by_SSNo(self, national_identity_number: str) -> List[str]:
         person_search = self.client.factory.create(DEFAULT_CLIENT_PERSON_CLASS)
 
         # Set the eduid user id and password
@@ -93,15 +95,15 @@ class MobileLookupClient(object):
 
         record = self._search(person_search)
         if record is None:
-            return {}
+            return []
 
         mobile_numbers = []
         for r in record:
             mobile_numbers.append(r.Mobiles)
 
-        return {'Mobiles': mobile_numbers}
+        return mobile_numbers
 
-    def _search_by_mobile(self, mobile_number: str) -> Dict[str, str]:
+    def _search_by_mobile(self, mobile_number: str) -> Optional[str]:
         person_search = self.client.factory.create(DEFAULT_CLIENT_PERSON_CLASS)
 
         # Set the eduid user id and password
@@ -117,7 +119,7 @@ class MobileLookupClient(object):
         record = self._search(person_search)
 
         if record is None:
-            self.logger.debug("Got no search result on mobile number: {m_number}".format(m_number=mobile_number))
-            return {}
+            self.logger.debug(f"Got no search result on mobile number: {mobile_number}")
+            return None
 
-        return {'nin': record[0].SSNo}
+        return record[0].SSNo

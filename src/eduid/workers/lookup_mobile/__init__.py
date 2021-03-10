@@ -6,9 +6,8 @@ See the file LICENSE.txt for full license statement.
 """
 import eduid.workers.lookup_mobile.common as common
 from eduid.common.config.base import CeleryConfig
-from eduid.common.rpc.celery import init_celery as _init_celery
+from eduid.common.rpc.celery import init_celery
 
 
 def init_app(config: CeleryConfig):
-    common.celery = _init_celery('eduid_lookup_mobile', config)
-    return common.celery
+    return init_celery('eduid_lookup_mobile', config)

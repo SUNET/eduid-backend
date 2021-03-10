@@ -1,7 +1,7 @@
 __author__ = 'mathiashedstrom'
 
 import re
-from typing import Optional
+from typing import List, Optional, Sequence
 
 import phonenumbers
 
@@ -15,34 +15,16 @@ def format_NIN(nin: Optional[str]) -> Optional[str]:
     return nin
 
 
-def get_region_from_number(number):
-    # TODO default region should be None?
-    region = 'SE'
-    if number.startswith('+'):
-        region = phonenumbers.region_code_for_number(phonenumbers.parse(number, region))
-    return region
-
-
-def format_mobile_number(number, region):
+def format_mobile_number(numbers: Sequence[str], region: Optional[str]) -> List[str]:
     """
-    Format a single or a list of numbers to E164 standard
-    :param number: a single number string, or a list of numbers
-    :param region: the region of the number/s
-    :return:
+    Format a list of numbers to E.164 standard
+    :param numbers: a list of phone numbers
+    :param region: the region of the number/s - e.g. 'SE'
+    :return: A list of E.164 formatted phone numbers
     """
-    if isinstance(number, list):
-        formatted_numbers = []
-        for one_number in number:
-            formatted_numbers.append(_format_number(one_number, region))
-        return formatted_numbers
-
-    return _format_number(number, region)
+    return [_format_number(x, region) for x in numbers]
 
 
-def _format_number(number, region):
-    # if no region, just remove all non-digits, but keep + sign
-    if region is None:
-        if number.startswith("+"):
-            return "+{number}".format(number=re.sub(r"\D", '', number))
-        return re.sub(r"\D", '', number)
+def _format_number(number: str, region: Optional[str]):
+    """ Parse a number and reconstruct it to the canonical E.164 format """
     return phonenumbers.format_number(phonenumbers.parse(number, region), phonenumbers.PhoneNumberFormat.E164)
