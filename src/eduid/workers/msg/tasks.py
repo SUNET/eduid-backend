@@ -266,7 +266,7 @@ class MessageSender(Task):
 
     @TransactionAudit()
     def sendmail(
-        self, sender: str, recipients: list, message: str, reference: str, max_retry_seconds: Optional[int] = None
+        self, sender: str, recipients: list, message: str, reference: str
     ) -> dict:
         """
         Send mail
@@ -292,7 +292,7 @@ class MessageSender(Task):
         return self.smtp.sendmail(sender, recipients, message)
 
     @TransactionAudit()
-    def sendsms(self, recipient: str, message: str, reference: str, max_retry_seconds: Optional[int] = None) -> str:
+    def sendsms(self, recipient: str, message: str, reference: str) -> str:
         """
         Send sms
 
@@ -327,7 +327,6 @@ def sendmail(
     recipients: list,
     message: str,
     reference: str,
-    max_retry_seconds: Optional[int] = None,
 ) -> dict:
     """
     :param self: base class
@@ -348,7 +347,7 @@ def sendmail(
 
 @app.task(bind=True, base=MessageSender)
 def sendsms(
-    self: MessageSender, recipient: str, message: str, reference: str, max_retry_seconds: Optional[int] = None
+    self: MessageSender, recipient: str, message: str, reference: str
 ) -> str:
     """
     :param self: base class
@@ -435,7 +434,7 @@ def get_relations_to(self: MessageSender, identity_number: str, relative_nin: st
 
 
 @app.task(bind=True, base=MessageSender)
-def set_audit_log_postal_address(self, audit_reference: str) -> bool:
+def set_audit_log_postal_address(self: MessageSender, audit_reference: str) -> bool:
     """
     Looks in the transaction audit collection for the audit reference and make a postal address lookup and adds the
     result to the transaction audit document.
@@ -447,7 +446,7 @@ def set_audit_log_postal_address(self, audit_reference: str) -> bool:
         raise e
 
 
-def cache_expire():
+def cache_expire() -> None:
     """
     Periodic function executed every 5 minutes to expire cached items.
     """
@@ -458,7 +457,7 @@ def cache_expire():
 
 
 @app.task(bind=True, base=MessageSender)
-def pong(self):
+def pong(self: MessageSender) -> str:
     # Periodic tasks require celery beat with celery 5. This whole expiration thing
     # should be replaced with mongodb built in data expiration, so just use this hack for now.
     global _CACHE_EXPIRE_TS
