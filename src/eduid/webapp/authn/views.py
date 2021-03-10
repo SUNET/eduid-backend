@@ -52,7 +52,6 @@ from eduid.common.authn.eduid_saml2 import (
 )
 from eduid.common.authn.utils import check_previous_identification, get_location
 from eduid.common.session import session
-
 from eduid.webapp.authn import acs_actions  # acs_action needs to be imported to be loaded
 from eduid.webapp.authn.acs_actions import AuthnAcsAction
 from eduid.webapp.authn.app import current_authn_app as current_app

@@ -36,11 +36,11 @@ import logging
 from bson import ObjectId
 
 import vccs_client
-from eduid.userdb.credentials import Password
-from eduid.userdb.dashboard import DashboardLegacyUser, DashboardUser
 
 from eduid.common.api.decorators import deprecated
 from eduid.common.authn import get_vccs_client
+from eduid.userdb.credentials import Password
+from eduid.userdb.dashboard import DashboardLegacyUser, DashboardUser
 
 logger = logging.getLogger()
 

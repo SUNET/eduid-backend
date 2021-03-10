@@ -14,7 +14,6 @@ app = AmWorkerSingleton.celery
 AmWorkerSingleton.update_config(get_worker_config('am', config_class=AmConfig))
 
 
-
 def setup_indexes(db_uri, db_name, collection):
     """
     Ensure that indexes in eduid.workers.am.attributes collection are correctly setup.

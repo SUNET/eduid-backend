@@ -18,7 +18,6 @@ from eduid.workers.msg.decorators import TransactionAudit
 from eduid.workers.msg.exceptions import NavetAPIException
 from eduid.workers.msg.utils import load_template, navet_get_name_and_official_address, navet_get_relations
 
-
 TRANSACTION_AUDIT_DB = 'eduid_msg'
 TRANSACTION_AUDIT_COLLECTION = 'transaction_audit'
 
@@ -73,7 +72,11 @@ class MessageSender(Task):
         global _CACHE
         if cache_name not in _CACHE:
             _CACHE[cache_name] = CacheMDB(
-                MsgWorkerSingleton.msg_config.mongo_uri, MsgWorkerSingleton.msg_config.mongo_dbname, cache_name, ttl=ttl, expiration_freq=120
+                MsgWorkerSingleton.msg_config.mongo_uri,
+                MsgWorkerSingleton.msg_config.mongo_dbname,
+                cache_name,
+                ttl=ttl,
+                expiration_freq=120,
             )
         return _CACHE[cache_name]
 
@@ -265,9 +268,7 @@ class MessageSender(Task):
         return False
 
     @TransactionAudit()
-    def sendmail(
-        self, sender: str, recipients: list, message: str, reference: str
-    ) -> dict:
+    def sendmail(self, sender: str, recipients: list, message: str, reference: str) -> dict:
         """
         Send mail
 
@@ -319,15 +320,8 @@ class MessageSender(Task):
         raise ConnectionError('Database not healthy')
 
 
-
 @app.task(bind=True, base=MessageSender)
-def sendmail(
-    self: MessageSender,
-    sender: str,
-    recipients: list,
-    message: str,
-    reference: str,
-) -> dict:
+def sendmail(self: MessageSender, sender: str, recipients: list, message: str, reference: str,) -> dict:
     """
     :param self: base class
     :param sender: the From of the email
@@ -346,9 +340,7 @@ def sendmail(
 
 
 @app.task(bind=True, base=MessageSender)
-def sendsms(
-    self: MessageSender, recipient: str, message: str, reference: str
-) -> str:
+def sendsms(self: MessageSender, recipient: str, message: str, reference: str) -> str:
     """
     :param self: base class
     :param recipient: the recipient of the sms

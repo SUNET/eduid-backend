@@ -8,9 +8,8 @@ import satosa.internal
 from satosa.attribute_mapping import AttributeMapper
 from satosa.micro_services.base import ResponseMicroService
 
-from eduid.userdb import UserDB
-
 from eduid.scimapi.db.userdb import ScimApiUser, ScimApiUserDB
+from eduid.userdb import UserDB
 
 logger = logging.getLogger(__name__)
 

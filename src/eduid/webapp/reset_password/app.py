@@ -45,7 +45,6 @@ from eduid.common.config.parsers import load_config
 from eduid.userdb.authninfo import AuthnInfoDB
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.reset_password import ResetPasswordStateDB, ResetPasswordUserDB
-
 from eduid.webapp.reset_password.settings.common import ResetPasswordConfig
 
 __author__ = 'eperez'

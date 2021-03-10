@@ -16,7 +16,6 @@ from eduid.common.session import session
 
 # TODO: Import FidoCredential in credentials.__init__
 from eduid.userdb.credentials.fido import FidoCredential
-
 from eduid.webapp.eidas.acs_actions import EidasAcsAction, nin_verify_BACKDOOR
 from eduid.webapp.eidas.app import current_eidas_app as current_app
 from eduid.webapp.eidas.helpers import (

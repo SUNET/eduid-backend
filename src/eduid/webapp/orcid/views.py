@@ -12,7 +12,6 @@ from eduid.common.api.utils import get_unique_hash, save_and_sync_user
 from eduid.userdb.logs import OrcidProofing
 from eduid.userdb.orcid import OidcAuthorization, OidcIdToken, Orcid
 from eduid.userdb.proofing import OrcidProofingState, ProofingUser
-
 from eduid.webapp.orcid.app import current_orcid_app as current_app
 from eduid.webapp.orcid.helpers import OrcidMsg
 from eduid.webapp.orcid.schemas import OrcidResponseSchema

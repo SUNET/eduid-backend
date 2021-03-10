@@ -44,10 +44,9 @@ from fido2.utils import websafe_decode
 from flask import current_app
 from u2flib_server.u2f import complete_authentication
 
+from eduid.common.session import session
 from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.user import User
-
-from eduid.common.session import session
 
 logger = logging.getLogger(__name__)
 

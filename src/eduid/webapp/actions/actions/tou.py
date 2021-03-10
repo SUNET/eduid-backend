@@ -40,7 +40,6 @@ from flask import request
 from eduid.userdb.actions import Action
 from eduid.userdb.actions.tou import ToUUser, ToUUserDB
 from eduid.userdb.tou import ToUEvent
-
 from eduid.webapp.actions.action_abc import ActionPlugin
 from eduid.webapp.actions.app import current_actions_app as current_app
 from eduid.webapp.actions.helpers import ActionsMsg

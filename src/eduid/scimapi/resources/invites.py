@@ -4,14 +4,11 @@ from datetime import datetime, timedelta
 from os import environ
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from eduid.queue.db import QueueItem, SenderInfo
-from eduid.queue.db.message import EduidInviteEmail
 from falcon import HTTP_201, HTTP_204, Request, Response
 from marshmallow import ValidationError
 
-from eduid.userdb.signup import Invite as SignupInvite
-from eduid.userdb.signup import InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
-
+from eduid.queue.db import QueueItem, SenderInfo
+from eduid.queue.db.message import EduidInviteEmail
 from eduid.scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
 from eduid.scimapi.db.eventdb import EventLevel, EventStatus, add_api_event
 from eduid.scimapi.db.invitedb import ScimApiInvite
@@ -40,6 +37,8 @@ from eduid.scimapi.schemas.scimbase import (
 from eduid.scimapi.schemas.user import NutidUserExtensionV1, Profile
 from eduid.scimapi.search import SearchFilter, parse_search_filter
 from eduid.scimapi.utils import get_short_hash, get_unique_hash, make_etag
+from eduid.userdb.signup import Invite as SignupInvite
+from eduid.userdb.signup import InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
 
 __author__ = 'lundberg'
 

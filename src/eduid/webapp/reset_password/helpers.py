@@ -58,7 +58,6 @@ from eduid.userdb.reset_password import (
     ResetPasswordUser,
 )
 from eduid.userdb.user import User
-
 from eduid.webapp.reset_password.app import current_reset_password_app as current_app
 
 

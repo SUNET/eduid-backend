@@ -90,7 +90,6 @@ from eduid.common.session import session
 from eduid.userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState
 from eduid.userdb.util import utc_now
-
 from eduid.webapp.reset_password.app import current_reset_password_app as current_app
 from eduid.webapp.reset_password.helpers import (
     ResetPwMsg,

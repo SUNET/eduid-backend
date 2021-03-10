@@ -18,7 +18,6 @@ from eduid.common.session import session
 from eduid.userdb.exceptions import UserHasNotCompletedSignup
 from eduid.userdb.logs import MailAddressProofing, PhoneNumberProofing
 from eduid.userdb.security import PasswordResetEmailAndPhoneState, PasswordResetEmailState, SecurityUser
-
 from eduid.webapp.security.app import current_security_app as current_app
 from eduid.webapp.security.schemas import ConvertRegisteredKeys
 

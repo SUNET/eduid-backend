@@ -1,17 +1,15 @@
 # -*- coding: utf-8 -*-
 import asyncio
+import logging
 from datetime import timedelta
 from os import environ
 
 from eduid.common.config.parsers import load_config
-from eduid.userdb.util import utc_now
-
 from eduid.queue.config import QueueWorkerConfig
 from eduid.queue.db import QueueItem, TestPayload
 from eduid.queue.testing import QueueAsyncioTest
 from eduid.queue.workers.base import QueueWorker
-
-import logging
+from eduid.userdb.util import utc_now
 
 __author__ = 'lundberg'
 

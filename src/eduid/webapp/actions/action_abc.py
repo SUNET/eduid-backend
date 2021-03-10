@@ -36,7 +36,6 @@ from flask import request
 from eduid.common.api.utils import get_static_url_for, urlappend
 from eduid.common.config.base import EduidEnvironment
 from eduid.userdb.actions.action import Action
-
 from eduid.webapp.actions.app import current_actions_app as current_app
 
 

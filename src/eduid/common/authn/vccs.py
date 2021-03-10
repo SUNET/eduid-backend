@@ -35,11 +35,11 @@ from typing import Optional
 
 from bson import ObjectId
 
-from eduid.userdb.credentials import Password
-from eduid.userdb.user import User
 from vccs_client import VCCSClient, VCCSClientHTTPError, VCCSPasswordFactor, VCCSRevokeFactor
 
 from eduid.common.api.decorators import deprecated
+from eduid.userdb.credentials import Password
+from eduid.userdb.user import User
 
 logger = logging.getLogger(__name__)
 

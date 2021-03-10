@@ -32,7 +32,6 @@ from eduid.common.session import session
 from eduid.common.session.logindata import SSOLoginData
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.idp.user import SAMLAttributeSettings
-
 from eduid.webapp.idp import assurance, mischttp
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import AssuranceException, MissingMultiFactor, WrongMultiFactor

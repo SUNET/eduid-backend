@@ -13,7 +13,6 @@ from eduid.common.api.helpers import check_magic_cookie
 from eduid.common.session import session
 from eduid.userdb.exceptions import DocumentDoesNotExist
 from eduid.userdb.security.state import PasswordResetEmailAndPhoneState, PasswordResetEmailState
-
 from eduid.webapp.security.app import current_security_app as current_app
 from eduid.webapp.security.helpers import (
     generate_suggested_password,

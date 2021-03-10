@@ -9,9 +9,8 @@ from uuid import uuid4
 import six
 from flask import Request, current_app
 
-from eduid.userdb.exceptions import EduIDUserDBError, MultipleUsersReturned, UserDBValueError, UserDoesNotExist
-
 from eduid.common.api.exceptions import ApiException
+from eduid.userdb.exceptions import EduIDUserDBError, MultipleUsersReturned, UserDBValueError, UserDoesNotExist
 
 
 def get_unique_hash():

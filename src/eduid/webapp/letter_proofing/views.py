@@ -11,7 +11,6 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User
 from eduid.userdb.logs import LetterProofing
 from eduid.userdb.proofing import ProofingUser
-
 from eduid.webapp.letter_proofing import pdf, schemas
 from eduid.webapp.letter_proofing.app import current_letterp_app as current_app
 from eduid.webapp.letter_proofing.ekopost import EkopostException

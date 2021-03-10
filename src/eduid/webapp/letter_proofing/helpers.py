@@ -10,7 +10,6 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User
 from eduid.userdb.proofing import LetterProofingState, NinProofingElement
 from eduid.userdb.proofing.element import SentLetterElement
-
 from eduid.webapp.letter_proofing import pdf
 from eduid.webapp.letter_proofing.app import current_letterp_app as current_app
 

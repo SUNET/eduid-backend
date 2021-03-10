@@ -9,7 +9,6 @@ from typing import Any, Mapping, Optional, cast
 from aiosmtplib import SMTP, SMTPResponse
 
 from eduid.common.config.parsers import load_config
-
 from eduid.queue.config import QueueWorkerConfig
 from eduid.queue.db import QueueItem
 from eduid.queue.db.message import EduidInviteEmail

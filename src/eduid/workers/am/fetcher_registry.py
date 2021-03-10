@@ -17,6 +17,7 @@ class AFRegistry:
     that have (non pep8) names that coincide with those the different eduid_ apps,
     and reside in eduid.workers.am.ams
     '''
+
     def __init__(self):
         self._fetchers: Dict[str, AttributeFetcher] = {}
 

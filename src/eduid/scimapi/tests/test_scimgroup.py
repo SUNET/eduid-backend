@@ -13,8 +13,6 @@ from marshmallow_dataclass import class_schema
 
 from eduid.graphdb.groupdb import Group as GraphGroup
 from eduid.graphdb.groupdb import User as GraphUser
-from eduid.userdb.testing import normalised_data
-
 from eduid.scimapi.db.eventdb import EventStatus
 from eduid.scimapi.db.groupdb import GroupExtensions, ScimApiGroup
 from eduid.scimapi.db.userdb import ScimApiUser
@@ -23,6 +21,7 @@ from eduid.scimapi.schemas.scimbase import BaseSchema, Meta, SCIMResourceType, S
 from eduid.scimapi.testing import ScimApiTestCase
 from eduid.scimapi.tests.test_scimbase import TestScimBase
 from eduid.scimapi.utils import make_etag
+from eduid.userdb.testing import normalised_data
 
 logger = logging.getLogger(__name__)
 

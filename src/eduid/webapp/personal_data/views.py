@@ -39,7 +39,6 @@ from eduid.common.api.messages import CommonMsg, error_response, success_respons
 from eduid.common.api.utils import save_and_sync_user
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.personal_data import PersonalDataUser
-
 from eduid.webapp.personal_data.app import current_pdata_app as current_app
 from eduid.webapp.personal_data.helpers import PDataMsg
 from eduid.webapp.personal_data.schemas import (

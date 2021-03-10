@@ -43,16 +43,15 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 from flask import Response
 from flask.testing import FlaskClient
 
-from eduid.userdb import User
-from eduid.userdb.db import BaseDB
-from eduid.userdb.fixtures.users import new_completed_signup_user_example, new_unverified_user_example, new_user_example
-from eduid.userdb.testing import MongoTemporaryInstance
-
 from eduid.common.api.messages import TranslatableMsg
 from eduid.common.api.testing_base import CommonTestCase
 from eduid.common.config.base import RedisConfig
 from eduid.common.session import EduidSession
 from eduid.common.session.testing import RedisTemporaryInstance
+from eduid.userdb import User
+from eduid.userdb.db import BaseDB
+from eduid.userdb.fixtures.users import new_completed_signup_user_example, new_unverified_user_example, new_user_example
+from eduid.userdb.testing import MongoTemporaryInstance
 
 logger = logging.getLogger(__name__)
 

@@ -34,7 +34,6 @@
 from marshmallow import ValidationError
 
 from eduid.common.api.utils import get_user
-
 from eduid.webapp.email.helpers import EmailMsg
 
 

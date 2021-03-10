@@ -45,7 +45,6 @@ from eduid.scimapi.db.groupdb import GroupExtensions, ScimApiGroup
 from eduid.scimapi.db.userdb import ScimApiUser
 from eduid.userdb import User
 from eduid.userdb.exceptions import DocumentDoesNotExist
-
 from eduid.webapp.group_management.app import GroupManagementApp, init_group_management_app
 from eduid.webapp.group_management.helpers import GroupManagementMsg
 from eduid.webapp.group_management.schemas import GroupRole

@@ -37,7 +37,6 @@ from typing import List, Optional
 
 from eduid.userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, Credential
 from eduid.userdb.idp import IdPUser
-
 from eduid.webapp.idp.idp_saml import AuthnInfo
 from eduid.webapp.idp.sso_session import SSOSession
 

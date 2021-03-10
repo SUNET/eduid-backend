@@ -39,7 +39,6 @@ from eduid.common.api.app import EduIDBaseApp
 from eduid.common.authn.utils import no_authn_views
 from eduid.common.config.base import FlaskConfig
 from eduid.common.config.parsers import load_config
-
 from eduid.webapp.jsconfig.settings.common import JSConfigConfig
 
 

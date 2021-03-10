@@ -9,7 +9,6 @@ from mock import patch
 from eduid.common.api.testing import EduidAPITestCase
 from eduid.userdb.orcid import OidcAuthorization, OidcIdToken, Orcid
 from eduid.userdb.proofing import ProofingUser
-
 from eduid.webapp.orcid.app import OrcidApp, init_orcid_app
 
 __author__ = 'lundberg'

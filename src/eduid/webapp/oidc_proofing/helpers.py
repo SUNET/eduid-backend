@@ -18,7 +18,6 @@ from eduid.userdb import User
 from eduid.userdb.logs import SeLegProofing, SeLegProofingFrejaEid
 from eduid.userdb.proofing import OidcProofingState, ProofingUser
 from eduid.userdb.proofing.element import NinProofingElement
-
 from eduid.webapp.oidc_proofing.app import current_oidcp_app as current_app
 
 __author__ = 'lundberg'

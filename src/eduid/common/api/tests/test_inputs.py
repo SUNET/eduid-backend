@@ -39,8 +39,6 @@ from flask import Blueprint, make_response, request
 from marshmallow import ValidationError, fields
 from werkzeug.http import dump_cookie
 
-from eduid.userdb import UserDB
-
 from eduid.common.api.app import EduIDBaseApp
 from eduid.common.api.decorators import UnmarshalWith
 from eduid.common.api.schemas.base import EduidSchema
@@ -49,6 +47,7 @@ from eduid.common.api.testing import EduidAPITestCase
 from eduid.common.config.base import EduIDBaseAppConfig, FlaskConfig
 from eduid.common.config.parsers import load_config
 from eduid.common.session.eduid_session import SessionFactory
+from eduid.userdb import UserDB
 
 logger = logging.getLogger(__name__)
 

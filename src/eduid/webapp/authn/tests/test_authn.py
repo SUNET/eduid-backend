@@ -52,7 +52,6 @@ from eduid.common.authn.tests.responses import auth_response, logout_request, lo
 from eduid.common.authn.utils import get_location, no_authn_views
 from eduid.common.config.parsers import load_config
 from eduid.common.session import session
-
 from eduid.webapp.authn.app import AuthnApp, authn_init_app
 from eduid.webapp.authn.settings.common import AuthnConfig
 

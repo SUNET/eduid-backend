@@ -4,7 +4,6 @@ from uuid import UUID, uuid4
 
 from eduid.common.config.parsers import load_config
 from eduid.graphdb.groupdb import Group as GraphGroup
-
 from eduid.scimapi.config import ScimApiConfig
 from eduid.scimapi.context import Context
 from eduid.scimapi.db.groupdb import GroupExtensions, ScimApiGroup

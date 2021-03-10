@@ -46,7 +46,6 @@ from eduid.userdb.element import PrimaryElementViolation, UserDBValueError
 from eduid.userdb.exceptions import DocumentDoesNotExist, UserOutOfSync
 from eduid.userdb.phone import PhoneNumber
 from eduid.userdb.proofing import ProofingUser
-
 from eduid.webapp.phone.app import current_phone_app as current_app
 from eduid.webapp.phone.helpers import PhoneMsg
 from eduid.webapp.phone.schemas import PhoneResponseSchema, PhoneSchema, SimplePhoneSchema, VerificationCodeSchema

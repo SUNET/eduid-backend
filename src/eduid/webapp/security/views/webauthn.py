@@ -19,7 +19,6 @@ from eduid.userdb.credentials import Webauthn
 # TODO: Import FidoCredential in eduid.userdb.credentials so we can import it from there
 from eduid.userdb.credentials.fido import U2F, FidoCredential
 from eduid.userdb.security import SecurityUser
-
 from eduid.webapp.security.app import current_security_app as current_app
 from eduid.webapp.security.helpers import SecurityMsg, compile_credential_list
 from eduid.webapp.security.schemas import (

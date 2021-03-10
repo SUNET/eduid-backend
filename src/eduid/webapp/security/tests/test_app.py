@@ -38,7 +38,6 @@ from typing import Any, Dict, Mapping, Optional
 from mock import patch
 
 from eduid.common.api.testing import EduidAPITestCase
-
 from eduid.webapp.security.app import SecurityApp, security_init_app
 
 

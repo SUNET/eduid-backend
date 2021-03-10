@@ -8,9 +8,8 @@ from unittest import IsolatedAsyncioTestCase, TestCase
 import pymongo
 from pymongo.errors import NotMasterError
 
-from eduid.userdb.testing import MongoTemporaryInstance
-
 from eduid.queue.db import Payload, QueueDB, QueueItem, SenderInfo
+from eduid.userdb.testing import MongoTemporaryInstance
 
 __author__ = 'lundberg'
 

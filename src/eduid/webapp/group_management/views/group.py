@@ -41,7 +41,6 @@ from eduid.scimapi.db.groupdb import ScimApiGroup
 from eduid.userdb import User
 from eduid.userdb.exceptions import EduIDDBError
 from eduid.userdb.group_management import GroupRole
-
 from eduid.webapp.group_management.app import current_group_management_app as current_app
 from eduid.webapp.group_management.helpers import (
     GroupManagementMsg,

@@ -42,7 +42,6 @@ from eduid.common.api.am import AmRelay
 from eduid.common.api.app import EduIDBaseApp
 from eduid.common.config.parsers import load_config
 from eduid.userdb.actions import ActionDB
-
 from eduid.webapp.actions.settings.common import ActionsConfig
 
 

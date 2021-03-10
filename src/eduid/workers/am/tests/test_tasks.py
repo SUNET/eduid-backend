@@ -8,7 +8,6 @@ from eduid.common.config.workers import AmConfig
 from eduid.userdb.exceptions import EduIDUserDBError, MultipleUsersReturned, UserDoesNotExist
 from eduid.userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
 from eduid.userdb.locked_identity import LockedIdentityList, LockedIdentityNin
-
 from eduid.workers.am.consistency_checks import check_locked_identity, unverify_duplicates
 from eduid.workers.am.testing import AMTestCase
 

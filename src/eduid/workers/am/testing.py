@@ -133,9 +133,7 @@ class ProofingTestCase(AMTestCase):
         if self.fetcher is None:
             pytest.skip('Fetcher not initialised')
 
-        self.user_data.update(
-            {'malicious': 'hacker'}
-        )
+        self.user_data.update({'malicious': 'hacker'})
 
         # Write bad entry into database
         result = self.fetcher.private_db._coll.insert_one(self.user_data)

@@ -40,7 +40,6 @@ from eduid.common.authn.middleware import AuthnBaseApp
 from eduid.common.config.parsers import load_config
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.proofing import LookupMobileProofingUserDB
-
 from eduid.webapp.lookup_mobile_proofing.lookup_mobile_relay import LookupMobileRelay
 from eduid.webapp.lookup_mobile_proofing.settings.common import MobileProofingConfig
 

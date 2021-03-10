@@ -12,7 +12,6 @@ from mock import Mock, patch
 from eduid.common.api.testing import EduidAPITestCase
 from eduid.userdb.locked_identity import LockedIdentityNin
 from eduid.userdb.nin import Nin
-
 from eduid.webapp.letter_proofing.app import init_letter_proofing_app
 from eduid.webapp.letter_proofing.helpers import LetterMsg
 from eduid.webapp.letter_proofing.settings.common import LetterProofingConfig

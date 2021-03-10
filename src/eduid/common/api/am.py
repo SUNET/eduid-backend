@@ -4,12 +4,10 @@ import logging
 from typing import Optional
 
 import eduid.workers.am
-
-from eduid.userdb import User
-from eduid.userdb.exceptions import LockedIdentityViolation
-
 from eduid.common.api.exceptions import AmTaskFailed
 from eduid.common.config.base import AmConfigMixin
+from eduid.userdb import User
+from eduid.userdb.exceptions import LockedIdentityViolation
 
 __author__ = 'lundberg'
 

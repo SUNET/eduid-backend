@@ -38,7 +38,6 @@ from urllib.parse import quote_plus
 from mock import patch
 
 from eduid.common.api.testing import EduidAPITestCase
-
 from eduid.webapp.phone.app import PhoneApp, phone_init_app
 from eduid.webapp.phone.helpers import PhoneMsg
 

@@ -36,7 +36,6 @@ from flask import abort
 
 from eduid.common.api.messages import TranslatableMsg
 from eduid.common.session import session
-
 from eduid.webapp.actions.app import current_actions_app as current_app
 
 

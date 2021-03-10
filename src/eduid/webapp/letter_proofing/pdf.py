@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import logging
-from datetime import timedelta, datetime
-from typing import OrderedDict, Mapping
+from datetime import datetime, timedelta
+from typing import Mapping, OrderedDict
 
 from six import BytesIO, StringIO
 from xhtml2pdf import pisa

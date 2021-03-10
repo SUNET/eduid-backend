@@ -42,7 +42,6 @@ from eduid.common.authn.middleware import AuthnBaseApp
 from eduid.common.config.parsers import load_config
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.proofing import PhoneProofingStateDB, PhoneProofingUserDB
-
 from eduid.webapp.phone.settings.common import PhoneConfig
 
 

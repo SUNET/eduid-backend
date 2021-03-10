@@ -6,7 +6,6 @@ from unittest import skip
 from unittest.mock import patch
 
 from eduid.common.api.testing import EduidAPITestCase
-
 from eduid.webapp.security.app import SecurityApp, security_init_app
 from eduid.webapp.security.helpers import SecurityMsg
 

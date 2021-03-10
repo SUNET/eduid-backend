@@ -10,8 +10,10 @@ from eduid.workers.msg.common import MsgWorkerSingleton
 
 logger = logging.getLogger(__name__)
 
+
 class MsgTestConfig(MsgConfig, MsgConfigMixin):
     pass
+
 
 class MailTestConfig(EduIDBaseAppConfig, MailConfigMixin):
     pass

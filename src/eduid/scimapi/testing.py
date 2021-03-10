@@ -7,15 +7,12 @@ from os import environ
 from typing import Any, Dict, List, Mapping, Optional, Union
 
 from bson import ObjectId
-from eduid.queue.db.message import MessageDB
 from falcon.testing import Result, TestClient
 
 from eduid.common.config.parsers import load_config
 from eduid.common.config.testing import EtcdTemporaryInstance
 from eduid.graphdb.testing import Neo4jTemporaryInstance
-from eduid.userdb.signup import SignupInviteDB
-from eduid.userdb.testing import MongoTemporaryInstance
-
+from eduid.queue.db.message import MessageDB
 from eduid.scimapi.app import init_api
 from eduid.scimapi.config import ScimApiConfig
 from eduid.scimapi.context import Context
@@ -24,6 +21,8 @@ from eduid.scimapi.db.groupdb import ScimApiGroup
 from eduid.scimapi.db.invitedb import ScimApiInvite
 from eduid.scimapi.db.userdb import ScimApiProfile, ScimApiUser
 from eduid.scimapi.schemas.scimbase import SCIMSchema
+from eduid.userdb.signup import SignupInviteDB
+from eduid.userdb.testing import MongoTemporaryInstance
 
 __author__ = 'lundberg'
 

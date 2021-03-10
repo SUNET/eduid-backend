@@ -2,16 +2,15 @@ from copy import deepcopy
 
 import bson
 
-from eduid.workers.am.common import AmWorkerSingleton
-from eduid.workers.am.testing import AMTestCase, USER_DATA
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.fixtures.users import mocked_user_standard
 from eduid.userdb.signup import SignupUser
 from eduid.userdb.testing import normalised_data
+from eduid.workers.am.common import AmWorkerSingleton
+from eduid.workers.am.testing import USER_DATA, AMTestCase
 
 
 class AttributeFetcherTests(AMTestCase):
-
     def setUp(self):
         am_settings = {'new_user_date': '2001-01-01'}
         super().setUp(am_settings=am_settings, am_users=[mocked_user_standard])

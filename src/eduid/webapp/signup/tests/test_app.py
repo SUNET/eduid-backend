@@ -40,7 +40,6 @@ from mock import patch
 from eduid.common.api.testing import EduidAPITestCase
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.signup import SignupUser
-
 from eduid.webapp.signup.app import SignupApp, signup_init_app
 from eduid.webapp.signup.verifications import send_verification_mail
 

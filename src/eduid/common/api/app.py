@@ -44,8 +44,6 @@ from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
 from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from eduid.userdb import UserDB
-
 from eduid.common.api.checks import (
     CheckResult,
     FailCountItem,
@@ -68,6 +66,7 @@ from eduid.common.config.exceptions import BadConfiguration
 from eduid.common.config.parsers.etcd import EtcdConfigParser
 from eduid.common.session.eduid_session import SessionFactory
 from eduid.common.stats import init_app_stats
+from eduid.userdb import UserDB
 
 DEBUG = os.environ.get('EDUID_APP_DEBUG', False)
 if DEBUG:

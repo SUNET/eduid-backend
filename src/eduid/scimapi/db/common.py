@@ -11,9 +11,8 @@ from uuid import UUID
 
 from bson import ObjectId
 
-from eduid.userdb.util import utc_now
-
 from eduid.scimapi.schemas.scimbase import EmailType, PhoneNumberType
+from eduid.userdb.util import utc_now
 
 __author__ = 'lundberg'
 

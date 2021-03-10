@@ -44,7 +44,6 @@ from eduid.common.config.base import FlaskConfig
 from eduid.common.config.parsers import load_config
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.proofing import OidcProofingStateDB, OidcProofingUserDB
-
 from eduid.webapp.oidc_proofing.settings.common import OIDCProofingConfig
 
 __author__ = 'lundberg'

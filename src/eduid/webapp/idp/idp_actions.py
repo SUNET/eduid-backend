@@ -41,7 +41,6 @@ from eduid.common.session.logindata import SSOLoginData
 from eduid.common.session.namespaces import Actions
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.util import utc_now
-
 from eduid.webapp.idp import mfa_action, tou_action
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.idp_authn import AuthnData

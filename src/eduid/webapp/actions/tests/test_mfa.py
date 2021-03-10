@@ -43,7 +43,6 @@ from mock import patch
 from eduid.common.session import session
 from eduid.userdb.credentials import U2F
 from eduid.userdb.fixtures.users import mocked_user_standard
-
 from eduid.webapp.actions.actions.mfa import Plugin
 from eduid.webapp.actions.helpers import ActionsMsg
 from eduid.webapp.actions.testing import ActionsTestCase, MockIdPContext

@@ -42,7 +42,6 @@ from eduid.common.api.mail_relay import MailRelay
 from eduid.common.config.parsers import load_config
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.signup import SignupUserDB
-
 from eduid.webapp.signup.settings.common import SignupConfig
 
 

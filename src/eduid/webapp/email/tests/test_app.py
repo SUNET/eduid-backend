@@ -39,7 +39,6 @@ from mock import patch
 from eduid.common.api.testing import EduidAPITestCase
 from eduid.userdb.mail import MailAddress
 from eduid.userdb.proofing import EmailProofingElement, EmailProofingState
-
 from eduid.webapp.email.app import EmailApp, email_init_app
 
 

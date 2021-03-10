@@ -44,7 +44,6 @@ from eduid.common.authn.utils import get_saml_attribute
 from eduid.common.session import session
 from eduid.common.session.namespaces import LoginApplication
 from eduid.userdb import User
-
 from eduid.webapp.authn.app import current_authn_app as current_app
 
 

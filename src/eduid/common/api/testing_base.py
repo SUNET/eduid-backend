@@ -101,7 +101,7 @@ class WorkerTestCase(CommonTestCase):
             # Be sure to NOT tell AttributeManager about the temporary mongodb instance.
             # If we do, one or more plugins may open DB connections that never gets closed.
             'mongo_uri': None,
-            'token_service_url': 'foo'
+            'token_service_url': 'foo',
         }
 
         if am_settings:

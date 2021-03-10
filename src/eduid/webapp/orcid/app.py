@@ -40,7 +40,6 @@ from eduid.common.authn.middleware import AuthnBaseApp
 from eduid.common.config.parsers import load_config
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.proofing import OrcidProofingStateDB, OrcidProofingUserDB
-
 from eduid.webapp.orcid.settings.common import OrcidConfig
 
 __author__ = 'lundberg'

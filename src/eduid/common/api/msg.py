@@ -3,7 +3,6 @@ import logging
 from typing import List
 
 import eduid.workers.msg
-
 from eduid.common.api.exceptions import MsgTaskFailed
 from eduid.common.config.base import MsgConfigMixin
 

@@ -5,14 +5,13 @@ from typing import List, Optional, Type, Union
 
 from flask import current_app, render_template, request
 
+from eduid.common.api.app import EduIDBaseApp
+from eduid.common.config.base import MagicCookieMixin
 from eduid.userdb.logs.element import ProofingLogElement
 from eduid.userdb.nin import Nin
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.proofing.state import NinProofingState
 from eduid.userdb.user import User
-
-from eduid.common.api.app import EduIDBaseApp
-from eduid.common.config.base import MagicCookieMixin
 
 __author__ = 'lundberg'
 

@@ -44,7 +44,6 @@ from eduid.userdb.credentials import Password, Webauthn
 from eduid.userdb.exceptions import DocumentDoesNotExist, UserHasNotCompletedSignup
 from eduid.userdb.fixtures.fido_credentials import webauthn_credential as sample_credential
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState
-
 from eduid.webapp.reset_password.app import ResetPasswordApp, init_reset_password_app
 from eduid.webapp.reset_password.helpers import (
     ResetPwMsg,

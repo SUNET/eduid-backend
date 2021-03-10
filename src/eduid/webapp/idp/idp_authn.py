@@ -45,6 +45,8 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Type
 
 from bson import ObjectId
 
+from vccs_client import VCCSClientHTTPError, VCCSPasswordFactor
+
 from eduid.common.api import exceptions
 from eduid.common.authn import get_vccs_client
 from eduid.common.misc.timeutil import utc_now
@@ -52,8 +54,6 @@ from eduid.userdb import MongoDB
 from eduid.userdb.credentials import Credential, Password
 from eduid.userdb.exceptions import UserHasNotCompletedSignup
 from eduid.userdb.idp import IdPUser, IdPUserDb
-from vccs_client import VCCSClientHTTPError, VCCSPasswordFactor
-
 from eduid.webapp.idp.settings.common import IdPConfig
 
 logger = logging.getLogger(__name__)

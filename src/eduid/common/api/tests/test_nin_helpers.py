@@ -3,6 +3,12 @@ from typing import Any, Dict, Mapping
 
 from mock import MagicMock, patch
 
+from eduid.common.api.app import EduIDBaseApp
+from eduid.common.api.helpers import add_nin_to_user, set_user_names_from_offical_address, verify_nin_for_user
+from eduid.common.api.testing import EduidAPITestCase, normalised_data
+from eduid.common.config.base import EduIDBaseAppConfig
+from eduid.common.config.parsers import load_config
+from eduid.common.session.eduid_session import SessionFactory
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.fixtures.users import new_user_example
 from eduid.userdb.logs import ProofingLog
@@ -11,13 +17,6 @@ from eduid.userdb.nin import Nin
 from eduid.userdb.proofing import LetterProofingStateDB, LetterProofingUserDB, NinProofingElement, ProofingUser
 from eduid.userdb.proofing.state import NinProofingState
 from eduid.userdb.user import User
-
-from eduid.common.api.app import EduIDBaseApp
-from eduid.common.api.helpers import add_nin_to_user, set_user_names_from_offical_address, verify_nin_for_user
-from eduid.common.api.testing import EduidAPITestCase, normalised_data
-from eduid.common.config.base import EduIDBaseAppConfig
-from eduid.common.config.parsers import load_config
-from eduid.common.session.eduid_session import SessionFactory
 
 __author__ = 'lundberg'
 
@@ -36,7 +35,6 @@ class HelpersTestApp(EduIDBaseApp):
 
 
 class NinHelpersTest(EduidAPITestCase):
-
     def load_app(self, config: Mapping[str, Any]) -> HelpersTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask

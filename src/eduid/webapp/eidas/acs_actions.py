@@ -25,7 +25,6 @@ from eduid.userdb.credentials.fido import FidoCredential
 from eduid.userdb.logs import MFATokenProofing, SwedenConnectProofing
 from eduid.userdb.proofing.state import NinProofingElement, NinProofingState
 from eduid.userdb.proofing.user import ProofingUser
-
 from eduid.webapp.eidas.app import current_eidas_app as current_app
 from eduid.webapp.eidas.helpers import EidasMsg, is_required_loa, is_valid_reauthn
 

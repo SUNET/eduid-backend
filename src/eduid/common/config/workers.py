@@ -42,6 +42,7 @@ class AmConfig(WorkerConfig):
     """
     Configuration for the attribute manager celery worker
     """
+
     new_user_date: str = '2001-01-01'
     action_plugins: list = Field(default_factory=lambda: ['tou'])
 

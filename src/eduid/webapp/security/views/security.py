@@ -49,7 +49,6 @@ from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.proofing import NinProofingElement
 from eduid.userdb.proofing.state import NinProofingState
 from eduid.userdb.security import SecurityUser
-
 from eduid.webapp.security.app import current_security_app as current_app
 from eduid.webapp.security.helpers import (
     SecurityMsg,

@@ -43,7 +43,6 @@ from eduid.userdb.element import DuplicateElementViolation
 from eduid.userdb.logs import PhoneNumberProofing
 from eduid.userdb.phone import PhoneNumber
 from eduid.userdb.proofing import PhoneProofingElement, PhoneProofingState, ProofingUser
-
 from eduid.webapp.phone.app import current_phone_app as current_app
 
 

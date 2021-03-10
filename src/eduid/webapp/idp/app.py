@@ -44,7 +44,6 @@ from eduid.common.config.parsers import load_config
 from eduid.common.session import session
 from eduid.userdb.actions import ActionDB
 from eduid.userdb.idp import IdPUserDb
-
 from eduid.webapp.idp import idp_authn
 from eduid.webapp.idp.settings.common import IdPConfig
 from eduid.webapp.idp.sso_cache import SSOSessionCache

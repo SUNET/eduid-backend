@@ -24,7 +24,6 @@ from eduid.userdb.proofing import (
 from eduid.userdb.reset_password import ResetPasswordUserDB
 from eduid.userdb.security import SecurityUserDB
 from eduid.userdb.signup import SignupUserDB
-
 from eduid.workers.am.ams.common import AttributeFetcher
 
 logger = get_task_logger(__name__)

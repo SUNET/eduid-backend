@@ -49,7 +49,6 @@ from eduid.common.session.logindata import ExternalMfaData, SSOLoginData
 from eduid.userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, U2F, Credential, Password
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.nin import Nin, NinList
-
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.idp_saml import IdP_SAMLRequest
 from eduid.webapp.idp.login import SSO

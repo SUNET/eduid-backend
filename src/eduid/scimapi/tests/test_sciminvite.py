@@ -10,9 +10,6 @@ from typing import Any, Dict, Mapping, Optional
 
 from bson import ObjectId
 
-from eduid.userdb.signup import Invite as SignupInvite
-from eduid.userdb.signup import InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
-
 from eduid.scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
 from eduid.scimapi.db.eventdb import EventStatus
 from eduid.scimapi.db.invitedb import ScimApiInvite
@@ -21,6 +18,8 @@ from eduid.scimapi.schemas.scimbase import Email, Meta, Name, PhoneNumber, SCIMR
 from eduid.scimapi.schemas.user import NutidUserExtensionV1, Profile
 from eduid.scimapi.testing import ScimApiTestCase
 from eduid.scimapi.utils import filter_none, make_etag
+from eduid.userdb.signup import Invite as SignupInvite
+from eduid.userdb.signup import InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
 
 logger = logging.getLogger(__name__)
 

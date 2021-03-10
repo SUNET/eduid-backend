@@ -38,7 +38,6 @@ from eduid.common.api.helpers import check_magic_cookie
 from eduid.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.common.api.schemas.base import FluxStandardAction
 from eduid.userdb.exceptions import EduIDUserDBError
-
 from eduid.webapp.signup.app import current_signup_app as current_app
 from eduid.webapp.signup.helpers import (
     SignupMsg,

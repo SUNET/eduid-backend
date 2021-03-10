@@ -43,7 +43,6 @@ from eduid.common.session import session
 from eduid.userdb import User
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.security import SecurityUser
-
 from eduid.webapp.security.app import current_security_app as current_app
 from eduid.webapp.security.helpers import compile_credential_list  # check_password,; hash_password,
 from eduid.webapp.security.helpers import SecurityMsg, generate_suggested_password, get_zxcvbn_terms

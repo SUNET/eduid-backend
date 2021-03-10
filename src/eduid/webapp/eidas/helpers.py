@@ -17,7 +17,6 @@ from eduid.common.api.messages import TranslatableMsg
 from eduid.common.authn.cache import IdentityCache, OutstandingQueriesCache
 from eduid.common.authn.eduid_saml2 import BadSAMLResponse, get_authn_ctx
 from eduid.common.session import session
-
 from eduid.webapp.eidas.app import current_eidas_app as current_app
 
 __author__ = 'lundberg'

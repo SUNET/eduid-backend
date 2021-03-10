@@ -41,7 +41,6 @@ from eduid.common.api.schemas.base import FluxStandardAction
 from eduid.common.config.exceptions import BadConfiguration
 from eduid.common.config.parsers.etcd import EtcdConfigParser, etcd
 from eduid.common.session import session
-
 from eduid.webapp.jsconfig.app import current_jsconfig_app as current_app
 from eduid.webapp.jsconfig.settings.front import FrontConfig
 

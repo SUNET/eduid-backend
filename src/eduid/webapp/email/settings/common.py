@@ -36,7 +36,7 @@ Configuration (file) handling for the eduID email app.
 """
 
 
-from eduid.common.config.base import EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MailConfigMixin
+from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig, MagicCookieMixin, MailConfigMixin
 
 
 class EmailConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MailConfigMixin):

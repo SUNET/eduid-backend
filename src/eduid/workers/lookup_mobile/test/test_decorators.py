@@ -2,7 +2,6 @@
 __author__ = 'lundberg'
 
 from eduid.common.config.workers import MsgConfig
-
 from eduid.workers.lookup_mobile.decorators import TransactionAudit
 from eduid.workers.lookup_mobile.testing import LookupMobileMongoTestCase
 

@@ -14,7 +14,6 @@ from typing import List, Sequence, Type
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from eduid.common.api.logging import init_logging
-
 from eduid.queue.config import QueueWorkerConfig
 from eduid.queue.db import Payload, QueueItem
 from eduid.queue.db.change_event import ChangeEvent, OperationType

@@ -62,11 +62,7 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
                                 "City": "LANDET",
                                 "Address2": "ÖRGATAN 79 LGH 10",
                             },
-                            "Name": {
-                                "Surname": "Testsson",
-                                "GivenName": "Testaren Test",
-                                "GivenNameMarking": "20",
-                            },
+                            "Name": {"Surname": "Testsson", "GivenName": "Testaren Test", "GivenNameMarking": "20",},
                         },
                         "number": "123456781235",
                         "created_by": "eduid-idproofing-letter",
@@ -124,11 +120,7 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
                                 "City": "LANDET",
                                 "Address2": "ÖRGATAN 79 LGH 10",
                             },
-                            "Name": {
-                                "Surname": "Testsson",
-                                "GivenName": "Testaren Test",
-                                "GivenNameMarking": "20",
-                            },
+                            "Name": {"Surname": "Testsson", "GivenName": "Testaren Test", "GivenNameMarking": "20",},
                         },
                         "number": "123456781235",
                         "created_by": "eduid-idproofing-letter",
@@ -146,11 +138,7 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
                                 "City": "LANDET",
                                 "Address2": "ÖRGATAN 79 LGH 10",
                             },
-                            "Name": {
-                                "Surname": "Testsson",
-                                "GivenName": "Testaren Test",
-                                "GivenNameMarking": "20",
-                            },
+                            "Name": {"Surname": "Testsson", "GivenName": "Testaren Test", "GivenNameMarking": "20",},
                         },
                         "number": "123456781235",
                         "created_by": "eduid-idproofing-letter",
@@ -161,7 +149,9 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
             },
         }
 
-        assert normalised_data(fetched3) == expected, 'Fetched letter proofing data with appended attributes has unexpected data'
+        assert (
+            normalised_data(fetched3) == expected
+        ), 'Fetched letter proofing data with appended attributes has unexpected data'
 
 
 class AttributeFetcherEmailProofingTests(ProofingTestCase):

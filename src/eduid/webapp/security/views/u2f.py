@@ -16,7 +16,6 @@ from eduid.common.session import session
 from eduid.userdb import User
 from eduid.userdb.credentials import U2F
 from eduid.userdb.security import SecurityUser
-
 from eduid.webapp.security.app import current_security_app as current_app
 from eduid.webapp.security.helpers import SecurityMsg, compile_credential_list, credentials_to_registered_keys
 from eduid.webapp.security.schemas import (

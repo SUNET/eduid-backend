@@ -9,7 +9,6 @@ from eduid.common.api.helpers import add_nin_to_user, verify_nin_for_user
 from eduid.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.common.api.schemas.csrf import CSRFResponse
 from eduid.userdb import User
-
 from eduid.webapp.lookup_mobile_proofing import schemas
 from eduid.webapp.lookup_mobile_proofing.app import current_mobilep_app as current_app
 from eduid.webapp.lookup_mobile_proofing.helpers import MobileMsg, create_proofing_state, match_mobile_to_user

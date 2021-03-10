@@ -9,10 +9,9 @@ from bson import ObjectId
 from motor import motor_asyncio
 from pymongo.results import UpdateResult
 
-from eduid.userdb import MongoDB
-
 from eduid.queue.db import QueueDB, QueueItem
 from eduid.queue.exceptions import PayloadNotRegistered
+from eduid.userdb import MongoDB
 
 __author__ = 'lundberg'
 

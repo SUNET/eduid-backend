@@ -41,7 +41,6 @@ from eduid.common.authn.middleware import AuthnBaseApp
 from eduid.common.config.parsers import load_config
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.proofing import LetterProofingStateDB, LetterProofingUserDB
-
 from eduid.webapp.letter_proofing.ekopost import Ekopost
 from eduid.webapp.letter_proofing.settings.common import LetterProofingConfig
 

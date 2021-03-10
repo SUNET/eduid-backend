@@ -47,7 +47,6 @@ from eduid.common.config.parsers import load_config
 from eduid.userdb.authninfo import AuthnInfoDB
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.security import PasswordResetStateDB, SecurityUserDB
-
 from eduid.webapp.security.settings.common import SecurityConfig
 
 

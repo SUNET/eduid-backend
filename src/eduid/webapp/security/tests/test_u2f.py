@@ -9,7 +9,6 @@ from u2flib_server.model import DeviceRegistration, RegisteredKey
 
 from eduid.common.api.testing import EduidAPITestCase
 from eduid.userdb.credentials import U2F
-
 from eduid.webapp.security.app import SecurityApp, security_init_app
 
 __author__ = 'lundberg'

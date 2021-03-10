@@ -4,7 +4,6 @@ __author__ = 'lundberg'
 import unittest
 
 from eduid.userdb import UserDB
-
 from eduid.workers.am.testing import AMTestCase
 
 

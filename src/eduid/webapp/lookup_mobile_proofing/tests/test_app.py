@@ -7,7 +7,6 @@ from typing import Any, Dict, Mapping
 from mock import patch
 
 from eduid.common.api.testing import EduidAPITestCase
-
 from eduid.webapp.lookup_mobile_proofing.app import MobileProofingApp, init_lookup_mobile_proofing_app
 from eduid.webapp.lookup_mobile_proofing.helpers import MobileMsg
 from eduid.webapp.lookup_mobile_proofing.lookup_mobile_relay import LookupMobileTaskFailed
@@ -52,13 +51,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
         return init_lookup_mobile_proofing_app('testing', config)
 
     def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
-        config.update(
-            {
-                'environment': 'dev',
-                'magic_cookie': '',
-                'magic_cookie_name': '',
-            },
-        )
+        config.update({'environment': 'dev', 'magic_cookie': '', 'magic_cookie_name': '',},)
         return config
 
     def test_authenticate(self):

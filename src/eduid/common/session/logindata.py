@@ -7,9 +7,8 @@ from html import escape
 from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional, Type
 from urllib.parse import urlencode
 
-from eduid.userdb.credentials import Credential
-
 from eduid.common.session.namespaces import SessionNSBase
+from eduid.userdb.credentials import Credential
 
 if TYPE_CHECKING:
     from eduid.webapp.idp.idp_saml import IdP_SAMLRequest

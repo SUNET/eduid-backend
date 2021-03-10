@@ -33,12 +33,12 @@ from typing import cast
 
 from mock import patch
 
-from eduid.userdb.fixtures.users import new_user_example
-from eduid.userdb.testing import MongoTestCase
 from vccs_client import VCCSClient
 
 from eduid.common.authn import vccs as vccs_module
 from eduid.common.authn.testing import MockVCCSClient
+from eduid.userdb.fixtures.users import new_user_example
+from eduid.userdb.testing import MongoTestCase
 
 
 class VCCSTestCase(MongoTestCase):

@@ -15,7 +15,6 @@ from bson import ObjectId
 from eduid.graphdb.groupdb import Group as GraphGroup
 from eduid.graphdb.groupdb import GroupDB
 from eduid.graphdb.groupdb import User as GraphUser
-
 from eduid.scimapi.db.basedb import ScimApiBaseDB
 from eduid.scimapi.db.common import ScimApiResourceBase
 from eduid.scimapi.schemas.group import GroupCreateRequest, GroupUpdateRequest

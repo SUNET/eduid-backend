@@ -3,7 +3,6 @@ from typing import Dict, Optional
 import falcon
 
 from eduid.common.config.parsers import load_config
-
 from eduid.scimapi import exceptions
 from eduid.scimapi.config import ScimApiConfig
 from eduid.scimapi.context import Context

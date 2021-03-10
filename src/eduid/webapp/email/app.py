@@ -42,7 +42,6 @@ from eduid.common.authn.middleware import AuthnBaseApp
 from eduid.common.config.parsers import load_config
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.proofing import EmailProofingStateDB, EmailProofingUserDB
-
 from eduid.webapp.email.settings.common import EmailConfig
 
 

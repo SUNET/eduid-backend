@@ -41,7 +41,6 @@ from eduid.common.api.messages import CommonMsg, FluxData, error_response, succe
 from eduid.userdb import User
 from eduid.userdb.exceptions import EduIDDBError
 from eduid.userdb.group_management import GroupInviteState, GroupRole
-
 from eduid.webapp.group_management.app import current_group_management_app as current_app
 from eduid.webapp.group_management.helpers import (
     GroupManagementMsg,

@@ -6,7 +6,6 @@ from flask import abort
 
 from eduid.common.api.utils import get_user
 from eduid.userdb import User
-
 from eduid.webapp.support.app import current_support_app as current_app
 
 __author__ = 'lundberg'

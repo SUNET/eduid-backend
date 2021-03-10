@@ -51,7 +51,6 @@ from eduid.common.session import session
 from eduid.userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup, UserOutOfSync
 from eduid.userdb.signup import SignupUser
 from eduid.userdb.tou import ToUEvent
-
 from eduid.webapp.signup.app import current_signup_app as current_app
 
 

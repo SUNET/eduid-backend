@@ -8,7 +8,6 @@ from datetime import datetime
 from six import BytesIO, StringIO
 
 from eduid.common.api.testing import EduidAPITestCase
-
 from eduid.webapp.letter_proofing import pdf
 from eduid.webapp.letter_proofing.app import init_letter_proofing_app
 from eduid.webapp.letter_proofing.settings.common import LetterProofingConfig
@@ -145,9 +144,7 @@ class CreatePDFTest(EduidAPITestCase):
 
     def update_config(self, app_config):
         app_config.update(
-            {
-                'letter_wait_time_hours': 336,
-            }
+            {'letter_wait_time_hours': 336,}
         )
         return app_config
 

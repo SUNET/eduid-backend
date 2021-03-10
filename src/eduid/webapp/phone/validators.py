@@ -36,7 +36,6 @@ import re
 from marshmallow import ValidationError
 
 from eduid.common.api.utils import get_user
-
 from eduid.webapp.phone.app import current_phone_app as current_app
 
 

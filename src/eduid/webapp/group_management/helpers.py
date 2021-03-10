@@ -16,7 +16,6 @@ from eduid.scimapi.db.userdb import ScimApiUser
 from eduid.userdb import User
 from eduid.userdb.exceptions import DocumentDoesNotExist, EduIDDBError
 from eduid.userdb.group_management import GroupInviteState
-
 from eduid.webapp.group_management.app import current_group_management_app as current_app
 from eduid.webapp.group_management.schemas import GroupRole
 

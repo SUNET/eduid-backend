@@ -40,13 +40,13 @@ from typing import Optional, Tuple
 from bson import ObjectId
 from mock import patch
 
-import eduid.common.authn
-import eduid.userdb
 import vccs_client
-from eduid.common.api import exceptions
-from eduid.userdb.idp import IdPUser
 from vccs_client import VCCSClient
 
+import eduid.common.authn
+import eduid.userdb
+from eduid.common.api import exceptions
+from eduid.userdb.idp import IdPUser
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.tests.test_app import IdPTests
 

@@ -42,7 +42,6 @@ from mock import patch
 from eduid.common.session import session
 from eduid.userdb import User
 from eduid.userdb.tou import ToUEvent
-
 from eduid.webapp.actions.actions.tou import Plugin
 from eduid.webapp.actions.testing import ActionsTestCase, MockIdPContext
 

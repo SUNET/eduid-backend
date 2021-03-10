@@ -38,7 +38,6 @@ from mock import patch
 
 from eduid.common.api.exceptions import ApiException
 from eduid.common.api.testing import EduidAPITestCase
-
 from eduid.webapp.personal_data.app import PersonalDataApp, pd_init_app
 
 
@@ -57,9 +56,7 @@ class PersonalDataTests(EduidAPITestCase):
 
     def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         config.update(
-            {
-                'available_languages': {'en': 'English', 'sv': 'Svenska'},
-            }
+            {'available_languages': {'en': 'English', 'sv': 'Svenska'},}
         )
         return config
 

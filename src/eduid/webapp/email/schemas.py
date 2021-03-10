@@ -37,7 +37,6 @@ from eduid.common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 from eduid.common.api.schemas.email import LowercaseEmail
 from eduid.common.api.schemas.validators import validate_email
-
 from eduid.webapp.email.validators import email_does_not_exist, email_exists
 
 __author__ = 'eperez'

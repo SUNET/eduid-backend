@@ -47,7 +47,6 @@ from saml2.response import AuthnResponse
 from eduid.common.api.testing import EduidAPITestCase
 from eduid.common.authn.cache import IdentityCache, OutstandingQueriesCache, StateCache
 from eduid.common.authn.utils import get_saml2_config
-
 from eduid.webapp.idp.app import IdPApp, init_idp_app
 from eduid.webapp.idp.sso_session import SSOSession
 

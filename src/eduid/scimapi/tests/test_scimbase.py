@@ -7,9 +7,8 @@ from uuid import uuid4
 from bson import ObjectId
 from marshmallow_dataclass import class_schema
 
-from eduid.userdb.testing import normalised_data
-
 from eduid.scimapi.schemas.scimbase import BaseResponse, Meta, SCIMResourceType, SCIMSchema, SubResource
+from eduid.userdb.testing import normalised_data
 
 __author__ = 'lundberg'
 

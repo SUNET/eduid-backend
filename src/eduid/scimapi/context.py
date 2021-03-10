@@ -3,9 +3,6 @@ import logging.config
 from typing import Optional
 
 from eduid.queue.db.message import MessageDB
-
-from eduid.userdb.signup.invitedb import SignupInviteDB
-
 from eduid.scimapi.config import ScimApiConfig
 from eduid.scimapi.db.eventdb import ScimApiEventDB
 from eduid.scimapi.db.groupdb import ScimApiGroupDB
@@ -14,6 +11,7 @@ from eduid.scimapi.db.userdb import ScimApiUserDB
 from eduid.scimapi.log import init_logging
 from eduid.scimapi.notifications import NotificationRelay
 from eduid.scimapi.utils import urlappend
+from eduid.userdb.signup.invitedb import SignupInviteDB
 
 
 class Context(object):
