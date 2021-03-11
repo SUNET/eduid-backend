@@ -60,9 +60,9 @@ class CeleryConfig(BaseModel):
     broker_transport_options: dict = Field(default={'fanout_prefix': True})
     task_routes: dict = Field(
         default={
-            'eduid_am.*': {'queue': 'am'},
-            'eduid_msg.*': {'queue': 'msg'},
-            'eduid_letter_proofing.*': {'queue': 'letter_proofing'},
+            'eduid.workers.am.*': {'queue': 'am'},
+            'eduid.workers.msg.*': {'queue': 'msg'},
+            'eduid.workers.lookup_mobile.*': {'queue': 'lookup_mobile'},
         }
     )
     mongo_uri: Optional[str] = None
