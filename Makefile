@@ -1,7 +1,7 @@
 TOPDIR:=	$(abspath .)
 SRCDIR=		$(TOPDIR)/src
 SOURCE=		$(SRCDIR)/eduid
-PIPCOMPILE=	pip-compile -v --generate-hashes --extra-index-url https://pypi.sunet.se/simple
+PIPCOMPILE=	pip-compile -v --generate-hashes --index-url https://pypi.sunet.se/simple
 
 test:
 	PYTHONPATH=$(SRCDIR) pytest --log-cli-level DEBUG

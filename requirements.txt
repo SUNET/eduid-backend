@@ -4,8 +4,7 @@
 #
 #    make update_deps
 #
---index-url https://pypi.sunet.se
---extra-index-url https://pypi.sunet.se/simple
+--index-url https://pypi.sunet.se/simple
 
 aiosmtplib==1.1.4 \
     --hash=sha256:8270d0a06475aa05b9276fc954fbd08a1f6c59d0452b4899413d8bca1db24541 \
@@ -215,6 +214,10 @@ idna==2.10 \
     # via
     #   -r requirements.in
     #   requests
+importlib-metadata==3.7.2 \
+    --hash=sha256:18d5ff601069f98d5d605b6a4b50c18a34811d655c55548adc833e687289acde \
+    --hash=sha256:407d13f55dc6f2a844e62325d18ad7019a436c4bfcaee34cda35f2be6e7c3e34
+    # via -r sub_requirements.in
 importlib-resources==5.1.2 \
     --hash=sha256:642586fc4740bd1cad7690f836b3321309402b20b332529f25617ff18e8e1370 \
     --hash=sha256:ebab3efe74d83b04d6bf5cd9a17f0c5c93e60fb60f30c90f56265fce4682a469
@@ -940,6 +943,10 @@ xmlschema==1.5.2 \
     --hash=sha256:df7bf5d6d23f5f32d50e573f9ad75a2456029009909b63607560916b0584f89e \
     --hash=sha256:f821ce780f84c7e61ca1ccf32f23aec400446e74fa5cc888450af7604ce2291f
     # via pysaml2
+zipp==3.4.1 \
+    --hash=sha256:3607921face881ba3e026887d8150cca609d517579abe052ac81fc5aeffdbd76 \
+    --hash=sha256:51cb66cc54621609dd593d1787f286ee42a5c0adbb4b29abea5a63edc3e03098
+    # via importlib-metadata
 zxcvbn==4.4.28 \
     --hash=sha256:151bd816817e645e9064c354b13544f85137ea3320ca3be1fb6873ea75ef7dc1
     # via -r requirements.in
