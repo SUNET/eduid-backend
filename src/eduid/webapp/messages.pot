@@ -1,0 +1,457 @@
+# Translations template for PROJECT.
+# Copyright (C) 2019 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2019.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2019-09-24 16:52+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.7.0\n"
+
+#: email/verifications.py:70
+msgid "eduID confirmation email"
+msgstr ""
+
+#: email/templates/verification_email.html.jinja2:5
+#, python-format
+msgid ""
+"\n"
+"<p>Thank you for registering with <a "
+"href=\"%(site_url)s\">%(site_name)s</a>.</p>\n"
+"\n"
+"<p>To confirm that you own this email address, simply click on the "
+"following link:\n"
+"\n"
+"<a href=\"%(verification_link)s\">%(verification_link)s</a></p>\n"
+"\n"
+"<p>If clicking on the link above does not work, go to your profile and "
+"emails section. Click on the\n"
+"confirmation icon and enter the following code:</p>\n"
+"\n"
+"<p><strong>%(code)s</strong></p>\n"
+"\n"
+msgstr ""
+
+#: email/templates/verification_email.txt.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"Thank you for registering with %(site_name)s.\n"
+"\n"
+"To confirm that you own this email address, simply click on the following"
+" link:\n"
+"\n"
+"%(verification_link)s\n"
+"\n"
+"If clicking on the link above does not work, go to your profile and "
+"emails section. Click on the\n"
+"verification icon and enter the following code:\n"
+"\n"
+"%(code)s\n"
+"\n"
+msgstr ""
+
+#: oidc_proofing/helpers.py:128
+#, python-format
+msgid "%(site_name)s account verification"
+msgstr ""
+
+#: oidc_proofing/templates/redo_verification.html.jinja2:5
+#, python-format
+msgid ""
+"\n"
+"    <p>You have tried to verify your account at <a "
+"href=\"%(site_url)s\">%(site_name)s</a>.</p>\n"
+"    <p>We encountered a problem and kindly ask you to verify you account "
+"again using a different verification method.</p>\n"
+"    <p>We apologize for any inconvenience.</p>\n"
+msgstr ""
+
+#: oidc_proofing/templates/redo_verification.txt.jinja2:2
+#, python-format
+msgid ""
+"\n"
+"    You have tried to verify your account at %(site_name)s\n"
+"\n"
+"    We encountered a problem and kindly ask you to verify you account "
+"again using a different verification method.\n"
+"\n"
+"    We apologize for any inconvenience.\n"
+msgstr ""
+
+#: security/helpers.py:152
+msgid "Terminate account"
+msgstr ""
+
+#: security/helpers.py:187 security/views/reset_password.py:81
+#: security/views/templates/reset_password.jinja2:28
+msgid "Reset password"
+msgstr ""
+
+#: security/schemas.py:213
+msgid "Invalid email address"
+msgstr ""
+
+#: security/schemas.py:226
+msgid "Please enter a code"
+msgstr ""
+
+#: security/schemas.py:242
+msgid "Please enter a password"
+msgstr ""
+
+#: security/schemas.py:244
+msgid "Please repeat the password"
+msgstr ""
+
+#: security/schemas.py:246
+msgid "Passwords does not match"
+msgstr ""
+
+#: security/schemas.py:254
+msgid "Please use a stronger password"
+msgstr ""
+
+#: security/views/reset_password.py:40
+msgid "404 Not found"
+msgstr ""
+
+#: security/views/reset_password.py:41
+msgid "The requested state can not be found."
+msgstr ""
+
+#: security/views/reset_password.py:43 security/views/reset_password.py:53
+#: security/views/reset_password.py:124 security/views/reset_password.py:191
+msgid "Reset your password"
+msgstr ""
+
+#: security/views/reset_password.py:50
+msgid "Link expired"
+msgstr ""
+
+#: security/views/reset_password.py:51
+msgid "The password reset link has expired."
+msgstr ""
+
+#: security/views/reset_password.py:65
+msgid "SMS code expired"
+msgstr ""
+
+#: security/views/reset_password.py:66
+msgid "The phone verification has expired."
+msgstr ""
+
+#: security/views/reset_password.py:68 security/views/reset_password.py:210
+msgid "Resend code or try another way"
+msgstr ""
+
+#: security/views/reset_password.py:82
+msgid "Enter an email address registered to your account below"
+msgstr ""
+
+#: security/views/reset_password.py:86
+msgid "Reset password message sent. Check your email to continue."
+msgstr ""
+
+#: security/views/reset_password.py:98
+msgid "Could not send e-mail"
+msgstr ""
+
+#: security/views/reset_password.py:99 security/views/reset_password.py:168
+msgid "The request could not complete due to an internal server error"
+msgstr ""
+
+#: security/views/reset_password.py:101 security/views/reset_password.py:170
+#: security/views/reset_password.py:225
+msgid "Try again"
+msgstr ""
+
+#: security/views/reset_password.py:121 security/views/reset_password.py:222
+msgid "Temporary technical problem"
+msgstr ""
+
+#: security/views/reset_password.py:122 security/views/reset_password.py:223
+msgid "Please try again."
+msgstr ""
+
+#: security/views/reset_password.py:134
+msgid "Extra security"
+msgstr ""
+
+#: security/views/reset_password.py:135
+msgid "Choose an option to enhance the security"
+msgstr ""
+
+#: security/views/reset_password.py:146
+msgid "Email address not validated"
+msgstr ""
+
+#: security/views/reset_password.py:147
+msgid "Please use the password reset link that you have in your email."
+msgstr ""
+
+#: security/views/reset_password.py:167
+msgid "Could not send sms"
+msgstr ""
+
+#: security/views/reset_password.py:188
+msgid "Something went wrong"
+msgstr ""
+
+#: security/views/reset_password.py:189
+msgid "Please restart the password reset procedure."
+msgstr ""
+
+#: security/views/reset_password.py:205
+#: security/views/templates/reset_password_verify_phone.jinja2:30
+msgid "Verify phone number"
+msgstr ""
+
+#: security/views/reset_password.py:206
+msgid "Enter the code you received via SMS"
+msgstr ""
+
+#: security/views/reset_password.py:231
+msgid "Invalid code. Please try again."
+msgstr ""
+
+#: security/views/reset_password.py:242
+msgid "New password"
+msgstr ""
+
+#: security/views/reset_password.py:243
+msgid ""
+"\n"
+"            Please choose a new password for your eduID account. A strong"
+" password has been generated for you.\n"
+"            You can accept the generated password by clicking \"Change "
+"password\" or you can opt to choose your\n"
+"            own password by clicking \"Custom Password\".\n"
+"        "
+msgstr ""
+
+#: security/views/templates/base.jinja2:2
+msgid "en"
+msgstr ""
+
+#: security/views/templates/error.jinja2:3
+msgid "Error"
+msgstr ""
+
+#: security/views/templates/reset_password.jinja2:3
+msgid "Reset password - Email"
+msgstr ""
+
+#: security/views/templates/reset_password.jinja2:18
+msgid "Email address"
+msgstr ""
+
+#: security/views/templates/reset_password_email.html.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"<p>Hi,</p>\n"
+"<p>You recently asked to reset your password for your %(site_name)s "
+"account.</p>\n"
+"<p>To change your password, click the link below:</p>\n"
+"<p><a href=\"%(reset_password_link)s\">%(reset_password_link)s</a></p>\n"
+"<p>If clicking the link does not work you can copy and paste it into your"
+" browser.</p>\n"
+"<p>The password reset link is valid for %(password_reset_timeout)s "
+"hours.</p>\n"
+"<p>(This is an automated email. Please do not reply.)</p>\n"
+msgstr ""
+
+#: security/views/templates/reset_password_email.txt.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"Hi,\n"
+"\n"
+"You recently asked to reset your password for your %(site_name)s account."
+"\n"
+"\n"
+"To change your password, click the link below:\n"
+"\n"
+"%(reset_password_link)s\n"
+"\n"
+"If clicking the link does not work you can copy and paste it into your "
+"browser.\n"
+"\n"
+"The password reset link is valid for %(password_reset_timeout)s hours.\n"
+"\n"
+"(This is an automated email. Please do not reply.)\n"
+msgstr ""
+
+#: security/views/templates/reset_password_extra_security.jinja2:3
+msgid "Reset password - Extra security"
+msgstr ""
+
+#: security/views/templates/reset_password_extra_security.jinja2:26
+msgid "Send SMS to number"
+msgstr ""
+
+#: security/views/templates/reset_password_extra_security.jinja2:40
+msgid ""
+"Continue with no extra security. I understand that I will have to verify "
+"my account again."
+msgstr ""
+
+#: security/views/templates/reset_password_new_password.jinja2:28
+msgid "Your generated password is"
+msgstr ""
+
+#: security/views/templates/reset_password_new_password.jinja2:32
+msgid ""
+"Copy and save the above password somewhere safe and click \"Accept "
+"password\"."
+msgstr ""
+
+#: security/views/templates/reset_password_new_password.jinja2:37
+msgid ""
+"Accept\n"
+"                                        password"
+msgstr ""
+
+#: security/views/templates/reset_password_new_password.jinja2:46
+msgid ""
+"\n"
+"                            <p><strong>Choose a strong "
+"password</strong></p>\n"
+"                            <p>Some tips:</p>\n"
+"                            <ul>\n"
+"                                <li>Use upper- and lowercase characters "
+"(preferably not in the beginning or end)</li>\n"
+"                                <li>Add digits somewhere else than at the"
+" end of the password</li>\n"
+"                                <li>Add special characters, such as &#64;"
+" &#36; &#92; &#43; &#95; &#37;</li>\n"
+"                                <li>Spaces are ignored</li>\n"
+"                            </ul>\n"
+"                        "
+msgstr ""
+
+#: security/views/templates/reset_password_new_password.jinja2:60
+#: security/views/templates/reset_password_new_password.jinja2:61
+msgid "Password"
+msgstr ""
+
+#: security/views/templates/reset_password_new_password.jinja2:66
+#: security/views/templates/reset_password_new_password.jinja2:67
+msgid "Repeat password"
+msgstr ""
+
+#: security/views/templates/reset_password_new_password.jinja2:80
+msgid ""
+"Change\n"
+"                                        password"
+msgstr ""
+
+#: security/views/templates/reset_password_new_password.jinja2:91
+#, python-format
+msgid ""
+"\n"
+"                <p>Password has been updated successfully.</p>\n"
+"                <p><a href=\"%(login_url)s\">Return to login page</a></p>"
+"\n"
+"            "
+msgstr ""
+
+#: security/views/templates/reset_password_new_password.jinja2:103
+msgid "A stronger password is required."
+msgstr ""
+
+#: security/views/templates/reset_password_new_password.jinja2:104
+msgid "Type the same password again"
+msgstr ""
+
+#: security/views/templates/reset_password_sms.txt.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"Your %(site_name)s verification code: %(verification_code)s\n"
+msgstr ""
+
+#: security/views/templates/reset_password_verify_phone.jinja2:3
+msgid "Reset password - Verify phone number"
+msgstr ""
+
+#: security/views/templates/reset_password_verify_phone.jinja2:17
+msgid "SMS code"
+msgstr ""
+
+#: security/views/templates/termination_email.html.jinja2:5
+#, python-format
+msgid ""
+"\n"
+"    <p>You have chosen to terminate your account at <a "
+"href=\"%(site_url)s\">%(site_name)s</a>.</p>\n"
+"\n"
+"    <p><strong>If you did not initiate this action please reset your "
+"password immediately.</strong></p>\n"
+"\n"
+"    <p>Thank you for using %(site_name)s.</p>\n"
+"\n"
+"    <p>(This is an automated email. Please do not reply.)</p>\n"
+msgstr ""
+
+#: security/views/templates/termination_email.txt.jinja2:2
+#, python-format
+msgid ""
+"\n"
+"    You have chosen to terminate your account at %(site_name)s.\n"
+"\n"
+"    If you did not initiate this action please reset your password "
+"immediately.\n"
+"\n"
+"    Thank you for using %(site_name)s.\n"
+"\n"
+"    (This is an automated email. Please do not reply.)\n"
+msgstr ""
+
+#: signup/verifications.py:132
+msgid "eduid-signup verification email"
+msgstr ""
+
+#: signup/templates/verification_email.html.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"\n"
+"<h2>Welcome to %(site_name)s,</h2>\n"
+"\n"
+"<p>You recently signed up for <a "
+"href=\"%(site_url)s\">%(site_name)s</a>.</p>\n"
+"\n"
+"<p>Please confirm the e-mail address and get your password by clicking on"
+" this link:</p>\n"
+"\n"
+"<a href=\"%(verification_link)s\">%(verification_link)s</a>\n"
+"\n"
+msgstr ""
+
+#: signup/templates/verification_email.txt.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"\n"
+"Welcome to %(site_name)s,\n"
+"\n"
+"You recently signed up for %(site_name)s.\n"
+"\n"
+"Please confirm the e-mail address and get your password by clicking on "
+"this link:\n"
+"\n"
+"  %(verification_link)s\n"
+"\n"
+msgstr ""
+

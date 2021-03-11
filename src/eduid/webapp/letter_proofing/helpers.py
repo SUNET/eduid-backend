@@ -1,0 +1,172 @@
+# -*- coding: utf-8 -*-
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from enum import unique
+from typing import Optional
+
+from eduid.common.api.messages import TranslatableMsg, error_response, success_response
+from eduid.common.api.utils import get_short_hash
+from eduid.common.misc.timeutil import utc_now
+from eduid.userdb import User
+from eduid.userdb.proofing import LetterProofingState, NinProofingElement
+from eduid.userdb.proofing.element import SentLetterElement
+from eduid.webapp.letter_proofing import pdf
+from eduid.webapp.letter_proofing.app import current_letterp_app as current_app
+
+__author__ = 'lundberg'
+
+
+@unique
+class LetterMsg(TranslatableMsg):
+    """
+    Messages sent to the front end with information on the results of the
+    attempted operations on the back end.
+    """
+
+    # No letter proofing state found in the db
+    no_state = 'letter.no_state_found'
+    # a letter has already been sent
+    already_sent = 'letter.already-sent'
+    # the letter has been sent, but enough time has passed to send a new one
+    letter_expired = 'letter.expired'
+    # some unspecified problem sending the letter
+    not_sent = 'letter.not-sent'
+    # no postal address found
+    address_not_found = 'letter.no-address-found'
+    # errors in the format of the postal address
+    bad_address = 'letter.bad-postal-address'
+    # letter sent and state saved w/o errors
+    letter_sent = 'letter.saved-unconfirmed'
+    # wrong verification code received
+    wrong_code = 'letter.wrong-code'
+    # success verifying the code
+    verify_success = 'letter.verification_success'
+
+
+@dataclass
+class StateExpireInfo(object):
+    sent: datetime
+    expires: datetime
+    is_expired: bool
+    error: bool
+    message: TranslatableMsg
+
+    def to_response(self):
+        """ Create a response with information about the users current proofing state (or an error)."""
+        if self.error:
+            return error_response(message=self.message)
+        res = {
+            'letter_sent': self.sent,
+            'letter_expires': self.expires,
+            'letter_expired': self.is_expired,
+        }
+        now = utc_now()
+
+        # If a letter was sent yesterday, letter_sent_days_ago should be 1 even if it
+        # is now one minute past midnight and the letter was sent two minutes ago
+        _delta = now - self.sent.replace(hour=0, minute=0, second=1)
+        res['letter_sent_days_ago'] = _delta.days
+
+        if self.expires and not self.is_expired:
+            _delta = self.expires - now
+            res['letter_expires_in_days'] = _delta.days
+
+        return success_response(res, message=self.message)
+
+
+def check_state(state: LetterProofingState) -> StateExpireInfo:
+    """
+    Checks if the state is expired.
+
+    NOTE: If the state is found to be expired, it is REMOVED from the database, so
+          a user will only get information about the expired letter once.
+
+    :param state: Users proofing state
+    :return: Information about the users current letter proofing state,
+             such as when it was created, when it expires etc.
+    """
+    current_app.logger.info('Checking state for user with eppn {!s}'.format(state.eppn))
+    if not state.proofing_letter.is_sent:
+        current_app.logger.info('Unfinished state for user with eppn {!s}'.format(state.eppn))
+        # need a datetime for typing, but sent/expires/is_expired are not included in error responses
+        _fake_dt = datetime.fromtimestamp(0)
+        return StateExpireInfo(sent=_fake_dt, expires=_fake_dt, is_expired=True, error=True, message=LetterMsg.not_sent)
+
+    current_app.logger.info('Letter is sent for user with eppn {!s}'.format(state.eppn))
+    # Check how long ago the letter was sent
+    sent_dt = state.proofing_letter.sent_ts
+    if not isinstance(sent_dt, datetime):
+        raise ValueError("SentLetterElement must have a datetime sent_ts attr if is_sent is True")
+
+    expires_at = sent_dt + timedelta(hours=current_app.conf.letter_wait_time_hours)
+    # Give the user until midnight the day the code expires
+    expires_at = expires_at.replace(hour=23, minute=59, second=59)
+
+    now = utc_now()
+    if now < expires_at:
+        current_app.logger.info(f'User with eppn {state.eppn} has to wait for letter to arrive.')
+        current_app.logger.info(f'Code expires: {expires_at}')
+        # The user has to wait for the letter to arrive
+        return StateExpireInfo(
+            sent=sent_dt, expires=expires_at, is_expired=False, error=False, message=LetterMsg.already_sent
+        )
+    else:
+        current_app.logger.info('Letter expired for user with eppn {!s}.'.format(state.eppn))
+        return StateExpireInfo(
+            sent=sent_dt, expires=expires_at, is_expired=True, error=False, message=LetterMsg.letter_expired
+        )
+
+
+def create_proofing_state(eppn: str, nin: str) -> LetterProofingState:
+    _nin = NinProofingElement(
+        number=nin, created_by='eduid-idproofing-letter', is_verified=False, verification_code=get_short_hash(),
+    )
+    proofing_letter = SentLetterElement()
+    proofing_state = LetterProofingState(
+        eppn=eppn, nin=_nin, proofing_letter=proofing_letter, id=None, modified_ts=None
+    )
+    current_app.logger.debug(f'Created proofing state: {proofing_state.to_dict()}')
+    return proofing_state
+
+
+def get_address(user: User, proofing_state: LetterProofingState) -> dict:
+    """
+    :param user: User object
+    :param proofing_state: Users proofing state
+
+    :return: Users official postal address
+    """
+    current_app.logger.info('Getting address for user {}'.format(user))
+    current_app.logger.debug('NIN: {!s}'.format(proofing_state.nin.number))
+    # Lookup official address via Navet
+    address = current_app.msg_relay.get_postal_address(proofing_state.nin.number)
+    current_app.logger.debug('Official address: {!r}'.format(address))
+    return address
+
+
+def send_letter(user: User, proofing_state: LetterProofingState) -> str:
+    """
+    :param user: User object
+    :param proofing_state: Users proofing state
+
+    :return: Transaction id
+    """
+    if not proofing_state.proofing_letter.address:
+        raise ValueError('No address in proofing_state')
+    if not proofing_state.nin.verification_code:
+        raise ValueError('No verification_code in proofing_state')
+    # Create the letter as a PDF-document and send it to our letter sender service
+    pdf_letter = pdf.create_pdf(
+        recipient=proofing_state.proofing_letter.address,
+        verification_code=proofing_state.nin.verification_code,
+        created_timestamp=proofing_state.nin.created_ts,
+        primary_mail_address=user.mail_addresses.primary.email,
+        letter_wait_time_hours=current_app.conf.letter_wait_time_hours,
+    )
+    if current_app.conf.ekopost_debug_pdf_path is not None:
+        # Write PDF to file instead of actually sending it if ekopost_debug_pdf_path is set
+        with open(current_app.conf.ekopost_debug_pdf_path, 'wb') as fd:
+            fd.write(pdf_letter.getvalue())
+        return 'debug mode transaction id'
+    campaign_id = current_app.ekopost.send(user.eppn, pdf_letter)
+    return campaign_id

@@ -12,7 +12,7 @@ function replace {
     done
 }
 
-git checkout src
+git checkout src || true
 
 git checkout move-imported-files-to-new-structure
 git branch -D update-imports || true

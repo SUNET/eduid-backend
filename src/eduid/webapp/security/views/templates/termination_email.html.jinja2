@@ -1,0 +1,16 @@
+<html>
+<head>
+</head>
+<body>
+{% trans site_url=site_url, site_name=site_name %}
+    <p>You have chosen to terminate your account at <a href="{{ site_url }}">{{ site_name }}</a>.</p>
+
+    <p><strong>If you did not initiate this action please reset your password immediately.</strong></p>
+
+    <p>Thank you for using {{ site_name }}.</p>
+
+    <p>(This is an automated email. Please do not reply.)</p>
+{% endtrans %}
+</body>
+</html>
+

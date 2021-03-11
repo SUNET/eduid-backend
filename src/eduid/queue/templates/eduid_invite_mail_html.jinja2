@@ -1,0 +1,13 @@
+<html lang="{% trans %}en{% endtrans %}">
+<body>
+{% trans invite_link=invite_link, inviter_name=inviter_name %}
+    <p>You have been invited to create an eduID account by {{ inviter_name }}.</p>
+
+    <p>Please follow the link below to accept the invite and create your account.</p>
+
+    <a href="{{ invite_link }}">{{ invite_link }}</a>
+
+    <p>(This is an automated email. Please do not reply.)</p>
+{% endtrans %}
+</body>
+</html>

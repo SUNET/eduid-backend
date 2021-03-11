@@ -1,0 +1,105 @@
+{% macro input(user_dict) -%}
+    <tr>
+        <th>eppn:</th>
+        <td>{{ user_dict.eduPersonPrincipalName }}</td>
+    </tr>
+    <tr>
+        <th>Given name:</th>
+        <td>{{ user_dict.givenName }}</td>
+    </tr>
+    <tr>
+        <th>Surname:</th>
+        <td>{{ user_dict.surname }}</td>
+    </tr>
+    <tr>
+        <th>Display name:</th>
+        <td>{{ user_dict.displayName }}</td>
+    </tr>
+    <tr>
+        <th>National identity numbers:</th>
+        <td>
+            {% for nin in user_dict.nins|multisort('verified', 'created_ts', reverse=True) %}
+                <dl>
+                    <dt>Number</dt><dd>{{ nin.get('number') }}</dd>
+                    <dt>Primary</dt><dd>{{ nin.get('primary') }}</dd>
+                    <dt>Verified</dt><dd>{{ nin.get('verified') }}</dd>
+                    <dt>Added timestamp</dt><dd>{{ nin.get('created_ts')|datetimeformat }}</dd>
+                    {% if nin.get('verified_by') %}
+                        <dt>Verified using</dt><dd>{{ nin.get('verified_by') }}</dd>
+                    {% endif %}
+                    {% if  nin.get('verified_ts') %}
+                        <dt>Verified timestamp</dt><dd>{{ nin.get('verified_ts')|datetimeformat }}</dd>
+                    {% endif %}
+                </dl>
+            {% endfor %}
+        </td>
+    </tr>
+    <tr>
+        <th>Mail addresses:</th>
+        <td>
+            {% for mail in user_dict.mailAliases|multisort('verified', 'created_ts', reverse=True) %}
+                <dl>
+                    <dt>Address</dt><dd>{{ mail.get('email') }}</dd>
+                    <dt>Primary</dt><dd>{{ mail.get('primary') }}</dd>
+                    <dt>Verified</dt><dd>{{ mail.get('verified') }}</dd>
+                    {% if mail.get('created_by') %}
+                        <dt>Added using</dt><dd>{{ mail.get('created_by') }}</dd>
+                    {% endif %}
+                    <dt>Added timestamp</dt><dd>{{ mail.get('created_ts')|datetimeformat }}</dd>
+                    {% if mail.get('verified_ts') %}
+                        <dt>Verified timestamp</dt><dd>{{ mail.get('verified_ts')|datetimeformat }}</dd>
+                    {% endif %}
+                </dl>
+            {% endfor %}
+        </td>
+    </tr>
+    <tr>
+        <th>Phone numbers:</th>
+        <td>
+            {% for phone in user_dict.phone|multisort('verified', 'created_ts', reverse=True) %}
+                <dl>
+                    <dt>Number</dt><dd>{{ phone.get('number') }}</dd>
+                    <dt>Primary</dt><dd>{{ phone.get('primary') }}</dd>
+                    <dt>Verified</dt><dd>{{ phone.get('verified') }}</dd>
+                    <dt>Added timestamp</dt><dd>{{ phone.get('created_ts')|datetimeformat }}</dd>
+                    {% if phone.get('verified_ts') %}
+                        <dt>Verified timestamp</dt><dd>{{ phone.get('verified_ts')|datetimeformat }}</dd>
+                    {% endif %}
+                </dl>
+            {% endfor %}
+        </td>
+    </tr>
+    <tr>
+        <th>Credentials:</th>
+        <td>
+            {% for credential in user_dict.passwords|multisort('type', 'created_ts', reverse=True) %}
+                <dl>
+                    <dt>Type</dt><dd>{{ credential.get('type') }}</dd>
+                    <dt>Last used successfully</dt><dd>{{ credential.get('success_ts')|datetimeformat }}</dd>
+                    <dt>Added using</dt><dd>{{ credential.get('created_by') }}</dd>
+                    <dt>Added timestamp</dt><dd>{{ credential.get('created_ts')|datetimeformat }}</dd>
+                </dl>
+            {% endfor %}
+        </td>
+    </tr>
+    <tr>
+        <th>Accepted terms of use:</th>
+        <td>
+            {% for tou in user_dict.tou|multisort('version', 'created_ts', reverse=True) %}
+                <dl>
+                    <dt>Version</dt><dd>{{ tou.get('version') }}</dd>
+                    <dt>Added using</dt><dd>{{ tou.get('created_by') }}</dd>
+                    <dt>Added timestamp</dt><dd>{{ tou.get('created_ts')|datetimeformat }}</dd>
+                </dl>
+            {% endfor %}
+        </td>
+    </tr>
+    <tr>
+        <th>Terminated status:</th>
+        <td>{{ user_dict.terminated|default("False") }}</td>
+    </tr>
+    <tr>
+        <th>Language preference:</th>
+        <td>{{ user_dict.preferredLanguage }}</td>
+    </tr>
+{%- endmacro %}

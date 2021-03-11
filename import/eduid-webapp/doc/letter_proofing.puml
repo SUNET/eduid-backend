@@ -1,0 +1,59 @@
+@startuml
+title eduid-letter-proofing
+
+legend
+    LETTER_SENT: {
+        letter_sent: datetime,
+        letter_sent_days_ago: int
+    }
+    LETTER_EXPIRES: {
+        letter_expired: false,
+        letter_expires: datetime,
+        letter_expires_in_days: int
+    }
+    LETTER_IS_EXPIRED: {
+        letter_expired: true,
+        letter_expires: datetime,
+    }
+end legend
+
+Client->"/proofing": GET
+alt state does not exist
+    "/proofing"->Client: {"payload":{"message":"letter.no_state_found"},"type":"GET_LETTER_PROOFING_PROOFING_SUCCESS"}
+else state exist
+    alt letter not sent
+        "/proofing"->Client: {"error": true, "payload":{"message":"letter.not-sent"},"type":"GET_LETTER_PROOFING_PROOFING_FAIL"}
+    else letter sent
+        "/proofing"->Client: {"payload":{"message":"letter.already-sent", LETTER_SENT, LETTER_EXPIRES},"type":"GET_LETTER_PROOFING_PROOFING_SUCCESS"}
+    else letter expired
+        "/proofing"->Client: {"payload":{"message":"letter.expired", LETTER_SENT, LETTER_IS_EXPIRED},"type":"GET_LETTER_PROOFING_PROOFING_SUCCESS"}
+    end
+end
+|||
+
+Client->"/proofing": POST {"nin": number}
+alt user has a verified NIN already
+    "/proofing"->Client: {"error": true, "payload":{"message":"User is already verified"},"type":"POST_LETTER_PROOFING_PROOFING_FAIL"}
+else user has verified a different NIN in the past
+    "/proofing"->Client: {"error": true, "payload":{"message":"Another nin is already registered for this user"},"type":"POST_LETTER_PROOFING_PROOFING_FAIL"}
+else letter already sent
+    "/proofing"->Client: {"payload":{"message":"letter.already-sent", LETTER_SENT, LETTER_EXPIRES},"type":"POST_LETTER_PROOFING_PROOFING_SUCCESS"}
+else letter not previously sent
+    "/proofing"->Client: {"payload":{"message":"letter.saved-unconfirmed", LETTER_SENT, LETTER_EXPIRES},"type":"POST_LETTER_PROOFING_PROOFING_SUCCESS"}
+end
+|||
+
+Client -> "/verify-code": POST {"code": code}
+alt state does not exist
+    "/verify-code"->Client: {"error": true, "payload":{"message":"letter.no_state_found"},"type":"POST_LETTER_PROOFING_VERIFY_CODE_FAIL"}
+else state exist
+    alt code expired
+        "/verify-code"->Client: {"error": true, "payload":{"message":"letter.expired"},"type":"POST_LETTER_PROOFING_VERIFY_CODE_FAIL"}
+    else code not correct
+        "/verify-code"->Client: {"error": true, "payload":{"message":"letter.wrong-code"},"type":"POST_LETTER_PROOFING_VERIFY_CODE_FAIL"}
+    else code correct
+        "/verify-code"->Client: {"payload":{"message":"letter.verification_success", "nins": [{"number": str, "verified": bool, "primary": bool}]},"type":"POST_LETTER_PROOFING_VERIFY_CODE_SUCCESS"}
+    end
+end
+|||
+@enduml

@@ -1,0 +1,95 @@
+<html>
+<head>
+    <style>
+        @page {
+            /* Correct usage according to example in the doc but pisa complains anyway */
+            size: a4 portrait;
+            @frame header_frame {
+                -pdf-frame-content: header_content;
+                /* -pdf-frame-border: 1; for debugging the layout */
+                left: 17mm; width: 67mm; top: 15mm; height: 17mm;
+            }
+            @frame logo_frame {
+                -pdf-frame-content: logo_content;
+                /* -pdf-frame-border: 1; for debugging the layout */
+                left: 165mm; width: 20mm; top: 12.5mm; height: 17mm;
+            }
+            @frame recipient_frame {
+                -pdf-frame-content: recipient_content;
+                /* -pdf-frame-border: 1; for debugging the layout */
+            left: 121mm; width: 77mm; top: 44mm; height: 20.5mm;
+            }
+            @frame heading_frame {
+                /* -pdf-frame-border: 1; for debugging the layout */
+            left: 30mm; width: 150mm; top: 90mm; height: 10mm;
+            }
+            @frame notice_frame {
+                /* -pdf-frame-border: 1; for debugging the layout */
+            left: 30mm; width: 150mm; top: 100mm; height: 25mm;
+            border: 2px;
+            border-radius: 2px;
+            border-color: #E37426;
+            }
+            @frame text_frame {
+                /* -pdf-frame-border: 1; for debugging the layout */
+            left: 30mm; width: 150mm; top: 130mm; height: 200mm;
+            }
+        }
+    </style>
+</head>
+<body>
+<div id="header_content">
+    <p style="font-size: 10pt">SUNET<br>
+        Tulegatan 11 3tr<br>
+        113 53 Stockholm<br>
+    </p>
+</div>
+<div id="logo_content">
+    <img src="sunet_logo.eps" alt="Sunet">
+</div>
+<div id="recipient_content">
+    <p style="font-size: 10pt">
+        {{ recipient_name }}<br>
+        {% if recipient_care_of %}
+            C/O {{ recipient_care_of }}<br>
+        {% endif %}
+        {% if recipient_misc_address %}
+            {{ recipient_address }} {{ recipient_misc_address }}
+            <br>
+        {% else %}
+            {{ recipient_address }}
+            <br>
+        {% endif %}
+        {{ recipient_postal_code }} {{ recipient_city }}<br>
+    </p>
+</div>
+{% trans recipient_primary_mail_address=recipient_primary_mail_address, recipient_verification_code=recipient_verification_code, recipient_validity_period=recipient_validity_period %}
+<div id="text_frame" style="font-size: 12pt">
+    <h4>Welcome to confirm your eduID account</h4>
+
+    <div id="notice-frame">
+        <div style="padding-top: 15px; margin-left: 15px;">
+            Username: {{ recipient_primary_mail_address }}<br/>
+            Confirmation code: {{ recipient_verification_code }}<br/>
+            <strong>The code is valid until {{ recipient_validity_period }}.</strong><br/>
+        </div>
+    </div>
+    <div style="padding-top: 50px;">
+        <strong>Instructions:</strong>
+    </div>
+    <ol>
+        <li>Log in to https://dashboard.eduid.se with the username above and the
+            password you used when you created your account.
+        </li>
+        <li>Open the tab "Identity".</li>
+        <li>Click the card "BY POST" below "Verify your id number".</li>
+        <li>Input the confirmation code in the window that opens.</li>
+        <li>Click "OK".</li>
+    </ol>
+    <div style="padding-top: 50px;">
+        If you did not request this letter from eduID then please report it to support@eduid.se.
+    </div>
+</div>
+{% endtrans %}
+</body>
+</html>

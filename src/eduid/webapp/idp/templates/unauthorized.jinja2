@@ -1,0 +1,17 @@
+{% extends "base.jinja2" %}
+
+{% block nav_class_home %}active{% endblock %}
+
+{% block contents %}
+
+        <div class="jumbotron">
+
+          <legend class="">{{ _("Username or password incorrect") }}</legend>
+
+          {% trans %}<p>Please try again.</p>
+          <p>There is a link (Forgot your password?) on the login page if you do not remember
+              your username or password.</p>{% endtrans %}
+
+        </div>
+
+{% endblock %}
