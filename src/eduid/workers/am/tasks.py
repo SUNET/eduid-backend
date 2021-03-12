@@ -7,12 +7,12 @@ from celery.utils.log import get_task_logger
 
 from eduid.userdb import UserDB
 from eduid.userdb.exceptions import ConnectionError, LockedIdentityViolation, UserDoesNotExist
-from eduid.workers.am.common import AmWorkerSingleton
+from eduid.workers.am.common import AmCelerySingleton
 from eduid.workers.am.consistency_checks import check_locked_identity, unverify_duplicates
 
 logger = get_task_logger(__name__)
 
-app = AmWorkerSingleton.celery
+app = AmCelerySingleton.celery
 
 
 class AttributeManager(Task):
@@ -28,10 +28,10 @@ class AttributeManager(Task):
     def userdb(self) -> Optional[UserDB]:
         if self._userdb:
             return self._userdb
-        if AmWorkerSingleton.am_config.mongo_uri:
+        if AmCelerySingleton.worker_config.mongo_uri:
             # self.userdb is the UserDB to which AM will write the updated users. This setting will
             # be None when this class is instantiated on the 'client' side (e.g. in a microservice)
-            self._userdb = UserDB(AmWorkerSingleton.am_config.mongo_uri, 'eduid_am', 'attributes')
+            self._userdb = UserDB(AmCelerySingleton.worker_config.mongo_uri, 'eduid_am', 'attributes')
         return self._userdb
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
@@ -41,7 +41,7 @@ class AttributeManager(Task):
         # get an exception
         logger.exception('Task failed. Reloading db and plugins.')
         self._userdb = None
-        AmWorkerSingleton.af_registry.reset()
+        AmCelerySingleton.af_registry.reset()
 
 
 @app.task(bind=True, ignore_results=True, base=AttributeManager)
@@ -81,7 +81,7 @@ def _update_attributes(task: AttributeManager, app_name: str, user_id: str) -> b
         raise ValueError('Invalid user_id')
 
     try:
-        attribute_fetcher = AmWorkerSingleton.af_registry.get_fetcher(app_name)
+        attribute_fetcher = AmCelerySingleton.af_registry.get_fetcher(app_name)
         logger.debug(f"Attribute fetcher for {app_name}: {repr(attribute_fetcher)}")
     except KeyError as e:
         logger.error(f'Attribute fetcher for {app_name} is not installed')
@@ -122,6 +122,6 @@ def _update_attributes(task: AttributeManager, app_name: str, user_id: str) -> b
 
 @app.task(bind=True, base=AttributeManager)
 def pong(self, app_name):
-    if self.default_db_uri and self.userdb.is_healthy():
+    if AmCelerySingleton.worker_config.mongo_uri and self.userdb.is_healthy():
         return f'pong for {app_name}'
     raise ConnectionError('Database not healthy')

@@ -40,7 +40,7 @@ from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig
 from eduid.common.config.testing import EtcdTemporaryInstance
 from eduid.common.config.workers import AmConfig
 from eduid.userdb.testing import MongoTemporaryInstance, MongoTestCase
-from eduid.workers.am.common import AmWorkerSingleton
+from eduid.workers.am.common import AmCelerySingleton
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +111,6 @@ class WorkerTestCase(CommonTestCase):
             settings['mongo_uri'] = self.tmp_db.uri
 
         am_config = AmTestConfig(**settings)
-        AmWorkerSingleton.update_config(AmConfig(**settings))
+        AmCelerySingleton.update_worker_config(AmConfig(**settings))
 
         self.am_relay = AmRelay(am_config)

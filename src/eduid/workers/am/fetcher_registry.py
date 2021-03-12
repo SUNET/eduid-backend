@@ -26,9 +26,9 @@ class AFRegistry:
             # Dynamically look for a fetcher with that name in the eduid.workers.am.ams module
             af_class = getattr(eduid.workers.am.ams, key, None)
             if af_class is not None:
-                from eduid.workers.am.common import AmWorkerSingleton
+                from eduid.workers.am.common import AmCelerySingleton
 
-                self.add_fetcher(key, af_class(AmWorkerSingleton.am_config))
+                self.add_fetcher(key, af_class(AmCelerySingleton.worker_config))
             else:
                 raise KeyError(f'Trying to fetch attributes from unknown db: {key}')
         return self._fetchers[key]

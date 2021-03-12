@@ -13,7 +13,7 @@ from smscom import SMSClient
 
 from eduid.userdb.exceptions import ConnectionError
 from eduid.workers.msg.cache import CacheMDB
-from eduid.workers.msg.common import MsgWorkerSingleton
+from eduid.workers.msg.common import MsgCelerySingleton
 from eduid.workers.msg.decorators import TransactionAudit
 from eduid.workers.msg.exceptions import NavetAPIException
 from eduid.workers.msg.utils import load_template, navet_get_name_and_official_address, navet_get_relations
@@ -26,7 +26,7 @@ logger = get_task_logger(__name__)
 _CACHE: dict = {}
 _CACHE_EXPIRE_TS: Optional[datetime] = None
 
-app = MsgWorkerSingleton.celery
+app = MsgCelerySingleton.celery
 
 
 class MessageSender(Task):
@@ -42,12 +42,12 @@ class MessageSender(Task):
     @property
     def sms(self) -> SMSClient:
         if self._sms is None:
-            self._sms = SMSClient(MsgWorkerSingleton.msg_config.sms_acc, MsgWorkerSingleton.msg_config.sms_key)
+            self._sms = SMSClient(MsgCelerySingleton.worker_config.sms_acc, MsgCelerySingleton.worker_config.sms_key)
         return self._sms
 
     @property
     def smtp(self):
-        config = MsgWorkerSingleton.msg_config
+        config = MsgCelerySingleton.worker_config
         _smtp = smtplib.SMTP(config.mail_host, config.mail_port)
         if config.mail_starttls:
             if config.mail_keyfile and config.mail_certfile:
@@ -61,7 +61,7 @@ class MessageSender(Task):
     @property
     def navet_api(self):
         if self._navet_api is None:
-            config = MsgWorkerSingleton.msg_config
+            config = MsgCelerySingleton.worker_config
             auth = None
             if config.navet_api_user and config.navet_api_pw:
                 auth = (config.navet_api_user, config.navet_api_pw)
@@ -72,8 +72,8 @@ class MessageSender(Task):
         global _CACHE
         if cache_name not in _CACHE:
             _CACHE[cache_name] = CacheMDB(
-                MsgWorkerSingleton.msg_config.mongo_uri,
-                MsgWorkerSingleton.msg_config.mongo_dbname,
+                MsgCelerySingleton.worker_config.mongo_uri,
+                MsgCelerySingleton.worker_config.mongo_dbname,
                 cache_name,
                 ttl=ttl,
                 expiration_freq=120,
@@ -117,7 +117,7 @@ class MessageSender(Task):
                  message has been delivered to the users mailbox service by calling
                  check_distribution_status(message_id), if unsuccessful an error message is returned.
         """
-        conf = MsgWorkerSingleton.msg_config
+        conf = MsgCelerySingleton.worker_config
 
         msg = load_template(conf.template_dir, template, message_dict, language)
 
@@ -133,7 +133,7 @@ class MessageSender(Task):
             logger.debug(f"Sending SMS to {recipient} using template {template} and language {language}")
             try:
                 msg_bytes = msg.encode('utf-8')
-                status = self.sms.send(msg_bytes, MsgWorkerSingleton.msg_config.sms_sender, recipient, prio=2)
+                status = self.sms.send(msg_bytes, MsgCelerySingleton.worker_config.sms_sender, recipient, prio=2)
             except Exception as e:  # XXX: smscom only raises Exception right now
                 logger.error(f'SMS task failed: {e}')
                 raise e
@@ -152,7 +152,7 @@ class MessageSender(Task):
         :return: dict containing name and postal address
         """
         # Only log the message if devel_mode is enabled
-        if MsgWorkerSingleton.msg_config.devel_mode is True:
+        if MsgCelerySingleton.worker_config.devel_mode is True:
             return self.get_devel_postal_address()
 
         data = self._get_navet_data(identity_number)
@@ -190,7 +190,7 @@ class MessageSender(Task):
         :return: dict containing name and postal address
         """
         # Only log the message if devel_mode is enabled
-        if MsgWorkerSingleton.msg_config.devel_mode is True:
+        if MsgCelerySingleton.worker_config.devel_mode is True:
             return self.get_devel_relations()
 
         data = self._get_navet_data(identity_number)
@@ -282,7 +282,7 @@ class MessageSender(Task):
         """
 
         # Just log the mail if in development mode
-        if MsgWorkerSingleton.msg_config.devel_mode is True:
+        if MsgCelerySingleton.worker_config.devel_mode is True:
             logger.debug('sendmail task:')
             logger.debug(
                 f"\nType: email\nReference: {reference}\nSender: {sender}\nRecipients: {recipients}\n"
@@ -306,12 +306,12 @@ class MessageSender(Task):
         """
 
         # Just log the sms if in development mode
-        if MsgWorkerSingleton.msg_config.devel_mode is True:
+        if MsgCelerySingleton.worker_config.devel_mode is True:
             logger.debug('sendsms task:')
             logger.debug(f"\nType: sms\nReference: {reference}\nRecipient: {recipient}\nMessage:\n{message}")
             return 'devel_mode'
 
-        return self.sms.send(message, MsgWorkerSingleton.msg_config.sms_sender, recipient, prio=2)
+        return self.sms.send(message, MsgCelerySingleton.worker_config.sms_sender, recipient, prio=2)
 
     def pong(self):
         # Leverage cache to test mongo db health
