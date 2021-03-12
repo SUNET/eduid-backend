@@ -161,11 +161,11 @@ class TestGroupResource(ScimApiTestCase):
         self._assertScimResponseProperties(response, resource=group, expected_schemas=expected_schemas)
 
         # Validate group update specifics
-
-        self.assertEqual(group.display_name, response.json.get('displayName'), 'Unexpected displayName in response')
+        self.assertEqual(group.display_name, response.json.get('displayName'), 'Incorrect displayName in response')
+        self.assertEqual(group.external_id, response.json.get('externalId'), 'Incorrect externalId in response')
         request_members = _members_to_set(req['members'])
         self.assertEqual(
-            request_members, _members_to_set(response.json.get('members')), 'Unexpected members in response'
+            request_members, _members_to_set(response.json.get('members')), 'Incorrect members in response'
         )
 
         if SCIMSchema.NUTID_GROUP_V1.value in req:

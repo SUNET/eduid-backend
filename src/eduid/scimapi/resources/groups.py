@@ -60,6 +60,7 @@ class GroupsResource(SCIMResource):
             display_name=db_group.graph.display_name,
             members=members,
             id=db_group.scim_id,
+            external_id=db_group.external_id,
             meta=meta,
             schemas=list(schemas),  # extra list() needed to work with _both_ mypy and marshmallow
             nutid_group_v1=NutidGroupExtensionV1(data=db_group.extensions.data),
