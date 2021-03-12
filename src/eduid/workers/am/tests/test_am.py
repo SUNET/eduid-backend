@@ -9,7 +9,7 @@ import eduid.userdb
 from eduid.common.config.workers import AmConfig
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.workers.am.ams.common import AttributeFetcher
-from eduid.workers.am.common import AmWorkerSingleton
+from eduid.workers.am.common import AmCelerySingleton
 from eduid.workers.am.testing import AMTestCase
 
 __author__ = 'leifj'
@@ -86,11 +86,11 @@ class MessageTest(AMTestCase):
         self.private_db = AmTestUserDb(db_uri=self.tmp_db.uri, db_name='eduid_am_test')
         # register fake AMP plugin named 'test'
         AmConfig(app_name='message_test', mongo_uri=self.tmp_db.uri)
-        AmWorkerSingleton.af_registry.add_fetcher(
+        AmCelerySingleton.af_registry.add_fetcher(
             'test', FakeAttributeFetcher(AmConfig(app_name='message_test', mongo_uri=self.tmp_db.uri))
         )
         # register fake AMP plugin named 'bad'
-        AmWorkerSingleton.af_registry.add_fetcher(
+        AmCelerySingleton.af_registry.add_fetcher(
             'bad', BadAttributeFetcher(AmConfig(app_name='message_test', mongo_uri=self.tmp_db.uri))
         )
 

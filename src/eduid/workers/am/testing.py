@@ -47,7 +47,7 @@ from eduid.common.api.testing_base import WorkerTestCase
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.proofing import ProofingUser
 from eduid.workers.am.ams import AttributeFetcher
-from eduid.workers.am.common import AmWorkerSingleton
+from eduid.workers.am.common import AmCelerySingleton
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +99,7 @@ class AMTestCase(WorkerTestCase):
     """ TestCase with an embedded Attribute Manager. """
 
     def tearDown(self):
-        for fetcher in AmWorkerSingleton.af_registry.all_fetchers():
+        for fetcher in AmCelerySingleton.af_registry.all_fetchers():
             fetcher.private_db._drop_whole_collection()
         super().tearDown()
 
@@ -113,7 +113,7 @@ class ProofingTestCase(AMTestCase):
         super().setUp(**kwargs)
 
         if self.fetcher_name:
-            self.fetcher = AmWorkerSingleton.af_registry.get_fetcher(self.fetcher_name)
+            self.fetcher = AmCelerySingleton.af_registry.get_fetcher(self.fetcher_name)
 
         self.user_data = deepcopy(USER_DATA)
 
@@ -121,7 +121,7 @@ class ProofingTestCase(AMTestCase):
         # by _all_ the fetchers available through self.af_registry.
         for userdoc in self.amdb._get_all_docs():
             proofing_user = ProofingUser.from_dict(userdoc)
-            for fetcher in AmWorkerSingleton.af_registry.all_fetchers():
+            for fetcher in AmCelerySingleton.af_registry.all_fetchers():
                 fetcher.private_db.save(proofing_user, check_sync=False)
 
     def test_invalid_user(self):

@@ -6,11 +6,9 @@ See the file LICENSE.txt for full license statement.
 """
 from typing import Optional
 
-from celery import Celery
-
 from eduid.common.config.base import CeleryConfig
-from eduid.common.rpc.celery import init_celery
+from eduid.workers.msg.common import MsgCelerySingleton
 
 
-def init_app(config: Optional[CeleryConfig]) -> Celery:
-    return init_celery('eduid_msg', config)
+def init_app(config: Optional[CeleryConfig]) -> None:
+    MsgCelerySingleton.update_celery_config(config)

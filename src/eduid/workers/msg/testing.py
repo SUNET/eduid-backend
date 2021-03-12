@@ -6,7 +6,7 @@ from eduid.common.api.msg import MsgRelay
 from eduid.common.config.base import EduIDBaseAppConfig, MailConfigMixin, MsgConfigMixin
 from eduid.common.config.workers import MsgConfig
 from eduid.userdb.testing import MongoTestCase
-from eduid.workers.msg.common import MsgWorkerSingleton
+from eduid.workers.msg.common import MsgCelerySingleton
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ class MsgMongoTestCase(MongoTestCase):
             }
             self.msg_settings = MsgTestConfig(**settings)
 
-            MsgWorkerSingleton.update_config(self.msg_settings)
+            MsgCelerySingleton.update_worker_config(self.msg_settings)
             logger.debug(f'Initialised message_relay with config:\n{self.msg_settings}')
 
             self.msg_relay = MsgRelay(self.msg_settings)
