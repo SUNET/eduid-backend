@@ -25,8 +25,10 @@ extra_jobs:
   - name: eduid-backend-update-deps
     builders:
       - script
+    pre_build_script: null
     triggers:
       github_push: false
       cron: "@daily"
     script:
+      - "touch *.in"
       - "make update_deps"
