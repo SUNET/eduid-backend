@@ -16,8 +16,7 @@ app = AmCelerySingleton.celery
 
 
 class AttributeManager(Task):
-    """Singleton that stores reusable objects like the MongoDB database
-       or the attribute fetchers registry."""
+    """ Singleton that stores reusable objects like the MongoDB database client """
 
     abstract = True  # This means Celery won't register this as another task
 
