@@ -121,7 +121,10 @@ def _update_attributes(task: AttributeManager, app_name: str, user_id: str) -> b
 
 
 @app.task(bind=True, base=AttributeManager)
-def pong(self, app_name):
+def pong(self: AttributeManager, app_name: str):
+    """
+    eduID webapps periodically ping workers as a part of their health assessment.
+    """
     if AmCelerySingleton.worker_config.mongo_uri and self.userdb.is_healthy():
         return f'pong for {app_name}'
     raise ConnectionError('Database not healthy')

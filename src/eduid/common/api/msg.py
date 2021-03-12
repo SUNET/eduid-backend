@@ -25,7 +25,12 @@ LANGUAGE_MAPPING = {
 
 
 class MsgRelay(object):
+    """
+    This is the interface to the RPC task to fetch data from NAVET, and to send SMSs.
+    """
+
     def __init__(self, config: MsgConfigMixin):
+        self.app_name = config.app_name
         self.conf = config
         eduid.workers.msg.init_app(config.celery)
         # these have to be imported _after_ eduid.workers.msg.init_app()
@@ -116,7 +121,11 @@ class MsgRelay(object):
             raise MsgTaskFailed(f'sendsms task failed: {repr(e)}')
 
     def ping(self, timeout: int = 1) -> str:
-        rtask = self._pong.apply_async()
+        """
+        Check if this application is able to reach an Msg worker.
+        :return: Result of celery Task.get
+        """
+        rtask = self._pong.apply_async(kwargs={'app_name': self.app_name})
         try:
             return rtask.get(timeout=timeout)
         except Exception as e:

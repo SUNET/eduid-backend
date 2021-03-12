@@ -104,7 +104,7 @@ def check_am() -> bool:
         return True
     try:
         res = current_app.am_relay.ping()
-        if res == 'pong for {}'.format(current_app.am_relay.relay_for):
+        if res == f'pong for {current_app.am_relay.app_name}':
             reset_failure_info('check_am')
             return True
     except Exception as exc:
@@ -118,7 +118,8 @@ def check_msg() -> bool:
         return True
     try:
         res = current_app.msg_relay.ping()
-        if res == 'pong':
+        # TODO: remove the backwards-compat startswith when all clients and workers are deployed
+        if res == f'pong for {current_app.msg_relay.app_name}' or res.startswith('pong'):
             reset_failure_info('check_msg')
             return True
     except Exception as exc:
@@ -132,7 +133,8 @@ def check_mail() -> bool:
         return True
     try:
         res = current_app.mail_relay.ping()
-        if res == 'pong':
+        # TODO: remove the backwards-compat startswith when all clients and workers are deployed
+        if res == f'pong for {current_app.mail_relay.app_name}' or res.startswith('pong'):
             reset_failure_info('check_mail')
             return True
     except Exception as exc:

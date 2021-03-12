@@ -295,12 +295,14 @@ class AmConfigMixin(CeleryConfigMixin):
 class MailConfigMixin(CeleryConfigMixin):
     """ Config used by MailRelay """
 
+    app_name: str
     mail_default_from: str = 'no-reply@eduid.se'
 
 
 class MsgConfigMixin(CeleryConfigMixin):
     """ Config used by MsgRelay """
 
+    app_name: str
     eduid_site_name: str = 'eduID'
 
 

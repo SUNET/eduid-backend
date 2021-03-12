@@ -42,7 +42,12 @@ logger = logging.getLogger(__name__)
 
 
 class MailRelay(object):
+    """
+    This is the interface to the RPC task to send e-mail.
+    """
+
     def __init__(self, config: MailConfigMixin):
+        self.app_name = config.app_name
         self.mail_from = config.mail_default_from
         eduid.workers.msg.init_app(config.celery)
         # this import has to happen _after_ init_app
@@ -90,7 +95,14 @@ class MailRelay(object):
         logger.info(f'Sent email {rtask} to {recipients} with subject {subject}')
         return None
 
-    def ping(self):
-        rtask = self._pong.delay()
-        result = rtask.get(timeout=1)
-        return result
+    def ping(self, timeout: int = 1) -> str:
+        """
+        Check if this application is able to reach an AM worker.
+        :return: Result of celery Task.get
+        """
+        rtask = self._pong.apply_async(kwargs={'app_name': self.app_name})
+        try:
+            return rtask.get(timeout=timeout)
+        except Exception as e:
+            rtask.forget()
+            raise MailTaskFailed(f'ping task failed: {repr(e)}')

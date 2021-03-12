@@ -15,14 +15,18 @@ logger = logging.getLogger(__name__)
 
 
 class AmRelay(object):
+    """
+    This is the interface to the RPC task to save users to the central userdb.
+    """
+
     def __init__(self, config: AmConfigMixin):
         """
         :param config: celery config
         :param relay_for: Name of application to relay for
         """
-        self.relay_for = f'eduid_{config.app_name}'
+        self.app_name = f'eduid_{config.app_name}'
         if config.am_relay_for_override is not None:
-            self.relay_for = config.am_relay_for_override
+            self.app_name = config.am_relay_for_override
 
         eduid.workers.am.init_app(config.celery)
         # these have to be imported _after_ eduid.workers.am.init_app()
@@ -31,14 +35,14 @@ class AmRelay(object):
         self._update_attrs = update_attributes_keep_result
         self._pong = pong
 
-    def request_user_sync(self, user: User, timeout: int = 25, relay_for_override: Optional[str] = None) -> bool:
+    def request_user_sync(self, user: User, timeout: int = 25, app_name_override: Optional[str] = None) -> bool:
         """
         Use Celery to ask eduid-am worker to propagate changes from our
         private UserDB into the central UserDB.
 
         :param user: User object
         :param timeout: Max wait time for task to finish
-        :param relay_for_override: Used in tests to 'spoof' sync requests.
+        :param app_name_override: Used in tests to 'spoof' sync requests.
 
         :return: True if successful
         """
@@ -49,11 +53,11 @@ class AmRelay(object):
             logger.error(f'Bad user_id in sync request: {e}')
             raise ValueError('Missing user_id. Can only propagate changes for eduid.userdb.User users.')
 
-        _relay_for = self.relay_for
-        if relay_for_override:
-            _relay_for = relay_for_override
-        logger.debug(f'Asking Attribute Manager to sync user {user} from {_relay_for}')
-        rtask = self._update_attrs.delay(_relay_for, user_id)
+        _app_name = self.app_name
+        if app_name_override:
+            _app_name = app_name_override
+        logger.debug(f'Asking Attribute Manager to sync user {user} from {_app_name}')
+        rtask = self._update_attrs.delay(_app_name, user_id)
         try:
             result = rtask.get(timeout=timeout)
             logger.debug(f'Attribute Manager sync result: {result} for user {user}')
@@ -71,7 +75,7 @@ class AmRelay(object):
         Check if this application is able to reach an AM worker.
         :return: Result of celery Task.get
         """
-        rtask = self._pong.apply_async(kwargs={'app_name': self.relay_for})
+        rtask = self._pong.apply_async(kwargs={'app_name': self.app_name})
         try:
             return rtask.get(timeout=timeout)
         except Exception as e:

@@ -114,7 +114,7 @@ class MessageTest(AMTestCase):
         # Save the user in the eduid.workers.am_test database
         self.private_db.save(test_user)
 
-        self.am_relay.request_user_sync(test_user, relay_for_override='test')
+        self.am_relay.request_user_sync(test_user, app_name_override='test')
 
         # verify the user has been propagated to the amdb
         am_user = self.amdb.get_user_by_id(_id)
@@ -146,7 +146,7 @@ class MessageTest(AMTestCase):
         am_user = self.amdb.get_user_by_id(_id)
         self.assertNotEqual(am_user.eppn, 'teste-teste')
 
-        self.am_relay.request_user_sync(test_user, relay_for_override='test')
+        self.am_relay.request_user_sync(test_user, app_name_override='test')
 
         # verify the user has been propagated to the amdb
         am_user = self.amdb.get_user_by_id(_id)
@@ -174,4 +174,4 @@ class MessageTest(AMTestCase):
         self.assertNotEqual(am_user.eppn, 'teste-teste')
 
         with self.assertRaises(eduid.userdb.exceptions.EduIDDBError):
-            self.am_relay.request_user_sync(test_user, relay_for_override='bad')
+            self.am_relay.request_user_sync(test_user, app_name_override='bad')
