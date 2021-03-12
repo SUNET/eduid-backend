@@ -1,7 +1,6 @@
 from typing import Dict, List, Optional
 
 from suds.client import Client
-from suds.plugin import MessagePlugin
 
 from eduid.common.config.workers import MobConfig
 from eduid.workers.lookup_mobile.decorators import TransactionAudit
@@ -11,14 +10,6 @@ from eduid.workers.lookup_mobile.utilities import format_mobile_number, format_N
 DEFAULT_CLIENT_URL = 'http://api.teleadress.se/WSDL/nnapiwebservice.wsdl'
 DEFAULT_CLIENT_PORT = 'NNAPIWebServiceSoap'
 DEFAULT_CLIENT_PERSON_CLASS = 'ns7:FindPersonClass'
-
-
-class LogPlugin(MessagePlugin):
-    def sending(self, context):
-        print(str(context.envelope))
-
-    def received(self, context):
-        print(str(context.reply))
 
 
 class MobileLookupClient(object):
