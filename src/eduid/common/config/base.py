@@ -118,10 +118,10 @@ class WorkerConfig(RootConfig):
     """
     Configuration common to all celery workers
     """
-
-    mongo_uri: Optional[str] = None
-    celery: CeleryConfig = Field(default_factory=CeleryConfig)
     audit: bool = False
+    celery: CeleryConfig = Field(default_factory=CeleryConfig)
+    environment: EduidEnvironment = EduidEnvironment.production
+    mongo_uri: Optional[str] = None
     transaction_audit: bool = False
 
 

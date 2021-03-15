@@ -1,15 +1,12 @@
-from typing import Dict, List, Optional
 
 from suds.client import Client
+from typing import List, Optional
 
+from eduid.common.config.base import EduidEnvironment
 from eduid.common.config.workers import MobConfig
 from eduid.workers.lookup_mobile.decorators import TransactionAudit
 from eduid.workers.lookup_mobile.development.development_search_result import _get_devel_search_result
-from eduid.workers.lookup_mobile.utilities import format_mobile_number, format_NIN
-
-DEFAULT_CLIENT_URL = 'http://api.teleadress.se/WSDL/nnapiwebservice.wsdl'
-DEFAULT_CLIENT_PORT = 'NNAPIWebServiceSoap'
-DEFAULT_CLIENT_PERSON_CLASS = 'ns7:FindPersonClass'
+from eduid.workers.lookup_mobile.utilities import format_NIN, format_mobile_number
 
 
 class MobileLookupClient(object):
@@ -19,12 +16,19 @@ class MobileLookupClient(object):
         # enable transaction logging if configured
         self.transaction_audit = self.conf.transaction_audit and self.conf.mongo_uri
 
-        self.client = Client(DEFAULT_CLIENT_URL)
-        self.client.set_options(port=DEFAULT_CLIENT_PORT)
+        self._client: Optional[Client] = None
         self.logger = logger
 
-        self.DEFAULT_CLIENT_PASSWORD = str(self.conf.teleadress_client_password)
-        self.DEFAULT_CLIENT_USER = str(self.conf.teleadress_client_user)
+    @property
+    def client(self) -> Client:
+        if not self._client:
+            # TODO: remove self.conf.devel_mode, use environment instead
+            #if self.conf.devel_mode is True or \
+            #    self.conf.testing or self.conf.environment == EduidEnvironment.dev:
+            #    raise RuntimeError('No suds-client in LookupMobile for testing/dev environments')
+
+            self._client = Client(self.conf.teleadress_client_url, port=self.conf.teleadress_client_port)
+        return self._client
 
     @TransactionAudit()
     def find_mobiles_by_NIN(self, national_identity_number: str, number_region=None) -> List[str]:
@@ -52,7 +56,8 @@ class MobileLookupClient(object):
 
     def _search(self, param):
         # Start the search
-        if self.conf.devel_mode is True:
+        # TODO: remove self.conf.devel_mode, use environment instead
+        if self.conf.devel_mode is True or self.conf.environment == EduidEnvironment.dev:
             result = _get_devel_search_result(param)
         else:
             result = self.client.service.Find(param)
@@ -72,11 +77,11 @@ class MobileLookupClient(object):
         return result.record_list[0].record
 
     def _search_by_SSNo(self, national_identity_number: str) -> List[str]:
-        person_search = self.client.factory.create(DEFAULT_CLIENT_PERSON_CLASS)
+        person_search = self.client.factory.create(self.conf.teleadress_client_person_class)
 
         # Set the eduid user id and password
-        person_search._Password = self.DEFAULT_CLIENT_PASSWORD
-        person_search._UserId = self.DEFAULT_CLIENT_USER
+        person_search._Password = self.conf.teleadress_client_password
+        person_search._UserId = self.conf.teleadress_client_user
 
         # Set what parameter to search with
         person_search.QueryParams.FindSSNo = national_identity_number
@@ -95,11 +100,11 @@ class MobileLookupClient(object):
         return mobile_numbers
 
     def _search_by_mobile(self, mobile_number: str) -> Optional[str]:
-        person_search = self.client.factory.create(DEFAULT_CLIENT_PERSON_CLASS)
+        person_search = self.client.factory.create(self.conf.teleadress_client_person_class)
 
         # Set the eduid user id and password
-        person_search._Password = self.DEFAULT_CLIENT_PASSWORD
-        person_search._UserId = self.DEFAULT_CLIENT_USER
+        person_search._Password = self.conf.teleadress_client_password
+        person_search._UserId = self.conf.teleadress_client_user
 
         # Set what parameter to search with
         person_search.QueryParams.FindTelephone = mobile_number
