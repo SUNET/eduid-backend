@@ -1,4 +1,3 @@
-import warnings
 from typing import Optional
 
 import bson
@@ -43,21 +42,7 @@ class AttributeManager(Task):
         AmCelerySingleton.af_registry.reset()
 
 
-@app.task(bind=True, ignore_results=True, base=AttributeManager)
-def update_attributes(self: AttributeManager, app_name: str, user_id: str) -> None:
-    """
-    Task executing on the Celery worker service as an RPC called from
-    the different eduID applications.
-
-    :param self: base class
-    :param app_name: calling application name, like 'eduid_signup'
-    :param user_id: id for the user that has been updated by the calling application
-    """
-    warnings.warn("This function will be removed. Use update_attributes_keep_result instead.", DeprecationWarning)
-    _update_attributes(self, app_name, user_id)
-
-
-@app.task(bind=True, base=AttributeManager)
+@app.task(bind=True, base=AttributeManager, name='eduid_am.tasks.update_attributes_keep_result')
 def update_attributes_keep_result(self: AttributeManager, app_name: str, user_id: str) -> bool:
     """
     This task is exactly the same as update_attributes, except that
@@ -67,10 +52,6 @@ def update_attributes_keep_result(self: AttributeManager, app_name: str, user_id
     :param app_name: calling application name, like 'eduid_signup'
     :param user_id: id for the user that has been updated by the calling application
     """
-    return _update_attributes(self, app_name, user_id)
-
-
-def _update_attributes(task: AttributeManager, app_name: str, user_id: str) -> bool:
     logger.debug(f'Update attributes called for {user_id} by {app_name}')
 
     try:
@@ -86,7 +67,7 @@ def _update_attributes(task: AttributeManager, app_name: str, user_id: str) -> b
         logger.error(f'Attribute fetcher for {app_name} is not installed')
         raise RuntimeError(f'Missing attribute fetcher, {e}')
 
-    if not task.userdb:
+    if not self.userdb:
         raise RuntimeError('Task has no userdb')
 
     try:
@@ -100,7 +81,7 @@ def _update_attributes(task: AttributeManager, app_name: str, user_id: str) -> b
 
     try:
         logger.debug(f'Checking locked identity during sync attempt from {app_name}')
-        attributes = check_locked_identity(task.userdb, _id, attributes, app_name)
+        attributes = check_locked_identity(self.userdb, _id, attributes, app_name)
     except LockedIdentityViolation as e:
         logger.error(e)
         raise e
@@ -108,18 +89,18 @@ def _update_attributes(task: AttributeManager, app_name: str, user_id: str) -> b
     # TODO: Update mongodb to >3.2 (partial index support) so we can optimistically update a user and run this check
     # TODO: if the update fails
     logger.debug(f'Checking other users for already verified elements during sync attempt from {app_name}')
-    unverify_duplicates(task.userdb, _id, attributes)
+    unverify_duplicates(self.userdb, _id, attributes)
 
     logger.debug(f'Attributes fetched from app {app_name} for user {_id}: {attributes}')
     try:
-        task.userdb.update_user(_id, attributes)
+        self.userdb.update_user(_id, attributes)
     except ConnectionError as e:
         logger.error(f'update_attributes_keep_result connection error: {e}', exc_info=True)
-        task.retry(default_retry_delay=1, max_retries=3, exc=e)
+        self.retry(default_retry_delay=1, max_retries=3, exc=e)
     return True
 
 
-@app.task(bind=True, base=AttributeManager)
+@app.task(bind=True, base=AttributeManager, name='eduid_am.tasks.pong')
 def pong(self: AttributeManager, app_name: str):
     """
     eduID webapps periodically ping workers as a part of their health assessment.
