@@ -57,7 +57,7 @@ class MobileLookupClient(object):
     def _search(self, param):
         # Start the search
         # TODO: remove self.conf.devel_mode, use environment instead
-        if self.conf.devel_mode is True or self.conf.environment == EduidEnvironment.dev:
+        if self.conf.devel_mode is True or self.conf.testing or self.conf.environment == EduidEnvironment.dev:
             result = _get_devel_search_result(param)
         else:
             result = self.client.service.Find(param)
