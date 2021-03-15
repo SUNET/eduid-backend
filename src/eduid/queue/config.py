@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from typing import Sequence
 
-from eduid.common.config.base import EduidEnvironment, LoggingConfigMixin, LoggingFilters, MailConfigMixin, RootConfig
+from eduid.common.config.base import EduidEnvironment, LoggingConfigMixin, LoggingFilters, RootConfig
 
 __author__ = 'lundberg'
 
