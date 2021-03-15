@@ -7,6 +7,7 @@ from eduid.common.config.workers import MobConfig
 from eduid.workers.lookup_mobile.decorators import TransactionAudit
 from eduid.workers.lookup_mobile.development.development_search_result import _get_devel_search_result
 from eduid.workers.lookup_mobile.utilities import format_mobile_number, format_NIN
+from eduid.common.api.decorators import deprecated
 
 
 class MobileLookupClient(object):
@@ -46,6 +47,7 @@ class MobileLookupClient(object):
         return format_mobile_number(mobiles, number_region)
 
     @TransactionAudit()
+    @deprecated('This task seems unused')
     def find_NIN_by_mobile(self, mobile_number) -> Optional[str]:
         nin = self._search_by_mobile(mobile_number)
         if not nin:
@@ -76,6 +78,7 @@ class MobileLookupClient(object):
 
         return result.record_list[0].record
 
+    @deprecated('This function seems unused')
     def _search_by_SSNo(self, national_identity_number: str) -> List[str]:
         person_search = self.client.factory.create(self.conf.teleadress_client_person_class)
 

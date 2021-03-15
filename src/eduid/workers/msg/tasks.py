@@ -11,6 +11,8 @@ from celery.utils.log import get_task_logger
 from hammock import Hammock
 from smscom import SMSClient
 
+from eduid.common.api.decorators import deprecated
+from eduid.common.config.base import EduidEnvironment
 from eduid.userdb.exceptions import ConnectionError
 from eduid.workers.msg.cache import CacheMDB
 from eduid.workers.msg.common import MsgCelerySingleton
@@ -37,7 +39,7 @@ class MessageSender(Task):
     abstract = True
 
     _sms: Optional[SMSClient] = None
-    _navet: Optional[Hammock] = None
+    _navet_api: Optional[Hammock] = None
 
     @property
     def sms(self) -> SMSClient:
@@ -46,7 +48,7 @@ class MessageSender(Task):
         return self._sms
 
     @property
-    def smtp(self):
+    def smtp(self) -> smtplib.SMTP:
         config = MsgCelerySingleton.worker_config
         _smtp = smtplib.SMTP(config.mail_host, config.mail_port)
         if config.mail_starttls:
@@ -59,7 +61,7 @@ class MessageSender(Task):
         return _smtp
 
     @property
-    def navet_api(self):
+    def navet_api(self) -> Hammock:
         if self._navet_api is None:
             config = MsgCelerySingleton.worker_config
             auth = None
@@ -252,6 +254,7 @@ class MessageSender(Task):
             self.cache('navet_cache').add_cache_item(identity_number, json_data)
         return json_data
 
+    @deprecated('This function seems unused')
     def set_audit_log_postal_address(self, audit_reference: str) -> bool:
         from eduid.userdb import MongoDB
 
@@ -276,13 +279,17 @@ class MessageSender(Task):
         :param recipients: the recipients of the email
         :param message: email.mime.multipart.MIMEMultipart message as a string
         :param reference: Audit reference to help cross reference audit log and events
-        :param max_retry_seconds: DEPRECATED
 
         :return Dict of errors
         """
 
         # Just log the mail if in development mode
-        if MsgCelerySingleton.worker_config.devel_mode is True:
+        # TODO: remove self.conf.devel_mode, use environment instead
+        if (
+            MsgCelerySingleton.worker_config.devel_mode is True
+            or MsgCelerySingleton.worker_config.testing
+            or MsgCelerySingleton.worker_config.environment == EduidEnvironment.dev
+        ):
             logger.debug('sendmail task:')
             logger.debug(
                 f"\nType: email\nReference: {reference}\nSender: {sender}\nRecipients: {recipients}\n"
@@ -300,7 +307,6 @@ class MessageSender(Task):
         :param recipient: the recipient of the sms
         :param message: message as a string (160 chars per sms)
         :param reference: Audit reference to help cross reference audit log and events
-        :param max_retry_seconds: DEPRECATED
 
         :return Transaction ID
         """
@@ -323,7 +329,7 @@ class MessageSender(Task):
         raise ConnectionError('Database not healthy')
 
 
-@app.task(bind=True, base=MessageSender)
+@app.task(bind=True, base=MessageSender, name='eduid_msg.tasks.sendmail')
 def sendmail(self: MessageSender, sender: str, recipients: list, message: str, reference: str,) -> dict:
     """
     :param self: base class
@@ -331,7 +337,6 @@ def sendmail(self: MessageSender, sender: str, recipients: list, message: str, r
     :param recipients: the recipients of the email
     :param message: email.mime.multipart.MIMEMultipart message as a string
     :param reference: Audit reference to help cross reference audit log and events
-    :param max_retry_seconds: DEPRECATED
     """
     try:
         return self.sendmail(sender, recipients, message, reference)
@@ -342,14 +347,13 @@ def sendmail(self: MessageSender, sender: str, recipients: list, message: str, r
     assert False  # make mypy happy
 
 
-@app.task(bind=True, base=MessageSender)
+@app.task(bind=True, base=MessageSender, name='eduid_msg.tasks.sendsms')
 def sendsms(self: MessageSender, recipient: str, message: str, reference: str) -> str:
     """
     :param self: base class
     :param recipient: the recipient of the sms
     :param message: message as a string (160 chars per sms)
     :param reference: Audit reference to help cross reference audit log and events
-    :param max_retry_seconds: DEPRECATED
     """
     try:
         return self.sendsms(recipient, message, reference)
@@ -360,7 +364,7 @@ def sendsms(self: MessageSender, recipient: str, message: str, reference: str) -
     assert False  # make mypy happy
 
 
-@app.task(bind=True, base=MessageSender)
+@app.task(bind=True, base=MessageSender, name='eduid_msg.tasks.get_postal_address')
 def get_postal_address(self: MessageSender, identity_number: str) -> Optional[OrderedDict]:
     """
     Retrieve name and postal address from the Swedish population register using a Swedish national
@@ -379,7 +383,7 @@ def get_postal_address(self: MessageSender, identity_number: str) -> Optional[Or
     assert False  # make mypy happy
 
 
-@app.task(bind=True, base=MessageSender)
+@app.task(bind=True, base=MessageSender, name='eduid_msg.tasks.get_relations_to')
 def get_relations_to(self: MessageSender, identity_number: str, relative_nin: str) -> List[str]:
     """
     Get the relative status between identity_number and relative_nin.
@@ -414,7 +418,7 @@ def get_relations_to(self: MessageSender, identity_number: str, relative_nin: st
         import pprint
 
         logger.debug(
-            f"Looking for relations between {identity_number} and {relative_nin} in: " f"{pprint.pformat(relations)}"
+            f'Looking for relations between {identity_number} and {relative_nin} in: {pprint.pformat(relations)}'
         )
         for d in relations['Relations']['Relation']:
             if d.get('RelationId', {}).get("NationalIdentityNumber") == relative_nin:
@@ -429,6 +433,7 @@ def get_relations_to(self: MessageSender, identity_number: str, relative_nin: st
 
 
 @app.task(bind=True, base=MessageSender)
+@deprecated('This task seems unused')
 def set_audit_log_postal_address(self: MessageSender, audit_reference: str) -> bool:
     """
     Looks in the transaction audit collection for the audit reference and make a postal address lookup and adds the
@@ -451,7 +456,7 @@ def cache_expire() -> None:
         _CACHE[cache].expire_cache_items()
 
 
-@app.task(bind=True, base=MessageSender)
+@app.task(bind=True, base=MessageSender, name='eduid_msg.tasks.pong')
 def pong(self: MessageSender, app_name: Optional[str] = None) -> str:
     """
     eduID webapps periodically ping workers as a part of their health assessment.
