@@ -143,6 +143,20 @@ def check_mail() -> bool:
     return False
 
 
+def check_lookup_mobile() -> bool:
+    if not getattr(current_app, 'lookup_mobile_relay', False):
+        return True
+    try:
+        res = current_app.mail_relay.ping()
+        if res == f'pong for {current_app.mail_relay.app_name}':
+            reset_failure_info('check_lookup_mobile')
+            return True
+    except Exception as exc:
+        log_failure_info('check_lookup_mobile', msg='lookup_mobile health check failed', exc=exc)
+        check_restart('check_lookup_mobile', restart=0, terminate=120)
+    return False
+
+
 def check_vccs() -> bool:
     if not isinstance(current_app.conf, VCCSConfigMixin):
         return True

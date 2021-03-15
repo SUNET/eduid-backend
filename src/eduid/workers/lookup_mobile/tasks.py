@@ -43,3 +43,16 @@ def find_NIN_by_mobile(self: MobWorker, mobile_number: str) -> Optional[str]:
     :return: the nin with the registered mobile number
     """
     return self.lookup_client.find_NIN_by_mobile(mobile_number)
+
+
+@app.task(bind=True, base=MobWorker)
+def pong(self: MobWorker, app_name: str):
+    """
+    eduID webapps periodically ping workers as a part of their health assessment.
+    """
+    if self.lookup_client:
+        # Not the best health check, but at least tests that the worker was able to
+        # fetch the WSDL from the remote API.
+        return f'pong for {app_name}'
+    raise ConnectionError('API not healthy')
+

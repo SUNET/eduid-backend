@@ -250,6 +250,7 @@ class MagicCookieMixin(BaseModel):
 
 
 class CeleryConfigMixin(BaseModel):
+    app_name: str
     celery: CeleryConfig
 
 
@@ -288,21 +289,18 @@ class VCCSConfigMixin(BaseModel):
 class AmConfigMixin(CeleryConfigMixin):
     """ Config used by AmRelay """
 
-    app_name: str
     am_relay_for_override: Optional[str]  # only set this if f'eduid_{app_name}' is not right
 
 
 class MailConfigMixin(CeleryConfigMixin):
     """ Config used by MailRelay """
 
-    app_name: str
     mail_default_from: str = 'no-reply@eduid.se'
 
 
 class MsgConfigMixin(CeleryConfigMixin):
     """ Config used by MsgRelay """
 
-    app_name: str
     eduid_site_name: str = 'eduID'
 
 

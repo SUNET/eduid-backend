@@ -22,14 +22,11 @@ class LookupMobileMongoTestCase(MongoTestCase):
                 'celery': {
                     'broker_transport': 'memory',
                     'broker_url': 'memory://',
+                    'task_eager_propagates': True,
+                    'task_always_eager': True,
                     'result_backend': 'cache',
                     'cache_backend': 'memory',
                 },
-                'devel_mode': True,
-                'transaction_audit': False,
-                'log_path': '',
-                'teleadress_client_user': 'TEST',
-                'teleadress_client_password': 'TEST',
                 'mongo_uri': self.tmp_db.uri,
                 'token_service_url': 'foo',
             }
