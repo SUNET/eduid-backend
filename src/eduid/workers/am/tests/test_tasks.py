@@ -13,15 +13,8 @@ from eduid.workers.am.testing import AMTestCase
 
 
 class TestTasks(AMTestCase):
-    def setUp(self):
-        am_settings = {'want_mongo_uri': True}
-        super(TestTasks, self).setUp(am_settings=am_settings, am_users=[mocked_user_standard, mocked_user_standard_2])
-
-    def fix_am_settings(self):
-        self.am_settings = AmConfig(**self.am_settings)
-
-    def fix_app_settings(self):
-        self.settings = FlaskConfig(**self.settings)
+    def setUp(self, *args, **kwargs):
+        super().setUp(want_mongo_uri=True, am_users=[mocked_user_standard, mocked_user_standard_2], **kwargs)
 
     def test_get_user_by_id(self):
         user = self.amdb.get_user_by_id(mocked_user_standard.user_id)
