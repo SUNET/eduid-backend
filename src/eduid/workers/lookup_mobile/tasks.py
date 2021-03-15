@@ -19,7 +19,7 @@ class MobWorker(Task):
         self._lookup_client: Optional[MobileLookupClient] = None
 
     @property
-    def lookup_client(self) -> Optional[MobileLookupClient]:
+    def lookup_client(self) -> MobileLookupClient:
         if not self._lookup_client:
             self._lookup_client = MobileLookupClient(logger, MobCelerySingleton.worker_config)
         return self._lookup_client

@@ -124,6 +124,7 @@ def pong(self: AttributeManager, app_name: str):
     """
     eduID webapps periodically ping workers as a part of their health assessment.
     """
-    if AmCelerySingleton.worker_config.mongo_uri and self.userdb.is_healthy():
+    _userdb = self.userdb
+    if _userdb and _userdb.is_healthy():
         return f'pong for {app_name}'
     raise ConnectionError('Database not healthy')
