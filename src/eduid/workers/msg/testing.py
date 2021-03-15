@@ -1,10 +1,10 @@
 import logging
 from pathlib import PurePath
 
-from eduid.common.api.mail_relay import MailRelay
-from eduid.common.api.msg import MsgRelay
 from eduid.common.config.base import EduIDBaseAppConfig, MailConfigMixin, MsgConfigMixin
 from eduid.common.config.workers import MsgConfig
+from eduid.common.rpc.mail_relay import MailRelay
+from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.userdb.testing import MongoTestCase
 from eduid.workers.msg.common import MsgCelerySingleton
 

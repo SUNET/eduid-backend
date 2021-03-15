@@ -111,7 +111,7 @@ class SecurityU2FTests(EduidAPITestCase):
     @patch('cryptography.x509.load_der_x509_certificate')
     @patch('OpenSSL.crypto.dump_certificate')
     @patch('u2flib_server.model.U2fRegisterRequest.complete')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_bind_key(self, mock_request_user_sync, mock_u2f_register_complete, mock_dump_cert, mock_load_cert):
         mock_dump_cert.return_value = b'der_cert'
         mock_load_cert.return_value = b'pem_cert'
@@ -201,7 +201,7 @@ class SecurityU2FTests(EduidAPITestCase):
             self.assertIsNotNone(verify_data['payload']['counter'])
             self.assertIsNotNone(verify_data['payload']['touch'])
 
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_modify(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data['eduPersonPrincipalName']
@@ -227,7 +227,7 @@ class SecurityU2FTests(EduidAPITestCase):
                 if credential['key'] == 'keyHandle':
                     self.assertEqual(credential['description'], 'test description')
 
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_remove(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data['eduPersonPrincipalName']

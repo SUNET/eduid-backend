@@ -31,8 +31,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from typing import Optional
-
 from pydantic import Field
 
 from eduid.common.config.base import WorkerConfig
@@ -77,7 +75,10 @@ class MobConfig(WorkerConfig):
     Configuration for the lookup mobile celery worker
     """
 
-    devel_mode: bool = False
+    devel_mode: bool = False  # deprecated, replace with environment
     log_path: str = ''
     teleadress_client_password: str = ''
     teleadress_client_user: str = ''
+    teleadress_client_url: str = 'http://api.teleadress.se/WSDL/nnapiwebservice.wsdl'
+    teleadress_client_port: str = 'NNAPIWebServiceSoap'
+    teleadress_client_person_class: str = 'ns7:FindPersonClass'

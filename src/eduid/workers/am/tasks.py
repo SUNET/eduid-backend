@@ -16,8 +16,7 @@ app = AmCelerySingleton.celery
 
 
 class AttributeManager(Task):
-    """Singleton that stores reusable objects like the MongoDB database
-       or the attribute fetchers registry."""
+    """ Singleton that stores reusable objects like the MongoDB database client """
 
     abstract = True  # This means Celery won't register this as another task
 
@@ -121,7 +120,11 @@ def _update_attributes(task: AttributeManager, app_name: str, user_id: str) -> b
 
 
 @app.task(bind=True, base=AttributeManager)
-def pong(self, app_name):
-    if AmCelerySingleton.worker_config.mongo_uri and self.userdb.is_healthy():
+def pong(self: AttributeManager, app_name: str):
+    """
+    eduID webapps periodically ping workers as a part of their health assessment.
+    """
+    _userdb = self.userdb
+    if _userdb and _userdb.is_healthy():
         return f'pong for {app_name}'
     raise ConnectionError('Database not healthy')

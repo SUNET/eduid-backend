@@ -97,7 +97,7 @@ class ResetPasswordTests(EduidAPITestCase):
 
     # Parameterized test methods
 
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
     def _post_email_address(
         self,
         mock_sendmail: Any,
@@ -153,7 +153,7 @@ class ResetPasswordTests(EduidAPITestCase):
             return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
 
     @patch('eduid.common.authn.vccs.get_vccs_client')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def _post_reset_password(
         self,
         mock_request_user_sync: Any,
@@ -205,8 +205,8 @@ class ResetPasswordTests(EduidAPITestCase):
             return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
 
     @patch('eduid.common.authn.vccs.get_vccs_client')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
-    @patch('eduid.common.api.msg.MsgRelay.sendsms')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
     def _post_choose_extra_sec(
         self,
         mock_sendsms: Any,
@@ -269,8 +269,8 @@ class ResetPasswordTests(EduidAPITestCase):
             return response
 
     @patch('eduid.common.authn.vccs.get_vccs_client')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
-    @patch('eduid.common.api.msg.MsgRelay.sendsms')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
     def _post_reset_password_secure_phone(
         self,
         mock_sendsms: Any,
@@ -327,7 +327,7 @@ class ResetPasswordTests(EduidAPITestCase):
         return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
 
     @patch('eduid.common.authn.vccs.get_vccs_client')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     @patch('fido2.cose.ES256.verify')
     def _post_reset_password_secure_token(
         self,
@@ -417,8 +417,8 @@ class ResetPasswordTests(EduidAPITestCase):
             return client.get(f'/get-email-code?eppn={eppn}')
 
     @patch('eduid.common.authn.vccs.get_vccs_client')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
-    @patch('eduid.common.api.msg.MsgRelay.sendsms')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
     def _get_phone_code_backdoor(
         self,
         mock_sendsms: Any,

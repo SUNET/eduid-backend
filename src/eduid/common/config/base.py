@@ -119,9 +119,10 @@ class WorkerConfig(RootConfig):
     Configuration common to all celery workers
     """
 
-    mongo_uri: Optional[str] = None
-    celery: CeleryConfig = Field(default_factory=CeleryConfig)
     audit: bool = False
+    celery: CeleryConfig = Field(default_factory=CeleryConfig)
+    environment: EduidEnvironment = EduidEnvironment.production
+    mongo_uri: Optional[str] = None
     transaction_audit: bool = False
 
 
@@ -250,6 +251,7 @@ class MagicCookieMixin(BaseModel):
 
 
 class CeleryConfigMixin(BaseModel):
+    app_name: str
     celery: CeleryConfig
 
 
@@ -288,7 +290,6 @@ class VCCSConfigMixin(BaseModel):
 class AmConfigMixin(CeleryConfigMixin):
     """ Config used by AmRelay """
 
-    app_name: str
     am_relay_for_override: Optional[str]  # only set this if f'eduid_{app_name}' is not right
 
 

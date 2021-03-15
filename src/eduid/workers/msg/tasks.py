@@ -313,9 +313,12 @@ class MessageSender(Task):
 
         return self.sms.send(message, MsgCelerySingleton.worker_config.sms_sender, recipient, prio=2)
 
-    def pong(self):
+    def pong(self, app_name: Optional[str]) -> str:
         # Leverage cache to test mongo db health
         if self.cache('pong', 0).conn.is_healthy():
+            if app_name:
+                return f'pong for {app_name}'
+            # Old clients don't send app_name, and text-match the response to be exactly 'pong' in the health checks
             return 'pong'
         raise ConnectionError('Database not healthy')
 
@@ -449,7 +452,12 @@ def cache_expire() -> None:
 
 
 @app.task(bind=True, base=MessageSender)
-def pong(self: MessageSender) -> str:
+def pong(self: MessageSender, app_name: Optional[str] = None) -> str:
+    """
+    eduID webapps periodically ping workers as a part of their health assessment.
+
+    TODO: Make app_name non-optional when all clients are updated.
+    """
     # Periodic tasks require celery beat with celery 5. This whole expiration thing
     # should be replaced with mongodb built in data expiration, so just use this hack for now.
     global _CACHE_EXPIRE_TS
@@ -460,4 +468,4 @@ def pong(self: MessageSender) -> str:
         cache_expire()
         _CACHE_EXPIRE_TS = datetime.utcnow() + timedelta(minutes=10)
 
-    return self.pong()
+    return self.pong(app_name)

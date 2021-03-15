@@ -87,7 +87,7 @@ class SignupTests(EduidAPITestCase):
     # parameterized test methods
 
     @patch('eduid.webapp.signup.views.verify_recaptcha')
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
     def _captcha_new(
         self,
         mock_sendmail: Any,
@@ -125,7 +125,7 @@ class SignupTests(EduidAPITestCase):
             return client.post('/trycaptcha', data=json.dumps(data), content_type=self.content_type_json)
 
     @patch('eduid.webapp.signup.views.verify_recaptcha')
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
     def _resend_email(
         self, mock_sendmail: Any, mock_recaptcha: Any, data1: Optional[dict] = None, email: str = 'dummy@example.com'
     ):
@@ -148,8 +148,8 @@ class SignupTests(EduidAPITestCase):
             return client.post('/resend-verification', data=json.dumps(data), content_type=self.content_type_json)
 
     @patch('eduid.webapp.signup.views.verify_recaptcha')
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     @patch('vccs_client.VCCSClient.add_credentials')
     def _verify_code(
         self,
@@ -181,8 +181,8 @@ class SignupTests(EduidAPITestCase):
                     return client.get('/verify-link/' + code)
 
     @patch('eduid.webapp.signup.views.verify_recaptcha')
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     @patch('vccs_client.VCCSClient.add_credentials')
     def _verify_code_after_captcha(
         self,
@@ -228,8 +228,8 @@ class SignupTests(EduidAPITestCase):
             return json.loads(response.data)
 
     @patch('eduid.webapp.signup.views.verify_recaptcha')
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     @patch('vccs_client.VCCSClient.add_credentials')
     def _get_code_backdoor(
         self,

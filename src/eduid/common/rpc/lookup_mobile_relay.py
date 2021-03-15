@@ -11,12 +11,14 @@ class LookupMobileTaskFailed(Exception):
 
 class LookupMobileRelay(object):
     def __init__(self, config: CeleryConfigMixin):
+        self.app_name = config.app_name
         eduid.workers.lookup_mobile.init_app(config.celery)
         # these have to be imported _after_ eduid.workers.lookup_mobile.init_app()
-        from eduid.workers.lookup_mobile.tasks import find_mobiles_by_NIN, find_NIN_by_mobile
+        from eduid.workers.lookup_mobile.tasks import find_mobiles_by_NIN, find_NIN_by_mobile, pong
 
         self._find_mobiles_by_NIN = find_mobiles_by_NIN
         self._find_NIN_by_mobile = find_NIN_by_mobile
+        self._pong = pong
 
     def find_nin_by_mobile(self, mobile_number):
         try:
@@ -33,3 +35,15 @@ class LookupMobileRelay(object):
             return result
         except Exception as e:
             raise LookupMobileTaskFailed('find_mobiles_by_nin task failed: {}'.format(e))
+
+    def ping(self, timeout: int = 1) -> str:
+        """
+        Check if this application is able to reach an LookupMobile worker.
+        :return: Result of celery Task.get
+        """
+        rtask = self._pong.apply_async(kwargs={'app_name': self.app_name})
+        try:
+            return rtask.get(timeout=timeout)
+        except Exception as e:
+            rtask.forget()
+            raise LookupMobileTaskFailed(f'ping task failed: {repr(e)}')

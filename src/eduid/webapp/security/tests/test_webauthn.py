@@ -276,7 +276,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
 
             return json.loads(response2.data)
 
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def _finish_register_key(
         self,
         mock_request_user_sync: Any,
@@ -322,7 +322,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
             )
             return json.loads(response2.data)
 
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def _dont_remove_last(
         self,
         mock_request_user_sync: Any,
@@ -363,7 +363,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
             response2 = client.post('/webauthn/remove', data=json.dumps(data), content_type=self.content_type_json)
             return json.loads(response2.data)
 
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def _remove(
         self,
         mock_request_user_sync: Any,

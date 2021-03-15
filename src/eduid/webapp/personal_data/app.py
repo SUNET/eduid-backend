@@ -35,9 +35,9 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid.common.api.am import AmRelay
 from eduid.common.authn.middleware import AuthnBaseApp
 from eduid.common.config.parsers import load_config
+from eduid.common.rpc.am_relay import AmRelay
 from eduid.userdb.personal_data import PersonalDataUserDB
 from eduid.webapp.personal_data.settings import PersonalDataConfig
 

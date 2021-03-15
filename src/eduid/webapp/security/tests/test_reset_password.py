@@ -137,7 +137,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         response = self.browser.get('/reset-password/')
         self.assertEqual(response.status_code, 200)
 
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
     def test_password_reset_email(self, mock_sendmail):
         mock_sendmail.return_value = True
         self.post_email_address('johnsmith@example.com')
@@ -145,14 +145,14 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
         self.assertIsNotNone(state)
 
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
     def test_password_reset_email_unknown_mail_address(self, mock_sendmail):
         mock_sendmail.return_value = True
         self.post_email_address('no_such_address@example.com')
 
         self.assertEqual(self.app.password_reset_state_db.db_count(), 0)
 
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
     def test_password_reset_email_overwrite_state(self, mock_sendmail):
         mock_sendmail.return_value = True
 
@@ -170,7 +170,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
 
         self.assertNotEqual(code1, code2)
 
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
     def test_password_reset_email_code(self, mock_sendmail):
         mock_sendmail.return_value = True
         self.post_email_address('johnsmith@example.com')
@@ -185,7 +185,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         self.assertEqual(state.email_code.is_verified, True)
         self.assertEqual(self.app.proofing_log.db_count(), 1)
 
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
     def test_password_reset_email_code_mail_relay_problem(self, mock_sendmail):
         mock_sendmail.side_effect = MailTaskFailed('test')
         response = self.post_email_address('johnsmith@example.com')
@@ -197,7 +197,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         self.assertEqual(state.email_code.is_verified, False)
         self.assertEqual(self.app.proofing_log.db_count(), 0)
 
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
     def test_password_reset_extra_security_no_verified_email(self, mock_sendmail):
         mock_sendmail.return_value = True
         self.post_email_address('johnsmith@example.com')
@@ -216,8 +216,8 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         self.assertEqual(state.email_code.is_verified, False)
         self.assertEqual(self.app.proofing_log.db_count(), 0)
 
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid.common.api.msg.MsgRelay.sendsms')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
     def test_password_reset_extra_security_phone(self, mock_sendmail, mock_sendsms):
         mock_sendmail.return_value = True
         mock_sendsms.return_value = True
@@ -241,8 +241,8 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
         self.assertEqual(state.phone_code.is_verified, True)
 
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid.common.api.msg.MsgRelay.sendsms')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
     def test_password_reset_extra_security_phone_msg_relay_problem(self, mock_sendsms, mock_sendmail):
         mock_sendmail.return_value = True
         mock_sendsms.side_effect = MsgTaskFailed('test')
@@ -267,9 +267,9 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         self.assertEqual(state.phone_code.is_verified, False)
 
     @patch('eduid.common.authn.vccs.get_vccs_client')
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid.common.api.msg.MsgRelay.sendsms')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_reset_password_with_extra_security_phone(
         self, mock_request_user_sync, mock_sendsms, mock_sendmail, mock_get_vccs_client
     ):
@@ -296,9 +296,9 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         self.assertEqual(user.phone_numbers.primary.is_verified, True)
 
     @patch('eduid.common.authn.vccs.get_vccs_client')
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid.common.api.msg.MsgRelay.sendsms')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_reset_password_with_extra_security_phone_expired(
         self, mock_request_user_sync, mock_sendsms, mock_sendmail, mock_get_vccs_client
     ):
@@ -328,9 +328,9 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         self.assertIsInstance(state, PasswordResetEmailState)
 
     @patch('eduid.common.authn.vccs.get_vccs_client')
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid.common.api.msg.MsgRelay.sendsms')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_reset_password_with_no_extra_security(
         self, mock_request_user_sync, mock_sendsms, mock_sendmail, mock_get_vccs_client
     ):
@@ -357,9 +357,9 @@ class SecurityResetPasswordTests(EduidAPITestCase):
             self.assertEqual(phone_number.is_verified, False)
 
     @patch('eduid.common.authn.vccs.get_vccs_client')
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid.common.api.msg.MsgRelay.sendsms')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_reset_password_with_no_extra_security_available(
         self, mock_request_user_sync, mock_sendsms, mock_sendmail, mock_get_vccs_client
     ):
@@ -392,9 +392,9 @@ class SecurityResetPasswordTests(EduidAPITestCase):
             self.assertEqual(phone_number.is_verified, False)
 
     @patch('eduid.common.authn.vccs.get_vccs_client')
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid.common.api.msg.MsgRelay.sendsms')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_reset_custom_password_with_extra_security_phone(
         self, mock_request_user_sync, mock_sendsms, mock_sendmail, mock_get_vccs_client
     ):
@@ -421,9 +421,9 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         self.assertEqual(user.phone_numbers.primary.is_verified, True)
 
     @patch('eduid.common.authn.vccs.get_vccs_client')
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid.common.api.msg.MsgRelay.sendsms')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_reset_custom_password_with_no_extra_security(
         self, mock_request_user_sync, mock_sendsms, mock_sendmail, mock_get_vccs_client
     ):
@@ -450,9 +450,9 @@ class SecurityResetPasswordTests(EduidAPITestCase):
             self.assertEqual(phone_number.is_verified, False)
 
     @patch('eduid.common.authn.vccs.get_vccs_client')
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid.common.api.msg.MsgRelay.sendsms')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_reset_password_low_entropy(
         self, mock_request_user_sync, mock_sendsms, mock_sendmail, mock_get_vccs_client
     ):
@@ -489,9 +489,9 @@ class SecurityResetPasswordTests(EduidAPITestCase):
             self.assertEqual(phone_number.is_verified, True)
 
     @patch('eduid.common.authn.vccs.get_vccs_client')
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid.common.api.msg.MsgRelay.sendsms')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_reset_password_blank_password(
         self, mock_request_user_sync, mock_sendsms, mock_sendmail, mock_get_vccs_client
     ):
@@ -528,9 +528,9 @@ class SecurityResetPasswordTests(EduidAPITestCase):
             self.assertEqual(phone_number.is_verified, True)
 
     @patch('eduid.common.authn.vccs.get_vccs_client')
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid.common.api.msg.MsgRelay.sendsms')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_reset_password_blank_repeat_password(
         self, mock_request_user_sync, mock_sendsms, mock_sendmail, mock_get_vccs_client
     ):
@@ -571,9 +571,9 @@ class SecurityResetPasswordTests(EduidAPITestCase):
             self.assertEqual(phone_number.is_verified, True)
 
     @patch('eduid.common.authn.vccs.get_vccs_client')
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
-    @patch('eduid.common.api.msg.MsgRelay.sendsms')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
     def _get_code_backdoor(
         self,
         mock_sendsms: Any,
@@ -621,9 +621,9 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         self.assertEqual(resp.status_code, 400)
 
     @patch('eduid.common.authn.vccs.get_vccs_client')
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid.common.api.msg.MsgRelay.sendsms')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def _get_phone_code_backdoor(
         self,
         mock_request_user_sync,

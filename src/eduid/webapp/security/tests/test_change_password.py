@@ -66,7 +66,7 @@ class ChangePasswordTests(EduidAPITestCase):
 
             return client.get('/suggested-password')
 
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def _change_password(
         self,
         mock_request_user_sync: Any,
@@ -99,7 +99,7 @@ class ChangePasswordTests(EduidAPITestCase):
 
                 return client.post('/change-password', data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def _get_suggested_and_change(
         self, mock_request_user_sync: Any, data1: Optional[dict] = None, authenticate: bool = True
     ):
