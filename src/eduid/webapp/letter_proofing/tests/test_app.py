@@ -109,8 +109,8 @@ class LetterProofingTests(EduidAPITestCase):
         return response
 
     @patch('hammock.Hammock._request')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
-    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
     def _send_letter2(
         self, nin: str, csrf_token: Optional[str], mock_get_postal_address, mock_request_user_sync, mock_hammock
     ):
@@ -140,8 +140,8 @@ class LetterProofingTests(EduidAPITestCase):
             )
         return response
 
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
-    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
     def _verify_code2(self, code: str, csrf_token: Optional[str], mock_get_postal_address, mock_request_user_sync):
         if csrf_token is None:
             _state = self.get_state()
@@ -155,8 +155,8 @@ class LetterProofingTests(EduidAPITestCase):
         return response
 
     @patch('hammock.Hammock._request')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
-    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
     def get_code_backdoor(
         self,
         mock_get_postal_address: Any,
@@ -369,7 +369,7 @@ class LetterProofingTests(EduidAPITestCase):
         self.assertIn('letter_sent', json_data['payload'])
         self.assertIsNotNone(json_data['payload']['letter_sent'])
 
-    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
     def test_unmarshal_error(self, mock_get_postal_address):
         mock_get_postal_address.return_value = self.mock_address
 
@@ -381,8 +381,8 @@ class LetterProofingTests(EduidAPITestCase):
             error={'nin': ['nin needs to be formatted as 18|19|20yymmddxxxx']},
         )
 
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
-    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
     def test_locked_identity_no_locked_identity(self, mock_get_postal_address, mock_request_user_sync):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -393,8 +393,8 @@ class LetterProofingTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_user_eppn):
             self.send_letter(self.test_user_nin)
 
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
-    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
     def test_locked_identity_correct_nin(self, mock_get_postal_address, mock_request_user_sync):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -406,8 +406,8 @@ class LetterProofingTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_user_eppn):
             response = self.send_letter(self.test_user_nin)
 
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
-    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
     def test_locked_identity_incorrect_nin(self, mock_get_postal_address, mock_request_user_sync):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync

@@ -10,6 +10,7 @@ logger = get_task_logger(__name__)
 
 app = MobCelerySingleton.celery
 
+
 class MobWorker(Task):
     """ Singleton that stores reusable objects like the MobileLookupClient """
 
@@ -55,4 +56,3 @@ def pong(self: MobWorker, app_name: str):
         # fetch the WSDL from the remote API.
         return f'pong for {app_name}'
     raise ConnectionError('API not healthy')
-

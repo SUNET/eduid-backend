@@ -34,14 +34,13 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid.common.api import am, mail_relay, msg, oidc, translation
-from eduid.common.api.am import AmRelay
-from eduid.common.api.mail_relay import MailRelay
-from eduid.common.api.msg import MsgRelay
+from eduid.common.api import oidc, translation
 from eduid.common.authn.middleware import AuthnBaseApp
 from eduid.common.authn.utils import no_authn_views
-from eduid.common.config.base import FlaskConfig
 from eduid.common.config.parsers import load_config
+from eduid.common.rpc.am_relay import AmRelay
+from eduid.common.rpc.mail_relay import MailRelay
+from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.proofing import OidcProofingStateDB, OidcProofingUserDB
 from eduid.webapp.oidc_proofing.settings.common import OIDCProofingConfig

@@ -3,7 +3,6 @@ from eduid.workers.lookup_mobile.testing import LookupMobileMongoTestCase
 
 
 class TestVerifiers(LookupMobileMongoTestCase):
-
     def test_find_NIN_by_mobile(self):
         # TODO: Actually connects to teleadress?
         from eduid.workers.lookup_mobile.tasks import logger

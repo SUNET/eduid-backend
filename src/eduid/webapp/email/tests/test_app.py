@@ -105,8 +105,8 @@ class EmailTests(EduidAPITestCase):
 
             return json.loads(response2.data)
 
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     @patch('eduid.webapp.email.verifications.get_unique_hash')
     def _post_email(
         self,
@@ -147,7 +147,7 @@ class EmailTests(EduidAPITestCase):
 
                 return client.post('/new')
 
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def _post_primary(self, mock_request_user_sync: Any, data1: Optional[dict] = None):
         """
         Choose an email of the test user as primary
@@ -172,7 +172,7 @@ class EmailTests(EduidAPITestCase):
 
                 return client.post('/primary', data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def _remove(self, mock_request_user_sync: Any, data1: Optional[dict] = None):
         """
         POST to remove an email address form the test user
@@ -195,8 +195,8 @@ class EmailTests(EduidAPITestCase):
 
             return client.post('/remove', data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def _resend_code(self, mock_request_user_sync: Any, mock_sendmail: Any, data1: Optional[dict] = None):
         """
         Trigger resending a new verification code to the email being verified
@@ -217,8 +217,8 @@ class EmailTests(EduidAPITestCase):
 
             return client.post('/resend-code', data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     @patch('eduid.webapp.email.verifications.get_unique_hash')
     def _verify(
         self,
@@ -268,8 +268,8 @@ class EmailTests(EduidAPITestCase):
 
             return client.post('/verify', data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     @patch('eduid.webapp.email.verifications.get_unique_hash')
     def _verify_email_link(
         self,
@@ -310,8 +310,8 @@ class EmailTests(EduidAPITestCase):
             client.post('/new', data=json.dumps(data), content_type=self.content_type_json)
             return client.get('/verify?code={}&email={}'.format(code, email))
 
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     @patch('eduid.webapp.email.verifications.get_unique_hash')
     def _get_code_backdoor(
         self,
@@ -463,7 +463,7 @@ class EmailTests(EduidAPITestCase):
         self.assertEqual(new_email_data['type'], 'POST_EMAIL_NEW_FAIL')
         self.assertEqual(new_email_data['payload']['error']['csrf_token'], ['CSRF failed to validate'])
 
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_post_primary(self, mock_request_user_sync):
         data1 = {'email': 'johnsmith@example.com'}
         response = self._post_primary(data1=data1)
@@ -474,7 +474,7 @@ class EmailTests(EduidAPITestCase):
 
         self.assertEqual(new_email_data['type'], 'POST_EMAIL_PRIMARY_SUCCESS')
 
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_post_unknown_primary(self, mock_request_user_sync):
         data1 = {'email': 'susansmith@example.com'}
         response = self._post_primary(data1=data1)
@@ -518,7 +518,7 @@ class EmailTests(EduidAPITestCase):
         self.assertEqual(delete_email_data['type'], 'POST_EMAIL_REMOVE_SUCCESS')
         self.assertEqual(delete_email_data['payload']['emails'][0].get('email'), 'johnsmith@example.com')
 
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_remove_primary(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
 
@@ -546,7 +546,7 @@ class EmailTests(EduidAPITestCase):
         self.assertEqual(user.mail_addresses.verified.count, 1)
         self.assertEqual(user.mail_addresses.primary.email, 'verified2@example.com')
 
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_remove_last_verified(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
 
@@ -614,7 +614,7 @@ class EmailTests(EduidAPITestCase):
         self.assertEqual(resend_code_email_data['payload']['message'], 'still-valid-code')
         self.assertIsNotNone(resend_code_email_data['payload']['csrf_token'])
 
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_resend_code_fails(self, mock_request_user_sync):
         data1 = {'email': 'johnsmith3@example.com'}
         response = self._resend_code(data1=data1)
@@ -660,8 +660,8 @@ class EmailTests(EduidAPITestCase):
         self.assertEqual(verify_email_data['payload']['emails'][0]['primary'], True)
         self.assertEqual(self.app.proofing_log.db_count(), 1)
 
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     @patch('eduid.webapp.email.verifications.get_unique_hash')
     def test_verify_code_timeout(self, mock_code_verification, mock_request_user_sync, mock_sendmail):
         self.app.conf.email_verification_timeout = 0
@@ -671,8 +671,8 @@ class EmailTests(EduidAPITestCase):
         self.assertEqual(verify_email_data['type'], 'POST_EMAIL_VERIFY_FAIL')
         self.assertEqual(verify_email_data['payload']['message'], 'emails.code_invalid_or_expired')
 
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     @patch('eduid.webapp.email.verifications.get_unique_hash')
     def test_verify_fail(self, mock_code_verification, mock_request_user_sync, mock_sendmail):
         response = self._verify(data2={'code': 'wrong-code'})
@@ -682,8 +682,8 @@ class EmailTests(EduidAPITestCase):
         self.assertEqual(verify_email_data['payload']['message'], 'emails.code_invalid_or_expired')
         self.assertEqual(self.app.proofing_log.db_count(), 0)
 
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     @patch('eduid.webapp.email.verifications.get_unique_hash')
     def test_verify_email_link(self, mock_code_verification, mock_request_user_sync, mock_sendmail):
         response = self._verify_email_link()
@@ -719,8 +719,8 @@ class EmailTests(EduidAPITestCase):
         self.assertEqual(mail_address_element.is_primary, False)
         self.assertEqual(self.app.proofing_log.db_count(), 1)
 
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     @patch('eduid.webapp.email.verifications.get_unique_hash')
     def test_verify_email_link_wrong_code(self, mock_code_verification, mock_request_user_sync, mock_sendmail):
         response = self._verify_email_link(code='wrong-code')

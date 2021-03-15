@@ -141,7 +141,7 @@ class GroupManagementTests(EduidAPITestCase):
         group.graph = self.app.scimapi_groupdb.graphdb.save(group.graph)
         return group
 
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
     def _invite(
         self, mock_sendmail: Any, group_scim_id: str, inviter: User, invite_address: str, role: str
     ) -> Response:

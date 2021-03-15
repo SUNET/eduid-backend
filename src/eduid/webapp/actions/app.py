@@ -38,9 +38,9 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app, render_template, templating
 
-from eduid.common.api.am import AmRelay
 from eduid.common.api.app import EduIDBaseApp
 from eduid.common.config.parsers import load_config
+from eduid.common.rpc.am_relay import AmRelay
 from eduid.userdb.actions import ActionDB
 from eduid.webapp.actions.settings.common import ActionsConfig
 

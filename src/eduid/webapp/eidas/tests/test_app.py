@@ -222,8 +222,8 @@ class EidasTests(EduidAPITestCase):
             response = browser.get('/')
         self.assertEqual(response.status_code, 200)  # Authenticated request
 
-    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_u2f_token_verify(self, mock_request_user_sync, mock_get_postal_address):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -258,8 +258,8 @@ class EidasTests(EduidAPITestCase):
 
             self.assertEqual(self.app.proofing_log.db_count(), 1)
 
-    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_webauthn_token_verify(self, mock_request_user_sync, mock_get_postal_address):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -294,8 +294,8 @@ class EidasTests(EduidAPITestCase):
 
             self.assertEqual(self.app.proofing_log.db_count(), 1)
 
-    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_mfa_token_verify_wrong_verified_nin(self, mock_request_user_sync, mock_get_postal_address):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -329,8 +329,8 @@ class EidasTests(EduidAPITestCase):
             self.assertEqual(user_mfa_tokens[0].is_verified, False)
             self.assertEqual(self.app.proofing_log.db_count(), 0)
 
-    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_mfa_token_verify_no_verified_nin(self, mock_request_user_sync, mock_get_postal_address):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -413,8 +413,8 @@ class EidasTests(EduidAPITestCase):
                 '{}?msg=%3AERROR%3Aeidas.token_not_in_credentials_used'.format(self.app.conf.token_verify_redirect_url),
             )
 
-    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_mfa_token_verify_aborted_auth(self, mock_request_user_sync, mock_get_postal_address):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -449,8 +449,8 @@ class EidasTests(EduidAPITestCase):
 
                 self.assertEqual(self.app.proofing_log.db_count(), 0)
 
-    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_mfa_token_verify_cancel_auth(self, mock_request_user_sync, mock_get_postal_address):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -484,8 +484,8 @@ class EidasTests(EduidAPITestCase):
             self.assertEqual(user_mfa_tokens[0].is_verified, False)
             self.assertEqual(self.app.proofing_log.db_count(), 0)
 
-    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_mfa_token_verify_auth_fail(self, mock_request_user_sync, mock_get_postal_address):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -519,8 +519,8 @@ class EidasTests(EduidAPITestCase):
             self.assertEqual(user_mfa_tokens[0].is_verified, False)
             self.assertEqual(self.app.proofing_log.db_count(), 0)
 
-    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_nin_verify(self, mock_request_user_sync, mock_get_postal_address):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -549,8 +549,8 @@ class EidasTests(EduidAPITestCase):
             self.assertEqual(user.nins.primary.number, self.test_user_nin)
             self.assertEqual(self.app.proofing_log.db_count(), 1)
 
-    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_nin_verify_backdoor(self, mock_request_user_sync: Any, mock_get_postal_address: Any):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -571,8 +571,8 @@ class EidasTests(EduidAPITestCase):
         self.assertEqual(user.nins.primary.number, self.test_user_nin)
         self.assertEqual(self.app.proofing_log.db_count(), 1)
 
-    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_nin_verify_no_backdoor_in_pro(self, mock_request_user_sync: Any, mock_get_postal_address: Any):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -594,8 +594,8 @@ class EidasTests(EduidAPITestCase):
         self.assertEqual(user.nins.verified.count, 0)
         self.assertEqual(self.app.proofing_log.db_count(), 0)
 
-    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_nin_verify_no_backdoor_misconfigured(self, mock_request_user_sync: Any, mock_get_postal_address: Any):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -614,8 +614,8 @@ class EidasTests(EduidAPITestCase):
         self.assertEqual(user.nins.verified.count, 0)
         self.assertEqual(self.app.proofing_log.db_count(), 0)
 
-    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_nin_verify_already_verified(self, mock_request_user_sync: Any, mock_get_postal_address: Any):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -704,8 +704,8 @@ class EidasTests(EduidAPITestCase):
             self.assertEqual(response.status_code, 302)
             self.assertEqual(response.location, 'http://idp.localhost/action?msg=%3AERROR%3Aeidas.nin_not_matching')
 
-    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_nin_staging_remap_verify(self, mock_request_user_sync, mock_get_postal_address):
         self.app.conf.environment = 'staging'
         self.app.conf.staging_nin_map = {self.test_user_nin: '190102031234'}

@@ -7,9 +7,9 @@ from typing import Any, Dict, Mapping
 from mock import patch
 
 from eduid.common.api.testing import EduidAPITestCase
+from eduid.common.rpc.lookup_mobile_relay import LookupMobileTaskFailed
 from eduid.webapp.lookup_mobile_proofing.app import MobileProofingApp, init_lookup_mobile_proofing_app
 from eduid.webapp.lookup_mobile_proofing.helpers import MobileMsg
-from eduid.webapp.lookup_mobile_proofing.lookup_mobile_relay import LookupMobileTaskFailed
 
 __author__ = 'lundberg'
 
@@ -61,9 +61,9 @@ class LookupMobileProofingTests(EduidAPITestCase):
             response = browser.get('/proofing')
         self.assertEqual(response.status_code, 200)  # Authenticated request
 
-    @patch('eduid.webapp.lookup_mobile_proofing.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
-    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_proofing_flow(self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile):
         mock_find_nin_by_mobile.return_value = self.test_user_nin
         mock_get_postal_address.return_value = self.mock_address
@@ -89,9 +89,9 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(user.nins.primary.is_verified, True)
         self.assertEqual(self.app.proofing_log.db_count(), 1)
 
-    @patch('eduid.webapp.lookup_mobile_proofing.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
-    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_proofing_flow_underage(self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile):
         mock_find_nin_by_mobile.return_value = self.test_user_nin_underage
         mock_get_postal_address.return_value = self.mock_address
@@ -117,9 +117,9 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(user.nins.primary.is_verified, True)
         self.assertEqual(self.app.proofing_log.db_count(), 1)
 
-    @patch('eduid.webapp.lookup_mobile_proofing.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
-    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_proofing_flow_no_match(self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile):
         mock_find_nin_by_mobile.return_value = None
         mock_get_postal_address.return_value = self.mock_address
@@ -143,9 +143,9 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(user.nins.find(self.test_user_nin).is_verified, False)
         self.assertEqual(self.app.proofing_log.db_count(), 0)
 
-    @patch('eduid.webapp.lookup_mobile_proofing.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
-    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_proofing_flow_LookupMobileTaskFailed(
         self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile
     ):
@@ -172,9 +172,9 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(user.nins.find(self.test_user_nin).is_verified, False)
         self.assertEqual(self.app.proofing_log.db_count(), 0)
 
-    @patch('eduid.webapp.lookup_mobile_proofing.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
-    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_proofing_flow_no_match_backdoor(
         self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile
     ):
@@ -209,9 +209,9 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(user.nins.primary.is_verified, True)
         self.assertEqual(self.app.proofing_log.db_count(), 1)
 
-    @patch('eduid.webapp.lookup_mobile_proofing.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
-    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_proofing_flow_no_match_backdoor_code_in_pro(
         self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile
     ):
@@ -245,9 +245,9 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(user.nins.find(self.test_user_nin).is_verified, False)
         self.assertEqual(self.app.proofing_log.db_count(), 0)
 
-    @patch('eduid.webapp.lookup_mobile_proofing.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
-    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_proofing_flow_no_match_backdoor_code_unconfigured(
         self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile
     ):
@@ -280,10 +280,10 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(user.nins.find(self.test_user_nin).is_verified, False)
         self.assertEqual(self.app.proofing_log.db_count(), 0)
 
-    @patch('eduid.common.api.msg.MsgRelay.get_relations_to')
-    @patch('eduid.webapp.lookup_mobile_proofing.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
-    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_relations_to')
+    @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_proofing_flow_relation(
         self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile, mock_get_relations_to
     ):
@@ -312,10 +312,10 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(user.nins.primary.is_verified, True)
         self.assertEqual(self.app.proofing_log.db_count(), 1)
 
-    @patch('eduid.common.api.msg.MsgRelay.get_relations_to')
-    @patch('eduid.webapp.lookup_mobile_proofing.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
-    @patch('eduid.common.api.msg.MsgRelay.get_postal_address')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_relations_to')
+    @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_proofing_flow_relation_no_match(
         self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile, mock_get_relations_to
     ):

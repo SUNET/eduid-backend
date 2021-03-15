@@ -5,11 +5,11 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid.common.api.am import AmRelay
-from eduid.common.api.msg import MsgRelay
 from eduid.common.authn.middleware import AuthnBaseApp
 from eduid.common.authn.utils import get_saml2_config, no_authn_views
 from eduid.common.config.parsers import load_config
+from eduid.common.rpc.am_relay import AmRelay
+from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.userdb.logs.db import ProofingLog
 from eduid.userdb.proofing.db import EidasProofingUserDB
 from eduid.webapp.eidas.settings.common import EidasConfig

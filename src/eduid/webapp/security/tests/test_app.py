@@ -101,8 +101,8 @@ class SecurityTests(EduidAPITestCase):
 
             return client.post('/terminate-account', data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch('eduid.common.api.mail_relay.MailRelay.sendmail')
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     @patch('eduid.webapp.security.views.security.revoke_all_credentials')
     def _account_terminated(
         self,
@@ -132,7 +132,7 @@ class SecurityTests(EduidAPITestCase):
 
             return client.get('/account-terminated')
 
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def _remove_nin(self, mock_request_user_sync: Any, data1: Optional[dict] = None, unverify: bool = True):
         """
         Send a POST request to remove a NIN from the test user, possibly
@@ -163,7 +163,7 @@ class SecurityTests(EduidAPITestCase):
 
                 return client.post('/remove-nin', data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def _add_nin(self, mock_request_user_sync: Any, data1: Optional[dict] = None, remove: bool = True):
         """
         Send a POST request to add a NIN to the test user, possibly removing his primary, verified NIN.
@@ -284,7 +284,7 @@ class SecurityTests(EduidAPITestCase):
         self.assertEqual(user.nins.count, 2)
         self.assertEqual(user.nins.verified.count, 2)
 
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_not_remove_non_existant_nin(self, mock_request_user_sync):
         data1 = {'nin': '190102031234'}
         response = self._remove_nin(data1=data1, unverify=False)
@@ -427,7 +427,7 @@ class SecurityTests(EduidAPITestCase):
             sec_data = json.loads(response2.data)
             self.assertEqual(sec_data['type'], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
 
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_change_passwd_no_csrf(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data['eduPersonPrincipalName']
@@ -444,7 +444,7 @@ class SecurityTests(EduidAPITestCase):
                 self.assertEqual(sec_data['payload']['message'], 'chpass.weak-password')
                 self.assertEqual(sec_data['type'], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
 
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_change_passwd_wrong_csrf(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data['eduPersonPrincipalName']
@@ -459,7 +459,7 @@ class SecurityTests(EduidAPITestCase):
                 self.assertEqual(sec_data['payload']['message'], 'csrf.try_again')
                 self.assertEqual(sec_data['type'], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
 
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_change_passwd_weak(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data['eduPersonPrincipalName']
@@ -477,7 +477,7 @@ class SecurityTests(EduidAPITestCase):
                 self.assertEqual(sec_data['payload']['message'], 'chpass.weak-password')
                 self.assertEqual(sec_data['type'], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
 
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_change_passwd(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data['eduPersonPrincipalName']

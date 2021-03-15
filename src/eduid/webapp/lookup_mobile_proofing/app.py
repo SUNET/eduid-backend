@@ -34,13 +34,13 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid.common.api.am import AmRelay
-from eduid.common.api.msg import MsgRelay
 from eduid.common.authn.middleware import AuthnBaseApp
 from eduid.common.config.parsers import load_config
+from eduid.common.rpc.am_relay import AmRelay
+from eduid.common.rpc.lookup_mobile_relay import LookupMobileRelay
+from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.proofing import LookupMobileProofingUserDB
-from eduid.webapp.lookup_mobile_proofing.lookup_mobile_relay import LookupMobileRelay
 from eduid.webapp.lookup_mobile_proofing.settings.common import MobileProofingConfig
 
 __author__ = 'lundberg'

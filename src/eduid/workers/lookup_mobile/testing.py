@@ -2,8 +2,8 @@ import logging
 
 from eduid.common.config.base import CeleryConfigMixin, EduIDBaseAppConfig
 from eduid.common.config.workers import MobConfig
+from eduid.common.rpc.lookup_mobile_relay import LookupMobileRelay
 from eduid.userdb.testing import MongoTestCase
-from eduid.webapp.lookup_mobile_proofing.lookup_mobile_relay import LookupMobileRelay
 from eduid.workers.lookup_mobile.common import MobCelerySingleton
 
 logger = logging.getLogger(__name__)

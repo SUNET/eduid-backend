@@ -118,6 +118,7 @@ class WorkerConfig(RootConfig):
     """
     Configuration common to all celery workers
     """
+
     audit: bool = False
     celery: CeleryConfig = Field(default_factory=CeleryConfig)
     environment: EduidEnvironment = EduidEnvironment.production

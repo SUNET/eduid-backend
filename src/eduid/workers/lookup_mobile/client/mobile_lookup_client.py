@@ -1,12 +1,12 @@
+from typing import List, Optional
 
 from suds.client import Client
-from typing import List, Optional
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.config.workers import MobConfig
 from eduid.workers.lookup_mobile.decorators import TransactionAudit
 from eduid.workers.lookup_mobile.development.development_search_result import _get_devel_search_result
-from eduid.workers.lookup_mobile.utilities import format_NIN, format_mobile_number
+from eduid.workers.lookup_mobile.utilities import format_mobile_number, format_NIN
 
 
 class MobileLookupClient(object):
@@ -23,7 +23,7 @@ class MobileLookupClient(object):
     def client(self) -> Client:
         if not self._client:
             # TODO: remove self.conf.devel_mode, use environment instead
-            #if self.conf.devel_mode is True or \
+            # if self.conf.devel_mode is True or \
             #    self.conf.testing or self.conf.environment == EduidEnvironment.dev:
             #    raise RuntimeError('No suds-client in LookupMobile for testing/dev environments')
 

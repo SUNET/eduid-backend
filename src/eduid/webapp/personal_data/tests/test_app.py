@@ -92,7 +92,7 @@ class PersonalDataTests(EduidAPITestCase):
 
             return json.loads(response2.data)
 
-    @patch('eduid.common.api.am.AmRelay.request_user_sync')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def _post_user(self, mock_request_user_sync: Any, mod_data: Optional[dict] = None):
         """
         POST personal data for some user
