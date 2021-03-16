@@ -1,6 +1,9 @@
+from typing import Optional
+
 import eduid.workers.lookup_mobile
 
 __author__ = 'mathiashedstrom'
+from eduid.common.api.decorators import deprecated
 
 from eduid.common.config.base import CeleryConfigMixin
 
@@ -28,7 +31,8 @@ class LookupMobileRelay(object):
         except Exception as e:
             raise LookupMobileTaskFailed('find_nin_by_mobile task failed: {}'.format(e))
 
-    def find_mobiles_by_nin(self, nin):
+    @deprecated("This task seems unused")
+    def find_mobiles_by_nin(self, nin: str):
         try:
             result = self._find_mobiles_by_NIN.delay(nin)
             result = result.get(timeout=10)  # Lower timeout than standard gunicorn worker timeout (25)

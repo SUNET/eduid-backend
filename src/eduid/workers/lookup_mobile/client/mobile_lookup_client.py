@@ -32,6 +32,7 @@ class MobileLookupClient(object):
         return self._client
 
     @TransactionAudit()
+    @deprecated('This task seems unused')
     def find_mobiles_by_NIN(self, national_identity_number: str, number_region=None) -> List[str]:
         formatted_nin = format_NIN(national_identity_number)
         if not formatted_nin:
@@ -47,7 +48,6 @@ class MobileLookupClient(object):
         return format_mobile_number(mobiles, number_region)
 
     @TransactionAudit()
-    @deprecated('This task seems unused')
     def find_NIN_by_mobile(self, mobile_number) -> Optional[str]:
         nin = self._search_by_mobile(mobile_number)
         if not nin:
