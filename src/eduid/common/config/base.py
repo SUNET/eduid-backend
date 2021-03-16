@@ -63,6 +63,10 @@ class CeleryConfig(BaseModel):
             'eduid.workers.am.*': {'queue': 'am'},
             'eduid.workers.msg.*': {'queue': 'msg'},
             'eduid.workers.lookup_mobile.*': {'queue': 'lookup_mobile'},
+            # Old task names, still in use
+            'eduid_am.tasks.*': {'queue': 'am'},
+            'eduid_msg.tasks.*': {'queue': 'msg'},
+            'eduid_lookup_mobile.tasks.*': {'queue': 'lookup_mobile'},
         }
     )
     mongo_uri: Optional[str] = None

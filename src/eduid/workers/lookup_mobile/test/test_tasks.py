@@ -8,4 +8,8 @@ class MockException(Exception):
 class TestTasks(LookupMobileMongoTestCase):
     def test_ping(self):
         ret = self.lookup_mobile_relay.ping()
-        self.assertEqual(ret, 'pong for testing')
+        assert ret == 'pong for testing'
+
+    def test_mobile_to_nin(self):
+        ret = self.lookup_mobile_relay.find_nin_by_mobile('+46701740610')
+        assert ret == '200202027140'
