@@ -147,8 +147,8 @@ def check_lookup_mobile() -> bool:
     if not getattr(current_app, 'lookup_mobile_relay', False):
         return True
     try:
-        res = current_app.mail_relay.ping()
-        if res == f'pong for {current_app.mail_relay.app_name}':
+        res = current_app.lookup_mobile_relay.ping()
+        if res == f'pong for {current_app.lookup_mobile_relay.app_name}':
             reset_failure_info('check_lookup_mobile')
             return True
     except Exception as exc:
