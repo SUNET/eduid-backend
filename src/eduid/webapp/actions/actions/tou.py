@@ -65,7 +65,7 @@ class Plugin(ActionPlugin):
         app.tou_db = ToUUserDB(app.conf.mongo_uri)
 
     def get_config_for_bundle(self, action: Action):
-        tous = get_tous(version=action.params['version'], languages=list(current_app.conf.available_languages.keys()))
+        tous = get_tous(version=action.params['version'], languages=current_app.conf.available_languages.keys())
         if not tous:
             current_app.logger.error('Could not load any TOUs')
             raise self.ActionError(ActionsMsg.no_tou)
