@@ -1,0 +1,10 @@
+---
+eduid:
+  webapp:
+    common:
+      testing: true
+    jsapps:
+      password_entropy: 2
+      password_length: 3
+      dashboard_url: 'dummy-url-yaml'
+      PERSONAL_DATA_URL: 'dummy-personal-data-url'
