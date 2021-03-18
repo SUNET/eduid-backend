@@ -30,24 +30,28 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from dataclasses import dataclass, field
+
 from typing import Dict
 
+from pydantic import Field
 
-@dataclass
-class FrontConfig:
+from eduid.common.config.base import RootConfig
+
+
+class FrontConfig(RootConfig):
     """
     Dashboard front-end configuration.
 
     This is sent to the client, so care must be taken to avoid setting sectrets here.
     """
 
+    app_name: str = 'jsapps'
     debug: bool = False
     csrf_token: str = ''
-    available_languages: Dict[str, str] = field(
-        default_factory=lambda: {'en': 'English', 'sv': 'Svenska',}
+    available_languages: Dict[str, str] = Field(
+        default={'en': 'English', 'sv': 'Svenska',}
     )
-    tous: Dict[str, str] = field(default_factory=lambda: {'en': '', 'sv': ''})
+    tous: Dict[str, str] = Field(default={'en': '', 'sv': ''})
     # URLs
     # TODO: Remove after new design
     static_staff_url: str = ''
@@ -74,7 +78,7 @@ class FrontConfig:
     password_length: int = 12
     password_entropy: int = 25
     chpass_timeout: int = 600
-    proofing_methods: list = field(default_factory=lambda: ['letter', 'lookup_mobile', 'oidc', 'eidas'])
+    proofing_methods: list = Field(default=['letter', 'lookup_mobile', 'oidc', 'eidas'])
     default_country_code: int = 46
     signup_authn_url: str = '/services/authn/signup-authn'
     # This key is for signup.eduid.docker:8080

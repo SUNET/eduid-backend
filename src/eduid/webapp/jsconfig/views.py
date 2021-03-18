@@ -30,34 +30,16 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from dataclasses import asdict
-from typing import Dict, Optional, cast
 
-import requests
 from flask import Blueprint, abort, render_template, request
 
 from eduid.common.api.decorators import MarshalWith
 from eduid.common.api.schemas.base import FluxStandardAction
-from eduid.common.config.exceptions import BadConfiguration
-from eduid.common.config.parsers.etcd import EtcdConfigParser, etcd
 from eduid.common.session import session
 from eduid.common.misc.tous import get_tous
 from eduid.webapp.jsconfig.app import current_jsconfig_app as current_app
-from eduid.webapp.jsconfig.settings.front import FrontConfig
 
 jsconfig_views = Blueprint('jsconfig', __name__, url_prefix='', template_folder='templates')
-
-
-CACHE = {}
-
-
-def get_etcd_config(namespace: Optional[str] = None) -> FrontConfig:
-    if namespace is None:
-        namespace = '/eduid/webapp/jsapps/'
-    parser = EtcdConfigParser(namespace)
-    config = parser.read_configuration(path=namespace)
-    config = {k.lower(): v for k, v in config.items()}
-    return FrontConfig(**config)
 
 
 @jsconfig_views.route('/config', methods=['GET'], subdomain="dashboard")
@@ -66,19 +48,11 @@ def get_dashboard_config() -> dict:
     """
     Configuration for the dashboard front app
     """
-    try:
-        config: Optional[FrontConfig] = get_etcd_config()
-        CACHE['dashboard_config'] = config
-    except etcd.EtcdConnectionFailed as e:
-        current_app.logger.warning(f'No connection to etcd: {e}')
-        config = CACHE.get('dashboard_config')
-    if config is None:
-        raise BadConfiguration('Configuration not found')
-    config.csrf_token = session.get_csrf_token()
+    config_dict = current_app.front_conf.dict()
+    config_dict['csrf_token'] = session.get_csrf_token()
     # XXX the front app consumes some settings as upper case and some as lower
     # case. We'll provide them all in both upper and lower case, to
     # possibilitate migration of the front app - preferably to lower case.
-    config_dict = asdict(config)
     config_upper = {}
     for k, v in config_dict.items():
         config_upper[k.upper()] = v
@@ -92,17 +66,15 @@ def get_signup_config() -> dict:
     """
     Configuration for the signup front app
     """
-
-    config.debug = current_app.conf.debug
-    config.csrf_token = session.get_csrf_token()
-    config.tous = cast(Dict[str, str], tous)
+    config_dict = current_app.front_conf.dict()
+    config_dict['debug'] = current_app.conf.debug
+    config_dict['csrf_token'] = session.get_csrf_token()
     config_dict['tous'] = get_tous(
-        version=current_app.conf.tou_version, languages=list(current_app.conf.available_languages.keys())
+        version=current_app.conf.tou_version, languages=current_app.conf.available_languages.keys()
     )
     # XXX the front app consumes some settings as upper case and some as lower
     # case. We'll provide them all in both upper and lower case, to
     # facilitate migration of the front app to lower case.
-    config_dict = asdict(config)
     config_upper = {}
     for k, v in config_dict.items():
         config_upper[k.upper()] = v
@@ -118,12 +90,11 @@ def get_login_config() -> dict:
     """
     current_app.logger.info(f'Serving configuration for the login app')
 
-    config = get_etcd_config()
     return {
         'csrf_token': session.get_csrf_token(),
-        'password_service_url': config.password_service_url,
-        'password_entropy': config.password_entropy,
-        'password_length': config.password_length,
+        'password_service_url': current_app.front_conf.password_service_url,
+        'password_entropy': current_app.front_conf.password_entropy,
+        'password_length': current_app.front_conf.password_length,
     }
 
 

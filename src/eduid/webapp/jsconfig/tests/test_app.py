@@ -35,12 +35,12 @@ import json
 import os
 from typing import Any, Dict, Mapping
 
-from mock import patch
-
 from eduid.common.api.testing import EduidAPITestCase
+from eduid.common.config.parsers import load_config
 from eduid.common.config.parsers.etcd import EtcdConfigParser
 from eduid.common.misc.tous import get_tous
 from eduid.webapp.jsconfig.app import JSConfigApp, jsconfig_init_app
+from eduid.webapp.jsconfig.settings.front import FrontConfig
 
 
 class JSConfigTests(EduidAPITestCase):
@@ -49,21 +49,6 @@ class JSConfigTests(EduidAPITestCase):
 
     def setUp(self):
         super(JSConfigTests, self).setUp(copy_user_to_private=False)
-
-        self.jsconfig_ns = '/eduid/webapp/jsapps/'
-        self.jsconfig_parser = EtcdConfigParser(
-            namespace=self.jsconfig_ns, host=self.etcd_instance.host, port=self.etcd_instance.port
-        )
-
-        jsconfig_config = {
-            'eduid': {
-                'webapp': {'jsapps': {'password_entropy': 12, 'password_length': 10, 'dashboard_url': 'dummy-url'}}
-            }
-        }
-        self.jsconfig_parser.write_configuration(jsconfig_config)
-        os.environ['EDUID_CONFIG_NS'] = '/eduid/webapp/jsapps/'
-        os.environ['ETCD_HOST'] = self.etcd_instance.host
-        os.environ['ETCD_PORT'] = str(self.etcd_instance.port)
 
     def load_app(self, config: Mapping[str, Any]) -> JSConfigApp:
         """
@@ -88,6 +73,10 @@ class JSConfigTests(EduidAPITestCase):
                 'login_bundle_path': 'dummy-login-bundle',
                 'login_bundle_version': 'dummy-login-version',
                 'eduid_static_url': '/static',
+                # config for jsapps
+                'password_entropy': 12,
+                'password_length': 10,
+                'dashboard_url': 'dummy-url',
             }
         )
         return config
@@ -101,21 +90,11 @@ class JSConfigTests(EduidAPITestCase):
 
             config_data = json.loads(response.data)
 
-            self.assertEqual(config_data['type'], 'GET_JSCONFIG_CONFIG_SUCCESS')
-            self.assertEqual(config_data['payload']['dashboard_url'], 'dummy-url')
-            self.assertEqual(config_data['payload']['static_faq_url'], '')
+            assert config_data['type'] == 'GET_JSCONFIG_CONFIG_SUCCESS'
+            assert config_data['payload']['dashboard_url'] == 'dummy-url'
+            assert config_data['payload']['static_faq_url'] == ''
 
-    @patch('eduid.webapp.jsconfig.views.requests.get')
-    def test_get_signup_config(self, mock_request_get):
-        class MockResponse:
-            status_code = 200
-            headers = {'mock-header': 'dummy-value'}
-
-            def json(self):
-                return {'payload': {'test-version-1': '1st Dummy TOU', 'test-version-2': '2st Dummy TOU',}}
-
-        mock_request_get.return_value = MockResponse()
-
+    def test_get_signup_config(self):
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn, server_name='example.com', subdomain='signup') as client:
             response = client.get('http://signup.example.com/signup/config')
@@ -124,10 +103,10 @@ class JSConfigTests(EduidAPITestCase):
 
             config_data = json.loads(response.data)
 
-            self.assertEqual(config_data['type'], 'GET_JSCONFIG_SIGNUP_CONFIG_SUCCESS')
-            self.assertEqual(config_data['payload']['dashboard_url'], 'dummy-url')
-            self.assertEqual(config_data['payload']['static_faq_url'], '')
-            self.assertEqual(config_data['payload']['tous']['test-version-2'], '2st Dummy TOU')
+            assert config_data['type'] == 'GET_JSCONFIG_SIGNUP_CONFIG_SUCCESS'
+            assert config_data['payload']['dashboard_url'] == 'dummy-url'
+            assert config_data['payload']['static_faq_url'] == ''
+            assert config_data['payload']['tous'] == get_tous(self.app.conf.tou_version, self.app.conf.available_languages.keys())
 
     def test_get_login_config(self):
 
@@ -139,9 +118,9 @@ class JSConfigTests(EduidAPITestCase):
 
             config_data = json.loads(response.data)
 
-            self.assertEqual(config_data['type'], 'GET_JSCONFIG_LOGIN_CONFIG_SUCCESS')
-            self.assertEqual(config_data['payload']['password_entropy'], 12)
-            self.assertEqual(config_data['payload']['password_length'], 10)
+            assert config_data['type'] == 'GET_JSCONFIG_LOGIN_CONFIG_SUCCESS'
+            assert config_data['payload']['password_entropy'] == 12
+            assert config_data['payload']['password_length'] == 10
 
     def test_get_dashboard_bundle(self):
         eppn = self.test_user_data['eduPersonPrincipalName']
@@ -151,8 +130,8 @@ class JSConfigTests(EduidAPITestCase):
             self.assertEqual(response.status_code, 200)
 
             body = response.data
-            self.assertTrue('dummy-dashboard-bundle' in str(body))
-            self.assertTrue('dummy-dashboard-version' in str(body))
+            assert 'dummy-dashboard-bundle' in str(body)
+            assert 'dummy-dashboard-version' in str(body)
 
     def test_get_signup_bundle(self):
         # XXX Here we access the view by exposing it in a different path - the
@@ -169,8 +148,8 @@ class JSConfigTests(EduidAPITestCase):
             self.assertEqual(response.status_code, 200)
 
             body = response.data
-            self.assertTrue('dummy-signup-bundle' in str(body))
-            self.assertTrue('dummy-signup-version' in str(body))
+            assert 'dummy-signup-bundle' in str(body)
+            assert 'dummy-signup-version' in str(body)
 
     def test_get_login_bundle(self):
         # XXX Here we access the view by exposing it in a different path - the
@@ -187,5 +166,32 @@ class JSConfigTests(EduidAPITestCase):
             self.assertEqual(response.status_code, 200)
 
             body = response.data
-            self.assertTrue('dummy-login-bundle' in str(body))
-            self.assertTrue('dummy-login-version' in str(body))
+            assert 'dummy-login-bundle' in str(body)
+            assert 'dummy-login-version' in str(body)
+
+    def test_jsapps_config_from_etcd(self):
+        common_config_parser = EtcdConfigParser(
+            namespace='/eduid/webapp/common/', host=self.etcd_instance.host, port=self.etcd_instance.port
+        )
+        app_config_parser = EtcdConfigParser(
+            namespace='/eduid/webapp/jsapps/', host=self.etcd_instance.host, port=self.etcd_instance.port
+        )
+
+        config = {
+            'eduid': {
+                'webapp': {
+                    'common': {'testing': True},
+                    'jsapps': {'password_entropy': 12, 'password_length': 10, 'dashboard_url': 'dummy-url'},
+                }
+            }
+        }
+        common_config_parser.write_configuration(config)
+        app_config_parser.write_configuration(config)
+        os.environ['EDUID_CONFIG_NS'] = '/eduid/webapp/jsapps/'
+        os.environ['ETCD_HOST'] = self.etcd_instance.host
+        os.environ['ETCD_PORT'] = str(self.etcd_instance.port)
+
+        front_config = load_config(typ=FrontConfig, app_name='jsapps', ns='webapp')
+        assert front_config == FrontConfig(
+            testing=True, password_entropy=12, password_length=10, dashboard_url='dummy-url'
+        )
