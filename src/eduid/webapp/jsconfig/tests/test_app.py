@@ -39,6 +39,7 @@ from mock import patch
 
 from eduid.common.api.testing import EduidAPITestCase
 from eduid.common.config.parsers.etcd import EtcdConfigParser
+from eduid.common.misc.tous import get_tous
 from eduid.webapp.jsconfig.app import JSConfigApp, jsconfig_init_app
 
 

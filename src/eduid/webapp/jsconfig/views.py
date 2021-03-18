@@ -41,6 +41,7 @@ from eduid.common.api.schemas.base import FluxStandardAction
 from eduid.common.config.exceptions import BadConfiguration
 from eduid.common.config.parsers.etcd import EtcdConfigParser, etcd
 from eduid.common.session import session
+from eduid.common.misc.tous import get_tous
 from eduid.webapp.jsconfig.app import current_jsconfig_app as current_app
 from eduid.webapp.jsconfig.settings.front import FrontConfig
 
@@ -91,44 +92,13 @@ def get_signup_config() -> dict:
     """
     Configuration for the signup front app
     """
-    if not current_app.conf.tou_url:
-        raise BadConfiguration('tou_url not set')
-    tou_url = current_app.conf.tou_url
-    # Get config from etcd
-    try:
-        config: Optional[FrontConfig] = get_etcd_config()
-        CACHE['signup_config'] = config
-    except etcd.EtcdConnectionFailed as e:
-        current_app.logger.warning(f'No connection to etcd: {e}')
-        current_app.logger.info('Serving cached config')
-        config = CACHE.get('signup_config')
-    # Get ToUs from the ToU action
-    if config is None:
-        raise BadConfiguration('Configuration not found')
-    tous = CACHE.get('tous')
-    try:
-        r = requests.get(tou_url)
-        current_app.logger.debug(f'Response: {repr(r)} with headers: {repr(r.headers)}')
-        if r.status_code == 302:
-            headers = {'Cookie': r.headers.get('Set-Cookie')}
-            current_app.logger.debug(f'Headers: {headers}')
-            r = requests.get(tou_url, headers=headers)
-            current_app.logger.debug(f'2nd response: {repr(r)} with headers: {r.headers}')
-        if r.status_code != 200:
-            current_app.logger.warning(f'Problem getting ToUs from URL {tou_url}, response status: {r.status_code}')
-        else:
-            tous = r.json()['payload']
-            CACHE['tous'] = tous
-    except requests.exceptions.HTTPError as e:
-        current_app.logger.warning(f'Problem getting ToUs from URL {repr(tou_url)}: {repr(e)}')
-
-    if tous is None:
-        current_app.logger.error('Failed fetching ToUs, and the cache is empty')
-        abort(500)
 
     config.debug = current_app.conf.debug
     config.csrf_token = session.get_csrf_token()
     config.tous = cast(Dict[str, str], tous)
+    config_dict['tous'] = get_tous(
+        version=current_app.conf.tou_version, languages=list(current_app.conf.available_languages.keys())
+    )
     # XXX the front app consumes some settings as upper case and some as lower
     # case. We'll provide them all in both upper and lower case, to
     # facilitate migration of the front app to lower case.

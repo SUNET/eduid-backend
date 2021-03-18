@@ -43,6 +43,7 @@ from eduid.common.api.messages import CommonMsg, error_response, success_respons
 from eduid.common.api.schemas.base import FluxStandardAction
 from eduid.common.authn.utils import check_previous_identification
 from eduid.common.session import session
+from eduid.common.misc.tous import get_tous as common_get_tous
 from eduid.userdb.actions import Action
 from eduid.webapp.actions.app import current_actions_app as current_app
 from eduid.webapp.actions.helpers import ActionsMsg, get_next_action
@@ -73,7 +74,9 @@ def get_tous():
     View to GET the current TOU in all available languages
     """
     version = request.args.get('version', None)
-    return current_app.get_tous(version=version)
+    if version is None:
+        version = current_app.conf.tou_version
+    return common_get_tous(version=version, languages=current_app.conf.available_languages.keys())
 
 
 @actions_views.route('/config', methods=['GET'])
