@@ -309,6 +309,10 @@ class MsgConfigMixin(CeleryConfigMixin):
     eduid_site_name: str = 'eduID'
 
 
+class TouConfigMixin(BaseModel):
+    tou_version: str = '2016-v1'
+
+
 class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, RedisConfigMixin):
     available_languages: Mapping[str, str] = Field(default={'en': 'English', 'sv': 'Svenska'})
     environment: EduidEnvironment = EduidEnvironment.production

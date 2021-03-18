@@ -38,10 +38,10 @@ from typing import List, Optional
 
 from pydantic import Field, validator
 
-from eduid.common.config.base import CookieConfig, EduIDBaseAppConfig
+from eduid.common.config.base import CookieConfig, EduIDBaseAppConfig, TouConfigMixin
 
 
-class IdPConfig(EduIDBaseAppConfig):
+class IdPConfig(EduIDBaseAppConfig, TouConfigMixin):
     """
     Configuration for the idp app
     """
@@ -122,8 +122,6 @@ class IdPConfig(EduIDBaseAppConfig):
     actions_app_uri: Optional[str] = 'http://actions.example.com/'
     # The plugins for pre-authentication actions that need to be loaded
     action_plugins: List[str] = Field(default=[])
-    # The current version of the terms of use agreement.
-    tou_version: str = 'version1'
     # The interval which a user needs to re-accept an already accepted ToU (in seconds)
     tou_reaccept_interval: int = 94608000
     # Name of cookie used to persist session information in the users browser.

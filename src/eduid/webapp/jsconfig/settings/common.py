@@ -32,10 +32,10 @@
 #
 from typing import Dict
 
-from eduid.common.config.base import EduIDBaseAppConfig
+from eduid.common.config.base import EduIDBaseAppConfig, TouConfigMixin
 
 
-class JSConfigConfig(EduIDBaseAppConfig):
+class JSConfigConfig(EduIDBaseAppConfig, TouConfigMixin):
     """
     Configuration for the jsconfig app
     """
@@ -52,7 +52,6 @@ class JSConfigConfig(EduIDBaseAppConfig):
     # Signup config
     signup_bundle_path: str = 'front-build/signup-bundle.dev.js'
     signup_bundle_version: str = 'dev'
-    tou_version: str = '2016-v1'
     # Signup feature toggle settings
     signup_bundle_feature_cookie: str = ''
     signup_bundle_feature_version: Dict[str, str] = {}

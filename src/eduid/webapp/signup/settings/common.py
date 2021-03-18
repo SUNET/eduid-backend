@@ -31,10 +31,16 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig, MagicCookieMixin, MailConfigMixin
+from eduid.common.config.base import (
+    AmConfigMixin,
+    EduIDBaseAppConfig,
+    MagicCookieMixin,
+    MailConfigMixin,
+    TouConfigMixin,
+)
 
 
-class SignupConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MailConfigMixin):
+class SignupConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MailConfigMixin, TouConfigMixin):
     """
     Configuration for the signup app
     """
@@ -49,7 +55,6 @@ class SignupConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MailConf
 
     signup_authn_url: str = '/services/authn/signup-authn'
     password_length: int = 10
-    tou_version: str = '2018-v1'
     default_finish_url: str = 'https://www.eduid.se/'
     eduid_site_url: str = 'https://www.eduid.se'
     eduid_site_name: str = 'eduID'

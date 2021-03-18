@@ -39,10 +39,10 @@ from typing import Mapping
 
 from pydantic import Field
 
-from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig, WebauthnConfigMixin2
+from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2
 
 
-class ActionsConfig(EduIDBaseAppConfig, WebauthnConfigMixin2, AmConfigMixin):
+class ActionsConfig(EduIDBaseAppConfig, WebauthnConfigMixin2, AmConfigMixin, TouConfigMixin):
     """
     Configuration for the actions app
     """
@@ -61,4 +61,3 @@ class ActionsConfig(EduIDBaseAppConfig, WebauthnConfigMixin2, AmConfigMixin):
     mfa_authn_idp: str = ''
     # The plugins for pre-authentication actions that need to be loaded
     action_plugins: list = Field(default=['tou', 'mfa'])
-    tou_version: str = '2017-v6'
