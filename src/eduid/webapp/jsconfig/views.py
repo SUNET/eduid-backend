@@ -30,6 +30,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from typing import Dict, List, Any
 
 from flask import Blueprint, abort, render_template, request
 
@@ -42,6 +43,22 @@ from eduid.webapp.jsconfig.app import current_jsconfig_app as current_app
 jsconfig_views = Blueprint('jsconfig', __name__, url_prefix='', template_folder='templates')
 
 
+def _fix_available_languages(available_languages: Dict[str, str]) -> List[List[str]]:
+    # TODO: our frontend code should accept available_languages as map instead of list of lists
+    return [[key, value] for key, value in available_languages.items()]
+
+
+def _fix_uppercase_config(config: Dict[str, Any]):
+    # XXX the front app consumes some settings as upper case and some as lower
+    #   case. We'll provide them all in both upper and lower case, to
+    #   facilitate migration of the front app to lower case.
+    config_upper = {}
+    for k, v in config.items():
+        config_upper[k.upper()] = v
+    config.update(config_upper)
+    return config
+
+
 @jsconfig_views.route('/config', methods=['GET'], subdomain="dashboard")
 @MarshalWith(FluxStandardAction)
 def get_dashboard_config() -> dict:
@@ -50,13 +67,10 @@ def get_dashboard_config() -> dict:
     """
     config_dict = current_app.front_conf.dict()
     config_dict['csrf_token'] = session.get_csrf_token()
-    # XXX the front app consumes some settings as upper case and some as lower
-    # case. We'll provide them all in both upper and lower case, to
-    # possibilitate migration of the front app - preferably to lower case.
-    config_upper = {}
-    for k, v in config_dict.items():
-        config_upper[k.upper()] = v
-    config_dict.update(config_upper)
+
+    # Fixes for frontend
+    config_dict['available_languages'] = _fix_available_languages(current_app.front_conf.available_languages)
+    config_dict = _fix_uppercase_config(config_dict)
     return config_dict
 
 
@@ -72,13 +86,10 @@ def get_signup_config() -> dict:
     config_dict['tous'] = get_tous(
         version=current_app.conf.tou_version, languages=current_app.conf.available_languages.keys()
     )
-    # XXX the front app consumes some settings as upper case and some as lower
-    # case. We'll provide them all in both upper and lower case, to
-    # facilitate migration of the front app to lower case.
-    config_upper = {}
-    for k, v in config_dict.items():
-        config_upper[k.upper()] = v
-    config_dict.update(config_upper)
+
+    # Fixes for frontend
+    config_dict['available_languages'] = _fix_available_languages(current_app.front_conf.available_languages)
+    config_dict = _fix_uppercase_config(config_dict)
     return config_dict
 
 

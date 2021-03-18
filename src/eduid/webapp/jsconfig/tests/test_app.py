@@ -97,6 +97,12 @@ class JSConfigTests(EduidAPITestCase):
             assert config_data['payload']['dashboard_url'] == 'dummy-url'
             assert config_data['payload']['personal_data_url'] == 'personal-data-url'
             assert config_data['payload']['static_faq_url'] == ''
+            assert config_data['payload']['available_languages'] == [['en', 'English'], ['sv', 'Svenska']]
+
+            assert config_data['payload']['DASHBOARD_URL'] == 'dummy-url'
+            assert config_data['payload']['PERSONAL_DATA_URL'] == 'personal-data-url'
+            assert config_data['payload']['STATIC_FAQ_URL'] == ''
+            assert config_data['payload']['AVAILABLE_LANGUAGES'] == [['en', 'English'], ['sv', 'Svenska']]
 
     def test_get_signup_config(self):
         eppn = self.test_user_data['eduPersonPrincipalName']
@@ -113,6 +119,14 @@ class JSConfigTests(EduidAPITestCase):
             assert config_data['payload']['tous'] == get_tous(
                 self.app.conf.tou_version, self.app.conf.available_languages.keys()
             )
+            assert config_data['payload']['available_languages'] == [['en', 'English'], ['sv', 'Svenska']]
+
+            assert config_data['payload']['DASHBOARD_URL'] == 'dummy-url'
+            assert config_data['payload']['STATIC_FAQ_URL'] == ''
+            assert config_data['payload']['TOUS'] == get_tous(
+                self.app.conf.tou_version, self.app.conf.available_languages.keys()
+            )
+            assert config_data['payload']['AVAILABLE_LANGUAGES'] == [['en', 'English'], ['sv', 'Svenska']]
 
     def test_get_login_config(self):
 

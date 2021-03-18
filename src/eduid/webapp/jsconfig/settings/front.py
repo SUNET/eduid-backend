@@ -42,15 +42,13 @@ class FrontConfig(RootConfig):
     """
     Dashboard front-end configuration.
 
-    This is sent to the client, so care must be taken to avoid setting sectrets here.
+    This is sent to the client, so care must be taken to avoid setting secrets here.
     """
 
     app_name: str = 'jsapps'
     debug: bool = False
     csrf_token: str = ''
-    available_languages: Dict[str, str] = Field(
-        default={'en': 'English', 'sv': 'Svenska',}
-    )
+    available_languages: Dict[str, str] = Field(default={'en': 'English', 'sv': 'Svenska'})
     tous: Dict[str, str] = Field(default={'en': '', 'sv': ''})
     # URLs
     # TODO: Remove after new design
