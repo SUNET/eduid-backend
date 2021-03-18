@@ -2,13 +2,11 @@
 __author__ = 'lundberg'
 
 import logging
-from typing import Dict, List, Sequence, Iterable
+from typing import Dict, Iterable
 
 logger = logging.getLogger(__name__)
 
-tous = {
-    '2016-v1': {
-        'en': """
+_2016_v1_en = """
 <p>The following generally applies:</p>
 <ul>
     <li>that all usage of user accounts follow Sweden's laws and by-laws,</li>
@@ -27,8 +25,9 @@ tous = {
 </ul>
 
 <p>Any person found violating or suspected of violating these rules can be disabled from eduID.se for investigation. Furthermore, legal action can be taken.</p>
-""",
-        'sv': """
+"""
+
+_2016_v1_sv = """
 <p>För eduID.se gäller generellt:</p>
 
 <ul>
@@ -48,8 +47,10 @@ tous = {
 </ul>
 
 <p>Den som överträder, eller misstänks överträda, ovanstående regler kan stängas av från eduID.se. Dessutom kan rättsliga åtgärder komma att vidtas.</p>
-""",
-    },
+"""
+
+tous = {
+    '2016-v1': {'en': _2016_v1_en, 'sv': _2016_v1_sv},
     'test-version': {'en': 'test tou english', 'sv': 'test tou svenska'},
 }
 
