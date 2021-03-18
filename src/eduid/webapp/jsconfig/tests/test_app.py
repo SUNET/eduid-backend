@@ -33,6 +33,7 @@
 
 import json
 import os
+from pathlib import PurePath
 from typing import Any, Dict, Mapping
 
 from eduid.common.api.testing import EduidAPITestCase
@@ -48,6 +49,7 @@ class JSConfigTests(EduidAPITestCase):
     app: JSConfigApp
 
     def setUp(self):
+        self.data_dir = str(PurePath(__file__).with_name('data'))
         super(JSConfigTests, self).setUp(copy_user_to_private=False)
 
     def load_app(self, config: Mapping[str, Any]) -> JSConfigApp:
@@ -77,6 +79,7 @@ class JSConfigTests(EduidAPITestCase):
                 'password_entropy': 12,
                 'password_length': 10,
                 'dashboard_url': 'dummy-url',
+                'personal_data_url': 'personal-data-url',
             }
         )
         return config
@@ -92,6 +95,7 @@ class JSConfigTests(EduidAPITestCase):
 
             assert config_data['type'] == 'GET_JSCONFIG_CONFIG_SUCCESS'
             assert config_data['payload']['dashboard_url'] == 'dummy-url'
+            assert config_data['payload']['personal_data_url'] == 'personal-data-url'
             assert config_data['payload']['static_faq_url'] == ''
 
     def test_get_signup_config(self):
@@ -106,7 +110,9 @@ class JSConfigTests(EduidAPITestCase):
             assert config_data['type'] == 'GET_JSCONFIG_SIGNUP_CONFIG_SUCCESS'
             assert config_data['payload']['dashboard_url'] == 'dummy-url'
             assert config_data['payload']['static_faq_url'] == ''
-            assert config_data['payload']['tous'] == get_tous(self.app.conf.tou_version, self.app.conf.available_languages.keys())
+            assert config_data['payload']['tous'] == get_tous(
+                self.app.conf.tou_version, self.app.conf.available_languages.keys()
+            )
 
     def test_get_login_config(self):
 
@@ -181,7 +187,7 @@ class JSConfigTests(EduidAPITestCase):
             'eduid': {
                 'webapp': {
                     'common': {'testing': True},
-                    'jsapps': {'password_entropy': 12, 'password_length': 10, 'dashboard_url': 'dummy-url'},
+                    'jsapps': {'password_entropy': 0, 'password_length': 1, 'dashboard_url': 'dummy-url-etcd'},
                 }
             }
         }
@@ -193,5 +199,17 @@ class JSConfigTests(EduidAPITestCase):
 
         front_config = load_config(typ=FrontConfig, app_name='jsapps', ns='webapp')
         assert front_config == FrontConfig(
-            testing=True, password_entropy=12, password_length=10, dashboard_url='dummy-url'
+            testing=True, password_entropy=0, password_length=1, dashboard_url='dummy-url-etcd'
+        )
+
+    def test_jsapps_config_from_yaml(self):
+        os.environ['EDUID_CONFIG_YAML'] = f'{self.data_dir}/config.yaml'
+
+        front_config = load_config(typ=FrontConfig, app_name='jsapps', ns='webapp')
+        assert front_config == FrontConfig(
+            testing=True,
+            password_entropy=2,
+            password_length=3,
+            dashboard_url='dummy-url-yaml',
+            personal_data_url='dummy-personal-data-url',
         )
