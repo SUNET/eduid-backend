@@ -32,11 +32,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-import types
 from importlib import import_module
 from typing import Any, Mapping, Optional, cast
 
-from flask import current_app, render_template, templating
+from flask import current_app
 
 from eduid.common.api.app import EduIDBaseApp
 from eduid.common.config.parsers import load_config
@@ -57,21 +56,6 @@ class PluginsRegistry(dict):
                 self[plugin_name] = getattr(module, 'Plugin')
 
 
-def _get_tous(app, version=None):
-    if version is None:
-        version = app.conf.tou_version
-    langs = app.conf.available_languages.keys()
-    tous = {}
-    for lang in langs:
-        name = f'tous/tou-{version}-{lang}.txt'
-        try:
-            tous[lang] = render_template(name)
-        except templating.TemplateNotFound:
-            app.logger.error(f'ToU template {name} not found')
-            pass
-    return tous
-
-
 class ActionsApp(EduIDBaseApp):
     def __init__(self, config: ActionsConfig, **kwargs):
         super().__init__(config, **kwargs)
@@ -85,8 +69,6 @@ class ActionsApp(EduIDBaseApp):
         self.plugins = PluginsRegistry(self)
         for plugin in self.plugins.values():
             plugin.includeme(self)
-
-        self.get_tous = types.MethodType(_get_tous, self)
 
 
 current_actions_app: ActionsApp = cast(ActionsApp, current_app)

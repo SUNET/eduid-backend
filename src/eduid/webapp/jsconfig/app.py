@@ -40,10 +40,11 @@ from eduid.common.authn.utils import no_authn_views
 from eduid.common.config.base import FlaskConfig
 from eduid.common.config.parsers import load_config
 from eduid.webapp.jsconfig.settings.common import JSConfigConfig
+from eduid.webapp.jsconfig.settings.front import FrontConfig
 
 
 class JSConfigApp(EduIDBaseApp):
-    def __init__(self, config: JSConfigConfig, **kwargs):
+    def __init__(self, config: JSConfigConfig, front_config: FrontConfig, **kwargs):
 
         kwargs['init_central_userdb'] = False
         kwargs['host_matching'] = True
@@ -53,8 +54,9 @@ class JSConfigApp(EduIDBaseApp):
         super().__init__(config, **kwargs)
 
         self.conf = config
+        self.front_conf = front_config
 
-        if not self.testing:
+        if self.testing is False:
             self.url_map.host_matching = False
 
 
@@ -69,8 +71,9 @@ def jsconfig_init_app(name: str = 'jsconfig', test_config: Optional[Mapping[str,
     :param test_config: Override config, used in test cases.
     """
     config = load_config(typ=JSConfigConfig, app_name=name, ns='webapp', test_config=test_config)
+    front_config = load_config(typ=FrontConfig, app_name='jsapps', ns='webapp', test_config=test_config)
 
-    app = JSConfigApp(config)
+    app = JSConfigApp(config, front_config)
 
     app.logger.info(f'Init {app}...')
 
