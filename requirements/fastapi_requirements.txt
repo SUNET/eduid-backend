@@ -10,128 +10,119 @@ aiosmtplib==1.1.4 \
     --hash=sha256:8270d0a06475aa05b9276fc954fbd08a1f6c59d0452b4899413d8bca1db24541 \
     --hash=sha256:93e53edac183f1a608bc34464efeef23902e59e949017b1682014f59ecdcd37d
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
 amqp==5.0.5 \
     --hash=sha256:1e759a7f202d910939de6eca45c23a107f6b71111f41d1282c648e9ac3d21901 \
     --hash=sha256:affdd263d8b8eb3c98170b78bf83867cdb6a14901d586e00ddb65bfe2f0c4e60
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   kombu
 arabic-reshaper==2.1.1 \
     --hash=sha256:cf318fa5d51d2d224fa49bf6bdbbb4684f6bd2c068b75cfce0e607f89ac199dc
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   xhtml2pdf
 babel==2.9.0 \
     --hash=sha256:9d35c22fcc79893c3ecc85ac4a56cde1ecf3f19c540bba0922308a6c06ca6fa5 \
     --hash=sha256:da031ab54472314f210b0adcff1588ee5d1d1d0ba4dbd07b94dba82bde791e05
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
-    #   flask-babel
+    #   -c main.txt
+    #   -r main.in
 beaker==1.11.0 \
     --hash=sha256:ad5d1c05027ee3be3a482ea39f8cb70339b41e5d6ace0cb861382754076d187e
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   oic
 billiard==3.6.3.0 \
     --hash=sha256:bff575450859a6e0fbc2f9877d9b715b0bbc07c3565bb7ed2280526a0cdf5ede \
     --hash=sha256:d91725ce6425f33a97dfa72fb6bfef0e47d4652acd98a032bd1a7fbf06d5fa6a
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   celery
 bleach==3.3.0 \
     --hash=sha256:6123ddc1052673e52bab52cdc955bcb57a015264a1c57d37bea2f6b817af0125 \
     --hash=sha256:98b3170739e5e83dd9dc19633f074727ad848cbedb6026708c8ac2d3b697a433
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
-blinker==1.4 \
-    --hash=sha256:471aee25f3992bd325afa3772f1063dbdbbca947a041b8b89466dc00d606f8b6
-    # via
-    #   -c requirements.txt
-    #   flask-mail
+    #   -c main.txt
+    #   -r main.in
 boto3==1.17.23 \
     --hash=sha256:1ca39de26205439832fa740fcc200de85f107b615dae445f869a16b76672e663 \
     --hash=sha256:d6716f6701aae771f6ff2386a1d641855a99a9fedd64bd25476b83bacdd50c94
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
 botocore==1.20.23 \
     --hash=sha256:d5ea913331e93cecde25773841397c5d2abbc04f38b1c96c636444e8bb3478f8 \
     --hash=sha256:f3ae5cae250c3fb200d33abacbee3f0c6513fc6f1d17a851b04a3998de68c829
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   boto3
     #   s3transfer
 celery[redis]==5.0.5 \
     --hash=sha256:5e8d364e058554e83bbb116e8377d90c79be254785f357cb2cec026e79febe13 \
     --hash=sha256:f4efebe6f8629b0da2b8e529424de376494f5b7a743c321c8a2ddc2b1414921c
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
 certifi==2020.12.5 \
     --hash=sha256:1a4995114262bffbc2413b159f2a1a480c969de6e6eb13ee966d470af86af59c \
     --hash=sha256:719a74fb9e33b9bd44cc7f3a8d94bc35e4049deebe19ba7d8e108280cfd59830
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   requests
 cffi==1.14.5 \
     --hash=sha256:6c97d7350133666fbb5cf4abdc1178c812cb205dc6f41d174a7b0f18fb93337e \
     --hash=sha256:fd78e5fee591709f32ef6edb9a015b4aa1a5022598e36227500c8f4e02328d9c
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   cryptography
     #   pynacl
 chardet==4.0.0 \
     --hash=sha256:0d6f53a15db4120f2b08c94f11e7d93d2c911ee118b6b30a04ec3ee8310179fa \
     --hash=sha256:f864054d66fd9118f2e67044ac8981a54775ec5b67aed0441892edb553d21da5
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   requests
 click-didyoumean==0.0.3 \
     --hash=sha256:112229485c9704ff51362fe34b2d4f0b12fc71cc20f6d2b3afabed4b8bfa6aeb
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   celery
 click-plugins==1.1.1 \
     --hash=sha256:46ab999744a9d831159c3411bb0c79346d94a444df9a3a3742e9ed63645f264b \
     --hash=sha256:5d262006d3222f5057fd81e1623d4443e41dcda5dc815c06b442aa3c02889fc8
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   celery
 click-repl==0.1.6 \
     --hash=sha256:9c4c3d022789cae912aad8a3f5e1d7c2cdd016ee1225b5212ad3e8691563cda5 \
     --hash=sha256:b9f29d52abc4d6059f8e276132a111ab8d94980afe6a5432b9d996544afa95d5
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   celery
 click==7.1.2 \
     --hash=sha256:d2b5255c7c6349bc1bd1e59e08cd12acbbd63ce649f2588755783aa94dfb6b1a \
     --hash=sha256:dacca89f4bfadd5de3d7489b7c8a566eee0d3676333fbb50030263894c38c0dc
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   celery
     #   click-didyoumean
     #   click-plugins
     #   click-repl
-    #   flask
-    #   satosa
 cookies-samesite-compat==0.0.1 \
     --hash=sha256:2d2921799d79aebd5a3d3dc6cfd6f877eb7aef6c644a65574df43bb763cd715b \
     --hash=sha256:782d2bb613addda854529f850f4f60b836a0f0c45049167495490fc4af073ac0
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
-    #   satosa
+    #   -c main.txt
+    #   -r main.in
 cryptography==3.4.6 \
     --hash=sha256:2d32223e5b0ee02943f32b19245b61a62db83a882f0e76cc564e1cec60d48f87 \
     --hash=sha256:93cfe5b7ff006de13e1e89830810ecbd014791b042cbe5eec253be11ac2b28f3 \
     --hash=sha256:fec7fb46b10da10d9e1d078d1ff8ed9e05ae14f431fdbd11145edd0550b9a964
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
     #   fido2
     #   oic
     #   pyopenssl
@@ -142,7 +133,7 @@ defusedxml==0.7.1 \
     --hash=sha256:1bb3032db185915b62d7c6209c5a8792be6a32ab2fedacc84e01b52c51aa3e69 \
     --hash=sha256:a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   oic
     #   pysaml2
     #   pyxmlsecurity
@@ -150,131 +141,96 @@ dnspython==2.1.0 \
     --hash=sha256:95d12f6ef0317118d2a1a6fc49aac65ffec7eb8087474158f42f26a639135216 \
     --hash=sha256:e4a87f0b573201a0f3727fa18a516b055fd1107e0e5477cded4a2de497df1dd4
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   python-etcd
 ecdsa==0.14.1 \
     --hash=sha256:64c613005f13efec6541bb0a33290d0d03c27abab5f15fbab20fb0ee162bdd8e \
     --hash=sha256:e108a5fe92c67639abae3260e43561af914e7fd0d27bae6d2ec1312ae7934dfe
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   python-jose
 elementpath==2.2.0 \
     --hash=sha256:3bbd0e9dcaf9ab7b2080fd4b457d67f166f7c4d1ece7348425195729059b427c \
     --hash=sha256:eae259ab72a643c16768268895a596e05a41a697da2723614f9588e5fed9b516
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   xmlschema
-falcon==1.4.1 \
-    --hash=sha256:0a66b33458fab9c1e400a9be1a68056abda178eb02a8cb4b8f795e9df20b053b \
-    --hash=sha256:3981f609c0358a9fcdb25b0e7fab3d9e23019356fb429c635ce4133135ae1bc4
-    # via
-    #   -c requirements.txt
-    #   -r requirements.in
+fastapi==0.63.0 \
+    --hash=sha256:63c4592f5ef3edf30afa9a44fa7c6b7ccb20e0d3f68cd9eba07b44d552058dcb \
+    --hash=sha256:98d8ea9591d8512fdadf255d2a8fa56515cdd8624dca4af369da73727409508e
+    # via -r fastapi_main.in
 fido2==0.6.0 \
     --hash=sha256:7541edad31967d23f5006ffeccc54536ab9934dd981d65d29620d9dfb54566bf
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
-flask-babel==2.0.0 \
-    --hash=sha256:e6820a052a8d344e178cdd36dd4bb8aea09b4bda3d5f9fa9f008df2c7f2f5468 \
-    --hash=sha256:f9faf45cdb2e1a32ea2ec14403587d4295108f35017a7821a2b1acb8cfd9257d
-    # via
-    #   -c requirements.txt
-    #   -r requirements.in
-flask-mail==0.9.1 \
-    --hash=sha256:22e5eb9a940bf407bcf30410ecc3708f3c56cc44b29c34e1726fe85006935f41
-    # via
-    #   -c requirements.txt
-    #   -r requirements.in
-flask==1.1.2 \
-    --hash=sha256:4efa1ae2d7c9865af48986de8aeb8504bf32c7f3d6fdc9353d34b21f4b127060 \
-    --hash=sha256:8a4fdd8936eba2512e9c85df320a37e694c93945b33ef33c89946a340a238557
-    # via
-    #   -c requirements.txt
-    #   -r requirements.in
-    #   flask-babel
-    #   flask-mail
+    #   -c main.txt
+    #   -r main.in
 future==0.18.2 \
     --hash=sha256:b1bead90b70cf6ec3f0710ae53a525360fa360d306a86583adc6bf83a4db537d
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   arabic-reshaper
     #   pyjwkest
 gunicorn==20.0.4 \
     --hash=sha256:1904bb2b8a43658807108d59c3f3d56c2b6121a701161de0ddf9ad140073c626 \
     --hash=sha256:cd4a810dd51bf497552cf3f863b575dabd73d6ad6a91075b65936b151cbf4f9c
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
-    #   satosa
+    #   -c main.txt
+    #   -r main.in
 hammock==0.2.4 \
     --hash=sha256:a535f085b7c1c10f675761a8bc8853618cbc66f80d71491eb2486e53ce1f8730
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
 html5lib==1.1 \
     --hash=sha256:0d78f8fde1c230e99fe37986a60526d7049ed4bf8a9fadbad5f00e22e58e041d \
     --hash=sha256:b2e5b40261e20f354d198eae92afc10d750afb487ed5e50f9c4eaf07c184146f
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
     #   xhtml2pdf
 httplib2==0.19.0 \
     --hash=sha256:749c32603f9bf16c1277f59531d502e8f1c2ca19901ae653b49c4ed698f0820e \
     --hash=sha256:e0d428dad43c72dbce7d163b7753ffc7a39c097e6788ef10f4198db69b92f08e
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   pysmscom
 idna==2.10 \
     --hash=sha256:b307872f855b18632ce0c21c5e45be78c0ea7ae4c15c828c20788b26921eb3f6 \
     --hash=sha256:b97d804b1e9b523befed77c48dacec60e6dcb0b5391d57af6a65a312a90648c0
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
     #   requests
 importlib-metadata==3.7.2 \
     --hash=sha256:18d5ff601069f98d5d605b6a4b50c18a34811d655c55548adc833e687289acde \
     --hash=sha256:407d13f55dc6f2a844e62325d18ad7019a436c4bfcaee34cda35f2be6e7c3e34
     # via
-    #   -c requirements.txt
-    #   -r sub_requirements.in
+    #   -c main.txt
+    #   -r sub_main.in
 importlib-resources==5.1.2 \
     --hash=sha256:642586fc4740bd1cad7690f836b3321309402b20b332529f25617ff18e8e1370 \
     --hash=sha256:ebab3efe74d83b04d6bf5cd9a17f0c5c93e60fb60f30c90f56265fce4682a469
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   pysaml2
-itsdangerous==1.1.0 \
-    --hash=sha256:321b033d07f2a4136d3ec762eac9f16a10ccd60f53c0c91af90217ace7ba1f19 \
-    --hash=sha256:b12271b2047cb23eeb98c8b5622e2e5c5e9abd9784a153e9d8ef9cb4dd09d749
-    # via
-    #   -c requirements.txt
-    #   flask
-jinja2==2.11.3 \
-    --hash=sha256:03e47ad063331dd6a3f04a43eddca8a966a26ba0c5b7207a9a9e4e08f1b29419 \
-    --hash=sha256:a6d58433de0ae800347cab1fa3043cebbabe8baa9d29e668f1c768cb87a333c6
-    # via
-    #   -c requirements.txt
-    #   flask
-    #   flask-babel
 jmespath==0.10.0 \
     --hash=sha256:b85d0567b8666149a93172712e68920734333c0ce7e89b78b3e987f71e5ed4f9 \
     --hash=sha256:cdf6525904cc597730141d61b36f2e4b8ecc257c420fa2f4549bac2c2d0cb72f
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   boto3
     #   botocore
 kombu==5.0.2 \
     --hash=sha256:6dc509178ac4269b0e66ab4881f70a2035c33d3a622e20585f965986a5182006 \
     --hash=sha256:f4965fba0a4718d47d470beeb5d6446e3357a62402b16c510b6a2f251e05ac3c
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   celery
 langcodes==2.2.0 \
     --hash=sha256:29b076457744ea0c5e2e3f72241a6d97cd229e2e77489f078aba8826d7eeb0d4
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
 lxml==4.6.2 \
     --hash=sha256:0448576c148c129594d890265b1a83b9cd76fd1f0a6a04620753d9a6bcfd0a4d \
     --hash=sha256:127f76864468d6630e1b453d3ffbbd04b024c674f55cf0a30dc2595137892d37 \
@@ -314,13 +270,13 @@ lxml==4.6.2 \
     --hash=sha256:f83d281bb2a6217cd806f4cf0ddded436790e66f393e124dfe9731f6b3fb9afe \
     --hash=sha256:fc37870d6716b137e80d19241d0e2cff7a7643b925dfa49b4c8ebd1295eb506e
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   pyxmlsecurity
 mako==1.1.4 \
     --hash=sha256:17831f0b7087c313c0ffae2bcbbd3c1d5ba9eeac9c38f2eb7b50e8c99fe9d5ab \
     --hash=sha256:aea166356da44b9b830c8023cd9b557fa856bd8b4035d6de771ca027dfc5cc6e
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   oic
 marisa-trie-m==0.7.6 \
     --hash=sha256:0153bacc42175249e6df53dcdeb1301b76d1932748a85e55ff17b73f4356e4f7 \
@@ -369,40 +325,39 @@ marisa-trie-m==0.7.6 \
     --hash=sha256:fdb378375c1d694c49ab0b04ca03772619708356c6e1c90a7cef39aed95d5c50 \
     --hash=sha256:ffb8d4dcbf3e0c8f6a0ae890967d98eddb1639e99175ab29b3ef7ff0225e0f4d
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   langcodes
 markupsafe==1.1.1 \
     --hash=sha256:13d3144e1e340870b25e7b10b98d779608c02016d5184cfb9927a9f10c689f42 \
     --hash=sha256:29872e92839765e546828bb7754a68c418d927cd064fd4708fab9fe9c8bb116b \
     --hash=sha256:d9be0ba6c527163cbed5e0857c451fcd092ce83947944d6c14bc95441203f032
     # via
-    #   -c requirements.txt
-    #   jinja2
+    #   -c main.txt
     #   mako
 marshmallow-dataclass[enum,union]==7.3.0 \
     --hash=sha256:254702d0a8490da01ced5810b1ffdaee6c6a24dcc55d4a8d5fb577160d48301c
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
 marshmallow-enum==1.5.1 \
     --hash=sha256:38e697e11f45a8e64b4a1e664000897c659b60aa57bfa18d44e226a9920b6e58 \
     --hash=sha256:57161ab3dbfde4f57adeb12090f39592e992b9c86d206d02f6bd03ebec60f072
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
     #   marshmallow-dataclass
 marshmallow-union==0.1.15.post1 \
     --hash=sha256:1e21b759c76735305f99179c1a16759ebb9629733159628241b3f2117ff55e86 \
     --hash=sha256:c08f0a87891ae73dd2b5d4a154bc7daea20c3bc0f99ca0b6a26570c927d20c8c
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   marshmallow-dataclass
 marshmallow==3.10.0 \
     --hash=sha256:4ab2fdb7f36eb61c3665da67a7ce281c8900db08d72ba6bf0e695828253581f7 \
     --hash=sha256:eca81d53aa4aafbc0e20566973d0d2e50ce8bf0ee15165bb799bec0df1e50177
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
     #   marshmallow-dataclass
     #   marshmallow-enum
     #   marshmallow-union
@@ -410,85 +365,84 @@ motor==2.3.1 \
     --hash=sha256:319df35ef9d4099dc125b7d46b552fa88578675e0b06cab94624c666bb0a8a90 \
     --hash=sha256:ea5a8f5c7cbb08b7c301d7c66746fc96333d634182df236dff0f814f802fe232
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
 mypy-extensions==0.4.3 \
     --hash=sha256:090fedd75945a69ae91ce1303b5824f428daf5a028d2f6ab8a299250a846f15d \
     --hash=sha256:2d82818f5bb3e369420cb3c4060a7970edba416647068eb4c5343488a6c604a8
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   typing-inspect
 neo4j==4.2.1 \
     --hash=sha256:b6c49fbd60426e268ed4afbd414766444fe70aee1ac0376a0c871d75526b8251
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
 oic==1.2.1 \
     --hash=sha256:2946eb554b35e18f3031b29b7666821bbaac4d4a6e58a3c8fdd484f1a9465eb0 \
     --hash=sha256:3e7e9cb95d70d60393c55f41f34027c4b6abf9d6b10c4a392e0eb15a1eb860b6
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
-    #   pyop
+    #   -c main.txt
+    #   -r main.in
 packaging==20.9 \
     --hash=sha256:5b327ac1320dc863dca72f4514ecc086f31186744b84a230374cc1fd776feae5 \
     --hash=sha256:67714da7f7bc052e064859c05c595155bd1ee9f69f76557e21f051443c20947a
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   bleach
 phonenumbers==8.12.19 \
     --hash=sha256:0f597b602e64af90c06b14c8223e94fdb0ed20f203e1c9785a8bbe4de00c45e8 \
     --hash=sha256:dadc72b81effefa499f2ee7f77fcad601fb725c024f444c9ea60500e4d79aa4e
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
 pillow==8.1.2 \
     --hash=sha256:15306d71a1e96d7e271fd2a0737038b5a92ca2978d2e38b6ced7966583e3d5af \
     --hash=sha256:b07c660e014852d98a00a91adfbe25033898a9d90a8f39beb2437d22a203fc44
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
     #   reportlab
     #   xhtml2pdf
 prompt-toolkit==3.0.16 \
     --hash=sha256:0fa02fa80363844a4ab4b8d6891f62dd0645ba672723130423ca4037b80c1974 \
     --hash=sha256:62c811e46bd09130fb11ab759012a4ae385ce4fb2073442d1898867a824183bd
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   click-repl
 proquint==0.2.1 \
     --hash=sha256:32d61a4c2f6eed7d9cf0ebaea5be35cfb20dc9946db300992ebb1246072caa35
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
 pwgen==0.8.2.post0 \
     --hash=sha256:4723279de6f2a5e8e1ab49374334c920d423c5e3d2c224ae5bf82b57b3ac2b3f
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
 py-bcrypt==0.4 \
     --hash=sha256:5fa13bce551468350d66c4883694850570f3da28d6866bb638ba44fe5eabda78
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   vccs-client
 pyasn1==0.4.8 \
     --hash=sha256:39c7e2ec30515947ff4e87fb6f456dfc6e84857d34be479c9d4a4ba4bf46aa5d \
     --hash=sha256:aef77c9fb94a3ac588e87841208bdec464471d9871bd5050a287cc9a475cd0ba
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   python-jose
     #   rsa
 pyconfig==3.2.3 \
     --hash=sha256:797e250a2042927069a19085641bbbe7d975dff2b28dffd68116a0d0239d9c75 \
     --hash=sha256:89c7580a3111f0b3ab9fe0cac630b9297a7aeedbb4c7eb55e90320bfb90ac649
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   pyxmlsecurity
 pycparser==2.20 \
     --hash=sha256:2d475327684562c3a96cc71adf7dc8c4f0565175cf86b6d7a404ff4c771f15f0 \
     --hash=sha256:7582ad22678f0fcd81102833f60ef8d0e57288b6b5fb00323d101be910e35705
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   cffi
 pycryptodomex==3.10.1 \
     --hash=sha256:00a584ee52bf5e27d540129ca9bf7c4a7e7447f24ff4a220faa1304ad0c09bcd \
@@ -522,40 +476,21 @@ pycryptodomex==3.10.1 \
     --hash=sha256:f933ecf4cb736c7af60a6a533db2bf569717f2318b265f92907acff1db43bc34 \
     --hash=sha256:fc9c55dc1ed57db76595f2d19a479fc1c3a1be2c9da8de798a93d286c5f65f38
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   oic
     #   pyjwkest
-    #   satosa
 pydantic==1.8.1 \
-    --hash=sha256:0c40162796fc8d0aa744875b60e4dc36834db9f2a25dbf9ba9664b1915a23850 \
-    --hash=sha256:20d42f1be7c7acc352b3d09b0cf505a9fab9deb93125061b376fbe1f06a5459f \
-    --hash=sha256:2287ebff0018eec3cc69b1d09d4b7cebf277726fa1bd96b45806283c1d808683 \
-    --hash=sha256:258576f2d997ee4573469633592e8b99aa13bda182fcc28e875f866016c8e07e \
     --hash=sha256:26cf3cb2e68ec6c0cfcb6293e69fb3450c5fd1ace87f46b64f678b0d29eac4c3 \
-    --hash=sha256:2f2736d9a996b976cfdfe52455ad27462308c9d3d0ae21a2aa8b4cd1a78f47b9 \
-    --hash=sha256:3114d74329873af0a0e8004627f5389f3bb27f956b965ddd3e355fe984a1789c \
-    --hash=sha256:3bbd023c981cbe26e6e21c8d2ce78485f85c2e77f7bab5ec15b7d2a1f491918f \
-    --hash=sha256:3bcb9d7e1f9849a6bdbd027aabb3a06414abd6068cb3b21c49427956cce5038a \
-    --hash=sha256:4bbc47cf7925c86a345d03b07086696ed916c7663cb76aa409edaa54546e53e2 \
-    --hash=sha256:6388ef4ef1435364c8cc9a8192238aed030595e873d8462447ccef2e17387125 \
-    --hash=sha256:830ef1a148012b640186bf4d9789a206c56071ff38f2460a32ae67ca21880eb8 \
-    --hash=sha256:8fbb677e4e89c8ab3d450df7b1d9caed23f254072e8597c33279460eeae59b99 \
-    --hash=sha256:c17a0b35c854049e67c68b48d55e026c84f35593c66d69b278b8b49e2484346f \
     --hash=sha256:dd4888b300769ecec194ca8f2699415f5f7760365ddbe243d4fd6581485fa5f0 \
-    --hash=sha256:dde4ca368e82791de97c2ec019681ffb437728090c0ff0c3852708cf923e0c7d \
-    --hash=sha256:e3f8790c47ac42549dc8b045a67b0ca371c7f66e73040d0197ce6172b385e520 \
-    --hash=sha256:e8bc082afef97c5fd3903d05c6f7bb3a6af9fc18631b4cc9fedeb4720efb0c58 \
-    --hash=sha256:eb8ccf12295113ce0de38f80b25f736d62f0a8d87c6b88aca645f168f9c78771 \
-    --hash=sha256:fb77f7a7e111db1832ae3f8f44203691e15b1fa7e5a1cb9691d4e2659aee41c4 \
-    --hash=sha256:fbfb608febde1afd4743c6822c19060a8dbdd3eb30f98e36061ba4973308059e \
-    --hash=sha256:fff29fe54ec419338c522b908154a2efabeee4f483e48990f87e189661f31ce3
+    --hash=sha256:e3f8790c47ac42549dc8b045a67b0ca371c7f66e73040d0197ce6172b385e520
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
+    #   fastapi
 pyjwkest==1.4.2 \
     --hash=sha256:5560fd5ba08655f29ff6ad1df1e15dc05abc9d976fcbcec8d2b5167f49b70222
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   oic
 pykcs11==1.5.10 \
     --hash=sha256:22557fb64a362fdf64a4e1c0b64a64b97f8ba0a76155d3b2a919509edc8ee3d5 \
@@ -565,191 +500,168 @@ pykcs11==1.5.10 \
     --hash=sha256:f3cf424909c7e2b1c5bcdaf47081cb9d319a3162bb3d3688724cd0f6b7e0375d \
     --hash=sha256:f5fdf0cf018ecd6329ed2500aad5696941ed09296b9c74212ba2090a001969dd
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   pyxmlsecurity
 pymongo==3.11.3 \
     --hash=sha256:daa44cefde19978af57ac1d50413cd86ebf2b497328e7a27832f5824bda47439 \
     --hash=sha256:db5098587f58fbf8582d9bda2462762b367207246d3e19623782fb449c3c5fcc \
     --hash=sha256:f23abcf6eca5859a2982beadfb5111f8c5e76e30ff99aaee3c1c327f814f9f10
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
     #   motor
-    #   pyop
     #   vccs-client
 pynacl==1.4.0 \
     --hash=sha256:30f9b96db44e09b3304f9ea95079b1b7316b2b4f3744fe3aaecccd95d547063d \
     --hash=sha256:54e9a2c849c742006516ad56a88f5c74bf2ce92c9f67435187c3c5953b346505
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
-pyop==3.1.0 \
-    --hash=sha256:3760cbf94628f6799ecb8113be98b6188019ede7df4718fc4bd5f874ef25b445 \
-    --hash=sha256:b63d044b1b4c84b74f6d74519788e93f22cfc3c10069a0dd404430e96d5dc3a8
-    # via satosa
+    #   -c main.txt
+    #   -r main.in
 pyopenssl==20.0.1 \
     --hash=sha256:4c231c759543ba02560fcd2480c48dcec4dae34c9da7d3747c508227e0624b51 \
     --hash=sha256:818ae18e06922c066f777a33f1fca45786d85edfe71cd043de6379337a7f274b
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
     #   pysaml2
 pyparsing==2.4.7 \
     --hash=sha256:c203ec8783bf771a155b207279b9bccb8dea02d8f0c9e5f8ead507bc3246ecc1 \
     --hash=sha256:ef9d7589ef3c200abe66653d3f1ab1033c3c419ae9b9bdb1240a85b024efc88b
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   httplib2
     #   packaging
 pypdf2==1.26.0 \
     --hash=sha256:e28f902f2f0a1603ea95ebe21dff311ef09be3d0f0ef29a3e44a932729564385
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   xhtml2pdf
 pysaml2==6.5.1+sunet \
     --hash=sha256:136fe46f91c82fd33dbbb0f7c1b7442eb387d9769d1236246c6a6c16714b09b1 \
     --hash=sha256:8c9e1815191f6068ba8b7b759351d9bee74714120a4b85340540d2c8825da49a
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
-    #   satosa
+    #   -c main.txt
+    #   -r main.in
 pysmscom==0.9 \
     --hash=sha256:0e45dacf73dedf379f1f8e17b976dc950b2c0d91c9e7d9b82d3a59b2c27b4ed1 \
     --hash=sha256:bd4a9c770f5ef93438182c4c1dbc265a0a45e823998c742dd0d50e984bd0b363
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
-pystache==0.5.4 \
-    --hash=sha256:f7bbc265fb957b4d6c7c042b336563179444ab313fb93a719759111eabd3b85a
-    # via satosa
+    #   -c main.txt
+    #   -r main.in
 python-bidi==0.4.2 \
     --hash=sha256:50eef6f6a0bbdd685f9e8c207f3c9050f5b578d0a46e37c76a9c4baea2cc2e13 \
     --hash=sha256:5347f71e82b3e9976dc657f09ded2bfe39ba8d6777ca81a5b2c56c30121c496e
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   xhtml2pdf
 python-dateutil==2.8.1 \
     --hash=sha256:73ebfe9dbf22e832286dafa60473e4cd239f8592f699aa5adaf10050e6e1823c \
     --hash=sha256:75bb3f31ea686f1197762692a9ee6a7550b59fc6ca3a1f4b5d7e32fb98e2da2a
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
     #   botocore
     #   pysaml2
 python-etcd==0.4.5 \
     --hash=sha256:f1b5ebb825a3e8190494f5ce1509fde9069f2754838ed90402a8c11e1f52b8cb
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
 python-jose==3.2.0 \
     --hash=sha256:4e4192402e100b5fb09de5a8ea6bcc39c36ad4526341c123d401e2561720335b \
     --hash=sha256:67d7dfff599df676b04a996520d9be90d6cdb7e6dd10b4c7cacc0c3e2e92f2be
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
-python-mimeparse==1.6.0 \
-    --hash=sha256:76e4b03d700a641fd7761d3cd4fdbbdcd787eade1ebfac43f877016328334f78 \
-    --hash=sha256:a295f03ff20341491bfe4717a39cd0a8cc9afad619ba44b77e86b0ab8a2b8282
-    # via
-    #   -c requirements.txt
-    #   falcon
+    #   -c main.txt
+    #   -r main.in
 python-u2flib-server==5.0.1 \
     --hash=sha256:b5e1712bf8f703c6fc9bac6643efb2d57e6c9d9f0b9ab0c0df74981b2c349632
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
 pytool==3.16.1 \
     --hash=sha256:12dc85d63bd3996a363c830b9a2de3747c77d5c0851853404229cf22496fcd40 \
     --hash=sha256:aa6f45339d893ced20547e84aafcfcfb0e07cb5222ba9e27edbff68beb8cdcc6
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   pyconfig
 pytz==2021.1 \
     --hash=sha256:83a4a90894bf38e243cf052c8b58f381bfe9a7a483f6a9cab140bc7f702ac4da \
     --hash=sha256:eb10ce3e7736052ed3623d49975ce333bcd712c7bb19a58b9e2089d4057d0798
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   babel
     #   celery
-    #   flask-babel
     #   neo4j
     #   pysaml2
 pyxmlsecurity[pkcs11]==0.21 \
     --hash=sha256:703d32b49123e152648ff75be3cf45559940d2ac700b2f29da5bc9558a4458d7
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
 pyyaml==5.4.1 \
     --hash=sha256:607774cbba28732bfa802b54baa7484215f530991055bb562efbed5b2f20a45e \
     --hash=sha256:8c1be557ee92a20f184922c7b6424e8ab6691788e6d86137c5d93c1a6ec1b8fb
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
-    #   satosa
+    #   -c main.txt
+    #   -r main.in
 qrcode==6.1 \
     --hash=sha256:3996ee560fc39532910603704c82980ff6d4d5d629f9c3f25f34174ce8606cf5 \
     --hash=sha256:505253854f607f2abf4d16092c61d4e9d511a3b4392e60bff957a68592b04369
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
 redis==3.5.3 \
     --hash=sha256:0e7e0cfca8660dea8b7d5cd8c4f6c5e29e11f31158c0b0ae91a397f00e5a05a2 \
     --hash=sha256:432b788c4530cfe16d8d943a09d40ca6c16149727e4afe8c2c9d5580c59d9f24
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
     #   celery
 reportlab==3.5.63 \
     --hash=sha256:2f436f4ff3a9a83cb08269f43aac5ef424080f76f994a988fe95970982d42b01 \
     --hash=sha256:55843a23bc0b2a43599e794f914fff183611cd9210ace75ceb71681d8d0e9f41 \
     --hash=sha256:6abe1f858a1df75e66023205f5f70c80db57dafbff5085f9374ea81a28594830
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   xhtml2pdf
 requests==2.25.1 \
     --hash=sha256:27973dd4a904a4f13b263a19c866c13b92a39ed1c964655f025f3f8d3d75b804 \
     --hash=sha256:c210084e36a42ae6b9219e00e48287def368a26d03a048ddad7bfee44f75871e
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   hammock
     #   oic
     #   pyjwkest
     #   pysaml2
     #   pyxmlsecurity
-    #   satosa
 rsa==4.7.2 \
     --hash=sha256:78f9a9bf4e7be0c5ded4583326e7461e3a3c5aae24073648b4bdfa797d78c9d2 \
     --hash=sha256:9d689e6ca1b3038bc82bf8d23e944b6b6037bc02301a574935b2dd946e0353b9
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   python-jose
 s3transfer==0.3.4 \
     --hash=sha256:1e28620e5b444652ed752cf87c7e0cb15b0e578972568c6609f0f18212f259ed \
     --hash=sha256:7fdddb4f22275cf1d32129e21f056337fd2a80b6ccef1664528145b72c49e6d2
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   boto3
-satosa==7.0.3 \
-    --hash=sha256:cddc74486c45ea67c1bc28aee2d39cc72d2ec26739375d61f4bb460921d52a21 \
-    --hash=sha256:fdb7d669a1bb5b5230dc879f895e9c58235ed8180b6698c0f0a8d4d026e82975
-    # via -r satosa_scim_requirements.in
 simplejson==3.17.2 \
     --hash=sha256:75ecc79f26d99222a084fbdd1ce5aad3ac3a8bd535cd9059528452da38b68841 \
     --hash=sha256:ad8f41c2357b73bc9e8606d2fa226233bf4d55d85a8982ecdfd55823a6959995 \
     --hash=sha256:d0b64409df09edb4c365d95004775c988259efe9be39697d7315c42b7a5e7e94
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   pytool
     #   vccs-client
 six==1.15.0 \
     --hash=sha256:30639c035cdb23534cd4aa2dd52c3bf48f06e5f4a941509c8bafd8ce11080259 \
     --hash=sha256:8b74bedcbbbaca38ff6d7491d76f2b06b3592611af620f8426e82dddb04a5ced
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   bleach
     #   click-repl
     #   ecdsa
-    #   falcon
     #   fido2
     #   html5lib
     #   pyconfig
@@ -767,23 +679,27 @@ six==1.15.0 \
     #   qrcode
     #   vccs-client
     #   xhtml2pdf
+starlette==0.13.6 \
+    --hash=sha256:bd2ffe5e37fb75d014728511f8e68ebf2c80b0fa3d04ca1479f4dc752ae31ac9 \
+    --hash=sha256:ebe8ee08d9be96a3c9f31b2cb2a24dbdf845247b745664bd8a3f9bd0c977fdbc
+    # via fastapi
 statsd==3.2.1 \
     --hash=sha256:3fa92bf0192af926f7a0d9be031fe3fd0fbaa1992d42cf2f07e68f76ac18288e \
     --hash=sha256:7aff40c6cdda703193fac6231410c6c0ad5939ce053a168016501e982c755c84
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
 suds-jurko==0.6 \
     --hash=sha256:1cb7252cb13018fc32887c3a834ed7c6648a5b5c4c159be5806da2e1785399e8 \
     --hash=sha256:29edb72fd21e3044093d86f33c66cf847c5aaab26d64cb90e69e528ef014e57f
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
 typing-extensions==3.7.4.3 \
     --hash=sha256:7cb407020f00f7bfc3cb3e7881628838e69d8f3fcab2f64742a5e76b2f841918 \
     --hash=sha256:99d4073b617d30288f569d3f13d2bd7548c3a7e4c8de87db09a9d29bb3a4a60c
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   oic
     #   pydantic
     #   typing-inspect
@@ -792,13 +708,13 @@ typing-inspect==0.6.0 \
     --hash=sha256:8f1b1dd25908dbfd81d3bebc218011531e7ab614ba6e5bf7826d887c834afab7 \
     --hash=sha256:de08f50a22955ddec353876df7b2545994d6df08a2f45d54ac8c05e530372ca0
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   marshmallow-dataclass
 urllib3==1.26.3 \
     --hash=sha256:1b465e494e3e0d8939b50680403e3aedaa2bc434b7d5af64dfd3c958d7f5ae80 \
     --hash=sha256:de3eedaad74a2683334e282005cd8d7f22f4d55fa690a2a1020a416cb0a47e73
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   botocore
     #   python-etcd
     #   requests
@@ -806,57 +722,50 @@ vccs-client==0.4.7 \
     --hash=sha256:808f07993657f5d029225713e543a8bc8054743153512f28b4f67ef845527885 \
     --hash=sha256:8bf7f4ca2e74c279f646611b5ca2aade2ecbf1f68850a7a9e000e4951ec99e8c
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
 vine==5.0.0 \
     --hash=sha256:4c9dceab6f76ed92105027c49c823800dd33cacce13bdedc5b914e3514b7fb30 \
     --hash=sha256:7d3b1624a953da82ef63462013bbd271d3eb75751489f9807598e8f340bd637e
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   amqp
     #   celery
 wcwidth==0.2.5 \
     --hash=sha256:beb4802a9cebb9144e99086eff703a642a13d6a0052920003a230f3294bbe784 \
     --hash=sha256:c4d647b99872929fdb7bdcaa4fbe7f01413ed3d98077df798530e5b04f116c83
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   prompt-toolkit
 webencodings==0.5.1 \
     --hash=sha256:a0af1213f3c2226497a97e2b3aa01a7e4bee4f403f95be16fc9acd2947514a78 \
     --hash=sha256:b36a1c245f2d304965eb4e0a82848379241dc04b865afcc4aab16748587e1923
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   bleach
     #   html5lib
-werkzeug==1.0.1 \
-    --hash=sha256:2de2a5db0baeae7b2d2664949077c2ac63fbd16d98da0ff71837f7d1dea3fd43 \
-    --hash=sha256:6c80b1e5ad3665290ea39320b91e1be1e0d5f60652b964a3070216de83d2e47c
-    # via
-    #   -c requirements.txt
-    #   flask
-    #   satosa
 xhtml2pdf==0.2.5 \
     --hash=sha256:6797e974fac66f0efbe927c1539a2756ca4fe8777eaa5882bac132fc76b39421
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
 xmlschema==1.5.2 \
     --hash=sha256:df7bf5d6d23f5f32d50e573f9ad75a2456029009909b63607560916b0584f89e \
     --hash=sha256:f821ce780f84c7e61ca1ccf32f23aec400446e74fa5cc888450af7604ce2291f
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   pysaml2
 zipp==3.4.1 \
     --hash=sha256:3607921face881ba3e026887d8150cca609d517579abe052ac81fc5aeffdbd76 \
     --hash=sha256:51cb66cc54621609dd593d1787f286ee42a5c0adbb4b29abea5a63edc3e03098
     # via
-    #   -c requirements.txt
+    #   -c main.txt
     #   importlib-metadata
 zxcvbn==4.4.28 \
     --hash=sha256:151bd816817e645e9064c354b13544f85137ea3320ca3be1fb6873ea75ef7dc1
     # via
-    #   -c requirements.txt
-    #   -r requirements.in
+    #   -c main.txt
+    #   -r main.in
 
 # WARNING: The following packages were not pinned, but pip requires them to be
 # pinned when the requirements file includes hashes. Consider using the --allow-unsafe flag.

@@ -1,4 +1,4 @@
--r sub_requirements.in
+-r sub_main.in
 Babel>=2.6.0
 Pillow>=3.0.0
 PyNaCl>=1.4.0
