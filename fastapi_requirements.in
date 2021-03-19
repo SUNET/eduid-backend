@@ -1,0 +1,4 @@
+-r requirements.in
+-c requirements.txt
+fastapi
+
