@@ -83,6 +83,13 @@ class IdP_SAMLRequest(object):
             module_logger.debug('No valid SAMLRequest returned by pysaml2')
             raise SAMLValidationError('No valid SAMLRequest returned by pysaml2')
 
+        # log any present NameId in preparation for MFA step-up work
+        try:
+            name_id = self._req_info.subject_id()
+            module_logger.debug(f'AuthnRequest Subject ID: {name_id}')
+        except Exception as exc:
+            module_logger.debug(f'Could not get Subject ID from AuthnRequest: {exc}')
+
         # Only perform expensive parse/pretty-print if debugging
         if debug:
             # Local import to avoid circular imports
