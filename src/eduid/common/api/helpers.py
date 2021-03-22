@@ -220,9 +220,22 @@ def check_magic_cookie(config: MagicCookieMixin) -> bool:
 
     :param config: A configuration object
     """
-    if config.environment in ('dev', 'staging') and config.magic_cookie and config.magic_cookie_name:
-        cookie = request.cookies.get(config.magic_cookie_name)
-        if cookie is not None:
-            return cookie == config.magic_cookie
+    if not config.environment in ('dev', 'staging'):
+        current_app.logger.error(f'Magic cookie not allowed in environment {config.environment}')
+        return False
 
+    if not config.magic_cookie or not config.magic_cookie_name:
+        current_app.logger.error(f'Magic cookie parameters not present in configuration for {config.environment}')
+        return False
+
+    cookie = request.cookies.get(config.magic_cookie_name)
+    if cookie is None:
+        current_app.logger.info(f'Got no magic cookie (named {config.magic_cookie_name}')
+        return False
+
+    if cookie == config.magic_cookie:
+        current_app.logger.info('check_magic_cookie check success')
+        return True
+
+    current_app.logger.info('check_magic_cookie check fail')
     return False
