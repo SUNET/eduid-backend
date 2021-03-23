@@ -132,6 +132,8 @@ class IdP_SAMLRequest(object):
         """
         if self.raw_requested_authn_context:
             _res = self.raw_requested_authn_context.authn_context_class_ref[0].text
+            if _res is None:
+                return None
             if not isinstance(_res, str):
                 raise ValueError(f'Unknown class_ref text type ({type(_res)})')
             return _res
