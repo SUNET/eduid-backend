@@ -251,13 +251,6 @@ def process_users(api: str, ops: Mapping[str, Any], token: Optional[str] = None)
         elif op == 'put':
             for scim_id in ops[op]:
                 put_user(api, scim_id, ops[op][scim_id]['profiles'], token=token)
-                post_event(
-                    api,
-                    resource_scim_id=scim_id,
-                    resource_type='User',
-                    token=token,
-                    data={'scim-util-run-completed': True, 'action': 'PUT user'},
-                )
         else:
             logger.error(f'Unknown "user" operation {op}')
 
@@ -287,13 +280,14 @@ def process_groups(api: str, ops: Mapping[str, Any], token: Optional[str] = None
         elif op == 'put':
             for scim_id in ops[op]:
                 put_group(api, scim_id, data=ops[op][scim_id], token=token)
-                post_event(
-                    api,
-                    resource_scim_id=scim_id,
-                    resource_type='Group',
-                    token=token,
-                    data={'scim-util-run-completed': True, 'action': 'PUT group'},
-                )
+
+
+def process_events(api: str, ops: Mapping[str, Any], token: Optional[str] = None) -> None:
+    for op in ops.keys():
+        if op == 'put':
+            for scim_id in ops[op]:
+                params = ops[op][scim_id]
+                post_event(api, token=token, **params)
 
 
 def main(args: Args) -> bool:
@@ -313,6 +307,8 @@ def main(args: Args) -> bool:
             process_users(api, data[api]['users'], token=token)
         if 'groups' in data[api]:
             process_groups(api, data[api]['groups'], token=token)
+        if 'events' in data[api]:
+            process_events(api, data[api]['events'], token=token)
 
     return True
 
