@@ -83,13 +83,6 @@ class IdP_SAMLRequest(object):
             module_logger.debug('No valid SAMLRequest returned by pysaml2')
             raise SAMLValidationError('No valid SAMLRequest returned by pysaml2')
 
-        # log any present NameId in preparation for MFA step-up work
-        try:
-            name_id = self._req_info.subject_id()
-            module_logger.debug(f'AuthnRequest Subject ID: {name_id}')
-        except Exception as exc:
-            module_logger.debug(f'Could not get Subject ID from AuthnRequest: {exc}')
-
         # Only perform expensive parse/pretty-print if debugging
         if debug:
             # Local import to avoid circular imports
@@ -174,6 +167,22 @@ class IdP_SAMLRequest(object):
         if not isinstance(_res, str):
             raise ValueError(f'Unknown request id type ({type(_res)})')
         return _res
+
+    @property
+    def login_subject(self) -> Optional[str]:
+        """ Get information about who the SP thinks should log in.
+
+        This is used by the IdPProxy when doing MFA Step-up authentication, to signal
+        who must log in for the process to continue.
+
+        Most ordinary AuthnRequests don't have a subject.
+        """
+        try:
+            _subject = self._req_info.subject_id()
+            return _subject.text.strip()
+        except Exception as exc:
+            module_logger.debug(f'Could not get Subject ID from AuthnRequest: {exc}')
+        return None
 
     @property
     def sp_entity_attributes(self) -> Mapping[str, Any]:

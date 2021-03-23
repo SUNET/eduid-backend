@@ -453,6 +453,17 @@ class SSO(Service):
 
         :return: HTTP response
         """
+        _username = ''
+        _login_subject = ticket.saml_req.login_subject
+        if _login_subject is not None:
+            current_app.logger.debug(f'Login subject: {_login_subject}')
+            # Login subject might be set by the idpproxy when requesting the user to do MFA step up
+            if current_app.conf.default_eppn_scope is not None and _login_subject.endswith(
+                current_app.conf.default_eppn_scope
+            ):
+                # remove the @scope
+                _username = _login_subject[: -(len(current_app.conf.default_eppn_scope) + 1)]
+
         argv = mischttp.get_default_template_arguments(current_app.conf)
         argv.update(
             {
@@ -462,7 +473,7 @@ class SSO(Service):
                 'key': ticket.key,
                 'password': '',
                 'redirect_uri': redirect_uri,
-                'username': '',
+                'username': _username,
                 # SAMLRequest, RelayState and binding are used to re-create the ticket state if not found using `key'
                 'SAMLRequest': escape(ticket.SAMLRequest, quote=True),
                 'RelayState': escape(ticket.RelayState, quote=True),
