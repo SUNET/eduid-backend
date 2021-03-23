@@ -155,7 +155,7 @@ class IdP_SAMLRequest(object):
         return _res
 
     @property
-    def force_authn(self) -> Optional[bool]:
+    def force_authn(self) -> bool:
         _res = self._req_info.message.force_authn
         if _res is None:
             return False
