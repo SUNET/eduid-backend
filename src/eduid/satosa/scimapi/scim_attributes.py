@@ -38,7 +38,7 @@ class ScimAttributes(ResponseMicroService):
         # TODO: rename old collection and remove this
         if data_owner == 'eduid.se':
             coll = 'profiles'
-        self._userdbs = {'eduid.se': ScimApiUserDB(db_uri=self.config.mongo_uri, collection=coll)}
+        self._userdbs = {'eduid.se': ScimApiUserDB(db_uri=self.config.mongo_uri, collection=coll, setup_indexes=False)}
         self.converter = AttributeMapper(internal_attributes)
         # Get the internal attribute name for the eduPersonPrincipalName that will be
         # used to find users in the SCIM database
