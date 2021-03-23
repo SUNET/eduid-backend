@@ -83,13 +83,6 @@ class IdP_SAMLRequest(object):
             module_logger.debug('No valid SAMLRequest returned by pysaml2')
             raise SAMLValidationError('No valid SAMLRequest returned by pysaml2')
 
-        # log any present NameId in preparation for MFA step-up work
-        try:
-            name_id = self._req_info.subject_id()
-            module_logger.debug(f'AuthnRequest Subject ID: {name_id}')
-        except Exception as exc:
-            module_logger.debug(f'Could not get Subject ID from AuthnRequest: {exc}')
-
         # Only perform expensive parse/pretty-print if debugging
         if debug:
             # Local import to avoid circular imports
@@ -139,6 +132,8 @@ class IdP_SAMLRequest(object):
         """
         if self.raw_requested_authn_context:
             _res = self.raw_requested_authn_context.authn_context_class_ref[0].text
+            if _res is None:
+                return None
             if not isinstance(_res, str):
                 raise ValueError(f'Unknown class_ref text type ({type(_res)})')
             return _res
@@ -160,7 +155,7 @@ class IdP_SAMLRequest(object):
         return _res
 
     @property
-    def force_authn(self) -> Optional[bool]:
+    def force_authn(self) -> bool:
         _res = self._req_info.message.force_authn
         if _res is None:
             return False
@@ -174,6 +169,22 @@ class IdP_SAMLRequest(object):
         if not isinstance(_res, str):
             raise ValueError(f'Unknown request id type ({type(_res)})')
         return _res
+
+    @property
+    def login_subject(self) -> Optional[str]:
+        """ Get information about who the SP thinks should log in.
+
+        This is used by the IdPProxy when doing MFA Step-up authentication, to signal
+        who must log in for the process to continue.
+
+        Most ordinary AuthnRequests don't have a subject.
+        """
+        try:
+            _subject = self._req_info.subject_id()
+            return _subject.text.strip()
+        except Exception as exc:
+            module_logger.debug(f'Could not get Subject ID from AuthnRequest: {exc}')
+        return None
 
     @property
     def sp_entity_attributes(self) -> Mapping[str, Any]:
