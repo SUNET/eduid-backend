@@ -250,7 +250,7 @@ def process_users(api: str, ops: Mapping[str, Any], token: Optional[str] = None)
                     logger.error(f'Unknown "user" search attribute {what}')
         elif op == 'put':
             for scim_id in ops[op]:
-                put_user(api, scim_id, ops[op][scim_id]['profiles'])
+                put_user(api, scim_id, ops[op][scim_id]['profiles'], token=token)
                 post_event(
                     api,
                     resource_scim_id=scim_id,
