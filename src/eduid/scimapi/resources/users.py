@@ -1,3 +1,4 @@
+import pprint
 from dataclasses import asdict, replace
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Sequence, Tuple
@@ -88,6 +89,7 @@ class UsersResource(SCIMResource):
         resp.set_header("Location", location)
         resp.set_header("ETag", make_etag(db_user.version))
         resp.media = UserResponseSchema().dump(user)
+        self.context.logger.debug(f'Extra debug: Response:\n{pprint.pformat(resp.media)}')
 
     @staticmethod
     def _save_user(req: Request, db_user: ScimApiUser) -> None:
