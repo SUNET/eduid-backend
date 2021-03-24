@@ -16,7 +16,7 @@ from eduid.queue.db.message import MessageDB
 from eduid.scimapi.app import init_api
 from eduid.scimapi.config import ScimApiConfig
 from eduid.scimapi.context import Context
-from eduid.scimapi.db.common import ScimApiName
+from eduid.scimapi.db.common import ScimApiLinkedAccount, ScimApiName
 from eduid.scimapi.db.groupdb import ScimApiGroup
 from eduid.scimapi.db.invitedb import ScimApiInvite
 from eduid.scimapi.db.userdb import ScimApiProfile, ScimApiUser
@@ -118,12 +118,18 @@ class ScimApiTestCase(MongoNeoTestCase):
         }
 
     def add_user(
-        self, identifier: str, external_id: Optional[str] = None, profiles: Optional[Dict[str, ScimApiProfile]] = None
+        self,
+        identifier: str,
+        external_id: Optional[str] = None,
+        profiles: Optional[Dict[str, ScimApiProfile]] = None,
+        linked_accounts: Optional[List[ScimApiLinkedAccount]] = None,
     ) -> Optional[ScimApiUser]:
         user = ScimApiUser(user_id=ObjectId(), scim_id=uuid.UUID(identifier), external_id=external_id)
         if profiles:
             for key, value in profiles.items():
                 user.profiles[key] = value
+        if linked_accounts:
+            user.linked_accounts = linked_accounts
         assert self.userdb
         self.userdb.save(user)
         return self.userdb.get_user_by_scim_id(scim_id=identifier)
@@ -156,7 +162,7 @@ class ScimApiTestCase(MongoNeoTestCase):
             self.assertEqual(detail, json.get('detail'))
 
     def _assertScimResponseProperties(
-        self, response, resource: Union[ScimApiGroup, ScimApiUser, ScimApiInvite], expected_schemas: List[str]
+        self, response: Result, resource: Union[ScimApiGroup, ScimApiUser, ScimApiInvite], expected_schemas: List[str]
     ):
         if SCIMSchema.NUTID_USER_V1.value in response.json:
             # The API can always add this extension to the response, even if it was not in the request

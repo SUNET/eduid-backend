@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import unittest
+
 from eduid.common.misc.tous import get_tous
 
 __author__ = 'lundberg'

@@ -159,6 +159,7 @@ class TestScimInvite(unittest.TestCase):
             },
             SCIMSchema.NUTID_USER_V1.value: {
                 'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}},
+                'linked_accounts': [],
             },
         }
         assert json.loads(scim) == expected
@@ -390,6 +391,7 @@ class TestInviteResource(ScimApiTestCase):
             },
             SCIMSchema.NUTID_USER_V1.value: {
                 'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}},
+                'linked_accounts': [],
             },
         }
 
@@ -471,6 +473,7 @@ class TestInviteResource(ScimApiTestCase):
             },
             SCIMSchema.NUTID_USER_V1.value: {
                 'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}},
+                'linked_accounts': [],
             },
         }
 

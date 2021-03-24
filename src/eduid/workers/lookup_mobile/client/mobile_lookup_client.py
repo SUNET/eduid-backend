@@ -2,12 +2,12 @@ from typing import List, Optional
 
 from suds.client import Client
 
+from eduid.common.api.decorators import deprecated
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.config.workers import MobConfig
 from eduid.workers.lookup_mobile.decorators import TransactionAudit
 from eduid.workers.lookup_mobile.development.development_search_result import _get_devel_search_result
 from eduid.workers.lookup_mobile.utilities import format_mobile_number, format_NIN
-from eduid.common.api.decorators import deprecated
 
 
 class MobileLookupClient(object):

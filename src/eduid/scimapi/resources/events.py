@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import pprint
 from datetime import timedelta
 from typing import Optional
 
@@ -60,6 +61,7 @@ class EventsResource(SCIMResource):
         resp.set_header("Location", location)
         resp.set_header("ETag", make_etag(db_event.version))
         resp.media = EventResponseSchema().dump(response)
+        self.context.logger.debug(f'Extra debug: Response:\n{pprint.pformat(resp.media)}')
 
     def on_get(self, req: Request, resp: Response, scim_id: Optional[str] = None):
         if scim_id is None:

@@ -10,10 +10,11 @@ import bson
 from bson import ObjectId
 from falcon.testing import Result
 
+from eduid.scimapi.db.common import ScimApiLinkedAccount
 from eduid.scimapi.db.eventdb import EventStatus
 from eduid.scimapi.db.userdb import ScimApiProfile, ScimApiUser
 from eduid.scimapi.schemas.scimbase import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
-from eduid.scimapi.schemas.user import NutidUserExtensionV1, Profile, User, UserResponse, UserResponseSchema
+from eduid.scimapi.schemas.user import LinkedAccount, NutidUserExtensionV1, Profile, UserResponse, UserResponseSchema
 from eduid.scimapi.testing import ScimApiTestCase
 from eduid.scimapi.utils import filter_none, make_etag
 from eduid.userdb.testing import normalised_data
@@ -88,6 +89,7 @@ class TestScimUser(unittest.TestCase):
             "groups": [],
             SCIMSchema.NUTID_USER_V1.value: {
                 "profiles": {"student": {"attributes": {"displayName": "Test"}, "data": {}}},
+                "linked_accounts": [],
             },
             "id": "9784e1bf-231b-4eb8-b315-52eb46dd7c4b",
             "meta": {
@@ -149,7 +151,10 @@ class TestScimUser(unittest.TestCase):
             'schemas': [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_USER_V1.value],
             "id": "a7851d21-eab9-4caa-ba5d-49653d65c452",
             "phoneNumbers": [],
-            SCIMSchema.NUTID_USER_V1.value: {"profiles": {"student": {"data": {}, "attributes": {}}}},
+            SCIMSchema.NUTID_USER_V1.value: {
+                "profiles": {"student": {"data": {}, "attributes": {}}},
+                "linked_accounts": [],
+            },
             "meta": {
                 "version": "W/\"5e81c5f849ac2cd87580e502\"",
                 "created": "2020-03-30T10:12:08.528000",
@@ -236,8 +241,16 @@ class TestUserResource(ScimApiTestCase):
         result = self.client.simulate_post(path='/Users/', body=self.as_json(req), headers=self.headers)
         if expect_success:
             self._assertResponse(result, status_code=201)
-        response: UserResponse = UserResponseSchema().load(result.json)
-        return UserApiResult(request=req, nutid_user=response.nutid_user_v1, result=result, response=response)
+        try:
+            response: UserResponse = UserResponseSchema().load(result.json)
+            nutid_user = response.nutid_user_v1
+        except Exception:
+            if not expect_success:
+                response = None  # type: ignore
+                nutid_user = None  # type: ignore
+            else:
+                raise
+        return UserApiResult(request=req, nutid_user=nutid_user, result=result, response=response)
 
     def _update_user(
         self, req: Dict[str, Any], scim_id: UUID, version: Optional[ObjectId], expect_success: bool = True
@@ -255,14 +268,24 @@ class TestUserResource(ScimApiTestCase):
         result = self.client.simulate_put(path=f'/Users/{scim_id}', body=self.as_json(req), headers=_headers)
         if expect_success:
             self._assertResponse(result)
-        response: UserResponse = UserResponseSchema().load(result.json)
-        return UserApiResult(request=req, nutid_user=response.nutid_user_v1, result=result, response=response)
+        try:
+            response: UserResponse = UserResponseSchema().load(result.json)
+            nutid_user = response.nutid_user_v1
+        except Exception:
+            if not expect_success:
+                response = None  # type: ignore
+                nutid_user = None  # type: ignore
+            else:
+                raise
+        return UserApiResult(request=req, nutid_user=nutid_user, result=result, response=response)
 
     def test_get_user(self):
         db_user = self.add_user(identifier=str(uuid4()), external_id='test-id-1', profiles={'test': self.test_profile})
         response = self.client.simulate_get(path=f'/Users/{db_user.scim_id}', headers=self.headers)
 
-        _req = {SCIMSchema.NUTID_USER_V1.value: {'profiles': {'test': asdict(self.test_profile)}}}
+        _req = {
+            SCIMSchema.NUTID_USER_V1.value: {'profiles': {'test': asdict(self.test_profile)}, 'linked_accounts': []},
+        }
         self._assertUserUpdateSuccess(_req, response, db_user)
 
     def test_create_users_with_no_external_id(self):
@@ -278,8 +301,9 @@ class TestUserResource(ScimApiTestCase):
             'preferredLanguage': 'en',
             SCIMSchema.NUTID_USER_V1.value: {
                 'profiles': {
-                    'test': {'attributes': {'displayName': 'Test User 1'}, 'data': {'test_key': 'test_value'}}
+                    'test': {'attributes': {'displayName': 'Test User 1'}, 'data': {'test_key': 'test_value'}},
                 },
+                'linked_accounts': [],
             },
         }
         result = self._create_user(req)
@@ -334,8 +358,9 @@ class TestUserResource(ScimApiTestCase):
             'schemas': [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_USER_V1.value],
             SCIMSchema.NUTID_USER_V1.value: {
                 'profiles': {
-                    'test': {'attributes': {'displayName': 'Test User 1'}, 'data': {'test_key': 'test_value'}}
+                    'test': {'attributes': {'displayName': 'Test User 1'}, 'data': {'test_key': 'test_value'}},
                 },
+                'linked_accounts': [],
             },
         }
         response = self.client.simulate_post(path='/Users/', body=self.as_json(req), headers=self.headers)
@@ -378,6 +403,7 @@ class TestUserResource(ScimApiTestCase):
                 'profiles': {
                     'test': {'attributes': {'displayName': 'New display name'}, 'data': {'test_key': 'new value'}}
                 },
+                'linked_accounts': [],
             },
         }
         self.headers['IF-MATCH'] = make_etag(db_user.version)
@@ -408,6 +434,7 @@ class TestUserResource(ScimApiTestCase):
                 'profiles': {
                     'test': {'attributes': {'displayName': 'Test User 1'}, 'data': {'test_key': 'test_value'}}
                 },
+                'linked_accounts': [],
             },
         }
         create_response = self.client.simulate_post(path='/Users/', body=self.as_json(req), headers=self.headers)
@@ -427,8 +454,9 @@ class TestUserResource(ScimApiTestCase):
                     'test': {
                         'attributes': {'displayName': 'Another display name'},
                         'data': {'test_key': 'another value'},
-                    }
+                    },
                 },
+                'linked_accounts': [],
             },
         }
         self.headers['IF-MATCH'] = create_response.headers['etag']
@@ -450,6 +478,7 @@ class TestUserResource(ScimApiTestCase):
                 'profiles': {
                     'test': {'attributes': {'displayName': 'New display name'}, 'data': {'test_key': 'new value'}}
                 },
+                'linked_accounts': [],
             },
         }
         self.headers['IF-MATCH'] = make_etag(db_user.version)
@@ -543,6 +572,87 @@ class TestUserResource(ScimApiTestCase):
             expected_num_resources=3,
             expected_total_results=9,
         )
+
+    def test_create_and_update_user_with_linked_accounts(self):
+        """ Test that creating a user and then updating it without changes only results in one event """
+        account = LinkedAccount(issuer='eduid.se', value='test@dev.eduid.se')
+        _db_account = ScimApiLinkedAccount(issuer=account.issuer, value=account.value, parameters=account.parameters)
+        req = {
+            SCIMSchema.NUTID_USER_V1.value: {'profiles': {}, 'linked_accounts': [account.to_dict()]},
+        }
+        result1 = self._create_user(req)
+
+        self._assertResponse(result1.result, status_code=201)
+        db_user = self.userdb.get_user_by_scim_id(str(result1.response.id))
+        assert db_user
+        self._assertUserUpdateSuccess(req, result1.result, db_user)
+
+        # Verify that the linked account was stored in the database
+        assert db_user.linked_accounts == [_db_account]
+
+        # Add mfa_stepup parameter
+        account.parameters['mfa_stepup'] = True
+        _db_account.parameters['mfa_stepup'] = True
+        req[SCIMSchema.NUTID_USER_V1.value]['linked_accounts'] = [account.to_dict()]
+
+        # Update the user
+        result2 = self._update_user(req, result1.response.id, result1.response.meta.version)
+        self._assertResponse(result2.result, status_code=200)
+        db_user = self.userdb.get_user_by_scim_id(str(result2.response.id))
+        assert db_user
+        self._assertUserUpdateSuccess(req, result2.result, db_user)
+
+        # Make sure the version was updated
+        assert result1.response.meta.version != result2.response.meta.version
+
+        # Verify the updated account made it into the database
+        assert db_user.linked_accounts == [_db_account]
+
+    def test_create_user_with_invalid_linked_accounts(self):
+        """ Test that creating a user and then updating it without changes only results in one event """
+        account = LinkedAccount(issuer='NOT-eduid.se', value='test@dev.eduid.se')
+        req = {
+            'externalId': 'test-id-9',
+            'name': {'familyName': 'Testsson', 'givenName': 'Test', 'middleName': 'Testaren'},
+            SCIMSchema.NUTID_USER_V1.value: {'profiles': {}, 'linked_accounts': [asdict(account)]},
+        }
+        result1 = self._create_user(req, expect_success=False)
+        self._assertScimError(json=result1.result.json, detail='Invalid nutid linked_accounts')
+
+    def test_update_user_set_linked_accounts(self):
+        db_account1 = ScimApiLinkedAccount(issuer='eduid.se', value='test1@dev.eduid.se')
+        account2 = LinkedAccount(issuer='eduid.se', value='test2@dev.eduid.se', parameters={'mfa_stepup': True})
+        db_user = self.add_user(identifier=str(uuid4()), linked_accounts=[db_account1])
+        req = {
+            'schemas': [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_USER_V1.value],
+            'id': str(db_user.scim_id),
+            SCIMSchema.NUTID_USER_V1.value: {'profiles': {}, 'linked_accounts': [account2.to_dict()]},
+        }
+        result = self._update_user(req, db_user.scim_id, version=db_user.version)
+        self._assertResponse(result.result)
+        self._assertUserUpdateSuccess(req, result.result, db_user)
+
+    def test_update_user_set_linked_accounts2(self):
+        """ Test updating linked accounts sorted 'wrong' """
+        db_account1 = ScimApiLinkedAccount(issuer='eduid.se', value='test1@dev.eduid.se')
+        account1 = LinkedAccount(issuer=db_account1.issuer, value=db_account1.value)
+        account2 = LinkedAccount(issuer='eduid.se', value='test2@dev.eduid.se', parameters={'mfa_stepup': True})
+        db_user = self.add_user(identifier=str(uuid4()), linked_accounts=[db_account1])
+        req = {
+            'schemas': [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_USER_V1.value],
+            'id': str(db_user.scim_id),
+            SCIMSchema.NUTID_USER_V1.value: {
+                'profiles': {},
+                'linked_accounts': [account2.to_dict(), account1.to_dict()],
+            },
+        }
+        result = self._update_user(req, db_user.scim_id, version=db_user.version)
+        self._assertResponse(result.result)
+        self._assertUserUpdateSuccess(req, result.result, db_user)
+        db_user = self.userdb.get_user_by_scim_id(str(db_user.scim_id))
+        assert db_user
+        db_account2 = ScimApiLinkedAccount(issuer=account2.issuer, value=account2.value, parameters=account2.parameters)
+        assert db_user.linked_accounts == [db_account2, db_account1]
 
     def _perform_search(
         self,

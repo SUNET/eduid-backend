@@ -1,3 +1,4 @@
+import pprint
 import re
 from datetime import datetime
 from typing import List, Optional, Tuple
@@ -73,6 +74,7 @@ class GroupsResource(SCIMResource):
             # Serialization will always put the NUTID_GROUP_V1 in the dumped_group, even if there was no data
             del dumped_group[SCIMSchema.NUTID_GROUP_V1.value]
         resp.media = dumped_group
+        self.context.logger.debug(f'Extra debug: Response:\n{pprint.pformat(resp.media)}')
 
     def on_get(self, req: Request, resp: Response, scim_id: Optional[str] = None):
         """

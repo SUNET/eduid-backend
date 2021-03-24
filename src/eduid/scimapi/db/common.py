@@ -44,6 +44,29 @@ class ScimApiProfile:
 
 
 @dataclass(frozen=True)
+class ScimApiLinkedAccount:
+    issuer: str
+    value: str
+    parameters: Dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls: Type[ScimApiLinkedAccount], data: Mapping[str, Any]) -> ScimApiLinkedAccount:
+        _issuer = data.get('issuer')
+        if not isinstance(_issuer, str):
+            raise ValueError('ScimApiLinkedAccount.issuer must be a string')
+        _value = data.get('value')
+        if not isinstance(_value, str):
+            raise ValueError('ScimApiLinkedAccount.value must be a string')
+        _parameters = data.get('parameters')
+        if not isinstance(_parameters, dict):
+            raise ValueError('ScimApiLinkedAccount.parameters must be a dict')
+        return cls(issuer=_issuer, value=_value, parameters=_parameters)
+
+
+@dataclass(frozen=True)
 class ScimApiName:
     family_name: Optional[str] = None
     given_name: Optional[str] = None

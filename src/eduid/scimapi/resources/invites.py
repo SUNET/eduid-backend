@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import pprint
 from dataclasses import asdict, replace
 from datetime import datetime, timedelta
 from os import environ
@@ -129,6 +130,7 @@ class InvitesResource(SCIMResource):
         resp.set_header("Location", location)
         resp.set_header("ETag", make_etag(db_invite.version))
         resp.media = InviteResponseSchema().dump(scim_invite)
+        self.context.logger.debug(f'Extra debug: Response:\n{pprint.pformat(resp.media)}')
 
     @staticmethod
     def _create_signup_ref(req: Request, db_invite: ScimApiInvite):
