@@ -100,11 +100,6 @@ class UsersResource(SCIMResource):
                 raise BadRequest(detail='externalID must be unique')
             raise BadRequest(detail='Duplicated key error')
 
-    @staticmethod
-    def _comparable_linked_accounts(data: List[ScimApiLinkedAccount]) -> List[Dict[str, Any]]:
-        res = [x.to_dict() for x in data]
-        return sorted(res, key=lambda x: x['value'])
-
     def on_get(self, req: Request, resp: Response, scim_id: Optional[str] = None):
         if scim_id is None:
             raise BadRequest(detail='Not implemented')
@@ -200,9 +195,6 @@ class UsersResource(SCIMResource):
                 ]
 
                 # Look for changes in linked_accounts
-                # if self._comparable_linked_accounts(_db_linked_accounts) != self._comparable_linked_accounts(
-                #    db_user.linked_accounts
-                # ):
                 if sorted(_db_linked_accounts, key=lambda x: x.value) != sorted(
                     db_user.linked_accounts, key=lambda x: x.value
                 ):
