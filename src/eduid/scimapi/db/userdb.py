@@ -10,9 +10,17 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple, Type
 from bson import ObjectId
 
 from eduid.scimapi.db.basedb import ScimApiBaseDB
-from eduid.scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile, ScimApiResourceBase
+from eduid.scimapi.db.common import (
+    ScimApiEmail,
+    ScimApiLinkedAccount,
+    ScimApiName,
+    ScimApiPhoneNumber,
+    ScimApiProfile,
+    ScimApiResourceBase,
+)
 
 __author__ = 'ft'
+
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +32,8 @@ class ScimApiUser(ScimApiResourceBase):
     emails: List[ScimApiEmail] = field(default_factory=list)
     phone_numbers: List[ScimApiPhoneNumber] = field(default_factory=list)
     preferred_language: Optional[str] = None
-    profiles: Dict[str, ScimApiProfile] = field(default_factory=lambda: {})
+    profiles: Dict[str, ScimApiProfile] = field(default_factory=dict)
+    linked_accounts: List[ScimApiLinkedAccount] = field(default_factory=list)
 
     @property
     def etag(self):
@@ -52,6 +61,8 @@ class ScimApiUser(ScimApiResourceBase):
         this['phone_numbers'] = [ScimApiPhoneNumber.from_dict(number) for number in data.get('phone_numbers', [])]
         # Profiles
         this['profiles'] = {k: ScimApiProfile.from_dict(v) for k, v in data['profiles'].items()}
+        # Linked accounts
+        this['linked_accounts'] = [ScimApiLinkedAccount.from_dict(x) for x in data.get('linked_accounts', [])]
         return cls(**this)
 
 

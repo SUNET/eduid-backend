@@ -6,7 +6,7 @@ from falcon import HTTP_201, Request, Response
 from marshmallow import ValidationError
 from pymongo.errors import DuplicateKeyError
 
-from eduid.scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber
+from eduid.scimapi.db.common import ScimApiEmail, ScimApiLinkedAccount, ScimApiName, ScimApiPhoneNumber
 from eduid.scimapi.db.eventdb import EventLevel, EventStatus, add_api_event
 from eduid.scimapi.db.userdb import ScimApiProfile, ScimApiUser
 from eduid.scimapi.exceptions import BadRequest, NotFound
@@ -26,6 +26,7 @@ from eduid.scimapi.schemas.scimbase import (
 )
 from eduid.scimapi.schemas.user import (
     Group,
+    LinkedAccount,
     NutidUserExtensionV1,
     Profile,
     UserCreateRequest,
@@ -60,11 +61,16 @@ class UsersResource(SCIMResource):
         )
 
         schemas = [SCIMSchema.CORE_20_USER]
-        if db_user.profiles:
+        if db_user.profiles or db_user.linked_accounts:
             schemas.append(SCIMSchema.NUTID_USER_V1)
 
         # Convert one type of Profile into another
         _profiles = {k: Profile(attributes=v.attributes, data=v.data) for k, v in db_user.profiles.items()}
+
+        # Convert one type of LinkedAccount into another
+        _linked_accounts = [
+            LinkedAccount(issuer=x.issuer, value=x.value, parameters=x.parameters) for x in db_user.linked_accounts
+        ]
 
         user = UserResponse(
             id=db_user.scim_id,
@@ -76,7 +82,7 @@ class UsersResource(SCIMResource):
             groups=self._get_user_groups(req=req, db_user=db_user),
             meta=meta,
             schemas=list(schemas),  # extra list() needed to work with _both_ mypy and marshmallow
-            nutid_user_v1=NutidUserExtensionV1(profiles=_profiles),
+            nutid_user_v1=NutidUserExtensionV1(profiles=_profiles, linked_accounts=_linked_accounts),
         )
 
         resp.set_header("Location", location)
@@ -91,6 +97,11 @@ class UsersResource(SCIMResource):
             if 'external-id' in e.details['errmsg']:
                 raise BadRequest(detail='externalID must be unique')
             raise BadRequest(detail='Duplicated key error')
+
+    @staticmethod
+    def _comparable_linked_accounts(data: List[ScimApiLinkedAccount]) -> List[Dict[str, Any]]:
+        res = [x.to_dict() for x in data]
+        return sorted(res, key=lambda x: x['value'])
 
     def on_get(self, req: Request, resp: Response, scim_id: Optional[str] = None):
         if scim_id is None:
@@ -121,7 +132,10 @@ class UsersResource(SCIMResource):
             if not self._check_version(req, db_user):
                 raise BadRequest(detail="Version mismatch")
 
-            self.context.logger.debug(f'Extra debug: user {scim_id} as dict:\n{db_user.to_dict()}')
+            if not self._acceptable_linked_accounts(update_request.nutid_user_v1.linked_accounts):
+                raise BadRequest(detail='Invalid nutid linked_accounts')
+
+            self.context.logger.debug(f'Extra debug: db_user {scim_id} as dict:\n{pprint.pformat(db_user.to_dict())}')
 
             core_changed = False
             if SCIMSchema.CORE_20_USER in update_request.schemas:
@@ -176,6 +190,23 @@ class UsersResource(SCIMResource):
                     for profile_name, profile in update_request.nutid_user_v1.profiles.items():
                         db_profile = ScimApiProfile(attributes=profile.attributes, data=profile.data)
                         db_user.profiles[profile_name] = db_profile
+
+                # convert from one type of linked accounts to another
+                _db_linked_accounts = [
+                    ScimApiLinkedAccount(issuer=x.issuer, value=x.value, parameters=x.parameters)
+                    for x in update_request.nutid_user_v1.linked_accounts
+                ]
+
+                # Look for changes in linked_accounts
+                # if self._comparable_linked_accounts(_db_linked_accounts) != self._comparable_linked_accounts(
+                #    db_user.linked_accounts
+                # ):
+                if sorted(_db_linked_accounts, key=lambda x: x.value) != sorted(
+                    db_user.linked_accounts, key=lambda x: x.value
+                ):
+                    db_user.linked_accounts = _db_linked_accounts
+                    self.context.logger.info(f'Updated linked_accounts: {db_user.linked_accounts}')
+                    nutid_changed = True
 
             self.context.logger.debug(f'Core changed: {core_changed}, nutid_changed: {nutid_changed}')
             if core_changed or nutid_changed:
@@ -249,10 +280,19 @@ class UsersResource(SCIMResource):
             create_request: UserCreateRequest = UserCreateRequestSchema().load(req.media)
             self.context.logger.debug(create_request)
 
+            if not self._acceptable_linked_accounts(create_request.nutid_user_v1.linked_accounts):
+                raise BadRequest(detail='Invalid nutid linked_accounts')
+
+            # convert from one type of profiles to another
             profiles = {}
             for profile_name, profile in create_request.nutid_user_v1.profiles.items():
                 profiles[profile_name] = ScimApiProfile(attributes=profile.attributes, data=profile.data)
 
+            # convert from one type of linked accounts to another
+            linked_accounts = [
+                ScimApiLinkedAccount(issuer=x.issuer, value=x.value, parameters=x.parameters)
+                for x in create_request.nutid_user_v1.linked_accounts
+            ]
             db_user = ScimApiUser(
                 external_id=create_request.external_id,
                 name=ScimApiName(**asdict(create_request.name)),
@@ -260,6 +300,7 @@ class UsersResource(SCIMResource):
                 phone_numbers=[ScimApiPhoneNumber(**asdict(number)) for number in create_request.phone_numbers],
                 preferred_language=create_request.preferred_language,
                 profiles=profiles,
+                linked_accounts=linked_accounts,
             )
 
             self._save_user(req, db_user)
@@ -278,6 +319,24 @@ class UsersResource(SCIMResource):
         except ValidationError as e:
             raise BadRequest(detail=f"{e}")
 
+    @staticmethod
+    def _acceptable_linked_accounts(value: List[LinkedAccount]):
+        """
+        Setting linked_accounts through SCIM might very well be forbidden in the future,
+        but for now we allow setting a very limited value, to try out MFA step up using this.
+        """
+        for this in value:
+            if this.issuer not in ['eduid.se', 'dev.eduid.se']:
+                return False
+            if not this.value.endswith('@dev.eduid.se'):
+                return False
+            for param in this.parameters:
+                if param not in ['mfa_stepup']:
+                    return False
+                if not isinstance(this.parameters[param], bool):
+                    return False
+        return True
+
 
 class UsersSearchResource(BaseResource):
     def on_post(self, req: Request, resp: Response):
@@ -290,7 +349,6 @@ class UsersSearchResource(BaseResource):
              "schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"],
              "attributes": ["givenName", "familyName"],
              "filter": "id eq \"takaj-jorar\"",
-             "encryptionKey": "h026jGKrSW%2BTTekkA8Y8mv8%2FGqkGgAfLzaj3ucD3STQ"
              "startIndex": 1,
              "count": 1
            }

@@ -37,6 +37,9 @@ class LinkedAccount:
     value: str
     parameters: Dict[str, Any] = field(default_factory=dict)
 
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
 
 @dataclass(frozen=True)
 class NutidUserExtensionV1:
