@@ -133,7 +133,7 @@ def get_group_resource(api: str, scim_id: str, token: Optional[str] = None) -> O
     return scim_request(requests.get, f'{api}/Groups/{scim_id}', token=token)
 
 
-def put_user(api: str, scim_id: str, profiles: Mapping[str, Any], token: Optional[str] = None) -> None:
+def put_user(api: str, scim_id: str, nutid_data: Mapping[str, Any], token: Optional[str] = None) -> None:
     scim = get_user_resource(api, scim_id, token=token)
     if not scim:
         return
@@ -150,7 +150,8 @@ def put_user(api: str, scim_id: str, profiles: Mapping[str, Any], token: Optiona
     if 'profiles' not in scim[NUTID_USER_V1]:
         scim[NUTID_USER_V1]['profiles'] = {}
 
-    scim[NUTID_USER_V1]['profiles'] = profiles
+    for k, v in nutid_data.items():
+        scim[NUTID_USER_V1][k] = v
 
     headers = {'content-type': 'application/scim+json', 'if-match': meta["version"]}
 
@@ -261,7 +262,7 @@ def process_users(api: str, ops: Mapping[str, Any], token: Optional[str] = None)
                     logger.error(f'Unknown "user" search attribute {what}')
         elif op == 'put':
             for scim_id in ops[op]:
-                put_user(api, scim_id, ops[op][scim_id]['profiles'], token=token)
+                put_user(api, scim_id, ops[op][scim_id], token=token)
         else:
             logger.error(f'Unknown "user" operation {op}')
 
