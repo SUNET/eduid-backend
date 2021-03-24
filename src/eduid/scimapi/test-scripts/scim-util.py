@@ -116,6 +116,14 @@ def create_group(api: str, display_name: str, token: Optional[str] = None) -> Op
 def get_user_resource(api: str, scim_id: str, token: Optional[str] = None) -> Optional[Dict[str, Any]]:
     logger.debug(f'Fetching SCIM user resource {scim_id}')
 
+    if '@' in scim_id:
+        # lookup a user with this external_id
+        res = search_user(api, f'externalId eq "{scim_id}"', token=token)
+        if res.get('totalResults') != 1:
+            logger.error(f'No user found with externalId {scim_id}')
+            return None
+        scim_id = res['Resources'][0]['id']
+
     return scim_request(requests.get, f'{api}/Users/{scim_id}', token=token)
 
 
@@ -129,6 +137,9 @@ def put_user(api: str, scim_id: str, profiles: Mapping[str, Any], token: Optiona
     scim = get_user_resource(api, scim_id, token=token)
     if not scim:
         return
+
+    # Update scim_id from the fetched resource, in case it was an externalId
+    scim_id = scim['id']
 
     meta = scim.pop('meta')
 
