@@ -32,6 +32,13 @@ class Profile:
 
 
 @dataclass(frozen=True)
+class LinkedAccount:
+    issuer: str
+    value: str
+    parameters: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
 class NutidUserExtensionV1:
     profiles: Dict[str, Profile] = field(
         default_factory=dict,
@@ -40,6 +47,7 @@ class NutidUserExtensionV1:
             'required': False,
         },
     )
+    linked_accounts: List[LinkedAccount] = field(default_factory=list, metadata={'required': False})
 
 
 @dataclass(eq=True, frozen=True)
