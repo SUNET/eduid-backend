@@ -42,8 +42,8 @@ from eduid.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.common.api.messages import CommonMsg, error_response, success_response
 from eduid.common.api.schemas.base import FluxStandardAction
 from eduid.common.authn.utils import check_previous_identification
-from eduid.common.session import session
 from eduid.common.misc.tous import get_tous as common_get_tous
+from eduid.common.session import session
 from eduid.userdb.actions import Action
 from eduid.webapp.actions.app import current_actions_app as current_app
 from eduid.webapp.actions.helpers import ActionsMsg, get_next_action

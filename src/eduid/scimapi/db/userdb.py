@@ -21,7 +21,6 @@ from eduid.scimapi.db.common import (
 
 __author__ = 'ft'
 
-
 logger = logging.getLogger(__name__)
 
 
