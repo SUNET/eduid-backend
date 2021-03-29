@@ -5,11 +5,10 @@ from typing import Any, Dict, Mapping, Optional
 
 import satosa.context
 import satosa.internal
-from satosa.attribute_mapping import AttributeMapper
-from satosa.micro_services.base import ResponseMicroService
-
 from eduid.scimapi.db.userdb import ScimApiUser, ScimApiUserDB
 from eduid.userdb import UserDB
+from satosa.attribute_mapping import AttributeMapper
+from satosa.micro_services.base import ResponseMicroService
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +17,7 @@ logger = logging.getLogger(__name__)
 class Config(object):
     mongo_uri: str
     idp_to_data_owner: Mapping[str, str]
+    mfa_stepup_issuer_to_entity_id: Mapping[str, str]
 
 
 class ScimAttributes(ResponseMicroService):
@@ -71,6 +71,17 @@ class ScimAttributes(ResponseMicroService):
                     if _old != _new:
                         logger.debug(f'Changing attribute {_name} from {repr(_old)} to {repr(_new)}')
                         data.attributes[_name] = _new
+            # Look for a linked account suitable for use for MFA stepup (in the stepup plugin that runs after this one)
+            _stepup_accounts = []
+            for acc in user.linked_accounts:
+                logger.debug(f'Linked account: {acc}')
+                _entity_id = self.config.mfa_stepup_issuer_to_entity_id.get(acc.issuer)
+                if _entity_id and acc.parameters.get('mfa_stepup') == True:
+                    _stepup_accounts += [
+                        {'entity_id': _entity_id, 'identifier': acc.value, 'attribute': 'eduPersonPrincipalName'}
+                    ]
+            data.mfa_stepup_accounts = _stepup_accounts
+            logger.debug(f'MFA stepup accounts: {data.mfa_stepup_accounts}')
 
         return super().process(context, data)
 
