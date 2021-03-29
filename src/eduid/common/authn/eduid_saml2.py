@@ -32,7 +32,7 @@
 
 import logging
 import pprint
-from typing import Any, Mapping, Optional
+from typing import Any, List, Mapping, NewType, Optional
 from xml.etree.ElementTree import ParseError
 
 from flask import abort, redirect, request
@@ -42,7 +42,6 @@ from saml2.ident import decode
 from saml2.response import LogoutResponse, UnsolicitedResponse
 from werkzeug.wrappers import Response
 
-from eduid.common.api.app import EduIDBaseApp
 from eduid.common.api.utils import verify_relay_state
 from eduid.common.session import EduidSession, session
 from eduid.userdb import UserDB
@@ -59,7 +58,10 @@ class BadSAMLResponse(Exception):
     """Bad SAML response"""
 
 
-def get_authn_ctx(session_info):
+SessionInfo = NewType('SessionInfo', Mapping[str, Any])
+
+
+def get_authn_ctx(session_info: SessionInfo) -> Optional[str]:
     """
     Get the SAML2 AuthnContext of the currently logged in users session.
 
@@ -114,7 +116,7 @@ def get_authn_request(
     return info
 
 
-def get_authn_response(saml2_config: SPConfig, session: EduidSession, raw_response) -> Mapping:
+def get_authn_response(saml2_config: SPConfig, session: EduidSession, raw_response) -> SessionInfo:
     """
     Check a SAML response and return the 'session_info' pysaml2 dict.
 
@@ -173,7 +175,7 @@ def get_authn_response(saml2_config: SPConfig, session: EduidSession, raw_respon
     return session_info
 
 
-def authenticate(session_info: Mapping[str, Any], strip_suffix: Optional[str], userdb: UserDB) -> Optional[User]:
+def authenticate(session_info: SessionInfo, strip_suffix: Optional[str], userdb: UserDB) -> Optional[User]:
     """
     Locate a user using the identity found in the SAML assertion.
 
