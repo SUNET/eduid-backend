@@ -1,16 +1,16 @@
 import logging
-import logging
 import pprint
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Mapping, Optional, Set
 
 import satosa.context
 import satosa.internal
-from eduid.scimapi.db.userdb import ScimApiUser, ScimApiUserDB
-from eduid.userdb import UserDB
 from saml2.mdstore import MetaData
 from satosa.attribute_mapping import AttributeMapper
 from satosa.micro_services.base import ResponseMicroService
+
+from eduid.scimapi.db.userdb import ScimApiUser, ScimApiUserDB
+from eduid.userdb import UserDB
 
 logger = logging.getLogger(__name__)
 
