@@ -119,7 +119,7 @@ def get_user_resource(api: str, scim_id: str, token: Optional[str] = None) -> Op
     if '@' in scim_id:
         # lookup a user with this external_id
         res = search_user(api, f'externalId eq "{scim_id}"', token=token)
-        if res.get('totalResults') != 1:
+        if not res or res.get('totalResults') != 1:
             logger.error(f'No user found with externalId {scim_id}')
             return None
         scim_id = res['Resources'][0]['id']
