@@ -32,13 +32,17 @@ class ScimAttributes(ResponseMicroService):
         self.eduid_userdb = UserDB(db_uri=self.config.mongo_uri, db_name='eduid_scimapi')
         logger.info(f'Connected to eduid db: {self.eduid_userdb}')
         # TODO: Implement real 'data owner' to database lookup
-        data_owner = 'eduid.se'
-        _owner = data_owner.replace('.', '_')  # replace dots with underscores
-        coll = f'{_owner}__users'
-        # TODO: rename old collection and remove this
-        if data_owner == 'eduid.se':
-            coll = 'profiles'
-        self._userdbs = {'eduid.se': ScimApiUserDB(db_uri=self.config.mongo_uri, collection=coll, setup_indexes=False)}
+        self._userdbs = {}
+        data_owners = set(self.config.idp_to_data_owner.values())
+        for data_owner in data_owners:
+            _owner = data_owner.replace('.', '_')  # replace dots with underscores
+            coll = f'{_owner}__users'
+            # TODO: rename old collection and remove this
+            if data_owner == 'eduid.se':
+                coll = 'profiles'
+            self._userdbs[data_owner] = ScimApiUserDB(
+                db_uri=self.config.mongo_uri, collection=coll, setup_indexes=False
+            )
         self.converter = AttributeMapper(internal_attributes)
         # Get the internal attribute name for the eduPersonPrincipalName that will be
         # used to find users in the SCIM database
