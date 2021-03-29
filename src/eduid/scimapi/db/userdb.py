@@ -44,6 +44,7 @@ class ScimApiUser(ScimApiResourceBase):
         res['_id'] = res.pop('user_id')
         res['emails'] = [email.to_dict() for email in self.emails]
         res['phone_numbers'] = [phone_number.to_dict() for phone_number in self.phone_numbers]
+        res['linked_accounts'] = [acc.to_dict() for acc in self.linked_accounts]
         return res
 
     @classmethod

@@ -15,7 +15,7 @@ from eduid.common.api.helpers import verify_nin_for_user
 from eduid.common.api.messages import CommonMsg, redirect_with_msg
 from eduid.common.api.utils import save_and_sync_user, urlappend, verify_relay_state
 from eduid.common.authn.acs_registry import acs_action
-from eduid.common.authn.eduid_saml2 import get_authn_ctx
+from eduid.common.authn.eduid_saml2 import SessionInfo, get_authn_ctx
 from eduid.common.authn.utils import get_saml_attribute
 from eduid.common.session import session
 
@@ -40,7 +40,7 @@ class EidasAcsAction(Enum):
 
 @acs_action(EidasAcsAction.token_verify)
 @require_user
-def token_verify_action(session_info: Mapping[str, Any], user: User) -> WerkzeugResponse:
+def token_verify_action(session_info: SessionInfo, user: User) -> WerkzeugResponse:
     """
     Use a Sweden Connect federation IdP assertion to verify a users MFA token and, if necessary,
     the users identity.
@@ -93,6 +93,10 @@ def token_verify_action(session_info: Mapping[str, Any], user: User) -> Werkzeug
     issuer = session_info['issuer']
     current_app.logger.debug('Issuer: {}'.format(issuer))
     authn_context = get_authn_ctx(session_info)
+    if not authn_context:
+        current_app.logger.error('No authn context in session_info')
+        return redirect_with_msg(redirect_url, EidasMsg.authn_context_mismatch)
+
     current_app.logger.debug('Authn context: {}'.format(authn_context))
     try:
         user_address = current_app.msg_relay.get_postal_address(user_nin.number)
@@ -132,7 +136,7 @@ def token_verify_action(session_info: Mapping[str, Any], user: User) -> Werkzeug
 
 @acs_action(EidasAcsAction.nin_verify)
 @require_user
-def nin_verify_action(session_info: Mapping[str, Any], user: User) -> WerkzeugResponse:
+def nin_verify_action(session_info: SessionInfo, user: User) -> WerkzeugResponse:
     """
     Use a Sweden Connect federation IdP assertion to verify a users identity.
 
@@ -168,6 +172,10 @@ def nin_verify_action(session_info: Mapping[str, Any], user: User) -> WerkzeugRe
     # Create a proofing log
     issuer = session_info['issuer']
     authn_context = get_authn_ctx(session_info)
+    if not authn_context:
+        current_app.logger.error('No authn context in session_info')
+        return redirect_with_msg(redirect_url, EidasMsg.authn_context_mismatch)
+
     try:
         user_address = current_app.msg_relay.get_postal_address(asserted_nin)
     except MsgTaskFailed as e:
@@ -262,7 +270,7 @@ def nin_verify_BACKDOOR(user: User) -> WerkzeugResponse:
 
 @acs_action(EidasAcsAction.mfa_authn)
 @require_user
-def mfa_authentication_action(session_info: Mapping[str, Any], user: User) -> WerkzeugResponse:
+def mfa_authentication_action(session_info: SessionInfo, user: User) -> WerkzeugResponse:
     relay_state = request.form.get('RelayState')
     current_app.logger.debug('RelayState: {}'.format(relay_state))
     redirect_url = None

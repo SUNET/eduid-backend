@@ -116,6 +116,14 @@ def create_group(api: str, display_name: str, token: Optional[str] = None) -> Op
 def get_user_resource(api: str, scim_id: str, token: Optional[str] = None) -> Optional[Dict[str, Any]]:
     logger.debug(f'Fetching SCIM user resource {scim_id}')
 
+    if '@' in scim_id:
+        # lookup a user with this external_id
+        res = search_user(api, f'externalId eq "{scim_id}"', token=token)
+        if not res or res.get('totalResults') != 1:
+            logger.error(f'No user found with externalId {scim_id}')
+            return None
+        scim_id = res['Resources'][0]['id']
+
     return scim_request(requests.get, f'{api}/Users/{scim_id}', token=token)
 
 
@@ -125,10 +133,13 @@ def get_group_resource(api: str, scim_id: str, token: Optional[str] = None) -> O
     return scim_request(requests.get, f'{api}/Groups/{scim_id}', token=token)
 
 
-def put_user(api: str, scim_id: str, profiles: Mapping[str, Any], token: Optional[str] = None) -> None:
+def put_user(api: str, scim_id: str, nutid_data: Mapping[str, Any], token: Optional[str] = None) -> None:
     scim = get_user_resource(api, scim_id, token=token)
     if not scim:
         return
+
+    # Update scim_id from the fetched resource, in case it was an externalId
+    scim_id = scim['id']
 
     meta = scim.pop('meta')
 
@@ -139,7 +150,8 @@ def put_user(api: str, scim_id: str, profiles: Mapping[str, Any], token: Optiona
     if 'profiles' not in scim[NUTID_USER_V1]:
         scim[NUTID_USER_V1]['profiles'] = {}
 
-    scim[NUTID_USER_V1]['profiles'] = profiles
+    for k, v in nutid_data.items():
+        scim[NUTID_USER_V1][k] = v
 
     headers = {'content-type': 'application/scim+json', 'if-match': meta["version"]}
 
@@ -250,7 +262,7 @@ def process_users(api: str, ops: Mapping[str, Any], token: Optional[str] = None)
                     logger.error(f'Unknown "user" search attribute {what}')
         elif op == 'put':
             for scim_id in ops[op]:
-                put_user(api, scim_id, ops[op][scim_id]['profiles'], token=token)
+                put_user(api, scim_id, ops[op][scim_id], token=token)
         else:
             logger.error(f'Unknown "user" operation {op}')
 

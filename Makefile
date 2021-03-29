@@ -4,7 +4,7 @@ SOURCE=		$(SRCDIR)/eduid
 PIPCOMPILE=	pip-compile -v --generate-hashes --index-url https://pypi.sunet.se/simple
 
 test:
-	PYTHONPATH=$(SRCDIR) pytest --log-cli-level DEBUG
+	PYTHONPATH=$(SRCDIR) pytest -vvv -ra --log-cli-level DEBUG
 
 reformat:
 	isort --line-width 120 --atomic --project eduid $(SOURCE)
