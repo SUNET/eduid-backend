@@ -32,15 +32,10 @@
 #
 import logging
 import os
-from typing import Any, Dict, Optional
 
-from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig
 from eduid.common.config.testing import EtcdTemporaryInstance
-from eduid.common.config.workers import AmConfig
 from eduid.common.logging import LocalContext, make_dictConfig
-from eduid.common.rpc.am_relay import AmRelay
-from eduid.userdb.testing import MongoTemporaryInstance, MongoTestCase
-from eduid.workers.am.common import AmCelerySingleton
+from eduid.userdb.testing import MongoTestCase
 
 logger = logging.getLogger(__name__)
 
@@ -71,46 +66,3 @@ class CommonTestCase(MongoTestCase):
         )
         logging_config = make_dictConfig(local_context)
         logging.config.dictConfig(logging_config)
-
-
-class AmTestConfig(EduIDBaseAppConfig, AmConfigMixin):
-    pass
-
-
-class WorkerTestCase(CommonTestCase):
-    """
-    Base Test case for eduID celery workers
-    """
-
-    def setUp(self, *args, am_settings: Optional[Dict[str, Any]] = None, want_mongo_uri: bool = True, **kwargs):
-        """
-        set up tests
-        """
-        super().setUp(*args, **kwargs)
-
-        settings = {
-            'app_name': 'testing',
-            'celery': {
-                'broker_transport': 'memory',
-                'broker_url': 'memory://',
-                'task_eager_propagates': True,
-                'task_always_eager': True,
-                'result_backend': 'cache',
-                'cache_backend': 'memory',
-            },
-            # Be sure to NOT tell AttributeManager about the temporary mongodb instance.
-            # If we do, one or more plugins may open DB connections that never gets closed.
-            'mongo_uri': None,
-            'token_service_url': 'foo',
-        }
-
-        if am_settings:
-            settings.update(am_settings)
-        if want_mongo_uri:
-            assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
-            settings['mongo_uri'] = self.tmp_db.uri
-
-        am_config = AmTestConfig(**settings)
-        AmCelerySingleton.update_worker_config(AmConfig(**settings))
-
-        self.am_relay = AmRelay(am_config)

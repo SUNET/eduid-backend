@@ -38,14 +38,19 @@ __author__ = 'leifj'
 
 import logging
 from copy import deepcopy
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import bson
 import pytest
 
+from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig
+from eduid.common.config.workers import AmConfig
+from eduid.common.rpc.am_relay import AmRelay
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.proofing import ProofingUser
-from eduid.webapp.common.api.testing_base import WorkerTestCase
+from eduid.userdb.testing import MongoTemporaryInstance
+from eduid.webapp.common.api.testing_base import CommonTestCase
+from eduid.workers.am import AmCelerySingleton
 from eduid.workers.am.ams import AttributeFetcher
 from eduid.workers.am.common import AmCelerySingleton
 
@@ -93,6 +98,49 @@ USER_DATA = {
         'created_by': 'orcid',
     },
 }
+
+
+class AmTestConfig(EduIDBaseAppConfig, AmConfigMixin):
+    pass
+
+
+class WorkerTestCase(CommonTestCase):
+    """
+    Base Test case for eduID celery workers
+    """
+
+    def setUp(self, *args, am_settings: Optional[Dict[str, Any]] = None, want_mongo_uri: bool = True, **kwargs):
+        """
+        set up tests
+        """
+        super().setUp(*args, **kwargs)
+
+        settings = {
+            'app_name': 'testing',
+            'celery': {
+                'broker_transport': 'memory',
+                'broker_url': 'memory://',
+                'task_eager_propagates': True,
+                'task_always_eager': True,
+                'result_backend': 'cache',
+                'cache_backend': 'memory',
+            },
+            # Be sure to NOT tell AttributeManager about the temporary mongodb instance.
+            # If we do, one or more plugins may open DB connections that never gets closed.
+            'mongo_uri': None,
+            'token_service_url': 'foo',
+        }
+
+        if am_settings:
+            settings.update(am_settings)
+        if want_mongo_uri:
+            assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
+            settings['mongo_uri'] = self.tmp_db.uri
+
+        am_config = AmTestConfig(**settings)
+        AmCelerySingleton.update_worker_config(AmConfig(**settings))
+
+        self.am_relay = AmRelay(am_config)
 
 
 class AMTestCase(WorkerTestCase):
