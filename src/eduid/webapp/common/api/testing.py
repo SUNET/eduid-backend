@@ -44,12 +44,12 @@ from flask import Response
 from flask.testing import FlaskClient
 
 from eduid.common.config.base import RedisConfig
+from eduid.common.testing_base import CommonTestCase
 from eduid.userdb import User
 from eduid.userdb.db import BaseDB
 from eduid.userdb.fixtures.users import new_completed_signup_user_example, new_unverified_user_example, new_user_example
 from eduid.userdb.testing import MongoTemporaryInstance
 from eduid.webapp.common.api.messages import TranslatableMsg
-from eduid.webapp.common.api.testing_base import CommonTestCase
 from eduid.webapp.common.session import EduidSession
 from eduid.webapp.common.session.testing import RedisTemporaryInstance
 

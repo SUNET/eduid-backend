@@ -46,11 +46,10 @@ import pytest
 from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig
 from eduid.common.config.workers import AmConfig
 from eduid.common.rpc.am_relay import AmRelay
+from eduid.common.testing_base import CommonTestCase
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.testing import MongoTemporaryInstance
-from eduid.webapp.common.api.testing_base import CommonTestCase
-from eduid.workers.am import AmCelerySingleton
 from eduid.workers.am.ams import AttributeFetcher
 from eduid.workers.am.common import AmCelerySingleton
 
