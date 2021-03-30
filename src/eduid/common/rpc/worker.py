@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 from typing import Type, TypeVar
 
-from eduid.common.config.workers import WorkerConfig
 from eduid.common.config.exceptions import BadConfiguration
 from eduid.common.config.parsers import load_config
+from eduid.common.config.workers import WorkerConfig
 
 TWorkerConfigSubclass = TypeVar('TWorkerConfigSubclass', bound=WorkerConfig)
 

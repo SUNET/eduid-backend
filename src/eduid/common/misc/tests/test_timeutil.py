@@ -1,6 +1,6 @@
 import unittest
 
-from eduid.webapp.common.misc.timeutil import utc_now
+from eduid.common.misc.timeutil import utc_now
 
 
 class TimeUtilTests(unittest.TestCase):

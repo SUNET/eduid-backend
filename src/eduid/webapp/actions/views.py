@@ -38,6 +38,7 @@ import json
 from flask import Blueprint, abort, redirect, render_template, request, url_for
 from six.moves.urllib_parse import urlsplit, urlunsplit
 
+from eduid.common.misc.tous import get_tous as common_get_tous
 from eduid.userdb.actions import Action
 from eduid.webapp.actions.app import current_actions_app as current_app
 from eduid.webapp.actions.helpers import ActionsMsg, get_next_action
@@ -46,7 +47,6 @@ from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.messages import CommonMsg, error_response, success_response
 from eduid.webapp.common.api.schemas.base import FluxStandardAction
 from eduid.webapp.common.authn.utils import check_previous_identification
-from eduid.webapp.common.misc.tous import get_tous as common_get_tous
 from eduid.webapp.common.session import session
 
 actions_views = Blueprint('actions', __name__, url_prefix='', template_folder='templates')

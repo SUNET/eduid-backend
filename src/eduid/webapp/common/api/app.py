@@ -48,6 +48,7 @@ from eduid.common.config.base import EduIDBaseAppConfig, FlaskConfig
 from eduid.common.config.exceptions import BadConfiguration
 from eduid.common.config.parsers.etcd import EtcdConfigParser
 from eduid.common.logging import init_logging
+from eduid.common.stats import init_app_stats
 from eduid.userdb import UserDB
 from eduid.webapp.common.api.checks import (
     CheckResult,
@@ -67,7 +68,6 @@ from eduid.webapp.common.api.request import Request
 from eduid.webapp.common.api.utils import init_template_functions
 from eduid.webapp.common.authn.utils import no_authn_views
 from eduid.webapp.common.session.eduid_session import SessionFactory
-from eduid.webapp.common.stats import init_app_stats
 
 DEBUG = os.environ.get('EDUID_APP_DEBUG', False)
 if DEBUG:

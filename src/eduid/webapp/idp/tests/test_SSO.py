@@ -39,15 +39,14 @@ from typing import Mapping, Optional, Sequence
 
 import saml2.server
 import saml2.time_util
-from bson import ObjectId
 from saml2.authn_context import PASSWORDPROTECTEDTRANSPORT
 from saml2.s_utils import UnravelError
 from werkzeug.exceptions import BadRequest, Forbidden
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, U2F, Credential, Password
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.nin import Nin, NinList
-from eduid.webapp.common.misc.timeutil import utc_now
 from eduid.webapp.common.session.logindata import ExternalMfaData, SSOLoginData
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.idp_saml import IdP_SAMLRequest

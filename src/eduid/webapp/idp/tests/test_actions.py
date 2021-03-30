@@ -38,7 +38,6 @@ from datetime import datetime
 from typing import cast
 
 import bson
-import pkg_resources
 from mock import patch
 
 from vccs_client import VCCSClient
@@ -46,7 +45,6 @@ from vccs_client import VCCSClient
 from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.tou import ToUEvent
-from eduid.webapp.common.misc.timeutil import utc_now
 from eduid.webapp.common.session.logindata import SSOLoginData
 from eduid.webapp.idp.mfa_action import RESULT_CREDENTIAL_KEY_NAME
 from eduid.webapp.idp.mfa_action import add_actions as mfa_add_actions
