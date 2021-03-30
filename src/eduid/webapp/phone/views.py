@@ -36,16 +36,16 @@ from typing import Optional
 
 from flask import Blueprint, abort, request
 
-from eduid.common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid.common.api.exceptions import MsgTaskFailed
-from eduid.common.api.helpers import check_magic_cookie
-from eduid.common.api.messages import CommonMsg, FluxData, error_response, success_response
-from eduid.common.api.utils import save_and_sync_user
 from eduid.userdb import User
 from eduid.userdb.element import PrimaryElementViolation, UserDBValueError
 from eduid.userdb.exceptions import DocumentDoesNotExist, UserOutOfSync
 from eduid.userdb.phone import PhoneNumber
 from eduid.userdb.proofing import ProofingUser
+from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
+from eduid.webapp.common.api.exceptions import MsgTaskFailed
+from eduid.webapp.common.api.helpers import check_magic_cookie
+from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
+from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.phone.app import current_phone_app as current_app
 from eduid.webapp.phone.helpers import PhoneMsg
 from eduid.webapp.phone.schemas import PhoneResponseSchema, PhoneSchema, SimplePhoneSchema, VerificationCodeSchema

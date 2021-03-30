@@ -35,10 +35,9 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid.common.api.app import EduIDBaseApp
-from eduid.common.authn.utils import no_authn_views
-from eduid.common.config.base import FlaskConfig
 from eduid.common.config.parsers import load_config
+from eduid.webapp.common.api.app import EduIDBaseApp
+from eduid.webapp.common.authn.utils import no_authn_views
 from eduid.webapp.jsconfig.settings.common import JSConfigConfig
 from eduid.webapp.jsconfig.settings.front import FrontConfig
 

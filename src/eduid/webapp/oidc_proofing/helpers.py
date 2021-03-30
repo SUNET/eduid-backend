@@ -11,13 +11,13 @@ from flask import render_template
 from flask_babel import gettext as _
 from oic.oic import ClaimsRequest
 
-from eduid.common.api.helpers import number_match_proofing, verify_nin_for_user
-from eduid.common.api.messages import TranslatableMsg
-from eduid.common.api.utils import get_unique_hash
 from eduid.userdb import User
 from eduid.userdb.logs import SeLegProofing, SeLegProofingFrejaEid
 from eduid.userdb.proofing import OidcProofingState, ProofingUser
 from eduid.userdb.proofing.element import NinProofingElement
+from eduid.webapp.common.api.helpers import number_match_proofing, verify_nin_for_user
+from eduid.webapp.common.api.messages import TranslatableMsg
+from eduid.webapp.common.api.utils import get_unique_hash
 from eduid.webapp.oidc_proofing.app import current_oidcp_app as current_app
 
 __author__ = 'lundberg'

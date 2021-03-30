@@ -32,9 +32,9 @@
 #
 from marshmallow import fields
 
-from eduid.common.api.schemas.base import EduidSchema, FluxStandardAction
-from eduid.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
-from eduid.common.api.schemas.email import LowercaseEmail
+from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
+from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
+from eduid.webapp.common.api.schemas.email import LowercaseEmail
 
 __author__ = 'eperez'
 

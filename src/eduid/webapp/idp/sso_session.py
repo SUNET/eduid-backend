@@ -41,9 +41,9 @@ from typing import Any, Dict, List, Mapping, NewType, Optional, Type
 import bson
 from bson import ObjectId
 
-from eduid.common.misc.timeutil import utc_now
-from eduid.common.session.logindata import ExternalMfaData
 from eduid.userdb.idp import IdPUser, IdPUserDb
+from eduid.webapp.common.misc.timeutil import utc_now
+from eduid.webapp.common.session.logindata import ExternalMfaData
 from eduid.webapp.idp.idp_authn import AuthnData
 
 # A distinct type for session ids

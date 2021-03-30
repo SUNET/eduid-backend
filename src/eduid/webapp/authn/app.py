@@ -34,10 +34,10 @@ from typing import Any, Mapping, Optional
 
 from flask import current_app
 
-from eduid.common.api.app import EduIDBaseApp
-from eduid.common.authn.utils import get_saml2_config
 from eduid.common.config.parsers import load_config
 from eduid.webapp.authn.settings.common import AuthnConfig
+from eduid.webapp.common.api.app import EduIDBaseApp
+from eduid.webapp.common.authn.utils import get_saml2_config
 
 
 class AuthnApp(EduIDBaseApp):

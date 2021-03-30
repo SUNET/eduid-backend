@@ -7,10 +7,10 @@ from typing import Any, Dict, Mapping, Optional, Type
 import yaml
 
 from eduid.common.config.base import FlaskConfig, TRootConfigSubclass
-from eduid.common.config.parsers.base import BaseConfigParser
 
 __author__ = 'ft'
 
+from eduid.common.config.parsers.base import BaseConfigParser
 from eduid.common.config.parsers.exceptions import ParserException
 
 
@@ -64,7 +64,7 @@ def _choose_parser(app_name: str, ns: str) -> Optional[BaseConfigParser]:
     Choose a parser to use for this app.
 
     Do local imports accordingly to not make etcd, yaml etc. mandatory requirements for
-    all users of eduid-common.
+    all users of eduid.webapp.common.
 
     :param app_name: Name of the application
     :param ns: Namespace for the application

@@ -36,9 +36,6 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid.common.api import translation
-from eduid.common.authn.middleware import AuthnBaseApp
-from eduid.common.authn.utils import no_authn_views
 from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.common.rpc.mail_relay import MailRelay
@@ -46,6 +43,9 @@ from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.userdb.authninfo import AuthnInfoDB
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.security import PasswordResetStateDB, SecurityUserDB
+from eduid.webapp.common.api import translation
+from eduid.webapp.common.authn.middleware import AuthnBaseApp
+from eduid.webapp.common.authn.utils import no_authn_views
 from eduid.webapp.security.settings.common import SecurityConfig
 
 

@@ -40,12 +40,12 @@ from bson import ObjectId
 from fido2.server import Fido2Server
 from mock import patch
 
-from eduid.common.session import session
 from eduid.userdb.credentials import U2F
 from eduid.userdb.fixtures.users import mocked_user_standard
 from eduid.webapp.actions.actions.mfa import Plugin
 from eduid.webapp.actions.helpers import ActionsMsg
 from eduid.webapp.actions.testing import ActionsTestCase, MockIdPContext
+from eduid.webapp.common.session import session
 
 __author__ = 'ft'
 
@@ -132,7 +132,7 @@ class MFAActionPluginTests(ActionsTestCase):
             response = self.app.dispatch_request()
             return json.loads(response.data)
 
-    @patch('eduid.common.authn.fido_tokens.complete_authentication')
+    @patch('eduid.webapp.common.authn.fido_tokens.complete_authentication')
     def _action(
         self,
         mock_complete_authn,
@@ -247,7 +247,7 @@ class MFAActionPluginTests(ActionsTestCase):
             response, type_='POST_ACTIONS_POST_ACTION_FAIL', error={'csrf_token': ['CSRF failed to validate'],},
         )
 
-    @patch('eduid.common.authn.fido_tokens.complete_authentication')
+    @patch('eduid.webapp.common.authn.fido_tokens.complete_authentication')
     def test_action_webauthn_legacy_token(self, mock_complete_authn):
         # mock_complete_authn.return_value = ({'keyHandle': 'test_key_handle'},
         #        'dummy-touch', 'dummy-counter')

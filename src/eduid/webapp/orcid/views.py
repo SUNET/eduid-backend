@@ -5,13 +5,13 @@ from flask import Blueprint, redirect, request, url_for
 from oic.oic.message import AuthorizationResponse, Claims, ClaimsRequest
 from six.moves.urllib_parse import urlencode
 
-from eduid.common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid.common.api.messages import CommonMsg, redirect_with_msg
-from eduid.common.api.schemas.csrf import CSRFRequest
-from eduid.common.api.utils import get_unique_hash, save_and_sync_user
 from eduid.userdb.logs import OrcidProofing
 from eduid.userdb.orcid import OidcAuthorization, OidcIdToken, Orcid
 from eduid.userdb.proofing import OrcidProofingState, ProofingUser
+from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
+from eduid.webapp.common.api.messages import CommonMsg, redirect_with_msg
+from eduid.webapp.common.api.schemas.csrf import CSRFRequest
+from eduid.webapp.common.api.utils import get_unique_hash, save_and_sync_user
 from eduid.webapp.orcid.app import current_orcid_app as current_app
 from eduid.webapp.orcid.helpers import OrcidMsg
 from eduid.webapp.orcid.schemas import OrcidResponseSchema

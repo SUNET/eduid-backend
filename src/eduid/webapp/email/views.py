@@ -35,15 +35,15 @@
 from flask import Blueprint, abort, request
 from marshmallow import ValidationError
 
-from eduid.common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid.common.api.helpers import check_magic_cookie
-from eduid.common.api.messages import CommonMsg, error_response, redirect_with_msg, success_response
-from eduid.common.api.utils import save_and_sync_user
 from eduid.userdb.element import DuplicateElementViolation, PrimaryElementViolation
 from eduid.userdb.exceptions import DocumentDoesNotExist, UserOutOfSync
 from eduid.userdb.mail import MailAddress
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.user import User
+from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
+from eduid.webapp.common.api.helpers import check_magic_cookie
+from eduid.webapp.common.api.messages import CommonMsg, error_response, redirect_with_msg, success_response
+from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.email.app import current_email_app as current_app
 from eduid.webapp.email.helpers import EmailMsg
 from eduid.webapp.email.schemas import (

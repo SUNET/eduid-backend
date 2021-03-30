@@ -32,7 +32,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 from typing import Any, Dict, Mapping
 
-from eduid.common.api.testing import EduidAPITestCase
+from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.support.app import SupportApp, support_init_app
 
 __author__ = 'lundberg'

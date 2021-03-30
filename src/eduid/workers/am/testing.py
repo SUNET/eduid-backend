@@ -43,9 +43,9 @@ from typing import Optional
 import bson
 import pytest
 
-from eduid.common.api.testing_base import WorkerTestCase
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.proofing import ProofingUser
+from eduid.webapp.common.api.testing_base import WorkerTestCase
 from eduid.workers.am.ams import AttributeFetcher
 from eduid.workers.am.common import AmCelerySingleton
 

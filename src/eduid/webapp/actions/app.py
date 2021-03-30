@@ -37,11 +37,11 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid.common.api.app import EduIDBaseApp
 from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.userdb.actions import ActionDB
 from eduid.webapp.actions.settings.common import ActionsConfig
+from eduid.webapp.common.api.app import EduIDBaseApp
 
 
 class PluginsRegistry(dict):

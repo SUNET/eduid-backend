@@ -34,13 +34,13 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid.common.api import translation
-from eduid.common.authn.middleware import AuthnBaseApp
 from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.proofing import LetterProofingStateDB, LetterProofingUserDB
+from eduid.webapp.common.api import translation
+from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.letter_proofing.ekopost import Ekopost
 from eduid.webapp.letter_proofing.settings.common import LetterProofingConfig
 

@@ -11,9 +11,9 @@ from celery.utils.log import get_task_logger
 from hammock import Hammock
 from smscom import SMSClient
 
-from eduid.common.api.decorators import deprecated
 from eduid.common.config.base import EduidEnvironment
 from eduid.userdb.exceptions import ConnectionError
+from eduid.webapp.common.api.decorators import deprecated
 from eduid.workers.msg.cache import CacheMDB
 from eduid.workers.msg.common import MsgCelerySingleton
 from eduid.workers.msg.decorators import TransactionAudit

@@ -3,8 +3,8 @@ import logging
 from typing import List
 
 import eduid.workers.msg
-from eduid.common.api.exceptions import MsgTaskFailed
 from eduid.common.config.base import MsgConfigMixin
+from eduid.webapp.common.api.exceptions import MsgTaskFailed
 
 __author__ = 'lundberg'
 

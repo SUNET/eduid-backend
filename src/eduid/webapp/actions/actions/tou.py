@@ -37,13 +37,13 @@ from datetime import datetime
 from bson import ObjectId
 from flask import request
 
-from eduid.common.misc.tous import get_tous
 from eduid.userdb.actions import Action
 from eduid.userdb.actions.tou import ToUUser, ToUUserDB
 from eduid.userdb.tou import ToUEvent
 from eduid.webapp.actions.action_abc import ActionPlugin
 from eduid.webapp.actions.app import current_actions_app as current_app
 from eduid.webapp.actions.helpers import ActionsMsg
+from eduid.webapp.common.misc.tous import get_tous
 
 
 class Plugin(ActionPlugin):

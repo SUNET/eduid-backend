@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 from dataclasses import dataclass
-from typing import Any, Dict
 
 from bson import ObjectId
 

@@ -3,8 +3,6 @@ from __future__ import absolute_import
 from bson import ObjectId
 
 import eduid.userdb
-from eduid.common.config.base import FlaskConfig
-from eduid.common.config.workers import AmConfig
 from eduid.userdb.exceptions import EduIDUserDBError, MultipleUsersReturned, UserDoesNotExist
 from eduid.userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
 from eduid.userdb.locked_identity import LockedIdentityList, LockedIdentityNin

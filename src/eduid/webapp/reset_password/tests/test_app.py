@@ -37,13 +37,13 @@ from urllib.parse import quote_plus
 
 from flask import url_for
 
-from eduid.common.api.testing import EduidAPITestCase
-from eduid.common.authn.testing import TestVCCSClient
-from eduid.common.authn.tests.test_fido_tokens import SAMPLE_WEBAUTHN_REQUEST
 from eduid.userdb.credentials import Password, Webauthn
 from eduid.userdb.exceptions import DocumentDoesNotExist, UserHasNotCompletedSignup
 from eduid.userdb.fixtures.fido_credentials import webauthn_credential as sample_credential
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState
+from eduid.webapp.common.api.testing import EduidAPITestCase
+from eduid.webapp.common.authn.testing import TestVCCSClient
+from eduid.webapp.common.authn.tests.test_fido_tokens import SAMPLE_WEBAUTHN_REQUEST
 from eduid.webapp.reset_password.app import ResetPasswordApp, init_reset_password_app
 from eduid.webapp.reset_password.helpers import (
     ResetPwMsg,
@@ -152,7 +152,7 @@ class ResetPasswordTests(EduidAPITestCase):
                 data.update(data2)
             return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch('eduid.common.authn.vccs.get_vccs_client')
+    @patch('eduid.webapp.common.authn.vccs.get_vccs_client')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def _post_reset_password(
         self,
@@ -204,7 +204,7 @@ class ResetPasswordTests(EduidAPITestCase):
 
             return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch('eduid.common.authn.vccs.get_vccs_client')
+    @patch('eduid.webapp.common.authn.vccs.get_vccs_client')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
     def _post_choose_extra_sec(
@@ -268,7 +268,7 @@ class ResetPasswordTests(EduidAPITestCase):
                 response = c.post(extra_security_phone_url, data=json.dumps(data), content_type=self.content_type_json)
             return response
 
-    @patch('eduid.common.authn.vccs.get_vccs_client')
+    @patch('eduid.webapp.common.authn.vccs.get_vccs_client')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
     def _post_reset_password_secure_phone(
@@ -326,7 +326,7 @@ class ResetPasswordTests(EduidAPITestCase):
 
         return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch('eduid.common.authn.vccs.get_vccs_client')
+    @patch('eduid.webapp.common.authn.vccs.get_vccs_client')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     @patch('fido2.cose.ES256.verify')
     def _post_reset_password_secure_token(
@@ -416,7 +416,7 @@ class ResetPasswordTests(EduidAPITestCase):
             eppn = quote_plus(self.test_user_eppn)
             return client.get(f'/get-email-code?eppn={eppn}')
 
-    @patch('eduid.common.authn.vccs.get_vccs_client')
+    @patch('eduid.webapp.common.authn.vccs.get_vccs_client')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
     def _get_phone_code_backdoor(
@@ -504,7 +504,7 @@ class ResetPasswordTests(EduidAPITestCase):
         self.assertEqual(state.email_address, 'johnsmith@example.com')
 
     def test_post_email_address_sendmail_fail(self):
-        from eduid.common.api.exceptions import MailTaskFailed
+        from eduid.webapp.common.api.exceptions import MailTaskFailed
 
         response = self._post_email_address(sendmail_return=False, sendmail_side_effect=MailTaskFailed)
         self._check_error_response(response, msg=ResetPwMsg.email_send_failure, type_='POST_RESET_PASSWORD_FAIL')
@@ -655,7 +655,7 @@ class ResetPasswordTests(EduidAPITestCase):
 
     def test_post_choose_extra_sec_sms_fail(self):
         self.app.conf.throttle_sms_seconds = 300
-        from eduid.common.api.exceptions import MsgTaskFailed
+        from eduid.webapp.common.api.exceptions import MsgTaskFailed
 
         response = self._post_choose_extra_sec(sendsms_side_effect=MsgTaskFailed())
         self._check_error_response(

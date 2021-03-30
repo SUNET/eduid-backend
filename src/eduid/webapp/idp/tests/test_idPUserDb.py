@@ -43,16 +43,16 @@ from mock import patch
 import vccs_client
 from vccs_client import VCCSClient
 
-import eduid.common.authn
 import eduid.userdb
-from eduid.common.api import exceptions
+import eduid.webapp.common.authn
 from eduid.userdb.idp import IdPUser
+from eduid.webapp.common.api import exceptions
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.tests.test_app import IdPTests
 
 logger = logging.getLogger(__name__)
 
-eduid.common.authn.TESTING = True
+eduid.webapp.common.authn.TESTING = True
 
 
 class TestIdPUserDb(IdPTests):

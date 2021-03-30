@@ -3,14 +3,14 @@
 import time
 from enum import unique
 
-from eduid.common.api.helpers import check_magic_cookie
-from eduid.common.api.messages import TranslatableMsg
-from eduid.common.rpc.lookup_mobile_relay import LookupMobileTaskFailed
 from eduid.userdb import User
 from eduid.userdb.logs import TeleAdressProofing, TeleAdressProofingRelation
 from eduid.userdb.proofing.element import NinProofingElement
 from eduid.userdb.proofing.state import NinProofingState
 from eduid.userdb.proofing.user import ProofingUser
+from eduid.webapp.common.api.helpers import check_magic_cookie
+from eduid.webapp.common.api.messages import TranslatableMsg
+from eduid.common.rpc.lookup_mobile_relay import LookupMobileTaskFailed
 from eduid.webapp.lookup_mobile_proofing.app import current_mobilep_app as current_app
 from eduid.workers.lookup_mobile.utilities import format_NIN
 

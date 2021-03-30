@@ -34,12 +34,12 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid.common.api import oidc
-from eduid.common.authn.middleware import AuthnBaseApp
 from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.proofing import OrcidProofingStateDB, OrcidProofingUserDB
+from eduid.webapp.common.api import oidc
+from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.orcid.settings.common import OrcidConfig
 
 __author__ = 'lundberg'

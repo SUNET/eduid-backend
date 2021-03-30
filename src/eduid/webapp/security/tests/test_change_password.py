@@ -5,7 +5,7 @@ from typing import Any, Dict, Mapping, Optional
 from unittest import skip
 from unittest.mock import patch
 
-from eduid.common.api.testing import EduidAPITestCase
+from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.security.app import SecurityApp, security_init_app
 from eduid.webapp.security.helpers import SecurityMsg
 
@@ -116,9 +116,9 @@ class ChangePasswordTests(EduidAPITestCase):
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.app.test_request_context():
             with self.session_cookie(self.browser, eppn) as client:
-                with patch('eduid.common.authn.vccs.VCCSClient.add_credentials', return_value=True):
-                    with patch('eduid.common.authn.vccs.VCCSClient.revoke_credentials', return_value=True):
-                        with patch('eduid.common.authn.vccs.VCCSClient.authenticate', return_value=authenticate):
+                with patch('eduid.webapp.common.authn.vccs.VCCSClient.add_credentials', return_value=True):
+                    with patch('eduid.webapp.common.authn.vccs.VCCSClient.revoke_credentials', return_value=True):
+                        with patch('eduid.webapp.common.authn.vccs.VCCSClient.authenticate', return_value=authenticate):
                             with client.session_transaction() as sess:
                                 sess['reauthn-for-chpass'] = int(time.time())
                             response2 = client.get('/suggested-password')
@@ -127,7 +127,7 @@ class ChangePasswordTests(EduidAPITestCase):
                             password = passwd['payload']['suggested_password']
 
                             with client.session_transaction() as sess:
-                                # TODO: uncomment after check_password is available in eduid.common
+                                # TODO: uncomment after check_password is available in eduid.webapp.common
                                 # sess.security.generated_password_hash = hash_password(password)
                                 data = {
                                     'csrf_token': sess.get_csrf_token(),

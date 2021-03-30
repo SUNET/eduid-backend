@@ -7,9 +7,9 @@ from typing import Mapping, Optional
 
 from nacl import encoding, exceptions, secret
 
-from eduid.common.config.parsers.exceptions import SecretKeyException
-
 __author__ = 'lundberg'
+
+from eduid.common.config.parsers.exceptions import SecretKeyException
 
 
 def decrypt(f):

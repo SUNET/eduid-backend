@@ -1,10 +1,8 @@
-from typing import Optional
-
 import eduid.workers.lookup_mobile
 
 __author__ = 'mathiashedstrom'
-from eduid.common.api.decorators import deprecated
 from eduid.common.config.base import CeleryConfigMixin
+from eduid.webapp.common.api.decorators import deprecated
 
 
 class LookupMobileTaskFailed(Exception):

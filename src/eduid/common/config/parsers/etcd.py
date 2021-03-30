@@ -9,11 +9,10 @@ from typing import Any, Mapping, Optional
 
 import etcd
 
-from eduid.common.config.parsers.base import BaseConfigParser
-from eduid.common.config.parsers.decorators import decrypt, interpolate
-from eduid.common.config.parsers.exceptions import ParserException
-
 __author__ = 'lundberg'
+
+from eduid.common.config.parsers import BaseConfigParser, ParserException
+from eduid.common.config.parsers.decorators import decrypt, interpolate
 
 
 class EtcdConfigParser(BaseConfigParser):
