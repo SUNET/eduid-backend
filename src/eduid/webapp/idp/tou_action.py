@@ -34,9 +34,9 @@ __author__ = 'eperez'
 
 from typing import Optional
 
-from eduid.common.session.logindata import SSOLoginData
 from eduid.userdb.actions import Action
 from eduid.userdb.idp import IdPUser
+from eduid.webapp.common.session.logindata import SSOLoginData
 from eduid.webapp.idp.app import current_idp_app as current_app
 
 

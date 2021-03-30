@@ -36,10 +36,10 @@ import os
 from pathlib import PurePath
 from typing import Any, Dict, Mapping
 
-from eduid.common.api.testing import EduidAPITestCase
 from eduid.common.config.parsers import load_config
 from eduid.common.config.parsers.etcd import EtcdConfigParser
 from eduid.common.misc.tous import get_tous
+from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.jsconfig.app import JSConfigApp, jsconfig_init_app
 from eduid.webapp.jsconfig.settings.front import FrontConfig
 

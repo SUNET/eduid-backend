@@ -37,13 +37,13 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid.common.api import translation
-from eduid.common.api.app import EduIDBaseApp
-from eduid.common.authn.utils import init_pysaml2
 from eduid.common.config.parsers import load_config
-from eduid.common.session import session
 from eduid.userdb.actions import ActionDB
 from eduid.userdb.idp import IdPUserDb
+from eduid.webapp.common.api import translation
+from eduid.webapp.common.api.app import EduIDBaseApp
+from eduid.webapp.common.authn.utils import init_pysaml2
+from eduid.webapp.common.session import session
 from eduid.webapp.idp import idp_authn
 from eduid.webapp.idp.settings.common import IdPConfig
 from eduid.webapp.idp.sso_cache import SSOSessionCache

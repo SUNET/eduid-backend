@@ -36,8 +36,8 @@ from typing import Any, Dict, Mapping, Optional
 
 from mock import patch
 
-from eduid.common.api.exceptions import ApiException
-from eduid.common.api.testing import EduidAPITestCase
+from eduid.webapp.common.api.exceptions import ApiException
+from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.personal_data.app import PersonalDataApp, pd_init_app
 
 

@@ -27,11 +27,11 @@ from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest, Forbidden, InternalServerError, TooManyRequests
 from werkzeug.wrappers import Response as WerkzeugResponse
 
-from eduid.common.api import exceptions
-from eduid.common.session import session
-from eduid.common.session.logindata import SSOLoginData
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.idp.user import SAMLAttributeSettings
+from eduid.webapp.common.api import exceptions
+from eduid.webapp.common.session import session
+from eduid.webapp.common.session.logindata import SSOLoginData
 from eduid.webapp.idp import assurance, mischttp
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import AssuranceException, MissingMultiFactor, WrongMultiFactor
@@ -606,7 +606,7 @@ def _update_ticket_samlrequest(ticket: SSOLoginData, binding: Optional[str]) -> 
 # ----------------------------------------------------------------------------
 def _get_ticket(info: Mapping[str, str], binding: Optional[str]) -> SSOLoginData:
     """
-    Get the SSOLoginData from the eduid common session, or from query parameters.
+    Get the SSOLoginData from the eduid.webapp.common session, or from query parameters.
     """
     logger = current_app.logger
 
@@ -644,7 +644,7 @@ def _get_ticket(info: Mapping[str, str], binding: Optional[str]) -> SSOLoginData
         assert _key  # please mypy
         ticket = _create_ticket(info, binding, _key)
         # Update the ticket in the eduid session after creating it
-        # TODO: Remove this workaround in eduid-common when we only have one IdP code base to worry about
+        # TODO: Remove this workaround in eduid.webapp.common when we only have one IdP code base to worry about
         session._sso_ticket = None  # work around sso_ticket setter that silently drops updated values
         session.sso_ticket = ticket
 

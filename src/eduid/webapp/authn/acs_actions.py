@@ -38,13 +38,13 @@ from typing import Any, Mapping
 from flask import redirect, request
 from saml2.ident import code
 
-from eduid.common.api.utils import verify_relay_state
-from eduid.common.authn.acs_registry import acs_action
-from eduid.common.authn.utils import get_saml_attribute
-from eduid.common.session import session
-from eduid.common.session.namespaces import LoginApplication
 from eduid.userdb import User
 from eduid.webapp.authn.app import current_authn_app as current_app
+from eduid.webapp.common.api.utils import verify_relay_state
+from eduid.webapp.common.authn.acs_registry import acs_action
+from eduid.webapp.common.authn.utils import get_saml_attribute
+from eduid.webapp.common.session import session
+from eduid.webapp.common.session.namespaces import LoginApplication
 
 
 @unique

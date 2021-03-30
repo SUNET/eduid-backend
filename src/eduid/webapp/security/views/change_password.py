@@ -34,21 +34,21 @@ from datetime import datetime
 
 from flask import Blueprint
 
-from eduid.common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid.common.api.messages import CommonMsg, FluxData, error_response, success_response
-from eduid.common.api.utils import save_and_sync_user
-from eduid.common.api.validation import is_valid_password
-from eduid.common.authn.vccs import change_password
-from eduid.common.session import session
 from eduid.userdb import User
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.security import SecurityUser
+from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
+from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
+from eduid.webapp.common.api.utils import save_and_sync_user
+from eduid.webapp.common.api.validation import is_valid_password
+from eduid.webapp.common.authn.vccs import change_password
+from eduid.webapp.common.session import session
 from eduid.webapp.security.app import current_security_app as current_app
 from eduid.webapp.security.helpers import compile_credential_list  # check_password,; hash_password,
 from eduid.webapp.security.helpers import SecurityMsg, generate_suggested_password, get_zxcvbn_terms
 from eduid.webapp.security.schemas import ChpassRequestSchema, ChpassResponseSchema, SuggestedPasswordResponseSchema
 
-# TODO: move check_password and hash_password to eduid.common
+# TODO: move check_password and hash_password to eduid.webapp.common
 
 
 change_password_views = Blueprint('change_password', __name__, url_prefix='')
@@ -67,7 +67,7 @@ def get_suggested(user) -> FluxData:
     current_app.logger.debug(f'Sending new generated password for {user}')
     password = generate_suggested_password()
 
-    # TODO: uncomment after check_password is available in eduid.common
+    # TODO: uncomment after check_password is available in eduid.webapp.common
     # session.security.generated_password_hash = hash_password(password)
 
     return success_response(payload={'suggested_password': password}, message=None)
@@ -100,7 +100,7 @@ def change_password_view(user: User, old_password: str, new_password: str) -> Fl
     if int(delta.total_seconds()) > timeout:
         return error_response(message=SecurityMsg.stale_reauthn)
 
-    # TODO: uncomment after check_password is available in eduid.common
+    # TODO: uncomment after check_password is available in eduid.webapp.common
     # hashed = session.security.generated_password_hash
     is_generated = False
     #

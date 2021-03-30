@@ -34,13 +34,13 @@ from uuid import UUID
 
 from flask import Blueprint
 
-from eduid.common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.graphdb.groupdb import User as GraphUser
 from eduid.scimapi.db.groupdb import ScimApiGroup
 from eduid.userdb import User
 from eduid.userdb.exceptions import EduIDDBError
 from eduid.userdb.group_management import GroupRole
+from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
+from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.group_management.app import current_group_management_app as current_app
 from eduid.webapp.group_management.helpers import (
     GroupManagementMsg,

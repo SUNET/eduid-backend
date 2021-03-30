@@ -29,14 +29,13 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-import datetime
 from typing import List, Optional
 
 from eduid.common.misc.timeutil import utc_now
-from eduid.common.session.logindata import ExternalMfaData, SSOLoginData
 from eduid.userdb.actions import Action
 from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.idp.user import IdPUser
+from eduid.webapp.common.session.logindata import ExternalMfaData, SSOLoginData
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.util import get_requested_authn_context
 

@@ -8,16 +8,16 @@ from typing import Optional
 from flask import render_template, url_for
 from flask_babel import gettext as _
 
-from eduid.common.api.decorators import deprecated
-from eduid.common.api.helpers import send_mail
-from eduid.common.api.messages import TranslatableMsg
-from eduid.common.api.utils import get_short_hash, get_unique_hash, save_and_sync_user
-from eduid.common.authn.utils import generate_password
-from eduid.common.authn.vccs import reset_password
-from eduid.common.session import session
+from eduid.common.decorators import deprecated
 from eduid.userdb.exceptions import UserHasNotCompletedSignup
 from eduid.userdb.logs import MailAddressProofing, PhoneNumberProofing
 from eduid.userdb.security import PasswordResetEmailAndPhoneState, PasswordResetEmailState, SecurityUser
+from eduid.webapp.common.api.helpers import send_mail
+from eduid.webapp.common.api.messages import TranslatableMsg
+from eduid.webapp.common.api.utils import get_short_hash, get_unique_hash, save_and_sync_user
+from eduid.webapp.common.authn.utils import generate_password
+from eduid.webapp.common.authn.vccs import reset_password
+from eduid.webapp.common.session import session
 from eduid.webapp.security.app import current_security_app as current_app
 from eduid.webapp.security.schemas import ConvertRegisteredKeys
 

@@ -36,11 +36,11 @@ import time
 from flask import current_app, render_template, url_for
 from flask_babel import gettext as _
 
-from eduid.common.api.utils import get_unique_hash, save_and_sync_user
 from eduid.userdb.element import DuplicateElementViolation
 from eduid.userdb.logs import MailAddressProofing
 from eduid.userdb.mail import MailAddress
 from eduid.userdb.proofing import EmailProofingElement, EmailProofingState
+from eduid.webapp.common.api.utils import get_unique_hash, save_and_sync_user
 
 
 def new_proofing_state(email, user):

@@ -35,13 +35,13 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid.common.api import translation
-from eduid.common.authn.middleware import AuthnBaseApp
 from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.proofing import PhoneProofingStateDB, PhoneProofingUserDB
+from eduid.webapp.common.api import translation
+from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.phone.settings.common import PhoneConfig
 
 

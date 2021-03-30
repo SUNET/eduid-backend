@@ -48,7 +48,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin):
 
     app_name: str = 'idp'
     # pysaml2 configuration file. Separate config file with SAML related parameters.
-    pysaml2_config: str = 'eduid.common.authn.idp_conf'
+    pysaml2_config: str = 'eduid.webapp.common.authn.idp_conf'
     # SAML F-TICKS user anonymization key. If this is set, the IdP will log FTICKS data
     # on every login.
     fticks_secret_key: Optional[str] = None

@@ -35,8 +35,6 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid.common.api import translation
-from eduid.common.api.app import EduIDBaseApp
 from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.common.rpc.mail_relay import MailRelay
@@ -44,6 +42,8 @@ from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.userdb.authninfo import AuthnInfoDB
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.reset_password import ResetPasswordStateDB, ResetPasswordUserDB
+from eduid.webapp.common.api import translation
+from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.reset_password.settings.common import ResetPasswordConfig
 
 __author__ = 'eperez'

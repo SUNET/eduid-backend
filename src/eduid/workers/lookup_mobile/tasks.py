@@ -3,7 +3,7 @@ from typing import List, Optional
 from celery import Task
 from celery.utils.log import get_task_logger
 
-from eduid.common.api.decorators import deprecated
+from eduid.common.decorators import deprecated
 from eduid.workers.lookup_mobile.client.mobile_lookup_client import MobileLookupClient
 from eduid.workers.lookup_mobile.common import MobCelerySingleton
 

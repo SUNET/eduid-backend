@@ -8,7 +8,7 @@ from saml2.client import Saml2Client
 
 from vccs_client import VCCSClient
 
-from eduid.common.authn.utils import get_saml2_config
+from eduid.webapp.common.authn.utils import get_saml2_config
 from eduid.webapp.idp.tests.test_app import IdPTests, LoginState
 
 logger = logging.getLogger(__name__)

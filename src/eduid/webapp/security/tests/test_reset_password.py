@@ -7,12 +7,12 @@ from urllib.parse import quote_plus
 
 from mock import patch
 
-from eduid.common.api.exceptions import MailTaskFailed, MsgTaskFailed
-from eduid.common.api.testing import EduidAPITestCase
-from eduid.common.authn.testing import TestVCCSClient
 from eduid.userdb.credentials import Password
 from eduid.userdb.exceptions import DocumentDoesNotExist
 from eduid.userdb.security import PasswordResetEmailState
+from eduid.webapp.common.api.exceptions import MailTaskFailed, MsgTaskFailed
+from eduid.webapp.common.api.testing import EduidAPITestCase
+from eduid.webapp.common.authn.testing import TestVCCSClient
 from eduid.webapp.security.app import SecurityApp, security_init_app
 
 __author__ = 'lundberg'
@@ -266,7 +266,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         self.assertIsNotNone(state.phone_code)
         self.assertEqual(state.phone_code.is_verified, False)
 
-    @patch('eduid.common.authn.vccs.get_vccs_client')
+    @patch('eduid.webapp.common.authn.vccs.get_vccs_client')
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
@@ -295,7 +295,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         self.assertEqual(user.nins.primary.is_verified, True)
         self.assertEqual(user.phone_numbers.primary.is_verified, True)
 
-    @patch('eduid.common.authn.vccs.get_vccs_client')
+    @patch('eduid.webapp.common.authn.vccs.get_vccs_client')
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
@@ -327,7 +327,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         # check that state has been 'downgraded' to email again
         self.assertIsInstance(state, PasswordResetEmailState)
 
-    @patch('eduid.common.authn.vccs.get_vccs_client')
+    @patch('eduid.webapp.common.authn.vccs.get_vccs_client')
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
@@ -356,7 +356,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         for phone_number in user.phone_numbers.to_list():
             self.assertEqual(phone_number.is_verified, False)
 
-    @patch('eduid.common.authn.vccs.get_vccs_client')
+    @patch('eduid.webapp.common.authn.vccs.get_vccs_client')
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
@@ -391,7 +391,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         for phone_number in user.phone_numbers.to_list():
             self.assertEqual(phone_number.is_verified, False)
 
-    @patch('eduid.common.authn.vccs.get_vccs_client')
+    @patch('eduid.webapp.common.authn.vccs.get_vccs_client')
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
@@ -420,7 +420,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         self.assertEqual(user.nins.primary.is_verified, True)
         self.assertEqual(user.phone_numbers.primary.is_verified, True)
 
-    @patch('eduid.common.authn.vccs.get_vccs_client')
+    @patch('eduid.webapp.common.authn.vccs.get_vccs_client')
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
@@ -449,7 +449,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         for phone_number in user.phone_numbers.to_list():
             self.assertEqual(phone_number.is_verified, False)
 
-    @patch('eduid.common.authn.vccs.get_vccs_client')
+    @patch('eduid.webapp.common.authn.vccs.get_vccs_client')
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
@@ -488,7 +488,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         for phone_number in user.phone_numbers.verified.to_list():
             self.assertEqual(phone_number.is_verified, True)
 
-    @patch('eduid.common.authn.vccs.get_vccs_client')
+    @patch('eduid.webapp.common.authn.vccs.get_vccs_client')
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
@@ -527,7 +527,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         for phone_number in user.phone_numbers.verified.to_list():
             self.assertEqual(phone_number.is_verified, True)
 
-    @patch('eduid.common.authn.vccs.get_vccs_client')
+    @patch('eduid.webapp.common.authn.vccs.get_vccs_client')
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
@@ -570,7 +570,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         for phone_number in user.phone_numbers.verified.to_list():
             self.assertEqual(phone_number.is_verified, True)
 
-    @patch('eduid.common.authn.vccs.get_vccs_client')
+    @patch('eduid.webapp.common.authn.vccs.get_vccs_client')
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
@@ -620,7 +620,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         resp = self._get_code_backdoor(cookie_value='')
         self.assertEqual(resp.status_code, 400)
 
-    @patch('eduid.common.authn.vccs.get_vccs_client')
+    @patch('eduid.webapp.common.authn.vccs.get_vccs_client')
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.sendsms')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')

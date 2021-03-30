@@ -36,9 +36,9 @@ from typing import Any, Mapping, Optional, cast
 from flask import current_app
 from jinja2.exceptions import UndefinedError
 
-from eduid.common.authn.middleware import AuthnBaseApp
 from eduid.common.config.parsers import load_config
 from eduid.userdb.support import db
+from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.support.settings.common import SupportConfig
 
 

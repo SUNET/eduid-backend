@@ -35,18 +35,18 @@
 from flask_babel import gettext as _
 from marshmallow import Schema, ValidationError, fields, validate, validates, validates_schema
 
-from eduid.common.api.schemas.base import EduidSchema, FluxStandardAction
-from eduid.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
-from eduid.common.api.schemas.nin import NinSchema
-from eduid.common.api.schemas.password import PasswordSchema
-from eduid.common.api.schemas.u2f import (
+from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
+from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
+from eduid.webapp.common.api.schemas.nin import NinSchema
+from eduid.webapp.common.api.schemas.password import PasswordSchema
+from eduid.webapp.common.api.schemas.u2f import (
     U2FBindRequestSchema,
     U2FEnrollResponseSchema,
     U2FSignResponseSchema,
     U2FVerifyRequestSchema,
     U2FVerifyResponseSchema,
 )
-from eduid.common.api.schemas.validators import validate_email, validate_nin
+from eduid.webapp.common.api.schemas.validators import validate_email, validate_nin
 
 
 class CredentialSchema(EduidSchema):

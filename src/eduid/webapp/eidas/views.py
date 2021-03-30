@@ -4,18 +4,17 @@ from typing import Union
 from flask import Blueprint, abort, make_response, redirect, request, url_for
 from werkzeug.wrappers import Response as WerkzeugResponse
 
-from eduid.common.api.decorators import MarshalWith, require_user
-from eduid.common.api.helpers import check_magic_cookie
-from eduid.common.api.messages import FluxData, redirect_with_msg, success_response
-from eduid.common.api.schemas.csrf import CSRFResponse
-from eduid.common.api.utils import get_unique_hash, urlappend
-from eduid.common.authn.acs_registry import get_action, schedule_action
-from eduid.common.authn.eduid_saml2 import BadSAMLResponse
-from eduid.common.authn.utils import get_location
-from eduid.common.session import session
-
 # TODO: Import FidoCredential in credentials.__init__
 from eduid.userdb.credentials.fido import FidoCredential
+from eduid.webapp.common.api.decorators import MarshalWith, require_user
+from eduid.webapp.common.api.helpers import check_magic_cookie
+from eduid.webapp.common.api.messages import FluxData, redirect_with_msg, success_response
+from eduid.webapp.common.api.schemas.csrf import CSRFResponse
+from eduid.webapp.common.api.utils import get_unique_hash, urlappend
+from eduid.webapp.common.authn.acs_registry import get_action, schedule_action
+from eduid.webapp.common.authn.eduid_saml2 import BadSAMLResponse
+from eduid.webapp.common.authn.utils import get_location
+from eduid.webapp.common.session import session
 from eduid.webapp.eidas.acs_actions import EidasAcsAction, nin_verify_BACKDOOR
 from eduid.webapp.eidas.app import current_eidas_app as current_app
 from eduid.webapp.eidas.helpers import (

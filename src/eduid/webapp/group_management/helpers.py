@@ -6,9 +6,6 @@ from uuid import UUID
 
 from flask_babel import gettext as _
 
-from eduid.common.api.exceptions import MailTaskFailed
-from eduid.common.api.helpers import send_mail
-from eduid.common.api.messages import TranslatableMsg
 from eduid.graphdb.groupdb import Group as GraphGroup
 from eduid.graphdb.groupdb import User as GraphUser
 from eduid.scimapi.db.groupdb import ScimApiGroup
@@ -16,6 +13,9 @@ from eduid.scimapi.db.userdb import ScimApiUser
 from eduid.userdb import User
 from eduid.userdb.exceptions import DocumentDoesNotExist, EduIDDBError
 from eduid.userdb.group_management import GroupInviteState
+from eduid.webapp.common.api.exceptions import MailTaskFailed
+from eduid.webapp.common.api.helpers import send_mail
+from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.group_management.app import current_group_management_app as current_app
 from eduid.webapp.group_management.schemas import GroupRole
 

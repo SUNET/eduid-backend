@@ -33,12 +33,12 @@
 
 from flask import request
 
-from eduid.common.authn import fido_tokens
-from eduid.common.session import session
 from eduid.webapp.actions.action_abc import ActionPlugin
 from eduid.webapp.actions.app import ActionsApp
 from eduid.webapp.actions.app import current_actions_app as current_app
 from eduid.webapp.actions.helpers import ActionsMsg
+from eduid.webapp.common.authn import fido_tokens
+from eduid.webapp.common.session import session
 
 __author__ = 'ft'
 

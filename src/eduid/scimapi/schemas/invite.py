@@ -23,7 +23,7 @@ from eduid.scimapi.schemas.user import NutidUserExtensionV1
 
 __author__ = 'lundberg'
 
-# TODO: Copied from eduid-common, should probably be imported later
+# TODO: Copied from eduid.webapp.common, should probably be imported later
 NIN_RE = re.compile(r'^(18|19|20)\d{2}(0[1-9]|1[0-2])\d{2}\d{4}$')
 
 

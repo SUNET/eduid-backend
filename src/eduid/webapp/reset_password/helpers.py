@@ -39,16 +39,7 @@ import bcrypt
 from flask import render_template
 from flask_babel import gettext as _
 
-from eduid.common.api.exceptions import MailTaskFailed
-from eduid.common.api.helpers import send_mail
-from eduid.common.api.messages import FluxData, TranslatableMsg, error_response, success_response
-from eduid.common.api.utils import get_short_hash, get_unique_hash, save_and_sync_user, urlappend
-from eduid.common.api.validation import is_valid_password
-from eduid.common.authn import fido_tokens
-from eduid.common.authn.utils import generate_password
-from eduid.common.authn.vccs import reset_password
 from eduid.common.config.base import EduidEnvironment
-from eduid.common.session import session
 from eduid.userdb.exceptions import DocumentDoesNotExist, UserDoesNotExist
 from eduid.userdb.logs import MailAddressProofing, PhoneNumberProofing
 from eduid.userdb.reset_password import (
@@ -58,6 +49,15 @@ from eduid.userdb.reset_password import (
     ResetPasswordUser,
 )
 from eduid.userdb.user import User
+from eduid.webapp.common.api.exceptions import MailTaskFailed
+from eduid.webapp.common.api.helpers import send_mail
+from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response, success_response
+from eduid.webapp.common.api.utils import get_short_hash, get_unique_hash, save_and_sync_user, urlappend
+from eduid.webapp.common.api.validation import is_valid_password
+from eduid.webapp.common.authn import fido_tokens
+from eduid.webapp.common.authn.utils import generate_password
+from eduid.webapp.common.authn.vccs import reset_password
+from eduid.webapp.common.session import session
 from eduid.webapp.reset_password.app import current_reset_password_app as current_app
 
 

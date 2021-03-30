@@ -33,8 +33,8 @@
 
 from marshmallow import fields, pre_load
 
-from eduid.common.api.schemas.base import EduidSchema, FluxStandardAction
-from eduid.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
+from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
+from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 from eduid.webapp.phone.validators import normalize_to_e_164, validate_format_phone, validate_phone
 
 __author__ = 'eperez'

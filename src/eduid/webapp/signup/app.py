@@ -35,13 +35,13 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid.common.api import translation
-from eduid.common.api.app import EduIDBaseApp
 from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.common.rpc.mail_relay import MailRelay
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.signup import SignupUserDB
+from eduid.webapp.common.api import translation
+from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.signup.settings.common import SignupConfig
 
 

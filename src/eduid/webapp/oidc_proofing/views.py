@@ -12,13 +12,13 @@ from jose import jws as jose
 from oic.oic.message import AuthorizationResponse, Claims, ClaimsRequest
 from six import BytesIO
 
-from eduid.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
-from eduid.common.api.exceptions import TaskFailed
-from eduid.common.api.helpers import add_nin_to_user
-from eduid.common.api.messages import CommonMsg, error_response
 from eduid.userdb.exceptions import DocumentDoesNotExist
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.util import UTC
+from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
+from eduid.webapp.common.api.exceptions import TaskFailed
+from eduid.webapp.common.api.helpers import add_nin_to_user
+from eduid.webapp.common.api.messages import CommonMsg, error_response
 from eduid.webapp.oidc_proofing import helpers, schemas
 from eduid.webapp.oidc_proofing.app import current_oidcp_app as current_app
 from eduid.webapp.oidc_proofing.helpers import OIDCMsg

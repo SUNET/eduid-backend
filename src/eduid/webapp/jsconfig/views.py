@@ -34,10 +34,10 @@ from typing import Any, Dict, List
 
 from flask import Blueprint, abort, render_template, request
 
-from eduid.common.api.decorators import MarshalWith
-from eduid.common.api.schemas.base import FluxStandardAction
 from eduid.common.misc.tous import get_tous
-from eduid.common.session import session
+from eduid.webapp.common.api.decorators import MarshalWith
+from eduid.webapp.common.api.schemas.base import FluxStandardAction
+from eduid.webapp.common.session import session
 from eduid.webapp.jsconfig.app import current_jsconfig_app as current_app
 
 jsconfig_views = Blueprint('jsconfig', __name__, url_prefix='', template_folder='templates')

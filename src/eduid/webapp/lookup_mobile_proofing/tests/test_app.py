@@ -6,8 +6,8 @@ from typing import Any, Dict, Mapping
 
 from mock import patch
 
-from eduid.common.api.testing import EduidAPITestCase
 from eduid.common.rpc.lookup_mobile_relay import LookupMobileTaskFailed
+from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.lookup_mobile_proofing.app import MobileProofingApp, init_lookup_mobile_proofing_app
 from eduid.webapp.lookup_mobile_proofing.helpers import MobileMsg
 

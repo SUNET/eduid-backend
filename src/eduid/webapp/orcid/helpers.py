@@ -32,7 +32,7 @@
 
 from enum import unique
 
-from eduid.common.api.messages import TranslatableMsg
+from eduid.webapp.common.api.messages import TranslatableMsg
 
 
 @unique

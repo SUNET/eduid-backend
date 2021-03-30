@@ -42,9 +42,9 @@ from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.response import AuthnResponse
 
-from eduid.common.api.testing import EduidAPITestCase
-from eduid.common.authn.cache import IdentityCache, OutstandingQueriesCache, StateCache
-from eduid.common.authn.utils import get_saml2_config
+from eduid.webapp.common.api.testing import EduidAPITestCase
+from eduid.webapp.common.authn.cache import IdentityCache, OutstandingQueriesCache, StateCache
+from eduid.webapp.common.authn.utils import get_saml2_config
 from eduid.webapp.idp.app import IdPApp, init_idp_app
 from eduid.webapp.idp.sso_session import SSOSession
 

@@ -8,11 +8,11 @@ from flask import Blueprint, abort, redirect, render_template, request, url_for
 from flask_babel import gettext as _
 from marshmallow import ValidationError
 
-from eduid.common.api.exceptions import MailTaskFailed, MsgTaskFailed
-from eduid.common.api.helpers import check_magic_cookie
-from eduid.common.session import session
 from eduid.userdb.exceptions import DocumentDoesNotExist
 from eduid.userdb.security.state import PasswordResetEmailAndPhoneState, PasswordResetEmailState
+from eduid.webapp.common.api.exceptions import MailTaskFailed, MsgTaskFailed
+from eduid.webapp.common.api.helpers import check_magic_cookie
+from eduid.webapp.common.session import session
 from eduid.webapp.security.app import current_security_app as current_app
 from eduid.webapp.security.helpers import (
     generate_suggested_password,

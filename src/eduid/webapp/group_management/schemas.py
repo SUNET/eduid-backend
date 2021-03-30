@@ -34,11 +34,11 @@
 from marshmallow import fields
 from marshmallow_enum import EnumField
 
-from eduid.common.api.schemas.base import EduidSchema, FluxStandardAction
-from eduid.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
-from eduid.common.api.schemas.email import LowercaseEmail
-from eduid.common.api.schemas.validators import validate_email
 from eduid.userdb.group_management import GroupRole
+from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
+from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
+from eduid.webapp.common.api.schemas.email import LowercaseEmail
+from eduid.webapp.common.api.schemas.validators import validate_email
 
 __author__ = 'lundberg'
 
