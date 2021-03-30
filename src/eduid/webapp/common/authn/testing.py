@@ -37,9 +37,9 @@ from bson import ObjectId
 
 import vccs_client
 
+from eduid.common.decorators import deprecated
 from eduid.userdb.credentials import Password
 from eduid.userdb.dashboard import DashboardLegacyUser, DashboardUser
-from eduid.webapp.common.api.decorators import deprecated
 from eduid.webapp.common.authn import get_vccs_client
 
 logger = logging.getLogger()
