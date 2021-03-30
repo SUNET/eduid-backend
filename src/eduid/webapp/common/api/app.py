@@ -44,7 +44,7 @@ from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
 from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from eduid.common.config.base import EduIDBaseAppConfig
+from eduid.common.config.base import EduIDBaseAppConfig, FlaskConfig
 from eduid.common.config.exceptions import BadConfiguration
 from eduid.common.config.parsers.etcd import EtcdConfigParser
 from eduid.common.logging import init_logging
@@ -74,7 +74,7 @@ if DEBUG:
     stderr.writelines('----- WARNING! EDUID_APP_DEBUG is enabled -----\n')
 
 
-TFlaskConfigSubclass = TypeVar('TFlaskConfigSubclass', bound='FlaskConfig')
+TFlaskConfigSubclass = TypeVar('TFlaskConfigSubclass', bound=FlaskConfig)
 
 
 class EduIDBaseApp(Flask, metaclass=ABCMeta):
