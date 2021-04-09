@@ -40,11 +40,10 @@ from typing import cast
 import bson
 from mock import patch
 
-from eduid.vccs.client import VCCSClient
-
 from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.tou import ToUEvent
+from eduid.vccs.client import VCCSClient
 from eduid.webapp.common.session.logindata import SSOLoginData
 from eduid.webapp.idp.mfa_action import RESULT_CREDENTIAL_KEY_NAME
 from eduid.webapp.idp.mfa_action import add_actions as mfa_add_actions

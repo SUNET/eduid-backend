@@ -3,7 +3,6 @@ from typing import List
 
 from fastapi import APIRouter, Form, Request
 from pydantic.main import BaseModel
-
 from vccs.server.config import VCCSConfig
 from vccs.server.db import CredType, RevokedCredential, Status
 from vccs.server.factors import RevokeFactor

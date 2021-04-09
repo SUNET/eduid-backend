@@ -1,4 +1,4 @@
-#-*- encoding: utf-8 -*-
+# -*- encoding: utf-8 -*-
 #
 # Copyright (c) 2013, 2014, 2017 NORDUnet A/S
 # All rights reserved.
@@ -44,9 +44,9 @@ Short usage, see the README for details :
 
 Add credential, and authenticate with correct password :
 
-  >>> import vccs_client
-  >>> f = vccs_client.VCCSPasswordFactor('password', credential_id=4712)
-  >>> client = vccs_client.VCCSClient(base_url='http://localhost:8550/')
+  >>> from eduid.vccs.client import *
+  >>> f = VCCSPasswordFactor('password', credential_id=4712)
+  >>> client = VCCSClient(base_url='http://localhost:8550/')
   >>> client.add_credentials('ft@example.net', [f])
   True
   >>> f.salt
@@ -61,7 +61,7 @@ Authenticate with incorrect password :
 
   >>> client.authenticate('ft@example.net', [f])
   True
-  >>> incorrect_f = vccs_client.VCCSPasswordFactor('foobar', credential_id=4712,
+  >>> incorrect_f = VCCSPasswordFactor('foobar', credential_id=4712,
   ...       salt='$2a$12$F0TIdfp4quhVJYIOO1ojU.')
   >>> client.authenticate('ft@example.net', [incorrect_f])
   False
@@ -69,34 +69,30 @@ Authenticate with incorrect password :
 
 Revoke a credential (irreversible!) :
 
-  >>> r = vccs_client.VCCSRevokeFactor(4712, 'testing revoke', reference='foobar')
+  >>> r = VCCSRevokeFactor(4712, 'testing revoke', reference='foobar')
   >>> client.revoke_credentials('ft@example.net', [r])
   True
   >>>
 
 """
 
-__version__ = '0.5.0b0'
-__copyright__ = 'NORDUnet A/S'
-__organization__ = 'NORDUnet'
-__license__ = 'BSD'
-__authors__ = ['Fredrik Thulin']
-
 import os
-import six
-import bson
+
 import bcrypt
-from six.moves.urllib.parse import urlencode
-from six.moves.urllib.request import urlopen, Request
-from six.moves.urllib.error import HTTPError, URLError
-from six import string_types
+import bson
 import simplejson as json
+import six
+from six import string_types
+from six.moves.urllib.error import HTTPError, URLError
+from six.moves.urllib.parse import urlencode
+from six.moves.urllib.request import Request, urlopen
 
 
 class VCCSClientException(Exception):
     """
     Base exception class for VCCS client.
     """
+
     def __init__(self, reason):
         Exception.__init__(self)
         self.reason = reason
@@ -108,23 +104,22 @@ class VCCSClientHTTPError(VCCSClientException):
     way that does not make them have to know what HTTP
     library is used by the VCCS client.
     """
+
     def __init__(self, reason, http_code):
         VCCSClientException.__init__(self, reason)
         self.http_code = http_code
 
     def __str__(self):
         return '<{cl} instance at {addr}: {code!r} {reason!r}>'.format(
-            cl = self.__class__.__name__,
-            addr = hex(id(self)),
-            code = self.http_code,
-            reason = self.reason,
-            )
+            cl=self.__class__.__name__, addr=hex(id(self)), code=self.http_code, reason=self.reason,
+        )
 
 
 class VCCSFactor(object):
     """
     Base class for authentication factors. Do not use directly.
     """
+
     def __init__(self):
         pass
 
@@ -182,8 +177,7 @@ class VCCSPasswordFactor(VCCSFactor):
             # at http://docs.pylonsproject.org/projects/pyramid/en/latest/narr/views.html
             if isinstance(password, unicode):
                 password = password.encode('UTF-8')
-            T1 = "{!s}{!s}{!s}{!s}".format(len(cid_str), cid_str,
-                                           len(password), password)
+            T1 = "{!s}{!s}{!s}{!s}".format(len(cid_str), cid_str, len(password), password)
         else:
             password = bytes(password, 'utf-8')
             T1 = "{!s}{!s}{!s}".format(len(cid_str), cid_str, len(password))
@@ -246,10 +240,11 @@ class VCCSPasswordFactor(VCCSFactor):
         Return factor as dictionary, transmittable to authentiation backends.
         :param _action: 'auth', 'add_creds' or 'revoke_creds'
         """
-        res = {'type': 'password',
-               'H1': self.hash,
-               'credential_id': self.credential_id,
-               }
+        res = {
+            'type': 'password',
+            'H1': self.hash,
+            'credential_id': self.credential_id,
+        }
         return res
 
 
@@ -258,8 +253,9 @@ class VCCSOathFactor(VCCSFactor):
     Object representing an OATH token authentication factor.
     """
 
-    def __init__(self, oath_type, credential_id, user_code=None, nonce=None,
-                 aead=None, key_handle=None, digits=6, oath_counter=0):
+    def __init__(
+        self, oath_type, credential_id, user_code=None, nonce=None, aead=None, key_handle=None, digits=6, oath_counter=0
+    ):
         """
         :param oath_type: 'oath-totp' or 'oath-hotp' (time based or event based OATH)
         :param credential_id: integer, unique index of credential
@@ -297,19 +293,21 @@ class VCCSOathFactor(VCCSFactor):
         if action == 'auth':
             if self.user_code is None:
                 raise ValueError('User code not provided')
-            res = {'type': self.oath_type,
-                   'user_code': self.user_code,
-                   'credential_id': self.credential_id,
-                   }
+            res = {
+                'type': self.oath_type,
+                'user_code': self.user_code,
+                'credential_id': self.credential_id,
+            }
         elif action == 'add_creds':
-            res = {'type': self.oath_type,
-                   'credential_id': self.credential_id,
-                   'nonce': self.nonce,
-                   'aead': self.aead,
-                   'key_handle': self.key_handle,
-                   'digits': self.digits,
-                   'oath_counter': self.oath_counter,
-                   }
+            res = {
+                'type': self.oath_type,
+                'credential_id': self.credential_id,
+                'nonce': self.nonce,
+                'aead': self.aead,
+                'key_handle': self.key_handle,
+                'digits': self.digits,
+                'oath_counter': self.oath_counter,
+            }
         elif action == 'revoke_creds':
             # XXX implement this
             raise NotImplementedError()
@@ -356,10 +354,11 @@ class VCCSRevokeFactor(VCCSFactor):
         Return factor as dictionary, transmittable to authentiation backends.
         :param _action: string, 'auth' or 'add_creds'
         """
-        res = {'credential_id': self.credential_id,
-               'reason': self.reason,
-               'reference': self.reference,
-               }
+        res = {
+            'credential_id': self.credential_id,
+            'reason': self.reason,
+            'reference': self.reference,
+        }
         return res
 
 
@@ -479,11 +478,9 @@ class VCCSClient(object):
             response = urlopen(req)
         except HTTPError as exc:
             # don't want the vccs_client user to have to know what http client we use.
-            raise VCCSClientHTTPError(reason='Authentication backend error',
-                                      http_code=exc.getcode())
+            raise VCCSClientHTTPError(reason='Authentication backend error', http_code=exc.getcode())
         except URLError:
-            raise VCCSClientHTTPError(reason='Authentication backend unavailable',
-                                      http_code=503)
+            raise VCCSClientHTTPError(reason='Authentication backend unavailable', http_code=503)
 
         return response.read()
 
@@ -495,10 +492,5 @@ class VCCSClient(object):
         """
         if action not in ['auth', 'add_creds', 'revoke_creds']:
             raise ValueError('Unknown action {!r}'.format(action))
-        a = {action:
-                 {'version': 1,
-                  'user_id': user_id,
-                  'factors': [x.to_dict(action) for x in factors],
-                  }
-             }
+        a = {action: {'version': 1, 'user_id': user_id, 'factors': [x.to_dict(action) for x in factors],}}
         return json.dumps(a, sort_keys=True, indent=4)

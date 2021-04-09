@@ -36,14 +36,12 @@ import hmac
 import os
 import stat
 from abc import ABC
-from typing import Any, Dict, Mapping
-
 from binascii import unhexlify
 from hashlib import sha1
-
-import yaml
+from typing import Any, Dict, Mapping
 
 import pyhsm
+import yaml
 
 
 class VCCSHasher(ABC):
@@ -135,7 +133,7 @@ class VCCSSoftHasher(VCCSHasher):
         self.debug = debug
         # Covert keys from strings to bytes when loading
         self.keys: Dict[int, bytes] = {}
-        for k,v in keys.items():
+        for k, v in keys.items():
             self.keys[k] = unhexlify(v)
 
     def unlock(self, password: str) -> None:

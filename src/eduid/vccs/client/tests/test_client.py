@@ -40,6 +40,7 @@ Test VCCS client.
 
 import os
 import unittest
+
 import simplejson as json
 
 from eduid.vccs.client import VCCSClient, VCCSOathFactor, VCCSPasswordFactor, VCCSRevokeFactor

@@ -3,7 +3,6 @@ from typing import List
 
 from fastapi import APIRouter, Form, Request
 from pydantic.main import BaseModel
-
 from vccs.server.config import VCCSConfig
 from vccs.server.db import KDF, CredType, PasswordCredential, Status, Version
 from vccs.server.factors import RequestFactor

@@ -1,7 +1,8 @@
-from typing import List, Union
 from binascii import unhexlify
+from typing import List, Union
 
 from ndnkdf import NDNKDF
+
 from eduid.vccs.server.db import PasswordCredential
 from eduid.vccs.server.factors import RequestFactor
 from eduid.vccs.server.hasher import VCCSYHSMHasher

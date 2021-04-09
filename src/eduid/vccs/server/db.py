@@ -5,10 +5,11 @@ from enum import Enum, unique
 from typing import Any, Dict, Mapping, Optional, Type, Union, cast
 
 from bson import ObjectId
-from eduid.userdb.db import BaseDB
 from loguru import logger
 from pydantic.dataclasses import dataclass
 from pymongo.errors import DuplicateKeyError
+
+from eduid.userdb.db import BaseDB
 
 
 @unique

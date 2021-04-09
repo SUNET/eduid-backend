@@ -11,7 +11,6 @@ from saml2.mdstore import destinations
 from saml2.response import AuthnResponse, LogoutResponse
 
 from eduid.vccs.client import VCCSClient
-
 from eduid.webapp.idp.tests.test_app import IdPTests, LoginState
 
 logger = logging.getLogger(__name__)
