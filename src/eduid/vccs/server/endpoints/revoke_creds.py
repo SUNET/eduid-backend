@@ -3,10 +3,10 @@ from typing import List
 
 from fastapi import APIRouter, Form, Request
 from pydantic.main import BaseModel
-from vccs.server.config import VCCSConfig
-from vccs.server.db import CredType, RevokedCredential, Status
-from vccs.server.factors import RevokeFactor
-from vccs.server.log import audit_log
+from eduid.vccs.server.config import VCCSConfig
+from eduid.vccs.server.db import CredType, RevokedCredential, Status
+from eduid.vccs.server.factors import RevokeFactor
+from eduid.vccs.server.log import audit_log
 
 revoke_creds_router = APIRouter()
 

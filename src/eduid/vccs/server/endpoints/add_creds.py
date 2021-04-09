@@ -3,10 +3,10 @@ from typing import List
 
 from fastapi import APIRouter, Form, Request
 from pydantic.main import BaseModel
-from vccs.server.config import VCCSConfig
-from vccs.server.db import KDF, CredType, PasswordCredential, Status, Version
-from vccs.server.factors import RequestFactor
-from vccs.server.password import calculate_cred_hash
+from eduid.vccs.server.config import VCCSConfig
+from eduid.vccs.server.db import KDF, CredType, PasswordCredential, Status, Version
+from eduid.vccs.server.factors import RequestFactor
+from eduid.vccs.server.password import calculate_cred_hash
 
 add_creds_router = APIRouter()
 
