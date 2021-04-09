@@ -40,11 +40,10 @@ from typing import cast
 import bson
 from mock import patch
 
-from vccs_client import VCCSClient
-
 from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.tou import ToUEvent
+from eduid.vccs.client import VCCSClient
 from eduid.webapp.common.session.logindata import SSOLoginData
 from eduid.webapp.idp.mfa_action import RESULT_CREDENTIAL_KEY_NAME
 from eduid.webapp.idp.mfa_action import add_actions as mfa_add_actions
@@ -54,9 +53,6 @@ from eduid.webapp.idp.tests.test_SSO import cc as CONTEXTCLASSREFS
 from eduid.webapp.idp.tou_action import add_actions as tou_add_actions
 
 logger = logging.getLogger(__name__)
-
-# local = cherrypy.lib.httputil.Host('127.0.0.1', 50000, "")
-# remote = cherrypy.lib.httputil.Host('127.0.0.1', 50001, "")
 
 
 class TestActions(SSOIdPTests):
@@ -95,7 +91,7 @@ class TestActions(SSOIdPTests):
 
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, 'authenticate'):
-            VCCSClient.authenticate.return_value = True
+            VCCSClient.authenticate.return_value = True  # type: ignore
             result = self._try_login()
 
         assert result.reached_state == LoginState.S5_LOGGED_IN

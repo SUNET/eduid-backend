@@ -31,19 +31,17 @@
 #
 from typing import cast
 
-import vccs_client
+from eduid.vccs.client import VCCSClient
 
 TESTING = False
 _test_client = None
 
 
-def get_vccs_client(vccs_url: str) -> vccs_client.VCCSClient:
+def get_vccs_client(vccs_url: str) -> VCCSClient:
     """
     Instantiate a VCCS client.
     :param vccs_url: VCCS authentication backend URL
-    :type vccs_url: string
     :return: vccs client
-    :rtype: VCCSClient
     """
     if TESTING and vccs_url == 'dummy':
         global _test_client
@@ -52,5 +50,5 @@ def get_vccs_client(vccs_url: str) -> vccs_client.VCCSClient:
             from eduid.webapp.common.authn.testing import MockVCCSClient
 
             _test_client = MockVCCSClient()
-        return cast(vccs_client.VCCSClient, _test_client)
-    return vccs_client.VCCSClient(base_url=vccs_url,)
+        return cast(VCCSClient, _test_client)
+    return VCCSClient(base_url=vccs_url,)

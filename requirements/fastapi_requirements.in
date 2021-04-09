@@ -1,4 +1,6 @@
 -r main.in
 -c main.txt
 fastapi
-
+loguru
+https://github.com/SUNET/python-pyhsm/archive/5a6c22da8286b2060e8e661a46b53cbc8eeb1fe7.zip
+ndnkdf

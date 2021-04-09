@@ -35,17 +35,13 @@
 
 import datetime
 import logging
-from typing import Optional, Tuple
 
 from bson import ObjectId
 from mock import patch
 
-import vccs_client
-from vccs_client import VCCSClient
-
 import eduid.userdb
 import eduid.webapp.common.authn
-from eduid.userdb.idp import IdPUser
+from eduid.vccs.client import VCCSClient, VCCSPasswordFactor
 from eduid.webapp.common.api import exceptions
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.tests.test_app import IdPTests
@@ -84,25 +80,25 @@ class TestAuthentication(IdPTests):
         assert user == None
         self.assertFalse(authn_data)
 
-    @patch('vccs_client.VCCSClient.add_credentials')
+    @patch('eduid.vccs.client.VCCSClient.add_credentials')
     def test_authn_known_user_wrong_password(self, mock_add_credentials):
         mock_add_credentials.return_value = False
         assert isinstance(self.test_user, eduid.userdb.User)
         cred_id = ObjectId()
-        factor = vccs_client.VCCSPasswordFactor('foo', str(cred_id), salt=None)
+        factor = VCCSPasswordFactor('foo', str(cred_id), salt=None)
         self.app.authn.auth_client.add_credentials(str(self.test_user.user_id), [factor])
         user, authn_data = self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, 'bar')
         assert user is None
         self.assertFalse(authn_data)
 
-    @patch('vccs_client.VCCSClient.authenticate')
-    @patch('vccs_client.VCCSClient.add_credentials')
+    @patch('eduid.vccs.client.VCCSClient.authenticate')
+    @patch('eduid.vccs.client.VCCSClient.add_credentials')
     def test_authn_known_user_right_password(self, mock_add_credentials, mock_authenticate):
         mock_add_credentials.return_value = True
         mock_authenticate.return_value = True
         assert isinstance(self.test_user, eduid.userdb.User)
         passwords = self.test_user.credentials.to_list()
-        factor = vccs_client.VCCSPasswordFactor('foo', str(passwords[0].key), salt=passwords[0].salt)
+        factor = VCCSPasswordFactor('foo', str(passwords[0].key), salt=passwords[0].salt)
         self.app.authn.auth_client.add_credentials(str(self.test_user.user_id), [factor])
         user, authn_data = self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, 'foo')
         assert user is not None
@@ -110,14 +106,14 @@ class TestAuthentication(IdPTests):
         assert authn_data is not None
         assert authn_data.cred_id == factor.credential_id
 
-    @patch('vccs_client.VCCSClient.authenticate')
-    @patch('vccs_client.VCCSClient.add_credentials')
+    @patch('eduid.vccs.client.VCCSClient.authenticate')
+    @patch('eduid.vccs.client.VCCSClient.add_credentials')
     def test_authn_expired_credential(self, mock_add_credentials, mock_authenticate):
         mock_add_credentials.return_value = False
         mock_authenticate.return_value = True
         assert isinstance(self.test_user, eduid.userdb.User)
         passwords = self.test_user.credentials.to_list()
-        factor = vccs_client.VCCSPasswordFactor('foo', str(passwords[0].key), salt=passwords[0].salt)
+        factor = VCCSPasswordFactor('foo', str(passwords[0].key), salt=passwords[0].salt)
         self.app.authn.auth_client.add_credentials(str(self.test_user.user_id), [factor])
         data = {
             'username': self.test_user.mail_addresses.primary.email,

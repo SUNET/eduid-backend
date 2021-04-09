@@ -150,7 +150,7 @@ class SignupTests(EduidAPITestCase):
     @patch('eduid.webapp.signup.views.verify_recaptcha')
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
-    @patch('vccs_client.VCCSClient.add_credentials')
+    @patch('eduid.vccs.client.VCCSClient.add_credentials')
     def _verify_code(
         self,
         mock_add_credentials: Any,
@@ -183,7 +183,7 @@ class SignupTests(EduidAPITestCase):
     @patch('eduid.webapp.signup.views.verify_recaptcha')
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
-    @patch('vccs_client.VCCSClient.add_credentials')
+    @patch('eduid.vccs.client.VCCSClient.add_credentials')
     def _verify_code_after_captcha(
         self,
         mock_add_credentials: Any,
@@ -230,7 +230,7 @@ class SignupTests(EduidAPITestCase):
     @patch('eduid.webapp.signup.views.verify_recaptcha')
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
-    @patch('vccs_client.VCCSClient.add_credentials')
+    @patch('eduid.vccs.client.VCCSClient.add_credentials')
     def _get_code_backdoor(
         self,
         mock_add_credentials: Any,

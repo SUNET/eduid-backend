@@ -33,17 +33,16 @@ from typing import cast
 
 from mock import patch
 
-from vccs_client import VCCSClient
-
 from eduid.userdb.fixtures.users import new_user_example
 from eduid.userdb.testing import MongoTestCase
+from eduid.vccs.client import VCCSClient, VCCSClientHTTPError
 from eduid.webapp.common.authn import vccs as vccs_module
 from eduid.webapp.common.authn.testing import MockVCCSClient
 
 
 class VCCSTestCase(MongoTestCase):
-    def setUp(self):
-        super().setUp(am_users=[new_user_example])
+    def setUp(self, **kwargs):
+        super().setUp(am_users=[new_user_example], **kwargs)
         self.vccs_client = cast(VCCSClient, MockVCCSClient())
         self.user = self.amdb.get_user_by_mail('johnsmith@example.com')
 
@@ -175,8 +174,6 @@ class VCCSTestCase(MongoTestCase):
             self.assertFalse(result3)
 
     def test_reset_password_error_revoking(self):
-        from vccs_client import VCCSClientHTTPError
-
         from eduid.webapp.common.authn.testing import MockVCCSClient
 
         def mock_revoke_creds(*args):

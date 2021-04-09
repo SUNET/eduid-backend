@@ -1,0 +1,40 @@
+builders:
+  - script
+upstream:
+  - eduid-common
+  - eduid-userdb
+  - python-ndnkdf
+triggers:
+  cron: "@weekly"
+slack:
+  room: "eduid-builds"
+python_module: vccs
+clean_workspace: true
+publish_over_ssh:
+  - pypi.sunet.se
+
+script:
+  - "python3.7 -m venv venv"
+  - ". venv/bin/activate"
+  - "pip install --upgrade setuptools pip wheel mypy"
+  - "pip install --index-url https://pypi.sunet.se -r test_requirements.txt"
+  - "pip freeze"
+  - "make test"
+  - "make typecheck"
+  - "python setup.py sdist bdist_wheel --universal"
+
+extra_jobs:
+  - name: eduid-vccs2-docker
+    builders:
+      - docker
+    docker_name: eduid/eduid-vccs2
+    managed_scripts:
+      - docker_build_prep.sh
+      - docker_tag.sh
+    triggers:
+      github_push: false
+      cron: null
+    pre_build_script: ~
+    upstream:
+      - eduid-docker-python3env
+      - vccs2
