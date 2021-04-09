@@ -35,17 +35,16 @@ import logging
 
 from bson import ObjectId
 
-import vccs_client
-
 from eduid.common.decorators import deprecated
 from eduid.userdb.credentials import Password
 from eduid.userdb.dashboard import DashboardLegacyUser, DashboardUser
+from eduid.vccs.client import VCCSClient, VCCSPasswordFactor
 from eduid.webapp.common.authn import get_vccs_client
 
 logger = logging.getLogger()
 
 
-class FakeVCCSClient(vccs_client.VCCSClient):
+class FakeVCCSClient(VCCSClient):
     def __init__(self, fake_response=None):
         self.fake_response = fake_response
 
@@ -156,12 +155,12 @@ def provision_credentials(vccs_url, new_password, user, vccs=None, source='dashb
     if isinstance(user, DashboardLegacyUser):
         user = DashboardUser.from_dict(data=user._mongo_doc)
 
-    new_factor = vccs_client.VCCSPasswordFactor(new_password, credential_id=str(password_id))
+    new_factor = VCCSPasswordFactor(new_password, credential_id=str(password_id))
 
     if not vccs.add_credentials(str(user.user_id), [new_factor]):
         return False  # something failed
 
-    new_password = Password(credential_id=password_id, salt=new_factor.salt, application=source,)
+    new_password = Password(credential_id=str(password_id), salt=new_factor.salt, created_by=source)
     user.credentials.add(new_password)
 
     return user

@@ -10,7 +10,7 @@ from saml2 import BINDING_HTTP_REDIRECT, BINDING_SOAP
 from saml2.mdstore import destinations
 from saml2.response import AuthnResponse, LogoutResponse
 
-from vccs_client import VCCSClient
+from eduid.vccs.client import VCCSClient
 
 from eduid.webapp.idp.tests.test_app import IdPTests, LoginState
 

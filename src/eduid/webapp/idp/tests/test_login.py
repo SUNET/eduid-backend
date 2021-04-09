@@ -2,14 +2,13 @@ import logging
 import os
 
 from mock import patch
+
+from eduid.vccs.client import VCCSClient
+from eduid.webapp.common.authn.utils import get_saml2_config
+from eduid.webapp.idp.tests.test_app import IdPTests, LoginState
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.authn_context import requested_authn_context
 from saml2.client import Saml2Client
-
-from vccs_client import VCCSClient
-
-from eduid.webapp.common.authn.utils import get_saml2_config
-from eduid.webapp.idp.tests.test_app import IdPTests, LoginState
 
 logger = logging.getLogger(__name__)
 

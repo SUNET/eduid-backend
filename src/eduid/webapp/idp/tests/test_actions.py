@@ -40,7 +40,7 @@ from typing import cast
 import bson
 from mock import patch
 
-from vccs_client import VCCSClient
+from eduid.vccs.client import VCCSClient
 
 from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.idp import IdPUser
@@ -54,9 +54,6 @@ from eduid.webapp.idp.tests.test_SSO import cc as CONTEXTCLASSREFS
 from eduid.webapp.idp.tou_action import add_actions as tou_add_actions
 
 logger = logging.getLogger(__name__)
-
-# local = cherrypy.lib.httputil.Host('127.0.0.1', 50000, "")
-# remote = cherrypy.lib.httputil.Host('127.0.0.1', 50001, "")
 
 
 class TestActions(SSOIdPTests):

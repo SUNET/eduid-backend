@@ -39,6 +39,5 @@ qrcode>=5.1
 redis>=3.2.0,==3.*
 statsd==3.2.1
 suds-jurko
-vccs_client>=0.4.5
 xhtml2pdf>=0.2.2
 zxcvbn>=4.4.27,<5.0

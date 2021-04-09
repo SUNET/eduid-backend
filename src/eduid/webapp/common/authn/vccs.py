@@ -35,7 +35,7 @@ from typing import Optional
 
 from bson import ObjectId
 
-from vccs_client import VCCSClient, VCCSClientHTTPError, VCCSPasswordFactor, VCCSRevokeFactor
+from eduid.vccs.client import VCCSClient, VCCSClientHTTPError, VCCSPasswordFactor, VCCSRevokeFactor
 
 from eduid.common.decorators import deprecated
 from eduid.userdb.credentials import Password
