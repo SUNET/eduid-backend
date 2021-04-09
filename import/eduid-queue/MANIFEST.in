@@ -1,4 +1,0 @@
-include LICENSE
-include src/eduid_queue/templates/*.jinja2
-include src/eduid_queue/translations/*/LC_MESSAGES/*.mo
-

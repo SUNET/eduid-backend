@@ -1,3 +1,0 @@
-include *.txt *.ini *.cfg *.rst *.md
-recursive-include src/eduid_webapp *.jinja2 *.xml *.txt *.pt *.html
-recursive-include src/eduid_webapp *.pot *.po *.mo

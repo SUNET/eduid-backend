@@ -1,1 +1,0 @@
-# eduid-lookup-mobile
