@@ -1,8 +1,0 @@
--r requirements.txt
-bson>=0.5.9
-eduid_userdb>=0.6.4,==0.6.*
-pytest>=5.2.0
-pytest-cov>=2.7.1
-isort
-black
-mypy
