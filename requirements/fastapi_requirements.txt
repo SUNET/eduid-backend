@@ -499,9 +499,8 @@ pydantic==1.8.1 \
     #   -c main.txt
     #   -r main.in
     #   fastapi
-# WARNING: pip install will require the following package to be hashed.
-# Consider using a hashable URL like https://github.com/jazzband/pip-tools/archive/SOMECOMMIT.zip
-git+https://github.com/SUNET/python-pyhsm@ft-python3-support
+https://github.com/SUNET/python-pyhsm/archive/5a6c22da8286b2060e8e661a46b53cbc8eeb1fe7.zip \
+    --hash=sha256:db7f9f4a2bbeb55ac02761ea38ef0ce0d6da752e48fd69c4d7c47a608f0b5146
     # via -r fastapi_requirements.in
 pyjwkest==1.4.2 \
     --hash=sha256:5560fd5ba08655f29ff6ad1df1e15dc05abc9d976fcbcec8d2b5167f49b70222

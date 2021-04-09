@@ -1,8 +1,11 @@
--r main.in
 -c main.txt
+-r falconapi_requirements.in
+-r fastapi_requirements.in
+-r main.in
+-r satosa_scim_requirements.in
+-r webapp_requirements.in
 black==19.10b0
 isort==5.6.4
-loguru
 mock
 moto[sns]
 mypy
