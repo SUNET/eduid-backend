@@ -92,7 +92,7 @@ class TestActions(SSOIdPTests):
 
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, 'authenticate'):
-            VCCSClient.authenticate.return_value = True
+            VCCSClient.authenticate.return_value = True  # type: ignore
             result = self._try_login()
 
         assert result.reached_state == LoginState.S5_LOGGED_IN

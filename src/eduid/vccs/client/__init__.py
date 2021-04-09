@@ -82,10 +82,6 @@ __organization__ = 'NORDUnet'
 __license__ = 'BSD'
 __authors__ = ['Fredrik Thulin']
 
-__all__ = [
-    ]
-
-
 import os
 import six
 import bson
