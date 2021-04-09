@@ -110,6 +110,7 @@ click==7.1.2 \
     #   click-didyoumean
     #   click-plugins
     #   click-repl
+    #   uvicorn
 cookies-samesite-compat==0.0.1 \
     --hash=sha256:2d2921799d79aebd5a3d3dc6cfd6f877eb7aef6c644a65574df43bb763cd715b \
     --hash=sha256:782d2bb613addda854529f850f4f60b836a0f0c45049167495490fc4af073ac0
@@ -175,6 +176,10 @@ gunicorn==20.1.0 \
     # via
     #   -c main.txt
     #   -r main.in
+h11==0.12.0 \
+    --hash=sha256:36a3cb8c0a032f56e2da7084577878a035d3b61d104230d4bd49c0c6b555a9c6 \
+    --hash=sha256:47222cb6067e4a307d535814917cd98fd0a57b6788ce715755fa2b6c28b56042
+    # via uvicorn
 hammock==0.2.4 \
     --hash=sha256:a535f085b7c1c10f675761a8bc8853618cbc66f80d71491eb2486e53ce1f8730
     # via
@@ -607,6 +612,9 @@ python-jose==3.2.0 \
     # via
     #   -c main.txt
     #   -r main.in
+python-multipart==0.0.5 \
+    --hash=sha256:f7bb5f611fc600d15fa47b3974c8aa16e93724513b49b5f95c81e6624c83fa43
+    # via -r fastapi_requirements.in
 python-u2flib-server==5.0.1 \
     --hash=sha256:b5e1712bf8f703c6fc9bac6643efb2d57e6c9d9f0b9ab0c0df74981b2c349632
     # via
@@ -706,6 +714,7 @@ six==1.15.0 \
     #   python-bidi
     #   python-dateutil
     #   python-jose
+    #   python-multipart
     #   python-u2flib-server
     #   pytool
     #   pyxmlsecurity
@@ -750,6 +759,10 @@ urllib3==1.26.4 \
     #   botocore
     #   python-etcd
     #   requests
+uvicorn==0.13.4 \
+    --hash=sha256:3292251b3c7978e8e4a7868f4baf7f7f7bb7e40c759ecc125c37e99cdea34202 \
+    --hash=sha256:7587f7b08bd1efd2b9bad809a3d333e972f1d11af8a5e52a9371ee3a5de71524
+    # via -r fastapi_requirements.in
 vine==5.0.0 \
     --hash=sha256:4c9dceab6f76ed92105027c49c823800dd33cacce13bdedc5b914e3514b7fb30 \
     --hash=sha256:7d3b1624a953da82ef63462013bbd271d3eb75751489f9807598e8f340bd637e
