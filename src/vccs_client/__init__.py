@@ -477,7 +477,7 @@ class VCCSClient(object):
         The part of _execute that has actual side effects. In a separate function
         to make everything else easily testable.
         """
-        data = urlencode(values)
+        data = bytes(urlencode(values), 'utf-8')
         req = Request(self.base_url + service, data)
         try:
             response = urlopen(req)
