@@ -5,7 +5,7 @@ from enum import Enum, unique
 from typing import Any, Dict, Mapping, Optional, Type, Union, cast
 
 from bson import ObjectId
-from eduid_userdb.db import BaseDB
+from eduid.userdb.db import BaseDB
 from loguru import logger
 from pydantic.dataclasses import dataclass
 from pymongo.errors import DuplicateKeyError
@@ -109,12 +109,10 @@ class _PasswordCredentialRequired:
 
 @dataclass(config=CredentialPydanticConfig)
 class PasswordCredential(Credential, _PasswordCredentialRequired):
-
     @classmethod
     def from_dict(cls: Type[PasswordCredential], data: Mapping[str, Any]) -> PasswordCredential:
         # This indirection provides the correct return type for this subclass
         return cast(PasswordCredential, cls._from_dict(data))
-
 
 
 @dataclass
@@ -125,7 +123,6 @@ class _RevokedCredentialRequired:
 
 @dataclass(config=CredentialPydanticConfig)
 class RevokedCredential(Credential, _RevokedCredentialRequired):
-
     @classmethod
     def from_dict(cls: Type[RevokedCredential], data: Mapping[str, Any]) -> RevokedCredential:
         # This indirection provides the correct return type for this subclass

@@ -1,10 +1,7 @@
-import os
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Mapping, Optional
 
-from binascii import unhexlify
-
-from eduid_common.config.base import RootConfig
-from eduid_common.config.parsers import load_config
+from eduid.common.config.base import RootConfig
+from eduid.common.config.parsers import load_config
 
 
 class VCCSConfig(RootConfig):

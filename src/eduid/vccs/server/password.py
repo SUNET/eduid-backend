@@ -2,10 +2,10 @@ from typing import List, Union
 from binascii import unhexlify
 
 from ndnkdf import NDNKDF
-from vccs.server.db import PasswordCredential
-from vccs.server.factors import RequestFactor
-from vccs.server.hasher import VCCSYHSMHasher
-from vccs.server.log import audit_log
+from eduid.vccs.server.db import PasswordCredential
+from eduid.vccs.server.factors import RequestFactor
+from eduid.vccs.server.hasher import VCCSYHSMHasher
+from eduid.vccs.server.log import audit_log
 
 
 async def authenticate_password(
@@ -31,7 +31,9 @@ async def authenticate_password(
     return res
 
 
-async def calculate_cred_hash(user_id: str, H1: str, cred: PasswordCredential, hasher: VCCSYHSMHasher, kdf: NDNKDF) -> str:
+async def calculate_cred_hash(
+    user_id: str, H1: str, cred: PasswordCredential, hasher: VCCSYHSMHasher, kdf: NDNKDF
+) -> str:
     """
     Calculate the expected password hash value for a credential, along this
     pseudo code :

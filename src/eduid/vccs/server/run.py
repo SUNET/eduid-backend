@@ -9,14 +9,14 @@ from ndnkdf import ndnkdf
 from starlette.responses import JSONResponse
 from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
 
-from vccs.server.config import init_config
-from vccs.server.db import CredentialDB
-from vccs.server.endpoints.add_creds import add_creds_router
-from vccs.server.endpoints.authenticate import authenticate_router
-from vccs.server.endpoints.misc import misc_router
-from vccs.server.endpoints.revoke_creds import revoke_creds_router
-from vccs.server.hasher import hasher_from_string
-from vccs.server.log import InterceptHandler, init_logging
+from eduid.vccs.server.config import init_config
+from eduid.vccs.server.db import CredentialDB
+from eduid.vccs.server.endpoints.add_creds import add_creds_router
+from eduid.vccs.server.endpoints.authenticate import authenticate_router
+from eduid.vccs.server.endpoints.misc import misc_router
+from eduid.vccs.server.endpoints.revoke_creds import revoke_creds_router
+from eduid.vccs.server.hasher import hasher_from_string
+from eduid.vccs.server.log import InterceptHandler, init_logging
 
 
 class VCCS_API(FastAPI):

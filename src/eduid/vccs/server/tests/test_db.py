@@ -2,7 +2,7 @@ import unittest
 
 from bson import ObjectId
 
-from vccs.server.db import PasswordCredential
+from eduid.vccs.server.db import PasswordCredential
 
 
 class TestCredential(unittest.TestCase):

@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from vccs.server.db import CredType
+from eduid.vccs.server.db import CredType
 
 
 class RequestFactor(BaseModel):
