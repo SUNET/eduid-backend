@@ -5,5 +5,5 @@ update_deps: main.txt $(patsubst %_requirements.in,%_requirements.txt,$(wildcard
 main.txt: main.in
 	CUSTOM_COMPILE_COMMAND="make update_deps" $(PIPCOMPILE) main.in
 
-%_requirements.txt: main.in %_requirements.in
+%_requirements.txt: %_requirements.in
 	CUSTOM_COMPILE_COMMAND="make update_deps" $(PIPCOMPILE) $<
