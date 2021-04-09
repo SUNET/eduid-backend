@@ -1,0 +1,13 @@
+eduid-userdb>=0.9.1,==0.9.*
+eduid-common>=0.24.0,==0.24.*
+fastapi
+git+https://github.com/SUNET/python-pyhsm@ft-python3-support
+#pyhsm>=1.2.0
+loguru
+ndnkdf>=0.3
+py-bcrypt>=0.4
+pymongo>=3.6
+# python-multipart is needed to parse form data
+python-multipart
+PyYAML>=3.11
+uvicorn
