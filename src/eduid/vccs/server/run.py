@@ -23,7 +23,7 @@ class VCCS_API(FastAPI):
     def __init__(self, test_config: Optional[Mapping[str, Any]] = None):
         super().__init__()
 
-        self.state.config = init_config(ns='eduid/api', app_name='vccs', test_config=test_config)
+        self.state.config = init_config(ns='api', app_name='vccs', test_config=test_config)
 
         self.logger = init_logging()
 
