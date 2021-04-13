@@ -33,5 +33,5 @@ extra_jobs:
       - "python3.8 -m venv venv"
       - ". venv/bin/activate"
       - "pip install -U pip setuptools wheel pip-tools"
-      - "touch *.in"
+      - "touch requirements/*in"
       - "make update_deps"

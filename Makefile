@@ -25,4 +25,4 @@ compile_translations:
 	pybabel compile --directory=$(SOURCE)/webapp/translations/ --use-fuzzy
 
 update_deps:
-	cd requirements && make all
+	cd requirements && make update_deps
