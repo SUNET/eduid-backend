@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 from uuid import UUID
 
+from bson import ObjectId
 from marshmallow import fields
 from marshmallow_dataclass import NewType, class_schema
 from marshmallow_enum import EnumField
@@ -16,6 +17,7 @@ from eduid.scimapi.schemas.scimbase import (
     DateTimeField,
     SCIMResourceType,
     SCIMSchema,
+    VersionField,
 )
 
 __author__ = 'ft'
@@ -30,6 +32,10 @@ SCIMResourceTypeValue = NewType(
 class NutidEventResource:
     resource_type: SCIMResourceTypeValue = field(metadata={'data_key': 'resourceType', 'required': True})
     scim_id: UUID = field(metadata={'data_key': 'id', 'required': True})
+    last_modified: datetime = field(
+        metadata={'marshmallow_field': DateTimeField(data_key='lastModified'), 'required': True}
+    )
+    version: ObjectId = field(metadata={'marshmallow_field': VersionField(), 'required': True})
     external_id: Optional[str] = field(default=None, metadata={'data_key': 'externalId', 'required': False})
     location: Optional[str] = field(default=None, metadata={'required': False})
 

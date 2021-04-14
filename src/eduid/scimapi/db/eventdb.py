@@ -26,6 +26,8 @@ class ScimApiEventResource:
     resource_type: SCIMResourceType
     scim_id: UUID
     external_id: Optional[str]
+    version: ObjectId
+    last_modified: datetime
 
     def to_dict(self) -> Dict[str, Any]:
         data = asdict(self)
@@ -149,7 +151,11 @@ def add_api_event(
     _event = ScimApiEvent(
         scim_id=uuid4(),
         resource=ScimApiEventResource(
-            resource_type=resource_type, scim_id=db_obj.scim_id, external_id=db_obj.external_id
+            resource_type=resource_type,
+            scim_id=db_obj.scim_id,
+            external_id=db_obj.external_id,
+            version=db_obj.version,
+            last_modified=db_obj.last_modified,
         ),
         timestamp=_now,
         expires_at=_expires_at,

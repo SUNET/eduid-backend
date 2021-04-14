@@ -51,6 +51,8 @@ class EventsResource(SCIMResource):
                 timestamp=db_event.timestamp,
                 resource=NutidEventResource(
                     resource_type=db_event.resource.resource_type,
+                    version=db_event.resource.version,
+                    last_modified=db_event.resource.last_modified,
                     scim_id=db_event.resource.scim_id,
                     external_id=db_event.resource.external_id,
                     location=self.resource_url(db_event.resource.resource_type, db_event.resource.scim_id),
@@ -74,28 +76,28 @@ class EventsResource(SCIMResource):
 
     def on_post(self, req: Request, resp: Response):
         """
-               POST /Events  HTTP/1.1
-               Host: example.com
-               Accept: application/scim+json
-               Content-Type: application/scim+json
-               Authorization: Bearer h480djs93hd8
-               Content-Length: ...
+        POST /Events  HTTP/1.1
+        Host: example.com
+        Accept: application/scim+json
+        Content-Type: application/scim+json
+        Authorization: Bearer h480djs93hd8
+        Content-Length: ...
 
-               {
-                   'schemas': ['https://scim.eduid.se/schema/nutid/event/core-v1',
-                               'https://scim.eduid.se/schema/nutid/event/v1'],
-                   'https://scim.eduid.se/schema/nutid/event/v1': {
-                       'ref': {'resourceType': 'User',
-                               'id': '199745a8-a4f5-46b9-9ae9-531da967bfb1',
-                               'externalId': 'test@example.org'
-                               },
-                       'data': {'create_test': True},
-                       'expiresAt': '2021-02-23T14:36:15+00:00',
-                       'level': 'debug',
-                       'source': 'eduid.se',
-                       'timestamp': '2021-02-18T14:36:15+00:00'
-                       }
-               }
+        {
+            'schemas': ['https://scim.eduid.se/schema/nutid/event/core-v1',
+                        'https://scim.eduid.se/schema/nutid/event/v1'],
+            'https://scim.eduid.se/schema/nutid/event/v1': {
+                'ref': {'resourceType': 'User',
+                        'id': '199745a8-a4f5-46b9-9ae9-531da967bfb1',
+                        'externalId': 'test@example.org'
+                        },
+                'data': {'create_test': True},
+                'expiresAt': '2021-02-23T14:36:15+00:00',
+                'level': 'debug',
+                'source': 'eduid.se',
+                'timestamp': '2021-02-18T14:36:15+00:00'
+                }
+        }
         """
         self.context.logger.info(f'Creating event')
         try:
@@ -132,6 +134,8 @@ class EventsResource(SCIMResource):
         event = ScimApiEvent(
             resource=ScimApiEventResource(
                 resource_type=create_request.nutid_event_v1.resource.resource_type,
+                version=create_request.nutid_event_v1.resource.version,
+                last_modified=create_request.nutid_event_v1.resource.last_modified,
                 scim_id=referenced.scim_id,
                 external_id=referenced.external_id,
             ),
