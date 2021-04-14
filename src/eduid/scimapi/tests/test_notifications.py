@@ -7,11 +7,14 @@ from moto import mock_sns
 from eduid.scimapi.db.eventdb import EventLevel
 from eduid.scimapi.schemas.scimbase import SCIMResourceType, SCIMSchema
 from eduid.scimapi.testing import ScimApiTestCase
+from eduid.scimapi.utils import make_etag
 
 __author__ = 'lundberg'
 
 
 # TODO: Try to setup a mock sqs to verify the published message
+
+
 class TestNotifications(ScimApiTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -52,7 +55,12 @@ class TestNotifications(ScimApiTestCase):
 
         user = self.add_user(identifier=str(uuid4()), external_id='test@example.org')
         event = {
-            'resource': {'resourceType': SCIMResourceType.USER.value, 'id': str(user.scim_id)},
+            'resource': {
+                'resourceType': SCIMResourceType.USER.value,
+                'id': str(user.scim_id),
+                'version': make_etag(user.version),
+                'lastModified': str(user.last_modified),
+            },
             'level': EventLevel.ERROR.value,
             'data': {'create_test': True},
         }

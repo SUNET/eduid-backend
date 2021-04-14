@@ -17,6 +17,7 @@ from eduid.scimapi.app import init_api
 from eduid.scimapi.config import ScimApiConfig
 from eduid.scimapi.context import Context
 from eduid.scimapi.db.common import ScimApiLinkedAccount, ScimApiName
+from eduid.scimapi.db.eventdb import ScimApiEvent
 from eduid.scimapi.db.groupdb import ScimApiGroup
 from eduid.scimapi.db.invitedb import ScimApiInvite
 from eduid.scimapi.db.userdb import ScimApiProfile, ScimApiUser
@@ -162,7 +163,10 @@ class ScimApiTestCase(MongoNeoTestCase):
             self.assertEqual(detail, json.get('detail'))
 
     def _assertScimResponseProperties(
-        self, response: Result, resource: Union[ScimApiGroup, ScimApiUser, ScimApiInvite], expected_schemas: List[str]
+        self,
+        response: Result,
+        resource: Union[ScimApiGroup, ScimApiUser, ScimApiInvite, ScimApiEvent],
+        expected_schemas: List[str],
     ):
         if SCIMSchema.NUTID_USER_V1.value in response.json:
             # The API can always add this extension to the response, even if it was not in the request
@@ -171,6 +175,14 @@ class ScimApiTestCase(MongoNeoTestCase):
         if SCIMSchema.NUTID_GROUP_V1.value in response.json:
             # The API can always add this extension to the response, even if it was not in the request
             expected_schemas += [SCIMSchema.NUTID_GROUP_V1.value]
+
+        if SCIMSchema.NUTID_INVITE_V1.value in response.json:
+            # The API can always add this extension to the response, even if it was not in the request
+            expected_schemas += [SCIMSchema.NUTID_INVITE_V1.value]
+
+        if SCIMSchema.NUTID_EVENT_V1.value in response.json:
+            # The API can always add this extension to the response, even if it was not in the request
+            expected_schemas += [SCIMSchema.NUTID_EVENT_V1.value]
 
         response_schemas = response.json.get('schemas')
         self.assertIsInstance(response_schemas, list, 'Response schemas not present, or not a list')
@@ -187,8 +199,11 @@ class ScimApiTestCase(MongoNeoTestCase):
         elif isinstance(resource, ScimApiInvite):
             expected_location = f'http://localhost:8000/Invites/{resource.scim_id}'
             expected_resource_type = 'Invite'
+        elif isinstance(resource, ScimApiEvent):
+            expected_location = f'http://localhost:8000/Events/{resource.scim_id}'
+            expected_resource_type = 'Event'
         else:
-            raise ValueError('Resource is neither ScimApiUser, ScimApiGroup or ScimApiInvite')
+            raise ValueError('Resource is neither ScimApiUser, ScimApiGroup, ScimApiInvite or ScimApiEvent')
 
         self.assertEqual(str(resource.scim_id), response.json.get('id'), 'Unexpected id in response')
 
