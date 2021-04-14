@@ -199,8 +199,21 @@ def post_event(
     token: Optional[str] = None,
 ) -> None:
 
+    if resource_type == 'User':
+        resource = get_user_resource(api=api, scim_id=resource_scim_id, token=token)
+    elif resource_type == 'Group':
+        resource = get_group_resource(api=api, scim_id=resource_scim_id, token=token)
+    else:
+        logger.warning(f'No event created for resource type {resource_type} - not implemented.')
+        return None
+
     event = {
-        'resource': {'resourceType': resource_type, 'id': resource_scim_id},
+        'resource': {
+            'resourceType': resource_type,
+            'id': resource_scim_id,
+            'lastModified': resource['meta']['lastModified'],
+            'version': resource['meta']['version'],
+        },
         'level': level,
     }
 
@@ -296,9 +309,9 @@ def process_groups(api: str, ops: Mapping[str, Any], token: Optional[str] = None
 
 def process_events(api: str, ops: Mapping[str, Any], token: Optional[str] = None) -> None:
     for op in ops.keys():
-        if op == 'put':
-            for scim_id in ops[op]:
-                params = ops[op][scim_id]
+        if op == 'post':
+            for item in ops[op]:
+                params = ops[op][item]
                 post_event(api, token=token, **params)
 
 

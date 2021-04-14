@@ -4,7 +4,7 @@
 - Create a YAML file called for example `test.yaml`, with initial contents like this
  (with the path to the API being `http://scimapi.eduid.docker:8000` in this example):
 
-```
+``` yaml
 ---
   'http://scimapi.eduid.docker:8000':
     'users':
@@ -19,7 +19,7 @@
 
 - Run `scim-util.py test.yaml` to find your SCIM UUID. Note that scim-util.py requires Python 3.7.
 
-```
+``` shell
   $ ./scim-util.py test.yaml
   ...
   2020-03-11 11:08:46,131: scim-util: INFO User search result:
@@ -39,7 +39,7 @@
 
 - Add a PUT operation to the `test.yaml` file like this:
 
-```
+``` yaml
 ---
   'http://scimapi.eduid.docker:8000':
     'users':
@@ -69,7 +69,7 @@
 
 - Run `scim-util.py test.yaml` again to change your eduID display name:
 
-```
+``` shell
   $ ./scim-util.py test.yaml
   ...
   2020-03-11 11:11:59,025: scim-util: INFO Update result:
@@ -100,12 +100,29 @@
   }
 ```
 
+### Events
+
+Add a POST operation for Events to the `test.yaml` file like this:
+
+``` yaml
+---
+  'http://scimapi.eduid.docker:8000':
+    'events':
+      'post':
+        'user_event_1':
+          'resource_scim_id': 'd4aa1c10-7120-452b-a109-adf9030b9ef3'
+          'resource_type': 'User'
+          'level': 'debug'
+          'data':
+            'message': 'debug message for a user'
+            'test_key': 'test_value'
+```
 
 ## Search operations
 
 To search for one or more users based on their externalId:
 
-```
+``` yaml
 ---
   'http://scimapi.eduid.docker:8000':
     'users':
@@ -116,7 +133,7 @@ To search for one or more users based on their externalId:
 
 To search for users based on last modification timestamp:
 
-```
+``` yaml
 ---
   'http://scimapi.eduid.docker:8000':
     'users':
@@ -133,7 +150,7 @@ Supported operations for this search:
 
 To search for one or more groups based on NUTID attributes:
 
-```
+``` yaml
 ---
   'http://scimapi.eduid.docker:8000':
     'groups':
@@ -156,7 +173,7 @@ To search for one or more groups based on NUTID attributes:
 The API uses (currently optional) bearer tokens for authorization. As a first step during development,
 bearer tokens can be requested without authentication from the /login endpoint.
 
-```
+``` yaml
 ---
   'http://scimapi.eduid.docker:8000':
     'login':
