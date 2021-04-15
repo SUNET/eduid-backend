@@ -207,6 +207,10 @@ def post_event(
         logger.warning(f'No event created for resource type {resource_type} - not implemented.')
         return None
 
+    if resource is None:
+        logger.error(f'Event resource {resource_type} {resource_scim_id} not found.')
+        return None
+
     event = {
         'resource': {
             'resourceType': resource_type,
