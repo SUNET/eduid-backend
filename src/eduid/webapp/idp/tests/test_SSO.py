@@ -364,10 +364,10 @@ class TestSSO(SSOIdPTests):
         """
         Test login with password, request unknown context class.
 
-        Expect the response Authn to be FIDO U2F.
+        Expect the response Authn to be REFEDS MFA.
         """
         out = self._get_login_response_authn(req_class_ref='urn:no-such-class', credentials=['pw', 'u2f'],)
-        self.assertEqual(out.class_ref, cc['FIDO_U2F'])
+        self.assertEqual(out.class_ref, cc['REFEDS_MFA'])
 
     def test__get_login_response_9(self):
         """

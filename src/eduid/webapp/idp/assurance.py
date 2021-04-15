@@ -190,8 +190,8 @@ def response_authn(
 
     else:
         # Handle both unknown and empty req_authn_ctx the same
-        if authn.password_used and authn.fido_used:
-            response_authn = cc['FIDO_U2F']
+        if authn.is_multifactor:
+            response_authn = cc['REFEDS_MFA']
         elif authn.password_used:
             response_authn = cc['PASSWORD_PT']
 
