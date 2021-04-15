@@ -47,14 +47,15 @@ bleach==3.3.0 \
     # via
     #   -c main.txt
     #   -r main.in
-boto3==1.17.48 \
-    --hash=sha256:e86c15049dc07cb67e8b466795f004f1f23c1acf078d47283cd5e4a692a5aa37
+boto3==1.17.52 \
+    --hash=sha256:41b1ba590e887b85520c0e97e811630b8eeb71860c9b1faa3190c3bd45856176 \
+    --hash=sha256:ed640c17c97af289be4693740c1cbf95a456e9c495e3973a1ed6f51a396846d2
     # via
     #   -c main.txt
     #   -r main.in
-botocore==1.20.48 \
-    --hash=sha256:99c4f96bffae406f6dec1fa94e0886993e5bcd8657604d950abb43a49121fa7c \
-    --hash=sha256:af27a8133f5b8f6a55738ccd5efd35689f1822cfd447625a839ef7a991eab64f
+botocore==1.20.52 \
+    --hash=sha256:cd24db07268d3b9356cb745aeb6de1e4aaa73b555843b9f8650f5b4068051013 \
+    --hash=sha256:dd5f5808ec48a999b9634b387ad6ab7a1a23ba1f9712a875066d234808f8aa62
     # via
     #   -c main.txt
     #   boto3
@@ -209,9 +210,9 @@ idna==2.10 \
     #   -c main.txt
     #   -r main.in
     #   requests
-importlib-metadata==3.10.0 \
-    --hash=sha256:c9db46394197244adf2f0b08ec5bc3cf16757e9590b02af1fca085c16c0d600a \
-    --hash=sha256:d2d46ef77ffc85cbf7dac7e81dd663fde71c45326131bea8033b9bad42268ebe
+importlib-metadata==3.10.1 \
+    --hash=sha256:2ec0faae539743ae6aaa84b49a169670a465f7f5d64e6add98388cc29fd1f2f6 \
+    --hash=sha256:c9356b657de65c53744046fa8f7358afe0714a1af7d570c00c3835c2d724a7c1
     # via
     #   -c main.txt
     #   -r sub_main.in
@@ -462,8 +463,10 @@ pycparser==2.20 \
     # via
     #   -c main.txt
     #   cffi
-pycrypto==2.6.1 \
-    --hash=sha256:f2ce1e989b272cfcb677616763e0a2e7ec659effa67a88aa92b3a65528f60a3c
+pycryptodome==3.10.1 \
+    --hash=sha256:3e2e3a06580c5f190df843cdb90ea28d61099cf4924334d5297a995de68e4673 \
+    --hash=sha256:501ab36aae360e31d0ec370cf5ce8ace6cb4112060d099b993bc02b36ac83fb6 \
+    --hash=sha256:a92d5c414e8ee1249e850789052608f582416e82422502dc0ac8c577808a9067
     # via pyhsm
 pycryptodomex==3.10.1 \
     --hash=sha256:00a584ee52bf5e27d540129ca9bf7c4a7e7447f24ff4a220faa1304ad0c09bcd \
@@ -508,8 +511,8 @@ pydantic==1.8.1 \
     #   -c main.txt
     #   -r main.in
     #   fastapi
-https://github.com/SUNET/python-pyhsm/archive/5a6c22da8286b2060e8e661a46b53cbc8eeb1fe7.zip \
-    --hash=sha256:db7f9f4a2bbeb55ac02761ea38ef0ce0d6da752e48fd69c4d7c47a608f0b5146
+https://github.com/SUNET/python-pyhsm/archive/3b867ec8e0aa2c4444e9c84444228e95fc6aaabf.zip \
+    --hash=sha256:f15aaa010f66fa884eea517a49ae690d865ca81965ae685a9c0414a9ad943717
     # via -r fastapi_requirements.in
 pyjwkest==1.4.2 \
     --hash=sha256:5560fd5ba08655f29ff6ad1df1e15dc05abc9d976fcbcec8d2b5167f49b70222
@@ -668,10 +671,10 @@ redis==3.5.3 \
     #   -c main.txt
     #   -r main.in
     #   celery
-reportlab==3.5.66 \
-    --hash=sha256:13ac281c8d5c904089022377bd9646c910deae63e7342dd9552088d330d73e89 \
-    --hash=sha256:202109018f40d620812cf30dc300ea73385aed305d1de63c42229cb881821ffb \
-    --hash=sha256:63fba51babad0047def4ffaa41d0065248ca39d680e98dc9e3010de5425539b4
+reportlab==3.5.67 \
+    --hash=sha256:0cf2206c73fbca752c8bd39e12bb9ad7f2d01e6fcb2b25b9eaf94ea042fe86c9 \
+    --hash=sha256:72bb5417f198eb059f01d5a9e1ef80f2fbaf3eaa4cd63e9a681bbbd0ed9fcdf9 \
+    --hash=sha256:9d48fd4a1c2d98ec6686511717f0980d36f5590e038d5afe4e5241f328f06e38
     # via
     #   -c main.txt
     #   xhtml2pdf
@@ -691,9 +694,9 @@ rsa==4.7.2 \
     # via
     #   -c main.txt
     #   python-jose
-s3transfer==0.3.6 \
-    --hash=sha256:5d48b1fd2232141a9d5fb279709117aaba506cacea7f86f11bc392f06bfa8fc2 \
-    --hash=sha256:c5dadf598762899d8cfaecf68eba649cd25b0ce93b6c954b156aaa3eed160547
+s3transfer==0.3.7 \
+    --hash=sha256:35627b86af8ff97e7ac27975fe0a98a312814b46c6333d8a6b889627bcd80994 \
+    --hash=sha256:efa5bd92a897b6a8d5c1383828dca3d52d0790e0756d49740563a3fb6ed03246
     # via
     #   -c main.txt
     #   boto3
@@ -810,9 +813,9 @@ xhtml2pdf==0.2.5 \
     # via
     #   -c main.txt
     #   -r main.in
-xmlschema==1.6.0 \
-    --hash=sha256:bbc89616eeaaa827d8b4bc5dc0aa4b695d9980efd6cc5eb887711b88fdaf6241 \
-    --hash=sha256:e951efc5ab3f251973f92cba7a7026adb32a4cd844d3425133d23eb269de4f8f
+xmlschema==1.6.1 \
+    --hash=sha256:1b3d7c8222c8e0d53e0cbae6b476514663e445200b347dfd62bb5a7a9200d0a8 \
+    --hash=sha256:d02b82bb4fce3af09495b85e6ada5ce0cfdaa865b09b28ecc0f5ab81fad7e328
     # via
     #   -c main.txt
     #   pysaml2

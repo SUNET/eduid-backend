@@ -2,7 +2,7 @@
 -c main.txt
 fastapi
 loguru
-https://github.com/SUNET/python-pyhsm/archive/5a6c22da8286b2060e8e661a46b53cbc8eeb1fe7.zip
+https://github.com/SUNET/python-pyhsm/archive/3b867ec8e0aa2c4444e9c84444228e95fc6aaabf.zip
 ndnkdf
 uvicorn[standard]
 python-multipart  # needed to parse form data
