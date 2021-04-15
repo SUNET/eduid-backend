@@ -32,7 +32,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import json
-from contextlib import contextmanager
 from typing import Any, Dict, Mapping, Optional
 
 from mock import patch
@@ -413,30 +412,6 @@ class SignupTests(EduidAPITestCase):
             self.assertIn('email', data['payload']['error'])
             self.assertIn('csrf_token', data['payload']['error'])
             self.assertIn('recaptcha_response', data['payload']['error'])
-
-    def test_resend_email(self):
-        response = self._resend_email()
-
-        data = json.loads(response.data)
-        self.assertEqual(data['type'], 'POST_SIGNUP_RESEND_VERIFICATION_SUCCESS')
-
-    def test_resend_email_mixed_case(self):
-        response = self._resend_email(email='MixedCase@Example.com')
-        data = json.loads(response.data)
-        self.assertEqual(data['type'], 'POST_SIGNUP_RESEND_VERIFICATION_SUCCESS')
-
-        mixed_user: SignupUser = self.app.private_userdb.get_user_by_pending_mail_address('MixedCase@Example.com')
-        lower_user: SignupUser = self.app.private_userdb.get_user_by_pending_mail_address('mixedcase@example.com')
-        assert mixed_user.eppn == lower_user.eppn
-        assert mixed_user.pending_mail_address.email == lower_user.pending_mail_address.email
-
-    def test_resend_email_wrong_csrf(self):
-        data1 = {'csrf_token': 'wrong-token'}
-        response = self._resend_email(data1=data1)
-
-        data = json.loads(response.data)
-        self.assertEqual(data['type'], 'POST_SIGNUP_RESEND_VERIFICATION_FAIL')
-        self.assertEqual(data['payload']['error']['csrf_token'], ['CSRF failed to validate'])
 
     def test_verify_code(self):
         response = self._verify_code()
