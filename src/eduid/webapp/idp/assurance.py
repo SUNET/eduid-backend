@@ -37,6 +37,7 @@ from typing import List, Optional
 
 from eduid.userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, Credential
 from eduid.userdb.idp import IdPUser
+from eduid.webapp.idp.app import current_idp_app
 from eduid.webapp.idp.idp_saml import AuthnInfo
 from eduid.webapp.idp.sso_session import SSOSession
 
@@ -163,6 +164,7 @@ def response_authn(
     response_authn = None
 
     if req_authn_ctx == cc['REFEDS_MFA']:
+        current_idp_app.stats.count('req_authn_ctx_refeds_mfa')
         if not authn.is_multifactor:
             raise MissingMultiFactor()
         if not authn.is_swamid_al2_mfa:
@@ -170,21 +172,25 @@ def response_authn(
         response_authn = cc['REFEDS_MFA']
 
     elif req_authn_ctx == cc['REFEDS_SFA']:
+        current_idp_app.stats.count('req_authn_ctx_refeds_sfa')
         if not authn.is_singlefactor:
             raise MissingSingleFactor()
         response_authn = cc['REFEDS_SFA']
 
     elif req_authn_ctx == cc['EDUID_MFA']:
+        current_idp_app.stats.count('req_authn_ctx_eduid_mfa')
         if not authn.is_multifactor:
             raise MissingMultiFactor()
         response_authn = cc['EDUID_MFA']
 
     elif req_authn_ctx == cc['FIDO_U2F']:
+        current_idp_app.stats.count('req_authn_ctx_fido_u2f')
         if not authn.password_used and authn.fido_used:
             raise MissingMultiFactor()
         response_authn = cc['FIDO_U2F']
 
     elif req_authn_ctx == cc['PASSWORD_PT']:
+        current_idp_app.stats.count('req_authn_ctx_password_pt')
         if authn.password_used:
             response_authn = cc['PASSWORD_PT']
 
