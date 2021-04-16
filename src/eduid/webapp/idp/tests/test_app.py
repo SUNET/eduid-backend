@@ -185,7 +185,8 @@ class IdPTests(EduidAPITestCase):
             url=redirect_loc, sso_cookie_val=sso_cookie_val, reached_state=LoginState.S5_LOGGED_IN, response=resp
         )
 
-    def _extract_form_inputs(self, res: str) -> Dict[str, Any]:
+    @staticmethod
+    def _extract_form_inputs(res: str) -> Dict[str, Any]:
         inputs = {}
         for line in res.split('\n'):
             if 'input' in line:
@@ -211,11 +212,15 @@ class IdPTests(EduidAPITestCase):
         path = url[8 + _idx :]
         return path
 
-    def parse_saml_authn_response(self, response: FlaskResponse) -> AuthnResponse:
+    def parse_saml_authn_response(
+        self, response: FlaskResponse, saml2_client: Optional[Saml2Client] = None
+    ) -> AuthnResponse:
+        _saml2_client = saml2_client if saml2_client is not None else self.saml2_client
+
         form = self._extract_form_inputs(response.data.decode('utf-8'))
         xmlstr = bytes(form['SAMLResponse'], 'ascii')
         outstanding_queries = self.pysaml2_oq.outstanding_queries()
-        return self.saml2_client.parse_authn_request_response(xmlstr, BINDING_HTTP_POST, outstanding_queries)
+        return _saml2_client.parse_authn_request_response(xmlstr, BINDING_HTTP_POST, outstanding_queries)
 
     def get_sso_session(self, sso_cookie_val: str) -> Optional[SSOSession]:
         if sso_cookie_val is None:
