@@ -111,20 +111,15 @@ class IdP_SAMLRequest(object):
     def raw_requested_authn_context(self) -> Optional[RequestedAuthnContext]:
         return self._req_info.message.requested_authn_context
 
-    def get_requested_authn_context(self) -> Optional[str]:
-        """
-        SAML requested authn context.
-
-        TODO: Don't just return the first one, but the most relevant somehow.
-        """
+    def get_requested_authn_contexts(self) -> List[str]:
+        """ SAML requested authn context. """
         if self.raw_requested_authn_context:
-            _res = self.raw_requested_authn_context.authn_context_class_ref[0].text
-            if _res is None:
-                return None
-            if not isinstance(_res, str):
-                raise ValueError(f'Unknown class_ref text type ({type(_res)})')
-            return _res
-        return None
+            res = [x.text for x in self.raw_requested_authn_context.authn_context_class_ref]
+            for this in res:
+                if not isinstance(this, str):
+                    raise ValueError(f'Invalid authnContextClassRef value ({repr(this)})')
+            return res
+        return []
 
     @property
     def raw_sp_entity_id(self) -> Issuer:

@@ -34,7 +34,7 @@ from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import SSOLoginData
 from eduid.webapp.idp import assurance, mischttp
 from eduid.webapp.idp.app import current_idp_app as current_app
-from eduid.webapp.idp.assurance import AssuranceException, MissingMultiFactor, WrongMultiFactor
+from eduid.webapp.idp.assurance import AssuranceException, EduidAuthnContextClass, MissingMultiFactor, WrongMultiFactor
 from eduid.webapp.idp.idp_actions import check_for_pending_actions
 from eduid.webapp.idp.idp_saml import (
     AuthnInfo,
@@ -321,7 +321,7 @@ class SSO(Service):
         # Decide what AuthnContext to assert based on the one requested in the request
         # and the authentication performed
 
-        req_authn_context = get_requested_authn_context(ticket.saml_req)
+        req_authn_context = get_requested_authn_context(ticket)
 
         try:
             resp_authn = assurance.response_authn(req_authn_context, user, self.sso_session, current_app.logger)
@@ -432,13 +432,13 @@ class SSO(Service):
         # TODO: Use flask url_for below in function do_verify(), instead of passing the current URL from here
         redirect_uri = mischttp.geturl(query=False)
 
-        req_authn_context = get_requested_authn_context(ticket.saml_req)
+        req_authn_context = get_requested_authn_context(ticket)
         current_app.logger.debug(f'Do authentication, requested auth context : {req_authn_context!r}')
 
         return self._show_login_page(ticket, req_authn_context, redirect_uri)
 
     def _show_login_page(
-        self, ticket: SSOLoginData, requested_authn_context: Optional[str], redirect_uri: str
+        self, ticket: SSOLoginData, requested_authn_context: Optional[EduidAuthnContextClass], redirect_uri: str
     ) -> WerkzeugResponse:
         """
         Display the login form for all authentication methods.
@@ -481,7 +481,7 @@ class SSO(Service):
             }
         )
         if requested_authn_context is not None:
-            argv['authn_reference'] = requested_authn_context
+            argv['authn_reference'] = requested_authn_context.value
 
         # Set alert msg if FailCount is greater than zero
         if ticket.FailCount:
@@ -532,7 +532,7 @@ def do_verify() -> WerkzeugResponse:
         _info[this] = unescape(query[this])
     _ticket = _get_ticket(_info, None)
 
-    authn_ref = _ticket.saml_req.get_requested_authn_context()
+    authn_ref = get_requested_authn_context(_ticket)
     current_app.logger.debug(f'Authenticating with {repr(authn_ref)}')
 
     if not password or 'username' not in query:
