@@ -187,6 +187,24 @@ class GroupManagementTests(EduidAPITestCase):
         self._check_success_response(response, type_='POST_GROUP_INVITE_INVITES_DECLINE_SUCCESS')
         return response
 
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
+    def _delete_invite(
+        self, mock_sendmail: Any, group_scim_id: str, inviter: User, invite_address: str, role: str
+    ) -> Response:
+        mock_sendmail.return_value = True
+        with self.session_cookie(self.browser, inviter.eppn) as client:
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
+                    data = {
+                        'group_identifier': group_scim_id,
+                        'email_address': invite_address,
+                        'role': role,
+                        'csrf_token': sess.get_csrf_token(),
+                    }
+                response = client.post('/invites/delete', data=json.dumps(data), content_type=self.content_type_json)
+        self._check_success_response(response, type_='POST_GROUP_INVITE_INVITES_DELETE_SUCCESS')
+        return response
+
     def _invite_setup(self):
         # Add test user as group owner of two groups
         graph_user = GraphUser(
@@ -698,6 +716,44 @@ class GroupManagementTests(EduidAPITestCase):
         )
         assert scim_group.has_member(scim_user.scim_id) is False
 
+    def test_delete_invite_member(self):
+        # Add test user as group owner
+        graph_user = GraphUser(
+            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        )
+        self.scim_group1.owners = [graph_user]
+        self.app.scimapi_groupdb.save(self.scim_group1)
+
+        # Invite test user 2 to the group as member
+        self._invite(
+            group_scim_id=str(self.scim_group1.scim_id),
+            inviter=self.test_user,
+            invite_address=self.test_user2.mail_addresses.primary.email,
+            role='member',
+        )
+        # Delete invite as test user
+        response = self._delete_invite(
+            group_scim_id=str(self.scim_group1.scim_id),
+            inviter=self.test_user,
+            invite_address=self.test_user2.mail_addresses.primary.email,
+            role='member',
+        )
+        payload = response.json.get('payload')
+        outgoing = payload['outgoing']
+        assert 0 == len(outgoing)
+
+        with self.assertRaises(DocumentDoesNotExist):
+            self.app.invite_state_db.get_state(
+                group_scim_id=str(self.scim_group1.scim_id),
+                email_address=self.test_user2.mail_addresses.primary.email,
+                role=GroupRole.MEMBER,
+            )
+        scim_group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
+        scim_user = self.app.scimapi_userdb.get_user_by_external_id(
+            f'{self.test_user2.eppn}@{self.app.conf.scim_external_id_scope}'
+        )
+        assert scim_group.has_member(scim_user.scim_id) is False
+
     def test_invite_owner(self):
         # Add test user as group owner
         graph_user = GraphUser(
@@ -794,7 +850,7 @@ class GroupManagementTests(EduidAPITestCase):
             self.app.invite_state_db.get_state(
                 group_scim_id=str(self.scim_group1.scim_id),
                 email_address=self.test_user2.mail_addresses.primary.email,
-                role=GroupRole.MEMBER,
+                role=GroupRole.OWNER,
             )
         scim_group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         scim_user = self.app.scimapi_userdb.get_user_by_external_id(
@@ -832,7 +888,46 @@ class GroupManagementTests(EduidAPITestCase):
             self.app.invite_state_db.get_state(
                 group_scim_id=str(self.scim_group1.scim_id),
                 email_address=self.test_user2.mail_addresses.primary.email,
-                role=GroupRole.MEMBER,
+                role=GroupRole.OWNER,
+            )
+        scim_group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
+        scim_user = self.app.scimapi_userdb.get_user_by_external_id(
+            f'{self.test_user2.eppn}@{self.app.conf.scim_external_id_scope}'
+        )
+        assert scim_group.has_owner(scim_user.scim_id) is False
+
+    def test_delete_invite_owner(self):
+        # Add test user as group owner
+        graph_user = GraphUser(
+            identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
+        )
+        self.scim_group1.owners = [graph_user]
+        self.app.scimapi_groupdb.save(self.scim_group1)
+
+        # Invite test user 2 to the group as member
+        self._invite(
+            group_scim_id=str(self.scim_group1.scim_id),
+            inviter=self.test_user,
+            invite_address=self.test_user2.mail_addresses.primary.email,
+            role='owner',
+        )
+
+        # Decline invite as test user
+        response = self._delete_invite(
+            group_scim_id=str(self.scim_group1.scim_id),
+            inviter=self.test_user,
+            invite_address=self.test_user2.mail_addresses.primary.email,
+            role='owner',
+        )
+        payload = response.json.get('payload')
+        outgoing = payload['outgoing']
+        assert 0 == len(outgoing)
+
+        with self.assertRaises(DocumentDoesNotExist):
+            self.app.invite_state_db.get_state(
+                group_scim_id=str(self.scim_group1.scim_id),
+                email_address=self.test_user2.mail_addresses.primary.email,
+                role=GroupRole.OWNER,
             )
         scim_group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         scim_user = self.app.scimapi_userdb.get_user_by_external_id(

@@ -51,6 +51,8 @@ class GroupManagementConfig(EduIDBaseAppConfig, MailConfigMixin):
 
     group_invite_template_html: str = 'group_invite_email.html.jinja2'
     group_invite_template_txt: str = 'group_invite_email.txt.jinja2'
+    group_delete_invite_template_html: str = 'group_delete_invite_email.html.jinja2'
+    group_delete_invite_template_txt: str = 'group_delete_invite_email.txt.jinja2'
     group_invite_url: str = 'https://dashboard.eduid.se'
     mail_default_from: str = 'no-reply@eduid.se'
     neo4j_config: Optional[Dict[str, Any]] = None
