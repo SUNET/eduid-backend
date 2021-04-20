@@ -50,6 +50,7 @@ from eduid.webapp.group_management.helpers import (
     get_outgoing_invites,
     get_scim_user_by_eppn,
     is_owner,
+    send_delete_invite_email,
     send_invite_email,
 )
 from eduid.webapp.group_management.schemas import (
@@ -133,6 +134,43 @@ def create_invite(user: User, group_identifier: UUID, email_address: str, role: 
     except MailTaskFailed:
         return error_response(message=CommonMsg.temp_problem)
     current_app.stats.count(name='invite_created')
+    return outgoing_invites()
+
+
+@group_invite_views.route('/delete', methods=['POST'])
+@UnmarshalWith(GroupInviteRequestSchema)
+@MarshalWith(GroupOutgoingInviteResponseSchema)
+@require_user
+def delete_invite(user: User, group_identifier: UUID, email_address: str, role: GroupRole) -> FluxData:
+    scim_user = get_scim_user_by_eppn(user.eppn)
+    if not scim_user:
+        current_app.logger.error('User does not exist in scimapi_userdb')
+        return error_response(message=GroupManagementMsg.user_does_not_exist)
+
+    if not is_owner(scim_user, group_identifier):
+        current_app.logger.error(f'User is not owner of group with scim_id: {group_identifier}')
+        return error_response(message=GroupManagementMsg.user_not_owner)
+
+    invite_state = current_app.invite_state_db.get_state(
+        group_scim_id=str(group_identifier), email_address=email_address, role=role, raise_on_missing=False
+    )
+
+    if not invite_state:
+        current_app.logger.error(f'Invite for group {group_identifier} does not exist')
+        return error_response(message=GroupManagementMsg.invite_not_found)
+
+    # Remove group invite
+    try:
+        current_app.invite_state_db.remove_state(invite_state)
+    except EduIDDBError:
+        return error_response(message=CommonMsg.temp_problem)
+    current_app.stats.count(name='invite_deleted')
+
+    try:
+        send_delete_invite_email(invite_state)
+    except MailTaskFailed:
+        return error_response(message=CommonMsg.temp_problem)
+
     return outgoing_invites()
 
 

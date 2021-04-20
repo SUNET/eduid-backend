@@ -261,3 +261,34 @@ def send_invite_email(invite_state: GroupInviteState):
         raise e
 
     current_app.logger.info(f'Sent group {invite_state.group_scim_id} invite email to {invite_state.email_address}')
+
+
+def send_delete_invite_email(invite_state: GroupInviteState):
+    text_template = current_app.conf.group_delete_invite_template_txt
+    html_template = current_app.conf.group_delete_invite_template_html
+
+    to_addresses = [invite_state.email_address]
+    group = current_app.scimapi_groupdb.get_group_by_scim_id(invite_state.group_scim_id)
+    if not group:
+        raise ValueError(f'Group {invite_state.group_scim_id} not found')
+    context = {'group_display_name': group.display_name}
+    subject = _('Group invitation cancelled')
+    try:
+        send_mail(
+            subject,
+            to_addresses,
+            text_template,
+            html_template,
+            current_app,
+            context,
+            reference=invite_state.group_scim_id,
+        )
+    except MailTaskFailed as e:
+        current_app.logger.error(
+            f'Sending group {invite_state.group_scim_id} cancel invite email to {invite_state.email_address} failed: {e}'
+        )
+        raise e
+
+    current_app.logger.info(
+        f'Sent group {invite_state.group_scim_id} cancel invite email to {invite_state.email_address}'
+    )
