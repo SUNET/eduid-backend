@@ -159,18 +159,18 @@ def delete_invite(user: User, group_identifier: UUID, email_address: str, role: 
         current_app.logger.error(f'Invite for group {group_identifier} does not exist')
         return error_response(message=GroupManagementMsg.invite_not_found)
 
-    try:
-        send_delete_invite_email(invite_state)
-    except MailTaskFailed:
-        return error_response(message=CommonMsg.temp_problem)
-
     # Remove group invite
     try:
         current_app.invite_state_db.remove_state(invite_state)
     except EduIDDBError:
         return error_response(message=CommonMsg.temp_problem)
-
     current_app.stats.count(name='invite_deleted')
+
+    try:
+        send_delete_invite_email(invite_state)
+    except MailTaskFailed:
+        return error_response(message=CommonMsg.temp_problem)
+
     return outgoing_invites()
 
 
