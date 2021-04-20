@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ns0:EntityDescriptor xmlns:ns0="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:ns1="http://www.w3.org/2000/09/xmldsig#" entityID="https://sp.example.edu/saml2/metadata/">
+<ns0:EntityDescriptor xmlns:ns0="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:ns1="http://www.w3.org/2000/09/xmldsig#" xmlns:mdrpi="urn:oasis:names:tc:SAML:metadata:rpi" entityID="https://sp.example.edu/saml2/metadata/">
+  <ns0:Extensions>
+    <mdrpi:RegistrationInfo registrationAuthority="http://www.swamid.se/"><mdrpi:RegistrationPolicy xml:lang="en">http://swamid.se/policy/mdrps</mdrpi:RegistrationPolicy></mdrpi:RegistrationInfo>
+    <mdattr:EntityAttributes xmlns:mdattr="urn:oasis:names:tc:SAML:metadata:attribute"><samla:Attribute xmlns:samla="urn:oasis:names:tc:SAML:2.0:assertion" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri" Name="http://macedir.org/entity-category"><samla:AttributeValue>http://www.swamid.se/category/hei-service</samla:AttributeValue><samla:AttributeValue>http://www.swamid.se/category/research-and-education</samla:AttributeValue><samla:AttributeValue>http://www.swamid.se/category/sfs-1993-1153</samla:AttributeValue></samla:Attribute></mdattr:EntityAttributes>
+  </ns0:Extensions>
   <ns0:SPSSODescriptor AuthnRequestsSigned="false" WantAssertionsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
     <ns0:KeyDescriptor use="encryption">
       <ns1:KeyInfo>

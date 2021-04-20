@@ -240,7 +240,7 @@ class IdP_SAMLRequest(object):
         # Create pysaml2 dict with the authn information
         authn = dict(class_ref=response_authn.class_ref, authn_instant=response_authn.instant,)
         saml_response = self._idp.create_authn_response(
-            attributes, userid=userid, authn=authn, sign_response=True, **resp_args
+            identity=attributes, userid=userid, authn=authn, sign_response=True, **resp_args
         )
         if not isinstance(saml_response, str):
             raise ValueError(f'Unknown saml_response type ({type(saml_response)})')
