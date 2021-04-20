@@ -265,7 +265,7 @@ class LoggingConfigMixin(BaseModel):
     debug: bool = False
     # If this list contains anything, debug logging will only be performed for these users
     debug_eppns: Sequence[str] = Field(default=[])
-    log_format: str = '{asctime} | {levelname:7} | {hostname} | {eppn:9} | {name:35} | {module:10} | {message}'
+    log_format: str = '{asctime} | {levelname:7} | {hostname} | {eppn:11} | {name:35} | {module:10} | {message}'
     log_level: str = 'INFO'
     log_filters: Sequence[LoggingFilters] = Field(default=[LoggingFilters.NAMES, LoggingFilters.SESSION_USER])
     logging_config: dict = Field(default={})
