@@ -164,7 +164,7 @@ class SSOIdPTests(IdPTests):
         :raise: BadRequest if request signature validation fails
         """
         try:
-            saml_req = IdP_SAMLRequest(info['SAMLRequest'], binding, idp, logger, debug=debug)
+            saml_req = IdP_SAMLRequest(info['SAMLRequest'], binding, idp, debug=debug)
         except UnravelError:
             raise bad_request('No valid SAMLRequest found', logger=logger)
         except ValueError:

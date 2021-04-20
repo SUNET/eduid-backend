@@ -37,6 +37,7 @@ from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.idp.user import IdPUser
 from eduid.webapp.common.session.logindata import ExternalMfaData, SSOLoginData
 from eduid.webapp.idp.app import current_idp_app as current_app
+from eduid.webapp.idp.assurance import EduidAuthnContextClass
 from eduid.webapp.idp.util import get_requested_authn_context
 
 __author__ = 'ft'
@@ -61,10 +62,10 @@ def add_actions(user: IdPUser, ticket: SSOLoginData) -> Optional[Action]:
         return None
 
     require_mfa = False
-    requested_authn_context = get_requested_authn_context(ticket.saml_req)
+    requested_authn_context = get_requested_authn_context(ticket)
     if requested_authn_context in [
-        'https://refeds.org/profile/mfa',
-        'https://www.swamid.se/specs/id-fido-u2f-ce-transports',
+        EduidAuthnContextClass.REFEDS_MFA,
+        EduidAuthnContextClass.FIDO_U2F,
     ]:
         require_mfa = True
 

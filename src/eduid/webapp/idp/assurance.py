@@ -33,6 +33,7 @@
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
 import logging
+from enum import Enum, unique
 from typing import List, Optional
 
 from eduid.userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, Credential
@@ -44,6 +45,15 @@ from eduid.webapp.idp.sso_session import SSOSession
 """
 Assurance Level functionality.
 """
+
+
+@unique
+class EduidAuthnContextClass(Enum):
+    REFEDS_MFA = 'https://refeds.org/profile/mfa'
+    REFEDS_SFA = 'https://refeds.org/profile/sfa'
+    FIDO_U2F = 'https://www.swamid.se/specs/id-fido-u2f-ce-transports'
+    EDUID_MFA = 'https://eduid.se/specs/mfa'
+    PASSWORD_PT = 'urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport'
 
 
 class AssuranceException(Exception):
@@ -120,7 +130,7 @@ class AuthnState(object):
         return (
             f'<AuthnState: creds={len(self._creds)}, pw={self.password_used}, fido={self.fido_used}, '
             f'external_mfa={self.external_mfa_used}, nin is al2={self.is_swamid_al2}, '
-            f'mfa is (al2={self.swamid_al2_used}, al2_hi={self.swamid_al2_hi_used})>'
+            f'mfa is {self.is_multifactor} (al2={self.swamid_al2_used}, al2_hi={self.swamid_al2_hi_used})>'
         )
 
     @property
@@ -137,7 +147,7 @@ class AuthnState(object):
 
 
 def response_authn(
-    req_authn_ctx: Optional[str], user: IdPUser, sso_session: SSOSession, logger: logging.Logger
+    req_authn_ctx: Optional[EduidAuthnContextClass], user: IdPUser, sso_session: SSOSession, logger: logging.Logger
 ) -> AuthnInfo:
     """
     Figure out what AuthnContext to assert in a SAML response,
@@ -148,14 +158,6 @@ def response_authn(
     authn = AuthnState(user, sso_session, logger)
     logger.info(f'Authn for {user} will be evaluated based on: {authn}')
 
-    cc = {
-        'REFEDS_MFA': 'https://refeds.org/profile/mfa',
-        'REFEDS_SFA': 'https://refeds.org/profile/sfa',
-        'FIDO_U2F': 'https://www.swamid.se/specs/id-fido-u2f-ce-transports',
-        'EDUID_MFA': 'https://eduid.se/specs/mfa',
-        'PASSWORD_PT': 'urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport',
-    }
-
     SWAMID_AL1 = 'http://www.swamid.se/policy/assurance/al1'
     SWAMID_AL2 = 'http://www.swamid.se/policy/assurance/al2'
     SWAMID_AL2_MFA_HI = 'http://www.swamid.se/policy/authentication/swamid-al2-mfa-hi'
@@ -163,49 +165,52 @@ def response_authn(
     attributes = {}
     response_authn = None
 
-    if req_authn_ctx == cc['REFEDS_MFA']:
+    if req_authn_ctx == EduidAuthnContextClass.REFEDS_MFA:
         current_idp_app.stats.count('req_authn_ctx_refeds_mfa')
         if not authn.is_multifactor:
             raise MissingMultiFactor()
         if not authn.is_swamid_al2_mfa:
             raise WrongMultiFactor()
-        response_authn = cc['REFEDS_MFA']
+        response_authn = EduidAuthnContextClass.REFEDS_MFA
 
-    elif req_authn_ctx == cc['REFEDS_SFA']:
+    elif req_authn_ctx == EduidAuthnContextClass.REFEDS_SFA:
         current_idp_app.stats.count('req_authn_ctx_refeds_sfa')
         if not authn.is_singlefactor:
             raise MissingSingleFactor()
-        response_authn = cc['REFEDS_SFA']
+        response_authn = EduidAuthnContextClass.REFEDS_SFA
 
-    elif req_authn_ctx == cc['EDUID_MFA']:
+    elif req_authn_ctx == EduidAuthnContextClass.EDUID_MFA:
         current_idp_app.stats.count('req_authn_ctx_eduid_mfa')
         if not authn.is_multifactor:
             raise MissingMultiFactor()
-        response_authn = cc['EDUID_MFA']
+        response_authn = EduidAuthnContextClass.EDUID_MFA
 
-    elif req_authn_ctx == cc['FIDO_U2F']:
+    elif req_authn_ctx == EduidAuthnContextClass.FIDO_U2F:
         current_idp_app.stats.count('req_authn_ctx_fido_u2f')
         if not authn.password_used and authn.fido_used:
             raise MissingMultiFactor()
-        response_authn = cc['FIDO_U2F']
+        response_authn = EduidAuthnContextClass.FIDO_U2F
 
-    elif req_authn_ctx == cc['PASSWORD_PT']:
+    elif req_authn_ctx == EduidAuthnContextClass.PASSWORD_PT:
         current_idp_app.stats.count('req_authn_ctx_password_pt')
         if authn.password_used:
-            response_authn = cc['PASSWORD_PT']
+            response_authn = EduidAuthnContextClass.PASSWORD_PT
 
     else:
         # Handle both unknown and empty req_authn_ctx the same
         if authn.is_multifactor:
-            response_authn = cc['REFEDS_MFA']
+            response_authn = EduidAuthnContextClass.REFEDS_MFA
         elif authn.password_used:
-            response_authn = cc['PASSWORD_PT']
+            response_authn = EduidAuthnContextClass.PASSWORD_PT
 
     if not response_authn:
         raise MissingAuthentication()
 
     if authn.is_swamid_al2:
-        if authn.swamid_al2_hi_used and req_authn_ctx in [cc['REFEDS_SFA'], cc['REFEDS_MFA']]:
+        if authn.swamid_al2_hi_used and req_authn_ctx in [
+            EduidAuthnContextClass.REFEDS_SFA,
+            EduidAuthnContextClass.REFEDS_MFA,
+        ]:
             attributes['eduPersonAssurance'] = [SWAMID_AL1, SWAMID_AL2, SWAMID_AL2_MFA_HI]
         else:
             attributes['eduPersonAssurance'] = [SWAMID_AL1, SWAMID_AL2]
@@ -213,4 +218,4 @@ def response_authn(
         attributes['eduPersonAssurance'] = [SWAMID_AL1]
 
     logger.info(f'Assurances for {user} was evaluated to: {response_authn} with attributes {attributes}')
-    return AuthnInfo(class_ref=response_authn, authn_attributes=attributes)
+    return AuthnInfo(class_ref=response_authn.value, authn_attributes=attributes)
