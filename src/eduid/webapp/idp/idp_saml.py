@@ -1,23 +1,21 @@
 import logging
-import warnings
 from dataclasses import dataclass
 from hashlib import sha1
 from typing import Any, AnyStr, Dict, List, Mapping, NewType, Optional, Type
 
-import saml2.server
 import six
+from werkzeug.exceptions import HTTPException
+
+import saml2.server
+from eduid.webapp.idp.mischttp import HttpArgs
 from saml2.s_utils import UnknownPrincipal, UnknownSystemEntity, UnravelError, UnsupportedBinding
 from saml2.saml import Issuer
 from saml2.samlp import RequestedAuthnContext
 from saml2.sigver import verify_redirect_signature
-from werkzeug.exceptions import HTTPException
-
-from eduid.webapp.idp.mischttp import HttpArgs
 
 ResponseArgs = NewType('ResponseArgs', Dict[str, Any])
 
-# TODO: Rename to logger
-module_logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class SAMLParseError(Exception):
@@ -54,33 +52,24 @@ SamlResponse = NewType('SamlResponse', str)
 
 class IdP_SAMLRequest(object):
     def __init__(
-        self,
-        request: str,
-        binding: str,
-        idp: saml2.server.Server,
-        logger: Optional[logging.Logger] = None,
-        debug: bool = False,
+        self, request: str, binding: str, idp: saml2.server.Server, debug: bool = False,
     ):
         self._request = request
         self._binding = binding
         self._idp = idp
-        self._logger = logger
         self._debug = debug
-
-        if self._logger is not None:
-            warnings.warn('Object logger deprecated, using module_logger', DeprecationWarning)
 
         try:
             self._req_info = idp.parse_authn_request(request, binding)
         except UnravelError as exc:
-            module_logger.info(f'Failed parsing SAML request ({len(request)} bytes)')
-            module_logger.debug(f'Failed parsing SAML request:\n{request}\nException {exc}')
+            logger.info(f'Failed parsing SAML request ({len(request)} bytes)')
+            logger.debug(f'Failed parsing SAML request:\n{request}\nException {exc}')
             raise SAMLParseError('Failed parsing SAML request')
 
         if not self._req_info:
             # Either there was no request, or pysaml2 found it to be unacceptable.
             # For example, the IssueInstant might have been out of bounds.
-            module_logger.debug('No valid SAMLRequest returned by pysaml2')
+            logger.debug('No valid SAMLRequest returned by pysaml2')
             raise SAMLValidationError('No valid SAMLRequest returned by pysaml2')
 
         # Only perform expensive parse/pretty-print if debugging
@@ -89,9 +78,7 @@ class IdP_SAMLRequest(object):
             from eduid.webapp.idp.util import maybe_xml_to_string
 
             xmlstr = maybe_xml_to_string(self._req_info.xmlstr)
-            module_logger.debug(
-                f'Decoded SAMLRequest into AuthnRequest {repr(self._req_info.message)}:\n\n{xmlstr}\n\n'
-            )
+            logger.debug(f'Decoded SAMLRequest into AuthnRequest {repr(self._req_info.message)}:\n\n{xmlstr}\n\n')
 
     @property
     def binding(self) -> str:
@@ -112,7 +99,7 @@ class IdP_SAMLRequest(object):
                 break
         if not verified_ok:
             _key = gen_key(info['SAMLRequest'])
-            module_logger.info('{!s}: SAML request signature verification failure'.format(_key))
+            logger.info('{!s}: SAML request signature verification failure'.format(_key))
         return verified_ok
 
     @property
@@ -183,7 +170,7 @@ class IdP_SAMLRequest(object):
             _subject = self._req_info.subject_id()
             return _subject.text.strip()
         except Exception as exc:
-            module_logger.debug(f'Could not get Subject ID from AuthnRequest: {exc}')
+            logger.debug(f'Could not get Subject ID from AuthnRequest: {exc}')
         return None
 
     @property
@@ -234,20 +221,20 @@ class IdP_SAMLRequest(object):
             # not sure if we need to call pick_binding again (already done in response_args()),
             # but it is what we've always done
             binding_out, destination = self._idp.pick_binding('assertion_consumer_service', entity_id=self.sp_entity_id)
-            module_logger.debug(f'Binding: {binding_out}, destination: {destination}')
+            logger.debug(f'Binding: {binding_out}, destination: {destination}')
 
             resp_args['binding_out'] = binding_out
             resp_args['destination'] = destination
         except UnknownPrincipal as excp:
-            module_logger.info(f'{key}: Unknown service provider: {excp}')
+            logger.info(f'{key}: Unknown service provider: {excp}')
             raise bad_request('Don\'t know the SP that referred you here')
         except UnsupportedBinding as excp:
-            module_logger.info(f'{key}: Unsupported SAML binding: {excp}')
+            logger.info(f'{key}: Unsupported SAML binding: {excp}')
             raise bad_request('Don\'t know how to reply to the SP that referred you here')
         except UnknownSystemEntity as exc:
             # TODO: Validate refactoring didn't move this exception handling to the wrong place.
             #       Used to be in an exception handler in _redirect_or_post around perform_login().
-            module_logger.info(f'{key}: Service provider not known: {exc}')
+            logger.info(f'{key}: Service provider not known: {exc}')
             raise bad_request('SAML_UNKNOWN_SP')
 
         return ResponseArgs(resp_args)
@@ -269,7 +256,7 @@ class IdP_SAMLRequest(object):
         """
         binding_out = resp_args.get('binding_out')
         destination = resp_args.get('destination')
-        module_logger.debug(
+        logger.debug(
             'Applying binding_out {!r}, destination {!r}, relay_state {!r}'.format(
                 binding_out, destination, relay_state
             )
