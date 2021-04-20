@@ -217,5 +217,5 @@ def response_authn(
     else:
         attributes['eduPersonAssurance'] = [SWAMID_AL1]
 
-    logger.info(f'Assurances for {user} was evaluated to: {response_authn} with attributes {attributes}')
+    logger.info(f'Assurances for {user} was evaluated to: {response_authn.name} with attributes {attributes}')
     return AuthnInfo(class_ref=response_authn.value, authn_attributes=attributes)
