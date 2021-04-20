@@ -69,8 +69,6 @@ class SignupMsg(TranslatableMsg):
     email_used = 'signup.registering-address-used'
     # recaptcha not verified
     no_recaptcha = 'signup.recaptcha-not-verified'
-    # verification email successfully re-sent
-    resent_success = 'signup.verification-present'
     # unrecognized verification code
     unknown_code = 'signup.unknown-code'
     # the verification code has already been verified

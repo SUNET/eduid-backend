@@ -45,7 +45,7 @@ from eduid.webapp.signup.helpers import (
     complete_registration,
     remove_users_with_mail_address,
 )
-from eduid.webapp.signup.schemas import AccountCreatedResponse, EmailSchema, RegisterEmailSchema
+from eduid.webapp.signup.schemas import AccountCreatedResponse, RegisterEmailSchema
 from eduid.webapp.signup.verifications import (
     AlreadyVerifiedException,
     CodeDoesNotExist,
@@ -87,6 +87,7 @@ def trycaptcha(email: str, recaptcha_response: str, tou_accepted: bool) -> FluxD
 
     if recaptcha_verified:
         next = check_email_status(email)
+        current_app.logger.info(f'recaptcha verified, next is {next}')
         if next == 'new':
             # Workaround for failed earlier sync of user to userdb: Remove any signup_user with this e-mail address.
             remove_users_with_mail_address(email)
@@ -94,27 +95,16 @@ def trycaptcha(email: str, recaptcha_response: str, tou_accepted: bool) -> FluxD
             return success_response(payload=dict(next=next), message=SignupMsg.reg_new)
 
         elif next == 'resend-code':
-            return success_response(payload=dict(next=next))
+            send_verification_mail(email)
+            current_app.stats.count(name='resend_code')
+            # Show the same end screen for resending a mail and a new registration
+            return success_response(payload=dict(next='new'), message=SignupMsg.reg_new)
 
         elif next == 'address-used':
             current_app.stats.count(name='address_used_error')
             return error_response(payload=dict(next=next), message=SignupMsg.email_used)
 
     return error_response(message=SignupMsg.no_recaptcha)
-
-
-@signup_views.route('/resend-verification', methods=['POST'])
-@UnmarshalWith(EmailSchema)
-@MarshalWith(FluxStandardAction)
-def resend_email_verification(email: str):
-    """
-    The user has not yet verified the email address.
-    Send a verification message to the address so it can be verified.
-    """
-    current_app.logger.debug("Resend email confirmation to {!s}".format(email))
-    send_verification_mail(email)
-    current_app.stats.count(name='resend_code')
-    return success_response(message=SignupMsg.resent_success)
 
 
 @signup_views.route('/verify-link/<code>', methods=['GET'])
