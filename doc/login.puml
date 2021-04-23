@@ -24,10 +24,10 @@ end
 |||
 
 Client->"/tou": POST {"ref": reference, "versions": ["2016-v1", "2021-v1"]}
-"/tou"->Client: {"payload": {"version": "2016-v1"}, "type": "POST_LOGIN_TOU_SUCCESS"}
+"/tou"->Client: {"payload": {"finished": false, "version": "2016-v1"}, "type": "POST_LOGIN_TOU_SUCCESS"}
 
 
-Client->"/tou": POST {"ref": reference, "accept": true, "version": version}
+Client->"/tou": POST {"ref": reference, "user_accept": true, "version": version}
 alt Acceptable
     "/tou"->Client: {"payload": {"finished": true}, "type": "POST_LOGIN_TOU_SUCCESS"}
 else Not acceptable
