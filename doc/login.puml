@@ -24,7 +24,11 @@ end
 |||
 
 Client->"/tou": POST {"ref": reference, "versions": ["2016-v1", "2021-v1"]}
-"/tou"->Client: {"payload": {"finished": false, "version": "2016-v1"}, "type": "POST_LOGIN_TOU_SUCCESS"}
+alt Version acceptable to backend present
+    "/tou"->Client: {"payload": {"finished": false, "version": version}, "type": "POST_LOGIN_TOU_SUCCESS"}
+else No acceptable version present
+    "/tou"->Client: {"error": true, "payload": {"message": "login.tou_not_acceptable"},"type": "POST_LOGIN_TOU_FAIL"}
+end
 
 
 Client->"/tou": POST {"ref": reference, "user_accept": true, "version": version}
