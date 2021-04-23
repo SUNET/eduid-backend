@@ -2,7 +2,7 @@
 title login
 
 Client->"/next": POST {"ref": reference}
-alt not logged in
+alt Not logged in
     "/next"->Client: {"payload":{"action": "USERNAMEPASSWORD", "target": "/usernamepw"}, "type":"POST_LOGIN_NEXT_SUCCESS"}
 else ToU acceptance required
     "/next"->Client: {"payload":{"action": "TOU", "target": "/tou"}, "type":"POST_LOGIN_NEXT_SUCCESS"}
@@ -16,9 +16,9 @@ end
 |||
 
 Client->"/usernamepw": POST {"ref": reference, "username": username, "password", password}
-alt correct
+alt Correct
     "/usernamepw"->Client: {"payload": {"finished": true}, "type": "POST_LOGIN_USERNAMEPW_SUCCESS"}
-else not correct
+else Not correct
     "/usernamepw"->Client: {"error": true, "payload": {"message": "login.usernamepw_incorrect}, "type": "POST_LOGIN_USERNAMEPW_FAIL"}
 end
 |||
@@ -27,8 +27,12 @@ Client->"/tou": POST {"ref": reference, "versions": ["2016-v1", "2021-v1"]}
 "/tou"->Client: {"payload": {"version": "2016-v1"}, "type": "POST_LOGIN_TOU_SUCCESS"}
 
 
-Client->"/tou": POST {"ref": reference, "accept": true, "version": "2016-v1"}
-"/tou"->Client: {"payload": {"finished": true}, "type": "POST_LOGIN_TOU_SUCCESS"}
+Client->"/tou": POST {"ref": reference, "accept": true, "version": version}
+alt Acceptable
+    "/tou"->Client: {"payload": {"finished": true}, "type": "POST_LOGIN_TOU_SUCCESS"}
+else Not acceptable
+    "/tou"->Client: {"error": true, "payload": {"message": "login.tou_not_acceptable"},"type": "POST_LOGIN_TOU_FAIL"}
+end
 |||
 
 @enduml
