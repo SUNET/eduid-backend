@@ -1,0 +1,34 @@
+@startuml
+title login
+
+Client->"/next": POST {"ref": reference}
+alt not logged in
+    "/next"->Client: {"payload":{"action": "USERNAMEPASSWORD", "target": "/usernamepw"}, "type":"POST_LOGIN_NEXT_SUCCESS"}
+else ToU acceptance required
+    "/next"->Client: {"payload":{"action": "TOU", "target": "/tou"}, "type":"POST_LOGIN_NEXT_SUCCESS"}
+else MFA required
+    "/next"->Client: {"payload":{"action": "MFA", "target": "/mfa"}, "type":"POST_LOGIN_NEXT_SUCCESS"}
+else Finished
+    "/next"->Client: {"payload":{"action": "FINISHED", "target": "https://..."}, "type":"POST_LOGIN_NEXT_SUCCESS"}
+else Login not possible
+    "/next"->Client: {"error": true, "payload": {"message": "login.some_error"},"type": "POST_LOGIN_NEXT_FAIL"}
+end
+|||
+
+Client->"/usernamepw": POST {"ref": reference, "username": username, "password", password}
+alt correct
+    "/usernamepw"->Client: {"payload": {"finished": true}, "type": "POST_LOGIN_USERNAMEPW_SUCCESS"}
+else not correct
+    "/usernamepw"->Client: {"error": true, "payload": {"message": "login.usernamepw_incorrect}, "type": "POST_LOGIN_USERNAMEPW_FAIL"}
+end
+|||
+
+Client->"/tou": POST {"ref": reference, "versions": ["2016-v1", "2021-v1"]}
+"/tou"->Client: {"payload": {"version": "2016-v1"}, "type": "POST_LOGIN_TOU_SUCCESS"}
+
+
+Client->"/tou": POST {"ref": reference, "accept": true, "version": "2016-v1"}
+"/tou"->Client: {"payload": {"finished": true}, "type": "POST_LOGIN_TOU_SUCCESS"}
+|||
+
+@enduml
