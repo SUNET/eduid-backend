@@ -153,7 +153,30 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         self.assertEqual(self.app.password_reset_state_db.db_count(), 0)
 
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
-    def test_password_reset_email_overwrite_state(self, mock_sendmail):
+    def test_password_reset_email_overwrite_expired_state(self, mock_sendmail):
+        mock_sendmail.return_value = True
+
+        # Password reset 1
+        self.post_email_address('johnsmith@example.com')
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        self.assertIsNotNone(state)
+        code1 = state.email_code.code
+        # Set created time 5 minutes before email_code_timeout
+        state.email_code.created_ts = datetime.datetime.utcnow() - (
+            datetime.timedelta(seconds=self.app.conf.email_code_timeout) + datetime.timedelta(minutes=5)
+        )
+        self.app.password_reset_state_db.save(state)
+
+        # Password reset 2
+        self.post_email_address('johnsmith@example.com')
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        self.assertIsNotNone(state)
+        code2 = state.email_code.code
+
+        self.assertNotEqual(code1, code2)
+
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
+    def test_password_reset_email_do_not_overwrite_state(self, mock_sendmail):
         mock_sendmail.return_value = True
 
         # Password reset 1
@@ -168,7 +191,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         self.assertIsNotNone(state)
         code2 = state.email_code.code
 
-        self.assertNotEqual(code1, code2)
+        self.assertEqual(code1, code2)
 
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
     def test_password_reset_email_code(self, mock_sendmail):
