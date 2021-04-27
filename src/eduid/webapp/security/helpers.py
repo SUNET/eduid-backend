@@ -210,7 +210,15 @@ def send_password_reset_mail(email_address):
         current_app.logger.info("Found no user with the following address: {}.".format(email_address))
         return None
 
-    state = PasswordResetEmailState(eppn=user.eppn, email_address=email_address, email_code=get_unique_hash())
+    # User found, check if a state already exists
+    state = current_app.password_reset_state_db.get_state_by_eppn(eppn=user.eppn, raise_on_missing=False)
+    if state and not state.email_code.is_expired(timeout_seconds=current_app.conf.email_code_timeout):
+        # If a state is found and not expired, just send another message with the same code
+        # Update created_ts to give the user another email_code_timeout seconds to complete the password reset
+        state.email_code.created_ts = datetime.utcnow()
+    else:
+        # create a new state
+        state = PasswordResetEmailState(eppn=user.eppn, email_address=email_address, email_code=get_unique_hash())
     current_app.password_reset_state_db.save(state)
 
     text_template = 'reset_password_email.txt.jinja2'

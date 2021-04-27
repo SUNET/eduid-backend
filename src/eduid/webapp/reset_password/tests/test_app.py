@@ -30,6 +30,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+import datetime
 import json
 from typing import Any, Dict, List, Mapping, Optional
 from unittest.mock import Mock, patch
@@ -502,6 +503,41 @@ class ResetPasswordTests(EduidAPITestCase):
         self._check_success_response(response, msg=ResetPwMsg.reset_pw_initialized, type_='POST_RESET_PASSWORD_SUCCESS')
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
         self.assertEqual(state.email_address, 'johnsmith@example.com')
+
+    def test_do_not_overwrite_email_state(self):
+        response1 = self._post_email_address()
+        self._check_success_response(
+            response1, msg=ResetPwMsg.reset_pw_initialized, type_='POST_RESET_PASSWORD_SUCCESS'
+        )
+        state1 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        self.assertEqual(state1.email_address, 'johnsmith@example.com')
+        self.assertIsNotNone(state1.email_code.code)
+
+        response2 = self._post_email_address()
+        self._check_success_response(
+            response2, msg=ResetPwMsg.reset_pw_initialized, type_='POST_RESET_PASSWORD_SUCCESS'
+        )
+        state2 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        self.assertEqual(state1.email_code.code, state2.email_code.code)
+
+    def test_overwrite_expired_email_state(self):
+        response1 = self._post_email_address()
+        self._check_success_response(
+            response1, msg=ResetPwMsg.reset_pw_initialized, type_='POST_RESET_PASSWORD_SUCCESS'
+        )
+        state1 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        # Set created time 5 minutes before email_code_timeout
+        state1.email_code.created_ts = datetime.datetime.utcnow() - (
+            datetime.timedelta(seconds=self.app.conf.email_code_timeout) + datetime.timedelta(minutes=5)
+        )
+        self.app.password_reset_state_db.save(state1)
+
+        response2 = self._post_email_address()
+        self._check_success_response(
+            response2, msg=ResetPwMsg.reset_pw_initialized, type_='POST_RESET_PASSWORD_SUCCESS'
+        )
+        state2 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        self.assertNotEqual(state1.email_code.code, state2.email_code.code)
 
     def test_post_email_address_sendmail_fail(self):
         from eduid.webapp.common.api.exceptions import MailTaskFailed
