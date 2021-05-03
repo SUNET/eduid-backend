@@ -108,7 +108,10 @@ def get_sp_config(sp_base: str) -> dict:
                 'endpoints': {
                     # url and binding to the assertion consumer service view
                     # do not change the binding or service name
-                    'assertion_consumer_service': [(f'{sp_base}/acs/', BINDING_HTTP_POST)],
+                    'assertion_consumer_service': [
+                        (f'{sp_base}/acs/', BINDING_HTTP_POST),
+                        (f'https://localhost:8080/acs/', BINDING_HTTP_POST),
+                    ],
                     # url and binding to the single logout service view
                     # do not change the binding or service name
                     'single_logout_service': [(f'{sp_base}/ls/', BINDING_HTTP_REDIRECT)],

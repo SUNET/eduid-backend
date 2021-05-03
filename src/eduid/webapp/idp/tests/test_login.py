@@ -167,3 +167,12 @@ class IdPTestLogin(IdPTests):
         attributes = session_info['ava']
         assert 'eduPersonTargetedID' in attributes
         assert attributes['eduPersonTargetedID'] == ['71a13b105e83aa69c31f41b08ea83694e0fae5f368d17ef18ba59e0f9e407ec9']
+
+    def test_successful_authentication_alternative_acs(self):
+        # Patch the VCCSClient so we do not need a vccs server
+        with patch.object(VCCSClient, 'authenticate'):
+            VCCSClient.authenticate.return_value = True
+            result = self._try_login(assertion_consumer_service_url='https://localhost:8080/acs/')
+
+        assert result.reached_state == LoginState.S5_LOGGED_IN
+        assert 'form action=\"https://localhost:8080/acs/\" method=\"post\"' in result.response.data.decode('utf-8')

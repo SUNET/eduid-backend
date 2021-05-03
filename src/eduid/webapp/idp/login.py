@@ -101,7 +101,7 @@ class SSO(Service):
 
         saml_response = self._make_saml_response(response_authn, resp_args, user, ticket, self.sso_session)
 
-        binding_out = resp_args['binding_out']
+        binding = resp_args['binding']
         destination = resp_args['destination']
         http_args = ticket.saml_req.apply_binding(resp_args, ticket.RelayState, saml_response)
 
@@ -113,7 +113,7 @@ class SSO(Service):
             user_id=str(user.user_id),
         )
 
-        return mischttp.create_html_response(binding_out, http_args)
+        return mischttp.create_html_response(binding, http_args)
 
     def _make_saml_response(
         self,

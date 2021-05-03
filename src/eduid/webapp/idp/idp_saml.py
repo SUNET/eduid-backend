@@ -213,13 +213,6 @@ class IdP_SAMLRequest(object):
     def get_response_args(self, bad_request: Type[HTTPException], key: str) -> ResponseArgs:
         try:
             resp_args = self._idp.response_args(self._req_info.message)
-            # not sure if we need to call pick_binding again (already done in response_args()),
-            # but it is what we've always done
-            binding_out, destination = self._idp.pick_binding('assertion_consumer_service', entity_id=self.sp_entity_id)
-            logger.debug(f'Binding: {binding_out}, destination: {destination}')
-
-            resp_args['binding_out'] = binding_out
-            resp_args['destination'] = destination
         except UnknownPrincipal as excp:
             logger.info(f'{key}: Unknown service provider: {excp}')
             raise bad_request('Don\'t know the SP that referred you here')
@@ -249,14 +242,16 @@ class IdP_SAMLRequest(object):
     def apply_binding(self, resp_args: ResponseArgs, relay_state: str, saml_response: SamlResponse) -> HttpArgs:
         """ Create the Javascript self-posting form that will take the user back to the SP with a SAMLResponse.
         """
-        binding_out = resp_args.get('binding_out')
+        binding = resp_args.get('binding')
         destination = resp_args.get('destination')
-        logger.debug(
-            'Applying binding_out {!r}, destination {!r}, relay_state {!r}'.format(
-                binding_out, destination, relay_state
-            )
+        logger.debug(f'Applying binding {binding}, destination {destination}, relay_state {relay_state}')
+        _args = self._idp.apply_binding(
+            binding=binding,
+            msg_str=str(saml_response),
+            destination=destination,
+            relay_state=relay_state,
+            response=True,
         )
-        _args = self._idp.apply_binding(binding_out, str(saml_response), destination, relay_state, response=True)
         # _args is one of these pysaml2 dicts with HTML data, e.g.:
         #  {'headers': [('Content-type', 'text/html')],
         #   'data': '...<body onload="document.forms[0].submit()">,
