@@ -115,7 +115,11 @@ class IdPTests(EduidAPITestCase):
         assert self.app.conf.app_name == 'idp'
 
     def _try_login(
-        self, saml2_client: Optional[Saml2Client] = None, authn_context=None, force_authn: bool = False,
+        self,
+        saml2_client: Optional[Saml2Client] = None,
+        authn_context=None,
+        force_authn: bool = False,
+        assertion_consumer_service_url: Optional[str] = None,
     ) -> LoginResult:
         """
         Try logging in to the IdP.
@@ -130,6 +134,7 @@ class IdPTests(EduidAPITestCase):
             binding=BINDING_HTTP_REDIRECT,
             requested_authn_context=authn_context,
             force_authn=force_authn,
+            assertion_consumer_service_url=assertion_consumer_service_url,
         )
         self.pysaml2_oq.set(session_id, self.relay_state)
 

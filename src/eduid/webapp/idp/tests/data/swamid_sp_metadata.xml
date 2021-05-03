@@ -60,7 +60,8 @@ wHyaxzYldWmVC5omkgZeAdCGpJ316GQF8Zwg/yDOUzm4cvGeIESf1Q6ZxBwI6zGE
       </ns1:KeyInfo>
     </ns0:KeyDescriptor>
     <ns0:SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://sp.example.edu/saml2/ls/"/>
-    <ns0:AssertionConsumerService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://sp.example.edu/saml2/acs/" index="1"/>
+    <ns0:AssertionConsumerService isDefault="true" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://sp.example.edu/saml2/acs/" index="0"/>
+    <ns0:AssertionConsumerService isDefault="false" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://localhost:8080/acs/" index="1"/>
   </ns0:SPSSODescriptor>
   <ns0:Organization>
     <ns0:OrganizationName xml:lang="es">Example CO</ns0:OrganizationName>
