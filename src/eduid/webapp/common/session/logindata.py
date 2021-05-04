@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import pprint
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, field
 from datetime import datetime
 from html import escape
 from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional, Type
 from urllib.parse import urlencode
+
+from pydantic.dataclasses import dataclass
 
 from eduid.userdb.credentials import Credential
 from eduid.webapp.common.session.namespaces import SessionNSBase
@@ -43,7 +45,7 @@ class ExternalMfaData(object):
 
 
 @dataclass
-class SSOLoginData(SessionNSBase):
+class SSOLoginData:
     """
     Class to hold data about an ongoing login process - i.e. data relating to a
     particular IdP visitor in the process of logging in, but not yet fully logged in.
@@ -67,22 +69,17 @@ class SSOLoginData(SessionNSBase):
 
     # saml request object
     # eduid.webapp.common can't import from eduid-webapp
-    saml_req: 'IdP_SAMLRequest' = field(init=False, repr=False)
-
-    # query string
-    query_string: str = field(init=False, repr=False)
+    saml_req: Optional['IdP_SAMLRequest'] = field(default=None, init=False, repr=False)
 
     # Hash from Credential.key to datetime when it was used
     mfa_action_creds: Dict[str, datetime] = field(default_factory=dict, init=False, repr=False)
     mfa_action_external: Optional[ExternalMfaData] = field(default=None, init=False, repr=False)
 
-    def __post_init__(self):
+    def __post_init_post_parse__(self):
         self.key = escape(self.key, quote=True)
         self.RelayState = escape(self.RelayState, quote=True)
         self.SAMLRequest = escape(self.SAMLRequest, quote=True)
         self.binding = escape(self.binding, quote=True)
-        qs = {'SAMLRequest': self.SAMLRequest, 'RelayState': self.RelayState}
-        self.query_string = urlencode(qs)
 
     def to_dict(self) -> Dict[str, str]:
         return {
@@ -111,3 +108,8 @@ class SSOLoginData(SessionNSBase):
             data['SAMLRequest length'] = str(len(data['SAMLRequest']))
             del data['SAMLRequest']
         return pprint.pformat(data)
+
+    @property
+    def query_string(self) -> str:
+        qs = {'SAMLRequest': self.SAMLRequest, 'RelayState': self.RelayState}
+        return urlencode(qs)

@@ -1,33 +1,40 @@
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
 from abc import ABC
 from copy import deepcopy
-from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from enum import Enum, unique
-from typing import Optional
+from typing import Any, Dict, Optional, Type, TypeVar
 
 __author__ = 'ft'
 
+from pydantic import BaseModel, Field
 
-class SessionNSBase(ABC):
-    def to_dict(self):
-        return asdict(self)
+from eduid.common.misc.timeutil import utc_now
+
+
+class SessionNSBase(BaseModel, ABC):
+    def to_dict(self) -> Dict[str, Any]:
+        return self.dict()
 
     @classmethod
-    def from_dict(cls, data):
+    def from_dict(cls: Type[SessionNSBase], data) -> TSessionNSSubclass:
         _data = deepcopy(data)  # do not modify callers data
-        return cls(**_data)
+        # Avoid error: Incompatible return value type (got "SessionNSBase", expected "TSessionNSSubclass")
+        return cls(**_data)  # type: ignore
+
+
+TSessionNSSubclass = TypeVar('TSessionNSSubclass', bound=SessionNSBase)
 
 
 @unique
-class LoginApplication(Enum):
+class LoginApplication(str, Enum):
     idp = 'idp'
     authn = 'authn'
     signup = 'signup'
 
 
-@dataclass()
 class Common(SessionNSBase):
     eppn: Optional[str] = None
     is_logged_in: bool = False
@@ -35,9 +42,7 @@ class Common(SessionNSBase):
     preferred_language: Optional[str] = None
 
     def to_dict(self):
-        res = asdict(self)
-        if res.get('login_source') is not None:
-            res['login_source'] = res['login_source'].value
+        res = self.dict()
         return res
 
     @classmethod
@@ -48,7 +53,6 @@ class Common(SessionNSBase):
         return cls(**_data)
 
 
-@dataclass()
 class MfaAction(SessionNSBase):
     success: bool = False
     issuer: Optional[str] = None
@@ -56,31 +60,15 @@ class MfaAction(SessionNSBase):
     authn_context: Optional[str] = None
 
 
-@dataclass()
 class TimestampedNS(SessionNSBase):
-    ts: Optional[datetime] = None
+    ts: datetime = Field(utc_now())
 
-    def to_dict(self):
-        res = super(TimestampedNS, self).to_dict()
-        if res.get('ts') is not None:
-            res['ts'] = str(int(res['ts'].timestamp()))
+    def to_dict(self) -> Dict[str, Any]:
+        res = super().to_dict()
+        res['ts'] = self.ts.isoformat()
         return res
 
-    @classmethod
-    def from_dict(cls, data):
-        _data = deepcopy(data)  # do not modify callers data
-        _ts = _data.get('ts')
-        if _ts is not None:
-            # Load timestamp from ISO format string, or fallback to old UNIX time.
-            # When this code is deployed everywhere, we can change to ISO format in to_dict above.
-            if isinstance(_ts, str) and _ts.isdigit():
-                _data['ts'] = datetime.fromtimestamp(int(_ts), tz=timezone.utc)
-            else:
-                _data['ts'] = datetime.fromisoformat(_ts)
-        return cls(**_data)
 
-
-@dataclass
 class ResetPasswordNS(SessionNSBase):
     generated_password_hash: Optional[str] = None
     # XXX the keys below are not in use yet. They are set in eduid.webapp.common,
@@ -92,17 +80,20 @@ class ResetPasswordNS(SessionNSBase):
     extrasec_webauthn_state: Optional[str] = None
 
 
-@dataclass()
 class Signup(TimestampedNS):
     email_verification_code: Optional[str] = None
 
 
-@dataclass()
 class Actions(TimestampedNS):
     session: Optional[str] = None
 
 
-@dataclass()
+class SAMLData(BaseModel):
+    request: str
+    relay_state: Optional[str]
+    key: str  # sha1 of request
+
+
 class IdP_Namespace(TimestampedNS):
     # The SSO cookie value last set by the IdP. Used to debug issues with browsers not
     # honoring Set-Cookie in redirects, or something.

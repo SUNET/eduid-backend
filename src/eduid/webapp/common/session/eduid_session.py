@@ -5,7 +5,7 @@ import logging
 import os
 from collections.abc import MutableMapping
 from time import time
-from typing import TYPE_CHECKING, Optional
+from typing import Any, TYPE_CHECKING, Optional
 
 from flask import Request as FlaskRequest
 from flask import Response as FlaskResponse
@@ -82,7 +82,7 @@ class EduidSession(SessionMixin, MutableMapping):
     def __getitem__(self, key, default=None):
         return self._session.__getitem__(key, default=None)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: Any):
         if key not in self._session or self._session[key] != value:
             self._session[key] = value
             logger.debug(f'SET {self}[{key}] = {value}')
@@ -273,12 +273,17 @@ class EduidSession(SessionMixin, MutableMapping):
             token = self.new_csrf_token()
         return token
 
-    def _serialize_namespaces(self):
-        for key in self.__dict__.keys():
-            if key.startswith('_'):  # Keep SessionNS in sunder attrs
+    def _serialize_namespaces(self) -> None:
+        for key in dir(self):
+            if not key.startswith('_') or key.startswith('__') or key == '_session':
+                # Skip everything that is not a _sunder attribute
+                continue
+            try:
                 attr = getattr(self, key)
-                if isinstance(attr, SessionNSBase):
-                    self[key] = attr.to_dict()
+                # serialise using to_dict() if the object has such a method
+                self[key] = attr.to_dict()
+            except:
+                pass
 
     def persist(self):
         """
