@@ -4,13 +4,10 @@ import pprint
 from dataclasses import asdict, field
 from datetime import datetime
 from html import escape
-from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional, Type
+from typing import Any, Dict, Mapping, Optional, TYPE_CHECKING, Type
 from urllib.parse import urlencode
 
 from pydantic.dataclasses import dataclass
-
-from eduid.userdb.credentials import Credential
-from eduid.webapp.common.session.namespaces import SessionNSBase
 
 if TYPE_CHECKING:
     from eduid.webapp.idp.idp_saml import IdP_SAMLRequest
@@ -69,7 +66,7 @@ class SSOLoginData:
 
     # saml request object
     # eduid.webapp.common can't import from eduid-webapp
-    saml_req: Optional['IdP_SAMLRequest'] = field(default=None, init=False, repr=False)
+    _saml_req: Optional['IdP_SAMLRequest'] = field(default=None, init=False, repr=False)
 
     # Hash from Credential.key to datetime when it was used
     mfa_action_creds: Dict[str, datetime] = field(default_factory=dict, init=False, repr=False)
@@ -113,3 +110,13 @@ class SSOLoginData:
     def query_string(self) -> str:
         qs = {'SAMLRequest': self.SAMLRequest, 'RelayState': self.RelayState}
         return urlencode(qs)
+
+    @property
+    def saml_req(self) -> 'IdP_SAMLRequest':
+        if self._saml_req is None:
+            raise ValueError('SSOLoginData.saml_req accessed uninitialised')
+        return self._saml_req
+
+    @saml_req.setter
+    def saml_req(self, value: Optional['IdP_SAMLRequest']):
+        self._saml_req = value
