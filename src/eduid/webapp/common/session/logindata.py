@@ -4,7 +4,7 @@ import pprint
 from dataclasses import asdict, field
 from datetime import datetime
 from html import escape
-from typing import Any, Dict, Mapping, Optional, TYPE_CHECKING, Type
+from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional, Type
 from urllib.parse import urlencode
 
 from pydantic.dataclasses import dataclass

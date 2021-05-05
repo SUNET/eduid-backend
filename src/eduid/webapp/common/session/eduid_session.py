@@ -5,7 +5,7 @@ import logging
 import os
 from collections.abc import MutableMapping
 from time import time
-from typing import Any, TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from flask import Request as FlaskRequest
 from flask import Response as FlaskResponse
