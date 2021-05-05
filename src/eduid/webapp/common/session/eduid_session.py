@@ -309,7 +309,7 @@ class EduidSession(SessionMixin, MutableMapping):
             self._session.commit()
             self.new = False
             self.modified = False
-            if self.app.debug:
+            if self.app.debug or self.app.conf.testing:
                 _saved_data = json.dumps(self._session.to_dict(), indent=4, sort_keys=True)
                 logger.debug(f'Saved session {self}:\n{_saved_data}')
 
@@ -371,6 +371,9 @@ class SessionFactory(SessionInterface):
 
         sess = EduidSession(app, _meta, base_session, new=new)
         logger.debug(f'Created/loaded session {sess} with base_session {base_session}')
+        if app.debug or app.conf.testing:
+            _loaded_data = json.dumps(sess._session.to_dict(), indent=4, sort_keys=True)
+            logger.debug(f'Loaded session {sess}:\n{_loaded_data}')
         return sess
 
     def save_session(self, app: EduIDBaseApp, sess: EduidSession, response: FlaskResponse) -> None:
