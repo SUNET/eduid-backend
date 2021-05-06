@@ -21,7 +21,6 @@ from eduid.webapp.common.session.namespaces import (
     IdP_Namespace,
     MfaAction,
     ResetPasswordNS,
-    SessionNSBase,
     Signup,
 )
 from eduid.webapp.common.session.redis_session import RedisEncryptedSession, SessionManager, SessionOutOfSync
@@ -69,8 +68,8 @@ class EduidSession(SessionMixin, MutableMapping):
         self._signup: Optional[Signup] = None
         self._actions: Optional[Actions] = None
         self._sso_ticket: Optional[SSOLoginData] = None
-        self._reset_password: ResetPasswordNS
-        self._idp: IdP_Namespace
+        self._reset_password: Optional[ResetPasswordNS] = None
+        self._idp: Optional[IdP_Namespace] = None
 
     def __str__(self):
         # Include hex(id(self)) for now to troubleshoot clobbered sessions
@@ -118,64 +117,44 @@ class EduidSession(SessionMixin, MutableMapping):
         pass
 
     @property
-    def common(self) -> Optional[Common]:
-        if not self._common:
-            self._common = Common.from_dict(self._session.get('_common', {}))
+    def common(self) -> Common:
+        if self._common is None:
             self._common = Common.from_dict(self.session.get('_common', {}))
         return self._common
 
-    @common.setter
-    def common(self, value: Optional[Common]):
-        if not self._common:
-            self._common = value
-
     @property
-    def mfa_action(self) -> Optional[MfaAction]:
-        if not self._mfa_action:
-            self._mfa_action = MfaAction.from_dict(self._session.get('_mfa_action', {}))
+    def mfa_action(self) -> MfaAction:
+        if self._mfa_action is None:
             self._mfa_action = MfaAction.from_dict(self.session.get('_mfa_action', {}))
         return self._mfa_action
-
-    @mfa_action.setter
-    def mfa_action(self, value: Optional[MfaAction]):
-        if not self._mfa_action:
-            self._mfa_action = value
 
     @mfa_action.deleter
     def mfa_action(self):
         self._mfa_action = None
-        self._session.pop('_mfa_action', None)
         self.session.pop('_mfa_action', None)
         self.modified = True
 
     @property
-    def signup(self) -> Optional[Signup]:
-        if not self._signup:
-            self._signup = Signup.from_dict(self._session.get('_signup', {}))
+    def signup(self) -> Signup:
+        if self._signup is None:
             self._signup = Signup.from_dict(self.session.get('_signup', {}))
         return self._signup
 
-    @signup.setter
-    def signup(self, value: Optional[Signup]):
-        if not self._signup:
-            self._signup = value
-
     @property
-    def actions(self) -> Optional[Actions]:
-        if not self._actions:
-            self._actions = Actions.from_dict(self._session.get('_actions', {}))
+    def actions(self) -> Actions:
+        if self._actions is None:
             self._actions = Actions.from_dict(self.session.get('_actions', {}))
         return self._actions
 
     @actions.setter
-    def actions(self, value: Optional[Actions]):
-        if not self._actions:
+    def actions(self, value: Actions) -> None:
+        if self._actions is None:
             self._actions = value
 
+    # TODO: Remove/refactor sso_ticket asap
     @property
     def sso_ticket(self) -> Optional[SSOLoginData]:
         if not self._sso_ticket:
-            data = self._session.get('_sso_ticket', {})
             data = self.session.get('_sso_ticket', {})
             if 'key' in data:
                 try:
@@ -193,23 +172,13 @@ class EduidSession(SessionMixin, MutableMapping):
 
     @property
     def reset_password(self) -> ResetPasswordNS:
-        if not hasattr(self, '_reset_password') or not self._reset_password:
-            self._reset_password = ResetPasswordNS.from_dict(self._session.get('_reset_password', {}))
+        if self._reset_password is None:
             self._reset_password = ResetPasswordNS.from_dict(self.session.get('_reset_password', {}))
         return self._reset_password
 
-    @reset_password.setter
-    def reset_password(self, value: ResetPasswordNS):
-        if not isinstance(value, ResetPasswordNS):
-            raise TypeError('reset_password value must be a ResetPasswordNS')
-        if not hasattr(self, '_reset_password') or not self._reset_password:
-            self._reset_password = value
-        else:
-            raise ValueError('ResetPasswordNS already initialised')
-
     @property
     def idp(self) -> IdP_Namespace:
-        if not hasattr(self, '_idp') or not self._idp:
+        if self._idp is None:
             # Convert dict to dataclass instance
             self._idp = IdP_Namespace.from_dict(self.session.get('_idp', {}))
         return self._idp
