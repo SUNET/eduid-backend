@@ -40,7 +40,7 @@ class TestIdPNamespace(EduidAPITestCase):
         session.signup.email_verification_code = 'test'
 
         session._serialize_namespaces()
-        out = session._session.to_dict()
+        out = session.session.to_dict()
 
         assert out == {
             '_idp': {'sso_cookie_val': 'abc', 'ts': session.idp.ts.isoformat()},
@@ -65,7 +65,7 @@ class TestIdPNamespace(EduidAPITestCase):
         first.idp.ts = datetime.fromisoformat('2020-09-13T12:26:40+00:00')
 
         first._serialize_namespaces()
-        out = first._session.to_dict()
+        out = first.session.to_dict()
 
         assert out == {
             '_idp': {'sso_cookie_val': 'abc', 'ts': '2020-09-13T12:26:40+00:00'},
@@ -77,7 +77,7 @@ class TestIdPNamespace(EduidAPITestCase):
         base_session = self.app.session_interface.manager.get_session(meta=_meta, new=False)
         second = EduidSession(self.app, _meta, base_session, new=False)
         # ...and that it serialises to the same data that was persisted
-        assert second._session.to_dict() == out
+        assert second.session.to_dict() == out
 
         assert second.idp.sso_cookie_val == first.idp.sso_cookie_val
         assert second.idp.ts == first.idp.ts

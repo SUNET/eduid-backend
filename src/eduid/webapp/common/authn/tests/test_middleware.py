@@ -101,7 +101,7 @@ class UnAuthnTests(EduidAPITestCase):
     def session_cookie(self, client, server_name='localhost'):
         with client.session_transaction() as sess:
             sess.persist()
-        client.set_cookie(server_name, key=self.app.config.session_cookie_name, value=sess._session.token.cookie_val)
+        client.set_cookie(server_name, key=self.app.config.session_cookie_name, value=sess.session.token.cookie_val)
         yield client
 
     def test_get_view(self):

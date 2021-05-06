@@ -55,7 +55,7 @@ class EduidSession(SessionMixin, MutableMapping):
         super().__init__()
         self.app = app
         self.meta = meta
-        self._session = base_session
+        self.session = base_session
         self._created = time()
         self._invalidated = False
 
@@ -80,28 +80,28 @@ class EduidSession(SessionMixin, MutableMapping):
         )
 
     def __getitem__(self, key, default=None):
-        return self._session.__getitem__(key, default=None)
+        return self.session.__getitem__(key, default=None)
 
     def __setitem__(self, key: str, value: Any):
-        if key not in self._session or self._session[key] != value:
-            self._session[key] = value
+        if key not in self.session or self.session[key] != value:
+            self.session[key] = value
             logger.debug(f'SET {self}[{key}] = {value}')
             self.modified = True
 
     def __delitem__(self, key):
-        if key in self._session:
-            del self._session[key]
+        if key in self.session:
+            del self.session[key]
             logger.debug(f'DEL {self}[{key}]')
             self.modified = True
 
     def __iter__(self):
-        return self._session.__iter__()
+        return self.session.__iter__()
 
     def __len__(self):
-        return len(self._session)
+        return len(self.session)
 
     def __contains__(self, key):
-        return self._session.__contains__(key)
+        return self.session.__contains__(key)
 
     @property
     def short_id(self) -> str:
@@ -121,6 +121,7 @@ class EduidSession(SessionMixin, MutableMapping):
     def common(self) -> Optional[Common]:
         if not self._common:
             self._common = Common.from_dict(self._session.get('_common', {}))
+            self._common = Common.from_dict(self.session.get('_common', {}))
         return self._common
 
     @common.setter
@@ -132,6 +133,7 @@ class EduidSession(SessionMixin, MutableMapping):
     def mfa_action(self) -> Optional[MfaAction]:
         if not self._mfa_action:
             self._mfa_action = MfaAction.from_dict(self._session.get('_mfa_action', {}))
+            self._mfa_action = MfaAction.from_dict(self.session.get('_mfa_action', {}))
         return self._mfa_action
 
     @mfa_action.setter
@@ -143,12 +145,14 @@ class EduidSession(SessionMixin, MutableMapping):
     def mfa_action(self):
         self._mfa_action = None
         self._session.pop('_mfa_action', None)
+        self.session.pop('_mfa_action', None)
         self.modified = True
 
     @property
     def signup(self) -> Optional[Signup]:
         if not self._signup:
             self._signup = Signup.from_dict(self._session.get('_signup', {}))
+            self._signup = Signup.from_dict(self.session.get('_signup', {}))
         return self._signup
 
     @signup.setter
@@ -160,6 +164,7 @@ class EduidSession(SessionMixin, MutableMapping):
     def actions(self) -> Optional[Actions]:
         if not self._actions:
             self._actions = Actions.from_dict(self._session.get('_actions', {}))
+            self._actions = Actions.from_dict(self.session.get('_actions', {}))
         return self._actions
 
     @actions.setter
@@ -171,6 +176,7 @@ class EduidSession(SessionMixin, MutableMapping):
     def sso_ticket(self) -> Optional[SSOLoginData]:
         if not self._sso_ticket:
             data = self._session.get('_sso_ticket', {})
+            data = self.session.get('_sso_ticket', {})
             if 'key' in data:
                 try:
                     self._sso_ticket = SSOLoginData.from_dict(data)
@@ -189,6 +195,7 @@ class EduidSession(SessionMixin, MutableMapping):
     def reset_password(self) -> ResetPasswordNS:
         if not hasattr(self, '_reset_password') or not self._reset_password:
             self._reset_password = ResetPasswordNS.from_dict(self._session.get('_reset_password', {}))
+            self._reset_password = ResetPasswordNS.from_dict(self.session.get('_reset_password', {}))
         return self._reset_password
 
     @reset_password.setter
@@ -204,7 +211,7 @@ class EduidSession(SessionMixin, MutableMapping):
     def idp(self) -> IdP_Namespace:
         if not hasattr(self, '_idp') or not self._idp:
             # Convert dict to dataclass instance
-            self._idp = IdP_Namespace.from_dict(self._session.get('_idp', {}))
+            self._idp = IdP_Namespace.from_dict(self.session.get('_idp', {}))
         return self._idp
 
     @property
@@ -224,7 +231,7 @@ class EduidSession(SessionMixin, MutableMapping):
         if not self.modified:
             self.modified = True
             if renew_backend:
-                self._session.renew_ttl()
+                self.session.renew_ttl()
 
     def invalidate(self):
         """
@@ -233,7 +240,7 @@ class EduidSession(SessionMixin, MutableMapping):
         """
         self.modified = True
         self._invalidated = True
-        self._session.clear()
+        self.session.clear()
 
     def set_cookie(self, response):
         """
@@ -274,16 +281,14 @@ class EduidSession(SessionMixin, MutableMapping):
         return token
 
     def _serialize_namespaces(self) -> None:
-        for key in dir(self):
-            if not key.startswith('_') or key.startswith('__') or key == '_session':
-                # Skip everything that is not a _sunder attribute
-                continue
-            try:
+        for key in self.__dict__.keys():
+            if key.startswith('_'):  # Keep SessionNS in sunder attrs
                 attr = getattr(self, key)
-                # serialise using to_dict() if the object has such a method
-                self[key] = attr.to_dict()
-            except:
-                pass
+                try:
+                    # serialise using to_dict() if the object has such a method
+                    self[key] = attr.to_dict()
+                except AttributeError:
+                    pass
 
     def persist(self):
         """
@@ -306,11 +311,11 @@ class EduidSession(SessionMixin, MutableMapping):
         #   save empty sessions for every call to the backend
         if self.new or self.modified:
             logger.debug(f'Saving session {self}')
-            self._session.commit()
+            self.session.commit()
             self.new = False
             self.modified = False
             if self.app.debug or self.app.conf.testing:
-                _saved_data = json.dumps(self._session.to_dict(), indent=4, sort_keys=True)
+                _saved_data = json.dumps(self.session.to_dict(), indent=4, sort_keys=True)
                 logger.debug(f'Saved session {self}:\n{_saved_data}')
 
 
@@ -372,7 +377,7 @@ class SessionFactory(SessionInterface):
         sess = EduidSession(app, _meta, base_session, new=new)
         logger.debug(f'Created/loaded session {sess} with base_session {base_session}')
         if app.debug or app.conf.testing:
-            _loaded_data = json.dumps(sess._session.to_dict(), indent=4, sort_keys=True)
+            _loaded_data = json.dumps(sess.session.to_dict(), indent=4, sort_keys=True)
             logger.debug(f'Loaded session {sess}:\n{_loaded_data}')
         return sess
 
