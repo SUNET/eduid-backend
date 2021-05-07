@@ -43,7 +43,6 @@ class EduidNamespaces(BaseModel):
     mfa_action: Optional[MfaAction] = None
     signup: Optional[Signup] = None
     actions: Optional[Actions] = None
-    sso_ticket: Optional[SSOLoginData] = None
     reset_password: Optional[ResetPasswordNS] = None
     idp: Optional[IdP_Namespace] = None
 
@@ -178,16 +177,6 @@ class EduidSession(SessionMixin, MutableMapping):
         if not self._namespaces.actions:
             self._namespaces.actions = Actions.from_dict(self._session.get('actions', {}))
         return self._namespaces.actions
-
-    @property
-    def sso_ticket(self) -> SSOLoginData:
-        if not self._namespaces.sso_ticket:
-            self._namespaces.sso_ticket = SSOLoginData.from_dict(self._session.get('_sso_ticket', {}))
-        return self._namespaces.sso_ticket
-
-    @sso_ticket.setter
-    def sso_ticket(self, value: Optional[SSOLoginData]):
-        self._namespaces.sso_ticket = value
 
     @property
     def reset_password(self) -> ResetPasswordNS:

@@ -11,26 +11,26 @@
 """
 Code handling Single Log Out requests.
 """
-import pprint
 from typing import Dict, List, Sequence
 
-import saml2
 from flask import request
+from werkzeug.exceptions import BadRequest, InternalServerError
+from werkzeug.wrappers import Response as WerkzeugResponse
+
+import saml2
+from eduid.webapp.idp import mischttp
+from eduid.webapp.idp.app import current_idp_app as current_app
+from eduid.webapp.idp.idp_saml import gen_key
+from eduid.webapp.idp.mischttp import HttpArgs
+from eduid.webapp.idp.service import SAMLQueryParams, Service
+from eduid.webapp.idp.sso_session import SSOSession
+from eduid.webapp.idp.util import maybe_xml_to_string
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT, BINDING_SOAP
 from saml2.request import LogoutRequest
 from saml2.s_utils import error_status_factory
 from saml2.saml import NameID
 from saml2.samlp import STATUS_PARTIAL_LOGOUT, STATUS_RESPONDER, STATUS_SUCCESS, STATUS_UNKNOWN_PRINCIPAL
-from werkzeug.exceptions import BadRequest, InternalServerError
-from werkzeug.wrappers import Response as WerkzeugResponse
 
-from eduid.webapp.idp import mischttp
-from eduid.webapp.idp.app import current_idp_app as current_app
-from eduid.webapp.idp.idp_saml import gen_key
-from eduid.webapp.idp.mischttp import HttpArgs
-from eduid.webapp.idp.service import Service
-from eduid.webapp.idp.sso_session import SSOSession, SSOSessionId
-from eduid.webapp.idp.util import maybe_xml_to_string
 
 # -----------------------------------------------------------------------------
 # === Single log out ===
@@ -45,50 +45,47 @@ class SLO(Service):
     def redirect(self) -> WerkzeugResponse:
         """ Expects a HTTP-redirect request """
 
-        _dict = self.unpack_redirect()
-        return self.perform_logout(_dict, BINDING_HTTP_REDIRECT)
+        _data = self.unpack_redirect()
+        return self.perform_logout(_data, BINDING_HTTP_REDIRECT)
 
     def post(self) -> WerkzeugResponse:
         """ Expects a HTTP-POST request """
 
-        _dict = self.unpack_post()
-        return self.perform_logout(_dict, BINDING_HTTP_POST)
+        _data = self.unpack_post()
+        return self.perform_logout(_data, BINDING_HTTP_POST)
 
     def soap(self) -> WerkzeugResponse:
         """
         Single log out using HTTP_SOAP binding
         """
-        _dict = self.unpack_soap()
-        return self.perform_logout(_dict, BINDING_SOAP)
+        _data = self.unpack_soap()
+        return self.perform_logout(_data, BINDING_SOAP)
 
-    def unpack_soap(self) -> Dict[str, str]:
+    def unpack_soap(self) -> SAMLQueryParams:
         """
         Turn a SOAP request into the common format of a dict.
 
-        :return: dict with 'SAMLRequest' and 'RelayState' items
+        :return: data with 'SAMLRequest' and 'RelayState' items
         """
         # Need to get the body without sanitation
         data = request.stream.read().decode('utf-8')
-        return {
-            'SAMLRequest': data,
-            'RelayState': '',
-        }
+        return SAMLQueryParams(SAMLRequest=data, RelayState='')
 
-    def perform_logout(self, info: Dict[str, str], binding: str) -> WerkzeugResponse:
+    def perform_logout(self, info: SAMLQueryParams, binding: str) -> WerkzeugResponse:
         """
         Perform logout. Means remove SSO session from IdP list, and a best
         effort to contact all SPs that have received assertions using this
         SSO session and letting them know the user has been logged out.
 
-        :param info: Dict with SAMLRequest and possibly RelayState
+        :param info: Parsed query/POST parameters, SAMLRequest and possibly RelayState
         :param binding: SAML2 binding as string
         :return: SAML StatusCode
         """
         current_app.logger.debug('--- Single Log Out Service ---')
-        if not info:
+        if not info or not info.SAMLRequest:
             raise BadRequest('Error parsing request or no request')
 
-        request = info["SAMLRequest"]
+        request = info.SAMLRequest
         req_key = gen_key(request)
 
         try:
@@ -97,12 +94,12 @@ class SLO(Service):
             current_app.logger.debug(f'Parsed Logout request ({binding}):\n{req_info.message}')
         except Exception:
             current_app.logger.exception(f'Failed parsing logout request')
-            current_app.logger.debug(f'_perform_logout {binding}:\n{pprint.pformat(info)}')
+            current_app.logger.debug(f'_perform_logout {binding}:\n{info}')
             raise BadRequest('Failed parsing logout request')
 
         req_info.binding = binding
-        if 'RelayState' in info:
-            req_info.relay_state = info['RelayState']
+        if info.RelayState:
+            req_info.relay_state = info.RelayState
 
         # look for the subject
         subject = req_info.subject_id()

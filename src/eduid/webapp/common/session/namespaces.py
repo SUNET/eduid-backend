@@ -41,17 +41,6 @@ class Common(SessionNSBase):
     login_source: Optional[LoginApplication] = None
     preferred_language: Optional[str] = None
 
-    def to_dict(self):
-        res = self.dict()
-        return res
-
-    @classmethod
-    def from_dict(cls, data):
-        _data = deepcopy(data)  # do not modify callers data
-        if _data.get('login_source') is not None:
-            _data['login_source'] = LoginApplication(_data['login_source'])
-        return cls(**_data)
-
 
 class MfaAction(SessionNSBase):
     success: bool = False
@@ -62,11 +51,6 @@ class MfaAction(SessionNSBase):
 
 class TimestampedNS(SessionNSBase):
     ts: datetime = Field(utc_now())
-
-    def to_dict(self) -> Dict[str, Any]:
-        res = super().to_dict()
-        res['ts'] = self.ts.isoformat()
-        return res
 
 
 class ResetPasswordNS(SessionNSBase):
@@ -90,6 +74,7 @@ class Actions(TimestampedNS):
 
 class SAMLData(BaseModel):
     request: str
+    binding: str
     relay_state: Optional[str]
     key: str  # sha1 of request
 
@@ -98,3 +83,4 @@ class IdP_Namespace(TimestampedNS):
     # The SSO cookie value last set by the IdP. Used to debug issues with browsers not
     # honoring Set-Cookie in redirects, or something.
     sso_cookie_val: Optional[str] = None
+    pending_requests: Dict[str, SAMLData] = Field({})

@@ -99,8 +99,7 @@ def check_for_pending_actions(
 
     # TODO: The IdP should never _write_ to the actions namespace. Actions should _read_
     #       the ticket.key from the IdP namespace instead.
-    actions = Actions(ts=utc_now(), session=ticket.key)
-    session.actions = actions
+    session.actions.session = ticket.key
     return redirect(actions_uri)
 
 

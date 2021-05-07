@@ -36,9 +36,6 @@ class IdPTestLogin(IdPTests):
         assert response.status_code == 200
         assert self.app.conf.signup_link in body
 
-        # the RelayState is present as a hidden form parameter in the login page
-        assert next_url in body
-
     def test_submitting_wrong_credentials(self):
         result = self._try_login()
 
