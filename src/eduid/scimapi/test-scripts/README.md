@@ -22,18 +22,31 @@
 ``` shell
   $ ./scim-util.py test.yaml
   ...
-  2020-03-11 11:08:46,131: scim-util: INFO User search result:
+  2021-05-07 15:11:12,443: scim-util: INFO User search result:
   {
-    ...
-    "id": "d4aa1c10-7120-452b-a109-adf9030b9ef3",
-    "externalId": "hubba-bubba@eduid.se",
+      "Resources": [
+          {
+              "id": "87c5ae99-9e98-49d5-9b84-2c210cacfea4"
+          }
+      ],
+      "schemas": [
+          "urn:ietf:params:scim:api:messages:2.0:ListResponse"
+      ],
+      "totalResults": 1
   }
   ...
-  2020-04-09 11:39:51,685: scim-util: INFO Group create result:
+  2021-05-07 15:11:12,519: scim-util: INFO Group search result:
   {
-    ...
-    "displayName": "Test Group 1",
-    "id": "8b5a3e6f-709d-4ae9-961d-bc73bfa51deb",
+      "Resources": [
+          {
+              "displayName": "Test Group 1",
+              "id": "ab2506e0-39a7-41cb-8370-1584b880b307"
+          }
+      ],
+      "schemas": [
+          "urn:ietf:params:scim:api:messages:2.0:ListResponse"
+      ],
+      "totalResults": 1
   }
 ```
 
@@ -47,24 +60,26 @@
         'externalId':
            - 'hubba-bubba@eduid.se'
       'put':
-        'd4aa1c10-7120-452b-a109-adf9030b9ef3':
+        '87c5ae99-9e98-49d5-9b84-2c210cacfea4':
           'profiles':
             'student':
-	          'attributes':
-              'displayName': 'Kalle Anka'
-	        'data':
-              'some-opaque-data': 17,
+              'attributes':
+                'displayName': 'Kalle Anka'
+              'data':
+                'some-opaque-data': 17
 
     'groups':
       'search':
         'displayName':
            - 'Test Group 1'
       'put':
-        '8b5a3e6f-709d-4ae9-961d-bc73bfa51deb':
+        'ab2506e0-39a7-41cb-8370-1584b880b307':
           'display_name': 'Test Group 1'
           'members':
-            - 'id': 'd4aa1c10-7120-452b-a109-adf9030b9ef3'
+            - 'id': '87c5ae99-9e98-49d5-9b84-2c210cacfea4'
               'display_name': 'Donald Duck'
+          'data':
+            'some-opaque-data': 17
 ```
 
 - Run `scim-util.py test.yaml` again to change your eduID display name:
@@ -72,31 +87,67 @@
 ``` shell
   $ ./scim-util.py test.yaml
   ...
-  2020-03-11 11:11:59,025: scim-util: INFO Update result:
-  {'https://scim.eduid.se/schema/nutid/user/v1':
-     {'student': {'attributes': {
-                    'displayName': 'Kalle Anka'},
-		 },
-		 {'data': {
-		    'some-opaque-data': 17
-		   }
-		 }
-     },
-  ...
+  2021-05-07 15:23:20,655: scim-util: INFO Update result:
+  {
+      "emails": [],
+      "externalId": "hubba-bubba@eduid.se",
+      "groups": [],
+      "https://scim.eduid.se/schema/nutid/user/v1": {
+          "linked_accounts": [],
+          "profiles": {
+              "student": {
+                  "attributes": {
+                      "displayName": "Kalle Anka"
+                  },
+                  "data": {
+                      "some-opaque-data": 17
+                  }
+              }
+          }
+      },
+      "id": "87c5ae99-9e98-49d5-9b84-2c210cacfea4",
+      "meta": {
+          "created": "2021-05-07T13:09:29.837000+00:00",
+          "lastModified": "2021-05-07T13:22:04.196000+00:00",
+          "location": "http://scimapi.eduid.docker:8000/Users/87c5ae99-9e98-49d5-9b84-2c210cacfea4",
+          "resourceType": "User",
+          "version": "W/\"60953efc514fad85acdf4d6f\""
+      },
+      "name": {},
+      "phoneNumbers": [],
+      "schemas": [
+          "urn:ietf:params:scim:schemas:core:2.0:User",
+          "https://scim.eduid.se/schema/nutid/user/v1"
+      ]
   }
   ...
-  2020-04-09 11:48:17,389: scim-util: INFO Update result:
+  2021-05-07 15:23:21,371: scim-util: INFO Update result:
   {
-    "displayName": "Test Group 1",
-    "id": "8b5a3e6f-709d-4ae9-961d-bc73bfa51deb",
-    "members": [
-        {
-            "$ref": "http://scimapi.eduid.docker:8000/Users/d4aa1c10-7120-452b-a109-adf9030b9ef3",
-            "display": "Donald Duck",
-            "value": "d4aa1c10-7120-452b-a109-adf9030b9ef3"
-        }
-    ],
-    ...
+      "displayName": "Test Group 1",
+      "https://scim.eduid.se/schema/nutid/group/v1": {
+          "data": {
+              "some-opaque-data": 17
+          }
+      },
+      "id": "ab2506e0-39a7-41cb-8370-1584b880b307",
+      "members": [
+          {
+              "$ref": "http://scimapi.eduid.docker:8000/Users/87c5ae99-9e98-49d5-9b84-2c210cacfea4",
+              "display": "Donald Duck",
+              "value": "87c5ae99-9e98-49d5-9b84-2c210cacfea4"
+          }
+      ],
+      "meta": {
+          "created": "2021-05-07T13:09:30.696000+00:00",
+          "lastModified": "2021-05-07T13:23:20.860000+00:00",
+          "location": "http://scimapi.eduid.docker:8000/Groups/ab2506e0-39a7-41cb-8370-1584b880b307",
+          "resourceType": "Group",
+          "version": "W/\"60953f48514fad85acdf4d72\""
+      },
+      "schemas": [
+          "urn:ietf:params:scim:schemas:core:2.0:Group",
+          "https://scim.eduid.se/schema/nutid/group/v1"
+      ]
   }
 ```
 
