@@ -19,10 +19,13 @@ from dataclasses import replace
 from hashlib import sha256
 from html import escape, unescape
 from typing import Dict, List, Mapping, Optional
+from uuid import uuid4
 
 from defusedxml import ElementTree as DefusedElementTree
 from flask import make_response, redirect, render_template, request
 from flask_babel import gettext as _
+
+from eduid.webapp.common.session.namespaces import SAMLData
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest, Forbidden, InternalServerError, TooManyRequests
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -45,7 +48,7 @@ from eduid.webapp.idp.idp_saml import (
     SAMLValidationError,
     gen_key,
 )
-from eduid.webapp.idp.service import Service
+from eduid.webapp.idp.service import SAMLQueryParams, Service
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.util import b64encode, get_requested_authn_context
 
@@ -70,6 +73,57 @@ class SSO(Service):
 
     def __init__(self, sso_session: Optional[SSOSession]):
         super().__init__(sso_session)
+
+    def redirect(self) -> WerkzeugResponse:
+        """This is the HTTP-redirect endpoint.
+
+        :return: HTTP response
+        """
+        current_app.logger.debug("--- In SSO Redirect ---")
+        _info = self.unpack_redirect()
+        current_app.logger.debug(f'Unpacked redirect :\n{pprint.pformat(_info)}')
+
+        ticket = _get_ticket(_info, BINDING_HTTP_REDIRECT)
+        return self._redirect_or_post(ticket)
+
+    def post(self) -> WerkzeugResponse:
+        """
+        The HTTP-Post endpoint
+
+        :return: HTTP response
+        """
+        current_app.logger.debug("--- In SSO POST ---")
+        _info = self.unpack_either()
+
+        ticket = _get_ticket(_info, BINDING_HTTP_POST)
+        return self._redirect_or_post(ticket)
+
+    def _redirect_or_post(self, ticket: SSOLoginData) -> WerkzeugResponse:
+        """ Common code for redirect() and post() endpoints. """
+
+        if self.sso_session:
+            if self.sso_session.idp_user.terminated:
+                current_app.logger.info(f'User {self.sso_session.idp_user} is terminated')
+                current_app.logger.debug(f'User terminated: {self.sso_session.idp_user.terminated}')
+                raise Forbidden('USER_TERMINATED')
+
+        _force_authn = self._should_force_authn(ticket)
+
+        if self.sso_session and not _force_authn:
+            _ttl = current_app.conf.sso_session_lifetime - self.sso_session.minutes_old
+            current_app.logger.info(f'{ticket.key}: proceeding sso_session={self.sso_session.public_id}, ttl={_ttl:}m')
+            current_app.logger.debug(f'Continuing with Authn request {repr(ticket.saml_req.request_id)}')
+            try:
+                return self.perform_login(ticket)
+            except MustAuthenticate:
+                _force_authn = True
+
+        if not self.sso_session:
+            current_app.logger.info(f'{ticket.key}: authenticate ip={request.remote_addr}')
+        elif _force_authn:
+            current_app.logger.info(f'{ticket.key}: force_authn sso_session={self.sso_session.public_id}')
+
+        return self._not_authn(ticket)
 
     def perform_login(self, ticket: SSOLoginData) -> WerkzeugResponse:
         """
@@ -112,6 +166,9 @@ class SSO(Service):
             authn_method=response_authn.class_ref,
             user_id=str(user.user_id),
         )
+
+        # We're done with this SAML request. Remove it from the session.
+        session.idp.pending_requests = {k: v for k, v in session.idp.pending_requests.items() if v.key != ticket.key}
 
         return mischttp.create_html_response(binding, http_args)
 
@@ -345,57 +402,6 @@ class SSO(Service):
         # Augment the AuthnInfo with the authn_timestamp before returning it
         return replace(resp_authn, instant=int(self.sso_session.authn_timestamp.timestamp()))
 
-    def redirect(self) -> WerkzeugResponse:
-        """This is the HTTP-redirect endpoint.
-
-        :return: HTTP response
-        """
-        current_app.logger.debug("--- In SSO Redirect ---")
-        _info = self.unpack_redirect()
-        current_app.logger.debug(f'Unpacked redirect :\n{pprint.pformat(_info)}')
-
-        ticket = _get_ticket(_info, BINDING_HTTP_REDIRECT)
-        return self._redirect_or_post(ticket)
-
-    def post(self) -> WerkzeugResponse:
-        """
-        The HTTP-Post endpoint
-
-        :return: HTTP response
-        """
-        current_app.logger.debug("--- In SSO POST ---")
-        _info = self.unpack_either()
-
-        ticket = _get_ticket(_info, BINDING_HTTP_POST)
-        return self._redirect_or_post(ticket)
-
-    def _redirect_or_post(self, ticket: SSOLoginData) -> WerkzeugResponse:
-        """ Common code for redirect() and post() endpoints. """
-
-        if self.sso_session:
-            if self.sso_session.idp_user.terminated:
-                current_app.logger.info(f'User {self.sso_session.idp_user} is terminated')
-                current_app.logger.debug(f'User terminated: {self.sso_session.idp_user.terminated}')
-                raise Forbidden('USER_TERMINATED')
-
-        _force_authn = self._should_force_authn(ticket)
-
-        if self.sso_session and not _force_authn:
-            _ttl = current_app.conf.sso_session_lifetime - self.sso_session.minutes_old
-            current_app.logger.info(f'{ticket.key}: proceeding sso_session={self.sso_session.public_id}, ttl={_ttl:}m')
-            current_app.logger.debug(f'Continuing with Authn request {repr(ticket.saml_req.request_id)}')
-            try:
-                return self.perform_login(ticket)
-            except MustAuthenticate:
-                _force_authn = True
-
-        if not self.sso_session:
-            current_app.logger.info(f'{ticket.key}: authenticate ip={request.remote_addr}')
-        elif _force_authn:
-            current_app.logger.info(f'{ticket.key}: force_authn sso_session={self.sso_session.public_id}')
-
-        return self._not_authn(ticket)
-
     def _should_force_authn(self, ticket: SSOLoginData) -> bool:
         """
         Check if the IdP should force authentication of this request.
@@ -469,15 +475,10 @@ class SSO(Service):
             {
                 'action': '/verify',
                 'alert_msg': '',
-                # TODO: remove key from response, doesn't seem to be needed
                 'key': ticket.key,
                 'password': '',
                 'redirect_uri': redirect_uri,
                 'username': _username,
-                # SAMLRequest, RelayState and binding are used to re-create the ticket state if not found using `key'
-                'SAMLRequest': escape(ticket.SAMLRequest, quote=True),
-                'RelayState': escape(ticket.RelayState, quote=True),
-                'binding': escape(ticket.binding, quote=True),
             }
         )
         if requested_authn_context is not None:
@@ -525,11 +526,9 @@ def do_verify() -> WerkzeugResponse:
         query['password'] = '<redacted>'
     current_app.logger.debug(f'do_verify parsed query :\n{pprint.pformat(query)}')
 
-    _info = {}
-    for this in ['SAMLRequest', 'binding', 'RelayState']:
-        if this not in query:
-            raise BadRequest(f'Missing parameter {this} - please re-initiate login')
-        _info[this] = unescape(query[this])
+    if 'key' not in query:
+        raise BadRequest(f'Missing parameter key - please re-initiate login')
+    _info = SAMLQueryParams(key=query['key'])
     _ticket = _get_ticket(_info, None)
 
     authn_ref = get_requested_authn_context(_ticket)
@@ -552,7 +551,6 @@ def do_verify() -> WerkzeugResponse:
     if not user or not authninfo:
         current_app.logger.info(f'{_ticket.key}: Password authentication failed')
         _ticket.FailCount += 1
-        session.sso_ticket = _ticket
         lox = f'{query["redirect_uri"]}?{_ticket.query_string}'
         current_app.logger.debug(f'Unknown user or wrong password. Redirect => {lox}')
         return redirect(lox)
@@ -581,7 +579,6 @@ def do_verify() -> WerkzeugResponse:
     # Now that an SSO session has been created, redirect the users browser back to
     # the main entry point of the IdP (the 'redirect_uri'). The ticket reference `key'
     # is passed as an URL parameter instead of the SAMLRequest.
-    session.sso_ticket = _ticket
     lox = query["redirect_uri"] + '?key=' + _ticket.key
     current_app.logger.debug(f'Redirecting user back to me => {lox}')
     resp = redirect(lox)
@@ -593,91 +590,43 @@ def do_verify() -> WerkzeugResponse:
     return mischttp.set_sso_cookie(b64_session_id, resp)
 
 
-def _update_ticket_samlrequest(ticket: SSOLoginData, binding: Optional[str]) -> None:
-    try:
-        ticket.saml_req = IdP_SAMLRequest(
-            ticket.SAMLRequest, binding or ticket.binding, current_app.IDP, debug=current_app.conf.debug
-        )
-    except (SAMLParseError, SAMLValidationError):
-        current_app.logger.exception('Failed updating SAML request in SSOLoginData (ticket)')
-        raise BadRequest('Invalid login request. Try emptying browser cache and re-initiate login.')
-
-
 # ----------------------------------------------------------------------------
-def _get_ticket(info: Mapping[str, str], binding: Optional[str]) -> SSOLoginData:
+def _add_saml_request_to_session(info: SAMLQueryParams, binding: str) -> str:
+    for _uuid, this in session.idp.pending_requests.items():
+        if (info.key is not None and this.key == info.key) or (
+            this.relay_state == info.RelayState and this.request == info.SAMLRequest
+        ):
+            # Already present
+            return _uuid
+    _uuid = str(uuid4())
+    if not info.SAMLRequest or not info.RelayState or not info.key:
+        raise ValueError(f"Can't add incomplete query params to session: {info}")
+    session.idp.pending_requests[_uuid] = SAMLData(
+        request=info.SAMLRequest, binding=binding, relay_state=info.RelayState, key=info.key
+    )
+    return _uuid
+
+
+def _get_ticket(info: SAMLQueryParams, binding: Optional[str]) -> SSOLoginData:
     """
     Get the SSOLoginData from the eduid.webapp.common session, or from query parameters.
     """
     logger = current_app.logger
 
-    ticket: Optional[SSOLoginData] = session.sso_ticket
-    if ticket:
-        _update_ticket_samlrequest(ticket, binding)
+    if info.SAMLRequest:
+        _key = gen_key(info.SAMLRequest)
+        if info.key and info.key != _key:
+            logger.warning('The SAMLRequest does not match the key parameter')
+            logger.debug(f'Query params: {SAMLQueryParams}\nCalculated key: {_key}')
+        info.key = _key
+        if binding is None:
+            raise TypeError('Binding must be supplied to add SAML request to session')
+        ref = _add_saml_request_to_session(info, binding)
+        logger.debug(f'Added SAML request to session, got reference {ref}')
 
-    if not info:
+    if not info.key:
         raise BadRequest('Bad request, please re-initiate login')
-    _key = info.get('key')
-    if not _key:
-        if 'SAMLRequest' not in info:
-            raise BadRequest('Missing SAMLRequest, please re-initiate login')
-        _key = gen_key(info['SAMLRequest'])
-        logger.debug(f"No 'key' in info, hashed SAMLRequest into key {_key}")
 
-        if ticket and info['SAMLRequest'] != ticket.SAMLRequest:
-            logger.debug('The SAMLRequest does not match the one in the ticket - invalidating ticket')
-            session._sso_ticket = None  # work around sso_ticket setter that silently drops updated values
-            ticket = session.sso_ticket = None
-
-    if ticket and _key:
-        # Validate that the key from `info' matches the one in the ticket.
-        if _key != ticket.key:
-            logger.debug('The `key` does not match the one in the ticket - invalidating ticket')
-            session._sso_ticket = None  # work around sso_ticket setter that silently drops updated values
-            ticket = session.sso_ticket = None
-
-    if not ticket:
-        # cache miss, parse SAMLRequest
-        if binding is None:
-            binding = info['binding']
-        if binding is None:
-            raise BadRequest('Bad request, no binding')
-        assert _key  # please mypy
-        ticket = _create_ticket(info, binding, _key)
-        # Update the ticket in the eduid session after creating it
-        # TODO: Remove this workaround in eduid.webapp.common when we only have one IdP code base to worry about
-        session._sso_ticket = None  # work around sso_ticket setter that silently drops updated values
-        session.sso_ticket = ticket
-
-    return ticket
-
-
-def _create_ticket(info: Mapping[str, str], binding: str, key: str) -> SSOLoginData:
-    """
-    Create an SSOLoginData instance from a dict.
-
-    The dict must contain SAMLRequest and is typically
-
-    {'RelayState': '/path',
-     'SAMLRequest': 'nVLB...==',
-     ...
-    }
-
-    :param info: dict containing at least `SAMLRequest' and `key'.
-    :param binding: SAML2 binding as string (typically a URN)
-    :returns: SSOLoginData instance
-    """
-    if not binding:
-        raise InternalServerError('Can\'t create IdP ticket with unknown binding')
-    ticket = SSOLoginData(
-        key, info.get('SAMLRequest', ''), binding, info.get('RelayState', ''), int(info.get('FailCount', 0)),
-    )
-    if not ticket.SAMLRequest:
-        current_app.logger.error(f'IdP ticket without SAML request: {ticket}')
-        current_app.logger.error(f'Request info: {info}')
-        current_app.logger.error(f'Binding: {binding}')
-        current_app.logger.error(f'Key: {key}')
-        raise InternalServerError('Can\'t create IdP ticket with no SAML request')
-    _update_ticket_samlrequest(ticket, binding)
-
-    current_app.logger.debug(f'Created new login state (IdP ticket) for request {key}')
+    ticket = SSOLoginData(key=info.key)
+    ticket.saml_req = IdP_SAMLRequest(ticket.SAMLRequest, ticket.binding, current_app.IDP, debug=current_app.conf.debug)
     return ticket

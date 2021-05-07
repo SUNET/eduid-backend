@@ -43,8 +43,8 @@ class TestIdPNamespace(EduidAPITestCase):
         out = session._session.to_dict()
 
         assert out == {
-            '_idp': {'sso_cookie_val': 'abc', 'ts': None},
-            '_signup': {'email_verification_code': 'test', 'ts': None},
+            'idp': {'sso_cookie_val': 'abc', 'pending_requests': {}, 'ts': session.idp.ts.isoformat()},
+            'signup': {'email_verification_code': 'test', 'ts': session.signup.ts.isoformat()},
         }
 
         session.persist()
@@ -68,7 +68,7 @@ class TestIdPNamespace(EduidAPITestCase):
         out = first._session.to_dict()
 
         assert out == {
-            '_idp': {'sso_cookie_val': 'abc', 'ts': '1600000000'},
+            'idp': {'sso_cookie_val': 'abc', 'pending_requests': {}, 'ts': '2020-09-13T12:26:40+00:00'},
         }
 
         first.persist()

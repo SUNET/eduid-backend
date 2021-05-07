@@ -5,11 +5,12 @@ import logging
 import os
 from collections.abc import MutableMapping
 from time import time
-from typing import TYPE_CHECKING, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
 from flask import Request as FlaskRequest
 from flask import Response as FlaskResponse
 from flask.sessions import SessionInterface, SessionMixin
+from pydantic import BaseModel
 
 from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.common.config.exceptions import BadConfiguration
@@ -21,7 +22,6 @@ from eduid.webapp.common.session.namespaces import (
     IdP_Namespace,
     MfaAction,
     ResetPasswordNS,
-    SessionNSBase,
     Signup,
 )
 from eduid.webapp.common.session.redis_session import RedisEncryptedSession, SessionManager, SessionOutOfSync
@@ -38,11 +38,48 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+class EduidNamespaces(BaseModel):
+    common: Optional[Common] = None
+    mfa_action: Optional[MfaAction] = None
+    signup: Optional[Signup] = None
+    actions: Optional[Actions] = None
+    reset_password: Optional[ResetPasswordNS] = None
+    idp: Optional[IdP_Namespace] = None
+
+
 class EduidSession(SessionMixin, MutableMapping):
     """
     Session implementing the flask.sessions.SessionMixin interface.
-    It uses the Session defined in eduid.webapp.common.session.session
-    to store the session data in redis.
+
+    What Flask gives us:
+
+      - a dict-like session object, within a framework that will persist the session on changes etc.
+
+    What Flask does not give us:
+
+      - typed (and validated) information in sessions
+
+    Since we like type checking and auto-completion when coding etc. we're using instances of pydantic BaseModel
+    to hold information that is eventually stored (by the works of the Flask SessionManager) in Redis.
+
+    Different eduID services have their own "namespaces". Services are permitted to _read_ from other services
+    namespaces, but not write to them. This is not enforced programmatically, but just a principle to adhere to.
+
+    An EduidSession contains these "parts":
+
+      _session          The backend session object. Has a dict-like interface for session data.
+      _namespaces       A pydantic BaseModel object containing instances of session namespaces for different services.
+                        Do not use these directly.
+      idp, authn etc.   Properties to facilitate access to session namespaces. Will load data from _session into
+                        _namespaces when first accessed.
+      __setitem__       Stores data in the dict-like _session.
+      __getitem__       Retrieves data from _session.
+      persist()         The function called by the Flask SessionManager to save the session. Will serialise the
+                        instances in _namespaces back into _session.
+
+    So, the idea is that while we can't stop Flask from using the session in a dict-like fashion,
+    all eduID services use the session through the namespace properties (idp, authn, etc.) with full typing
+    and auto-complete support, and then Flask will call persist() which will store the data in the backend session.
     """
 
     def __init__(self, app: EduIDBaseApp, meta: SessionMeta, base_session: RedisEncryptedSession, new: bool = False):
@@ -63,14 +100,8 @@ class EduidSession(SessionMixin, MutableMapping):
         self.new = new
         self.modified = False
 
-        # Namespaces
-        self._common: Optional[Common] = None
-        self._mfa_action: Optional[MfaAction] = None
-        self._signup: Optional[Signup] = None
-        self._actions: Optional[Actions] = None
-        self._sso_ticket: Optional[SSOLoginData] = None
-        self._reset_password: ResetPasswordNS
-        self._idp: IdP_Namespace
+        # Namespaces, initialised lazily when accessed through properties
+        self._namespaces = EduidNamespaces()
 
     def __str__(self):
         # Include hex(id(self)) for now to troubleshoot clobbered sessions
@@ -82,7 +113,7 @@ class EduidSession(SessionMixin, MutableMapping):
     def __getitem__(self, key, default=None):
         return self._session.__getitem__(key, default=None)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: Any):
         if key not in self._session or self._session[key] != value:
             self._session[key] = value
             logger.debug(f'SET {self}[{key}] = {value}')
@@ -118,94 +149,46 @@ class EduidSession(SessionMixin, MutableMapping):
         pass
 
     @property
-    def common(self) -> Optional[Common]:
-        if not self._common:
-            self._common = Common.from_dict(self._session.get('_common', {}))
-        return self._common
-
-    @common.setter
-    def common(self, value: Optional[Common]):
-        if not self._common:
-            self._common = value
+    def common(self) -> Common:
+        if not self._namespaces.common:
+            self._namespaces.common = Common.from_dict(self._session.get('common', {}))
+        return self._namespaces.common
 
     @property
-    def mfa_action(self) -> Optional[MfaAction]:
-        if not self._mfa_action:
-            self._mfa_action = MfaAction.from_dict(self._session.get('_mfa_action', {}))
-        return self._mfa_action
-
-    @mfa_action.setter
-    def mfa_action(self, value: Optional[MfaAction]):
-        if not self._mfa_action:
-            self._mfa_action = value
+    def mfa_action(self) -> MfaAction:
+        if not self._namespaces.mfa_action:
+            self._namespaces.mfa_action = MfaAction.from_dict(self._session.get('mfa_action', {}))
+        return self._namespaces.mfa_action
 
     @mfa_action.deleter
     def mfa_action(self):
-        self._mfa_action = None
-        self._session.pop('_mfa_action', None)
-        self.modified = True
+        """ When an MFA action is completed, it is removed entirely from the session """
+        self._namespaces.mfa_action = None
+        del self['mfa_action']
 
     @property
-    def signup(self) -> Optional[Signup]:
-        if not self._signup:
-            self._signup = Signup.from_dict(self._session.get('_signup', {}))
-        return self._signup
-
-    @signup.setter
-    def signup(self, value: Optional[Signup]):
-        if not self._signup:
-            self._signup = value
+    def signup(self) -> Signup:
+        if not self._namespaces.signup:
+            self._namespaces.signup = Signup.from_dict(self._session.get('signup', {}))
+        return self._namespaces.signup
 
     @property
-    def actions(self) -> Optional[Actions]:
-        if not self._actions:
-            self._actions = Actions.from_dict(self._session.get('_actions', {}))
-        return self._actions
-
-    @actions.setter
-    def actions(self, value: Optional[Actions]):
-        if not self._actions:
-            self._actions = value
-
-    @property
-    def sso_ticket(self) -> Optional[SSOLoginData]:
-        if not self._sso_ticket:
-            data = self._session.get('_sso_ticket', {})
-            if 'key' in data:
-                try:
-                    self._sso_ticket = SSOLoginData.from_dict(data)
-                except Exception:
-                    logger.exception('Failed parsing SSOLoginData')
-                    self._sso_ticket = None
-            return self._sso_ticket
-        return None
-
-    @sso_ticket.setter
-    def sso_ticket(self, value: Optional[SSOLoginData]):
-        if not self._sso_ticket:
-            self._sso_ticket = value
+    def actions(self) -> Actions:
+        if not self._namespaces.actions:
+            self._namespaces.actions = Actions.from_dict(self._session.get('actions', {}))
+        return self._namespaces.actions
 
     @property
     def reset_password(self) -> ResetPasswordNS:
-        if not hasattr(self, '_reset_password') or not self._reset_password:
-            self._reset_password = ResetPasswordNS.from_dict(self._session.get('_reset_password', {}))
-        return self._reset_password
-
-    @reset_password.setter
-    def reset_password(self, value: ResetPasswordNS):
-        if not isinstance(value, ResetPasswordNS):
-            raise TypeError('reset_password value must be a ResetPasswordNS')
-        if not hasattr(self, '_reset_password') or not self._reset_password:
-            self._reset_password = value
-        else:
-            raise ValueError('ResetPasswordNS already initialised')
+        if not self._namespaces.reset_password:
+            self._namespaces.reset_password = ResetPasswordNS.from_dict(self._session.get('reset_password', {}))
+        return self._namespaces.reset_password
 
     @property
     def idp(self) -> IdP_Namespace:
-        if not hasattr(self, '_idp') or not self._idp:
-            # Convert dict to dataclass instance
-            self._idp = IdP_Namespace.from_dict(self._session.get('_idp', {}))
-        return self._idp
+        if not self._namespaces.idp:
+            self._namespaces.idp = IdP_Namespace.from_dict(self._session.get('idp', {}))
+        return self._namespaces.idp
 
     @property
     def created(self):
@@ -273,12 +256,18 @@ class EduidSession(SessionMixin, MutableMapping):
             token = self.new_csrf_token()
         return token
 
-    def _serialize_namespaces(self):
-        for key in self.__dict__.keys():
-            if key.startswith('_'):  # Keep SessionNS in sunder attrs
-                attr = getattr(self, key)
-                if isinstance(attr, SessionNSBase):
-                    self[key] = attr.to_dict()
+    def _serialize_namespaces(self) -> None:
+        """ Serialise all the namespace instances in self._namespaces.
+
+        The __setitem__ function on `self' will essentially write the data into the backend session (self._session).
+        """
+        # TODO: look for cheaper alternative for encoding datetimes etc.
+        #       than going from BaseModel -> json -> dict -> json -> redis.
+        #       Maybe teach the JSON encoder in RedisEncryptedSession to deal with those data types instead?
+        data = json.loads(self._namespaces.json(exclude_none=True))
+        for k, v in data.items():
+            if v is not None:
+                self[k] = v
 
     def persist(self):
         """
@@ -304,7 +293,7 @@ class EduidSession(SessionMixin, MutableMapping):
             self._session.commit()
             self.new = False
             self.modified = False
-            if self.app.debug:
+            if self.app.debug or self.app.conf.testing:
                 _saved_data = json.dumps(self._session.to_dict(), indent=4, sort_keys=True)
                 logger.debug(f'Saved session {self}:\n{_saved_data}')
 
@@ -366,6 +355,9 @@ class SessionFactory(SessionInterface):
 
         sess = EduidSession(app, _meta, base_session, new=new)
         logger.debug(f'Created/loaded session {sess} with base_session {base_session}')
+        if app.debug or app.conf.testing:
+            _loaded_data = json.dumps(sess._session.to_dict(), indent=4, sort_keys=True)
+            logger.debug(f'Loaded session {sess}:\n{_loaded_data}')
         return sess
 
     def save_session(self, app: EduIDBaseApp, sess: EduidSession, response: FlaskResponse) -> None:

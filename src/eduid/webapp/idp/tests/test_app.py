@@ -145,7 +145,6 @@ class IdPTests(EduidAPITestCase):
                 return LoginResult(url=path, reached_state=LoginState.S0_REDIRECT, response=resp)
 
         form_data = self._extract_form_inputs(resp.data.decode('utf-8'))
-        del form_data['key']  # test if key is really necessary
         form_data['username'] = self.test_user.mail_addresses.primary.email
         form_data['password'] = 'Jenka'
         if 'redirect_uri' not in form_data:

@@ -135,8 +135,7 @@ class SSOIdPTests(IdPTests):
             self.app.conf.debug,
             self.app.conf.verify_request_signatures,
         )
-        # context.idp.parse_authn_request(xmlstr, binding)
-        ticket = SSOLoginData(key, xmlstr, binding)
+        ticket = SSOLoginData(key=key)
         ticket.saml_req = saml_req
         return ticket
 
