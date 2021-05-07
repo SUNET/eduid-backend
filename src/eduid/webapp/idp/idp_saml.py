@@ -4,7 +4,6 @@ from hashlib import sha1
 from typing import Any, AnyStr, Dict, List, Mapping, NewType, Optional, Type
 
 import saml2.server
-import six
 from saml2.s_utils import UnknownPrincipal, UnknownSystemEntity, UnravelError, UnsupportedBinding
 from saml2.saml import Issuer
 from saml2.samlp import RequestedAuthnContext
@@ -33,7 +32,7 @@ def gen_key(something: AnyStr) -> str:
     :param something: object
     :return:
     """
-    if isinstance(something, six.binary_type):
+    if isinstance(something, bytes):
         return sha1(something).hexdigest()
     return sha1(something.encode('UTF-8')).hexdigest()
 
