@@ -74,6 +74,57 @@ class SSO(Service):
     def __init__(self, sso_session: Optional[SSOSession]):
         super().__init__(sso_session)
 
+    def redirect(self) -> WerkzeugResponse:
+        """This is the HTTP-redirect endpoint.
+
+        :return: HTTP response
+        """
+        current_app.logger.debug("--- In SSO Redirect ---")
+        _info = self.unpack_redirect()
+        current_app.logger.debug(f'Unpacked redirect :\n{pprint.pformat(_info)}')
+
+        ticket = _get_ticket(_info, BINDING_HTTP_REDIRECT)
+        return self._redirect_or_post(ticket)
+
+    def post(self) -> WerkzeugResponse:
+        """
+        The HTTP-Post endpoint
+
+        :return: HTTP response
+        """
+        current_app.logger.debug("--- In SSO POST ---")
+        _info = self.unpack_either()
+
+        ticket = _get_ticket(_info, BINDING_HTTP_POST)
+        return self._redirect_or_post(ticket)
+
+    def _redirect_or_post(self, ticket: SSOLoginData) -> WerkzeugResponse:
+        """ Common code for redirect() and post() endpoints. """
+
+        if self.sso_session:
+            if self.sso_session.idp_user.terminated:
+                current_app.logger.info(f'User {self.sso_session.idp_user} is terminated')
+                current_app.logger.debug(f'User terminated: {self.sso_session.idp_user.terminated}')
+                raise Forbidden('USER_TERMINATED')
+
+        _force_authn = self._should_force_authn(ticket)
+
+        if self.sso_session and not _force_authn:
+            _ttl = current_app.conf.sso_session_lifetime - self.sso_session.minutes_old
+            current_app.logger.info(f'{ticket.key}: proceeding sso_session={self.sso_session.public_id}, ttl={_ttl:}m')
+            current_app.logger.debug(f'Continuing with Authn request {repr(ticket.saml_req.request_id)}')
+            try:
+                return self.perform_login(ticket)
+            except MustAuthenticate:
+                _force_authn = True
+
+        if not self.sso_session:
+            current_app.logger.info(f'{ticket.key}: authenticate ip={request.remote_addr}')
+        elif _force_authn:
+            current_app.logger.info(f'{ticket.key}: force_authn sso_session={self.sso_session.public_id}')
+
+        return self._not_authn(ticket)
+
     def perform_login(self, ticket: SSOLoginData) -> WerkzeugResponse:
         """
         Validate request, and then proceed with creating an AuthnResponse and
@@ -350,57 +401,6 @@ class SSO(Service):
 
         # Augment the AuthnInfo with the authn_timestamp before returning it
         return replace(resp_authn, instant=int(self.sso_session.authn_timestamp.timestamp()))
-
-    def redirect(self) -> WerkzeugResponse:
-        """This is the HTTP-redirect endpoint.
-
-        :return: HTTP response
-        """
-        current_app.logger.debug("--- In SSO Redirect ---")
-        _info = self.unpack_redirect()
-        current_app.logger.debug(f'Unpacked redirect :\n{pprint.pformat(_info)}')
-
-        ticket = _get_ticket(_info, BINDING_HTTP_REDIRECT)
-        return self._redirect_or_post(ticket)
-
-    def post(self) -> WerkzeugResponse:
-        """
-        The HTTP-Post endpoint
-
-        :return: HTTP response
-        """
-        current_app.logger.debug("--- In SSO POST ---")
-        _info = self.unpack_either()
-
-        ticket = _get_ticket(_info, BINDING_HTTP_POST)
-        return self._redirect_or_post(ticket)
-
-    def _redirect_or_post(self, ticket: SSOLoginData) -> WerkzeugResponse:
-        """ Common code for redirect() and post() endpoints. """
-
-        if self.sso_session:
-            if self.sso_session.idp_user.terminated:
-                current_app.logger.info(f'User {self.sso_session.idp_user} is terminated')
-                current_app.logger.debug(f'User terminated: {self.sso_session.idp_user.terminated}')
-                raise Forbidden('USER_TERMINATED')
-
-        _force_authn = self._should_force_authn(ticket)
-
-        if self.sso_session and not _force_authn:
-            _ttl = current_app.conf.sso_session_lifetime - self.sso_session.minutes_old
-            current_app.logger.info(f'{ticket.key}: proceeding sso_session={self.sso_session.public_id}, ttl={_ttl:}m')
-            current_app.logger.debug(f'Continuing with Authn request {repr(ticket.saml_req.request_id)}')
-            try:
-                return self.perform_login(ticket)
-            except MustAuthenticate:
-                _force_authn = True
-
-        if not self.sso_session:
-            current_app.logger.info(f'{ticket.key}: authenticate ip={request.remote_addr}')
-        elif _force_authn:
-            current_app.logger.info(f'{ticket.key}: force_authn sso_session={self.sso_session.public_id}')
-
-        return self._not_authn(ticket)
 
     def _should_force_authn(self, ticket: SSOLoginData) -> bool:
         """
