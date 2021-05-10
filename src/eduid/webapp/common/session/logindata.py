@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, Mapping, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional
 from urllib.parse import urlencode
 
 from pydantic import BaseModel
@@ -57,10 +57,6 @@ class SSOLoginData:
     # Hash from Credential.key to datetime when it was used
     mfa_action_creds: Dict[str, datetime] = field(default_factory=dict, init=False, repr=False)
     mfa_action_external: Optional[ExternalMfaData] = field(default=None, init=False, repr=False)
-
-    # When this is non-zero, a message is shown to the user by the
-    # login page template saying username/pw was incorrect.
-    FailCount: int = 0
 
     # SAML request, loaded lazily from the session using `key'
     # eduid.webapp.common can't import from eduid-webapp

@@ -32,11 +32,12 @@
 
 import json
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 from werkzeug.exceptions import InternalServerError
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.webapp.actions.testing import ActionsTestCase
 
 
@@ -56,7 +57,7 @@ class ActionsTests(ActionsTestCase):
         """
         eppn = self.test_eppn
         if timestamp is None:
-            timestamp = datetime.fromtimestamp(int(time.time()))
+            timestamp = utc_now()
         with self.session_cookie_anon(self.browser) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
@@ -118,7 +119,7 @@ class ActionsTests(ActionsTestCase):
         self.assertTrue(b'bundle-holder' in response.data)
 
     def test_authn_stale(self):
-        timestamp = datetime.fromtimestamp(0)
+        timestamp = utc_now() - timedelta(days=1)
         response = self._authn(timestamp=timestamp)
         self.assertIn(b'There was an error servicing your request', response.data)
 

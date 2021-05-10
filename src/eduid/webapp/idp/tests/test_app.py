@@ -35,7 +35,7 @@ from base64 import b64decode
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import PurePath
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional
 
 from flask import Response as FlaskResponse
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT

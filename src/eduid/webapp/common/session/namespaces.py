@@ -50,6 +50,11 @@ class MfaAction(SessionNSBase):
 
 
 class TimestampedNS(SessionNSBase):
+    # This timestamp is updated automatically when the data in the namespace changes.
+    # Today, the timestamp is used to signal "freshness" of an action requested in
+    # actions by the idp, or in authn by signup. This seems like a bad idea and should
+    # be improved, and this 'ts' field should probably only be seen as a troubleshooting
+    # tool, to help find relevant entries in logfiles etc.
     ts: datetime = Field(utc_now())
 
 
@@ -77,6 +82,7 @@ class SAMLData(BaseModel):
     binding: str
     relay_state: Optional[str]
     key: str  # sha1 of request
+    template_show_msg: Optional[str]  # set when the template version of the idp should show a message to the user
 
 
 class IdP_Namespace(TimestampedNS):

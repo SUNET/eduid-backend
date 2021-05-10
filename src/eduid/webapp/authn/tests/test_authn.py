@@ -45,6 +45,7 @@ from werkzeug.exceptions import NotFound
 from werkzeug.http import dump_cookie
 
 from eduid.common.config.parsers import load_config
+from eduid.common.misc.timeutil import utc_now
 from eduid.webapp.authn.app import AuthnApp, authn_init_app
 from eduid.webapp.authn.settings.common import AuthnConfig
 from eduid.webapp.common.api.testing import EduidAPITestCase
@@ -299,7 +300,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
         self.acs('/terminate', eppn, _check)
 
     def _signup_authn_user(self, eppn):
-        timestamp = datetime.fromtimestamp(time.time())
+        timestamp = utc_now()
 
         with self.app.test_client() as c:
             with self.app.test_request_context('/signup-authn'):

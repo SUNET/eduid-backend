@@ -485,8 +485,9 @@ class SSO(Service):
             argv['authn_reference'] = requested_authn_context.value
 
         # Set alert msg if FailCount is greater than zero
-        if ticket.FailCount:
-            argv["alert_msg"] = _('Incorrect username or password')
+        if ticket.saml_data.template_show_msg:
+            argv["alert_msg"] = ticket.saml_data.template_show_msg
+            ticket.saml_data.template_show_msg = None
 
         try:
             argv["sp_entity_id"] = ticket.saml_req.sp_entity_id
@@ -550,7 +551,7 @@ def do_verify() -> WerkzeugResponse:
 
     if not user or not authninfo:
         current_app.logger.info(f'{_ticket.key}: Password authentication failed')
-        _ticket.FailCount += 1
+        _ticket.saml_data.template_show_msg = _('Incorrect username or password')
         lox = f'{query["redirect_uri"]}?{_ticket.query_string}'
         current_app.logger.debug(f'Unknown user or wrong password. Redirect => {lox}')
         return redirect(lox)
