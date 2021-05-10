@@ -82,6 +82,7 @@ class SAMLData(BaseModel):
     binding: str
     relay_state: Optional[str]
     key: str  # sha1 of request
+    template_show_msg: Optional[str]  # set when the template version of the idp should show a message to the user
 
 
 class IdP_Namespace(TimestampedNS):

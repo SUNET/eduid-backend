@@ -58,10 +58,6 @@ class SSOLoginData:
     mfa_action_creds: Dict[str, datetime] = field(default_factory=dict, init=False, repr=False)
     mfa_action_external: Optional[ExternalMfaData] = field(default=None, init=False, repr=False)
 
-    # When this is non-zero, a message is shown to the user by the
-    # login page template saying username/pw was incorrect.
-    FailCount: int = 0
-
     # SAML request, loaded lazily from the session using `key'
     # eduid.webapp.common can't import from eduid-webapp
     _saml_data: Optional[SAMLData] = field(default=None, init=False, repr=False)
