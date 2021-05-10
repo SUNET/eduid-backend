@@ -5,7 +5,7 @@ import logging
 import os
 from collections.abc import MutableMapping
 from time import time
-from typing import Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional
 
 from flask import Request as FlaskRequest
 from flask import Response as FlaskResponse
@@ -14,6 +14,7 @@ from pydantic import BaseModel
 
 from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.common.config.exceptions import BadConfiguration
+from eduid.common.misc.timeutil import utc_now
 from eduid.webapp.common.session.logindata import SSOLoginData
 from eduid.webapp.common.session.meta import SessionMeta
 from eduid.webapp.common.session.namespaces import (
@@ -22,7 +23,9 @@ from eduid.webapp.common.session.namespaces import (
     IdP_Namespace,
     MfaAction,
     ResetPasswordNS,
+    SessionNSBase,
     Signup,
+    TimestampedNS,
 )
 from eduid.webapp.common.session.redis_session import RedisEncryptedSession, SessionManager, SessionOutOfSync
 
@@ -261,13 +264,22 @@ class EduidSession(SessionMixin, MutableMapping):
 
         The __setitem__ function on `self' will essentially write the data into the backend session (self._session).
         """
-        # TODO: look for cheaper alternative for encoding datetimes etc.
-        #       than going from BaseModel -> json -> dict -> json -> redis.
-        #       Maybe teach the JSON encoder in RedisEncryptedSession to deal with those data types instead?
-        data = json.loads(self._namespaces.json(exclude_none=True))
-        for k, v in data.items():
-            if v is not None:
-                self[k] = v
+        for k in self._namespaces.dict().keys():
+            this = getattr(self._namespaces, k)
+            if this is None:
+                continue
+            if not isinstance(this, SessionNSBase):
+                pass
+            # TODO: look for cheaper alternative for encoding datetimes etc.
+            #       than going from BaseModel -> json -> dict -> json -> redis.
+            #       Maybe teach the JSON encoder in RedisEncryptedSession to deal with those data types instead?
+            value = json.loads(this.json(exclude_none=True))
+            if isinstance(this, TimestampedNS):
+                if k in self and self[k] != value:
+                    # update timestamp on change
+                    this.ts = utc_now()
+                    value = json.loads(this.json(exclude_none=True))
+            self[k] = value
 
     def persist(self):
         """

@@ -50,6 +50,11 @@ class MfaAction(SessionNSBase):
 
 
 class TimestampedNS(SessionNSBase):
+    # This timestamp is updated automatically when the data in the namespace changes.
+    # Today, the timestamp is used to signal "freshness" of an action requested in
+    # actions by the idp, or in authn by signup. This seems like a bad idea and should
+    # be improved, and this 'ts' field should probably only be seen as a troubleshooting
+    # tool, to help find relevant entries in logfiles etc.
     ts: datetime = Field(utc_now())
 
 

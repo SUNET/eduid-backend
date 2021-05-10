@@ -58,13 +58,12 @@ def authn():
     Check that the user was sent here by the IdP.
     """
     eppn = check_previous_identification(session.actions)
-    if eppn is not None:
-        current_app.logger.info(f'Starting pre-login actions for eppn: {eppn})')
-        url = url_for('actions.get_actions')
-        return render_template('index.html', url=url)
-    else:
-        current_app.logger.debug(f'Action authentication failed (eppn: {eppn})')
+    if eppn is None:
+        current_app.logger.error(f'Action authentication failed (eppn: {eppn})')
         return render_template('error.html')
+    current_app.logger.info(f'Starting pre-login actions for eppn: {eppn})')
+    url = url_for('actions.get_actions')
+    return render_template('index.html', url=url)
 
 
 @actions_views.route('/get-tous', methods=['GET'])
