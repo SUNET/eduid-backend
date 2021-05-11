@@ -55,7 +55,7 @@ class TimestampedNS(SessionNSBase):
     # actions by the idp, or in authn by signup. This seems like a bad idea and should
     # be improved, and this 'ts' field should probably only be seen as a troubleshooting
     # tool, to help find relevant entries in logfiles etc.
-    ts: datetime = Field(utc_now())
+    ts: datetime = Field(default_factory=utc_now)
 
 
 class ResetPasswordNS(SessionNSBase):
