@@ -132,7 +132,7 @@ class WorkerConfig(RootConfig):
 
 class FlaskConfig(BaseModel):
     """
-    These are configuration keys used by Flask (and flask-babel) itself,
+    These are configuration keys used by Flask (and flask plugins) itself,
     with the default values provided by flask.
     See the flask documentation for the semantics of each key.
     """
@@ -233,8 +233,7 @@ class FlaskConfig(BaseModel):
     # the name of the logger
     logger_name: str = ''
     internal_signup_url: str = ''
-    # recaptcha_public_key: str = ''
-    # recaptcha_private_key: str = ''
+    sentry_dsn: str = ''
 
     def to_mapping(self) -> Mapping[str, Any]:
         return self.dict()
