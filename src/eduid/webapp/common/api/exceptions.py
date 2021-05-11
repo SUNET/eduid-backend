@@ -76,7 +76,7 @@ def init_exception_handlers(app):
     def _handle_flask_http_exception(error):
         app.logger.error('HttpException {!s}'.format(error))
         e = ApiException(error.name, error.code)
-        if app.config.debug:
+        if app.config.get('DEBUG'):
             e.payload = {'description': error.description}
         response = jsonify(e.to_dict())
         response.status_code = e.status_code
@@ -86,11 +86,11 @@ def init_exception_handlers(app):
 
 
 def init_sentry(app):
-    if app.config.sentry_dsn:
+    if app.config.get('SENTRY_DSN'):
         try:
             from raven.contrib.flask import Sentry
 
-            sentry = Sentry(dsn=app.config.sentry_dsn)
+            sentry = Sentry(dsn=app.config.get('SENTRY_DSN'))
             sentry.init_app(app)
         except ImportError:
             app.logger.warning('SENTRY_DSN found but Raven not installed.')
