@@ -71,6 +71,8 @@ class ResetPasswordConfig(
     password_generation_rounds: int = 2 ** 5
     # timeout for phone verification token, in hours
     phone_verification_timeout: int = 24
+    # throttle resend of mail and sms
+    throttle_resend_seconds: int = 300
     # URL to get the js app that can drive the process to reset the password
     password_reset_link: str = 'https://login.eduid.se/reset-password/email-code'
     password_service_url: str = '/services/reset-password/'

@@ -504,7 +504,17 @@ class ResetPasswordTests(EduidAPITestCase):
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
         self.assertEqual(state.email_address, 'johnsmith@example.com')
 
+    def test_post_email_address_throttled(self):
+        response1 = self._post_email_address()
+        self._check_success_response(
+            response1, msg=ResetPwMsg.reset_pw_initialized, type_='POST_RESET_PASSWORD_SUCCESS'
+        )
+        response2 = self._post_email_address()
+        self._check_error_response(response2, msg=ResetPwMsg.email_send_throttled, type_='POST_RESET_PASSWORD_FAIL')
+
     def test_do_not_overwrite_email_state(self):
+        # Set min wait time to -1 to not get throttled
+        self.app.conf.throttle_resend_seconds = -1
         response1 = self._post_email_address()
         self._check_success_response(
             response1, msg=ResetPwMsg.reset_pw_initialized, type_='POST_RESET_PASSWORD_SUCCESS'

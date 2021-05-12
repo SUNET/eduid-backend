@@ -36,11 +36,13 @@ from __future__ import annotations
 
 import copy
 import datetime
+import logging
 from dataclasses import asdict, dataclass
 from typing import Mapping, MutableMapping, Optional, Set
 
 import bson
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.exceptions import UserDBValueError
 from eduid.userdb.proofing.element import (
     EmailProofingElement,
@@ -50,6 +52,8 @@ from eduid.userdb.proofing.element import (
 )
 
 __author__ = 'lundberg'
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass()
@@ -122,6 +126,17 @@ class ProofingState(object):
         expiry_date = self.modified_ts + delta
         now = datetime.datetime.now(tz=self.modified_ts.tzinfo)
         return expiry_date < now
+
+    def is_throttled(self, min_wait_seconds: int) -> bool:
+        if not isinstance(self.modified_ts, datetime.datetime):
+            if self.modified_ts is True or self.modified_ts is None:
+                return False
+        time_since_last_resend = utc_now() - self.modified_ts
+        throttle_seconds = datetime.timedelta(seconds=min_wait_seconds)
+        if time_since_last_resend < throttle_seconds:
+            logger.warning(f'Resend throttled for {throttle_seconds - time_since_last_resend}')
+            return True
+        return False
 
 
 @dataclass()

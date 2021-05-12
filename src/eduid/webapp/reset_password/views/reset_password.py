@@ -84,7 +84,7 @@ from eduid.userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState
 from eduid.userdb.util import utc_now
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
-from eduid.webapp.common.api.exceptions import MailTaskFailed, MsgTaskFailed
+from eduid.webapp.common.api.exceptions import MailTaskFailed, MsgTaskFailed, ThrottledException
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
 from eduid.webapp.common.api.schemas.csrf import CSRFResponse
@@ -157,6 +157,9 @@ def start_reset_pw(email: str) -> FluxData:
     except UserDoesNotExist:
         current_app.logger.error(f'No user with email {email} found')
         return error_response(message=ResetPwMsg.user_not_found)
+    except ThrottledException:
+        current_app.logger.error(f'Email resending throttled for {email}')
+        return error_response(message=ResetPwMsg.email_send_throttled)
     except UserHasNotCompletedSignup:
         # Old bug where incomplete signup users where written to the central db
         current_app.logger.exception(f'User with email {email} has to complete signup')
@@ -305,10 +308,7 @@ def choose_extra_security_phone(email_code: str, phone_index: int) -> FluxData:
         return error_response(message=e.msg)
 
     if isinstance(context.state, ResetPasswordEmailAndPhoneState):
-        now = utc_now()
-        if not isinstance(context.state.modified_ts, datetime):
-            raise TypeError(f'Modified timestamp in state is not a datetime ({repr(context.state.modified_ts)})')
-        if now < context.state.modified_ts + timedelta(seconds=current_app.conf.throttle_sms_seconds):
+        if context.state.is_throttled(current_app.conf.throttle_sms_seconds):
             current_app.logger.error(f'Throttling reset password SMS for: {context.state.eppn}')
             return error_response(message=ResetPwMsg.send_sms_throttled)
 
