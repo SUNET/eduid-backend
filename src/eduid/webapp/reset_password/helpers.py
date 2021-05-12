@@ -50,7 +50,7 @@ from eduid.userdb.reset_password import (
     ResetPasswordUser,
 )
 from eduid.userdb.user import User
-from eduid.webapp.common.api.exceptions import MailTaskFailed
+from eduid.webapp.common.api.exceptions import MailTaskFailed, ThrottledException
 from eduid.webapp.common.api.helpers import send_mail
 from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response, success_response
 from eduid.webapp.common.api.utils import get_short_hash, get_unique_hash, save_and_sync_user, urlappend
@@ -86,6 +86,8 @@ class ResetPwMsg(TranslatableMsg):
     # There was some problem sending the email with the code.
     email_send_failure = 'resetpw.email-send-failure'
     # A new code has been generated and sent by email successfully
+    email_send_throttled = 'resetpw.email-throttled'
+    # Sending the email has been throttled.
     reset_pw_initialized = 'resetpw.reset-pw-initialized'
     # The password has been successfully reset
     pw_reset_success = 'resetpw.pw-reset-success'
@@ -196,6 +198,9 @@ def send_password_reset_mail(email_address: str) -> None:
     # User found, check if a state already exists
     state = current_app.password_reset_state_db.get_state_by_eppn(eppn=user.eppn, raise_on_missing=False)
     if state and not state.email_code.is_expired(timeout_seconds=current_app.conf.email_code_timeout):
+        # Let the user only send one mail every throttle_resend_seconds
+        if state.is_throttled(current_app.conf.throttle_resend_seconds):
+            raise ThrottledException()
         # If a state is found and not expired, just send another message with the same code
         # Update created_ts to give the user another email_code_timeout seconds to complete the password reset
         state.email_code.created_ts = datetime.datetime.utcnow()
