@@ -17,17 +17,13 @@ import pprint
 import time
 from dataclasses import replace
 from hashlib import sha256
-from html import escape, unescape
-from typing import Dict, List, Mapping, Optional
+from typing import Dict, List, Optional
 from uuid import uuid4
 
 from defusedxml import ElementTree as DefusedElementTree
 from flask import make_response, redirect, render_template, request
 from flask_babel import gettext as _
-
-from eduid.webapp.common.session.namespaces import SAMLData
-from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
-from werkzeug.exceptions import BadRequest, Forbidden, InternalServerError, TooManyRequests
+from werkzeug.exceptions import BadRequest, Forbidden, TooManyRequests
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.userdb.idp import IdPUser
@@ -35,22 +31,23 @@ from eduid.userdb.idp.user import SAMLAttributeSettings
 from eduid.webapp.common.api import exceptions
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import SSOLoginData
+from eduid.webapp.common.session.namespaces import RequestRef, SAMLData
 from eduid.webapp.idp import assurance, mischttp
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import AssuranceException, EduidAuthnContextClass, MissingMultiFactor, WrongMultiFactor
 from eduid.webapp.idp.idp_actions import check_for_pending_actions
+from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.idp_saml import (
     AuthnInfo,
     IdP_SAMLRequest,
     ResponseArgs,
-    SAMLParseError,
     SamlResponse,
-    SAMLValidationError,
     gen_key,
 )
 from eduid.webapp.idp.service import SAMLQueryParams, Service
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.util import b64encode, get_requested_authn_context
+from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 
 
 class MustAuthenticate(Exception):
@@ -541,7 +538,7 @@ def do_verify() -> WerkzeugResponse:
         return redirect(lox)
 
     try:
-        user, authninfo = current_app.authn.password_authn(query['username'].strip(), password)
+        pwauth = current_app.authn.password_authn(query['username'].strip(), password)
     except exceptions.EduidTooManyRequests as e:
         raise TooManyRequests(e.args[0])
     except exceptions.EduidForbidden as e:
@@ -549,7 +546,7 @@ def do_verify() -> WerkzeugResponse:
     finally:
         del password  # keep out of any exception logs
 
-    if not user or not authninfo:
+    if not pwauth:
         current_app.logger.info(f'{_ticket.key}: Password authentication failed')
         _ticket.saml_data.template_show_msg = _('Incorrect username or password')
         lox = f'{query["redirect_uri"]}?{_ticket.query_string}'
@@ -557,13 +554,16 @@ def do_verify() -> WerkzeugResponse:
         return redirect(lox)
 
     # Create SSO session
-    current_app.logger.debug(f'User {user} authenticated OK (SAML id {repr(_ticket.saml_req.request_id)})')
+    current_app.logger.debug(f'User {pwauth.user} authenticated OK (SAML id {repr(_ticket.saml_req.request_id)})')
+    _authn_credentials: List[AuthnData] = []
+    if pwauth.authndata:
+        _authn_credentials = [pwauth.authndata]
     _sso_session = SSOSession(
-        user_id=user.user_id,
+        user_id=pwauth.user.user_id,
         authn_request_id=_ticket.saml_req.request_id,
-        authn_credentials=[authninfo],
-        idp_user=user,
-        eppn=user.eppn,
+        authn_credentials=_authn_credentials,
+        idp_user=pwauth.user,
+        eppn=pwauth.user.eppn,
     )
 
     # This session contains information about the fact that the user was authenticated. It is
@@ -574,7 +574,7 @@ def do_verify() -> WerkzeugResponse:
 
     # INFO-Log the request id (sha1 of SAML request) and the sso_session
     current_app.logger.info(
-        f'{_ticket.key}: login sso_session={_sso_session.public_id}, authn={authn_ref}, user={user}'
+        f'{_ticket.key}: login sso_session={_sso_session.public_id}, authn={authn_ref}, user={pwauth.user}'
     )
 
     # Now that an SSO session has been created, redirect the users browser back to
@@ -599,8 +599,8 @@ def _add_saml_request_to_session(info: SAMLQueryParams, binding: str) -> str:
         ):
             # Already present
             return _uuid
-    _uuid = str(uuid4())
-    if not info.SAMLRequest or not info.RelayState or not info.key:
+    _uuid = RequestRef(str(uuid4()))
+    if not info.SAMLRequest or not info.RelayState or info.key is None:
         raise ValueError(f"Can't add incomplete query params to session: {info}")
     session.idp.pending_requests[_uuid] = SAMLData(
         request=info.SAMLRequest, binding=binding, relay_state=info.RelayState, key=info.key

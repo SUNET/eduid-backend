@@ -41,7 +41,7 @@ from __future__ import annotations
 import logging
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Type
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Type
 
 from bson import ObjectId
 
@@ -86,6 +86,19 @@ class AuthnData(object):
         return cls(**_data)
 
 
+@dataclass
+class PasswordAuthnResponse:
+    user: IdPUser
+    credential: Password
+    timestamp: datetime = field(default_factory=utc_now)
+
+    @property
+    def authndata(self) -> Optional[AuthnData]:
+        if not self.credential:
+            return None
+        return AuthnData(cred_id=self.credential.key, timestamp=self.timestamp)
+
+
 class IdPAuthn(object):
     """
     :param config: IdP configuration data
@@ -101,7 +114,7 @@ class IdPAuthn(object):
         assert config.mongo_uri is not None
         self.authn_store = AuthnInfoStore(uri=config.mongo_uri)
 
-    def password_authn(self, username: str, password: str) -> Tuple[Optional[IdPUser], Optional[AuthnData]]:
+    def password_authn(self, username: str, password: str) -> Optional[PasswordAuthnResponse]:
         """
         Authenticate someone using a username and password.
 
@@ -111,19 +124,19 @@ class IdPAuthn(object):
             user = self.userdb.lookup_user(username)
         except UserHasNotCompletedSignup:
             # XXX Redirect user to some kind of info page
-            return None, None
+            return None
         if not user:
             logger.info(f'Unknown user : {repr(username)}')
             # XXX we effectively disclose there was no such user by the quick
             # response in this case. Maybe send bogus auth request to backends?
-            return None, None
+            return None
         logger.debug(f'Found user {user}')
 
         cred = self._verify_username_and_password2(user, password)
         if not cred:
-            return None, None
+            return None
 
-        return user, AuthnData(cred_id=cred.key)
+        return PasswordAuthnResponse(user=user, credential=cred)
 
     def _verify_username_and_password2(self, user: IdPUser, password: str) -> Optional[Password]:
         """
