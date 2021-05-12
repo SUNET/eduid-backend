@@ -37,6 +37,7 @@ from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.idp.user import IdPUser
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData, SSOLoginData
+from eduid.webapp.common.session.namespaces import ReqSHA1
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import EduidAuthnContextClass
 from eduid.webapp.idp.idp_authn import AuthnData
@@ -120,7 +121,7 @@ def check_authn_result(user: IdPUser, ticket: SSOLoginData, actions: List[Action
 
         _utc_now = utc_now()
         if this.result.get('success') is True:
-            req_ref = session.idp.get_requestref_for_reqsha1(this.session)
+            req_ref = session.idp.get_requestref_for_reqsha1(ReqSHA1(this.session))
             if this.result.get('issuer') and this.result.get('authn_context'):
                 # External MFA authentication
                 sso_session.external_mfa = ExternalMfaData(
