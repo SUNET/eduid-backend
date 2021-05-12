@@ -50,26 +50,12 @@ class SMSThrottleException(Exception):
     pass
 
 
-def sms_throttled(state: PhoneProofingState) -> bool:
-    # Do not let a user send another SMS until throttle_resend_seconds has passed
-    if not state.modified_ts:
-        # please mypy
-        return False
-    now = utc_now()
-    time_since_last_sms = now - state.modified_ts
-    throttle_seconds = timedelta(seconds=current_app.conf.throttle_resend_seconds)
-    if time_since_last_sms < throttle_seconds:
-        current_app.logger.warning(f'Can not send another SMS for {throttle_seconds - time_since_last_sms}')
-        return True
-    return False
-
-
 def get_new_proofing_state(user: User, phone: str) -> PhoneProofingState:
     existing_state = current_app.proofing_statedb.get_state_by_eppn_and_mobile(user.eppn, phone, raise_on_missing=False)
     if existing_state is not None:
         # User has not managed to verify their phone number using this state,
         # remove it and let the user get a new one
-        if sms_throttled(existing_state):
+        if existing_state.is_throttled(current_app.conf.throttle_resend_seconds):
             raise SMSThrottleException()
         current_app.logger.info('Removing old proofing state')
         current_app.logger.debug(f'Old proofing state: {existing_state.to_dict()}')

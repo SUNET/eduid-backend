@@ -47,8 +47,7 @@ def new_proofing_state(email, user):
     old_state = current_app.proofing_statedb.get_state_by_eppn_and_email(user.eppn, email, raise_on_missing=False)
 
     if old_state is not None:
-        now = int(time.time())
-        if int(old_state.modified_ts.timestamp()) > now - current_app.conf.throttle_resend_seconds:
+        if old_state.is_throttled(current_app.conf.throttle_resend_seconds):
             return None
         current_app.proofing_statedb.remove_state(old_state)
         current_app.logger.info('Removed old proofing state')
