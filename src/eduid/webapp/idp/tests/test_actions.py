@@ -47,6 +47,7 @@ from eduid.vccs.client import VCCSClient
 from eduid.webapp.common.session.logindata import SSOLoginData
 from eduid.webapp.idp.mfa_action import RESULT_CREDENTIAL_KEY_NAME
 from eduid.webapp.idp.mfa_action import add_actions as mfa_add_actions
+from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.tests.test_app import LoginState
 from eduid.webapp.idp.tests.test_SSO import SWAMID_AL2, SSOIdPTests
 from eduid.webapp.idp.tests.test_SSO import cc as CONTEXTCLASSREFS
@@ -56,14 +57,23 @@ logger = logging.getLogger(__name__)
 
 
 class TestActions(SSOIdPTests):
-    def setUp(self):
-        super().setUp()
+    def setUp(self, *args, **kwargs) -> None:
+        super().setUp(*args, **kwargs)
 
         self.actions = self.app.actions_db
         self.mock_session_key = 'mock-session'
 
         # setup some test data
         self.test_action = self.actions.add_action(self.test_user.eppn, action_type='dummy', preference=100, params={})
+
+        self.sso_session = SSOSession(
+            user_id=self.test_user.user_id,
+            authn_request_id='some-unique-id-1',
+            authn_credentials=[],
+            idp_user=cast(IdPUser, self.test_user),
+            eppn=self.test_user.eppn,
+        )
+        self.app.sso_sessions.save(self.sso_session)
 
     def update_config(self, config):
         config = super().update_config(config)
@@ -131,7 +141,7 @@ class TestActions(SSOIdPTests):
         with self.app.app_context():
             mock_ticket = self._make_login_ticket(req_class_ref=SWAMID_AL2, key=self.mock_session_key)
             assert self.num_actions == 0
-            assert mfa_add_actions(self.test_user, mock_ticket) is None
+            assert mfa_add_actions(self.test_user, mock_ticket, self.sso_session) is None
             assert self.num_actions == 0
 
     def test_add_mfa_action_no_key_required_mfa(self):
@@ -142,7 +152,7 @@ class TestActions(SSOIdPTests):
                 req_class_ref=CONTEXTCLASSREFS['REFEDS_MFA'], key=self.mock_session_key
             )
             assert self.num_actions == 0
-            action = mfa_add_actions(self.test_user, mock_ticket)
+            action = mfa_add_actions(self.test_user, mock_ticket, self.sso_session)
             assert action.action_type == 'mfa'
             assert self.num_actions == 1
 
@@ -162,7 +172,7 @@ class TestActions(SSOIdPTests):
         with self.app.app_context():
             mock_ticket = self._make_login_ticket(req_class_ref=SWAMID_AL2, key=self.mock_session_key)
             assert self.num_actions == 0
-            action = mfa_add_actions(self.test_user, mock_ticket)
+            action = mfa_add_actions(self.test_user, mock_ticket, self.sso_session)
             assert action.action_type == 'mfa'
             assert self.num_actions == 1
 
@@ -182,7 +192,7 @@ class TestActions(SSOIdPTests):
 
         with self.app.app_context():
             assert self.num_actions == 0
-            action = mfa_add_actions(self.test_user, mock_ticket)
+            action = mfa_add_actions(self.test_user, mock_ticket, self.sso_session)
             assert action.action_type == 'mfa'
             assert self.num_actions == 1
 
@@ -203,7 +213,7 @@ class TestActions(SSOIdPTests):
             mock_ticket = self._make_login_ticket(req_class_ref=SWAMID_AL2, key=self.mock_session_key)
             self.app.actions_db = None
             assert self.num_actions == 0
-            assert mfa_add_actions(self.test_user, mock_ticket) is None
+            assert mfa_add_actions(self.test_user, mock_ticket, self.sso_session) is None
         # ensure no action was added when self.app.actions_db is None
         assert self.num_actions == 0
 
@@ -236,7 +246,7 @@ class TestActions(SSOIdPTests):
 
         with self.app.app_context():
             mock_ticket = self._make_login_ticket(req_class_ref=SWAMID_AL2, key=self.mock_session_key)
-            action = mfa_add_actions(cast(IdPUser, self.test_user), mock_ticket)
+            action = mfa_add_actions(cast(IdPUser, self.test_user), mock_ticket, self.sso_session)
             if expected_num_actions != 0:
                 assert action is not None
                 assert action.action_type == 'mfa'
@@ -250,11 +260,15 @@ class TestActions(SSOIdPTests):
 
     def test_add_mfa_action_already_authn_not(self):
         ticket = self._test_add_2nd_mfa_action(success=False, expected_num_actions=2)
-        self.assertEqual(len(ticket.mfa_action_creds), 0)
+        sso_session = self.app.sso_sessions.get_session(self.sso_session.session_id, self.app.userdb)
+        assert sso_session is not None
+        assert sso_session.authn_credentials == []
 
     def test_add_2nd_mfa_action_no_context(self):
         ticket = self._test_add_2nd_mfa_action(authn_context=False, expected_num_actions=0)
-        self.assertEqual(len(ticket.mfa_action_creds), 1)
+        sso_session = self.app.sso_sessions.get_session(self.sso_session.session_id, self.app.userdb)
+        assert sso_session is not None
+        assert sso_session.authn_credentials == [1]
 
     def test_add_2nd_mfa_action_no_context_wrong_key(self):
         ticket = self._test_add_2nd_mfa_action(authn_context=False, cred_key='wrong key', expected_num_actions=2)

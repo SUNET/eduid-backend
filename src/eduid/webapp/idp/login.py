@@ -23,6 +23,7 @@ from uuid import uuid4
 from defusedxml import ElementTree as DefusedElementTree
 from flask import make_response, redirect, render_template, request
 from flask_babel import gettext as _
+from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest, Forbidden, TooManyRequests
 from werkzeug.wrappers import Response as WerkzeugResponse
 
@@ -37,17 +38,10 @@ from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import AssuranceException, EduidAuthnContextClass, MissingMultiFactor, WrongMultiFactor
 from eduid.webapp.idp.idp_actions import check_for_pending_actions
 from eduid.webapp.idp.idp_authn import AuthnData
-from eduid.webapp.idp.idp_saml import (
-    AuthnInfo,
-    IdP_SAMLRequest,
-    ResponseArgs,
-    SamlResponse,
-    gen_key,
-)
+from eduid.webapp.idp.idp_saml import AuthnInfo, IdP_SAMLRequest, ResponseArgs, SamlResponse, gen_key
 from eduid.webapp.idp.service import SAMLQueryParams, Service
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.util import b64encode, get_requested_authn_context
-from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 
 
 class MustAuthenticate(Exception):
@@ -366,8 +360,9 @@ class SSO(Service):
         assert self.sso_session
 
         if current_app.conf.debug:
-            current_app.logger.debug(f'MFA credentials logged in the ticket: {ticket.mfa_action_creds}')
-            current_app.logger.debug(f'External MFA credential logged in the ticket: {ticket.mfa_action_external}')
+            current_app.logger.debug(
+                f'External MFA credential logged in the SSO session: {self.sso_session.external_mfa}'
+            )
             current_app.logger.debug(f'Credentials used in this SSO session:\n{self.sso_session.authn_credentials}')
             _creds_as_strings = [str(_cred) for _cred in user.credentials.to_list()]
             current_app.logger.debug(f'User credentials:\n{_creds_as_strings}')
@@ -576,6 +571,9 @@ def do_verify() -> WerkzeugResponse:
     current_app.logger.info(
         f'{_ticket.key}: login sso_session={_sso_session.public_id}, authn={authn_ref}, user={pwauth.user}'
     )
+
+    # Remember the password credential used for this particular request
+    session.idp.log_credential_used(_ticket.key, pwauth.credential, pwauth.timestamp)
 
     # Now that an SSO session has been created, redirect the users browser back to
     # the main entry point of the IdP (the 'redirect_uri'). The ticket reference `key'

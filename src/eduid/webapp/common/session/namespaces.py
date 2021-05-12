@@ -104,3 +104,10 @@ class IdP_Namespace(TimestampedNS):
         for this in self.pending_requests.values():
             if this.key == key:
                 this.credentials_used[credential.key] = timestamp
+
+    def get_requestref_for_reqsha1(self, key: ReqSHA1) -> Optional[RequestRef]:
+        """ Helper function while we still use ReqSHA1 (key) """
+        for ref, this in self.pending_requests.items():
+            if this.key == key:
+                return ref
+        return None

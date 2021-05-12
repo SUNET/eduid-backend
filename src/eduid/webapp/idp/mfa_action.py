@@ -35,9 +35,12 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.actions import Action
 from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.idp.user import IdPUser
+from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData, SSOLoginData
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import EduidAuthnContextClass
+from eduid.webapp.idp.idp_authn import AuthnData
+from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.util import get_requested_authn_context
 
 __author__ = 'ft'
@@ -46,7 +49,7 @@ __author__ = 'ft'
 RESULT_CREDENTIAL_KEY_NAME = 'cred_key'
 
 
-def add_actions(user: IdPUser, ticket: SSOLoginData) -> Optional[Action]:
+def add_actions(user: IdPUser, ticket: SSOLoginData, sso_session: SSOSession) -> Optional[Action]:
     """
     Add an action requiring the user to login using one or more additional
     authentication factors.
@@ -55,7 +58,8 @@ def add_actions(user: IdPUser, ticket: SSOLoginData) -> Optional[Action]:
     action plugins entry points.
 
     :param user: the authenticating user
-    :param ticket: the SSO login data
+    :param ticket: the in-memory login request context
+    :param sso_session: The SSO data persisted in mongodb
     """
     if not current_app.actions_db:
         current_app.logger.warning('No actions_db - aborting MFA action')
@@ -81,24 +85,15 @@ def add_actions(user: IdPUser, ticket: SSOLoginData) -> Optional[Action]:
     existing_actions = current_app.actions_db.get_actions(user.eppn, ticket.key, action_type='mfa')
     if existing_actions and len(existing_actions) > 0:
         current_app.logger.debug('User has existing MFA actions - checking them')
-        if check_authn_result(user, ticket, existing_actions):
-            for this in ticket.mfa_action_creds.keys():
-                current_app.authn.log_authn(user, success=[this], failure=[])
-            # TODO: Should we persistently log external mfa usage?
+        if check_authn_result(user, ticket, existing_actions, sso_session):
             return None
         current_app.logger.error('User returned without MFA credentials')
 
     current_app.logger.debug(f'User must authenticate with a token (has {len(tokens)} token(s))')
-    return current_app.actions_db.add_action(
-        user.eppn,
-        action_type='mfa',
-        preference=1,
-        session=ticket.key,  # XXX double-check that ticket.key is not sensitive to disclose to the user
-        params={},
-    )
+    return current_app.actions_db.add_action(user.eppn, action_type='mfa', preference=1, session=ticket.key, params={})
 
 
-def check_authn_result(user: IdPUser, ticket: SSOLoginData, actions: List[Action]) -> bool:
+def check_authn_result(user: IdPUser, ticket: SSOLoginData, actions: List[Action], sso_session: SSOSession) -> bool:
     """
     The user returned to the IdP after being sent to actions. Check if actions has
     added the results of authentication to the action in the database.
@@ -112,29 +107,50 @@ def check_authn_result(user: IdPUser, ticket: SSOLoginData, actions: List[Action
     if not current_app.actions_db:
         raise RuntimeError('check_authn_result called without actions_db')
 
+    res = False
+    _save = False
+
     for this in actions:
-        current_app.logger.debug(f'Action {this} authn result: {this.result}')
+        current_app.logger.debug(f'Processing authn action result:\n{this}')
         if this.result is None:
             continue
+
+        if this.session != ticket.key:
+            current_app.logger.warning(f'Got action result for another session {this.session} (expected {ticket.key})')
+
         _utc_now = utc_now()
         if this.result.get('success') is True:
+            req_ref = session.idp.get_requestref_for_reqsha1(this.session)
             if this.result.get('issuer') and this.result.get('authn_context'):
                 # External MFA authentication
-                ticket.mfa_action_external = ExternalMfaData(
+                sso_session.external_mfa = ExternalMfaData(
                     issuer=this.result['issuer'], authn_context=this.result['authn_context'], timestamp=_utc_now
                 )
+                # TODO: Should we persistently log external MFA usage with log_authn() like we do below?
                 current_app.logger.debug(
                     f'Removing MFA action completed with external issuer {this.result.get("issuer")}'
                 )
                 current_app.actions_db.remove_action_by_id(this.action_id)
-                return True
+                res = True
             key = this.result.get(RESULT_CREDENTIAL_KEY_NAME)
             cred = user.credentials.find(key)
             if cred:
-                ticket.mfa_action_creds[cred.key] = _utc_now
+                authn = AuthnData(cred_id=cred.key, timestamp=_utc_now)
+                sso_session.add_authn_credential(authn)
+                _save = True
+
+                current_app.authn.log_authn(user, success=[cred.key], failure=[])
                 current_app.logger.debug(f'Removing MFA action completed with {cred}')
                 current_app.actions_db.remove_action_by_id(this.action_id)
-                return True
+
+                # Remember the MFA credential used for this particular request
+                session.idp.log_credential_used(ticket.key, cred, _utc_now)
+
+                res = True
             else:
                 current_app.logger.error(f'MFA action completed with unknown key {key}')
-    return False
+    if _save:
+        current_app.logger.debug(f'Saving SSO session {sso_session}')
+        current_app.sso_sessions.save(sso_session)
+
+    return res

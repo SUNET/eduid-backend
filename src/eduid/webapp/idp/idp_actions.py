@@ -37,13 +37,10 @@ from flask import redirect
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.userdb.idp import IdPUser
-from eduid.userdb.util import utc_now
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import SSOLoginData
-from eduid.webapp.common.session.namespaces import Actions
 from eduid.webapp.idp import mfa_action, tou_action
 from eduid.webapp.idp.app import current_idp_app as current_app
-from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.sso_session import SSOSession
 
 
@@ -64,30 +61,13 @@ def check_for_pending_actions(
         return None
 
     # Add any actions that may depend on the login data
-    add_idp_initiated_actions(user, ticket)
+    add_idp_initiated_actions(user, ticket, sso_session)
 
     actions_eppn = current_app.actions_db.get_actions(user.eppn, session=ticket.key)
 
     # Check for pending actions
     pending_actions = [a for a in actions_eppn if a.result is None]
     if not pending_actions:
-        # eduid.webapp.idp.mfa_action.check_authn_result will have added the credential used
-        # to the ticket.mfa_action_creds hash - transfer it to the session
-        update = False
-        for cred_key, ts in ticket.mfa_action_creds.items():
-            cred = user.credentials.find(cred_key)
-            authn = AuthnData(cred_id=cred.key, timestamp=ts)
-            sso_session.add_authn_credential(authn)
-            update = True
-        # eduid.webapp.idp.mfa_action.check_authn_result will have added any external mfa used to
-        # the ticket.mfa_action_external - transfer it to the session
-        if ticket.mfa_action_external is not None:
-            sso_session.external_mfa = ticket.mfa_action_external
-            update = True
-
-        if update:
-            current_app.sso_sessions.save(sso_session)
-
         current_app.logger.debug(f'There are no pending actions for user {user}')
         return None
 
@@ -103,7 +83,7 @@ def check_for_pending_actions(
     return redirect(actions_uri)
 
 
-def add_idp_initiated_actions(user: IdPUser, ticket: SSOLoginData) -> None:
+def add_idp_initiated_actions(user: IdPUser, ticket: SSOLoginData, sso_session: SSOSession) -> None:
     """
     Load the configured action plugins and execute their `add_actions`
     functions.
@@ -117,6 +97,6 @@ def add_idp_initiated_actions(user: IdPUser, ticket: SSOLoginData) -> None:
     :param ticket: the SSO login data
     """
     if 'mfa' in current_app.conf.action_plugins:
-        mfa_action.add_actions(user, ticket)
+        mfa_action.add_actions(user, ticket, sso_session)
     if 'tou' in current_app.conf.action_plugins:
         tou_action.add_actions(user, ticket)
