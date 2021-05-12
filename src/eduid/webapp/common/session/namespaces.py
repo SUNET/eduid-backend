@@ -5,13 +5,15 @@ from abc import ABC
 from copy import deepcopy
 from datetime import datetime
 from enum import Enum, unique
-from typing import Any, Dict, Optional, Type, TypeVar
+from typing import Any, Dict, NewType, Optional, Type, TypeVar
 
 __author__ = 'ft'
 
 from pydantic import BaseModel, Field
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.userdb.credentials import Credential
+from eduid.userdb.credentials.base import CredentialKey
 
 
 class SessionNSBase(BaseModel, ABC):
@@ -77,16 +79,28 @@ class Actions(TimestampedNS):
     session: Optional[str] = None
 
 
+RequestRef = NewType('RequestRef', str)
+ReqSHA1 = NewType('ReqSHA1', str)
+
+
 class SAMLData(BaseModel):
     request: str
     binding: str
     relay_state: Optional[str]
-    key: str  # sha1 of request
+    key: ReqSHA1  # sha1 of request
     template_show_msg: Optional[str]  # set when the template version of the idp should show a message to the user
+    # Credentials used while authenticating _this SAML request_. Not ones inherited from SSO.
+    credentials_used: Dict[CredentialKey, datetime] = Field(default={})
 
 
 class IdP_Namespace(TimestampedNS):
     # The SSO cookie value last set by the IdP. Used to debug issues with browsers not
     # honoring Set-Cookie in redirects, or something.
     sso_cookie_val: Optional[str] = None
-    pending_requests: Dict[str, SAMLData] = Field({})
+    pending_requests: Dict[RequestRef, SAMLData] = Field(default={})
+
+    def log_credential_used(self, key: ReqSHA1, credential: Credential, timestamp: datetime) -> None:
+        # Log the credential used in the session, under this particular SAML request
+        for this in self.pending_requests.values():
+            if this.key == key:
+                this.credentials_used[credential.key] = timestamp

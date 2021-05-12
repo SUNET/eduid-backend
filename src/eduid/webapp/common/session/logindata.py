@@ -7,10 +7,11 @@ from urllib.parse import urlencode
 
 from pydantic import BaseModel
 
-from eduid.webapp.common.session.namespaces import SAMLData
+from eduid.webapp.common.session.namespaces import ReqSHA1, SAMLData
 
 if TYPE_CHECKING:
     from eduid.webapp.idp.idp_saml import IdP_SAMLRequest
+
 
 #
 # Copyright (c) 2013, 2014, 2016 NORDUnet A/S. All rights reserved.
@@ -52,7 +53,7 @@ class SSOLoginData:
     to fetch that data from the EduidSession.
     """
 
-    key: str
+    key: ReqSHA1
 
     # Hash from Credential.key to datetime when it was used
     mfa_action_creds: Dict[str, datetime] = field(default_factory=dict, init=False, repr=False)
