@@ -43,6 +43,8 @@ from eduid.userdb.credentials import Credential
 
 __author__ = 'lundberg'
 
+from eduid.userdb.credentials.base import CredentialKey
+
 
 @dataclass
 class _PasswordRequired:
@@ -67,11 +69,11 @@ class Password(Credential, _PasswordRequired):
     is_generated: bool = False
 
     @property
-    def key(self) -> str:
+    def key(self) -> CredentialKey:
         """
         Return the element that is used as key.
         """
-        return self.credential_id
+        return CredentialKey(self.credential_id)
 
     @classmethod
     def _from_dict_transform(cls: Type[Password], data: Dict[str, Any]) -> Dict[str, Any]:
