@@ -17,17 +17,13 @@ import pprint
 import time
 from dataclasses import replace
 from hashlib import sha256
-from html import escape, unescape
-from typing import Dict, List, Mapping, Optional
+from typing import Dict, List, Optional
 from uuid import uuid4
 
 from defusedxml import ElementTree as DefusedElementTree
 from flask import make_response, redirect, render_template, request
 from flask_babel import gettext as _
-
-from eduid.webapp.common.session.namespaces import SAMLData
-from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
-from werkzeug.exceptions import BadRequest, Forbidden, InternalServerError, TooManyRequests
+from werkzeug.exceptions import BadRequest, Forbidden, TooManyRequests
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.userdb.idp import IdPUser
@@ -35,22 +31,23 @@ from eduid.userdb.idp.user import SAMLAttributeSettings
 from eduid.webapp.common.api import exceptions
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import SSOLoginData
+from eduid.webapp.common.session.namespaces import RequestRef, SAMLData
 from eduid.webapp.idp import assurance, mischttp
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import AssuranceException, EduidAuthnContextClass, MissingMultiFactor, WrongMultiFactor
 from eduid.webapp.idp.idp_actions import check_for_pending_actions
+from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.idp_saml import (
     AuthnInfo,
     IdP_SAMLRequest,
     ResponseArgs,
-    SAMLParseError,
     SamlResponse,
-    SAMLValidationError,
     gen_key,
 )
 from eduid.webapp.idp.service import SAMLQueryParams, Service
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.util import b64encode, get_requested_authn_context
+from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 
 
 class MustAuthenticate(Exception):
@@ -558,10 +555,13 @@ def do_verify() -> WerkzeugResponse:
 
     # Create SSO session
     current_app.logger.debug(f'User {pwauth.user} authenticated OK (SAML id {repr(_ticket.saml_req.request_id)})')
+    _authn_credentials: List[AuthnData] = []
+    if pwauth.authndata:
+        _authn_credentials = [pwauth.authndata]
     _sso_session = SSOSession(
         user_id=pwauth.user.user_id,
         authn_request_id=_ticket.saml_req.request_id,
-        authn_credentials=[pwauth.authndata],
+        authn_credentials=_authn_credentials,
         idp_user=pwauth.user,
         eppn=pwauth.user.eppn,
     )
