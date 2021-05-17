@@ -42,6 +42,7 @@ from fido2.ctap2 import AttestedCredentialData, AuthenticatorData
 from fido2.server import Fido2Server, RelyingParty, U2FFido2Server
 from fido2.utils import websafe_decode
 from flask import current_app
+from pydantic import BaseModel
 from u2flib_server.u2f import complete_authentication
 
 from eduid.userdb.credentials import U2F, Webauthn
@@ -171,26 +172,36 @@ def verify_u2f(user: User, challenge: bytes, token_response: str, u2f_valid_face
     return None
 
 
+class WebauthnRequest(BaseModel):
+    credentialId: bytes
+    clientDataJSON: bytes
+    authenticatorData: bytes
+    signature: bytes
+
+
 def verify_webauthn(user: User, request_dict: Dict[str, Any], rp_id: str) -> Dict[str, Any]:
     """
     Verify received Webauthn data against the user's credentials.
     """
-    req = {}
-    for this in ['credentialId', 'clientDataJSON', 'authenticatorData', 'signature']:
+    current_app.logger.debug(f'Webauthn request:\n{json.dumps(request_dict, indent=4)}')
+
+    def _decode(key: str) -> bytes:
         try:
-            request_dict[this] += '=' * (len(request_dict[this]) % 4)
-            req[this] = base64.urlsafe_b64decode(request_dict[this])
-        except Exception as exc:
-            current_app.logger.error(
-                f'Failed to find/b64decode Webauthn '
-                f'parameter {this}: {request_dict.get(this)}'
-                f'and the exception is {exc}'
-            )
+            data = request_dict[key]
+            data += '=' * (len(data) % 4)
+            return base64.urlsafe_b64decode(data)
+        except:
+            current_app.logger.exception(f'Failed to find/b64decode Webauthn parameter {key}: {request_dict.get(key)}')
             raise VerificationProblem('mfa.bad-token-response')  # XXX add bad-token-response to frontend
 
-    current_app.logger.debug(f'Webauthn request after decoding:\n{pprint.pformat(req)}')
-    client_data = ClientData(req['clientDataJSON'])
-    auth_data = AuthenticatorData(req['authenticatorData'])
+    req = WebauthnRequest(
+        credentialId=_decode('credentialId'),
+        clientDataJSON=_decode('clientDataJSON'),
+        authenticatorData=_decode('authenticatorData'),
+        signature=_decode('signature'),
+    )
+    client_data = ClientData(req.clientDataJSON)
+    auth_data = AuthenticatorData(req.authenticatorData)
 
     credentials = get_user_credentials(user)
     fido2state = {}
@@ -200,21 +211,16 @@ def verify_webauthn(user: User, request_dict: Dict[str, Any], rp_id: str) -> Dic
     fido2rp = RelyingParty(rp_id, 'eduID')
     fido2server = _get_fido2server(credentials, fido2rp)
     matching_credentials = [
-        (v['webauthn'], k) for k, v in credentials.items() if v['webauthn'].credential_id == req['credentialId']
+        (v['webauthn'], k) for k, v in credentials.items() if v['webauthn'].credential_id == req.credentialId
     ]
 
     if not matching_credentials:
-        current_app.logger.error(f"Could not find webauthn credential {req['credentialId']!r} on user {user}")
+        current_app.logger.error(f"Could not find webauthn credential {repr(req.credentialId)} on user {user}")
         raise VerificationProblem('mfa.unknown-token')
 
     try:
         authn_cred = fido2server.authenticate_complete(
-            fido2state,
-            [mc[0] for mc in matching_credentials],
-            req['credentialId'],
-            client_data,
-            auth_data,
-            req['signature'],
+            fido2state, [mc[0] for mc in matching_credentials], req.credentialId, client_data, auth_data, req.signature,
         )
     except Exception:
         raise VerificationProblem('mfa.failed-verification')
