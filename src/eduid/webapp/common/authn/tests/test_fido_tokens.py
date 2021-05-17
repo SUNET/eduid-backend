@@ -62,7 +62,7 @@ def start_verification():
     user = current_app.central_userdb.get_user_by_eppn('hubba-bubba')
     data = json.loads(request.query_string[17:])
     try:
-        result = verify_webauthn(user, data, 'testing', current_app.conf.fido2_rp_id)
+        result = verify_webauthn(user, data, current_app.conf.fido2_rp_id)
     except VerificationProblem:
         result = {'success': False, 'message': 'mfa.verification-problem'}
     current_app.logger.info(f'Endpoint start_verification result: {result}')
@@ -127,7 +127,7 @@ class FidoTokensTestCase(EduidAPITestCase):
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction():
                 with self.app.test_request_context():
-                    config = start_token_verification(self.test_user, 'testing', self.app.conf.fido2_rp_id)
+                    config = start_token_verification(self.test_user, self.app.conf.fido2_rp_id)
                     assert 'u2fdata' not in config
                     assert 'webauthn_options' in config
                     s = config['webauthn_options']
@@ -147,7 +147,7 @@ class FidoTokensTestCase(EduidAPITestCase):
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction():
                 with self.app.test_request_context():
-                    config = start_token_verification(self.test_user, 'testing', self.app.conf.fido2_rp_id)
+                    config = start_token_verification(self.test_user, self.app.conf.fido2_rp_id)
                     assert 'u2fdata' not in config
                     assert 'webauthn_options' in config
                     s = config['webauthn_options']
@@ -173,7 +173,7 @@ class FidoTokensTestCase(EduidAPITestCase):
                         'challenge': '3h_EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc',
                         'user_verification': 'preferred',
                     }
-                    sess['testing.webauthn.state'] = json.dumps(fido2state)
+                    sess.mfa_action.webauthn_state = fido2state
                     sess.persist()
                     resp = client.get('/start?webauthn_request=' + json.dumps(SAMPLE_WEBAUTHN_REQUEST))
                     resp_data = json.loads(resp.data)
@@ -229,7 +229,7 @@ class FidoTokensTestCase(EduidAPITestCase):
         req = deepcopy(SAMPLE_WEBAUTHN_REQUEST)
         req['credentialId'] = req['credentialId'].replace('0', '9')
         mock_verify.return_value = True
-        # Add a working U2F credential for this test
+        # Add a working Webauthn credential for this test
         self.test_user.credentials.add(self.webauthn_credential)
         self.amdb.save(self.test_user, check_sync=False)
 

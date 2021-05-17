@@ -102,6 +102,7 @@ def check_authn_result(user: IdPUser, ticket: SSOLoginData, actions: List[Action
     :param user: the authenticating user
     :param ticket: the SSO login data
     :param actions: Actions in the ActionDB matching this user and session
+    :param sso_session: The SSO data persisted in mongodb
 
     :return: MFA action with proof of completion found
     """

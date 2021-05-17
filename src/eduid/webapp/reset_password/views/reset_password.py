@@ -428,19 +428,7 @@ def set_new_pw_extra_security_token(
 
     # Process POSTed data
     success = False
-    if token_response:
-        # CTAP1/U2F
-        current_app.logger.debug(f'U2F token response: {token_response}')
-        _challenge = session.get(SESSION_PREFIX + '.u2f.challenge')
-        if not isinstance(_challenge, bytes):
-            raise TypeError(f'U2F challenge in session is not bytes {repr(_challenge)}')
-        current_app.logger.debug(f'Challenge: {_challenge!r}')
-        result = fido_tokens.verify_u2f(context.user, _challenge, token_response, current_app.conf.u2f_valid_facets)
-        if result is not None:
-            success = result['success']
-            if success:
-                current_app.stats.count(name='extra_security_security_key_u2f_success')
-    elif authenticator_data:
+    if authenticator_data:
         # CTAP2/Webauthn
         request_dict = {
             'credentialId': credential_id,
@@ -458,7 +446,7 @@ def set_new_pw_extra_security_token(
         except fido_tokens.VerificationProblem:
             pass
     else:
-        current_app.logger.error(f'Neither U2F nor webauthn data in request for {context.user}')
+        current_app.logger.error(f'No webauthn data in request for {context.user}')
 
     if not success:
         return error_response(message=ResetPwMsg.fido_token_fail)

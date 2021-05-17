@@ -146,32 +146,6 @@ def start_token_verification(user: User, fido2_rp_id: str) -> Dict[str, Any]:
     return {'webauthn_options': fido2data}
 
 
-def verify_u2f(user: User, challenge: bytes, token_response: str, u2f_valid_facets: List[str]) -> Optional[dict]:
-    """
-    verify received U2F data against the user's credentials
-
-    NOTE: We've removed the code to generate U2F challenges from start_token_verification() above,
-          so I think that means we will never get such a response back from the client browser
-          and it should be possible to remove this code. Right?
-    """
-    warnings.warn('verify_u2f should be unused, is it not?', DeprecationWarning)
-    device, counter, touch = complete_authentication(challenge, token_response, u2f_valid_facets)
-    current_app.logger.debug(
-        'U2F authentication data: {}'.format({'keyHandle': device['keyHandle'], 'touch': touch, 'counter': counter,})
-    )
-
-    for this in user.credentials.filter(U2F).to_list():
-        if this.keyhandle == device['keyHandle']:
-            current_app.logger.info(f'User {user} logged in using U2F token {this} (touch: {touch}, counter {counter})')
-            return {
-                'success': True,
-                'touch': touch,
-                'counter': counter,
-                RESULT_CREDENTIAL_KEY_NAME: this.key,
-            }
-    return None
-
-
 class WebauthnRequest(BaseModel):
     credentialId: bytes
     clientDataJSON: bytes

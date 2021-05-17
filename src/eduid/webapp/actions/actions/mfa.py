@@ -92,14 +92,14 @@ class Plugin(ActionPlugin):
 
         eppn = action.eppn
         user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=False)
-        current_app.logger.debug('Loaded User {} from db (in perform_action)'.format(user))
+        current_app.logger.debug(f'Loaded User {user} from db (in perform_action)')
 
         # Third party service MFA
         if session.mfa_action.success is True:  # Explicit check that success is the boolean True
             issuer = session.mfa_action.issuer
             authn_instant = session.mfa_action.authn_instant
             authn_context = session.mfa_action.authn_context
-            current_app.logger.info('User {} logged in using external mfa service {}'.format(user, issuer))
+            current_app.logger.info(f'User {user} logged in using external MFA service {issuer}')
             action.result = {
                 'success': True,
                 'issuer': issuer,
@@ -113,26 +113,11 @@ class Plugin(ActionPlugin):
 
         req_json = request.get_json()
         if not req_json:
-            current_app.logger.error('No data in request to authn {}'.format(user))
+            current_app.logger.error(f'No data in request to authn {user}')
             raise self.ActionError(ActionsMsg.no_data)
 
         # Process POSTed data
-        if 'tokenResponse' in req_json:
-            # CTAP1/U2F
-            token_response = request.get_json().get('tokenResponse', '')
-            current_app.logger.debug('U2F token response: {}'.format(token_response))
-
-            challenge = session.get(self.PACKAGE_NAME + '.u2f.challenge')
-            current_app.logger.debug('Challenge: {!r}'.format(challenge))
-
-            result = fido_tokens.verify_u2f(user, challenge, token_response, current_app.conf.u2f_valid_facets)
-
-            if result is not None:
-                action.result = result
-                current_app.actions_db.update_action(action)
-                return action.result
-
-        elif 'authenticatorData' in req_json:
+        if 'authenticatorData' in req_json:
             # CTAP2/Webauthn
             try:
                 result = fido_tokens.verify_webauthn(user, req_json, current_app.conf.fido2_rp_id)
@@ -143,9 +128,6 @@ class Plugin(ActionPlugin):
             current_app.actions_db.update_action(action)
             return action.result
 
-        else:
-            current_app.logger.error('Neither U2F nor Webauthn data in request to authn {}'.format(user))
-            current_app.logger.debug('Request: {}'.format(req_json))
-            raise self.ActionError(ActionsMsg.no_response)
-
-        raise self.ActionError(ActionsMsg.unknown_token)
+        current_app.logger.error(f'No Thirdparty-MFA/Webauthn data in request to authn {user}')
+        current_app.logger.debug(f'Request: {req_json}')
+        raise self.ActionError(ActionsMsg.no_response)

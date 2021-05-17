@@ -76,8 +76,6 @@ class ResetPasswordConfig(
     # URL to get the js app that can drive the process to reset the password
     password_reset_link: str = 'https://login.eduid.se/reset-password/email-code'
     password_service_url: str = '/services/reset-password/'
-    # webauthn stuff
-    generate_u2f_challenges: bool = False  # UNUSED, remove after updating config everywhere
     # Throttle sending SMSs for extra security resetting passwords
     throttle_sms_seconds: int = 300
     eduid_site_url: str = 'https://www.eduid.se'

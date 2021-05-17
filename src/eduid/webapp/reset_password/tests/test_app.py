@@ -385,7 +385,7 @@ class ResetPasswordTests(EduidAPITestCase):
 
         with self.session_cookie_anon(self.browser) as c:
             with c.session_transaction() as sess:
-                sess['eduid_webapp.reset_password.views.webauthn.state'] = json.dumps(fido2state)
+                sess.mfa_action.webauthn_state = fido2state
                 new_password = generate_suggested_password(self.app.conf.password_length)
                 sess.reset_password.generated_password_hash = hash_password(new_password)
             data = {

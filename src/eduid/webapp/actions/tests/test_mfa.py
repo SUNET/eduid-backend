@@ -211,30 +211,11 @@ class MFAActionPluginTests(ActionsTestCase):
         self.assertEqual(data['action'], False)
         self.assertEqual(len(self.app.actions_db.get_actions(self.user.eppn, 'mock-session')), 1)
 
-    def test_action_success(self):
-        data1 = {'tokenResponse': 'dummy-response'}
-        response = self._action(data1=data1)
-        self._check_success_response(
-            response, type_='POST_ACTIONS_POST_ACTION_SUCCESS', msg=ActionsMsg.action_completed
-        )
-        self.assertEqual(response.status_code, 200)
-        data = json.loads(response.data)
-        self.assertEqual(data['payload']['message'], "actions.action-completed")
-        self.assertEqual(len(self.app.actions_db.get_actions(self.user.eppn, 'mock-session')), 1)
-
     def test_action_no_token_response(self):
         response = self._action()
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
         self.assertEqual(data['payload']['message'], "mfa.no-token-response")
-        self.assertEqual(len(self.app.actions_db.get_actions(self.user.eppn, 'mock-session')), 1)
-
-    def test_action_wrong_keyhandle(self):
-        data1 = {'tokenResponse': 'dummy-response'}
-        response = self._action(data1=data1, keyhandle='wrong-keyhandle')
-        self.assertEqual(response.status_code, 200)
-        data = json.loads(response.data)
-        self.assertEqual(data['payload']['message'], "mfa.unknown-token")
         self.assertEqual(len(self.app.actions_db.get_actions(self.user.eppn, 'mock-session')), 1)
 
     def test_action_wrong_csrf(self):
