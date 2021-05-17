@@ -216,7 +216,7 @@ def verify_email(email_code: str) -> FluxData:
     new_password = generate_suggested_password(password_length=current_app.conf.password_length)
     session.reset_password.generated_password_hash = hash_password(new_password)
 
-    alternatives = get_extra_security_alternatives(context.user, SESSION_PREFIX)
+    alternatives = get_extra_security_alternatives(context.user)
     context.state.extra_security = alternatives
     current_app.password_reset_state_db.save(context.state)
 
@@ -450,10 +450,7 @@ def set_new_pw_extra_security_token(
         }
         try:
             result = fido_tokens.verify_webauthn(
-                user=context.user,
-                request_dict=request_dict,
-                session_prefix=SESSION_PREFIX,
-                rp_id=current_app.conf.fido2_rp_id,
+                user=context.user, request_dict=request_dict, rp_id=current_app.conf.fido2_rp_id,
             )
             success = result['success']
             if success:

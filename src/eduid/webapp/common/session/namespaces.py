@@ -51,9 +51,12 @@ class Common(SessionNSBase):
 
 class MfaAction(SessionNSBase):
     success: bool = False
+    # Third-party MFA parameters
     issuer: Optional[str] = None
     authn_instant: Optional[str] = None
     authn_context: Optional[str] = None
+    # Webauthn MFA parameters
+    webauthn_state: Optional[Dict[str, Any]] = None
 
 
 class TimestampedNS(SessionNSBase):

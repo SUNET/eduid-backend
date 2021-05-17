@@ -115,7 +115,7 @@ def _get_fido2server(credentials: dict, fido2rp: RelyingParty) -> Fido2Server:
     return Fido2Server(fido2rp)
 
 
-def start_token_verification(user: User, session_prefix: str, fido2_rp_id: str) -> Dict[str, Any]:
+def start_token_verification(user: User, fido2_rp_id: str) -> Dict[str, Any]:
     """
     Begin authentication process based on the hardware tokens registered by the user.
     """
@@ -140,7 +140,7 @@ def start_token_verification(user: User, session_prefix: str, fido2_rp_id: str) 
     fido2data = fido2data.rstrip('=')
 
     current_app.logger.debug(f'FIDO2/Webauthn state for user {user}: {fido2state}')
-    session[session_prefix + '.webauthn.state'] = json.dumps(fido2state)
+    session.mfa_action.webauthn_state = fido2state
 
     return {'webauthn_options': fido2data}
 
@@ -171,7 +171,7 @@ def verify_u2f(user: User, challenge: bytes, token_response: str, u2f_valid_face
     return None
 
 
-def verify_webauthn(user: User, request_dict: dict, session_prefix: str, rp_id: str) -> Dict[str, Any]:
+def verify_webauthn(user: User, request_dict: Dict[str, Any], rp_id: str) -> Dict[str, Any]:
     """
     Verify received Webauthn data against the user's credentials.
     """
@@ -193,7 +193,9 @@ def verify_webauthn(user: User, request_dict: dict, session_prefix: str, rp_id: 
     auth_data = AuthenticatorData(req['authenticatorData'])
 
     credentials = get_user_credentials(user)
-    fido2state = json.loads(session[session_prefix + '.webauthn.state'])
+    fido2state = {}
+    if session.mfa_action.webauthn_state:
+        fido2state = session.mfa_action.webauthn_state
 
     fido2rp = RelyingParty(rp_id, 'eduID')
     fido2server = _get_fido2server(credentials, fido2rp)

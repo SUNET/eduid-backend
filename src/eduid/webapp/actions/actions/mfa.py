@@ -48,7 +48,6 @@ __author__ = 'ft'
 class Plugin(ActionPlugin):
 
     PLUGIN_NAME = 'mfa'
-    PACKAGE_NAME = 'eduid.webapp.actions.actions.mfa'
     steps = 1
 
     @classmethod
@@ -67,7 +66,7 @@ class Plugin(ActionPlugin):
         if not user:
             raise self.ActionError(ActionsMsg.user_not_found)
 
-        config = fido_tokens.start_token_verification(user, self.PACKAGE_NAME, current_app.conf.fido2_rp_id)
+        config = fido_tokens.start_token_verification(user, current_app.conf.fido2_rp_id)
 
         # Explicit check for boolean True
         if current_app.conf.mfa_testing is True:
@@ -136,7 +135,7 @@ class Plugin(ActionPlugin):
         elif 'authenticatorData' in req_json:
             # CTAP2/Webauthn
             try:
-                result = fido_tokens.verify_webauthn(user, req_json, self.PACKAGE_NAME, current_app.conf.fido2_rp_id)
+                result = fido_tokens.verify_webauthn(user, req_json, current_app.conf.fido2_rp_id)
             except fido_tokens.VerificationProblem as exc:
                 raise self.ActionError(exc.msg)
 
