@@ -32,7 +32,7 @@ from eduid.userdb.idp.user import SAMLAttributeSettings
 from eduid.webapp.common.api import exceptions
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import SSOLoginData
-from eduid.webapp.common.session.namespaces import RequestRef, SAMLData
+from eduid.webapp.common.session.namespaces import RequestRef, IdP_PendingRequest
 from eduid.webapp.idp import assurance, mischttp
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import AssuranceException, EduidAuthnContextClass, MissingMultiFactor, WrongMultiFactor
@@ -607,7 +607,7 @@ def _add_saml_request_to_session(info: SAMLQueryParams, binding: str) -> str:
     _uuid = RequestRef(str(uuid4()))
     if not info.SAMLRequest or not info.RelayState or info.key is None:
         raise ValueError(f"Can't add incomplete query params to session: {info}")
-    session.idp.pending_requests[_uuid] = SAMLData(
+    session.idp.pending_requests[_uuid] = IdP_PendingRequest(
         request=info.SAMLRequest, binding=binding, relay_state=info.RelayState, key=info.key
     )
     return _uuid

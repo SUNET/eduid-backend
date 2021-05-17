@@ -101,7 +101,7 @@ class OnetimeCredential(BaseModel):
     timestamp: datetime
 
 
-class SAMLData(BaseModel):
+class IdP_PendingRequest(BaseModel):
     request: str
     binding: str
     relay_state: Optional[str]
@@ -109,14 +109,14 @@ class SAMLData(BaseModel):
     template_show_msg: Optional[str]  # set when the template version of the idp should show a message to the user
     # Credentials used while authenticating _this SAML request_. Not ones inherited from SSO.
     credentials_used: Dict[CredentialKey, datetime] = Field(default={})
+    onetime_credentials: Dict[CredentialKey, OnetimeCredential] = Field(default={})
 
 
 class IdP_Namespace(TimestampedNS):
     # The SSO cookie value last set by the IdP. Used to debug issues with browsers not
     # honoring Set-Cookie in redirects, or something.
     sso_cookie_val: Optional[str] = None
-    pending_requests: Dict[RequestRef, SAMLData] = Field(default={})
-    onetime_credentials: Dict[CredentialKey, OnetimeCredential] = Field(default={})
+    pending_requests: Dict[RequestRef, IdP_PendingRequest] = Field(default={})
 
     def log_credential_used(
         self, request_ref: RequestRef, credential: Union[Credential, OnetimeCredential], timestamp: datetime
@@ -126,7 +126,7 @@ class IdP_Namespace(TimestampedNS):
             self.pending_requests[request_ref].credentials_used[credential.key] = timestamp
         else:
             _key = CredentialKey(str(uuid4()))
-            self.onetime_credentials[_key] = credential
+            self.pending_requests[request_ref].onetime_credentials[_key] = credential
             self.pending_requests[request_ref].credentials_used[_key] = timestamp
 
     def get_requestref_for_reqsha1(self, key: ReqSHA1) -> Optional[RequestRef]:

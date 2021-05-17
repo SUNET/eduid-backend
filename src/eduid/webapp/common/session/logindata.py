@@ -7,7 +7,7 @@ from urllib.parse import urlencode
 
 from pydantic import BaseModel
 
-from eduid.webapp.common.session.namespaces import ReqSHA1, RequestRef, SAMLData
+from eduid.webapp.common.session.namespaces import ReqSHA1, RequestRef, IdP_PendingRequest
 
 if TYPE_CHECKING:
     from eduid.webapp.idp.idp_saml import IdP_SAMLRequest
@@ -57,7 +57,7 @@ class SSOLoginData:
 
     # SAML request, loaded lazily from the session using `key'
     # eduid.webapp.common can't import from eduid-webapp
-    _saml_data: Optional[SAMLData] = field(default=None, init=False, repr=False)
+    _saml_data: Optional[IdP_PendingRequest] = field(default=None, init=False, repr=False)
     _saml_req: Optional['IdP_SAMLRequest'] = field(default=None, init=False, repr=False)
     _request_ref: Optional[RequestRef] = field(default=None, init=False, repr=False)
 
@@ -77,7 +77,7 @@ class SSOLoginData:
         return self._request_ref
 
     @property
-    def saml_data(self) -> SAMLData:
+    def saml_data(self) -> IdP_PendingRequest:
         if self._saml_data is None:
             from eduid.webapp.common.session import session
 
