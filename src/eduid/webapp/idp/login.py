@@ -57,6 +57,10 @@ class MustAuthenticate(Exception):
 # -----------------------------------------------------------------------------
 
 
+def next_step(ticket: SSOLoginData, sso_session: Optional[SSOSession]):
+    ...
+
+
 class SSO(Service):
     """
     Single Sign On service.
@@ -91,6 +95,8 @@ class SSO(Service):
 
     def _redirect_or_post(self, ticket: SSOLoginData) -> WerkzeugResponse:
         """ Common code for redirect() and post() endpoints. """
+
+        _next = next_step(ticket, self.sso_session)
 
         if self.sso_session:
             if self.sso_session.idp_user.terminated:
@@ -573,7 +579,9 @@ def do_verify() -> WerkzeugResponse:
     )
 
     # Remember the password credential used for this particular request
-    session.idp.log_credential_used(_ticket.key, pwauth.credential, pwauth.timestamp)
+    request_ref = session.idp.get_requestref_for_reqsha1(_ticket.key)
+    if request_ref:
+        session.idp.log_credential_used(request_ref, pwauth.credential, pwauth.timestamp)
 
     # Now that an SSO session has been created, redirect the users browser back to
     # the main entry point of the IdP (the 'redirect_uri'). The ticket reference `key'
@@ -591,12 +599,11 @@ def do_verify() -> WerkzeugResponse:
 
 # ----------------------------------------------------------------------------
 def _add_saml_request_to_session(info: SAMLQueryParams, binding: str) -> str:
-    for _uuid, this in session.idp.pending_requests.items():
-        if (info.key is not None and this.key == info.key) or (
-            this.relay_state == info.RelayState and this.request == info.SAMLRequest
-        ):
+    if info.key:
+        request_ref = session.idp.get_requestref_for_reqsha1(info.key)
+        if request_ref:
             # Already present
-            return _uuid
+            return request_ref
     _uuid = RequestRef(str(uuid4()))
     if not info.SAMLRequest or not info.RelayState or info.key is None:
         raise ValueError(f"Can't add incomplete query params to session: {info}")

@@ -1,19 +1,24 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+import logging
 from abc import ABC
 from copy import deepcopy
 from datetime import datetime
 from enum import Enum, unique
-from typing import Any, Dict, NewType, Optional, Type, TypeVar
-
-__author__ = 'ft'
+from typing import Any, Dict, NewType, Optional, Type, TypeVar, Union
+from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import Credential
 from eduid.userdb.credentials.base import CredentialKey
+
+__author__ = 'ft'
+
+
+logger = logging.getLogger(__name__)
 
 
 class SessionNSBase(BaseModel, ABC):
@@ -83,6 +88,19 @@ RequestRef = NewType('RequestRef', str)
 ReqSHA1 = NewType('ReqSHA1', str)
 
 
+class OnetimeCredType(str, Enum):
+    external_mfa = 'ext_mfa'
+
+
+class OnetimeCredential(BaseModel):
+    type: OnetimeCredType
+
+    # External MFA auth parameters
+    issuer: str
+    authn_context: str
+    timestamp: datetime
+
+
 class SAMLData(BaseModel):
     request: str
     binding: str
@@ -98,16 +116,24 @@ class IdP_Namespace(TimestampedNS):
     # honoring Set-Cookie in redirects, or something.
     sso_cookie_val: Optional[str] = None
     pending_requests: Dict[RequestRef, SAMLData] = Field(default={})
+    onetime_credentials: Dict[CredentialKey, OnetimeCredential] = Field(default={})
 
-    def log_credential_used(self, key: ReqSHA1, credential: Credential, timestamp: datetime) -> None:
-        # Log the credential used in the session, under this particular SAML request
-        for this in self.pending_requests.values():
-            if this.key == key:
-                this.credentials_used[credential.key] = timestamp
+    def log_credential_used(
+        self, request_ref: RequestRef, credential: Union[Credential, OnetimeCredential], timestamp: datetime
+    ) -> None:
+        """ Log the credential used in the session, under this particular SAML request """
+        if isinstance(credential, Credential):
+            self.pending_requests[request_ref].credentials_used[credential.key] = timestamp
+        else:
+            _key = CredentialKey(str(uuid4()))
+            self.onetime_credentials[_key] = credential
+            self.pending_requests[request_ref].credentials_used[_key] = timestamp
 
     def get_requestref_for_reqsha1(self, key: ReqSHA1) -> Optional[RequestRef]:
         """ Helper function while we still use ReqSHA1 (key) """
         for ref, this in self.pending_requests.items():
             if this.key == key:
                 return ref
+        logger.warning(f'Request with ReqSHA1 {key} not found in session')
+        logger.debug(f'Pending requests in session:\n{self.pending_requests}')
         return None

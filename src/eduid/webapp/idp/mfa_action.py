@@ -37,7 +37,7 @@ from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.idp.user import IdPUser
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData, SSOLoginData
-from eduid.webapp.common.session.namespaces import ReqSHA1
+from eduid.webapp.common.session.namespaces import OnetimeCredential, OnetimeCredType, ReqSHA1
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import EduidAuthnContextClass
 from eduid.webapp.idp.idp_authn import AuthnData
@@ -121,18 +121,28 @@ def check_authn_result(user: IdPUser, ticket: SSOLoginData, actions: List[Action
 
         _utc_now = utc_now()
         if this.result.get('success') is True:
-            req_ref = session.idp.get_requestref_for_reqsha1(ReqSHA1(this.session))
+            request_ref = session.idp.get_requestref_for_reqsha1(ReqSHA1(this.session))
             if this.result.get('issuer') and this.result.get('authn_context'):
                 # External MFA authentication
                 sso_session.external_mfa = ExternalMfaData(
                     issuer=this.result['issuer'], authn_context=this.result['authn_context'], timestamp=_utc_now
                 )
+                if request_ref:
+                    # Remember the MFA credential used for this particular request
+                    otc = OnetimeCredential(
+                        type=OnetimeCredType.external_mfa,
+                        issuer=this.result['issuer'],
+                        authn_context=this.result['authn_context'],
+                        timestamp=_utc_now,
+                    )
+                    session.idp.log_credential_used(request_ref, otc, _utc_now)
                 # TODO: Should we persistently log external MFA usage with log_authn() like we do below?
                 current_app.logger.debug(
                     f'Removing MFA action completed with external issuer {this.result.get("issuer")}'
                 )
                 current_app.actions_db.remove_action_by_id(this.action_id)
                 res = True
+                continue
             key = this.result.get(RESULT_CREDENTIAL_KEY_NAME)
             cred = user.credentials.find(key)
             if cred:
@@ -144,8 +154,9 @@ def check_authn_result(user: IdPUser, ticket: SSOLoginData, actions: List[Action
                 current_app.logger.debug(f'Removing MFA action completed with {cred}')
                 current_app.actions_db.remove_action_by_id(this.action_id)
 
-                # Remember the MFA credential used for this particular request
-                session.idp.log_credential_used(ticket.key, cred, _utc_now)
+                if request_ref:
+                    # Remember the MFA credential used for this particular request
+                    session.idp.log_credential_used(request_ref, cred, _utc_now)
 
                 res = True
             else:

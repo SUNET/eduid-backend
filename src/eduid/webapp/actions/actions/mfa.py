@@ -30,9 +30,11 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from typing import Any, Dict
 
 from flask import request
 
+from eduid.userdb.actions import Action
 from eduid.webapp.actions.action_abc import ActionPlugin
 from eduid.webapp.actions.app import ActionsApp
 from eduid.webapp.actions.app import current_actions_app as current_app
@@ -80,7 +82,7 @@ class Plugin(ActionPlugin):
 
         return config
 
-    def perform_step(self, action):
+    def perform_step(self, action: Action) -> Dict[str, Any]:
         current_app.logger.debug('Performing MFA step')
         if current_app.conf.mfa_testing:
             current_app.logger.debug('Test mode is on, faking authentication')
