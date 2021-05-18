@@ -21,7 +21,7 @@ from typing import Dict, List, Optional
 from uuid import uuid4
 
 from defusedxml import ElementTree as DefusedElementTree
-from flask import make_response, redirect, render_template, request
+from flask import make_response, redirect, render_template, request, url_for
 from flask_babel import gettext as _
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest, Forbidden, TooManyRequests
@@ -432,18 +432,12 @@ class SSO(Service):
         :param ticket: SSOLoginData instance
         :returns: HTTP response
         """
-        assert isinstance(ticket, SSOLoginData)
-        # TODO: Use flask url_for below in function do_verify(), instead of passing the current URL from here
-        redirect_uri = mischttp.geturl(query=False)
-
         req_authn_context = get_requested_authn_context(ticket)
-        current_app.logger.debug(f'Do authentication, requested auth context : {req_authn_context!r}')
+        current_app.logger.debug(f'Do authentication, requested auth context: {req_authn_context!r}')
 
-        return self._show_login_page(ticket, req_authn_context, redirect_uri)
+        return self._show_login_page(ticket)
 
-    def _show_login_page(
-        self, ticket: SSOLoginData, requested_authn_context: Optional[EduidAuthnContextClass], redirect_uri: str
-    ) -> WerkzeugResponse:
+    def _show_login_page(self, ticket: SSOLoginData) -> WerkzeugResponse:
         """
         Display the login form for all authentication methods.
 
@@ -452,8 +446,6 @@ class SSO(Service):
         to render the login page for this method.
 
         :param ticket: Login session state (not SSO session state)
-        :param requested_authn_context: Requested authentication context class
-        :param redirect_uri: string with URL to proceed to after authentication
 
         :return: HTTP response
         """
@@ -470,27 +462,13 @@ class SSO(Service):
 
         argv = mischttp.get_default_template_arguments(current_app.conf)
         argv.update(
-            {
-                'action': '/verify',
-                'alert_msg': '',
-                'key': ticket.key,
-                'password': '',
-                'redirect_uri': redirect_uri,
-                'username': _username,
-            }
+            {'action': url_for('idp.verify'), 'alert_msg': '', 'key': ticket.key, 'password': '', 'username': _username}
         )
-        if requested_authn_context is not None:
-            argv['authn_reference'] = requested_authn_context.value
 
-        # Set alert msg if FailCount is greater than zero
+        # Set alert msg if found in the session
         if ticket.saml_data.template_show_msg:
             argv["alert_msg"] = ticket.saml_data.template_show_msg
             ticket.saml_data.template_show_msg = None
-
-        try:
-            argv["sp_entity_id"] = ticket.saml_req.sp_entity_id
-        except KeyError:
-            pass
 
         current_app.logger.debug(f'Login page HTML substitution arguments :\n{pprint.pformat(argv)}')
 
@@ -533,10 +511,15 @@ def do_verify() -> WerkzeugResponse:
     authn_ref = get_requested_authn_context(_ticket)
     current_app.logger.debug(f'Authenticating with {repr(authn_ref)}')
 
+    # Create an URL for redirecting the user back to the SSO redirect endpoint after this
+    # function - regardless of if authentication was successful or not. The only difference
+    # when authentication is successful is that a SSO session is created, and a reference
+    # to it set in a cookie in the redirect response.
+    next_endpoint = url_for('idp.sso_redirect') + '?key=' + _ticket.key
+
     if not password or 'username' not in query:
-        lox = f'{query["redirect_uri"]}?{_ticket.query_string}'
-        current_app.logger.debug(f'Credentials not supplied. Redirect => {lox}')
-        return redirect(lox)
+        current_app.logger.debug(f'Credentials not supplied. Redirect => {next_endpoint}')
+        return redirect(next_endpoint)
 
     try:
         pwauth = current_app.authn.password_authn(query['username'].strip(), password)
@@ -550,9 +533,8 @@ def do_verify() -> WerkzeugResponse:
     if not pwauth:
         current_app.logger.info(f'{_ticket.key}: Password authentication failed')
         _ticket.saml_data.template_show_msg = _('Incorrect username or password')
-        lox = f'{query["redirect_uri"]}?{_ticket.query_string}'
-        current_app.logger.debug(f'Unknown user or wrong password. Redirect => {lox}')
-        return redirect(lox)
+        current_app.logger.debug(f'Unknown user or wrong password. Redirect => {next_endpoint}')
+        return redirect(next_endpoint)
 
     # Create SSO session
     current_app.logger.debug(f'User {pwauth.user} authenticated OK (SAML id {repr(_ticket.saml_req.request_id)})')
@@ -584,11 +566,9 @@ def do_verify() -> WerkzeugResponse:
         session.idp.log_credential_used(request_ref, pwauth.credential, pwauth.timestamp)
 
     # Now that an SSO session has been created, redirect the users browser back to
-    # the main entry point of the IdP (the 'redirect_uri'). The ticket reference `key'
-    # is passed as an URL parameter instead of the SAMLRequest.
-    lox = query["redirect_uri"] + '?key=' + _ticket.key
-    current_app.logger.debug(f'Redirecting user back to me => {lox}')
-    resp = redirect(lox)
+    # the main entry point of the IdP (the SSO redirect endpoint).
+    current_app.logger.debug(f'Redirecting user back to the SSO redirect endpoint => {next_endpoint}')
+    resp = redirect(next_endpoint)
     # By base64-encoding this string, we should remain interoperable with the old CherryPy based IdP. Fingers crossed.
     b64_session_id = b64encode(_sso_session.session_id)
     # For debugging purposes, save the IdP SSO cookie value in the common session as well.
