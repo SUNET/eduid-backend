@@ -30,13 +30,11 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from datetime import datetime
-from typing import Any, Dict
 
 from flask import request
 
 from eduid.userdb.actions import Action
-from eduid.userdb.actions.action import ActionResult
+from eduid.userdb.actions.action import ActionResult, ActionResultMFA, ActionResultTesting, ActionResultThirdPartyMFA
 from eduid.webapp.actions.action_abc import ActionPlugin
 from eduid.webapp.actions.app import ActionsApp
 from eduid.webapp.actions.app import current_actions_app as current_app
@@ -45,24 +43,6 @@ from eduid.webapp.common.authn import fido_tokens
 from eduid.webapp.common.session import session
 
 __author__ = 'ft'
-
-
-class ActionResultMFA(ActionResult):
-    touch: bool
-    user_present: bool
-    user_verified: bool
-    counter: int
-    cred_key: str
-
-
-class ActionResultThirdPartyMFA(ActionResult):
-    issuer: str
-    authn_instant: datetime
-    authn_context: str
-
-
-class ActionResultTesting(ActionResult):
-    testing: bool
 
 
 class Plugin(ActionPlugin):

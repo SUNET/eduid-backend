@@ -49,7 +49,7 @@ from eduid.userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MF
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.nin import Nin, NinList
 from eduid.webapp.common.session.logindata import ExternalMfaData, SSOLoginData
-from eduid.webapp.common.session.namespaces import ReqSHA1, RequestRef, IdP_PendingRequest
+from eduid.webapp.common.session.namespaces import IdP_PendingRequest, ReqSHA1, RequestRef
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.idp_saml import IdP_SAMLRequest, gen_key
 from eduid.webapp.idp.login import SSO

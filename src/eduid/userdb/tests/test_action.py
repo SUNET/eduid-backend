@@ -82,5 +82,3 @@ class TestAction(TestCase):
         action1 = Action.from_dict(action_dict_1)
         action2 = Action.from_dict(action_dict_2)
         self.assertTrue(action1 != action2)
-        with self.assertRaises(TypeError):
-            action1 == 42

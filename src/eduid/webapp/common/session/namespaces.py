@@ -12,6 +12,7 @@ from uuid import uuid4
 from pydantic import BaseModel, Field
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.userdb.actions import Action
 from eduid.userdb.credentials import Credential
 from eduid.userdb.credentials.base import CredentialKey
 
@@ -85,6 +86,10 @@ class Signup(TimestampedNS):
 
 class Actions(TimestampedNS):
     session: Optional[str] = None
+    current_plugin: Optional[str] = None
+    current_action: Optional[Action] = None
+    current_step: Optional[int] = None
+    total_steps: Optional[int] = None
 
 
 RequestRef = NewType('RequestRef', str)

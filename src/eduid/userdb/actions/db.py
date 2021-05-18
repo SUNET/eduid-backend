@@ -92,7 +92,7 @@ class ActionDB(BaseDB):
         :param action_type: The type of action to be performed ('mfa', 'tou', ...)
         """
         actions = self._read_actions_from_db(eppn_or_userid, session)
-
+        actions = list(actions)
         if action_type is None:
             # Don't filter on action type, return all actions for user(+session)
             return [Action.from_dict(this) for this in actions]
@@ -171,6 +171,8 @@ class ActionDB(BaseDB):
         :param params: Any params the action may need
         :param data: all the previous params together
         :returns: Added action
+
+        # TODO: Change this function to accepting an Action instance rather than a dict
         """
         if data is None:
             data = {

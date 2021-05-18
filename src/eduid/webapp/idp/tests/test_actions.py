@@ -41,6 +41,7 @@ from typing import cast
 import bson
 from mock import patch
 
+from eduid.userdb.actions.action import ActionResultMFA
 from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.tou import ToUEvent
@@ -48,7 +49,6 @@ from eduid.vccs.client import VCCSClient
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import SSOLoginData
 from eduid.webapp.common.session.namespaces import IdP_Namespace, ReqSHA1
-from eduid.webapp.idp.mfa_action import RESULT_CREDENTIAL_KEY_NAME
 from eduid.webapp.idp.mfa_action import add_actions as mfa_add_actions
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.tests.test_app import LoginState
@@ -60,7 +60,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class ActionResultMFA:
+class MFAResult:
     ticket: SSOLoginData
     session: IdP_Namespace
 
@@ -234,9 +234,7 @@ class TestActions(SSOIdPTests):
         # ensure no action was added when self.app.actions_db is None
         assert self.num_actions == 0
 
-    def _test_add_2nd_mfa_action(
-        self, success=True, authn_context=True, cred_key=None, expected_num_actions=0
-    ) -> ActionResultMFA:
+    def _test_add_2nd_mfa_action(self, success=True, cred_key=None, expected_num_actions=0) -> MFAResult:
         # Remove test_action to start from a clean slate
         self.actions.remove_action_by_id(self.test_action.action_id)
         # Add a test Webauthn credential to the test user in the database
@@ -246,16 +244,13 @@ class TestActions(SSOIdPTests):
         completed_action = self.actions.add_action(
             self.test_user.eppn, action_type='mfa', preference=100, params={}, session=self.mock_session_key
         )
-        # Add a fake response to the action, strangely enough using the Third party MFA action result format
+        # Add a fake response to the action
         cred = self.test_user.credentials.filter(Webauthn).to_list()[0]
         if cred_key is None:
             cred_key = cred.key
-        completed_action.result = {
-            'cred_key': cred_key,
-            'issuer': 'dummy-issuer',
-            'success': success,
-            'authn_context': authn_context,
-        }
+        completed_action.result = ActionResultMFA(
+            touch=True, user_present=True, user_verified=True, counter=4711, cred_key=cred_key, success=success
+        )
         self.actions.update_action(completed_action)
 
         with self.app.test_request_context():
@@ -272,20 +267,20 @@ class TestActions(SSOIdPTests):
         else:
             assert action is None
         assert self.num_actions == expected_num_actions
-        return ActionResultMFA(ticket=mock_ticket, session=sess)
+        return MFAResult(ticket=mock_ticket, session=sess)
 
     def test_add_mfa_action_already_authn(self):
         res = self._test_add_2nd_mfa_action(expected_num_actions=0)
         assert res.ticket.request_ref in res.session.pending_requests
 
     def test_add_mfa_action_already_authn_not(self):
-        ticket = self._test_add_2nd_mfa_action(success=False, expected_num_actions=2)
+        self._test_add_2nd_mfa_action(success=False, expected_num_actions=2)
         sso_session = self.app.sso_sessions.get_session(self.sso_session.session_id, self.app.userdb)
         assert sso_session is not None
         assert sso_session.authn_credentials == []
 
     def test_add_2nd_mfa_action_no_context(self):
-        ticket = self._test_add_2nd_mfa_action(authn_context=False, expected_num_actions=0)
+        self._test_add_2nd_mfa_action(expected_num_actions=0)
         sso_session = self.app.sso_sessions.get_session(self.sso_session.session_id, self.app.userdb)
         assert sso_session is not None
         assert len(sso_session.authn_credentials) == 1
@@ -293,7 +288,7 @@ class TestActions(SSOIdPTests):
         assert authdata.cred_id == self.webauthn.key
 
     def test_add_2nd_mfa_action_no_context_wrong_key(self):
-        ticket = self._test_add_2nd_mfa_action(authn_context=False, cred_key='wrong key', expected_num_actions=2)
+        self._test_add_2nd_mfa_action(cred_key='wrong key', expected_num_actions=2)
         sso_session = self.app.sso_sessions.get_session(self.sso_session.session_id, self.app.userdb)
         assert sso_session is not None
         assert sso_session.authn_credentials == []
@@ -432,7 +427,9 @@ class TestActions(SSOIdPTests):
         # register a result for all MFA actions
         for this in actions:
             if this.action_type == 'mfa':
-                this.result = {'success': True, RESULT_CREDENTIAL_KEY_NAME: webauthn.key}
+                this.result = ActionResultMFA(
+                    touch=True, user_present=True, user_verified=True, counter=4712, cred_key=webauthn.key, success=True
+                )
                 self.actions.update_action(this)
 
         logger.info(f'Retrying URL {result.url}')

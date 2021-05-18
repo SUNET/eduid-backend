@@ -34,14 +34,33 @@
 #
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Dict, Optional, Type
 
 from bson import ObjectId
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 
 class ActionResult(BaseModel):
     success: bool
+
+
+class ActionResultMFA(ActionResult):
+    touch: bool
+    user_present: bool
+    user_verified: bool
+    counter: int
+    cred_key: str
+
+
+class ActionResultThirdPartyMFA(ActionResult):
+    issuer: str
+    authn_instant: datetime
+    authn_context: str
+
+
+class ActionResultTesting(ActionResult):
+    testing: bool
 
 
 class Action(BaseModel):
@@ -65,8 +84,31 @@ class Action(BaseModel):
     result: Optional[ActionResult] = None
 
     class Config:
-        allow_population_by_field_name = True
+        # Don't reject ObjectId
         arbitrary_types_allowed = True
+        # Allow setting action_id using the real name, not just by it's alias (_id)
+        allow_population_by_field_name = True
+
+    @validator('action_id', pre=True)
+    def action_id_objectid(cls, v):
+        """ Make ObjectId from serialised form (string) """
+        if isinstance(v, str):
+            v = ObjectId(v)
+        if not isinstance(v, ObjectId):
+            raise TypeError('must be a string or ObjectId')
+        return v
+
+    @validator('result', pre=True)
+    def action_result(cls, v):
+        """ Make ObjectId from serialised form (string) """
+        if isinstance(v, dict):
+            if 'issuer' in v and 'authn_instant' in v:
+                v = ActionResultThirdPartyMFA(**v)
+            elif 'user_present' in v and 'user_verified' in v:
+                v = ActionResultMFA(**v)
+            elif 'testing' in v:
+                v = ActionResultTesting(**v)
+        return v
 
     def to_dict(self) -> Dict[str, Any]:
         """

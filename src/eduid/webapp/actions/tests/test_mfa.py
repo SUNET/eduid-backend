@@ -34,12 +34,13 @@
 
 import base64
 import json
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from bson import ObjectId
 from fido2.server import Fido2Server
 from mock import patch
 
+from eduid.userdb.actions.action import ActionResultThirdPartyMFA
 from eduid.userdb.credentials import U2F
 from eduid.userdb.fixtures.users import mocked_user_standard
 from eduid.webapp.actions.actions.mfa import Plugin
@@ -65,10 +66,8 @@ def add_actions(context, user, ticket):
     that adds the action unconditionally.
     """
     action = context.actions_db.add_action(user.eppn, action_type='mfa', preference=1, session=ticket.key, params={})
-    session['current_plugin'] = 'mfa'
-    action_d = action.to_dict()
-    action_d['_id'] = str(action_d['_id'])
-    session['current_action'] = action_d
+    session.actions.current_plugin = 'mfa'
+    session.actions.current_action = action
     session.persist()
 
 
@@ -132,27 +131,22 @@ class MFAActionPluginTests(ActionsTestCase):
             response = self.app.dispatch_request()
             return json.loads(response.data)
 
-    @patch('eduid.webapp.common.authn.fido_tokens.complete_authentication')
     def _action(
-        self,
-        mock_complete_authn,
-        data1: Optional[dict] = None,
-        keyhandle: str = 'test_key_handle',
-        fido2_state: str = '',
+        self, data1: Optional[dict] = None, fido2_state: Optional[Dict[str, Any]] = None,
     ):
         """
         POST data reflecting the user's response to the mfa request.
 
         :param data1: to control the POSTed data
-        :param keyhandle: to control the mocked return vaalue of `complete_authentication`
         :param fido2state: to control the fido2 state kept in the session
         """
-        mock_complete_authn.return_value = ({'keyHandle': keyhandle}, 'dummy-touch', 'dummy-counter')
+        if fido2_state is None:
+            fido2_state = {}
         with self.session_cookie_anon(self.browser) as client:
             self.prepare(client, Plugin, 'mfa', action_dict=MFA_ACTION)
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
-                    sess['eduid.webapp.actions.actions.mfa.webauthn.state'] = fido2_state
+                    sess.mfa_action.webauthn_state = fido2_state
                     csrf_token = sess.get_csrf_token()
                 data = {
                     'csrf_token': csrf_token,
@@ -228,11 +222,7 @@ class MFAActionPluginTests(ActionsTestCase):
             response, type_='POST_ACTIONS_POST_ACTION_FAIL', error={'csrf_token': ['CSRF failed to validate'],},
         )
 
-    @patch('eduid.webapp.common.authn.fido_tokens.complete_authentication')
-    def test_action_webauthn_legacy_token(self, mock_complete_authn):
-        # mock_complete_authn.return_value = ({'keyHandle': 'test_key_handle'},
-        #        'dummy-touch', 'dummy-counter')
-        #
+    def test_action_webauthn_legacy_token(self):
         # Add a working U2F credential for this test
         u2f = U2F(
             version='U2F_V2',
@@ -245,10 +235,8 @@ class MFAActionPluginTests(ActionsTestCase):
         self.user.credentials.add(u2f)
         self.app.central_userdb.save(self.user, check_sync=False)
 
-        fido2_state = json.dumps(
-            Fido2Server._make_internal_state(
-                base64.b64decode('3h/EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc='), 'preferred'
-            )
+        fido2_state = Fido2Server._make_internal_state(
+            base64.b64decode('3h/EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc='), 'preferred'
         )
         self.app.conf.fido2_rp_id = 'idp.dev.eduid.se'
 
@@ -274,10 +262,12 @@ class MFAActionPluginTests(ActionsTestCase):
 
     def test_third_party_mfa_action_success(self):
         db_actions = self._third_party_mfa_action_success()
-        self.assertTrue(db_actions[0].result['success'])
-        self.assertEqual(db_actions[0].result['issuer'], 'https://issuer-entity-id.example.com')
-        self.assertEqual(db_actions[0].result['authn_instant'], '2019-03-21T16:26:17Z')
-        self.assertEqual(db_actions[0].result['authn_context'], 'http://id.elegnamnden.se/loa/1.0/loa3')
+        this = db_actions[0]
+        assert isinstance(this.result, ActionResultThirdPartyMFA)
+        assert this.result.success == True
+        assert this.result.issuer == 'https://issuer-entity-id.example.com'
+        assert this.result.authn_instant.isoformat() == '2019-03-21T16:26:17+00:00'
+        assert this.result.authn_context == 'http://id.elegnamnden.se/loa/1.0/loa3'
 
     def test_third_party_mfa_action_failure(self):
         db_actions = self._third_party_mfa_action_success(prepare_session=False)

@@ -51,9 +51,6 @@ from eduid.webapp.common.session import session
 logger = logging.getLogger(__name__)
 
 
-RESULT_CREDENTIAL_KEY_NAME = 'cred_key'
-
-
 class VerificationProblem(Exception):
     def __init__(self, msg: str):
         self.msg = msg

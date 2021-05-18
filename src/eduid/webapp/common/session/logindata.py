@@ -7,7 +7,7 @@ from urllib.parse import urlencode
 
 from pydantic import BaseModel
 
-from eduid.webapp.common.session.namespaces import ReqSHA1, RequestRef, IdP_PendingRequest
+from eduid.webapp.common.session.namespaces import IdP_PendingRequest, ReqSHA1, RequestRef
 
 if TYPE_CHECKING:
     from eduid.webapp.idp.idp_saml import IdP_SAMLRequest

@@ -15,7 +15,6 @@ from pydantic import BaseModel
 from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.common.config.exceptions import BadConfiguration
 from eduid.common.misc.timeutil import utc_now
-from eduid.webapp.common.session.logindata import SSOLoginData
 from eduid.webapp.common.session.meta import SessionMeta
 from eduid.webapp.common.session.namespaces import (
     Actions,

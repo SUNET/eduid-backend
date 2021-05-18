@@ -32,7 +32,7 @@ from eduid.userdb.idp.user import SAMLAttributeSettings
 from eduid.webapp.common.api import exceptions
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import SSOLoginData
-from eduid.webapp.common.session.namespaces import RequestRef, IdP_PendingRequest
+from eduid.webapp.common.session.namespaces import IdP_PendingRequest, RequestRef
 from eduid.webapp.idp import assurance, mischttp
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import AssuranceException, EduidAuthnContextClass, MissingMultiFactor, WrongMultiFactor

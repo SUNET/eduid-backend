@@ -62,11 +62,11 @@ def start_verification():
     user = current_app.central_userdb.get_user_by_eppn('hubba-bubba')
     data = json.loads(request.query_string[17:])
     try:
-        result = verify_webauthn(user, data, current_app.conf.fido2_rp_id)
+        result = verify_webauthn(user, data, current_app.conf.fido2_rp_id).json()
     except VerificationProblem:
         result = {'success': False, 'message': 'mfa.verification-problem'}
     current_app.logger.info(f'Endpoint start_verification result: {result}')
-    return json.dumps(result)
+    return result
 
 
 class MockFidoApp(EduIDBaseApp):

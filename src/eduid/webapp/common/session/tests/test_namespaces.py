@@ -43,15 +43,20 @@ class TestIdPNamespace(EduidAPITestCase):
         out = session._session.to_dict()
 
         assert out == {
-            'idp': {'sso_cookie_val': 'abc', 'pending_requests': {}, 'ts': session.idp.ts.isoformat()},
-            'signup': {'email_verification_code': 'test', 'ts': session.signup.ts.isoformat()},
+            'idp': {'sso_cookie_val': 'abc', 'pending_requests': {}, 'ts': session.idp.ts},
+            'signup': {'email_verification_code': 'test', 'ts': session.signup.ts},
         }
 
         session.persist()
 
         # Validate that the session can be loaded again
         loaded_session = self.app.session_interface.manager.get_session(meta=_meta, new=False)
-        # ...and that it serialises to the same data that was persisted
+        # loaded_session is raw data from the storage backend, it won't have timestamps deserialised into datetimes
+        # (done by pydantic when loading the data into the EduidSession), so in order to expect the same serialisation
+        # again we need to do that here
+        loaded_session['idp']['ts'] = datetime.fromisoformat(loaded_session['idp']['ts'])
+        loaded_session['signup']['ts'] = datetime.fromisoformat(loaded_session['signup']['ts'])
+        # ...and that it serialises to the same data again
         assert loaded_session.to_dict() == out
 
     def test_to_dict_from_dict_with_timestamp(self):
@@ -68,7 +73,7 @@ class TestIdPNamespace(EduidAPITestCase):
         out = first._session.to_dict()
 
         assert out == {
-            'idp': {'sso_cookie_val': 'abc', 'pending_requests': {}, 'ts': '2020-09-13T12:26:40+00:00'},
+            'idp': {'sso_cookie_val': 'abc', 'pending_requests': {}, 'ts': first.idp.ts},
         }
 
         first.persist()
@@ -76,6 +81,10 @@ class TestIdPNamespace(EduidAPITestCase):
         # Validate that the session can be loaded again
         base_session = self.app.session_interface.manager.get_session(meta=_meta, new=False)
         second = EduidSession(self.app, _meta, base_session, new=False)
+        # loaded_session is raw data from the storage backend, it won't have timestamps deserialised into datetimes
+        # (done by pydantic when loading the data into the EduidSession), so in order to expect the same serialisation
+        # again we need to do that here
+        second['idp']['ts'] = datetime.fromisoformat(second['idp']['ts'])
         # ...and that it serialises to the same data that was persisted
         assert second._session.to_dict() == out
 

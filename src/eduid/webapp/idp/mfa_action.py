@@ -33,9 +33,9 @@ from typing import List, Optional
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.actions import Action
+from eduid.userdb.actions.action import ActionResultMFA, ActionResultThirdPartyMFA
 from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.idp.user import IdPUser
-from eduid.webapp.actions.actions.mfa import ActionResultMFA, ActionResultThirdPartyMFA
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData, SSOLoginData
 from eduid.webapp.common.session.namespaces import OnetimeCredential, OnetimeCredType, ReqSHA1
@@ -46,9 +46,6 @@ from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.util import get_requested_authn_context
 
 __author__ = 'ft'
-
-
-RESULT_CREDENTIAL_KEY_NAME = 'cred_key'
 
 
 def add_actions(user: IdPUser, ticket: SSOLoginData, sso_session: SSOSession) -> Optional[Action]:

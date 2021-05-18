@@ -68,10 +68,8 @@ def add_actions(idp_app: MockIdPContext, user: User, ticket: Any) -> None:
     """
     version = idp_app.config.tou_version
     action = idp_app.actions_db.add_action(user.eppn, action_type='tou', preference=100, params={'version': version})
-    session['current_plugin'] = 'tou'
-    action_d = action.to_dict()
-    action_d['_id'] = str(action_d['_id'])
-    session['current_action'] = action_d
+    session.actions.current_plugin = 'tou'
+    session.actions.current_action = action
     session.persist()
 
 
