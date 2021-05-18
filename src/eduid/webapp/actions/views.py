@@ -147,7 +147,9 @@ def _do_action() -> FluxData:
     except plugin_obj.ValidationError as exc:
         errors = exc.args[0]
         current_app.logger.info(f'Validation error {errors} for step {session.actions.current_step} of action {action}')
-        session.actions.current_step -= 1
+        # TODO: Really decrease current_step here, even though we haven't increased it yet?
+        if session.actions.current_step is not None:
+            session.actions.current_step -= 1
         return error_response(payload={'errors': errors}, message=CommonMsg.form_errors)
 
     eppn = session.common.eppn
@@ -158,7 +160,8 @@ def _do_action() -> FluxData:
     current_app.logger.info(
         'Performed step {} for action {} for eppn {}'.format(action.action_type, session.actions.current_step, eppn)
     )
-    session.actions.current_step += 1
+    if session.actions.current_step is not None:
+        session.actions.current_step += 1
     return success_response(payload={'data': data}, message=None)
 
 

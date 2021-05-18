@@ -30,6 +30,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from typing import Any, Mapping
 
 from flask import request
 
@@ -59,7 +60,7 @@ class Plugin(ActionPlugin):
 
         app.conf.mfa_testing = False
 
-    def get_config_for_bundle(self, action: Action):
+    def get_config_for_bundle(self, action: Action) -> Mapping[str, Any]:
         eppn = action.eppn
         user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=False)
         current_app.logger.debug('Loaded User {} from db'.format(user))
