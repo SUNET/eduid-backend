@@ -87,8 +87,8 @@ class SSOLoginData:
 
     @property
     def RelayState(self) -> str:
-        if not isinstance(self.saml_data.relay_state, str):
-            raise ValueError('saml_data.relay_state not initialised')
+        if not self.saml_data.relay_state:
+            return ''
         return self.saml_data.relay_state
 
     @property
