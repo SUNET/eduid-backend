@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Optional
 
-from flask import render_template
+from flask import render_template, request
 from werkzeug.exceptions import HTTPException
 from werkzeug.wrappers import Response as WerkzeugResponse
 
@@ -15,7 +15,7 @@ def init_exception_handlers(app: 'IdPApp') -> 'IdPApp':
     # Init error handler for raised exceptions
     @app.errorhandler(HTTPException)
     def _handle_flask_http_exception(error: HTTPException) -> WerkzeugResponse:
-        app.logger.error(f'IdP HTTPException {error}')
+        app.logger.error(f'IdP HTTPException {request}: {error}')
         response = error.get_response()
 
         context = get_default_template_arguments(app.conf)
