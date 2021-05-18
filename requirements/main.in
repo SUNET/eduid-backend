@@ -30,7 +30,7 @@ pyXMLSecurity[PKCS11]==0.21
 pydantic
 pymongo
 pynacl
-pysaml2>=6.5.0,==6.*
+pysaml2==7.*
 pysmscom
 python-dateutil==2.8.*
 python-etcd
