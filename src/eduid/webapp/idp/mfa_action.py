@@ -35,6 +35,7 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.actions import Action
 from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.idp.user import IdPUser
+from eduid.webapp.actions.actions.mfa import ActionResultMFA, ActionResultThirdPartyMFA
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData, SSOLoginData
 from eduid.webapp.common.session.namespaces import OnetimeCredential, OnetimeCredType, ReqSHA1
@@ -120,40 +121,47 @@ def check_authn_result(user: IdPUser, ticket: SSOLoginData, actions: List[Action
         if this.session != ticket.key:
             current_app.logger.warning(f'Got action result for another session {this.session} (expected {ticket.key})')
 
+        # TODO: Use timestamp from action result rather than timestamp when we get here
         _utc_now = utc_now()
-        if this.result.get('success') is True:
+        if this.result.success is True:
             request_ref = session.idp.get_requestref_for_reqsha1(ReqSHA1(this.session))
-            if this.result.get('issuer') and this.result.get('authn_context'):
+            if isinstance(this.result, ActionResultThirdPartyMFA):
                 # External MFA authentication
                 sso_session.external_mfa = ExternalMfaData(
-                    issuer=this.result['issuer'], authn_context=this.result['authn_context'], timestamp=_utc_now
+                    issuer=this.result.issuer, authn_context=this.result.authn_context, timestamp=_utc_now
                 )
                 if request_ref:
                     # Remember the MFA credential used for this particular request
                     otc = OnetimeCredential(
                         type=OnetimeCredType.external_mfa,
-                        issuer=this.result['issuer'],
-                        authn_context=this.result['authn_context'],
+                        issuer=this.result.issuer,
+                        authn_context=this.result.authn_context,
                         timestamp=_utc_now,
                     )
                     session.idp.log_credential_used(request_ref, otc, _utc_now)
                 # TODO: Should we persistently log external MFA usage with log_authn() like we do below?
-                current_app.logger.debug(
-                    f'Removing MFA action completed with external issuer {this.result.get("issuer")}'
-                )
+                current_app.logger.debug(f'Removing MFA action completed with external issuer {this.result.issuer}')
                 current_app.actions_db.remove_action_by_id(this.action_id)
                 res = True
                 continue
-            key = this.result.get(RESULT_CREDENTIAL_KEY_NAME)
-            cred = user.credentials.find(key)
-            if cred:
+            elif isinstance(this.result, ActionResultMFA):
+                cred = user.credentials.find(this.result.cred_key)
+                if not cred:
+                    current_app.logger.error(f'MFA action completed with unknown credential {this.result.cred_key}')
+                    continue
+
+                current_app.logger.debug(f'Removing MFA action completed with {cred}')
+                current_app.actions_db.remove_action_by_id(this.action_id)
+
+                if not this.result.success:
+                    current_app.logger.debug(f'Authentication with credential {cred} was not successful')
+                    continue
+
                 authn = AuthnData(cred_id=cred.key, timestamp=_utc_now)
                 sso_session.add_authn_credential(authn)
                 _save = True
 
                 current_app.authn.log_authn(user, success=[cred.key], failure=[])
-                current_app.logger.debug(f'Removing MFA action completed with {cred}')
-                current_app.actions_db.remove_action_by_id(this.action_id)
 
                 if request_ref:
                     # Remember the MFA credential used for this particular request
@@ -161,7 +169,7 @@ def check_authn_result(user: IdPUser, ticket: SSOLoginData, actions: List[Action
 
                 res = True
             else:
-                current_app.logger.error(f'MFA action completed with unknown key {key}')
+                current_app.logger.error(f'Ignoring unknown action result: {type(this.result)}')
     if _save:
         current_app.logger.debug(f'Saving SSO session {sso_session}')
         current_app.sso_sessions.save(sso_session)

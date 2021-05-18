@@ -33,8 +33,7 @@ import base64
 import json
 import logging
 import pprint
-import warnings
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from fido2 import cbor
 from fido2.client import ClientData
@@ -43,9 +42,9 @@ from fido2.server import Fido2Server, RelyingParty, U2FFido2Server
 from fido2.utils import websafe_decode
 from flask import current_app
 from pydantic import BaseModel
-from u2flib_server.u2f import complete_authentication
 
 from eduid.userdb.credentials import U2F, Webauthn
+from eduid.userdb.credentials.base import CredentialKey
 from eduid.userdb.user import User
 from eduid.webapp.common.session import session
 
@@ -153,7 +152,16 @@ class WebauthnRequest(BaseModel):
     signature: bytes
 
 
-def verify_webauthn(user: User, request_dict: Dict[str, Any], rp_id: str) -> Dict[str, Any]:
+class WebauthnResult(BaseModel):
+    success: bool
+    touch: bool
+    user_present: bool
+    user_verified: bool
+    counter: int
+    credential_key: CredentialKey
+
+
+def verify_webauthn(user: User, request_dict: Dict[str, Any], rp_id: str) -> WebauthnResult:
     """
     Verify received Webauthn data against the user's credentials.
     """
@@ -181,6 +189,8 @@ def verify_webauthn(user: User, request_dict: Dict[str, Any], rp_id: str) -> Dic
     fido2state = {}
     if session.mfa_action.webauthn_state:
         fido2state = session.mfa_action.webauthn_state
+        # reset webauthn_state to avoid challenge reuse
+        session.mfa_action.webauthn_state = None
 
     fido2rp = RelyingParty(rp_id, 'eduID')
     fido2server = _get_fido2server(credentials, fido2rp)
@@ -208,11 +218,11 @@ def verify_webauthn(user: User, request_dict: Dict[str, Any], rp_id: str) -> Dic
     current_app.logger.info(
         f'User {user} logged in using Webauthn token {cred_key} (touch: {touch}, counter {counter})'
     )
-    return {
-        'success': True,
-        'touch': auth_data.is_user_present() or auth_data.is_user_verified(),
-        'user_present': auth_data.is_user_present(),
-        'user_verified': auth_data.is_user_verified(),
-        'counter': counter,
-        RESULT_CREDENTIAL_KEY_NAME: cred_key,
-    }
+    return WebauthnResult(
+        success=True,
+        touch=auth_data.is_user_present() or auth_data.is_user_verified(),
+        user_present=auth_data.is_user_present(),
+        user_verified=auth_data.is_user_verified(),
+        counter=counter,
+        credential_key=cred_key,
+    )

@@ -2,6 +2,7 @@ import copy
 from unittest import TestCase
 
 import bson
+from pydantic import ValidationError
 
 from eduid.userdb.actions.action import Action
 
@@ -52,12 +53,6 @@ class TestAction(TestCase):
         action = Action.from_dict(action_dict)
         self.assertEqual(type(action.action_id), bson.ObjectId)
 
-    def test_proper_action_no_bson_id(self):
-        action_dict = copy.copy(_action_dict)
-        action_dict['_id'] = '234567890123456789012301'
-        action = Action.from_dict(action_dict)
-        self.assertEqual(action.action_id, bson.ObjectId('234567890123456789012301'))
-
     def test_action_to_dict(self):
         action_dict = copy.copy(_action_dict)
         action = Action.from_dict(action_dict)
@@ -66,19 +61,13 @@ class TestAction(TestCase):
     def test_action_missing_user(self):
         action_dict = copy.copy(_action_dict)
         del action_dict['eppn']
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValidationError):
             Action.from_dict(action_dict)
 
     def test_action_missing_action(self):
         action_dict = copy.copy(_action_dict)
         del action_dict['action']
-        with self.assertRaises(TypeError):
-            Action.from_dict(action_dict)
-
-    def test_action_raise_on_unknown(self):
-        action_dict = copy.copy(_action_dict)
-        action_dict['ho'] = 'ho ho'
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValidationError):
             Action.from_dict(action_dict)
 
     def test_action_repr(self):

@@ -30,11 +30,13 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from datetime import datetime
 from typing import Any, Dict
 
 from flask import request
 
 from eduid.userdb.actions import Action
+from eduid.userdb.actions.action import ActionResult
 from eduid.webapp.actions.action_abc import ActionPlugin
 from eduid.webapp.actions.app import ActionsApp
 from eduid.webapp.actions.app import current_actions_app as current_app
@@ -43,6 +45,24 @@ from eduid.webapp.common.authn import fido_tokens
 from eduid.webapp.common.session import session
 
 __author__ = 'ft'
+
+
+class ActionResultMFA(ActionResult):
+    touch: bool
+    user_present: bool
+    user_verified: bool
+    counter: int
+    cred_key: str
+
+
+class ActionResultThirdPartyMFA(ActionResult):
+    issuer: str
+    authn_instant: datetime
+    authn_context: str
+
+
+class ActionResultTesting(ActionResult):
+    testing: bool
 
 
 class Plugin(ActionPlugin):
@@ -59,7 +79,7 @@ class Plugin(ActionPlugin):
 
         app.conf.mfa_testing = False
 
-    def get_config_for_bundle(self, action):
+    def get_config_for_bundle(self, action: Action):
         eppn = action.eppn
         user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=False)
         current_app.logger.debug('Loaded User {} from db'.format(user))
@@ -81,14 +101,11 @@ class Plugin(ActionPlugin):
 
         return config
 
-    def perform_step(self, action: Action) -> Dict[str, Any]:
+    def perform_step(self, action: Action) -> ActionResult:
         current_app.logger.debug('Performing MFA step')
         if current_app.conf.mfa_testing:
             current_app.logger.debug('Test mode is on, faking authentication')
-            return {
-                'success': True,
-                'testing': True,
-            }
+            return ActionResultTesting(success=True, testing=True)
 
         eppn = action.eppn
         user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=False)
@@ -100,12 +117,9 @@ class Plugin(ActionPlugin):
             authn_instant = session.mfa_action.authn_instant
             authn_context = session.mfa_action.authn_context
             current_app.logger.info(f'User {user} logged in using external MFA service {issuer}')
-            action.result = {
-                'success': True,
-                'issuer': issuer,
-                'authn_instant': authn_instant,
-                'authn_context': authn_context,
-            }
+            action.result = ActionResultThirdPartyMFA(
+                success=True, issuer=issuer, authn_instant=authn_instant, authn_context=authn_context,
+            )
             current_app.actions_db.update_action(action)
             # Clear mfa_action from session
             del session.mfa_action
@@ -124,7 +138,14 @@ class Plugin(ActionPlugin):
             except fido_tokens.VerificationProblem as exc:
                 raise self.ActionError(exc.msg)
 
-            action.result = result
+            action.result = ActionResultMFA(
+                success=result.success,
+                touch=result.touch,
+                user_present=result.user_present,
+                user_verified=result.user_verified,
+                counter=result.counter,
+                cred_key=result.credential_key,
+            )
             current_app.actions_db.update_action(action)
             return action.result
 

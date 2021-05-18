@@ -440,7 +440,7 @@ def set_new_pw_extra_security_token(
             result = fido_tokens.verify_webauthn(
                 user=context.user, request_dict=request_dict, rp_id=current_app.conf.fido2_rp_id,
             )
-            success = result['success']
+            success = result.success
             if success:
                 current_app.stats.count(name='extra_security_security_key_webauthn_success')
         except fido_tokens.VerificationProblem:
