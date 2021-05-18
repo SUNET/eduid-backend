@@ -600,7 +600,7 @@ def _add_saml_request_to_session(info: SAMLQueryParams, binding: str) -> str:
             # Already present
             return _uuid
     _uuid = RequestRef(str(uuid4()))
-    if not info.SAMLRequest or not info.RelayState or info.key is None:
+    if not info.SAMLRequest or info.key is None:
         raise ValueError(f"Can't add incomplete query params to session: {info}")
     session.idp.pending_requests[_uuid] = SAMLData(
         request=info.SAMLRequest, binding=binding, relay_state=info.RelayState, key=info.key
