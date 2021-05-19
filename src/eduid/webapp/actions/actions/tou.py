@@ -51,7 +51,6 @@ from eduid.webapp.actions.helpers import ActionsMsg
 class Plugin(ActionPlugin):
 
     PLUGIN_NAME = 'tou'
-    PACKAGE_NAME = 'eduid.webapp.actions.actions.tou'
     steps = 1
 
     def __init__(self):
