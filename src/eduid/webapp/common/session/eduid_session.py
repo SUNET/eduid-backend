@@ -291,14 +291,10 @@ class EduidSession(SessionMixin, MutableMapping):
             logger.debug('Not saving invalidated session')
             return
 
-        # Serialize namespace dataclasses to see if their content changed
+        # Serialize namespace instances back into self._session
         self._serialize_namespaces()
 
-        # TODO: Remove self.new below at a later stage
-        #   Only save a session if it is modified
-        #   Don't save it just because it is new, this is to not
-        #   save empty sessions for every call to the backend
-        if self.new or self.modified:
+        if self.modified:
             logger.debug(f'Saving session {self}')
             self._session.commit()
             self.new = False
