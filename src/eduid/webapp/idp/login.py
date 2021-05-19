@@ -193,7 +193,9 @@ class SSO(Service):
             elif ticket.saml_req.force_authn:
                 current_app.logger.info(f'{ticket.key}: force_authn sso_session={self.sso_session.public_id}')
 
-            return redirect(_next.endpoint + '?key=' + ticket.key)
+            # Don't use _next.endpoint here, even though it happens to be this same URL for now.
+            # _next.endpoint is for the API interface, this is the old template realm.
+            return redirect(url_for('idp.verify') + '?key=' + ticket.key)
 
         if _next.message == IdPMsg.user_terminated:
             raise Forbidden('USER_TERMINATED')
@@ -204,6 +206,7 @@ class SSO(Service):
 
         if _next.message == IdPMsg.action_required:
             current_app.logger.debug('Sending user to actions')
+            assert _next.action_response  # please mypy
             return _next.action_response
 
         if _next.message == IdPMsg.proceed:
@@ -211,6 +214,7 @@ class SSO(Service):
             _ttl = current_app.conf.sso_session_lifetime - self.sso_session.minutes_old
             current_app.logger.info(f'{ticket.key}: proceeding sso_session={self.sso_session.public_id}, ttl={_ttl:}m')
             current_app.logger.debug(f'Continuing with Authn request {repr(ticket.saml_req.request_id)}')
+            assert _next.authn_info  # please mypy
             return self.perform_login(ticket, _next.authn_info)
 
         raise RuntimeError(f'Don\'t know what to do with {ticket}')
