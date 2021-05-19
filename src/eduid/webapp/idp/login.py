@@ -576,12 +576,12 @@ def do_verify() -> WerkzeugResponse:
 
 
 # ----------------------------------------------------------------------------
-def _add_saml_request_to_session(info: SAMLQueryParams, binding: str) -> str:
+def _add_saml_request_to_session(info: SAMLQueryParams, binding: str) -> RequestRef:
     if info.key:
-        request_ref = session.idp.get_requestref_for_reqsha1(info.key)
-        if request_ref:
-            # Already present
-            return request_ref
+        for ref, this in session.idp.pending_requests.items():
+            if this.key == info.key:
+                # Already present
+                return ref
     _uuid = RequestRef(str(uuid4()))
     if not info.SAMLRequest or info.key is None:
         raise ValueError(f"Can't add incomplete query params to session: {info}")
