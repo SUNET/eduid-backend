@@ -47,6 +47,7 @@ from eduid.webapp.idp.assurance import (
 from eduid.webapp.idp.idp_actions import check_for_pending_actions
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.idp_saml import AuthnInfo, IdP_SAMLRequest, ResponseArgs, SamlResponse, gen_key
+from eduid.webapp.idp.mischttp import get_default_template_arguments
 from eduid.webapp.idp.service import SAMLQueryParams, Service
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.util import b64encode
@@ -165,7 +166,7 @@ class SSO(Service):
         _info = self.unpack_redirect()
         current_app.logger.debug(f'Unpacked redirect :\n{pprint.pformat(_info)}')
 
-        ticket = _get_ticket(_info, BINDING_HTTP_REDIRECT)
+        ticket = get_ticket(_info, BINDING_HTTP_REDIRECT)
         return self._redirect_or_post(ticket)
 
     def post(self) -> WerkzeugResponse:
@@ -177,7 +178,7 @@ class SSO(Service):
         current_app.logger.debug("--- In SSO POST ---")
         _info = self.unpack_either()
 
-        ticket = _get_ticket(_info, BINDING_HTTP_POST)
+        ticket = get_ticket(_info, BINDING_HTTP_POST)
         return self._redirect_or_post(ticket)
 
     def _redirect_or_post(self, ticket: SSOLoginData) -> WerkzeugResponse:
@@ -192,7 +193,7 @@ class SSO(Service):
             elif ticket.saml_req.force_authn:
                 current_app.logger.info(f'{ticket.key}: force_authn sso_session={self.sso_session.public_id}')
 
-            return self._not_authn(ticket)
+            return redirect(_next.endpoint + '?key=' + ticket.key)
 
         if _next.message == IdPMsg.user_terminated:
             raise Forbidden('USER_TERMINATED')
@@ -440,60 +441,38 @@ class SSO(Service):
         current_app.logger.debug(f"AuthnRequest from ticket: {ticket.saml_req!r}")
         return ticket.saml_req.get_response_args(BadRequest, ticket.key)
 
-    def _not_authn(self, ticket: SSOLoginData) -> WerkzeugResponse:
-        """
-        Authenticate user. Either, the user hasn't logged in yet,
-        or the service provider forces re-authentication.
-        :param ticket: SSOLoginData instance
-        :returns: HTTP response
-        """
-        req_authn_context = get_requested_authn_context(ticket)
-        current_app.logger.debug(f'Do authentication, requested auth context: {req_authn_context!r}')
-
-        return self._show_login_page(ticket)
-
-    def _show_login_page(self, ticket: SSOLoginData) -> WerkzeugResponse:
-        """
-        Display the login form for all authentication methods.
-
-        SSO._not_authn() chooses what authentication method to use based on
-        requested AuthnContext and local configuration, and then calls this method
-        to render the login page for this method.
-
-        :param ticket: Login session state (not SSO session state)
-
-        :return: HTTP response
-        """
-        _username = ''
-        _login_subject = ticket.saml_req.login_subject
-        if _login_subject is not None:
-            current_app.logger.debug(f'Login subject: {_login_subject}')
-            # Login subject might be set by the idpproxy when requesting the user to do MFA step up
-            if current_app.conf.default_eppn_scope is not None and _login_subject.endswith(
-                current_app.conf.default_eppn_scope
-            ):
-                # remove the @scope
-                _username = _login_subject[: -(len(current_app.conf.default_eppn_scope) + 1)]
-
-        argv = mischttp.get_default_template_arguments(current_app.conf)
-        argv.update(
-            {'action': url_for('idp.verify'), 'alert_msg': '', 'key': ticket.key, 'password': '', 'username': _username}
-        )
-
-        # Set alert msg if found in the session
-        if ticket.saml_data.template_show_msg:
-            argv["alert_msg"] = ticket.saml_data.template_show_msg
-            ticket.saml_data.template_show_msg = None
-
-        current_app.logger.debug(f'Login page HTML substitution arguments :\n{pprint.pformat(argv)}')
-
-        html = render_template('login.jinja2', **argv)
-        return make_response(html)
-
 
 # -----------------------------------------------------------------------------
 # === Authentication ====
 # -----------------------------------------------------------------------------
+
+
+def show_login_page(ticket: SSOLoginData) -> WerkzeugResponse:
+    _username = ''
+    _login_subject = ticket.saml_req.login_subject
+    if _login_subject is not None:
+        current_app.logger.debug(f'Login subject: {_login_subject}')
+        # Login subject might be set by the idpproxy when requesting the user to do MFA step up
+        if current_app.conf.default_eppn_scope is not None and _login_subject.endswith(
+            current_app.conf.default_eppn_scope
+        ):
+            # remove the @scope
+            _username = _login_subject[: -(len(current_app.conf.default_eppn_scope) + 1)]
+
+    argv = get_default_template_arguments(current_app.conf)
+    argv.update(
+        {'action': url_for('idp.verify'), 'alert_msg': '', 'key': ticket.key, 'password': '', 'username': _username}
+    )
+
+    # Set alert msg if found in the session
+    if ticket.saml_data.template_show_msg:
+        argv["alert_msg"] = ticket.saml_data.template_show_msg
+        ticket.saml_data.template_show_msg = None
+
+    current_app.logger.debug(f'Login page HTML substitution arguments :\n{pprint.pformat(argv)}')
+
+    html = render_template('login.jinja2', **argv)
+    return make_response(html)
 
 
 def do_verify() -> WerkzeugResponse:
@@ -521,7 +500,7 @@ def do_verify() -> WerkzeugResponse:
     if 'key' not in query:
         raise BadRequest(f'Missing parameter key - please re-initiate login')
     _info = SAMLQueryParams(key=query['key'])
-    _ticket = _get_ticket(_info, None)
+    _ticket = get_ticket(_info, None)
 
     authn_ref = get_requested_authn_context(_ticket)
     current_app.logger.debug(f'Authenticating with {repr(authn_ref)}')
@@ -608,7 +587,7 @@ def _add_saml_request_to_session(info: SAMLQueryParams, binding: str) -> str:
     return _uuid
 
 
-def _get_ticket(info: SAMLQueryParams, binding: Optional[str]) -> SSOLoginData:
+def get_ticket(info: SAMLQueryParams, binding: Optional[str]) -> SSOLoginData:
     """
     Get the SSOLoginData from the eduid.webapp.common session, or from query parameters.
     """
