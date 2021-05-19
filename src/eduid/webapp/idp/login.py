@@ -15,7 +15,7 @@ Code handling Single Sign On logins.
 import hmac
 import pprint
 import time
-from dataclasses import replace
+from enum import unique
 from hashlib import sha256
 from typing import Dict, List, Optional
 from uuid import uuid4
@@ -23,25 +23,34 @@ from uuid import uuid4
 from defusedxml import ElementTree as DefusedElementTree
 from flask import make_response, redirect, render_template, request, url_for
 from flask_babel import gettext as _
-from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
+from pydantic import BaseModel
 from werkzeug.exceptions import BadRequest, Forbidden, TooManyRequests
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.idp.user import SAMLAttributeSettings
 from eduid.webapp.common.api import exceptions
+from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import SSOLoginData
 from eduid.webapp.common.session.namespaces import IdP_PendingRequest, RequestRef
 from eduid.webapp.idp import assurance, mischttp
 from eduid.webapp.idp.app import current_idp_app as current_app
-from eduid.webapp.idp.assurance import AssuranceException, EduidAuthnContextClass, MissingMultiFactor, WrongMultiFactor
+from eduid.webapp.idp.assurance import (
+    AssuranceException,
+    MissingAuthentication,
+    MissingMultiFactor,
+    MissingPasswordFactor,
+    WrongMultiFactor,
+    get_requested_authn_context,
+)
 from eduid.webapp.idp.idp_actions import check_for_pending_actions
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.idp_saml import AuthnInfo, IdP_SAMLRequest, ResponseArgs, SamlResponse, gen_key
 from eduid.webapp.idp.service import SAMLQueryParams, Service
 from eduid.webapp.idp.sso_session import SSOSession
-from eduid.webapp.idp.util import b64encode, get_requested_authn_context
+from eduid.webapp.idp.util import b64encode
+from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 
 
 class MustAuthenticate(Exception):
@@ -57,8 +66,86 @@ class MustAuthenticate(Exception):
 # -----------------------------------------------------------------------------
 
 
-def next_step(ticket: SSOLoginData, sso_session: Optional[SSOSession]):
-    ...
+@unique
+class IdPMsg(str, TranslatableMsg):
+    user_terminated = 'idp.user_terminated'
+    must_authenticate = 'idp.must_authenticate'
+    swamid_mfa_required = 'idp.swamid_mfa_required'
+    mfa_required = 'idp.mfa_required'
+    assurance_not_possible = 'idp.assurance_not_possible'
+    assurance_failure = 'idp.assurance_failure'
+    action_required = 'idp.action_required'  # Shouldn't actually be returned to the frontend
+    proceed = 'idp.proceed'  # Shouldn't actually be returned to the frontend
+    wrong_user = 'wrong_user'
+
+
+class NextResult(BaseModel):
+    message: IdPMsg
+    error: bool = False
+    endpoint: Optional[str] = None
+    action_response: Optional[WerkzeugResponse] = None
+    authn_info: Optional[AuthnInfo] = None
+
+    class Config:
+        # don't reject WerkzeugResponse
+        arbitrary_types_allowed = True
+
+
+def login_next_step(ticket: SSOLoginData, sso_session: Optional[SSOSession]) -> NextResult:
+    """ The main state machine for the login flow(s). """
+    if not isinstance(sso_session, SSOSession):
+        return NextResult(message=IdPMsg.must_authenticate, endpoint=url_for('idp.verify'))
+
+    user = sso_session.idp_user
+
+    if user.terminated:
+        current_app.logger.info(f'User {user} is terminated')
+        return NextResult(message=IdPMsg.user_terminated, error=True)
+
+    res: Optional[NextResult] = None
+    authn_info = None
+
+    try:
+        authn_info = assurance.response_authn(ticket, user, sso_session)
+    except MissingPasswordFactor:
+        return NextResult(message=IdPMsg.must_authenticate, endpoint=url_for('idp.verify'))
+    except MissingMultiFactor as exc:
+        # Postpone this result until after checking for pending actions
+        current_app.logger.debug(
+            f'Assurance not possible: {repr(exc)} (postponing this until after checking for actions)'
+        )
+        res = NextResult(message=IdPMsg.mfa_required, error=True)
+    except MissingAuthentication:
+        return NextResult(message=IdPMsg.must_authenticate, endpoint=url_for('idp.verify'))
+    except WrongMultiFactor as exc:
+        current_app.logger.info(f'Assurance not possible: {repr(exc)}')
+        return NextResult(message=IdPMsg.swamid_mfa_required, error=True)
+    except AssuranceException as exc:
+        current_app.logger.info(f'Assurance not possible: {repr(exc)}')
+        return NextResult(message=IdPMsg.assurance_not_possible, error=True)
+
+    # OLD:
+    if 'user_eppn' in session and session['user_eppn'] != user.eppn:
+        current_app.logger.warning(f'Refusing to change eppn in session from {session["user_eppn"]} to {user.eppn}')
+        return NextResult(message=IdPMsg.wrong_user, error=True)
+    session['user_eppn'] = user.eppn
+    # NEW:
+    if session.common.eppn and session.common.eppn != user.eppn:
+        current_app.logger.warning(f'Refusing to change eppn in session from {session.common.eppn} to {user.eppn}')
+        return NextResult(message=IdPMsg.wrong_user, error=True)
+    session.common.eppn = user.eppn
+
+    action_response = check_for_pending_actions(user, ticket, sso_session)
+    if action_response:
+        return NextResult(message=IdPMsg.action_required, action_response=action_response)
+
+    if res:
+        return res
+
+    if not authn_info:
+        return NextResult(message=IdPMsg.assurance_failure, error=True)
+
+    return NextResult(message=IdPMsg.proceed, authn_info=authn_info)
 
 
 class SSO(Service):
@@ -96,33 +183,38 @@ class SSO(Service):
     def _redirect_or_post(self, ticket: SSOLoginData) -> WerkzeugResponse:
         """ Common code for redirect() and post() endpoints. """
 
-        _next = next_step(ticket, self.sso_session)
+        _next = login_next_step(ticket, self.sso_session)
+        current_app.logger.debug(f'Login Next: {_next}')
 
-        if self.sso_session:
-            if self.sso_session.idp_user.terminated:
-                current_app.logger.info(f'User {self.sso_session.idp_user} is terminated')
-                current_app.logger.debug(f'User terminated: {self.sso_session.idp_user.terminated}')
-                raise Forbidden('USER_TERMINATED')
+        if _next.message == IdPMsg.must_authenticate:
+            if not self.sso_session:
+                current_app.logger.info(f'{ticket.key}: authenticate ip={request.remote_addr}')
+            elif ticket.saml_req.force_authn:
+                current_app.logger.info(f'{ticket.key}: force_authn sso_session={self.sso_session.public_id}')
 
-        _force_authn = self._should_force_authn(ticket)
+            return self._not_authn(ticket)
 
-        if self.sso_session and not _force_authn:
+        if _next.message == IdPMsg.user_terminated:
+            raise Forbidden('USER_TERMINATED')
+        if _next.message == IdPMsg.swamid_mfa_required:
+            raise Forbidden('SWAMID_MFA_REQUIRED')
+        if _next.message == IdPMsg.mfa_required:
+            raise Forbidden('MFA_REQUIRED')
+
+        if _next.message == IdPMsg.action_required:
+            current_app.logger.debug('Sending user to actions')
+            return _next.action_response
+
+        if _next.message == IdPMsg.proceed:
+            assert self.sso_session  # please mypy
             _ttl = current_app.conf.sso_session_lifetime - self.sso_session.minutes_old
             current_app.logger.info(f'{ticket.key}: proceeding sso_session={self.sso_session.public_id}, ttl={_ttl:}m')
             current_app.logger.debug(f'Continuing with Authn request {repr(ticket.saml_req.request_id)}')
-            try:
-                return self.perform_login(ticket)
-            except MustAuthenticate:
-                _force_authn = True
+            return self.perform_login(ticket, _next.authn_info)
 
-        if not self.sso_session:
-            current_app.logger.info(f'{ticket.key}: authenticate ip={request.remote_addr}')
-        elif _force_authn:
-            current_app.logger.info(f'{ticket.key}: force_authn sso_session={self.sso_session.public_id}')
+        raise RuntimeError(f'Don\'t know what to do with {ticket}')
 
-        return self._not_authn(ticket)
-
-    def perform_login(self, ticket: SSOLoginData) -> WerkzeugResponse:
+    def perform_login(self, ticket: SSOLoginData, authn_info: AuthnInfo) -> WerkzeugResponse:
         """
         Validate request, and then proceed with creating an AuthnResponse and
         invoking the 'outgoing' SAML2 binding.
@@ -140,27 +232,25 @@ class SSO(Service):
 
         resp_args = self._validate_login_request(ticket)
 
-        session['user_eppn'] = user.eppn
+        current_app.logger.debug(f'Response Authn context class: {authn_info}')
 
-        action_response = check_for_pending_actions(user, ticket, self.sso_session)
-        if action_response:
-            return action_response
+        try:
+            req_authn_context = get_requested_authn_context(ticket)
+            current_app.logger.debug(f'Asserting AuthnContext {authn_info} (requested: {req_authn_context})')
+        except AttributeError:
+            current_app.logger.debug(f'Asserting AuthnContext {authn_info} (none requested)')
 
-        # We won't get here until the user has completed all login actions
-
-        response_authn = self._get_login_response_authn(ticket, user)
-
-        saml_response = self._make_saml_response(response_authn, resp_args, user, ticket, self.sso_session)
+        saml_response = self._make_saml_response(authn_info, resp_args, user, ticket, self.sso_session)
 
         binding = resp_args['binding']
         destination = resp_args['destination']
         http_args = ticket.saml_req.apply_binding(resp_args, ticket.RelayState, saml_response)
 
         # INFO-Log the SSO session id and the AL and destination
-        current_app.logger.info(f'{ticket.key}: response authn={response_authn}, dst={destination}')
+        current_app.logger.info(f'{ticket.key}: response authn={authn_info}, dst={destination}')
         self._fticks_log(
             relying_party=resp_args.get('sp_entity_id', destination),
-            authn_method=response_authn.class_ref,
+            authn_method=authn_info.class_ref,
             user_id=str(user.user_id),
         )
 
@@ -349,81 +439,6 @@ class SSO(Service):
         current_app.logger.debug(f"Validate login request :\n{ticket}")
         current_app.logger.debug(f"AuthnRequest from ticket: {ticket.saml_req!r}")
         return ticket.saml_req.get_response_args(BadRequest, ticket.key)
-
-    def _get_login_response_authn(self, ticket: SSOLoginData, user: IdPUser) -> AuthnInfo:
-        """
-        Figure out what AuthnContext to assert in the SAML response.
-
-        The 'highest' Assurance-Level (AL) asserted is basically min(ID-proofing-AL, Authentication-AL).
-
-        What AuthnContext is asserted is also heavily influenced by what the SP requested.
-
-        :param ticket: State for this request
-        :param user: The user for whom the assertion will be made
-        :return: Authn information
-        """
-        # already checked with isinstance in perform_login() - we just need to convince mypy
-        assert self.sso_session
-
-        if current_app.conf.debug:
-            current_app.logger.debug(
-                f'External MFA credential logged in the SSO session: {self.sso_session.external_mfa}'
-            )
-            current_app.logger.debug(f'Credentials used in this SSO session:\n{self.sso_session.authn_credentials}')
-            _creds_as_strings = [str(_cred) for _cred in user.credentials.to_list()]
-            current_app.logger.debug(f'User credentials:\n{_creds_as_strings}')
-
-        # Decide what AuthnContext to assert based on the one requested in the request
-        # and the authentication performed
-
-        req_authn_context = get_requested_authn_context(ticket)
-
-        try:
-            resp_authn = assurance.response_authn(req_authn_context, user, self.sso_session, current_app.logger)
-        except WrongMultiFactor as exc:
-            current_app.logger.info(f'Assurance not possible: {exc!r}')
-            raise Forbidden('SWAMID_MFA_REQUIRED')
-        except MissingMultiFactor as exc:
-            current_app.logger.info(f'Assurance not possible: {exc!r}')
-            raise Forbidden('MFA_REQUIRED')
-        except AssuranceException as exc:
-            current_app.logger.info(f'Assurance not possible: {exc!r}')
-            raise MustAuthenticate()
-
-        current_app.logger.debug(f'Response Authn context class: {resp_authn!r}')
-
-        try:
-            current_app.logger.debug(f'Asserting AuthnContext {resp_authn!r} (requested: {req_authn_context!r})')
-        except AttributeError:
-            current_app.logger.debug(f'Asserting AuthnContext {resp_authn!r} (none requested)')
-
-        # Augment the AuthnInfo with the authn_timestamp before returning it
-        return replace(resp_authn, instant=int(self.sso_session.authn_timestamp.timestamp()))
-
-    def _should_force_authn(self, ticket: SSOLoginData) -> bool:
-        """
-        Check if the IdP should force authentication of this request.
-
-        Will check SAML ForceAuthn but avoid endless loops of forced authentications
-        by looking if the SSO session says authentication was actually performed
-        based on this SAML request.
-        """
-        if not ticket.saml_req.force_authn:
-            current_app.logger.debug(f'SAML request {repr(ticket.saml_req.request_id)} does not have ForceAuthn')
-            return False
-        if not self.sso_session:
-            current_app.logger.debug('Force authn without session - ignoring')
-            return True
-        if ticket.saml_req.request_id != self.sso_session.authn_request_id:
-            current_app.logger.debug(
-                f'Forcing authentication because of ForceAuthn with SSO session id '
-                f'{self.sso_session.authn_request_id} != this requests {ticket.saml_req.request_id}'
-            )
-            return True
-        current_app.logger.debug(
-            f'Ignoring ForceAuthn, authn already performed for SAML request {repr(ticket.saml_req.request_id)}'
-        )
-        return False
 
     def _not_authn(self, ticket: SSOLoginData) -> WerkzeugResponse:
         """

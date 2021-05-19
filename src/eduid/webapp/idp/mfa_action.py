@@ -40,10 +40,9 @@ from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData, SSOLoginData
 from eduid.webapp.common.session.namespaces import OnetimeCredential, OnetimeCredType, ReqSHA1
 from eduid.webapp.idp.app import current_idp_app as current_app
-from eduid.webapp.idp.assurance import EduidAuthnContextClass
+from eduid.webapp.idp.assurance import EduidAuthnContextClass, get_requested_authn_context
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.sso_session import SSOSession
-from eduid.webapp.idp.util import get_requested_authn_context
 
 __author__ = 'ft'
 

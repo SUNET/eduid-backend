@@ -40,7 +40,7 @@ class HttpArgs:
     @classmethod
     def from_pysaml2_dict(cls: Type[HttpArgs], http_args: Dict[str, Any]) -> HttpArgs:
         # Parse the parts of http_args we know how to parse, and then warn about any remains.
-        if 'status' in http_args:
+        if 'status' in http_args and http_args["status"] != 200:
             current_app.logger.warning(f'Ignoring status in http_args: {http_args["status"]}')
         method = http_args.pop('method')
         url = http_args.pop('url')
@@ -54,7 +54,7 @@ class HttpArgs:
 
         if http_args != {}:
             current_app.logger.debug(
-                f'Unknown HTTP args when creating {status!r} response :\n{pprint.pformat(http_args)!s}'
+                f'Unknown HTTP args when creating {repr(status)} response :\n{pprint.pformat(http_args)}'
             )
 
         return cls(method=method, url=url, headers=headers, body=message)
