@@ -20,9 +20,9 @@ from flask import request
 from pydantic import BaseModel, validator
 from werkzeug.wrappers import Response as WerkzeugResponse
 
+from eduid.webapp.common.session.namespaces import ReqSHA1
 from eduid.webapp.idp import mischttp
 from eduid.webapp.idp.app import current_idp_app as current_app
-from eduid.webapp.common.session.namespaces import ReqSHA1
 from eduid.webapp.idp.sso_session import SSOSession
 
 

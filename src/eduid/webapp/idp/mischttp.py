@@ -16,9 +16,8 @@ from __future__ import annotations
 
 import pprint
 from dataclasses import dataclass
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Type, Union
+from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, Type
 
-from flask import Response as FlaskResponse
 from flask import make_response, redirect, request
 from saml2 import BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest, InternalServerError
@@ -107,19 +106,6 @@ def create_html_response(binding: str, http_args: HttpArgs) -> WerkzeugResponse:
             current_app.logger.debug(f'Changing response header {repr(k)} from {repr(_old_v)} -> {repr(v)}')
             response.headers[k] = v
     return response
-
-
-def geturl(query: bool = True, path: bool = True) -> str:
-    """Rebuilds a request URL (from PEP 333).
-
-    :param query: Is QUERY_STRING included in URI (default: True)
-    :param path: Is path included in URI (default: True)
-    """
-    if not query:
-        if not path:
-            return request.host_url
-        return request.base_url
-    return request.url
 
 
 def get_post() -> Dict[str, Any]:

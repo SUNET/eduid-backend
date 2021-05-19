@@ -36,6 +36,7 @@
 import datetime
 import logging
 from typing import Mapping, Optional, Sequence
+from uuid import uuid4
 
 import saml2.server
 import saml2.time_util
@@ -48,8 +49,9 @@ from eduid.userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MF
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.nin import Nin, NinList
 from eduid.webapp.common.session.logindata import ExternalMfaData, SSOLoginData
+from eduid.webapp.common.session.namespaces import IdP_PendingRequest, ReqSHA1, RequestRef
 from eduid.webapp.idp.idp_authn import AuthnData
-from eduid.webapp.idp.idp_saml import IdP_SAMLRequest
+from eduid.webapp.idp.idp_saml import IdP_SAMLRequest, gen_key
 from eduid.webapp.idp.login import SSO
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.tests.test_app import IdPTests
@@ -120,12 +122,13 @@ def _transport_encode(data):
 
 
 class SSOIdPTests(IdPTests):
-    def _make_login_ticket(self, req_class_ref, key=None) -> SSOLoginData:
+    def _make_login_ticket(self, req_class_ref: str, key: Optional[ReqSHA1] = None) -> SSOLoginData:
         xmlstr = make_SAML_request(class_ref=req_class_ref)
         info = {'SAMLRequest': xmlstr}
         binding = 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST'
         if key is None:
-            key = 'unique-key-for-request-1'
+            # key = 'unique-key-for-request-1'
+            key = gen_key(xmlstr)
         saml_req = self._parse_SAMLRequest(
             info,
             binding,
@@ -135,6 +138,16 @@ class SSOIdPTests(IdPTests):
             self.app.conf.debug,
             self.app.conf.verify_request_signatures,
         )
+        from eduid.webapp.common.session import session
+
+        try:
+            request_ref = RequestRef(str(uuid4()))
+            saml_data = IdP_PendingRequest(request=xmlstr, binding=binding, relay_state=None, key=key)
+            session.idp.pending_requests[request_ref] = saml_data
+        except RuntimeError:
+            # Ignore RuntimeError: Working outside of request context when not running
+            # inside self.app.test_request_context.
+            pass
         ticket = SSOLoginData(key=key)
         ticket.saml_req = saml_req
         return ticket

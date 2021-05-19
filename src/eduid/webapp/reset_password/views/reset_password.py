@@ -216,7 +216,7 @@ def verify_email(email_code: str) -> FluxData:
     new_password = generate_suggested_password(password_length=current_app.conf.password_length)
     session.reset_password.generated_password_hash = hash_password(new_password)
 
-    alternatives = get_extra_security_alternatives(context.user, SESSION_PREFIX)
+    alternatives = get_extra_security_alternatives(context.user)
     context.state.extra_security = alternatives
     current_app.password_reset_state_db.save(context.state)
 
@@ -428,19 +428,7 @@ def set_new_pw_extra_security_token(
 
     # Process POSTed data
     success = False
-    if token_response:
-        # CTAP1/U2F
-        current_app.logger.debug(f'U2F token response: {token_response}')
-        _challenge = session.get(SESSION_PREFIX + '.u2f.challenge')
-        if not isinstance(_challenge, bytes):
-            raise TypeError(f'U2F challenge in session is not bytes {repr(_challenge)}')
-        current_app.logger.debug(f'Challenge: {_challenge!r}')
-        result = fido_tokens.verify_u2f(context.user, _challenge, token_response, current_app.conf.u2f_valid_facets)
-        if result is not None:
-            success = result['success']
-            if success:
-                current_app.stats.count(name='extra_security_security_key_u2f_success')
-    elif authenticator_data:
+    if authenticator_data:
         # CTAP2/Webauthn
         request_dict = {
             'credentialId': credential_id,
@@ -450,18 +438,15 @@ def set_new_pw_extra_security_token(
         }
         try:
             result = fido_tokens.verify_webauthn(
-                user=context.user,
-                request_dict=request_dict,
-                session_prefix=SESSION_PREFIX,
-                rp_id=current_app.conf.fido2_rp_id,
+                user=context.user, request_dict=request_dict, rp_id=current_app.conf.fido2_rp_id,
             )
-            success = result['success']
+            success = result.success
             if success:
                 current_app.stats.count(name='extra_security_security_key_webauthn_success')
         except fido_tokens.VerificationProblem:
             pass
     else:
-        current_app.logger.error(f'Neither U2F nor webauthn data in request for {context.user}')
+        current_app.logger.error(f'No webauthn data in request for {context.user}')
 
     if not success:
         return error_response(message=ResetPwMsg.fido_token_fail)

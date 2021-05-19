@@ -30,11 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 from abc import ABCMeta, abstractmethod
+from typing import Any, Mapping
 
 from flask import request
 
 from eduid.common.config.base import EduidEnvironment
-from eduid.userdb.actions.action import Action
+from eduid.userdb.actions.action import Action, ActionResult
 from eduid.webapp.actions.app import current_actions_app as current_app
 from eduid.webapp.common.api.utils import get_static_url_for, urlappend
 
@@ -125,6 +126,7 @@ class ActionPlugin(object):
 
     PLUGIN_NAME = 'dummy'
     PACKAGE_NAME = 'eduid.webapp.actions.actions.' + PLUGIN_NAME
+    steps = 1
 
     class ValidationError(Exception):
         """
@@ -145,7 +147,7 @@ class ActionPlugin(object):
         :type app: flask.App
         """
 
-    def get_number_of_steps(self):
+    def get_number_of_steps(self) -> int:
         """
         The number of steps that the user has to take
         in order to complete this action.
@@ -153,7 +155,6 @@ class ActionPlugin(object):
         make to complete the action.
 
         :returns: the number of steps
-        :rtype: int
         """
         return self.steps
 
@@ -182,7 +183,7 @@ class ActionPlugin(object):
         return get_static_url_for(base, version=version)
 
     @abstractmethod
-    def get_config_for_bundle(self, action) -> dict:
+    def get_config_for_bundle(self, action: Action) -> Mapping[str, Any]:
         """
         Return any configuration parameters needed by the js bundle that
         contains the front-end javascript side of the plugin. If there
@@ -194,7 +195,7 @@ class ActionPlugin(object):
         """
 
     @abstractmethod
-    def perform_step(self, action: Action) -> dict:
+    def perform_step(self, action: Action) -> ActionResult:
         """
         The user has provided some data and needs feedback. The provided data
         should be in the request, and the action type and current step should

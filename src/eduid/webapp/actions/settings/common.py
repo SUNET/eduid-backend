@@ -56,7 +56,6 @@ class ActionsConfig(EduIDBaseAppConfig, WebauthnConfigMixin2, AmConfigMixin, Tou
     bundles_feature_version: Mapping = Field(default_factory=dict)
     idp_url: str = ''
     mfa_testing: bool = False
-    generate_u2f_challenges: bool = False  # UNUSED, remove after updating config everywhere
     eidas_url: str = ''
     mfa_authn_idp: str = ''
     # The plugins for pre-authentication actions that need to be loaded

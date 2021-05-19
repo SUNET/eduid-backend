@@ -351,10 +351,9 @@ def reset_user_password(
     return success_response(message=ResetPwMsg.pw_reset_success)
 
 
-def get_extra_security_alternatives(user: User, session_prefix: str) -> dict:
+def get_extra_security_alternatives(user: User) -> dict:
     """
     :param user: The user
-    :param session_prefix: session prefix
     :return: Dict of alternatives
     """
     alternatives: Dict[str, Any] = {}
@@ -368,9 +367,7 @@ def get_extra_security_alternatives(user: User, session_prefix: str) -> dict:
     tokens = fido_tokens.get_user_credentials(user)
 
     if tokens:
-        alternatives['tokens'] = fido_tokens.start_token_verification(
-            user, session_prefix, current_app.conf.fido2_rp_id
-        )
+        alternatives['tokens'] = fido_tokens.start_token_verification(user, current_app.conf.fido2_rp_id)
 
     return alternatives
 

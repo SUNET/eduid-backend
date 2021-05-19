@@ -30,9 +30,12 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from typing import Any, Mapping
 
 from flask import request
 
+from eduid.userdb.actions import Action
+from eduid.userdb.actions.action import ActionResult, ActionResultMFA, ActionResultTesting, ActionResultThirdPartyMFA
 from eduid.webapp.actions.action_abc import ActionPlugin
 from eduid.webapp.actions.app import ActionsApp
 from eduid.webapp.actions.app import current_actions_app as current_app
@@ -46,7 +49,6 @@ __author__ = 'ft'
 class Plugin(ActionPlugin):
 
     PLUGIN_NAME = 'mfa'
-    PACKAGE_NAME = 'eduid.webapp.actions.actions.mfa'
     steps = 1
 
     @classmethod
@@ -58,14 +60,14 @@ class Plugin(ActionPlugin):
 
         app.conf.mfa_testing = False
 
-    def get_config_for_bundle(self, action):
+    def get_config_for_bundle(self, action: Action) -> Mapping[str, Any]:
         eppn = action.eppn
         user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=False)
         current_app.logger.debug('Loaded User {} from db'.format(user))
         if not user:
             raise self.ActionError(ActionsMsg.user_not_found)
 
-        config = fido_tokens.start_token_verification(user, self.PACKAGE_NAME, current_app.conf.fido2_rp_id)
+        config = fido_tokens.start_token_verification(user, current_app.conf.fido2_rp_id)
 
         # Explicit check for boolean True
         if current_app.conf.mfa_testing is True:
@@ -80,31 +82,25 @@ class Plugin(ActionPlugin):
 
         return config
 
-    def perform_step(self, action):
+    def perform_step(self, action: Action) -> ActionResult:
         current_app.logger.debug('Performing MFA step')
         if current_app.conf.mfa_testing:
             current_app.logger.debug('Test mode is on, faking authentication')
-            return {
-                'success': True,
-                'testing': True,
-            }
+            return ActionResultTesting(success=True, testing=True)
 
         eppn = action.eppn
         user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=False)
-        current_app.logger.debug('Loaded User {} from db (in perform_action)'.format(user))
+        current_app.logger.debug(f'Loaded User {user} from db (in perform_action)')
 
         # Third party service MFA
         if session.mfa_action.success is True:  # Explicit check that success is the boolean True
             issuer = session.mfa_action.issuer
             authn_instant = session.mfa_action.authn_instant
             authn_context = session.mfa_action.authn_context
-            current_app.logger.info('User {} logged in using external mfa service {}'.format(user, issuer))
-            action.result = {
-                'success': True,
-                'issuer': issuer,
-                'authn_instant': authn_instant,
-                'authn_context': authn_context,
-            }
+            current_app.logger.info(f'User {user} logged in using external MFA service {issuer}')
+            action.result = ActionResultThirdPartyMFA(
+                success=True, issuer=issuer, authn_instant=authn_instant, authn_context=authn_context,
+            )
             current_app.actions_db.update_action(action)
             # Clear mfa_action from session
             del session.mfa_action
@@ -112,39 +108,28 @@ class Plugin(ActionPlugin):
 
         req_json = request.get_json()
         if not req_json:
-            current_app.logger.error('No data in request to authn {}'.format(user))
+            current_app.logger.error(f'No data in request to authn {user}')
             raise self.ActionError(ActionsMsg.no_data)
 
         # Process POSTed data
-        if 'tokenResponse' in req_json:
-            # CTAP1/U2F
-            token_response = request.get_json().get('tokenResponse', '')
-            current_app.logger.debug('U2F token response: {}'.format(token_response))
-
-            challenge = session.get(self.PACKAGE_NAME + '.u2f.challenge')
-            current_app.logger.debug('Challenge: {!r}'.format(challenge))
-
-            result = fido_tokens.verify_u2f(user, challenge, token_response, current_app.conf.u2f_valid_facets)
-
-            if result is not None:
-                action.result = result
-                current_app.actions_db.update_action(action)
-                return action.result
-
-        elif 'authenticatorData' in req_json:
+        if 'authenticatorData' in req_json:
             # CTAP2/Webauthn
             try:
-                result = fido_tokens.verify_webauthn(user, req_json, self.PACKAGE_NAME, current_app.conf.fido2_rp_id)
+                result = fido_tokens.verify_webauthn(user, req_json, current_app.conf.fido2_rp_id)
             except fido_tokens.VerificationProblem as exc:
                 raise self.ActionError(exc.msg)
 
-            action.result = result
+            action.result = ActionResultMFA(
+                success=result.success,
+                touch=result.touch,
+                user_present=result.user_present,
+                user_verified=result.user_verified,
+                counter=result.counter,
+                cred_key=result.credential_key,
+            )
             current_app.actions_db.update_action(action)
             return action.result
 
-        else:
-            current_app.logger.error('Neither U2F nor Webauthn data in request to authn {}'.format(user))
-            current_app.logger.debug('Request: {}'.format(req_json))
-            raise self.ActionError(ActionsMsg.no_response)
-
-        raise self.ActionError(ActionsMsg.unknown_token)
+        current_app.logger.error(f'No Thirdparty-MFA/Webauthn data in request to authn {user}')
+        current_app.logger.debug(f'Request: {req_json}')
+        raise self.ActionError(ActionsMsg.no_response)

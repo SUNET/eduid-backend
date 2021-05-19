@@ -15,7 +15,6 @@ from pydantic import BaseModel
 from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.common.config.exceptions import BadConfiguration
 from eduid.common.misc.timeutil import utc_now
-from eduid.webapp.common.session.logindata import SSOLoginData
 from eduid.webapp.common.session.meta import SessionMeta
 from eduid.webapp.common.session.namespaces import (
     Actions,
@@ -27,7 +26,12 @@ from eduid.webapp.common.session.namespaces import (
     Signup,
     TimestampedNS,
 )
-from eduid.webapp.common.session.redis_session import RedisEncryptedSession, SessionManager, SessionOutOfSync
+from eduid.webapp.common.session.redis_session import (
+    EduidJSONEncoder,
+    RedisEncryptedSession,
+    SessionManager,
+    SessionOutOfSync,
+)
 
 if TYPE_CHECKING:
     # From https://stackoverflow.com/a/39757388
@@ -264,21 +268,15 @@ class EduidSession(SessionMixin, MutableMapping):
 
         The __setitem__ function on `self' will essentially write the data into the backend session (self._session).
         """
-        for k in self._namespaces.dict().keys():
+        for k, value in self._namespaces.dict(exclude_none=True).items():
             this = getattr(self._namespaces, k)
-            if this is None:
-                continue
-            if not isinstance(this, SessionNSBase):
-                pass
-            # TODO: look for cheaper alternative for encoding datetimes etc.
-            #       than going from BaseModel -> json -> dict -> json -> redis.
-            #       Maybe teach the JSON encoder in RedisEncryptedSession to deal with those data types instead?
-            value = json.loads(this.json(exclude_none=True))
             if isinstance(this, TimestampedNS):
+                if k in self:
+                    _old = self[k]
                 if k in self and self[k] != value:
                     # update timestamp on change
                     this.ts = utc_now()
-                    value = json.loads(this.json(exclude_none=True))
+                    value = this.dict(exclude_none=True)
             self[k] = value
 
     def persist(self):
@@ -293,20 +291,16 @@ class EduidSession(SessionMixin, MutableMapping):
             logger.debug('Not saving invalidated session')
             return
 
-        # Serialize namespace dataclasses to see if their content changed
+        # Serialize namespace instances back into self._session
         self._serialize_namespaces()
 
-        # TODO: Remove self.new below at a later stage
-        #   Only save a session if it is modified
-        #   Don't save it just because it is new, this is to not
-        #   save empty sessions for every call to the backend
-        if self.new or self.modified:
+        if self.modified:
             logger.debug(f'Saving session {self}')
             self._session.commit()
             self.new = False
             self.modified = False
             if self.app.debug or self.app.conf.testing:
-                _saved_data = json.dumps(self._session.to_dict(), indent=4, sort_keys=True)
+                _saved_data = json.dumps(self._session.to_dict(), indent=4, sort_keys=True, cls=EduidJSONEncoder)
                 logger.debug(f'Saved session {self}:\n{_saved_data}')
 
 

@@ -43,7 +43,7 @@ class IdPTestLogin(IdPTests):
 
         # check that we were sent back to the login screen
         redirect_loc = self._extract_path_from_response(result.response)
-        assert redirect_loc.startswith('/sso/redirect?SAMLRequest=')
+        assert redirect_loc.startswith('/sso/redirect?key=')
 
     def test_successful_authentication(self):
         # Patch the VCCSClient so we do not need a vccs server

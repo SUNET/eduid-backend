@@ -147,7 +147,7 @@ class IdPTests(EduidAPITestCase):
         form_data = self._extract_form_inputs(resp.data.decode('utf-8'))
         form_data['username'] = self.test_user.mail_addresses.primary.email
         form_data['password'] = 'Jenka'
-        if 'redirect_uri' not in form_data:
+        if 'key' not in form_data:
             return LoginResult(url=path, reached_state=LoginState.S1_LOGIN_FORM, response=resp)
 
         cookies = resp.headers.get('Set-Cookie')
@@ -160,8 +160,7 @@ class IdPTests(EduidAPITestCase):
                 return LoginResult(url='/verify', reached_state=LoginState.S2_VERIFY, response=resp)
 
         redirect_loc = self._extract_path_from_response(resp)
-        # check that we were sent back to the login screen
-        # TODO: verify that we really were logged in
+        # check that we were sent back to the SSO redirect entrypoint
         if not redirect_loc.startswith('/sso/redirect?key='):
             return LoginResult(url='/verify', reached_state=LoginState.S2_VERIFY, response=resp)
 
@@ -175,6 +174,10 @@ class IdPTests(EduidAPITestCase):
         _sso_cookie_re = re.match(_re, cookies)
         if _sso_cookie_re:
             sso_cookie_val = _sso_cookie_re.groups()[0]
+
+        if not sso_cookie_val:
+            # The POST to /verify didn't result in an SSO session, probably incorrect username/password
+            return LoginResult(url='/verify', reached_state=LoginState.S2_VERIFY, response=resp)
 
         resp = self.browser.get(redirect_loc, headers={'Cookie': cookies})
         if resp.status_code != 200:

@@ -33,12 +33,14 @@
 __author__ = 'eperez'
 
 from datetime import datetime
+from typing import Any, Mapping
 
 from bson import ObjectId
 from flask import request
 
 from eduid.common.misc.tous import get_tous
 from eduid.userdb.actions import Action
+from eduid.userdb.actions.action import ActionResult
 from eduid.userdb.actions.tou import ToUUser, ToUUserDB
 from eduid.userdb.tou import ToUEvent
 from eduid.webapp.actions.action_abc import ActionPlugin
@@ -64,7 +66,7 @@ class Plugin(ActionPlugin):
     def includeme(cls, app):
         app.tou_db = ToUUserDB(app.conf.mongo_uri)
 
-    def get_config_for_bundle(self, action: Action):
+    def get_config_for_bundle(self, action: Action) -> Mapping[str, Any]:
         tous = get_tous(version=action.params['version'], languages=current_app.conf.available_languages.keys())
         if not tous:
             current_app.logger.error('Could not load any TOUs')
@@ -75,7 +77,7 @@ class Plugin(ActionPlugin):
             'available_languages': current_app.conf.available_languages,
         }
 
-    def perform_step(self, action: Action):
+    def perform_step(self, action: Action) -> ActionResult:
         if not request.get_json().get('accept', ''):
             raise self.ActionError(ActionsMsg.must_accept)
 
@@ -110,7 +112,7 @@ class Plugin(ActionPlugin):
             current_app.logger.debug("Attribute Manager sync result: {!r}".format(result))
             current_app.actions_db.remove_action_by_id(action.action_id)
             current_app.logger.info('Removed completed action {}'.format(action))
-            return {}
+            return ActionResult(success=True)
         except Exception as e:
             current_app.logger.error("Failed Attribute Manager sync request: " + str(e))
             raise self.ActionError(ActionsMsg.sync_problem)

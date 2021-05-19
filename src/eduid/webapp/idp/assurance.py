@@ -36,7 +36,13 @@ import logging
 from enum import Enum, unique
 from typing import List, Optional
 
-from eduid.userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, Credential
+from eduid.userdb.credentials import (
+    METHOD_SWAMID_AL2_MFA,
+    METHOD_SWAMID_AL2_MFA_HI,
+    Credential,
+    FidoCredential,
+    Password,
+)
 from eduid.userdb.idp import IdPUser
 from eduid.webapp.idp.app import current_idp_app
 from eduid.webapp.idp.idp_saml import AuthnInfo
@@ -99,12 +105,9 @@ class AuthnState(object):
                 continue
             self.logger.debug(f'Adding used credential: {cred} ({this.timestamp.isoformat()}')
             self._creds += [cred]
-            # until we can go to Python3 and have some... working type checks please
-            if 'Password' in str(cred):
+            if isinstance(cred, Password):
                 self.password_used = True
-            elif 'U2F' in str(cred) or 'Webauthn' in str(cred):
-                # TODO: Match this using eduid_credential.credentials.FidoCredential instead, if that works
-                #       now that we use Python 3
+            elif isinstance(cred, FidoCredential):
                 self.fido_used = True
 
         if self.password_used:

@@ -38,6 +38,7 @@ from typing import Any, Mapping, Optional
 from bson import ObjectId
 from mock import MagicMock
 
+from eduid.userdb.actions import Action
 from eduid.userdb.fixtures.users import mocked_user_standard
 from eduid.userdb.userdb import User
 from eduid.webapp.actions.action_abc import ActionPlugin
@@ -179,26 +180,35 @@ class ActionsTestCase(EduidAPITestCase):
         if validation_error:
             action_dict['params']['validation_error'] = True
         if add_action:
-            self.app.actions_db.add_action(data=deepcopy(action_dict))
+            action = self.app.actions_db.add_action(data=deepcopy(action_dict))
+        else:
+            action = Action.from_dict(action_dict)
         action_dict['_id'] = str(action_dict['_id'])
         with client.session_transaction() as sess:
-            sess['eppn'] = str(action_dict['eppn'])
-            sess['user_eppn'] = str(action_dict['eppn'])
-            sess['current_action'] = action_dict
-            sess['current_plugin'] = plugin_name
-            sess['idp_session'] = idp_session
-            sess['current_step'] = current_step
-            sess['total_steps'] = total_steps
+            # OLD
+            sess['eppn'] = action.eppn
+            sess['user_eppn'] = action.eppn
+            # NEW
+            sess.common.eppn = action.eppn
+            sess.actions.current_action = action
+            sess.actions.current_plugin = plugin_name
+            sess.actions.session = idp_session
+            sess.actions.current_step = current_step
+            sess.actions.total_steps = total_steps
         if set_plugin:
             self.app.plugins[plugin_name] = plugin_class
 
     def authenticate(self, action_type=None, idp_session=None):
         eppn = self.test_eppn
+        # OLD
         session['eduPersonPrincipalName'] = eppn
         session['user_eppn'] = eppn
         session['user_is_logged_in'] = True
+        # NEW
+        session.common.eppn = eppn
+        session.common.is_logged_in = True
         if action_type is not None:
-            session['current_plugin'] = action_type
+            session.actions.current_plugin = action_type
         if idp_session is not None:
             session.actions.session = idp_session
         session.persist()

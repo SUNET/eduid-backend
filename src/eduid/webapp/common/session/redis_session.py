@@ -79,6 +79,7 @@ from __future__ import annotations
 import collections.abc
 import json
 import logging
+from datetime import datetime
 from typing import Any, Dict, List, Mapping, Optional
 
 import nacl.encoding
@@ -86,6 +87,7 @@ import nacl.secret
 import nacl.utils
 import redis
 import redis.sentinel
+from bson import ObjectId
 from saml2.saml import NameID
 
 from eduid.common.config.base import RedisConfig
@@ -177,13 +179,18 @@ def get_redis_pool(cfg: RedisConfig):
     return pool
 
 
-class NameIDEncoder(json.JSONEncoder):
+class EduidJSONEncoder(json.JSONEncoder):
     # TODO: This enables us to serialise NameIDs into the stored sessions,
     #       but we don't seem to de-serialise them on load
     def default(self, obj):
         if isinstance(obj, NameID):
             return str(obj)
-        return json.JSONEncoder.default(self, obj)
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        if isinstance(obj, ObjectId):
+            return str(obj)
+
+        return super().default(obj)
 
 
 class NoSessionDataFoundException(Exception):
@@ -328,7 +335,7 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         logger.debug(f'Storing data in Redis[{self.short_id}]:\n{repr(data_dict)}')
         nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
         # Version data to make it easier to know how to decode it on reading
-        data_json = json.dumps(data_dict, cls=NameIDEncoder)
+        data_json = json.dumps(data_dict, cls=EduidJSONEncoder)
         versioned = {
             'v2': bytes(
                 self.secret_box.encrypt(data_json.encode('ascii'), nonce, encoder=nacl.encoding.Base64Encoder)

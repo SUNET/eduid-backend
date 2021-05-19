@@ -82,9 +82,9 @@ def get_next_action(user):
     action_dict['_id'] = str(action_dict['_id'])
     if 'user_oid' in action_dict:
         action_dict['user_oid'] = str(action_dict['user_oid'])
-    session['current_action'] = action_dict
-    session['current_step'] = 1
-    session['current_plugin'] = action.action_type
+    session.actions.current_action = action
+    session.actions.current_step = 1
+    session.actions.current_plugin = action.action_type
     plugin_obj = current_app.plugins[action.action_type]()
-    session['total_steps'] = plugin_obj.get_number_of_steps()
+    session.actions.total_steps = plugin_obj.get_number_of_steps()
     return {'action': True}

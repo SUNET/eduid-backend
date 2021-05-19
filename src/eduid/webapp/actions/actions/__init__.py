@@ -30,5 +30,3 @@
 #
 
 __author__ = 'ft'
-
-RESULT_CREDENTIAL_KEY_NAME = 'cred_key'

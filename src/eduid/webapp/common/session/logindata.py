@@ -7,7 +7,7 @@ from urllib.parse import urlencode
 
 from pydantic import BaseModel
 
-from eduid.webapp.common.session.namespaces import ReqSHA1, SAMLData
+from eduid.webapp.common.session.namespaces import IdP_PendingRequest, ReqSHA1, RequestRef
 
 if TYPE_CHECKING:
     from eduid.webapp.idp.idp_saml import IdP_SAMLRequest
@@ -55,28 +55,37 @@ class SSOLoginData:
 
     key: ReqSHA1
 
-    # Hash from Credential.key to datetime when it was used
-    mfa_action_creds: Dict[str, datetime] = field(default_factory=dict, init=False, repr=False)
-    mfa_action_external: Optional[ExternalMfaData] = field(default=None, init=False, repr=False)
-
     # SAML request, loaded lazily from the session using `key'
     # eduid.webapp.common can't import from eduid-webapp
-    _saml_data: Optional[SAMLData] = field(default=None, init=False, repr=False)
+    _saml_data: Optional[IdP_PendingRequest] = field(default=None, init=False, repr=False)
     _saml_req: Optional['IdP_SAMLRequest'] = field(default=None, init=False, repr=False)
+    _request_ref: Optional[RequestRef] = field(default=None, init=False, repr=False)
 
     def __str__(self) -> str:
         return f'<{self.__class__.__name__}: key={self.key}>'
 
     @property
-    def saml_data(self) -> SAMLData:
+    def request_ref(self) -> RequestRef:
+        if self._request_ref is None:
+            from eduid.webapp.common.session import session
+
+            req_ref = session.idp.get_requestref_for_reqsha1(self.key)
+            if not req_ref:
+                raise RuntimeError(f'Request with key {self.key} not found in session')
+            self._request_ref = req_ref
+
+        return self._request_ref
+
+    @property
+    def saml_data(self) -> IdP_PendingRequest:
         if self._saml_data is None:
             from eduid.webapp.common.session import session
 
-            for _uuid, this in session.idp.pending_requests.items():
-                if this.key == self.key:
-                    self._saml_data = this
-                    return this
-            raise RuntimeError(f'SAML data with key {self.key} not found in session')
+            saml_data = session.idp.pending_requests[self.request_ref]
+            if not saml_data:
+                raise RuntimeError(f'SAML data with ref {self.request_ref} not found in session')
+            self._saml_data = saml_data
+
         return self._saml_data
 
     @property
