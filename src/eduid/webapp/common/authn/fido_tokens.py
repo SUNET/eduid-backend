@@ -56,40 +56,45 @@ class VerificationProblem(Exception):
         self.msg = msg
 
 
-def _get_user_credentials_u2f(user: User) -> Dict[str, Dict[str, Any]]:
+class FidoCred(BaseModel):
+    app_id: str
+    u2f: Dict[str, Any]  # TODO: This can probably be removed
+    webauthn: Any  # Expected bytes, got AttestedCredentialData (type=type_error)
+
+
+def _get_user_credentials_u2f(user: User) -> Dict[CredentialKey, FidoCred]:
     """
     Get the U2F credentials for the user
     """
-    res = {}
+    res: Dict[CredentialKey, FidoCred] = {}
     for this in user.credentials.filter(U2F).to_list():
         acd = AttestedCredentialData.from_ctap1(websafe_decode(this.keyhandle), websafe_decode(this.public_key))
-        res[this.key] = {
-            'u2f': {'version': this.version, 'keyHandle': this.keyhandle, 'publicKey': this.public_key,},
-            'webauthn': acd,
-            'app_id': this.app_id,
-        }
+        res[this.key] = FidoCred(
+            app_id=this.app_id,
+            u2f={'version': this.version, 'keyHandle': this.keyhandle, 'publicKey': this.public_key},
+            webauthn=acd,
+        )
     return res
 
 
-def _get_user_credentials_webauthn(user: User) -> Dict[str, Dict[str, Any]]:
+def _get_user_credentials_webauthn(user: User) -> Dict[CredentialKey, FidoCred]:
     """
     Get the Webauthn credentials for the user
     """
-    res = {}
+    res: Dict[CredentialKey, FidoCred] = {}
     for this in user.credentials.filter(Webauthn).to_list():
-        keyhandle = this.keyhandle
         cred_data = base64.urlsafe_b64decode(this.credential_data.encode('ascii'))
         credential_data, rest = AttestedCredentialData.unpack_from(cred_data)
         version = 'webauthn'
-        res[this.key] = {
-            'u2f': {'version': version, 'keyHandle': keyhandle, 'publicKey': credential_data.public_key,},
-            'webauthn': credential_data,
-            'app_id': '',
-        }
+        res[this.key] = FidoCred(
+            app_id='',
+            u2f={'version': version, 'keyHandle': this.keyhandle, 'publicKey': credential_data.public_key},
+            webauthn=credential_data,
+        )
     return res
 
 
-def get_user_credentials(user: User) -> dict:
+def get_user_credentials(user: User) -> Dict[CredentialKey, FidoCred]:
     """
     Get U2F and Webauthn credentials for the user
     """
@@ -98,14 +103,14 @@ def get_user_credentials(user: User) -> dict:
     return res
 
 
-def _get_fido2server(credentials: dict, fido2rp: RelyingParty) -> Fido2Server:
+def _get_fido2server(credentials: Dict[CredentialKey, FidoCred], fido2rp: RelyingParty) -> Fido2Server:
     # See if any of the credentials is a legacy U2F credential with an app-id
     # (assume all app-ids are the same - authenticating with a mix of different
     # app-ids isn't supported in current Webauthn)
     app_id = None
     for k, v in credentials.items():
-        if v['app_id']:
-            app_id = v['app_id']
+        if v.app_id:
+            app_id = v.app_id
             break
     if app_id:
         return U2FFido2Server(app_id, fido2rp)
@@ -116,7 +121,6 @@ def start_token_verification(user: User, fido2_rp_id: str) -> Dict[str, Any]:
     """
     Begin authentication process based on the hardware tokens registered by the user.
     """
-    # TODO: Only make Webauthn challenges for Webauthn tokens, and only U2F challenges for U2F tokens?
     credential_data = get_user_credentials(user)
     current_app.logger.debug(
         f'Extra debug: U2F credentials for user: {[str(x) for x in user.credentials.filter(U2F).to_list()]}'
@@ -126,7 +130,7 @@ def start_token_verification(user: User, fido2_rp_id: str) -> Dict[str, Any]:
     )
     current_app.logger.debug(f'FIDO credentials for user {user}:\n{pprint.pformat(list(credential_data.keys()))}')
 
-    webauthn_credentials = [v['webauthn'] for v in credential_data.values()]
+    webauthn_credentials = [v.webauthn for v in credential_data.values()]
 
     fido2rp = RelyingParty(fido2_rp_id, name='eduid.se')
     fido2server = _get_fido2server(credential_data, fido2rp)
@@ -191,24 +195,38 @@ def verify_webauthn(user: User, request_dict: Dict[str, Any], rp_id: str) -> Web
 
     fido2rp = RelyingParty(rp_id, 'eduID')
     fido2server = _get_fido2server(credentials, fido2rp)
-    matching_credentials = [
-        (v['webauthn'], k) for k, v in credentials.items() if v['webauthn'].credential_id == req.credentialId
-    ]
+    # Filter out the FidoCred that has webauthn.credential_id matching the credentialId in the request
+    matching_credentials = {k: v for k, v in credentials.items() if v.webauthn.credential_id == req.credentialId}
 
     if not matching_credentials:
-        current_app.logger.error(f"Could not find webauthn credential {repr(req.credentialId)} on user {user}")
+        current_app.logger.error(f'Could not find webauthn credential {repr(req.credentialId)} on user {user}')
         raise VerificationProblem('mfa.unknown-token')
 
     try:
         authn_cred = fido2server.authenticate_complete(
-            fido2state, [mc[0] for mc in matching_credentials], req.credentialId, client_data, auth_data, req.signature,
+            fido2state,
+            [this.webauthn for this in matching_credentials.values()],
+            req.credentialId,
+            client_data,
+            auth_data,
+            req.signature,
         )
     except Exception:
         raise VerificationProblem('mfa.failed-verification')
 
-    current_app.logger.debug('Authenticated Webauthn credential: {}'.format(authn_cred))
+    current_app.logger.debug(f'Authenticated Webauthn credential: {authn_cred}')
 
-    cred_key = [mc[1] for mc in matching_credentials][0]
+    # Filter out the exact FidoCred that was actually used for the authentication
+    authn_credentials = {k: v for k, v in credentials.items() if v.webauthn == authn_cred}
+
+    if len(authn_credentials) != 1:
+        current_app.logger.error('Unable to find exactly the webauthn credential that was used for authentication')
+        current_app.logger.debug(f'Matching credentials: {matching_credentials}')
+        current_app.logger.debug(f'Authn credential: {authn_cred}')
+        current_app.logger.debug(f'Authn credentials: {authn_credentials}')
+        raise RuntimeError('Unable to find exactly the webauthn credential that was used for authentication')
+
+    cred_key = list(authn_credentials.keys())[0]
 
     touch = auth_data.flags
     counter = auth_data.counter
