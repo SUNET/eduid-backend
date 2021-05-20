@@ -470,7 +470,7 @@ def show_login_page(ticket: SSOLoginData) -> WerkzeugResponse:
         {
             'action': url_for('idp.verify'),
             'alert_msg': '',
-            'key': ticket.request_ref,
+            'ref': ticket.request_ref,
             'password': '',
             'username': _username,
         }
@@ -478,7 +478,7 @@ def show_login_page(ticket: SSOLoginData) -> WerkzeugResponse:
 
     # Set alert msg if found in the session
     if ticket.saml_data.template_show_msg:
-        argv["alert_msg"] = ticket.saml_data.template_show_msg
+        argv['alert_msg'] = ticket.saml_data.template_show_msg
         ticket.saml_data.template_show_msg = None
 
     current_app.logger.debug(f'Login page HTML substitution arguments :\n{pprint.pformat(argv)}')
@@ -509,7 +509,7 @@ def do_verify() -> WerkzeugResponse:
         query['password'] = '<redacted>'
     current_app.logger.debug(f'do_verify parsed query :\n{pprint.pformat(query)}')
 
-    if 'key' not in query:
+    if 'ref' not in query:
         raise BadRequest(f'Missing parameter - please re-initiate login')
     _info = SAMLQueryParams(request_ref=query['ref'])
     _ticket = get_ticket(_info, None)

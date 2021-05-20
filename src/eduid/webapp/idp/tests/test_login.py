@@ -48,7 +48,9 @@ class IdPTestLogin(IdPTests):
 
         # check that we were sent back to the login screen
         redirect_loc = self._extract_path_from_response(result.response)
-        assert redirect_loc.startswith('/sso/redirect?key=')
+        assert redirect_loc.startswith('/sso/redirect?ref=')
+
+        # TODO: Verify that no SSO session was created, and no credentials were logged as used in the session
 
     def test_successful_authentication(self):
         # Patch the VCCSClient so we do not need a vccs server

@@ -156,7 +156,7 @@ class IdPTests(EduidAPITestCase):
             form_data = self._extract_form_inputs(resp.data.decode('utf-8'))
             form_data['username'] = self.test_user.mail_addresses.primary.email
             form_data['password'] = 'Jenka'
-            if 'key' not in form_data:
+            if 'ref' not in form_data:
                 return LoginResult(url=path, reached_state=LoginState.S1_LOGIN_FORM, response=resp)
 
             cookies = resp.headers.get('Set-Cookie')

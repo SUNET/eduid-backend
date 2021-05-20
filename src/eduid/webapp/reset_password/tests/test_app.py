@@ -44,7 +44,11 @@ from eduid.userdb.fixtures.fido_credentials import webauthn_credential as sample
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.testing import TestVCCSClient
-from eduid.webapp.common.authn.tests.test_fido_tokens import SAMPLE_WEBAUTHN_REQUEST
+from eduid.webapp.common.authn.tests.test_fido_tokens import (
+    SAMPLE_WEBAUTHN_APP_CONFIG,
+    SAMPLE_WEBAUTHN_FIDO2STATE,
+    SAMPLE_WEBAUTHN_REQUEST,
+)
 from eduid.webapp.reset_password.app import ResetPasswordApp, init_reset_password_app
 from eduid.webapp.reset_password.helpers import (
     ResetPwMsg,
@@ -83,12 +87,10 @@ class ResetPasswordTests(EduidAPITestCase):
                 'email_code_timeout': 7200,
                 'phone_code_timeout': 600,
                 'password_entropy': 25,
-                'u2f_app_id': 'https://eduid.se/u2f-app-id.json',
-                'fido2_rp_id': 'idp.dev.eduid.se',
-                'u2f_valid_facets': ['https://dashboard.dev.eduid.se', 'https://idp.dev.eduid.se'],
                 'dashboard_url': 'https://dashboard.dev.eduid.se',
             }
         )
+        config.update(SAMPLE_WEBAUTHN_APP_CONFIG)
         return config
 
     def tearDown(self):
@@ -375,10 +377,7 @@ class ResetPasswordTests(EduidAPITestCase):
         self.app.password_reset_state_db.save(state)
 
         if fido2state is None:
-            fido2state = {
-                'challenge': '3h_EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc',
-                'user_verification': 'preferred',
-            }
+            fido2state = SAMPLE_WEBAUTHN_FIDO2STATE
 
         with self.app.test_request_context():
             url = url_for('reset_password.set_new_pw_extra_security_token', _external=True)

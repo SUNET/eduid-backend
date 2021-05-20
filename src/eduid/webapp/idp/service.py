@@ -17,7 +17,7 @@ from html import escape
 from typing import Optional
 
 from flask import request
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, Field, validator
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.webapp.common.session.namespaces import RequestRef
@@ -29,7 +29,11 @@ from eduid.webapp.idp.sso_session import SSOSession
 class SAMLQueryParams(BaseModel):
     SAMLRequest: Optional[str]
     RelayState: Optional[str]
-    request_ref: Optional[RequestRef]
+    request_ref: Optional[RequestRef] = Field(alias='ref')
+
+    class Config:
+        # Allow setting request_ref using it's name too - not just the alias (ref)
+        allow_population_by_field_name = True
 
     @validator('SAMLRequest', 'RelayState')
     def validate_query_params(cls, v):

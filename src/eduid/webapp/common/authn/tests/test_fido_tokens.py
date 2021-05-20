@@ -97,6 +97,13 @@ SAMPLE_WEBAUTHN_FIDO2STATE = {
 }
 
 
+SAMPLE_WEBAUTHN_APP_CONFIG = {
+    'fido2_rp_id': 'eduid.docker',
+    'u2f_app_id': 'https://eduid.se/u2f-app-id.json',
+    'u2f_valid_facets': ['https://dashboard.dev.eduid.se', 'https://idp.dev.eduid.se'],
+}
+
+
 class FidoTokensTestCase(EduidAPITestCase):
 
     app: MockFidoApp
@@ -119,14 +126,9 @@ class FidoTokensTestCase(EduidAPITestCase):
 
     def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         config.update(
-            {
-                'app_name': 'testing',
-                'available_languages': {'en': 'English', 'sv': 'Svenska'},
-                'u2f_app_id': 'https://eduid.se/u2f-app-id.json',
-                'fido2_rp_id': 'eduid.docker',
-                'u2f_valid_facets': ['https://dashboard.dev.eduid.se', 'https://idp.dev.eduid.se'],
-            }
+            {'app_name': 'testing', 'available_languages': {'en': 'English', 'sv': 'Svenska'},}
         )
+        config.update(SAMPLE_WEBAUTHN_APP_CONFIG)
         return config
 
     def test_u2f_start_verification(self):
@@ -146,7 +148,7 @@ class FidoTokensTestCase(EduidAPITestCase):
                     _decoded = base64.urlsafe_b64decode(s + '=' * (-len(s) % 4))
                     # _decoded is still CBOR encoded, so we just check for some known strings
                     assert b'publicKey' in _decoded
-                    assert b'idp.dev.eduid.se' in _decoded
+                    assert bytes(self.app.conf.fido2_rp_id, 'ascii') in _decoded
                     assert b'challenge' in _decoded
 
     def test_webauthn_start_verification(self):
@@ -166,7 +168,7 @@ class FidoTokensTestCase(EduidAPITestCase):
                     _decoded = base64.urlsafe_b64decode(s + '=' * (-len(s) % 4))
                     # _decoded is still CBOR encoded, so we just check for some known strings
                     assert b'publicKey' in _decoded
-                    assert b'idp.dev.eduid.se' in _decoded
+                    assert bytes(self.app.conf.fido2_rp_id, 'ascii') in _decoded
                     assert b'challenge' in _decoded
 
     @patch('fido2.cose.ES256.verify')
