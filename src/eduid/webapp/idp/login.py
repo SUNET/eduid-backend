@@ -140,7 +140,16 @@ class SSO(Service):
 
         resp_args = self._validate_login_request(ticket)
 
-        session['user_eppn'] = user.eppn
+        # OLD:
+        if 'user_eppn' in session and session['user_eppn'] != user.eppn:
+            current_app.logger.warning(f'Refusing to change eppn in session from {session["user_eppn"]} to {user.eppn}')
+        else:
+            session['user_eppn'] = user.eppn
+        # NEW:
+        if session.common.eppn and session.common.eppn != user.eppn:
+            current_app.logger.warning(f'Refusing to change eppn in session from {session.common.eppn} to {user.eppn}')
+        else:
+            session.common.eppn = user.eppn
 
         action_response = check_for_pending_actions(user, ticket, self.sso_session)
         if action_response:
