@@ -210,6 +210,7 @@ def verify_webauthn(user: User, request_dict: Dict[str, Any], rp_id: str) -> Web
             req.signature,
         )
     except Exception:
+        logger.exception('Webauthn authentication failed')
         raise VerificationProblem('mfa.failed-verification')
 
     logger.debug(f'Authenticated Webauthn credential: {authn_cred}')
