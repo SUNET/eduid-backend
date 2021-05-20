@@ -40,7 +40,6 @@ from fido2.client import ClientData
 from fido2.ctap2 import AttestedCredentialData, AuthenticatorData
 from fido2.server import Fido2Server, RelyingParty, U2FFido2Server
 from fido2.utils import websafe_decode
-from flask import current_app
 from pydantic import BaseModel
 
 from eduid.userdb.credentials import U2F, Webauthn
@@ -122,13 +121,11 @@ def start_token_verification(user: User, fido2_rp_id: str) -> Dict[str, Any]:
     Begin authentication process based on the hardware tokens registered by the user.
     """
     credential_data = get_user_credentials(user)
-    current_app.logger.debug(
-        f'Extra debug: U2F credentials for user: {[str(x) for x in user.credentials.filter(U2F).to_list()]}'
-    )
-    current_app.logger.debug(
+    logger.debug(f'Extra debug: U2F credentials for user: {[str(x) for x in user.credentials.filter(U2F).to_list()]}')
+    logger.debug(
         f'Extra debug: Webauthn credentials for user: {[str(x) for x in user.credentials.filter(Webauthn).to_list()]}'
     )
-    current_app.logger.debug(f'FIDO credentials for user {user}:\n{pprint.pformat(list(credential_data.keys()))}')
+    logger.debug(f'FIDO credentials for user {user}:\n{pprint.pformat(list(credential_data.keys()))}')
 
     webauthn_credentials = [v.webauthn for v in credential_data.values()]
 
@@ -136,11 +133,11 @@ def start_token_verification(user: User, fido2_rp_id: str) -> Dict[str, Any]:
     fido2server = _get_fido2server(credential_data, fido2rp)
     raw_fido2data, fido2state = fido2server.authenticate_begin(webauthn_credentials)
 
-    current_app.logger.debug(f'FIDO2 authentication data:\n{pprint.pformat(raw_fido2data)}')
+    logger.debug(f'FIDO2 authentication data:\n{pprint.pformat(raw_fido2data)}')
     fido2data = base64.urlsafe_b64encode(cbor.encode(raw_fido2data)).decode('ascii')
     fido2data = fido2data.rstrip('=')
 
-    current_app.logger.debug(f'FIDO2/Webauthn state for user {user}: {fido2state}')
+    logger.debug(f'FIDO2/Webauthn state for user {user}: {fido2state}')
     session.mfa_action.webauthn_state = fido2state
 
     return {'webauthn_options': fido2data}
@@ -166,7 +163,7 @@ def verify_webauthn(user: User, request_dict: Dict[str, Any], rp_id: str) -> Web
     """
     Verify received Webauthn data against the user's credentials.
     """
-    current_app.logger.debug(f'Webauthn request:\n{json.dumps(request_dict, indent=4)}')
+    logger.debug(f'Webauthn request:\n{json.dumps(request_dict, indent=4)}')
 
     def _decode(key: str) -> bytes:
         try:
@@ -174,7 +171,7 @@ def verify_webauthn(user: User, request_dict: Dict[str, Any], rp_id: str) -> Web
             data += '=' * (len(data) % 4)
             return base64.urlsafe_b64decode(data)
         except:
-            current_app.logger.exception(f'Failed to find/b64decode Webauthn parameter {key}: {request_dict.get(key)}')
+            logger.exception(f'Failed to find/b64decode Webauthn parameter {key}: {request_dict.get(key)}')
             raise VerificationProblem('mfa.bad-token-response')  # XXX add bad-token-response to frontend
 
     req = WebauthnRequest(
@@ -199,7 +196,7 @@ def verify_webauthn(user: User, request_dict: Dict[str, Any], rp_id: str) -> Web
     matching_credentials = {k: v for k, v in credentials.items() if v.webauthn.credential_id == req.credentialId}
 
     if not matching_credentials:
-        current_app.logger.error(f'Could not find webauthn credential {repr(req.credentialId)} on user {user}')
+        logger.error(f'Could not find webauthn credential {repr(req.credentialId)} on user {user}')
         raise VerificationProblem('mfa.unknown-token')
 
     try:
@@ -214,25 +211,23 @@ def verify_webauthn(user: User, request_dict: Dict[str, Any], rp_id: str) -> Web
     except Exception:
         raise VerificationProblem('mfa.failed-verification')
 
-    current_app.logger.debug(f'Authenticated Webauthn credential: {authn_cred}')
+    logger.debug(f'Authenticated Webauthn credential: {authn_cred}')
 
     # Filter out the exact FidoCred that was actually used for the authentication
     authn_credentials = {k: v for k, v in credentials.items() if v.webauthn == authn_cred}
 
     if len(authn_credentials) != 1:
-        current_app.logger.error('Unable to find exactly the webauthn credential that was used for authentication')
-        current_app.logger.debug(f'Matching credentials: {matching_credentials}')
-        current_app.logger.debug(f'Authn credential: {authn_cred}')
-        current_app.logger.debug(f'Authn credentials: {authn_credentials}')
+        logger.error('Unable to find exactly the webauthn credential that was used for authentication')
+        logger.debug(f'Matching credentials: {matching_credentials}')
+        logger.debug(f'Authn credential: {authn_cred}')
+        logger.debug(f'Authn credentials: {authn_credentials}')
         raise RuntimeError('Unable to find exactly the webauthn credential that was used for authentication')
 
     cred_key = list(authn_credentials.keys())[0]
 
     touch = auth_data.flags
     counter = auth_data.counter
-    current_app.logger.info(
-        f'User {user} logged in using Webauthn token {cred_key} (touch: {touch}, counter {counter})'
-    )
+    logger.info(f'User {user} logged in using Webauthn token {cred_key} (touch: {touch}, counter {counter})')
     return WebauthnResult(
         success=True,
         touch=auth_data.is_user_present() or auth_data.is_user_verified(),
