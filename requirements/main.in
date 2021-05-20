@@ -9,7 +9,7 @@ boto3==1.17.*
 celery[redis]
 cookies-samesite-compat==0.0.*
 cryptography
-fido2==0.6.0
+fido2==0.9.1
 gunicorn
 hammock
 html5lib

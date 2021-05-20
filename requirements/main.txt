@@ -115,8 +115,8 @@ elementpath==2.2.1 \
     --hash=sha256:5a00899c22623e0a1c1cd0f05d27cc73b77287a6d645fb6c2ee725d87b29806f \
     --hash=sha256:c7b996c5624926f329f4379fbcffd5787629e08b2f8d7159d23525e9243ba637
     # via xmlschema
-fido2==0.6.0 \
-    --hash=sha256:7541edad31967d23f5006ffeccc54536ab9934dd981d65d29620d9dfb54566bf
+fido2==0.9.1 \
+    --hash=sha256:8680ee25238e2307596eb3900a0f8c0d9cc91189146ed8039544f1a3a69dfe6e
     # via -r main.in
 future==0.18.2 \
     --hash=sha256:b1bead90b70cf6ec3f0710ae53a525360fa360d306a86583adc6bf83a4db537d

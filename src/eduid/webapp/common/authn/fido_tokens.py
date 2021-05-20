@@ -38,8 +38,9 @@ from typing import Any, Dict
 from fido2 import cbor
 from fido2.client import ClientData
 from fido2.ctap2 import AttestedCredentialData, AuthenticatorData
-from fido2.server import Fido2Server, RelyingParty, U2FFido2Server
+from fido2.server import Fido2Server, U2FFido2Server
 from fido2.utils import websafe_decode
+from fido2.webauthn import PublicKeyCredentialRpEntity
 from pydantic import BaseModel
 
 from eduid.userdb.credentials import U2F, Webauthn
@@ -102,7 +103,7 @@ def get_user_credentials(user: User) -> Dict[CredentialKey, FidoCred]:
     return res
 
 
-def _get_fido2server(credentials: Dict[CredentialKey, FidoCred], fido2rp: RelyingParty) -> Fido2Server:
+def _get_fido2server(credentials: Dict[CredentialKey, FidoCred], fido2rp: PublicKeyCredentialRpEntity) -> Fido2Server:
     # See if any of the credentials is a legacy U2F credential with an app-id
     # (assume all app-ids are the same - authenticating with a mix of different
     # app-ids isn't supported in current Webauthn)
@@ -129,7 +130,7 @@ def start_token_verification(user: User, fido2_rp_id: str) -> Dict[str, Any]:
 
     webauthn_credentials = [v.webauthn for v in credential_data.values()]
 
-    fido2rp = RelyingParty(fido2_rp_id, name='eduid.se')
+    fido2rp = PublicKeyCredentialRpEntity(fido2_rp_id, name='eduid.se')
     fido2server = _get_fido2server(credential_data, fido2rp)
     raw_fido2data, fido2state = fido2server.authenticate_begin(webauthn_credentials)
 
@@ -190,7 +191,7 @@ def verify_webauthn(user: User, request_dict: Dict[str, Any], rp_id: str) -> Web
         # reset webauthn_state to avoid challenge reuse
         session.mfa_action.webauthn_state = None
 
-    fido2rp = RelyingParty(rp_id, 'eduID')
+    fido2rp = PublicKeyCredentialRpEntity(rp_id, 'eduID')
     fido2server = _get_fido2server(credentials, fido2rp)
     # Filter out the FidoCred that has webauthn.credential_id matching the credentialId in the request
     matching_credentials = {k: v for k, v in credentials.items() if v.webauthn.credential_id == req.credentialId}

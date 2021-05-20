@@ -63,7 +63,8 @@ def start_verification():
     data = json.loads(request.query_string[17:])
     try:
         result = verify_webauthn(user, data, current_app.conf.fido2_rp_id).json()
-    except VerificationProblem:
+    except VerificationProblem as exc:
+        current_app.logger.error(f'Webauthn verification failed: {repr(exc)}')
         result = {'success': False, 'message': 'mfa.verification-problem'}
     current_app.logger.info(f'Endpoint start_verification result: {result}')
     return result

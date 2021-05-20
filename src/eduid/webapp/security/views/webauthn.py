@@ -6,7 +6,8 @@ from typing import List, Sequence, Union
 from fido2 import cbor
 from fido2.client import ClientData
 from fido2.ctap2 import AttestationObject, AttestedCredentialData
-from fido2.server import USER_VERIFICATION, Fido2Server, RelyingParty
+from fido2.server import Fido2Server, PublicKeyCredentialRpEntity
+from fido2.webauthn import UserVerificationRequirement
 from flask import Blueprint
 
 from eduid.userdb.credentials import Webauthn
@@ -30,7 +31,7 @@ from eduid.webapp.security.schemas import (
 
 
 def get_webauthn_server(rp_id, name='eduID security API'):
-    rp = RelyingParty(rp_id, name)
+    rp = PublicKeyCredentialRpEntity(rp_id, name)
     return Fido2Server(rp)
 
 
@@ -80,7 +81,7 @@ def registration_begin(user, authenticator):
             'displayName': user.display_name,
         },
         credentials=creds,
-        user_verification=USER_VERIFICATION.DISCOURAGED,
+        user_verification=UserVerificationRequirement.discouraged,
         authenticator_attachment=authenticator,
     )
     session['_webauthn_state_'] = state
