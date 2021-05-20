@@ -146,7 +146,7 @@ class IdPTests(EduidAPITestCase):
 
             redirect_loc = self._extract_path_from_response(resp)
             # check that we were sent to the login form
-            if not redirect_loc.startswith('/verify?key='):
+            if not redirect_loc.startswith('/verify?ref='):
                 return LoginResult(url=path, reached_state=LoginState.S0_REDIRECT, response=resp)
 
             resp = self.browser.get(redirect_loc)
@@ -169,7 +169,7 @@ class IdPTests(EduidAPITestCase):
 
         redirect_loc = self._extract_path_from_response(resp)
         # check that we were sent back to the SSO redirect entrypoint
-        if not redirect_loc.startswith('/sso/redirect?key='):
+        if not redirect_loc.startswith('/sso/redirect?ref='):
             return LoginResult(url='/verify', reached_state=LoginState.S2_VERIFY, response=resp)
 
         cookies = resp.headers.get('Set-Cookie')

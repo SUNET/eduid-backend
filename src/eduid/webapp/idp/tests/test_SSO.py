@@ -123,13 +123,12 @@ def _transport_encode(data):
 
 
 class SSOIdPTests(IdPTests):
-    def _make_login_ticket(self, req_class_ref: str, key: Optional[ReqSHA1] = None) -> SSOLoginData:
+    def _make_login_ticket(self, req_class_ref: str, request_ref: Optional[RequestRef] = None) -> SSOLoginData:
         xmlstr = make_SAML_request(class_ref=req_class_ref)
         info = {'SAMLRequest': xmlstr}
         binding = 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST'
-        if key is None:
-            # key = 'unique-key-for-request-1'
-            key = gen_key(xmlstr)
+        if request_ref is None:
+            request_ref = RequestRef(str(uuid4()))
         saml_req = self._parse_SAMLRequest(
             info,
             binding,
@@ -142,14 +141,13 @@ class SSOIdPTests(IdPTests):
         from eduid.webapp.common.session import session
 
         try:
-            request_ref = RequestRef(str(uuid4()))
-            saml_data = IdP_PendingRequest(request=xmlstr, binding=binding, relay_state=None, key=key)
+            saml_data = IdP_PendingRequest(request=xmlstr, binding=binding, relay_state=None)
             session.idp.pending_requests[request_ref] = saml_data
         except RuntimeError:
             # Ignore RuntimeError: Working outside of request context when not running
             # inside self.app.test_request_context.
             pass
-        ticket = SSOLoginData(key=key)
+        ticket = SSOLoginData(request_ref=request_ref)
         ticket.saml_req = saml_req
         return ticket
 

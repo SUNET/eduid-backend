@@ -38,7 +38,7 @@ from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.idp.user import IdPUser
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData, SSOLoginData
-from eduid.webapp.common.session.namespaces import OnetimeCredential, OnetimeCredType, ReqSHA1
+from eduid.webapp.common.session.namespaces import OnetimeCredential, OnetimeCredType, ReqSHA1, RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import EduidAuthnContextClass, get_requested_authn_context
 from eduid.webapp.idp.idp_authn import AuthnData
@@ -80,7 +80,7 @@ def add_actions(user: IdPUser, ticket: SSOLoginData, sso_session: SSOSession) ->
         current_app.logger.debug('User does not have any FIDO tokens registered and SP did not require MFA')
         return None
 
-    existing_actions = current_app.actions_db.get_actions(user.eppn, ticket.key, action_type='mfa')
+    existing_actions = current_app.actions_db.get_actions(user.eppn, ticket.request_ref, action_type='mfa')
     if existing_actions and len(existing_actions) > 0:
         current_app.logger.debug('User has existing MFA actions - checking them')
         if check_authn_result(user, ticket, existing_actions, sso_session):
@@ -88,7 +88,9 @@ def add_actions(user: IdPUser, ticket: SSOLoginData, sso_session: SSOSession) ->
         current_app.logger.error('User returned without MFA credentials')
 
     current_app.logger.debug(f'User must authenticate with a token (has {len(tokens)} token(s))')
-    return current_app.actions_db.add_action(user.eppn, action_type='mfa', preference=1, session=ticket.key, params={})
+    return current_app.actions_db.add_action(
+        user.eppn, action_type='mfa', preference=1, session=ticket.request_ref, params={}
+    )
 
 
 def check_authn_result(user: IdPUser, ticket: SSOLoginData, actions: List[Action], sso_session: SSOSession) -> bool:
@@ -114,19 +116,20 @@ def check_authn_result(user: IdPUser, ticket: SSOLoginData, actions: List[Action
         if this.result is None:
             continue
 
-        if this.session != ticket.key:
-            current_app.logger.warning(f'Got action result for another session {this.session} (expected {ticket.key})')
+        if this.session != ticket.request_ref:
+            current_app.logger.warning(
+                f'Got action result for another session {this.session} (expected {ticket.request_ref})'
+            )
 
         # TODO: Use timestamp from action result rather than timestamp when we get here
         _utc_now = utc_now()
         if this.result.success is True:
-            request_ref = session.idp.get_requestref_for_reqsha1(ReqSHA1(this.session))
             if isinstance(this.result, ActionResultThirdPartyMFA):
                 # External MFA authentication
                 sso_session.external_mfa = ExternalMfaData(
                     issuer=this.result.issuer, authn_context=this.result.authn_context, timestamp=_utc_now
                 )
-                if request_ref:
+                if this.session:
                     # Remember the MFA credential used for this particular request
                     otc = OnetimeCredential(
                         type=OnetimeCredType.external_mfa,
@@ -134,7 +137,7 @@ def check_authn_result(user: IdPUser, ticket: SSOLoginData, actions: List[Action
                         authn_context=this.result.authn_context,
                         timestamp=_utc_now,
                     )
-                    session.idp.log_credential_used(request_ref, otc, _utc_now)
+                    session.idp.log_credential_used(RequestRef(this.session), otc, _utc_now)
                 # TODO: Should we persistently log external MFA usage with log_authn() like we do below?
                 current_app.logger.debug(f'Removing MFA action completed with external issuer {this.result.issuer}')
                 current_app.actions_db.remove_action_by_id(this.action_id)
@@ -159,9 +162,9 @@ def check_authn_result(user: IdPUser, ticket: SSOLoginData, actions: List[Action
 
                 current_app.authn.log_authn(user, success=[cred.key], failure=[])
 
-                if request_ref:
+                if this.session:
                     # Remember the MFA credential used for this particular request
-                    session.idp.log_credential_used(request_ref, cred, _utc_now)
+                    session.idp.log_credential_used(RequestRef(this.session), cred, _utc_now)
 
                 res = True
             else:

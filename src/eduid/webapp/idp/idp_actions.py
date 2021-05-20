@@ -63,7 +63,7 @@ def check_for_pending_actions(
     # Add any actions that may depend on the login data
     add_idp_initiated_actions(user, ticket, sso_session)
 
-    actions_eppn = current_app.actions_db.get_actions(user.eppn, session=ticket.key)
+    actions_eppn = current_app.actions_db.get_actions(user.eppn, session=ticket.request_ref)
 
     # Check for pending actions
     pending_actions = [a for a in actions_eppn if a.result is None]
@@ -78,8 +78,8 @@ def check_for_pending_actions(
     current_app.logger.info(f'Redirecting user {user} to actions app {actions_uri}')
 
     # TODO: The IdP should never _write_ to the actions namespace. Actions should _read_
-    #       the ticket.key from the IdP namespace instead.
-    session.actions.session = ticket.key
+    #       the ticket.request_ref from the IdP namespace instead.
+    session.actions.session = ticket.request_ref
     return redirect(actions_uri)
 
 

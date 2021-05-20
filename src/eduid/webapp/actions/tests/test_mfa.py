@@ -38,17 +38,18 @@ from typing import Any, Dict, Optional
 
 from bson import ObjectId
 from fido2.server import Fido2Server
-from mock import patch
 
 from eduid.userdb.actions.action import ActionResultThirdPartyMFA
 from eduid.userdb.credentials import U2F
 from eduid.userdb.fixtures.users import mocked_user_standard
 from eduid.webapp.actions.actions.mfa import Plugin
-from eduid.webapp.actions.helpers import ActionsMsg
 from eduid.webapp.actions.testing import ActionsTestCase, MockIdPContext
 from eduid.webapp.common.session import session
 
 __author__ = 'ft'
+
+from eduid.webapp.common.session.logindata import SSOLoginData
+from eduid.webapp.common.session.namespaces import RequestRef
 
 MFA_ACTION = {
     '_id': ObjectId('234567890123456789012301'),
@@ -65,16 +66,12 @@ def add_actions(context, user, ticket):
     This is a stripped down version of eduid_idp.mfa_action.add_actions
     that adds the action unconditionally.
     """
-    action = context.actions_db.add_action(user.eppn, action_type='mfa', preference=1, session=ticket.key, params={})
+    action = context.actions_db.add_action(
+        user.eppn, action_type='mfa', preference=1, session=ticket.request_ref, params={}
+    )
     session.actions.current_plugin = 'mfa'
     session.actions.current_action = action
     session.persist()
-
-
-class MockTicket:
-    def __init__(self, key):
-        self.key = key
-        self.mfa_action_creds = {}
 
 
 class MFAActionPluginTests(ActionsTestCase):
@@ -115,7 +112,7 @@ class MFAActionPluginTests(ActionsTestCase):
             idp_session = mock_session
         mock_idp_app = MockIdPContext(self.app.actions_db)
         with self.app.test_request_context('/get-actions'):
-            add_actions(mock_idp_app, self.user, MockTicket(mock_session))
+            add_actions(mock_idp_app, self.user, SSOLoginData(request_ref=RequestRef('mock-session')))
             self.authenticate(idp_session=idp_session)
             response = self.app.dispatch_request()
             return json.loads(response)
@@ -126,7 +123,7 @@ class MFAActionPluginTests(ActionsTestCase):
         """
         with self.app.test_request_context('/config'):
             mock_idp_app = MockIdPContext(self.app.actions_db)
-            add_actions(mock_idp_app, self.user, MockTicket('mock-session'))
+            add_actions(mock_idp_app, self.user, SSOLoginData(request_ref=RequestRef('mock-session')))
             self.authenticate(idp_session='mock-session')
             response = self.app.dispatch_request()
             return json.loads(response.data)

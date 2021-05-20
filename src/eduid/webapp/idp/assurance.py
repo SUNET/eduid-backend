@@ -274,12 +274,12 @@ def get_requested_authn_context(ticket: SSOLoginData) -> Optional[EduidAuthnCont
     """
     _accrs = ticket.saml_req.get_requested_authn_contexts()
 
-    res = _pick_authn_context(_accrs, ticket.key)
+    res = _pick_authn_context(_accrs, ticket.request_ref)
 
     attributes = ticket.saml_req.sp_entity_attributes
     if 'http://www.swamid.se/assurance-requirement' in attributes:
         # TODO: This is probably obsolete and not present anywhere in SWAMID metadata anymore
-        new_authn = _pick_authn_context(attributes['http://www.swamid.se/assurance-requirement'], ticket.key)
+        new_authn = _pick_authn_context(attributes['http://www.swamid.se/assurance-requirement'], ticket.request_ref)
         current_app.logger.debug(
             f'Entity {ticket.saml_req.sp_entity_id} has AuthnCtx preferences in metadata. '
             f'Overriding {res} -> {new_authn}'

@@ -189,13 +189,13 @@ class SSO(Service):
 
         if _next.message == IdPMsg.must_authenticate:
             if not self.sso_session:
-                current_app.logger.info(f'{ticket.key}: authenticate ip={request.remote_addr}')
+                current_app.logger.info(f'{ticket.request_ref}: authenticate ip={request.remote_addr}')
             elif ticket.saml_req.force_authn:
-                current_app.logger.info(f'{ticket.key}: force_authn sso_session={self.sso_session.public_id}')
+                current_app.logger.info(f'{ticket.request_ref}: force_authn sso_session={self.sso_session.public_id}')
 
             # Don't use _next.endpoint here, even though it happens to be this same URL for now.
             # _next.endpoint is for the API interface, this is the old template realm.
-            return redirect(url_for('idp.verify') + '?key=' + ticket.key)
+            return redirect(url_for('idp.verify') + '?ref=' + ticket.request_ref)
 
         if _next.message == IdPMsg.user_terminated:
             raise Forbidden('USER_TERMINATED')
@@ -212,7 +212,9 @@ class SSO(Service):
         if _next.message == IdPMsg.proceed:
             assert self.sso_session  # please mypy
             _ttl = current_app.conf.sso_session_lifetime - self.sso_session.minutes_old
-            current_app.logger.info(f'{ticket.key}: proceeding sso_session={self.sso_session.public_id}, ttl={_ttl:}m')
+            current_app.logger.info(
+                f'{ticket.request_ref}: proceeding sso_session={self.sso_session.public_id}, ttl={_ttl:}m'
+            )
             current_app.logger.debug(f'Continuing with Authn request {repr(ticket.saml_req.request_id)}')
             assert _next.authn_info  # please mypy
             return self.perform_login(ticket, _next.authn_info)
@@ -252,7 +254,7 @@ class SSO(Service):
         http_args = ticket.saml_req.apply_binding(resp_args, ticket.RelayState, saml_response)
 
         # INFO-Log the SSO session id and the AL and destination
-        current_app.logger.info(f'{ticket.key}: response authn={authn_info}, dst={destination}')
+        current_app.logger.info(f'{ticket.request_ref}: response authn={authn_info}, dst={destination}')
         self._fticks_log(
             relying_party=resp_args.get('sp_entity_id', destination),
             authn_method=authn_info.class_ref,
@@ -260,7 +262,7 @@ class SSO(Service):
         )
 
         # We're done with this SAML request. Remove it from the session.
-        session.idp.pending_requests = {k: v for k, v in session.idp.pending_requests.items() if v.key != ticket.key}
+        del session.idp.pending_requests[ticket.request_ref]
 
         return mischttp.create_html_response(binding, http_args)
 
@@ -358,14 +360,14 @@ class SSO(Service):
             assertion = xml.find('{urn:oasis:names:tc:SAML:2.0:assertion}Assertion')
             current_app.logger.info(
                 '{!s}: id={!s}, in_response_to={!s}, assertion_id={!s}'.format(
-                    ticket.key, attrs['ID'], attrs['InResponseTo'], assertion.get('ID')
+                    ticket.request_ref, attrs['ID'], attrs['InResponseTo'], assertion.get('ID')
                 )
             )
         except Exception as exc:
             current_app.logger.debug(f'Could not parse message as XML: {exc!r}')
             if not printed:
                 # Fall back to logging the whole response
-                current_app.logger.info(f'{ticket.key}: authn response: {saml_response}')
+                current_app.logger.info(f'{ticket.request_ref}: authn response: {saml_response}')
         return None
 
     def _fticks_log(self, relying_party: str, authn_method: str, user_id: str) -> None:
@@ -443,7 +445,7 @@ class SSO(Service):
         assert isinstance(ticket, SSOLoginData)
         current_app.logger.debug(f"Validate login request :\n{ticket}")
         current_app.logger.debug(f"AuthnRequest from ticket: {ticket.saml_req!r}")
-        return ticket.saml_req.get_response_args(BadRequest, ticket.key)
+        return ticket.saml_req.get_response_args(BadRequest, ticket.request_ref)
 
 
 # -----------------------------------------------------------------------------
@@ -465,7 +467,13 @@ def show_login_page(ticket: SSOLoginData) -> WerkzeugResponse:
 
     argv = get_default_template_arguments(current_app.conf)
     argv.update(
-        {'action': url_for('idp.verify'), 'alert_msg': '', 'key': ticket.key, 'password': '', 'username': _username}
+        {
+            'action': url_for('idp.verify'),
+            'alert_msg': '',
+            'key': ticket.request_ref,
+            'password': '',
+            'username': _username,
+        }
     )
 
     # Set alert msg if found in the session
@@ -502,8 +510,8 @@ def do_verify() -> WerkzeugResponse:
     current_app.logger.debug(f'do_verify parsed query :\n{pprint.pformat(query)}')
 
     if 'key' not in query:
-        raise BadRequest(f'Missing parameter key - please re-initiate login')
-    _info = SAMLQueryParams(key=query['key'])
+        raise BadRequest(f'Missing parameter - please re-initiate login')
+    _info = SAMLQueryParams(request_ref=query['ref'])
     _ticket = get_ticket(_info, None)
 
     authn_ref = get_requested_authn_context(_ticket)
@@ -513,7 +521,7 @@ def do_verify() -> WerkzeugResponse:
     # function - regardless of if authentication was successful or not. The only difference
     # when authentication is successful is that a SSO session is created, and a reference
     # to it set in a cookie in the redirect response.
-    next_endpoint = url_for('idp.sso_redirect') + '?key=' + _ticket.key
+    next_endpoint = url_for('idp.sso_redirect') + '?ref=' + _ticket.request_ref
 
     if not password or 'username' not in query:
         current_app.logger.debug(f'Credentials not supplied. Redirect => {next_endpoint}')
@@ -529,7 +537,7 @@ def do_verify() -> WerkzeugResponse:
         del password  # keep out of any exception logs
 
     if not pwauth:
-        current_app.logger.info(f'{_ticket.key}: Password authentication failed')
+        current_app.logger.info(f'{_ticket.request_ref}: Password authentication failed')
         _ticket.saml_data.template_show_msg = _('Incorrect username or password')
         current_app.logger.debug(f'Unknown user or wrong password. Redirect => {next_endpoint}')
         return redirect(next_endpoint)
@@ -555,13 +563,11 @@ def do_verify() -> WerkzeugResponse:
 
     # INFO-Log the request id (sha1 of SAML request) and the sso_session
     current_app.logger.info(
-        f'{_ticket.key}: login sso_session={_sso_session.public_id}, authn={authn_ref}, user={pwauth.user}'
+        f'{_ticket.request_ref}: login sso_session={_sso_session.public_id}, authn={authn_ref}, user={pwauth.user}'
     )
 
     # Remember the password credential used for this particular request
-    request_ref = session.idp.get_requestref_for_reqsha1(_ticket.key)
-    if request_ref:
-        session.idp.log_credential_used(request_ref, pwauth.credential, pwauth.timestamp)
+    session.idp.log_credential_used(_ticket.request_ref, pwauth.credential, pwauth.timestamp)
 
     # Now that an SSO session has been created, redirect the users browser back to
     # the main entry point of the IdP (the SSO redirect endpoint).
@@ -577,18 +583,16 @@ def do_verify() -> WerkzeugResponse:
 
 # ----------------------------------------------------------------------------
 def _add_saml_request_to_session(info: SAMLQueryParams, binding: str) -> RequestRef:
-    if info.key:
-        for ref, this in session.idp.pending_requests.items():
-            if this.key == info.key:
-                # Already present
-                return ref
-    _uuid = RequestRef(str(uuid4()))
-    if not info.SAMLRequest or info.key is None:
-        raise ValueError(f"Can't add incomplete query params to session: {info}")
-    session.idp.pending_requests[_uuid] = IdP_PendingRequest(
-        request=info.SAMLRequest, binding=binding, relay_state=info.RelayState, key=info.key
+    if info.request_ref:
+        # Already present
+        return info.request_ref
+    if not info.SAMLRequest or binding is None:
+        raise ValueError(f"Can't add incomplete query params to session: {info}, binding {binding}")
+    request_ref = RequestRef(str(uuid4()))
+    session.idp.pending_requests[request_ref] = IdP_PendingRequest(
+        request=info.SAMLRequest, binding=binding, relay_state=info.RelayState
     )
-    return _uuid
+    return request_ref
 
 
 def get_ticket(info: SAMLQueryParams, binding: Optional[str]) -> SSOLoginData:
@@ -598,19 +602,14 @@ def get_ticket(info: SAMLQueryParams, binding: Optional[str]) -> SSOLoginData:
     logger = current_app.logger
 
     if info.SAMLRequest:
-        _key = gen_key(info.SAMLRequest)
-        if info.key and info.key != _key:
-            logger.warning('The SAMLRequest does not match the key parameter')
-            logger.debug(f'Query params: {SAMLQueryParams}\nCalculated key: {_key}')
-        info.key = _key
         if binding is None:
-            raise TypeError('Binding must be supplied to add SAML request to session')
-        ref = _add_saml_request_to_session(info, binding)
-        logger.debug(f'Added SAML request to session, got reference {ref}')
+            raise ValueError('Binding must be supplied to add SAML request to session')
+        info.request_ref = _add_saml_request_to_session(info, binding)
+        logger.debug(f'Added SAML request to session, got reference {info.request_ref}')
 
-    if not info.key:
+    if not info.request_ref:
         raise BadRequest('Bad request, please re-initiate login')
 
-    ticket = SSOLoginData(key=info.key)
+    ticket = SSOLoginData(request_ref=info.request_ref)
     ticket.saml_req = IdP_SAMLRequest(ticket.SAMLRequest, ticket.binding, current_app.IDP, debug=current_app.conf.debug)
     return ticket

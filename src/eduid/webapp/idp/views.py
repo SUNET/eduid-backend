@@ -35,7 +35,7 @@ from flask import Blueprint, redirect, request
 from werkzeug.exceptions import BadRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
 
-from eduid.webapp.common.session.namespaces import ReqSHA1
+from eduid.webapp.common.session.namespaces import ReqSHA1, RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.login import SSO, do_verify, get_ticket, show_login_page
 from eduid.webapp.idp.logout import SLO
@@ -100,9 +100,9 @@ def verify() -> WerkzeugResponse:
 
     if request.method == 'GET':
         query = parse_query_string()
-        if 'key' not in query:
-            raise BadRequest(f'Missing parameter key - please re-initiate login')
-        _info = SAMLQueryParams(key=ReqSHA1(query['key']))
+        if 'ref' not in query:
+            raise BadRequest(f'Missing parameter - please re-initiate login')
+        _info = SAMLQueryParams(request_ref=RequestRef(query['ref']))
         ticket = get_ticket(_info, None)
         return show_login_page(ticket)
 

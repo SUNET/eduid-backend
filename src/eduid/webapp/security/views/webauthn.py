@@ -81,7 +81,7 @@ def registration_begin(user, authenticator):
             'displayName': user.display_name,
         },
         credentials=creds,
-        user_verification=UserVerificationRequirement.discouraged,
+        user_verification=UserVerificationRequirement.DISCOURAGED,
         authenticator_attachment=authenticator,
     )
     session['_webauthn_state_'] = state
