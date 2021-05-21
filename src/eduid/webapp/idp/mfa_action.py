@@ -34,7 +34,7 @@ from typing import List, Optional
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.actions import Action
 from eduid.userdb.actions.action import ActionResultMFA, ActionResultThirdPartyMFA
-from eduid.userdb.credentials import U2F, Webauthn
+from eduid.userdb.credentials import U2F, FidoCredential, Webauthn
 from eduid.userdb.idp.user import IdPUser
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData, SSOLoginData
@@ -86,6 +86,14 @@ def add_actions(user: IdPUser, ticket: SSOLoginData, sso_session: SSOSession) ->
         if check_authn_result(user, ticket, existing_actions, sso_session):
             return None
         current_app.logger.error('User returned without MFA credentials')
+
+    current_app.logger.debug('Checking for previous MFA authentication for this request')
+
+    for cred_key in ticket.saml_data.credentials_used:
+        cred = user.credentials.find(cred_key)
+        if isinstance(cred, FidoCredential):
+            current_app.logger.debug(f'User has authenticated for this request with FIDO token {cred_key}')
+            return None
 
     current_app.logger.debug(f'User must authenticate with a token (has {len(tokens)} token(s))')
     return current_app.actions_db.add_action(
