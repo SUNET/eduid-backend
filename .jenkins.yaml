@@ -35,3 +35,12 @@ extra_jobs:
       - "pip install -U pip setuptools wheel pip-tools"
       - "touch requirements/*in"
       - "make update_deps"
+      - "python3.8 -m venv venv"
+      - ". venv/bin/activate"
+      - "pip install -U pip setuptools wheel mypy"
+      - "pip install --index-url https://pypi.sunet.se -r requirements/test_requirements.txt"
+      - "pip freeze"
+      - "make test"
+      - "make typecheck"
+
+
