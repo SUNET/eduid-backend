@@ -113,7 +113,6 @@ class IdP_PendingRequest(BaseModel):
     request: str
     binding: str
     relay_state: Optional[str]
-    key: ReqSHA1  # sha1 of request
     template_show_msg: Optional[str]  # set when the template version of the idp should show a message to the user
     # Credentials used while authenticating _this SAML request_. Not ones inherited from SSO.
     credentials_used: Dict[CredentialKey, datetime] = Field(default={})
@@ -136,12 +135,3 @@ class IdP_Namespace(TimestampedNS):
             _key = CredentialKey(str(uuid4()))
             self.pending_requests[request_ref].onetime_credentials[_key] = credential
             self.pending_requests[request_ref].credentials_used[_key] = timestamp
-
-    def get_requestref_for_reqsha1(self, key: ReqSHA1) -> Optional[RequestRef]:
-        """ Helper function while we still use ReqSHA1 (key) """
-        for ref, this in self.pending_requests.items():
-            if this.key == key:
-                return ref
-        logger.warning(f'Request with ReqSHA1 {key} not found in session')
-        logger.debug(f'Pending requests in session:\n{self.pending_requests}')
-        return None

@@ -32,14 +32,18 @@
 #
 
 from flask import Blueprint, redirect, request
+from werkzeug.exceptions import BadRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
 
+from eduid.webapp.common.session.namespaces import ReqSHA1, RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
-from eduid.webapp.idp.login import SSO, do_verify
+from eduid.webapp.idp.login import SSO, do_verify, get_ticket, show_login_page
 from eduid.webapp.idp.logout import SLO
 
 __author__ = 'ft'
 
+from eduid.webapp.idp.mischttp import parse_query_string
+from eduid.webapp.idp.service import SAMLQueryParams
 
 idp_views = Blueprint('idp', __name__, url_prefix='', template_folder='templates')
 
@@ -89,16 +93,28 @@ def slo_redirect() -> WerkzeugResponse:
     return SLO(slo_session).redirect()
 
 
-@idp_views.route('/verify', methods=['POST'])
+@idp_views.route('/verify', methods=['GET', 'POST'])
 def verify() -> WerkzeugResponse:
     current_app.logger.debug('\n\n')
-    current_app.logger.debug("--- Verify ---")
-    if current_app._lookup_sso_session():
-        # If an already logged in user presses 'back' or similar, we can't really expect to
-        # manage to log them in again (think OTPs) and just continue 'back' to the SP.
-        # However, with forceAuthn, this is exactly what happens so maybe it isn't really
-        # an error case.
-        # raise eduid_idp.error.LoginTimeout("Already logged in - can't verify credentials again",
-        #                                   logger = self.logger)
-        current_app.logger.debug("User is already logged in - verifying credentials again might not work")
-    return do_verify()
+    current_app.logger.debug(f"--- Verify ({request.method}) ---")
+
+    if request.method == 'GET':
+        query = parse_query_string()
+        if 'ref' not in query:
+            raise BadRequest(f'Missing parameter - please re-initiate login')
+        _info = SAMLQueryParams(request_ref=RequestRef(query['ref']))
+        ticket = get_ticket(_info, None)
+        return show_login_page(ticket)
+
+    if request.method == 'POST':
+        if current_app._lookup_sso_session():
+            # If an already logged in user presses 'back' or similar, we can't really expect to
+            # manage to log them in again (think OTPs) and just continue 'back' to the SP.
+            # However, with forceAuthn, this is exactly what happens so maybe it isn't really
+            # an error case.
+            # raise eduid_idp.error.LoginTimeout("Already logged in - can't verify credentials again",
+            #                                   logger = self.logger)
+            current_app.logger.debug("User is already logged in - verifying credentials again might not work")
+        return do_verify()
+
+    raise BadRequest()

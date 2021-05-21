@@ -60,10 +60,11 @@ views = Blueprint('testing', 'testing', url_prefix='')
 def start_verification():
     current_app.logger.info('Endpoint start_verification called')
     user = current_app.central_userdb.get_user_by_eppn('hubba-bubba')
-    data = json.loads(request.query_string[17:])
+    data = json.loads(request.query_string[len('webauthn_request=') :])
     try:
         result = verify_webauthn(user, data, current_app.conf.fido2_rp_id).json()
-    except VerificationProblem:
+    except VerificationProblem as exc:
+        current_app.logger.error(f'Webauthn verification failed: {repr(exc)}')
         result = {'success': False, 'message': 'mfa.verification-problem'}
     current_app.logger.info(f'Endpoint start_verification result: {result}')
     return result
@@ -76,12 +77,30 @@ class MockFidoApp(EduIDBaseApp):
         self.conf = config
 
 
+# These values were extracted from a working webauthn login in our development environment.
+#
+# The webauthn configuration in the MockFidoApp's config also has to match what was used
+# when this request/state was generated, otherwise validation will fail.
+#
 SAMPLE_WEBAUTHN_REQUEST = {
-    'authenticatorData': 'EqW1xI3n-hgnNPFAHqXwTnBqgKgUMmBLDxB7n3apMPQAAAAAAA',
-    'clientDataJSON': 'eyJjaGFsbGVuZ2UiOiIzaF9FQVpwWTI1eERkU0pDT014MUFCWkVBNU9kejN5ZWpVSTNBVU5UUVdjIiwib3JpZ2luIjoiaHR0cHM6Ly9pZHAuZGV2LmVkdWlkLnNlIiwidHlwZSI6IndlYmF1dGhuLmdldCJ9',
     'credentialId': 'i3KjBT0t5TPm693T9O0f4zyiwvdu9cY8BegCjiVvq_FS-ZmPcvXipFvHvD5CH6ZVRR3nsVsOla0Cad3fbtUA_Q',
-    #  This is a fake signature, we mock its verification below
-    'signature': 'MEYCIQC5gM8inamJGUFKu3bNo4fT0jmJQuw33OSSXc242NCuiwIhAIWnVw2Spow72j6J92KaY2rLR6qSXEbLam09ZXbSkBnQ',
+    "authenticatorData": "3PcEcSYqagziJNECYxSBKMR01J4pmySHIPPDM-42YdMBAAAGNw",
+    # {"type":"webauthn.get","challenge":"saoY-78kzDgV6mX5R2ixraC699jEU1cJTu7I9twUfJQ","origin":"https://idp.eduid.docker","crossOrigin":false}
+    "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoic2FvWS03OGt6RGdWNm1YNVIyaXhyYUM2OTlqRVUxY0pUdTdJOXR3VWZKUSIsIm9yaWdpbiI6Imh0dHBzOi8vaWRwLmVkdWlkLmRvY2tlciIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
+    # This is a fake signature, we mock its verification below
+    "signature": "MEUCICVPIQ5fO6gXtu3nXD9ff5ILcmWc54m6AxvK9vcS8IjkAiEAoFAKblpl29UHK6AhnOf6r7hezTZeQdK5lB4J3F-cguY",
+}
+
+SAMPLE_WEBAUTHN_FIDO2STATE = {
+    'challenge': 'saoY-78kzDgV6mX5R2ixraC699jEU1cJTu7I9twUfJQ',
+    'user_verification': 'preferred',
+}
+
+
+SAMPLE_WEBAUTHN_APP_CONFIG = {
+    'fido2_rp_id': 'eduid.docker',
+    'u2f_app_id': 'https://eduid.se/u2f-app-id.json',
+    'u2f_valid_facets': ['https://dashboard.dev.eduid.se', 'https://idp.dev.eduid.se'],
 }
 
 
@@ -107,14 +126,9 @@ class FidoTokensTestCase(EduidAPITestCase):
 
     def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         config.update(
-            {
-                'app_name': 'testing',
-                'available_languages': {'en': 'English', 'sv': 'Svenska'},
-                'u2f_app_id': 'https://eduid.se/u2f-app-id.json',
-                'fido2_rp_id': 'idp.dev.eduid.se',
-                'u2f_valid_facets': ['https://dashboard.dev.eduid.se', 'https://idp.dev.eduid.se'],
-            }
+            {'app_name': 'testing', 'available_languages': {'en': 'English', 'sv': 'Svenska'},}
         )
+        config.update(SAMPLE_WEBAUTHN_APP_CONFIG)
         return config
 
     def test_u2f_start_verification(self):
@@ -134,7 +148,7 @@ class FidoTokensTestCase(EduidAPITestCase):
                     _decoded = base64.urlsafe_b64decode(s + '=' * (-len(s) % 4))
                     # _decoded is still CBOR encoded, so we just check for some known strings
                     assert b'publicKey' in _decoded
-                    assert b'idp.dev.eduid.se' in _decoded
+                    assert bytes(self.app.conf.fido2_rp_id, 'ascii') in _decoded
                     assert b'challenge' in _decoded
 
     def test_webauthn_start_verification(self):
@@ -154,26 +168,20 @@ class FidoTokensTestCase(EduidAPITestCase):
                     _decoded = base64.urlsafe_b64decode(s + '=' * (-len(s) % 4))
                     # _decoded is still CBOR encoded, so we just check for some known strings
                     assert b'publicKey' in _decoded
-                    assert b'idp.dev.eduid.se' in _decoded
+                    assert bytes(self.app.conf.fido2_rp_id, 'ascii') in _decoded
                     assert b'challenge' in _decoded
 
     @patch('fido2.cose.ES256.verify')
     def test_webauthn_verify(self, mock_verify):
         mock_verify.return_value = True
-        # Add a working U2F credential for this test
+        # Add a working webauthn credential for this test
         self.test_user.credentials.add(self.webauthn_credential)
         self.amdb.save(self.test_user, check_sync=False)
 
-        eppn = self.test_user.eppn
-
         with self.app.test_request_context():
-            with self.session_cookie(self.browser, eppn) as client:
+            with self.session_cookie(self.browser, self.test_user.eppn) as client:
                 with client.session_transaction() as sess:
-                    fido2state = {
-                        'challenge': '3h_EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc',
-                        'user_verification': 'preferred',
-                    }
-                    sess.mfa_action.webauthn_state = fido2state
+                    sess.mfa_action.webauthn_state = SAMPLE_WEBAUTHN_FIDO2STATE
                     sess.persist()
                     resp = client.get('/start?webauthn_request=' + json.dumps(SAMPLE_WEBAUTHN_REQUEST))
                     resp_data = json.loads(resp.data)
@@ -196,7 +204,7 @@ class FidoTokensTestCase(EduidAPITestCase):
                         'challenge': '3h_EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc',
                         'user_verification': 'preferred',
                     }
-                    sess['testing.webauthn.state'] = json.dumps(fido2state)
+                    sess.mfa_action.webauthn_state = fido2state
                     sess.persist()
                     resp = client.get('/start?webauthn_request=' + json.dumps(SAMPLE_WEBAUTHN_REQUEST))
                     resp_data = json.loads(resp.data)

@@ -15,7 +15,7 @@ Code handling Single Sign On logins.
 import hmac
 import pprint
 import time
-from dataclasses import replace
+from enum import unique
 from hashlib import sha256
 from typing import Dict, List, Optional
 from uuid import uuid4
@@ -23,6 +23,7 @@ from uuid import uuid4
 from defusedxml import ElementTree as DefusedElementTree
 from flask import make_response, redirect, render_template, request, url_for
 from flask_babel import gettext as _
+from pydantic import BaseModel
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest, Forbidden, TooManyRequests
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -30,18 +31,27 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.idp.user import SAMLAttributeSettings
 from eduid.webapp.common.api import exceptions
+from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import SSOLoginData
 from eduid.webapp.common.session.namespaces import IdP_PendingRequest, RequestRef
 from eduid.webapp.idp import assurance, mischttp
 from eduid.webapp.idp.app import current_idp_app as current_app
-from eduid.webapp.idp.assurance import AssuranceException, EduidAuthnContextClass, MissingMultiFactor, WrongMultiFactor
+from eduid.webapp.idp.assurance import (
+    AssuranceException,
+    MissingAuthentication,
+    MissingMultiFactor,
+    MissingPasswordFactor,
+    WrongMultiFactor,
+    get_requested_authn_context,
+)
 from eduid.webapp.idp.idp_actions import check_for_pending_actions
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.idp_saml import AuthnInfo, IdP_SAMLRequest, ResponseArgs, SamlResponse, gen_key
+from eduid.webapp.idp.mischttp import get_default_template_arguments
 from eduid.webapp.idp.service import SAMLQueryParams, Service
 from eduid.webapp.idp.sso_session import SSOSession
-from eduid.webapp.idp.util import b64encode, get_requested_authn_context
+from eduid.webapp.idp.util import b64encode
 
 
 class MustAuthenticate(Exception):
@@ -57,8 +67,86 @@ class MustAuthenticate(Exception):
 # -----------------------------------------------------------------------------
 
 
-def next_step(ticket: SSOLoginData, sso_session: Optional[SSOSession]):
-    ...
+@unique
+class IdPMsg(str, TranslatableMsg):
+    user_terminated = 'idp.user_terminated'
+    must_authenticate = 'idp.must_authenticate'
+    swamid_mfa_required = 'idp.swamid_mfa_required'
+    mfa_required = 'idp.mfa_required'
+    assurance_not_possible = 'idp.assurance_not_possible'
+    assurance_failure = 'idp.assurance_failure'
+    action_required = 'idp.action_required'  # Shouldn't actually be returned to the frontend
+    proceed = 'idp.proceed'  # Shouldn't actually be returned to the frontend
+    wrong_user = 'wrong_user'
+
+
+class NextResult(BaseModel):
+    message: IdPMsg
+    error: bool = False
+    endpoint: Optional[str] = None
+    action_response: Optional[WerkzeugResponse] = None
+    authn_info: Optional[AuthnInfo] = None
+
+    class Config:
+        # don't reject WerkzeugResponse
+        arbitrary_types_allowed = True
+
+
+def login_next_step(ticket: SSOLoginData, sso_session: Optional[SSOSession]) -> NextResult:
+    """ The main state machine for the login flow(s). """
+    if not isinstance(sso_session, SSOSession):
+        return NextResult(message=IdPMsg.must_authenticate, endpoint=url_for('idp.verify'))
+
+    user = sso_session.idp_user
+
+    if user.terminated:
+        current_app.logger.info(f'User {user} is terminated')
+        return NextResult(message=IdPMsg.user_terminated, error=True)
+
+    res: Optional[NextResult] = None
+    authn_info = None
+
+    try:
+        authn_info = assurance.response_authn(ticket, user, sso_session)
+    except MissingPasswordFactor:
+        return NextResult(message=IdPMsg.must_authenticate, endpoint=url_for('idp.verify'))
+    except MissingMultiFactor as exc:
+        # Postpone this result until after checking for pending actions
+        current_app.logger.debug(
+            f'Assurance not possible: {repr(exc)} (postponing this until after checking for actions)'
+        )
+        res = NextResult(message=IdPMsg.mfa_required, error=True)
+    except MissingAuthentication:
+        return NextResult(message=IdPMsg.must_authenticate, endpoint=url_for('idp.verify'))
+    except WrongMultiFactor as exc:
+        current_app.logger.info(f'Assurance not possible: {repr(exc)}')
+        return NextResult(message=IdPMsg.swamid_mfa_required, error=True)
+    except AssuranceException as exc:
+        current_app.logger.info(f'Assurance not possible: {repr(exc)}')
+        return NextResult(message=IdPMsg.assurance_not_possible, error=True)
+
+    # OLD:
+    if 'user_eppn' in session and session['user_eppn'] != user.eppn:
+        current_app.logger.warning(f'Refusing to change eppn in session from {session["user_eppn"]} to {user.eppn}')
+        return NextResult(message=IdPMsg.wrong_user, error=True)
+    session['user_eppn'] = user.eppn
+    # NEW:
+    if session.common.eppn and session.common.eppn != user.eppn:
+        current_app.logger.warning(f'Refusing to change eppn in session from {session.common.eppn} to {user.eppn}')
+        return NextResult(message=IdPMsg.wrong_user, error=True)
+    session.common.eppn = user.eppn
+
+    action_response = check_for_pending_actions(user, ticket, sso_session)
+    if action_response:
+        return NextResult(message=IdPMsg.action_required, action_response=action_response)
+
+    if res:
+        return res
+
+    if not authn_info:
+        return NextResult(message=IdPMsg.assurance_failure, error=True)
+
+    return NextResult(message=IdPMsg.proceed, authn_info=authn_info)
 
 
 class SSO(Service):
@@ -78,7 +166,7 @@ class SSO(Service):
         _info = self.unpack_redirect()
         current_app.logger.debug(f'Unpacked redirect :\n{pprint.pformat(_info)}')
 
-        ticket = _get_ticket(_info, BINDING_HTTP_REDIRECT)
+        ticket = get_ticket(_info, BINDING_HTTP_REDIRECT)
         return self._redirect_or_post(ticket)
 
     def post(self) -> WerkzeugResponse:
@@ -90,39 +178,50 @@ class SSO(Service):
         current_app.logger.debug("--- In SSO POST ---")
         _info = self.unpack_either()
 
-        ticket = _get_ticket(_info, BINDING_HTTP_POST)
+        ticket = get_ticket(_info, BINDING_HTTP_POST)
         return self._redirect_or_post(ticket)
 
     def _redirect_or_post(self, ticket: SSOLoginData) -> WerkzeugResponse:
         """ Common code for redirect() and post() endpoints. """
 
-        _next = next_step(ticket, self.sso_session)
+        _next = login_next_step(ticket, self.sso_session)
+        current_app.logger.debug(f'Login Next: {_next}')
 
-        if self.sso_session:
-            if self.sso_session.idp_user.terminated:
-                current_app.logger.info(f'User {self.sso_session.idp_user} is terminated')
-                current_app.logger.debug(f'User terminated: {self.sso_session.idp_user.terminated}')
-                raise Forbidden('USER_TERMINATED')
+        if _next.message == IdPMsg.must_authenticate:
+            if not self.sso_session:
+                current_app.logger.info(f'{ticket.request_ref}: authenticate ip={request.remote_addr}')
+            elif ticket.saml_req.force_authn:
+                current_app.logger.info(f'{ticket.request_ref}: force_authn sso_session={self.sso_session.public_id}')
 
-        _force_authn = self._should_force_authn(ticket)
+            # Don't use _next.endpoint here, even though it happens to be this same URL for now.
+            # _next.endpoint is for the API interface, this is the old template realm.
+            return redirect(url_for('idp.verify') + '?ref=' + ticket.request_ref)
 
-        if self.sso_session and not _force_authn:
+        if _next.message == IdPMsg.user_terminated:
+            raise Forbidden('USER_TERMINATED')
+        if _next.message == IdPMsg.swamid_mfa_required:
+            raise Forbidden('SWAMID_MFA_REQUIRED')
+        if _next.message == IdPMsg.mfa_required:
+            raise Forbidden('MFA_REQUIRED')
+
+        if _next.message == IdPMsg.action_required:
+            current_app.logger.debug('Sending user to actions')
+            assert _next.action_response  # please mypy
+            return _next.action_response
+
+        if _next.message == IdPMsg.proceed:
+            assert self.sso_session  # please mypy
             _ttl = current_app.conf.sso_session_lifetime - self.sso_session.minutes_old
-            current_app.logger.info(f'{ticket.key}: proceeding sso_session={self.sso_session.public_id}, ttl={_ttl:}m')
+            current_app.logger.info(
+                f'{ticket.request_ref}: proceeding sso_session={self.sso_session.public_id}, ttl={_ttl:}m'
+            )
             current_app.logger.debug(f'Continuing with Authn request {repr(ticket.saml_req.request_id)}')
-            try:
-                return self.perform_login(ticket)
-            except MustAuthenticate:
-                _force_authn = True
+            assert _next.authn_info  # please mypy
+            return self.perform_login(ticket, _next.authn_info)
 
-        if not self.sso_session:
-            current_app.logger.info(f'{ticket.key}: authenticate ip={request.remote_addr}')
-        elif _force_authn:
-            current_app.logger.info(f'{ticket.key}: force_authn sso_session={self.sso_session.public_id}')
+        raise RuntimeError(f'Don\'t know what to do with {ticket}')
 
-        return self._not_authn(ticket)
-
-    def perform_login(self, ticket: SSOLoginData) -> WerkzeugResponse:
+    def perform_login(self, ticket: SSOLoginData, authn_info: AuthnInfo) -> WerkzeugResponse:
         """
         Validate request, and then proceed with creating an AuthnResponse and
         invoking the 'outgoing' SAML2 binding.
@@ -157,24 +256,28 @@ class SSO(Service):
 
         # We won't get here until the user has completed all login actions
 
-        response_authn = self._get_login_response_authn(ticket, user)
+        try:
+            req_authn_context = get_requested_authn_context(ticket)
+            current_app.logger.debug(f'Asserting AuthnContext {authn_info} (requested: {req_authn_context})')
+        except AttributeError:
+            current_app.logger.debug(f'Asserting AuthnContext {authn_info} (none requested)')
 
-        saml_response = self._make_saml_response(response_authn, resp_args, user, ticket, self.sso_session)
+        saml_response = self._make_saml_response(authn_info, resp_args, user, ticket, self.sso_session)
 
         binding = resp_args['binding']
         destination = resp_args['destination']
         http_args = ticket.saml_req.apply_binding(resp_args, ticket.RelayState, saml_response)
 
         # INFO-Log the SSO session id and the AL and destination
-        current_app.logger.info(f'{ticket.key}: response authn={response_authn}, dst={destination}')
+        current_app.logger.info(f'{ticket.request_ref}: response authn={authn_info}, dst={destination}')
         self._fticks_log(
             relying_party=resp_args.get('sp_entity_id', destination),
-            authn_method=response_authn.class_ref,
+            authn_method=authn_info.class_ref,
             user_id=str(user.user_id),
         )
 
         # We're done with this SAML request. Remove it from the session.
-        session.idp.pending_requests = {k: v for k, v in session.idp.pending_requests.items() if v.key != ticket.key}
+        del session.idp.pending_requests[ticket.request_ref]
 
         return mischttp.create_html_response(binding, http_args)
 
@@ -272,14 +375,14 @@ class SSO(Service):
             assertion = xml.find('{urn:oasis:names:tc:SAML:2.0:assertion}Assertion')
             current_app.logger.info(
                 '{!s}: id={!s}, in_response_to={!s}, assertion_id={!s}'.format(
-                    ticket.key, attrs['ID'], attrs['InResponseTo'], assertion.get('ID')
+                    ticket.request_ref, attrs['ID'], attrs['InResponseTo'], assertion.get('ID')
                 )
             )
         except Exception as exc:
             current_app.logger.debug(f'Could not parse message as XML: {exc!r}')
             if not printed:
                 # Fall back to logging the whole response
-                current_app.logger.info(f'{ticket.key}: authn response: {saml_response}')
+                current_app.logger.info(f'{ticket.request_ref}: authn response: {saml_response}')
         return None
 
     def _fticks_log(self, relying_party: str, authn_method: str, user_id: str) -> None:
@@ -357,137 +460,46 @@ class SSO(Service):
         assert isinstance(ticket, SSOLoginData)
         current_app.logger.debug(f"Validate login request :\n{ticket}")
         current_app.logger.debug(f"AuthnRequest from ticket: {ticket.saml_req!r}")
-        return ticket.saml_req.get_response_args(BadRequest, ticket.key)
-
-    def _get_login_response_authn(self, ticket: SSOLoginData, user: IdPUser) -> AuthnInfo:
-        """
-        Figure out what AuthnContext to assert in the SAML response.
-
-        The 'highest' Assurance-Level (AL) asserted is basically min(ID-proofing-AL, Authentication-AL).
-
-        What AuthnContext is asserted is also heavily influenced by what the SP requested.
-
-        :param ticket: State for this request
-        :param user: The user for whom the assertion will be made
-        :return: Authn information
-        """
-        # already checked with isinstance in perform_login() - we just need to convince mypy
-        assert self.sso_session
-
-        if current_app.conf.debug:
-            current_app.logger.debug(
-                f'External MFA credential logged in the SSO session: {self.sso_session.external_mfa}'
-            )
-            current_app.logger.debug(f'Credentials used in this SSO session:\n{self.sso_session.authn_credentials}')
-            _creds_as_strings = [str(_cred) for _cred in user.credentials.to_list()]
-            current_app.logger.debug(f'User credentials:\n{_creds_as_strings}')
-
-        # Decide what AuthnContext to assert based on the one requested in the request
-        # and the authentication performed
-
-        req_authn_context = get_requested_authn_context(ticket)
-
-        try:
-            resp_authn = assurance.response_authn(req_authn_context, user, self.sso_session, current_app.logger)
-        except WrongMultiFactor as exc:
-            current_app.logger.info(f'Assurance not possible: {exc!r}')
-            raise Forbidden('SWAMID_MFA_REQUIRED')
-        except MissingMultiFactor as exc:
-            current_app.logger.info(f'Assurance not possible: {exc!r}')
-            raise Forbidden('MFA_REQUIRED')
-        except AssuranceException as exc:
-            current_app.logger.info(f'Assurance not possible: {exc!r}')
-            raise MustAuthenticate()
-
-        current_app.logger.debug(f'Response Authn context class: {resp_authn!r}')
-
-        try:
-            current_app.logger.debug(f'Asserting AuthnContext {resp_authn!r} (requested: {req_authn_context!r})')
-        except AttributeError:
-            current_app.logger.debug(f'Asserting AuthnContext {resp_authn!r} (none requested)')
-
-        # Augment the AuthnInfo with the authn_timestamp before returning it
-        return replace(resp_authn, instant=int(self.sso_session.authn_timestamp.timestamp()))
-
-    def _should_force_authn(self, ticket: SSOLoginData) -> bool:
-        """
-        Check if the IdP should force authentication of this request.
-
-        Will check SAML ForceAuthn but avoid endless loops of forced authentications
-        by looking if the SSO session says authentication was actually performed
-        based on this SAML request.
-        """
-        if not ticket.saml_req.force_authn:
-            current_app.logger.debug(f'SAML request {repr(ticket.saml_req.request_id)} does not have ForceAuthn')
-            return False
-        if not self.sso_session:
-            current_app.logger.debug('Force authn without session - ignoring')
-            return True
-        if ticket.saml_req.request_id != self.sso_session.authn_request_id:
-            current_app.logger.debug(
-                f'Forcing authentication because of ForceAuthn with SSO session id '
-                f'{self.sso_session.authn_request_id} != this requests {ticket.saml_req.request_id}'
-            )
-            return True
-        current_app.logger.debug(
-            f'Ignoring ForceAuthn, authn already performed for SAML request {repr(ticket.saml_req.request_id)}'
-        )
-        return False
-
-    def _not_authn(self, ticket: SSOLoginData) -> WerkzeugResponse:
-        """
-        Authenticate user. Either, the user hasn't logged in yet,
-        or the service provider forces re-authentication.
-        :param ticket: SSOLoginData instance
-        :returns: HTTP response
-        """
-        req_authn_context = get_requested_authn_context(ticket)
-        current_app.logger.debug(f'Do authentication, requested auth context: {req_authn_context!r}')
-
-        return self._show_login_page(ticket)
-
-    def _show_login_page(self, ticket: SSOLoginData) -> WerkzeugResponse:
-        """
-        Display the login form for all authentication methods.
-
-        SSO._not_authn() chooses what authentication method to use based on
-        requested AuthnContext and local configuration, and then calls this method
-        to render the login page for this method.
-
-        :param ticket: Login session state (not SSO session state)
-
-        :return: HTTP response
-        """
-        _username = ''
-        _login_subject = ticket.saml_req.login_subject
-        if _login_subject is not None:
-            current_app.logger.debug(f'Login subject: {_login_subject}')
-            # Login subject might be set by the idpproxy when requesting the user to do MFA step up
-            if current_app.conf.default_eppn_scope is not None and _login_subject.endswith(
-                current_app.conf.default_eppn_scope
-            ):
-                # remove the @scope
-                _username = _login_subject[: -(len(current_app.conf.default_eppn_scope) + 1)]
-
-        argv = mischttp.get_default_template_arguments(current_app.conf)
-        argv.update(
-            {'action': url_for('idp.verify'), 'alert_msg': '', 'key': ticket.key, 'password': '', 'username': _username}
-        )
-
-        # Set alert msg if found in the session
-        if ticket.saml_data.template_show_msg:
-            argv["alert_msg"] = ticket.saml_data.template_show_msg
-            ticket.saml_data.template_show_msg = None
-
-        current_app.logger.debug(f'Login page HTML substitution arguments :\n{pprint.pformat(argv)}')
-
-        html = render_template('login.jinja2', **argv)
-        return make_response(html)
+        return ticket.saml_req.get_response_args(BadRequest, ticket.request_ref)
 
 
 # -----------------------------------------------------------------------------
 # === Authentication ====
 # -----------------------------------------------------------------------------
+
+
+def show_login_page(ticket: SSOLoginData) -> WerkzeugResponse:
+    _username = ''
+    _login_subject = ticket.saml_req.login_subject
+    if _login_subject is not None:
+        current_app.logger.debug(f'Login subject: {_login_subject}')
+        # Login subject might be set by the idpproxy when requesting the user to do MFA step up
+        if current_app.conf.default_eppn_scope is not None and _login_subject.endswith(
+            current_app.conf.default_eppn_scope
+        ):
+            # remove the @scope
+            _username = _login_subject[: -(len(current_app.conf.default_eppn_scope) + 1)]
+
+    argv = get_default_template_arguments(current_app.conf)
+    argv.update(
+        {
+            'action': url_for('idp.verify'),
+            'alert_msg': '',
+            'ref': ticket.request_ref,
+            'password': '',
+            'username': _username,
+        }
+    )
+
+    # Set alert msg if found in the session
+    if ticket.saml_data.template_show_msg:
+        argv['alert_msg'] = ticket.saml_data.template_show_msg
+        ticket.saml_data.template_show_msg = None
+
+    current_app.logger.debug(f'Login page HTML substitution arguments :\n{pprint.pformat(argv)}')
+
+    html = render_template('login.jinja2', **argv)
+    return make_response(html)
 
 
 def do_verify() -> WerkzeugResponse:
@@ -512,10 +524,10 @@ def do_verify() -> WerkzeugResponse:
         query['password'] = '<redacted>'
     current_app.logger.debug(f'do_verify parsed query :\n{pprint.pformat(query)}')
 
-    if 'key' not in query:
-        raise BadRequest(f'Missing parameter key - please re-initiate login')
-    _info = SAMLQueryParams(key=query['key'])
-    _ticket = _get_ticket(_info, None)
+    if 'ref' not in query:
+        raise BadRequest(f'Missing parameter - please re-initiate login')
+    _info = SAMLQueryParams(request_ref=query['ref'])
+    _ticket = get_ticket(_info, None)
 
     authn_ref = get_requested_authn_context(_ticket)
     current_app.logger.debug(f'Authenticating with {repr(authn_ref)}')
@@ -524,7 +536,7 @@ def do_verify() -> WerkzeugResponse:
     # function - regardless of if authentication was successful or not. The only difference
     # when authentication is successful is that a SSO session is created, and a reference
     # to it set in a cookie in the redirect response.
-    next_endpoint = url_for('idp.sso_redirect') + '?key=' + _ticket.key
+    next_endpoint = url_for('idp.sso_redirect') + '?ref=' + _ticket.request_ref
 
     if not password or 'username' not in query:
         current_app.logger.debug(f'Credentials not supplied. Redirect => {next_endpoint}')
@@ -540,7 +552,7 @@ def do_verify() -> WerkzeugResponse:
         del password  # keep out of any exception logs
 
     if not pwauth:
-        current_app.logger.info(f'{_ticket.key}: Password authentication failed')
+        current_app.logger.info(f'{_ticket.request_ref}: Password authentication failed')
         _ticket.saml_data.template_show_msg = _('Incorrect username or password')
         current_app.logger.debug(f'Unknown user or wrong password. Redirect => {next_endpoint}')
         return redirect(next_endpoint)
@@ -566,13 +578,11 @@ def do_verify() -> WerkzeugResponse:
 
     # INFO-Log the request id (sha1 of SAML request) and the sso_session
     current_app.logger.info(
-        f'{_ticket.key}: login sso_session={_sso_session.public_id}, authn={authn_ref}, user={pwauth.user}'
+        f'{_ticket.request_ref}: login sso_session={_sso_session.public_id}, authn={authn_ref}, user={pwauth.user}'
     )
 
     # Remember the password credential used for this particular request
-    request_ref = session.idp.get_requestref_for_reqsha1(_ticket.key)
-    if request_ref:
-        session.idp.log_credential_used(request_ref, pwauth.credential, pwauth.timestamp)
+    session.idp.log_credential_used(_ticket.request_ref, pwauth.credential, pwauth.timestamp)
 
     # Now that an SSO session has been created, redirect the users browser back to
     # the main entry point of the IdP (the SSO redirect endpoint).
@@ -587,41 +597,34 @@ def do_verify() -> WerkzeugResponse:
 
 
 # ----------------------------------------------------------------------------
-def _add_saml_request_to_session(info: SAMLQueryParams, binding: str) -> str:
-    if info.key:
-        request_ref = session.idp.get_requestref_for_reqsha1(info.key)
-        if request_ref:
-            # Already present
-            return request_ref
-    _uuid = RequestRef(str(uuid4()))
-    if not info.SAMLRequest or info.key is None:
-        raise ValueError(f"Can't add incomplete query params to session: {info}")
-    session.idp.pending_requests[_uuid] = IdP_PendingRequest(
-        request=info.SAMLRequest, binding=binding, relay_state=info.RelayState, key=info.key
+def _add_saml_request_to_session(info: SAMLQueryParams, binding: str) -> RequestRef:
+    if info.request_ref:
+        # Already present
+        return info.request_ref
+    if not info.SAMLRequest or binding is None:
+        raise ValueError(f"Can't add incomplete query params to session: {info}, binding {binding}")
+    request_ref = RequestRef(str(uuid4()))
+    session.idp.pending_requests[request_ref] = IdP_PendingRequest(
+        request=info.SAMLRequest, binding=binding, relay_state=info.RelayState
     )
-    return _uuid
+    return request_ref
 
 
-def _get_ticket(info: SAMLQueryParams, binding: Optional[str]) -> SSOLoginData:
+def get_ticket(info: SAMLQueryParams, binding: Optional[str]) -> SSOLoginData:
     """
     Get the SSOLoginData from the eduid.webapp.common session, or from query parameters.
     """
     logger = current_app.logger
 
     if info.SAMLRequest:
-        _key = gen_key(info.SAMLRequest)
-        if info.key and info.key != _key:
-            logger.warning('The SAMLRequest does not match the key parameter')
-            logger.debug(f'Query params: {SAMLQueryParams}\nCalculated key: {_key}')
-        info.key = _key
         if binding is None:
-            raise TypeError('Binding must be supplied to add SAML request to session')
-        ref = _add_saml_request_to_session(info, binding)
-        logger.debug(f'Added SAML request to session, got reference {ref}')
+            raise ValueError('Binding must be supplied to add SAML request to session')
+        info.request_ref = _add_saml_request_to_session(info, binding)
+        logger.debug(f'Added SAML request to session, got reference {info.request_ref}')
 
-    if not info.key:
+    if not info.request_ref:
         raise BadRequest('Bad request, please re-initiate login')
 
-    ticket = SSOLoginData(key=info.key)
+    ticket = SSOLoginData(request_ref=info.request_ref)
     ticket.saml_req = IdP_SAMLRequest(ticket.SAMLRequest, ticket.binding, current_app.IDP, debug=current_app.conf.debug)
     return ticket

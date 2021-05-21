@@ -76,7 +76,7 @@ class SSOSession:
     """
 
     user_id: bson.ObjectId  # move away from this - use the eppn instead
-    authn_request_id: str
+    authn_request_id: str  # This should be obsolete now - used to be used to 'break' forceAuthn looping
     authn_credentials: List[AuthnData]
     eppn: str
     idp_user: IdPUser = field(repr=False)  # extra info - not serialised

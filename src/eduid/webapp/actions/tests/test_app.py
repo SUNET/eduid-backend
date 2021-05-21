@@ -147,7 +147,7 @@ class ActionsTests(ActionsTestCase):
     def test_get_actions_no_action(self):
         data = self._get_actions(add_action=False)
         self.assertFalse(data['action'])
-        self.assertEqual(data['url'], 'https://example.com/idp?key=dummy-session')
+        self.assertEqual(data['url'], 'https://example.com/idp?ref=dummy-session')
 
     def test_get_actions_no_plugin(self):
         with self.assertRaises(InternalServerError):

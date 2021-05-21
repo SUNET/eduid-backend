@@ -100,7 +100,7 @@ class Action(BaseModel):
 
     @validator('result', pre=True)
     def action_result(cls, v):
-        """ Make ObjectId from serialised form (string) """
+        """ Decode results to the right variant of ActionResult """
         if isinstance(v, dict):
             if 'issuer' in v and 'authn_instant' in v:
                 v = ActionResultThirdPartyMFA(**v)
@@ -108,6 +108,8 @@ class Action(BaseModel):
                 v = ActionResultMFA(**v)
             elif 'testing' in v:
                 v = ActionResultTesting(**v)
+        if v is not None and not isinstance(v, ActionResult):
+            raise TypeError('must be a dict, None or ActionResult')
         return v
 
     def to_dict(self) -> Dict[str, Any]:

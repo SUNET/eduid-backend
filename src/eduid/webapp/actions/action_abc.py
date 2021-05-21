@@ -125,7 +125,6 @@ class ActionPlugin(object):
     ActionError = ActionError
 
     PLUGIN_NAME = 'dummy'
-    PACKAGE_NAME = 'eduid.webapp.actions.actions.' + PLUGIN_NAME
     steps = 1
 
     class ValidationError(Exception):

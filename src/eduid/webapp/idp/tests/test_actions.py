@@ -48,7 +48,7 @@ from eduid.userdb.tou import ToUEvent
 from eduid.vccs.client import VCCSClient
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import SSOLoginData
-from eduid.webapp.common.session.namespaces import IdP_Namespace, ReqSHA1
+from eduid.webapp.common.session.namespaces import IdP_Namespace, ReqSHA1, RequestRef
 from eduid.webapp.idp.mfa_action import add_actions as mfa_add_actions
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.tests.test_app import LoginState
@@ -156,7 +156,9 @@ class TestActions(SSOIdPTests):
         self.actions.remove_action_by_id(self.test_action.action_id)
 
         with self.app.app_context():
-            mock_ticket = self._make_login_ticket(req_class_ref=SWAMID_AL2, key=ReqSHA1(self.mock_session_key))
+            mock_ticket = self._make_login_ticket(
+                req_class_ref=SWAMID_AL2, request_ref=RequestRef(self.mock_session_key)
+            )
             assert self.num_actions == 0
             assert mfa_add_actions(self.test_user, mock_ticket, self.sso_session) is None
             assert self.num_actions == 0
@@ -164,9 +166,9 @@ class TestActions(SSOIdPTests):
     def test_add_mfa_action_no_key_required_mfa(self):
         self.actions.remove_action_by_id(self.test_action.action_id)
 
-        with self.app.app_context():
+        with self.app.test_request_context():
             mock_ticket = self._make_login_ticket(
-                req_class_ref=CONTEXTCLASSREFS['REFEDS_MFA'], key=ReqSHA1(self.mock_session_key)
+                req_class_ref=CONTEXTCLASSREFS['REFEDS_MFA'], request_ref=RequestRef(self.mock_session_key)
             )
             assert self.num_actions == 0
             action = mfa_add_actions(self.test_user, mock_ticket, self.sso_session)
@@ -186,8 +188,10 @@ class TestActions(SSOIdPTests):
         self.test_user.credentials.add(u2f)
         self.amdb.save(self.test_user, check_sync=False)
 
-        with self.app.app_context():
-            mock_ticket = self._make_login_ticket(req_class_ref=SWAMID_AL2, key=ReqSHA1(self.mock_session_key))
+        with self.app.test_request_context():
+            mock_ticket = self._make_login_ticket(
+                req_class_ref=SWAMID_AL2, request_ref=RequestRef(self.mock_session_key)
+            )
             assert self.num_actions == 0
             action = mfa_add_actions(self.test_user, mock_ticket, self.sso_session)
             assert action.action_type == 'mfa'
@@ -205,9 +209,10 @@ class TestActions(SSOIdPTests):
         self.test_user.credentials.add(webauthn)
         self.amdb.save(self.test_user, check_sync=False)
 
-        mock_ticket = self._make_login_ticket(req_class_ref=SWAMID_AL2, key=ReqSHA1(self.mock_session_key))
-
-        with self.app.app_context():
+        with self.app.test_request_context():
+            mock_ticket = self._make_login_ticket(
+                req_class_ref=SWAMID_AL2, request_ref=RequestRef(self.mock_session_key)
+            )
             assert self.num_actions == 0
             action = mfa_add_actions(self.test_user, mock_ticket, self.sso_session)
             assert action.action_type == 'mfa'
@@ -227,7 +232,9 @@ class TestActions(SSOIdPTests):
         self.amdb.save(self.test_user, check_sync=False)
 
         with self.app.app_context():
-            mock_ticket = self._make_login_ticket(req_class_ref=SWAMID_AL2, key=ReqSHA1(self.mock_session_key))
+            mock_ticket = self._make_login_ticket(
+                req_class_ref=SWAMID_AL2, request_ref=RequestRef(self.mock_session_key)
+            )
             self.app.actions_db = None
             assert self.num_actions == 0
             assert mfa_add_actions(self.test_user, mock_ticket, self.sso_session) is None
@@ -254,7 +261,9 @@ class TestActions(SSOIdPTests):
         self.actions.update_action(completed_action)
 
         with self.app.test_request_context():
-            mock_ticket = self._make_login_ticket(req_class_ref=SWAMID_AL2, key=ReqSHA1(self.mock_session_key))
+            mock_ticket = self._make_login_ticket(
+                req_class_ref=SWAMID_AL2, request_ref=RequestRef(self.mock_session_key)
+            )
             action = mfa_add_actions(cast(IdPUser, self.test_user), mock_ticket, self.sso_session)
             # 'prime' the ticket and session for checking later - accessing request_ref gets the SAML data loaded
             # from the session into the ticket.
@@ -297,7 +306,9 @@ class TestActions(SSOIdPTests):
         self.actions.remove_action_by_id(self.test_action.action_id)
 
         with self.app.app_context():
-            mock_ticket = self._make_login_ticket(req_class_ref=SWAMID_AL2, key=ReqSHA1(self.mock_session_key))
+            mock_ticket = self._make_login_ticket(
+                req_class_ref=SWAMID_AL2, request_ref=RequestRef(self.mock_session_key)
+            )
             assert self.num_actions == 0
             action = tou_add_actions(self.test_user, mock_ticket)
             assert action.action_type == 'tou'
@@ -316,7 +327,9 @@ class TestActions(SSOIdPTests):
         self.actions.remove_action_by_id(self.test_action.action_id)
 
         with self.app.app_context():
-            mock_ticket = self._make_login_ticket(req_class_ref=SWAMID_AL2, key=ReqSHA1(self.mock_session_key))
+            mock_ticket = self._make_login_ticket(
+                req_class_ref=SWAMID_AL2, request_ref=RequestRef(self.mock_session_key)
+            )
             assert self.num_actions == 0
             assert tou_add_actions(self.test_user, mock_ticket) is None
             assert self.num_actions == 0
@@ -334,7 +347,9 @@ class TestActions(SSOIdPTests):
         self.actions.remove_action_by_id(self.test_action.action_id)
 
         with self.app.app_context():
-            mock_ticket = self._make_login_ticket(req_class_ref=SWAMID_AL2, key=ReqSHA1(self.mock_session_key))
+            mock_ticket = self._make_login_ticket(
+                req_class_ref=SWAMID_AL2, request_ref=RequestRef(self.mock_session_key)
+            )
             assert self.num_actions == 0
             action = tou_add_actions(self.test_user, mock_ticket)
             assert action.action_type == 'tou'
@@ -347,7 +362,9 @@ class TestActions(SSOIdPTests):
         self.actions.remove_action_by_id(self.test_action.action_id)
 
         with self.app.app_context():
-            mock_ticket = self._make_login_ticket(req_class_ref=SWAMID_AL2, key=ReqSHA1(self.mock_session_key))
+            mock_ticket = self._make_login_ticket(
+                req_class_ref=SWAMID_AL2, request_ref=RequestRef(self.mock_session_key)
+            )
             assert self.num_actions == 1
             assert tou_add_actions(self.test_user, mock_ticket) is None
             assert self.num_actions == 1
@@ -359,7 +376,9 @@ class TestActions(SSOIdPTests):
         self.actions.remove_action_by_id(self.test_action.action_id)
 
         with self.app.app_context():
-            mock_ticket = self._make_login_ticket(req_class_ref=SWAMID_AL2, key=ReqSHA1(self.mock_session_key))
+            mock_ticket = self._make_login_ticket(
+                req_class_ref=SWAMID_AL2, request_ref=RequestRef(self.mock_session_key)
+            )
             assert self.num_actions == 1
             action = tou_add_actions(self.test_user, mock_ticket)
             assert action.action_type == 'tou'
@@ -379,7 +398,9 @@ class TestActions(SSOIdPTests):
         self.actions.remove_action_by_id(self.test_action.action_id)
 
         with self.app.app_context():
-            mock_ticket = self._make_login_ticket(req_class_ref=SWAMID_AL2, key=ReqSHA1(self.mock_session_key))
+            mock_ticket = self._make_login_ticket(
+                req_class_ref=SWAMID_AL2, request_ref=RequestRef(self.mock_session_key)
+            )
             assert self.num_actions == 0
             action = tou_add_actions(self.test_user, mock_ticket)
             assert action.action_type == 'tou'

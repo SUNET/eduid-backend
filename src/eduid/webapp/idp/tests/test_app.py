@@ -141,27 +141,35 @@ class IdPTests(EduidAPITestCase):
         path = self._extract_path_from_info(info)
         with self.session_cookie_anon(self.browser) as browser:
             resp = browser.get(path)
-            if resp.status_code != 200:
+            if resp.status_code != 302:
                 return LoginResult(url=path, reached_state=LoginState.S0_REDIRECT, response=resp)
 
-        form_data = self._extract_form_inputs(resp.data.decode('utf-8'))
-        form_data['username'] = self.test_user.mail_addresses.primary.email
-        form_data['password'] = 'Jenka'
-        if 'key' not in form_data:
-            return LoginResult(url=path, reached_state=LoginState.S1_LOGIN_FORM, response=resp)
+            redirect_loc = self._extract_path_from_response(resp)
+            # check that we were sent to the login form
+            if not redirect_loc.startswith('/verify?ref='):
+                return LoginResult(url=path, reached_state=LoginState.S0_REDIRECT, response=resp)
 
-        cookies = resp.headers.get('Set-Cookie')
-        if not cookies:
-            return LoginResult(url=path, reached_state=LoginState.S1_LOGIN_FORM, response=resp)
+            resp = self.browser.get(redirect_loc)
+            if resp.status_code != 200:
+                return LoginResult(url=redirect_loc, reached_state=LoginState.S1_LOGIN_FORM, response=resp)
 
-        with self.session_cookie_anon(self.browser) as browser:
+            form_data = self._extract_form_inputs(resp.data.decode('utf-8'))
+            form_data['username'] = self.test_user.mail_addresses.primary.email
+            form_data['password'] = 'Jenka'
+            if 'ref' not in form_data:
+                return LoginResult(url=path, reached_state=LoginState.S1_LOGIN_FORM, response=resp)
+
+            cookies = resp.headers.get('Set-Cookie')
+            if not cookies:
+                return LoginResult(url=path, reached_state=LoginState.S1_LOGIN_FORM, response=resp)
+
             resp = browser.post('/verify', data=form_data, headers={'Cookie': cookies})
             if resp.status_code != 302:
                 return LoginResult(url='/verify', reached_state=LoginState.S2_VERIFY, response=resp)
 
         redirect_loc = self._extract_path_from_response(resp)
         # check that we were sent back to the SSO redirect entrypoint
-        if not redirect_loc.startswith('/sso/redirect?key='):
+        if not redirect_loc.startswith('/sso/redirect?ref='):
             return LoginResult(url='/verify', reached_state=LoginState.S2_VERIFY, response=resp)
 
         cookies = resp.headers.get('Set-Cookie')

@@ -31,9 +31,14 @@ class IdPTestLogin(IdPTests):
         path = self._extract_path_from_info(info)
 
         response = self.browser.get(path)
-        body = response.data.decode('utf-8')
 
-        assert response.status_code == 200
+        assert response.status_code == 302
+        # check that we were sent to the login screen
+        redirect_loc = self._extract_path_from_response(response)
+        response2 = self.browser.get(redirect_loc)
+
+        body = response2.data.decode('utf-8')
+
         assert self.app.conf.signup_link in body
 
     def test_submitting_wrong_credentials(self):
@@ -43,7 +48,9 @@ class IdPTestLogin(IdPTests):
 
         # check that we were sent back to the login screen
         redirect_loc = self._extract_path_from_response(result.response)
-        assert redirect_loc.startswith('/sso/redirect?key=')
+        assert redirect_loc.startswith('/sso/redirect?ref=')
+
+        # TODO: Verify that no SSO session was created, and no credentials were logged as used in the session
 
     def test_successful_authentication(self):
         # Patch the VCCSClient so we do not need a vccs server

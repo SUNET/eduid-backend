@@ -53,7 +53,7 @@ class SSOLoginData:
     to fetch that data from the EduidSession.
     """
 
-    key: ReqSHA1
+    request_ref: RequestRef
 
     # SAML request, loaded lazily from the session using `key'
     # eduid.webapp.common can't import from eduid-webapp
@@ -62,19 +62,7 @@ class SSOLoginData:
     _request_ref: Optional[RequestRef] = field(default=None, init=False, repr=False)
 
     def __str__(self) -> str:
-        return f'<{self.__class__.__name__}: key={self.key}>'
-
-    @property
-    def request_ref(self) -> RequestRef:
-        if self._request_ref is None:
-            from eduid.webapp.common.session import session
-
-            req_ref = session.idp.get_requestref_for_reqsha1(self.key)
-            if not req_ref:
-                raise RuntimeError(f'Request with key {self.key} not found in session')
-            self._request_ref = req_ref
-
-        return self._request_ref
+        return f'<{self.__class__.__name__}: key={self.request_ref}>'
 
     @property
     def saml_data(self) -> IdP_PendingRequest:
