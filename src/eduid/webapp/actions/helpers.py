@@ -71,7 +71,7 @@ def get_next_action(user):
     action = current_app.actions_db.get_next_action(user.eppn, idp_session)
     if action is None:
         current_app.logger.info(f'Finished pre-login actions for user: {user}')
-        idp_url = f'{current_app.conf.idp_url}?key={idp_session}'
+        idp_url = f'{current_app.conf.idp_url}?ref={idp_session}'
         return {'action': False, 'idp_url': idp_url}
 
     if action.action_type not in current_app.plugins:
