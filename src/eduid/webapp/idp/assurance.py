@@ -37,16 +37,17 @@ from enum import Enum, unique
 from typing import List, Optional, Sequence, Union
 
 from eduid.userdb.credentials import (
-    Credential,
-    FidoCredential,
     METHOD_SWAMID_AL2_MFA,
     METHOD_SWAMID_AL2_MFA_HI,
+    Credential,
+    FidoCredential,
     Password,
 )
 from eduid.userdb.idp import IdPUser
 from eduid.webapp.common.session.logindata import SSOLoginData
-from eduid.webapp.common.session.namespaces import OnetimeCredType, OnetimeCredential
-from eduid.webapp.idp.app import current_idp_app, current_idp_app as current_app
+from eduid.webapp.common.session.namespaces import OnetimeCredential, OnetimeCredType
+from eduid.webapp.idp.app import current_idp_app
+from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.idp_saml import AuthnInfo
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.util import logger
