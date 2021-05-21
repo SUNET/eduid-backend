@@ -166,8 +166,7 @@ class SSO(Service):
         _info = self.unpack_redirect()
         current_app.logger.debug(f'Unpacked redirect :\n{pprint.pformat(_info)}')
 
-        ticket = get_ticket(_info, BINDING_HTTP_REDIRECT)
-        return self._redirect_or_post(ticket)
+        return self._redirect_or_post(_info, BINDING_HTTP_REDIRECT)
 
     def post(self) -> WerkzeugResponse:
         """
@@ -178,11 +177,16 @@ class SSO(Service):
         current_app.logger.debug("--- In SSO POST ---")
         _info = self.unpack_either()
 
-        ticket = get_ticket(_info, BINDING_HTTP_POST)
-        return self._redirect_or_post(ticket)
+        return self._redirect_or_post(_info, BINDING_HTTP_POST)
 
-    def _redirect_or_post(self, ticket: SSOLoginData) -> WerkzeugResponse:
+    def _redirect_or_post(self, info: SAMLQueryParams, binding: str) -> WerkzeugResponse:
         """ Common code for redirect() and post() endpoints. """
+
+        ticket = get_ticket(info, binding)
+        if not ticket:
+            # User probably pressed 'back' in the browser after authentication
+            current_app.logger.info(f'Redirecting user without a SAML request to {current_app.conf.eduid_site_url}')
+            return redirect(current_app.conf.eduid_site_url)
 
         _next = login_next_step(ticket, self.sso_session)
         current_app.logger.debug(f'Login Next: {_next}')
@@ -528,6 +532,8 @@ def do_verify() -> WerkzeugResponse:
         raise BadRequest(f'Missing parameter - please re-initiate login')
     _info = SAMLQueryParams(request_ref=query['ref'])
     _ticket = get_ticket(_info, None)
+    if not _ticket:
+        raise BadRequest(f'Missing parameter - please re-initiate login')
 
     authn_ref = get_requested_authn_context(_ticket)
     current_app.logger.debug(f'Authenticating with {repr(authn_ref)}')
@@ -610,7 +616,7 @@ def _add_saml_request_to_session(info: SAMLQueryParams, binding: str) -> Request
     return request_ref
 
 
-def get_ticket(info: SAMLQueryParams, binding: Optional[str]) -> SSOLoginData:
+def get_ticket(info: SAMLQueryParams, binding: Optional[str]) -> Optional[SSOLoginData]:
     """
     Get the SSOLoginData from the eduid.webapp.common session, or from query parameters.
     """
@@ -626,5 +632,13 @@ def get_ticket(info: SAMLQueryParams, binding: Optional[str]) -> SSOLoginData:
         raise BadRequest('Bad request, please re-initiate login')
 
     ticket = SSOLoginData(request_ref=info.request_ref)
-    ticket.saml_req = IdP_SAMLRequest(ticket.SAMLRequest, ticket.binding, current_app.IDP, debug=current_app.conf.debug)
+    try:
+        ticket.saml_req = IdP_SAMLRequest(
+            ticket.SAMLRequest, ticket.binding, current_app.IDP, debug=current_app.conf.debug
+        )
+    except RuntimeError:
+        # Request not found in session, redirect user to main landing page
+        logger.debug(f'SAML request not found in session: {info}')
+        return None
+
     return ticket
