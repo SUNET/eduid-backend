@@ -61,18 +61,16 @@ class CSRFResponseMixin(Schema):
         return out_data
 
 
-class CSRFRequest(EduidSchema, CSRFRequestMixin):
+class EmptyRequest(EduidSchema, CSRFRequestMixin):
+    """ This is a common request schema that will just check the CSRF token """
+
     pass
 
 
-class CSRFResponse(FluxStandardAction):
+class EmptyResponse(FluxStandardAction):
+    """ This is a common response schema for returning an empty response with a fresh CSRF token """
+
     class ResponsePayload(EduidSchema, CSRFResponseMixin):
         pass
 
     payload = fields.Nested(ResponsePayload)
-
-    @pre_dump
-    def add_payload_if_missing(self, out_data, **kwargs):
-        if not out_data.get('payload'):
-            out_data['payload'] = {'csrf_token': None}
-        return out_data

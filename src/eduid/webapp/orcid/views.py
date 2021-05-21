@@ -10,7 +10,7 @@ from eduid.userdb.orcid import OidcAuthorization, OidcIdToken, Orcid
 from eduid.userdb.proofing import OrcidProofingState, ProofingUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid.webapp.common.api.messages import CommonMsg, redirect_with_msg
-from eduid.webapp.common.api.schemas.csrf import CSRFRequest
+from eduid.webapp.common.api.schemas.csrf import EmptyRequest
 from eduid.webapp.common.api.utils import get_unique_hash, save_and_sync_user
 from eduid.webapp.orcid.app import current_orcid_app as current_app
 from eduid.webapp.orcid.helpers import OrcidMsg
@@ -176,7 +176,7 @@ def get_orcid(user):
 
 
 @orcid_views.route('/remove', methods=['POST'])
-@UnmarshalWith(CSRFRequest)
+@UnmarshalWith(EmptyRequest)
 @MarshalWith(OrcidResponseSchema)
 @require_user
 def remove_orcid(user):
