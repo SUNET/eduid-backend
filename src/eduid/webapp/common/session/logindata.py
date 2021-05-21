@@ -69,7 +69,7 @@ class SSOLoginData:
         if self._saml_data is None:
             from eduid.webapp.common.session import session
 
-            saml_data = session.idp.pending_requests[self.request_ref]
+            saml_data = session.idp.pending_requests.get(self.request_ref)
             if not saml_data:
                 raise RuntimeError(f'SAML data with ref {self.request_ref} not found in session')
             self._saml_data = saml_data

@@ -104,6 +104,8 @@ def verify() -> WerkzeugResponse:
             raise BadRequest(f'Missing parameter - please re-initiate login')
         _info = SAMLQueryParams(request_ref=RequestRef(query['ref']))
         ticket = get_ticket(_info, None)
+        if not ticket:
+            raise BadRequest(f'Missing parameter - please re-initiate login')
         return show_login_page(ticket)
 
     if request.method == 'POST':
