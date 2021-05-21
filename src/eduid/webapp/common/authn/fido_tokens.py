@@ -59,7 +59,9 @@ class VerificationProblem(Exception):
 class FidoCred(BaseModel):
     app_id: str
     u2f: Dict[str, Any]  # TODO: This can probably be removed
-    webauthn: Any  # Expected bytes, got AttestedCredentialData (type=type_error)
+    # pydantic (1.8.2) bugs out if webauthn is typed as 'AttestedCredentialData' :/
+    # (saying Expected bytes, got AttestedCredentialData (type=type_error))
+    webauthn: Any
 
 
 def _get_user_credentials_u2f(user: User) -> Dict[CredentialKey, FidoCred]:
