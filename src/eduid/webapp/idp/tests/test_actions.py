@@ -166,7 +166,7 @@ class TestActions(SSOIdPTests):
     def test_add_mfa_action_no_key_required_mfa(self):
         self.actions.remove_action_by_id(self.test_action.action_id)
 
-        with self.app.app_context():
+        with self.app.test_request_context():
             mock_ticket = self._make_login_ticket(
                 req_class_ref=CONTEXTCLASSREFS['REFEDS_MFA'], request_ref=RequestRef(self.mock_session_key)
             )
@@ -188,7 +188,7 @@ class TestActions(SSOIdPTests):
         self.test_user.credentials.add(u2f)
         self.amdb.save(self.test_user, check_sync=False)
 
-        with self.app.app_context():
+        with self.app.test_request_context():
             mock_ticket = self._make_login_ticket(
                 req_class_ref=SWAMID_AL2, request_ref=RequestRef(self.mock_session_key)
             )
@@ -209,9 +209,10 @@ class TestActions(SSOIdPTests):
         self.test_user.credentials.add(webauthn)
         self.amdb.save(self.test_user, check_sync=False)
 
-        mock_ticket = self._make_login_ticket(req_class_ref=SWAMID_AL2, request_ref=RequestRef(self.mock_session_key))
-
-        with self.app.app_context():
+        with self.app.test_request_context():
+            mock_ticket = self._make_login_ticket(
+                req_class_ref=SWAMID_AL2, request_ref=RequestRef(self.mock_session_key)
+            )
             assert self.num_actions == 0
             action = mfa_add_actions(self.test_user, mock_ticket, self.sso_session)
             assert action.action_type == 'mfa'
