@@ -15,7 +15,6 @@ Code handling Single Sign On logins.
 import hmac
 import pprint
 import time
-from enum import unique
 from hashlib import sha256
 from typing import Dict, List, Optional
 from uuid import uuid4
@@ -31,7 +30,7 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.idp.user import SAMLAttributeSettings
 from eduid.webapp.common.api import exceptions
-from eduid.webapp.common.api.messages import TranslatableMsg
+from eduid.webapp.common.api.utils import urlappend
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import SSOLoginData
 from eduid.webapp.common.session.namespaces import IdP_PendingRequest, RequestRef
@@ -45,9 +44,10 @@ from eduid.webapp.idp.assurance import (
     WrongMultiFactor,
     get_requested_authn_context,
 )
+from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.idp_actions import check_for_pending_actions
 from eduid.webapp.idp.idp_authn import AuthnData
-from eduid.webapp.idp.idp_saml import AuthnInfo, IdP_SAMLRequest, ResponseArgs, SamlResponse, gen_key
+from eduid.webapp.idp.idp_saml import AuthnInfo, IdP_SAMLRequest, ResponseArgs, SamlResponse
 from eduid.webapp.idp.mischttp import get_default_template_arguments
 from eduid.webapp.idp.service import SAMLQueryParams, Service
 from eduid.webapp.idp.sso_session import SSOSession
@@ -67,23 +67,9 @@ class MustAuthenticate(Exception):
 # -----------------------------------------------------------------------------
 
 
-@unique
-class IdPMsg(str, TranslatableMsg):
-    user_terminated = 'idp.user_terminated'
-    must_authenticate = 'idp.must_authenticate'
-    swamid_mfa_required = 'idp.swamid_mfa_required'
-    mfa_required = 'idp.mfa_required'
-    assurance_not_possible = 'idp.assurance_not_possible'
-    assurance_failure = 'idp.assurance_failure'
-    action_required = 'idp.action_required'  # Shouldn't actually be returned to the frontend
-    proceed = 'idp.proceed'  # Shouldn't actually be returned to the frontend
-    wrong_user = 'wrong_user'
-
-
 class NextResult(BaseModel):
     message: IdPMsg
     error: bool = False
-    endpoint: Optional[str] = None
     action_response: Optional[WerkzeugResponse] = None
     authn_info: Optional[AuthnInfo] = None
 
@@ -95,7 +81,7 @@ class NextResult(BaseModel):
 def login_next_step(ticket: SSOLoginData, sso_session: Optional[SSOSession]) -> NextResult:
     """ The main state machine for the login flow(s). """
     if not isinstance(sso_session, SSOSession):
-        return NextResult(message=IdPMsg.must_authenticate, endpoint=url_for('idp.verify'))
+        return NextResult(message=IdPMsg.must_authenticate)
 
     user = sso_session.idp_user
 
@@ -109,7 +95,7 @@ def login_next_step(ticket: SSOLoginData, sso_session: Optional[SSOSession]) -> 
     try:
         authn_info = assurance.response_authn(ticket, user, sso_session)
     except MissingPasswordFactor:
-        return NextResult(message=IdPMsg.must_authenticate, endpoint=url_for('idp.verify'))
+        return NextResult(message=IdPMsg.must_authenticate)
     except MissingMultiFactor as exc:
         # Postpone this result until after checking for pending actions
         current_app.logger.debug(
@@ -117,7 +103,7 @@ def login_next_step(ticket: SSOLoginData, sso_session: Optional[SSOSession]) -> 
         )
         res = NextResult(message=IdPMsg.mfa_required, error=True)
     except MissingAuthentication:
-        return NextResult(message=IdPMsg.must_authenticate, endpoint=url_for('idp.verify'))
+        return NextResult(message=IdPMsg.must_authenticate)
     except WrongMultiFactor as exc:
         current_app.logger.info(f'Assurance not possible: {repr(exc)}')
         return NextResult(message=IdPMsg.swamid_mfa_required, error=True)
@@ -188,6 +174,15 @@ class SSO(Service):
             current_app.logger.info(f'Redirecting user without a SAML request to {current_app.conf.eduid_site_url}')
             return redirect(current_app.conf.eduid_site_url)
 
+        if current_app.conf.login_bundle_url:
+            if info.SAMLRequest:
+                # redirect user to the Login javascript bundle
+                loc = urlappend(current_app.conf.login_bundle_url, ticket.request_ref)
+                current_app.logger.info(f'Redirecting user to login bundle {loc}')
+                return redirect(loc)
+            else:
+                raise BadRequest('No SAMLRequest, and login_bundle_url is set')
+
         _next = login_next_step(ticket, self.sso_session)
         current_app.logger.debug(f'Login Next: {_next}')
 
@@ -197,8 +192,6 @@ class SSO(Service):
             elif ticket.saml_req.force_authn:
                 current_app.logger.info(f'{ticket.request_ref}: force_authn sso_session={self.sso_session.public_id}')
 
-            # Don't use _next.endpoint here, even though it happens to be this same URL for now.
-            # _next.endpoint is for the API interface, this is the old template realm.
             return redirect(url_for('idp.verify') + '?ref=' + ticket.request_ref)
 
         if _next.message == IdPMsg.user_terminated:

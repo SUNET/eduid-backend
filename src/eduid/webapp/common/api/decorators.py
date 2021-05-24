@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 
 import json
+import logging
 from functools import wraps
 
 from flask import abort, jsonify, request
@@ -13,8 +14,6 @@ from eduid.webapp.common.api.messages import FluxData, error_response
 from eduid.webapp.common.api.schemas.models import FluxFailResponse, FluxResponseStatus, FluxSuccessResponse
 from eduid.webapp.common.api.utils import get_user
 from eduid.webapp.common.session import session
-
-import logging
 
 __author__ = 'lundberg'
 

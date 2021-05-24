@@ -103,6 +103,7 @@ def get_login_config() -> dict:
 
     return {
         'csrf_token': session.get_csrf_token(),
+        'next_url': current_app.front_conf.idp_next_url,
         'password_service_url': current_app.front_conf.password_service_url,
         'password_entropy': current_app.front_conf.password_entropy,
         'password_length': current_app.front_conf.password_length,

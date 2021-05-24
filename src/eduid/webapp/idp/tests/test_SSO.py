@@ -51,9 +51,10 @@ from eduid.userdb.nin import Nin, NinList
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData, SSOLoginData
 from eduid.webapp.common.session.namespaces import IdP_PendingRequest, ReqSHA1, RequestRef
+from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.idp_saml import IdP_SAMLRequest, gen_key
-from eduid.webapp.idp.login import SSO, IdPMsg, NextResult, login_next_step
+from eduid.webapp.idp.login import SSO, NextResult, login_next_step
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.tests.test_app import IdPTests
 from eduid.webapp.idp.util import b64encode

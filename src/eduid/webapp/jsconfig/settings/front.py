@@ -84,3 +84,4 @@ class FrontConfig(RootConfig):
     # This key is for signup.eduid.local.emergya.info
     # recaptcha_public_key: str = '6Ld2IUwUAAAAAD5saiXoQKgmUC9JhQLqcHZoemTh'
     sentry_dsn: str = ''
+    idp_next_url: str = ''
