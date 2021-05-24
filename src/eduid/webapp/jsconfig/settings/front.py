@@ -70,8 +70,8 @@ class FrontConfig(RootConfig):
     token_service_url: str = '/services/authn/'
     oidc_proofing_freja_url: str = '/services/oidc-proofing/freja/proofing/'
     orcid_url: str = '/services/orcid/'
-    eidas_url: str = 'http://eidas.eduid.docker:8080/'
-    token_verify_idp: str = 'http://dev.test.swedenconnect.se/idp'
+    eidas_url: str = ''
+    token_verify_idp: str = ''
     # changing password
     password_length: int = 12
     password_entropy: int = 25
@@ -79,9 +79,6 @@ class FrontConfig(RootConfig):
     proofing_methods: list = Field(default=['letter', 'lookup_mobile', 'oidc', 'eidas'])
     default_country_code: int = 46
     signup_authn_url: str = '/services/authn/signup-authn'
-    # This key is for signup.eduid.docker:8080
-    recaptcha_public_key: str = '6Lf5rCETAAAAAAW6UP4o59VSNEWG7RrzY_b5uH_M'
-    # This key is for signup.eduid.local.emergya.info
-    # recaptcha_public_key: str = '6Ld2IUwUAAAAAD5saiXoQKgmUC9JhQLqcHZoemTh'
+    recaptcha_public_key: str = ''
     sentry_dsn: str = ''
     idp_next_url: str = ''
