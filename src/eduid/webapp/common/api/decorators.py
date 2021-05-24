@@ -2,6 +2,8 @@
 
 from __future__ import absolute_import
 
+import json
+import logging
 from functools import wraps
 
 from flask import abort, jsonify, request
@@ -14,6 +16,8 @@ from eduid.webapp.common.api.utils import get_user
 from eduid.webapp.common.session import session
 
 __author__ = 'lundberg'
+
+logger = logging.getLogger(__name__)
 
 
 def require_eppn(f):
@@ -109,17 +113,19 @@ class UnmarshalWith(object):
     def __call__(self, f):
         @wraps(f)
         def unmarshal_decorator(*args, **kwargs):
+            json_data = request.get_json()
+            if json_data is None:
+                json_data = {}
             try:
-                json_data = request.get_json()
-                if json_data is None:
-                    json_data = {}
                 unmarshal_result = self.schema().load(json_data)
-                kwargs.update(unmarshal_result)
-                return f(*args, **kwargs)
             except ValidationError as e:
                 response_data = FluxFailResponse(
                     request, payload={'error': e.normalized_messages(), 'csrf_token': session.get_csrf_token()}
                 )
+                logger.warning(f'Error unmarshalling request using {self.schema}: {e.normalized_messages()}')
+                logger.debug(f'Failing request JSON data:\n{json.dumps(json_data, indent=4)}')
                 return jsonify(response_data.to_dict())
+            kwargs.update(unmarshal_result)
+            return f(*args, **kwargs)
 
         return unmarshal_decorator

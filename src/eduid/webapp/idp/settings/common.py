@@ -146,6 +146,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin):
     supported_signing_algorithms: List[str] = Field(default=['http://www.w3.org/2001/04/xmldsig-more#rsa-sha256'])
     eduperson_targeted_id_secret_key: str = ''
     eduid_site_url: str
+    login_bundle_url: Optional[str] = None
 
     @validator('sso_cookie')
     def make_sso_cookie(cls, v, values) -> CookieConfig:

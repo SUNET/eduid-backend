@@ -87,7 +87,7 @@ from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.exceptions import MailTaskFailed, MsgTaskFailed, ThrottledException
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
-from eduid.webapp.common.api.schemas.csrf import CSRFResponse
+from eduid.webapp.common.api.schemas.csrf import EmptyResponse
 from eduid.webapp.common.authn import fido_tokens
 from eduid.webapp.common.session import session
 from eduid.webapp.reset_password.app import current_reset_password_app as current_app
@@ -124,7 +124,7 @@ reset_password_views = Blueprint('reset_password', __name__, url_prefix='/', tem
 
 
 @reset_password_views.route('/', methods=['GET'])
-@MarshalWith(CSRFResponse)
+@MarshalWith(EmptyResponse)
 def init_reset_pw() -> FluxData:
     """
     Used only to get a csrf token, this can move to jsconfig if any other config is needed

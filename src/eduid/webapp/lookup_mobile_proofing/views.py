@@ -9,7 +9,7 @@ from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, can_v
 from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid.webapp.common.api.helpers import add_nin_to_user, verify_nin_for_user
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
-from eduid.webapp.common.api.schemas.csrf import CSRFResponse
+from eduid.webapp.common.api.schemas.csrf import EmptyResponse
 from eduid.webapp.lookup_mobile_proofing import schemas
 from eduid.webapp.lookup_mobile_proofing.app import current_mobilep_app as current_app
 from eduid.webapp.lookup_mobile_proofing.helpers import MobileMsg, create_proofing_state, match_mobile_to_user
@@ -20,10 +20,10 @@ mobile_proofing_views = Blueprint('lookup_mobile_proofing', __name__, url_prefix
 
 
 @mobile_proofing_views.route('/proofing', methods=['GET'])
-@MarshalWith(CSRFResponse)
+@MarshalWith(EmptyResponse)
 @require_user
-def get_state(user):
-    return {}
+def get_state(user: User) -> FluxData:
+    return success_response()
 
 
 @mobile_proofing_views.route('/proofing', methods=['POST'])

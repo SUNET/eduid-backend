@@ -13,9 +13,6 @@
 #        copyright notice, this list of conditions and the following
 #        disclaimer in the documentation and/or other materials provided
 #        with the distribution.
-#     3. Neither the name of the NORDUnet nor the names of its
-#        contributors may be used to endorse or promote products derived
-#        from this software without specific prior written permission.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 # "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -35,14 +32,32 @@ from marshmallow import fields
 
 from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
-from eduid.webapp.common.api.schemas.validators import validate_nin
 
 __author__ = 'ft'
 
 
-class IdPRequestSchema(EduidSchema, CSRFRequestMixin):
+class IdPRequest(EduidSchema, CSRFRequestMixin):
+    ref = fields.Str(required=True)
+
+
+class NextRequestSchema(IdPRequest):
     pass
 
 
-class IdPResponseSchema(EduidSchema, CSRFResponseMixin):
-    pass
+class NextResponseSchema(FluxStandardAction):
+    class NextResponsePayload(EduidSchema, CSRFResponseMixin):
+        endpoint = fields.Str(required=True)
+
+    payload = fields.Nested(NextResponsePayload)
+
+
+class PwAuthRequestSchema(IdPRequest):
+    username = fields.Str(required=True)
+    password = fields.Str(required=True)
+
+
+class PwAuthResponseSchema(FluxStandardAction):
+    class PwAuthResponsePayload(EduidSchema, CSRFResponseMixin):
+        success = fields.Bool(required=True)
+
+    payload = fields.Nested(PwAuthResponsePayload)
