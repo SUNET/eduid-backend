@@ -158,7 +158,7 @@ class SLO(Service):
                 )
             except KeyError:
                 current_app.logger.info(f'{req_key}: logout sso_key={repr(this)}, result=not_found')
-                res = 0
+                res = False
             if not res:
                 fail += 1
         if fail:

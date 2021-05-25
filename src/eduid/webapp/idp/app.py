@@ -140,8 +140,11 @@ class IdPApp(EduIDBaseApp):
                         f'Found no SSO session, but found one from session.idp.sso_cookie_val: {_other_sso}'
                     )
 
-            for this in self.sso_sessions.get_sessions_for_user(session.common.eppn, self.userdb):
-                self.logger.info(f'Found no SSO session, but found SSO session for user {session.common.eppn}: {this}')
+            if session.common.eppn:
+                for this in self.sso_sessions.get_sessions_for_user(session.common.eppn, self.userdb):
+                    self.logger.info(
+                        f'Found no SSO session, but found SSO session for user {session.common.eppn}: {this}'
+                    )
 
             return None
         self.logger.debug(f'Loaded SSO session {_sso}')
