@@ -30,12 +30,14 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from datetime import timedelta
 from typing import List
 
 from flask import Blueprint, redirect, request, url_for
 from werkzeug.exceptions import BadRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.exceptions import EduidForbidden, EduidTooManyRequests
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
@@ -199,11 +201,10 @@ def pwauth(ref: RequestRef, username: str, password: str) -> FluxData:
     if pwauth.authndata:
         _authn_credentials = [pwauth.authndata]
     _sso_session = SSOSession(
-        user_id=pwauth.user.user_id,
         authn_request_id=ticket.saml_req.request_id,
         authn_credentials=_authn_credentials,
-        idp_user=pwauth.user,
         eppn=pwauth.user.eppn,
+        expires_at=utc_now() + timedelta(seconds=current_app.conf.sso_session_lifetime * 60),
     )
 
     # This session contains information about the fact that the user was authenticated. It is

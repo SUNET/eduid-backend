@@ -33,13 +33,6 @@ class ExternalMfaData(BaseModel):
     authn_context: str
     timestamp: datetime
 
-    def to_session_dict(self) -> Dict[str, Any]:
-        return self.dict()
-
-    @classmethod
-    def from_session_dict(cls, data: Mapping[str, Any]):
-        return cls(**data)
-
 
 @dataclass
 class SSOLoginData:

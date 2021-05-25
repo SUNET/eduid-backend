@@ -19,6 +19,7 @@ class IdPMsg(str, TranslatableMsg):
     wrong_credentials = 'idp.wrong_credentials'
     user_temporary_locked = 'idp.user_temporary_locked'
     credential_expired = 'idp.credential_expired'
+    general_failure = 'idp.general_failure'
 
 
 @unique

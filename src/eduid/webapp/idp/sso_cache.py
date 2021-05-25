@@ -14,17 +14,13 @@ import time
 import warnings
 from collections import deque
 from threading import Lock
-from typing import Any, Deque, Dict, List, Mapping, Optional, Tuple, Union, cast
+from typing import Any, Deque, Dict, List, Mapping, Optional, Tuple, cast
 
 from eduid.userdb.db import BaseDB
 from eduid.userdb.exceptions import EduIDDBError
-from eduid.userdb.idp import IdPUserDb
 from eduid.webapp.idp.sso_session import SSOSession, SSOSessionId
 
-_SHA1_HEXENCODED_SIZE = 160 // 8 * 2
-
-# TODO: Rename to logger
-module_logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class NoOpLock(object):
@@ -117,7 +113,7 @@ class ExpiringCacheMem:
                     # entry not expired - reinsert in queue and end purging
                     self._ages.appendleft((_exp_ts, _exp_key))
                     break
-                module_logger.debug(
+                logger.debug(
                     'Purged {!s} cache entry {!s} seconds over limit : {!s}'.format(
                         self.name, timestamp - _exp_ts, _exp_key
                     )
@@ -156,7 +152,7 @@ class ExpiringCacheMem:
             del self._data[key]
             return True
         except KeyError:
-            module_logger.debug('Failed deleting key {!r} from {!s} cache (entry did not exist)'.format(key, self.name))
+            logger.debug('Failed deleting key {!r} from {!s} cache (entry did not exist)'.format(key, self.name))
         return False
 
     def items(self) -> Any:
@@ -171,12 +167,12 @@ class SSOSessionCacheError(EduIDDBError):
 
 
 class SSOSessionCache(BaseDB):
-    def __init__(self, db_uri: str, ttl: int, db_name: str = 'eduid_idp', collection: str = 'sso_sessions'):
+    def __init__(self, db_uri: str, db_name: str = 'eduid_idp', collection: str = 'sso_sessions'):
         super().__init__(db_uri, db_name, collection=collection)
 
         # Remove messages older than created_ts + ttl
         indexes = {
-            'auto-discard': {'key': [('created_ts', 1)], 'expireAfterSeconds': ttl},
+            'auto-discard': {'key': [('expires_at', 1)], 'expireAfterSeconds': 0},
             'unique-session-id': {'key': [('session_id', 1)], 'unique': True},
         }
         self.setup_indexes(indexes)
@@ -186,14 +182,10 @@ class SSOSessionCache(BaseDB):
         Remove entries when SLO is executed.
         :return: False on failure
         """
-        result = self._coll.remove({'_id': session._id}, w='majority')
-        try:
-            num = result.get('n')  # number of deleted records
-            module_logger.debug(f'Removed session {session}: num={num}')
-            return bool(num)
-        except (KeyError, TypeError):
-            module_logger.warning(f'Remove session {session} failed, result: {repr(result)}')
-            return False
+        result = self._coll.remove({'_id': session.obj_id}, w='majority')
+        num = result.get('n')  # number of deleted records
+        logger.debug(f'Removed session {session}: num={num}')
+        return bool(num)
 
     def save(self, session: SSOSession) -> None:
         """
@@ -203,14 +195,14 @@ class SSOSessionCache(BaseDB):
         the SSO session expires, and the mapping of user -> uid is used if the user requests
         logout (SLO).
         """
-        result = self._coll.replace_one({'_id': session._id}, session.to_dict(), upsert=True)
-        module_logger.debug(
+        result = self._coll.replace_one({'_id': session.obj_id}, session.to_dict(), upsert=True)
+        logger.debug(
             f'Saved SSO session {session} in the db: '
             f'matched={result.matched_count}, modified={result.modified_count}, upserted_id={result.upserted_id}'
         )
         return None
 
-    def get_session(self, sid: SSOSessionId, userdb: IdPUserDb) -> Optional[SSOSession]:
+    def get_session(self, sid: SSOSessionId) -> Optional[SSOSession]:
         """
         Lookup an SSO session using the session id (same `sid' previously used with add_session).
 
@@ -218,18 +210,14 @@ class SSOSessionCache(BaseDB):
         :param userdb: Database to use to initialise session.idp_user
         :return: The session, if found
         """
-        try:
-            res = self._coll.find_one({'session_id': sid})
-        except KeyError:
-            module_logger.debug(f'Failed looking up SSO session with session_id={repr(sid)}')
-            raise
+        res = self._coll.find_one({'session_id': sid})
         if not res:
-            module_logger.debug(f'No SSO session found with session_id={repr(sid)}')
+            logger.debug(f'No SSO session found with session_id={repr(sid)}')
             return None
-        session = SSOSession.from_dict(res, userdb)
+        session = SSOSession.from_dict(res)
         return session
 
-    def get_sessions_for_user(self, eppn: str, userdb: IdPUserDb) -> List[SSOSession]:
+    def get_sessions_for_user(self, eppn: str) -> List[SSOSession]:
         """
         Lookup all SSO session ids for a given user. Used in SLO with SOAP binding.
 
@@ -238,5 +226,5 @@ class SSOSessionCache(BaseDB):
         :return: A list with zero or more SSO sessions
         """
         entrys = self._coll.find({'username': eppn})
-        res = [SSOSession.from_dict(this, userdb) for this in entrys]
+        res = [SSOSession.from_dict(this) for this in entrys]
         return res

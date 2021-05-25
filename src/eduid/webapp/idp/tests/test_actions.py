@@ -76,10 +76,7 @@ class TestActions(SSOIdPTests):
         self.test_action = self.actions.add_action(self.test_user.eppn, action_type='dummy', preference=100, params={})
 
         self.sso_session = SSOSession(
-            authn_request_id='some-unique-id-1',
-            authn_credentials=[],
-            idp_user=cast(IdPUser, self.test_user),
-            eppn=self.test_user.eppn,
+            authn_request_id='some-unique-id-1', authn_credentials=[], eppn=self.test_user.eppn,
         )
         self.app.sso_sessions.save(self.sso_session)
 
@@ -283,13 +280,13 @@ class TestActions(SSOIdPTests):
 
     def test_add_mfa_action_already_authn_not(self):
         self._test_add_2nd_mfa_action(success=False, expected_num_actions=2)
-        sso_session = self.app.sso_sessions.get_session(self.sso_session.session_id, self.app.userdb)
+        sso_session = self.app.sso_sessions.get_session(self.sso_session.session_id)
         assert sso_session is not None
         assert sso_session.authn_credentials == []
 
     def test_add_2nd_mfa_action_no_context(self):
         self._test_add_2nd_mfa_action(expected_num_actions=0)
-        sso_session = self.app.sso_sessions.get_session(self.sso_session.session_id, self.app.userdb)
+        sso_session = self.app.sso_sessions.get_session(self.sso_session.session_id)
         assert sso_session is not None
         assert len(sso_session.authn_credentials) == 1
         authdata = sso_session.authn_credentials[0]
@@ -297,7 +294,7 @@ class TestActions(SSOIdPTests):
 
     def test_add_2nd_mfa_action_no_context_wrong_key(self):
         self._test_add_2nd_mfa_action(cred_key='wrong key', expected_num_actions=2)
-        sso_session = self.app.sso_sessions.get_session(self.sso_session.session_id, self.app.userdb)
+        sso_session = self.app.sso_sessions.get_session(self.sso_session.session_id)
         assert sso_session is not None
         assert sso_session.authn_credentials == []
 

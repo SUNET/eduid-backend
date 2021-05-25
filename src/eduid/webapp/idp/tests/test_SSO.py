@@ -35,7 +35,7 @@
 
 import datetime
 import logging
-from typing import Mapping, Optional, Sequence
+from typing import List, Mapping, Optional, Sequence
 from uuid import uuid4
 
 import saml2.server
@@ -225,13 +225,13 @@ class TestSSO(SSOIdPTests):
 
     # ------------------------------------------------------------------------
 
-    def _get_login_response_authn(self, req_class_ref: str, credentials, user: Optional[IdPUser] = None) -> NextResult:
+    def _get_login_response_authn(
+        self, req_class_ref: str, credentials: List[str], user: Optional[IdPUser] = None
+    ) -> NextResult:
         if user is None:
             user = self.get_user_set_nins(self.test_user.eppn, [])
 
-        sso_session_1 = SSOSession(
-            authn_request_id='some-unique-id-1', authn_credentials=[], idp_user=user, eppn=user.eppn,
-        )
+        sso_session_1 = SSOSession(authn_request_id='some-unique-id-1', authn_credentials=[], eppn=user.eppn,)
         if 'u2f' in credentials and not user.credentials.filter(U2F).to_list():
             # add a U2F credential to the user
             user.credentials.add(_U2F)
@@ -246,10 +246,13 @@ class TestSSO(SSOIdPTests):
             elif isinstance(this, ExternalMfaData):
                 sso_session_1.external_mfa = this
             elif isinstance(this, Credential):
-                data = AuthnData(this.key)
+                data = AuthnData(cred_id=this.key)
                 sso_session_1.add_authn_credential(data)
             else:
                 raise ValueError(f'Unhandled test data: {repr(this)}')
+
+        # Need to save any changed credentials to the user
+        self.amdb.save(user)
 
         with self.app.test_request_context():
             ticket = self._make_login_ticket(req_class_ref)
