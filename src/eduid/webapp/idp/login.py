@@ -15,7 +15,6 @@ Code handling Single Sign On logins.
 import hmac
 import pprint
 import time
-from datetime import timedelta
 from hashlib import sha256
 from typing import Dict, List, Optional
 from uuid import uuid4
@@ -24,7 +23,6 @@ from defusedxml import ElementTree as DefusedElementTree
 from flask import make_response, redirect, render_template, request, url_for
 from flask_babel import gettext as _
 from pydantic import BaseModel
-from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest, Forbidden, TooManyRequests
 from werkzeug.wrappers import Response as WerkzeugResponse
 
@@ -40,7 +38,7 @@ from eduid.webapp.idp import assurance, mischttp
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import (
     AssuranceException,
-    MissingAuthentication,
+    AuthnInfo, MissingAuthentication,
     MissingMultiFactor,
     MissingPasswordFactor,
     WrongMultiFactor,
@@ -49,11 +47,11 @@ from eduid.webapp.idp.assurance import (
 from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.idp_actions import check_for_pending_actions
 from eduid.webapp.idp.idp_authn import AuthnData
-from eduid.webapp.idp.idp_saml import AuthnInfo, IdP_SAMLRequest, ResponseArgs, SamlResponse
+from eduid.webapp.idp.idp_saml import IdP_SAMLRequest, ResponseArgs, SamlResponse
 from eduid.webapp.idp.mischttp import get_default_template_arguments
 from eduid.webapp.idp.service import SAMLQueryParams, Service
 from eduid.webapp.idp.sso_session import SSOSession
-from eduid.webapp.idp.util import b64encode
+from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 
 
 class MustAuthenticate(Exception):

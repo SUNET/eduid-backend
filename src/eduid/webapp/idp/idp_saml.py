@@ -1,9 +1,9 @@
 import logging
-from dataclasses import dataclass
 from hashlib import sha1
 from typing import Any, Dict, List, Mapping, NewType, Optional, Type, Union
 
 import saml2.server
+from eduid.webapp.idp.assurance import AuthnInfo
 from saml2.s_utils import UnknownPrincipal, UnknownSystemEntity, UnravelError, UnsupportedBinding
 from saml2.saml import Issuer
 from saml2.samlp import RequestedAuthnContext
@@ -39,15 +39,6 @@ def gen_key(something: Union[str, bytes]) -> ReqSHA1:
         something = something.encode('UTF-8')
     _digest = sha1(something).hexdigest()
     return ReqSHA1(_digest)
-
-
-@dataclass
-class AuthnInfo(object):
-    """ Information about what AuthnContextClass etc. to put in SAML Authn responses."""
-
-    class_ref: str
-    authn_attributes: Dict[str, Any]  # these are added to the user attributes
-    instant: Optional[int] = None
 
 
 SamlResponse = NewType('SamlResponse', str)
@@ -237,7 +228,7 @@ class IdP_SAMLRequest(object):
         self, attributes: Mapping[str, Any], userid: str, response_authn: AuthnInfo, resp_args: ResponseArgs
     ) -> SamlResponse:
         # Create pysaml2 dict with the authn information
-        authn = dict(class_ref=response_authn.class_ref, authn_instant=response_authn.instant,)
+        authn = dict(class_ref=response_authn.class_ref, authn_instant=int(response_authn.instant.timestamp()))
         saml_response = self._idp.create_authn_response(
             identity=attributes, userid=userid, authn=authn, sign_response=True, **resp_args
         )
