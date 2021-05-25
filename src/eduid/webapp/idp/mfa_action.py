@@ -37,8 +37,8 @@ from eduid.userdb.actions.action import ActionResultMFA, ActionResultThirdPartyM
 from eduid.userdb.credentials import U2F, FidoCredential, Webauthn
 from eduid.userdb.idp.user import IdPUser
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.logindata import ExternalMfaData, SSOLoginData
-from eduid.webapp.common.session.namespaces import OnetimeCredential, OnetimeCredType, ReqSHA1, RequestRef
+from eduid.webapp.common.session.logindata import ExternalMfaData, LoginContext
+from eduid.webapp.common.session.namespaces import OnetimeCredential, OnetimeCredType, RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import EduidAuthnContextClass, get_requested_authn_context
 from eduid.webapp.idp.idp_authn import AuthnData
@@ -47,7 +47,7 @@ from eduid.webapp.idp.sso_session import SSOSession
 __author__ = 'ft'
 
 
-def add_actions(user: IdPUser, ticket: SSOLoginData, sso_session: SSOSession) -> Optional[Action]:
+def add_actions(user: IdPUser, ticket: LoginContext, sso_session: SSOSession) -> Optional[Action]:
     """
     Add an action requiring the user to login using one or more additional
     authentication factors.
@@ -101,7 +101,7 @@ def add_actions(user: IdPUser, ticket: SSOLoginData, sso_session: SSOSession) ->
     )
 
 
-def check_authn_result(user: IdPUser, ticket: SSOLoginData, actions: List[Action], sso_session: SSOSession) -> bool:
+def check_authn_result(user: IdPUser, ticket: LoginContext, actions: List[Action], sso_session: SSOSession) -> bool:
     """
     The user returned to the IdP after being sent to actions. Check if actions has
     added the results of authentication to the action in the database.

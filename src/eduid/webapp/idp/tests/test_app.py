@@ -38,6 +38,9 @@ from pathlib import PurePath
 from typing import Any, Dict, Mapping, Optional
 
 from flask import Response as FlaskResponse
+from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
+from saml2.client import Saml2Client
+from saml2.response import AuthnResponse
 
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.cache import IdentityCache, OutstandingQueriesCache, StateCache
@@ -45,9 +48,6 @@ from eduid.webapp.common.authn.utils import get_saml2_config
 from eduid.webapp.idp.app import IdPApp, init_idp_app
 from eduid.webapp.idp.settings.common import IdPConfig
 from eduid.webapp.idp.sso_session import SSOSession
-from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
-from saml2.client import Saml2Client
-from saml2.response import AuthnResponse
 
 __author__ = 'ft'
 

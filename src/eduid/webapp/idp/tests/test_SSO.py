@@ -42,19 +42,19 @@ import saml2.server
 import saml2.time_util
 from saml2.authn_context import PASSWORDPROTECTEDTRANSPORT
 from saml2.s_utils import UnravelError
-from werkzeug.exceptions import BadRequest, Forbidden
+from werkzeug.exceptions import BadRequest
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, U2F, Credential, Password
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.nin import Nin, NinList
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.logindata import ExternalMfaData, SSOLoginData
-from eduid.webapp.common.session.namespaces import IdP_PendingRequest, ReqSHA1, RequestRef
+from eduid.webapp.common.session.logindata import ExternalMfaData, LoginContext
+from eduid.webapp.common.session.namespaces import IdP_PendingRequest, RequestRef
 from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.idp_authn import AuthnData
-from eduid.webapp.idp.idp_saml import IdP_SAMLRequest, gen_key
-from eduid.webapp.idp.login import SSO, NextResult, login_next_step
+from eduid.webapp.idp.idp_saml import IdP_SAMLRequest
+from eduid.webapp.idp.login import NextResult, login_next_step
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.tests.test_app import IdPTests
 from eduid.webapp.idp.util import b64encode
@@ -124,7 +124,7 @@ def _transport_encode(data):
 
 
 class SSOIdPTests(IdPTests):
-    def _make_login_ticket(self, req_class_ref: str, request_ref: Optional[RequestRef] = None) -> SSOLoginData:
+    def _make_login_ticket(self, req_class_ref: str, request_ref: Optional[RequestRef] = None) -> LoginContext:
         xmlstr = make_SAML_request(class_ref=req_class_ref)
         info = {'SAMLRequest': xmlstr}
         binding = 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST'
@@ -148,7 +148,7 @@ class SSOIdPTests(IdPTests):
             # Ignore RuntimeError: Working outside of request context when not running
             # inside self.app.test_request_context.
             pass
-        ticket = SSOLoginData(request_ref=request_ref)
+        ticket = LoginContext(request_ref=request_ref)
         ticket.saml_req = saml_req
         return ticket
 

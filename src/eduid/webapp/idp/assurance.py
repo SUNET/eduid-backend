@@ -44,7 +44,7 @@ from eduid.userdb.credentials import (
     Password,
 )
 from eduid.userdb.idp import IdPUser
-from eduid.webapp.common.session.logindata import SSOLoginData
+from eduid.webapp.common.session.logindata import LoginContext
 from eduid.webapp.common.session.namespaces import OnetimeCredential, OnetimeCredType
 from eduid.webapp.idp.app import current_idp_app
 from eduid.webapp.idp.app import current_idp_app as current_app
@@ -93,7 +93,7 @@ class MissingAuthentication(AssuranceException):
 
 
 class AuthnState(object):
-    def __init__(self, user: IdPUser, sso_session: SSOSession, ticket: SSOLoginData):
+    def __init__(self, user: IdPUser, sso_session: SSOSession, ticket: LoginContext):
         # authn_credentials is a list of dicts created by AuthnData.to_session_dict(), e.g.:
         # {'cred_id': self.credential.key,
         #  'authn_ts': self.timestamp,
@@ -184,7 +184,7 @@ class AuthnState(object):
         return self.swamid_al2_used or self.swamid_al2_hi_used
 
 
-def response_authn(ticket: SSOLoginData, user: IdPUser, sso_session: SSOSession) -> AuthnInfo:
+def response_authn(ticket: LoginContext, user: IdPUser, sso_session: SSOSession) -> AuthnInfo:
     """
     Figure out what AuthnContext to assert in a SAML response,
     given the RequestedAuthnContext from the SAML request.
@@ -266,7 +266,7 @@ def response_authn(ticket: SSOLoginData, user: IdPUser, sso_session: SSOSession)
     return AuthnInfo(class_ref=response_authn.value, authn_attributes=attributes, instant=authn_instant)
 
 
-def get_requested_authn_context(ticket: SSOLoginData) -> Optional[EduidAuthnContextClass]:
+def get_requested_authn_context(ticket: LoginContext) -> Optional[EduidAuthnContextClass]:
     """
     Check if the SP has explicit Authn preferences in the metadata (some SPs are not
     capable of conveying this preference in the RequestedAuthnContext)

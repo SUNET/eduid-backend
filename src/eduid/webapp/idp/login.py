@@ -24,18 +24,17 @@ from defusedxml import ElementTree as DefusedElementTree
 from flask import make_response, redirect, render_template, request, url_for
 from flask_babel import gettext as _
 from pydantic import BaseModel
-
-from eduid.common.misc.timeutil import utc_now
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest, Forbidden, TooManyRequests
 from werkzeug.wrappers import Response as WerkzeugResponse
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.idp.user import SAMLAttributeSettings
 from eduid.webapp.common.api import exceptions
 from eduid.webapp.common.api.utils import urlappend
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.logindata import SSOLoginData
+from eduid.webapp.common.session.logindata import LoginContext
 from eduid.webapp.common.session.namespaces import IdP_PendingRequest, RequestRef
 from eduid.webapp.idp import assurance, mischttp
 from eduid.webapp.idp.app import current_idp_app as current_app
@@ -81,7 +80,7 @@ class NextResult(BaseModel):
         arbitrary_types_allowed = True
 
 
-def login_next_step(ticket: SSOLoginData, sso_session: Optional[SSOSession]) -> NextResult:
+def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession]) -> NextResult:
     """ The main state machine for the login flow(s). """
     if not isinstance(sso_session, SSOSession):
         return NextResult(message=IdPMsg.must_authenticate)
@@ -223,7 +222,7 @@ class SSO(Service):
 
         raise RuntimeError(f'Don\'t know what to do with {ticket}')
 
-    def perform_login(self, ticket: SSOLoginData, authn_info: AuthnInfo) -> WerkzeugResponse:
+    def perform_login(self, ticket: LoginContext, authn_info: AuthnInfo) -> WerkzeugResponse:
         """
         Validate request, and then proceed with creating an AuthnResponse and
         invoking the 'outgoing' SAML2 binding.
@@ -291,7 +290,7 @@ class SSO(Service):
         response_authn: AuthnInfo,
         resp_args: ResponseArgs,
         user: IdPUser,
-        ticket: SSOLoginData,
+        ticket: LoginContext,
         sso_session: SSOSession,
     ) -> SamlResponse:
         """
@@ -358,7 +357,7 @@ class SSO(Service):
 
         return saml_response
 
-    def _kantara_log_assertion_id(self, saml_response: str, ticket: SSOLoginData) -> None:
+    def _kantara_log_assertion_id(self, saml_response: str, ticket: LoginContext) -> None:
         """
         Log the assertion id, which _might_ be required by Kantara.
 
@@ -440,7 +439,7 @@ class SSO(Service):
             }
         ]
 
-    def _validate_login_request(self, ticket: SSOLoginData) -> ResponseArgs:
+    def _validate_login_request(self, ticket: LoginContext) -> ResponseArgs:
         """
         Validate the validity of the SAML request we are going to answer with
         an assertion.
@@ -462,7 +461,7 @@ class SSO(Service):
         :param ticket: State for this request
         :return: pysaml2 response creation data
         """
-        assert isinstance(ticket, SSOLoginData)
+        assert isinstance(ticket, LoginContext)
         current_app.logger.debug(f"Validate login request :\n{ticket}")
         current_app.logger.debug(f"AuthnRequest from ticket: {ticket.saml_req!r}")
         return ticket.saml_req.get_response_args(BadRequest, ticket.request_ref)
@@ -473,7 +472,7 @@ class SSO(Service):
 # -----------------------------------------------------------------------------
 
 
-def show_login_page(ticket: SSOLoginData) -> WerkzeugResponse:
+def show_login_page(ticket: LoginContext) -> WerkzeugResponse:
     _username = ''
     _login_subject = ticket.saml_req.login_subject
     if _login_subject is not None:
@@ -613,7 +612,7 @@ def _add_saml_request_to_session(info: SAMLQueryParams, binding: str) -> Request
     return request_ref
 
 
-def get_ticket(info: SAMLQueryParams, binding: Optional[str]) -> Optional[SSOLoginData]:
+def get_ticket(info: SAMLQueryParams, binding: Optional[str]) -> Optional[LoginContext]:
     """
     Get the SSOLoginData from the eduid.webapp.common session, or from query parameters.
     """
@@ -628,7 +627,7 @@ def get_ticket(info: SAMLQueryParams, binding: Optional[str]) -> Optional[SSOLog
     if not info.request_ref:
         raise BadRequest('Bad request, please re-initiate login')
 
-    ticket = SSOLoginData(request_ref=info.request_ref)
+    ticket = LoginContext(request_ref=info.request_ref)
     try:
         ticket.saml_req = IdP_SAMLRequest(
             ticket.SAMLRequest, ticket.binding, current_app.IDP, debug=current_app.conf.debug

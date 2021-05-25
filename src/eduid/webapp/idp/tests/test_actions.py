@@ -47,8 +47,8 @@ from eduid.userdb.idp import IdPUser
 from eduid.userdb.tou import ToUEvent
 from eduid.vccs.client import VCCSClient
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.logindata import SSOLoginData
-from eduid.webapp.common.session.namespaces import IdP_Namespace, ReqSHA1, RequestRef
+from eduid.webapp.common.session.logindata import LoginContext
+from eduid.webapp.common.session.namespaces import IdP_Namespace, RequestRef
 from eduid.webapp.idp.mfa_action import add_actions as mfa_add_actions
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.tests.test_app import LoginState
@@ -61,7 +61,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class MFAResult:
-    ticket: SSOLoginData
+    ticket: LoginContext
     session: IdP_Namespace
 
 
