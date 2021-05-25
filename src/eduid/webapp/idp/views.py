@@ -204,7 +204,7 @@ def pwauth(ref: RequestRef, username: str, password: str) -> FluxData:
         authn_request_id=ticket.saml_req.request_id,
         authn_credentials=_authn_credentials,
         eppn=pwauth.user.eppn,
-        expires_at=utc_now() + timedelta(seconds=current_app.conf.sso_session_lifetime * 60),
+        expires_at=utc_now() + current_app.conf.sso_session_lifetime,
     )
 
     # This session contains information about the fact that the user was authenticated. It is

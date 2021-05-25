@@ -35,7 +35,7 @@
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import cast
 
 import bson
@@ -465,5 +465,5 @@ class TestActions(SSOIdPTests):
         credentials_used = [x.cred_id for x in sso_session.authn_credentials]
         assert credentials_used == expected_credentials_used
         assert sso_session.eppn == self.test_user.eppn
-        assert sso_session.minutes_old <= 1
+        assert sso_session.age < timedelta(seconds=20)
         assert sso_session.external_mfa is None

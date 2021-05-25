@@ -214,9 +214,8 @@ class SSO(Service):
 
         if _next.message == IdPMsg.proceed:
             assert self.sso_session  # please mypy
-            _ttl = current_app.conf.sso_session_lifetime - self.sso_session.minutes_old
             current_app.logger.info(
-                f'{ticket.request_ref}: proceeding sso_session={self.sso_session.public_id}, ttl={_ttl:}m'
+                f'{ticket.request_ref}: proceeding sso_session={self.sso_session.public_id}, age={self.sso_session.age}'
             )
             current_app.logger.debug(f'Continuing with Authn request {repr(ticket.saml_req.request_id)}')
             assert _next.authn_info  # please mypy
@@ -574,7 +573,7 @@ def do_verify() -> WerkzeugResponse:
         authn_credentials=_authn_credentials,
         authn_request_id=_ticket.saml_req.request_id,
         eppn=pwauth.user.eppn,
-        expires_at=utc_now() + timedelta(seconds=current_app.conf.sso_session_lifetime * 60),
+        expires_at=utc_now() + current_app.conf.sso_session_lifetime,
     )
 
     # This session contains information about the fact that the user was authenticated. It is

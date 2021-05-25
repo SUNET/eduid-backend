@@ -31,22 +31,23 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import re
-from base64 import b64decode
 from dataclasses import dataclass
+from datetime import timedelta
 from enum import Enum
 from pathlib import PurePath
 from typing import Any, Dict, Mapping, Optional
 
 from flask import Response as FlaskResponse
-from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
-from saml2.client import Saml2Client
-from saml2.response import AuthnResponse
 
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.cache import IdentityCache, OutstandingQueriesCache, StateCache
 from eduid.webapp.common.authn.utils import get_saml2_config
 from eduid.webapp.idp.app import IdPApp, init_idp_app
+from eduid.webapp.idp.settings.common import IdPConfig
 from eduid.webapp.idp.sso_session import SSOSession
+from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
+from saml2.client import Saml2Client
+from saml2.response import AuthnResponse
 
 __author__ = 'ft'
 
@@ -113,6 +114,21 @@ class IdPTests(EduidAPITestCase):
 
     def test_app_starts(self):
         assert self.app.conf.app_name == 'idp'
+
+    def test_sso_session_lifetime_config(self):
+        config = dict(self.settings)
+
+        config['sso_session_lifetime'] = 10  # expected to be interpreted as 10 minutes
+        conf1 = IdPConfig(**config)
+        assert conf1.sso_session_lifetime == timedelta(minutes=10)
+
+        config['sso_session_lifetime'] = 'PT5S'
+        conf2 = IdPConfig(**config)
+        assert conf2.sso_session_lifetime == timedelta(seconds=5)
+
+        config['sso_session_lifetime'] = 'P365D'
+        conf3 = IdPConfig(**config)
+        assert conf3.sso_session_lifetime == timedelta(days=365)
 
     def _try_login(
         self,

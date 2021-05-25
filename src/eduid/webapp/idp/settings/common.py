@@ -33,7 +33,7 @@
 """
 Configuration (file) handling for the eduID idp app.
 """
-
+from datetime import timedelta
 from typing import List, Optional
 
 from pydantic import Field, validator
@@ -49,13 +49,11 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin):
     app_name: str = 'idp'
     # pysaml2 configuration file. Separate config file with SAML related parameters.
     pysaml2_config: str = 'eduid.webapp.common.authn.idp_conf'
-    # SAML F-TICKS user anonymization key. If this is set, the IdP will log FTICKS data
+    # SAML F-TICKS user anonymization key. If this is set, the IdP will log F-TICKS data
     # on every login.
     fticks_secret_key: Optional[str] = None
     # Get SAML F-TICKS format string.
     fticks_format_string: str = 'F-TICKS/SWAMID/2.0#TS={ts}#RP={rp}#AP={ap}#PN={pn}#AM={am}#'
-    # directory for local static files
-    static_dir: Optional[str] = None
     # URL to static resources that can be used in templates
     static_link: str = '#'
     #  UserDB database name. eduid.workers.am for old userdb, eduid.userdb for new
@@ -65,13 +63,8 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin):
     authn_info_mongo_uri: Optional[str] = None
     # MongoDB connection URI (string) for PySAML2 SSO sessions.
     sso_session_mongo_uri: Optional[str] = None
-    # Lifetime of SSO session (in minutes).
-    # If a user has an active SSO session, they will get SAML assertions made
-    # without having to authenticate again (unless SP requires it through
-    # ForceAuthn).
-    # The total time a user can access a particular SP would therefor be
-    # this value, plus the pysaml2 lifetime of the assertion.
-    sso_session_lifetime: int = 600
+    # Lifetime of SSO sessions
+    sso_session_lifetime: timedelta = Field(default=timedelta(minutes=600))
     # Verify request signatures, if they exist.
     # This defaults to False since it is a trivial DoS to consume all the IdP:s
     # CPU resources if this is set to True.
@@ -92,11 +85,6 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin):
     faq_link: str = '#'
     # Default language code to use when looking for web pages ('en').
     default_language: str = 'en'
-    # Base URL of the IdP. The default base URL is constructed from the
-    # Request URI, but for example if there is a load balancer/SSL
-    # terminator in front of the IdP it might be required to specify
-    # the URL of the service.
-    base_url: Optional[str] = None
     # The scope to append to any unscoped eduPersonPrincipalName
     # attributes found on users in the userdb.
     default_eppn_scope: Optional[str] = None
@@ -109,11 +97,6 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin):
     # Kantara 30-day bad authn limit is 100
     max_auhtn_failures_per_month: int = 50
     max_authn_failures_per_month: int = 50
-    # Lifetime of state kept in IdP login phase.
-    # This is the time, in minutes, a user has to complete the login phase.
-    # After this time, login cannot complete because the SAMLRequest, RelayState
-    # and possibly other needed information will be forgotten.
-    login_state_ttl: int = 5
     # URL to use with VCCS client. BCP is to have an nginx or similar on
     # localhost that will proxy requests to a currently available backend
     # using TLS.
@@ -123,23 +106,13 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin):
     # The plugins for pre-authentication actions that need to be loaded
     action_plugins: List[str] = Field(default=[])
     # The interval which a user needs to re-accept an already accepted ToU (in seconds)
-    tou_reaccept_interval: int = 94608000
-    # Name of cookie used to persist session information in the users browser.
-    shared_session_cookie_name: str = 'sessid'
+    tou_reaccept_interval: timedelta = Field(default=timedelta(days=3 * 365))
     # Legacy parameters for the SSO cookie. Keep in sync with sso_cookie above until removed!
     sso_cookie_name: str = 'idpauthn'
     sso_cookie_domain: Optional[str] = None
     # Cookie for IdP-specific session allowing users to SSO.
     # Must be specified after sso_cookie_name and sso_cookie_domain while those are present.
     sso_cookie: CookieConfig = Field(default_factory=lambda: CookieConfig(key='idpauthn'))
-    session_cookie_timeout: int = 60  # in minutes
-    preferred_url_scheme: str = 'http'
-    # TTL for shared sessions.
-    shared_session_ttl: int = 300
-    http_headers: str = (
-        "Content-Security-Policy:default-src 'self'; script-src 'self' 'unsafe-inline', X-Frame-Options:DENY"
-    )
-    privacy_link: str = "http://html.eduid.docker/privacy.html"
     # List in order of preference
     supported_digest_algorithms: List[str] = Field(default=['http://www.w3.org/2001/04/xmlenc#sha256'])
     # List in order of preference
@@ -159,3 +132,12 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin):
         raise ValueError(
             'sso_cookie not present, and no fallback values either (sso_cookie_name and sso_cookie_domain)'
         )
+
+    @validator('sso_session_lifetime', pre=True)
+    def validate_sso_session_lifetime(cls, v):
+        if isinstance(v, int):
+            # legacy format for this was number of minutes
+            v = v * 60
+        if not (isinstance(v, (int, str, timedelta,))):
+            raise ValueError('Invalid sso_session_lifetime (must be int, str or timedelta)')
+        return v

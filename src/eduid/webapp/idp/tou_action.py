@@ -54,7 +54,7 @@ def add_actions(user: IdPUser, ticket: SSOLoginData) -> Optional[Action]:
     version = current_app.conf.tou_version
     interval = current_app.conf.tou_reaccept_interval
 
-    if user.tou.has_accepted(version, interval):
+    if user.tou.has_accepted(version, int(interval.total_seconds())):
         current_app.logger.debug(f'User has already accepted ToU version {version!r}')
         return None
 

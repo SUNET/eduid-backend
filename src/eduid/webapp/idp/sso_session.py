@@ -103,7 +103,7 @@ class SSOSession(BaseModel):
         return (
             f'<{self.__class__.__name__}: _id={self.obj_id}, session_id={short_sessionid}, eppn={self.eppn}, '
             f'created={self.created_ts.isoformat()}, authn_ts={self.authn_timestamp.isoformat()}, '
-            f'expires_at={self.expires_at.isoformat()}, age={self.minutes_old}m>'
+            f'expires_at={self.expires_at.isoformat()}, age={self.age}>'
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -127,10 +127,9 @@ class SSOSession(BaseModel):
         return f'{self.eppn}.{self.created_ts.replace(microsecond=0).isoformat()}'
 
     @property
-    def minutes_old(self) -> int:
+    def age(self) -> timedelta:
         """ Return the age of this SSO session, in minutes. """
-        age = (utc_now() - self.authn_timestamp).total_seconds()
-        return int(age) // 60
+        return utc_now() - self.authn_timestamp
 
     def add_authn_credential(self, authn: AuthnData) -> None:
         """ Add information about a credential successfully used in this session. """
