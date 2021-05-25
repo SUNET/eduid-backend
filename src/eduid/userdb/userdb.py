@@ -41,6 +41,7 @@ import eduid.userdb.exceptions
 from eduid.userdb.db import BaseDB
 from eduid.userdb.exceptions import DocumentDoesNotExist, EduIDUserDBError, MultipleUsersReturned, UserDoesNotExist
 from eduid.userdb.user import User
+from eduid.userdb.util import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -282,7 +283,7 @@ class UserDB(BaseDB):
         # XXX add modified_by info. modified_ts alone is not unique when propagated to eduid.workers.am.
 
         modified = user.modified_ts
-        user.modified_ts = datetime.utcnow()
+        user.modified_ts = utc_now()
         if modified is None:
             # profile has never been modified through the dashboard.
             # possibly just created in signup.

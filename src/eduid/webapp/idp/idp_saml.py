@@ -165,6 +165,9 @@ class IdP_SAMLRequest(object):
         try:
             _subject = self._req_info.subject_id()
             return _subject.text.strip()
+        except AttributeError:
+            # pysaml trips over itself here if there is no Subject ID: 'NoneType' object has no attribute 'keys'
+            logger.debug('No Subject ID in AuthnRequest')
         except Exception as exc:
             logger.debug(f'Could not get Subject ID from AuthnRequest: {exc}')
         return None

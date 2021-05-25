@@ -30,17 +30,19 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from datetime import timedelta
 from typing import List
 
 from flask import Blueprint, redirect, request, url_for
 from werkzeug.exceptions import BadRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.exceptions import EduidForbidden, EduidTooManyRequests
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import ReqSHA1, RequestRef
+from eduid.webapp.common.session.namespaces import RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import get_requested_authn_context
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
@@ -199,18 +201,16 @@ def pwauth(ref: RequestRef, username: str, password: str) -> FluxData:
     if pwauth.authndata:
         _authn_credentials = [pwauth.authndata]
     _sso_session = SSOSession(
-        user_id=pwauth.user.user_id,
         authn_request_id=ticket.saml_req.request_id,
         authn_credentials=_authn_credentials,
-        idp_user=pwauth.user,
         eppn=pwauth.user.eppn,
+        expires_at=utc_now() + timedelta(seconds=current_app.conf.sso_session_lifetime * 60),
     )
 
     # This session contains information about the fact that the user was authenticated. It is
     # used to avoid requiring subsequent authentication for the same user during a limited
     # period of time, by storing the session-id in a browser cookie.
     current_app.sso_sessions.save(_sso_session)
-    current_app.logger.debug(f'Saved SSO session {repr(_sso_session.session_id)}')
 
     # INFO-Log the request id and the sso_session
     authn_ref = get_requested_authn_context(ticket)

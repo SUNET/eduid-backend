@@ -44,10 +44,12 @@ from datetime import datetime
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Type
 
 from bson import ObjectId
+from pydantic import BaseModel, Field
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import MongoDB
 from eduid.userdb.credentials import Credential, Password
+from eduid.userdb.credentials.base import CredentialKey
 from eduid.userdb.exceptions import UserHasNotCompletedSignup
 from eduid.userdb.idp import IdPUser, IdPUserDb
 from eduid.vccs.client import VCCSClientHTTPError, VCCSPasswordFactor
@@ -58,32 +60,27 @@ from eduid.webapp.idp.settings.common import IdPConfig
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class AuthnData(object):
+class AuthnData(BaseModel):
     """
     Data about a successful authentication.
 
     Returned from functions performing authentication.
     """
 
-    cred_id: str
-    timestamp: datetime = field(default_factory=utc_now)
+    cred_id: CredentialKey
+    timestamp: datetime = Field(default_factory=utc_now, alias='authn_ts')  # authn_ts was the old name in the db
+
+    class Config:
+        allow_population_by_field_name = True  # allow setting timestamp using it's name, not just the alias
 
     def to_dict(self) -> Dict[str, Any]:
         """ Return the object in dict format (serialized for storing in MongoDB). """
-        res = asdict(self)
-        # rename 'timestamp' to 'authn_ts' when writing to the database to match legacy code
-        res['authn_ts'] = res.pop('timestamp')
-        return res
+        return self.dict()
 
     @classmethod
     def from_dict(cls: Type[AuthnData], data: Mapping[str, Any]) -> AuthnData:
         """ Construct element from a data dict in database format. """
-        _data = dict(data)  # to not modify callers data
-        # 'timestamp' is called 'authn_ts' in the database for legacy reasons
-        if 'authn_ts' in _data:
-            _data['timestamp'] = _data.pop('authn_ts')
-        return cls(**_data)
+        return cls(**data)
 
 
 @dataclass

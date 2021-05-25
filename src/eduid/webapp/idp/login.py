@@ -15,6 +15,7 @@ Code handling Single Sign On logins.
 import hmac
 import pprint
 import time
+from datetime import timedelta
 from hashlib import sha256
 from typing import Dict, List, Optional
 from uuid import uuid4
@@ -23,6 +24,8 @@ from defusedxml import ElementTree as DefusedElementTree
 from flask import make_response, redirect, render_template, request, url_for
 from flask_babel import gettext as _
 from pydantic import BaseModel
+
+from eduid.common.misc.timeutil import utc_now
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest, Forbidden, TooManyRequests
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -83,7 +86,10 @@ def login_next_step(ticket: SSOLoginData, sso_session: Optional[SSOSession]) -> 
     if not isinstance(sso_session, SSOSession):
         return NextResult(message=IdPMsg.must_authenticate)
 
-    user = sso_session.idp_user
+    user = current_app.userdb.lookup_user(sso_session.eppn)
+    if not user:
+        current_app.logger.error(f'User with eppn {sso_session.eppn} (from SSO session) not found')
+        return NextResult(message=IdPMsg.general_failure, error=True)
 
     if user.terminated:
         current_app.logger.info(f'User {user} is terminated')
@@ -232,7 +238,10 @@ class SSO(Service):
         if not isinstance(self.sso_session, SSOSession):
             raise RuntimeError(f'self.sso_session is not of type {SSOSession} ({type(self.sso_session)})')
 
-        user = self.sso_session.idp_user
+        user = current_app.userdb.lookup_user(self.sso_session.eppn)
+        if not user:
+            current_app.logger.error(f'User with eppn {self.sso_session.eppn} (from SSO session) not found')
+            raise Forbidden('User in SSO session not found')
 
         resp_args = self._validate_login_request(ticket)
 
@@ -562,18 +571,16 @@ def do_verify() -> WerkzeugResponse:
     if pwauth.authndata:
         _authn_credentials = [pwauth.authndata]
     _sso_session = SSOSession(
-        user_id=pwauth.user.user_id,
-        authn_request_id=_ticket.saml_req.request_id,
         authn_credentials=_authn_credentials,
-        idp_user=pwauth.user,
+        authn_request_id=_ticket.saml_req.request_id,
         eppn=pwauth.user.eppn,
+        expires_at=utc_now() + timedelta(seconds=current_app.conf.sso_session_lifetime * 60),
     )
 
     # This session contains information about the fact that the user was authenticated. It is
     # used to avoid requiring subsequent authentication for the same user during a limited
     # period of time, by storing the session-id in a browser cookie.
     current_app.sso_sessions.save(_sso_session)
-    current_app.logger.debug(f'Saved SSO session {repr(_sso_session.session_id)}')
 
     # INFO-Log the request id (sha1 of SAML request) and the sso_session
     current_app.logger.info(
@@ -587,12 +594,10 @@ def do_verify() -> WerkzeugResponse:
     # the main entry point of the IdP (the SSO redirect endpoint).
     current_app.logger.debug(f'Redirecting user back to the SSO redirect endpoint => {next_endpoint}')
     resp = redirect(next_endpoint)
-    # By base64-encoding this string, we should remain interoperable with the old CherryPy based IdP. Fingers crossed.
-    b64_session_id = b64encode(_sso_session.session_id)
     # For debugging purposes, save the IdP SSO cookie value in the common session as well.
     # This is because we think we might have issues overwriting cookies in redirect responses.
-    session.idp.sso_cookie_val = b64_session_id
-    return mischttp.set_sso_cookie(b64_session_id, resp)
+    session.idp.sso_cookie_val = _sso_session.session_id
+    return mischttp.set_sso_cookie(_sso_session.session_id, resp)
 
 
 # ----------------------------------------------------------------------------

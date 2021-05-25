@@ -31,7 +31,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-import pprint
 from base64 import b64decode
 from typing import Any, Mapping, Optional, cast
 
@@ -75,10 +74,8 @@ class IdPApp(EduIDBaseApp):
 
         if config.mongo_uri is None:
             raise RuntimeError('Mongo URI is not optional for the IdP')
-        _session_ttl = config.sso_session_lifetime * 60
-        self.sso_sessions = SSOSessionCache(config.mongo_uri, ttl=_session_ttl)
+        self.sso_sessions = SSOSessionCache(config.mongo_uri)
 
-        _login_state_ttl = (config.login_state_ttl + 1) * 60
         self.authn_info_db = None
         self.actions_db = None
 
@@ -103,7 +100,7 @@ class IdPApp(EduIDBaseApp):
         """
         session = self._lookup_sso_session2()
         if session:
-            self.logger.debug(f'SSO session for user {session.idp_user} found in IdP cache: {session}')
+            self.logger.debug(f'SSO session found in the database: {session}')
             _age = session.minutes_old
             if _age > self.conf.sso_session_lifetime:
                 self.logger.debug(f'SSO session expired (age {_age} minutes > {self.conf.sso_session_lifetime})')
@@ -122,54 +119,49 @@ class IdPApp(EduIDBaseApp):
 
         _session_id = self.get_sso_session_id()
         if _session_id:
-            _sso = self.sso_sessions.get_session(_session_id, self.userdb)
-            self.logger.debug(f'Looked up SSO session using session ID {repr(_session_id)}:\n{_sso}')
+            _sso = self.sso_sessions.get_session(_session_id)
+            self.logger.debug(f'Looked up SSO session using session ID {repr(_session_id)}: {_sso}')
 
         if not _sso:
-            self.logger.debug("SSO session not found using 'id' parameter or IdP SSO cookie")
+            self.logger.debug('SSO session not found using IdP SSO cookie')
 
             if session.idp.sso_cookie_val is not None:
-                self.logger.debug('Found potential sso_cookie_val in the eduID session')
-                _other_session_id = SSOSessionId(session.idp.sso_cookie_val.encode('ascii'))
-                _other_sso = self.sso_sessions.get_session(_other_session_id, self.userdb)
+                # Debug issues with browsers not returning updated SSO cookie values.
+                # Only log partial cookie value since it allows impersonation if leaked.
+                _other_session_id = SSOSessionId(session.idp.sso_cookie_val)
+                self.logger.debug(
+                    'Found potential sso_cookie_val in the eduID session: ' f'({session.idp.sso_cookie_val[:8]}...)'
+                )
+                _other_sso = self.sso_sessions.get_session(_other_session_id)
                 if _other_sso is not None:
-                    # Debug issues with browsers not returning updated SSO cookie values.
-                    # Only log partial cookie value since it allows impersonation if leaked.
                     self.logger.info(
-                        f'Found no SSO session, but found one from session.idp.sso_cookie_val '
-                        f'({session.idp.sso_cookie_val[:8]}...)'
+                        f'Found no SSO session, but found one from session.idp.sso_cookie_val: {_other_sso}'
                     )
+
+            if session.common.eppn:
+                for this in self.sso_sessions.get_sessions_for_user(session.common.eppn):
+                    self.logger.info(
+                        f'Found no SSO session, but found SSO session for user {session.common.eppn}: {this}'
+                    )
+
             return None
-        self.logger.debug(f'Re-created SSO session {_sso}')
+        self.logger.debug(f'Loaded SSO session {_sso}')
         return _sso
 
     def get_sso_session_id(self) -> Optional[SSOSessionId]:
         """
-        Get the SSO session id from the IdP SSO cookie, with fallback to hopefully unused 'id' query string parameter.
+        Get the SSO session id from the IdP SSO cookie.
 
         :return: SSO session id
         """
         # local import to avoid import-loop
-        from eduid.webapp.idp.mischttp import parse_query_string, read_cookie
+        from eduid.webapp.idp.mischttp import read_cookie
 
         _session_id = read_cookie(self.conf.sso_cookie.key)
-        if _session_id:
-            # The old IdP base64 encoded the session_id, try to  remain interoperable. Fingers crossed.
-            _decoded_session_id = b64decode(_session_id)
-            self.logger.debug(
-                f'Got SSO session ID from IdP SSO cookie {repr(_session_id)} -> {repr(_decoded_session_id)}'
-            )
-            return SSOSessionId(_decoded_session_id)
-
-        query = parse_query_string()
-        if query and 'id' in query:
-            self.logger.warning('Found "id" in query string - this was thought to be obsolete')
-            self.logger.debug("Parsed query string :\n{!s}".format(pprint.pformat(query)))
-            _session_id = query['id']
-            self.logger.debug(f'Got SSO session ID from query string: {_session_id}')
-            return SSOSessionId(bytes(_session_id, 'ascii'))
-
-        return None
+        if not _session_id:
+            return None
+        self.logger.debug(f'Got SSO session ID from IdP SSO cookie {repr(_session_id)}')
+        return SSOSessionId(_session_id)
 
 
 current_idp_app = cast(IdPApp, current_app)

@@ -240,4 +240,4 @@ class IdPTests(EduidAPITestCase):
     def get_sso_session(self, sso_cookie_val: str) -> Optional[SSOSession]:
         if sso_cookie_val is None:
             return None
-        return self.app.sso_sessions.get_session(b64decode(sso_cookie_val), self.app.userdb)
+        return self.app.sso_sessions.get_session(sso_cookie_val)
