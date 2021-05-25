@@ -230,11 +230,7 @@ class TestSSO(SSOIdPTests):
             user = self.get_user_set_nins(self.test_user.eppn, [])
 
         sso_session_1 = SSOSession(
-            user_id=user.user_id,
-            authn_request_id='some-unique-id-1',
-            authn_credentials=[],
-            idp_user=user,
-            eppn=user.eppn,
+            authn_request_id='some-unique-id-1', authn_credentials=[], idp_user=user, eppn=user.eppn,
         )
         if 'u2f' in credentials and not user.credentials.filter(U2F).to_list():
             # add a U2F credential to the user

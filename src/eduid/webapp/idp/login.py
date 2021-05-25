@@ -562,7 +562,6 @@ def do_verify() -> WerkzeugResponse:
     if pwauth.authndata:
         _authn_credentials = [pwauth.authndata]
     _sso_session = SSOSession(
-        user_id=pwauth.user.user_id,
         authn_request_id=_ticket.saml_req.request_id,
         authn_credentials=_authn_credentials,
         idp_user=pwauth.user,

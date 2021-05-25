@@ -76,7 +76,6 @@ class TestActions(SSOIdPTests):
         self.test_action = self.actions.add_action(self.test_user.eppn, action_type='dummy', preference=100, params={})
 
         self.sso_session = SSOSession(
-            user_id=self.test_user.user_id,
             authn_request_id='some-unique-id-1',
             authn_credentials=[],
             idp_user=cast(IdPUser, self.test_user),
@@ -469,6 +468,5 @@ class TestActions(SSOIdPTests):
         credentials_used = [x.cred_id for x in sso_session.authn_credentials]
         assert credentials_used == expected_credentials_used
         assert sso_session.eppn == self.test_user.eppn
-        assert sso_session.user_id == self.test_user.user_id
         assert sso_session.minutes_old <= 1
         assert sso_session.external_mfa is None

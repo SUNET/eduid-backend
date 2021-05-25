@@ -62,7 +62,6 @@ class SSOSession:
     of this, as well as other policy decisions (such as what ID-proofing
     has taken place, what AuthnContext the SP requested and so on).
 
-    :param user_id: User id, typically MongoDB _id
     :param authn_request_id: SAML request id of request that caused authentication
     :param authn_credentials: Data about what credentials were used to authn
     :param authn_timestamp: Authentication timestamp, in UTC
@@ -75,7 +74,6 @@ class SSOSession:
 
     """
 
-    user_id: bson.ObjectId  # move away from this - use the eppn instead
     authn_request_id: str  # This should be obsolete now - used to be used to 'break' forceAuthn looping
     authn_credentials: List[AuthnData]
     eppn: str
@@ -105,7 +103,6 @@ class SSOSession:
             'session_id': b'ZjYzOTcwNWItYzUyOS00M2U1LWIxODQtODMxYTJhZjQ0YzA1',
             'username': 'hubba-bubba',
             'data': {
-                'user_id': ObjectId('5fd09748c07041072b237ae0')
                 'authn_request_id': 'id-IgHyGTmxBEORfx5NJ',
                 'authn_credentials': [
                     {
@@ -131,7 +128,7 @@ class SSOSession:
         res['authn_timestamp'] = int(self.authn_timestamp.timestamp())
         # Store these attributes in an 'inner' scope (called 'data')
         _data = {}
-        for this in ['user_id', 'authn_request_id', 'authn_credentials', 'authn_timestamp', 'external_mfa']:
+        for this in ['authn_request_id', 'authn_credentials', 'authn_timestamp', 'external_mfa']:
             _data[this] = res.pop(this)
         res['data'] = _data
         # rename 'eppn' to 'username' in the database, for legacy reasons
@@ -149,18 +146,18 @@ class SSOSession:
         _data['authn_credentials'] = [AuthnData.from_dict(x) for x in _data['authn_credentials']]
         if 'external_mfa' in _data and _data['external_mfa'] is not None:
             _data['external_mfa'] = [ExternalMfaData.from_session_dict(x) for x in _data['external_mfa']]
-        if 'user_id' in _data:
-            _data['idp_user'] = userdb.lookup_user(_data['user_id'])
+        # rename 'username' to 'eppn'
+        if 'eppn' not in _data:
+            _data['eppn'] = _data.pop('username')
+        if 'eppn' in _data:
+            _data['idp_user'] = userdb.lookup_user(_data['eppn'])
             if not _data['idp_user']:
-                raise RuntimeError(f'User with id {repr(_data["user_id"])} not found')
+                raise RuntimeError(f'User with eppn {repr(_data["eppn"])} not found')
         # Compatibility code to convert integer format to datetime format. Keep this until nothing writes
         # authn_timestamp as integers, and all the existing sessions have expired.
         # TODO: Remove this code when all sessions in the database have datetime authn_timestamps.
         if isinstance(_data.get('authn_timestamp'), int):
             _data['authn_timestamp'] = datetime.fromtimestamp(_data['authn_timestamp'], tz=timezone.utc)
-        # rename 'username' to 'eppn'
-        if 'eppn' not in _data:
-            _data['eppn'] = _data.pop('username')
         return cls(**_data)
 
     @property
@@ -169,7 +166,7 @@ class SSOSession:
         Return a identifier for this session that can't be used to hijack sessions
         if leaked through a log file etc.
         """
-        return f'{self.user_id}.{self.authn_timestamp.timestamp()}'
+        return f'{self.eppn}.{self.authn_timestamp.timestamp()}'
 
     @property
     def minutes_old(self) -> int:
