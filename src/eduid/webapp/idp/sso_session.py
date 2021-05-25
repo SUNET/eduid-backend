@@ -80,7 +80,7 @@ class SSOSession:
     authn_credentials: List[AuthnData]
     eppn: str
     idp_user: IdPUser = field(repr=False)  # extra info - not serialised
-    _id: Optional[ObjectId] = None
+    _id: ObjectId = field(default_factory=ObjectId)
     session_id: SSOSessionId = field(default_factory=lambda: create_session_id())
     created_ts: datetime = field(default_factory=utc_now)
     external_mfa: Optional[ExternalMfaData] = None
