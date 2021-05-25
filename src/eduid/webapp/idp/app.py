@@ -31,7 +31,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-import pprint
 from base64 import b64decode
 from typing import Any, Mapping, Optional, cast
 
@@ -103,7 +102,7 @@ class IdPApp(EduIDBaseApp):
         """
         session = self._lookup_sso_session2()
         if session:
-            self.logger.debug(f'SSO session for user {session.idp_user} found in IdP cache: {session}')
+            self.logger.debug(f'SSO session for user {session.idp_user} found in the database: {session}')
             _age = session.minutes_old
             if _age > self.conf.sso_session_lifetime:
                 self.logger.debug(f'SSO session expired (age {_age} minutes > {self.conf.sso_session_lifetime})')
@@ -123,24 +122,29 @@ class IdPApp(EduIDBaseApp):
         _session_id = self.get_sso_session_id()
         if _session_id:
             _sso = self.sso_sessions.get_session(_session_id, self.userdb)
-            self.logger.debug(f'Looked up SSO session using session ID {repr(_session_id)}:\n{_sso}')
+            self.logger.debug(f'Looked up SSO session using session ID {repr(_session_id)}: {_sso}')
 
         if not _sso:
             self.logger.debug('SSO session not found using IdP SSO cookie')
 
             if session.idp.sso_cookie_val is not None:
-                self.logger.debug('Found potential sso_cookie_val in the eduID session')
+                # Debug issues with browsers not returning updated SSO cookie values.
+                # Only log partial cookie value since it allows impersonation if leaked.
                 _other_session_id = SSOSessionId(session.idp.sso_cookie_val.encode('ascii'))
+                self.logger.debug(
+                    'Found potential sso_cookie_val in the eduID session: ' f'({session.idp.sso_cookie_val[:8]}...)'
+                )
                 _other_sso = self.sso_sessions.get_session(_other_session_id, self.userdb)
                 if _other_sso is not None:
-                    # Debug issues with browsers not returning updated SSO cookie values.
-                    # Only log partial cookie value since it allows impersonation if leaked.
                     self.logger.info(
-                        f'Found no SSO session, but found one from session.idp.sso_cookie_val '
-                        f'({session.idp.sso_cookie_val[:8]}...)'
+                        f'Found no SSO session, but found one from session.idp.sso_cookie_val: {_other_sso}'
                     )
+
+            for this in self.sso_sessions.get_sessions_for_user(session.common.eppn, self.userdb):
+                self.logger.info(f'Found no SSO session, but found SSO session for user {session.common.eppn}: {this}')
+
             return None
-        self.logger.debug(f'Re-created SSO session {_sso}')
+        self.logger.debug(f'Loaded SSO session {_sso}')
         return _sso
 
     def get_sso_session_id(self) -> Optional[SSOSessionId]:
