@@ -126,7 +126,7 @@ class IdPApp(EduIDBaseApp):
             self.logger.debug(f'Looked up SSO session using session ID {repr(_session_id)}:\n{_sso}')
 
         if not _sso:
-            self.logger.debug("SSO session not found using 'id' parameter or IdP SSO cookie")
+            self.logger.debug('SSO session not found using IdP SSO cookie')
 
             if session.idp.sso_cookie_val is not None:
                 self.logger.debug('Found potential sso_cookie_val in the eduID session')
@@ -145,12 +145,12 @@ class IdPApp(EduIDBaseApp):
 
     def get_sso_session_id(self) -> Optional[SSOSessionId]:
         """
-        Get the SSO session id from the IdP SSO cookie, with fallback to hopefully unused 'id' query string parameter.
+        Get the SSO session id from the IdP SSO cookie.
 
         :return: SSO session id
         """
         # local import to avoid import-loop
-        from eduid.webapp.idp.mischttp import parse_query_string, read_cookie
+        from eduid.webapp.idp.mischttp import read_cookie
 
         _session_id = read_cookie(self.conf.sso_cookie.key)
         if _session_id:
@@ -160,14 +160,6 @@ class IdPApp(EduIDBaseApp):
                 f'Got SSO session ID from IdP SSO cookie {repr(_session_id)} -> {repr(_decoded_session_id)}'
             )
             return SSOSessionId(_decoded_session_id)
-
-        query = parse_query_string()
-        if query and 'id' in query:
-            self.logger.warning('Found "id" in query string - this was thought to be obsolete')
-            self.logger.debug("Parsed query string :\n{!s}".format(pprint.pformat(query)))
-            _session_id = query['id']
-            self.logger.debug(f'Got SSO session ID from query string: {_session_id}')
-            return SSOSessionId(bytes(_session_id, 'ascii'))
 
         return None
 
