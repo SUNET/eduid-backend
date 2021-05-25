@@ -15,6 +15,7 @@ Code handling Single Sign On logins.
 import hmac
 import pprint
 import time
+from datetime import timedelta
 from hashlib import sha256
 from typing import Dict, List, Optional
 from uuid import uuid4
@@ -23,6 +24,8 @@ from defusedxml import ElementTree as DefusedElementTree
 from flask import make_response, redirect, render_template, request, url_for
 from flask_babel import gettext as _
 from pydantic import BaseModel
+
+from eduid.common.misc.timeutil import utc_now
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest, Forbidden, TooManyRequests
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -568,7 +571,10 @@ def do_verify() -> WerkzeugResponse:
     if pwauth.authndata:
         _authn_credentials = [pwauth.authndata]
     _sso_session = SSOSession(
-        authn_request_id=_ticket.saml_req.request_id, authn_credentials=_authn_credentials, eppn=pwauth.user.eppn,
+        authn_credentials=_authn_credentials,
+        authn_request_id=_ticket.saml_req.request_id,
+        eppn=pwauth.user.eppn,
+        expires_at=utc_now() + timedelta(seconds=current_app.conf.sso_session_lifetime * 60),
     )
 
     # This session contains information about the fact that the user was authenticated. It is
