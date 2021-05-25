@@ -10,7 +10,6 @@ from saml2.samlp import RequestedAuthnContext
 from saml2.sigver import verify_redirect_signature
 from werkzeug.exceptions import HTTPException
 
-from eduid.webapp.common.session.namespaces import ReqSHA1
 from eduid.webapp.idp.mischttp import HttpArgs
 
 ResponseArgs = NewType('ResponseArgs', Dict[str, Any])
@@ -24,6 +23,9 @@ class SAMLParseError(Exception):
 
 class SAMLValidationError(Exception):
     pass
+
+
+ReqSHA1 = NewType('ReqSHA1', str)
 
 
 def gen_key(something: Union[str, bytes]) -> ReqSHA1:
