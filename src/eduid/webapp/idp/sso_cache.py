@@ -181,16 +181,18 @@ class SSOSessionCache(BaseDB):
         }
         self.setup_indexes(indexes)
 
-    def remove_session(self, session: SSOSession) -> Union[int, bool]:
+    def remove_session(self, session: SSOSession) -> bool:
         """
         Remove entries when SLO is executed.
         :return: False on failure
         """
-        res = self._coll.remove({'session_id': session.session_id}, w='majority')
+        result = self._coll.remove({'_id': session._id}, w='majority')
         try:
-            return int(res['n'])  # number of deleted records
+            num = result.get('n')  # number of deleted records
+            module_logger.debug(f'Removed session {session}: num={num}')
+            return bool(num)
         except (KeyError, TypeError):
-            module_logger.warning(f'Remove session {repr(session.session_id)} failed, result: {repr(res)}')
+            module_logger.warning(f'Remove session {session} failed, result: {repr(result)}')
             return False
 
     def save(self, session: SSOSession) -> None:
@@ -202,7 +204,10 @@ class SSOSessionCache(BaseDB):
         logout (SLO).
         """
         result = self._coll.replace_one({'_id': session._id}, session.to_dict(), upsert=True)
-        module_logger.debug(f'Updated SSO session {session} in the db: {result}')
+        module_logger.debug(
+            f'Saved SSO session {session} in the db: '
+            f'matched={result.matched_count}, modified={result.modified_count}, upserted_id={result.upserted_id}'
+        )
         return None
 
     def get_session(self, sid: SSOSessionId, userdb: IdPUserDb) -> Optional[SSOSession]:
@@ -216,11 +221,13 @@ class SSOSessionCache(BaseDB):
         try:
             res = self._coll.find_one({'session_id': sid})
         except KeyError:
-            module_logger.debug(f'Failed looking up SSO session with id={repr(sid)}')
+            module_logger.debug(f'Failed looking up SSO session with session_id={repr(sid)}')
             raise
         if not res:
+            module_logger.debug(f'No SSO session found with session_id={repr(sid)}')
             return None
-        return SSOSession.from_dict(res, userdb)
+        session = SSOSession.from_dict(res, userdb)
+        return session
 
     def get_sessions_for_user(self, eppn: str, userdb: IdPUserDb) -> List[SSOSession]:
         """

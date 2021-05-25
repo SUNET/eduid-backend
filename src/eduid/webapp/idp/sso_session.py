@@ -87,7 +87,13 @@ class SSOSession:
     authn_timestamp: datetime = field(default_factory=utc_now)
 
     def __str__(self) -> str:
-        return f'<{self.__class__.__name__}: eppn={self.eppn}, ts={self.authn_timestamp.isoformat()}>'
+        # Session id allows impersonation if leaked, so only log a small part of it
+        short_sessionid = self.session_id[:6].decode('ascii') + '...'
+        return (
+            f'<{self.__class__.__name__}: _id={self._id}, session_id={short_sessionid}, eppn={self.eppn}, '
+            f'created={self.created_ts.isoformat()}, authn_ts={self.authn_timestamp.isoformat()}, '
+            f'age={self.minutes_old}m>'
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         """ Return the object in dict format (serialized for storing in MongoDB).
