@@ -214,29 +214,6 @@ class TestActions(SSOIdPTests):
             assert action.action_type == 'mfa'
             assert self.num_actions == 1
 
-    def test_add_mfa_action_no_db(self):
-        """ Make sure a user doesn't get stuck trying to log in if there is no action db """
-        self.actions.remove_action_by_id(self.test_action.action_id)
-        webauthn = Webauthn(
-            keyhandle='test_key_handle',
-            credential_data='test_credential_data',
-            app_id='https://dev.eduid.se/u2f-app-id.json',
-            attest_obj='test_attest_obj',
-            description='test_description',
-        )
-        self.test_user.credentials.add(webauthn)
-        self.amdb.save(self.test_user, check_sync=False)
-
-        with self.app.app_context():
-            mock_ticket = self._make_login_ticket(
-                req_class_ref=SWAMID_AL2, request_ref=RequestRef(self.mock_session_key)
-            )
-            self.app.actions_db = None
-            assert self.num_actions == 0
-            assert mfa_add_actions(self.test_user, mock_ticket, self.sso_session) is None
-        # ensure no action was added when self.app.actions_db is None
-        assert self.num_actions == 0
-
     def _test_add_2nd_mfa_action(self, success=True, cred_key=None, expected_num_actions=0) -> MFAResult:
         # Remove test_action to start from a clean slate
         self.actions.remove_action_by_id(self.test_action.action_id)

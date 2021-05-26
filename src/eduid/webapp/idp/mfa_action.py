@@ -86,10 +86,6 @@ def add_actions(user: IdPUser, ticket: LoginContext, sso_session: SSOSession) ->
     :param ticket: the in-memory login request context
     :param sso_session: The SSO data persisted in mongodb
     """
-    if not current_app.actions_db:
-        current_app.logger.warning('No actions_db - aborting MFA action')
-        return None
-
     require_mfa = False
     requested_authn_context = get_requested_authn_context(ticket)
     if requested_authn_context in [
