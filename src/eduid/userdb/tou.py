@@ -114,7 +114,7 @@ class ToUList(EventList):
             raise EduIDUserDBError(f'More than one ToUEvent with version {version} found')
         return None
 
-    def has_accepted(self, version: str, reaccept_interval: int):
+    def has_accepted(self, version: str, reaccept_interval: int) -> bool:
         """
         Check if the user has accepted a particular version of the ToU.
 

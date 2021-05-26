@@ -38,14 +38,14 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.userdb.idp import IdPUser
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.logindata import SSOLoginData
+from eduid.webapp.common.session.logindata import LoginContext
 from eduid.webapp.idp import mfa_action, tou_action
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.sso_session import SSOSession
 
 
 def check_for_pending_actions(
-    user: IdPUser, ticket: SSOLoginData, sso_session: SSOSession
+    user: IdPUser, ticket: LoginContext, sso_session: SSOSession
 ) -> Optional[WerkzeugResponse]:
     """
     Check whether there are any pending actions for the current user,
@@ -83,7 +83,7 @@ def check_for_pending_actions(
     return redirect(actions_uri)
 
 
-def add_idp_initiated_actions(user: IdPUser, ticket: SSOLoginData, sso_session: SSOSession) -> None:
+def add_idp_initiated_actions(user: IdPUser, ticket: LoginContext, sso_session: SSOSession) -> None:
     """
     Load the configured action plugins and execute their `add_actions`
     functions.

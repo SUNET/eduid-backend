@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional
+from typing import TYPE_CHECKING, Optional
 from urllib.parse import urlencode
 
 from pydantic import BaseModel
 
-from eduid.webapp.common.session.namespaces import IdP_PendingRequest, ReqSHA1, RequestRef
+from eduid.webapp.common.session.namespaces import IdP_PendingRequest, RequestRef
 
 if TYPE_CHECKING:
     from eduid.webapp.idp.idp_saml import IdP_SAMLRequest
@@ -35,7 +35,7 @@ class ExternalMfaData(BaseModel):
 
 
 @dataclass
-class SSOLoginData:
+class LoginContext:
     """
     Class to hold data about an ongoing login process in memory only.
 

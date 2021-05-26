@@ -154,7 +154,7 @@ class SLO(Service):
             try:
                 res = current_app.sso_sessions.remove_session(this)
                 current_app.logger.info(
-                    f'{req_key}: logout sso_session={repr(this.public_id)}, age={this.minutes_old}m, result={bool(res)}'
+                    f'{req_key}: logout sso_session={repr(this.public_id)}, age={this.age}, result={bool(res)}'
                 )
             except KeyError:
                 current_app.logger.info(f'{req_key}: logout sso_key={repr(this)}, result=not_found')

@@ -93,7 +93,6 @@ class Actions(TimestampedNS):
 
 
 RequestRef = NewType('RequestRef', str)
-ReqSHA1 = NewType('ReqSHA1', str)
 
 
 class OnetimeCredType(str, Enum):

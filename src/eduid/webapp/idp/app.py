@@ -32,6 +32,7 @@
 #
 
 from base64 import b64decode
+from datetime import timedelta
 from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
@@ -101,11 +102,11 @@ class IdPApp(EduIDBaseApp):
         session = self._lookup_sso_session2()
         if session:
             self.logger.debug(f'SSO session found in the database: {session}')
-            _age = session.minutes_old
+            _age = session.age
             if _age > self.conf.sso_session_lifetime:
-                self.logger.debug(f'SSO session expired (age {_age} minutes > {self.conf.sso_session_lifetime})')
+                self.logger.debug(f'SSO session expired (age {_age} > {self.conf.sso_session_lifetime})')
                 return None
-            self.logger.debug(f'SSO session is still valid (age {_age} minutes <= {self.conf.sso_session_lifetime})')
+            self.logger.debug(f'SSO session is still valid (age {_age} <= {self.conf.sso_session_lifetime})')
         return session
 
     def _lookup_sso_session2(self) -> Optional[SSOSession]:

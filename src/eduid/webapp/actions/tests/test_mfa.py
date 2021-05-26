@@ -48,7 +48,7 @@ from eduid.webapp.common.session import session
 
 __author__ = 'ft'
 
-from eduid.webapp.common.session.logindata import SSOLoginData
+from eduid.webapp.common.session.logindata import LoginContext
 from eduid.webapp.common.session.namespaces import RequestRef
 
 MFA_ACTION = {
@@ -112,7 +112,7 @@ class MFAActionPluginTests(ActionsTestCase):
             idp_session = mock_session
         mock_idp_app = MockIdPContext(self.app.actions_db)
         with self.app.test_request_context('/get-actions'):
-            add_actions(mock_idp_app, self.user, SSOLoginData(request_ref=RequestRef('mock-session')))
+            add_actions(mock_idp_app, self.user, LoginContext(request_ref=RequestRef('mock-session')))
             self.authenticate(idp_session=idp_session)
             response = self.app.dispatch_request()
             return json.loads(response)
@@ -123,7 +123,7 @@ class MFAActionPluginTests(ActionsTestCase):
         """
         with self.app.test_request_context('/config'):
             mock_idp_app = MockIdPContext(self.app.actions_db)
-            add_actions(mock_idp_app, self.user, SSOLoginData(request_ref=RequestRef('mock-session')))
+            add_actions(mock_idp_app, self.user, LoginContext(request_ref=RequestRef('mock-session')))
             self.authenticate(idp_session='mock-session')
             response = self.app.dispatch_request()
             return json.loads(response.data)

@@ -33,8 +33,11 @@
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
 import logging
+from datetime import datetime
 from enum import Enum, unique
-from typing import List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
+
+from pydantic import BaseModel
 
 from eduid.userdb.credentials import (
     METHOD_SWAMID_AL2_MFA,
@@ -44,13 +47,11 @@ from eduid.userdb.credentials import (
     Password,
 )
 from eduid.userdb.idp import IdPUser
-from eduid.webapp.common.session.logindata import SSOLoginData
+from eduid.webapp.common.session.logindata import LoginContext
 from eduid.webapp.common.session.namespaces import OnetimeCredential, OnetimeCredType
 from eduid.webapp.idp.app import current_idp_app
 from eduid.webapp.idp.app import current_idp_app as current_app
-from eduid.webapp.idp.idp_saml import AuthnInfo
 from eduid.webapp.idp.sso_session import SSOSession
-from eduid.webapp.idp.util import logger
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,7 @@ Assurance Level functionality.
 
 
 @unique
-class EduidAuthnContextClass(Enum):
+class EduidAuthnContextClass(str, Enum):
     REFEDS_MFA = 'https://refeds.org/profile/mfa'
     REFEDS_SFA = 'https://refeds.org/profile/sfa'
     FIDO_U2F = 'https://www.swamid.se/specs/id-fido-u2f-ce-transports'
@@ -93,7 +94,7 @@ class MissingAuthentication(AssuranceException):
 
 
 class AuthnState(object):
-    def __init__(self, user: IdPUser, sso_session: SSOSession, ticket: SSOLoginData):
+    def __init__(self, user: IdPUser, sso_session: SSOSession, ticket: LoginContext):
         # authn_credentials is a list of dicts created by AuthnData.to_session_dict(), e.g.:
         # {'cred_id': self.credential.key,
         #  'authn_ts': self.timestamp,
@@ -184,7 +185,21 @@ class AuthnState(object):
         return self.swamid_al2_used or self.swamid_al2_hi_used
 
 
-def response_authn(ticket: SSOLoginData, user: IdPUser, sso_session: SSOSession) -> AuthnInfo:
+class AuthnInfo(BaseModel):
+    """ Information about what AuthnContextClass etc. to put in SAML Authn responses."""
+
+    class_ref: EduidAuthnContextClass
+    authn_attributes: Dict[str, Any]  # these are added to the user attributes
+    instant: datetime
+
+    def __str__(self):
+        return (
+            f'<{self.__class__.__name__}: accr={self.class_ref.name}, attributes={self.authn_attributes}, '
+            f'instant={self.instant.isoformat()}>'
+        )
+
+
+def response_authn(ticket: LoginContext, user: IdPUser, sso_session: SSOSession) -> AuthnInfo:
     """
     Figure out what AuthnContext to assert in a SAML response,
     given the RequestedAuthnContext from the SAML request.
@@ -261,12 +276,10 @@ def response_authn(ticket: SSOLoginData, user: IdPUser, sso_session: SSOSession)
 
     logger.info(f'Assurances for {user} was evaluated to: {response_authn.name} with attributes {attributes}')
 
-    authn_instant = int(sso_session.authn_timestamp.timestamp())
-
-    return AuthnInfo(class_ref=response_authn.value, authn_attributes=attributes, instant=authn_instant)
+    return AuthnInfo(class_ref=response_authn, authn_attributes=attributes, instant=sso_session.authn_timestamp)
 
 
-def get_requested_authn_context(ticket: SSOLoginData) -> Optional[EduidAuthnContextClass]:
+def get_requested_authn_context(ticket: LoginContext) -> Optional[EduidAuthnContextClass]:
     """
     Check if the SP has explicit Authn preferences in the metadata (some SPs are not
     capable of conveying this preference in the RequestedAuthnContext)

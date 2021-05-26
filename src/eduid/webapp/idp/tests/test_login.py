@@ -142,7 +142,7 @@ class IdPTestLogin(IdPTests):
         assert b'SAML error: Unknown Service Provider' in result2.response.data
         cookies = result2.response.headers['Set-Cookie']
         # Ensure the pre-existing IdP SSO cookie wasn't touched
-        assert self.app.conf.sso_cookie_name not in cookies
+        assert self.app.conf.sso_cookie.key not in cookies
 
     def test_with_authncontext(self):
         # Patch the VCCSClient so we do not need a vccs server

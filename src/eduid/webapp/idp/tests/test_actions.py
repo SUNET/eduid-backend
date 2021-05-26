@@ -35,7 +35,7 @@
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import cast
 
 import bson
@@ -47,8 +47,8 @@ from eduid.userdb.idp import IdPUser
 from eduid.userdb.tou import ToUEvent
 from eduid.vccs.client import VCCSClient
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.logindata import SSOLoginData
-from eduid.webapp.common.session.namespaces import IdP_Namespace, ReqSHA1, RequestRef
+from eduid.webapp.common.session.logindata import LoginContext
+from eduid.webapp.common.session.namespaces import IdP_Namespace, RequestRef
 from eduid.webapp.idp.mfa_action import add_actions as mfa_add_actions
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.tests.test_app import LoginState
@@ -61,7 +61,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class MFAResult:
-    ticket: SSOLoginData
+    ticket: LoginContext
     session: IdP_Namespace
 
 
@@ -465,5 +465,5 @@ class TestActions(SSOIdPTests):
         credentials_used = [x.cred_id for x in sso_session.authn_credentials]
         assert credentials_used == expected_credentials_used
         assert sso_session.eppn == self.test_user.eppn
-        assert sso_session.minutes_old <= 1
+        assert sso_session.age < timedelta(seconds=20)
         assert sso_session.external_mfa is None

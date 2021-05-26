@@ -36,11 +36,11 @@ from typing import Optional
 
 from eduid.userdb.actions import Action
 from eduid.userdb.idp import IdPUser
-from eduid.webapp.common.session.logindata import SSOLoginData
+from eduid.webapp.common.session.logindata import LoginContext
 from eduid.webapp.idp.app import current_idp_app as current_app
 
 
-def add_actions(user: IdPUser, ticket: SSOLoginData) -> Optional[Action]:
+def add_actions(user: IdPUser, ticket: LoginContext) -> Optional[Action]:
     """
     Add an action requiring the user to accept a new version of the Terms of Use,
     in case the IdP configuration points to a version the user hasn't accepted.
@@ -54,7 +54,7 @@ def add_actions(user: IdPUser, ticket: SSOLoginData) -> Optional[Action]:
     version = current_app.conf.tou_version
     interval = current_app.conf.tou_reaccept_interval
 
-    if user.tou.has_accepted(version, interval):
+    if user.tou.has_accepted(version, int(interval.total_seconds())):
         current_app.logger.debug(f'User has already accepted ToU version {version!r}')
         return None
 
