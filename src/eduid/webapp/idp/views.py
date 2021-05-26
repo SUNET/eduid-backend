@@ -249,8 +249,7 @@ def mfa_auth(ref: RequestRef) -> FluxData:
     if not current_app.conf.login_bundle_url:
         return error_response(message=IdPMsg.not_available)
 
-    if not current_app.conf.login_bundle_url:
-        return error_response(message=IdPMsg.not_implemented)
+    return error_response(message=IdPMsg.not_implemented)
 
 
 @idp_views.route('/tou', methods=['POST'])
@@ -268,5 +267,4 @@ def tou(
     if not current_app.conf.login_bundle_url:
         return error_response(message=IdPMsg.not_available)
 
-    if not current_app.conf.login_bundle_url:
-        return error_response(message=IdPMsg.not_implemented)
+    return error_response(message=IdPMsg.not_implemented)
