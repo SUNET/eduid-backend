@@ -179,7 +179,7 @@ class EduidAPITestCase(CommonTestCase):
         :return: the updated configuration
         """
         # For tests, it makes sense to show relative time instead of datetime
-        config['log_format'] = '{asctime} | {levelname:7} | {eppn} | {name:35} | {message}'
+        config['log_format'] = '{asctime} | {levelname:7} | {eppn:11} | {name:35} | {message}'
         return config
 
     @contextmanager

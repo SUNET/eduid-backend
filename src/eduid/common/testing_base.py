@@ -60,7 +60,7 @@ class CommonTestCase(MongoTestCase):
         local_context = LocalContext(
             app_debug=True,
             app_name='testing',
-            format='{asctime} | {levelname:7} | {name:35} | {message}',
+            format='{asctime} | {levelname:7} |             | {name:35} | {message}',
             level='DEBUG',
             relative_time=True,
         )

@@ -8,17 +8,10 @@ import time
 from dataclasses import asdict, dataclass, field
 from os import environ
 from pprint import pformat
-from typing import TYPE_CHECKING, Any, Dict, Sequence
+from typing import Any, Dict, Sequence
 
 from eduid.common.config.base import LoggingConfigMixin, LoggingFilters
 from eduid.common.config.exceptions import BadConfiguration
-
-# From https://stackoverflow.com/a/39757388
-# The TYPE_CHECKING constant is always False at runtime, so the import won't be evaluated, but mypy
-# (and other type-checking tools) will evaluate the contents of that block.
-if TYPE_CHECKING:
-    pass
-
 
 __author__ = 'lundberg'
 
@@ -72,6 +65,20 @@ class AppFilter(logging.Filter):
         record.__setattr__('app_name', self.app_name)
         record.__setattr__('hostname', self.hostname)  # Actual hostname or container id
         record.__setattr__('system_hostname', self.system_hostname)  # Underlying hosts name for containers
+
+        name = record.__getattribute__('name')
+        if isinstance(name, str):
+            shorten = [
+                ('eduid.webapp.common.', 'e.w.c.',),
+                ('eduid.webapp.', 'e.w.',),
+                ('eduid.common.', 'e.c.',),
+                ('eduid.userdb.', 'e.u.',),
+            ]
+            for k, v, in shorten:
+                if name.startswith(k):
+                    record.__setattr__('name', v + name[len(k) :])
+                    break
+
         return True
 
 
@@ -92,8 +99,8 @@ class UserFilter(logging.Filter):
         from eduid.webapp.common.session import session
 
         eppn = ''
-        if session:
-            eppn = session.get('user_eppn', '')
+        if session and session.common.eppn:
+            eppn = session.common.eppn
         record.__setattr__('eppn', eppn)  # use setattr to prevent mypy unhappiness
         if record.levelno == logging.DEBUG:
             # If debug_eppns is not empty, we filter debug messages here and only allow them
