@@ -40,6 +40,7 @@ from typing import Any, Dict, List, Optional, Type
 
 from eduid.userdb.event import Event, EventList
 from eduid.userdb.exceptions import EduIDUserDBError, UserDBValueError
+from eduid.userdb.util import utc_now
 
 
 @dataclass
@@ -74,8 +75,7 @@ class ToUEvent(Event):
             raise UserDBValueError(f'Malformed modified_ts: {self.modified_ts!r}')
         delta = datetime.timedelta(seconds=interval_seconds)
         expiry_date = self.modified_ts + delta
-        now = datetime.datetime.now(tz=self.modified_ts.tzinfo)
-        return expiry_date < now
+        return expiry_date < utc_now()
 
 
 class ToUList(EventList):
@@ -122,7 +122,6 @@ class ToUList(EventList):
         :param reaccept_interval: Time between accepting and the need to reaccept (default 3 years)
 
         :return: True or False
-        :rtype: bool
         """
         # All users have implicitly accepted the first ToU version (info stored in another collection)
         if version in ['2014-v1', '2014-dev-v1']:
