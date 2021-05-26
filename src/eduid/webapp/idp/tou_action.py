@@ -32,6 +32,7 @@
 
 __author__ = 'eperez'
 
+import logging
 from typing import Optional
 
 from eduid.userdb.actions import Action
@@ -39,8 +40,29 @@ from eduid.userdb.idp import IdPUser
 from eduid.webapp.common.session.logindata import LoginContext
 from eduid.webapp.idp.app import current_idp_app as current_app
 
+logger = logging.getLogger(__name__)
 
-def add_actions(user: IdPUser, ticket: LoginContext) -> Optional[Action]:
+
+def need_tou_acceptance(user: IdPUser) -> bool:
+    """
+    Check if the user is required to accept a new version of the Terms of Use,
+    in case the IdP configuration points to a version the user hasn't accepted,
+    or the old acceptance was too long ago.
+    """
+    version = current_app.conf.tou_version
+    interval = current_app.conf.tou_reaccept_interval
+
+    if user.tou.has_accepted(version, int(interval.total_seconds())):
+        logger.debug(f'User has already accepted ToU version {repr(version)}')
+        return False
+
+    tous = [x.version for x in user.tou.elements]
+    logger.info(f'User needs to accepted ToU version {repr(version)} (has accepted: {tous})')
+
+    return True
+
+
+def add_tou_action(user: IdPUser, ticket: Optional[LoginContext] = None) -> Optional[Action]:
     """
     Add an action requiring the user to accept a new version of the Terms of Use,
     in case the IdP configuration points to a version the user hasn't accepted.
@@ -52,18 +74,10 @@ def add_actions(user: IdPUser, ticket: LoginContext) -> Optional[Action]:
     :param ticket: the SSO login data
     """
     version = current_app.conf.tou_version
-    interval = current_app.conf.tou_reaccept_interval
-
-    if user.tou.has_accepted(version, int(interval.total_seconds())):
-        current_app.logger.debug(f'User has already accepted ToU version {version!r}')
-        return None
-
-    if not current_app.actions_db:
-        current_app.logger.warning('No actions_db - aborting ToU action')
-        return None
 
     if current_app.actions_db.has_actions(user.eppn, action_type='tou', params={'version': version}):
         return None
 
-    current_app.logger.debug(f'User must accept ToU version {version!r}')
+    tous = [x.version for x in user.tou.elements]
+    current_app.logger.debug(f'Adding action to require user to accept ToU version {version!r} (has accepted: {tous})')
     return current_app.actions_db.add_action(user.eppn, action_type='tou', preference=100, params={'version': version})

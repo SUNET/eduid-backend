@@ -37,7 +37,11 @@ from enum import Enum
 from pathlib import PurePath
 from typing import Any, Dict, Mapping, Optional
 
+from bson import ObjectId
 from flask import Response as FlaskResponse
+
+from eduid.common.misc.timeutil import utc_now
+from eduid.userdb import ToUEvent
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.response import AuthnResponse
@@ -103,6 +107,7 @@ class IdPTests(EduidAPITestCase):
                 'eduperson_targeted_id_secret_key': 'eptid_secret',
                 'sso_cookie': {'key': 'test_sso_cookie'},
                 'eduid_site_url': 'https://eduid.docker_dev',
+                'tou_version': '2014-v1',  # this version is implicitly accepted on all users
             }
         )
         return config
@@ -111,24 +116,6 @@ class IdPTests(EduidAPITestCase):
         super(IdPTests, self).tearDown()
         with self.app.app_context():
             self.app.central_userdb._drop_whole_collection()
-
-    def test_app_starts(self):
-        assert self.app.conf.app_name == 'idp'
-
-    def test_sso_session_lifetime_config(self):
-        config = dict(self.settings)
-
-        config['sso_session_lifetime'] = 10  # expected to be interpreted as 10 minutes
-        conf1 = IdPConfig(**config)
-        assert conf1.sso_session_lifetime == timedelta(minutes=10)
-
-        config['sso_session_lifetime'] = 'PT5S'
-        conf2 = IdPConfig(**config)
-        assert conf2.sso_session_lifetime == timedelta(seconds=5)
-
-        config['sso_session_lifetime'] = 'P365D'
-        conf3 = IdPConfig(**config)
-        assert conf3.sso_session_lifetime == timedelta(days=365)
 
     def _try_login(
         self,
@@ -257,3 +244,38 @@ class IdPTests(EduidAPITestCase):
         if sso_cookie_val is None:
             return None
         return self.app.sso_sessions.get_session(sso_cookie_val)
+
+    def add_test_user_tou(self, version: Optional[str] = None) -> ToUEvent:
+        """ Utility function to add a valid ToU to the default test user """
+        if version is None:
+            version = self.app.conf.tou_version
+        tou = ToUEvent(
+            version=version,
+            created_by='idp_tests',
+            created_ts=utc_now(),
+            modified_ts=utc_now(),
+            event_id=str(ObjectId()),
+        )
+        self.test_user.tou.add(tou)
+        self.amdb.save(self.test_user, check_sync=False)
+        return tou
+
+
+class BasicIdPTests(IdPTests):
+    def test_app_starts(self):
+        assert self.app.conf.app_name == 'idp'
+
+    def test_sso_session_lifetime_config(self):
+        config = dict(self.settings)
+
+        config['sso_session_lifetime'] = 10  # expected to be interpreted as 10 minutes
+        conf1 = IdPConfig(**config)
+        assert conf1.sso_session_lifetime == timedelta(minutes=10)
+
+        config['sso_session_lifetime'] = 'PT5S'
+        conf2 = IdPConfig(**config)
+        assert conf2.sso_session_lifetime == timedelta(seconds=5)
+
+        config['sso_session_lifetime'] = 'P365D'
+        conf3 = IdPConfig(**config)
+        assert conf3.sso_session_lifetime == timedelta(days=365)

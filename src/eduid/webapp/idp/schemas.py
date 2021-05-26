@@ -27,6 +27,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from typing import List
 
 from marshmallow import fields
 
@@ -61,3 +62,28 @@ class PwAuthResponseSchema(FluxStandardAction):
         success = fields.Bool(required=True)
 
     payload = fields.Nested(PwAuthResponsePayload)
+
+
+class MfaAuthRequestSchema(IdPRequest):
+    pass
+
+
+class MfaAuthResponseSchema(FluxStandardAction):
+    class MfaAuthResponsePayload(EduidSchema, CSRFResponseMixin):
+        success = fields.Bool(required=True)
+
+    payload = fields.Nested(MfaAuthResponsePayload)
+
+
+class TouRequestSchema(IdPRequest):
+    versions = fields.Str(required=False, many=True)
+    version = fields.Str(required=False)
+    user_accept = fields.Bool(required=False)
+
+
+class TouResponseSchema(FluxStandardAction):
+    class TouResponsePayload(EduidSchema, CSRFResponseMixin):
+        finished = fields.Bool(required=True)
+        version = fields.Str(required=False)
+
+    payload = fields.Nested(TouResponsePayload)

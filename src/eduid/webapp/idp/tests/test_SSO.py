@@ -35,17 +35,15 @@
 
 import datetime
 import logging
-from typing import List, Mapping, Optional, Sequence
+from typing import Any, Dict, List, Mapping, Optional, Sequence
 from uuid import uuid4
+
+from werkzeug.exceptions import BadRequest
 
 import saml2.server
 import saml2.time_util
-from saml2.authn_context import PASSWORDPROTECTEDTRANSPORT
-from saml2.s_utils import UnravelError
-from werkzeug.exceptions import BadRequest
-
 from eduid.common.misc.timeutil import utc_now
-from eduid.userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, U2F, Credential, Password
+from eduid.userdb.credentials import Credential, METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, Password, U2F
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.nin import Nin, NinList
 from eduid.webapp.common.session import session
@@ -58,6 +56,8 @@ from eduid.webapp.idp.login import NextResult, login_next_step
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.tests.test_app import IdPTests
 from eduid.webapp.idp.util import b64encode
+from saml2.authn_context import PASSWORDPROTECTEDTRANSPORT
+from saml2.s_utils import UnravelError
 
 SWAMID_AL1 = 'http://www.swamid.se/policy/assurance/al1'
 SWAMID_AL2 = 'http://www.swamid.se/policy/assurance/al2'
@@ -226,8 +226,16 @@ class TestSSO(SSOIdPTests):
     # ------------------------------------------------------------------------
 
     def _get_login_response_authn(
-        self, req_class_ref: str, credentials: List[str], user: Optional[IdPUser] = None
+        self,
+        req_class_ref: str,
+        credentials: List[str],
+        user: Optional[IdPUser] = None,
+        add_tou: bool = True,
+        add_credentials_to_this_request: bool = True,
     ) -> NextResult:
+        if add_tou:
+            self.add_test_user_tou()
+
         if user is None:
             user = self.get_user_set_nins(self.test_user.eppn, [])
 
@@ -252,10 +260,17 @@ class TestSSO(SSOIdPTests):
                 raise ValueError(f'Unhandled test data: {repr(this)}')
 
         # Need to save any changed credentials to the user
-        self.amdb.save(user)
+        self.amdb.save(user, check_sync=False)
 
         with self.app.test_request_context():
             ticket = self._make_login_ticket(req_class_ref)
+
+            if add_credentials_to_this_request:
+                for cred in sso_session_1.authn_credentials:
+                    credential = user.credentials.find(cred.cred_id)
+                    assert credential
+                    session.idp.log_credential_used(ticket.request_ref, credential, cred.timestamp)
+
             # 'prime' the ticket and session for checking later - accessing request_ref gets the SAML data loaded
             # from the session into the ticket.
             assert ticket.request_ref in session.idp.pending_requests
@@ -525,8 +540,8 @@ class TestSSO(SSOIdPTests):
         """
         Test login with password, request EDUID_MFA.
 
-        Expect a failure because MFA is needed for  EDUID_MFA.
+        This is not a failure, the user just needs to do MFA too.
         """
         out = self._get_login_response_authn(req_class_ref=cc['EDUID_MFA'], credentials=['pw'])
         assert out.message == IdPMsg.mfa_required
-        assert out.error == True
+        assert out.error == False

@@ -69,6 +69,8 @@ class IdPTestLogin(IdPTests):
 
     def test_ForceAuthn_with_existing_SSO_session(self):
         # Patch the VCCSClient so we do not need a vccs server
+        self.add_test_user_tou()
+
         with patch.object(VCCSClient, 'authenticate'):
             VCCSClient.authenticate.return_value = True
             result = self._try_login()
@@ -145,6 +147,9 @@ class IdPTestLogin(IdPTests):
         assert self.app.conf.sso_cookie.key not in cookies
 
     def test_with_authncontext(self):
+        """
+        Request REFEDS_MFA, but the test user does not have any MFA credentials.
+        The user can still login using external MFA though, so this test expects to be redirected to actions. """
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, 'authenticate'):
             VCCSClient.authenticate.return_value = True
@@ -153,7 +158,8 @@ class IdPTestLogin(IdPTests):
             result = self._try_login(authn_context=req_authn_context)
 
         assert result.reached_state == LoginState.S3_REDIRECT_LOGGED_IN
-        assert b'Access to the requested service could not be granted.' in result.response.data
+
+        assert self.app.conf.actions_app_uri in result.response.location
 
     def test_eduperson_targeted_id(self):
         sp_config = get_saml2_config(self.app.conf.pysaml2_config, name='COCO_SP_CONFIG')

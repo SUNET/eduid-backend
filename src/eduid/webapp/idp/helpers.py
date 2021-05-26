@@ -5,21 +5,23 @@ from eduid.webapp.common.api.messages import TranslatableMsg
 
 @unique
 class IdPMsg(str, TranslatableMsg):
-    user_terminated = 'idp.user_terminated'
-    must_authenticate = 'idp.must_authenticate'
-    swamid_mfa_required = 'idp.swamid_mfa_required'
-    mfa_required = 'idp.mfa_required'
-    assurance_not_possible = 'idp.assurance_not_possible'
-    assurance_failure = 'idp.assurance_failure'
     action_required = 'idp.action_required'  # Shouldn't actually be returned to the frontend
-    proceed = 'idp.proceed'  # Shouldn't actually be returned to the frontend
-    wrong_user = 'idp.wrong_user'
-    not_implemented = 'idp.not_implemented'
+    assurance_failure = 'idp.assurance_failure'
+    assurance_not_possible = 'idp.assurance_not_possible'
     bad_ref = 'idp.bad_ref'
-    wrong_credentials = 'idp.wrong_credentials'
-    user_temporary_locked = 'idp.user_temporary_locked'
     credential_expired = 'idp.credential_expired'
     general_failure = 'idp.general_failure'
+    mfa_required = 'idp.mfa_required'
+    must_authenticate = 'idp.must_authenticate'
+    not_available = 'idp.not_available'
+    not_implemented = 'idp.not_implemented'
+    proceed = 'idp.proceed'  # Shouldn't actually be returned to the frontend
+    swamid_mfa_required = 'idp.swamid_mfa_required'
+    tou_required = 'idp.tou_required'
+    user_temporary_locked = 'idp.user_temporary_locked'
+    user_terminated = 'idp.user_terminated'
+    wrong_credentials = 'idp.wrong_credentials'
+    wrong_user = 'idp.wrong_user'
 
 
 @unique

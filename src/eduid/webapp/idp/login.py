@@ -16,7 +16,7 @@ import hmac
 import pprint
 import time
 from hashlib import sha256
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 from defusedxml import ElementTree as DefusedElementTree
@@ -38,19 +38,22 @@ from eduid.webapp.idp import assurance, mischttp
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import (
     AssuranceException,
-    AuthnInfo, MissingAuthentication,
+    AuthnInfo,
+    MissingAuthentication,
     MissingMultiFactor,
     MissingPasswordFactor,
     WrongMultiFactor,
     get_requested_authn_context,
 )
 from eduid.webapp.idp.helpers import IdPMsg
-from eduid.webapp.idp.idp_actions import check_for_pending_actions
+from eduid.webapp.idp.idp_actions import redirect_to_actions
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.idp_saml import IdP_SAMLRequest, ResponseArgs, SamlResponse
+from eduid.webapp.idp.mfa_action import add_mfa_action, need_security_key, process_mfa_action_results
 from eduid.webapp.idp.mischttp import get_default_template_arguments
 from eduid.webapp.idp.service import SAMLQueryParams, Service
 from eduid.webapp.idp.sso_session import SSOSession
+from eduid.webapp.idp.tou_action import add_tou_action, need_tou_acceptance
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 
 
@@ -70,15 +73,23 @@ class MustAuthenticate(Exception):
 class NextResult(BaseModel):
     message: IdPMsg
     error: bool = False
-    action_response: Optional[WerkzeugResponse] = None
     authn_info: Optional[AuthnInfo] = None
+    # kludge for the template processing, pydantic doesn't embed dataclasses very well:
+    #  TypeError: non-default argument 'mail_addresses' follows default argument
+    user: Optional[Any] = None
 
     class Config:
         # don't reject WerkzeugResponse
         arbitrary_types_allowed = True
 
+    def __str__(self):
+        return (
+            f'<{self.__class__.__name__}: message={self.message.name}, error={self.error}, authn={self.authn_info}, '
+            f'user={self.user}>'
+        )
 
-def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession]) -> NextResult:
+
+def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], template_mode: bool = False) -> NextResult:
     """ The main state machine for the login flow(s). """
     if not isinstance(sso_session, SSOSession):
         return NextResult(message=IdPMsg.must_authenticate)
@@ -92,27 +103,32 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession]) -> 
         current_app.logger.info(f'User {user} is terminated')
         return NextResult(message=IdPMsg.user_terminated, error=True)
 
-    res: Optional[NextResult] = None
-    authn_info = None
+    if template_mode:
+        process_mfa_action_results(user, ticket, sso_session)
+
+    res = NextResult(message=IdPMsg.assurance_failure, error=True)
 
     try:
         authn_info = assurance.response_authn(ticket, user, sso_session)
+        res = NextResult(message=IdPMsg.proceed, authn_info=authn_info)
     except MissingPasswordFactor:
-        return NextResult(message=IdPMsg.must_authenticate)
-    except MissingMultiFactor as exc:
-        # Postpone this result until after checking for pending actions
-        current_app.logger.debug(
-            f'Assurance not possible: {repr(exc)} (postponing this until after checking for actions)'
-        )
-        res = NextResult(message=IdPMsg.mfa_required, error=True)
+        res = NextResult(message=IdPMsg.must_authenticate)
+    except MissingMultiFactor:
+        res = NextResult(message=IdPMsg.mfa_required, user=user)
     except MissingAuthentication:
-        return NextResult(message=IdPMsg.must_authenticate)
+        res = NextResult(message=IdPMsg.must_authenticate)
     except WrongMultiFactor as exc:
         current_app.logger.info(f'Assurance not possible: {repr(exc)}')
-        return NextResult(message=IdPMsg.swamid_mfa_required, error=True)
+        res = NextResult(message=IdPMsg.swamid_mfa_required, error=True)
     except AssuranceException as exc:
         current_app.logger.info(f'Assurance not possible: {repr(exc)}')
-        return NextResult(message=IdPMsg.assurance_not_possible, error=True)
+        res = NextResult(message=IdPMsg.assurance_not_possible, error=True)
+
+    if res.message == IdPMsg.must_authenticate:
+        # User might not be authenticated enough for e.g. ToU acceptance yet
+        return res
+
+    # User is at least partially authenticated, put the eppn in the shared session
 
     # OLD:
     if 'user_eppn' in session and session['user_eppn'] != user.eppn:
@@ -125,17 +141,13 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession]) -> 
         return NextResult(message=IdPMsg.wrong_user, error=True)
     session.common.eppn = user.eppn
 
-    action_response = check_for_pending_actions(user, ticket, sso_session)
-    if action_response:
-        return NextResult(message=IdPMsg.action_required, action_response=action_response)
+    if need_tou_acceptance(user):
+        return NextResult(message=IdPMsg.tou_required, user=user)
 
-    if res:
-        return res
+    if need_security_key(user, ticket):
+        return NextResult(message=IdPMsg.mfa_required, user=user)
 
-    if not authn_info:
-        return NextResult(message=IdPMsg.assurance_failure, error=True)
-
-    return NextResult(message=IdPMsg.proceed, authn_info=authn_info)
+    return res
 
 
 class SSO(Service):
@@ -186,7 +198,7 @@ class SSO(Service):
             else:
                 raise BadRequest('No SAMLRequest, and login_bundle_url is set')
 
-        _next = login_next_step(ticket, self.sso_session)
+        _next = login_next_step(ticket, self.sso_session, template_mode=True)
         current_app.logger.debug(f'Login Next: {_next}')
 
         if _next.message == IdPMsg.must_authenticate:
@@ -201,13 +213,16 @@ class SSO(Service):
             raise Forbidden('USER_TERMINATED')
         if _next.message == IdPMsg.swamid_mfa_required:
             raise Forbidden('SWAMID_MFA_REQUIRED')
-        if _next.message == IdPMsg.mfa_required:
-            raise Forbidden('MFA_REQUIRED')
 
-        if _next.message == IdPMsg.action_required:
-            current_app.logger.debug('Sending user to actions')
-            assert _next.action_response  # please mypy
-            return _next.action_response
+        if _next.message == IdPMsg.tou_required:
+            assert isinstance(_next.user, IdPUser)  # please mypy
+            add_tou_action(_next.user)
+            return redirect_to_actions(_next.user, ticket)
+
+        if _next.message == IdPMsg.mfa_required:
+            assert isinstance(_next.user, IdPUser)  # please mypy
+            add_mfa_action(_next.user, ticket)
+            return redirect_to_actions(_next.user, ticket)
 
         if _next.message == IdPMsg.proceed:
             assert self.sso_session  # please mypy
@@ -251,12 +266,6 @@ class SSO(Service):
             current_app.logger.warning(f'Refusing to change eppn in session from {session.common.eppn} to {user.eppn}')
         else:
             session.common.eppn = user.eppn
-
-        action_response = check_for_pending_actions(user, ticket, self.sso_session)
-        if action_response:
-            return action_response
-
-        # We won't get here until the user has completed all login actions
 
         try:
             req_authn_context = get_requested_authn_context(ticket)
