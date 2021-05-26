@@ -100,6 +100,7 @@ class OnetimeCredType(str, Enum):
 
 
 class OnetimeCredential(BaseModel):
+    key: CredentialKey = Field(default_factory=lambda: CredentialKey(str(uuid4())))
     type: OnetimeCredType
 
     # External MFA auth parameters
@@ -128,9 +129,6 @@ class IdP_Namespace(TimestampedNS):
         self, request_ref: RequestRef, credential: Union[Credential, OnetimeCredential], timestamp: datetime
     ) -> None:
         """ Log the credential used in the session, under this particular SAML request """
-        if isinstance(credential, Credential):
-            self.pending_requests[request_ref].credentials_used[credential.key] = timestamp
-        else:
-            _key = CredentialKey(str(uuid4()))
-            self.pending_requests[request_ref].onetime_credentials[_key] = credential
-            self.pending_requests[request_ref].credentials_used[_key] = timestamp
+        if isinstance(credential, OnetimeCredential):
+            self.pending_requests[request_ref].onetime_credentials[credential.key] = credential
+        self.pending_requests[request_ref].credentials_used[credential.key] = timestamp

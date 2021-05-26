@@ -33,6 +33,7 @@
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
 import logging
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum, unique
 from typing import Any, Dict, List, Optional, Sequence, Union
@@ -46,6 +47,7 @@ from eduid.userdb.credentials import (
     FidoCredential,
     Password,
 )
+from eduid.userdb.credentials.base import CredentialKey
 from eduid.userdb.idp import IdPUser
 from eduid.webapp.common.session.logindata import LoginContext
 from eduid.webapp.common.session.namespaces import OnetimeCredential, OnetimeCredType
@@ -93,59 +95,40 @@ class MissingAuthentication(AssuranceException):
     pass
 
 
+class UsedWhere(Enum):
+    REQUEST = 'request'
+    SSO = 'SSO session'
+
+
+@dataclass
+class UsedCredential:
+    credential: Union[Credential, OnetimeCredential]
+    ts: datetime
+    source: UsedWhere  # only used for debugging purposes
+
+    def __str__(self):
+        key = self.credential.key
+        if len(key) > 24:
+            # 24 is length of object-id, webauthn credentials are much longer
+            key = key[:21] + '...'
+        return (
+            f'<{self.__class__.__name__}: credential={self.credential.__class__.__name__}({key}), '
+            f'ts={self.ts.isoformat()}, source={self.source.value}>'
+        )
+
+
 class AuthnState(object):
     def __init__(self, user: IdPUser, sso_session: SSOSession, ticket: LoginContext):
-        # authn_credentials is a list of dicts created by AuthnData.to_session_dict(), e.g.:
-        # {'cred_id': self.credential.key,
-        #  'authn_ts': self.timestamp,
-        # }
         self.password_used = False
         self.is_swamid_al2 = False
         self.fido_used = False
         self.external_mfa_used = False
         self.swamid_al2_used = False
         self.swamid_al2_hi_used = False
-        self._creds: List[Union[Credential, OnetimeCredential]] = []
+        self._creds = self._gather_credentials(sso_session, ticket, user)
 
-        if not ticket.saml_req.force_authn:
-            # Request does not have forceAuthn set, so gather credentials from the SSO session
-            for this in sso_session.authn_credentials:
-                cred = user.credentials.find(this.cred_id)
-                if not cred:
-                    logger.warning(f'Could not find credential {this.cred_id} on user {user}')
-                    continue
-                logger.debug(f'Inheriting used credential: {cred} ({this.timestamp.isoformat()})')
-                self._creds += [cred]
-
-            # External mfa check
-            if sso_session.external_mfa is not None:
-                logger.debug(f'External MFA (in SSO session) issuer: {sso_session.external_mfa.issuer}')
-                self._creds += [
-                    OnetimeCredential(
-                        authn_context=sso_session.external_mfa.authn_context,
-                        issuer=sso_session.external_mfa.issuer,
-                        timestamp=sso_session.external_mfa.timestamp,
-                        type=OnetimeCredType.external_mfa,
-                    )
-                ]
-                self.external_mfa_used = True
-                # TODO: Support more SwedenConnect authn contexts?
-                if sso_session.external_mfa.authn_context == 'http://id.elegnamnden.se/loa/1.0/loa3':
-                    self.swamid_al2_hi_used = True
-
-        for key, ts in ticket.saml_data.credentials_used.items():
-            if key in ticket.saml_data.onetime_credentials:
-                onetime_cred = ticket.saml_data.onetime_credentials[key]
-                self._creds += [onetime_cred]
-            else:
-                cred = user.credentials.find(key)
-                if not cred:
-                    logger.warning(f'Could not find credential {key} on user {user}')
-                    continue
-                logger.debug(f'Adding used credential: {cred} ({ts.isoformat()})')
-                self._creds += [cred]
-
-        for cred in self._creds:
+        for this in self._creds:
+            cred = this.credential
             if isinstance(cred, Password):
                 self.password_used = True
             elif isinstance(cred, FidoCredential):
@@ -161,9 +144,77 @@ class AuthnState(object):
                 # TODO: Support more SwedenConnect authn contexts?
                 if cred.authn_context == 'http://id.elegnamnden.se/loa/1.0/loa3':
                     self.swamid_al2_hi_used = True
+            else:
+                raise ValueError(f'Unrecognised used credential: {this}')
 
         if user.nins.verified.to_list():
             self.is_swamid_al2 = True
+
+    def _gather_credentials(self, sso_session: SSOSession, ticket: LoginContext, user: IdPUser) -> List[UsedCredential]:
+        """
+        Gather credentials used for authentication.
+
+        Add all credentials used with this very request and then, unless the request has forceAuthn set,
+        add credentials from the SSO session.
+        """
+        _used_credentials: Dict[CredentialKey, UsedCredential] = {}
+
+        # Add all credentials used while the IdP processed this very request
+        for key, ts in ticket.saml_data.credentials_used.items():
+            if key in ticket.saml_data.onetime_credentials:
+                onetime_cred = ticket.saml_data.onetime_credentials[key]
+                cred = UsedCredential(credential=onetime_cred, ts=ts, source=UsedWhere.REQUEST)
+            else:
+                credential = user.credentials.find(key)
+                if not credential:
+                    logger.warning(f'Could not find credential {key} on user {user}')
+                    continue
+                cred = UsedCredential(credential=credential, ts=ts, source=UsedWhere.REQUEST)
+            logger.debug(f'Adding credential used with this request: {cred}')
+            _used_credentials[cred.credential.key] = cred
+
+        _used_request = [x for x in _used_credentials.values() if x.source == UsedWhere.REQUEST]
+        logger.debug(f'Number of credentials used with this very request: {len(_used_request)}')
+
+        if ticket.saml_req.force_authn:
+            logger.debug('Request has forceAuthn set, not even considering credentials from the SSO session')
+            return list(_used_credentials.values())
+
+        # Request does not have forceAuthn set, so gather credentials from the SSO session
+        for this in sso_session.authn_credentials:
+            credential = user.credentials.find(this.cred_id)
+            if not credential:
+                logger.warning(f'Could not find credential {this.cred_id} on user {user}')
+                continue
+            # TODO: The authn_timestamp in the SSO session is not necessarily right for all credentials there
+            cred = UsedCredential(credential=credential, ts=sso_session.authn_timestamp, source=UsedWhere.SSO)
+            _key = cred.credential.key
+            if _key in _used_credentials:
+                # If the credential is in _used_credentials, it is because it was used with this very request.
+                continue
+            logger.debug(f'Adding credential used from the SSO session: {cred}')
+            _used_credentials[_key] = cred
+
+        # External mfa check
+        if sso_session.external_mfa is not None:
+            logger.debug(f'External MFA (in SSO session) issuer: {sso_session.external_mfa.issuer}')
+            credential = OnetimeCredential(
+                authn_context=sso_session.external_mfa.authn_context,
+                issuer=sso_session.external_mfa.issuer,
+                timestamp=sso_session.external_mfa.timestamp,
+                type=OnetimeCredType.external_mfa,
+            )
+            cred = UsedCredential(credential=credential, ts=sso_session.authn_timestamp, source=UsedWhere.SSO)
+            _used_credentials[CredentialKey('SSO_external_MFA')] = cred
+            self.external_mfa_used = True
+            # TODO: Support more SwedenConnect authn contexts?
+            if sso_session.external_mfa.authn_context == 'http://id.elegnamnden.se/loa/1.0/loa3':
+                self.swamid_al2_hi_used = True
+
+        _used_sso = [x for x in _used_credentials.values() if x.source == UsedWhere.SSO]
+        logger.debug(f'Number of credentials inherited from the SSO session: {len(_used_sso)}')
+
+        return list(_used_credentials.values())
 
     def __str__(self) -> str:
         return (
