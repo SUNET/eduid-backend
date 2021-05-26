@@ -189,7 +189,7 @@ class Element:
         if 'created_ts' not in data:
             # some really old nin entries in the database have neither created_ts nor modified_ts
             data['_no_created_ts_in_db'] = True
-            data['created_ts'] = datetime.fromisoformat('1900-01-01')
+            data['created_ts'] = datetime.fromisoformat('1900-01-01T00:00:00+00:00')
 
         if 'modified_ts' not in data:
             data['_no_modified_ts_in_db'] = True
