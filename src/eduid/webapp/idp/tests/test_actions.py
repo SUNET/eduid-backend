@@ -54,7 +54,7 @@ from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.tests.test_app import LoginState
 from eduid.webapp.idp.tests.test_SSO import SWAMID_AL2, SSOIdPTests
 from eduid.webapp.idp.tests.test_SSO import cc as CONTEXTCLASSREFS
-from eduid.webapp.idp.tou_action import add_actions as tou_add_actions
+from eduid.webapp.idp.tou_action import add_tou_action as tou_add_actions
 
 logger = logging.getLogger(__name__)
 
@@ -214,29 +214,6 @@ class TestActions(SSOIdPTests):
             assert action.action_type == 'mfa'
             assert self.num_actions == 1
 
-    def test_add_mfa_action_no_db(self):
-        """ Make sure a user doesn't get stuck trying to log in if there is no action db """
-        self.actions.remove_action_by_id(self.test_action.action_id)
-        webauthn = Webauthn(
-            keyhandle='test_key_handle',
-            credential_data='test_credential_data',
-            app_id='https://dev.eduid.se/u2f-app-id.json',
-            attest_obj='test_attest_obj',
-            description='test_description',
-        )
-        self.test_user.credentials.add(webauthn)
-        self.amdb.save(self.test_user, check_sync=False)
-
-        with self.app.app_context():
-            mock_ticket = self._make_login_ticket(
-                req_class_ref=SWAMID_AL2, request_ref=RequestRef(self.mock_session_key)
-            )
-            self.app.actions_db = None
-            assert self.num_actions == 0
-            assert mfa_add_actions(self.test_user, mock_ticket, self.sso_session) is None
-        # ensure no action was added when self.app.actions_db is None
-        assert self.num_actions == 0
-
     def _test_add_2nd_mfa_action(self, success=True, cred_key=None, expected_num_actions=0) -> MFAResult:
         # Remove test_action to start from a clean slate
         self.actions.remove_action_by_id(self.test_action.action_id)
@@ -309,26 +286,6 @@ class TestActions(SSOIdPTests):
             action = tou_add_actions(self.test_user, mock_ticket)
             assert action.action_type == 'tou'
             assert self.num_actions == 1
-
-    def test_add_tou_action_already_accepted(self):
-        event_id = bson.ObjectId()
-        self.test_user.tou.add(
-            ToUEvent(
-                version='mock-version',
-                created_by='test_tou_plugin',
-                created_ts=datetime.utcnow(),
-                event_id=str(event_id),
-            )
-        )
-        self.actions.remove_action_by_id(self.test_action.action_id)
-
-        with self.app.app_context():
-            mock_ticket = self._make_login_ticket(
-                req_class_ref=SWAMID_AL2, request_ref=RequestRef(self.mock_session_key)
-            )
-            assert self.num_actions == 0
-            assert tou_add_actions(self.test_user, mock_ticket) is None
-            assert self.num_actions == 0
 
     def test_add_tou_action_already_accepted_other_version(self):
         event_id = bson.ObjectId()

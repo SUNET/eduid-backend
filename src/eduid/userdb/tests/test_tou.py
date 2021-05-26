@@ -1,5 +1,5 @@
 import copy
-import datetime
+from datetime import datetime, timedelta
 from unittest import TestCase
 
 import bson
@@ -18,7 +18,7 @@ _one_dict = {
     'event_type': 'tou_event',
     'version': '1',
     'created_by': 'test',
-    'created_ts': datetime.datetime(2015, 9, 24, 1, 1, 1, 111111),
+    'created_ts': datetime.fromisoformat('2015-09-24T01:01:01.111111+00:00'),
 }
 
 _two_dict = {
@@ -26,8 +26,8 @@ _two_dict = {
     'event_type': 'tou_event',
     'version': '2',
     'created_by': 'test',
-    'created_ts': datetime.datetime(2015, 9, 24, 2, 2, 2, 222222),
-    'modified_ts': datetime.datetime(2018, 9, 25, 2, 2, 2, 222222),
+    'created_ts': datetime.fromisoformat('2015-09-24T02:02:02.222222+00:00'),
+    'modified_ts': datetime.fromisoformat('2018-09-25T02:02:02.222222+00:00'),
 }
 
 _three_dict = {
@@ -35,8 +35,8 @@ _three_dict = {
     'event_type': 'tou_event',
     'version': '3',
     'created_by': 'test',
-    'created_ts': datetime.datetime(2015, 9, 24, 3, 3, 3, 333333),
-    'modified_ts': datetime.datetime(2015, 9, 24, 3, 3, 3, 333333),
+    'created_ts': datetime.fromisoformat('2015-09-24T03:03:03.333333+00:00'),
+    'modified_ts': datetime.fromisoformat('2015-09-24T03:03:03.333333+00:00'),
 }
 
 
@@ -73,13 +73,13 @@ class TestToUEvent(TestCase):
         self.assertEqual(this.event_type, 'tou_event')
 
     def test_reaccept_tou(self):
-        three_years = 94608000  # seconds
-        self.assertGreater(_two_dict['modified_ts'] - _two_dict['created_ts'], datetime.timedelta(seconds=three_years))
-        self.assertLess(_three_dict['modified_ts'] - _three_dict['created_ts'], datetime.timedelta(seconds=three_years))
+        three_years = timedelta(days=3 * 365)
+        self.assertGreater(_two_dict['modified_ts'] - _two_dict['created_ts'], three_years)
+        self.assertLess(_three_dict['modified_ts'] - _three_dict['created_ts'], three_years)
 
         tl = ToUList([_two_dict, _three_dict])
-        self.assertTrue(tl.has_accepted(version='2', reaccept_interval=three_years))
-        self.assertFalse(tl.has_accepted(version='3', reaccept_interval=three_years))
+        self.assertTrue(tl.has_accepted(version='2', reaccept_interval=int(three_years.total_seconds())))
+        self.assertFalse(tl.has_accepted(version='3', reaccept_interval=int(three_years.total_seconds())))
 
 
 USERID = '123467890123456789014567'

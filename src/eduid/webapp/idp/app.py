@@ -78,13 +78,8 @@ class IdPApp(EduIDBaseApp):
         self.sso_sessions = SSOSessionCache(config.mongo_uri)
 
         self.authn_info_db = None
-        self.actions_db = None
 
-        if config.mongo_uri and config.actions_app_uri:
-            self.actions_db = ActionDB(config.mongo_uri)
-            self.logger.info("configured to redirect users with pending actions")
-        else:
-            self.logger.debug("NOT configured to redirect users with pending actions")
+        self.actions_db = ActionDB(config.mongo_uri)
 
         if userdb is None:
             # This is used in tests at least

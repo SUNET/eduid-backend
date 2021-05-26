@@ -29,12 +29,12 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.actions import Action
 from eduid.userdb.actions.action import ActionResultMFA, ActionResultThirdPartyMFA
-from eduid.userdb.credentials import U2F, FidoCredential, Webauthn
+from eduid.userdb.credentials import Credential, U2F, FidoCredential, Webauthn
 from eduid.userdb.idp.user import IdPUser
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData, LoginContext
@@ -43,8 +43,35 @@ from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import EduidAuthnContextClass, get_requested_authn_context
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.sso_session import SSOSession
+import logging
 
 __author__ = 'ft'
+
+logger = logging.getLogger(__name__)
+
+
+def need_security_key(user: IdPUser, ticket: LoginContext) -> bool:
+    """ Check if the user needs to use a Security Key for this very request, regardless of authnContextClassRef """
+    tokens = user.credentials.filter(FidoCredential)
+    if not tokens.count:
+        logger.debug('User has no FIDO credebntials, no extra requirement for MFA this session imposed')
+        return False
+
+    for cred_key in ticket.saml_data.credentials_used:
+        if cred_key in ticket.saml_data.onetime_credentials:
+            credential = ticket.saml_data.onetime_credentials[cred_key]
+        else:
+            credential = user.credentials.find(cred_key)
+        if isinstance(credential, OnetimeCredential):
+            if credential.type == OnetimeCredType.external_mfa:
+                logger.debug(f'User has authenticated using external MFA for this request: {credential}')
+                return False
+        elif isinstance(credential, FidoCredential):
+            logger.debug(f'User has authenticated with a FIDO credential for this request: {credential}')
+            return False
+
+    logger.debug("User has one or more FIDO credentials registered, but haven't provided any MFA for this request")
+    return True
 
 
 def add_actions(user: IdPUser, ticket: LoginContext, sso_session: SSOSession) -> Optional[Action]:
@@ -59,10 +86,6 @@ def add_actions(user: IdPUser, ticket: LoginContext, sso_session: SSOSession) ->
     :param ticket: the in-memory login request context
     :param sso_session: The SSO data persisted in mongodb
     """
-    if not current_app.actions_db:
-        current_app.logger.warning('No actions_db - aborting MFA action')
-        return None
-
     require_mfa = False
     requested_authn_context = get_requested_authn_context(ticket)
     if requested_authn_context in [
@@ -99,6 +122,20 @@ def add_actions(user: IdPUser, ticket: LoginContext, sso_session: SSOSession) ->
     return current_app.actions_db.add_action(
         user.eppn, action_type='mfa', preference=1, session=ticket.request_ref, params={}
     )
+
+
+def add_mfa_action(user: IdPUser, ticket: LoginContext) -> Optional[Action]:
+    tokens = user.credentials.filter(FidoCredential)
+
+    logger.debug(f'User must authenticate with a token (has {tokens.count} token(s))')
+    return current_app.actions_db.add_action(
+        user.eppn, action_type='mfa', preference=1, session=ticket.request_ref, params={}
+    )
+
+
+def process_mfa_action_results(user: IdPUser, ticket: LoginContext, sso_session: SSOSession) -> None:
+    actions = current_app.actions_db.get_actions(user.eppn, ticket.request_ref, action_type='mfa')
+    check_authn_result(user, ticket, actions, sso_session)
 
 
 def check_authn_result(user: IdPUser, ticket: LoginContext, actions: List[Action], sso_session: SSOSession) -> bool:

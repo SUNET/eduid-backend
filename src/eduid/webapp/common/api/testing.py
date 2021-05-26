@@ -179,15 +179,19 @@ class EduidAPITestCase(CommonTestCase):
         :return: the updated configuration
         """
         # For tests, it makes sense to show relative time instead of datetime
-        config['log_format'] = '{asctime} | {levelname:7} | {eppn} | {name:35} | {message}'
+        config['log_format'] = '{asctime} | {levelname:7} | {eppn:11} | {name:35} | {message}'
         return config
 
     @contextmanager
     def session_cookie(self, client: Any, eppn: Optional[str], server_name: str = 'localhost', **kwargs):
         with client.session_transaction(**kwargs) as sess:
             if eppn is not None:
+                # OLD
                 sess['user_eppn'] = eppn
                 sess['user_is_logged_in'] = True
+                # NEW
+                sess.common.eppn = eppn
+                sess.common.is_logged_in = True
             client.set_cookie(server_name, key=self.app.conf.flask.session_cookie_name, value=sess.meta.cookie_val)
         yield client
 

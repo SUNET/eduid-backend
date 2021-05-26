@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from datetime import timedelta
-from typing import List
+from typing import List, Optional
 
 from flask import Blueprint, redirect, request, url_for
 from werkzeug.exceptions import BadRequest
@@ -53,7 +53,16 @@ from eduid.webapp.idp.logout import SLO
 __author__ = 'ft'
 
 from eduid.webapp.idp.mischttp import parse_query_string
-from eduid.webapp.idp.schemas import NextRequestSchema, NextResponseSchema, PwAuthRequestSchema, PwAuthResponseSchema
+from eduid.webapp.idp.schemas import (
+    MfaAuthRequestSchema,
+    MfaAuthResponseSchema,
+    NextRequestSchema,
+    NextResponseSchema,
+    PwAuthRequestSchema,
+    PwAuthResponseSchema,
+    TouRequestSchema,
+    TouResponseSchema,
+)
 from eduid.webapp.idp.service import SAMLQueryParams
 from eduid.webapp.idp.sso_session import SSOSession
 
@@ -134,7 +143,7 @@ def next(ref: RequestRef) -> FluxData:
     current_app.logger.debug(f'--- Next ---')
 
     if not current_app.conf.login_bundle_url:
-        return error_response(message=IdPMsg.not_implemented)
+        return error_response(message=IdPMsg.not_available)
 
     _info = SAMLQueryParams(request_ref=ref)
     ticket = get_ticket(_info, None)
@@ -148,28 +157,32 @@ def next(ref: RequestRef) -> FluxData:
 
     if _next.message == IdPMsg.must_authenticate:
         return success_response(
-            message=IdPMsg.must_authenticate, payload={'action': IdPAction.PWAUTH, 'target': url_for('idp.pwauth')}
+            message=IdPMsg.must_authenticate, payload={'action': IdPAction.PWAUTH, 'target': url_for('idp.pw_auth')}
+        )
+
+    if _next.message == IdPMsg.mfa_required:
+        return success_response(
+            message=IdPMsg.mfa_required, payload={'action': IdPAction.PWAUTH, 'target': url_for('idp.mfa_auth')}
         )
 
     if _next.message == IdPMsg.user_terminated:
         return error_response(message=IdPMsg.user_terminated)
+
     if _next.message == IdPMsg.swamid_mfa_required:
         return error_response(message=IdPMsg.swamid_mfa_required)
-    if _next.message == IdPMsg.mfa_required:
-        return error_response(message=IdPMsg.mfa_required)
 
     return error_response(message=IdPMsg.not_implemented)
 
 
-@idp_views.route('/pwauth', methods=['POST'])
+@idp_views.route('/pw_auth', methods=['POST'])
 @UnmarshalWith(PwAuthRequestSchema)
 @MarshalWith(PwAuthResponseSchema)
-def pwauth(ref: RequestRef, username: str, password: str) -> FluxData:
+def pw_auth(ref: RequestRef, username: str, password: str) -> FluxData:
     current_app.logger.debug('\n\n')
     current_app.logger.debug(f'--- Password authentication ({request.method}) ---')
 
     if not current_app.conf.login_bundle_url:
-        return error_response(message=IdPMsg.not_implemented)
+        return error_response(message=IdPMsg.not_available)
 
     _info = SAMLQueryParams(request_ref=ref)
     ticket = get_ticket(_info, None)
@@ -224,3 +237,34 @@ def pwauth(ref: RequestRef, username: str, password: str) -> FluxData:
     session.idp.log_credential_used(ticket.request_ref, pwauth.credential, pwauth.timestamp)
 
     return success_response(payload={'finished': True})
+
+
+@idp_views.route('/mfa_auth', methods=['POST'])
+@UnmarshalWith(MfaAuthRequestSchema)
+@MarshalWith(MfaAuthResponseSchema)
+def mfa_auth(ref: RequestRef) -> FluxData:
+    current_app.logger.debug('\n\n')
+    current_app.logger.debug(f'--- MFA authentication ({request.method}) ---')
+
+    if not current_app.conf.login_bundle_url:
+        return error_response(message=IdPMsg.not_available)
+
+    return error_response(message=IdPMsg.not_implemented)
+
+
+@idp_views.route('/tou', methods=['POST'])
+@UnmarshalWith(TouRequestSchema)
+@MarshalWith(TouResponseSchema)
+def tou(
+    ref: RequestRef,
+    versions: Optional[List[str]] = None,
+    version: Optional[str] = None,
+    user_accept: Optional[bool] = None,
+) -> FluxData:
+    current_app.logger.debug('\n\n')
+    current_app.logger.debug(f'--- Terms of Use ({request.method}) ---')
+
+    if not current_app.conf.login_bundle_url:
+        return error_response(message=IdPMsg.not_available)
+
+    return error_response(message=IdPMsg.not_implemented)

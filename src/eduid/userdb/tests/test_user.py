@@ -15,9 +15,9 @@ from eduid.userdb.profile import Profile, ProfileList
 from eduid.userdb.tou import ToUList
 from eduid.userdb.user import SubjectType, User
 
-__author__ = 'ft'
-
 from eduid.userdb.util import utc_now
+
+__author__ = 'ft'
 
 
 def _keyid(kh):
@@ -610,7 +610,7 @@ class TestNewUser(unittest.TestCase):
             'event_type': 'tou_event',
             'version': '1',
             'created_by': 'unit test',
-            'created_ts': datetime.utcnow(),
+            'created_ts': utc_now(),
         }
         tou_events = ToUList([tou_dict])
         data = self.data1
