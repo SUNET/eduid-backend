@@ -206,10 +206,6 @@ class AuthnState(object):
             )
             cred = UsedCredential(credential=credential, ts=sso_session.authn_timestamp, source=UsedWhere.SSO)
             _used_credentials[CredentialKey('SSO_external_MFA')] = cred
-            self.external_mfa_used = True
-            # TODO: Support more SwedenConnect authn contexts?
-            if sso_session.external_mfa.authn_context == 'http://id.elegnamnden.se/loa/1.0/loa3':
-                self.swamid_al2_hi_used = True
 
         _used_sso = [x for x in _used_credentials.values() if x.source == UsedWhere.SSO]
         logger.debug(f'Number of credentials inherited from the SSO session: {len(_used_sso)}')
