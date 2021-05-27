@@ -39,13 +39,12 @@ from typing import Any, Dict, Mapping, Optional
 
 from bson import ObjectId
 from flask import Response as FlaskResponse
-
-from eduid.common.misc.timeutil import utc_now
-from eduid.userdb import ToUEvent
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.response import AuthnResponse
 
+from eduid.common.misc.timeutil import utc_now
+from eduid.userdb import ToUEvent
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.cache import IdentityCache, OutstandingQueriesCache, StateCache
 from eduid.webapp.common.authn.utils import get_saml2_config

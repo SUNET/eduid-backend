@@ -29,12 +29,13 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+import logging
 from typing import List, Optional, Union
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.actions import Action
 from eduid.userdb.actions.action import ActionResultMFA, ActionResultThirdPartyMFA
-from eduid.userdb.credentials import Credential, U2F, FidoCredential, Webauthn
+from eduid.userdb.credentials import U2F, Credential, FidoCredential, Webauthn
 from eduid.userdb.idp.user import IdPUser
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData, LoginContext
@@ -43,7 +44,6 @@ from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import EduidAuthnContextClass, get_requested_authn_context
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.sso_session import SSOSession
-import logging
 
 __author__ = 'ft'
 

@@ -6,13 +6,12 @@ from urllib.parse import unquote
 
 from flask import Response as FlaskResponse
 from mock import patch
-
-from eduid.webapp.idp.sso_session import SSOSession
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_SOAP
 from saml2.mdstore import destinations
 from saml2.response import AuthnResponse, LogoutResponse
 
 from eduid.vccs.client import VCCSClient
+from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.tests.test_app import IdPTests, LoginState
 
 logger = logging.getLogger(__name__)
