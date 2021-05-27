@@ -40,7 +40,7 @@ from eduid.common.config.base import RootConfig
 
 class FrontConfig(RootConfig):
     """
-    Dashboard front-end configuration.
+    Dashboard, Signup and Login front-end configuration.
 
     This is sent to the client, so care must be taken to avoid setting secrets here.
     """
@@ -81,4 +81,8 @@ class FrontConfig(RootConfig):
     signup_authn_url: str = '/services/authn/signup-authn'
     recaptcha_public_key: str = ''
     sentry_dsn: str = ''
-    idp_next_url: str = ''
+    # Login config
+    login_next_url: str = ''
+    eduid_site_name: str = 'eduID'
+    eduid_site_url: str = 'https://eduid.se'
+    signup_url: str = 'https://signup.eduid.se'
