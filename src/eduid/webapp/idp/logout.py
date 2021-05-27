@@ -105,7 +105,7 @@ class SLO(Service):
         if subject is not None:
             current_app.logger.debug(f'Logout subject: {subject.text.strip()}')
         # XXX should verify issuer (a.k.a. sender()) somehow perhaps
-        current_app.logger.debug(f'Logout request sender : {req_info.sender()}')
+        current_app.logger.debug(f'Logout request sender: {req_info.sender()}')
 
         _name_id = req_info.message.name_id
         _session_id = current_app.get_sso_session_id()
@@ -113,7 +113,7 @@ class SLO(Service):
         sessions: List[SSOSession] = []
         if _session_id:
             # If the binding is REDIRECT, we can get the SSO session to log out from the
-            # client SSO session
+            # client using the SSO cookie
             _session = current_app.sso_sessions.get_session(_session_id)
             if _session:
                 sessions += [_session]

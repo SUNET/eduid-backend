@@ -23,6 +23,7 @@ from defusedxml import ElementTree as DefusedElementTree
 from flask import make_response, redirect, render_template, request, url_for
 from flask_babel import gettext as _
 from pydantic import BaseModel
+from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest, Forbidden, TooManyRequests
 from werkzeug.wrappers import Response as WerkzeugResponse
 
@@ -54,7 +55,6 @@ from eduid.webapp.idp.mischttp import get_default_template_arguments
 from eduid.webapp.idp.service import SAMLQueryParams, Service
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.tou_action import add_tou_action, need_tou_acceptance
-from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 
 
 class MustAuthenticate(Exception):
@@ -114,7 +114,7 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
     except MissingPasswordFactor:
         res = NextResult(message=IdPMsg.must_authenticate)
     except MissingMultiFactor:
-        res = NextResult(message=IdPMsg.mfa_required, user=user)
+        res = NextResult(message=IdPMsg.mfa_required, user=user if template_mode else None)
     except MissingAuthentication:
         res = NextResult(message=IdPMsg.must_authenticate)
     except WrongMultiFactor as exc:
@@ -142,10 +142,10 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
     session.common.eppn = user.eppn
 
     if need_tou_acceptance(user):
-        return NextResult(message=IdPMsg.tou_required, user=user)
+        return NextResult(message=IdPMsg.tou_required, user=user if template_mode else None)
 
     if need_security_key(user, ticket):
-        return NextResult(message=IdPMsg.mfa_required, user=user)
+        return NextResult(message=IdPMsg.mfa_required, user=user if template_mode else None)
 
     return res
 
