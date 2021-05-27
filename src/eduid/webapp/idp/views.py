@@ -165,6 +165,11 @@ def next(ref: RequestRef) -> FluxData:
             message=IdPMsg.mfa_required, payload={'action': IdPAction.PWAUTH, 'target': url_for('idp.mfa_auth')}
         )
 
+    if _next.message == IdPMsg.tou_required:
+        return success_response(
+            message=IdPMsg.tou_required, payload={'action': IdPAction.TOU, 'target': url_for('idp.tou')}
+        )
+
     if _next.message == IdPMsg.user_terminated:
         return error_response(message=IdPMsg.user_terminated)
 

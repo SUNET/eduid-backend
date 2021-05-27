@@ -28,4 +28,5 @@ class IdPMsg(str, TranslatableMsg):
 class IdPAction(str, Enum):
     PWAUTH = 'USERNAMEPASSWORD'
     MFA = 'MFA'
+    TOU = 'TOU'
     FINISHED = 'FINISHED'
