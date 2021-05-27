@@ -54,7 +54,7 @@ def need_security_key(user: IdPUser, ticket: LoginContext) -> bool:
     """ Check if the user needs to use a Security Key for this very request, regardless of authnContextClassRef """
     tokens = user.credentials.filter(FidoCredential)
     if not tokens.count:
-        logger.debug('User has no FIDO credebntials, no extra requirement for MFA this session imposed')
+        logger.debug('User has no FIDO credentials, no extra requirement for MFA this session imposed')
         return False
 
     for cred_key in ticket.saml_data.credentials_used:
