@@ -1,13 +1,22 @@
 @startuml
 title login
 
+legend
+    WEBAUTHN_RESPONSE: {
+        "credentialId": base64_str,
+        "authenticatorData": base64_str,
+        "clientDataJSON": base64_str,
+        "signature": base64_str,
+    }
+end legend
+
 Client->"/next": POST {"ref": reference}
 alt Not logged in
-    "/next"->Client: {"payload":{"action": "USERNAMEPASSWORD", "target": "/usernamepw"}, "type":"POST_LOGIN_NEXT_SUCCESS"}
+    "/next"->Client: {"payload":{"action": "USERNAMEPASSWORD", "target": "/pw_auth"}, "type":"POST_LOGIN_NEXT_SUCCESS"}
 else ToU acceptance required
     "/next"->Client: {"payload":{"action": "TOU", "target": "/tou"}, "type":"POST_LOGIN_NEXT_SUCCESS"}
 else MFA required
-    "/next"->Client: {"payload":{"action": "MFA", "target": "/mfa"}, "type":"POST_LOGIN_NEXT_SUCCESS"}
+    "/next"->Client: {"payload":{"action": "MFA", "target": "/mfa_auth"}, "type":"POST_LOGIN_NEXT_SUCCESS"}
 else Finished
     "/next"->Client: {"payload":{"action": "FINISHED", "target": "https://..."}, "type":"POST_LOGIN_NEXT_SUCCESS"}
 else Login not possible
@@ -15,11 +24,11 @@ else Login not possible
 end
 |||
 
-Client->"/usernamepw": POST {"ref": reference, "username": username, "password", password}
+Client->"/pw_auth": POST {"ref": reference, "username": username, "password", password}
 alt Correct
-    "/usernamepw"->Client: {"payload": {"finished": true}, "type": "POST_LOGIN_USERNAMEPW_SUCCESS"}
+    "/pw_auth"->Client: {"payload": {"finished": true}, "type": "POST_LOGIN_USERNAMEPW_SUCCESS"}
 else Not correct
-    "/usernamepw"->Client: {"error": true, "payload": {"message": "login.usernamepw_incorrect}, "type": "POST_LOGIN_USERNAMEPW_FAIL"}
+    "/pw_auth"->Client: {"error": true, "payload": {"message": "login.pw_auth_incorrect}, "type": "POST_LOGIN_USERNAMEPW_FAIL"}
 end
 |||
 
@@ -38,5 +47,20 @@ else Not acceptable
     "/tou"->Client: {"error": true, "payload": {"message": "login.tou_not_acceptable"},"type": "POST_LOGIN_TOU_FAIL"}
 end
 |||
+
+Client->"/mfa_auth": POST {"ref": reference}
+alt User has one or more Security keys
+    "/mfa_auth"->Client: {"payload": {"finished": false, "webauthn_options": {"publicKey": ...}}, "type": "POST_LOGIN_MFA_SUCCESS"}
+else User has no security keys, third party MFA login still possible
+    "/mfa_auth"->Client: {"payload": {"finished": false}, "type": "POST_LOGIN_MFA_SUCCESS"}
+end
+
+Client->"/mfa_auth": POST {"ref": reference, webauthn_response: WEBAUTHN_RESPONSE"}
+alt Success
+    "/mfa_auth"->Client: {"payload": {"finished": true}, "type": "POST_LOGIN_MFA_SUCCESS"}
+else Credential validation failure
+    "/mfa_auth"->Client: {"error": true, "payload": {"message": ...}, "type": "POST_LOGIN_MFA_FAIL"}
+end
+
 
 @enduml
