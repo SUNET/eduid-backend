@@ -225,6 +225,6 @@ class SSOSessionCache(BaseDB):
 
         :return: A list with zero or more SSO sessions
         """
-        entrys = self._coll.find({'username': eppn})
+        entrys = self._coll.find({'eppn': eppn})
         res = [SSOSession.from_dict(this) for this in entrys]
         return res

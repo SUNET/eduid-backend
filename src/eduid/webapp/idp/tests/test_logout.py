@@ -6,6 +6,8 @@ from urllib.parse import unquote
 
 from flask import Response as FlaskResponse
 from mock import patch
+
+from eduid.webapp.idp.sso_session import SSOSession
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_SOAP
 from saml2.mdstore import destinations
 from saml2.response import AuthnResponse, LogoutResponse
@@ -25,6 +27,7 @@ class LogoutState(Enum):
 
 class IdPTestLogout(IdPTests):
     def test_basic_logout(self):
+        """ This logs in, then out - but it calls the SOAP binding with the SSO cookie present """
         with self.browser.session_transaction() as sess:
             # Patch the VCCSClient so we do not need a vccs server
             with patch.object(VCCSClient, 'authenticate'):
@@ -39,6 +42,42 @@ class IdPTestLogout(IdPTests):
 
             logout_response = self.parse_saml_logout_response(response, BINDING_SOAP)
             assert logout_response.response.status.status_code.value == 'urn:oasis:names:tc:SAML:2.0:status:Success'
+
+    def test_basic_logout_soap(self):
+        """
+        Simulate a user logging in using one browser,
+        and then an SP logging the user out using SOAP with no SSO cookie.
+        """
+        # Patch the VCCSClient so we do not need a vccs server
+        with patch.object(VCCSClient, 'authenticate'):
+            VCCSClient.authenticate.return_value = True
+            login_result = self._try_login()
+            assert login_result.reached_state == LoginState.S5_LOGGED_IN
+
+        authn_response = self.parse_saml_authn_response(login_result.response)
+
+        # Locate the SSO session
+        sso_session1 = self.app.sso_sessions.get_session(login_result.sso_cookie_val)
+        assert isinstance(sso_session1, SSOSession)
+        assert sso_session1.eppn == self.test_user.eppn
+
+        # Make sure it is the only SSO session for this user
+        user_sso_sessions = self.app.sso_sessions.get_sessions_for_user(self.test_user.eppn)
+        assert user_sso_sessions == [sso_session1]
+
+        # Remove all cookies, simulating a SOAP request from an SP rather than from the clients browser
+        self.browser.cookie_jar.clear()
+
+        reached_state, response = self._try_logout(authn_response, BINDING_SOAP)
+        assert reached_state == LogoutState.S1_LOGGED_OUT
+
+        logout_response = self.parse_saml_logout_response(response, BINDING_SOAP)
+        assert logout_response.response.status.status_code.value == 'urn:oasis:names:tc:SAML:2.0:status:Success'
+
+        # Make sure the logout removed the SSO session from the database
+        sso_session2 = self.app.sso_sessions.get_session(login_result.sso_cookie_val)
+        assert sso_session2 is None
+        assert self.app.sso_sessions.get_sessions_for_user(self.test_user.eppn) == []
 
     def test_basic_logout_redirect(self):
         with self.browser.session_transaction() as sess:
