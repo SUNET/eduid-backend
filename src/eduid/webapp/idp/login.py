@@ -114,7 +114,7 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
     except MissingPasswordFactor:
         res = NextResult(message=IdPMsg.must_authenticate)
     except MissingMultiFactor:
-        res = NextResult(message=IdPMsg.mfa_required, user=user)
+        res = NextResult(message=IdPMsg.mfa_required, user=user if template_mode else None)
     except MissingAuthentication:
         res = NextResult(message=IdPMsg.must_authenticate)
     except WrongMultiFactor as exc:
@@ -142,10 +142,10 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
     session.common.eppn = user.eppn
 
     if need_tou_acceptance(user):
-        return NextResult(message=IdPMsg.tou_required, user=user)
+        return NextResult(message=IdPMsg.tou_required, user=user if template_mode else None)
 
     if need_security_key(user, ticket):
-        return NextResult(message=IdPMsg.mfa_required, user=user)
+        return NextResult(message=IdPMsg.mfa_required, user=user if template_mode else None)
 
     return res
 
