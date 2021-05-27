@@ -23,6 +23,7 @@ def init_exception_handlers(app: 'IdPApp') -> 'IdPApp':
 
         messages = {
             'SAML_UNKNOWN_SP': 'SAML error: Unknown Service Provider',
+            'WRONG_USER': 'Already logged in as another user - please re-initiate login',
         }
 
         if error.description in messages:
@@ -33,7 +34,8 @@ def init_exception_handlers(app: 'IdPApp') -> 'IdPApp':
 
         response.data = render_template(template, **context)
 
-        if error.description is not None and 'USER_TERMINATED' in error.description:
+        if error.description in ['USER_TERMINATED', 'WRONG_USER']:
+            app.logger.debug(f'Deleting SSO cookie on error {error.description}')
             # Delete the SSO session cookie in the browser
             response.delete_cookie(
                 key=app.conf.sso_cookie.key, path=app.conf.sso_cookie.path, domain=app.conf.sso_cookie.domain,

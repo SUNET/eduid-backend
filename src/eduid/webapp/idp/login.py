@@ -213,6 +213,8 @@ class SSO(Service):
             raise Forbidden('USER_TERMINATED')
         if _next.message == IdPMsg.swamid_mfa_required:
             raise Forbidden('SWAMID_MFA_REQUIRED')
+        if _next.message == IdPMsg.wrong_user:
+            raise BadRequest('WRONG_USER')
 
         if _next.message == IdPMsg.tou_required:
             assert isinstance(_next.user, IdPUser)  # please mypy
