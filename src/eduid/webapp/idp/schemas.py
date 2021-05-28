@@ -65,20 +65,20 @@ class PwAuthResponseSchema(FluxStandardAction):
 
 
 class MfaAuthRequestSchema(IdPRequest):
-    pass
+    webauthn_response = fields.Dict(keys=fields.Str(), values=fields.Str(), default=None, required=False)
 
 
 class MfaAuthResponseSchema(FluxStandardAction):
     class MfaAuthResponsePayload(EduidSchema, CSRFResponseMixin):
         success = fields.Bool(required=True)
+        webauthn_options = fields.Dict(keys=fields.Str(), values=fields.Dict(), default=None, required=False)
 
     payload = fields.Nested(MfaAuthResponsePayload)
 
 
 class TouRequestSchema(IdPRequest):
     versions = fields.Str(required=False, many=True)
-    version = fields.Str(required=False)
-    user_accept = fields.Bool(required=False)
+    user_accepts = fields.Str(required=False)
 
 
 class TouResponseSchema(FluxStandardAction):

@@ -12,11 +12,13 @@ class IdPMsg(str, TranslatableMsg):
     credential_expired = 'idp.credential_expired'
     general_failure = 'idp.general_failure'
     mfa_required = 'idp.mfa_required'
+    mfa_auth_failed = 'idp.mfa_auth_failed'
     must_authenticate = 'idp.must_authenticate'
     not_available = 'idp.not_available'
     not_implemented = 'idp.not_implemented'
     proceed = 'idp.proceed'  # Shouldn't actually be returned to the frontend
     swamid_mfa_required = 'idp.swamid_mfa_required'
+    tou_not_acceptable = 'idp.tou_not_acceptable'
     tou_required = 'idp.tou_required'
     user_temporary_locked = 'idp.user_temporary_locked'
     user_terminated = 'idp.user_terminated'

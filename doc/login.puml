@@ -55,7 +55,7 @@ else User has no security keys, third party MFA login still possible
     "/mfa_auth"->Client: {"payload": {"finished": false}, "type": "POST_LOGIN_MFA_SUCCESS"}
 end
 
-Client->"/mfa_auth": POST {"ref": reference, webauthn_response: WEBAUTHN_RESPONSE"}
+Client->"/mfa_auth": POST {"ref": reference, "webauthn_response": WEBAUTHN_RESPONSE"}
 alt Success
     "/mfa_auth"->Client: {"payload": {"finished": true}, "type": "POST_LOGIN_MFA_SUCCESS"}
 else Credential validation failure
