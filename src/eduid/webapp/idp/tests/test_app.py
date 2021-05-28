@@ -107,6 +107,9 @@ class IdPTests(EduidAPITestCase):
                 'sso_cookie': {'key': 'test_sso_cookie'},
                 'eduid_site_url': 'https://eduid.docker_dev',
                 'tou_version': '2014-v1',  # this version is implicitly accepted on all users
+                'u2f_app_id': 'https://example.com',
+                'u2f_valid_facets': ['https://dashboard.dev.eduid.se', 'https://idp.dev.eduid.se'],
+                'fido2_rp_id': 'idp.example.com',
             }
         )
         return config

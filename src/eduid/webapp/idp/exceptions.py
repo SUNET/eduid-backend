@@ -16,6 +16,9 @@ def init_exception_handlers(app: 'IdPApp') -> 'IdPApp':
     @app.errorhandler(HTTPException)
     def _handle_flask_http_exception(error: HTTPException) -> WerkzeugResponse:
         app.logger.error(f'IdP HTTPException {request}: {error}')
+        app.logger.debug(f'Exception handler invoked on request from {request.remote_addr}: {request}')
+        if app.debug or app.testing:
+            app.logger.exception(f'Got exception in IdP')
         response = error.get_response()
 
         context = get_default_template_arguments(app.conf)
@@ -23,6 +26,7 @@ def init_exception_handlers(app: 'IdPApp') -> 'IdPApp':
 
         messages = {
             'SAML_UNKNOWN_SP': 'SAML error: Unknown Service Provider',
+            'WRONG_USER': 'Already logged in as another user - please re-initiate login',
         }
 
         if error.description in messages:
@@ -33,7 +37,8 @@ def init_exception_handlers(app: 'IdPApp') -> 'IdPApp':
 
         response.data = render_template(template, **context)
 
-        if error.description is not None and 'USER_TERMINATED' in error.description:
+        if error.description in ['USER_TERMINATED', 'WRONG_USER']:
+            app.logger.debug(f'Deleting SSO cookie on error {error.description}')
             # Delete the SSO session cookie in the browser
             response.delete_cookie(
                 key=app.conf.sso_cookie.key, path=app.conf.sso_cookie.path, domain=app.conf.sso_cookie.domain,

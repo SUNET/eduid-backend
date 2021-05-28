@@ -165,6 +165,16 @@ class WebauthnResult(BaseModel):
 def verify_webauthn(user: User, request_dict: Dict[str, Any], rp_id: str) -> WebauthnResult:
     """
     Verify received Webauthn data against the user's credentials.
+
+    The request_dict looks like this:
+
+    {
+        "credentialId": base64,
+        "authenticatorData": base64,
+        "clientDataJSON": base64,
+        "signature": base64,
+    }
+
     """
     logger.debug(f'Webauthn request:\n{json.dumps(request_dict, indent=4)}')
 

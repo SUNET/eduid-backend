@@ -103,10 +103,15 @@ def get_login_config() -> dict:
 
     return {
         'csrf_token': session.get_csrf_token(),
-        'next_url': current_app.front_conf.idp_next_url,
+        'next_url': current_app.front_conf.login_next_url,
         'password_service_url': current_app.front_conf.password_service_url,
         'password_entropy': current_app.front_conf.password_entropy,
         'password_length': current_app.front_conf.password_length,
+        'signup_url': current_app.front_conf.signup_url,
+        'eduid_site_name': current_app.front_conf.eduid_site_name,
+        'eduid_site_url': current_app.front_conf.eduid_site_url,
+        'eidas_url': current_app.front_conf.eidas_url,
+        'environment': current_app.conf.environment.value,
     }
 
 
