@@ -16,6 +16,9 @@ def init_exception_handlers(app: 'IdPApp') -> 'IdPApp':
     @app.errorhandler(HTTPException)
     def _handle_flask_http_exception(error: HTTPException) -> WerkzeugResponse:
         app.logger.error(f'IdP HTTPException {request}: {error}')
+        app.logger.debug(f'Exception handler invoked on request from {request.remote_addr}: {request}')
+        if app.debug or app.testing:
+            app.logger.exception(f'Got exception in IdP')
         response = error.get_response()
 
         context = get_default_template_arguments(app.conf)
