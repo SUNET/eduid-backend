@@ -132,12 +132,19 @@ class IdP_SAMLRequest(object):
 
     @property
     def force_authn(self) -> bool:
+        """
+        True if the initiator of the request request the IdP to force authentication.
+
+        ForceAuthn in specified as a boolean, and booleans in XML schema can be either 'true', 'false', '1' or '0'.
+
+           https://www.w3.org/TR/xmlschema-2/#boolean
+        """
         _res = self._req_info.message.force_authn
         if _res is None:
             return False
         if not isinstance(_res, str):
             raise ValueError(f'Unknown force authn type ({type(_res)})')
-        return _res.lower() == 'true'
+        return _res == '1' or _res.lower() == 'true'
 
     @property
     def request_id(self) -> str:

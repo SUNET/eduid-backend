@@ -35,11 +35,12 @@
 
 import datetime
 import logging
-from typing import Any, Dict, List, Mapping, Optional, Sequence
+from typing import List, Mapping, Optional, Sequence
 from uuid import uuid4
 
 import saml2.server
 import saml2.time_util
+from saml2 import BINDING_HTTP_POST
 from saml2.authn_context import PASSWORDPROTECTEDTRANSPORT
 from saml2.s_utils import UnravelError
 from werkzeug.exceptions import BadRequest
@@ -92,6 +93,8 @@ _U2F_SWAMID_AL2_HI = U2F(
     proofing_method=METHOD_SWAMID_AL2_MFA_HI,
     proofing_version='testing',
 )
+
+logger = logging.getLogger(__name__)
 
 
 def make_SAML_request(class_ref):
@@ -545,3 +548,45 @@ class TestSSO(SSOIdPTests):
         out = self._get_login_response_authn(req_class_ref=cc['EDUID_MFA'], credentials=['pw'])
         assert out.message == IdPMsg.mfa_required
         assert out.error == False
+
+    def test__forceauthn_request(self):
+        """ ForceAuthn can apparently be either 'true' or '1'.
+
+        https://lists.oasis-open.org/archives/security-services/201402/msg00019.html
+        """
+        force_authn = {
+            'True': True,
+            'true': True,
+            'false': False,
+            '1': True,
+            '0': False,
+        }
+        for value, expected in force_authn.items():
+            xmlstr = f"""
+            <ns0:AuthnRequest xmlns:ns0="urn:oasis:names:tc:SAML:2.0:protocol" 
+                  xmlns:ns1="urn:oasis:names:tc:SAML:2.0:assertion" 
+                  AssertionConsumerServiceURL="https://mfa-check.swamid.se/Shibboleth.sso/SAML2/POST" 
+                  Destination="https://unittest-idp.example.edu/sso/post" ForceAuthn="{value}"
+                  ID="_9f482d6c6ace2867a69c53671fbf09c6"
+                  IssueInstant="2021-05-27T21:53:24Z" ProtocolBinding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" 
+                  Version="2.0">
+                <ns1:Issuer>https://mfa-check.swamid.se/shibboleth</ns1:Issuer>
+                <ns0:NameIDPolicy AllowCreate="1" />
+                <ns0:RequestedAuthnContext>
+                  <ns1:AuthnContextClassRef>https://refeds.org/profile/mfa</ns1:AuthnContextClassRef>
+                </ns0:RequestedAuthnContext>
+            </ns0:AuthnRequest>
+            """
+            info = {'SAMLRequest': b64encode(xmlstr)}
+
+            x = self._parse_SAMLRequest(
+                info,
+                binding=BINDING_HTTP_POST,
+                bad_request=BadRequest,
+                logger=logger,
+                idp=self.app.IDP,
+                debug=True,
+                verify_request_signatures=False,
+            )
+
+            assert x.force_authn == expected
