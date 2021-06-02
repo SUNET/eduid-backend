@@ -315,7 +315,12 @@ def reset_user_password(
     # Check the the password complexity is enough
     user_info = get_zxcvbn_terms(user)
     try:
-        is_valid_password(password, user_info=user_info, min_entropy=current_app.conf.password_entropy)
+        is_valid_password(
+            password,
+            user_info=user_info,
+            min_entropy=current_app.conf.password_entropy,
+            min_score=current_app.conf.min_zxcvbn_score,
+        )
     except ValueError:
         return error_response(message=ResetPwMsg.resetpw_weak)
 

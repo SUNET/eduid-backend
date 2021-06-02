@@ -32,10 +32,10 @@
 #
 from typing import Dict
 
-from eduid.common.config.base import EduIDBaseAppConfig, TouConfigMixin
+from eduid.common.config.base import EduIDBaseAppConfig, PasswordConfigMixin, TouConfigMixin
 
 
-class JSConfigConfig(EduIDBaseAppConfig, TouConfigMixin):
+class JSConfigConfig(EduIDBaseAppConfig, TouConfigMixin, PasswordConfigMixin):
     """
     Configuration for the jsconfig app
     """
@@ -58,9 +58,6 @@ class JSConfigConfig(EduIDBaseAppConfig, TouConfigMixin):
     # Login config
     login_bundle_path: str = 'front-build/login-bundle.dev.js'
     login_bundle_version: str = 'dev'
-    # reset password config
-    password_entropy: int = 25
-    password_length: int = 12
     # Login feature toggle settings
     login_bundle_feature_cookie: str = ''
     login_bundle_feature_version: Dict[str, str] = {}

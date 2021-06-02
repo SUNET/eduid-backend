@@ -291,10 +291,11 @@ def new_password(state):
         'errors': [],
     }
     if request.method == 'POST':
-        min_entropy = current_app.conf.password_entropy
         try:
             form = ResetPasswordNewPasswordSchema(
-                zxcvbn_terms=view_context['zxcvbn_terms'], min_entropy=int(min_entropy)
+                zxcvbn_terms=view_context['zxcvbn_terms'],
+                min_entropy=current_app.conf.password_entropy,
+                min_score=current_app.conf.min_zxcvbn_score,
             ).load(request.form)
             current_app.logger.debug(form)
         except ValidationError as e:

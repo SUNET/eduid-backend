@@ -312,6 +312,12 @@ class TouConfigMixin(BaseModel):
     tou_version: str = '2016-v1'
 
 
+class PasswordConfigMixin(BaseModel):
+    password_length: int = 12
+    password_entropy: int = 25  # KANTARA
+    min_zxcvbn_score: int = 3  # SWAMID
+
+
 class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, RedisConfigMixin):
     available_languages: Mapping[str, str] = Field(default={'en': 'English', 'sv': 'Svenska'})
     environment: EduidEnvironment = EduidEnvironment.production

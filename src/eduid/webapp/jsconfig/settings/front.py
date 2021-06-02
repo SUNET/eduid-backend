@@ -35,10 +35,10 @@ from typing import Dict
 
 from pydantic import Field
 
-from eduid.common.config.base import RootConfig
+from eduid.common.config.base import PasswordConfigMixin, RootConfig
 
 
-class FrontConfig(RootConfig):
+class FrontConfig(RootConfig, PasswordConfigMixin):
     """
     Dashboard, Signup and Login front-end configuration.
 
@@ -73,8 +73,6 @@ class FrontConfig(RootConfig):
     eidas_url: str = ''
     token_verify_idp: str = ''
     # changing password
-    password_length: int = 12
-    password_entropy: int = 25
     chpass_timeout: int = 600
     proofing_methods: list = Field(default=['letter', 'lookup_mobile', 'oidc', 'eidas'])
     default_country_code: int = 46

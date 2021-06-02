@@ -108,8 +108,11 @@ def change_password(user):
     View to change the password
     """
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
-    min_entropy = current_app.conf.password_entropy
-    schema = ChangePasswordSchema(zxcvbn_terms=get_zxcvbn_terms(security_user.eppn), min_entropy=int(min_entropy))
+    schema = ChangePasswordSchema(
+        zxcvbn_terms=get_zxcvbn_terms(security_user.eppn),
+        min_entropy=current_app.conf.password_entropy,
+        min_score=current_app.conf.min_zxcvbn_score,
+    )
 
     if not request.data:
         return error_response(message='chpass.no-data')

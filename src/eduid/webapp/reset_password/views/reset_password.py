@@ -226,6 +226,7 @@ def verify_email(email_code: str) -> FluxData:
             'email_code': context.state.email_code.code,
             'email_address': context.state.email_address,
             'extra_security': mask_alternatives(alternatives),
+            'min_zxcvbn_score': current_app.conf.min_zxcvbn_score,
             'password_entropy': current_app.conf.password_entropy,
             'password_length': current_app.conf.password_length,
             'password_service_url': current_app.conf.password_service_url,

@@ -37,12 +37,19 @@ from eduid.common.config.base import (
     MagicCookieMixin,
     MailConfigMixin,
     MsgConfigMixin,
+    PasswordConfigMixin,
     WebauthnConfigMixin2,
 )
 
 
 class SecurityConfig(
-    EduIDBaseAppConfig, WebauthnConfigMixin2, MagicCookieMixin, AmConfigMixin, MsgConfigMixin, MailConfigMixin
+    EduIDBaseAppConfig,
+    WebauthnConfigMixin2,
+    MagicCookieMixin,
+    AmConfigMixin,
+    MsgConfigMixin,
+    MailConfigMixin,
+    PasswordConfigMixin,
 ):
     """
     Configuration for the security app
@@ -57,8 +64,6 @@ class SecurityConfig(
 
     # timeout for phone verification token, in hours
     phone_verification_timeout: int = 24
-    password_length: int = 12
-    password_entropy: int = 25
     chpass_timeout: int = 600
 
     # uf2 settings
