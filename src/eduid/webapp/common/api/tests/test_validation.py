@@ -9,6 +9,11 @@ class TestIsValidPassword(unittest.TestCase):
         res = is_valid_password('abc123', [], min_entropy=1, min_score=0)
         self.assertEqual(True, res)
 
+    def test_is_valid_password_empty(self):
+        """ Verify we get the right exception from empty passwords - zxcvbn crashes on them """
+        with self.assertRaises(ValueError):
+            is_valid_password('', [], min_entropy=0, min_score=0)
+
     def test_is_valid_password_too_weak(self):
         with self.assertRaises(ValueError):
             is_valid_password('abc123', [], min_entropy=20, min_score=0)

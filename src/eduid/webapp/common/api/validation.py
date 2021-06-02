@@ -34,20 +34,24 @@ def is_valid_email(email, **kwargs):
     raise ValueError('email needs to be formatted according to RFC2822')
 
 
-def is_valid_password(password, user_info: Sequence[str], min_entropy: int, min_score: int = 3) -> bool:
+def is_valid_password(password: str, user_info: Sequence[str], min_entropy: int, min_score: int = 3) -> bool:
     """
     Checks the complexity of the password - NOT if the password is the right one for a user.
 
     :param password: Password candidate
     :param user_info: List of strings (name, surname etc.) that zxcvbn will reduce the score for
     :param min_entropy: Minimum Shannon entropy (?) of password to allow
+    :param min_score: Minimum zxcvbn 'score' of password to allow
+
+    The requirements for entropy were defined in the KANTARA assessment.
+    The requirement for zxcvbn 'score' is SWAMID policy as per 2021.
 
     :return: True or raises ValueError
     """
     # Remove whitespace
     password = ''.join(password.split())
 
-    # Reject blank passwords
+    # Reject blank passwords, since zxcvbn crashes on empty passwords.
     if not password:
         raise ValueError('The password complexity is too weak.')
 
