@@ -5,6 +5,8 @@ from flask import Blueprint, abort, make_response, redirect, request, url_for
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 # TODO: Import FidoCredential in credentials.__init__
+from eduid.userdb import User
+from eduid.userdb.credentials.base import CredentialKey
 from eduid.userdb.credentials.fido import FidoCredential
 from eduid.webapp.common.api.decorators import MarshalWith, require_user
 from eduid.webapp.common.api.helpers import check_magic_cookie
@@ -39,7 +41,7 @@ def index(user) -> FluxData:
 
 @eidas_views.route('/verify-token/<credential_id>', methods=['GET'])
 @require_user
-def verify_token(user, credential_id) -> Union[FluxData, WerkzeugResponse]:
+def verify_token(user: User, credential_id: CredentialKey) -> Union[FluxData, WerkzeugResponse]:
     current_app.logger.debug('verify-token called with credential_id: {}'.format(credential_id))
     redirect_url = current_app.conf.token_verify_redirect_url
 
@@ -69,7 +71,7 @@ def verify_token(user, credential_id) -> Union[FluxData, WerkzeugResponse]:
 
 @eidas_views.route('/verify-nin', methods=['GET'])
 @require_user
-def verify_nin(user):
+def verify_nin(user: User) -> WerkzeugResponse:
     current_app.logger.debug('verify-nin called')
 
     # Backdoor for the selenium integration tests to verify NINs
@@ -83,7 +85,7 @@ def verify_nin(user):
 
 @eidas_views.route('/mfa-authentication', methods=['GET'])
 @require_user
-def mfa_authentication(user):
+def mfa_authentication(user: User) -> WerkzeugResponse:
     current_app.logger.debug('mfa-authentication called')
     required_loa = 'loa3'
     # Clear session keys used for external mfa
@@ -123,7 +125,7 @@ def _authn(
 
 
 @eidas_views.route('/saml2-acs', methods=['POST'])
-def assertion_consumer_service():
+def assertion_consumer_service() -> WerkzeugResponse:
     """
     Assertion consumer service, receives POSTs from SAML2 IdP's
     """
@@ -152,7 +154,7 @@ def assertion_consumer_service():
 
 
 @eidas_views.route('/saml2-metadata')
-def metadata():
+def metadata() -> WerkzeugResponse:
     """
     Returns an XML with the SAML 2.0 metadata for this
     SP as configured in the saml2_settings.py file.

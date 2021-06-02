@@ -21,7 +21,8 @@ from eduid.webapp.common.api.helpers import verify_nin_for_user
 from eduid.webapp.common.api.messages import CommonMsg, redirect_with_msg
 from eduid.webapp.common.api.utils import save_and_sync_user, urlappend, verify_relay_state
 from eduid.webapp.common.authn.acs_registry import acs_action
-from eduid.webapp.common.authn.eduid_saml2 import SessionInfo, get_authn_ctx
+from eduid.webapp.common.authn.eduid_saml2 import get_authn_ctx
+from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.authn.utils import get_saml_attribute
 from eduid.webapp.common.session import session
 from eduid.webapp.eidas.app import current_eidas_app as current_app

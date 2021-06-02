@@ -2,6 +2,7 @@
 
 from datetime import datetime, timedelta
 from enum import unique
+from typing import Optional
 from xml.etree.ElementTree import ParseError
 
 from dateutil.parser import parse as dt_parse
@@ -9,13 +10,15 @@ from dateutil.tz import tzutc
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.metadata import entity_descriptor
-from saml2.response import SAMLError
+from saml2.request import AuthnRequest
+from saml2.response import AuthnResponse, SAMLError
 from saml2.saml import AuthnContextClassRef
 from saml2.samlp import RequestedAuthnContext
 
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.authn.cache import IdentityCache, OutstandingQueriesCache
 from eduid.webapp.common.authn.eduid_saml2 import BadSAMLResponse, get_authn_ctx
+from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.session import session
 from eduid.webapp.eidas.app import current_eidas_app as current_app
 
@@ -52,7 +55,7 @@ class EidasMsg(TranslatableMsg):
     token_not_found = 'eidas.token_not_found'
 
 
-def create_authn_request(relay_state, selected_idp, required_loa, force_authn=False):
+def create_authn_request(relay_state, selected_idp, required_loa: str, force_authn: bool = False) -> AuthnRequest:
 
     kwargs = {
         "force_authn": str(force_authn).lower(),
@@ -85,7 +88,7 @@ def create_authn_request(relay_state, selected_idp, required_loa, force_authn=Fa
     return info
 
 
-def parse_authn_response(saml_response):
+def parse_authn_response(saml_response: str) -> AuthnResponse:
 
     client = Saml2Client(current_app.saml2_config, identity_cache=IdentityCache(session))
 
@@ -111,7 +114,7 @@ def parse_authn_response(saml_response):
     return response
 
 
-def is_required_loa(session_info, required_loa):
+def is_required_loa(session_info: SessionInfo, required_loa: str) -> bool:
     authn_context = get_authn_ctx(session_info)
     loa_uri = current_app.conf.authentication_context_map[required_loa]
     if authn_context == loa_uri:
@@ -122,7 +125,7 @@ def is_required_loa(session_info, required_loa):
     return False
 
 
-def is_valid_reauthn(session_info, max_age=60) -> bool:
+def is_valid_reauthn(session_info: SessionInfo, max_age: int = 60) -> bool:
     """
     :param session_info: The SAML2 session_info
     :param max_age: Max time (in seconds) since authn
@@ -144,7 +147,7 @@ def create_metadata(config):
     return entity_descriptor(config)
 
 
-def staging_nin_remap(session_info):
+def staging_nin_remap(session_info: SessionInfo):
     """
     Remap from known test nins to users correct nins.
 
