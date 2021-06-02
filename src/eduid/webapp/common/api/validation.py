@@ -34,7 +34,7 @@ def is_valid_email(email, **kwargs):
     raise ValueError('email needs to be formatted according to RFC2822')
 
 
-def is_valid_password(password, user_info: Sequence[str], min_entropy: int):
+def is_valid_password(password, user_info: Sequence[str], min_entropy: int, min_score: int = 3) -> bool:
     """
     Checks the complexity of the password - NOT if the password is the right one for a user.
 
@@ -56,6 +56,11 @@ def is_valid_password(password, user_info: Sequence[str], min_entropy: int):
     _guesses = result.get('guesses', 1)
     _pw_entropy = math.log(_guesses, 2)
     if _pw_entropy < min_entropy:
+        raise ValueError('The password complexity is too weak.')
+    # This is the SWAMID requirement for zxcvbn since 2021:
+    #   "a score of at least 3 (safely unguessable) as defined by the
+    #    zxcvbn password strength definition in February 2017"
+    if result.get('score', 0) < min_score:
         raise ValueError('The password complexity is too weak.')
 
     return True

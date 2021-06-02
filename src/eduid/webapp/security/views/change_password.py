@@ -84,9 +84,13 @@ def change_password_view(user: User, old_password: str, new_password: str) -> Fl
     if not old_password or not new_password:
         return error_response(message=SecurityMsg.chpass_no_data)
 
-    min_entropy = current_app.conf.password_entropy
     try:
-        is_valid_password(new_password, user_info=get_zxcvbn_terms(user.eppn), min_entropy=min_entropy)
+        is_valid_password(
+            new_password,
+            user_info=get_zxcvbn_terms(user.eppn),
+            min_entropy=current_app.conf.password_entropy,
+            min_score=current_app.conf.min_zxcvbn_score,
+        )
     except ValueError:
         return error_response(message=SecurityMsg.chpass_weak)
 

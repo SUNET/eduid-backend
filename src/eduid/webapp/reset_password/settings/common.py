@@ -40,12 +40,19 @@ from eduid.common.config.base import (
     MagicCookieMixin,
     MailConfigMixin,
     MsgConfigMixin,
+    PasswordConfigMixin,
     WebauthnConfigMixin2,
 )
 
 
 class ResetPasswordConfig(
-    EduIDBaseAppConfig, WebauthnConfigMixin2, MagicCookieMixin, AmConfigMixin, MsgConfigMixin, MailConfigMixin
+    EduIDBaseAppConfig,
+    WebauthnConfigMixin2,
+    MagicCookieMixin,
+    AmConfigMixin,
+    MsgConfigMixin,
+    MailConfigMixin,
+    PasswordConfigMixin,
 ):
     """
     Configuration for the reset_password app
@@ -59,8 +66,6 @@ class ResetPasswordConfig(
 
     email_code_timeout: int = 7200
     phone_code_timeout: int = 600
-    password_entropy: int = 25
-    password_length: int = 12
     # Number of bytes of salt to generate (recommended min 16).
     password_salt_length: int = 32
     # Length of H1 hash to produce (recommended min 32).
