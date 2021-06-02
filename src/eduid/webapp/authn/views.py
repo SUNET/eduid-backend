@@ -40,9 +40,9 @@ from werkzeug.exceptions import Forbidden
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.webapp.authn import acs_actions  # acs_action needs to be imported to be loaded
-from eduid.webapp.authn.acs_actions import AuthnAcsAction
 from eduid.webapp.authn.app import current_authn_app as current_app
 from eduid.webapp.common.api.utils import verify_relay_state
+from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.authn.acs_registry import get_action, schedule_action
 from eduid.webapp.common.authn.cache import IdentityCache, StateCache
 from eduid.webapp.common.authn.eduid_saml2 import (

@@ -6,7 +6,7 @@ import datetime
 import os
 import urllib
 from collections import OrderedDict
-from typing import Any, Mapping
+from typing import Any, List, Mapping, Optional
 from unittest import TestCase
 
 import six
@@ -14,11 +14,13 @@ from mock import patch
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.userdb.credentials import U2F, Webauthn
+from eduid.userdb.credentials.base import CredentialKey
 from eduid.userdb.credentials.fido import FidoCredential
 from eduid.webapp.common.api.messages import redirect_with_msg
 from eduid.webapp.common.api.testing import EduidAPITestCase
+from eduid.webapp.common.authn.acs_enums import EidasAcsAction
 from eduid.webapp.common.authn.cache import OutstandingQueriesCache
-from eduid.webapp.eidas.acs_actions import EidasAcsAction
+from eduid.webapp.common.session import EduidSession
 from eduid.webapp.eidas.app import EidasApp, init_eidas_app
 from eduid.webapp.eidas.helpers import EidasMsg
 
@@ -215,6 +217,25 @@ class EidasTests(EduidAPITestCase):
             return resp.encode('utf-8')
         return resp
 
+    def _session_setup(
+        self,
+        session: EduidSession,
+        action: EidasAcsAction,
+        req_id: Optional[str] = None,
+        relay_state: str = '/',
+        verify_token: Optional[CredentialKey] = None,
+        credential_used: Optional[List[str]] = None,
+    ) -> None:
+        assert isinstance(session, EduidSession)
+        if req_id is not None:
+            oq_cache = OutstandingQueriesCache(session.eidas.sp.pysaml2_dicts)
+            oq_cache.set(req_id, relay_state)
+        session.eidas.sp.post_authn_action = action
+        if verify_token is not None:
+            session.eidas.verify_token_action_credential_id = verify_token
+        if credential_used is not None:
+            session['eduidIdPCredentialsUsed'] = ['other_id']
+
     def test_authenticate(self):
         response = self.browser.get('/')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
@@ -242,10 +263,9 @@ class EidasTests(EduidAPITestCase):
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_nin
                 )
-                oq_cache = OutstandingQueriesCache(sess)
-                oq_cache.set(cookie_val, '/')
-                sess['post-authn-action'] = 'token-verify-action'
-                sess['verify_token_action_credential_id'] = credential.key
+                self._session_setup(
+                    sess, req_id=cookie_val, action=EidasAcsAction.token_verify, verify_token=credential.key
+                )
 
             data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
             browser.post('/saml2-acs', data=data)
@@ -278,10 +298,9 @@ class EidasTests(EduidAPITestCase):
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_nin
                 )
-                oq_cache = OutstandingQueriesCache(sess)
-                oq_cache.set(cookie_val, '/')
-                sess['post-authn-action'] = EidasAcsAction.token_verify.value
-                sess['verify_token_action_credential_id'] = credential.key
+                self._session_setup(
+                    sess, req_id=cookie_val, action=EidasAcsAction.token_verify, verify_token=credential.key
+                )
 
             data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
             browser.post('/saml2-acs', data=data)
@@ -314,10 +333,9 @@ class EidasTests(EduidAPITestCase):
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_wrong_nin
                 )
-                oq_cache = OutstandingQueriesCache(sess)
-                oq_cache.set(cookie_val, '/')
-                sess['post-authn-action'] = 'token-verify-action'
-                sess['verify_token_action_credential_id'] = credential.key
+                self._session_setup(
+                    sess, req_id=cookie_val, action=EidasAcsAction.token_verify, verify_token=credential.key
+                )
 
             data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
             browser.post('/saml2-acs', data=data)
@@ -351,10 +369,9 @@ class EidasTests(EduidAPITestCase):
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_nin
                 )
-                oq_cache = OutstandingQueriesCache(sess)
-                oq_cache.set(cookie_val, '/')
-                sess['post-authn-action'] = 'token-verify-action'
-                sess['verify_token_action_credential_id'] = credential.key
+                self._session_setup(
+                    sess, req_id=cookie_val, action=EidasAcsAction.token_verify, verify_token=credential.key
+                )
 
             data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
             browser.post('/saml2-acs', data=data)
@@ -398,11 +415,13 @@ class EidasTests(EduidAPITestCase):
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_nin
                 )
-                oq_cache = OutstandingQueriesCache(sess)
-                oq_cache.set(cookie_val, '/')
-                sess['post-authn-action'] = 'token-verify-action'
-                sess['verify_token_action_credential_id'] = credential.key
-                sess['eduidIdPCredentialsUsed'] = ['other_id']
+                self._session_setup(
+                    sess,
+                    req_id=cookie_val,
+                    action=EidasAcsAction.token_verify,
+                    verify_token=credential.key,
+                    credential_used=['other_id'],
+                )
 
             data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
             response = browser.post('/saml2-acs', data=data)
@@ -433,10 +452,9 @@ class EidasTests(EduidAPITestCase):
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_fail, self.test_user_wrong_nin
                 )
-                oq_cache = OutstandingQueriesCache(sess)
-                oq_cache.set(cookie_val, '/')
-                sess['post-authn-action'] = 'token-verify-action'
-                sess['verify_token_action_credential_id'] = credential.key
+                self._session_setup(
+                    sess, req_id=cookie_val, action=EidasAcsAction.token_verify, verify_token=credential.key
+                )
 
                 data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
                 browser.post('/saml2-acs', data=data)
@@ -469,10 +487,9 @@ class EidasTests(EduidAPITestCase):
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_cancel, self.test_user_wrong_nin
                 )
-                oq_cache = OutstandingQueriesCache(sess)
-                oq_cache.set(cookie_val, '/')
-                sess['post-authn-action'] = 'token-verify-action'
-                sess['verify_token_action_credential_id'] = credential.key
+                self._session_setup(
+                    sess, req_id=cookie_val, action=EidasAcsAction.token_verify, verify_token=credential.key
+                )
 
             data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
             browser.post('/saml2-acs', data=data)
@@ -504,10 +521,9 @@ class EidasTests(EduidAPITestCase):
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_fail, self.test_user_wrong_nin
                 )
-                oq_cache = OutstandingQueriesCache(sess)
-                oq_cache.set(cookie_val, '/')
-                sess['post-authn-action'] = 'token-verify-action'
-                sess['verify_token_action_credential_id'] = credential.key
+                self._session_setup(
+                    sess, req_id=cookie_val, action=EidasAcsAction.token_verify, verify_token=credential.key
+                )
 
             data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
             browser.post('/saml2-acs', data=data)
@@ -536,9 +552,7 @@ class EidasTests(EduidAPITestCase):
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_nin
                 )
-                oq_cache = OutstandingQueriesCache(sess)
-                oq_cache.set(cookie_val, '/')
-                sess['post-authn-action'] = 'nin-verify-action'
+                self._session_setup(sess, req_id=cookie_val, action=EidasAcsAction.nin_verify)
 
             data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
             browser.post('/saml2-acs', data=data)
@@ -631,9 +645,7 @@ class EidasTests(EduidAPITestCase):
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_nin
                 )
-                oq_cache = OutstandingQueriesCache(sess)
-                oq_cache.set(cookie_val, '/')
-                sess['post-authn-action'] = 'nin-verify-action'
+                self._session_setup(sess, req_id=cookie_val, action=EidasAcsAction.nin_verify)
 
             data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
             response = browser.post('/saml2-acs', data=data)
@@ -658,14 +670,13 @@ class EidasTests(EduidAPITestCase):
             relay_state = qs['RelayState'][0]
 
             with browser.session_transaction() as sess:
-                cookie_val = sess.meta.cookie_val
+                cookie_val = sess.meta.cookie_val[:8]
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_nin
                 )
-                oq_cache = OutstandingQueriesCache(sess)
-                oq_cache.set(cookie_val, relay_state)
-                sess['post-authn-action'] = 'mfa-authentication-action'
-                sess['eidas_redirect_urls'] = {relay_state: next_url}
+                self._session_setup(sess, req_id=cookie_val, action=EidasAcsAction.mfa_authn)
+
+                sess.eidas.redirect_urls = {relay_state: next_url}
 
             data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': relay_state}
             response = browser.post('/saml2-acs', data=data)
@@ -693,10 +704,11 @@ class EidasTests(EduidAPITestCase):
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_wrong_nin
                 )
-                oq_cache = OutstandingQueriesCache(sess)
+                assert isinstance(sess, EduidSession)
+                oq_cache = OutstandingQueriesCache(sess.eidas.sp.pysaml2_dicts)
                 oq_cache.set(cookie_val, relay_state)
-                sess['post-authn-action'] = 'mfa-authentication-action'
-                sess['eidas_redirect_urls'] = {relay_state: next_url}
+                sess.eidas.sp.post_authn_action = EidasAcsAction.mfa_authn
+                sess.eidas.redirect_urls = {relay_state: next_url}
 
             data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': relay_state}
             response = browser.post('/saml2-acs', data=data)
@@ -724,9 +736,10 @@ class EidasTests(EduidAPITestCase):
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_nin
                 )
-                oq_cache = OutstandingQueriesCache(sess)
+                assert isinstance(sess, EduidSession)
+                oq_cache = OutstandingQueriesCache(sess.eidas.sp.pysaml2_dicts)
                 oq_cache.set(cookie_val, '/')
-                sess['post-authn-action'] = 'nin-verify-action'
+                sess.eidas.sp.post_authn_action = EidasAcsAction.nin_verify
 
             data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
             browser.post('/saml2-acs', data=data)

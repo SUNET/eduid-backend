@@ -50,6 +50,8 @@ from eduid.webapp.common.session import session
 # This is the list of ACS actions loaded. It is populated by decorating functions with the @acs_action.
 # The keys are the AcsAction (subclass) enum values, since get_action() doesn't know which subclass of
 # AcsActions that could be used to turn the string value stored in the session back into an Enum.
+from eduid.webapp.common.session.namespaces import Pysaml2SPData
+
 _actions: Dict[str, Callable] = {}
 
 
@@ -75,7 +77,7 @@ def acs_action(action: Enum):
     return outer
 
 
-def schedule_action(action: Enum) -> None:
+def schedule_action(action: Enum, sp_data: Optional[Pysaml2SPData] = None) -> None:
     """
     Schedule an action to be executed after an IdP responds to a SAML request.
     This is called just before the SAML request is sent.
@@ -83,16 +85,26 @@ def schedule_action(action: Enum) -> None:
     :param action: the AcsAction to schedule
     """
     current_app.logger.debug(f'Scheduling acs action {action}')
-    session['post-authn-action'] = action.value
+    if sp_data is None:
+        # OLD
+        session['post-authn-action'] = action.value
+    else:
+        # NEW
+        sp_data.post_authn_action = action.value
 
 
-def get_action(default_action: Optional[Enum] = None) -> Callable:
+def get_action(default_action: Optional[Enum] = None, sp_data: Optional[Pysaml2SPData] = None) -> Callable:
     """
     Retrieve an action from the registry based on the AcsAction stored in the session.
 
     :return: the function to be invoked for this action
     """
-    action_value = session.get('post-authn-action')
+    if sp_data is None:
+        # OLD
+        action_value = session.get('post-authn-action')
+    else:
+        # NEW
+        action_value = sp_data.post_authn_action
     if action_value is None:
         current_app.logger.debug(f'No post-authn-action found in the session, using default {default_action}')
         if default_action is not None:
@@ -105,6 +117,10 @@ def get_action(default_action: Optional[Enum] = None) -> Callable:
         current_app.logger.debug(f'Registered ACS actions: {_actions.keys()}')
         raise UnregisteredAction(error_msg)
     finally:
-        del session['post-authn-action']
+        if sp_data is None:
+            # OLD
+            del session['post-authn-action']
+        else:
+            sp_data.post_authn_action = None
     current_app.logger.debug(f'Consuming ACS action {action_value}')
     return action

@@ -13,11 +13,12 @@ from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import FluxData, redirect_with_msg, success_response
 from eduid.webapp.common.api.schemas.csrf import EmptyResponse
 from eduid.webapp.common.api.utils import get_unique_hash, urlappend
+from eduid.webapp.common.authn.acs_enums import EidasAcsAction
 from eduid.webapp.common.authn.acs_registry import get_action, schedule_action
 from eduid.webapp.common.authn.eduid_saml2 import BadSAMLResponse
 from eduid.webapp.common.authn.utils import get_location
 from eduid.webapp.common.session import session
-from eduid.webapp.eidas.acs_actions import EidasAcsAction, nin_verify_BACKDOOR
+from eduid.webapp.eidas.acs_actions import nin_verify_BACKDOOR
 from eduid.webapp.eidas.app import current_eidas_app as current_app
 from eduid.webapp.eidas.helpers import (
     EidasMsg,
@@ -62,7 +63,7 @@ def verify_token(user: User, credential_id: CredentialKey) -> Union[FluxData, We
         return redirect('{}?next={}'.format(reauthn_url, next_url))
 
     # Set token key id in session
-    session['verify_token_action_credential_id'] = credential_id
+    session.eidas.verify_token_action_credential_id = credential_id
 
     # Request a authentication from idp
     required_loa = 'loa3'
@@ -106,9 +107,7 @@ def _authn(
     """
     redirect_url = request.args.get('next', redirect_url)
     relay_state = get_unique_hash()
-    if 'eidas_redirect_urls' not in session:
-        session['eidas_redirect_urls'] = dict()
-    session['eidas_redirect_urls'][relay_state] = redirect_url
+    session.eidas.redirect_urls[relay_state] = redirect_url
     current_app.logger.info('Cached redirect_url {} for relay_state {}'.format(redirect_url, relay_state))
 
     idp = request.args.get('idp')
@@ -118,7 +117,7 @@ def _authn(
 
     if idp in idps:
         authn_request = create_authn_request(relay_state, idp, required_loa, force_authn=force_authn)
-        schedule_action(action)
+        schedule_action(action, session.eidas.sp)
         current_app.logger.info('Redirecting the user to {} for {}'.format(idp, action))
         return redirect(get_location(authn_request))
     abort(make_response('Requested IdP not found in metadata', 404))
@@ -146,7 +145,7 @@ def assertion_consumer_service() -> WerkzeugResponse:
         if current_app.conf.environment == 'staging':
             session_info = staging_nin_remap(session_info)
 
-        action = get_action()
+        action = get_action(sp_data=session.eidas.sp)
         return action(session_info)
     except BadSAMLResponse as e:
         current_app.logger.error('BadSAMLResponse: {}'.format(e))

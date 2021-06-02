@@ -32,7 +32,7 @@
 
 import logging
 import pprint
-from typing import Any, List, Mapping, NewType, Optional
+from typing import Optional
 from xml.etree.ElementTree import ParseError
 
 from flask import abort, redirect, request
@@ -46,11 +46,10 @@ from eduid.userdb import UserDB
 from eduid.userdb.exceptions import MultipleUsersReturned, UserDoesNotExist
 from eduid.userdb.user import User
 from eduid.webapp.common.api.utils import verify_relay_state
+from eduid.webapp.common.authn.cache import IdentityCache, OutstandingQueriesCache, StateCache
 from eduid.webapp.common.authn.session_info import SessionInfo
+from eduid.webapp.common.authn.utils import SPConfig, get_saml_attribute
 from eduid.webapp.common.session import EduidSession, session
-
-from .cache import IdentityCache, OutstandingQueriesCache, StateCache
-from .utils import SPConfig, get_saml_attribute
 
 logger = logging.getLogger(__name__)
 

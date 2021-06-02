@@ -83,16 +83,16 @@ def create_authn_request(relay_state, selected_idp, required_loa: str, force_aut
         current_app.logger.error('Unable to know which IdP to use')
         raise
 
-    oq_cache = OutstandingQueriesCache(session)
+    oq_cache = OutstandingQueriesCache(session.eidas.sp.pysaml2_dicts)
     oq_cache.set(session_id, relay_state)
     return info
 
 
 def parse_authn_response(saml_response: str) -> AuthnResponse:
 
-    client = Saml2Client(current_app.saml2_config, identity_cache=IdentityCache(session))
+    client = Saml2Client(current_app.saml2_config, identity_cache=IdentityCache(session.eidas.sp.pysaml2_dicts))
 
-    oq_cache = OutstandingQueriesCache(session)
+    oq_cache = OutstandingQueriesCache(session.eidas.sp.pysaml2_dicts)
     outstanding_queries = oq_cache.outstanding_queries()
 
     try:
@@ -134,12 +134,12 @@ def is_valid_reauthn(session_info: SessionInfo, max_age: int = 60) -> bool:
     """
     utc_tz = tzutc()
     authn_instant = dt_parse(session_info['authn_info'][0][2])
-    max_age = timedelta(seconds=max_age)
-    if authn_instant >= (datetime.now(tz=utc_tz) - max_age):
+    _max_age = timedelta(seconds=max_age)
+    if authn_instant >= (datetime.now(tz=utc_tz) - _max_age):
         return True
     current_app.logger.error('Asserted authn instant was older than required')
     current_app.logger.error('Authn instant: {}'.format(authn_instant))
-    current_app.logger.error('Oldest accepted: {}'.format(datetime.utcnow() + max_age))
+    current_app.logger.error('Oldest accepted: {}'.format(datetime.utcnow() + _max_age))
     return False
 
 

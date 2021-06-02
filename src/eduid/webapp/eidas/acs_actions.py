@@ -2,14 +2,11 @@
 
 
 import base64
-from enum import Enum, unique
-from typing import Any, Mapping
 
 from flask import redirect, request
 from six.moves.urllib_parse import urlsplit, urlunsplit
 from werkzeug.wrappers import Response as WerkzeugResponse
 
-# TODO: Import FidoCredential in eduid.userdb.credential.__init__
 from eduid.userdb import User
 from eduid.userdb.credentials.fido import FidoCredential
 from eduid.userdb.logs import MFATokenProofing, SwedenConnectProofing
@@ -20,6 +17,7 @@ from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid.webapp.common.api.helpers import verify_nin_for_user
 from eduid.webapp.common.api.messages import CommonMsg, redirect_with_msg
 from eduid.webapp.common.api.utils import save_and_sync_user, urlappend, verify_relay_state
+from eduid.webapp.common.authn.acs_enums import EidasAcsAction
 from eduid.webapp.common.authn.acs_registry import acs_action
 from eduid.webapp.common.authn.eduid_saml2 import get_authn_ctx
 from eduid.webapp.common.authn.session_info import SessionInfo
@@ -29,13 +27,6 @@ from eduid.webapp.eidas.app import current_eidas_app as current_app
 from eduid.webapp.eidas.helpers import EidasMsg, is_required_loa, is_valid_reauthn
 
 __author__ = 'lundberg'
-
-
-@unique
-class EidasAcsAction(Enum):
-    token_verify = 'token-verify-action'
-    nin_verify = 'nin-verify-action'
-    mfa_authn = 'mfa-authentication-action'
 
 
 @acs_action(EidasAcsAction.token_verify)
@@ -60,7 +51,7 @@ def token_verify_action(session_info: SessionInfo, user: User) -> WerkzeugRespon
 
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     token_to_verify = proofing_user.credentials.filter(FidoCredential).find(
-        session['verify_token_action_credential_id']
+        session.eidas.verify_token_action_credential_id
     )
 
     # Check (again) if token was used to authenticate this session
@@ -73,7 +64,7 @@ def token_verify_action(session_info: SessionInfo, user: User) -> WerkzeugRespon
         user = current_app.central_userdb.get_user_by_eppn(user.eppn)
         proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
         token_to_verify = proofing_user.credentials.filter(FidoCredential).find(
-            session['verify_token_action_credential_id']
+            session.eidas.verify_token_action_credential_id
         )
 
     # Check that a verified NIN is equal to the asserted attribute personalIdentityNumber
@@ -274,8 +265,8 @@ def mfa_authentication_action(session_info: SessionInfo, user: User) -> Werkzeug
     relay_state = request.form.get('RelayState')
     current_app.logger.debug('RelayState: {}'.format(relay_state))
     redirect_url = None
-    if 'eidas_redirect_urls' in session:
-        redirect_url = session['eidas_redirect_urls'].pop(relay_state, None)
+    if relay_state:
+        redirect_url = session.eidas.redirect_urls.pop(relay_state, None)
     if not redirect_url:
         # With no redirect url just redirect the user to dashboard for a new try to log in
         # TODO: This will result in a error 400 until we put the authentication in the session
