@@ -7,6 +7,8 @@ from xml.etree.ElementTree import ParseError
 
 from dateutil.parser import parse as dt_parse
 from dateutil.tz import tzutc
+
+from eduid.common.misc.timeutil import utc_now
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.metadata import entity_descriptor
@@ -128,18 +130,16 @@ def is_required_loa(session_info: SessionInfo, required_loa: str) -> bool:
 def is_valid_reauthn(session_info: SessionInfo, max_age: int = 60) -> bool:
     """
     :param session_info: The SAML2 session_info
-    :param max_age: Max time (in seconds) since authn
+    :param max_age: Max time (in seconds) since authn that is to be allowed
     :return: True if authn instant is no older than max_age
-    :rtype: bool
     """
-    utc_tz = tzutc()
+    now = utc_now()
     authn_instant = dt_parse(session_info['authn_info'][0][2])
-    _max_age = timedelta(seconds=max_age)
-    if authn_instant >= (datetime.now(tz=utc_tz) - _max_age):
+    age = now - authn_instant
+    if age.total_seconds() <= max_age:
+        current_app.logger.debug(f'Re-authn is valid, authn instant {authn_instant}, age {age}, max_age {max_age}s')
         return True
-    current_app.logger.error('Asserted authn instant was older than required')
-    current_app.logger.error('Authn instant: {}'.format(authn_instant))
-    current_app.logger.error('Oldest accepted: {}'.format(datetime.utcnow() + _max_age))
+    current_app.logger.error(f'Authn instant {authn_instant} too old (age {age}, max_age {max_age} seconds)')
     return False
 
 
