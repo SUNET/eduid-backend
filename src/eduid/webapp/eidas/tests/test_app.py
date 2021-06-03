@@ -212,10 +212,7 @@ class EidasTests(EduidAPITestCase):
             ).split()
         )
 
-        if six.PY3:
-            # Needs to be bytes
-            return resp.encode('utf-8')
-        return resp
+        return resp.encode('utf-8')
 
     def _session_setup(
         self,
@@ -704,10 +701,7 @@ class EidasTests(EduidAPITestCase):
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_wrong_nin
                 )
-                assert isinstance(sess, EduidSession)
-                oq_cache = OutstandingQueriesCache(sess.eidas.sp.pysaml2_dicts)
-                oq_cache.set(cookie_val, relay_state)
-                sess.eidas.sp.post_authn_action = EidasAcsAction.mfa_authn
+                self._session_setup(sess, req_id=cookie_val, relay_state=relay_state, action=EidasAcsAction.mfa_authn)
                 sess.eidas.redirect_urls = {relay_state: next_url}
 
             data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': relay_state}
@@ -736,10 +730,7 @@ class EidasTests(EduidAPITestCase):
                 authn_response = self.generate_auth_response(
                     cookie_val, self.saml_response_tpl_success, self.test_user_nin
                 )
-                assert isinstance(sess, EduidSession)
-                oq_cache = OutstandingQueriesCache(sess.eidas.sp.pysaml2_dicts)
-                oq_cache.set(cookie_val, '/')
-                sess.eidas.sp.post_authn_action = EidasAcsAction.nin_verify
+                self._session_setup(sess, req_id=cookie_val, action=EidasAcsAction.nin_verify)
 
             data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
             browser.post('/saml2-acs', data=data)
