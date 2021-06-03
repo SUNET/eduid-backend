@@ -18,6 +18,7 @@ from eduid.userdb.credentials.base import CredentialKey
 
 __author__ = 'ft'
 
+from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
 
 logger = logging.getLogger(__name__)
 
@@ -132,3 +133,15 @@ class IdP_Namespace(TimestampedNS):
         if isinstance(credential, OnetimeCredential):
             self.pending_requests[request_ref].onetime_credentials[credential.key] = credential
         self.pending_requests[request_ref].credentials_used[credential.key] = timestamp
+
+
+class Pysaml2SPData(BaseModel):
+    post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction]] = None
+    pysaml2_dicts: Dict[str, Any] = Field(default={})
+
+
+class Eidas_Namespace(SessionNSBase):
+
+    verify_token_action_credential_id: Optional[CredentialKey] = None
+    redirect_urls: Dict[str, str] = Field(default={})
+    sp: Pysaml2SPData = Field(default=Pysaml2SPData())

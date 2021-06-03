@@ -31,31 +31,24 @@
 #
 
 
-from enum import Enum, unique
 from time import time
-from typing import Any, Mapping
 
 from flask import redirect, request
 from saml2.ident import code
+from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.userdb import User
 from eduid.webapp.authn.app import current_authn_app as current_app
 from eduid.webapp.common.api.utils import verify_relay_state
+from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.authn.acs_registry import acs_action
+from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.authn.utils import get_saml_attribute
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import LoginApplication
 
 
-@unique
-class AuthnAcsAction(Enum):
-    login = 'login-action'
-    change_password = 'change-password-action'
-    terminate_account = 'terminate-account-action'
-    reauthn = 'reauthn-action'
-
-
-def update_user_session(session_info: Mapping[str, Any], user: User) -> None:
+def update_user_session(session_info: SessionInfo, user: User) -> None:
     """
     Store login info in the session
 
@@ -79,7 +72,7 @@ def update_user_session(session_info: Mapping[str, Any], user: User) -> None:
 
 
 @acs_action(AuthnAcsAction.login)
-def login_action(session_info, user):
+def login_action(session_info: SessionInfo, user: User) -> WerkzeugResponse:
     """
     Upon successful login in the IdP, store login info in the session
     and redirect back to the app that asked for authn.
@@ -103,7 +96,7 @@ def login_action(session_info, user):
 
 
 @acs_action(AuthnAcsAction.change_password)
-def chpass_action(session_info, user):
+def chpass_action(session_info: SessionInfo, user: User) -> WerkzeugResponse:
     """
     Upon successful reauthn in the IdP,
     set a timestamp in the session (key reauthn-for-chpass)
@@ -120,7 +113,7 @@ def chpass_action(session_info, user):
 
 
 @acs_action(AuthnAcsAction.terminate_account)
-def term_account_action(session_info, user):
+def term_account_action(session_info: SessionInfo, user: User) -> WerkzeugResponse:
     """
     Upon successful reauthn in the IdP,
     set a timestamp in the session (key reauthn-for-termination)
@@ -137,7 +130,7 @@ def term_account_action(session_info, user):
 
 
 @acs_action(AuthnAcsAction.reauthn)
-def reauthn_account_action(session_info, user):
+def reauthn_account_action(session_info: SessionInfo, user: User) -> WerkzeugResponse:
     """
     Upon successful reauthn in the IdP,
     set a timestamp in the session (key reauthn)
@@ -153,7 +146,7 @@ def reauthn_account_action(session_info, user):
     return _reauthn('reauthn', session_info, user)
 
 
-def _reauthn(reason, session_info, user):
+def _reauthn(reason: str, session_info: SessionInfo, user: User) -> WerkzeugResponse:
 
     current_app.logger.info(f'Re-authenticating user {user} for {reason}.')
     update_user_session(session_info, user)

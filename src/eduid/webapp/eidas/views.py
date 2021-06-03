@@ -5,17 +5,20 @@ from flask import Blueprint, abort, make_response, redirect, request, url_for
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 # TODO: Import FidoCredential in credentials.__init__
+from eduid.userdb import User
+from eduid.userdb.credentials.base import CredentialKey
 from eduid.userdb.credentials.fido import FidoCredential
 from eduid.webapp.common.api.decorators import MarshalWith, require_user
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import FluxData, redirect_with_msg, success_response
 from eduid.webapp.common.api.schemas.csrf import EmptyResponse
 from eduid.webapp.common.api.utils import get_unique_hash, urlappend
+from eduid.webapp.common.authn.acs_enums import EidasAcsAction
 from eduid.webapp.common.authn.acs_registry import get_action, schedule_action
 from eduid.webapp.common.authn.eduid_saml2 import BadSAMLResponse
 from eduid.webapp.common.authn.utils import get_location
 from eduid.webapp.common.session import session
-from eduid.webapp.eidas.acs_actions import EidasAcsAction, nin_verify_BACKDOOR
+from eduid.webapp.eidas.acs_actions import nin_verify_BACKDOOR
 from eduid.webapp.eidas.app import current_eidas_app as current_app
 from eduid.webapp.eidas.helpers import (
     EidasMsg,
@@ -39,7 +42,7 @@ def index(user) -> FluxData:
 
 @eidas_views.route('/verify-token/<credential_id>', methods=['GET'])
 @require_user
-def verify_token(user, credential_id) -> Union[FluxData, WerkzeugResponse]:
+def verify_token(user: User, credential_id: CredentialKey) -> Union[FluxData, WerkzeugResponse]:
     current_app.logger.debug('verify-token called with credential_id: {}'.format(credential_id))
     redirect_url = current_app.conf.token_verify_redirect_url
 
@@ -60,7 +63,7 @@ def verify_token(user, credential_id) -> Union[FluxData, WerkzeugResponse]:
         return redirect('{}?next={}'.format(reauthn_url, next_url))
 
     # Set token key id in session
-    session['verify_token_action_credential_id'] = credential_id
+    session.eidas.verify_token_action_credential_id = credential_id
 
     # Request a authentication from idp
     required_loa = 'loa3'
@@ -69,7 +72,7 @@ def verify_token(user, credential_id) -> Union[FluxData, WerkzeugResponse]:
 
 @eidas_views.route('/verify-nin', methods=['GET'])
 @require_user
-def verify_nin(user):
+def verify_nin(user: User) -> WerkzeugResponse:
     current_app.logger.debug('verify-nin called')
 
     # Backdoor for the selenium integration tests to verify NINs
@@ -83,7 +86,7 @@ def verify_nin(user):
 
 @eidas_views.route('/mfa-authentication', methods=['GET'])
 @require_user
-def mfa_authentication(user):
+def mfa_authentication(user: User) -> WerkzeugResponse:
     current_app.logger.debug('mfa-authentication called')
     required_loa = 'loa3'
     # Clear session keys used for external mfa
@@ -104,9 +107,7 @@ def _authn(
     """
     redirect_url = request.args.get('next', redirect_url)
     relay_state = get_unique_hash()
-    if 'eidas_redirect_urls' not in session:
-        session['eidas_redirect_urls'] = dict()
-    session['eidas_redirect_urls'][relay_state] = redirect_url
+    session.eidas.redirect_urls[relay_state] = redirect_url
     current_app.logger.info('Cached redirect_url {} for relay_state {}'.format(redirect_url, relay_state))
 
     idp = request.args.get('idp')
@@ -116,14 +117,14 @@ def _authn(
 
     if idp in idps:
         authn_request = create_authn_request(relay_state, idp, required_loa, force_authn=force_authn)
-        schedule_action(action)
+        schedule_action(action, session.eidas.sp)
         current_app.logger.info('Redirecting the user to {} for {}'.format(idp, action))
         return redirect(get_location(authn_request))
     abort(make_response('Requested IdP not found in metadata', 404))
 
 
 @eidas_views.route('/saml2-acs', methods=['POST'])
-def assertion_consumer_service():
+def assertion_consumer_service() -> WerkzeugResponse:
     """
     Assertion consumer service, receives POSTs from SAML2 IdP's
     """
@@ -144,7 +145,7 @@ def assertion_consumer_service():
         if current_app.conf.environment == 'staging':
             session_info = staging_nin_remap(session_info)
 
-        action = get_action()
+        action = get_action(sp_data=session.eidas.sp)
         return action(session_info)
     except BadSAMLResponse as e:
         current_app.logger.error('BadSAMLResponse: {}'.format(e))
@@ -152,7 +153,7 @@ def assertion_consumer_service():
 
 
 @eidas_views.route('/saml2-metadata')
-def metadata():
+def metadata() -> WerkzeugResponse:
     """
     Returns an XML with the SAML 2.0 metadata for this
     SP as configured in the saml2_settings.py file.

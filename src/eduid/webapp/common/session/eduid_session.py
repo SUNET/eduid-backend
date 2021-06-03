@@ -19,10 +19,10 @@ from eduid.webapp.common.session.meta import SessionMeta
 from eduid.webapp.common.session.namespaces import (
     Actions,
     Common,
+    Eidas_Namespace,
     IdP_Namespace,
     MfaAction,
     ResetPasswordNS,
-    SessionNSBase,
     Signup,
     TimestampedNS,
 )
@@ -52,6 +52,7 @@ class EduidNamespaces(BaseModel):
     actions: Optional[Actions] = None
     reset_password: Optional[ResetPasswordNS] = None
     idp: Optional[IdP_Namespace] = None
+    eidas: Optional[Eidas_Namespace] = None
 
 
 class EduidSession(SessionMixin, MutableMapping):
@@ -196,6 +197,12 @@ class EduidSession(SessionMixin, MutableMapping):
         if not self._namespaces.idp:
             self._namespaces.idp = IdP_Namespace.from_dict(self._session.get('idp', {}))
         return self._namespaces.idp
+
+    @property
+    def eidas(self) -> Eidas_Namespace:
+        if not self._namespaces.eidas:
+            self._namespaces.eidas = Eidas_Namespace.from_dict(self._session.get('eidas', {}))
+        return self._namespaces.eidas
 
     @property
     def created(self):

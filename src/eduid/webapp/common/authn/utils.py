@@ -51,6 +51,7 @@ from saml2.config import SPConfig
 from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.common.misc.timeutil import utc_now
 from eduid.webapp.common.api.utils import urlappend
+from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.session.namespaces import TimestampedNS
 
 if TYPE_CHECKING:
@@ -81,7 +82,7 @@ def get_location(http_info):
     return header_value
 
 
-def get_saml_attribute(session_info: Mapping[str, Any], attr_name: str) -> Optional[List[str]]:
+def get_saml_attribute(session_info: SessionInfo, attr_name: str) -> Optional[List[str]]:
     """
     Get value from a SAML attribute received from the SAML IdP.
 

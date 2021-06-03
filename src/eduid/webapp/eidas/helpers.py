@@ -1,21 +1,22 @@
 # -*- coding: utf-8 -*-
 
-from datetime import datetime, timedelta
 from enum import unique
 from xml.etree.ElementTree import ParseError
 
 from dateutil.parser import parse as dt_parse
-from dateutil.tz import tzutc
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.metadata import entity_descriptor
-from saml2.response import SAMLError
+from saml2.request import AuthnRequest
+from saml2.response import AuthnResponse, SAMLError
 from saml2.saml import AuthnContextClassRef
 from saml2.samlp import RequestedAuthnContext
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.authn.cache import IdentityCache, OutstandingQueriesCache
 from eduid.webapp.common.authn.eduid_saml2 import BadSAMLResponse, get_authn_ctx
+from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.session import session
 from eduid.webapp.eidas.app import current_eidas_app as current_app
 
@@ -52,7 +53,7 @@ class EidasMsg(TranslatableMsg):
     token_not_found = 'eidas.token_not_found'
 
 
-def create_authn_request(relay_state, selected_idp, required_loa, force_authn=False):
+def create_authn_request(relay_state, selected_idp, required_loa: str, force_authn: bool = False) -> AuthnRequest:
 
     kwargs = {
         "force_authn": str(force_authn).lower(),
@@ -80,16 +81,16 @@ def create_authn_request(relay_state, selected_idp, required_loa, force_authn=Fa
         current_app.logger.error('Unable to know which IdP to use')
         raise
 
-    oq_cache = OutstandingQueriesCache(session)
+    oq_cache = OutstandingQueriesCache(session.eidas.sp.pysaml2_dicts)
     oq_cache.set(session_id, relay_state)
     return info
 
 
-def parse_authn_response(saml_response):
+def parse_authn_response(saml_response: str) -> AuthnResponse:
 
-    client = Saml2Client(current_app.saml2_config, identity_cache=IdentityCache(session))
+    client = Saml2Client(current_app.saml2_config, identity_cache=IdentityCache(session.eidas.sp.pysaml2_dicts))
 
-    oq_cache = OutstandingQueriesCache(session)
+    oq_cache = OutstandingQueriesCache(session.eidas.sp.pysaml2_dicts)
     outstanding_queries = oq_cache.outstanding_queries()
 
     try:
@@ -111,7 +112,7 @@ def parse_authn_response(saml_response):
     return response
 
 
-def is_required_loa(session_info, required_loa):
+def is_required_loa(session_info: SessionInfo, required_loa: str) -> bool:
     authn_context = get_authn_ctx(session_info)
     loa_uri = current_app.conf.authentication_context_map[required_loa]
     if authn_context == loa_uri:
@@ -122,21 +123,19 @@ def is_required_loa(session_info, required_loa):
     return False
 
 
-def is_valid_reauthn(session_info, max_age=60) -> bool:
+def is_valid_reauthn(session_info: SessionInfo, max_age: int = 60) -> bool:
     """
     :param session_info: The SAML2 session_info
-    :param max_age: Max time (in seconds) since authn
+    :param max_age: Max time (in seconds) since authn that is to be allowed
     :return: True if authn instant is no older than max_age
-    :rtype: bool
     """
-    utc_tz = tzutc()
+    now = utc_now()
     authn_instant = dt_parse(session_info['authn_info'][0][2])
-    max_age = timedelta(seconds=max_age)
-    if authn_instant >= (datetime.now(tz=utc_tz) - max_age):
+    age = now - authn_instant
+    if age.total_seconds() <= max_age:
+        current_app.logger.debug(f'Re-authn is valid, authn instant {authn_instant}, age {age}, max_age {max_age}s')
         return True
-    current_app.logger.error('Asserted authn instant was older than required')
-    current_app.logger.error('Authn instant: {}'.format(authn_instant))
-    current_app.logger.error('Oldest accepted: {}'.format(datetime.utcnow() + max_age))
+    current_app.logger.error(f'Authn instant {authn_instant} too old (age {age}, max_age {max_age} seconds)')
     return False
 
 
@@ -144,7 +143,7 @@ def create_metadata(config):
     return entity_descriptor(config)
 
 
-def staging_nin_remap(session_info):
+def staging_nin_remap(session_info: SessionInfo):
     """
     Remap from known test nins to users correct nins.
 
