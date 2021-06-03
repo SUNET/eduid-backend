@@ -1,14 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from datetime import datetime, timedelta
 from enum import unique
-from typing import Optional
 from xml.etree.ElementTree import ParseError
 
 from dateutil.parser import parse as dt_parse
-from dateutil.tz import tzutc
-
-from eduid.common.misc.timeutil import utc_now
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.metadata import entity_descriptor
@@ -17,6 +12,7 @@ from saml2.response import AuthnResponse, SAMLError
 from saml2.saml import AuthnContextClassRef
 from saml2.samlp import RequestedAuthnContext
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.authn.cache import IdentityCache, OutstandingQueriesCache
 from eduid.webapp.common.authn.eduid_saml2 import BadSAMLResponse, get_authn_ctx
