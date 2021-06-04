@@ -1,2 +1,3 @@
 # secondary dependencies, need to add them here to get hashes :/
 importlib-metadata
+cached-property
