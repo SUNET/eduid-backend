@@ -5,6 +5,7 @@ from flask import Blueprint, abort, make_response, redirect, request, url_for
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 # TODO: Import FidoCredential in credentials.__init__
+from eduid.common.config.base import EduidEnvironment
 from eduid.userdb import User
 from eduid.userdb.credentials.base import CredentialKey
 from eduid.userdb.credentials.fido import FidoCredential
@@ -115,7 +116,7 @@ def _authn(
     idps = current_app.saml2_config.metadata.identity_providers()
     current_app.logger.debug('IdPs from metadata: {}'.format(idps))
 
-    if idp in idps:
+    if idp is not None and idp in idps:
         authn_request = create_authn_request(relay_state, idp, required_loa, force_authn=force_authn)
         schedule_action(action, session.eidas.sp)
         current_app.logger.info('Redirecting the user to {} for {}'.format(idp, action))
@@ -135,21 +136,21 @@ def assertion_consumer_service() -> WerkzeugResponse:
     saml_response = request.form['SAMLResponse']
     try:
         authn_response = parse_authn_response(saml_response)
-
-        session_info = authn_response.session_info()
-
-        current_app.logger.debug('Auth response:\n{!s}\n\n'.format(authn_response))
-        current_app.logger.debug('Session info:\n{!s}\n\n'.format(session_info))
-
-        # Remap nin in staging environment
-        if current_app.conf.environment == 'staging':
-            session_info = staging_nin_remap(session_info)
-
-        action = get_action(sp_data=session.eidas.sp)
-        return action(session_info)
     except BadSAMLResponse as e:
-        current_app.logger.error('BadSAMLResponse: {}'.format(e))
+        current_app.logger.error(f'BadSAMLResponse: {e}')
         return make_response(str(e), 400)
+
+    session_info = authn_response.session_info()
+
+    current_app.logger.debug(f'Auth response:\n{authn_response}\n\n')
+    current_app.logger.debug(f'Session info:\n{session_info}\n\n')
+
+    # Remap nin in staging environment
+    if current_app.conf.environment == EduidEnvironment.staging:
+        session_info = staging_nin_remap(session_info)
+
+    action = get_action(sp_data=session.eidas.sp)
+    return action(session_info)
 
 
 @eidas_views.route('/saml2-metadata')

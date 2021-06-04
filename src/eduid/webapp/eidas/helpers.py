@@ -53,7 +53,9 @@ class EidasMsg(TranslatableMsg):
     token_not_found = 'eidas.token_not_found'
 
 
-def create_authn_request(relay_state, selected_idp, required_loa: str, force_authn: bool = False) -> AuthnRequest:
+def create_authn_request(
+    relay_state: str, selected_idp: str, required_loa: str, force_authn: bool = False
+) -> AuthnRequest:
 
     kwargs = {
         "force_authn": str(force_authn).lower(),
@@ -143,14 +145,12 @@ def create_metadata(config):
     return entity_descriptor(config)
 
 
-def staging_nin_remap(session_info: SessionInfo):
+def staging_nin_remap(session_info: SessionInfo) -> SessionInfo:
     """
     Remap from known test nins to users correct nins.
 
     :param session_info: the SAML session info
-    :type session_info: dict
     :return: SAML session info with new nin mapped
-    :rtype: dict
     """
     attributes = session_info['ava']
     asserted_test_nin = attributes['personalIdentityNumber'][0]

@@ -6,7 +6,6 @@ from typing import Optional
 from urllib.parse import urlparse
 from uuid import uuid4
 
-import six
 from flask import Request, current_app
 
 from eduid.userdb import User
@@ -14,11 +13,11 @@ from eduid.userdb.exceptions import EduIDUserDBError, MultipleUsersReturned, Use
 from eduid.webapp.common.api.exceptions import ApiException
 
 
-def get_unique_hash():
-    return six.text_type(uuid4())
+def get_unique_hash() -> str:
+    return str(uuid4())
 
 
-def get_short_hash(entropy=10):
+def get_short_hash(entropy=10) -> str:
     return uuid4().hex[:entropy]
 
 
@@ -90,7 +89,7 @@ def get_user() -> User:
         raise ApiException('Not authorized', status_code=401)
 
 
-def save_and_sync_user(user):
+def save_and_sync_user(user: User) -> bool:
     """
     Save (new) user object to the private userdb and propagate the changes to the central user db.
 
