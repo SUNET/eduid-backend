@@ -104,7 +104,7 @@ class AuthnAPITestBase(EduidAPITestCase):
         """
         with self.app.test_request_context('/login'):
             self.app.dispatch_request()
-            oq_cache = OutstandingQueriesCache(session)
+            oq_cache = OutstandingQueriesCache(session.authn.sp.pysaml2_dicts)
             cookie_val = session.meta.cookie_val
             oq_cache.set(cookie_val, came_from)
             session.persist()  # Explicit session.persist is needed when working within a test_request_context
@@ -197,7 +197,7 @@ class AuthnAPITestBase(EduidAPITestCase):
             data={'SAMLResponse': base64.b64encode(authr), 'RelayState': came_from},
         ):
 
-            oq_cache = OutstandingQueriesCache(session)
+            oq_cache = OutstandingQueriesCache(session.authn.sp.pysaml2_dicts)
             oq_cache.set(cookie_val, came_from)
 
             resp = self.app.dispatch_request()
@@ -576,7 +576,7 @@ class LogoutRequestTests(AuthnAPITestBase):
                 'RelayState': '/testing-relay-state',
             },
         ):
-            del session['_saml2_session_name_id']
+            session.authn.name_id = None
             session.persist()  # Explicit session.persist is needed when working within a test_request_context
             response = self.app.dispatch_request()
 

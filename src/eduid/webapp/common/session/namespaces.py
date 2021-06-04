@@ -145,3 +145,10 @@ class Eidas_Namespace(SessionNSBase):
     verify_token_action_credential_id: Optional[CredentialKey] = None
     redirect_urls: Dict[str, str] = Field(default={})
     sp: Pysaml2SPData = Field(default=Pysaml2SPData())
+
+
+class Authn_Namespace(SessionNSBase):
+
+    sp: Pysaml2SPData = Field(default=Pysaml2SPData())
+    name_id: Optional[str] = None  # SAML NameID, used in logout
+    next: Optional[str] = None

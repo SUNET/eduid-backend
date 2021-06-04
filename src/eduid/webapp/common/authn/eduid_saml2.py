@@ -107,12 +107,12 @@ def get_authn_request(
         logger.error('Unable to know which IdP to use')
         raise
 
-    oq_cache = OutstandingQueriesCache(session)
+    oq_cache = OutstandingQueriesCache(session.authn.sp.pysaml2_dicts)
     oq_cache.set(session_id, came_from)
     return info
 
 
-def get_authn_response(saml2_config: SPConfig, session: EduidSession, raw_response) -> SessionInfo:
+def get_authn_response(saml2_config: SPConfig, session: EduidSession, raw_response: str) -> SessionInfo:
     """
     Check a SAML response and return the 'session_info' pysaml2 dict.
 
@@ -128,9 +128,9 @@ def get_authn_response(saml2_config: SPConfig, session: EduidSession, raw_respon
      'not_on_or_after': 156000000,
      'session_index': 'id-foo'}
     """
-    client = Saml2Client(saml2_config, identity_cache=IdentityCache(session))
+    client = Saml2Client(saml2_config, identity_cache=IdentityCache(session.authn.sp.pysaml2_dicts))
 
-    oq_cache = OutstandingQueriesCache(session)
+    oq_cache = OutstandingQueriesCache(session.authn.sp.pysaml2_dicts)
     outstanding_queries = oq_cache.outstanding_queries()
 
     try:
@@ -213,7 +213,7 @@ def saml_logout(sp_config: SPConfig, user: User, location: str) -> Response:
     This function initiates the SAML2 Logout request
     using the pysaml2 library to create the LogoutRequest.
     """
-    if '_saml2_session_name_id' not in session:
+    if not session.authn.name_id:
         logger.warning(f'The session does not contain the subject id for user {user}')
         session.invalidate()
         logger.info(f'Invalidated session for {user}')
@@ -222,11 +222,11 @@ def saml_logout(sp_config: SPConfig, user: User, location: str) -> Response:
 
     # Since we have a subject_id, call the IdP using SOAP to do a global logout
 
-    state = StateCache(session)  # _saml2_state in the session
-    identity = IdentityCache(session)  # _saml2_identities in the session
+    state = StateCache(session.authn.sp.pysaml2_dicts)  # _saml2_state in the session
+    identity = IdentityCache(session.authn.sp.pysaml2_dicts)  # _saml2_identities in the session
     client = Saml2Client(sp_config, state_cache=state, identity_cache=identity)
 
-    _subject_id = decode(session['_saml2_session_name_id'])
+    _subject_id = decode(session.authn.name_id)
     logger.info(f'Initiating global logout for {_subject_id}')
     logouts = client.global_logout(_subject_id)
     logger.debug(f'Logout response: {logouts}')

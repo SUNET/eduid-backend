@@ -18,6 +18,7 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.webapp.common.session.meta import SessionMeta
 from eduid.webapp.common.session.namespaces import (
     Actions,
+    Authn_Namespace,
     Common,
     Eidas_Namespace,
     IdP_Namespace,
@@ -53,6 +54,7 @@ class EduidNamespaces(BaseModel):
     reset_password: Optional[ResetPasswordNS] = None
     idp: Optional[IdP_Namespace] = None
     eidas: Optional[Eidas_Namespace] = None
+    authn: Optional[Authn_Namespace] = None
 
 
 class EduidSession(SessionMixin, MutableMapping):
@@ -203,6 +205,12 @@ class EduidSession(SessionMixin, MutableMapping):
         if not self._namespaces.eidas:
             self._namespaces.eidas = Eidas_Namespace.from_dict(self._session.get('eidas', {}))
         return self._namespaces.eidas
+
+    @property
+    def authn(self) -> Authn_Namespace:
+        if not self._namespaces.authn:
+            self._namespaces.authn = Authn_Namespace.from_dict(self._session.get('authn', {}))
+        return self._namespaces.authn
 
     @property
     def created(self):
