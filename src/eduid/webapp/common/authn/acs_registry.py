@@ -100,7 +100,9 @@ def get_action(default_action: Optional[Enum], sp_data: Pysaml2SPData) -> Callab
         if default_action is not None:
             action_value = default_action.value
     try:
-        action = _actions[action_value]
+        if action_value is None:
+            raise KeyError
+        action = _actions[action_value.value]
     except KeyError:
         error_msg = f'"{action_value}" not found in ACS registry'
         current_app.logger.error(error_msg)
