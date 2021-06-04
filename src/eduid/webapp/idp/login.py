@@ -84,7 +84,7 @@ class NextResult(BaseModel):
 
     def __str__(self):
         return (
-            f'<{self.__class__.__name__}: message={self.message.name}, error={self.error}, authn={self.authn_info}, '
+            f'<{self.__class__.__name__}: message={self.message.value}, error={self.error}, authn={self.authn_info}, '
             f'user={self.user}>'
         )
 
@@ -92,6 +92,7 @@ class NextResult(BaseModel):
 def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], template_mode: bool = False) -> NextResult:
     """ The main state machine for the login flow(s). """
     if not isinstance(sso_session, SSOSession):
+        current_app.logger.debug('No SSO session found - initiating authentication')
         return NextResult(message=IdPMsg.must_authenticate)
 
     user = current_app.userdb.lookup_user(sso_session.eppn)
