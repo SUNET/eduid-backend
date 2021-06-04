@@ -31,10 +31,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from datetime import timedelta
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 from bson import ObjectId
-from flask import Blueprint, redirect, request, url_for
+from flask import Blueprint, jsonify, redirect, request, url_for
 from werkzeug.exceptions import BadRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
 
@@ -44,6 +44,7 @@ from eduid.userdb.credentials import FidoCredential
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.exceptions import EduidForbidden, EduidTooManyRequests
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
+from eduid.webapp.common.api.schemas.models import FluxSuccessResponse
 from eduid.webapp.common.authn import fido_tokens
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData
@@ -57,7 +58,7 @@ from eduid.webapp.idp.logout import SLO
 
 __author__ = 'ft'
 
-from eduid.webapp.idp.mischttp import parse_query_string
+from eduid.webapp.idp.mischttp import parse_query_string, set_sso_cookie
 from eduid.webapp.idp.schemas import (
     MfaAuthRequestSchema,
     MfaAuthResponseSchema,
@@ -187,7 +188,7 @@ def next(ref: RequestRef) -> FluxData:
 @idp_views.route('/pw_auth', methods=['POST'])
 @UnmarshalWith(PwAuthRequestSchema)
 @MarshalWith(PwAuthResponseSchema)
-def pw_auth(ref: RequestRef, username: str, password: str) -> FluxData:
+def pw_auth(ref: RequestRef, username: str, password: str) -> Union[FluxData, WerkzeugResponse]:
     current_app.logger.debug('\n\n')
     current_app.logger.debug(f'--- Password authentication ({request.method}) ---')
 
@@ -246,7 +247,14 @@ def pw_auth(ref: RequestRef, username: str, password: str) -> FluxData:
     # Remember the password credential used for this particular request
     session.idp.log_credential_used(ticket.request_ref, pwauth.credential, pwauth.timestamp)
 
-    return success_response(payload={'finished': True})
+    # For debugging purposes, save the IdP SSO cookie value in the common session as well.
+    # This is because we think we might have issues overwriting cookies in redirect responses.
+    session.idp.sso_cookie_val = _sso_session.session_id
+
+    _flux_response = FluxSuccessResponse(request, payload={'finished': True})
+    resp = jsonify(PwAuthResponseSchema().dump(_flux_response.to_dict()))
+
+    return set_sso_cookie(_sso_session.session_id, resp)
 
 
 @idp_views.route('/mfa_auth', methods=['POST'])

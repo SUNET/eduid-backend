@@ -9,6 +9,7 @@ from uuid import uuid4
 import six
 from flask import Request, current_app
 
+from eduid.userdb import User
 from eduid.userdb.exceptions import EduIDUserDBError, MultipleUsersReturned, UserDBValueError, UserDoesNotExist
 from eduid.webapp.common.api.exceptions import ApiException
 
@@ -64,19 +65,21 @@ def update_modified_ts(user):
     )
 
 
-def get_user():
+def get_user() -> User:
     """
+    Get the currently logged in user from the common eduid session.
+
+    If no user has been identified, or the user is known but not currently logged in, require authentication.
+
     :return: Central userdb user
-    :rtype: eduid.userdb.user.User
     """
     from eduid.webapp.common.session import session
 
-    eppn = session.get('user_eppn', None)
-    if not eppn:
+    if not session.common.eppn or not session.common.is_logged_in:
         raise ApiException('Not authorized', status_code=401)
     try:
         # Get user from central database
-        return current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
+        return current_app.central_userdb.get_user_by_eppn(session.common.eppn, raise_on_missing=True)
     except UserDoesNotExist as e:
         current_app.logger.error('Could not find user in central database.')
         current_app.logger.error(e)
