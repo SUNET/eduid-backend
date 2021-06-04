@@ -149,7 +149,7 @@ def assertion_consumer_service() -> WerkzeugResponse:
     if current_app.conf.environment == EduidEnvironment.staging:
         session_info = staging_nin_remap(session_info)
 
-    action = get_action(sp_data=session.eidas.sp)
+    action = get_action(default_action=None, sp_data=session.eidas.sp)
     return action(session_info)
 
 

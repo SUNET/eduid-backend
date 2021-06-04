@@ -30,8 +30,11 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from typing import Optional
 
 from flask import Blueprint, abort, make_response, redirect, request
+
+from eduid.webapp.common.session.namespaces import LoginApplication
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.ident import decode
@@ -54,7 +57,8 @@ from eduid.webapp.common.authn.eduid_saml2 import (
     saml_logout,
 )
 from eduid.webapp.common.authn.utils import check_previous_identification, get_location
-from eduid.webapp.common.session import session
+from eduid.webapp.common.session import EduidSession, session
+from saml2.saml import NameID
 
 assert acs_actions  # make sure nothing optimises away the import of this, as it is needed to execute @acs_actions
 
@@ -74,7 +78,10 @@ def reauthn() -> WerkzeugResponse:
     """
     login view with force authn, redirects to SAML2 IdP
     """
+    # OLD
     session['user_is_logged_in'] = False
+    # NEW
+    session.common.is_logged_in = False
     return _authn(AuthnAcsAction.reauthn, force_authn=True)
 
 
@@ -121,7 +128,7 @@ def _authn(action: AuthnAcsAction, force_authn=False) -> WerkzeugResponse:
         sign_alg=current_app.conf.authn_sign_alg,
         digest_alg=current_app.conf.authn_digest_alg,
     )
-    schedule_action(action)
+    schedule_action(action, session.authn.sp)
     current_app.logger.info(f'Redirecting the user to the IdP for {action} (relay state {relay_state})')
     return redirect(get_location(authn_request))
 
@@ -143,7 +150,7 @@ def assertion_consumer_service():
         if user is None:
             current_app.logger.error('Could not find the user identified by the IdP')
             raise Forbidden("Access not authorized")
-        action = get_action(AuthnAcsAction.login)
+        action = get_action(default_action=AuthnAcsAction.login, sp_data=session.authn.sp)
         return action(session_info, user)
     except UnsolicitedResponse:
         unsolicited_response_redirect_url = current_app.conf.unsolicited_response_redirect_url
@@ -154,15 +161,16 @@ def assertion_consumer_service():
         raise Forbidden(f'Bad SAML response: {e}')
 
 
-def _get_name_id(session):
+def _get_authn_name_id(session: EduidSession) -> Optional[NameID]:
     """
     Get the SAML2 NameID of the currently logged in user.
     :param session: The current session object
     :return: NameID
-    :rtype: saml2.saml.NameID | None
     """
+    if not session.authn.name_id:
+        return None
     try:
-        return decode(session['_saml2_session_name_id'])
+        return decode(session.authn.name_id)
     except KeyError:
         return None
 
@@ -202,15 +210,19 @@ def logout_service():
     """
     current_app.logger.debug('Logout service started')
 
-    state = StateCache(session)
-    identity = IdentityCache(session)
+    state = StateCache(session.authn.sp.pysaml2_dicts)
+    identity = IdentityCache(session.authn.sp.pysaml2_dicts)
     client = Saml2Client(current_app.saml2_config, state_cache=state, identity_cache=identity)
 
+    # Pick a 'next' destination from these alternatives (most preferred first):
+    #   - RelayState from request.form
+    #   - next from request.args
+    #   - session.authn.next
+    #   - saml2_logout_redirect_url from config
     logout_redirect_url = current_app.conf.saml2_logout_redirect_url
-    next_page = session.get('next', logout_redirect_url)
-    next_page = request.args.get('next', next_page)
-    next_page = request.form.get('RelayState', next_page)
-    next_page = verify_relay_state(next_page, logout_redirect_url)
+    _next_page = request.form.get('RelayState') or request.args.get('next') or session.authn.next or logout_redirect_url
+    # Since the chosen destination is possibly user input, it must be sanitised.
+    next_page = verify_relay_state(_next_page, logout_redirect_url)
 
     if 'SAMLResponse' in request.form:  # we started the logout
         current_app.logger.debug('Receiving a logout response from the IdP')
@@ -226,7 +238,7 @@ def logout_service():
     # logout started by the IdP
     elif 'SAMLRequest' in request.form:
         current_app.logger.debug('Receiving a logout request from the IdP')
-        subject_id = _get_name_id(session)
+        subject_id = _get_authn_name_id(session)
         if subject_id is None:
             current_app.logger.warning(
                 'The session does not contain the subject id for user {0} '
@@ -266,9 +278,14 @@ def signup_authn():
                 # This user has previously verified their account and is not new, this should not happen.
                 current_app.logger.error('Not new user {} tried to log in using signup authn'.format(user))
                 return redirect(location_on_fail)
+            # OLD
             session['eduPersonPrincipalName'] = user.eppn
             session['user_eppn'] = user.eppn
             session['user_is_logged_in'] = True
+            # NEW
+            session.common.eppn = user.eppn
+            session.common.is_logged_in = True
+            session.common.login_source = LoginApplication.signup
 
             response = redirect(location_on_success)
             current_app.logger.info(

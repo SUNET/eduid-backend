@@ -65,6 +65,7 @@ def update_user_session(session_info: SessionInfo, user: User) -> None:
     # New style sessions
     if not session.common:
         return None
+    session.authn.name_id = code(session_info['name_id'])
     session.common.eppn = user.eppn
     session.common.is_logged_in = True
     session.common.login_source = LoginApplication.authn
