@@ -60,6 +60,7 @@ from eduid.webapp.common.authn.utils import generate_password
 from eduid.webapp.common.authn.vccs import reset_password
 from eduid.webapp.common.session import session
 from eduid.webapp.reset_password.app import current_reset_password_app as current_app
+from eduid.userdb.reset_password.element import CodeElement
 
 
 @unique
@@ -206,7 +207,11 @@ def send_password_reset_mail(email_address: str) -> None:
         state.email_code.created_ts = datetime.datetime.utcnow()
     else:
         # create a new state
-        state = ResetPasswordEmailState(eppn=user.eppn, email_address=email_address, email_code=get_unique_hash())
+        state = ResetPasswordEmailState(
+            eppn=user.eppn,
+            email_address=email_address,
+            email_code=CodeElement(code=get_unique_hash(), created_by=current_app.conf.app_name, is_verified=False),
+        )
     current_app.password_reset_state_db.save(state)
 
     # Send email

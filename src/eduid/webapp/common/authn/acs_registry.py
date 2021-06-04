@@ -45,13 +45,12 @@ from typing import Callable, Dict, Optional
 
 from flask import current_app
 
+from eduid.webapp.common.session.namespaces import Pysaml2SPData
 from eduid.webapp.common.session import session
 
 # This is the list of ACS actions loaded. It is populated by decorating functions with the @acs_action.
 # The keys are the AcsAction (subclass) enum values, since get_action() doesn't know which subclass of
 # AcsActions that could be used to turn the string value stored in the session back into an Enum.
-from eduid.webapp.common.session.namespaces import Pysaml2SPData
-
 _actions: Dict[str, Callable] = {}
 
 

@@ -74,6 +74,9 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
         try:
             db_uri = f'bolt://{self.DEFAULT_USERNAME}:{self.DEFAULT_PASSWORD}@{self.host}:{self.bolt_port}'
             self._conn = Neo4jDB(db_uri=db_uri, config={'encrypted': False})
+            # Run a query to check if the server is ready as the connection setup above is now lazy
+            with self._conn.driver.session() as session:
+                session.run('MATCH (n) RETURN n')
         except (ServiceUnavailable, ConnectionError) as e:
             logger.error(e)
             return False
