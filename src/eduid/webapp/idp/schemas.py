@@ -47,7 +47,8 @@ class NextRequestSchema(IdPRequest):
 
 class NextResponseSchema(FluxStandardAction):
     class NextResponsePayload(EduidSchema, CSRFResponseMixin):
-        endpoint = fields.Str(required=True)
+        action = fields.Str(required=True)
+        target = fields.Str(required=True)
 
     payload = fields.Nested(NextResponsePayload)
 
