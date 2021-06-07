@@ -201,7 +201,7 @@ class EduidAPITestCase(CommonTestCase):
         with self.session_cookie(client=client, eppn=None, server_name=server_name, **kwargs) as _client:
             yield _client
 
-    def request_user_sync(self, private_user: User) -> bool:
+    def request_user_sync(self, private_user: User, app_name_override: Optional[str] = None) -> bool:
         """
         Updates the central db user with data from the private db user.
 
