@@ -127,6 +127,7 @@ class EduidAPITestCase(CommonTestCase):
         self.settings['redis_config'] = RedisConfig(host='localhost', port=self.redis_instance.port)
         assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
         self.settings['mongo_uri'] = self.tmp_db.uri
+        # self.settings['celery']['mongo_uri'] = self.tmp_db.uri
 
         self.app = self.load_app(self.settings)
         if not getattr(self, 'browser', False):
@@ -200,14 +201,13 @@ class EduidAPITestCase(CommonTestCase):
         with self.session_cookie(client=client, eppn=None, server_name=server_name, **kwargs) as _client:
             yield _client
 
-    def request_user_sync(self, private_user):
+    def request_user_sync(self, private_user: User) -> bool:
         """
         Updates the central db user with data from the private db user.
 
         :param private_user: User to save in central db
         :type private_user: Private subclass of eduid_db.user.User
         :return: True
-        :rtype: Boolean
         """
         user_id = str(private_user.user_id)
         central_user = self.app.central_userdb.get_user_by_id(user_id)

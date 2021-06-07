@@ -72,6 +72,11 @@ class PwAuthResult(GenericResult):
 
 
 @dataclass
+class TouResult(GenericResult):
+    pass
+
+
+@dataclass
 class FinishedResultAPI(GenericResult):
     pass
 
@@ -84,6 +89,7 @@ class LoginResultAPI:
     visit_count: Dict[str, int] = field(default_factory=dict)
     visit_order: List[IdPAction] = field(default_factory=list)
     pwauth_result: Optional[PwAuthResult] = None
+    tou_result: Optional[TouResult] = None
     finished_result: Optional[FinishedResultAPI] = None
 
 
@@ -121,11 +127,11 @@ class IdPAPITests(EduidAPITestCase):
                 'eduperson_targeted_id_secret_key': 'eptid_secret',
                 'sso_cookie': {'key': 'test_sso_cookie'},
                 'eduid_site_url': 'https://eduid.docker_dev',
-                'tou_version': '2014-v1',  # this version is implicitly accepted on all users
                 'u2f_app_id': 'https://example.com',
                 'u2f_valid_facets': ['https://dashboard.dev.eduid.se', 'https://idp.dev.eduid.se'],
                 'fido2_rp_id': 'idp.example.com',
                 'login_bundle_url': '/test-bundle',
+                'tou_version': '2016-v1',
             }
         )
         return config
@@ -206,8 +212,9 @@ class IdPAPITests(EduidAPITestCase):
                     return result
 
                 if _action == IdPAction.TOU:
-                    # Not implemented yet
-                    return result
+                    result.tou_result = self._call_tou(
+                        _next.payload['target'], ref, user_accepts=self.app.conf.tou_version
+                    )
 
                 if _action == IdPAction.FINISHED:
                     result.finished_result = FinishedResultAPI(payload=_next.payload)
@@ -244,6 +251,18 @@ class IdPAPITests(EduidAPITestCase):
         if result.sso_cookie_val:
             result.cookies = {self.app.conf.sso_cookie.key: result.sso_cookie_val}
 
+        return result
+
+    def _call_tou(self, target: str, ref: str, user_accepts=Optional[str]) -> TouResult:
+        with self.session_cookie_anon(self.browser) as client:
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
+                    data = {'ref': ref, 'csrf_token': sess.get_csrf_token()}
+                    if user_accepts:
+                        data['user_accepts'] = user_accepts
+                response = client.post(target, data=json.dumps(data), content_type=self.content_type_json)
+        logger.debug(f'ToU endpoint returned:\n{json.dumps(response.json, indent=4)}')
+        result = TouResult(payload=response.json['payload'])
         return result
 
     @staticmethod

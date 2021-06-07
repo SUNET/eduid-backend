@@ -36,34 +36,24 @@
 """
 User and user database module.
 """
-import logging
-import warnings
 from typing import Optional, Union
 
 from bson import ObjectId
 
 from eduid.userdb import UserDB
-
-from .user import IdPUser
-
-# TODO: Rename to logger
-module_logger = logging.getLogger(__name__)
+from eduid.userdb.idp.user import IdPUser
 
 
-class IdPUserDb(object):
+class IdPUserDb(UserDB):
     """
     :param logger: logging logger
     :param userdb: User database
     """
 
-    def __init__(self, logger: Optional[logging.Logger], mongo_uri: str, db_name: str, userdb: UserDB = None):
-        self.logger = logger
-        if userdb is None:
-            userdb = UserDB(mongo_uri, db_name=db_name, user_class=IdPUser)
-        self.userdb = userdb
+    UserClass = IdPUser
 
-        if self.logger is not None:
-            warnings.warn('Object logger deprecated, using module_logger', DeprecationWarning)
+    def __init__(self, db_uri, db_name='eduid_idp', collection='profiles'):
+        super().__init__(db_uri, db_name, collection=collection)
 
     def lookup_user(self, username: Union[str, ObjectId]) -> Optional[IdPUser]:
         """
@@ -75,10 +65,7 @@ class IdPUserDb(object):
         _user = None
         if isinstance(username, str):
             if '@' in username:
-                _user = self.userdb.get_user_by_mail(username.lower(), raise_on_missing=False)
+                _user = self.get_user_by_mail(username.lower(), raise_on_missing=False)
             if not _user:
-                _user = self.userdb.get_user_by_eppn(username.lower(), raise_on_missing=False)
-        if not _user:
-            # username will be ObjectId if this is a lookup using an existing SSO session
-            _user = self.userdb.get_user_by_id(username, raise_on_missing=False)
+                _user = self.get_user_by_eppn(username.lower(), raise_on_missing=False)
         return _user

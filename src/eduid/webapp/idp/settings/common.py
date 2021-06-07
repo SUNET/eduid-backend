@@ -38,10 +38,16 @@ from typing import List, Optional
 
 from pydantic import Field, validator
 
-from eduid.common.config.base import CookieConfig, EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2
+from eduid.common.config.base import (
+    AmConfigMixin,
+    CookieConfig,
+    EduIDBaseAppConfig,
+    TouConfigMixin,
+    WebauthnConfigMixin2,
+)
 
 
-class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2):
+class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConfigMixin):
     """
     Configuration for the idp app
     """

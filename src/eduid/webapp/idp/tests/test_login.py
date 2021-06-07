@@ -2,6 +2,8 @@ import logging
 import os
 
 from mock import patch
+
+from eduid.workers.am import AmCelerySingleton
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.authn_context import requested_authn_context
 from saml2.client import Saml2Client
@@ -203,12 +205,31 @@ class IdPTestLoginAPI(IdPAPITests):
         assert result.pwauth_result.payload['message'] == IdPMsg.wrong_credentials.value
 
     def test_login_pwauth_right_password(self):
+        # pre-accept ToU for this test
+        self.add_test_user_tou(self.app.conf.tou_version)
+
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, 'authenticate'):
             VCCSClient.authenticate.return_value = True
             result = self._try_login(username=self.test_user.eppn, password='bar')
 
         assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
+        assert result.sso_cookie_val is not None
+        assert result.finished_result.payload['message'] == IdPMsg.finished.value
+        assert result.finished_result.payload['target'] == 'https://sp.example.edu/saml2/acs/'
+        assert result.finished_result.payload['parameters']['RelayState'] == self.relay_state
+        # TODO: test parsing the SAML response
+
+    def test_login_pwauth_right_password_and_tou_acceptance(self):
+        # Enable AM sync of user to central db for this particular test
+        AmCelerySingleton.worker_config.mongo_uri = self.app.conf.mongo_uri
+
+        # Patch the VCCSClient so we do not need a vccs server
+        with patch.object(VCCSClient, 'authenticate'):
+            VCCSClient.authenticate.return_value = True
+            result = self._try_login(username=self.test_user.eppn, password='bar')
+
+        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.TOU, IdPAction.FINISHED]
         assert result.sso_cookie_val is not None
         assert result.finished_result.payload['message'] == IdPMsg.finished.value
         assert result.finished_result.payload['target'] == 'https://sp.example.edu/saml2/acs/'

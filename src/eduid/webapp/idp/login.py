@@ -295,6 +295,7 @@ class SSO(Service):
         except AttributeError:
             current_app.logger.debug(f'Asserting AuthnContext {authn_info} (none requested)')
 
+        assert self.sso_session  # please mypy
         saml_response = self._make_saml_response(authn_info, resp_args, user, ticket, self.sso_session)
 
         binding = resp_args['binding']
@@ -310,7 +311,7 @@ class SSO(Service):
         )
 
         params = {
-            'SAMLResponse': b64encode(str(saml_response).encode('utf-8')),
+            'SAMLResponse': b64encode(str(saml_response).encode('utf-8')).decode('ascii'),
             'RelayState': ticket.RelayState,
         }
         return SAMLResponseParams(url=http_args.url, post_params=params, binding=binding, http_args=http_args)
