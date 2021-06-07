@@ -31,14 +31,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from base64 import b64decode
-from datetime import timedelta
 from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
 from eduid.common.config.parsers import load_config
+from eduid.common.rpc.am_relay import AmRelay
 from eduid.userdb.actions import ActionDB
+from eduid.userdb.actions.tou import ToUUserDB
 from eduid.userdb.idp import IdPUserDb
 from eduid.webapp.common.api import translation
 from eduid.webapp.common.api.app import EduIDBaseApp
@@ -53,7 +53,7 @@ __author__ = 'ft'
 
 
 class IdPApp(EduIDBaseApp):
-    def __init__(self, config: IdPConfig, userdb: Optional[Any] = None, **kwargs: Any) -> None:
+    def __init__(self, config: IdPConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
         self.conf = config
@@ -81,11 +81,14 @@ class IdPApp(EduIDBaseApp):
 
         self.actions_db = ActionDB(config.mongo_uri)
 
-        if userdb is None:
-            # This is used in tests at least
-            userdb = IdPUserDb(logger=None, mongo_uri=config.mongo_uri, db_name=config.userdb_mongo_database)
-        self.userdb = userdb
+        self.userdb = IdPUserDb(db_uri=config.mongo_uri, db_name='eduid_am', collection='attributes')
         self.authn = idp_authn.IdPAuthn(config=config, userdb=self.userdb)
+        self.tou_db = ToUUserDB(config.mongo_uri)
+        # self.private_userdb = IdPUserDb(db_uri=config.mongo_uri, db_name='eduid_idp')
+
+        # Init celery
+        self.am_relay = AmRelay(config)
+
         self.logger.info('eduid-IdP application started')
 
     def _lookup_sso_session(self) -> Optional[SSOSession]:

@@ -2,12 +2,16 @@ import logging
 import os
 
 from mock import patch
+
+from eduid.workers.am import AmCelerySingleton
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.authn_context import requested_authn_context
 from saml2.client import Saml2Client
 
 from eduid.vccs.client import VCCSClient
 from eduid.webapp.common.authn.utils import get_saml2_config
+from eduid.webapp.idp.helpers import IdPAction, IdPMsg
+from eduid.webapp.idp.tests.test_api import IdPAPITests
 from eduid.webapp.idp.tests.test_app import IdPTests, LoginState
 
 logger = logging.getLogger(__name__)
@@ -186,3 +190,48 @@ class IdPTestLogin(IdPTests):
 
         assert result.reached_state == LoginState.S5_LOGGED_IN
         assert 'form action=\"https://localhost:8080/acs/\" method=\"post\"' in result.response.data.decode('utf-8')
+
+
+class IdPTestLoginAPI(IdPAPITests):
+    def test_login_start(self):
+        result = self._try_login()
+        assert result.visit_order == [IdPAction.PWAUTH]
+        assert result.sso_cookie_val is None
+
+    def test_login_pwauth_wrong_password(self):
+        result = self._try_login(username=self.test_user.eppn, password='bar')
+        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.PWAUTH]
+        assert result.sso_cookie_val is None
+        assert result.pwauth_result.payload['message'] == IdPMsg.wrong_credentials.value
+
+    def test_login_pwauth_right_password(self):
+        # pre-accept ToU for this test
+        self.add_test_user_tou(self.app.conf.tou_version)
+
+        # Patch the VCCSClient so we do not need a vccs server
+        with patch.object(VCCSClient, 'authenticate'):
+            VCCSClient.authenticate.return_value = True
+            result = self._try_login(username=self.test_user.eppn, password='bar')
+
+        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
+        assert result.sso_cookie_val is not None
+        assert result.finished_result.payload['message'] == IdPMsg.finished.value
+        assert result.finished_result.payload['target'] == 'https://sp.example.edu/saml2/acs/'
+        assert result.finished_result.payload['parameters']['RelayState'] == self.relay_state
+        # TODO: test parsing the SAML response
+
+    def test_login_pwauth_right_password_and_tou_acceptance(self):
+        # Enable AM sync of user to central db for this particular test
+        AmCelerySingleton.worker_config.mongo_uri = self.app.conf.mongo_uri
+
+        # Patch the VCCSClient so we do not need a vccs server
+        with patch.object(VCCSClient, 'authenticate'):
+            VCCSClient.authenticate.return_value = True
+            result = self._try_login(username=self.test_user.eppn, password='bar')
+
+        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.TOU, IdPAction.FINISHED]
+        assert result.sso_cookie_val is not None
+        assert result.finished_result.payload['message'] == IdPMsg.finished.value
+        assert result.finished_result.payload['target'] == 'https://sp.example.edu/saml2/acs/'
+        assert result.finished_result.payload['parameters']['RelayState'] == self.relay_state
+        # TODO: test parsing the SAML response

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2020 SUNET
+# Copyright (c) 2021 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -13,9 +13,6 @@
 #        copyright notice, this list of conditions and the following
 #        disclaimer in the documentation and/or other materials provided
 #        with the distribution.
-#     3. Neither the name of the NORDUnet nor the names of its
-#        contributors may be used to endorse or promote products derived
-#        from this software without specific prior written permission.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 # "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -30,12 +27,12 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+import json
+import logging
 import re
-from dataclasses import dataclass
-from datetime import timedelta
-from enum import Enum
+from dataclasses import dataclass, field
 from pathlib import PurePath
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 from bson import ObjectId
 from flask import Response as FlaskResponse
@@ -49,30 +46,54 @@ from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.cache import IdentityCache, OutstandingQueriesCache, StateCache
 from eduid.webapp.common.authn.utils import get_saml2_config
 from eduid.webapp.idp.app import IdPApp, init_idp_app
-from eduid.webapp.idp.settings.common import IdPConfig
+from eduid.webapp.idp.helpers import IdPAction
 from eduid.webapp.idp.sso_session import SSOSession
 
 __author__ = 'ft'
 
 
-class LoginState(Enum):
-    S0_REDIRECT = 'redirect'
-    S1_LOGIN_FORM = 'login-form'
-    S2_VERIFY = 'verify'
-    S3_REDIRECT_LOGGED_IN = 'redirect-logged-in'
-    S4_REDIRECT_TO_ACS = 'redirect-to-acs'
-    S5_LOGGED_IN = 'logged-in'
+logger = logging.getLogger(__name__)
 
 
 @dataclass
-class LoginResult:
-    url: str
-    reached_state: LoginState
-    response: FlaskResponse
+class GenericResult:
+    payload: Dict[str, Any]
+
+
+@dataclass
+class NextResult(GenericResult):
+    pass
+
+
+@dataclass
+class PwAuthResult(GenericResult):
     sso_cookie_val: Optional[str] = None
+    cookies: Dict[str, Any] = field(default_factory=dict)
 
 
-class IdPTests(EduidAPITestCase):
+@dataclass
+class TouResult(GenericResult):
+    pass
+
+
+@dataclass
+class FinishedResultAPI(GenericResult):
+    pass
+
+
+@dataclass
+class LoginResultAPI:
+    response: FlaskResponse
+    ref: Optional[str] = None
+    sso_cookie_val: Optional[str] = None
+    visit_count: Dict[str, int] = field(default_factory=dict)
+    visit_order: List[IdPAction] = field(default_factory=list)
+    pwauth_result: Optional[PwAuthResult] = None
+    tou_result: Optional[TouResult] = None
+    finished_result: Optional[FinishedResultAPI] = None
+
+
+class IdPAPITests(EduidAPITestCase):
     """Base TestCase for those tests that need a full environment setup"""
 
     def setUp(
@@ -106,10 +127,11 @@ class IdPTests(EduidAPITestCase):
                 'eduperson_targeted_id_secret_key': 'eptid_secret',
                 'sso_cookie': {'key': 'test_sso_cookie'},
                 'eduid_site_url': 'https://eduid.docker_dev',
-                'tou_version': '2014-v1',  # this version is implicitly accepted on all users
                 'u2f_app_id': 'https://example.com',
                 'u2f_valid_facets': ['https://dashboard.dev.eduid.se', 'https://idp.dev.eduid.se'],
                 'fido2_rp_id': 'idp.example.com',
+                'login_bundle_url': '/test-bundle',
+                'tou_version': '2016-v1',
             }
         )
         return config
@@ -125,7 +147,9 @@ class IdPTests(EduidAPITestCase):
         authn_context=None,
         force_authn: bool = False,
         assertion_consumer_service_url: Optional[str] = None,
-    ) -> LoginResult:
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+    ) -> LoginResultAPI:
         """
         Try logging in to the IdP.
 
@@ -145,65 +169,101 @@ class IdPTests(EduidAPITestCase):
 
         path = self._extract_path_from_info(info)
         with self.session_cookie_anon(self.browser) as browser:
+            # Send SAML request to SAML endpoint, expect a redirect to the login bundle back
             resp = browser.get(path)
             if resp.status_code != 302:
-                return LoginResult(url=path, reached_state=LoginState.S0_REDIRECT, response=resp)
+                return LoginResultAPI(response=resp)
 
             redirect_loc = self._extract_path_from_response(resp)
-            # check that we were sent to the login form
-            if not redirect_loc.startswith('/verify?ref='):
-                return LoginResult(url=path, reached_state=LoginState.S0_REDIRECT, response=resp)
+            ref = redirect_loc.split('/')[-1]
 
-            resp = self.browser.get(redirect_loc)
-            if resp.status_code != 200:
-                return LoginResult(url=redirect_loc, reached_state=LoginState.S1_LOGIN_FORM, response=resp)
+            result = LoginResultAPI(ref=ref, response=resp)
 
-            form_data = self._extract_form_inputs(resp.data.decode('utf-8'))
-            form_data['username'] = self.test_user.mail_addresses.primary.email
-            form_data['password'] = 'Jenka'
-            if 'ref' not in form_data:
-                return LoginResult(url=path, reached_state=LoginState.S1_LOGIN_FORM, response=resp)
+            cookie_jar = {}
 
-            cookies = resp.headers.get('Set-Cookie')
-            if not cookies:
-                return LoginResult(url=path, reached_state=LoginState.S1_LOGIN_FORM, response=resp)
+            while True:
+                logger.info(f'Main API test loop, current state: {result}')
 
-            resp = browser.post('/verify', data=form_data, headers={'Cookie': cookies})
-            if resp.status_code != 302:
-                return LoginResult(url='/verify', reached_state=LoginState.S2_VERIFY, response=resp)
+                # Call the 'next' endpoint
+                _next = self._call_next(ref)
 
-        redirect_loc = self._extract_path_from_response(resp)
-        # check that we were sent back to the SSO redirect entrypoint
-        if not redirect_loc.startswith('/sso/redirect?ref='):
-            return LoginResult(url='/verify', reached_state=LoginState.S2_VERIFY, response=resp)
+                _action = IdPAction(_next.payload['action'])
+                if _action not in result.visit_count:
+                    result.visit_count[_action] = 0
+                result.visit_count[_action] += 1
+                result.visit_order += [_action]
 
-        cookies = resp.headers.get('Set-Cookie')
+                if result.visit_count[_action] > 1:
+                    # break on re-visiting a previous state
+                    logger.error(f'Next state {_action} already visited, aborting with result {result}')
+                    return result
+
+                if _action == IdPAction.PWAUTH:
+                    if not username or not password:
+                        logger.error(f"Can't login without username and password, aborting with result {result}")
+                        return result
+
+                    result.pwauth_result = self._call_pwauth(_next.payload['target'], ref, username, password)
+                    result.sso_cookie_val = result.pwauth_result.sso_cookie_val
+                    cookie_jar.update(result.pwauth_result.cookies)
+
+                if _action == IdPAction.MFA:
+                    # Not implemented yet
+                    return result
+
+                if _action == IdPAction.TOU:
+                    result.tou_result = self._call_tou(
+                        _next.payload['target'], ref, user_accepts=self.app.conf.tou_version
+                    )
+
+                if _action == IdPAction.FINISHED:
+                    result.finished_result = FinishedResultAPI(payload=_next.payload)
+                    return result
+
+    def _call_next(self, ref: str) -> NextResult:
+        with self.session_cookie_anon(self.browser) as client:
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
+                    data = {'ref': ref, 'csrf_token': sess.get_csrf_token()}
+                response = client.post('/next', data=json.dumps(data), content_type=self.content_type_json)
+        logger.debug(f'Next endpoint returned:\n{json.dumps(response.json, indent=4)}')
+        return NextResult(payload=response.json['payload'])
+
+    def _call_pwauth(self, target: str, ref: str, username: str, password: str) -> PwAuthResult:
+        with self.session_cookie_anon(self.browser) as client:
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
+                    data = {'ref': ref, 'username': username, 'password': password, 'csrf_token': sess.get_csrf_token()}
+                response = client.post(target, data=json.dumps(data), content_type=self.content_type_json)
+        logger.debug(f'PwAuth endpoint returned:\n{json.dumps(response.json, indent=4)}')
+
+        result = PwAuthResult(payload=response.json['payload'])
+        cookies = response.headers.get('Set-Cookie')
         if not cookies:
-            return LoginResult(url='/verify', reached_state=LoginState.S2_VERIFY, response=resp)
+            return result
 
         # Save the SSO cookie value
-        sso_cookie_val = None
         _re = f'.*{self.app.conf.sso_cookie.key}=(.+?);.*'
         _sso_cookie_re = re.match(_re, cookies)
         if _sso_cookie_re:
-            sso_cookie_val = _sso_cookie_re.groups()[0]
+            result.sso_cookie_val = _sso_cookie_re.groups()[0]
 
-        if not sso_cookie_val:
-            # The POST to /verify didn't result in an SSO session, probably incorrect username/password
-            return LoginResult(url='/verify', reached_state=LoginState.S2_VERIFY, response=resp)
+        if result.sso_cookie_val:
+            result.cookies = {self.app.conf.sso_cookie.key: result.sso_cookie_val}
 
-        resp = self.browser.get(redirect_loc, headers={'Cookie': cookies})
-        if resp.status_code != 200:
-            return LoginResult(
-                url=redirect_loc,
-                sso_cookie_val=sso_cookie_val,
-                reached_state=LoginState.S3_REDIRECT_LOGGED_IN,
-                response=resp,
-            )
+        return result
 
-        return LoginResult(
-            url=redirect_loc, sso_cookie_val=sso_cookie_val, reached_state=LoginState.S5_LOGGED_IN, response=resp
-        )
+    def _call_tou(self, target: str, ref: str, user_accepts=Optional[str]) -> TouResult:
+        with self.session_cookie_anon(self.browser) as client:
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
+                    data = {'ref': ref, 'csrf_token': sess.get_csrf_token()}
+                    if user_accepts:
+                        data['user_accepts'] = user_accepts
+                response = client.post(target, data=json.dumps(data), content_type=self.content_type_json)
+        logger.debug(f'ToU endpoint returned:\n{json.dumps(response.json, indent=4)}')
+        result = TouResult(payload=response.json['payload'])
+        return result
 
     @staticmethod
     def _extract_form_inputs(res: str) -> Dict[str, Any]:
@@ -261,23 +321,3 @@ class IdPTests(EduidAPITestCase):
         self.test_user.tou.add(tou)
         self.amdb.save(self.test_user, check_sync=False)
         return tou
-
-
-class BasicIdPTests(IdPTests):
-    def test_app_starts(self):
-        assert self.app.conf.app_name == 'idp'
-
-    def test_sso_session_lifetime_config(self):
-        config = dict(self.settings)
-
-        config['sso_session_lifetime'] = 10  # expected to be interpreted as 10 minutes
-        conf1 = IdPConfig(**config)
-        assert conf1.sso_session_lifetime == timedelta(minutes=10)
-
-        config['sso_session_lifetime'] = 'PT5S'
-        conf2 = IdPConfig(**config)
-        assert conf2.sso_session_lifetime == timedelta(seconds=5)
-
-        config['sso_session_lifetime'] = 'P365D'
-        conf3 = IdPConfig(**config)
-        assert conf3.sso_session_lifetime == timedelta(days=365)

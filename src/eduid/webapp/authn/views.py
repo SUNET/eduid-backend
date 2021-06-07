@@ -33,12 +33,11 @@
 from typing import Optional
 
 from flask import Blueprint, abort, make_response, redirect, request
-
-from eduid.webapp.common.session.namespaces import LoginApplication
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.ident import decode
 from saml2.metadata import entity_descriptor
+from saml2.saml import NameID
 from werkzeug.exceptions import Forbidden
 from werkzeug.wrappers import Response as WerkzeugResponse
 
@@ -58,7 +57,7 @@ from eduid.webapp.common.authn.eduid_saml2 import (
 )
 from eduid.webapp.common.authn.utils import check_previous_identification, get_location
 from eduid.webapp.common.session import EduidSession, session
-from saml2.saml import NameID
+from eduid.webapp.common.session.namespaces import LoginApplication
 
 assert acs_actions  # make sure nothing optimises away the import of this, as it is needed to execute @acs_actions
 

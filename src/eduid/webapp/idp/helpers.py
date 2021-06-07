@@ -10,10 +10,12 @@ class IdPMsg(str, TranslatableMsg):
     assurance_not_possible = 'login.assurance_not_possible'
     bad_ref = 'login.bad_ref'
     credential_expired = 'login.credential_expired'
+    finished = 'login.finished'
     general_failure = 'login.general_failure'
     mfa_required = 'login.mfa_required'
     mfa_auth_failed = 'login.mfa_auth_failed'
     must_authenticate = 'login.must_authenticate'
+    no_sso_session = 'login.no_sso_session'
     not_available = 'login.not_available'
     not_implemented = 'login.not_implemented'
     proceed = 'login.proceed'  # Shouldn't actually be returned to the frontend

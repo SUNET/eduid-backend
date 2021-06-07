@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from flask import Request, current_app
 
-from eduid.userdb import User
+from eduid.userdb import User, UserDB
 from eduid.userdb.exceptions import EduIDUserDBError, MultipleUsersReturned, UserDBValueError, UserDoesNotExist
 from eduid.webapp.common.api.exceptions import ApiException
 
@@ -89,7 +89,9 @@ def get_user() -> User:
         raise ApiException('Not authorized', status_code=401)
 
 
-def save_and_sync_user(user: User) -> bool:
+def save_and_sync_user(
+    user: User, private_userdb: Optional[UserDB] = None, app_name_override: Optional[str] = None
+) -> bool:
     """
     Save (new) user object to the private userdb and propagate the changes to the central user db.
 
@@ -98,10 +100,12 @@ def save_and_sync_user(user: User) -> bool:
     :param user: the modified user
     :type user: current_app.private_userdb.UserClass
     """
-    if not isinstance(user, current_app.private_userdb.UserClass):
-        raise EduIDUserDBError('user is not of type {}'.format(current_app.private_userdb.UserClass))
-    current_app.private_userdb.save(user)
-    return current_app.am_relay.request_user_sync(user)
+    if private_userdb is None:
+        private_userdb = current_app.private_userdb
+    if not isinstance(user, private_userdb.UserClass):
+        raise EduIDUserDBError(f'user is not of type {private_userdb.UserClass}')
+    private_userdb.save(user)
+    return current_app.am_relay.request_user_sync(user, app_name_override=app_name_override)
 
 
 def urlappend(base: str, path: str) -> str:
