@@ -11,12 +11,14 @@
 """
 Code handling Single Sign On logins.
 """
-
+import dataclasses
 import hmac
 import pprint
 import time
+from base64 import b64encode
+from dataclasses import dataclass
 from hashlib import sha256
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from uuid import uuid4
 
 from defusedxml import ElementTree as DefusedElementTree
@@ -51,7 +53,7 @@ from eduid.webapp.idp.idp_actions import redirect_to_actions
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.idp_saml import IdP_SAMLRequest, ResponseArgs, SamlResponse
 from eduid.webapp.idp.mfa_action import add_mfa_action, need_security_key, process_mfa_action_results
-from eduid.webapp.idp.mischttp import get_default_template_arguments
+from eduid.webapp.idp.mischttp import HttpArgs, get_default_template_arguments
 from eduid.webapp.idp.service import SAMLQueryParams, Service
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.tou_action import add_tou_action, need_tou_acceptance
@@ -149,6 +151,15 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
         return NextResult(message=IdPMsg.mfa_required, user=user if template_mode else None)
 
     return res
+
+
+@dataclass
+class SAMLResponseParams:
+    url: str
+    post_params: Dict[str, str]
+    # Parameters for the old template realm
+    binding: str
+    http_args: HttpArgs
 
 
 class SSO(Service):
@@ -257,7 +268,7 @@ class SSO(Service):
             current_app.logger.error(f'User with eppn {self.sso_session.eppn} (from SSO session) not found')
             raise Forbidden('User in SSO session not found')
 
-        resp_args = self._validate_login_request(ticket)
+        params = self.get_response_params(authn_info, ticket, user)
 
         # OLD:
         if 'user_eppn' in session and session['user_eppn'] != user.eppn:
@@ -269,6 +280,14 @@ class SSO(Service):
             current_app.logger.warning(f'Refusing to change eppn in session from {session.common.eppn} to {user.eppn}')
         else:
             session.common.eppn = user.eppn
+
+        # We're done with this SAML request. Remove it from the session.
+        del session.idp.pending_requests[ticket.request_ref]
+
+        return mischttp.create_html_response(params.binding, params.http_args)
+
+    def get_response_params(self, authn_info: AuthnInfo, ticket: LoginContext, user: IdPUser) -> SAMLResponseParams:
+        resp_args = self._validate_login_request(ticket)
 
         try:
             req_authn_context = get_requested_authn_context(ticket)
@@ -290,10 +309,11 @@ class SSO(Service):
             user_id=str(user.user_id),
         )
 
-        # We're done with this SAML request. Remove it from the session.
-        del session.idp.pending_requests[ticket.request_ref]
-
-        return mischttp.create_html_response(binding, http_args)
+        params = {
+            'SAMLResponse': b64encode(str(saml_response).encode('utf-8')),
+            'RelayState': ticket.RelayState,
+        }
+        return SAMLResponseParams(url=http_args.url, post_params=params, binding=binding, http_args=http_args)
 
     def _make_saml_response(
         self,

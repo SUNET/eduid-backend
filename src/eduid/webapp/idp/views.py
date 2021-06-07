@@ -58,6 +58,8 @@ from eduid.webapp.idp.logout import SLO
 
 __author__ = 'ft'
 
+from saml2 import BINDING_HTTP_POST
+
 from eduid.webapp.idp.mischttp import parse_query_string, set_sso_cookie
 from eduid.webapp.idp.schemas import (
     MfaAuthRequestSchema,
@@ -183,6 +185,29 @@ def next(ref: RequestRef) -> FluxData:
     if _next.message == IdPMsg.swamid_mfa_required:
         return error_response(message=IdPMsg.swamid_mfa_required)
 
+    if _next.message == IdPMsg.proceed:
+        if not sso_session:
+            return error_response(message=IdPMsg.no_sso_session)
+
+        user = current_app.userdb.lookup_user(sso_session.eppn)
+        if not user:
+            current_app.logger.error(f'User with eppn {sso_session.eppn} (from SSO session) not found')
+            return error_response(message=IdPMsg.general_failure)
+
+        sso = SSO(sso_session=sso_session)
+        saml_params = sso.get_response_params(_next.authn_info, ticket, user)
+        if saml_params.binding != BINDING_HTTP_POST:
+            current_app.logger.error(f'SAML response does not have binding HTTP_POST')
+            return error_response(message=IdPMsg.general_failure)
+        return success_response(
+            message=IdPMsg.finished,
+            payload={
+                'action': IdPAction.FINISHED.value,
+                'target': saml_params.url,
+                'parameters': saml_params.post_params,
+            },
+        )
+
     return error_response(message=IdPMsg.not_implemented)
 
 
@@ -276,7 +301,7 @@ def mfa_auth(ref: RequestRef, webauthn_response: Optional[Dict[str, str]] = None
     sso_session = current_app._lookup_sso_session()
     if not sso_session:
         current_app.logger.error(f'MFA auth called without an SSO session')
-        return error_response(message=IdPMsg.general_failure)
+        return error_response(message=IdPMsg.no_sso_session)
 
     user = current_app.userdb.lookup_user(sso_session.eppn)
     if not user:

@@ -49,6 +49,7 @@ class NextResponseSchema(FluxStandardAction):
     class NextResponsePayload(EduidSchema, CSRFResponseMixin):
         action = fields.Str(required=True)
         target = fields.Str(required=True)
+        parameters = fields.Dict(keys=fields.Str(), values=fields.Str(), required=False)
 
     payload = fields.Nested(NextResponsePayload)
 

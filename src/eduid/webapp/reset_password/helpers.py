@@ -49,6 +49,7 @@ from eduid.userdb.reset_password import (
     ResetPasswordState,
     ResetPasswordUser,
 )
+from eduid.userdb.reset_password.element import CodeElement
 from eduid.userdb.user import User
 from eduid.webapp.common.api.exceptions import MailTaskFailed, ThrottledException
 from eduid.webapp.common.api.helpers import send_mail
@@ -60,7 +61,6 @@ from eduid.webapp.common.authn.utils import generate_password
 from eduid.webapp.common.authn.vccs import reset_password
 from eduid.webapp.common.session import session
 from eduid.webapp.reset_password.app import current_reset_password_app as current_app
-from eduid.userdb.reset_password.element import CodeElement
 
 
 @unique
