@@ -46,9 +46,18 @@ types-click==7.1.0 \
     # via
     #   -r typecheck_requirements.in
     #   types-flask
+types-cryptography==0.1.2 \
+    --hash=sha256:670a82d453d0faa4fa587380324680640ae7f1e28bf3b8d8efd5a3cc5c521d8e
+    # via -r typecheck_requirements.in
+types-enum34==0.1.5 \
+    --hash=sha256:8ea6c9ba83103abd8802f2d459f5b08e59cfcff38ef530c007735296a06a35e3
+    # via types-cryptography
 types-flask==1.1.0 \
     --hash=sha256:0d16fbd554b274d003761b10bb06e86aa535b122cd98b0a8e45082750c54e35b
     # via -r typecheck_requirements.in
+types-ipaddress==0.1.2 \
+    --hash=sha256:1074af46f90b81ec2102999d49c557b63fe648df2baba407949f87e7140c7758
+    # via types-cryptography
 types-jinja2==2.11.0 \
     --hash=sha256:f9d182ec241bdbeb8759c65693c5f95b638a0dfd9e3d91606b3d48e58b0b5caf
     # via

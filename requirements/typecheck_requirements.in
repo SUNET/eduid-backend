@@ -4,6 +4,7 @@ marshmallow_dataclass
 types-aiofiles
 types-bleach
 types-click
+types-cryptography
 types-Flask
 types-Jinja2
 types-MarkupSafe
