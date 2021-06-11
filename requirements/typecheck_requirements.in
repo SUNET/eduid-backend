@@ -1,4 +1,6 @@
 mypy
+pydantic
+marshmallow_dataclass
 types-aiofiles
 types-bleach
 types-click
