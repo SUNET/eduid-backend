@@ -659,7 +659,7 @@ class EidasTests(EduidAPITestCase):
 
         next_url = base64.b64encode(b'http://idp.localhost/action').decode('utf-8')
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+        with self.session_cookie(self.browser, self.test_user_eppn, logged_in=False) as browser:
             response = browser.get('/mfa-authentication/?idp={}&next={}'.format(self.test_idp, next_url))
             self.assertEqual(response.status_code, 302)
             ps = urllib.parse.urlparse(response.location)
