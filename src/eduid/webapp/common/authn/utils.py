@@ -63,6 +63,8 @@ logger = logging.getLogger(__name__)
 def get_saml2_config(module_path: str, name='SAML_CONFIG') -> SPConfig:
     """Load SAML2 config file, in the form of a Python module."""
     spec = importlib.util.spec_from_file_location('saml2_settings', module_path)
+    if spec is None:
+        raise RuntimeError(f'Failed loading saml2_settings module: {module_path}')
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)  # type: ignore
 
@@ -143,8 +145,6 @@ def check_previous_identification(session_ns: TimestampedNS) -> Optional[str]:
     from eduid.webapp.common.session import session
 
     eppn = session.common.eppn
-    if eppn is None:
-        eppn = session.get('user_eppn', None)
     logger.debug(f'Trying to authenticate user {eppn} with timestamp {session_ns.ts}')
     # check that the eppn and timestamp have been set in the session
     if eppn is None or session_ns.ts is None:

@@ -82,7 +82,7 @@ def get_authn_request(
     saml2_config: SPConfig,
     session: EduidSession,
     came_from: str,
-    selected_idp: str,
+    selected_idp: Optional[str],
     force_authn: bool = False,
     sign_alg: Optional[str] = None,
     digest_alg: Optional[str] = None,

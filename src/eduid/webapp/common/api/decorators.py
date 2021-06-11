@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 def require_eppn(f):
     @wraps(f)
     def require_eppn_decorator(*args, **kwargs):
-        eppn = session.get('user_eppn', None)
+        eppn = session.common.eppn
         # If the user is logged in and has a session
         # pass on the request to the decorated view
         # together with the eppn of the logged in user.

@@ -185,10 +185,6 @@ class ActionsTestCase(EduidAPITestCase):
             action = Action.from_dict(action_dict)
         action_dict['_id'] = str(action_dict['_id'])
         with client.session_transaction() as sess:
-            # OLD
-            sess['eppn'] = action.eppn
-            sess['user_eppn'] = action.eppn
-            # NEW
             sess.common.eppn = action.eppn
             sess.actions.current_action = action
             sess.actions.current_plugin = plugin_name
@@ -199,13 +195,7 @@ class ActionsTestCase(EduidAPITestCase):
             self.app.plugins[plugin_name] = plugin_class
 
     def authenticate(self, action_type=None, idp_session=None):
-        eppn = self.test_eppn
-        # OLD
-        session['eduPersonPrincipalName'] = eppn
-        session['user_eppn'] = eppn
-        session['user_is_logged_in'] = True
-        # NEW
-        session.common.eppn = eppn
+        session.common.eppn = self.test_eppn
         session.common.is_logged_in = True
         if action_type is not None:
             session.actions.current_plugin = action_type

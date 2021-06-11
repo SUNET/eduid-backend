@@ -108,7 +108,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     # using TLS.
     vccs_url: str = 'http://localhost:8550/'
     # URI of the actions app.
-    actions_app_uri: Optional[str] = 'http://actions.example.com/'
+    actions_app_uri: str = 'https://login.idp.eduid.se/services/actions2/'
     # The plugins for pre-authentication actions that need to be loaded
     action_plugins: List[str] = Field(default=[])
     # The interval which a user needs to re-accept an already accepted ToU (in seconds)

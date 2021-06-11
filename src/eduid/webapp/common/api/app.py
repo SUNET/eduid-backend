@@ -183,47 +183,6 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         return res
 
 
-def get_app_config(name: str, config: Optional[dict] = None) -> dict:
-    """
-    Get configuration for flask app.
-
-    If config is not provided, retrieve configuration values from etcd.
-    If there is an env var LOCAL_CFG_FILE pointing to a file with configuration
-    keys, load them as well.
-    """
-    warnings.warn(
-        "This function will be removed in a future version of eduid.webapp.common. Use 'BaseConfig.init_config()' instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    if config is None:
-        config = {}
-    # Do not use config from etcd if a config dict is supplied
-    if not config:
-        # Init etcd config parsers
-        common_parser = EtcdConfigParser('/eduid/webapp/common/')
-        app_etcd_namespace = os.environ.get('EDUID_CONFIG_NS', '/eduid/webapp/{!s}/'.format(name))
-        app_parser = EtcdConfigParser(app_etcd_namespace)
-        # Load optional project wide settings
-        common_config = common_parser.read_configuration(silent=False)
-        if common_config:
-            config.update(common_config)
-        # Load optional app specific settings
-        app_config = app_parser.read_configuration(silent=False)
-        if app_config:
-            config.update(app_config)
-
-    # Load optional app specific secrets
-    secrets_path = os.environ.get('LOCAL_CFG_FILE')
-    if secrets_path is not None and os.path.exists(secrets_path):
-        spec = importlib.util.spec_from_file_location("secret.settings", secrets_path)
-        secret_settings_module = importlib.util.module_from_spec(spec)
-        for secret in dir(secret_settings_module):
-            if not secret.startswith('_'):
-                config[secret.lower()] = getattr(secret_settings_module, secret)
-    return config
-
-
 def init_status_views(app: EduIDBaseApp, config: EduIDBaseAppConfig) -> None:
     """
     Register status views for any app, and configure them as public.

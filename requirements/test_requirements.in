@@ -4,6 +4,7 @@
 -r main.in
 -r satosa_scim_requirements.in
 -r webapp_requirements.in
+-r typing_requirements.in
 black==19.10b0
 isort==5.6.4
 mock
