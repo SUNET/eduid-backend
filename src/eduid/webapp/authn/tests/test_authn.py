@@ -36,7 +36,7 @@ import logging
 import os
 import time
 from datetime import datetime
-from typing import Any, Dict, Mapping
+from typing import Any, Callable, Dict, Mapping
 
 from flask import Blueprint
 from saml2.s_utils import deflate_and_base64_encode
@@ -110,7 +110,7 @@ class AuthnAPITestBase(EduidAPITestCase):
             session.persist()  # Explicit session.persist is needed when working within a test_request_context
             return cookie_val
 
-    def login(self, eppn, came_from):
+    def login(self, eppn: str, came_from: str) -> str:
         """
         Add a SAML2 authentication query to the queries cache,
         build a cookie with a session id corresponding to the added query,
@@ -122,13 +122,10 @@ class AuthnAPITestBase(EduidAPITestCase):
         subsequent request that needs to be authenticated.
 
         :param eppn: the eppn of the user to be logged in
-        :type eppn: str
         :param came_from: url to redirect back the client
                           after finishing with the authn service.
-        :type came_from: str
 
         :return: the cookie corresponding to the authn session
-        :rtype: str
         """
         session_id = self.add_outstanding_query(came_from)
         cookie = self.dump_session_cookie(session_id)
@@ -145,18 +142,15 @@ class AuthnAPITestBase(EduidAPITestCase):
             session.persist()  # Explicit session.persist is needed when working within a test_request_context
             return cookie
 
-    def authn(self, url, force_authn=False, next_url='/'):
+    def authn(self, url: str, force_authn: bool = False, next_url: str = '/') -> None:
         """
         Common code for the tests that need to send an authentication request.
         This checks that the client is redirected to the idp.
 
         :param url: the url of the desired authentication mode.
-        :type url: str
-        :param force_authn: whether to force reauthentication for an already
+        :param force_authn: whether to force re-authentication for an already
                             authenticated client
-        :type force_authn: bool
         :param next_url: Next url
-        :type next_url: six.string_types
         """
         with self.app.test_client() as c:
             resp = c.get('{}?next={}'.format(url, next_url))
@@ -170,19 +164,15 @@ class AuthnAPITestBase(EduidAPITestCase):
             quoted_next = 'RelayState={}'.format(quote_plus(next_url))
             self.assertEqual(quoted_next, relay_state)
 
-    def acs(self, url, eppn, check_fn, came_from='/camefrom/'):
+    def acs(self, url: str, eppn: str, check_fn: Callable, came_from: str = '/camefrom/') -> None:
         """
         common code for the tests that need to access the assertion consumer service
         and then check the side effects of this access.
 
         :param url: the url of the desired authentication mode.
-        :type url: str
         :param eppn: the eppn of the user to access the service
-        :type eppn: str
         :param check_fn: the function that checks the side effects after accessing the acs
-        :type check_fn: callable
         :param came_from: Relay state
-        :type came_from: six.string_types
         """
         with self.app.test_client() as c:
             resp = c.get(url)
@@ -253,8 +243,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
         eppn = 'hubba-bubba'
 
         def _check():
-            eppn = 'hubba-bubba'
-            self.assertEqual(session['eduPersonPrincipalName'], eppn)
+            assert session.common.eppn == 'hubba-bubba'
 
         self.acs('/login', eppn, _check)
 
@@ -262,8 +251,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
         eppn = 'hubba-bubba'
 
         def _check():
-            eppn = 'hubba-bubba'
-            self.assertEqual(session['eduPersonPrincipalName'], eppn)
+            assert session.common.eppn == 'hubba-bubba'
 
         self.acs('/login', eppn, _check, came_from='http://test.localhost/profile/')
 
@@ -271,8 +259,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
         eppn = 'hubba-bubba'
 
         def _check():
-            eppn = 'hubba-bubba'
-            self.assertEqual(session['eduPersonPrincipalName'], eppn)
+            assert session.common.eppn == 'hubba-bubba'
 
         with self.assertRaises(AssertionError):
             self.acs('/login', eppn, _check, came_from='http://bad.localhost/evil/')
@@ -305,7 +292,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
         with self.app.test_client() as c:
             with self.app.test_request_context('/signup-authn'):
                 c.set_cookie(
-                    'test.localhost', key=self.app.conf.flask.session_cookie_name, value=session.meta.cookie_val
+                    'test.localhost', key=self.app.conf.flask.session_cookie_name, value=session.meta.cookie_val[16:]
                 )
                 session.common.eppn = eppn
                 session.signup.ts = timestamp
@@ -543,9 +530,9 @@ class LogoutRequestTests(AuthnAPITestBase):
             response = self.app.dispatch_request()
 
             self.assertEqual(response.status, '302 FOUND')
-            self.assertIn(
-                'https://idp.example.com/simplesaml/saml2/idp/' 'SingleLogoutService.php?SAMLResponse=',
-                response.location,
+            assert (
+                'https://idp.example.com/simplesaml/saml2/idp/SingleLogoutService.php?SAMLResponse='
+                in response.location
             )
 
     def test_logout_service_startingIDP_no_subject_id(self):
