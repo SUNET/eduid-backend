@@ -86,7 +86,9 @@ import nacl.encoding
 import nacl.secret
 import nacl.utils
 import redis
-import redis.sentinel
+
+# error: Module "redis" has no attribute "sentinel" according to mypy
+from redis import sentinel  # type: ignore
 from bson import ObjectId
 from saml2.saml import NameID
 
@@ -169,8 +171,8 @@ def get_redis_pool(cfg: RedisConfig):
     logger.debug(f'Redis configuration: {cfg}')
     if cfg.sentinel_hosts and cfg.sentinel_service_name:
         host_port = [(x, cfg.port) for x in cfg.sentinel_hosts]
-        manager = redis.sentinel.Sentinel(host_port, socket_timeout=0.1)
-        pool = redis.sentinel.SentinelConnectionPool(cfg.sentinel_service_name, manager)
+        manager = sentinel.Sentinel(host_port, socket_timeout=0.1)
+        pool = sentinel.SentinelConnectionPool(cfg.sentinel_service_name, manager)
     else:
         if not cfg.host:
             logger.error(f'Redis configuration without sentinel parameters does not have host')
