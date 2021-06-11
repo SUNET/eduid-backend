@@ -277,11 +277,6 @@ def signup_authn():
                 # This user has previously verified their account and is not new, this should not happen.
                 current_app.logger.error('Not new user {} tried to log in using signup authn'.format(user))
                 return redirect(location_on_fail)
-            # OLD
-            session['eduPersonPrincipalName'] = user.eppn
-            session['user_eppn'] = user.eppn
-            session['user_is_logged_in'] = True
-            # NEW
             session.common.eppn = user.eppn
             session.common.is_logged_in = True
             session.common.login_source = LoginApplication.signup

@@ -456,8 +456,8 @@ class LogoutRequestTests(AuthnAPITestBase):
     def test_logout_nologgedin(self):
         eppn = 'hubba-bubba'
         with self.app.test_request_context('/logout', method='GET'):
-            # user_eppn is set in the IdP
-            session['user_eppn'] = eppn
+            # eppn is set in the IdP
+            session.common.eppn = eppn
             response = self.app.dispatch_request()
             self.assertEqual(response.status, '302 FOUND')
             self.assertIn(self.app.conf.saml2_logout_redirect_url, response.headers['Location'])

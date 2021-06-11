@@ -143,8 +143,6 @@ def check_previous_identification(session_ns: TimestampedNS) -> Optional[str]:
     from eduid.webapp.common.session import session
 
     eppn = session.common.eppn
-    if eppn is None:
-        eppn = session.get('user_eppn', None)
     logger.debug(f'Trying to authenticate user {eppn} with timestamp {session_ns.ts}')
     # check that the eppn and timestamp have been set in the session
     if eppn is None or session_ns.ts is None:

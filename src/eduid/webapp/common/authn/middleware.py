@@ -67,7 +67,7 @@ class AuthnBaseApp(EduIDBaseApp, metaclass=ABCMeta):
 
         with self.request_context(environ):
             try:
-                if session.get('user_eppn') and session.get('user_is_logged_in'):
+                if session.common.eppn and session.common.is_logged_in:
                     return super(AuthnBaseApp, self).__call__(environ, start_response)
             except NoSessionDataFoundException:
                 current_app.logger.info('Caught a NoSessionDataFoundException - forcing the user to authenticate')
