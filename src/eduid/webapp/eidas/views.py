@@ -86,8 +86,7 @@ def verify_nin(user: User) -> WerkzeugResponse:
 
 
 @eidas_views.route('/mfa-authentication', methods=['GET'])
-@require_user
-def mfa_authentication(user: User) -> WerkzeugResponse:
+def mfa_authentication() -> WerkzeugResponse:
     current_app.logger.debug('mfa-authentication called')
     required_loa = 'loa3'
     # Clear session keys used for external mfa
