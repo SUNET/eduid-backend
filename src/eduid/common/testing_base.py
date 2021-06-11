@@ -50,7 +50,7 @@ class CommonTestCase(MongoTestCase):
         self._init_logging()
 
         if 'EDUID_CONFIG_YAML' not in os.environ:
-            os.environ['EDUID_CONFIG_YAML'] = '/opt/eduid/etc/eduid-testing-config.yaml'
+            os.environ['EDUID_CONFIG_YAML'] = 'YAML_CONFIG_NOT_USED'
 
         super().setUp(*args, **kwargs)
 

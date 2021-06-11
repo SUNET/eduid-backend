@@ -95,7 +95,7 @@ class ScimApiTestCase(MongoNeoTestCase):
 
     def setUp(self) -> None:
         if 'EDUID_CONFIG_YAML' not in os.environ:
-            os.environ['EDUID_CONFIG_YAML'] = '/opt/eduid/etc/eduid-testing-config.yaml'
+            os.environ['EDUID_CONFIG_YAML'] = 'YAML_CONFIG_NOT_USED'
 
         self.test_config = self._get_config()
         config = load_config(typ=ScimApiConfig, app_name='scimapi', ns='api', test_config=self.test_config)

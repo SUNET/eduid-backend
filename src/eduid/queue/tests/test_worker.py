@@ -48,7 +48,7 @@ class TestBaseWorker(QueueAsyncioTest):
         }
 
         if 'EDUID_CONFIG_YAML' not in os.environ:
-            os.environ['EDUID_CONFIG_YAML'] = '/opt/eduid/etc/eduid-testing-config.yaml'
+            os.environ['EDUID_CONFIG_YAML'] = 'YAML_CONFIG_NOT_USED'
 
         self.config = load_config(typ=QueueWorkerConfig, app_name='test', ns='queue', test_config=self.test_config)
 
