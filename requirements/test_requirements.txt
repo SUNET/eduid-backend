@@ -501,7 +501,9 @@ mypy==0.902 \
     --hash=sha256:9236c21194fde5df1b4d8ebc2ef2c1f2a5dc7f18bcbea54274937cae2e20a01c \
     --hash=sha256:a26d0e53e90815c765f91966442775cf03b8a7514a4e960de7b5320208b07269 \
     --hash=sha256:fd634bc17b1e2d6ce716f0e43446d0d61cdadb1efcad5c56ca211c22b246ebc8
-    # via -r test_requirements.in
+    # via
+    #   -r test_requirements.in
+    #   -r typing_requirements.in
 ndnkdf==0.3 \
     --hash=sha256:6d99674a4d5d7a9f6115c4f72a5fc1a60a583ecdec569d66f7562bcaabca6db3 \
     --hash=sha256:d1da09e6ea9a4f63b1d7cf001d11cd83f8e187022b046af605450bde7dd38e1c
@@ -945,65 +947,65 @@ typed-ast==1.4.3 \
     # via black
 types-aiofiles==0.1.3 \
     --hash=sha256:7c98a416c894e17d9bd026c7db06220840f7790398aa09ca1178bc1d6a340ea2
-    # via -r test_requirements.in
+    # via -r typing_requirements.in
 types-bleach==0.1.2 \
     --hash=sha256:27ebae69003a7be0fc49d45d1840fbce065a1a6efd8041e40489f0282d3cc1cf
-    # via -r test_requirements.in
+    # via -r typing_requirements.in
 types-click==7.1.0 \
     --hash=sha256:1b37e9e63ec1f4e67bb8016afac882ec94bcb98a09b92bebde8f1e0f0484e6ed
     # via
-    #   -r test_requirements.in
+    #   -r typing_requirements.in
     #   types-flask
 types-flask==1.1.0 \
     --hash=sha256:0d16fbd554b274d003761b10bb06e86aa535b122cd98b0a8e45082750c54e35b
-    # via -r test_requirements.in
+    # via -r typing_requirements.in
 types-jinja2==2.11.0 \
     --hash=sha256:f9d182ec241bdbeb8759c65693c5f95b638a0dfd9e3d91606b3d48e58b0b5caf
     # via
-    #   -r test_requirements.in
+    #   -r typing_requirements.in
     #   types-flask
 types-markupsafe==1.1.0 \
     --hash=sha256:9b7a9142ff5e97af10235fe504b823a4462b71cbd8189d6dde585aacf4cc9331
     # via
-    #   -r test_requirements.in
+    #   -r typing_requirements.in
     #   types-jinja2
 types-mock==0.1.1 \
     --hash=sha256:58d3b1ad2c647522c96b5f05a4c3a06e9c94292fe69b01e9a41502e4bb6e7071
-    # via -r test_requirements.in
+    # via -r typing_requirements.in
 types-orjson==0.1.0 \
     --hash=sha256:7c5036f31615179a3154079d144329f868667e15ac9d041f388de3a823328b0c
-    # via -r test_requirements.in
+    # via -r typing_requirements.in
 types-pkg-resources==0.1.2 \
     --hash=sha256:42d640500de564f1ccc21f918117afadf78039e4fa7f513c647ccf742d609aeb
-    # via -r test_requirements.in
+    # via -r typing_requirements.in
 types-python-dateutil==0.1.2 \
     --hash=sha256:498492e71dfb983ecc47924fb4f0987d205901ebd1d59f9a1c6603f3f970a62b
-    # via -r test_requirements.in
+    # via -r typing_requirements.in
 types-pyyaml==0.1.6 \
     --hash=sha256:8620045462a0ae1ecff7e97041905abdedc7afdff7ea66cac31df29fb1af6fa3
-    # via -r test_requirements.in
+    # via -r typing_requirements.in
 types-redis==3.5.0 \
     --hash=sha256:cf29f55ccc3b44c78259cc22e4c0030f77b7a47ec5656211402be0fcf1a98536
-    # via -r test_requirements.in
+    # via -r typing_requirements.in
 types-requests==0.1.9 \
     --hash=sha256:24a51b692d36101e5b81f08733d74b944ccae3e90589fb712e4dfc6f36965c35
-    # via -r test_requirements.in
+    # via -r typing_requirements.in
 types-simplejson==0.1.2 \
     --hash=sha256:b4ed9f14c5b1154b5d28b4ac1d60ce6053eb8ccaabc90dd39c09efede77670d8
-    # via -r test_requirements.in
+    # via -r typing_requirements.in
 types-six==0.1.6 \
     --hash=sha256:73d0065b688b05baf0433f98338c418a5a9887a7527c0bd9482ecd34fe5bb104
-    # via -r test_requirements.in
+    # via -r typing_requirements.in
 types-toml==0.1.1 \
     --hash=sha256:ccebb129f6d68f49fbeb0efd000d48098b3f62885f0dbe44ad001e8b9c0b62ff
-    # via -r test_requirements.in
+    # via -r typing_requirements.in
 types-ujson==0.1.0 \
     --hash=sha256:b7dce4c6353098a33441f06cb51ade8f482bc791f274c1f4af358c6f5c7cad30
-    # via -r test_requirements.in
+    # via -r typing_requirements.in
 types-werkzeug==1.0.0 \
     --hash=sha256:4beb9df90a2ab27fc473b64a17b49b3088dc8ce761d8708b5fe2bb317d779189
     # via
-    #   -r test_requirements.in
+    #   -r typing_requirements.in
     #   types-flask
 typing-extensions==3.10.0.0 \
     --hash=sha256:50b6f157849174217d0656f99dc82fe932884fb250826c18350e159ec6cdf342 \

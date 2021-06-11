@@ -4,6 +4,7 @@
 -r main.in
 -r satosa_scim_requirements.in
 -r webapp_requirements.in
+-r typing_requirements.in
 black==19.10b0
 isort==5.6.4
 mock
@@ -11,22 +12,3 @@ moto[sns]
 mypy
 pytest
 pytest-cov
-# mypy typing stubs
-types-aiofiles
-types-bleach
-types-click
-types-Flask
-types-Jinja2
-types-MarkupSafe
-types-mock
-types-orjson
-types-pkg-resources
-types-python-dateutil
-types-PyYAML
-types-redis
-types-requests
-types-simplejson
-types-six
-types-toml
-types-ujson
-types-Werkzeug
