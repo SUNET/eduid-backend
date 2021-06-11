@@ -260,8 +260,7 @@ def nin_verify_BACKDOOR(user: User) -> WerkzeugResponse:
 
 
 @acs_action(EidasAcsAction.mfa_authn)
-@require_user
-def mfa_authentication_action(session_info: SessionInfo, user: User) -> WerkzeugResponse:
+def mfa_authentication_action(session_info: SessionInfo) -> WerkzeugResponse:
     relay_state = request.form.get('RelayState')
     current_app.logger.debug('RelayState: {}'.format(relay_state))
     redirect_url = None
@@ -293,6 +292,12 @@ def mfa_authentication_action(session_info: SessionInfo, user: User) -> Werkzeug
         )
         # TODO: change to reasonable redirect_with_msg when the ENUM work for that is merged
         raise RuntimeError('Got no personalIdentityNumber')
+
+    if not session.common.eppn:
+        raise RuntimeError('No eppn in session')
+
+    # Get user from central database
+    user = current_app.central_userdb.get_user_by_eppn(session.common.eppn, raise_on_missing=True)
 
     asserted_nin = _personal_idns[0]
     user_nin = user.nins.verified.find(asserted_nin)
