@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import asyncio
 import logging
+import os
 from datetime import timedelta
 from os import environ
 from typing import Optional
@@ -45,6 +46,10 @@ class TestBaseWorker(QueueAsyncioTest):
             'mongo_collection': self.mongo_collection,
             'periodic_min_retry_wait_in_seconds': 1,
         }
+
+        if 'EDUID_CONFIG_YAML' not in os.environ:
+            os.environ['EDUID_CONFIG_YAML'] = '/opt/eduid/etc/eduid-testing-config.yaml'
+
         self.config = load_config(typ=QueueWorkerConfig, app_name='test', ns='queue', test_config=self.test_config)
 
         self.db.register_handler(TestPayload)

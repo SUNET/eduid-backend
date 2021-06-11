@@ -51,15 +51,15 @@ bleach==3.3.0 \
     # via
     #   -c main.txt
     #   -r main.in
-boto3==1.17.87 \
-    --hash=sha256:52025e0af7935cb7036037978de190e41ad7f6716d1de1e3669976e99d084edf \
-    --hash=sha256:612aa5dc27b87ae1dc695e194f97af7da0fcc9e97aa80d9740732d78ba117119
+boto3==1.17.92 \
+    --hash=sha256:e9cf20918ed1b78f1aabbc57e02a126e835ccf7abe86d90646fc54a43ef7dc06 \
+    --hash=sha256:ee1e64191de95e08e296b21cb262f38c8dc866cd7d33f86f753c6a74a0f95297
     # via
     #   -c main.txt
     #   -r main.in
-botocore==1.20.87 \
-    --hash=sha256:04a5594ae1886233cb15ab636b51aeecf6b5412231f72744405f11a54a8cda58 \
-    --hash=sha256:3dcc84855349073e0cb706e90a9e1180899deded4b8555698fb4a5a5b3357202
+botocore==1.20.92 \
+    --hash=sha256:5adb6679e3bf7b5ea0ca3363118a0111d087dce18a94fc7a5a542fcc5cba0ddc \
+    --hash=sha256:950ff7d4985427f8dfbb90aa1a8b48da98506d25319f1af1fe20341be3365633
     # via
     #   -c main.txt
     #   boto3
@@ -149,15 +149,9 @@ defusedxml==0.7.1 \
     #   oic
     #   pysaml2
     #   pyxmlsecurity
-dnspython==2.1.0 \
-    --hash=sha256:95d12f6ef0317118d2a1a6fc49aac65ffec7eb8087474158f42f26a639135216 \
-    --hash=sha256:e4a87f0b573201a0f3727fa18a516b055fd1107e0e5477cded4a2de497df1dd4
-    # via
-    #   -c main.txt
-    #   python-etcd
-ecdsa==0.14.1 \
-    --hash=sha256:64c613005f13efec6541bb0a33290d0d03c27abab5f15fbab20fb0ee162bdd8e \
-    --hash=sha256:e108a5fe92c67639abae3260e43561af914e7fd0d27bae6d2ec1312ae7934dfe
+ecdsa==0.17.0 \
+    --hash=sha256:5cf31d5b33743abe0dfc28999036c849a69d548f994b535e527ee3cb7f3ef676 \
+    --hash=sha256:b9f500bb439e4153d0330610f5d26baaf18d17b8ced1bc54410d189385ea68aa
     # via
     #   -c main.txt
     #   python-jose
@@ -167,9 +161,9 @@ elementpath==2.2.2 \
     # via
     #   -c main.txt
     #   xmlschema
-fastapi==0.65.1 \
-    --hash=sha256:478b7e0cbb52c9913b9903d88ae14195cb8a479c4596e0b2f2238d317840a7dc \
-    --hash=sha256:7619282fbce0ec53c7dfa3fa262280c00ace9f6d772cfd06e4ab219dce66985e
+fastapi==0.65.2 \
+    --hash=sha256:39569a18914075b2f1aaa03bcb9dc96a38e0e5dabaf3972e088c9077dfffa379 \
+    --hash=sha256:8359e55d8412a5571c0736013d90af235d6949ec4ce978e9b63500c8f4b6f714
     # via -r fastapi_requirements.in
 fido2==0.9.1 \
     --hash=sha256:8680ee25238e2307596eb3900a0f8c0d9cc91189146ed8039544f1a3a69dfe6e
@@ -633,14 +627,9 @@ python-dotenv==0.17.1 \
     --hash=sha256:00aa34e92d992e9f8383730816359647f358f4a3be1ba45e5a5cefd27ee91544 \
     --hash=sha256:b1ae5e9643d5ed987fc57cc2583021e38db531946518130777734f9589b3141f
     # via uvicorn
-python-etcd==0.4.5 \
-    --hash=sha256:f1b5ebb825a3e8190494f5ce1509fde9069f2754838ed90402a8c11e1f52b8cb
-    # via
-    #   -c main.txt
-    #   -r main.in
-python-jose==3.2.0 \
-    --hash=sha256:4e4192402e100b5fb09de5a8ea6bcc39c36ad4526341c123d401e2561720335b \
-    --hash=sha256:67d7dfff599df676b04a996520d9be90d6cdb7e6dd10b4c7cacc0c3e2e92f2be
+python-jose==3.3.0 \
+    --hash=sha256:55779b5e6ad599c6336191246e95eb2293a9ddebd555f796a65f838f07e5d78a \
+    --hash=sha256:9b1376b023f8b298536eedd47ae1089bcdb848f1535ab30555cd92002d78923a
     # via
     #   -c main.txt
     #   -r main.in
@@ -746,7 +735,6 @@ six==1.16.0 \
     #   pysmscom
     #   python-bidi
     #   python-dateutil
-    #   python-jose
     #   python-multipart
     #   python-u2flib-server
     #   pytool
@@ -777,10 +765,10 @@ typing-extensions==3.10.0.0 \
     #   oic
     #   pydantic
     #   typing-inspect
-typing-inspect==0.6.0 \
-    --hash=sha256:3b98390df4d999a28cf5b35d8b333425af5da2ece8a4ea9e98f71e7591347b4f \
-    --hash=sha256:8f1b1dd25908dbfd81d3bebc218011531e7ab614ba6e5bf7826d887c834afab7 \
-    --hash=sha256:de08f50a22955ddec353876df7b2545994d6df08a2f45d54ac8c05e530372ca0
+typing-inspect==0.7.1 \
+    --hash=sha256:047d4097d9b17f46531bf6f014356111a1b6fb821a24fe7ac909853ca2a782aa \
+    --hash=sha256:3cd7d4563e997719a710a3bfe7ffb544c6b72069b6812a02e9b414a8fa3aaa6b \
+    --hash=sha256:b1f56c0783ef0f25fb064a01be6e5407e54cf4a4bf4f3ba3fe51e0bd6dcea9e5
     # via
     #   -c main.txt
     #   marshmallow-dataclass
@@ -790,7 +778,6 @@ urllib3==1.26.5 \
     # via
     #   -c main.txt
     #   botocore
-    #   python-etcd
     #   requests
 uvicorn[standard]==0.14.0 \
     --hash=sha256:2a76bb359171a504b3d1c853409af3adbfa5cef374a4a59e5881945a97a93eae \
@@ -835,9 +822,9 @@ xhtml2pdf==0.2.5 \
     # via
     #   -c main.txt
     #   -r main.in
-xmlschema==1.6.2 \
-    --hash=sha256:31ddf77a44e4b121de212beeb2cc039e2e8b7a7a4f1678c9b29be1f5341aec52 \
-    --hash=sha256:3bbf2658d2cec3a50ecc4faf6c63a7682c4b3e6d8b2b2563334167948b425ebe
+xmlschema==1.6.4 \
+    --hash=sha256:577ac82b89f6de354fb59abb544a77a41a282763ecb29843ea9e113693080c58 \
+    --hash=sha256:fadf79756080c3a3a3a380ad54b6b5bd8fa7b2f5bedfde56909812b291a6237f
     # via
     #   -c main.txt
     #   pysaml2

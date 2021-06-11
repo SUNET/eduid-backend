@@ -33,7 +33,6 @@ pynacl
 pysaml2>=7.0.1,==7.*
 pysmscom
 python-dateutil==2.8.*
-python-etcd
 python-jose>=3.0.1,==3.*
 python-u2flib-server>=5.0.0
 qrcode

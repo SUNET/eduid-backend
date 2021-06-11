@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
 import json
+import os
 import unittest
 import uuid
 from dataclasses import asdict
-from os import environ
 from typing import Any, Dict, List, Mapping, Optional, Union
 
 from bson import ObjectId
 from falcon.testing import Result, TestClient
 
 from eduid.common.config.parsers import load_config
-from eduid.common.config.testing import EtcdTemporaryInstance
 from eduid.graphdb.testing import Neo4jTemporaryInstance
 from eduid.queue.db.message import MessageDB
 from eduid.scimapi.app import init_api
@@ -90,15 +89,14 @@ class MongoNeoTestCase(BaseDBTestCase):
 class ScimApiTestCase(MongoNeoTestCase):
     """ Base test case providing the real API """
 
-    etcd_instance: EtcdTemporaryInstance
-
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        cls.etcd_instance = EtcdTemporaryInstance.get_instance()
-        environ.update({'ETCD_PORT': str(cls.etcd_instance.port)})
 
     def setUp(self) -> None:
+        if 'EDUID_CONFIG_YAML' not in os.environ:
+            os.environ['EDUID_CONFIG_YAML'] = '/opt/eduid/etc/eduid-testing-config.yaml'
+
         self.test_config = self._get_config()
         config = load_config(typ=ScimApiConfig, app_name='scimapi', ns='api', test_config=self.test_config)
         self.context = Context(config=config)
@@ -143,7 +141,6 @@ class ScimApiTestCase(MongoNeoTestCase):
         super().tearDown()
         self.userdb._drop_whole_collection()
         self.eventdb._drop_whole_collection()
-        self.etcd_instance.clear('/eduid/api/')
 
     def _assertScimError(
         self,

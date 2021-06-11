@@ -33,7 +33,6 @@
 import logging
 import os
 
-from eduid.common.config.testing import EtcdTemporaryInstance
 from eduid.common.logging import LocalContext, make_dictConfig
 from eduid.userdb.testing import MongoTestCase
 
@@ -50,11 +49,10 @@ class CommonTestCase(MongoTestCase):
         # Set up provisional logging to capture logs from test setup too
         self._init_logging()
 
-        super().setUp(*args, **kwargs)
+        if 'EDUID_CONFIG_YAML' not in os.environ:
+            os.environ['EDUID_CONFIG_YAML'] = '/opt/eduid/etc/eduid-testing-config.yaml'
 
-        # Set up etcd
-        self.etcd_instance = EtcdTemporaryInstance.get_instance()
-        os.environ.update({'ETCD_PORT': str(self.etcd_instance.port)})
+        super().setUp(*args, **kwargs)
 
     def _init_logging(self):
         local_context = LocalContext(

@@ -198,7 +198,6 @@ class TestInviteResource(ScimApiTestCase):
         self.invitedb._drop_whole_collection()
         self.signup_invitedb._drop_whole_collection()
         self.messagedb._drop_whole_collection()
-        self.etcd_instance.clear('/eduid/api/')
 
     def add_invite(self, data: Optional[dict] = None, update: bool = False) -> ScimApiInvite:
         invite_data = self.invite_data
