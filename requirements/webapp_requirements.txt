@@ -151,12 +151,6 @@ defusedxml==0.7.1 \
     #   oic
     #   pysaml2
     #   pyxmlsecurity
-dnspython==2.1.0 \
-    --hash=sha256:95d12f6ef0317118d2a1a6fc49aac65ffec7eb8087474158f42f26a639135216 \
-    --hash=sha256:e4a87f0b573201a0f3727fa18a516b055fd1107e0e5477cded4a2de497df1dd4
-    # via
-    #   -c main.txt
-    #   python-etcd
 ecdsa==0.17.0 \
     --hash=sha256:5cf31d5b33743abe0dfc28999036c849a69d548f994b535e527ee3cb7f3ef676 \
     --hash=sha256:b9f500bb439e4153d0330610f5d26baaf18d17b8ced1bc54410d189385ea68aa
@@ -640,11 +634,6 @@ python-dateutil==2.8.1 \
     #   -r main.in
     #   botocore
     #   pysaml2
-python-etcd==0.4.5 \
-    --hash=sha256:f1b5ebb825a3e8190494f5ce1509fde9069f2754838ed90402a8c11e1f52b8cb
-    # via
-    #   -c main.txt
-    #   -r main.in
 python-jose==3.3.0 \
     --hash=sha256:55779b5e6ad599c6336191246e95eb2293a9ddebd555f796a65f838f07e5d78a \
     --hash=sha256:9b1376b023f8b298536eedd47ae1089bcdb848f1535ab30555cd92002d78923a
@@ -792,7 +781,6 @@ urllib3==1.26.5 \
     # via
     #   -c main.txt
     #   botocore
-    #   python-etcd
     #   requests
 vine==5.0.0 \
     --hash=sha256:4c9dceab6f76ed92105027c49c823800dd33cacce13bdedc5b914e3514b7fb30 \

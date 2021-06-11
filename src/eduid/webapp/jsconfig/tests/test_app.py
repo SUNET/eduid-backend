@@ -37,7 +37,6 @@ from pathlib import PurePath
 from typing import Any, Dict, Mapping
 
 from eduid.common.config.parsers import load_config
-from eduid.common.config.parsers.etcd import EtcdConfigParser
 from eduid.common.misc.tous import get_tous
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.jsconfig.app import JSConfigApp, jsconfig_init_app
@@ -188,33 +187,6 @@ class JSConfigTests(EduidAPITestCase):
             body = response.data
             assert 'dummy-login-bundle' in str(body)
             assert 'dummy-login-version' in str(body)
-
-    def test_jsapps_config_from_etcd(self):
-        common_config_parser = EtcdConfigParser(
-            namespace='/eduid/webapp/common/', host=self.etcd_instance.host, port=self.etcd_instance.port
-        )
-        app_config_parser = EtcdConfigParser(
-            namespace='/eduid/webapp/jsapps/', host=self.etcd_instance.host, port=self.etcd_instance.port
-        )
-
-        config = {
-            'eduid': {
-                'webapp': {
-                    'common': {'testing': True},
-                    'jsapps': {'password_entropy': 0, 'password_length': 1, 'dashboard_url': 'dummy-url-etcd'},
-                }
-            }
-        }
-        common_config_parser.write_configuration(config)
-        app_config_parser.write_configuration(config)
-        os.environ['EDUID_CONFIG_NS'] = '/eduid/webapp/jsapps/'
-        os.environ['ETCD_HOST'] = self.etcd_instance.host
-        os.environ['ETCD_PORT'] = str(self.etcd_instance.port)
-
-        front_config = load_config(typ=FrontConfig, app_name='jsapps', ns='webapp')
-        assert front_config == FrontConfig(
-            testing=True, password_entropy=0, password_length=1, dashboard_url='dummy-url-etcd'
-        )
 
     def test_jsapps_config_from_yaml(self):
         os.environ['EDUID_CONFIG_YAML'] = f'{self.data_dir}/config.yaml'

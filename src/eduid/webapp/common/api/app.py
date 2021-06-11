@@ -33,12 +33,10 @@
 Define a EduIDApp to create a Flask app and update
 it with all attributes common to all eduID services.
 """
-import importlib.util
 import os
-import warnings
 from abc import ABCMeta
 from sys import stderr
-from typing import Dict, Optional, TypeVar
+from typing import Dict, TypeVar
 
 from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
 from flask import Flask
@@ -46,7 +44,6 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from eduid.common.config.base import EduIDBaseAppConfig, FlaskConfig
 from eduid.common.config.exceptions import BadConfiguration
-from eduid.common.config.parsers.etcd import EtcdConfigParser
 from eduid.common.logging import init_logging
 from eduid.common.stats import init_app_stats
 from eduid.userdb import UserDB
