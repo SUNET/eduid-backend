@@ -33,13 +33,13 @@ bleach==3.3.0 \
     --hash=sha256:6123ddc1052673e52bab52cdc955bcb57a015264a1c57d37bea2f6b817af0125 \
     --hash=sha256:98b3170739e5e83dd9dc19633f074727ad848cbedb6026708c8ac2d3b697a433
     # via -r main.in
-boto3==1.17.87 \
-    --hash=sha256:52025e0af7935cb7036037978de190e41ad7f6716d1de1e3669976e99d084edf \
-    --hash=sha256:612aa5dc27b87ae1dc695e194f97af7da0fcc9e97aa80d9740732d78ba117119
+boto3==1.17.92 \
+    --hash=sha256:e9cf20918ed1b78f1aabbc57e02a126e835ccf7abe86d90646fc54a43ef7dc06 \
+    --hash=sha256:ee1e64191de95e08e296b21cb262f38c8dc866cd7d33f86f753c6a74a0f95297
     # via -r main.in
-botocore==1.20.87 \
-    --hash=sha256:04a5594ae1886233cb15ab636b51aeecf6b5412231f72744405f11a54a8cda58 \
-    --hash=sha256:3dcc84855349073e0cb706e90a9e1180899deded4b8555698fb4a5a5b3357202
+botocore==1.20.92 \
+    --hash=sha256:5adb6679e3bf7b5ea0ca3363118a0111d087dce18a94fc7a5a542fcc5cba0ddc \
+    --hash=sha256:950ff7d4985427f8dfbb90aa1a8b48da98506d25319f1af1fe20341be3365633
     # via
     #   boto3
     #   s3transfer
@@ -111,9 +111,9 @@ dnspython==2.1.0 \
     --hash=sha256:95d12f6ef0317118d2a1a6fc49aac65ffec7eb8087474158f42f26a639135216 \
     --hash=sha256:e4a87f0b573201a0f3727fa18a516b055fd1107e0e5477cded4a2de497df1dd4
     # via python-etcd
-ecdsa==0.14.1 \
-    --hash=sha256:64c613005f13efec6541bb0a33290d0d03c27abab5f15fbab20fb0ee162bdd8e \
-    --hash=sha256:e108a5fe92c67639abae3260e43561af914e7fd0d27bae6d2ec1312ae7934dfe
+ecdsa==0.17.0 \
+    --hash=sha256:5cf31d5b33743abe0dfc28999036c849a69d548f994b535e527ee3cb7f3ef676 \
+    --hash=sha256:b9f500bb439e4153d0330610f5d26baaf18d17b8ced1bc54410d189385ea68aa
     # via python-jose
 elementpath==2.2.2 \
     --hash=sha256:68de07c1aec3b1d33126111252cc699600dd1e45802625344aa6eb9e680ef157 \
@@ -334,9 +334,9 @@ python-dateutil==2.8.1 \
 python-etcd==0.4.5 \
     --hash=sha256:f1b5ebb825a3e8190494f5ce1509fde9069f2754838ed90402a8c11e1f52b8cb
     # via -r main.in
-python-jose==3.2.0 \
-    --hash=sha256:4e4192402e100b5fb09de5a8ea6bcc39c36ad4526341c123d401e2561720335b \
-    --hash=sha256:67d7dfff599df676b04a996520d9be90d6cdb7e6dd10b4c7cacc0c3e2e92f2be
+python-jose==3.3.0 \
+    --hash=sha256:55779b5e6ad599c6336191246e95eb2293a9ddebd555f796a65f838f07e5d78a \
+    --hash=sha256:9b1376b023f8b298536eedd47ae1089bcdb848f1535ab30555cd92002d78923a
     # via -r main.in
 python-u2flib-server==5.0.1 \
     --hash=sha256:b5e1712bf8f703c6fc9bac6643efb2d57e6c9d9f0b9ab0c0df74981b2c349632
@@ -414,7 +414,6 @@ six==1.16.0 \
     #   pysmscom
     #   python-bidi
     #   python-dateutil
-    #   python-jose
     #   python-u2flib-server
     #   pytool
     #   pyxmlsecurity
@@ -435,9 +434,9 @@ typing-extensions==3.10.0.0 \
     #   oic
     #   pydantic
     #   typing-inspect
-typing-inspect==0.6.0 \
-    --hash=sha256:3b98390df4d999a28cf5b35d8b333425af5da2ece8a4ea9e98f71e7591347b4f \
-    --hash=sha256:8f1b1dd25908dbfd81d3bebc218011531e7ab614ba6e5bf7826d887c834afab7
+typing-inspect==0.7.1 \
+    --hash=sha256:047d4097d9b17f46531bf6f014356111a1b6fb821a24fe7ac909853ca2a782aa \
+    --hash=sha256:3cd7d4563e997719a710a3bfe7ffb544c6b72069b6812a02e9b414a8fa3aaa6b
     # via marshmallow-dataclass
 urllib3==1.26.5 \
     --hash=sha256:753a0374df26658f99d826cfe40394a686d05985786d946fbe4165b5148f5a7c \
@@ -466,9 +465,9 @@ webencodings==0.5.1 \
 xhtml2pdf==0.2.5 \
     --hash=sha256:6797e974fac66f0efbe927c1539a2756ca4fe8777eaa5882bac132fc76b39421
     # via -r main.in
-xmlschema==1.6.2 \
-    --hash=sha256:31ddf77a44e4b121de212beeb2cc039e2e8b7a7a4f1678c9b29be1f5341aec52 \
-    --hash=sha256:3bbf2658d2cec3a50ecc4faf6c63a7682c4b3e6d8b2b2563334167948b425ebe
+xmlschema==1.6.4 \
+    --hash=sha256:577ac82b89f6de354fb59abb544a77a41a282763ecb29843ea9e113693080c58 \
+    --hash=sha256:fadf79756080c3a3a3a380ad54b6b5bd8fa7b2f5bedfde56909812b291a6237f
     # via pysaml2
 zipp==3.4.1 \
     --hash=sha256:3607921face881ba3e026887d8150cca609d517579abe052ac81fc5aeffdbd76 \
