@@ -518,7 +518,6 @@ class EidasTests(EduidAPITestCase):
             nin=nin,
         )
 
-<<<<<<< HEAD
         # Verify the user now has a verified NIN
         self._verify_user_parameters(
             eppn, is_verified=True, num_proofings=2, num_verified_nins=1, nin=nin, nin_verified=True
@@ -541,25 +540,6 @@ class EidasTests(EduidAPITestCase):
                 )
 
         self._verify_user_parameters(eppn)
-=======
-            with browser.session_transaction() as sess:
-                request_id = self._get_request_id_from_session(sess)
-
-            authn_response = self.generate_auth_response(
-                request_id, self.saml_response_tpl_fail, self.test_user_wrong_nin
-            )
-
-            data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': '/'}
-            browser.post('/saml2-acs', data=data)
-
-            user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-            user_mfa_tokens = user.credentials.filter(FidoCredential).to_list()
-
-            self.assertEqual(len(user_mfa_tokens), 1)
-            self.assertEqual(user_mfa_tokens[0].is_verified, False)
-
-            self.assertEqual(self.app.proofing_log.db_count(), 0)
->>>>>>> refactor storing of post-authn-action and redirect_url in the sessions
 
     def test_mfa_token_verify_no_mfa_token_in_session(self):
         eppn = self.test_user.eppn
@@ -742,35 +722,12 @@ class EidasTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.nins.verified.count != 0, 'User was expected to have a verified NIN'
 
-<<<<<<< HEAD
         self.reauthn(
             endpoint='/mfa-authentication',
             expect_msg=EidasMsg.nin_not_matching,
             expect_error=True,
             nin=self.test_user_wrong_nin,
         )
-=======
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            response = browser.get('/mfa-authentication/?idp={}&next={}'.format(self.test_idp, next_url))
-            self.assertEqual(response.status_code, 302)
-            ps = urllib.parse.urlparse(response.location)
-            qs = urllib.parse.parse_qs(ps.query)
-            relay_state = qs['RelayState'][0]
-
-            with browser.session_transaction() as sess:
-                cookie_val = sess.meta.cookie_val
-                authn_response = self.generate_auth_response(
-                    self._get_request_id_from_session(sess), self.saml_response_tpl_success, self.test_user_wrong_nin
-                )
-                self._session_setup(sess, req_id=cookie_val, relay_state=relay_state, action=EidasAcsAction.mfa_authn)
-                sess.eidas.redirect_urls = {relay_state: next_url}
-
-            data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': relay_state}
-            response = browser.post('/saml2-acs', data=data)
-
-            self.assertEqual(response.status_code, 302)
-            self.assertEqual(response.location, 'http://idp.localhost/action?msg=%3AERROR%3Aeidas.nin_not_matching')
->>>>>>> refactor storing of post-authn-action and redirect_url in the sessions
 
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')

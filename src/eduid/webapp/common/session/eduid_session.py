@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import pprint
 from collections.abc import MutableMapping
 from time import time
 from typing import TYPE_CHECKING, Any, Optional
@@ -394,5 +395,31 @@ class SessionFactory(SessionInterface):
             sess.persist()
         except SessionOutOfSync:
             app.stats.count('session_out_of_sync_error')
+            logger.error(f'Commit of session {sess} failed because it has been changed by someone else')
+            diff_c = 0
+            # For debugging purposes, load the session from the backend anew and show what was changed
+            # by someone else
+            try:
+                session_now = self.manager.get_session(meta=sess.meta, new=False)
+                for k, v in sess.items():
+                    if k in session_now:
+                        # Serialise my data so it can be compared to the serialised data in session_now
+                        my_v = json.loads(json.dumps(v, cls=EduidJSONEncoder))
+                        if my_v != session_now[k]:
+                            logger.error(
+                                f'Session key {k} changed, mine\n{pprint.pformat(my_v)}\n'
+                                f'in db:\n{pprint.pformat(session_now[k])}'
+                            )
+                            diff_c += 1
+                    else:
+                        logger.error(f'Session key {k} disappeared, mine {sess[k]}')
+                        diff_c += 1
+                for k, v in session_now.items():
+                    if k not in sess:
+                        logger.error(f'Session key {k} added in db: {session_now[k]}')
+                        diff_c += 1
+            except KeyError:
+                logger.error('Failed loading session from backend for comparison')
+            logger.error(f'Number of differences: {diff_c}')
             raise
         sess.set_cookie(response)
