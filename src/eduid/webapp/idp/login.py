@@ -132,13 +132,6 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
         return res
 
     # User is at least partially authenticated, put the eppn in the shared session
-
-    # OLD:
-    if 'user_eppn' in session and session['user_eppn'] != user.eppn:
-        current_app.logger.warning(f'Refusing to change eppn in session from {session["user_eppn"]} to {user.eppn}')
-        return NextResult(message=IdPMsg.wrong_user, error=True)
-    session['user_eppn'] = user.eppn
-    # NEW:
     if session.common.eppn and session.common.eppn != user.eppn:
         current_app.logger.warning(f'Refusing to change eppn in session from {session.common.eppn} to {user.eppn}')
         return NextResult(message=IdPMsg.wrong_user, error=True)
@@ -270,16 +263,10 @@ class SSO(Service):
 
         params = self.get_response_params(authn_info, ticket, user)
 
-        # OLD:
-        if 'user_eppn' in session and session['user_eppn'] != user.eppn:
-            current_app.logger.warning(f'Refusing to change eppn in session from {session["user_eppn"]} to {user.eppn}')
-        else:
-            session['user_eppn'] = user.eppn
-        # NEW:
         if session.common.eppn and session.common.eppn != user.eppn:
             current_app.logger.warning(f'Refusing to change eppn in session from {session.common.eppn} to {user.eppn}')
-        else:
-            session.common.eppn = user.eppn
+            raise BadRequest('WRONG_USER')
+        session.common.eppn = user.eppn
 
         # We're done with this SAML request. Remove it from the session.
         del session.idp.pending_requests[ticket.request_ref]

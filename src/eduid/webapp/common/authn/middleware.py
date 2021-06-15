@@ -57,6 +57,10 @@ class AuthnBaseApp(EduIDBaseApp, metaclass=ABCMeta):
     def __call__(self, environ: dict, start_response: Callable) -> Union[Response, list]:
         next_url = get_current_url(environ)
         next_path = list(urlparse(next_url))[2]
+        # Since trailing slashes is 'optional' in HTTP, we remove them before matching the path
+        # against the elements in the allow-list to avoid all of them having to consider that.
+        while next_path.endswith('/'):
+            next_path = next_path[:-1]
         allowlist = self.conf.no_authn_urls
         no_context_logger.debug(f'Checking if URL path {next_path} matches no auth allow list: {allowlist}')
         for regex in allowlist:
@@ -67,7 +71,7 @@ class AuthnBaseApp(EduIDBaseApp, metaclass=ABCMeta):
 
         with self.request_context(environ):
             try:
-                if session.get('user_eppn') and session.get('user_is_logged_in'):
+                if session.common.eppn and session.common.is_logged_in:
                     return super(AuthnBaseApp, self).__call__(environ, start_response)
             except NoSessionDataFoundException:
                 current_app.logger.info('Caught a NoSessionDataFoundException - forcing the user to authenticate')

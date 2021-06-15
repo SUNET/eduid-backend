@@ -57,19 +57,13 @@ def update_user_session(session_info: SessionInfo, user: User) -> None:
 
     :return: None
     """
-    # Old style sessions (remove after we use only new style)
-    session['_saml2_session_name_id'] = code(session_info['name_id'])
-    session['eduPersonPrincipalName'] = user.eppn
-    session['user_is_logged_in'] = True
-    session['eduidIdPCredentialsUsed'] = get_saml_attribute(session_info, 'eduidIdPCredentialsUsed')
-    # New style sessions
-    if not session.common:
-        return None
     session.authn.name_id = code(session_info['name_id'])
     session.common.eppn = user.eppn
     session.common.is_logged_in = True
     session.common.login_source = LoginApplication.authn
     session.common.preferred_language = user.language
+    # TODO: re-work how information about used credentials is shared. Global state is not precise enough.
+    session['eduidIdPCredentialsUsed'] = get_saml_attribute(session_info, 'eduidIdPCredentialsUsed')
 
 
 @acs_action(AuthnAcsAction.login)

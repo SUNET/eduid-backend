@@ -77,9 +77,6 @@ def reauthn() -> WerkzeugResponse:
     """
     login view with force authn, redirects to SAML2 IdP
     """
-    # OLD
-    session['user_is_logged_in'] = False
-    # NEW
     session.common.is_logged_in = False
     return _authn(AuthnAcsAction.reauthn, force_authn=True)
 
@@ -240,8 +237,7 @@ def logout_service():
         subject_id = _get_authn_name_id(session)
         if subject_id is None:
             current_app.logger.warning(
-                'The session does not contain the subject id for user {0} '
-                'Performing local logout'.format(session['eduPersonPrincipalName'])
+                f'The session does not contain the subject id for user {session.common.eppn}, performing local logout'
             )
             session.clear()
             return redirect(next_page)
@@ -277,11 +273,6 @@ def signup_authn():
                 # This user has previously verified their account and is not new, this should not happen.
                 current_app.logger.error('Not new user {} tried to log in using signup authn'.format(user))
                 return redirect(location_on_fail)
-            # OLD
-            session['eduPersonPrincipalName'] = user.eppn
-            session['user_eppn'] = user.eppn
-            session['user_is_logged_in'] = True
-            # NEW
             session.common.eppn = user.eppn
             session.common.is_logged_in = True
             session.common.login_source = LoginApplication.signup

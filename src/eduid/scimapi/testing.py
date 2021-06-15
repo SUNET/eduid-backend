@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
+import os
 import unittest
 import uuid
 from dataclasses import asdict
@@ -10,7 +11,6 @@ from requests import Response
 from starlette.testclient import TestClient
 
 from eduid.common.config.parsers import load_config
-from eduid.common.config.testing import EtcdTemporaryInstance
 from eduid.graphdb.testing import Neo4jTemporaryInstance
 from eduid.queue.db.message import MessageDB
 from eduid.scimapi.app import init_api
@@ -90,13 +90,14 @@ class MongoNeoTestCase(BaseDBTestCase):
 class ScimApiTestCase(MongoNeoTestCase):
     """ Base test case providing the real API """
 
-    etcd_instance: EtcdTemporaryInstance
-
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
 
     def setUp(self) -> None:
+        if 'EDUID_CONFIG_YAML' not in os.environ:
+            os.environ['EDUID_CONFIG_YAML'] = 'YAML_CONFIG_NOT_USED'
+
         self.test_config = self._get_config()
         config = load_config(typ=ScimApiConfig, app_name='scimapi', ns='api', test_config=self.test_config)
         self.context = Context(config=config)

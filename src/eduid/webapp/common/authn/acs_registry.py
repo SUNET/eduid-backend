@@ -108,10 +108,6 @@ def get_action(default_action: Optional[Enum], sp_data: Pysaml2SPData) -> Callab
         current_app.logger.debug(f'Registered ACS actions: {_actions.keys()}')
         raise UnregisteredAction(error_msg)
     finally:
-        if sp_data is None:
-            # OLD
-            del session['post-authn-action']
-        else:
-            sp_data.post_authn_action = None
+        sp_data.post_authn_action = None
     current_app.logger.debug(f'Consuming ACS action {action_value}')
     return action
