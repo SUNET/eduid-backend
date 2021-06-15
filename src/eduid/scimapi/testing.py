@@ -3,11 +3,11 @@ import json
 import unittest
 import uuid
 from dataclasses import asdict
-from os import environ
 from typing import Any, Dict, List, Mapping, Optional, Union
 
 from bson import ObjectId
-from falcon.testing import Result, TestClient
+from requests import Response
+from starlette.testclient import TestClient
 
 from eduid.common.config.parsers import load_config
 from eduid.common.config.testing import EtcdTemporaryInstance
@@ -21,7 +21,7 @@ from eduid.scimapi.db.eventdb import ScimApiEvent
 from eduid.scimapi.db.groupdb import ScimApiGroup
 from eduid.scimapi.db.invitedb import ScimApiInvite
 from eduid.scimapi.db.userdb import ScimApiProfile, ScimApiUser
-from eduid.scimapi.schemas.scimbase import SCIMSchema
+from eduid.scimapi.models.scimbase import SCIMSchema
 from eduid.userdb.signup import SignupInviteDB
 from eduid.userdb.testing import MongoTemporaryInstance
 
@@ -95,8 +95,6 @@ class ScimApiTestCase(MongoNeoTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        cls.etcd_instance = EtcdTemporaryInstance.get_instance()
-        environ.update({'ETCD_PORT': str(cls.etcd_instance.port)})
 
     def setUp(self) -> None:
         self.test_config = self._get_config()
@@ -111,8 +109,8 @@ class ScimApiTestCase(MongoNeoTestCase):
         self.messagedb = MessageDB(db_uri=config.mongo_uri)
         self.eventdb = self.context.get_eventdb(self.data_owner)
 
-        api = init_api(name='test_api', test_config=self.test_config)
-        self.client = TestClient(api)
+        self.api = init_api(name='test_api', test_config=self.test_config)
+        self.client = TestClient(self.api)
         self.headers = {
             'Content-Type': 'application/scim+json',
             'Accept': 'application/scim+json',
@@ -143,7 +141,6 @@ class ScimApiTestCase(MongoNeoTestCase):
         super().tearDown()
         self.userdb._drop_whole_collection()
         self.eventdb._drop_whole_collection()
-        self.etcd_instance.clear('/eduid/api/')
 
     def _assertScimError(
         self,
@@ -151,7 +148,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         schemas: Optional[List[str]] = None,
         status: int = 400,
         scim_type: Optional[str] = None,
-        detail: Optional[str] = None,
+        detail: Optional[Any] = None,
     ):
         if schemas is None:
             schemas = [SCIMSchema.ERROR.value]
@@ -164,30 +161,30 @@ class ScimApiTestCase(MongoNeoTestCase):
 
     def _assertScimResponseProperties(
         self,
-        response: Result,
+        response: Response,
         resource: Union[ScimApiGroup, ScimApiUser, ScimApiInvite, ScimApiEvent],
         expected_schemas: List[str],
     ):
-        if SCIMSchema.NUTID_USER_V1.value in response.json:
-            # The API can always add this extension to the response, even if it was not in the request
+        if SCIMSchema.NUTID_USER_V1.value in response.json():
+            # The API can always add this extension to the parsed_response, even if it was not in the request
             expected_schemas += [SCIMSchema.NUTID_USER_V1.value]
 
-        if SCIMSchema.NUTID_GROUP_V1.value in response.json:
-            # The API can always add this extension to the response, even if it was not in the request
+        if SCIMSchema.NUTID_GROUP_V1.value in response.json():
+            # The API can always add this extension to the parsed_response, even if it was not in the request
             expected_schemas += [SCIMSchema.NUTID_GROUP_V1.value]
 
-        if SCIMSchema.NUTID_INVITE_V1.value in response.json:
-            # The API can always add this extension to the response, even if it was not in the request
+        if SCIMSchema.NUTID_INVITE_V1.value in response.json():
+            # The API can always add this extension to the parsed_response, even if it was not in the request
             expected_schemas += [SCIMSchema.NUTID_INVITE_V1.value]
 
-        if SCIMSchema.NUTID_EVENT_V1.value in response.json:
-            # The API can always add this extension to the response, even if it was not in the request
+        if SCIMSchema.NUTID_EVENT_V1.value in response.json():
+            # The API can always add this extension to the parsed_response, even if it was not in the request
             expected_schemas += [SCIMSchema.NUTID_EVENT_V1.value]
 
-        response_schemas = response.json.get('schemas')
+        response_schemas = response.json().get('schemas')
         self.assertIsInstance(response_schemas, list, 'Response schemas not present, or not a list')
         self.assertEqual(
-            sorted(set(expected_schemas)), sorted(set(response_schemas)), 'Unexpected schema(s) in response'
+            sorted(set(expected_schemas)), sorted(set(response_schemas)), 'Unexpected schema(s) in parsed_response'
         )
 
         if isinstance(resource, ScimApiUser):
@@ -205,16 +202,16 @@ class ScimApiTestCase(MongoNeoTestCase):
         else:
             raise ValueError('Resource is neither ScimApiUser, ScimApiGroup, ScimApiInvite or ScimApiEvent')
 
-        self.assertEqual(str(resource.scim_id), response.json.get('id'), 'Unexpected id in response')
+        self.assertEqual(str(resource.scim_id), response.json().get('id'), 'Unexpected id in parsed_response')
 
         self.assertEqual(
             expected_location,
             response.headers.get('location'),
-            'Unexpected group resource location in response headers',
+            'Unexpected group resource location in parsed_response headers',
         )
 
-        meta = response.json.get('meta')
-        self.assertIsNotNone(meta, 'No meta in response')
+        meta = response.json().get('meta')
+        self.assertIsNotNone(meta, 'No meta in parsed_response')
         self.assertIsNotNone(meta.get('created'), 'No meta.created')
         self.assertIsNotNone(meta.get('lastModified'), 'No meta.lastModified')
         self.assertIsNotNone(meta.get('version'), 'No meta.version')
@@ -240,8 +237,10 @@ class ScimApiTestCase(MongoNeoTestCase):
             ), f'{first}:{db_name_dict.get(first)} != {second}:{response_name.get(second)}'
 
     @staticmethod
-    def _assertResponse(response: Result, status_code: int = 200):
-        _detail = response.json.get('detail', 'No error detail in response')
+    def _assertResponse(response: Response, status_code: int = 200):
+        _detail = None
+        if response.json():
+            _detail = response.json().get('detail', 'No error detail in parsed_response')
         assert (
             response.status_code == status_code
         ), f'Response status was not {status_code} ({response.status_code}), {_detail}'

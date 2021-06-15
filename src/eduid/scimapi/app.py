@@ -1,59 +1,57 @@
 from typing import Dict, Optional
 
-import falcon
+from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from eduid.common.config.parsers import load_config
-from eduid.scimapi import exceptions
 from eduid.scimapi.config import ScimApiConfig
 from eduid.scimapi.context import Context
-from eduid.scimapi.middleware import HandleAuthentication, HandleSCIM
-from eduid.scimapi.resources.events import EventsResource
-from eduid.scimapi.resources.groups import GroupSearchResource, GroupsResource
-from eduid.scimapi.resources.invites import InviteSearchResource, InvitesResource
-from eduid.scimapi.resources.login import LoginResource
-from eduid.scimapi.resources.status import HealthCheckResource
-from eduid.scimapi.resources.users import UsersResource, UsersSearchResource
+from eduid.scimapi.context_request import ContextRequestRoute
+from eduid.scimapi.exceptions import (
+    HTTPErrorDetail,
+    http_error_detail_handler,
+    unexpected_error_handler,
+    validation_exception_handler,
+)
+from eduid.scimapi.middleware import AuthenticationMiddleware, ScimMiddleware
+from eduid.scimapi.routers.events import events_router
+from eduid.scimapi.routers.groups import groups_router
+from eduid.scimapi.routers.invites import invites_router
+from eduid.scimapi.routers.login import login_router
+from eduid.scimapi.routers.status import status_router
+from eduid.scimapi.routers.users import users_router
 
 
-def init_api(name: str = 'scimapi', test_config: Optional[Dict] = None) -> falcon.API:
-    config = load_config(typ=ScimApiConfig, app_name=name, ns='api', test_config=test_config)
-    context = Context(config=config)
-    context.logger.info(f'Starting {name} app')
+class ScimAPI(FastAPI):
+    def __init__(self, name: str = 'scimapi', test_config: Optional[Dict] = None):
+        super().__init__()
+        self.config = load_config(typ=ScimApiConfig, app_name=name, ns='api', test_config=test_config)
+        self.context = Context(config=self.config)
+        self.context.logger.info(f'Starting {name} app')
 
-    api = falcon.API(middleware=[HandleSCIM(context), HandleAuthentication(context)])
-    api.req_options.media_handlers['application/scim+json'] = api.req_options.media_handlers['application/json']
 
-    # Error handlers tried in reversed declaration order
-    api.add_error_handler(Exception, exceptions.unexpected_error_handler)
-    api.add_error_handler(falcon.HTTPMethodNotAllowed, exceptions.method_not_allowed_handler)
-    api.add_error_handler(falcon.HTTPUnsupportedMediaType, exceptions.unsupported_media_type_handler)
-    api.add_error_handler(exceptions.HTTPErrorDetail)
+def init_api(name: str = 'scimapi', test_config: Optional[Dict] = None) -> ScimAPI:
+    app = ScimAPI(name=name, test_config=test_config)
+    app.router.route_class = ContextRequestRoute
 
-    # Login
+    # Routers
     # TODO: Move bearer token generation to a separate API
-    api.add_route('/login/', LoginResource(context=context))
+    app.include_router(login_router)
+    app.include_router(users_router)
+    app.include_router(groups_router)
+    app.include_router(invites_router)
+    app.include_router(events_router)
+    app.include_router(status_router)
 
-    # Users
-    api.add_route('/Users/', UsersResource(context=context))  # for POST
-    api.add_route('/Users/{scim_id}', UsersResource(context=context))  # for GET/PUT
-    api.add_route('/Users/.search', UsersSearchResource(context=context))  # for POST
+    # Middleware
+    app.add_middleware(AuthenticationMiddleware, context=app.context)
+    app.add_middleware(ScimMiddleware, context=app.context)
 
-    # Groups
-    api.add_route('/Groups/', GroupsResource(context=context))
-    api.add_route('/Groups/{scim_id}', GroupsResource(context=context))
-    api.add_route('/Groups/.search', GroupSearchResource(context=context))
+    # Exception handling
+    app.add_exception_handler(StarletteHTTPException, unexpected_error_handler)
+    app.add_exception_handler(RequestValidationError, validation_exception_handler)
+    app.add_exception_handler(HTTPErrorDetail, http_error_detail_handler)
 
-    # Invites
-    api.add_route('/Invites/', InvitesResource(context=context))
-    api.add_route('/Invites/{scim_id}', InvitesResource(context=context))
-    api.add_route('/Invites/.search', InviteSearchResource(context=context))
-
-    # Events
-    api.add_route('/Events/', EventsResource(context=context))
-    api.add_route('/Events/{scim_id}', EventsResource(context=context))
-
-    # Status
-    api.add_route('/status/healthy', HealthCheckResource(context=context))
-
-    context.logger.info('app running...')
-    return api
+    app.context.logger.info('app running...')
+    return app

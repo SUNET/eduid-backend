@@ -45,8 +45,8 @@ class NotificationRelay:
 
 
 # FT_TEST_ARN = 'arn:aws:sns:eu-north-1:075581119103:ft-test'
-# response = sns_client.list_subscriptions_by_topic(TopicArn=FT_TEST_ARN,)
-# print(f'Subscribers: {pprint.pformat(response)}')
+# parsed_response = sns_client.list_subscriptions_by_topic(TopicArn=FT_TEST_ARN,)
+# print(f'Subscribers: {pprint.pformat(parsed_response)}')
 # res = {
 #     'MessageId': '811d328f-b633-5fa3-aab4-6a0f4ab56f94',
 #     'ResponseMetadata': {

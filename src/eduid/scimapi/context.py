@@ -1,16 +1,19 @@
 import logging
 import logging.config
-from typing import Optional
+from typing import Optional, Union
+from uuid import UUID
 
 from eduid.queue.db.message import MessageDB
 from eduid.scimapi.config import ScimApiConfig
+from eduid.scimapi.context_request import ContextRequest
 from eduid.scimapi.db.eventdb import ScimApiEventDB
-from eduid.scimapi.db.groupdb import ScimApiGroupDB
-from eduid.scimapi.db.invitedb import ScimApiInviteDB
-from eduid.scimapi.db.userdb import ScimApiUserDB
+from eduid.scimapi.db.groupdb import ScimApiGroup, ScimApiGroupDB
+from eduid.scimapi.db.invitedb import ScimApiInvite, ScimApiInviteDB
+from eduid.scimapi.db.userdb import ScimApiUser, ScimApiUserDB
 from eduid.scimapi.log import init_logging
+from eduid.scimapi.models.scimbase import SCIMResourceType
 from eduid.scimapi.notifications import NotificationRelay
-from eduid.scimapi.utils import urlappend
+from eduid.scimapi.utils import make_etag, urlappend
 from eduid.userdb.signup.invitedb import SignupInviteDB
 
 
@@ -74,3 +77,19 @@ class Context(object):
 
     def get_eventdb(self, data_owner: str) -> Optional[ScimApiEventDB]:
         return self._eventdbs.get(data_owner)
+
+    def url_for(self, *args) -> str:
+        url = self.base_url
+        for arg in args:
+            url = urlappend(url, f'{arg}')
+        return url
+
+    def resource_url(self, resource_type: SCIMResourceType, scim_id: UUID) -> str:
+        return self.url_for(resource_type.value + 's', str(scim_id))
+
+    def check_version(self, req: ContextRequest, db_obj: Union[ScimApiGroup, ScimApiUser, ScimApiInvite]) -> bool:
+        if req.headers.get('IF-MATCH') == make_etag(db_obj.version):
+            return True
+        self.logger.error(f'Version mismatch')
+        self.logger.debug(f'{req.headers.get("IF-MATCH")} != {make_etag(db_obj.version)}')
+        return False

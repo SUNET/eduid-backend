@@ -3,20 +3,21 @@ from datetime import timedelta
 from typing import Any, Dict, Mapping, Optional
 from uuid import UUID, uuid4
 
-from falcon.testing import Result
+from requests import Response
 
 from eduid.scimapi.db.eventdb import EventLevel, ScimApiEvent
-from eduid.scimapi.schemas.event import EventResponse, EventResponseSchema, NutidEventExtensionV1
-from eduid.scimapi.schemas.scimbase import SCIMResourceType, SCIMSchema
+from eduid.scimapi.models.event import EventResponse, NutidEventExtensionV1
+from eduid.scimapi.models.scimbase import SCIMResourceType, SCIMSchema
 from eduid.scimapi.testing import ScimApiTestCase
 from eduid.scimapi.utils import make_etag
+from eduid.userdb.testing import normalised_data
 
 
 @dataclass
 class EventApiResult:
-    result: Result
+    response: Response
     event: NutidEventExtensionV1
-    response: EventResponse
+    parsed_response: EventResponse
     request: Optional[Mapping] = None
 
 
@@ -33,27 +34,32 @@ class TestEventResource(ScimApiTestCase):
             'schemas': [SCIMSchema.NUTID_EVENT_CORE_V1.value, SCIMSchema.NUTID_EVENT_V1.value],
             SCIMSchema.NUTID_EVENT_V1.value: event,
         }
-        result = self.client.simulate_post(path='/Events/', body=self.as_json(req), headers=self.headers)
+        response = self.client.post(url='/Events/', data=self.as_json(req), headers=self.headers)
         if expect_success:
-            self._assertResponse(result)
-        response: EventResponse = EventResponseSchema().load(result.json)
-        return EventApiResult(request=req, event=response.nutid_event_v1, result=result, response=response)
+            self._assertResponse(response)
+        parsed_response = EventResponse.parse_raw(response.text)
+        return EventApiResult(
+            request=req, event=parsed_response.nutid_event_v1, response=response, parsed_response=parsed_response
+        )
 
     def _fetch_event(self, event_id: UUID) -> EventApiResult:
-        result = self.client.simulate_get(path=f'/Events/{str(event_id)}', headers=self.headers)
-        self._assertResponse(result)
-        response: EventResponse = EventResponseSchema().load(result.json)
-        return EventApiResult(event=response.nutid_event_v1, result=result, response=response)
+        response = self.client.get(url=f'/Events/{str(event_id)}', headers=self.headers)
+        self._assertResponse(response)
+        parsed_response = EventResponse.parse_raw(response.text)
+        return EventApiResult(event=parsed_response.nutid_event_v1, response=response, parsed_response=parsed_response)
 
     def _assertEventUpdateSuccess(self, req: Mapping, response, event: ScimApiEvent):
         """ Function to validate successful responses to SCIM calls that update a event according to a request. """
 
-        if response.json.get('schemas') == [SCIMSchema.ERROR.value]:
-            self.fail(f'Got SCIM error response ({response.status}):\n{response.json}')
+        if response.json().get('schemas') == [SCIMSchema.ERROR.value]:
+            self.fail(f'Got SCIM error parsed_response ({response.status}):\n{response.json()}')
 
         expected_schemas = req.get('schemas', [SCIMSchema.NUTID_EVENT_CORE_V1.value])
-        if SCIMSchema.NUTID_EVENT_V1.value in response.json and SCIMSchema.NUTID_EVENT_V1.value not in expected_schemas:
-            # The API can always add this extension to the response, even if it was not in the request
+        if (
+            SCIMSchema.NUTID_EVENT_V1.value in response.json()
+            and SCIMSchema.NUTID_EVENT_V1.value not in expected_schemas
+        ):
+            # The API can always add this extension to the parsed_response, even if it was not in the request
             expected_schemas += [SCIMSchema.NUTID_EVENT_V1.value]
 
         self._assertScimResponseProperties(response, resource=event, expected_schemas=expected_schemas)
@@ -83,9 +89,9 @@ class TestEventResource(ScimApiTestCase):
         assert db_event.resource.last_modified == user.last_modified
         assert db_event.resource.external_id == user.external_id
         assert db_event.data == event['data']
-        # Verify what is returned in the response
-        assert result.response.id == db_event.scim_id
-        self._assertEventUpdateSuccess(req=result.request, response=result.result, event=db_event)
+        # Verify what is returned in the parsed_response
+        assert result.parsed_response.id == db_event.scim_id
+        self._assertEventUpdateSuccess(req=result.request, response=result.response, event=db_event)
 
     def test_create_and_fetch_event(self):
         user = self.add_user(identifier=str(uuid4()), external_id='test@example.org')
@@ -107,13 +113,14 @@ class TestEventResource(ScimApiTestCase):
         db_event = events[0]
 
         # Now fetch the event using SCIM
-        fetched = self._fetch_event(created.response.id)
-        assert fetched.response.id == db_event.scim_id
+        fetched = self._fetch_event(created.parsed_response.id)
+        assert fetched.parsed_response.id == db_event.scim_id
 
         # Verify that create and fetch returned the same data.
         # Compare as dict first because the output is easier to read.
-        assert asdict(created.event) == asdict(fetched.event)
-        assert created.event == fetched.event
+        assert normalised_data(created.event.dict(exclude_none=True)) == normalised_data(
+            fetched.event.dict(exclude_none=True)
+        )
 
         # For once, verify the actual SCIM message format too
         expected = {
@@ -145,4 +152,4 @@ class TestEventResource(ScimApiTestCase):
                 },
             },
         }
-        assert fetched.result.json == expected
+        assert fetched.response.json() == expected

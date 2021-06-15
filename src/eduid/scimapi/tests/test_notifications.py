@@ -5,7 +5,7 @@ import boto3
 from moto import mock_sns
 
 from eduid.scimapi.db.eventdb import EventLevel
-from eduid.scimapi.schemas.scimbase import SCIMResourceType, SCIMSchema
+from eduid.scimapi.models.scimbase import SCIMResourceType, SCIMSchema
 from eduid.scimapi.testing import ScimApiTestCase
 from eduid.scimapi.utils import make_etag
 
@@ -34,7 +34,7 @@ class TestNotifications(ScimApiTestCase):
         sns_client.create_topic(Name='mock-topic')
 
         req = {'schemas': [SCIMSchema.CORE_20_USER.value], 'externalId': 'test-id-1'}
-        response = self.client.simulate_post(path='/Users/', body=self.as_json(req), headers=self.headers)
+        response = self.client.post(url='/Users/', data=self.as_json(req), headers=self.headers)
         self._assertResponse(response, status_code=201)
 
     @mock_sns
@@ -44,7 +44,7 @@ class TestNotifications(ScimApiTestCase):
         sns_client.create_topic(Name='mock-topic')
 
         req = {'schemas': [SCIMSchema.CORE_20_GROUP.value], 'externalId': 'test-id-1', 'displayName': 'Test Group'}
-        response = self.client.simulate_post(path='/Groups/', body=self.as_json(req), headers=self.headers)
+        response = self.client.post(url='/Groups/', data=self.as_json(req), headers=self.headers)
         self._assertResponse(response, status_code=201)
 
     @mock_sns
@@ -65,5 +65,5 @@ class TestNotifications(ScimApiTestCase):
             'data': {'create_test': True},
         }
         req = {'schemas': [SCIMSchema.NUTID_EVENT_V1.value], SCIMSchema.NUTID_EVENT_V1.value: event}
-        result = self.client.simulate_post(path='/Events/', body=self.as_json(req), headers=self.headers)
+        result = self.client.post(url='/Events/', data=self.as_json(req), headers=self.headers)
         self._assertResponse(result)
