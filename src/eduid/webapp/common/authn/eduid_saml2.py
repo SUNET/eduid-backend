@@ -36,10 +36,12 @@ from typing import Optional
 from xml.etree.ElementTree import ParseError
 
 from flask import abort, redirect, request
+
+from eduid.webapp.common.session.namespaces import AuthnRequestRef
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.ident import decode
-from saml2.response import LogoutResponse, UnsolicitedResponse
+from saml2.response import AuthnResponse, LogoutResponse, UnsolicitedResponse
 from werkzeug.wrappers import Response
 
 from eduid.userdb import UserDB
@@ -81,7 +83,8 @@ def get_authn_ctx(session_info: SessionInfo) -> Optional[str]:
 def get_authn_request(
     saml2_config: SPConfig,
     session: EduidSession,
-    came_from: str,
+    relay_state: str,
+    authn_id: AuthnRequestRef,
     selected_idp: Optional[str],
     force_authn: bool = False,
     sign_alg: Optional[str] = None,
@@ -97,7 +100,7 @@ def get_authn_request(
     try:
         (session_id, info) = client.prepare_for_authenticate(
             entityid=selected_idp,
-            relay_state=came_from,
+            relay_state=relay_state,
             binding=BINDING_HTTP_REDIRECT,
             sigalg=sign_alg,
             digest_alg=digest_alg,
@@ -108,13 +111,15 @@ def get_authn_request(
         raise
 
     oq_cache = OutstandingQueriesCache(session.authn.sp.pysaml2_dicts)
-    oq_cache.set(session_id, came_from)
+    oq_cache.set(session_id, authn_id)
     return info
 
 
-def get_authn_response(saml2_config: SPConfig, session: EduidSession, raw_response: str) -> SessionInfo:
+def get_authn_response(saml2_config: SPConfig, session: EduidSession, raw_response: str) -> AuthnResponse:
     """
-    Check a SAML response and return the 'session_info' pysaml2 dict.
+    Check a SAML response and return the the response.
+
+    The response can be used to retrieve a session_info dict.
 
     Example session_info:
 
@@ -164,11 +169,10 @@ def get_authn_response(saml2_config: SPConfig, session: EduidSession, raw_respon
 
     session_id = response.session_id()
     oq_cache.delete(session_id)
-    session_info = response.session_info()
 
-    logger.debug('Session info:\n{!s}\n\n'.format(pprint.pformat(session_info)))
+    logger.debug(f'Response {response.session_id()}, session info:\n{pprint.pformat(response.session_info)}\n\n')
 
-    return session_info
+    return response
 
 
 def authenticate(session_info: SessionInfo, strip_suffix: Optional[str], userdb: UserDB) -> Optional[User]:

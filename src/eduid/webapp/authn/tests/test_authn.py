@@ -35,10 +35,13 @@ import json
 import logging
 import os
 import time
+import uuid
 from datetime import datetime
 from typing import Any, Callable, Dict, Mapping
 
 from flask import Blueprint
+
+from eduid.webapp.common.session.namespaces import AuthnRequestRef
 from saml2.s_utils import deflate_and_base64_encode
 from six.moves.urllib_parse import quote_plus
 from werkzeug.exceptions import NotFound
@@ -153,9 +156,17 @@ class AuthnAPITestBase(EduidAPITestCase):
         :param next_url: Next url
         """
         with self.app.test_client() as c:
-            resp = c.get('{}?next={}'.format(url, next_url))
+            resp = c.get(f'{url}?next={next_url}')
+            authn_id = AuthnRequestRef(str(uuid.uuid4()))
             authn_req = get_location(
-                get_authn_request(self.app.saml2_config, session, next_url, None, force_authn=force_authn)
+                get_authn_request(
+                    saml2_config=self.app.saml2_config,
+                    session=session,
+                    relay_state=next_url,
+                    authn_id=authn_id,
+                    selected_idp=None,
+                    force_authn=force_authn,
+                )
             )
             idp_url = authn_req.split('?')[0]
             self.assertEqual(resp.status_code, 302)

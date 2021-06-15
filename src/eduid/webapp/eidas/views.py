@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from typing import Union
+from uuid import uuid4
 
 from flask import Blueprint, abort, make_response, redirect, request, url_for
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -13,12 +14,13 @@ from eduid.webapp.common.api.decorators import MarshalWith, require_user
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import FluxData, redirect_with_msg, success_response
 from eduid.webapp.common.api.schemas.csrf import EmptyResponse
-from eduid.webapp.common.api.utils import get_unique_hash, urlappend
+from eduid.webapp.common.api.utils import urlappend
 from eduid.webapp.common.authn.acs_enums import EidasAcsAction
 from eduid.webapp.common.authn.acs_registry import get_action, schedule_action
 from eduid.webapp.common.authn.eduid_saml2 import BadSAMLResponse
 from eduid.webapp.common.authn.utils import get_location
 from eduid.webapp.common.session import session
+from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
 from eduid.webapp.eidas.acs_actions import nin_verify_BACKDOOR
 from eduid.webapp.eidas.app import current_eidas_app as current_app
 from eduid.webapp.eidas.helpers import (
@@ -106,19 +108,24 @@ def _authn(
     :return: redirect response
     """
     redirect_url = request.args.get('next', redirect_url)
-    relay_state = get_unique_hash()
-    session.eidas.redirect_urls[relay_state] = redirect_url
-    current_app.logger.info('Cached redirect_url {} for relay_state {}'.format(redirect_url, relay_state))
+    _authn_id = AuthnRequestRef(str(uuid4()))
+    # TODO: Remove, replaced by sp.authns.redirect_url below
+    session.eidas.redirect_urls[_authn_id] = redirect_url
+    session.eidas.sp.authns[_authn_id] = SP_AuthnRequest(post_authn_action=action, redirect_url=redirect_url)
+    current_app.logger.debug(f'Stored SP_AuthnRequest[{_authn_id}]: {session.eidas.sp.authns[_authn_id]}')
 
     idp = request.args.get('idp')
-    current_app.logger.debug('Requested IdP: {}'.format(idp))
+    current_app.logger.debug(f'Requested IdP: {idp}')
     idps = current_app.saml2_config.metadata.identity_providers()
-    current_app.logger.debug('IdPs from metadata: {}'.format(idps))
+    current_app.logger.debug(f'IdPs from metadata: {idps}')
 
     if idp is not None and idp in idps:
-        authn_request = create_authn_request(relay_state, idp, required_loa, force_authn=force_authn)
+        authn_request = create_authn_request(
+            relay_state=_authn_id, selected_idp=idp, required_loa=required_loa, force_authn=force_authn,
+        )
+        # TODO: Remove, replaced by session.eidas.sp.authns above
         schedule_action(action, session.eidas.sp)
-        current_app.logger.info('Redirecting the user to {} for {}'.format(idp, action))
+        current_app.logger.info(f'Redirecting the user to {idp} for {action}')
         return redirect(get_location(authn_request))
     abort(make_response('Requested IdP not found in metadata', 404))
 
@@ -139,6 +146,12 @@ def assertion_consumer_service() -> WerkzeugResponse:
         current_app.logger.error(f'BadSAMLResponse: {e}')
         return make_response(str(e), 400)
 
+    _authn_id = AuthnRequestRef(authn_response.session_id())
+    # TODO: Enable this in a subsequent release
+    # if _authn_id not in session.authn.sp.authns:
+    #    current_app.logger.info(f'Unknown response. Redirecting user to {unsolicited_response_redirect_url}')
+    #    return redirect(unsolicited_response_redirect_url)
+
     session_info = authn_response.session_info()
 
     current_app.logger.debug(f'Auth response:\n{authn_response}\n\n')
@@ -148,7 +161,7 @@ def assertion_consumer_service() -> WerkzeugResponse:
     if current_app.conf.environment == EduidEnvironment.staging:
         session_info = staging_nin_remap(session_info)
 
-    action = get_action(default_action=None, sp_data=session.eidas.sp)
+    action = get_action(default_action=None, sp_data=session.eidas.sp, authndata=session.eidas.sp.authns.get(_authn_id))
     return action(session_info)
 
 

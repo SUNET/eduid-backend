@@ -1,16 +1,10 @@
 # -*- coding: utf-8 -*-
 
+import logging
 from enum import unique
 from xml.etree.ElementTree import ParseError
 
 from dateutil.parser import parse as dt_parse
-from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
-from saml2.client import Saml2Client
-from saml2.metadata import entity_descriptor
-from saml2.request import AuthnRequest
-from saml2.response import AuthnResponse, SAMLError
-from saml2.saml import AuthnContextClassRef
-from saml2.samlp import RequestedAuthnContext
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.webapp.common.api.messages import TranslatableMsg
@@ -19,8 +13,17 @@ from eduid.webapp.common.authn.eduid_saml2 import BadSAMLResponse, get_authn_ctx
 from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.session import session
 from eduid.webapp.eidas.app import current_eidas_app as current_app
+from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
+from saml2.client import Saml2Client
+from saml2.metadata import entity_descriptor
+from saml2.request import AuthnRequest
+from saml2.response import AuthnResponse, SAMLError, UnsolicitedResponse
+from saml2.saml import AuthnContextClassRef
+from saml2.samlp import RequestedAuthnContext
 
 __author__ = 'lundberg'
+
+logger = logging.getLogger(__name__)
 
 
 @unique
@@ -62,7 +65,7 @@ def create_authn_request(
     }
 
     # LOA
-    current_app.logger.debug('Requesting AuthnContext {}'.format(required_loa))
+    logger.debug('Requesting AuthnContext {}'.format(required_loa))
     loa_uri = current_app.conf.authentication_context_map[required_loa]
     requested_authn_context = RequestedAuthnContext(
         authn_context_class_ref=AuthnContextClassRef(text=loa_uri), comparison='exact'
@@ -80,7 +83,7 @@ def create_authn_request(
             **kwargs,
         )
     except TypeError:
-        current_app.logger.error('Unable to know which IdP to use')
+        logger.error('Unable to know which IdP to use')
         raise
 
     oq_cache = OutstandingQueriesCache(session.eidas.sp.pysaml2_dicts)
@@ -98,16 +101,23 @@ def parse_authn_response(saml_response: str) -> AuthnResponse:
     try:
         # process the authentication response
         response = client.parse_authn_request_response(saml_response, BINDING_HTTP_POST, outstanding_queries)
-    except SAMLError as e:
-        current_app.logger.error('SAML response is not verified: {}'.format(e))
-        raise BadSAMLResponse(str(e))
     except ParseError as e:
-        current_app.logger.error('SAML response is not correctly formatted: {}'.format(e))
-        raise BadSAMLResponse('SAML response XML document could not be parsed: {}'.format(e))
+        logger.error(f'SAML response is not correctly formatted: {e}')
+        raise BadSAMLResponse(f'SAML response XML document could not be parsed: {e}')
+    except UnsolicitedResponse as e:
+        logger.exception('Unsolicited SAML response')
+        # Extra debug to try and find the cause for some of these that seem to be incorrect
+        logger.debug(f'Session: {session}')
+        logger.debug(f'Outstanding queries cache: {oq_cache}')
+        logger.debug(f'Outstanding queries: {outstanding_queries}')
+        raise e
+    except SAMLError as e:
+        logger.error(f'SAML response is not verified: {e}')
+        raise BadSAMLResponse(str(e))
 
     if response is None:
-        current_app.logger.error('SAML response is None')
-        raise BadSAMLResponse("SAML response has errors. Please check the logs")
+        logger.error('SAML response is None')
+        raise BadSAMLResponse('SAML response has errors. Please check the logs')
 
     session_id = response.session_id()
     oq_cache.delete(session_id)
@@ -119,9 +129,9 @@ def is_required_loa(session_info: SessionInfo, required_loa: str) -> bool:
     loa_uri = current_app.conf.authentication_context_map[required_loa]
     if authn_context == loa_uri:
         return True
-    current_app.logger.error('Asserted authn context class does not match required class')
-    current_app.logger.error('Asserted: {}'.format(authn_context))
-    current_app.logger.error('Required: {}'.format(loa_uri))
+    logger.error('Asserted authn context class does not match required class')
+    logger.error(f'Asserted: {authn_context}')
+    logger.error(f'Required: {loa_uri}')
     return False
 
 
@@ -135,9 +145,9 @@ def is_valid_reauthn(session_info: SessionInfo, max_age: int = 60) -> bool:
     authn_instant = dt_parse(session_info['authn_info'][0][2])
     age = now - authn_instant
     if age.total_seconds() <= max_age:
-        current_app.logger.debug(f'Re-authn is valid, authn instant {authn_instant}, age {age}, max_age {max_age}s')
+        logger.debug(f'Re-authn is valid, authn instant {authn_instant}, age {age}, max_age {max_age}s')
         return True
-    current_app.logger.error(f'Authn instant {authn_instant} too old (age {age}, max_age {max_age} seconds)')
+    logger.error(f'Authn instant {authn_instant} too old (age {age}, max_age {max_age} seconds)')
     return False
 
 
