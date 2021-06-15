@@ -75,7 +75,7 @@ class HTTPErrorDetail(HTTPException):
         return self._error_detail
 
     @property
-    def extra_headers(self) -> Dict:
+    def extra_headers(self) -> Optional[Dict]:
         return self._extra_headers
 
     @extra_headers.setter

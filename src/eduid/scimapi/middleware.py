@@ -43,7 +43,7 @@ class BaseMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
 
 
 class ScimMiddleware(BaseMiddleware):
-    async def dispatch(self, req: Request, call_next):
+    async def dispatch(self, req: Request, call_next) -> Response:
         req = self.make_context_request(req)
         self.context.logger.debug(f'process_request: {req.method} {req.url.path}')
         # TODO: fix me? is this needed?
@@ -86,7 +86,7 @@ class AuthenticationMiddleware(BaseMiddleware):
         for regex in self.no_authn_urls:
             m = re.match(regex, url.path)
             if m is not None:
-                self.context.logger.debug('{} matched allow list'.format(path))
+                self.context.logger.debug('{} matched allow list'.format(url.path))
                 return True
         return False
 
@@ -127,3 +127,4 @@ class AuthenticationMiddleware(BaseMiddleware):
         req.context.eventdb = self.context.get_eventdb(data_owner)
 
         self.context.logger.debug(f'Bearer token data owner: {data_owner}')
+        return await call_next(req)

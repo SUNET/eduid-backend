@@ -230,7 +230,7 @@ async def on_post(req: ContextRequest, resp: Response, create_request: UserCreat
 
 
 @users_router.post('/.search', response_model=ListResponse, response_model_exclude_none=True)
-async def on_post(req: ContextRequest, resp: Response, query: SearchRequest):
+async def search(req: ContextRequest, resp: Response, query: SearchRequest):
     """
        POST /Users/.search
        Host: scim.eduid.se

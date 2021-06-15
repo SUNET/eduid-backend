@@ -155,7 +155,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
         return result.acknowledged
 
     def create_group(self, create_request: GroupCreateRequest) -> ScimApiGroup:
-        extension_data = None
+        extension_data = dict()
         if create_request.nutid_group_v1 is not None:
             extension_data = create_request.nutid_group_v1.data
         group = ScimApiGroup(
@@ -219,7 +219,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
             logger.debug(f'Old members: {db_group.graph.members}')
             logger.debug(f'New members: {updated_members}')
 
-        extension_data = None
+        extension_data = dict()
         if update_request.nutid_group_v1 is not None:
             extension_data = update_request.nutid_group_v1.data
         _sg_ext = GroupExtensions(data=extension_data)
