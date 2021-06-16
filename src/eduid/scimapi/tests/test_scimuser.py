@@ -8,13 +8,13 @@ from uuid import UUID, uuid4
 
 import bson
 from bson import ObjectId
-from falcon.testing import Result
+from requests import Response
 
 from eduid.scimapi.db.common import ScimApiLinkedAccount
 from eduid.scimapi.db.eventdb import EventStatus
 from eduid.scimapi.db.userdb import ScimApiProfile, ScimApiUser
-from eduid.scimapi.schemas.scimbase import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
-from eduid.scimapi.schemas.user import LinkedAccount, NutidUserExtensionV1, Profile, UserResponse, UserResponseSchema
+from eduid.scimapi.models.scimbase import Email, LanguageTag, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
+from eduid.scimapi.models.user import LinkedAccount, NutidUserExtensionV1, Profile, UserResponse
 from eduid.scimapi.testing import ScimApiTestCase
 from eduid.scimapi.utils import filter_none, make_etag
 from eduid.userdb.testing import normalised_data
@@ -71,17 +71,13 @@ class TestScimUser(unittest.TestCase):
             name=Name(**asdict(db_user.name)),
             emails=[Email(**asdict(email)) for email in db_user.emails],
             phone_numbers=[PhoneNumber(**asdict(number)) for number in db_user.phone_numbers],
-            preferred_language='en',
+            preferred_language=LanguageTag('en'),
             schemas=[SCIMSchema.CORE_20_USER, SCIMSchema.NUTID_USER_V1],
             groups=[],
             nutid_user_v1=NutidUserExtensionV1(
                 profiles={name: Profile(**asdict(profile)) for name, profile in db_user.profiles.items()}
             ),
         )
-
-        scim = UserResponseSchema().dumps(user_response, sort_keys=True)
-        # Validation does not occur on serialization
-        UserResponseSchema().loads(scim)
 
         expected = {
             "emails": [{"primary": True, "type": "home", "value": "test@example.com"}],
@@ -111,7 +107,9 @@ class TestScimUser(unittest.TestCase):
             "preferredLanguage": "en",
             "schemas": [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_USER_V1.value],
         }
-        assert json.loads(scim) == expected
+        user_response_json = user_response.json(exclude_none=True, by_alias=True)
+        loaded_user_response = json.loads(user_response_json)
+        assert loaded_user_response == expected
 
     def test_to_scimuser_no_external_id(self):
         user_doc2 = {
@@ -143,10 +141,6 @@ class TestScimUser(unittest.TestCase):
             ),
         )
 
-        scim = UserResponseSchema().dumps(user_response)
-        # Validation does not occur on serialization
-        UserResponseSchema().loads(scim)
-
         expected = {
             'schemas': [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_USER_V1.value],
             "id": "a7851d21-eab9-4caa-ba5d-49653d65c452",
@@ -166,7 +160,9 @@ class TestScimUser(unittest.TestCase):
             "groups": [],
             "emails": [],
         }
-        assert json.loads(scim) == expected
+        user_response_json = user_response.json(exclude_none=True, by_alias=True)
+        loaded_user_response = json.loads(user_response_json)
+        assert loaded_user_response == expected
 
     def test_bson_serialization(self):
         user = ScimApiUser.from_dict(self.user_doc1)
@@ -177,9 +173,9 @@ class TestScimUser(unittest.TestCase):
 @dataclass
 class UserApiResult:
     request: Mapping[str, Any]
-    result: Result
+    response: Response
     nutid_user: NutidUserExtensionV1
-    response: UserResponse
+    parsed_response: UserResponse
 
 
 class TestUserResource(ScimApiTestCase):
@@ -190,47 +186,40 @@ class TestUserResource(ScimApiTestCase):
     def _assertUserUpdateSuccess(self, req: Mapping, response, user: ScimApiUser):
         """ Function to validate successful responses to SCIM calls that update a user according to a request. """
 
-        if response.json.get('schemas') == [SCIMSchema.ERROR.value]:
-            self.fail(f'Got SCIM error response ({response.status}):\n{response.json}')
+        if response.json().get('schemas') == [SCIMSchema.ERROR.value]:
+            self.fail(f'Got SCIM error parsed_response ({response.status}):\n{response.json}')
 
         expected_schemas = req.get('schemas', [SCIMSchema.CORE_20_USER.value])
-        if SCIMSchema.NUTID_USER_V1.value in response.json and SCIMSchema.NUTID_USER_V1.value not in expected_schemas:
-            # The API can always add this extension to the response, even if it was not in the request
+        if SCIMSchema.NUTID_USER_V1.value in response.json() and SCIMSchema.NUTID_USER_V1.value not in expected_schemas:
+            # The API can always add this extension to the parsed_response, even if it was not in the request
             expected_schemas += [SCIMSchema.NUTID_USER_V1.value]
 
         self._assertScimResponseProperties(response, resource=user, expected_schemas=expected_schemas)
 
         # Validate user update specifics
-        assert user.external_id == response.json.get('externalId'), 'user.externalId != response.json.get("externalId")'
-        self._assertName(user.name, response.json.get('name'))
+        assert user.external_id == response.json().get(
+            'externalId'
+        ), 'user.externalId != parsed_response.json().get("externalId")'
+        self._assertName(user.name, response.json().get('name'))
         _expected_emails = filter_none(normalised_data([email.to_dict() for email in user.emails]))
-        _obtained_emails = filter_none(normalised_data(response.json.get('emails', [])))
-        assert _obtained_emails == _expected_emails, 'response.json.get("email") != user.emails'
+        _obtained_emails = filter_none(normalised_data(response.json().get('emails', [])))
+        assert _obtained_emails == _expected_emails, 'parsed_response.json().get("email") != user.emails'
         _expected_phones = filter_none(normalised_data([number.to_dict() for number in user.phone_numbers]))
-        _obtained_phones = filter_none(normalised_data(response.json.get('phoneNumbers', [])))
-        assert _obtained_phones == _expected_phones, 'response.json.get("phoneNumbers") != user.phone_numbers'
-        assert user.preferred_language == response.json.get(
+        _obtained_phones = filter_none(normalised_data(response.json().get('phoneNumbers', [])))
+        assert _obtained_phones == _expected_phones, 'parsed_response.json().get("phoneNumbers") != user.phone_numbers'
+        assert user.preferred_language == response.json().get(
             'preferredLanguage'
-        ), 'user.preferred_language != response.json.get("preferredLanguage")'
+        ), 'user.preferred_language != parsed_response.json().get("preferredLanguage")'
 
-        # If the request has NUTID profiles, ensure they are present in the response
+        # If the request has NUTID profiles, ensure they are present in the parsed_response
         if SCIMSchema.NUTID_USER_V1.value in req:
             req_nutid = req[SCIMSchema.NUTID_USER_V1.value]
-            resp_nutid = response.json.get(SCIMSchema.NUTID_USER_V1.value)
+            resp_nutid = response.json().get(SCIMSchema.NUTID_USER_V1.value)
             self.assertEqual(
-                req_nutid, resp_nutid, 'Unexpected NUTID user data in response',
+                req_nutid, resp_nutid, 'Unexpected NUTID user data in parsed_response',
             )
         elif SCIMSchema.NUTID_USER_V1.value in response.json:
-            self.fail(f'Unexpected {SCIMSchema.NUTID_USER_V1.value} in the response')
-
-    # TODO: Should we implement this?
-    # def test_get_users(self):
-    #    for i in range(9):
-    #        self.add_user(identifier=str(uuid4()), external_id=f'test-id-{i}', profiles={'test': self.test_profile})
-    #    response = self.client.simulate_get(path=f'/Users', headers=self.headers)
-    #    self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json.get('schemas'))
-    #    resources = response.json.get('Resources')
-    #    self.assertEqual(self.userdb.db_count(), len(resources))
+            self.fail(f'Unexpected {SCIMSchema.NUTID_USER_V1.value} in the parsed_response')
 
     def _create_user(self, req: Dict[str, Any], expect_success: bool = True) -> UserApiResult:
         if 'schemas' not in req:
@@ -238,19 +227,19 @@ class TestUserResource(ScimApiTestCase):
             if SCIMSchema.NUTID_USER_V1.value in req:
                 _schemas += [SCIMSchema.NUTID_USER_V1.value]
             req['schemas'] = _schemas
-        result = self.client.simulate_post(path='/Users/', body=self.as_json(req), headers=self.headers)
+        response = self.client.post(url='/Users/', data=self.as_json(req), headers=self.headers)
         if expect_success:
-            self._assertResponse(result, status_code=201)
+            self._assertResponse(response, status_code=201)
         try:
-            response: UserResponse = UserResponseSchema().load(result.json)
-            nutid_user = response.nutid_user_v1
+            user_response = UserResponse.parse_raw(response.text)
+            nutid_user = user_response.nutid_user_v1
         except Exception:
             if not expect_success:
-                response = None  # type: ignore
+                user_response = None  # type: ignore
                 nutid_user = None  # type: ignore
             else:
                 raise
-        return UserApiResult(request=req, nutid_user=nutid_user, result=result, response=response)
+        return UserApiResult(request=req, nutid_user=nutid_user, response=response, parsed_response=user_response)
 
     def _update_user(
         self, req: Dict[str, Any], scim_id: UUID, version: Optional[ObjectId], expect_success: bool = True
@@ -265,23 +254,23 @@ class TestUserResource(ScimApiTestCase):
         _headers = dict(self.headers)  # copy
         if version:
             _headers['IF-MATCH'] = make_etag(version)
-        result = self.client.simulate_put(path=f'/Users/{scim_id}', body=self.as_json(req), headers=_headers)
+        response = self.client.put(url=f'/Users/{scim_id}', data=self.as_json(req), headers=_headers)
         if expect_success:
-            self._assertResponse(result)
+            self._assertResponse(response)
         try:
-            response: UserResponse = UserResponseSchema().load(result.json)
-            nutid_user = response.nutid_user_v1
+            user_response = UserResponse.parse_raw(response.text)
+            nutid_user = user_response.nutid_user_v1
         except Exception:
             if not expect_success:
-                response = None  # type: ignore
+                user_response = None  # type: ignore
                 nutid_user = None  # type: ignore
             else:
                 raise
-        return UserApiResult(request=req, nutid_user=nutid_user, result=result, response=response)
+        return UserApiResult(request=req, nutid_user=nutid_user, response=response, parsed_response=user_response)
 
     def test_get_user(self):
         db_user = self.add_user(identifier=str(uuid4()), external_id='test-id-1', profiles={'test': self.test_profile})
-        response = self.client.simulate_get(path=f'/Users/{db_user.scim_id}', headers=self.headers)
+        response = self.client.get(url=f'/Users/{db_user.scim_id}', headers=self.headers)
 
         _req = {
             SCIMSchema.NUTID_USER_V1.value: {'profiles': {'test': asdict(self.test_profile)}, 'linked_accounts': []},
@@ -312,7 +301,7 @@ class TestUserResource(ScimApiTestCase):
         db_user = self.userdb.get_user_by_external_id(req['externalId'])
         self.assertIsNotNone(db_user, 'Created user not found in the database')
 
-        self._assertUserUpdateSuccess(result.request, result.result, db_user)
+        self._assertUserUpdateSuccess(result.request, result.response, db_user)
 
         # check that the action resulted in an event in the database
         events = self.eventdb.get_events_by_resource(SCIMResourceType.USER, db_user.scim_id)
@@ -338,18 +327,18 @@ class TestUserResource(ScimApiTestCase):
         result1 = self._create_user(req)
 
         # check that the action resulted in an event in the database
-        events1 = self.eventdb.get_events_by_resource(SCIMResourceType.USER, result1.response.id)
+        events1 = self.eventdb.get_events_by_resource(SCIMResourceType.USER, result1.parsed_response.id)
         assert len(events1) == 1
         event = events1[0]
         assert event.resource.external_id == req['externalId']
         assert event.data['status'] == EventStatus.CREATED.value
 
         # Update the user without making any changes
-        result2 = self._update_user(req, result1.response.id, result1.response.meta.version)
+        result2 = self._update_user(req, result1.parsed_response.id, result1.parsed_response.meta.version)
         # Make sure the version wasn't updated
-        assert result1.response.meta.version == result2.response.meta.version
+        assert result1.parsed_response.meta.version == result2.parsed_response.meta.version
         # Make sure no additional event was created
-        events2 = self.eventdb.get_events_by_resource(SCIMResourceType.USER, result2.response.id)
+        events2 = self.eventdb.get_events_by_resource(SCIMResourceType.USER, result2.parsed_response.id)
         assert len(events2) == 1
         assert events1 == events2
 
@@ -363,11 +352,11 @@ class TestUserResource(ScimApiTestCase):
                 'linked_accounts': [],
             },
         }
-        response = self.client.simulate_post(path='/Users/', body=self.as_json(req), headers=self.headers)
+        response = self.client.post(url='/Users/', data=self.as_json(req), headers=self.headers)
         self._assertResponse(response, status_code=201)
 
         # Load the created user from the database, ensuring it was in fact created
-        db_user = self.userdb.get_user_by_scim_id(response.json['id'])
+        db_user = self.userdb.get_user_by_scim_id(response.json()['id'])
         self.assertIsNotNone(db_user, 'Created user not found in the database')
 
         self._assertUserUpdateSuccess(req, response, db_user)
@@ -384,9 +373,9 @@ class TestUserResource(ScimApiTestCase):
                 'profiles': {'test': {'attributes': {'displayName': 'Test User 2'}, 'data': {'test_key': 'test_value'}}}
             },
         }
-        response = self.client.simulate_post(path='/Users/', body=self.as_json(req), headers=self.headers)
+        response = self.client.post(url='/Users/', data=self.as_json(req), headers=self.headers)
         self._assertScimError(
-            response.json, schemas=['urn:ietf:params:scim:api:messages:2.0:Error'], detail='externalID must be unique'
+            response.json(), schemas=['urn:ietf:params:scim:api:messages:2.0:Error'], detail='externalID must be unique'
         )
 
     def test_update_user(self):
@@ -407,11 +396,9 @@ class TestUserResource(ScimApiTestCase):
             },
         }
         self.headers['IF-MATCH'] = make_etag(db_user.version)
-        response = self.client.simulate_put(
-            path=f'/Users/{db_user.scim_id}', body=self.as_json(req), headers=self.headers
-        )
+        response = self.client.put(url=f'/Users/{db_user.scim_id}', data=self.as_json(req), headers=self.headers)
         self._assertResponse(response)
-        db_user = self.userdb.get_user_by_scim_id(response.json['id'])
+        db_user = self.userdb.get_user_by_scim_id(response.json()['id'])
         self._assertUserUpdateSuccess(req, response, db_user)
 
         # check that the action resulted in an event in the database
@@ -437,13 +424,13 @@ class TestUserResource(ScimApiTestCase):
                 'linked_accounts': [],
             },
         }
-        create_response = self.client.simulate_post(path='/Users/', body=self.as_json(req), headers=self.headers)
+        create_response = self.client.post(url='/Users/', data=self.as_json(req), headers=self.headers)
         self._assertResponse(create_response, status_code=201)
 
         # Update the user
         req = {
             'schemas': [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_USER_V1.value],
-            'id': create_response.json['id'],
+            'id': create_response.json()['id'],
             'externalId': 'test-id-1',
             'name': {'familyName': 'Testsson', 'givenName': 'Test', 'middleName': 'T'},
             'emails': [{'primary': True, 'type': 'home', 'value': 'test2@example.com'}],
@@ -460,12 +447,12 @@ class TestUserResource(ScimApiTestCase):
             },
         }
         self.headers['IF-MATCH'] = create_response.headers['etag']
-        response = self.client.simulate_put(
-            path=f'/Users/{create_response.json["id"]}', body=self.as_json(req), headers=self.headers
+        response = self.client.put(
+            url=f'/Users/{create_response.json()["id"]}', data=self.as_json(req), headers=self.headers
         )
         self._assertResponse(response)
 
-        db_user = self.userdb.get_user_by_scim_id(response.json['id'])
+        db_user = self.userdb.get_user_by_scim_id(response.json()['id'])
         self._assertUserUpdateSuccess(req, response, db_user)
 
     def test_update_user_set_external_id(self):
@@ -482,11 +469,9 @@ class TestUserResource(ScimApiTestCase):
             },
         }
         self.headers['IF-MATCH'] = make_etag(db_user.version)
-        response = self.client.simulate_put(
-            path=f'/Users/{db_user.scim_id}', body=self.as_json(req), headers=self.headers
-        )
+        response = self.client.put(url=f'/Users/{db_user.scim_id}', data=self.as_json(req), headers=self.headers)
         self._assertResponse(response)
-        db_user = self.userdb.get_user_by_scim_id(response.json['id'])
+        db_user = self.userdb.get_user_by_scim_id(response.json()['id'])
         self._assertUserUpdateSuccess(req, response, db_user)
 
     def test_update_user_duplicated_external_id(self):
@@ -506,11 +491,9 @@ class TestUserResource(ScimApiTestCase):
             },
         }
         self.headers['IF-MATCH'] = make_etag(db_user.version)
-        response = self.client.simulate_put(
-            path=f'/Users/{db_user.scim_id}', body=self.as_json(req), headers=self.headers
-        )
+        response = self.client.put(url=f'/Users/{db_user.scim_id}', data=self.as_json(req), headers=self.headers)
         self._assertScimError(
-            response.json, schemas=['urn:ietf:params:scim:api:messages:2.0:Error'], detail='externalID must be unique'
+            response.json(), schemas=['urn:ietf:params:scim:api:messages:2.0:Error'], detail='externalID must be unique'
         )
 
     def test_search_user_external_id(self):
@@ -582,10 +565,10 @@ class TestUserResource(ScimApiTestCase):
         }
         result1 = self._create_user(req)
 
-        self._assertResponse(result1.result, status_code=201)
-        db_user = self.userdb.get_user_by_scim_id(str(result1.response.id))
+        self._assertResponse(result1.response, status_code=201)
+        db_user = self.userdb.get_user_by_scim_id(str(result1.parsed_response.id))
         assert db_user
-        self._assertUserUpdateSuccess(req, result1.result, db_user)
+        self._assertUserUpdateSuccess(req, result1.response, db_user)
 
         # Verify that the linked account was stored in the database
         assert db_user.linked_accounts == [_db_account]
@@ -596,14 +579,14 @@ class TestUserResource(ScimApiTestCase):
         req[SCIMSchema.NUTID_USER_V1.value]['linked_accounts'] = [account.to_dict()]
 
         # Update the user
-        result2 = self._update_user(req, result1.response.id, result1.response.meta.version)
-        self._assertResponse(result2.result, status_code=200)
-        db_user = self.userdb.get_user_by_scim_id(str(result2.response.id))
+        result2 = self._update_user(req, result1.parsed_response.id, result1.parsed_response.meta.version)
+        self._assertResponse(result2.response, status_code=200)
+        db_user = self.userdb.get_user_by_scim_id(str(result2.parsed_response.id))
         assert db_user
-        self._assertUserUpdateSuccess(req, result2.result, db_user)
+        self._assertUserUpdateSuccess(req, result2.response, db_user)
 
         # Make sure the version was updated
-        assert result1.response.meta.version != result2.response.meta.version
+        assert result1.parsed_response.meta.version != result2.parsed_response.meta.version
 
         # Verify the updated account made it into the database
         assert db_user.linked_accounts == [_db_account]
@@ -614,10 +597,10 @@ class TestUserResource(ScimApiTestCase):
         req = {
             'externalId': 'test-id-9',
             'name': {'familyName': 'Testsson', 'givenName': 'Test', 'middleName': 'Testaren'},
-            SCIMSchema.NUTID_USER_V1.value: {'profiles': {}, 'linked_accounts': [asdict(account)]},
+            SCIMSchema.NUTID_USER_V1.value: {'profiles': {}, 'linked_accounts': [account.dict(exclude_none=True)]},
         }
         result1 = self._create_user(req, expect_success=False)
-        self._assertScimError(json=result1.result.json, detail='Invalid nutid linked_accounts')
+        self._assertScimError(json=result1.response.json(), detail='Invalid nutid linked_accounts')
 
     def test_update_user_set_linked_accounts(self):
         db_account1 = ScimApiLinkedAccount(issuer='eduid.se', value='test1@dev.eduid.se')
@@ -629,8 +612,8 @@ class TestUserResource(ScimApiTestCase):
             SCIMSchema.NUTID_USER_V1.value: {'profiles': {}, 'linked_accounts': [account2.to_dict()]},
         }
         result = self._update_user(req, db_user.scim_id, version=db_user.version)
-        self._assertResponse(result.result)
-        self._assertUserUpdateSuccess(req, result.result, db_user)
+        self._assertResponse(result.response)
+        self._assertUserUpdateSuccess(req, result.response, db_user)
 
     def test_update_user_set_linked_accounts2(self):
         """ Test updating linked accounts sorted 'wrong' """
@@ -647,8 +630,8 @@ class TestUserResource(ScimApiTestCase):
             },
         }
         result = self._update_user(req, db_user.scim_id, version=db_user.version)
-        self._assertResponse(result.result)
-        self._assertUserUpdateSuccess(req, result.result, db_user)
+        self._assertResponse(result.response)
+        self._assertUserUpdateSuccess(req, result.response, db_user)
         db_user = self.userdb.get_user_by_scim_id(str(db_user.scim_id))
         assert db_user
         db_account2 = ScimApiLinkedAccount(issuer=account2.issuer, value=account2.value, parameters=account2.parameters)
@@ -671,19 +654,21 @@ class TestUserResource(ScimApiTestCase):
             'startIndex': start,
             'count': count,
         }
-        response = self.client.simulate_post(path='/Users/.search', body=self.as_json(req), headers=self.headers)
-        logger.info(f'Search response:\n{response.json}')
+        response = self.client.post(url='/Users/.search', data=self.as_json(req), headers=self.headers)
+        logger.info(f'Search parsed_response:\n{response.json}')
         if return_json:
             return response.json
         self._assertResponse(response)
         expected_schemas = [SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value]
-        response_schemas = response.json.get('schemas')
+        response_schemas = response.json().get('schemas')
         self.assertIsInstance(response_schemas, list, 'Response schemas not present, or not a list')
         self.assertEqual(
-            sorted(set(expected_schemas)), sorted(set(response_schemas)), 'Unexpected schema(s) in search response'
+            sorted(set(expected_schemas)),
+            sorted(set(response_schemas)),
+            'Unexpected schema(s) in search parsed_response',
         )
 
-        resources = response.json.get('Resources')
+        resources = response.json().get('Resources')
 
         if expected_user is not None:
             expected_num_resources = 1
@@ -700,7 +685,7 @@ class TestUserResource(ScimApiTestCase):
         if expected_total_results is not None:
             self.assertEqual(
                 expected_total_results,
-                response.json.get('totalResults'),
+                response.json().get('totalResults'),
                 f'Response totalResults expected to be {expected_total_results}',
             )
 
@@ -708,9 +693,9 @@ class TestUserResource(ScimApiTestCase):
             self.assertEqual(
                 str(expected_user.scim_id),
                 resources[0].get('id'),
-                f'Search response user does not have the expected id: {str(expected_user.scim_id)}',
+                f'Search parsed_response user does not have the expected id: {str(expected_user.scim_id)}',
             )
 
-        self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json.get('schemas'))
-        resources = response.json.get('Resources')
+        self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json().get('schemas'))
+        resources = response.json().get('Resources')
         return resources

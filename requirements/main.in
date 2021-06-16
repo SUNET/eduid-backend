@@ -27,7 +27,7 @@ pwgen>=0.8.2,==0.8.*
 py-bcrypt
 pyOpenSSL
 pyXMLSecurity[PKCS11]==0.21
-pydantic
+pydantic[email]
 pymongo
 pynacl
 pysaml2>=7.0.1,==7.*

@@ -1,60 +1,73 @@
 from __future__ import annotations
 
-import json
 import logging
 import traceback
 import uuid
-from dataclasses import asdict, dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
-import falcon
+from fastapi import HTTPException, Request
+from fastapi.exception_handlers import http_exception_handler
+from fastapi.exceptions import RequestValidationError
+from pydantic import BaseModel
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.responses import JSONResponse
 
-from eduid.scimapi.schemas.scimbase import SCIMSchema
-from eduid.scimapi.utils import filter_none
+from eduid.scimapi.models.scimbase import SCIMSchema
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class ErrorDetail(object):
+class ErrorDetail(BaseModel):
     scimType: Optional[str] = None
-    schemas: List[str] = field(default_factory=lambda: [SCIMSchema.ERROR.value])
-    detail: Optional[str] = None
+    schemas: List[str] = [SCIMSchema.ERROR.value]
+    detail: Optional[Union[str, Dict, List]] = None
     status: Optional[int] = None
 
 
-# Catch and handle falcons default exceptions
-def method_not_allowed_handler(ex: falcon.HTTPMethodNotAllowed, req: falcon.Request, resp: falcon.Response, params):
-    orig_headers = ex.headers
-    e = MethodNotAllowedMalformed(allowed_methods=orig_headers.get('Allow').split(','))
-    e.extra_headers = orig_headers
-    return e.handle(e, req, resp, params)
+class SCIMErrorResponse(JSONResponse):
+    media_type = "application/scim+json"
 
 
-def unsupported_media_type_handler(
-    ex: falcon.HTTPUnsupportedMediaType, req: falcon.Request, resp: falcon.Response, params
-):
-    e = UnsupportedMediaTypeMalformed(detail=ex.description)
-    return e.handle(e, req, resp, params)
-
-
-def unexpected_error_handler(ex: Exception, req: falcon.Request, resp: falcon.Response, params):
+async def unexpected_error_handler(req: Request, ex: StarletteHTTPException):
     error_id = uuid.uuid4()
     logger.error(f'Unexpected error {error_id}: {ex}')
     logger.error(traceback.format_exc())
-    e = ServerInternal()
-    e.error_detail.detail = f'Please reference the error id {error_id} when reporting this issue'
-    return e.handle(e, req, resp, params)
+    ex.detail = f'Please reference the error id {error_id} when reporting this issue'
+    return await http_exception_handler(req, ex)
 
 
-class HTTPErrorDetail(falcon.HTTPError):
-    def __init__(self, **kwargs):
-        schemas = kwargs.pop('schemas', [SCIMSchema.ERROR.value])
-        scim_type = kwargs.pop('scim_type', None)
-        detail = kwargs.pop('detail', None)
-        super().__init__(**kwargs)
-        status = int(self.status.split(' ')[0])
-        self._error_detail = ErrorDetail(scimType=scim_type, schemas=schemas, detail=detail, status=status)
+async def validation_exception_handler(req: Request, ex: RequestValidationError):
+    resp = SCIMErrorResponse()
+    resp.status_code = 400
+    detail = ErrorDetail(
+        schemas=[SCIMSchema.ERROR.value], scimType='invalidSyntax', detail=ex.errors(), status=resp.status_code
+    )
+    resp.body = detail.json(exclude_none=True).encode('utf-8')
+    return resp
+
+
+async def http_error_detail_handler(req: Request, ex: HTTPErrorDetail):
+    resp = SCIMErrorResponse()
+    resp.status_code = ex.status_code
+    resp.body = ex.error_detail.json(exclude_none=True).encode('utf-8')
+    if ex.extra_headers:
+        resp.headers.update(ex.extra_headers)
+    return resp
+
+
+class HTTPErrorDetail(HTTPException):
+    def __init__(
+        self,
+        status_code: int,
+        detail: str = None,
+        schemas: Optional[List[str]] = None,
+        scim_type: Optional[str] = None,
+    ):
+        if schemas is None:
+            schemas = [SCIMSchema.ERROR.value]
+
+        super().__init__(status_code=status_code, detail=detail)
+        self._error_detail = ErrorDetail(scimType=scim_type, schemas=schemas, detail=detail, status=self.status_code)
         self._extra_headers: Optional[Dict] = None
 
     @property
@@ -62,63 +75,50 @@ class HTTPErrorDetail(falcon.HTTPError):
         return self._error_detail
 
     @property
-    def extra_headers(self):
+    def extra_headers(self) -> Optional[Dict]:
         return self._extra_headers
 
     @extra_headers.setter
     def extra_headers(self, headers: Dict):
         self._extra_headers = headers
 
-    def to_dict(self, obj_type=dict):
-        result = filter_none(asdict(self._error_detail))
-        return result
 
-    @staticmethod
-    def handle(ex: HTTPErrorDetail, req: falcon.Request, resp: falcon.Response, params):
-        resp.status = ex.status
-        resp.content_type = 'application/scim+json'
-        resp.body = json.dumps(ex.to_dict())
-        if ex.extra_headers:
-            for key, value in ex.extra_headers.items():
-                resp.set_header(key, value)
-
-
-class BadRequest(HTTPErrorDetail, falcon.HTTPBadRequest):
+class BadRequest(HTTPErrorDetail):
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(status_code=400, **kwargs)
         if not self.error_detail.detail:
             self.error_detail.detail = 'Bad Request'
 
 
-class Unauthorized(HTTPErrorDetail, falcon.HTTPUnauthorized):
+class Unauthorized(HTTPErrorDetail):
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(status_code=401, **kwargs)
         if not self.error_detail.detail:
             self.error_detail.detail = 'Unauthorized request'
 
 
-class NotFound(HTTPErrorDetail, falcon.HTTPNotFound):
+class NotFound(HTTPErrorDetail):
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(status_code=404, **kwargs)
         if not self.error_detail.detail:
             self.error_detail.detail = 'Resource not found'
 
 
-class UnsupportedMediaTypeMalformed(HTTPErrorDetail, falcon.HTTPUnsupportedMediaType):
+class UnsupportedMediaTypeMalformed(HTTPErrorDetail):
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(status_code=422, **kwargs)
         if not self.error_detail.detail:
             self.error_detail.detail = 'Request was made with an unsupported media type'
 
 
-class MethodNotAllowedMalformed(HTTPErrorDetail, falcon.HTTPMethodNotAllowed):
+class MethodNotAllowedMalformed(HTTPErrorDetail):
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(status_code=405, **kwargs)
         if not self.error_detail.detail:
             allowed_methods = kwargs.get('allowed_methods')
             self.error_detail.detail = f'The used HTTP method is not allowed. Allowed methods: {allowed_methods}'
 
 
-class ServerInternal(HTTPErrorDetail, falcon.HTTPInternalServerError):
+class ServerInternal(HTTPErrorDetail):
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(status_code=500, **kwargs)

@@ -9,9 +9,7 @@ from datetime import datetime
 from typing import Any, Dict, Mapping, Optional, Type, Union
 from uuid import UUID
 
-from bson import ObjectId
-
-from eduid.scimapi.schemas.scimbase import EmailType, PhoneNumberType
+from eduid.scimapi.models.scimbase import EmailType, PhoneNumberType, WeakVersion
 from eduid.userdb.util import utc_now
 
 __author__ = 'lundberg'
@@ -23,7 +21,7 @@ class ScimApiResourceBase(ABC):
 
     scim_id: UUID = field(default_factory=lambda: uuid.uuid4())
     external_id: Optional[str] = None
-    version: ObjectId = field(default_factory=lambda: ObjectId())
+    version: WeakVersion = field(default_factory=lambda: WeakVersion())
     created: datetime = field(default_factory=lambda: utc_now())
     last_modified: datetime = field(default_factory=lambda: utc_now())
 

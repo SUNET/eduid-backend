@@ -1,13 +1,9 @@
 # -*- coding: utf-8 -*-
-from dataclasses import asdict
 from datetime import datetime
 from unittest import TestCase
 from uuid import uuid4
 
-from bson import ObjectId
-from marshmallow_dataclass import class_schema
-
-from eduid.scimapi.schemas.scimbase import BaseResponse, Meta, SCIMResourceType, SCIMSchema, SubResource
+from eduid.scimapi.models.scimbase import BaseResponse, Meta, SCIMResourceType, SCIMSchema, SubResource, WeakVersion
 from eduid.userdb.testing import normalised_data
 
 __author__ = 'lundberg'
@@ -20,12 +16,11 @@ class TestScimBase(TestCase):
             resource_type=SCIMResourceType.GROUP,
             created=datetime.utcnow(),
             last_modified=datetime.utcnow(),
-            version=ObjectId(),
+            version=WeakVersion(),
         )
-        schema = class_schema(Meta)
-        meta_dump = schema().dump(meta)
-        loaded_meta = schema().load(meta_dump)
-        assert normalised_data(asdict(meta)) == normalised_data(asdict(loaded_meta))
+        meta_dump = meta.json()
+        loaded_meta = Meta.parse_raw(meta_dump)
+        assert normalised_data(meta.dict()) == normalised_data(loaded_meta.dict())
 
     def test_base_response(self) -> None:
         meta = Meta(
@@ -33,13 +28,12 @@ class TestScimBase(TestCase):
             resource_type=SCIMResourceType.GROUP,
             created=datetime.utcnow(),
             last_modified=datetime.utcnow(),
-            version=ObjectId(),
+            version=WeakVersion(),
         )
         base = BaseResponse(id=uuid4(), schemas=[SCIMSchema.CORE_20_USER, SCIMSchema.CORE_20_GROUP], meta=meta)
-        schema = class_schema(BaseResponse)
-        base_dump = schema().dump(base)
-        loaded_base = schema().load(base_dump)
-        assert normalised_data(asdict(base)) == normalised_data(asdict(loaded_base))
+        base_dump = base.json()
+        loaded_base = BaseResponse.parse_raw(base_dump)
+        assert normalised_data(base.dict()) == normalised_data(loaded_base.dict())
 
     def test_hashable_subresources(self):
         a = {

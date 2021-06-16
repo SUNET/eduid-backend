@@ -56,7 +56,7 @@ def _make_request(
     if r.status_code not in [200, 201, 204]:
         try:
             logger.error(
-                f'Failure response ({r.status_code}) received from server:\n'
+                f'Failure parsed_response ({r.status_code}) received from server:\n'
                 f'{json.dumps(r.json(), sort_keys=True, indent=4)}'
             )
         except Exception:

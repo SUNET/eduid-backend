@@ -7,7 +7,7 @@ from eduid.scimapi.context import Context
 from eduid.scimapi.db.groupdb import ScimApiGroup
 from eduid.scimapi.db.invitedb import ScimApiInvite
 from eduid.scimapi.db.userdb import ScimApiUser
-from eduid.scimapi.schemas.scimbase import SCIMResourceType
+from eduid.scimapi.models.scimbase import SCIMResourceType
 from eduid.scimapi.utils import make_etag, urlappend
 
 

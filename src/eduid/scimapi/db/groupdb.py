@@ -17,7 +17,7 @@ from eduid.graphdb.groupdb import GroupDB
 from eduid.graphdb.groupdb import User as GraphUser
 from eduid.scimapi.db.basedb import ScimApiBaseDB
 from eduid.scimapi.db.common import ScimApiResourceBase
-from eduid.scimapi.schemas.group import GroupCreateRequest, GroupUpdateRequest
+from eduid.scimapi.models.group import GroupCreateRequest, GroupUpdateRequest
 
 __author__ = 'lundberg'
 
@@ -155,9 +155,12 @@ class ScimApiGroupDB(ScimApiBaseDB):
         return result.acknowledged
 
     def create_group(self, create_request: GroupCreateRequest) -> ScimApiGroup:
+        extension_data = dict()
+        if create_request.nutid_group_v1 is not None:
+            extension_data = create_request.nutid_group_v1.data
         group = ScimApiGroup(
             external_id=create_request.external_id,
-            extensions=GroupExtensions(data=create_request.nutid_group_v1.data),
+            extensions=GroupExtensions(data=extension_data),
             display_name=create_request.display_name,
         )
         group.graph = GraphGroup(identifier=str(group.scim_id), display_name=create_request.display_name)
@@ -216,7 +219,10 @@ class ScimApiGroupDB(ScimApiBaseDB):
             logger.debug(f'Old members: {db_group.graph.members}')
             logger.debug(f'New members: {updated_members}')
 
-        _sg_ext = GroupExtensions(data=update_request.nutid_group_v1.data)
+        extension_data = dict()
+        if update_request.nutid_group_v1 is not None:
+            extension_data = update_request.nutid_group_v1.data
+        _sg_ext = GroupExtensions(data=extension_data)
         if db_group.extensions != _sg_ext:
             changed = True
             db_group.extensions = _sg_ext

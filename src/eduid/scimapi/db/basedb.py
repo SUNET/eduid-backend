@@ -19,8 +19,8 @@ class ScimApiBaseDB(BaseDB):
         Locate and count documents in the db using a custom search filter.
 
         :param spec: the search filter
-        :param fields: the fields to return in the search result
-        :param skip: Number of documents to skip before returning result
+        :param fields: the fields to return in the search response
+        :param skip: Number of documents to skip before returning response
         :param limit: Limit documents returned to this number
         :param raise_on_missing:  If True, raise exception if no matching user object can be found.
         :return: A list of documents and total number of documents matching the query
