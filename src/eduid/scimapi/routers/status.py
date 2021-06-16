@@ -15,7 +15,7 @@ status_router = APIRouter(route_class=ContextRequestRoute, prefix='/status')
 
 
 @status_router.get('/healthy', response_model=StatusResponse, response_model_exclude_none=True)
-def healthy(req: ContextRequest, resp: Response) -> Mapping:
+async def healthy(req: ContextRequest, resp: Response) -> Mapping:
     res = get_cached_response(req=req, resp=resp, key='health_check')
     if not res:
         default_data_owner = list(req.app.context.config.data_owners.keys())[0]

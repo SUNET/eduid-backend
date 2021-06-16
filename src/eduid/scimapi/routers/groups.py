@@ -222,7 +222,7 @@ async def on_post(req: ContextRequest, resp: Response, create_request: GroupCrea
 
 
 @groups_router.delete('/{scim_id}')
-def on_delete(req: ContextRequest, resp: Response, scim_id: str) -> None:
+async def on_delete(req: ContextRequest, resp: Response, scim_id: str) -> None:
     req.app.context.logger.info(f'Deleting group {scim_id}')
     db_group = req.context.groupdb.get_group_by_scim_id(scim_id=scim_id)
     req.app.context.logger.debug(f'Found group: {db_group}')
