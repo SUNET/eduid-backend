@@ -53,7 +53,7 @@ class MongoTemporaryInstanceReplicaSet(MongoTemporaryInstance):
 
     @classmethod
     def get_instance(
-        cls: Type[MongoTemporaryInstanceReplicaSet], max_retry_seconds: int = 20
+        cls: Type[MongoTemporaryInstanceReplicaSet], max_retry_seconds: int = 60
     ) -> MongoTemporaryInstanceReplicaSet:
         return cast(MongoTemporaryInstanceReplicaSet, super().get_instance(max_retry_seconds=max_retry_seconds))
 

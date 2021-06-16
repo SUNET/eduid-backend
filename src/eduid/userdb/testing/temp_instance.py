@@ -85,7 +85,7 @@ class EduidTemporaryInstance(ABC):
                 interval += interval
 
     @classmethod
-    def get_instance(cls: Type[EduidTemporaryInstance], max_retry_seconds: int = 20) -> EduidTemporaryInstance:
+    def get_instance(cls: Type[EduidTemporaryInstance], max_retry_seconds: int = 60) -> EduidTemporaryInstance:
         """
         Start a new temporary instance, or retrieve an already started one.
 
