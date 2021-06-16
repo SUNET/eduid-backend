@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Optional
 
 from fastapi import APIRouter, Response
 
@@ -19,7 +18,7 @@ from eduid.scimapi.routers.utils.invites import (
     invites_to_resources_dicts,
     send_invite_mail,
 )
-from eduid.scimapi.search import SearchFilter, parse_search_filter
+from eduid.scimapi.search import parse_search_filter
 
 __author__ = 'lundberg'
 
@@ -27,7 +26,7 @@ invites_router = APIRouter(route_class=ContextRequestRoute, prefix='/Invites')
 
 
 @invites_router.get('/{scim_id}', response_model=InviteResponse, response_model_exclude_none=True)
-def on_get(req: ContextRequest, resp: Response, scim_id: Optional[str] = None):
+def on_get(req: ContextRequest, resp: Response, scim_id: Optional[str] = None) -> InviteResponse:
     if scim_id is None:
         raise BadRequest(detail='Not implemented')
     req.app.context.logger.info(f'Fetching invite {scim_id}')
@@ -42,7 +41,7 @@ def on_get(req: ContextRequest, resp: Response, scim_id: Optional[str] = None):
 
 
 @invites_router.post('/', response_model=InviteResponse, response_model_exclude_none=True)
-def on_post(req: ContextRequest, resp: Response, create_request: InviteCreateRequest):
+def on_post(req: ContextRequest, resp: Response, create_request: InviteCreateRequest) -> InviteResponse:
     """
            POST /Invites  HTTP/1.1
            Host: example.com
@@ -123,7 +122,7 @@ def on_post(req: ContextRequest, resp: Response, create_request: InviteCreateReq
 
 
 @invites_router.delete('/{scim_id}')
-def on_delete(req: ContextRequest, resp: Response, scim_id: str):
+def on_delete(req: ContextRequest, resp: Response, scim_id: str) -> None:
     req.app.context.logger.info(f'Deleting invite {scim_id}')
     db_invite = req.context.invitedb.get_invite_by_scim_id(scim_id=scim_id)
     req.app.context.logger.debug(f'Found invite: {db_invite}')
@@ -158,7 +157,7 @@ def on_delete(req: ContextRequest, resp: Response, scim_id: str):
 
 
 @invites_router.post('/.search', response_model=ListResponse, response_model_exclude_none=True)
-def search(req: ContextRequest, query: SearchRequest):
+def search(req: ContextRequest, query: SearchRequest) -> ListResponse:
     """
        POST /Invites/.search
        Host: scim.eduid.se

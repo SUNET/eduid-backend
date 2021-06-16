@@ -19,7 +19,7 @@ events_router = APIRouter(route_class=ContextRequestRoute, prefix='/Events')
 
 
 @events_router.get('/{scim_id}', response_model=EventResponse, response_model_exclude_none=True)
-def on_get(req: ContextRequest, resp: Response, scim_id: Optional[str] = None):
+def on_get(req: ContextRequest, resp: Response, scim_id: Optional[str] = None) -> EventResponse:
     if scim_id is None:
         raise BadRequest(detail='Not implemented')
     req.app.context.logger.info(f'Fetching event {scim_id}')
@@ -30,7 +30,7 @@ def on_get(req: ContextRequest, resp: Response, scim_id: Optional[str] = None):
 
 
 @events_router.post('/', response_model=EventResponse, response_model_exclude_none=True)
-def on_post(req: ContextRequest, resp: Response, create_request: EventCreateRequest):
+def on_post(req: ContextRequest, resp: Response, create_request: EventCreateRequest) -> EventResponse:
     """
     POST /Events  HTTP/1.1
     Host: example.com

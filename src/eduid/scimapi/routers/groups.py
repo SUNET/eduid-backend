@@ -17,7 +17,7 @@ groups_router = APIRouter(route_class=ContextRequestRoute, prefix='/Groups')
 
 
 @groups_router.get('/', response_model=ListResponse)
-async def on_get_all(req: ContextRequest):
+async def on_get_all(req: ContextRequest) -> ListResponse:
     db_groups = req.context.groupdb.get_groups()
     resources = []
     for db_group in db_groups:
@@ -26,7 +26,7 @@ async def on_get_all(req: ContextRequest):
 
 
 @groups_router.get('/{scim_id}', response_model=GroupResponse, response_model_exclude_none=True)
-async def on_get_one(req: ContextRequest, resp: Response, scim_id: str):
+async def on_get_one(req: ContextRequest, resp: Response, scim_id: str) -> GroupResponse:
     """
     GET /Groups/c3819cbe-c893-4070-824c-fe3d0db8f955  HTTP/1.1
     Host: example.com
@@ -66,7 +66,9 @@ async def on_get_one(req: ContextRequest, resp: Response, scim_id: str):
 
 
 @groups_router.put('/{scim_id}', response_model=GroupResponse, response_model_exclude_none=True)
-async def on_put(req: ContextRequest, resp: Response, scim_id: str, update_request: GroupUpdateRequest):
+async def on_put(
+    req: ContextRequest, resp: Response, scim_id: str, update_request: GroupUpdateRequest
+) -> GroupResponse:
     """
     PUT /Groups/c3819cbe-c893-4070-824c-fe3d0db8f955  HTTP/1.1
     Host: example.com
@@ -166,7 +168,7 @@ async def on_put(req: ContextRequest, resp: Response, scim_id: str, update_reque
 
 
 @groups_router.post('/', response_model=GroupResponse, response_model_exclude_none=True)
-async def on_post(req: ContextRequest, resp: Response, create_request: GroupCreateRequest):
+async def on_post(req: ContextRequest, resp: Response, create_request: GroupCreateRequest) -> GroupResponse:
     """
     POST /Groups  HTTP/1.1
     Host: example.com
@@ -220,7 +222,7 @@ async def on_post(req: ContextRequest, resp: Response, create_request: GroupCrea
 
 
 @groups_router.delete('/{scim_id}')
-def on_delete(req: ContextRequest, resp: Response, scim_id: str):
+def on_delete(req: ContextRequest, resp: Response, scim_id: str) -> None:
     req.app.context.logger.info(f'Deleting group {scim_id}')
     db_group = req.context.groupdb.get_group_by_scim_id(scim_id=scim_id)
     req.app.context.logger.debug(f'Found group: {db_group}')
@@ -248,7 +250,7 @@ def on_delete(req: ContextRequest, resp: Response, scim_id: str):
 
 
 @groups_router.post('/.search', response_model=ListResponse, response_model_exclude_none=True)
-async def search(req: ContextRequest, query: SearchRequest):
+async def search(req: ContextRequest, query: SearchRequest) -> ListResponse:
     """
     POST /Groups/.search
     Host: scim.eduid.se

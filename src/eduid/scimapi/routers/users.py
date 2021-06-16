@@ -25,7 +25,7 @@ users_router = APIRouter(route_class=ContextRequestRoute, prefix='/Users')
 
 
 @users_router.get('/{scim_id}', response_model=UserResponse, response_model_exclude_none=True)
-async def on_get(req: ContextRequest, resp: Response, scim_id: Optional[str] = None):
+async def on_get(req: ContextRequest, resp: Response, scim_id: Optional[str] = None) -> UserResponse:
     if scim_id is None:
         raise BadRequest(detail='Not implemented')
     req.app.context.logger.info(f'Fetching user {scim_id}')
@@ -37,7 +37,7 @@ async def on_get(req: ContextRequest, resp: Response, scim_id: Optional[str] = N
 
 
 @users_router.put('/{scim_id}', response_model=UserResponse, response_model_exclude_none=True)
-async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdateRequest, scim_id: str):
+async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdateRequest, scim_id: str) -> UserResponse:
     req.app.context.logger.info(f'Updating user {scim_id}')
     req.app.context.logger.debug(update_request)
     if scim_id != str(update_request.id):
@@ -139,7 +139,7 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
 
 
 @users_router.post('/', response_model=UserResponse, response_model_exclude_none=True)
-async def on_post(req: ContextRequest, resp: Response, create_request: UserCreateRequest):
+async def on_post(req: ContextRequest, resp: Response, create_request: UserCreateRequest) -> UserResponse:
     """
            POST /Users  HTTP/1.1
            Host: example.com
@@ -230,7 +230,7 @@ async def on_post(req: ContextRequest, resp: Response, create_request: UserCreat
 
 
 @users_router.post('/.search', response_model=ListResponse, response_model_exclude_none=True)
-async def search(req: ContextRequest, resp: Response, query: SearchRequest):
+async def search(req: ContextRequest, query: SearchRequest) -> ListResponse:
     """
        POST /Users/.search
        Host: scim.eduid.se

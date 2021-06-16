@@ -10,9 +10,7 @@ login_router = APIRouter(prefix='/login')
 
 
 @login_router.post('/')
-async def get_token(
-    self, token_req: TokenRequest, response: Response,
-):
+async def get_token(self, token_req: TokenRequest, response: Response) -> None:
     self.context.logger.info(f'Logging in')
     if token_req.data_owner not in self.context.config.data_owners:
         raise Unauthorized()
