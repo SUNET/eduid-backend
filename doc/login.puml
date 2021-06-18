@@ -40,7 +40,7 @@ else No acceptable version present
 end
 
 
-Client->"/tou": POST {"ref": reference, "user_accept": true, "version": version}
+Client->"/tou": POST {"ref": reference, "user_accepts": version}
 alt Acceptable
     "/tou"->Client: {"payload": {"finished": true}, "type": "POST_LOGIN_TOU_SUCCESS"}
 else Not acceptable
