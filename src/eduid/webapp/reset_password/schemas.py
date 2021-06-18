@@ -62,9 +62,6 @@ class ResetPasswordVerifyEmailResponseSchema(FluxStandardAction):
         email_code = fields.String(required=True)
         email_address = fields.String(required=True)
         extra_security = fields.Dict(required=True)
-        password_entropy = fields.Integer(required=True)
-        password_length = fields.Integer(required=True)
-        password_service_url = fields.String(required=True)
         success = fields.Bool(required=True)
         zxcvbn_terms = fields.List(required=True, cls_or_instance=fields.String)
 
