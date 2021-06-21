@@ -32,8 +32,7 @@ async def unexpected_error_handler(req: Request, ex: StarletteHTTPException):
     if ex.status_code >= 500:
         # Only log server errors
         error_id = uuid.uuid4()
-        logger.error(f'Unexpected error {error_id}: {ex}')
-        logger.error(traceback.format_exc())
+        logger.exception(f'Unexpected error {error_id}: {ex}')
         ex.detail = f'Please reference the error id {error_id} when reporting this issue'
     return await http_exception_handler(req, ex)
 
