@@ -98,8 +98,8 @@ class AuthenticationMiddleware(BaseMiddleware):
 
         auth = req.headers.get('Authorization')
 
-        if not auth or not auth.startswith('Bearer '):
-            # TODO: Authorization is optional at the moment
+        if not req.app.context.config.authorization_mandatory and (not auth or not auth.startswith('Bearer ')):
+            # Authorization is optional
             self.context.logger.info('No authorization header provided - proceeding anyway')
             req.context.data_owner = 'eduid.se'
             req.context.userdb = self.context.get_userdb(req.context.data_owner)
