@@ -256,10 +256,11 @@ class EidasTests(EduidAPITestCase):
 
         ps = urlparse(response.location)
         # Check the base part of the URL (everything except the query string)
-        redirect_url_no_params = urlunparse(ps._replace(query=None))
+        _ps = ps._replace(query='')  # type: ignore
+        redirect_url_no_params = urlunparse(_ps)
         assert redirect_url_no_params == expect_redirect_url
         # Check the msg in the query string
-        qs = parse_qs(ps.query)
+        qs = parse_qs(str(ps.query))
         if expect_error:
             assert qs['msg'] == [f':ERROR:{expect_msg.value}']
         else:
@@ -333,7 +334,7 @@ class EidasTests(EduidAPITestCase):
     def verify_token(
         self,
         endpoint: str,
-        eppn: str,
+        eppn: Optional[str],
         expect_msg: TranslatableMsg,
         expect_error: bool = False,
         expect_saml_error: bool = False,
@@ -361,7 +362,7 @@ class EidasTests(EduidAPITestCase):
     def _call_endpoint_and_saml_acs(
         self,
         endpoint: str,
-        eppn: str,
+        eppn: Optional[str],
         expect_msg: TranslatableMsg,
         expect_error: bool = False,
         expect_saml_error: bool = False,
