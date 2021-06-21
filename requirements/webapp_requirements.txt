@@ -53,15 +53,15 @@ blinker==1.4 \
     # via
     #   flask-mail
     #   raven
-boto3==1.17.95 \
-    --hash=sha256:8e5af9c7ea16ce1c35b7c3220d073dea9735bb1790107820d475462500ae1eff \
-    --hash=sha256:e61607211816c194dbe2701db48dcddc87cf19372e6f57a9ebe4dfe93dfe177c
+boto3==1.17.97 \
+    --hash=sha256:0ab5afc51461c30f27aebef944211d16f47697b98ff8d2e2f6e49e59584853bb \
+    --hash=sha256:77ea9ff6ce1d4a64839c358a713be80256584f478289a13562d1e0c1b9c362cc
     # via
     #   -c main.txt
     #   -r main.in
-botocore==1.20.95 \
-    --hash=sha256:240a9ef007292e986a4e11662f9038435d9d4fd242e083db160c86eb5c24af30 \
-    --hash=sha256:dc215f59735a3abde6c66a61f43f10d95bc18754d310da4e2037b3b8c4d8aa2d
+botocore==1.20.97 \
+    --hash=sha256:000cf4a3670ab47e14ddb5bd68fe050c6136029a478cf0b18a78779897d4175c \
+    --hash=sha256:f7e119cf3e0f4a36100f0e983583afa91a84fb27c479a1716820aee4f2e190ab
     # via
     #   -c main.txt
     #   boto3
@@ -72,9 +72,9 @@ cached-property==1.5.2 \
     # via
     #   -c main.txt
     #   -r sub_main.in
-celery[redis]==5.1.0 \
-    --hash=sha256:1329de1edeaf734ef859e630cb42df2c116d53e59d2f46433b13aed196e85620 \
-    --hash=sha256:65f061c04578cf189cd7352c192e1a79fdeb370b916bff792bcc769560e81184
+celery[redis]==5.1.1 \
+    --hash=sha256:54436cd97b031bf2e08064223240e2a83d601d9414bcb1b702f94c6c33c29485 \
+    --hash=sha256:b5399d76cf70d5cfac3ec993f8796ec1aa90d4cef55972295751f384758a80d7
     # via
     #   -c main.txt
     #   -r main.in
@@ -138,6 +138,7 @@ cryptography==3.4.7 \
     #   -c main.txt
     #   -r main.in
     #   fido2
+    #   jwcrypto
     #   oic
     #   pyopenssl
     #   pysaml2
@@ -151,6 +152,12 @@ defusedxml==0.7.1 \
     #   oic
     #   pysaml2
     #   pyxmlsecurity
+deprecated==1.2.12 \
+    --hash=sha256:08452d69b6b5bc66e8330adde0a4f8642e969b9e1702904d137eeb29c8ffc771 \
+    --hash=sha256:6d2de2de7931a968874481ef30208fd4e08da39177d61d3d4ebdf4366e7dbca1
+    # via
+    #   -c main.txt
+    #   jwcrypto
 dnspython==2.1.0 \
     --hash=sha256:95d12f6ef0317118d2a1a6fc49aac65ffec7eb8087474158f42f26a639135216 \
     --hash=sha256:e4a87f0b573201a0f3727fa18a516b055fd1107e0e5477cded4a2de497df1dd4
@@ -163,9 +170,9 @@ ecdsa==0.17.0 \
     # via
     #   -c main.txt
     #   python-jose
-elementpath==2.2.2 \
-    --hash=sha256:68de07c1aec3b1d33126111252cc699600dd1e45802625344aa6eb9e680ef157 \
-    --hash=sha256:7b0ac8e3e7a6a0b345e8b02187b5474a67c031b6b519dcc08b07f2cc42fbf627
+elementpath==2.2.3 \
+    --hash=sha256:60139b91ef9646e27381fd62b8c38f1fc8ebc78dc4bc231c08c51240062e58e6 \
+    --hash=sha256:f27d7c045c4f1f30d078f67ea7b0105d771708bd00106f28b3cabe075087bff4
     # via
     #   -c main.txt
     #   xmlschema
@@ -262,6 +269,12 @@ jmespath==0.10.0 \
     #   -c main.txt
     #   boto3
     #   botocore
+jwcrypto==0.9.1 \
+    --hash=sha256:12976a09895ec0076ce17c49ab7be64d6e63bcd7fd9a773e3fedf8011537a5f6 \
+    --hash=sha256:63531529218ba9869e14ef8c9e7b516865ede3facf9b0ef3d3ba68014da211f9
+    # via
+    #   -c main.txt
+    #   -r main.in
 kombu==5.1.0 \
     --hash=sha256:01481d99f4606f6939cdc9b637264ed353ee9e3e4f62cfb582324142c41a572d \
     --hash=sha256:e2dedd8a86c9077c350555153825a31e456a0dc20c15d5751f00137ec9c75f0a
@@ -456,9 +469,9 @@ pillow==8.2.0 \
     #   -r main.in
     #   reportlab
     #   xhtml2pdf
-prompt-toolkit==3.0.18 \
-    --hash=sha256:bf00f22079f5fadc949f42ae8ff7f05702826a97059ffcc6281036ad40ac6f04 \
-    --hash=sha256:e1b4f11b9336a28fa11810bc623c357420f69dfdb6d2dac41ca2c21a55c033bc
+prompt-toolkit==3.0.19 \
+    --hash=sha256:08360ee3a3148bdb5163621709ee322ec34fc4375099afa4bbf751e9b7b7fa4f \
+    --hash=sha256:7089d8d2938043508aa9420ec18ce0922885304cddae87fb96eebca942299f88
     # via
     #   -c main.txt
     #   click-repl
@@ -748,6 +761,7 @@ six==1.16.0 \
     #   ecdsa
     #   fido2
     #   html5lib
+    #   jwcrypto
     #   pyconfig
     #   pyjwkest
     #   pynacl
@@ -820,6 +834,11 @@ werkzeug==1.0.1 \
     --hash=sha256:2de2a5db0baeae7b2d2664949077c2ac63fbd16d98da0ff71837f7d1dea3fd43 \
     --hash=sha256:6c80b1e5ad3665290ea39320b91e1be1e0d5f60652b964a3070216de83d2e47c
     # via flask
+wrapt==1.12.1 \
+    --hash=sha256:b62ffa81fb85f4332a4f609cab4ac40709470da05643a082ec1eb88e6d9b97d7
+    # via
+    #   -c main.txt
+    #   deprecated
 xhtml2pdf==0.2.5 \
     --hash=sha256:6797e974fac66f0efbe927c1539a2756ca4fe8777eaa5882bac132fc76b39421
     # via
