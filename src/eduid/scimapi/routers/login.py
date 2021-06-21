@@ -1,7 +1,7 @@
 import datetime
 
 from fastapi import APIRouter, Response
-from jose import jwt
+from jwcrypto import jwt
 
 from eduid.scimapi.context_request import ContextRequest
 from eduid.scimapi.exceptions import Unauthorized
@@ -17,9 +17,12 @@ async def get_token(req: ContextRequest, resp: Response, token_req: TokenRequest
         raise Unauthorized()
     now = datetime.datetime.now(tz=datetime.timezone.utc)
     expire = now + datetime.timedelta(seconds=req.app.context.config.authorization_token_expire)
+    signing_key = req.app.context.jwks.get_key(req.app.context.config.signing_key_id)
     claims = {
+        'kid': req.app.context.config.signing_key_id,
         'data_owner': token_req.data_owner,
-        'exp': expire,
+        'exp': expire.timestamp(),
     }
-    token = jwt.encode(claims, req.app.context.config.authorization_token_secret, algorithm='HS256')
-    resp.headers['Authorization'] = f'Bearer {token}'
+    token = jwt.JWT(header={'alg': 'ES256'}, claims=claims)
+    token.make_signed_token(signing_key)
+    resp.headers['Authorization'] = f'Bearer {token.serialize()}'

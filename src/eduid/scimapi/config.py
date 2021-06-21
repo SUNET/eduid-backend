@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
@@ -28,9 +29,11 @@ class ScimApiConfig(RootConfig, LoggingConfigMixin, AWSMixin):
     mongo_uri: str = ''
     neo4j_uri: str = ''
     neo4j_config: Dict = Field(default_factory=dict)
-    authorization_token_secret: str = 'secret'
+    authorization_mandatory: bool = False
     authorization_token_expire: int = 5 * 60
-    no_authn_urls: List[str] = Field(default=['^/login$', '^/status/healthy$'])
+    keystore_path: Path
+    signing_key_id: str
+    no_authn_urls: List[str] = Field(default=['^/login/$', '^/status/healthy/$'])
     status_cache_seconds: int = 10
     data_owners: Dict[str, DataOwner] = Field(default={})
     # Invite config

@@ -2,8 +2,6 @@ import logging
 import os
 
 from mock import patch
-
-from eduid.workers.am import AmCelerySingleton
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.authn_context import requested_authn_context
 from saml2.client import Saml2Client
@@ -13,6 +11,7 @@ from eduid.webapp.common.authn.utils import get_saml2_config
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
 from eduid.webapp.idp.tests.test_api import IdPAPITests
 from eduid.webapp.idp.tests.test_app import IdPTests, LoginState
+from eduid.workers.am import AmCelerySingleton
 
 logger = logging.getLogger(__name__)
 

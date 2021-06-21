@@ -6,6 +6,7 @@ import uuid
 from dataclasses import asdict
 from typing import Any, Dict, List, Mapping, Optional, Union
 
+import pkg_resources
 from bson import ObjectId
 from requests import Response
 from starlette.testclient import TestClient
@@ -98,6 +99,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         if 'EDUID_CONFIG_YAML' not in os.environ:
             os.environ['EDUID_CONFIG_YAML'] = 'YAML_CONFIG_NOT_USED'
 
+        self.datadir = pkg_resources.resource_filename(__name__, 'tests/data')
         self.test_config = self._get_config()
         config = load_config(typ=ScimApiConfig, app_name='scimapi', ns='api', test_config=self.test_config)
         self.context = Context(config=config)
@@ -116,6 +118,12 @@ class ScimApiTestCase(MongoNeoTestCase):
             'Content-Type': 'application/scim+json',
             'Accept': 'application/scim+json',
         }
+
+    def _get_config(self) -> Dict:
+        config = super()._get_config()
+        config['keystore_path'] = f'{self.datadir}/testing_jwks.json'
+        config['signing_key_id'] = 'testing-scimapi-2106210000'
+        return config
 
     def add_user(
         self,

@@ -6,7 +6,6 @@ __author__ = 'lundberg'
 import json
 from uuid import uuid4
 
-from eduid.scimapi.models.scimbase import SCIMSchema
 from eduid.scimapi.testing import ScimApiTestCase
 
 
