@@ -580,9 +580,6 @@ class ResetPasswordTests(EduidAPITestCase):
             payload={
                 'email_address': 'johnsmith@example.com',
                 'extra_security': {'phone_numbers': [{'index': 0, 'number': 'XXXXXXXXXX09'}]},
-                'password_entropy': 25,
-                'password_length': 12,
-                'password_service_url': '/services/reset-password/',
                 'success': True,
                 'zxcvbn_terms': ['John', 'Smith', 'John', 'Smith', 'johnsmith', 'johnsmith2'],
             },
@@ -606,9 +603,6 @@ class ResetPasswordTests(EduidAPITestCase):
             payload={
                 'email_address': 'johnsmith@example.com',
                 'extra_security': {},
-                'password_entropy': 25,
-                'password_length': 12,
-                'password_service_url': '/services/reset-password/',
                 'success': True,
                 'zxcvbn_terms': ['John', 'Smith', 'John', 'Smith', 'johnsmith', 'johnsmith2'],
             },
