@@ -1,7 +1,9 @@
+import json
 import re
 
 from fastapi import Request, Response
-from jose import ExpiredSignatureError, jwt
+from jwcrypto import jwt
+from jwcrypto.common import JWException
 from starlette.datastructures import URL
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import PlainTextResponse
@@ -112,11 +114,13 @@ class AuthenticationMiddleware(BaseMiddleware):
             return await call_next(req)
 
         token = auth[len('Bearer ') :]
+        _jwt = jwt.JWT()
         try:
-            claims = jwt.decode(token, self.context.config.authorization_token_secret, algorithms=['HS256'])
-        except ExpiredSignatureError:
-            self.context.logger.info(f'Bearer token expired')
-            raise Unauthorized(detail='Signature expired')
+            _jwt.deserialize(token, req.app.context.jwks)
+            claims = json.loads(_jwt.claims)
+        except (JWException, KeyError) as e:
+            self.context.logger.info(f'Bearer token error: {e}')
+            raise Unauthorized(detail='Bearer token error')
 
         data_owner = claims.get('data_owner')
         if data_owner not in self.context.config.data_owners:
