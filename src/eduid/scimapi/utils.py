@@ -1,33 +1,15 @@
 import base64
+import logging
 from typing import AnyStr
 from uuid import uuid4
 
 from bson import ObjectId
+from jwcrypto import jwk
 
+from eduid.common.config.exceptions import BadConfiguration
+from eduid.scimapi.config import ScimApiConfig
 
-def urlappend(base: str, path: str) -> str:
-    """
-    :param base: Base url
-    :param path: Path to join to base
-    :return: Joined url
-
-    Used instead of urlparse.urljoin to append path to base in an obvious way.
-
-    >>> urlappend('https://test.com/base-path', 'my-path')
-    'https://test.com/base-path/my-path'
-    >>> urlappend('https://test.com/base-path/', 'my-path')
-    'https://test.com/base-path/my-path'
-    >>> urlappend('https://test.com/base-path/', '/my-path')
-    'https://test.com/base-path/my-path'
-    >>> urlappend('https://test.com/base-path', '/my-path')
-    'https://test.com/base-path/my-path'
-    >>> urlappend('https://test.com/base-path', '/my-path/')
-    'https://test.com/base-path/my-path/'
-    """
-    path = path.lstrip('/')
-    if not base.endswith('/'):
-        base = '{!s}/'.format(base)
-    return '{!s}{!s}'.format(base, path)
+logger = logging.getLogger(__name__)
 
 
 def b64_encode(b: bytes) -> str:
