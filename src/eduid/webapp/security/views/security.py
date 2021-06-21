@@ -38,6 +38,7 @@ from flask import Blueprint, abort, redirect, request, url_for
 from marshmallow import ValidationError
 from six.moves.urllib_parse import parse_qs, urlencode, urlparse, urlunparse
 
+from eduid.common.utils import urlappend
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.proofing import NinProofingElement
 from eduid.userdb.proofing.state import NinProofingState
@@ -46,7 +47,7 @@ from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, requi
 from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid.webapp.common.api.helpers import add_nin_to_user
 from eduid.webapp.common.api.messages import CommonMsg, error_response, success_response
-from eduid.webapp.common.api.utils import save_and_sync_user, urlappend
+from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.authn.vccs import add_credentials, revoke_all_credentials
 from eduid.webapp.common.session import session
 from eduid.webapp.security.app import current_security_app as current_app

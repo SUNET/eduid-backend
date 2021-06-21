@@ -35,9 +35,10 @@ from typing import Any, Mapping
 from flask import request
 
 from eduid.common.config.base import EduidEnvironment
+from eduid.common.utils import urlappend
 from eduid.userdb.actions.action import Action, ActionResult
 from eduid.webapp.actions.app import current_actions_app as current_app
-from eduid.webapp.common.api.utils import get_static_url_for, urlappend
+from eduid.webapp.common.api.utils import get_static_url_for
 
 
 class ActionError(Exception):

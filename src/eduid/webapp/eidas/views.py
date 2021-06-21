@@ -6,6 +6,7 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 
 # TODO: Import FidoCredential in credentials.__init__
 from eduid.common.config.base import EduidEnvironment
+from eduid.common.utils import urlappend
 from eduid.userdb import User
 from eduid.userdb.credentials.base import CredentialKey
 from eduid.userdb.credentials.fido import FidoCredential
@@ -13,7 +14,7 @@ from eduid.webapp.common.api.decorators import MarshalWith, require_user
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import FluxData, redirect_with_msg, success_response
 from eduid.webapp.common.api.schemas.csrf import EmptyResponse
-from eduid.webapp.common.api.utils import get_unique_hash, urlappend
+from eduid.webapp.common.api.utils import get_unique_hash
 from eduid.webapp.common.authn.acs_enums import EidasAcsAction
 from eduid.webapp.common.authn.acs_registry import get_action, schedule_action
 from eduid.webapp.common.authn.eduid_saml2 import BadSAMLResponse

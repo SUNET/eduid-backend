@@ -9,11 +9,11 @@ from uuid import UUID, uuid4
 
 from bson import ObjectId
 
+from eduid.common.utils import urlappend
 from eduid.scimapi.db.basedb import ScimApiBaseDB
 from eduid.scimapi.db.common import ScimApiResourceBase
 from eduid.scimapi.models.scimbase import SCIMResourceType
 from eduid.userdb.util import utc_now
-from eduid.webapp.common.api.utils import urlappend
 
 if TYPE_CHECKING:
     from eduid.scimapi.context import Context

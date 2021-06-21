@@ -9,15 +9,14 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import PlainTextResponse
 from starlette.types import Message
 
+from eduid.common.utils import urlappend
 from eduid.scimapi.context import Context
 from eduid.scimapi.context_request import ContextRequestMixin
 from eduid.scimapi.exceptions import Unauthorized
 
+
 # middleware needs to return a reponse
 # some background: https://github.com/tiangolo/fastapi/issues/458
-from eduid.webapp.common.api.utils import urlappend
-
-
 def return_error_response(status_code: int, detail: str):
     return PlainTextResponse(status_code=status_code, content=detail)
 

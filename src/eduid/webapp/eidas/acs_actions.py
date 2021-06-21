@@ -7,6 +7,7 @@ from flask import redirect, request
 from six.moves.urllib_parse import urlsplit, urlunsplit
 from werkzeug.wrappers import Response as WerkzeugResponse
 
+from eduid.common.utils import urlappend
 from eduid.userdb import User
 from eduid.userdb.credentials.fido import FidoCredential
 from eduid.userdb.logs import MFATokenProofing, SwedenConnectProofing
@@ -16,7 +17,7 @@ from eduid.webapp.common.api.decorators import require_user
 from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid.webapp.common.api.helpers import verify_nin_for_user
 from eduid.webapp.common.api.messages import CommonMsg, redirect_with_msg
-from eduid.webapp.common.api.utils import save_and_sync_user, urlappend, verify_relay_state
+from eduid.webapp.common.api.utils import save_and_sync_user, verify_relay_state
 from eduid.webapp.common.authn.acs_enums import EidasAcsAction
 from eduid.webapp.common.authn.acs_registry import acs_action
 from eduid.webapp.common.authn.eduid_saml2 import get_authn_ctx

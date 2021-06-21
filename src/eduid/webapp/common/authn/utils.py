@@ -50,7 +50,7 @@ from saml2.config import SPConfig
 # (and other type-checking tools) will evaluate the contents of that block.
 from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.common.misc.timeutil import utc_now
-from eduid.webapp.common.api.utils import urlappend
+from eduid.common.utils import urlappend
 from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.session.namespaces import TimestampedNS
 

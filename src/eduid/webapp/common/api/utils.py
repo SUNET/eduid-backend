@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from flask import Request, current_app
 
+from eduid.common.utils import urlappend
 from eduid.userdb import User, UserDB
 from eduid.userdb.exceptions import EduIDUserDBError, MultipleUsersReturned, UserDBValueError, UserDoesNotExist
 from eduid.webapp.common.api.exceptions import ApiException
@@ -106,31 +107,6 @@ def save_and_sync_user(
         raise EduIDUserDBError(f'user is not of type {private_userdb.UserClass}')
     private_userdb.save(user)
     return current_app.am_relay.request_user_sync(user, app_name_override=app_name_override)
-
-
-def urlappend(base: str, path: str) -> str:
-    """
-    :param base: Base url
-    :param path: Path to join to base
-    :return: Joined url
-
-    Used instead of urlparse.urljoin to append path to base in an obvious way.
-
-    >>> urlappend('https://test.com/base-path', 'my-path')
-    'https://test.com/base-path/my-path'
-    >>> urlappend('https://test.com/base-path/', 'my-path')
-    'https://test.com/base-path/my-path'
-    >>> urlappend('https://test.com/base-path/', '/my-path')
-    'https://test.com/base-path/my-path'
-    >>> urlappend('https://test.com/base-path', '/my-path')
-    'https://test.com/base-path/my-path'
-    >>> urlappend('https://test.com/base-path', '/my-path/')
-    'https://test.com/base-path/my-path/'
-    """
-    path = path.lstrip('/')
-    if not base.endswith('/'):
-        base = '{!s}/'.format(base)
-    return '{!s}{!s}'.format(base, path)
 
 
 def get_flux_type(req: Request, suffix: str) -> str:

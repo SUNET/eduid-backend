@@ -30,10 +30,10 @@ from werkzeug.exceptions import BadRequest, Forbidden, TooManyRequests
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.utils import urlappend
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.idp.user import SAMLAttributeSettings
 from eduid.webapp.common.api import exceptions
-from eduid.webapp.common.api.utils import urlappend
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import LoginContext
 from eduid.webapp.common.session.namespaces import IdP_PendingRequest, RequestRef

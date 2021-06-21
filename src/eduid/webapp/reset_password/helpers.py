@@ -41,6 +41,7 @@ from flask import render_template
 from flask_babel import gettext as _
 
 from eduid.common.config.base import EduidEnvironment
+from eduid.common.utils import urlappend
 from eduid.userdb.exceptions import DocumentDoesNotExist, UserDoesNotExist
 from eduid.userdb.logs import MailAddressProofing, PhoneNumberProofing
 from eduid.userdb.reset_password import (
@@ -54,7 +55,7 @@ from eduid.userdb.user import User
 from eduid.webapp.common.api.exceptions import MailTaskFailed, ThrottledException
 from eduid.webapp.common.api.helpers import send_mail
 from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response, success_response
-from eduid.webapp.common.api.utils import get_short_hash, get_unique_hash, save_and_sync_user, urlappend
+from eduid.webapp.common.api.utils import get_short_hash, get_unique_hash, save_and_sync_user
 from eduid.webapp.common.api.validation import is_valid_password
 from eduid.webapp.common.authn import fido_tokens
 from eduid.webapp.common.authn.utils import generate_password

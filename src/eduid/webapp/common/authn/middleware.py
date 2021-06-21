@@ -40,8 +40,8 @@ from flask import current_app
 from werkzeug.wrappers import Response
 from werkzeug.wsgi import get_current_url
 
+from eduid.common.utils import urlappend
 from eduid.webapp.common.api.app import EduIDBaseApp
-from eduid.webapp.common.api.utils import urlappend
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.redis_session import NoSessionDataFoundException
 
