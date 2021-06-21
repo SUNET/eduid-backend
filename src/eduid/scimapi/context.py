@@ -13,8 +13,9 @@ from eduid.scimapi.db.userdb import ScimApiUser, ScimApiUserDB
 from eduid.scimapi.log import init_logging
 from eduid.scimapi.models.scimbase import SCIMResourceType
 from eduid.scimapi.notifications import NotificationRelay
-from eduid.scimapi.utils import make_etag, urlappend
+from eduid.scimapi.utils import load_jwks, make_etag
 from eduid.userdb.signup.invitedb import SignupInviteDB
+from eduid.webapp.common.api.utils import urlappend
 
 
 class Context(object):
@@ -58,6 +59,9 @@ class Context(object):
 
         # Setup notifications
         self.notification_relay = NotificationRelay(self.config)
+
+        # Setup keystore
+        self.jwks = load_jwks(config)
 
     @property
     def base_url(self) -> str:

@@ -29,10 +29,11 @@ class SCIMErrorResponse(JSONResponse):
 
 
 async def unexpected_error_handler(req: Request, ex: StarletteHTTPException):
-    error_id = uuid.uuid4()
-    logger.error(f'Unexpected error {error_id}: {ex}')
-    logger.error(traceback.format_exc())
-    ex.detail = f'Please reference the error id {error_id} when reporting this issue'
+    if ex.status_code >= 500:
+        # Only log server errors
+        error_id = uuid.uuid4()
+        logger.exception(f'Unexpected error {error_id}: {ex}')
+        ex.detail = f'Please reference the error id {error_id} when reporting this issue'
     return await http_exception_handler(req, ex)
 
 
@@ -104,19 +105,19 @@ class NotFound(HTTPErrorDetail):
             self.error_detail.detail = 'Resource not found'
 
 
-class UnsupportedMediaTypeMalformed(HTTPErrorDetail):
-    def __init__(self, **kwargs):
-        super().__init__(status_code=422, **kwargs)
-        if not self.error_detail.detail:
-            self.error_detail.detail = 'Request was made with an unsupported media type'
-
-
 class MethodNotAllowedMalformed(HTTPErrorDetail):
     def __init__(self, **kwargs):
         super().__init__(status_code=405, **kwargs)
         if not self.error_detail.detail:
             allowed_methods = kwargs.get('allowed_methods')
             self.error_detail.detail = f'The used HTTP method is not allowed. Allowed methods: {allowed_methods}'
+
+
+class UnsupportedMediaTypeMalformed(HTTPErrorDetail):
+    def __init__(self, **kwargs):
+        super().__init__(status_code=422, **kwargs)
+        if not self.error_detail.detail:
+            self.error_detail.detail = 'Request was made with an unsupported media type'
 
 
 class ServerInternal(HTTPErrorDetail):

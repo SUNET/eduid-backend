@@ -12,8 +12,8 @@ from bson import ObjectId
 from eduid.scimapi.db.basedb import ScimApiBaseDB
 from eduid.scimapi.db.common import ScimApiResourceBase
 from eduid.scimapi.models.scimbase import SCIMResourceType
-from eduid.scimapi.utils import urlappend
 from eduid.userdb.util import utc_now
+from eduid.webapp.common.api.utils import urlappend
 
 if TYPE_CHECKING:
     from eduid.scimapi.context import Context

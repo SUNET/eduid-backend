@@ -86,10 +86,10 @@ import nacl.encoding
 import nacl.secret
 import nacl.utils
 import redis
+from bson import ObjectId
 
 # error: Module "redis" has no attribute "sentinel" according to mypy
 from redis import sentinel  # type: ignore
-from bson import ObjectId
 from saml2.saml import NameID
 
 from eduid.common.config.base import RedisConfig

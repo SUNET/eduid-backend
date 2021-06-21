@@ -1,7 +1,9 @@
+import json
 import re
 
 from fastapi import Request, Response
-from jose import ExpiredSignatureError, jwt
+from jwcrypto import jwt
+from jwcrypto.common import JWException
 from starlette.datastructures import URL
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import PlainTextResponse
@@ -11,9 +13,11 @@ from eduid.scimapi.context import Context
 from eduid.scimapi.context_request import ContextRequestMixin
 from eduid.scimapi.exceptions import Unauthorized
 
-
 # middleware needs to return a reponse
 # some background: https://github.com/tiangolo/fastapi/issues/458
+from eduid.webapp.common.api.utils import urlappend
+
+
 def return_error_response(status_code: int, detail: str):
     return PlainTextResponse(status_code=status_code, content=detail)
 
@@ -83,10 +87,11 @@ class AuthenticationMiddleware(BaseMiddleware):
         self.context.logger.debug('No auth allow urls: {}'.format(self.no_authn_urls))
 
     def _is_no_auth_path(self, url: URL) -> bool:
+        path = urlappend(url.path, '/')  # Make sure the path ends with / to match what we have in config
         for regex in self.no_authn_urls:
-            m = re.match(regex, url.path)
+            m = re.match(regex, path)
             if m is not None:
-                self.context.logger.debug('{} matched allow list'.format(url.path))
+                self.context.logger.debug('{} matched allow list'.format(path))
                 return True
         return False
 
@@ -98,8 +103,8 @@ class AuthenticationMiddleware(BaseMiddleware):
 
         auth = req.headers.get('Authorization')
 
-        if not auth or not auth.startswith('Bearer '):
-            # TODO: Authorization is optional at the moment
+        if not req.app.context.config.authorization_mandatory and (not auth or not auth.startswith('Bearer ')):
+            # Authorization is optional
             self.context.logger.info('No authorization header provided - proceeding anyway')
             req.context.data_owner = 'eduid.se'
             req.context.userdb = self.context.get_userdb(req.context.data_owner)
@@ -109,11 +114,13 @@ class AuthenticationMiddleware(BaseMiddleware):
             return await call_next(req)
 
         token = auth[len('Bearer ') :]
+        _jwt = jwt.JWT()
         try:
-            claims = jwt.decode(token, self.context.config.authorization_token_secret, algorithms=['HS256'])
-        except ExpiredSignatureError:
-            self.context.logger.info(f'Bearer token expired')
-            raise Unauthorized(detail='Signature expired')
+            _jwt.deserialize(token, req.app.context.jwks)
+            claims = json.loads(_jwt.claims)
+        except (JWException, KeyError) as e:
+            self.context.logger.info(f'Bearer token error: {e}')
+            raise Unauthorized(detail='Bearer token error')
 
         data_owner = claims.get('data_owner')
         if data_owner not in self.context.config.data_owners:
