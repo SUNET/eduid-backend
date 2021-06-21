@@ -8,9 +8,6 @@ from uuid import UUID
 from bson import ObjectId
 from dateutil.parser import ParserError, parse  # type: ignore
 from langcodes import standardize_tag
-from marshmallow import fields, missing
-from marshmallow_dataclass import NewType
-from marshmallow_enum import EnumField
 from pydantic import BaseModel, EmailStr, Field
 
 from eduid.scimapi.utils import make_etag

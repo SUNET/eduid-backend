@@ -7,12 +7,12 @@ from eduid.graphdb.groupdb import Group as GraphGroup
 from eduid.scimapi.config import ScimApiConfig
 from eduid.scimapi.context import Context
 from eduid.scimapi.db.groupdb import GroupExtensions, ScimApiGroup
-from eduid.scimapi.testing import MongoNeoTestCase
+from eduid.scimapi.testing import ScimApiTestCase
 
 logger = logging.getLogger(__name__)
 
 
-class TestGroupDB(MongoNeoTestCase):
+class TestGroupDB(ScimApiTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.test_config = self._get_config()
