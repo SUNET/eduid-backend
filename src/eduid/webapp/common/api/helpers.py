@@ -230,7 +230,7 @@ def check_magic_cookie(config: MagicCookieMixin) -> bool:
 
     cookie = request.cookies.get(config.magic_cookie_name)
     if cookie is None:
-        current_app.logger.info(f'Got no magic cookie (named {config.magic_cookie_name}')
+        current_app.logger.info(f'Got no magic cookie (named {config.magic_cookie_name})')
         return False
 
     if cookie == config.magic_cookie:
