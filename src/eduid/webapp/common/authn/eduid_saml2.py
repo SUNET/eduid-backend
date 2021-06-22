@@ -32,26 +32,25 @@
 
 import logging
 import pprint
-from typing import Optional
+from typing import Optional, Tuple
 from xml.etree.ElementTree import ParseError
 
 from flask import abort, redirect, request
-
-from eduid.webapp.common.session.namespaces import AuthnRequestRef
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.ident import decode
-from saml2.response import AuthnResponse, LogoutResponse, UnsolicitedResponse
+from saml2.response import AuthnResponse, LogoutResponse, StatusAuthnFailed, StatusError, UnsolicitedResponse
 from werkzeug.wrappers import Response
 
 from eduid.userdb import UserDB
 from eduid.userdb.exceptions import MultipleUsersReturned, UserDoesNotExist
 from eduid.userdb.user import User
-from eduid.webapp.common.api.utils import verify_relay_state
+from eduid.webapp.common.api.utils import sanitise_redirect_url
 from eduid.webapp.common.authn.cache import IdentityCache, OutstandingQueriesCache, StateCache
 from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.authn.utils import SPConfig, get_saml_attribute
 from eduid.webapp.common.session import EduidSession, session
+from eduid.webapp.common.session.namespaces import AuthnRequestRef, SPAuthnData
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +114,9 @@ def get_authn_request(
     return info
 
 
-def get_authn_response(saml2_config: SPConfig, session: EduidSession, raw_response: str) -> AuthnResponse:
+def get_authn_response(
+    saml2_config: SPConfig, sp_data: SPAuthnData, session: EduidSession, raw_response: str
+) -> Tuple[AuthnResponse, AuthnRequestRef]:
     """
     Check a SAML response and return the the response.
 
@@ -133,9 +134,9 @@ def get_authn_response(saml2_config: SPConfig, session: EduidSession, raw_respon
      'not_on_or_after': 156000000,
      'session_index': 'id-foo'}
     """
-    client = Saml2Client(saml2_config, identity_cache=IdentityCache(session.authn.sp.pysaml2_dicts))
+    client = Saml2Client(saml2_config, identity_cache=IdentityCache(sp_data.pysaml2_dicts))
 
-    oq_cache = OutstandingQueriesCache(session.authn.sp.pysaml2_dicts)
+    oq_cache = OutstandingQueriesCache(sp_data.pysaml2_dicts)
     outstanding_queries = oq_cache.outstanding_queries()
 
     try:
@@ -149,7 +150,7 @@ def get_authn_response(saml2_config: SPConfig, session: EduidSession, raw_respon
             Check the IDP datetime setup"""
         )
     except ParseError as e:
-        logger.error('SAML response is not correctly formatted: {!r}'.format(e))
+        logger.error(f'SAML response is not correctly formatted: {repr(e)}')
         raise BadSAMLResponse(
             """SAML response is not correctly formatted and therefore the
             XML document could not be parsed.
@@ -162,17 +163,24 @@ def get_authn_response(saml2_config: SPConfig, session: EduidSession, raw_respon
         logger.debug(f'Outstanding queries cache: {oq_cache}')
         logger.debug(f'Outstanding queries: {outstanding_queries}')
         raise e
+    except StatusError as e:
+        logger.error(f'SAML response was a failure: {repr(e)}')
+        raise BadSAMLResponse(f'SAML response was a failure')
 
     if response is None:
         logger.error('SAML response is None')
-        raise BadSAMLResponse("SAML response has errors. Please check the logs")
+        raise BadSAMLResponse('SAML response has errors')
 
     session_id = response.session_id()
     oq_cache.delete(session_id)
 
-    logger.debug(f'Response {response.session_id()}, session info:\n{pprint.pformat(response.session_info)}\n\n')
+    authn_reqref = outstanding_queries[session_id]
+    logger.debug(
+        f'Response {session_id}, request reference {authn_reqref}\n'
+        f'session info:\n{pprint.pformat(response.session_info())}\n\n'
+    )
 
-    return response
+    return response, authn_reqref
 
 
 def authenticate(session_info: SessionInfo, strip_suffix: Optional[str], userdb: UserDB) -> Optional[User]:
@@ -243,7 +251,7 @@ def saml_logout(sp_config: SPConfig, user: User, location: str) -> Response:
     # loresponse is a dict for REDIRECT binding, and LogoutResponse for SOAP binding
     if isinstance(loresponse, LogoutResponse):
         if loresponse.status_ok():
-            location = verify_relay_state(request.form.get('RelayState', location), location)
+            location = sanitise_redirect_url(request.form.get('RelayState', location), location)
             return redirect(location)
         else:
             logger.error(f'The logout response was not OK: {loresponse}')

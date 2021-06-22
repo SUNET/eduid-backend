@@ -2,24 +2,22 @@
 
 import logging
 from enum import unique
-from xml.etree.ElementTree import ParseError
 
 from dateutil.parser import parse as dt_parse
-
-from eduid.common.misc.timeutil import utc_now
-from eduid.webapp.common.api.messages import TranslatableMsg
-from eduid.webapp.common.authn.cache import IdentityCache, OutstandingQueriesCache
-from eduid.webapp.common.authn.eduid_saml2 import BadSAMLResponse, get_authn_ctx
-from eduid.webapp.common.authn.session_info import SessionInfo
-from eduid.webapp.common.session import session
-from eduid.webapp.eidas.app import current_eidas_app as current_app
-from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
+from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.metadata import entity_descriptor
 from saml2.request import AuthnRequest
-from saml2.response import AuthnResponse, SAMLError, UnsolicitedResponse
 from saml2.saml import AuthnContextClassRef
 from saml2.samlp import RequestedAuthnContext
+
+from eduid.common.misc.timeutil import utc_now
+from eduid.webapp.common.api.messages import TranslatableMsg
+from eduid.webapp.common.authn.cache import OutstandingQueriesCache
+from eduid.webapp.common.authn.eduid_saml2 import get_authn_ctx
+from eduid.webapp.common.authn.session_info import SessionInfo
+from eduid.webapp.common.session import session
+from eduid.webapp.eidas.app import current_eidas_app as current_app
 
 __author__ = 'lundberg'
 
@@ -89,39 +87,6 @@ def create_authn_request(
     oq_cache = OutstandingQueriesCache(session.eidas.sp.pysaml2_dicts)
     oq_cache.set(session_id, relay_state)
     return info
-
-
-def parse_authn_response(saml_response: str) -> AuthnResponse:
-
-    client = Saml2Client(current_app.saml2_config, identity_cache=IdentityCache(session.eidas.sp.pysaml2_dicts))
-
-    oq_cache = OutstandingQueriesCache(session.eidas.sp.pysaml2_dicts)
-    outstanding_queries = oq_cache.outstanding_queries()
-
-    try:
-        # process the authentication response
-        response = client.parse_authn_request_response(saml_response, BINDING_HTTP_POST, outstanding_queries)
-    except ParseError as e:
-        logger.error(f'SAML response is not correctly formatted: {e}')
-        raise BadSAMLResponse(f'SAML response XML document could not be parsed: {e}')
-    except UnsolicitedResponse as e:
-        logger.exception('Unsolicited SAML response')
-        # Extra debug to try and find the cause for some of these that seem to be incorrect
-        logger.debug(f'Session: {session}')
-        logger.debug(f'Outstanding queries cache: {oq_cache}')
-        logger.debug(f'Outstanding queries: {outstanding_queries}')
-        raise e
-    except SAMLError as e:
-        logger.error(f'SAML response is not verified: {e}')
-        raise BadSAMLResponse(str(e))
-
-    if response is None:
-        logger.error('SAML response is None')
-        raise BadSAMLResponse('SAML response has errors. Please check the logs')
-
-    session_id = response.session_id()
-    oq_cache.delete(session_id)
-    return response
 
 
 def is_required_loa(session_info: SessionInfo, required_loa: str) -> bool:

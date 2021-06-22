@@ -126,15 +126,21 @@ def logout_response(session_id):
 
 
 def logout_request(session_id, idp=None):
+    """
+    Create a SAML logout request from a template.
+
+    TODO: The session_id is used as both SAML request id, NameID and SessionIndex. Which one is it???
+    """
     timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
+    instant = timestamp.strftime('%Y-%m-%dT%H:%M:%SZ')
     if idp is None:
         idp = 'https://idp.example.com/simplesaml/saml2/idp/metadata.php'
-    saml_logout_request = """
+    saml_logout_request = f"""
 <samlp:LogoutRequest xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol"
                      xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"
                      ID="{session_id}"
                      Version="2.0"
-                     IssueInstant="{now}"
+                     IssueInstant="{instant}"
                      Destination="http://test.localhost:6544/saml2-ls"
                      >
     <saml:Issuer>{idp}</saml:Issuer>
@@ -142,7 +148,5 @@ def logout_request(session_id, idp=None):
                  Format="urn:oasis:names:tc:SAML:2.0:nameid-format:transient"
                  >{session_id}</saml:NameID>
     <samlp:SessionIndex>{session_id}</samlp:SessionIndex>
-</samlp:LogoutRequest>""".format(
-        now=timestamp.strftime('%Y-%m-%dT%H:%M:%SZ'), session_id=session_id, idp=idp
-    )
+</samlp:LogoutRequest>"""
     return saml_logout_request

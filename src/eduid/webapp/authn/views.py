@@ -33,6 +33,7 @@
 import uuid
 from typing import Optional
 
+from dateutil.parser import parse as dt_parse
 from flask import Blueprint, abort, make_response, redirect, request
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
@@ -44,7 +45,7 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.webapp.authn import acs_actions  # acs_action needs to be imported to be loaded
 from eduid.webapp.authn.app import current_authn_app as current_app
-from eduid.webapp.common.api.utils import verify_relay_state
+from eduid.webapp.common.api.utils import sanitise_redirect_url
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.authn.acs_registry import get_action, schedule_action
 from eduid.webapp.common.authn.cache import IdentityCache, StateCache
@@ -99,8 +100,7 @@ def terminate() -> WerkzeugResponse:
 
 
 def _authn(action: AuthnAcsAction, force_authn=False) -> WerkzeugResponse:
-    redirect_url = current_app.conf.saml2_login_redirect_url
-    relay_state = verify_relay_state(request.args.get('next', redirect_url), redirect_url)
+    redirect_url = sanitise_redirect_url(request.args.get('next'), current_app.conf.saml2_login_redirect_url)
 
     # In the future, we might want to support choosing the IdP somehow but for now
     # the only supported configuration is one (1) IdP.
@@ -117,12 +117,12 @@ def _authn(action: AuthnAcsAction, force_authn=False) -> WerkzeugResponse:
         raise Forbidden('Requested IdP not allowed')
 
     _authn_id = AuthnRequestRef(str(uuid.uuid4()))
-    session.authn.sp.authns[_authn_id] = SP_AuthnRequest(post_authn_action=action, redirect_url=relay_state)
+    session.authn.sp.authns[_authn_id] = SP_AuthnRequest(post_authn_action=action, redirect_url=redirect_url)
 
     authn_request = get_authn_request(
         saml2_config=current_app.saml2_config,
         session=session,
-        relay_state=relay_state,
+        relay_state='',
         authn_id=_authn_id,
         selected_idp=idp,
         force_authn=force_authn,
@@ -130,9 +130,11 @@ def _authn(action: AuthnAcsAction, force_authn=False) -> WerkzeugResponse:
         digest_alg=current_app.conf.authn_digest_alg,
     )
     schedule_action(action, session.authn.sp)
-    current_app.logger.info(f'Redirecting the user to the IdP for {action} (relay state {relay_state})')
+    current_app.logger.info(f'Redirecting the user to the IdP for {action} (redirect_url {redirect_url})')
     current_app.logger.debug(f'Stored SP_AuthnRequest[{_authn_id}]: {session.authn.sp.authns[_authn_id]}')
-    return redirect(get_location(authn_request))
+    _idp_redirect_url = get_location(authn_request)
+    current_app.logger.debug(f'Redirecting user to the IdP: {_idp_redirect_url}')
+    return redirect(_idp_redirect_url)
 
 
 @authn_views.route('/saml2-acs', methods=['POST'])
@@ -145,7 +147,7 @@ def assertion_consumer_service():
     xmlstr = request.form['SAMLResponse']
     unsolicited_response_redirect_url = current_app.conf.unsolicited_response_redirect_url
     try:
-        response = get_authn_response(current_app.saml2_config, session, xmlstr)
+        response, _authn_id = get_authn_response(current_app.saml2_config, session.authn.sp, session, xmlstr)
     except UnsolicitedResponse:
         current_app.logger.info(f'Unsolicited response. Redirecting user to {unsolicited_response_redirect_url}')
         return redirect(unsolicited_response_redirect_url)
@@ -153,11 +155,14 @@ def assertion_consumer_service():
         current_app.logger.error(e)
         raise Forbidden(f'Bad SAML response: {e}')
 
-    _authn_id = AuthnRequestRef(response.session_id())
-    # TODO: Enable this in a subsequent release
-    # if _authn_id not in session.authn.sp.authns:
-    #    current_app.logger.info(f'Unknown response. Redirecting user to {unsolicited_response_redirect_url}')
-    #    return redirect(unsolicited_response_redirect_url)
+    if _authn_id not in session.authn.sp.authns:
+        current_app.logger.info(
+            f'Unknown response (id {_authn_id}). Redirecting user to {unsolicited_response_redirect_url}'
+        )
+        current_app.logger.debug(f'Session {session} authns for this SP: {session.authn.sp.authns}')
+        return redirect(unsolicited_response_redirect_url)
+    authn_data = session.authn.sp.authns[_authn_id]
+    current_app.logger.debug(f'Authentication request data retrieved from session: {authn_data}')
 
     session_info = response.session_info()
     current_app.logger.debug('Trying to locate the user authenticated by the IdP')
@@ -168,10 +173,10 @@ def assertion_consumer_service():
         current_app.logger.error('Could not find the user identified by the IdP')
         raise Forbidden("Access not authorized")
 
-    action = get_action(
-        default_action=AuthnAcsAction.login, sp_data=session.authn.sp, authndata=session.authn.sp.authns.get(_authn_id)
-    )
-    return action(session_info, user)
+    authn_data.authn_instant = dt_parse(session_info['authn_info'][0][2])
+
+    action = get_action(default_action=AuthnAcsAction.login, sp_data=session.authn.sp, authndata=authn_data)
+    return action(session_info, user, authndata=authn_data)
 
 
 def _get_authn_name_id(session: EduidSession) -> Optional[NameID]:
@@ -235,7 +240,7 @@ def logout_service():
     logout_redirect_url = current_app.conf.saml2_logout_redirect_url
     _next_page = request.form.get('RelayState') or request.args.get('next') or session.authn.next or logout_redirect_url
     # Since the chosen destination is possibly user input, it must be sanitised.
-    next_page = verify_relay_state(_next_page, logout_redirect_url)
+    next_page = sanitise_redirect_url(_next_page, logout_redirect_url)
 
     if 'SAMLResponse' in request.form:  # we started the logout
         current_app.logger.debug('Receiving a logout response from the IdP')
@@ -258,14 +263,15 @@ def logout_service():
             )
             session.clear()
             return redirect(next_page)
-        else:
-            http_info = client.handle_logout_request(
-                request.form['SAMLRequest'], subject_id, BINDING_HTTP_REDIRECT, relay_state=request.form['RelayState']
-            )
-            state.sync()
-            location = get_location(http_info)
-            session.clear()
-            return redirect(location)
+        current_app.logger.debug(f'Logging out user using name-id from session: {subject_id}')
+        http_info = client.handle_logout_request(
+            request.form['SAMLRequest'], subject_id, BINDING_HTTP_REDIRECT, relay_state=request.form['RelayState']
+        )
+        state.sync()
+        location = get_location(http_info)
+        session.clear()
+        current_app.logger.debug(f'Returning redirect to IdP SLO service: {location}')
+        return redirect(location)
     current_app.logger.error('No SAMLResponse or SAMLRequest parameter found')
     abort(400)
 

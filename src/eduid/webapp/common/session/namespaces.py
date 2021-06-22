@@ -140,6 +140,7 @@ class SP_AuthnRequest(BaseModel):
     post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction]] = None
     # TODO: add this credentials_used: List[CredentialKey] = Field(default=[])
     created_ts: datetime = Field(default_factory=utc_now)
+    authn_instant: Optional[datetime] = None
 
 
 AuthnRequestRef = NewType('AuthnRequestRef', str)
@@ -154,7 +155,6 @@ class SPAuthnData(BaseModel):
 class Eidas_Namespace(SessionNSBase):
 
     verify_token_action_credential_id: Optional[CredentialKey] = None
-    redirect_urls: Dict[str, str] = Field(default={})  # TODO: Remove, replaced by sp.authns.redirect_url
     sp: SPAuthnData = Field(default=SPAuthnData())
 
 

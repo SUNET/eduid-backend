@@ -226,7 +226,7 @@ class IdPTests(EduidAPITestCase):
         loc = _location_headers[0][1]
         return self._extract_path_from_url(loc)
 
-    def _extract_path_from_url(self, url):
+    def _extract_path_from_url(self, url: str) -> str:
         # It is a complete URL, extract the path from it (8 is to skip over slashes in https://)
         _idx = url[8:].index('/')
         path = url[8 + _idx :]

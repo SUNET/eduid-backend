@@ -41,13 +41,11 @@ and are called with two positional parameters:
  * The user object
 """
 from enum import Enum
-from typing import Callable, Dict, Optional, Union
+from typing import Callable, Dict, Optional
 
 from flask import current_app
 
-from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
-from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import SPAuthnData, SP_AuthnRequest
+from eduid.webapp.common.session.namespaces import SP_AuthnRequest, SPAuthnData
 
 # This is the list of ACS actions loaded. It is populated by decorating functions with the @acs_action.
 # The keys are the AcsAction (subclass) enum values, since get_action() doesn't know which subclass of
@@ -119,10 +117,9 @@ def get_action(default_action: Optional[Enum], sp_data: SPAuthnData, authndata: 
         current_app.logger.debug(f'Registered ACS actions: {_actions.keys()}')
         raise UnregisteredAction(error_msg)
     finally:
-        if authndata is not None:
-            authndata.post_authn_action = None
         # OLD
+        current_app.logger.debug(f'Consuming (session-wide) ACS action {action_value}')
         sp_data.post_authn_action = None
+        # TODO: Is there a need to flag authndata as used?
 
-    current_app.logger.debug(f'Consuming ACS action {action_value}')
     return action

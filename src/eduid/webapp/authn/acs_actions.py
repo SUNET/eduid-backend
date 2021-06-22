@@ -31,21 +31,19 @@
 #
 
 
-from time import time
-
-from flask import redirect, request
+from flask import redirect
 from saml2.ident import code
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.userdb import User
 from eduid.webapp.authn.app import current_authn_app as current_app
-from eduid.webapp.common.api.utils import verify_relay_state
+from eduid.webapp.common.api.utils import sanitise_redirect_url
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.authn.acs_registry import acs_action
 from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.authn.utils import get_saml_attribute
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import LoginApplication
+from eduid.webapp.common.session.namespaces import LoginApplication, SP_AuthnRequest
 
 
 def update_user_session(session_info: SessionInfo, user: User) -> None:
@@ -58,6 +56,9 @@ def update_user_session(session_info: SessionInfo, user: User) -> None:
     :return: None
     """
     session.authn.name_id = code(session_info['name_id'])
+    if session.common.eppn and session.common.eppn != user.eppn:
+        current_app.logger.warning(f'Refusing to change eppn in session from {session.common.eppn} to {user.eppn}')
+        raise RuntimeError(f'Refusing to change eppn in session from {session.common.eppn} to {user.eppn}')
     session.common.eppn = user.eppn
     session.common.is_logged_in = True
     session.common.login_source = LoginApplication.authn
@@ -67,7 +68,7 @@ def update_user_session(session_info: SessionInfo, user: User) -> None:
 
 
 @acs_action(AuthnAcsAction.login)
-def login_action(session_info: SessionInfo, user: User) -> WerkzeugResponse:
+def login_action(session_info: SessionInfo, user: User, authndata: SP_AuthnRequest) -> WerkzeugResponse:
     """
     Upon successful login in the IdP, store login info in the session
     and redirect back to the app that asked for authn.
@@ -83,7 +84,7 @@ def login_action(session_info: SessionInfo, user: User) -> WerkzeugResponse:
     current_app.stats.count('login_success')
 
     # redirect the user to the view they came from
-    relay_state = verify_relay_state(request.form.get('RelayState', '/'))
+    relay_state = sanitise_redirect_url(authndata.redirect_url)
     current_app.logger.debug('Redirecting to the RelayState: ' + relay_state)
     response = redirect(location=relay_state)
     current_app.logger.info('Redirecting user {} to {!r}'.format(user, relay_state))
@@ -91,24 +92,21 @@ def login_action(session_info: SessionInfo, user: User) -> WerkzeugResponse:
 
 
 @acs_action(AuthnAcsAction.change_password)
-def chpass_action(session_info: SessionInfo, user: User) -> WerkzeugResponse:
+def chpass_action(session_info: SessionInfo, user: User, authndata: SP_AuthnRequest) -> WerkzeugResponse:
     """
     Upon successful reauthn in the IdP,
     set a timestamp in the session (key reauthn-for-chpass)
     and redirect back to the app that asked for reauthn.
 
     :param session_info: the SAML session info
-    :type session_info: dict
-
     :param user: the authenticated user
-    :type user: eduid.userdb.User
     """
     current_app.stats.count('reauthn_chpass_success')
-    return _reauthn('reauthn-for-chpass', session_info, user)
+    return _reauthn('reauthn-for-chpass', session_info, user, authndata=authndata)
 
 
 @acs_action(AuthnAcsAction.terminate_account)
-def term_account_action(session_info: SessionInfo, user: User) -> WerkzeugResponse:
+def term_account_action(session_info: SessionInfo, user: User, authndata: SP_AuthnRequest) -> WerkzeugResponse:
     """
     Upon successful reauthn in the IdP,
     set a timestamp in the session (key reauthn-for-termination)
@@ -121,11 +119,11 @@ def term_account_action(session_info: SessionInfo, user: User) -> WerkzeugRespon
     :type user: eduid.userdb.User
     """
     current_app.stats.count('reauthn_termination_success')
-    return _reauthn('reauthn-for-termination', session_info, user)
+    return _reauthn('reauthn-for-termination', session_info, user, authndata=authndata)
 
 
 @acs_action(AuthnAcsAction.reauthn)
-def reauthn_account_action(session_info: SessionInfo, user: User) -> WerkzeugResponse:
+def reauthn_account_action(session_info: SessionInfo, user: User, authndata: SP_AuthnRequest) -> WerkzeugResponse:
     """
     Upon successful reauthn in the IdP,
     set a timestamp in the session (key reauthn)
@@ -138,17 +136,18 @@ def reauthn_account_action(session_info: SessionInfo, user: User) -> WerkzeugRes
     :type user: eduid.userdb.User
     """
     current_app.stats.count('reauthn_success')
-    return _reauthn('reauthn', session_info, user)
+    return _reauthn('reauthn', session_info, user, authndata=authndata)
 
 
-def _reauthn(reason: str, session_info: SessionInfo, user: User) -> WerkzeugResponse:
+def _reauthn(reason: str, session_info: SessionInfo, user: User, authndata: SP_AuthnRequest) -> WerkzeugResponse:
 
     current_app.logger.info(f'Re-authenticating user {user} for {reason}.')
+    current_app.logger.debug(f'Data about this authentication: {authndata}')
     update_user_session(session_info, user)
     # Set reason for reauthn in session
     session[reason] = int(time())
 
     # redirect the user to the view they came from
-    relay_state = verify_relay_state(request.form.get('RelayState', '/'))
-    current_app.logger.debug('Redirecting to the RelayState: ' + relay_state)
-    return redirect(location=relay_state)
+    redirect_url = sanitise_redirect_url(authndata.redirect_url)
+    current_app.logger.debug('Redirecting to the redirect_url: ' + redirect_url)
+    return redirect(location=redirect_url)
