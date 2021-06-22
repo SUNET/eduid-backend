@@ -89,20 +89,13 @@ def schedule_action(action: Enum, sp_data: SPAuthnData) -> None:
     sp_data.post_authn_action = action.value
 
 
-def get_action(default_action: Optional[Enum], sp_data: SPAuthnData, authndata: Optional[SP_AuthnRequest]) -> Callable:
+def get_action(default_action: Optional[Enum], sp_data: SPAuthnData, authndata: SP_AuthnRequest) -> Callable:
     """
     Retrieve an action from the registry based on the AcsAction stored in the session.
 
-    # TODO: Make authndata not-optional and remove post_authn_action from SPAuthnData
-
     :return: the function to be invoked for this action
     """
-    if authndata is not None:
-        # NEW
-        action_value = authndata.post_authn_action
-    else:
-        # TODO: Old, remove
-        action_value = sp_data.post_authn_action
+    action_value = authndata.post_authn_action
     if action_value is None:
         current_app.logger.debug(f'No post-authn-action found in the session, using default {default_action}')
         if default_action is not None:
