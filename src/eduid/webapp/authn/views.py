@@ -242,7 +242,7 @@ def logout_service():
     #   - session.authn.next
     #   - saml2_logout_redirect_url from config
     logout_redirect_url = current_app.conf.saml2_logout_redirect_url
-    _next_page = request.form.get('RelayState') or request.args.get('next') or session.authn.next or logout_redirect_url
+    _next_page = request.form.get('RelayState') or logout_redirect_url
     # Since the chosen destination is possibly user input, it must be sanitised.
     next_page = sanitise_redirect_url(_next_page, logout_redirect_url)
 
@@ -272,8 +272,10 @@ def logout_service():
             request.form['SAMLRequest'], subject_id, BINDING_HTTP_REDIRECT, relay_state=request.form['RelayState']
         )
         state.sync()
-        location = get_location(http_info)
         session.clear()
+        location = get_location(http_info)
+        # Since the chosen destination is possibly user input, it must be sanitised.
+        location = sanitise_redirect_url(location, logout_redirect_url)
         current_app.logger.debug(f'Returning redirect to IdP SLO service: {location}')
         return redirect(location)
     current_app.logger.error('No SAMLResponse or SAMLRequest parameter found')
