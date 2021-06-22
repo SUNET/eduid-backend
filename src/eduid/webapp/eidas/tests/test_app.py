@@ -315,7 +315,7 @@ class EidasTests(EduidAPITestCase):
         self,
         endpoint: str,
         expect_msg: TranslatableMsg,
-        eppn: str,
+        eppn: Optional[str] = None,
         age: int = 10,
         nin: Optional[str] = None,
         expect_error: bool = False,
@@ -336,7 +336,7 @@ class EidasTests(EduidAPITestCase):
     def verify_token(
         self,
         endpoint: str,
-        eppn: str,
+        eppn: Optional[str] = None,
         expect_msg: TranslatableMsg,
         expect_error: bool = False,
         expect_saml_error: bool = False,
@@ -366,7 +366,7 @@ class EidasTests(EduidAPITestCase):
     def _call_endpoint_and_saml_acs(
         self,
         endpoint: str,
-        eppn: str,
+        eppn: Optional[str],
         expect_msg: TranslatableMsg,
         expect_redirect_url: str,
         expect_error: bool = False,
