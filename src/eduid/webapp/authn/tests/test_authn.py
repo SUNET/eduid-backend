@@ -34,14 +34,11 @@ import base64
 import json
 import logging
 import os
-import time
 import uuid
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Mapping, Tuple
+from typing import Any, Dict, Mapping, Tuple
 
-import pytest
 from flask import Blueprint
-from saml2.s_utils import deflate_and_base64_encode
 from six.moves.urllib_parse import quote_plus
 from werkzeug.exceptions import NotFound
 from werkzeug.http import dump_cookie
@@ -60,6 +57,7 @@ from eduid.webapp.common.authn.tests.responses import auth_response, logout_requ
 from eduid.webapp.common.authn.utils import get_location, no_authn_views
 from eduid.webapp.common.session import EduidSession, session
 from eduid.webapp.common.session.namespaces import AuthnRequestRef
+from saml2.s_utils import deflate_and_base64_encode
 
 logger = logging.getLogger(__name__)
 
@@ -308,7 +306,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
         assert authn.post_authn_action == AuthnAcsAction.change_password
         assert authn.authn_instant is not None
         age = utc_now() - authn.authn_instant
-        assert age.total_seconds() < 5
+        assert 10 < age.total_seconds() < 15
 
     def test_terminate_assertion_consumer_service(self):
         res = self.acs('/terminate', self.test_user.eppn)
@@ -318,7 +316,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
         assert authn.post_authn_action == AuthnAcsAction.terminate_account
         assert authn.authn_instant is not None
         age = utc_now() - authn.authn_instant
-        assert age.total_seconds() < 5
+        assert 10 < age.total_seconds() < 15
 
     def _signup_authn_user(self, eppn):
         timestamp = utc_now()

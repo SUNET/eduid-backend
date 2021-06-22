@@ -12,15 +12,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from datetime import timedelta
 
-import datetime
+from eduid.common.misc.timeutil import utc_now
 
 
-def auth_response(session_id, uid):
+def auth_response(session_id: str, eppn: str) -> str:
     """Generates a fresh signed authentication response"""
-    timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
-    tomorrow = datetime.datetime.now() + datetime.timedelta(days=1)
-    yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
+    timestamp = utc_now() - timedelta(seconds=10)
+    tomorrow = utc_now() + timedelta(days=1)
+    yesterday = utc_now() - timedelta(days=1)
 
     sp_baseurl = 'http://test.localhost:6544/'
 
@@ -92,7 +93,7 @@ def auth_response(session_id, uid):
 
     return saml_response_tpl.format(
         **{
-            'uid': uid,
+            'uid': eppn,
             'session_id': session_id,
             'timestamp': timestamp.strftime('%Y-%m-%dT%H:%M:%SZ'),
             'tomorrow': tomorrow.strftime('%Y-%m-%dT%H:%M:%SZ'),
@@ -102,8 +103,8 @@ def auth_response(session_id, uid):
     )
 
 
-def logout_response(session_id):
-    timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
+def logout_response(session_id: str) -> str:
+    timestamp = utc_now() - timedelta(seconds=10)
 
     saml_logout_response = """
 <samlp:LogoutResponse xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol"
@@ -131,7 +132,7 @@ def logout_request(session_id, idp=None):
 
     TODO: The session_id is used as both SAML request id, NameID and SessionIndex. Which one is it???
     """
-    timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
+    timestamp = utc_now() - timedelta(seconds=10)
     instant = timestamp.strftime('%Y-%m-%dT%H:%M:%SZ')
     if idp is None:
         idp = 'https://idp.example.com/simplesaml/saml2/idp/metadata.php'
