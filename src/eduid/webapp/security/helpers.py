@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
+from enum import unique
 from typing import Optional
 
-from enum import unique
 from flask import render_template, url_for
 from flask_babel import gettext as _
 

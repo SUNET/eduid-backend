@@ -88,7 +88,7 @@ class ChangePasswordTests(EduidAPITestCase):
         with self.app.test_request_context():
             with self.session_cookie(self.browser, eppn) as client:
                 with client.session_transaction() as sess:
-                    #if reauthn is not None:
+                    # if reauthn is not None:
                     #    sess['reauthn-for-chpass'] = reauthn
                     data = {'new_password': '0ieT/(.edW76', 'old_password': '5678', 'csrf_token': sess.get_csrf_token()}
                     if data1 == {}:
@@ -120,7 +120,7 @@ class ChangePasswordTests(EduidAPITestCase):
                 with patch('eduid.webapp.common.authn.vccs.VCCSClient.add_credentials', return_value=True):
                     with patch('eduid.webapp.common.authn.vccs.VCCSClient.revoke_credentials', return_value=True):
                         with patch('eduid.webapp.common.authn.vccs.VCCSClient.authenticate', return_value=authenticate):
-                            #with client.session_transaction() as sess:
+                            # with client.session_transaction() as sess:
                             #    sess['reauthn-for-chpass'] = int(time.time())
                             response2 = client.get('/suggested-password')
                             passwd = json.loads(response2.data)

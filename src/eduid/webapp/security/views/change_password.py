@@ -44,8 +44,12 @@ from eduid.webapp.common.api.validation import is_valid_password
 from eduid.webapp.common.authn.vccs import change_password
 from eduid.webapp.common.session import session
 from eduid.webapp.security.app import current_security_app as current_app
-from eduid.webapp.security.helpers import compile_credential_list
-from eduid.webapp.security.helpers import SecurityMsg, generate_suggested_password, get_zxcvbn_terms
+from eduid.webapp.security.helpers import (
+    SecurityMsg,
+    compile_credential_list,
+    generate_suggested_password,
+    get_zxcvbn_terms,
+)
 from eduid.webapp.security.schemas import ChpassRequestSchema, ChpassResponseSchema, SuggestedPasswordResponseSchema
 
 # TODO: move check_password and hash_password to eduid.webapp.common

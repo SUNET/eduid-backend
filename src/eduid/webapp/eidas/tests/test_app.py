@@ -315,7 +315,7 @@ class EidasTests(EduidAPITestCase):
         self,
         endpoint: str,
         expect_msg: TranslatableMsg,
-        eppn: Optional[str] = None,
+        eppn: str,
         age: int = 10,
         nin: Optional[str] = None,
         expect_error: bool = False,

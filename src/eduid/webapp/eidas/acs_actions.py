@@ -263,7 +263,7 @@ def nin_verify_BACKDOOR(user: User) -> WerkzeugResponse:
 
 
 @acs_action(EidasAcsAction.mfa_authn)
-def mfa_authentication_action(session_info: SessionInfo, authndata: Optional[SP_AuthnRequest]) -> WerkzeugResponse:
+def mfa_authentication_action(session_info: SessionInfo, authndata: SP_AuthnRequest) -> WerkzeugResponse:
     redirect_url = sanitise_redirect_url(authndata.redirect_url)
     if not redirect_url:
         # With no redirect url just redirect the user to dashboard for a new try to log in

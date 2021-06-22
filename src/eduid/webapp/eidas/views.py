@@ -156,7 +156,7 @@ def assertion_consumer_service() -> WerkzeugResponse:
     if current_app.conf.environment == EduidEnvironment.staging:
         session_info = staging_nin_remap(session_info)
 
-    authn_data = session.eidas.sp.authns.get(_authn_id)
+    authn_data = session.eidas.sp.authns[_authn_id]
     authn_data.authn_instant = dt_parse(session_info['authn_info'][0][2])
 
     action = get_action(default_action=None, sp_data=session.eidas.sp, authndata=authn_data)
