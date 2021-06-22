@@ -74,80 +74,52 @@ def login_action(session_info: SessionInfo, user: User, authndata: SP_AuthnReque
     and redirect back to the app that asked for authn.
 
     :param session_info: the SAML session info
-    :type session_info: dict
-
     :param user: the authenticated user
-    :type user: eduid.userdb.User
+    :param authndata: data about this particular authentication event
     """
-    current_app.logger.info("User {} logging in.".format(user))
+    current_app.logger.info(f'User {user} logging in.')
     update_user_session(session_info, user)
     current_app.stats.count('login_success')
 
     # redirect the user to the view they came from
     relay_state = sanitise_redirect_url(authndata.redirect_url)
-    current_app.logger.debug('Redirecting to the RelayState: ' + relay_state)
+    current_app.logger.debug(f'Redirecting to the RelayState: {relay_state}')
     response = redirect(location=relay_state)
-    current_app.logger.info('Redirecting user {} to {!r}'.format(user, relay_state))
+    current_app.logger.info(f'Redirecting user {user} to {repr(relay_state)}')
     return response
 
 
 @acs_action(AuthnAcsAction.change_password)
 def chpass_action(session_info: SessionInfo, user: User, authndata: SP_AuthnRequest) -> WerkzeugResponse:
-    """
-    Upon successful reauthn in the IdP,
-    set a timestamp in the session (key reauthn-for-chpass)
-    and redirect back to the app that asked for reauthn.
-
-    :param session_info: the SAML session info
-    :param user: the authenticated user
-    """
     current_app.stats.count('reauthn_chpass_success')
     return _reauthn('reauthn-for-chpass', session_info, user, authndata=authndata)
 
 
 @acs_action(AuthnAcsAction.terminate_account)
 def term_account_action(session_info: SessionInfo, user: User, authndata: SP_AuthnRequest) -> WerkzeugResponse:
-    """
-    Upon successful reauthn in the IdP,
-    set a timestamp in the session (key reauthn-for-termination)
-    and redirect back to the app that asked for reauthn.
-
-    :param session_info: the SAML session info
-    :type session_info: dict
-
-    :param user: the authenticated user
-    :type user: eduid.userdb.User
-    """
     current_app.stats.count('reauthn_termination_success')
     return _reauthn('reauthn-for-termination', session_info, user, authndata=authndata)
 
 
 @acs_action(AuthnAcsAction.reauthn)
 def reauthn_account_action(session_info: SessionInfo, user: User, authndata: SP_AuthnRequest) -> WerkzeugResponse:
-    """
-    Upon successful reauthn in the IdP,
-    set a timestamp in the session (key reauthn)
-    and redirect back to the app that asked for reauthn.
-
-    :param session_info: the SAML session info
-    :type session_info: dict
-
-    :param user: the authenticated user
-    :type user: eduid.userdb.User
-    """
     current_app.stats.count('reauthn_success')
     return _reauthn('reauthn', session_info, user, authndata=authndata)
 
 
 def _reauthn(reason: str, session_info: SessionInfo, user: User, authndata: SP_AuthnRequest) -> WerkzeugResponse:
+    """
+    Upon successful reauthn in the IdP, update the session and redirect back to the app that asked for reauthn.
 
+    :param session_info: the SAML session info
+    :param user: the authenticated user
+    :param authndata: data about this particular authentication event
+    """
     current_app.logger.info(f'Re-authenticating user {user} for {reason}.')
     current_app.logger.debug(f'Data about this authentication: {authndata}')
     update_user_session(session_info, user)
-    # Set reason for reauthn in session
-    session[reason] = int(time())
 
     # redirect the user to the view they came from
     redirect_url = sanitise_redirect_url(authndata.redirect_url)
-    current_app.logger.debug('Redirecting to the redirect_url: ' + redirect_url)
+    current_app.logger.debug(f'Redirecting to the redirect_url: {redirect_url}')
     return redirect(location=redirect_url)

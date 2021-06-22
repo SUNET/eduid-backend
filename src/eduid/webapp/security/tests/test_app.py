@@ -33,12 +33,18 @@
 
 import json
 import time
+from datetime import timedelta
 from typing import Any, Dict, Mapping, Optional
+from uuid import uuid4
 
 from mock import patch
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.webapp.common.api.testing import EduidAPITestCase
+from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
+from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
 from eduid.webapp.security.app import SecurityApp, security_init_app
+from eduid.webapp.security.helpers import SecurityMsg
 
 
 class SecurityTests(EduidAPITestCase):
@@ -114,9 +120,9 @@ class SecurityTests(EduidAPITestCase):
     ):
         """
         Send a GET request to the endpoint to actually terminate the account,
-        mocking re-authentiocation by setting a timestamp in the session.
+        mocking re-authentication by setting a timestamp in the session.
 
-        :param resuthn: timestamp to set in the session to mock re-authentication.
+        :param reauthn: age of authn_instant to set in the session to mock re-authentication.
         """
         mock_revoke.return_value = True
         mock_sync.return_value = True
@@ -126,10 +132,15 @@ class SecurityTests(EduidAPITestCase):
 
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction() as sess:
-                if reauthn is not None:
-                    sess['reauthn-for-termination'] = reauthn
-
+            if reauthn is not None:
+                # Add authn data faking a reauthn event has taken place for this action
+                with client.session_transaction() as sess:
+                    _authn_id = AuthnRequestRef(str(uuid4()))
+                    sess.authn.sp.authns[_authn_id] = SP_AuthnRequest(
+                        post_authn_action=AuthnAcsAction.terminate_account,
+                        redirect_url='/test',
+                        authn_instant=utc_now() - timedelta(seconds=reauthn),
+                    )
             return client.get('/account-terminated')
 
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
@@ -219,31 +230,32 @@ class SecurityTests(EduidAPITestCase):
 
     def test_account_terminated_no_reauthn(self):
         response = self._account_terminated()
-        self.assertEqual(response.status_code, 400)
+        self._check_error_response(response, type_='GET_SECURITY_ACCOUNT_TERMINATED_FAIL', msg=SecurityMsg.no_reauthn)
 
     def test_account_terminated_stale(self):
-        response = self._account_terminated(reauthn=1)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['type'], 'GET_SECURITY_ACCOUNT_TERMINATED_FAIL')
-        self.assertEqual(response.json['payload']['message'], 'security.stale_authn_info')
+        response = self._account_terminated(reauthn=1200)
+        self._check_error_response(
+            response, type_='GET_SECURITY_ACCOUNT_TERMINATED_FAIL', msg=SecurityMsg.stale_reauthn
+        )
 
     @patch('eduid.webapp.security.views.security.send_termination_mail')
     def test_account_terminated_sendmail_fail(self, mock_send: Any):
         from eduid.webapp.common.api.exceptions import MsgTaskFailed
 
         mock_send.side_effect = MsgTaskFailed()
-        response = self._account_terminated(reauthn=int(time.time()))
+        response = self._account_terminated(reauthn=50)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.location, 'http://test.localhost/services/authn/logout?next=https://eduid.se')
 
     def test_account_terminated_mail_fail(self):
         from eduid.webapp.common.api.exceptions import MsgTaskFailed
 
-        response = self._account_terminated(sendmail_side_effect=MsgTaskFailed())
-        self.assertEqual(response.status_code, 400)
+        response = self._account_terminated(sendmail_side_effect=MsgTaskFailed(), reauthn=8)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.location, 'http://test.localhost/services/authn/logout?next=https://eduid.se')
 
     def test_account_terminated(self):
-        response = self._account_terminated(reauthn=int(time.time()))
+        response = self._account_terminated(reauthn=22)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.location, 'http://test.localhost/services/authn/logout?next=https://eduid.se')
 
@@ -402,30 +414,27 @@ class SecurityTests(EduidAPITestCase):
                         'old_password': '5678',
                     }
             response2 = client.post('/change-password', data=json.dumps(data), content_type=self.content_type_json)
-
-            self.assertEqual(response2.status_code, 200)
-
-            sec_data = json.loads(response2.data)
-            self.assertEqual(sec_data['payload']['message'], 'chpass.no_reauthn')
-            self.assertEqual(sec_data['type'], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
+        self._check_error_response(response2, type_='POST_SECURITY_CHANGE_PASSWORD_FAIL', msg=SecurityMsg.no_reauthn)
 
     def test_change_passwd_stale(self):
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
-                    sess['reauthn-for-chpass'] = True
+                    # Add authn data faking a reauthn event has taken place for this action (yesterday)
+                    _authn_id = AuthnRequestRef(str(uuid4()))
+                    sess.authn.sp.authns[_authn_id] = SP_AuthnRequest(
+                        post_authn_action=AuthnAcsAction.change_password,
+                        redirect_url='/test',
+                        authn_instant=utc_now() - timedelta(days=1),
+                    )
                     data = {
                         'csrf_token': sess.get_csrf_token(),
                         'new_password': 'j7/E >pO9 ,$Sr O0;&',
                         'old_password': '5678',
                     }
             response2 = client.post('/change-password', data=json.dumps(data), content_type=self.content_type_json)
-
-            self.assertEqual(response2.status_code, 200)
-
-            sec_data = json.loads(response2.data)
-            self.assertEqual(sec_data['type'], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
+        self._check_error_response(response2, type_='POST_SECURITY_CHANGE_PASSWORD_FAIL', msg=SecurityMsg.stale_reauthn)
 
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_change_passwd_no_csrf(self, mock_request_user_sync):
@@ -433,8 +442,8 @@ class SecurityTests(EduidAPITestCase):
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
             with patch('eduid.webapp.security.views.security.add_credentials', return_value=True):
-                with client.session_transaction() as sess:
-                    sess['reauthn-for-chpass'] = int(time.time())
+                # with client.session_transaction() as sess:
+                #    sess['reauthn-for-chpass'] = int(time.time())
                 data = {'new_password': 'j7/E >pO9 ,$Sr O0;&', 'old_password': '5678'}
                 response2 = client.post('/change-password', data=json.dumps(data), content_type=self.content_type_json)
 
@@ -451,7 +460,7 @@ class SecurityTests(EduidAPITestCase):
         with self.session_cookie(self.browser, eppn) as client:
             with patch('eduid.webapp.security.views.security.add_credentials', return_value=True):
                 with client.session_transaction() as sess:
-                    sess['reauthn-for-chpass'] = int(time.time())
+                    # sess['reauthn-for-chpass'] = int(time.time())
                     data = {'csrf_token': '0000', 'new_password': 'j7/E >pO9 ,$Sr O0;&', 'old_password': '5678'}
                 response2 = client.post('/change-password', data=json.dumps(data), content_type=self.content_type_json)
 
@@ -467,7 +476,7 @@ class SecurityTests(EduidAPITestCase):
             with patch('eduid.webapp.security.views.security.add_credentials', return_value=True):
                 with self.app.test_request_context():
                     with client.session_transaction() as sess:
-                        sess['reauthn-for-chpass'] = int(time.time())
+                        # sess['reauthn-for-chpass'] = int(time.time())
                         data = {'csrf_token': sess.get_csrf_token(), 'new_password': '1234', 'old_password': '5678'}
                 response2 = client.post('/change-password', data=json.dumps(data), content_type=self.content_type_json)
 
@@ -485,16 +494,19 @@ class SecurityTests(EduidAPITestCase):
             with patch('eduid.webapp.security.views.security.add_credentials', return_value=True):
                 with self.app.test_request_context():
                     with client.session_transaction() as sess:
-                        sess['reauthn-for-chpass'] = int(time.time())
+                        # Add authn data faking a reauthn event has taken place for this action
+                        _authn_id = AuthnRequestRef(str(uuid4()))
+                        sess.authn.sp.authns[_authn_id] = SP_AuthnRequest(
+                            post_authn_action=AuthnAcsAction.change_password,
+                            redirect_url='/test',
+                            authn_instant=utc_now() - timedelta(seconds=12),
+                        )
                         data = {
                             'csrf_token': sess.get_csrf_token(),
                             'new_password': 'j7/E >pO9 ,$Sr O0;&',
                             'old_password': '5678',
                         }
                 response2 = client.post('/change-password', data=json.dumps(data), content_type=self.content_type_json)
-
-                self.assertEqual(response2.status_code, 200)
-
-                sec_data = json.loads(response2.data)
-                self.assertEqual(sec_data['payload']['message'], 'chpass.password-changed')
-                self.assertEqual(sec_data['type'], "POST_SECURITY_CHANGE_PASSWORD_SUCCESS")
+        self._check_success_response(
+            response2, type_='POST_SECURITY_CHANGE_PASSWORD_SUCCESS', msg=SecurityMsg.chpass_password_changed2
+        )

@@ -32,13 +32,15 @@
 #
 
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import Blueprint, abort, redirect, request, url_for
 from marshmallow import ValidationError
 from six.moves.urllib_parse import parse_qs, urlencode, urlparse, urlunparse
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.utils import urlappend
+from eduid.userdb import User
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.proofing import NinProofingElement
 from eduid.userdb.proofing.state import NinProofingState
@@ -48,11 +50,13 @@ from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid.webapp.common.api.helpers import add_nin_to_user
 from eduid.webapp.common.api.messages import CommonMsg, error_response, success_response
 from eduid.webapp.common.api.utils import save_and_sync_user
+from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.authn.vccs import add_credentials, revoke_all_credentials
 from eduid.webapp.common.session import session
 from eduid.webapp.security.app import current_security_app as current_app
 from eduid.webapp.security.helpers import (
     SecurityMsg,
+    check_reauthn,
     compile_credential_list,
     generate_suggested_password,
     get_zxcvbn_terms,
@@ -109,6 +113,8 @@ def change_password(user):
     View to change the password
     """
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
+    current_app.logger.debug(f'change_password called for user {user}')
+
     schema = ChangePasswordSchema(
         zxcvbn_terms=get_zxcvbn_terms(security_user.eppn),
         min_entropy=current_app.conf.password_entropy,
@@ -131,21 +137,18 @@ def change_password(user):
     if session.get_csrf_token() != form['csrf_token']:
         return error_response(message='csrf.try_again')
 
-    authn_ts = session.get('reauthn-for-chpass', None)
-    if authn_ts is None:
-        return error_response(message='chpass.no_reauthn')
+    authn = session.authn.sp.get_authn_for_action(AuthnAcsAction.change_password)
+    current_app.logger.debug(f'change_password called for user {user}, authn {authn}')
 
-    now = datetime.utcnow()
-    delta = now - datetime.fromtimestamp(authn_ts)
-    timeout = current_app.conf.chpass_timeout
-    if int(delta.total_seconds()) > timeout:
-        return error_response(message='chpass.stale_reauthn')
+    _need_reauthn = check_reauthn(authn, timedelta(seconds=current_app.conf.chpass_timeout))
+    if _need_reauthn:
+        return _need_reauthn
 
     vccs_url = current_app.conf.vccs_url
     added = add_credentials(old_password, new_password, security_user, source='security', vccs_url=vccs_url)
 
     if not added:
-        current_app.logger.debug('Problem verifying the old credentials for {}'.format(user))
+        current_app.logger.debug(f'Problem verifying the old credentials for {user}')
         return error_response(message='chpass.unable-to-verify-old-password')
 
     security_user.terminated = None
@@ -154,7 +157,7 @@ def change_password(user):
     except UserOutOfSync:
         return error_response(message='user-out-of-sync')
 
-    del session['reauthn-for-chpass']
+    # del session['reauthn-for-chpass']
 
     current_app.stats.count(name='security_password_changed', value=1)
     current_app.logger.info('Changed password for user {}'.format(security_user.eppn))
@@ -163,7 +166,7 @@ def change_password(user):
     credentials = {
         'next_url': next_url,
         'credentials': compile_credential_list(security_user),
-        'message': 'chpass.password-changed',
+        'message': SecurityMsg.chpass_password_changed2.value,
     }
 
     return credentials
@@ -200,7 +203,7 @@ def delete_account(user):
 @security_views.route('/account-terminated', methods=['GET'])
 @MarshalWith(AccountTerminatedSchema)
 @require_user
-def account_terminated(user):
+def account_terminated(user: User):
     """
     The account termination action,
     removes all credentials for the terminated account
@@ -208,21 +211,17 @@ def account_terminated(user):
     flags the account as terminated,
     sends an email to the address in the terminated account,
     and logs out the session.
-
-    :type user: eduid.userdb.user.User
     """
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
-    authn_ts = session.get('reauthn-for-termination', None)
-    if authn_ts is None:
-        abort(400)
+    authn = session.authn.sp.get_authn_for_action(AuthnAcsAction.terminate_account)
+    current_app.logger.debug(f'account_terminated called for user {user}, authn {authn}')
 
-    now = datetime.utcnow()
-    delta = now - datetime.fromtimestamp(authn_ts)
+    # TODO: 10 minutes to complete account termination seems overly generous
+    _need_reauthn = check_reauthn(authn, timedelta(seconds=600))
+    if _need_reauthn:
+        return _need_reauthn
 
-    if int(delta.total_seconds()) > 600:
-        return error_response(message=SecurityMsg.stale_reauthn)
-
-    del session['reauthn-for-termination']
+    # del session['reauthn-for-termination']
 
     # revoke all user passwords
     revoke_all_credentials(security_user, vccs_url=current_app.conf.vccs_url)
@@ -234,7 +233,7 @@ def account_terminated(user):
     #    security_user.passwords.remove(p.key)
 
     # flag account as terminated
-    security_user.terminated = datetime.utcnow()
+    security_user.terminated = utc_now()
     try:
         save_and_sync_user(security_user)
     except UserOutOfSync:

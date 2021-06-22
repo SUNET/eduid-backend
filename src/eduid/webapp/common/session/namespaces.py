@@ -151,6 +151,12 @@ class SPAuthnData(BaseModel):
     pysaml2_dicts: Dict[str, Any] = Field(default={})
     authns: Dict[AuthnRequestRef, SP_AuthnRequest] = Field(default={})
 
+    def get_authn_for_action(self, action: Union[AuthnAcsAction, EidasAcsAction]) -> Optional[SP_AuthnRequest]:
+        for authn in self.authns.values():
+            if authn.post_authn_action == action:
+                return authn
+        return None
+
 
 class Eidas_Namespace(SessionNSBase):
 

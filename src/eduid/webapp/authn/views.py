@@ -117,6 +117,10 @@ def _authn(action: AuthnAcsAction, force_authn=False) -> WerkzeugResponse:
         raise Forbidden('Requested IdP not allowed')
 
     _authn_id = AuthnRequestRef(str(uuid.uuid4()))
+    # Filter out any previous authns with the same post_authn_action, both to keep the size of the session
+    # below an upper bound, and because we currently need to use the post_authn_action value to find the
+    # authn data for a specific action.
+    session.authn.sp.authns = {k: v for k, v in session.authn.sp.authns.items() if v.post_authn_action != action}
     session.authn.sp.authns[_authn_id] = SP_AuthnRequest(post_authn_action=action, redirect_url=redirect_url)
 
     authn_request = get_authn_request(
