@@ -336,8 +336,8 @@ class EidasTests(EduidAPITestCase):
     def verify_token(
         self,
         endpoint: str,
-        eppn: Optional[str] = None,
         expect_msg: TranslatableMsg,
+        eppn: Optional[str] = None,
         expect_error: bool = False,
         expect_saml_error: bool = False,
         expect_redirect_url: Optional[str] = None,
