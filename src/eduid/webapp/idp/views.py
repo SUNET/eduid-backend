@@ -350,7 +350,7 @@ def mfa_auth(ref: RequestRef, webauthn_response: Optional[Dict[str, str]] = None
         candidates = user.credentials.filter(FidoCredential)
         if candidates.count:
             options = fido_tokens.start_token_verification(user, current_app.conf.fido2_rp_id)
-            payload['webauthn_options'] = options
+            payload.update(options)
 
         return success_response(payload=payload)
 

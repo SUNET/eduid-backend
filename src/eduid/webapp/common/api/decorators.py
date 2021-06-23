@@ -101,7 +101,12 @@ class MarshalWith(object):
                 _flux_response = FluxFailResponse(request, payload=ret.payload)
             else:
                 _flux_response = FluxSuccessResponse(request, payload=ret.payload)
-            return jsonify(self.schema().dump(_flux_response.to_dict()))
+            try:
+                res = jsonify(self.schema().dump(_flux_response.to_dict()))
+            except:
+                logger.exception(f'Could not serialise Flux payload:\n{_flux_response.to_dict()}')
+                raise
+            return res
 
         return marshal_decorator
 
