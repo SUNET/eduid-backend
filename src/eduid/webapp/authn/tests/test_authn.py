@@ -34,12 +34,11 @@ import base64
 import json
 import logging
 import os
-import time
-from datetime import datetime
-from typing import Any, Callable, Dict, Mapping
+import uuid
+from dataclasses import dataclass
+from typing import Any, Dict, Mapping, Tuple
 
 from flask import Blueprint
-from saml2.s_utils import deflate_and_base64_encode
 from six.moves.urllib_parse import quote_plus
 from werkzeug.exceptions import NotFound
 from werkzeug.http import dump_cookie
@@ -49,16 +48,26 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.webapp.authn.app import AuthnApp, authn_init_app
 from eduid.webapp.authn.settings.common import AuthnConfig
 from eduid.webapp.common.api.testing import EduidAPITestCase
+from eduid.webapp.common.api.utils import urlappend
+from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.authn.cache import OutstandingQueriesCache
 from eduid.webapp.common.authn.eduid_saml2 import get_authn_request
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.common.authn.tests.responses import auth_response, logout_request, logout_response
 from eduid.webapp.common.authn.utils import get_location, no_authn_views
-from eduid.webapp.common.session import session
+from eduid.webapp.common.session import EduidSession, session
+from eduid.webapp.common.session.namespaces import AuthnRequestRef
+from saml2.s_utils import deflate_and_base64_encode
 
 logger = logging.getLogger(__name__)
 
 HERE = os.path.abspath(os.path.dirname(__file__))
+
+
+@dataclass
+class AcsResult:
+    session: EduidSession
+    authn_ref: AuthnRequestRef
 
 
 class AuthnAPITestBase(EduidAPITestCase):
@@ -127,22 +136,12 @@ class AuthnAPITestBase(EduidAPITestCase):
 
         :return: the cookie corresponding to the authn session
         """
-        session_id = self.add_outstanding_query(came_from)
-        cookie = self.dump_session_cookie(session_id)
-        saml_response = auth_response(session_id, eppn).encode('utf-8')
+        res = self.acs('/login', eppn=self.test_user.eppn, next_url=came_from)
+        cookie = res.session.meta.cookie_val
+        logger.debug(f'Test logged in, got cookie {cookie}')
+        return self.dump_session_cookie(cookie)
 
-        with self.app.test_request_context(
-            '/saml2-acs',
-            method='POST',
-            headers={'Cookie': cookie},
-            data={'SAMLResponse': base64.b64encode(saml_response), 'RelayState': came_from},
-        ):
-
-            self.app.dispatch_request()
-            session.persist()  # Explicit session.persist is needed when working within a test_request_context
-            return cookie
-
-    def authn(self, url: str, force_authn: bool = False, next_url: str = '/') -> None:
+    def authn(self, url: str, force_authn: bool = False, next_url: str = '/', expect_url_allowed: bool = True) -> None:
         """
         Common code for the tests that need to send an authentication request.
         This checks that the client is redirected to the idp.
@@ -152,19 +151,53 @@ class AuthnAPITestBase(EduidAPITestCase):
                             authenticated client
         :param next_url: Next url
         """
-        with self.app.test_client() as c:
-            resp = c.get('{}?next={}'.format(url, next_url))
-            authn_req = get_location(
-                get_authn_request(self.app.saml2_config, session, next_url, None, force_authn=force_authn)
-            )
-            idp_url = authn_req.split('?')[0]
-            self.assertEqual(resp.status_code, 302)
-            self.assertTrue(resp.location.startswith(idp_url))
-            relay_state = resp.location.split('&')[-1]
-            quoted_next = 'RelayState={}'.format(quote_plus(next_url))
-            self.assertEqual(quoted_next, relay_state)
+        with self.session_cookie_anon(self.browser) as browser:
+            _url = f'{url}?next={quote_plus(next_url)}'
+            logger.debug(f'Test fetching {_url}')
+            resp = browser.get(_url)
+            logger.debug(f'Test fetched {_url}, response {resp}')
+            assert resp.status_code == 302
 
-    def acs(self, url: str, eppn: str, check_fn: Callable, came_from: str = '/camefrom/') -> None:
+            with browser.session_transaction() as sess:
+                request_id, authn_ref = self._get_request_id_from_session(sess)
+                logger.debug(f'Test ACS got SAML request id {request_id} from session {sess}')
+
+                # save the authn_data for further checking below
+                authn = sess.authn.sp.authns[authn_ref]
+
+                # Create another mock authn request, presumably only to get the IdP URL below
+                authn_req = get_location(
+                    get_authn_request(
+                        saml2_config=self.app.saml2_config,
+                        session=sess,
+                        relay_state='',
+                        authn_id=AuthnRequestRef(str(uuid.uuid4())),
+                        selected_idp=None,
+                        force_authn=force_authn,
+                    )
+                )
+
+        idp_url = authn_req.split('?')[0]
+        assert resp.status_code == 302
+        assert resp.location.startswith(idp_url)
+        logger.debug(f'Test got the expected redirect to the IdP {idp_url}')
+        if expect_url_allowed:
+            assert authn.redirect_url == next_url
+        else:
+            # When the next_url isn't accepted as safe to use, a redirect to '/' is done instead
+            assert authn.redirect_url == '/'
+
+    def _get_request_id_from_session(self, session: EduidSession) -> Tuple[str, AuthnRequestRef]:
+        """ extract the (probable) SAML request ID from the session """
+        oq_cache = OutstandingQueriesCache(session.authn.sp.pysaml2_dicts)
+        ids = oq_cache.outstanding_queries().keys()
+        if len(ids) != 1:
+            raise RuntimeError('More or less than one authn request in the session')
+        saml_req_id = list(ids)[0]
+        req_ref = AuthnRequestRef(oq_cache.outstanding_queries()[saml_req_id])
+        return saml_req_id, req_ref
+
+    def acs(self, url: str, eppn: str, next_url: str = '/camefrom/', expect_url_allowed: bool = True) -> AcsResult:
         """
         common code for the tests that need to access the assertion consumer service
         and then check the side effects of this access.
@@ -172,29 +205,38 @@ class AuthnAPITestBase(EduidAPITestCase):
         :param url: the url of the desired authentication mode.
         :param eppn: the eppn of the user to access the service
         :param check_fn: the function that checks the side effects after accessing the acs
-        :param came_from: Relay state
+        :param next_url: Relay state
+        :param expect_url_allowed: True if the next_url is expected to be accepted
         """
-        with self.app.test_client() as c:
-            resp = c.get(url)
-            cookie = resp.headers['Set-Cookie']
-            cookie_val = session.meta.cookie_val
-            authr = auth_response(cookie_val, eppn).encode('utf-8')
+        # with self.session_cookie_anon(self.browser) as browser:
 
-        with self.app.test_request_context(
-            '/saml2-acs',
-            method='POST',
-            headers={'Cookie': cookie},
-            data={'SAMLResponse': base64.b64encode(authr), 'RelayState': came_from},
-        ):
+        with self.session_cookie_anon(self.browser) as browser:
+            _url = f'{url}?next={quote_plus(next_url)}'
+            logger.debug(f'Test fetching {_url}')
+            resp = browser.get(_url)
+            logger.debug(f'Test fetched {_url}, response {resp}')
+            assert resp.status_code == 302
 
-            oq_cache = OutstandingQueriesCache(session.authn.sp.pysaml2_dicts)
-            oq_cache.set(cookie_val, came_from)
+            with browser.session_transaction() as sess:
+                request_id, authn_ref = self._get_request_id_from_session(sess)
+                logger.debug(f'Test ACS got SAML request id {request_id} from session {sess}')
 
-            resp = self.app.dispatch_request()
+            authr = auth_response(request_id, eppn).encode('utf-8')
+            data = {
+                'csrf': sess.get_csrf_token(),
+                'SAMLResponse': base64.b64encode(authr),
+            }
 
-            self.assertEqual(resp.status_code, 302)
-            self.assertEqual(resp.location, came_from)
-            check_fn()
+            resp = browser.post('/saml2-acs', data=data)
+
+            assert resp.status_code == 302
+            if expect_url_allowed:
+                assert resp.location == urlappend('http://test.localhost', next_url)
+            else:
+                # When the next_url isn't accepted as safe to use, a redirect to '/' is done instead
+                assert resp.location == 'http://test.localhost/'
+            with browser.session_transaction() as sess:
+                return AcsResult(session=sess, authn_ref=authn_ref)
 
     def dump_session_cookie(self, session_id: str) -> str:
         """
@@ -230,8 +272,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
         self.authn('/login', next_url='http://test.localhost/profile/')
 
     def test_login_authn_bad_relay_state(self):
-        with self.assertRaises(AssertionError):
-            self.authn('/login', next_url='http://bad.localhost/evil/')
+        self.authn('/login', next_url='http://bad.localhost/evil/', expect_url_allowed=False)
 
     def test_chpass_authn(self):
         self.authn('/chpass', force_authn=True)
@@ -242,49 +283,40 @@ class AuthnAPITestCase(AuthnAPITestBase):
     def test_login_assertion_consumer_service(self):
         eppn = 'hubba-bubba'
 
-        def _check():
-            assert session.common.eppn == 'hubba-bubba'
-
-        self.acs('/login', eppn, _check)
+        res = self.acs('/login', eppn)
+        assert res.session.common.eppn == 'hubba-bubba'
 
     def test_login_assertion_consumer_service_good_relay_state(self):
         eppn = 'hubba-bubba'
 
-        def _check():
-            assert session.common.eppn == 'hubba-bubba'
-
-        self.acs('/login', eppn, _check, came_from='http://test.localhost/profile/')
+        res = self.acs('/login', eppn, next_url='/profile/')
+        assert res.session.common.eppn == 'hubba-bubba'
 
     def test_login_assertion_consumer_service_bad_relay_state(self):
         eppn = 'hubba-bubba'
 
-        def _check():
-            assert session.common.eppn == 'hubba-bubba'
-
-        with self.assertRaises(AssertionError):
-            self.acs('/login', eppn, _check, came_from='http://bad.localhost/evil/')
+        self.acs('/login', eppn, next_url='http://bad.localhost/evil/', expect_url_allowed=False)
 
     def test_chpass_assertion_consumer_service(self):
-        eppn = 'hubba-bubba'
-
-        def _check():
-            self.assertIn('reauthn-for-chpass', session)
-            then = session['reauthn-for-chpass']
-            now = int(time.time())
-            self.assertTrue(now - then < 5)
-
-        self.acs('/chpass', eppn, _check)
+        res = self.acs('/chpass', self.test_user.eppn)
+        assert 'reauthn-for-chpass' not in res.session  # this was the old method
+        assert res.session.common.eppn == self.test_user.eppn
+        assert res.session.common.is_logged_in == True
+        authn = res.session.authn.sp.authns[res.authn_ref]
+        assert authn.post_authn_action == AuthnAcsAction.change_password
+        assert authn.authn_instant is not None
+        age = utc_now() - authn.authn_instant
+        assert 10 < age.total_seconds() < 15
 
     def test_terminate_assertion_consumer_service(self):
-        eppn = 'hubba-bubba'
-
-        def _check():
-            self.assertIn('reauthn-for-termination', session)
-            then = session['reauthn-for-termination']
-            now = int(time.time())
-            self.assertTrue(now - then < 5)
-
-        self.acs('/terminate', eppn, _check)
+        res = self.acs('/terminate', self.test_user.eppn)
+        assert res.session.common.eppn == self.test_user.eppn
+        assert res.session.common.is_logged_in == True
+        authn = res.session.authn.sp.authns[res.authn_ref]
+        assert authn.post_authn_action == AuthnAcsAction.terminate_account
+        assert authn.authn_instant is not None
+        age = utc_now() - authn.authn_instant
+        assert 10 < age.total_seconds() < 15
 
     def _signup_authn_user(self, eppn):
         timestamp = utc_now()
@@ -450,12 +482,11 @@ class LogoutRequestTests(AuthnAPITestBase):
             self.assertIn(self.app.conf.saml2_logout_redirect_url, response.headers['Location'])
 
     def test_logout_loggedin(self):
-        eppn = 'hubba-bubba'
-        came_from = '/afterlogin/'
-        cookie = self.login(eppn, came_from)
+        cookie = self.login(eppn=self.test_user.eppn, came_from='/afterlogin/')
 
         with self.app.test_request_context('/logout', method='GET', headers={'Cookie': cookie}):
             response = self.app.dispatch_request()
+            logger.debug(f'Test called /logout, response {response}')
             self.assertEqual(response.status, '302 FOUND')
             self.assertIn(
                 'https://idp.example.com/simplesaml/saml2/idp/SingleLogoutService.php', response.headers['location']
@@ -501,29 +532,15 @@ class LogoutRequestTests(AuthnAPITestBase):
 
     def test_logout_service_startingIDP(self):
 
-        eppn = 'hubba-bubba'
-        came_from = '/afterlogin/'
-        session_id = self.add_outstanding_query(came_from)
-        cookie = self.dump_session_cookie(session_id)
-
-        saml_response = auth_response(session_id, eppn).encode('utf-8')
-
-        # Log in through IDP SAMLResponse
-        with self.app.test_request_context(
-            '/saml2-acs',
-            method='POST',
-            headers={'Cookie': cookie},
-            data={'SAMLResponse': base64.b64encode(saml_response), 'RelayState': '/testing-relay-state',},
-        ):
-            self.app.dispatch_request()
-            session.persist()  # Explicit session.persist is needed when working within a test_request_context
+        res = self.acs('/login', eppn=self.test_user.eppn, next_url='/afterlogin/')
+        cookie = self.dump_session_cookie(res.session.meta.cookie_val)
 
         with self.app.test_request_context(
             '/saml2-ls',
             method='POST',
             headers={'Cookie': cookie},
             data={
-                'SAMLRequest': deflate_and_base64_encode(logout_request(session_id)),
+                'SAMLRequest': deflate_and_base64_encode(logout_request('SESSION_ID')),
                 'RelayState': '/testing-relay-state',
             },
         ):

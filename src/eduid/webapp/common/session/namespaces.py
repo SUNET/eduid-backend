@@ -6,7 +6,7 @@ from abc import ABC
 from copy import deepcopy
 from datetime import datetime
 from enum import Enum, unique
-from typing import Any, Dict, NewType, Optional, Type, TypeVar, Union
+from typing import Any, Dict, List, NewType, Optional, Type, TypeVar, Union
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
@@ -135,20 +135,37 @@ class IdP_Namespace(TimestampedNS):
         self.pending_requests[request_ref].credentials_used[credential.key] = timestamp
 
 
-class Pysaml2SPData(BaseModel):
+class SP_AuthnRequest(BaseModel):
+    redirect_url: str
+    post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction]] = None
+    # TODO: add this credentials_used: List[CredentialKey] = Field(default=[])
+    created_ts: datetime = Field(default_factory=utc_now)
+    authn_instant: Optional[datetime] = None
+
+
+AuthnRequestRef = NewType('AuthnRequestRef', str)
+
+
+class SPAuthnData(BaseModel):
     post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction]] = None
     pysaml2_dicts: Dict[str, Any] = Field(default={})
+    authns: Dict[AuthnRequestRef, SP_AuthnRequest] = Field(default={})
+
+    def get_authn_for_action(self, action: Union[AuthnAcsAction, EidasAcsAction]) -> Optional[SP_AuthnRequest]:
+        for authn in self.authns.values():
+            if authn.post_authn_action == action:
+                return authn
+        return None
 
 
 class Eidas_Namespace(SessionNSBase):
 
     verify_token_action_credential_id: Optional[CredentialKey] = None
-    redirect_urls: Dict[str, str] = Field(default={})
-    sp: Pysaml2SPData = Field(default=Pysaml2SPData())
+    sp: SPAuthnData = Field(default=SPAuthnData())
 
 
 class Authn_Namespace(SessionNSBase):
 
-    sp: Pysaml2SPData = Field(default=Pysaml2SPData())
+    sp: SPAuthnData = Field(default=SPAuthnData())
     name_id: Optional[str] = None  # SAML NameID, used in logout
     next: Optional[str] = None

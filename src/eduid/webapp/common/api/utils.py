@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import logging
 import re
 from datetime import datetime
 from typing import Optional
@@ -12,6 +13,8 @@ from eduid.common.utils import urlappend
 from eduid.userdb import User, UserDB
 from eduid.userdb.exceptions import EduIDUserDBError, MultipleUsersReturned, UserDBValueError, UserDoesNotExist
 from eduid.webapp.common.api.exceptions import ApiException
+
+logger = logging.getLogger(__name__)
 
 
 def get_unique_hash() -> str:
@@ -38,30 +41,24 @@ def update_modified_ts(user):
     try:
         userid = user.user_id
     except UserDBValueError:
-        current_app.logger.debug("User {!s} has no id, setting modified_ts to None".format(user))
+        logger.debug(f'User {user} has no id, setting modified_ts to None')
         user.modified_ts = None
         return
 
     private_user = current_app.private_userdb.get_user_by_id(userid, raise_on_missing=False)
     if private_user is None:
-        current_app.logger.debug(
-            "User {!s} not found in {!s}, " "setting modified_ts to None".format(user, current_app.private_userdb)
-        )
+        logger.debug(f'User {user} not found in {current_app.private_userdb}, setting modified_ts to None')
         user.modified_ts = None
         return
 
     if private_user.modified_ts is None:
         private_user.modified_ts = datetime.utcnow()  # use current time
-        current_app.logger.debug(
-            "Updating user {!s} with new modified_ts: {!s}".format(private_user, private_user.modified_ts)
-        )
+        logger.debug(f'Updating user {private_user} with new modified_ts: {private_user.modified_ts}')
         current_app.private_userdb.save(private_user, check_sync=False)
 
     user.modified_ts = private_user.modified_ts
-    current_app.logger.debug(
-        "Updating {!s} with modified_ts from central userdb user {!s}: {!s}".format(
-            user, private_user, private_user.modified_ts
-        )
+    logger.debug(
+        f'Updating {user} with modified_ts from central userdb user {private_user}: {private_user.modified_ts}'
     )
 
 
@@ -81,12 +78,12 @@ def get_user() -> User:
         # Get user from central database
         return current_app.central_userdb.get_user_by_eppn(session.common.eppn, raise_on_missing=True)
     except UserDoesNotExist as e:
-        current_app.logger.error('Could not find user in central database.')
-        current_app.logger.error(e)
+        logger.error('Could not find user in central database.')
+        logger.error(e)
         raise ApiException('Not authorized', status_code=401)
     except MultipleUsersReturned as e:
-        current_app.logger.error('Found multiple users in central database.')
-        current_app.logger.error(e)
+        logger.error('Found multiple users in central database.')
+        logger.error(e)
         raise ApiException('Not authorized', status_code=401)
 
 
@@ -185,51 +182,41 @@ def init_template_functions(app):
     return app
 
 
-def verify_relay_state(
-    relay_state: str,
-    safe_default: str = '/',
-    logger=None,
-    url_scheme: Optional[str] = None,
-    safe_domain: Optional[str] = None,
-) -> str:
+def sanitise_redirect_url(redirect_url: Optional[str], safe_default: str = '/') -> str:
     """
     Make sure the URL provided in relay_state is safe and does
     not provide an open redirect.
 
-    The reason for the `logger`, `url_scheme`, and `safe_domain`
+    The reason for the `url_scheme` and `safe_domain`
     kwargs (rather than directly taking them from the current app and config)
     is so that this can be used in non-flask apps (specifically, in the
     IdP cherrypy app). Used within a flask app, these args can be ignored.
 
-    :param relay_state: Next url
+    :param redirect_url: Next url
     :param safe_default: The default if relay state is found unsafe
-    :param logger: A logger facility
-    :param url_scheme: the preferred URL scheme (http|https)
-    :param safe_domain: Safe domain to relay
 
     :return: Safe relay state
     """
-    if relay_state is None:
+    if redirect_url is None:
+        logger.debug(f'Using safe default redirect_url {safe_default} since none was provided')
         return safe_default
 
-    if logger is None:
-        logger = current_app.logger
-    logger.debug(f'Checking if relay state {relay_state} is safe')
-    if url_scheme is None:
-        url_scheme = current_app.config['PREFERRED_URL_SCHEME']
-    if safe_domain is None:
-        safe_domain = current_app.conf.safe_relay_domain
-    parsed_relay_state = urlparse(relay_state)
+    logger.debug(f'Checking if redirect_url {redirect_url} is safe')
+    url_scheme = current_app.config['PREFERRED_URL_SCHEME']
+    safe_domain = current_app.conf.safe_relay_domain
+    parsed_relay_state = urlparse(redirect_url)
 
     # If relay state is only a path
     if (not parsed_relay_state.scheme and not parsed_relay_state.netloc) and parsed_relay_state.path:
-        return relay_state
+        logger.debug(f'redirect_url {redirect_url} with only a path is considered safe')
+        return redirect_url
 
     # If schema matches PREFERRED_URL_SCHEME and fqdn ends with dot SAFE_RELAY_DOMAIN or equals SAFE_RELAY_DOMAIN
     if parsed_relay_state.scheme == url_scheme:
         if parsed_relay_state.netloc.endswith('.' + safe_domain) or parsed_relay_state.netloc == safe_domain:
-            return relay_state
+            logger.debug(f'redirect_url {redirect_url} to safe_domain "{safe_domain}" is considered safe')
+            return redirect_url
 
-    # Unsafe relay state found
-    logger.warning(f'Caught unsafe relay state: {relay_state}. Using safe default: {safe_default}.')
+    # Unsafe redirect_url found
+    logger.warning(f'Caught unsafe redirect_url: {redirect_url}. Using safe default: {safe_default}.')
     return safe_default

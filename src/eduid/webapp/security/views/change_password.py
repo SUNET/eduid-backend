@@ -44,8 +44,12 @@ from eduid.webapp.common.api.validation import is_valid_password
 from eduid.webapp.common.authn.vccs import change_password
 from eduid.webapp.common.session import session
 from eduid.webapp.security.app import current_security_app as current_app
-from eduid.webapp.security.helpers import compile_credential_list  # check_password,; hash_password,
-from eduid.webapp.security.helpers import SecurityMsg, generate_suggested_password, get_zxcvbn_terms
+from eduid.webapp.security.helpers import (
+    SecurityMsg,
+    compile_credential_list,
+    generate_suggested_password,
+    get_zxcvbn_terms,
+)
 from eduid.webapp.security.schemas import ChpassRequestSchema, ChpassResponseSchema, SuggestedPasswordResponseSchema
 
 # TODO: move check_password and hash_password to eduid.webapp.common
@@ -130,7 +134,7 @@ def change_password_view(user: User, old_password: str, new_password: str) -> Fl
     except UserOutOfSync:
         return error_response(message=CommonMsg.out_of_sync)
 
-    del session['reauthn-for-chpass']
+    # del session['reauthn-for-chpass']
 
     current_app.stats.count(name='security_password_changed', value=1)
     current_app.logger.info(f'Changed password for user {security_user.eppn}')

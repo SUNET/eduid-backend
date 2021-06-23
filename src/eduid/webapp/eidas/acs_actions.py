@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 
 
-import base64
+from typing import Optional
 
 from flask import redirect, request
 from six.moves.urllib_parse import urlsplit, urlunsplit
 from werkzeug.wrappers import Response as WerkzeugResponse
 
-from eduid.common.utils import urlappend
 from eduid.userdb import User
 from eduid.userdb.credentials.fido import FidoCredential
 from eduid.userdb.logs import MFATokenProofing, SwedenConnectProofing
@@ -17,13 +16,14 @@ from eduid.webapp.common.api.decorators import require_user
 from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid.webapp.common.api.helpers import verify_nin_for_user
 from eduid.webapp.common.api.messages import CommonMsg, redirect_with_msg
-from eduid.webapp.common.api.utils import save_and_sync_user, verify_relay_state
+from eduid.webapp.common.api.utils import sanitise_redirect_url, save_and_sync_user, urlappend
 from eduid.webapp.common.authn.acs_enums import EidasAcsAction
 from eduid.webapp.common.authn.acs_registry import acs_action
 from eduid.webapp.common.authn.eduid_saml2 import get_authn_ctx
 from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.authn.utils import get_saml_attribute
 from eduid.webapp.common.session import session
+from eduid.webapp.common.session.namespaces import SP_AuthnRequest
 from eduid.webapp.eidas.app import current_eidas_app as current_app
 from eduid.webapp.eidas.helpers import EidasMsg, is_required_loa, is_valid_reauthn
 
@@ -32,7 +32,9 @@ __author__ = 'lundberg'
 
 @acs_action(EidasAcsAction.token_verify)
 @require_user
-def token_verify_action(session_info: SessionInfo, user: User) -> WerkzeugResponse:
+def token_verify_action(
+    session_info: SessionInfo, user: User, authndata: Optional[SP_AuthnRequest]
+) -> WerkzeugResponse:
     """
     Use a Sweden Connect federation IdP assertion to verify a users MFA token and, if necessary,
     the users identity.
@@ -61,7 +63,7 @@ def token_verify_action(session_info: SessionInfo, user: User) -> WerkzeugRespon
 
     # Verify asserted NIN for user if there are no verified NIN
     if proofing_user.nins.verified.count == 0:
-        nin_verify_action(session_info)
+        nin_verify_action(session_info, authndata)
         user = current_app.central_userdb.get_user_by_eppn(user.eppn)
         proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
         token_to_verify = proofing_user.credentials.filter(FidoCredential).find(
@@ -72,7 +74,7 @@ def token_verify_action(session_info: SessionInfo, user: User) -> WerkzeugRespon
     _nin_list = get_saml_attribute(session_info, 'personalIdentityNumber')
 
     if _nin_list is None:
-        raise ValueError("Missing PIN in SAML session info")
+        raise ValueError("Missing NIN in SAML session info")
 
     asserted_nin = _nin_list[0]
     user_nin = proofing_user.nins.verified.find(asserted_nin)
@@ -128,7 +130,7 @@ def token_verify_action(session_info: SessionInfo, user: User) -> WerkzeugRespon
 
 @acs_action(EidasAcsAction.nin_verify)
 @require_user
-def nin_verify_action(session_info: SessionInfo, user: User) -> WerkzeugResponse:
+def nin_verify_action(session_info: SessionInfo, authndata: Optional[SP_AuthnRequest], user: User) -> WerkzeugResponse:
     """
     Use a Sweden Connect federation IdP assertion to verify a users identity.
 
@@ -150,7 +152,7 @@ def nin_verify_action(session_info: SessionInfo, user: User) -> WerkzeugResponse
     _nin_list = get_saml_attribute(session_info, 'personalIdentityNumber')
 
     if _nin_list is None:
-        raise ValueError("Missing PIN in SAML session info")
+        raise ValueError("Missing NIN in SAML session info")
 
     asserted_nin = _nin_list[0]
 
@@ -261,23 +263,13 @@ def nin_verify_BACKDOOR(user: User) -> WerkzeugResponse:
 
 
 @acs_action(EidasAcsAction.mfa_authn)
-def mfa_authentication_action(session_info: SessionInfo) -> WerkzeugResponse:
-    relay_state = request.form.get('RelayState')
-    current_app.logger.debug('RelayState: {}'.format(relay_state))
-    redirect_url = None
-    if relay_state:
-        redirect_url = session.eidas.redirect_urls.pop(relay_state, None)
+def mfa_authentication_action(session_info: SessionInfo, authndata: SP_AuthnRequest) -> WerkzeugResponse:
+    redirect_url = sanitise_redirect_url(authndata.redirect_url)
     if not redirect_url:
         # With no redirect url just redirect the user to dashboard for a new try to log in
         # TODO: This will result in a error 400 until we put the authentication in the session
         current_app.logger.error('Missing redirect url for mfa authentication')
         return redirect_with_msg(current_app.conf.action_url, EidasMsg.no_redirect_url)
-
-    # We get the mfa authentication views "next" argument as base64 to avoid our request sanitation
-    # to replace all & to &amp;
-    redirect_url = base64.b64decode(redirect_url).decode('utf-8')
-    # TODO: Rename verify_relay_state to verify_redirect_url
-    redirect_url = verify_relay_state(redirect_url)
 
     if not is_required_loa(session_info, 'loa3'):
         return redirect_with_msg(redirect_url, EidasMsg.authn_context_mismatch)

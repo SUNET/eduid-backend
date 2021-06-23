@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-
-
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import unique
 from typing import Optional
 
@@ -9,15 +7,17 @@ from flask import render_template, url_for
 from flask_babel import gettext as _
 
 from eduid.common.decorators import deprecated
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.exceptions import UserHasNotCompletedSignup
 from eduid.userdb.logs import MailAddressProofing, PhoneNumberProofing
 from eduid.userdb.security import PasswordResetEmailAndPhoneState, PasswordResetEmailState, SecurityUser
 from eduid.webapp.common.api.helpers import send_mail
-from eduid.webapp.common.api.messages import TranslatableMsg
+from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response
 from eduid.webapp.common.api.utils import get_short_hash, get_unique_hash, save_and_sync_user
 from eduid.webapp.common.authn.utils import generate_password
 from eduid.webapp.common.authn.vccs import reset_password
 from eduid.webapp.common.session import session
+from eduid.webapp.common.session.namespaces import SP_AuthnRequest
 from eduid.webapp.security.app import current_security_app as current_app
 from eduid.webapp.security.schemas import ConvertRegisteredKeys
 
@@ -76,8 +76,9 @@ class SecurityMsg(TranslatableMsg):
     chpass_weak = 'security.change_password_weak'
     # wrong old password
     unrecognized_pw = 'security.change_password_wrong_old_password'
-    # change password successfully completed
+    # I think these chpass_ values are for the old change-password views (which are still the ones in use)
     chpass_password_changed = 'security.change_password_complete'
+    chpass_password_changed2 = 'chpass.password-changed'
 
 
 def credentials_to_registered_keys(user_u2f_tokens):
@@ -437,3 +438,18 @@ def get_zxcvbn_terms(eppn):
             user_input.append(item.email.split('@')[0])
 
     return user_input
+
+
+def check_reauthn(authn: Optional[SP_AuthnRequest], max_age: timedelta) -> Optional[FluxData]:
+    """ Check if a re-authentication has been performed recently enough for this action """
+    if not authn or not authn.authn_instant:
+        current_app.logger.info(f'Action requires re-authentication')
+        return error_response(message=SecurityMsg.no_reauthn)
+
+    delta = utc_now() - authn.authn_instant
+
+    if delta > max_age:
+        current_app.logger.info(f'Re-authentication age {delta} too old')
+        return error_response(message=SecurityMsg.stale_reauthn)
+
+    return None

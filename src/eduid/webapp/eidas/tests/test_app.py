@@ -22,6 +22,7 @@ from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.acs_enums import EidasAcsAction
 from eduid.webapp.common.authn.cache import OutstandingQueriesCache
 from eduid.webapp.common.session import EduidSession
+from eduid.webapp.common.session.namespaces import AuthnRequestRef
 from eduid.webapp.eidas.app import EidasApp, init_eidas_app
 from eduid.webapp.eidas.helpers import EidasMsg
 
@@ -236,7 +237,7 @@ class EidasTests(EduidAPITestCase):
         if credential_used is not None:
             session['eduidIdPCredentialsUsed'] = ['other_id']
 
-    def _get_request_id_from_session(self, session: EduidSession) -> Tuple[str, str]:
+    def _get_request_id_from_session(self, session: EduidSession) -> Tuple[str, AuthnRequestRef]:
         """ extract the (probable) SAML request ID from the session """
         oq_cache = OutstandingQueriesCache(session.eidas.sp.pysaml2_dicts)
         ids = oq_cache.outstanding_queries().keys()
@@ -244,7 +245,7 @@ class EidasTests(EduidAPITestCase):
         if len(ids) != 1:
             raise RuntimeError('More or less than one authn request in the session')
         saml_req_id = list(ids)[0]
-        req_ref = str(oq_cache.outstanding_queries()[saml_req_id])
+        req_ref = AuthnRequestRef(oq_cache.outstanding_queries()[saml_req_id])
         return saml_req_id, req_ref
 
     def _verify_redirect_url(
@@ -305,8 +306,7 @@ class EidasTests(EduidAPITestCase):
             if not nin_present:
                 assert not _match, f'NIN {nin} not expected to be present on user'
                 return None
-            self.on_user = f'NIN {nin} not present on user'
-            assert _match, self.on_user
+            assert _match, f'NIN {nin} not present on user'
             _nin = _match[0]
             assert isinstance(_nin, Nin)
             assert _nin.is_verified == nin_verified
@@ -319,8 +319,10 @@ class EidasTests(EduidAPITestCase):
         age: int = 10,
         nin: Optional[str] = None,
         expect_error: bool = False,
-        expect_redirect_url: str = 'http://idp.test.localhost/action',
+        expect_redirect_url: Optional[str] = None,
     ) -> None:
+        if expect_redirect_url is None:
+            expect_redirect_url = self.app.conf.action_url
         return self._call_endpoint_and_saml_acs(
             endpoint=endpoint,
             eppn=eppn,
@@ -334,17 +336,19 @@ class EidasTests(EduidAPITestCase):
     def verify_token(
         self,
         endpoint: str,
-        eppn: Optional[str],
         expect_msg: TranslatableMsg,
+        eppn: Optional[str] = None,
         expect_error: bool = False,
         expect_saml_error: bool = False,
-        expect_redirect_url: str = 'http://test.localhost/profile',
+        expect_redirect_url: Optional[str] = None,
         age: int = 10,
         nin: Optional[str] = None,
         response_template: Optional[str] = None,
         credentials_used: Optional[List[CredentialKey]] = None,
         verify_credential: Optional[CredentialKey] = None,
     ) -> None:
+        if expect_redirect_url is None:
+            expect_redirect_url = self.app.conf.token_verify_redirect_url
         return self._call_endpoint_and_saml_acs(
             endpoint=endpoint,
             eppn=eppn,
@@ -364,9 +368,9 @@ class EidasTests(EduidAPITestCase):
         endpoint: str,
         eppn: Optional[str],
         expect_msg: TranslatableMsg,
+        expect_redirect_url: str,
         expect_error: bool = False,
         expect_saml_error: bool = False,
-        expect_redirect_url: str = 'http://test.localhost/profile',
         age: int = 10,
         nin: Optional[str] = None,
         response_template: Optional[str] = None,
@@ -385,7 +389,6 @@ class EidasTests(EduidAPITestCase):
 
         action_url = self.app.conf.action_url
         next_url = quote_plus(bytes(action_url, 'utf-8'))
-        next_url_b64 = base64.b64encode(bytes(action_url, 'utf-8')).decode('utf-8')
 
         with self.session_cookie(self.browser, eppn) as browser:
             with browser.session_transaction() as sess:
@@ -402,8 +405,6 @@ class EidasTests(EduidAPITestCase):
 
             with browser.session_transaction() as sess:
                 request_id, authn_ref = self._get_request_id_from_session(sess)
-                relay_state = authn_ref
-                sess.eidas.redirect_urls = {relay_state: next_url_b64}
 
             authn_response = self.generate_auth_response(request_id, response_template, asserted_nin=nin, age=age)
             if verify_credential:
@@ -414,7 +415,7 @@ class EidasTests(EduidAPITestCase):
                 with browser.session_transaction() as sess:
                     sess.eidas.verify_token_action_credential_id = verify_credential
 
-            data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': relay_state}
+            data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': ''}
             response = browser.post('/saml2-acs', data=data)
 
         if expect_saml_error:

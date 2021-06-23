@@ -45,8 +45,7 @@ from typing import Callable, Dict, Optional
 
 from flask import current_app
 
-from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import Pysaml2SPData
+from eduid.webapp.common.session.namespaces import SP_AuthnRequest, SPAuthnData
 
 # This is the list of ACS actions loaded. It is populated by decorating functions with the @acs_action.
 # The keys are the AcsAction (subclass) enum values, since get_action() doesn't know which subclass of
@@ -76,10 +75,13 @@ def acs_action(action: Enum):
     return outer
 
 
-def schedule_action(action: Enum, sp_data: Pysaml2SPData) -> None:
+def schedule_action(action: Enum, sp_data: SPAuthnData) -> None:
     """
     Schedule an action to be executed after an IdP responds to a SAML request.
     This is called just before the SAML request is sent.
+
+    TODO: This is the obsolete variant of storing a single per-SP post_authn_action in the session,
+          this whole function should be removed.
 
     :param action: the AcsAction to schedule
     """
@@ -87,13 +89,13 @@ def schedule_action(action: Enum, sp_data: Pysaml2SPData) -> None:
     sp_data.post_authn_action = action.value
 
 
-def get_action(default_action: Optional[Enum], sp_data: Pysaml2SPData) -> Callable:
+def get_action(default_action: Optional[Enum], sp_data: SPAuthnData, authndata: SP_AuthnRequest) -> Callable:
     """
     Retrieve an action from the registry based on the AcsAction stored in the session.
 
     :return: the function to be invoked for this action
     """
-    action_value = sp_data.post_authn_action
+    action_value = authndata.post_authn_action
     if action_value is None:
         current_app.logger.debug(f'No post-authn-action found in the session, using default {default_action}')
         if default_action is not None:
@@ -108,6 +110,9 @@ def get_action(default_action: Optional[Enum], sp_data: Pysaml2SPData) -> Callab
         current_app.logger.debug(f'Registered ACS actions: {_actions.keys()}')
         raise UnregisteredAction(error_msg)
     finally:
+        # OLD
+        current_app.logger.debug(f'Consuming (session-wide) ACS action {action_value}')
         sp_data.post_authn_action = None
-    current_app.logger.debug(f'Consuming ACS action {action_value}')
+        # TODO: Is there a need to flag authndata as used?
+
     return action
