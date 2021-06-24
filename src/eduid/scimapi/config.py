@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 from eduid.common.config.base import LoggingConfigMixin, RootConfig
 
@@ -24,7 +24,7 @@ class ScimApiConfig(RootConfig, LoggingConfigMixin, AWSMixin):
 
     protocol: str = 'http'
     server_name: str = 'localhost:8000'
-    application_root: str = '/'
+    application_root: str = ''
     log_format: str = '{asctime} | {levelname:7} | {hostname} | {name:35} | {module:10} | {message}'
     mongo_uri: str = ''
     neo4j_uri: str = ''
@@ -39,3 +39,9 @@ class ScimApiConfig(RootConfig, LoggingConfigMixin, AWSMixin):
     # Invite config
     invite_url: str = ''
     invite_expire: int = 180 * 86400  # 180 days
+
+    @validator('application_root')
+    def application_root_must_not_end_with_slash(cls, v: str):
+        if v.endswith('/'):
+            raise ValueError(f'must not end with slash ({v})')
+        return v
