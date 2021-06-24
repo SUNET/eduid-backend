@@ -53,8 +53,6 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
     if not req.app.context.check_version(req, db_user):
         raise BadRequest(detail="Version mismatch")
 
-    if not acceptable_linked_accounts(update_request.nutid_user_v1.linked_accounts):
-        raise BadRequest(detail='Invalid nutid linked_accounts')
 
     req.app.context.logger.debug(f'Extra debug: db_user {scim_id} as dict:\n{pprint.pformat(db_user.to_dict())}')
 
@@ -85,7 +83,11 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
             core_changed = True
 
     nutid_changed = False
-    if SCIMSchema.NUTID_USER_V1 in update_request.schemas:
+    if SCIMSchema.NUTID_USER_V1 in update_request.schemas and update_request.nutid_user_v1 is not None:
+
+        if not acceptable_linked_accounts(update_request.nutid_user_v1.linked_accounts):
+            raise BadRequest(detail='Invalid nutid linked_accounts')
+
         # Look for changes in profiles
         for this in update_request.nutid_user_v1.profiles.keys():
             if this not in db_user.profiles:
@@ -190,19 +192,22 @@ async def on_post(req: ContextRequest, resp: Response, create_request: UserCreat
     req.app.context.logger.info(f'Creating user')
     req.app.context.logger.debug(create_request)
 
-    if not acceptable_linked_accounts(create_request.nutid_user_v1.linked_accounts):
-        raise BadRequest(detail='Invalid nutid linked_accounts')
-
-    # convert from one type of profiles to another
     profiles = {}
-    for profile_name, profile in create_request.nutid_user_v1.profiles.items():
-        profiles[profile_name] = ScimApiProfile(attributes=profile.attributes, data=profile.data)
+    linked_accounts = []
+    if SCIMSchema.NUTID_USER_V1 in create_request.schemas and create_request.nutid_user_v1 is not None:
+        if not acceptable_linked_accounts(create_request.nutid_user_v1.linked_accounts):
+            raise BadRequest(detail='Invalid nutid linked_accounts')
 
-    # convert from one type of linked accounts to another
-    linked_accounts = [
-        ScimApiLinkedAccount(issuer=x.issuer, value=x.value, parameters=x.parameters)
-        for x in create_request.nutid_user_v1.linked_accounts
-    ]
+        # convert from one type of profiles to another
+        for profile_name, profile in create_request.nutid_user_v1.profiles.items():
+            profiles[profile_name] = ScimApiProfile(attributes=profile.attributes, data=profile.data)
+
+        # convert from one type of linked accounts to another
+        linked_accounts = [
+            ScimApiLinkedAccount(issuer=x.issuer, value=x.value, parameters=x.parameters)
+            for x in create_request.nutid_user_v1.linked_accounts
+        ]
+
     db_user = ScimApiUser(
         external_id=create_request.external_id,
         name=ScimApiName(**create_request.name.dict()),

@@ -50,7 +50,7 @@ class User(ModelConfig):
     phone_numbers: List[PhoneNumber] = Field(default_factory=list, alias='phoneNumbers')
     preferred_language: Optional[LanguageTag] = Field(default=None, alias='preferredLanguage')
     groups: List[Group] = Field(default_factory=list)
-    nutid_user_v1: NutidUserExtensionV1 = Field(
+    nutid_user_v1: Optional[NutidUserExtensionV1] = Field(
         default_factory=NutidUserExtensionV1, alias=SCIMSchema.NUTID_USER_V1.value
     )
 

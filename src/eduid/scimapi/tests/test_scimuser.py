@@ -174,7 +174,7 @@ class TestScimUser(unittest.TestCase):
 class UserApiResult:
     request: Mapping[str, Any]
     response: Response
-    nutid_user: NutidUserExtensionV1
+    nutid_user: Optional[NutidUserExtensionV1]
     parsed_response: UserResponse
 
 
