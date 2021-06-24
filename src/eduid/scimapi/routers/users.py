@@ -53,8 +53,9 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
     if not req.app.context.check_version(req, db_user):
         raise BadRequest(detail="Version mismatch")
 
-
-    req.app.context.logger.debug(f'Extra debug: db_user {scim_id} as dict:\n{pprint.pformat(db_user.to_dict())}')
+    req.app.context.logger.debug(
+        f'Extra debug: db_user BEFORE {scim_id} as dict:\n{pprint.pformat(db_user.to_dict(), width=120)}'
+    )
 
     core_changed = False
     if SCIMSchema.CORE_20_USER in update_request.schemas:

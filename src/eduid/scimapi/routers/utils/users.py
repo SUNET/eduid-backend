@@ -1,4 +1,3 @@
-import pprint
 from dataclasses import asdict
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Sequence, Tuple
@@ -64,7 +63,7 @@ def db_user_to_response(req: ContextRequest, resp: Response, db_user: ScimApiUse
 
     resp.headers["Location"] = location
     resp.headers["ETag"] = make_etag(db_user.version)
-    req.app.context.logger.debug(f'Extra debug: Response:\n{pprint.pformat(user.json(exclude_none=True))}')
+    req.app.context.logger.debug(f'Extra debug: Response:\n{user.json(exclude_none=True, indent=2)}')
     return user
 
 
