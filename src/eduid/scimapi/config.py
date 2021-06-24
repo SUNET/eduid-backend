@@ -33,7 +33,7 @@ class ScimApiConfig(RootConfig, LoggingConfigMixin, AWSMixin):
     authorization_token_expire: int = 5 * 60
     keystore_path: Path
     signing_key_id: str
-    no_authn_urls: List[str] = Field(default=['^/login/$', '^/status/healthy/$'])
+    no_authn_urls: List[str] = Field(default=['^/login/?$', '^/status/healthy$', '^/docs/?$', '^/openapi.json'])
     status_cache_seconds: int = 10
     data_owners: Dict[str, DataOwner] = Field(default={})
     # Invite config

@@ -9,10 +9,9 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import PlainTextResponse
 from starlette.types import Message
 
-from eduid.common.utils import urlappend
+from eduid.common.utils import removeprefix
 from eduid.scimapi.context import Context
 from eduid.scimapi.context_request import ContextRequestMixin
-from eduid.scimapi.exceptions import Unauthorized
 
 
 # middleware needs to return a reponse
@@ -86,7 +85,9 @@ class AuthenticationMiddleware(BaseMiddleware):
         self.context.logger.debug('No auth allow urls: {}'.format(self.no_authn_urls))
 
     def _is_no_auth_path(self, url: URL) -> bool:
-        path = urlappend(url.path, '/')  # Make sure the path ends with / to match what we have in config
+        path = url.path
+        # Remove application root from path matching
+        path = removeprefix(path, self.context.config.application_root)
         for regex in self.no_authn_urls:
             m = re.match(regex, path)
             if m is not None:
