@@ -42,22 +42,3 @@ class NotificationRelay:
                 logger.debug(f'TopicArn: {topic_arn}')
                 res = self.sns_client.publish(TopicArn=topic_arn, Message=message)
                 logger.debug(f'Publish result: {res}')
-
-
-# FT_TEST_ARN = 'arn:aws:sns:eu-north-1:075581119103:ft-test'
-# parsed_response = sns_client.list_subscriptions_by_topic(TopicArn=FT_TEST_ARN,)
-# print(f'Subscribers: {pprint.pformat(parsed_response)}')
-# res = {
-#     'MessageId': '811d328f-b633-5fa3-aab4-6a0f4ab56f94',
-#     'ResponseMetadata': {
-#         'RequestId': '772ad819-a85b-5c54-85e2-809954dd3c63',
-#         'HTTPStatusCode': 200,
-#         'HTTPHeaders': {
-#             'x-amzn-requestid': '772ad819-a85b-5c54-85e2-809954dd3c63',
-#             'content-type': 'text/xml',
-#             'content-length': '294',
-#             'date': 'Tue, 19 Jan 2021 15:27:01 GMT',
-#         },
-#         'RetryAttempts': 0,
-#     },
-# }
