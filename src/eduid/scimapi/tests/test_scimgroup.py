@@ -240,7 +240,8 @@ class TestGroupResource_POST(TestGroupResource):
         req = {'schemas': [SCIMSchema.CORE_20_GROUP.value], 'members': []}
         response = self.client.post(url=f'/Groups/', data=self.as_json(req), headers=self.headers)
         self._assertScimError(
-            response.json(),
+            status=422,
+            json=response.json(),
             detail=[{'loc': ['body', 'displayName'], 'msg': 'field required', 'type': 'value_error.missing'}],
         )
 
@@ -469,7 +470,8 @@ class TestGroupResource_PUT(TestGroupResource):
         }
         response = self.client.put(url=f'/Groups/{uuid4()}', data=self.as_json(req), headers=self.headers)
         self._assertScimError(
-            response.json(),
+            status=422,
+            json=response.json(),
             detail=[{'loc': ['body', 'displayName'], 'msg': 'field required', 'type': 'value_error.missing'}],
         )
 
@@ -603,7 +605,8 @@ class TestGroupSearchResource(TestGroupResource):
         }
         response = self.client.post(url='/Groups/.search', data=self.as_json(req), headers=self.headers)
         self._assertScimError(
-            response.json(),
+            status=422,
+            json=response.json(),
             detail=[{'loc': ['body', 'filter'], 'msg': 'field required', 'type': 'value_error.missing'}],
         )
 

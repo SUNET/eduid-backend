@@ -2,7 +2,6 @@ from typing import Dict, Optional
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from eduid.common.config.parsers import load_config
 from eduid.scimapi.config import ScimApiConfig
@@ -49,9 +48,9 @@ def init_api(name: str = 'scimapi', test_config: Optional[Dict] = None) -> ScimA
     app.add_middleware(ScimMiddleware, context=app.context)
 
     # Exception handling
-    app.add_exception_handler(StarletteHTTPException, unexpected_error_handler)
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
     app.add_exception_handler(HTTPErrorDetail, http_error_detail_handler)
+    app.add_exception_handler(Exception, unexpected_error_handler)
 
     app.context.logger.info('app running...')
     return app

@@ -8,7 +8,7 @@ from uuid import UUID
 from bson import ObjectId
 from dateutil.parser import ParserError, parse  # type: ignore
 from langcodes import standardize_tag
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Extra, Field
 
 from eduid.scimapi.utils import make_etag
 
@@ -171,6 +171,7 @@ class PhoneNumberType(str, Enum):
 
 class ModelConfig(BaseModel):
     class Config:
+        extra = Extra.forbid  # Do not ignore undefined keys
         frozen = True
         allow_population_by_field_name = True
         json_encoders = {WeakVersion: WeakVersion.serialize, datetime: serialize_datetime}
@@ -230,23 +231,23 @@ class BaseResponse(ModelConfig):
 
     id: UUID
     meta: Meta
-    schemas: List[SCIMSchema] = Field(default_factory=list)
+    schemas: List[SCIMSchema] = Field(min_items=1)
     external_id: Optional[str] = Field(default=None, alias='externalId')
 
 
 class BaseCreateRequest(ModelConfig):
-    schemas: List[SCIMSchema] = Field(default_factory=list)
+    schemas: List[SCIMSchema] = Field(min_items=1)
     external_id: Optional[str] = Field(default=None, alias='externalId')
 
 
 class BaseUpdateRequest(ModelConfig):
     id: UUID
-    schemas: List[SCIMSchema] = Field(default_factory=list)
+    schemas: List[SCIMSchema] = Field(min_items=1)
     external_id: Optional[str] = Field(default=None, alias='externalId')
 
 
 class SearchRequest(ModelConfig):
-    schemas: List[SCIMSchema] = [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST]
+    schemas: List[SCIMSchema] = Field(min_items=1, default=[SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST])
     filter: str
     start_index: int = Field(default=1, alias='startIndex', ge=1)  # Greater or equal to 1
     count: int = Field(default=100, ge=1)  # Greater or equal to 1
@@ -254,6 +255,6 @@ class SearchRequest(ModelConfig):
 
 
 class ListResponse(ModelConfig):
-    schemas: List[SCIMSchema] = [SCIMSchema.API_MESSAGES_20_LIST_RESPONSE]
+    schemas: List[SCIMSchema] = Field(min_items=1, default=[SCIMSchema.API_MESSAGES_20_LIST_RESPONSE])
     resources: List[Dict[Any, Any]] = Field(default_factory=list, alias='Resources')
     total_results: int = Field(default=0, alias='totalResults')

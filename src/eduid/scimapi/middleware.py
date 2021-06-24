@@ -112,6 +112,9 @@ class AuthenticationMiddleware(BaseMiddleware):
             req.context.eventdb = self.context.get_eventdb(req.context.data_owner)
             return await call_next(req)
 
+        if not auth:
+            return return_error_response(status_code=401, detail='No authentication header found')
+
         token = auth[len('Bearer ') :]
         _jwt = jwt.JWT()
         try:
@@ -119,12 +122,12 @@ class AuthenticationMiddleware(BaseMiddleware):
             claims = json.loads(_jwt.claims)
         except (JWException, KeyError) as e:
             self.context.logger.info(f'Bearer token error: {e}')
-            raise Unauthorized(detail='Bearer token error')
+            return return_error_response(status_code=401, detail='Bearer token error')
 
         data_owner = claims.get('data_owner')
         if data_owner not in self.context.config.data_owners:
             self.context.logger.error(f'Data owner {repr(data_owner)} not configured')
-            raise Unauthorized(detail='Unknown data_owner')
+            return return_error_response(status_code=401, detail='Unknown data_owner')
 
         req.context.data_owner = data_owner
         req.context.userdb = self.context.get_userdb(data_owner)
