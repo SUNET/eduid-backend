@@ -169,7 +169,7 @@ class PhoneNumberType(str, Enum):
     PAGER = 'pager'
 
 
-class ModelConfig(BaseModel):
+class EduidBaseModel(BaseModel):
     class Config:
         extra = Extra.forbid  # Do not ignore undefined keys
         frozen = True
@@ -177,7 +177,7 @@ class ModelConfig(BaseModel):
         json_encoders = {WeakVersion: WeakVersion.serialize, datetime: serialize_datetime}
 
 
-class SubResource(ModelConfig):
+class SubResource(EduidBaseModel):
     value: UUID
     ref: str = Field(alias='$ref')
     display: str
@@ -195,7 +195,7 @@ class SubResource(ModelConfig):
         return cls.parse_obj(data)
 
 
-class Meta(ModelConfig):
+class Meta(EduidBaseModel):
     location: str
     last_modified: datetime = Field(alias='lastModified')
     resource_type: SCIMResourceType = Field(alias='resourceType')
@@ -203,7 +203,7 @@ class Meta(ModelConfig):
     version: WeakVersion
 
 
-class Name(ModelConfig):
+class Name(EduidBaseModel):
     family_name: Optional[str] = Field(alias='familyName')
     given_name: Optional[str] = Field(alias='givenName')
     formatted: Optional[str] = None
@@ -212,21 +212,21 @@ class Name(ModelConfig):
     honorific_suffix: Optional[str] = Field(alias='honorificSuffix')
 
 
-class Email(ModelConfig):
+class Email(EduidBaseModel):
     value: LowerEmailStr
     display: Optional[str] = None
     type: Optional[EmailType] = None
     primary: bool = True
 
 
-class PhoneNumber(ModelConfig):
+class PhoneNumber(EduidBaseModel):
     value: PhoneNumberStr
     display: Optional[str] = None
     type: Optional[PhoneNumberType]
     primary: bool = True
 
 
-class BaseResponse(ModelConfig):
+class BaseResponse(EduidBaseModel):
     """ This is basically the implementation of the common attributes defined in RFC7643 #3.1. (Common Attributes) """
 
     id: UUID
@@ -235,18 +235,18 @@ class BaseResponse(ModelConfig):
     external_id: Optional[str] = Field(default=None, alias='externalId')
 
 
-class BaseCreateRequest(ModelConfig):
+class BaseCreateRequest(EduidBaseModel):
     schemas: List[SCIMSchema] = Field(min_items=1)
     external_id: Optional[str] = Field(default=None, alias='externalId')
 
 
-class BaseUpdateRequest(ModelConfig):
+class BaseUpdateRequest(EduidBaseModel):
     id: UUID
     schemas: List[SCIMSchema] = Field(min_items=1)
     external_id: Optional[str] = Field(default=None, alias='externalId')
 
 
-class SearchRequest(ModelConfig):
+class SearchRequest(EduidBaseModel):
     schemas: List[SCIMSchema] = Field(min_items=1, default=[SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST])
     filter: str
     start_index: int = Field(default=1, alias='startIndex', ge=1)  # Greater or equal to 1
@@ -254,7 +254,7 @@ class SearchRequest(ModelConfig):
     attributes: Optional[List[str]] = None
 
 
-class ListResponse(ModelConfig):
+class ListResponse(EduidBaseModel):
     schemas: List[SCIMSchema] = Field(min_items=1, default=[SCIMSchema.API_MESSAGES_20_LIST_RESPONSE])
     resources: List[Dict[Any, Any]] = Field(default_factory=list, alias='Resources')
     total_results: int = Field(default=0, alias='totalResults')

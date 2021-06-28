@@ -6,7 +6,7 @@ from eduid.scimapi.models.scimbase import (
     BaseCreateRequest,
     BaseResponse,
     BaseUpdateRequest,
-    ModelConfig,
+    EduidBaseModel,
     SCIMSchema,
     SubResource,
 )
@@ -14,7 +14,7 @@ from eduid.scimapi.models.scimbase import (
 __author__ = 'lundberg'
 
 
-class NutidGroupExtensionV1(ModelConfig):
+class NutidGroupExtensionV1(EduidBaseModel):
     data: Dict[str, Any] = Field(default_factory=dict)
 
 
@@ -22,7 +22,7 @@ class GroupMember(SubResource):
     pass
 
 
-class Group(ModelConfig):
+class Group(EduidBaseModel):
     display_name: str = Field(alias='displayName')
     members: List[GroupMember] = Field(default_factory=list)
     nutid_group_v1: Optional[NutidGroupExtensionV1] = Field(
