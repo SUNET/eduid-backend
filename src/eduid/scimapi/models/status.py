@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 __author__ = 'lundberg'
 
-from eduid.scimapi.models.scimbase import ModelConfig
+from eduid.scimapi.models.scimbase import EduidBaseModel
 
 
-class StatusResponse(ModelConfig):
+class StatusResponse(EduidBaseModel):
     status: str
     hostname: str
     reason: str

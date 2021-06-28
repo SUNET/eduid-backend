@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import logging
-import traceback
 import uuid
 from typing import Dict, List, Optional, Union
 
-from fastapi import HTTPException, Request
+from fastapi import Request, status
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel
@@ -28,35 +27,35 @@ class SCIMErrorResponse(JSONResponse):
     media_type = "application/scim+json"
 
 
-async def unexpected_error_handler(req: Request, ex: StarletteHTTPException):
-    if ex.status_code >= 500:
-        # Only log server errors
-        error_id = uuid.uuid4()
-        logger.exception(f'Unexpected error {error_id}: {ex}')
-        ex.detail = f'Please reference the error id {error_id} when reporting this issue'
-    return await http_exception_handler(req, ex)
-
-
-async def validation_exception_handler(req: Request, ex: RequestValidationError):
-    resp = SCIMErrorResponse()
-    resp.status_code = 400
-    detail = ErrorDetail(
-        schemas=[SCIMSchema.ERROR.value], scimType='invalidSyntax', detail=ex.errors(), status=resp.status_code
+async def unexpected_error_handler(req: Request, exc: Exception):
+    error_id = uuid.uuid4()
+    logger.error(f'unexpected error {error_id}: {req.method} {req.url.path} - {exc}')
+    http_exception = StarletteHTTPException(
+        status_code=500, detail=f'Please reference the error id {error_id} when reporting this issue'
     )
-    resp.body = detail.json(exclude_none=True).encode('utf-8')
-    return resp
+    return await http_exception_handler(req, http_exception)
 
 
-async def http_error_detail_handler(req: Request, ex: HTTPErrorDetail):
-    resp = SCIMErrorResponse()
-    resp.status_code = ex.status_code
-    resp.body = ex.error_detail.json(exclude_none=True).encode('utf-8')
-    if ex.extra_headers:
-        resp.headers.update(ex.extra_headers)
-    return resp
+async def validation_exception_handler(req: Request, exc: RequestValidationError):
+    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+    detail = ErrorDetail(
+        schemas=[SCIMSchema.ERROR.value], scimType='invalidSyntax', detail=exc.errors(), status=status_code
+    )
+    logger.error(f'validation exception: {req.method} {req.url.path} - {exc} - {detail}')
+    return SCIMErrorResponse(content=detail.dict(exclude_none=True), status_code=status_code)
 
 
-class HTTPErrorDetail(HTTPException):
+async def http_error_detail_handler(req: Request, exc: HTTPErrorDetail):
+    logger.error(f'error detail: {req.method} {req.url.path} - {exc} - {exc.error_detail}')
+    return SCIMErrorResponse(
+        content=exc.error_detail.dict(exclude_none=True),
+        headers=exc.extra_headers,
+        # default to status code 400 as error_detail status should be optional
+        status_code=exc.error_detail.status or 400,
+    )
+
+
+class HTTPErrorDetail(Exception):
     def __init__(
         self,
         status_code: int,
@@ -67,8 +66,7 @@ class HTTPErrorDetail(HTTPException):
         if schemas is None:
             schemas = [SCIMSchema.ERROR.value]
 
-        super().__init__(status_code=status_code, detail=detail)
-        self._error_detail = ErrorDetail(scimType=scim_type, schemas=schemas, detail=detail, status=self.status_code)
+        self._error_detail = ErrorDetail(scimType=scim_type, schemas=schemas, detail=detail, status=status_code)
         self._extra_headers: Optional[Dict] = None
 
     @property
@@ -86,28 +84,28 @@ class HTTPErrorDetail(HTTPException):
 
 class BadRequest(HTTPErrorDetail):
     def __init__(self, **kwargs):
-        super().__init__(status_code=400, **kwargs)
+        super().__init__(status_code=status.HTTP_400_BAD_REQUEST, **kwargs)
         if not self.error_detail.detail:
             self.error_detail.detail = 'Bad Request'
 
 
 class Unauthorized(HTTPErrorDetail):
     def __init__(self, **kwargs):
-        super().__init__(status_code=401, **kwargs)
+        super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, **kwargs)
         if not self.error_detail.detail:
             self.error_detail.detail = 'Unauthorized request'
 
 
 class NotFound(HTTPErrorDetail):
     def __init__(self, **kwargs):
-        super().__init__(status_code=404, **kwargs)
+        super().__init__(status_code=status.HTTP_404_NOT_FOUND, **kwargs)
         if not self.error_detail.detail:
             self.error_detail.detail = 'Resource not found'
 
 
 class MethodNotAllowedMalformed(HTTPErrorDetail):
     def __init__(self, **kwargs):
-        super().__init__(status_code=405, **kwargs)
+        super().__init__(status_code=status.HTTP_405_METHOD_NOT_ALLOWED, **kwargs)
         if not self.error_detail.detail:
             allowed_methods = kwargs.get('allowed_methods')
             self.error_detail.detail = f'The used HTTP method is not allowed. Allowed methods: {allowed_methods}'
@@ -115,11 +113,6 @@ class MethodNotAllowedMalformed(HTTPErrorDetail):
 
 class UnsupportedMediaTypeMalformed(HTTPErrorDetail):
     def __init__(self, **kwargs):
-        super().__init__(status_code=422, **kwargs)
+        super().__init__(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, **kwargs)
         if not self.error_detail.detail:
             self.error_detail.detail = 'Request was made with an unsupported media type'
-
-
-class ServerInternal(HTTPErrorDetail):
-    def __init__(self, **kwargs):
-        super().__init__(status_code=500, **kwargs)

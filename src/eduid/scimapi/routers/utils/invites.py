@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import pprint
 from dataclasses import asdict
 from datetime import datetime, timedelta
 from os import environ
@@ -108,7 +107,7 @@ def db_invite_to_response(req: Request, resp: Response, db_invite: ScimApiInvite
 
     resp.headers['Location'] = location
     resp.headers['ETag'] = make_etag(db_invite.version)
-    req.app.context.logger.debug(f'Extra debug: Response:\n{pprint.pformat(scim_invite.json(exclude_none=True))}')
+    req.app.context.logger.debug(f'Extra debug: Response:\n{scim_invite.json(exclude_none=True, indent=2)}')
     return scim_invite
 
 

@@ -9,7 +9,7 @@ from eduid.scimapi.db.eventdb import EventLevel
 from eduid.scimapi.models.scimbase import (
     BaseCreateRequest,
     BaseResponse,
-    ModelConfig,
+    EduidBaseModel,
     SCIMResourceType,
     SCIMSchema,
     WeakVersion,
@@ -18,7 +18,7 @@ from eduid.scimapi.models.scimbase import (
 __author__ = 'ft'
 
 
-class NutidEventResource(ModelConfig):
+class NutidEventResource(EduidBaseModel):
     resource_type: SCIMResourceType = Field(alias='resourceType')
     scim_id: UUID = Field(alias='id')
     last_modified: datetime = Field(alias='lastModified')
@@ -27,7 +27,7 @@ class NutidEventResource(ModelConfig):
     location: Optional[str] = None
 
 
-class NutidEventExtensionV1(ModelConfig):
+class NutidEventExtensionV1(EduidBaseModel):
     """
     All of these will be present in Events resource responses, but only some of them are required
     when creating an event: user_id, (external_id), level, data
@@ -41,7 +41,7 @@ class NutidEventExtensionV1(ModelConfig):
     source: Optional[str] = None
 
 
-class NutidEventV1(ModelConfig):
+class NutidEventV1(EduidBaseModel):
     nutid_event_v1: NutidEventExtensionV1 = Field(alias=SCIMSchema.NUTID_EVENT_V1.value)
 
 

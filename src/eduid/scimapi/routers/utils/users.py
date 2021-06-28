@@ -1,4 +1,3 @@
-import pprint
 from dataclasses import asdict
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Sequence, Tuple
@@ -36,16 +35,18 @@ def db_user_to_response(req: ContextRequest, resp: Response, db_user: ScimApiUse
     )
 
     schemas = [SCIMSchema.CORE_20_USER]
+    nutid_user_v1 = None
     if db_user.profiles or db_user.linked_accounts:
         schemas.append(SCIMSchema.NUTID_USER_V1)
 
-    # Convert one type of Profile into another
-    _profiles = {k: Profile(attributes=v.attributes, data=v.data) for k, v in db_user.profiles.items()}
+        # Convert one type of Profile into another
+        _profiles = {k: Profile(attributes=v.attributes, data=v.data) for k, v in db_user.profiles.items()}
 
-    # Convert one type of LinkedAccount into another
-    _linked_accounts = [
-        LinkedAccount(issuer=x.issuer, value=x.value, parameters=x.parameters) for x in db_user.linked_accounts
-    ]
+        # Convert one type of LinkedAccount into another
+        _linked_accounts = [
+            LinkedAccount(issuer=x.issuer, value=x.value, parameters=x.parameters) for x in db_user.linked_accounts
+        ]
+        nutid_user_v1 = NutidUserExtensionV1(profiles=_profiles, linked_accounts=_linked_accounts)
 
     user = UserResponse(
         id=db_user.scim_id,
@@ -56,13 +57,13 @@ def db_user_to_response(req: ContextRequest, resp: Response, db_user: ScimApiUse
         preferred_language=db_user.preferred_language,
         groups=get_user_groups(req=req, db_user=db_user),
         meta=meta,
-        schemas=list(schemas),  # extra list() needed to work with _both_ mypy and marshmallow
-        nutid_user_v1=NutidUserExtensionV1(profiles=_profiles, linked_accounts=_linked_accounts),
+        schemas=schemas,  # extra list() needed to work with _both_ mypy and marshmallow
+        nutid_user_v1=nutid_user_v1,
     )
 
     resp.headers["Location"] = location
     resp.headers["ETag"] = make_etag(db_user.version)
-    req.app.context.logger.debug(f'Extra debug: Response:\n{pprint.pformat(user.json(exclude_none=True))}')
+    req.app.context.logger.debug(f'Extra debug: Response:\n{user.json(exclude_none=True, indent=2)}')
     return user
 
 

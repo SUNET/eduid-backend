@@ -8,7 +8,7 @@ from eduid.scimapi.models.scimbase import (
     BaseUpdateRequest,
     Email,
     LanguageTag,
-    ModelConfig,
+    EduidBaseModel,
     Name,
     PhoneNumber,
     SCIMSchema,
@@ -18,7 +18,7 @@ from eduid.scimapi.models.scimbase import (
 __author__ = 'lundberg'
 
 
-class Profile(ModelConfig):
+class Profile(EduidBaseModel):
     attributes: Dict[str, Any] = Field(default_factory=dict)
     data: Dict[str, Any] = Field(default_factory=dict)
 
@@ -26,7 +26,7 @@ class Profile(ModelConfig):
         return self.dict()
 
 
-class LinkedAccount(ModelConfig):
+class LinkedAccount(EduidBaseModel):
     issuer: str
     value: str
     parameters: Dict[str, Any] = Field(default_factory=dict)
@@ -35,7 +35,7 @@ class LinkedAccount(ModelConfig):
         return self.dict()
 
 
-class NutidUserExtensionV1(ModelConfig):
+class NutidUserExtensionV1(EduidBaseModel):
     profiles: Dict[str, Profile] = Field(default_factory=dict)
     linked_accounts: List[LinkedAccount] = Field(default_factory=list)
 
@@ -44,13 +44,13 @@ class Group(SubResource):
     pass
 
 
-class User(ModelConfig):
+class User(EduidBaseModel):
     name: Name = Field(default_factory=Name)
     emails: List[Email] = Field(default_factory=list)
     phone_numbers: List[PhoneNumber] = Field(default_factory=list, alias='phoneNumbers')
     preferred_language: Optional[LanguageTag] = Field(default=None, alias='preferredLanguage')
     groups: List[Group] = Field(default_factory=list)
-    nutid_user_v1: NutidUserExtensionV1 = Field(
+    nutid_user_v1: Optional[NutidUserExtensionV1] = Field(
         default_factory=NutidUserExtensionV1, alias=SCIMSchema.NUTID_USER_V1.value
     )
 

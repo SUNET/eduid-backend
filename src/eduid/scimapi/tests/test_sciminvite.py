@@ -423,24 +423,20 @@ class TestInviteResource(ScimApiTestCase):
         req1 = copy(req)
         del req1[SCIMSchema.NUTID_INVITE_V1.value]['inviterName']
         response = self.client.post(url=f'/Invites/', data=self.as_json(req1), headers=self.headers)
-        self._assertResponse(response, status_code=400)
-        assert response.json() == {
-            'schemas': ['urn:ietf:params:scim:api:messages:2.0:Error'],
-            'scimType': 'invalidSyntax',
-            'detail': [{'loc': ['body', '__root__'], 'msg': 'Missing inviterName', 'type': 'value_error'}],
-            'status': 400,
-        }
+        self._assertScimError(
+            status=422,
+            json=response.json(),
+            detail=[{'loc': ['body', '__root__'], 'msg': 'Missing inviterName', 'type': 'value_error'}],
+        )
 
         req2 = copy(req)
         del req2[SCIMSchema.NUTID_INVITE_V1.value]['sendEmail']
         response = self.client.post(url=f'/Invites/', data=self.as_json(req2), headers=self.headers)
-        self._assertResponse(response, status_code=400)
-        assert response.json() == {
-            'schemas': ['urn:ietf:params:scim:api:messages:2.0:Error'],
-            'scimType': 'invalidSyntax',
-            'detail': [{'loc': ['body', '__root__'], 'msg': 'Missing sendEmail', 'type': 'value_error'}],
-            'status': 400,
-        }
+        self._assertScimError(
+            status=422,
+            json=response.json(),
+            detail=[{'loc': ['body', '__root__'], 'msg': 'Missing sendEmail', 'type': 'value_error'}],
+        )
 
     def test_create_invite_do_not_send_email(self):
 

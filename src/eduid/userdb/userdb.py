@@ -291,7 +291,7 @@ class UserDB(BaseDB):
             logger.debug(f'{self} Inserted new user {user} into {self._coll_name}: {repr(result)})')
             import pprint
 
-            extra_debug = pprint.pformat(user.to_dict())
+            extra_debug = pprint.pformat(user.to_dict(), width=120)
             logger.debug(f"Extra debug:\n{extra_debug}")
         else:
             test_doc = {'_id': user.user_id}
@@ -310,7 +310,7 @@ class UserDB(BaseDB):
             logger.debug(f"{self} Updated user {user} (ts {modified}) in {self._coll_name}: {result}")
             import pprint
 
-            extra_debug = pprint.pformat(user.to_dict())
+            extra_debug = pprint.pformat(user.to_dict(), width=120)
             logger.debug(f"Extra debug:\n{extra_debug}")
         return result.acknowledged
 

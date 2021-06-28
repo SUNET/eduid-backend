@@ -10,7 +10,7 @@ from eduid.scimapi.models.scimbase import (
     BaseResponse,
     Email,
     LanguageTag,
-    ModelConfig,
+    EduidBaseModel,
     Name,
     PhoneNumber,
     SCIMSchema,
@@ -21,7 +21,7 @@ from eduid.webapp.common.api.validation import nin_re_str
 __author__ = 'lundberg'
 
 
-class NutidInviteExtensionV1(ModelConfig):
+class NutidInviteExtensionV1(EduidBaseModel):
     name: Name = Field(default_factory=Name)
     emails: List[Email] = Field(default_factory=list)
     phone_numbers: List[PhoneNumber] = Field(default_factory=list, alias='phoneNumbers')
@@ -38,7 +38,7 @@ class NutidInviteExtensionV1(ModelConfig):
     expires_at: Optional[datetime] = Field(default=None, alias='expiresAt')
 
 
-class NutidInviteV1(ModelConfig):
+class NutidInviteV1(EduidBaseModel):
     nutid_invite_v1: NutidInviteExtensionV1 = Field(
         default_factory=NutidInviteExtensionV1, alias=SCIMSchema.NUTID_INVITE_V1.value,
     )

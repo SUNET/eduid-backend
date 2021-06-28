@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import pprint
 from typing import Optional
 
 from fastapi import Response
@@ -49,7 +48,7 @@ def db_event_to_response(req: ContextRequest, resp: Response, db_event: ScimApiE
 
     resp.headers['Location'] = location
     resp.headers['ETag'] = make_etag(db_event.version)
-    req.app.context.logger.debug(f'Extra debug: Response:\n{pprint.pformat(event_response.json(exclude_none=True))}')
+    req.app.context.logger.debug(f'Extra debug: Response:\n{event_response.json(exclude_none=True, indent=2)}')
     return event_response
 
 

@@ -14,11 +14,11 @@ class TestUserResource(ScimApiTestCase):
         super().setUp()
 
     def test_get_token(self):
-        response = self.client.post(url=f'/login/', data=json.dumps({'data_owner': 'eduid.se'}), headers=self.headers)
+        response = self.client.post(url=f'/login', data=json.dumps({'data_owner': 'eduid.se'}), headers=self.headers)
         self._assertResponse(response)
 
     def test_use_token(self):
-        response = self.client.post(url=f'/login/', data=json.dumps({'data_owner': 'eduid.se'}), headers=self.headers)
+        response = self.client.post(url=f'/login', data=json.dumps({'data_owner': 'eduid.se'}), headers=self.headers)
         token = response.headers.get('Authorization')
         headers = {
             'Content-Type': 'application/scim+json',
