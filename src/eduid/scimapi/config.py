@@ -1,9 +1,13 @@
+import logging
 from pathlib import Path
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field, validator
 
 from eduid.common.config.base import LoggingConfigMixin, RootConfig
+from eduid.common.utils import removesuffix
+
+logger = logging.getLogger(__name__)
 
 
 class DataOwner(BaseModel):
@@ -43,5 +47,6 @@ class ScimApiConfig(RootConfig, LoggingConfigMixin, AWSMixin):
     @validator('application_root')
     def application_root_must_not_end_with_slash(cls, v: str):
         if v.endswith('/'):
-            raise ValueError(f'must not end with slash ({v})')
+            logger.warning(f'application_root should not end with slash ({v})')
+            v = removesuffix(v, '/')
         return v
