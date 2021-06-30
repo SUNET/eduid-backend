@@ -20,11 +20,11 @@ mypy-extensions==0.4.3 \
     # via
     #   mypy
     #   typing-inspect
-mypy==0.902 \
-    --hash=sha256:517e7528d1be7e187a5db7f0a3e479747307c1b897d9706b1c662014faba3116 \
-    --hash=sha256:9236c21194fde5df1b4d8ebc2ef2c1f2a5dc7f18bcbea54274937cae2e20a01c \
-    --hash=sha256:a26d0e53e90815c765f91966442775cf03b8a7514a4e960de7b5320208b07269 \
-    --hash=sha256:fd634bc17b1e2d6ce716f0e43446d0d61cdadb1efcad5c56ca211c22b246ebc8
+mypy==0.910 \
+    --hash=sha256:119bed3832d961f3a880787bf621634ba042cb8dc850a7429f643508eeac97b9 \
+    --hash=sha256:704098302473cb31a218f1775a873b376b30b4c18229421e9e9dc8916fd16150 \
+    --hash=sha256:866c41f28cee548475f146aa4d39a51cf3b6a84246969f3759cb3e9c742fc072 \
+    --hash=sha256:ef565033fa5a958e62796867b1df10c40263ea9ded87164d67572834e57a174d
     # via -r typecheck_requirements.in
 pydantic==1.8.2 \
     --hash=sha256:26464e57ccaafe72b7ad156fdaa4e9b9ef051f69e175dbbb463283000c05ab7b \
@@ -52,18 +52,20 @@ types-click==7.1.2 \
 types-cryptography==3.3.3 \
     --hash=sha256:524afedb2e7f3fa4b22bd164efb82809a75ff960cc5d40a2fa9b7c2cda228fab \
     --hash=sha256:de2b12e971023b25bd96b7da251dc747ea5b4670a998f9160153d96e4f918f0b
-    # via -r typecheck_requirements.in
-types-enum34==0.1.6 \
-    --hash=sha256:893675130c66f1af3ff5a6f20b9c358a425873664dd2fae417f4dabd57077ab8 \
-    --hash=sha256:93b1bfeb3654b0745f37b6d8e1b3a1d4141b371464e58ca577075fb086bd97d4
+    # via
+    #   -r typecheck_requirements.in
+    #   types-pyopenssl
+types-enum34==0.1.8 \
+    --hash=sha256:5833cfd003d7a860e8442d04a06aaa2bef1f050933f844fa7bd3634914e1aa7f \
+    --hash=sha256:9e91a94f1f42c73bd7aa43f19a157d722522d29097f301748a034e08693a423d
     # via types-cryptography
 types-flask==1.1.1 \
     --hash=sha256:4885fd9c64756b0901d3de0a197d0ede60df114d0fbab500aa1bd73bb2c1651c \
     --hash=sha256:90afe8bd050cf8830cdc620bb9aa4471836b86af88e4d33fccc8789242a661e2
     # via -r typecheck_requirements.in
-types-ipaddress==0.1.3 \
-    --hash=sha256:df1d9ea04e16315ae34b77bc0ccd39b2fefd8eb45192ba85972a4e186369782c \
-    --hash=sha256:f1a08a0a635910f7be2d1cb3b8ec49ccc4f5969d9a8553e278f3d072fa6a9465
+types-ipaddress==0.1.5 \
+    --hash=sha256:137ab8a5a895a48157438c8f3eea738e2c22e82c1114ab20ffd78c8637bbc008 \
+    --hash=sha256:ffa2c4fe2e8f51898465e2142d4d325fbab009aaa7822db20a4e2e3a896560d7
     # via types-cryptography
 types-jinja2==2.11.2 \
     --hash=sha256:5b53d2b8bc6dd6dfbc0ae3e33e346fbe343cbeba1ed528858749e2a2ffe0e143 \
@@ -71,9 +73,9 @@ types-jinja2==2.11.2 \
     # via
     #   -r typecheck_requirements.in
     #   types-flask
-types-markupsafe==1.1.3 \
-    --hash=sha256:b1893d090c72204110c232d9b964d2612e15deff738bb75360030473a45cbc0e \
-    --hash=sha256:be8975ba91bd7e672f6f57753ca7ba2979ad9b6687a0e93dd2055926f8c71b0b
+types-markupsafe==1.1.4 \
+    --hash=sha256:2539a9e9b1b5a1bf1c10fdf2cb1dcb89e6f360759196883f4d5d103c53624375 \
+    --hash=sha256:4fd2cc858fb4aea38555850f4ac2ecafae3543c88abb056669a3346c5c1b202c
     # via
     #   -r typecheck_requirements.in
     #   types-jinja2
@@ -89,6 +91,10 @@ types-pkg-resources==0.1.3 \
     --hash=sha256:0cb9972cee992249f93fff1a491bf2dc3ce674e5a1926e27d4f0866f7d9b6d9c \
     --hash=sha256:834a9b8d3dbea343562fd99d5d3359a726f6bf9d3733bccd2b4f3096fbab9dae
     # via -r typecheck_requirements.in
+types-pyopenssl==20.0.3 \
+    --hash=sha256:177e102b9e68986ca7b2b6aea11f6ee5b9c5e0f9c89dcaa8d28b31527571f625 \
+    --hash=sha256:c51286c23e26e4c67d1e9d1e1ce2efd2d5386c32c15dc90a977290b79e16532a
+    # via -r typecheck_requirements.in
 types-python-dateutil==0.1.4 \
     --hash=sha256:39bfe0bde61fc673b8fa28167bd78622d976210f791971b9f3e10877cbf119a4 \
     --hash=sha256:e6486ca27b6dde73e0ec079a9e1b03e208766e6bc7f1e08964a7e9104a5c7d7a
@@ -101,9 +107,9 @@ types-redis==3.5.4 \
     --hash=sha256:936e98f9090c11610f4f5171d2ca8fa5c5eab842422b3cc2f9355f57d01e1a6b \
     --hash=sha256:954feb1f573216b215c1d564c1b27091a7ce8b7fd3af9474d9e88d4081881aff
     # via -r typecheck_requirements.in
-types-requests==0.1.13 \
-    --hash=sha256:917d6d0a8d8fe2d084ab6dc28d379ec4e6fa34738e905908680bbfa0ce2d8485 \
-    --hash=sha256:f7e611082208358045fdeac6edb5d20422ce8cfc935d57dbbef6a6b3a59bfae2
+types-requests==2.25.0 \
+    --hash=sha256:ee0d0c507210141b7d5b8639cc43eaa726084178775db2a5fb06fbf85c185808 \
+    --hash=sha256:fa5c1e5e832ff6193507d8da7e1159281383908ee193a2f4b37bc08140b51844
     # via -r typecheck_requirements.in
 types-simplejson==0.1.4 \
     --hash=sha256:1318ecb45d95983e5d31c2559853032174f1646ccad00056604e6f0c98e14e1e \
