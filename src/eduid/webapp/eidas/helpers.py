@@ -17,6 +17,7 @@ from eduid.webapp.common.authn.cache import OutstandingQueriesCache
 from eduid.webapp.common.authn.eduid_saml2 import get_authn_ctx
 from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.session import session
+from eduid.webapp.common.session.namespaces import AuthnRequestRef
 from eduid.webapp.eidas.app import current_eidas_app as current_app
 
 __author__ = 'lundberg'
@@ -55,7 +56,7 @@ class EidasMsg(TranslatableMsg):
 
 
 def create_authn_request(
-    relay_state: str, selected_idp: str, required_loa: str, force_authn: bool = False
+    authn_ref: AuthnRequestRef, selected_idp: str, required_loa: str, force_authn: bool = False
 ) -> AuthnRequest:
 
     kwargs = {
@@ -74,7 +75,7 @@ def create_authn_request(
     try:
         session_id, info = client.prepare_for_authenticate(
             entityid=selected_idp,
-            relay_state=relay_state,
+            relay_state=authn_ref,
             binding=BINDING_HTTP_REDIRECT,
             sigalg=current_app.conf.authn_sign_alg,
             digest_alg=current_app.conf.authn_digest_alg,
@@ -85,7 +86,7 @@ def create_authn_request(
         raise
 
     oq_cache = OutstandingQueriesCache(session.eidas.sp.pysaml2_dicts)
-    oq_cache.set(session_id, relay_state)
+    oq_cache.set(session_id, authn_ref)
     return info
 
 
