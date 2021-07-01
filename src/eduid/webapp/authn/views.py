@@ -33,7 +33,6 @@
 import uuid
 from typing import Optional
 
-from dateutil.parser import parse as dt_parse
 from flask import Blueprint, abort, make_response, redirect, request
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
@@ -47,16 +46,9 @@ from eduid.webapp.authn import acs_actions  # acs_action needs to be imported to
 from eduid.webapp.authn.app import current_authn_app as current_app
 from eduid.webapp.common.api.utils import sanitise_redirect_url
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
-from eduid.webapp.common.authn.acs_registry import get_action, schedule_action
+from eduid.webapp.common.authn.acs_registry import get_action
 from eduid.webapp.common.authn.cache import IdentityCache, StateCache
-from eduid.webapp.common.authn.eduid_saml2 import (
-    BadSAMLResponse,
-    UnsolicitedResponse,
-    authenticate,
-    get_authn_request,
-    get_authn_response,
-    saml_logout,
-)
+from eduid.webapp.common.authn.eduid_saml2 import get_authn_request, process_assertion, saml_logout
 from eduid.webapp.common.authn.utils import check_previous_identification, get_location
 from eduid.webapp.common.session import EduidSession, session
 from eduid.webapp.common.session.namespaces import AuthnRequestRef, LoginApplication, SP_AuthnRequest
@@ -133,7 +125,6 @@ def _authn(action: AuthnAcsAction, force_authn=False) -> WerkzeugResponse:
         sign_alg=current_app.conf.authn_sign_alg,
         digest_alg=current_app.conf.authn_digest_alg,
     )
-    schedule_action(action, session.authn.sp)
     current_app.logger.info(f'Redirecting the user to the IdP for {action} (redirect_url {redirect_url})')
     current_app.logger.debug(f'Stored SP_AuthnRequest[{_authn_id}]: {session.authn.sp.authns[_authn_id]}')
     _idp_redirect_url = get_location(authn_request)
@@ -146,41 +137,18 @@ def assertion_consumer_service():
     """
     Assertion consumer service, receives POSTs from SAML2 IdP's
     """
-    if 'SAMLResponse' not in request.form:
-        abort(400)
-    xmlstr = request.form['SAMLResponse']
-    unsolicited_response_redirect_url = current_app.conf.unsolicited_response_redirect_url
-    try:
-        response, _authn_id = get_authn_response(current_app.saml2_config, session.authn.sp, session, xmlstr)
-    except UnsolicitedResponse:
-        current_app.logger.info(f'Unsolicited response. Redirecting user to {unsolicited_response_redirect_url}')
-        return redirect(unsolicited_response_redirect_url)
-    except BadSAMLResponse as e:
-        current_app.logger.error(e)
-        raise Forbidden(f'Bad SAML response: {e}')
-
-    if _authn_id not in session.authn.sp.authns:
-        current_app.logger.info(
-            f'Unknown response (id {_authn_id}). Redirecting user to {unsolicited_response_redirect_url}'
-        )
-        current_app.logger.debug(f'Session {session} authns for this SP: {session.authn.sp.authns}')
-        return redirect(unsolicited_response_redirect_url)
-    authn_data = session.authn.sp.authns[_authn_id]
-    current_app.logger.debug(f'Authentication request data retrieved from session: {authn_data}')
-
-    session_info = response.session_info()
-    current_app.logger.debug('Trying to locate the user authenticated by the IdP')
-    user = authenticate(
-        session_info, strip_suffix=current_app.conf.saml2_strip_saml_user_suffix, userdb=current_app.central_userdb
+    assertion = process_assertion(
+        form=request.form,
+        sp_data=session.authn.sp,
+        error_redirect_url=current_app.conf.unsolicited_response_redirect_url,
+        strip_suffix=current_app.conf.saml2_strip_saml_user_suffix,
     )
-    if user is None:
-        current_app.logger.error('Could not find the user identified by the IdP')
-        raise Forbidden("Access not authorized")
+    if isinstance(assertion, WerkzeugResponse):
+        return assertion
+    current_app.logger.debug(f'Auth response:\n{assertion}\n\n')
 
-    authn_data.authn_instant = dt_parse(session_info['authn_info'][0][2])
-
-    action = get_action(default_action=AuthnAcsAction.login, sp_data=session.authn.sp, authndata=authn_data)
-    return action(session_info, user, authndata=authn_data)
+    action = get_action(default_action=AuthnAcsAction.login, authndata=assertion.authndata)
+    return action(assertion.session_info, assertion.user, authndata=assertion.authndata)
 
 
 def _get_authn_name_id(session: EduidSession) -> Optional[NameID]:

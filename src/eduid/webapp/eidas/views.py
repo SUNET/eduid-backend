@@ -2,7 +2,6 @@
 from typing import Union
 from uuid import uuid4
 
-from dateutil.parser import parse as dt_parse
 from flask import Blueprint, abort, make_response, redirect, request, url_for
 from werkzeug.wrappers import Response as WerkzeugResponse
 
@@ -16,8 +15,8 @@ from eduid.webapp.common.api.messages import FluxData, redirect_with_msg, succes
 from eduid.webapp.common.api.schemas.csrf import EmptyResponse
 from eduid.webapp.common.api.utils import urlappend
 from eduid.webapp.common.authn.acs_enums import EidasAcsAction
-from eduid.webapp.common.authn.acs_registry import get_action, schedule_action
-from eduid.webapp.common.authn.eduid_saml2 import BadSAMLResponse, get_authn_response
+from eduid.webapp.common.authn.acs_registry import get_action
+from eduid.webapp.common.authn.eduid_saml2 import process_assertion
 from eduid.webapp.common.authn.utils import get_location
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
@@ -117,8 +116,6 @@ def _authn(
         authn_request = create_authn_request(
             authn_ref=_authn_id, selected_idp=idp, required_loa=required_loa, force_authn=force_authn,
         )
-        # TODO: Remove, replaced by session.eidas.sp.authns above
-        schedule_action(action, session.eidas.sp)
         current_app.logger.info(f'Redirecting the user to {idp} for {action}')
         return redirect(get_location(authn_request))
     abort(make_response('Requested IdP not found in metadata', 404))
@@ -129,38 +126,22 @@ def assertion_consumer_service() -> WerkzeugResponse:
     """
     Assertion consumer service, receives POSTs from SAML2 IdP's
     """
-
-    if 'SAMLResponse' not in request.form:
-        abort(400)
-
-    saml_response = request.form['SAMLResponse']
-    try:
-        authn_response, _authn_id = get_authn_response(
-            current_app.saml2_config, session.eidas.sp, session, saml_response
-        )
-    except BadSAMLResponse as e:
-        current_app.logger.error(f'BadSAMLResponse: {e}')
-        return make_response(str(e), 400)
-
-    unsolicited_response_redirect_url = current_app.conf.unsolicited_response_redirect_url
-    if _authn_id not in session.eidas.sp.authns:
-        current_app.logger.info(f'Unknown response. Redirecting user to {unsolicited_response_redirect_url}')
-        return redirect(unsolicited_response_redirect_url)
-
-    session_info = authn_response.session_info()
-
-    current_app.logger.debug(f'Auth response:\n{authn_response}\n\n')
-    current_app.logger.debug(f'Session info:\n{session_info}\n\n')
+    assertion = process_assertion(
+        form=request.form,
+        sp_data=session.eidas.sp,
+        error_redirect_url=current_app.conf.unsolicited_response_redirect_url,
+        authenticate_user=False,  # If the IdP is not our own, we can't load the user
+    )
+    if isinstance(assertion, WerkzeugResponse):
+        return assertion
+    current_app.logger.debug(f'Auth response:\n{assertion}\n\n')
 
     # Remap nin in staging environment
     if current_app.conf.environment == EduidEnvironment.staging:
-        session_info = staging_nin_remap(session_info)
+        assertion.session_info = staging_nin_remap(assertion.session_info)
 
-    authn_data = session.eidas.sp.authns[_authn_id]
-    authn_data.authn_instant = dt_parse(session_info['authn_info'][0][2])
-
-    action = get_action(default_action=None, sp_data=session.eidas.sp, authndata=authn_data)
-    return action(session_info, authndata=authn_data)
+    action = get_action(default_action=None, authndata=assertion.authndata)
+    return action(assertion.session_info, authndata=assertion.authndata)
 
 
 @eidas_views.route('/saml2-metadata')
