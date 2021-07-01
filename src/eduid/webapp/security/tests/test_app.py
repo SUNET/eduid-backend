@@ -367,15 +367,19 @@ class SecurityTests(EduidAPITestCase):
 
     def test_get_credentials(self):
         response = self._get_credentials()
-
-        sec_data = json.loads(response.data)
-        self.assertEqual(sec_data['type'], 'GET_SECURITY_CREDENTIALS_SUCCESS')
-        self.assertNotEqual(sec_data['payload']['credentials'], [])
-        for credential in sec_data['payload']['credentials']:
-            self.assertIn('key', credential.keys())
-            self.assertIn('credential_type', credential.keys())
-            self.assertIn('created_ts', credential.keys())
-            self.assertIn('success_ts', credential.keys())
+        expected_payload = {
+            'credentials': [
+                {
+                    'created_ts': '2013-09-02T10:23:25+00:00',
+                    'credential_type': 'security.password_credential_type',
+                    'key': '112345678901234567890123',
+                    'success_ts': None,
+                    'used_for_login': False,
+                    'verified': False,
+                }
+            ],
+        }
+        self._check_success_response(response, type_='GET_SECURITY_CREDENTIALS_SUCCESS', payload=expected_payload)
 
     def _get_suggested(self):
         response = self.browser.get('/suggested-password')
