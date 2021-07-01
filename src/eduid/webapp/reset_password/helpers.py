@@ -487,28 +487,6 @@ def verify_phone_number(state: ResetPasswordEmailAndPhoneState) -> bool:
     return False
 
 
-def compile_credential_list(user: ResetPasswordUser) -> list:
-    """
-    :return: List of augmented credentials
-    """
-    credentials = []
-    authn_info = current_app.authninfo_db.get_authn_info(user)
-    credentials_used = session.get('eduidIdPCredentialsUsed', list())
-    # In the development environment credentials_used gets set to None
-    if credentials_used is None:
-        credentials_used = []
-    for credential in user.credentials.to_list():
-        credential_dict = credential.to_dict()
-        credential_dict['key'] = credential.key
-        if credential.key in credentials_used:
-            credential_dict['used_for_login'] = True
-        if credential.is_verified:
-            credential_dict['verified'] = True
-        credential_dict.update(authn_info[credential.key])
-        credentials.append(credential_dict)
-    return credentials
-
-
 def get_zxcvbn_terms(user: User) -> List[str]:
     """
     Combine known data that is bad for a password to a list for zxcvbn.

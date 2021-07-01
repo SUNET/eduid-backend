@@ -115,7 +115,7 @@ def _authn(
 
     if idp is not None and idp in idps:
         authn_request = create_authn_request(
-            relay_state=_authn_id, selected_idp=idp, required_loa=required_loa, force_authn=force_authn,
+            authn_ref=_authn_id, selected_idp=idp, required_loa=required_loa, force_authn=force_authn,
         )
         # TODO: Remove, replaced by session.eidas.sp.authns above
         schedule_action(action, session.eidas.sp)

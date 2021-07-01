@@ -8,9 +8,9 @@ from pydantic import Field, root_validator
 from eduid.scimapi.models.scimbase import (
     BaseCreateRequest,
     BaseResponse,
+    EduidBaseModel,
     Email,
     LanguageTag,
-    EduidBaseModel,
     Name,
     PhoneNumber,
     SCIMSchema,

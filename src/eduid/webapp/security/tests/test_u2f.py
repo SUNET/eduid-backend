@@ -3,6 +3,7 @@
 
 import json
 from typing import Any, Dict, Mapping
+from unittest import skip
 
 from mock import patch
 from u2flib_server.model import DeviceRegistration, RegisteredKey
@@ -14,6 +15,7 @@ from eduid.webapp.security.app import SecurityApp, security_init_app
 __author__ = 'lundberg'
 
 
+@skip('U2F is believed to be unused, and the views are disabled')
 class SecurityU2FTests(EduidAPITestCase):
 
     app: SecurityApp

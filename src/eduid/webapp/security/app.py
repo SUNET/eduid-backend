@@ -83,11 +83,14 @@ def security_init_app(name: str = 'security', test_config: Optional[Mapping[str,
 
     from eduid.webapp.security.views.reset_password import reset_password_views
     from eduid.webapp.security.views.security import security_views
-    from eduid.webapp.security.views.u2f import u2f_views
+
+    # from eduid.webapp.security.views.u2f import u2f_views
     from eduid.webapp.security.views.webauthn import webauthn_views
 
     app.register_blueprint(security_views)
-    app.register_blueprint(u2f_views)
+    # The U2F views should be unused now, only the webauthn views should be needed.
+    # TODO: Remove the whole U2F module unless this has to be reverted.
+    # app.register_blueprint(u2f_views)
     app.register_blueprint(webauthn_views)
     app.register_blueprint(reset_password_views)
 

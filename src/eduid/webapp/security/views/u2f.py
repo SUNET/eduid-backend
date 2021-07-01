@@ -72,17 +72,19 @@ def bind(user: User, version: str, registration_data: str, client_data: str, des
     data = {'version': version, 'registrationData': registration_data, 'clientData': client_data}
     device, der_cert = complete_registration(enrollment_data, data, current_app.conf.u2f_valid_facets)
 
-    cert = x509.load_der_x509_certificate(der_cert, default_backend())
-    pem_cert = crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
+    # Ignore types a lot here since we opted to try and remove this whole module rather than
+    # sorting them out.
+    cert = x509.load_der_x509_certificate(der_cert, default_backend())  # type: ignore
+    pem_cert = crypto.dump_certificate(crypto.FILETYPE_PEM, cert)  # type: ignore
     if not isinstance(pem_cert, six.string_types):
-        pem_cert = pem_cert.decode('utf-8')
+        pem_cert = pem_cert.decode('utf-8')  # type: ignore
 
     u2f_token = U2F(
         version=device['version'],
         keyhandle=device['keyHandle'],
         app_id=device['appId'],
         public_key=device['publicKey'],
-        attest_cert=pem_cert,
+        attest_cert=pem_cert,  # type: ignore
         description=description,
         created_by='eduid_security',
     )
