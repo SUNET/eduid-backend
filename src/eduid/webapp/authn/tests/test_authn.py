@@ -39,6 +39,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Mapping, Tuple
 
 from flask import Blueprint
+from saml2.s_utils import deflate_and_base64_encode
 from six.moves.urllib_parse import quote_plus
 from werkzeug.exceptions import NotFound
 from werkzeug.http import dump_cookie
@@ -57,7 +58,6 @@ from eduid.webapp.common.authn.tests.responses import auth_response, logout_requ
 from eduid.webapp.common.authn.utils import get_location, no_authn_views
 from eduid.webapp.common.session import EduidSession, session
 from eduid.webapp.common.session.namespaces import AuthnRequestRef
-from saml2.s_utils import deflate_and_base64_encode
 
 logger = logging.getLogger(__name__)
 

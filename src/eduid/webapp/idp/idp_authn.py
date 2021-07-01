@@ -39,7 +39,7 @@ such as rate limiting.
 from __future__ import annotations
 
 import logging
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Type
 
