@@ -372,6 +372,7 @@ class SecurityTests(EduidAPITestCase):
                 {
                     'created_ts': '2013-09-02T10:23:25+00:00',
                     'credential_type': 'security.password_credential_type',
+                    'description': None,
                     'key': '112345678901234567890123',
                     'success_ts': None,
                     'used_for_login': False,

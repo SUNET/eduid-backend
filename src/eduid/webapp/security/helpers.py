@@ -1,18 +1,22 @@
 # -*- coding: utf-8 -*-
+from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from enum import unique
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from flask import render_template, url_for
 from flask_babel import gettext as _
 
 from eduid.common.decorators import deprecated
 from eduid.common.misc.timeutil import utc_now
+from eduid.userdb.authninfo import AuthnCredType
+from eduid.userdb.credentials import Credential, CredentialList
 from eduid.userdb.exceptions import UserHasNotCompletedSignup
 from eduid.userdb.logs import MailAddressProofing, PhoneNumberProofing
 from eduid.userdb.security import PasswordResetEmailAndPhoneState, PasswordResetEmailState, SecurityUser
 from eduid.webapp.common.api.helpers import send_mail
 from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response
+from eduid.webapp.common.api.schemas.u2f import U2FRegisteredKey
 from eduid.webapp.common.api.utils import get_short_hash, get_unique_hash, save_and_sync_user
 from eduid.webapp.common.authn.utils import generate_password
 from eduid.webapp.common.authn.vccs import reset_password
@@ -81,25 +85,31 @@ class SecurityMsg(TranslatableMsg):
     chpass_password_changed2 = 'chpass.password-changed'
 
 
-def credentials_to_registered_keys(user_u2f_tokens):
+def credentials_to_registered_keys(user_u2f_tokens: CredentialList) -> List[U2FRegisteredKey]:
     """
     :param user_u2f_tokens: List of users U2F credentials
-    :type user_u2f_tokens: eduid.userdb.credentials.CredentialList
 
     :return: List of registered keys
-    :rtype: list
     """
     u2f_dicts = user_u2f_tokens.to_list_of_dicts()
     data = ConvertRegisteredKeys().dump({'registered_keys': u2f_dicts})
     return data['registered_keys']
 
 
-def compile_credential_list(security_user):
+@dataclass
+class CredentialInfo:
+    key: str
+    credential_type: str
+    created_ts: datetime
+    success_ts: Optional[datetime]
+    used_for_login: bool = False
+    verified: bool = False
+    description: Optional[str] = None
+
+
+def compile_credential_list(security_user: SecurityUser) -> List[CredentialInfo]:
     """
-    :param security_user: User
-    :type security_user: eduid.userdb.security.SecurityUser
-    :return: List of augmented credentials
-    :rtype: list
+    Make a list of a users credentials, with extra information, for returning in API responses.
     """
     credentials = []
     authn_info = current_app.authninfo_db.get_authn_info(security_user)
@@ -107,15 +117,23 @@ def compile_credential_list(security_user):
     # In the development environment credentials_used gets set to None
     if credentials_used is None:
         credentials_used = []
-    for credential in security_user.credentials.to_list():
-        credential_dict = credential.to_dict()
-        credential_dict['key'] = credential.key
-        if credential.key in credentials_used:
-            credential_dict['used_for_login'] = True
-        if credential.is_verified:
-            credential_dict['verified'] = True
-        credential_dict.update(authn_info[credential.key])
-        credentials.append(credential_dict)
+    for cred_key, authn in authn_info.items():
+        cred = security_user.credentials.find(cred_key)
+        try:
+            # Some credentials have description, some don't
+            description = cred.description
+        except AttributeError:
+            description = None
+        info = CredentialInfo(
+            key=cred_key,
+            credential_type=authn.credential_type.value,
+            created_ts=authn.created_ts,
+            description=description,
+            success_ts=authn.success_ts,
+            verified=cred.is_verified,
+            used_for_login=cred_key in credentials_used,
+        )
+        credentials.append(info)
     return credentials
 
 
