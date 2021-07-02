@@ -2,8 +2,9 @@ import pprint
 from dataclasses import replace
 from typing import Optional
 
-from fastapi import APIRouter, Response
+from fastapi import Response
 
+from eduid.scimapi.api_router import APIRouter
 from eduid.scimapi.context_request import ContextRequest, ContextRequestRoute
 from eduid.scimapi.db.common import ScimApiEmail, ScimApiLinkedAccount, ScimApiName, ScimApiPhoneNumber
 from eduid.scimapi.db.eventdb import EventLevel, EventStatus, add_api_event

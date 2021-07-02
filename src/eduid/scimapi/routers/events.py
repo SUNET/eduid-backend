@@ -2,8 +2,9 @@
 from datetime import timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Response
+from fastapi import Response
 
+from eduid.scimapi.api_router import APIRouter
 from eduid.scimapi.context_request import ContextRequest, ContextRequestRoute
 from eduid.scimapi.db.eventdb import ScimApiEvent, ScimApiEventResource
 from eduid.scimapi.exceptions import BadRequest, NotFound
