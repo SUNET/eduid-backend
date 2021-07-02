@@ -2,11 +2,11 @@
 
 - Get your eppn in the eduid dashboard (hubba-bubba in this example), and suffix it with `@eduid.se`
 - Create a YAML file called for example `test.yaml`, with initial contents like this
- (with the path to the API being `http://scimapi.eduid.docker:8000` in this example):
+ (with the path to the API being `https://api.eduid.docker/scim` in this example):
 
 ``` yaml
 ---
-  'http://scimapi.eduid.docker:8000':
+  'https://api.eduid.docker/scim':
     'users':
       'search':
         'externalId':
@@ -54,7 +54,7 @@
 
 ``` yaml
 ---
-  'http://scimapi.eduid.docker:8000':
+  'https://api.eduid.docker/scim':
     'users':
       'search':
         'externalId':
@@ -109,7 +109,7 @@
       "meta": {
           "created": "2021-05-07T13:09:29.837000+00:00",
           "lastModified": "2021-05-07T13:22:04.196000+00:00",
-          "location": "http://scimapi.eduid.docker:8000/Users/87c5ae99-9e98-49d5-9b84-2c210cacfea4",
+          "location": "https://api.eduid.docker/scim/Users/87c5ae99-9e98-49d5-9b84-2c210cacfea4",
           "resourceType": "User",
           "version": "W/\"60953efc514fad85acdf4d6f\""
       },
@@ -132,7 +132,7 @@
       "id": "ab2506e0-39a7-41cb-8370-1584b880b307",
       "members": [
           {
-              "$ref": "http://scimapi.eduid.docker:8000/Users/87c5ae99-9e98-49d5-9b84-2c210cacfea4",
+              "$ref": "https://api.eduid.docker/scim/Users/87c5ae99-9e98-49d5-9b84-2c210cacfea4",
               "display": "Donald Duck",
               "value": "87c5ae99-9e98-49d5-9b84-2c210cacfea4"
           }
@@ -140,7 +140,7 @@
       "meta": {
           "created": "2021-05-07T13:09:30.696000+00:00",
           "lastModified": "2021-05-07T13:23:20.860000+00:00",
-          "location": "http://scimapi.eduid.docker:8000/Groups/ab2506e0-39a7-41cb-8370-1584b880b307",
+          "location": "https://api.eduid.docker/scim/Groups/ab2506e0-39a7-41cb-8370-1584b880b307",
           "resourceType": "Group",
           "version": "W/\"60953f48514fad85acdf4d72\""
       },
@@ -157,7 +157,7 @@ Add a POST operation for Events to the `test.yaml` file like this:
 
 ``` yaml
 ---
-  'http://scimapi.eduid.docker:8000':
+  'https://api.eduid.docker/scim':
     'events':
       'post':
         'user_event_1':
@@ -175,7 +175,7 @@ To search for one or more users based on their externalId:
 
 ``` yaml
 ---
-  'http://scimapi.eduid.docker:8000':
+  'https://api.eduid.docker/scim':
     'users':
       'search':
         'externalId':
@@ -186,7 +186,7 @@ To search for users based on last modification timestamp:
 
 ``` yaml
 ---
-  'http://scimapi.eduid.docker:8000':
+  'https://api.eduid.docker/scim':
     'users':
       'search':
         'lastModified':
@@ -203,7 +203,7 @@ To search for one or more groups based on NUTID attributes:
 
 ``` yaml
 ---
-  'http://scimapi.eduid.docker:8000':
+  'https://api.eduid.docker/scim':
     'groups':
       'search':
         'extensions.data.foo':
@@ -226,9 +226,8 @@ bearer tokens can be requested without authentication from the /login endpoint.
 
 ``` yaml
 ---
-  'http://scimapi.eduid.docker:8000':
-    'login':
-      url: 'http://scimapi.eduid.docker:8000/login'
+  'https://api.eduid.docker/scim':
+    'login':      
       data_owner: 'eduid.se'
     'users':
       'search':
