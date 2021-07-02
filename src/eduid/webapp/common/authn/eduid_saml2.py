@@ -32,25 +32,30 @@
 
 import logging
 import pprint
-from typing import Optional, Tuple
+from dataclasses import dataclass
+from typing import Any, Mapping, Optional, Tuple, Union
 from xml.etree.ElementTree import ParseError
 
-from flask import abort, redirect, request
+from dateutil.parser import parse as dt_parse
+from flask import abort, make_response, redirect, request
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.ident import decode
-from saml2.response import AuthnResponse, LogoutResponse, StatusAuthnFailed, StatusError, UnsolicitedResponse
+from saml2.response import AuthnResponse, LogoutResponse, StatusError, UnsolicitedResponse
+from werkzeug.exceptions import Forbidden
 from werkzeug.wrappers import Response
+from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.userdb import UserDB
 from eduid.userdb.exceptions import MultipleUsersReturned, UserDoesNotExist
 from eduid.userdb.user import User
+from eduid.webapp.authn.app import current_authn_app as current_app
 from eduid.webapp.common.api.utils import sanitise_redirect_url
 from eduid.webapp.common.authn.cache import IdentityCache, OutstandingQueriesCache, StateCache
 from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.authn.utils import SPConfig, get_saml_attribute
 from eduid.webapp.common.session import EduidSession, session
-from eduid.webapp.common.session.namespaces import AuthnRequestRef, SPAuthnData
+from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest, SPAuthnData
 
 logger = logging.getLogger(__name__)
 
@@ -261,3 +266,70 @@ def saml_logout(sp_config: SPConfig, user: User, location: str) -> Response:
     location = headers_tuple[0][1]
     logger.info(f'Redirecting {user} to {location} after successful logout')
     return redirect(location)
+
+
+@dataclass
+class AssertionData:
+    session_info: SessionInfo
+    user: Optional[User]
+    authndata: SP_AuthnRequest
+
+    def __str__(self) -> str:
+        return (
+            f'<{self.__class__.__name__}: user={self.user}, authndata={self.authndata}, '
+            f'session_info={self.session_info}>'
+        )
+
+
+def process_assertion(
+    form: Mapping[str, Any],
+    sp_data: SPAuthnData,
+    error_redirect_url: str,
+    strip_suffix: Optional[str] = None,
+    authenticate_user: bool = True,
+) -> Union[AssertionData, WerkzeugResponse]:
+    """
+    Common code for our various SAML SPs (currently authn and eidas) to process a received SAML assertion.
+
+    If the IdP is our own, we load the list of credentials used for this particular authentication and
+    put that in the result. This way, token vetting applications can know that a particular token was
+    used for authentication when they request re-authn.
+    """
+    if 'SAMLResponse' not in form:
+        abort(400)
+
+    saml_response = form['SAMLResponse']
+    try:
+        response, authn_ref = get_authn_response(current_app.saml2_config, sp_data, session, saml_response)
+    except BadSAMLResponse as e:
+        current_app.logger.error(f'BadSAMLResponse: {e}')
+        return make_response(str(e), 400)
+
+    if authn_ref not in sp_data.authns:
+        current_app.logger.info(f'Unknown response. Redirecting user to {error_redirect_url}')
+        return redirect(error_redirect_url)
+
+    authn_data = sp_data.authns[authn_ref]
+    current_app.logger.debug(f'Authentication request data retrieved from session: {authn_data}')
+
+    session_info = response.session_info()
+    authn_data.authn_instant = dt_parse(session_info['authn_info'][0][2])
+
+    user = None
+    if authenticate_user:
+        current_app.logger.debug('Trying to locate the user authenticated by the IdP')
+        user = authenticate(session_info, strip_suffix=strip_suffix, userdb=current_app.central_userdb)
+        if user is None:
+            current_app.logger.error('Could not find the user identified by the IdP')
+            raise Forbidden('Access not authorized')
+
+        credentials_used = get_saml_attribute(session_info, 'eduidIdPCredentialsUsed')
+        if credentials_used:
+            for cred_used in credentials_used:
+                this = user.credentials.find(cred_used)
+                if not this:
+                    current_app.logger.warning(f'Could not find credential with key {cred_used} on user {user}')
+                    continue
+                authn_data.credentials_used += [this.key]
+
+    return AssertionData(session_info=session_info, user=user, authndata=authn_data)

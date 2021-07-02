@@ -138,7 +138,7 @@ class IdP_Namespace(TimestampedNS):
 class SP_AuthnRequest(BaseModel):
     redirect_url: str
     post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction]] = None
-    # TODO: add this credentials_used: List[CredentialKey] = Field(default=[])
+    credentials_used: List[CredentialKey] = Field(default=[])
     created_ts: datetime = Field(default_factory=utc_now)
     authn_instant: Optional[datetime] = None
 

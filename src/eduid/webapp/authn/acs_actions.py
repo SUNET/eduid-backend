@@ -41,7 +41,6 @@ from eduid.webapp.common.api.utils import sanitise_redirect_url
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.authn.acs_registry import acs_action
 from eduid.webapp.common.authn.session_info import SessionInfo
-from eduid.webapp.common.authn.utils import get_saml_attribute
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import LoginApplication, SP_AuthnRequest
 
@@ -63,8 +62,6 @@ def update_user_session(session_info: SessionInfo, user: User) -> None:
     session.common.is_logged_in = True
     session.common.login_source = LoginApplication.authn
     session.common.preferred_language = user.language
-    # TODO: re-work how information about used credentials is shared. Global state is not precise enough.
-    session['eduidIdPCredentialsUsed'] = get_saml_attribute(session_info, 'eduidIdPCredentialsUsed')
 
 
 @acs_action(AuthnAcsAction.login)

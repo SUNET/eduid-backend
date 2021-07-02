@@ -8,6 +8,7 @@ from collections import OrderedDict
 from typing import Any, List, Mapping, Optional, Tuple
 from unittest import TestCase
 from urllib.parse import parse_qs, quote_plus, urlparse, urlunparse
+from uuid import uuid4
 
 from flask import Response
 from mock import patch
@@ -19,14 +20,16 @@ from eduid.userdb.credentials.base import CredentialKey
 from eduid.userdb.credentials.fido import FidoCredential
 from eduid.webapp.common.api.messages import TranslatableMsg, redirect_with_msg
 from eduid.webapp.common.api.testing import EduidAPITestCase
-from eduid.webapp.common.authn.acs_enums import EidasAcsAction
+from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
 from eduid.webapp.common.authn.cache import OutstandingQueriesCache
 from eduid.webapp.common.session import EduidSession
-from eduid.webapp.common.session.namespaces import AuthnRequestRef
+from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
 from eduid.webapp.eidas.app import EidasApp, init_eidas_app
 from eduid.webapp.eidas.helpers import EidasMsg
 
 __author__ = 'lundberg'
+
+from saml2.time_util import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +104,7 @@ class EidasTests(EduidAPITestCase):
       <saml:Attribute FriendlyName="sn" Name="urn:oid:2.5.4.4" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
         <saml:AttributeValue xsi:type="xs:string">Älm</saml:AttributeValue>
       </saml:Attribute>
+      {extra_attributes}
     </saml:AttributeStatement>
   </saml:Assertion>
 </samlp:Response>"""
@@ -192,7 +196,13 @@ class EidasTests(EduidAPITestCase):
         return mfa_token
 
     @staticmethod
-    def generate_auth_response(session_id, saml_response_tpl, asserted_nin=None, age: int = 10) -> bytes:
+    def generate_auth_response(
+        request_id: str,
+        saml_response_tpl: str,
+        asserted_nin=None,
+        age: int = 10,
+        credentials_used: Optional[List[CredentialKey]] = None,
+    ) -> bytes:
         """
         Generates a fresh signed authentication response
         """
@@ -203,15 +213,30 @@ class EidasTests(EduidAPITestCase):
 
         sp_baseurl = 'http://test.localhost:6544/'
 
+        extra_attributes = []
+
+        if credentials_used:
+            for cred in credentials_used:
+                this = f"""
+                       <saml:Attribute Name="eduidIdPCredentialsUsed"
+                                       NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+                           <saml:AttributeValue xsi:type="xs:string">{cred}</saml:AttributeValue>
+                       </saml:Attribute>
+                       """
+                extra_attributes += [this]
+
+        extra_attributes_str = '\n'.join(extra_attributes)
+
         resp = ' '.join(
             saml_response_tpl.format(
                 **{
                     'asserted_nin': asserted_nin,
-                    'session_id': session_id,
+                    'session_id': request_id,
                     'timestamp': timestamp.strftime('%Y-%m-%dT%H:%M:%SZ'),
                     'tomorrow': tomorrow.strftime('%Y-%m-%dT%H:%M:%SZ'),
                     'yesterday': yesterday.strftime('%Y-%m-%dT%H:%M:%SZ'),
                     'sp_url': sp_baseurl,
+                    'extra_attributes': extra_attributes_str,
                 }
             ).split()
         )
@@ -225,7 +250,7 @@ class EidasTests(EduidAPITestCase):
         req_id: Optional[str] = None,
         relay_state: str = '/',
         verify_token: Optional[CredentialKey] = None,
-        credential_used: Optional[List[str]] = None,
+        credentials_used: Optional[List[CredentialKey]] = None,
     ) -> None:
         assert isinstance(session, EduidSession)
         if req_id is not None:
@@ -233,9 +258,20 @@ class EidasTests(EduidAPITestCase):
             oq_cache.set(req_id, relay_state)
         session.eidas.sp.post_authn_action = action
         if verify_token is not None:
+            logger.debug(f'Test setting verify_token_action_credential_id in session {session}: {verify_token}')
             session.eidas.verify_token_action_credential_id = verify_token
-        if credential_used is not None:
-            session['eduidIdPCredentialsUsed'] = ['other_id']
+        if credentials_used is not None:
+            self._setup_faked_login(session=session, credentials_used=credentials_used)
+
+    def _setup_faked_login(self, session: EduidSession, credentials_used: List[CredentialKey]) -> None:
+        logger.debug(f'Test setting credentials used for login in session {session}: {credentials_used}')
+        _authn_id = AuthnRequestRef(str(uuid4()))
+        session.authn.sp.authns[_authn_id] = SP_AuthnRequest(
+            post_authn_action=AuthnAcsAction.login,
+            credentials_used=credentials_used,
+            authn_instant=utc_now(),
+            redirect_url='/',
+        )
 
     def _get_request_id_from_session(self, session: EduidSession) -> Tuple[str, AuthnRequestRef]:
         """ extract the (probable) SAML request ID from the session """
@@ -391,10 +427,9 @@ class EidasTests(EduidAPITestCase):
         next_url = quote_plus(bytes(action_url, 'utf-8'))
 
         with self.session_cookie(self.browser, eppn) as browser:
-            with browser.session_transaction() as sess:
-                if credentials_used:
-                    logger.debug(f'Test setting credentials used in session {sess}: {credentials_used}')
-                    sess['eduidIdPCredentialsUsed'] = credentials_used
+            if credentials_used:
+                with browser.session_transaction() as sess:
+                    self._setup_faked_login(session=sess, credentials_used=credentials_used)
                     sess.persist()
 
             _url = f'{endpoint}/?idp={self.test_idp}&next={next_url}'
@@ -406,7 +441,9 @@ class EidasTests(EduidAPITestCase):
             with browser.session_transaction() as sess:
                 request_id, authn_ref = self._get_request_id_from_session(sess)
 
-            authn_response = self.generate_auth_response(request_id, response_template, asserted_nin=nin, age=age)
+            authn_response = self.generate_auth_response(
+                request_id, response_template, asserted_nin=nin, age=age, credentials_used=credentials_used
+            )
             if verify_credential:
                 logger.debug(
                     f'Test setting verify_token_action_credential_id = {verify_credential} '
@@ -531,14 +568,12 @@ class EidasTests(EduidAPITestCase):
         self._verify_user_parameters(eppn)
 
         with self.session_cookie(self.browser, eppn) as browser:
-            with browser.session_transaction() as sess:
-                sess['eduidIdPCredentialsUsed'] = ['other_id']
-                response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
-                assert response.status_code == 302
-                assert response.location == (
-                    'http://test.localhost/reauthn?next='
-                    f'http://test.localhost/verify-token/{credential.key}?idp={self.test_idp}'
-                )
+            response = browser.get('/verify-token/{}?idp={}'.format(credential.key, self.test_idp))
+            assert response.status_code == 302
+            assert response.location == (
+                'http://test.localhost/reauthn?next='
+                f'http://test.localhost/verify-token/{credential.key}?idp={self.test_idp}'
+            )
 
         self._verify_user_parameters(eppn)
 
