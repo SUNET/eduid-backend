@@ -4,6 +4,7 @@ import argparse
 import json
 import logging
 import sys
+from dataclasses import dataclass
 from pprint import pformat
 from typing import Any, Callable, Dict, Mapping, NewType, Optional, cast
 
@@ -19,17 +20,31 @@ EVENT_CORE_V1 = 'https://scim.eduid.se/schema/nutid/event/core-v1'
 NUTID_EVENT_V1 = 'https://scim.eduid.se/schema/nutid/event/v1'
 
 
+@dataclass
+class Api:
+    url: str
+    verify: bool
+    token: Optional[str] = None
+
+
 def parse_args() -> Args:
     parser = argparse.ArgumentParser(description='SCIM testing utility')
     parser.add_argument('--debug', dest='debug', action='store_true', default=False, help='Enable debug operation')
-
+    parser.add_argument(
+        '--insecure', '-k', dest='insecure', action='store_true', default=False, help='Do not verify tls cert'
+    )
     parser.add_argument('file', metavar='FILE', type=argparse.FileType('r'), help='YAML file with command data in it')
 
     return cast(Args, parser.parse_args())
 
 
 def scim_request(
-    func: Callable, url: str, data: Optional[dict] = None, headers: Optional[dict] = None, token: Optional[str] = None
+    func: Callable,
+    url: str,
+    data: Optional[dict] = None,
+    headers: Optional[dict] = None,
+    token: Optional[str] = None,
+    verify: bool = True,
 ) -> Optional[Dict[str, Any]]:
     if not headers:
         headers = {'content-type': 'application/scim+json'}
@@ -37,7 +52,7 @@ def scim_request(
         logger.debug(f'Using Authorization {token}')
         headers['Authorization'] = token
     logger.debug(f'API URL: {url}')
-    r = _make_request(func, url, data, headers)
+    r = _make_request(func, url, data, headers, verify)
 
     if not r:
         return None
@@ -48,9 +63,9 @@ def scim_request(
 
 
 def _make_request(
-    func: Callable, url: str, data: Optional[dict] = None, headers: Optional[dict] = None
+    func: Callable, url: str, data: Optional[dict] = None, headers: Optional[dict] = None, verify: bool = True,
 ) -> Optional[requests.Response]:
-    r = func(url, json=data, headers=headers)
+    r = func(url, json=data, headers=headers, verify=verify)
     logger.debug(f'Response from server: {r}\n{r.text}')
 
     if r.status_code not in [200, 201, 204]:
@@ -65,7 +80,7 @@ def _make_request(
     return r
 
 
-def search_user(api: str, filter: str, token: Optional[str] = None) -> Optional[Dict[str, Any]]:
+def search_user(api: Api, filter: str) -> Optional[Dict[str, Any]]:
     logger.info(f'Searching for user with filter {filter}')
     query = {
         'schemas': ['urn:ietf:params:scim:api:messages:2.0:SearchRequest'],
@@ -75,12 +90,12 @@ def search_user(api: str, filter: str, token: Optional[str] = None) -> Optional[
     }
 
     logger.info(f'Sending user search query:\n{json.dumps(query, sort_keys=True, indent=4)}')
-    res = scim_request(requests.post, f'{api}/Users/.search', data=query, token=token)
+    res = scim_request(requests.post, f'{api.url}/Users/.search', data=query, token=api.token, verify=api.verify)
     logger.info(f'User search result:\n{json.dumps(res, sort_keys=True, indent=4)}\n')
     return res
 
 
-def search_group(api: str, filter: str, token: Optional[str] = None) -> Optional[Dict[str, Any]]:
+def search_group(api: Api, filter: str) -> Optional[Dict[str, Any]]:
     logger.info(f'Searching for group with filter {filter}')
     query = {
         'schemas': ['urn:ietf:params:scim:api:messages:2.0:SearchRequest'],
@@ -90,51 +105,51 @@ def search_group(api: str, filter: str, token: Optional[str] = None) -> Optional
     }
 
     logger.info(f'Sending group search query:\n{json.dumps(query, sort_keys=True, indent=4)}')
-    res = scim_request(requests.post, f'{api}/Groups/.search', data=query, token=token)
+    res = scim_request(requests.post, f'{api.url}/Groups/.search', data=query, token=api.token, verify=api.verify)
     logger.info(f'Group search result:\n{json.dumps(res, sort_keys=True, indent=4)}\n')
     return res
 
 
-def create_user(api: str, external_id: str, token: Optional[str] = None) -> Optional[Dict[str, Any]]:
+def create_user(api: Api, external_id: str) -> Optional[Dict[str, Any]]:
     logger.info(f'Creating user with externalId {external_id}')
     query = {'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User'], 'externalId': external_id}
     logger.debug(f'Sending user create query:\n{pformat(json.dumps(query, sort_keys=True, indent=4))}')
-    res = scim_request(requests.post, f'{api}/Users/', data=query, token=token)
+    res = scim_request(requests.post, f'{api.url}/Users/', data=query, token=api.token, verify=api.verify)
     logger.info(f'User create result:\n{json.dumps(res, sort_keys=True, indent=4)}\n')
     return res
 
 
-def create_group(api: str, display_name: str, token: Optional[str] = None) -> Optional[Dict[str, Any]]:
+def create_group(api: Api, display_name: str, token: Optional[str] = None) -> Optional[Dict[str, Any]]:
     logger.info(f'Creating group with displayName {display_name}')
     query = {'schemas': ['urn:ietf:params:scim:schemas:core:2.0:Group'], 'displayName': display_name, 'members': []}
     logger.debug(f'Sending group create query:\n{pformat(json.dumps(query, sort_keys=True, indent=4))}')
-    res = scim_request(requests.post, f'{api}/Groups/', data=query, token=token)
+    res = scim_request(requests.post, f'{api.url}/Groups/', data=query, token=api.token, verify=api.verify)
     logger.info(f'Group create result:\n{json.dumps(res, sort_keys=True, indent=4)}\n')
     return res
 
 
-def get_user_resource(api: str, scim_id: str, token: Optional[str] = None) -> Optional[Dict[str, Any]]:
+def get_user_resource(api: Api, scim_id: str) -> Optional[Dict[str, Any]]:
     logger.debug(f'Fetching SCIM user resource {scim_id}')
 
     if '@' in scim_id:
         # lookup a user with this external_id
-        res = search_user(api, f'externalId eq "{scim_id}"', token=token)
+        res = search_user(api, f'externalId eq "{scim_id}"')
         if not res or res.get('totalResults') != 1:
             logger.error(f'No user found with externalId {scim_id}')
             return None
         scim_id = res['Resources'][0]['id']
 
-    return scim_request(requests.get, f'{api}/Users/{scim_id}', token=token)
+    return scim_request(requests.get, f'{api.url}/Users/{scim_id}', token=api.token, verify=api.verify)
 
 
-def get_group_resource(api: str, scim_id: str, token: Optional[str] = None) -> Optional[Dict[str, Any]]:
+def get_group_resource(api: Api, scim_id: str) -> Optional[Dict[str, Any]]:
     logger.debug(f'Fetching SCIM group resource {scim_id}')
 
-    return scim_request(requests.get, f'{api}/Groups/{scim_id}', token=token)
+    return scim_request(requests.get, f'{api.url}/Groups/{scim_id}', token=api.token, verify=api.verify)
 
 
-def put_user(api: str, scim_id: str, nutid_data: Mapping[str, Any], token: Optional[str] = None) -> None:
-    scim = get_user_resource(api, scim_id, token=token)
+def put_user(api: Api, scim_id: str, nutid_data: Mapping[str, Any]) -> None:
+    scim = get_user_resource(api, scim_id)
     if not scim:
         return
 
@@ -156,13 +171,15 @@ def put_user(api: str, scim_id: str, nutid_data: Mapping[str, Any], token: Optio
     headers = {'content-type': 'application/scim+json', 'if-match': meta["version"]}
 
     logger.info(f'Updating profiles for SCIM user resource {scim_id}:\n{json.dumps(scim, sort_keys=True, indent=4)}\n')
-    res = scim_request(requests.put, f'{api}/Users/{scim_id}', data=scim, headers=headers, token=token)
+    res = scim_request(
+        requests.put, f'{api.url}/Users/{scim_id}', data=scim, headers=headers, token=api.token, verify=api.verify
+    )
     logger.info(f'Update result:\n{json.dumps(res, sort_keys=True, indent=4)}')
     return None
 
 
-def put_group(api: str, scim_id: str, data: Dict[str, Any], token: Optional[str] = None) -> None:
-    scim = get_group_resource(api, scim_id, token=token)
+def put_group(api: Api, scim_id: str, data: Dict[str, Any], token: Optional[str] = None) -> None:
+    scim = get_group_resource(api, scim_id)
     if not scim:
         return
 
@@ -186,23 +203,20 @@ def put_group(api: str, scim_id: str, data: Dict[str, Any], token: Optional[str]
     headers = {'content-type': 'application/scim+json', 'if-match': meta["version"]}
 
     logger.info(f'Updating SCIM group resource {scim_id}:\n{json.dumps(scim, sort_keys=True, indent=4)}\n')
-    res = scim_request(requests.put, f'{api}/Groups/{scim_id}', data=scim, headers=headers, token=token)
+    res = scim_request(
+        requests.put, f'{api.url}/Groups/{scim_id}', data=scim, headers=headers, token=api.token, verify=api.verify
+    )
     logger.info(f'Update result:\n{json.dumps(res, sort_keys=True, indent=4)}')
 
 
 def post_event(
-    api: str,
-    resource_scim_id: str,
-    resource_type: str,
-    level: str = 'info',
-    data: Optional[Dict[str, Any]] = None,
-    token: Optional[str] = None,
+    api: Api, resource_scim_id: str, resource_type: str, level: str = 'info', data: Optional[Dict[str, Any]] = None,
 ) -> None:
 
     if resource_type == 'User':
-        resource = get_user_resource(api=api, scim_id=resource_scim_id, token=token)
+        resource = get_user_resource(api=api, scim_id=resource_scim_id)
     elif resource_type == 'Group':
-        resource = get_group_resource(api=api, scim_id=resource_scim_id, token=token)
+        resource = get_group_resource(api=api, scim_id=resource_scim_id)
     else:
         logger.warning(f'No event created for resource type {resource_type} - not implemented.')
         return None
@@ -228,17 +242,19 @@ def post_event(
     scim = {'schemas': [EVENT_CORE_V1, NUTID_EVENT_V1], NUTID_EVENT_V1: event}
 
     logger.info(f'Creating SCIM event:\n{json.dumps(scim, sort_keys=True, indent=4)}\n')
-    res = scim_request(requests.post, f'{api}/Events/', data=scim, headers=headers, token=token)
+    res = scim_request(
+        requests.post, f'{api.url}/Events/', data=scim, headers=headers, token=api.token, verify=api.verify
+    )
     logger.info(f'Update result:\n{json.dumps(res, sort_keys=True, indent=4)}')
 
 
-def process_login(api: str, params: Mapping[str, Any]) -> Optional[str]:
-    url = params['url']
+def process_login(api: Api, params: Mapping[str, Any]) -> Optional[str]:
+    url = f'{api.url}/login'
     data_owner = params['data_owner']
     logger.debug(f'Login URL: {url}')
     data = {'data_owner': data_owner}
     logger.debug(f'Login payload:\n{json.dumps(data)}')
-    r = _make_request(requests.post, url, data=data)
+    r = _make_request(requests.post, url, data=data, verify=api.verify)
     if not r:
         return None
 
@@ -246,7 +262,7 @@ def process_login(api: str, params: Mapping[str, Any]) -> Optional[str]:
     return r.headers['Authorization']
 
 
-def process_users(api: str, ops: Mapping[str, Any], token: Optional[str] = None) -> None:
+def process_users(api: Api, ops: Mapping[str, Any]) -> None:
     """
     Process users.
 
@@ -263,60 +279,60 @@ def process_users(api: str, ops: Mapping[str, Any], token: Optional[str] = None)
             for what in ops[op]:
                 if what == 'externalId':
                     for external_id in ops[op][what]:
-                        res = search_user(api, f'externalId eq "{external_id}"', token=token)
+                        res = search_user(api, f'externalId eq "{external_id}"')
                         if res is not None and res['totalResults'] == 0:
                             logger.info(f'Found no user with externalId: {external_id}. Creating it.')
-                            create_user(api, external_id, token=token)
+                            create_user(api, external_id)
 
                 elif what == 'lastModified':
                     for _op in ops[op][what]:
                         if _op in ['gt', 'ge']:
                             for _ts in ops[op][what][_op]:
-                                search_user(api, f'meta.lastModified {_op} "{_ts}"', token=token)
+                                search_user(api, f'meta.lastModified {_op} "{_ts}"')
                         else:
                             logger.error(f'Unknown "user" lastModified operation {_op}')
                 else:
                     logger.error(f'Unknown "user" search attribute {what}')
         elif op == 'put':
             for scim_id in ops[op]:
-                put_user(api, scim_id, ops[op][scim_id], token=token)
+                put_user(api, scim_id, ops[op][scim_id])
         else:
             logger.error(f'Unknown "user" operation {op}')
 
 
-def process_groups(api: str, ops: Mapping[str, Any], token: Optional[str] = None) -> None:
+def process_groups(api: Api, ops: Mapping[str, Any]) -> None:
     for op in ops.keys():
         if op == 'search':
             for what in ops[op]:
                 if what == 'displayName':
                     for display_name in ops[op][what]:
-                        res = search_group(api, f'displayName eq "{display_name}"', token=token)
+                        res = search_group(api, f'displayName eq "{display_name}"')
                         if res is not None and res['totalResults'] == 0:
                             logger.info(f'Found no group with displayName: {display_name}. Creating it.')
-                            create_group(api, display_name, token=token)
+                            create_group(api, display_name)
                 elif what == 'lastModified':
                     for _op in ops[op][what]:
                         if _op in ['gt', 'ge']:
                             for _ts in ops[op][what][_op]:
-                                search_group(api, f'meta.lastModified {_op} "{_ts}"', token=token)
+                                search_group(api, f'meta.lastModified {_op} "{_ts}"')
                         else:
                             logger.error(f'Unknown "group" lastModified operation {_op}')
                 elif what.startswith('extensions.data'):
                     for value in ops[op][what]:
-                        search_group(api, f'{what} eq "{value}"', token=token)
+                        search_group(api, f'{what} eq "{value}"')
                 else:
                     logger.error(f'Unknown "group" search attribute {what}')
         elif op == 'put':
             for scim_id in ops[op]:
-                put_group(api, scim_id, data=ops[op][scim_id], token=token)
+                put_group(api, scim_id, data=ops[op][scim_id])
 
 
-def process_events(api: str, ops: Mapping[str, Any], token: Optional[str] = None) -> None:
+def process_events(api: Api, ops: Mapping[str, Any]) -> None:
     for op in ops.keys():
         if op == 'post':
             for item in ops[op]:
                 params = ops[op][item]
-                post_event(api, token=token, **params)
+                post_event(api, **params)
 
 
 def main(args: Args) -> bool:
@@ -324,20 +340,20 @@ def main(args: Args) -> bool:
 
     logger.debug(f'Loaded command data: {pformat(data)}')
 
-    for api in data.keys():
-        token = None
-        if 'login' in data[api]:
-            token = process_login(api, data[api]['login'])
-            if not token:
+    for url in data.keys():
+        api = Api(url=url, verify=not args.insecure)
+        if 'login' in data[url]:
+            api.token = process_login(api, data[url]['login'])
+            if not api.token:
                 logger.error('Login failed')
                 return False
 
-        if 'users' in data[api]:
-            process_users(api, data[api]['users'], token=token)
-        if 'groups' in data[api]:
-            process_groups(api, data[api]['groups'], token=token)
-        if 'events' in data[api]:
-            process_events(api, data[api]['events'], token=token)
+        if 'users' in data[url]:
+            process_users(api, data[url]['users'])
+        if 'groups' in data[url]:
+            process_groups(api, data[url]['groups'])
+        if 'events' in data[url]:
+            process_events(api, data[url]['events'])
 
     return True
 
