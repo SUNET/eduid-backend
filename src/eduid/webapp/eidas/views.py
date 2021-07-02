@@ -9,6 +9,7 @@ from eduid.common.config.base import EduidEnvironment
 from eduid.userdb import User
 from eduid.userdb.credentials.base import CredentialKey
 from eduid.userdb.credentials.fido import FidoCredential
+from eduid.webapp.authn.helpers import credential_used_to_log_in
 from eduid.webapp.common.api.decorators import MarshalWith, require_user
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import FluxData, redirect_with_msg, success_response
@@ -39,18 +40,24 @@ def index(user) -> FluxData:
 @eidas_views.route('/verify-token/<credential_id>', methods=['GET'])
 @require_user
 def verify_token(user: User, credential_id: CredentialKey) -> Union[FluxData, WerkzeugResponse]:
-    current_app.logger.debug('verify-token called with credential_id: {}'.format(credential_id))
+    current_app.logger.debug(f'verify-token called with credential_id: {credential_id}')
     redirect_url = current_app.conf.token_verify_redirect_url
 
     # Check if requested key id is a mfa token and if the user used that to log in
     token_to_verify = user.credentials.filter(FidoCredential).find(credential_id)
     if not token_to_verify:
         return redirect_with_msg(redirect_url, EidasMsg.token_not_found)
-    if token_to_verify.key not in session.get('eduidIdPCredentialsUsed', []):
-        # If token was not used for login, reauthn the user
-        current_app.logger.info('Token {} not used for login, redirecting to authn'.format(token_to_verify.key))
-        ts_url = current_app.conf.token_service_url
-        reauthn_url = urlappend(ts_url, 'reauthn')
+
+    # Check if the credential was just now used to log in
+    credential_already_used = credential_used_to_log_in(token_to_verify)
+
+    current_app.logger.debug(f'Credential {credential_id} recently used for login: {credential_already_used}')
+
+    if not credential_already_used:
+        # If token was not used for login, ask authn to authenticate the user again,
+        # and then return to this endpoint with the same credential_id. Better luck next time I guess.
+        current_app.logger.info(f'Started proofing of token {token_to_verify.key}, redirecting to authn')
+        reauthn_url = urlappend(current_app.conf.token_service_url, 'reauthn')
         next_url = url_for('eidas.verify_token', credential_id=credential_id, _external=True)
         # Add idp arg to next_url if set
         idp = request.args.get('idp')
@@ -60,7 +67,7 @@ def verify_token(user: User, credential_id: CredentialKey) -> Union[FluxData, We
         current_app.logger.debug(f'Redirecting user to {redirect_url}')
         return redirect(redirect_url)
 
-    # Set token key id in session
+    # Store the id of the credential that is supposed to be proofed in the session
     session.eidas.verify_token_action_credential_id = credential_id
 
     # Request a authentication from idp

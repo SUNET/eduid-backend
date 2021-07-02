@@ -102,7 +102,6 @@ class CredentialInfo:
     credential_type: str
     created_ts: datetime
     success_ts: Optional[datetime]
-    used_for_login: bool = False
     verified: bool = False
     description: Optional[str] = None
 
@@ -113,10 +112,6 @@ def compile_credential_list(security_user: SecurityUser) -> List[CredentialInfo]
     """
     credentials = []
     authn_info = current_app.authninfo_db.get_authn_info(security_user)
-    credentials_used = session.get('eduidIdPCredentialsUsed', list())
-    # In the development environment credentials_used gets set to None
-    if credentials_used is None:
-        credentials_used = []
     for cred_key, authn in authn_info.items():
         cred = security_user.credentials.find(cred_key)
         try:
@@ -131,7 +126,6 @@ def compile_credential_list(security_user: SecurityUser) -> List[CredentialInfo]
             description=description,
             success_ts=authn.success_ts,
             verified=cred.is_verified,
-            used_for_login=cred_key in credentials_used,
         )
         credentials.append(info)
     return credentials
