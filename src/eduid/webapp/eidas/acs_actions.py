@@ -58,8 +58,10 @@ def token_verify_action(
         session.eidas.verify_token_action_credential_id
     )
 
-    # Check (again) if token was used to authenticate this session
-    if not credential_used_to_log_in(token_to_verify):
+    # Check (again) if token was used to authenticate this session. The first time we checked,
+    # we verified that the token was used very recently, but we have to allow for more time
+    # here since the user might have spent a couple of minutes authenticating with the external IdP.
+    if not credential_used_to_log_in(token_to_verify, max_age=300):
         return redirect_with_msg(redirect_url, EidasMsg.token_not_in_creds)
 
     # Verify asserted NIN for user if there are no verified NIN
