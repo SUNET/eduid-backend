@@ -1,8 +1,9 @@
 import datetime
 
-from fastapi import APIRouter, Response
+from fastapi import Response
 from jwcrypto import jwt
 
+from eduid.scimapi.api_router import APIRouter
 from eduid.scimapi.context_request import ContextRequest
 from eduid.scimapi.exceptions import Unauthorized
 from eduid.scimapi.models.login import TokenRequest
