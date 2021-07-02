@@ -15,6 +15,7 @@ SAML_CONFIG = {
     'entityid': '%ssaml2-metadata' % BASE_URL,
     # directory with attribute mapping
     'attribute_map_dir': DEFAULT_ATTRIBUTEMAPS,
+    'allow_unknown_attributes': True,  # Allow eduidIdPCredentialsUsed
     # this block states what services we provide
     'service': {
         # we are just a lonely SP
