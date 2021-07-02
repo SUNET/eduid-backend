@@ -309,7 +309,7 @@ def process_assertion(
         current_app.logger.info(f'Unknown response. Redirecting user to {error_redirect_url}')
         return redirect(error_redirect_url)
 
-    authn_data = session.authn.sp.authns[authn_ref]
+    authn_data = sp_data.authns[authn_ref]
     current_app.logger.debug(f'Authentication request data retrieved from session: {authn_data}')
 
     session_info = response.session_info()
