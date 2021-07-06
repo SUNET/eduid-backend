@@ -7,6 +7,7 @@ from typing import Optional
 from urllib.parse import urlparse
 from uuid import uuid4
 
+import bcrypt
 from flask import Request, current_app
 
 from eduid.common.utils import urlappend
@@ -220,3 +221,23 @@ def sanitise_redirect_url(redirect_url: Optional[str], safe_default: str = '/') 
     # Unsafe redirect_url found
     logger.warning(f'Caught unsafe redirect_url: {redirect_url}. Using safe default: {safe_default}.')
     return safe_default
+
+
+def hash_password(password: str) -> str:
+    """
+    Return a hash of the provided password
+
+    :param password: password as plaintext
+    """
+    password = ''.join(password.split())
+    return bcrypt.hashpw(password, bcrypt.gensalt())
+
+
+def check_password_hash(password: str, hashed: Optional[str]) -> bool:
+    """
+    Check that the provided password corresponds to the provided hash
+    """
+    if hashed is None:
+        return False
+    password = ''.join(password.split())
+    return bcrypt.checkpw(password, hashed)
