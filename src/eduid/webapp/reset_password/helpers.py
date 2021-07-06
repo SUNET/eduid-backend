@@ -113,6 +113,8 @@ class ResetPwMsg(TranslatableMsg):
     invalid_user = 'resetpw.invalid-user'
     # extra security with fido tokens failed - wrong token
     fido_token_fail = 'resetpw.fido-token-fail'
+    # extra security with external MFA service failed
+    external_mfa_fail = 'resetpw.external-mfa-fail'
     # The password chosen is too weak
     resetpw_weak = 'resetpw.weak-password'
 
@@ -266,15 +268,17 @@ def check_password(password: str, hashed: Optional[str]) -> bool:
     return bcrypt.checkpw(password, hashed)
 
 
-def extra_security_used(state: ResetPasswordState, security_key_used: bool = False) -> bool:
+def extra_security_used(
+    state: Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState], mfa_used: bool = False
+) -> bool:
     """
     Check if any extra security method was used
 
     :param state: Password reset state
-    :param security_key_used: If a security key was used
+    :param mfa_used: If a security key was used
     :return: True|False
     """
-    if security_key_used:
+    if state.email_code.is_verified and mfa_used:
         return True
     if isinstance(state, ResetPasswordEmailAndPhoneState):
         return state.email_code.is_verified and state.phone_code.is_verified
@@ -310,13 +314,16 @@ def unverify_user(user: ResetPasswordUser) -> None:
 
 
 def reset_user_password(
-    user: User, state: ResetPasswordState, password: str, security_key_used: bool = False
+    user: User,
+    state: Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState],
+    password: str,
+    mfa_used: bool = False,
 ) -> FluxData:
     """
     :param user: the user
     :param state: Password reset state
     :param password: Plain text password
-    :param security_key_used: If a security key was used as extra security
+    :param mfa_used: If a security key or external MFA was used as extra security
     """
     # Check the the password complexity is enough
     user_info = get_zxcvbn_terms(user)
@@ -333,7 +340,7 @@ def reset_user_password(
     reset_password_user = ResetPasswordUser.from_user(user, private_userdb=current_app.private_userdb)
 
     # If no extra security is used, all verified information (except email addresses) is set to not verified
-    if not extra_security_used(state, security_key_used):
+    if not extra_security_used(state, mfa_used):
         current_app.stats.count(name='no_extra_security', value=1)
         current_app.logger.info(f'No extra security used by user {user}')
         unverify_user(reset_password_user)
@@ -352,7 +359,11 @@ def reset_user_password(
         current_app.logger.error(f'Reset password failed for user {reset_password_user}')
         return error_response(message=ResetPwMsg.pw_reset_fail)
 
-    reset_password_user.terminated = None
+    # Undo termination if user is terminated
+    if reset_password_user.terminated is not None:
+        current_app.logger.info(f'Revoking termination for user: {user.terminated}')
+        reset_password_user.terminated = None
+
     save_and_sync_user(reset_password_user)
     current_app.stats.count(name='password_reset_success', value=1)
     current_app.logger.info(f'Reset password successful for user {reset_password_user}')
