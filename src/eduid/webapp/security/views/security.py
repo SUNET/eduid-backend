@@ -49,6 +49,7 @@ from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, requi
 from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid.webapp.common.api.helpers import add_nin_to_user
 from eduid.webapp.common.api.messages import CommonMsg, error_response, success_response
+from eduid.webapp.common.api.schemas.csrf import EmptyRequest
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.authn.vccs import add_credentials, revoke_all_credentials
@@ -67,7 +68,6 @@ from eduid.webapp.security.schemas import (
     AccountTerminatedSchema,
     ChangePasswordSchema,
     ChpassResponseSchema,
-    CsrfSchema,
     NINRequestSchema,
     NINResponseSchema,
     RedirectResponseSchema,
@@ -92,6 +92,7 @@ def get_credentials(user):
     return credentials
 
 
+# TODO: Remove this when removing change_password below
 @security_views.route('/suggested-password', methods=['GET'])
 @MarshalWith(SuggestedPasswordResponseSchema)
 @require_user
@@ -105,6 +106,7 @@ def get_suggested(user):
     return suggested
 
 
+# TODO: Remove this when frontend for new change password view exist
 @security_views.route('/change-password', methods=['POST'])
 @MarshalWith(ChpassResponseSchema)
 @require_user
@@ -174,16 +176,16 @@ def change_password(user):
 
 @security_views.route('/terminate-account', methods=['POST'])
 @MarshalWith(RedirectResponseSchema)
-@UnmarshalWith(CsrfSchema)
+@UnmarshalWith(EmptyRequest)
 @require_user
-def delete_account(user):
+def delete_account(user: User):
     """
     Terminate account view.
     It receives a POST request, checks the csrf token,
     schedules the account termination action,
     and redirects to the IdP.
     """
-    current_app.logger.debug('Initiating account termination for user {}'.format(user))
+    current_app.logger.debug('Initiating account termination for user')
 
     ts_url = current_app.conf.token_service_url
     terminate_url = urlappend(ts_url, 'terminate')
@@ -192,7 +194,7 @@ def delete_account(user):
     params = {'next': next_url}
 
     url_parts = list(urlparse(terminate_url))
-    query = parse_qs(url_parts[4])
+    query: Dict = parse_qs(url_parts[4])
     query.update(params)
 
     url_parts[4] = urlencode(query)
