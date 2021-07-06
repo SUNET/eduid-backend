@@ -32,7 +32,7 @@
 #
 import datetime
 import json
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional
 from unittest.mock import Mock, patch
 from urllib.parse import quote_plus
 
