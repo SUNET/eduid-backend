@@ -275,7 +275,7 @@ def extra_security_used(
     Check if any extra security method was used
 
     :param state: Password reset state
-    :param mfa_used: If a security key was used
+    :param mfa_used: If a security key or external MFA was used
     :return: True|False
     """
     if state.email_code.is_verified and mfa_used:
