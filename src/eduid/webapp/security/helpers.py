@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import unique
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from flask import render_template, url_for
 from flask_babel import gettext as _
 
 from eduid.common.decorators import deprecated
 from eduid.common.misc.timeutil import utc_now
-from eduid.userdb.authninfo import AuthnCredType
-from eduid.userdb.credentials import Credential, CredentialList
+from eduid.userdb.credentials import CredentialList
 from eduid.userdb.exceptions import UserHasNotCompletedSignup
 from eduid.userdb.logs import MailAddressProofing, PhoneNumberProofing
 from eduid.userdb.security import PasswordResetEmailAndPhoneState, PasswordResetEmailState, SecurityUser
@@ -20,7 +19,6 @@ from eduid.webapp.common.api.schemas.u2f import U2FRegisteredKey
 from eduid.webapp.common.api.utils import get_short_hash, get_unique_hash, save_and_sync_user
 from eduid.webapp.common.authn.utils import generate_password
 from eduid.webapp.common.authn.vccs import reset_password
-from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import SP_AuthnRequest
 from eduid.webapp.security.app import current_security_app as current_app
 from eduid.webapp.security.schemas import ConvertRegisteredKeys
@@ -80,8 +78,9 @@ class SecurityMsg(TranslatableMsg):
     chpass_weak = 'security.change_password_weak'
     # wrong old password
     unrecognized_pw = 'security.change_password_wrong_old_password'
-    # I think these chpass_ values are for the old change-password views (which are still the ones in use)
-    chpass_password_changed = 'security.change_password_complete'
+    # new change password
+    change_password_success = 'security.change-password-success'
+    # old change password
     chpass_password_changed2 = 'chpass.password-changed'
 
 

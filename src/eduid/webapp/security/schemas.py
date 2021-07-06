@@ -67,13 +67,13 @@ class SecurityResponseSchema(FluxStandardAction):
     payload = fields.Nested(CredentialList)
 
 
-class ChpassCredentialList(EduidSchema, CSRFResponseMixin):
-    credentials = fields.Nested(CredentialSchema, many=True)
-    next_url = fields.String(required=True)
+# TODO: Replace ChpassResponseSchema with SecurityResponseSchema in views when
+#   new change_password is done
+class ChpassResponseSchema(SecurityResponseSchema):
+    class ChpassResponsePayload(CredentialList):
+        next_url = fields.String(required=True)
 
-
-class ChpassResponseSchema(FluxStandardAction):
-    payload = fields.Nested(ChpassCredentialList)
+    payload = fields.Nested(ChpassResponsePayload)
 
 
 class ChpassRequestSchema(EduidSchema, CSRFRequestMixin):
@@ -82,27 +82,18 @@ class ChpassRequestSchema(EduidSchema, CSRFRequestMixin):
     new_password = fields.String(required=True)
 
 
-class CsrfSchema(EduidSchema, CSRFRequestMixin):
-    pass
-
-
-class RedirectSchema(EduidSchema, CSRFResponseMixin):
-    location = fields.String(required=True)
-
-
 class RedirectResponseSchema(FluxStandardAction):
+    class RedirectPayload(EduidSchema, CSRFResponseMixin):
+        location = fields.String(required=True)
 
-    payload = fields.Nested(RedirectSchema, many=False)
-
-
-class SuggestedPassword(EduidSchema, CSRFResponseMixin):
-
-    suggested_password = fields.String(required=True)
+    payload = fields.Nested(RedirectPayload, many=False)
 
 
 class SuggestedPasswordResponseSchema(FluxStandardAction):
+    class SuggestedPasswordPayload(EduidSchema, CSRFResponseMixin):
+        suggested_password = fields.String(required=True)
 
-    payload = fields.Nested(SuggestedPassword, many=False)
+    payload = fields.Nested(SuggestedPasswordPayload, many=False)
 
 
 class ChangePasswordSchema(PasswordSchema):
