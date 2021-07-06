@@ -25,6 +25,7 @@ from eduid.webapp.common.session.namespaces import (
     IdP_Namespace,
     MfaAction,
     ResetPasswordNS,
+    SecurityNS,
     Signup,
     TimestampedNS,
 )
@@ -53,6 +54,7 @@ class EduidNamespaces(BaseModel):
     signup: Optional[Signup] = None
     actions: Optional[Actions] = None
     reset_password: Optional[ResetPasswordNS] = None
+    security: Optional[SecurityNS] = None
     idp: Optional[IdP_Namespace] = None
     eidas: Optional[Eidas_Namespace] = None
     authn: Optional[Authn_Namespace] = None
@@ -194,6 +196,12 @@ class EduidSession(SessionMixin, MutableMapping):
         if not self._namespaces.reset_password:
             self._namespaces.reset_password = ResetPasswordNS.from_dict(self._session.get('reset_password', {}))
         return self._namespaces.reset_password
+
+    @property
+    def security(self) -> SecurityNS:
+        if not self._namespaces.security:
+            self._namespaces.security = SecurityNS.from_dict(self._session.get('security', {}))
+        return self._namespaces.security
 
     @property
     def idp(self) -> IdP_Namespace:
