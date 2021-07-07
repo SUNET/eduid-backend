@@ -70,8 +70,6 @@ class SecurityMsg(TranslatableMsg):
     no_last = 'security.webauthn-noremove-last'
     # Success removing webauthn token
     rm_webauthn = 'security.webauthn-token-removed'
-    # token to remove not found
-    no_webauthn = 'security.webauthn-token-notfound'
     # old_password or new_password missing
     chpass_no_data = 'security.change_password_no_data'
     # weak password
