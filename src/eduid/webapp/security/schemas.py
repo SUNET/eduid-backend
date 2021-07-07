@@ -271,7 +271,7 @@ class NINRequestSchema(EduidSchema, CSRFRequestMixin):
 
 class NINResponseSchema(FluxStandardAction):
     class RemoveNINPayload(EduidSchema, CSRFResponseMixin):
-        success = fields.Boolean(required=True)
+        success = fields.Boolean(required=True)  # TODO: is this used? we should remove it as message should be used
         message = fields.String(required=False)
         nins = fields.Nested(NinSchema, many=True)
 

@@ -216,15 +216,13 @@ def account_terminated(user: User):
     and logs out the session.
     """
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
-    authn = session.authn.sp.get_authn_for_action(AuthnAcsAction.terminate_account)
-    current_app.logger.debug(f'account_terminated called for user {user}, authn {authn}')
 
+    authn = session.authn.sp.get_authn_for_action(AuthnAcsAction.terminate_account)
+    current_app.logger.debug(f'account_terminated called with authn {authn}')
     # TODO: 10 minutes to complete account termination seems overly generous
     _need_reauthn = check_reauthn(authn, timedelta(seconds=600))
     if _need_reauthn:
         return _need_reauthn
-
-    # del session['reauthn-for-termination']
 
     # revoke all user passwords
     revoke_all_credentials(security_user, vccs_url=current_app.conf.vccs_url)
