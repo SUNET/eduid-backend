@@ -76,7 +76,7 @@ class ChpassResponseSchema(SecurityResponseSchema):
     payload = fields.Nested(ChpassResponsePayload)
 
 
-class ChpassRequestSchema(EduidSchema, CSRFRequestMixin):
+class ChangePasswordRequestSchema(EduidSchema, CSRFRequestMixin):
 
     old_password = fields.String(required=True)
     new_password = fields.String(required=True)
@@ -96,6 +96,7 @@ class SuggestedPasswordResponseSchema(FluxStandardAction):
     payload = fields.Nested(SuggestedPasswordPayload, many=False)
 
 
+# TODO: used for old change password, remove later
 class ChangePasswordSchema(PasswordSchema):
 
     csrf_token = fields.String(required=True)
