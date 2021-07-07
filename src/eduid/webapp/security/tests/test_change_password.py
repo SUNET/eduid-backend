@@ -1,15 +1,10 @@
 # -*- coding: utf-8 -*-
 import json
-import uuid
-from datetime import datetime, timedelta
 from typing import Any, Dict, List, Mapping, Optional
 from unittest.mock import patch
 
-from eduid.common.misc.timeutil import utc_now
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.api.utils import hash_password
-from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
-from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
 from eduid.webapp.security.app import SecurityApp, security_init_app
 from eduid.webapp.security.helpers import SecurityMsg
 
@@ -71,21 +66,18 @@ class ChangePasswordTests(EduidAPITestCase):
 
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def _change_password(
-        self, mock_request_user_sync: Any, authn_instant: Optional[datetime] = None, data1: Optional[dict] = None,
+        self, mock_request_user_sync: Any, data1: Optional[dict] = None,
     ):
         """
         To change the password of the test user, POST old and new passwords,
         mocking the required re-authentication (by setting a flag in the session).
 
-        :param authn_instant: timestamp to set in the session, as the time at which the user
-                        has re-authenticated.
         :param data1: to control the data sent to the change-password endpoint.
         """
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.app.test_request_context():
             with self.session_cookie(self.browser, eppn) as client:
-                self._fake_reauthn(client, authn_instant)
                 with client.session_transaction() as sess:
                     data = {'new_password': '0ieT/(.edW76', 'old_password': '5678', 'csrf_token': sess.get_csrf_token()}
                     if data1 == {}:
@@ -99,11 +91,7 @@ class ChangePasswordTests(EduidAPITestCase):
 
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def _get_suggested_and_change(
-        self,
-        mock_request_user_sync: Any,
-        data1: Optional[dict] = None,
-        correct_old_password: bool = True,
-        authn_instant: Optional[datetime] = None,
+        self, mock_request_user_sync: Any, data1: Optional[dict] = None, correct_old_password: bool = True,
     ):
         """
         To change the password of the test user using a suggested password,
@@ -112,8 +100,6 @@ class ChangePasswordTests(EduidAPITestCase):
 
         :param data1: to control the data sent to the change-password endpoint.
         :param correct_old_password: mock result for authentication with old password
-        :param authn_instant: timestamp to set in the session, as the time at which the user
-                        has re-authenticated.
         """
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data['eduPersonPrincipalName']
@@ -124,7 +110,6 @@ class ChangePasswordTests(EduidAPITestCase):
                         with patch(
                             'eduid.webapp.common.authn.vccs.VCCSClient.authenticate', return_value=correct_old_password
                         ):
-                            self._fake_reauthn(client=client, authn_instant=authn_instant)
                             response2 = client.get('/change-password/suggested-password')
                             passwd = json.loads(response2.data)
                             self.assertEqual(
@@ -146,18 +131,6 @@ class ChangePasswordTests(EduidAPITestCase):
                                 data=json.dumps(data),
                                 content_type=self.content_type_json,
                             )
-
-    @staticmethod
-    def _fake_reauthn(client: Any, authn_instant: Optional[datetime] = None) -> None:
-        if authn_instant is None:
-            # Do not fake a reauthn
-            return None
-        with client.session_transaction() as sess:
-            _authn_id = AuthnRequestRef(str(uuid.uuid4()))
-            sess.authn.sp.authns[_authn_id] = SP_AuthnRequest(
-                post_authn_action=AuthnAcsAction.login, redirect_url='test redirect url', authn_instant=authn_instant
-            )
-        return None
 
     # actual tests
     def test_user_setup(self):
@@ -181,7 +154,7 @@ class ChangePasswordTests(EduidAPITestCase):
     def test_change_passwd(self, mock_change_password):
         mock_change_password.return_value = True
 
-        response = self._change_password(authn_instant=utc_now())
+        response = self._change_password()
         self._check_success_response(
             response,
             type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_SUCCESS',
@@ -206,24 +179,12 @@ class ChangePasswordTests(EduidAPITestCase):
             response, type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_FAIL', msg=SecurityMsg.chpass_no_data
         )
 
-    def test_change_passwd_no_reauthn(self):
-        response = self._change_password()
-        self._check_success_response(
-            response, type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_FAIL', msg=SecurityMsg.no_reauthn
-        )
-
-    def test_change_passwd_stale(self):
-        response = self._change_password(authn_instant=utc_now() - timedelta(hours=1))
-        self._check_success_response(
-            response, type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_FAIL', msg=SecurityMsg.stale_reauthn
-        )
-
     @patch('eduid.webapp.security.views.change_password.change_password')
     def test_change_passwd_no_csrf(self, mock_change_password):
         mock_change_password.return_value = True
 
         data1 = {'csrf_token': ''}
-        response = self._change_password(authn_instant=utc_now(), data1=data1)
+        response = self._change_password(data1=data1)
         self._check_error_response(
             response,
             type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_FAIL',
@@ -235,7 +196,7 @@ class ChangePasswordTests(EduidAPITestCase):
         mock_change_password.return_value = True
 
         data1 = {'csrf_token': 'wrong-token'}
-        response = self._change_password(data1=data1, authn_instant=utc_now())
+        response = self._change_password(data1=data1)
         self._check_error_response(
             response,
             type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_FAIL',
@@ -247,13 +208,13 @@ class ChangePasswordTests(EduidAPITestCase):
         mock_change_password.return_value = True
 
         data1 = {'new_password': 'pw'}
-        response = self._change_password(data1=data1, authn_instant=utc_now())
+        response = self._change_password(data1=data1)
         self._check_error_response(
             response, type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_FAIL', msg=SecurityMsg.chpass_weak,
         )
 
     def test_get_suggested_and_change(self):
-        response = self._get_suggested_and_change(authn_instant=utc_now())
+        response = self._get_suggested_and_change()
         self._check_success_response(
             response=response, type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_SUCCESS'
         )
@@ -264,7 +225,7 @@ class ChangePasswordTests(EduidAPITestCase):
 
     def test_get_suggested_and_change_custom(self):
         data1 = {'new_password': '0ieT/(.edW76'}
-        response = self._get_suggested_and_change(authn_instant=utc_now(), data1=data1)
+        response = self._get_suggested_and_change(data1=data1)
         self._check_success_response(
             response=response, type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_SUCCESS'
         )
@@ -275,7 +236,7 @@ class ChangePasswordTests(EduidAPITestCase):
 
     def test_get_suggested_and_change_wrong_csrf(self):
         data1 = {'csrf_token': 'wrong-token'}
-        response = self._get_suggested_and_change(authn_instant=utc_now(), data1=data1)
+        response = self._get_suggested_and_change(data1=data1)
 
         self._check_error_response(
             response,
@@ -288,7 +249,7 @@ class ChangePasswordTests(EduidAPITestCase):
         self.assertFalse(user.credentials.to_list()[-1].is_generated)
 
     def test_get_suggested_and_change_wrong_old_pw(self):
-        response = self._get_suggested_and_change(authn_instant=utc_now(), correct_old_password=False)
+        response = self._get_suggested_and_change(correct_old_password=False)
         self._check_error_response(
             response, type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_FAIL', msg=SecurityMsg.unrecognized_pw,
         )

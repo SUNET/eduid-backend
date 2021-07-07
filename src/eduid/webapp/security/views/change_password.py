@@ -33,7 +33,6 @@
 
 from flask import Blueprint
 
-from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.security import SecurityUser
@@ -41,7 +40,6 @@ from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, requi
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.utils import check_password_hash, hash_password, save_and_sync_user
 from eduid.webapp.common.api.validation import is_valid_password
-from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.authn.vccs import change_password
 from eduid.webapp.common.session import session
 from eduid.webapp.security.app import current_security_app as current_app
@@ -51,7 +49,11 @@ from eduid.webapp.security.helpers import (
     generate_suggested_password,
     get_zxcvbn_terms,
 )
-from eduid.webapp.security.schemas import ChpassRequestSchema, SecurityResponseSchema, SuggestedPasswordResponseSchema
+from eduid.webapp.security.schemas import (
+    ChangePasswordRequestSchema,
+    SecurityResponseSchema,
+    SuggestedPasswordResponseSchema,
+)
 
 change_password_views = Blueprint('change_password', __name__, url_prefix='/change-password')
 
@@ -73,7 +75,7 @@ def get_suggested(user) -> FluxData:
 
 @change_password_views.route('/set-password', methods=['POST'])
 @MarshalWith(SecurityResponseSchema)
-@UnmarshalWith(ChpassRequestSchema)
+@UnmarshalWith(ChangePasswordRequestSchema)
 @require_user
 def change_password_view(user: User, old_password: str, new_password: str) -> FluxData:
     """
@@ -92,19 +94,7 @@ def change_password_view(user: User, old_password: str, new_password: str) -> Fl
     except ValueError:
         return error_response(message=SecurityMsg.chpass_weak)
 
-    login_authn = session.authn.sp.get_authn_for_action(AuthnAcsAction.login)
-
-    if login_authn is None or login_authn.authn_instant is None:
-        return error_response(message=SecurityMsg.no_reauthn)
-
-    now = utc_now()
-    delta = now - login_authn.authn_instant
-    timeout = current_app.conf.chpass_timeout
-    if int(delta.total_seconds()) > timeout:
-        return error_response(message=SecurityMsg.stale_reauthn)
-
-    hashed = session.security.generated_password_hash
-    if check_password_hash(new_password, hashed):
+    if check_password_hash(new_password, session.security.generated_password_hash):
         is_generated = True
         current_app.stats.count(name='change_password_generated_password_used')
     else:
@@ -113,11 +103,17 @@ def change_password_view(user: User, old_password: str, new_password: str) -> Fl
 
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
 
-    vccs_url = current_app.conf.vccs_url
-    added = change_password(security_user, new_password, old_password, 'reset-password', is_generated, vccs_url)
+    added = change_password(
+        user=security_user,
+        new_password=new_password,
+        old_password=old_password,
+        application='security',
+        is_generated=is_generated,
+        vccs_url=current_app.conf.vccs_url,
+    )
 
     if not added:
-        current_app.logger.debug(f'Problem verifying the old credentials for {user}')
+        current_app.logger.error(f'Could not verify the old password')
         return error_response(message=SecurityMsg.unrecognized_pw)
     try:
         save_and_sync_user(security_user)
@@ -127,8 +123,6 @@ def change_password_view(user: User, old_password: str, new_password: str) -> Fl
     current_app.stats.count(name='security_password_changed')
     current_app.logger.info(f'Changed password for user')
 
-    next_url = current_app.conf.dashboard_url
     return success_response(
-        payload={'next_url': next_url, 'credentials': compile_credential_list(security_user)},
-        message=SecurityMsg.change_password_success,
+        payload={'credentials': compile_credential_list(security_user)}, message=SecurityMsg.change_password_success,
     )
