@@ -256,6 +256,34 @@ def account_terminated(user: User):
     return redirect(f'{current_app.conf.logout_endpoint}?next={current_app.conf.termination_redirect_url}')
 
 
+@security_views.route('/add-nin', methods=['POST'])
+@UnmarshalWith(NINRequestSchema)
+@MarshalWith(NINResponseSchema)
+@require_user
+def add_nin(user, nin):
+    security_user = SecurityUser.from_user(user, current_app.private_userdb)
+    current_app.logger.info('Adding NIN to user')
+    current_app.logger.debug('NIN: {}'.format(nin))
+
+    nin_obj = security_user.nins.find(nin)
+    if nin_obj:
+        current_app.logger.info('NIN already added.')
+        return error_response(message=SecurityMsg.already_exists)
+
+    nin_element = NinProofingElement(number=nin, created_by='security', is_verified=False)
+    proofing_state = NinProofingState(id=None, eppn=security_user.eppn, nin=nin_element, modified_ts=None)
+
+    try:
+        add_nin_to_user(user, proofing_state, user_class=SecurityUser)
+    except AmTaskFailed as e:
+        current_app.logger.error('Adding nin to user failed')
+        current_app.logger.debug(f'NIN: {nin}')
+        current_app.logger.error('{}'.format(e))
+        return error_response(message=CommonMsg.temp_problem)
+
+    return success_response(payload=dict(nins=security_user.nins.to_list_of_dicts()), message=SecurityMsg.add_success)
+
+
 @security_views.route('/remove-nin', methods=['POST'])
 @UnmarshalWith(NINRequestSchema)
 @MarshalWith(NINResponseSchema)
@@ -272,39 +300,10 @@ def remove_nin(user, nin):
 
     try:
         remove_nin_from_user(security_user, nin)
-        return success_response(
-            payload=dict(nins=security_user.nins.to_list_of_dicts()), message=SecurityMsg.rm_success
-        )
     except AmTaskFailed as e:
         current_app.logger.error('Removing nin from user failed')
         current_app.logger.debug(f'NIN: {nin}')
         current_app.logger.error('{}'.format(e))
         return error_response(message=CommonMsg.temp_problem)
 
-
-@security_views.route('/add-nin', methods=['POST'])
-@UnmarshalWith(NINRequestSchema)
-@MarshalWith(NINResponseSchema)
-@require_user
-def add_nin(user, nin):
-    security_user = SecurityUser.from_user(user, current_app.private_userdb)
-    current_app.logger.info('Removing NIN from user')
-    current_app.logger.debug('NIN: {}'.format(nin))
-
-    nin_obj = security_user.nins.find(nin)
-    if nin_obj:
-        current_app.logger.info('NIN already added.')
-        return error_response(message=SecurityMsg.already_exists)
-
-    try:
-        nin_element = NinProofingElement(number=nin, created_by='security', is_verified=False)
-        proofing_state = NinProofingState(id=None, eppn=security_user.eppn, nin=nin_element, modified_ts=None)
-        add_nin_to_user(user, proofing_state, user_class=SecurityUser)
-        return success_response(
-            payload=dict(nins=security_user.nins.to_list_of_dicts()), message=SecurityMsg.add_success
-        )
-    except AmTaskFailed as e:
-        current_app.logger.error('Adding nin to user failed')
-        current_app.logger.debug(f'NIN: {nin}')
-        current_app.logger.error('{}'.format(e))
-        return error_response(message=CommonMsg.temp_problem)
+    return success_response(payload=dict(nins=security_user.nins.to_list_of_dicts()), message=SecurityMsg.rm_success)
