@@ -38,6 +38,7 @@ from urllib.parse import quote_plus
 
 from flask import url_for
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import Password, Webauthn
 from eduid.userdb.exceptions import DocumentDoesNotExist, UserHasNotCompletedSignup
 from eduid.userdb.fixtures.fido_credentials import webauthn_credential as sample_credential
@@ -49,6 +50,7 @@ from eduid.webapp.common.authn.tests.test_fido_tokens import (
     SAMPLE_WEBAUTHN_FIDO2STATE,
     SAMPLE_WEBAUTHN_REQUEST,
 )
+from eduid.webapp.common.session.namespaces import MfaAction
 from eduid.webapp.reset_password.app import ResetPasswordApp, init_reset_password_app
 from eduid.webapp.reset_password.helpers import (
     ResetPwMsg,
@@ -400,6 +402,68 @@ class ResetPasswordTests(EduidAPITestCase):
 
         return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
 
+    @patch('eduid.webapp.common.authn.vccs.get_vccs_client')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
+    def _post_reset_password_secure_external_mfa(
+        self,
+        mock_request_user_sync: Any,
+        mock_get_vccs_client: Any,
+        data1: Optional[dict] = None,
+        data2: Optional[dict] = None,
+        external_mfa_state: Optional[dict] = None,
+        custom_password: Optional[str] = None,
+    ):
+        """
+        Test resetting the password with extra security via a external MFA.
+
+        :param data1: to control what email is sent to create the state and start the process
+        :param data2: to control the data POSTed to finally reset the password
+        :param external_mfa_state: to control the external mfa state kept in the session
+        """
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_get_vccs_client.return_value = TestVCCSClient()
+
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+
+        response = self._post_email_address(data1=data1)
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        assert isinstance(state, ResetPasswordEmailState)
+
+        with self.app.test_request_context():
+            state.extra_security = get_extra_security_alternatives(user)
+        state.email_code.is_verified = True
+        self.app.password_reset_state_db.save(state)
+
+        with self.app.test_request_context():
+            url = url_for('reset_password.set_new_pw_extra_security_external_mfa', _external=True)
+
+        if external_mfa_state is not None:
+            mfa_action = MfaAction(**external_mfa_state)
+        else:
+            mfa_action = MfaAction(
+                success=True,
+                issuer='Test external MFA issuer',
+                authn_instant=str(utc_now().timestamp()),
+                authn_context='test authn context',
+            )
+
+        with self.session_cookie_anon(self.browser) as c:
+            with c.session_transaction() as sess:
+                sess._namespaces.mfa_action = mfa_action
+                new_password = generate_suggested_password(self.app.conf.password_length)
+                sess.reset_password.generated_password_hash = hash_password(new_password)
+            data = {
+                'email_code': state.email_code.code,
+                'password': custom_password or new_password,
+                'csrf_token': response.json['payload']['csrf_token'],
+            }
+            if data2 == {}:
+                data = {}
+            elif data2 is not None:
+                data.update(data2)
+
+        return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
+
     def _get_email_code_backdoor(self, data1: Optional[dict] = None):
         """
         Create a password rest state for the test user, grab the created verification code from the db,
@@ -468,6 +532,14 @@ class ResetPasswordTests(EduidAPITestCase):
             return client.get(f'/get-phone-code?eppn={eppn}')
 
     # actual tests
+    def test_correct_user_setup(self):
+        # Check that user has verified data
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        verified_phone_numbers = user.phone_numbers.verified.to_list()
+        self.assertEqual(1, len(verified_phone_numbers))
+        verified_nins = user.nins.verified.to_list()
+        self.assertEqual(2, len(verified_nins))
+
     def test_get_zxcvbn_terms(self):
         with self.app.test_request_context():
             terms = get_zxcvbn_terms(self.test_user)
@@ -875,6 +947,30 @@ class ResetPasswordTests(EduidAPITestCase):
         response = self._post_reset_password_secure_token(data2=data2)
         self._check_error_response(
             response, type_='POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_FAIL', msg=ResetPwMsg.resetpw_weak
+        )
+
+    def test_post_reset_password_secure_external_mfa(self):
+        response = self._post_reset_password_secure_external_mfa()
+        self._check_success_response(
+            response,
+            type_='POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_EXTERNAL_MFA_SUCCESS',
+            msg=ResetPwMsg.pw_reset_success,
+        )
+
+        # check that the user still has verified data
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        verified_phone_numbers = user.phone_numbers.verified.to_list()
+        self.assertEqual(1, len(verified_phone_numbers))
+        verified_nins = user.nins.verified.to_list()
+        self.assertEqual(2, len(verified_nins))
+
+    def test_post_reset_password_secure_external_mfa_no_mfa_auth(self):
+        external_mfa_state = {'success': False, 'issuer': None}
+        response = self._post_reset_password_secure_external_mfa(external_mfa_state=external_mfa_state)
+        self._check_error_response(
+            response,
+            type_='POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_EXTERNAL_MFA_FAIL',
+            msg=ResetPwMsg.external_mfa_fail,
         )
 
     def test_post_reset_password_secure_email_timeout(self):

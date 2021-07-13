@@ -452,7 +452,31 @@ def set_new_pw_extra_security_token(
     if not success:
         return error_response(message=ResetPwMsg.fido_token_fail)
 
-    return reset_user_password(user=context.user, state=context.state, password=password, security_key_used=success)
+    return reset_user_password(user=context.user, state=context.state, password=password, mfa_used=success)
+
+
+@reset_password_views.route('/new-password-extra-security-external-mfa/', methods=['POST'])
+@UnmarshalWith(NewPasswordSecureTokenRequestSchema)
+@MarshalWith(ResetPasswordResponseSchema)
+def set_new_pw_extra_security_external_mfa(
+    email_code: str, password: str,
+):
+    try:
+        context = get_context(email_code=email_code)
+    except StateException as e:
+        return error_response(message=e.msg)
+
+    if session.mfa_action.success is not True:  # Explicit check that success is the boolean True
+        return error_response(message=ResetPwMsg.external_mfa_fail)
+
+    current_app.logger.info(f'User used external MFA service {session.mfa_action.issuer} as extra security')
+    current_app.logger.info(
+        f'Issued: {session.mfa_action.authn_instant}. Authn context: {session.mfa_action.authn_context}'
+    )
+    # Clear mfa_action from session
+    del session.mfa_action
+
+    return reset_user_password(user=context.user, state=context.state, password=password, mfa_used=True)
 
 
 @reset_password_views.route('/get-email-code', methods=['GET'])
