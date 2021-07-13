@@ -748,7 +748,7 @@ class EidasTests(EduidAPITestCase):
         self.reauthn(
             endpoint='/mfa-authentication',
             expect_msg=EidasMsg.action_completed,
-            expect_redirect_url=self.app.conf.action_url + '/redirect-action',
+            expect_redirect_url=self.app.conf.action_url,
         )
 
     def test_mfa_authentication_too_old_authn_instant(self):
