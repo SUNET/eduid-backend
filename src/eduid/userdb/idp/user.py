@@ -37,7 +37,6 @@
 User and user database module.
 """
 import logging
-import pprint
 import warnings
 from dataclasses import dataclass
 from datetime import datetime

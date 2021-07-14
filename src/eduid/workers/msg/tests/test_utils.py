@@ -1,8 +1,6 @@
 from pathlib import PurePath
 from unittest import TestCase
 
-import pkg_resources
-
 from eduid.workers.msg.utils import load_template
 
 

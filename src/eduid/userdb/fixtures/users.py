@@ -34,7 +34,6 @@ from datetime import datetime
 
 from bson import ObjectId
 
-from eduid.userdb import Orcid
 from eduid.userdb.credentials import CredentialList
 from eduid.userdb.fixtures.email_addresses import (
     johnsmith2_example_com,

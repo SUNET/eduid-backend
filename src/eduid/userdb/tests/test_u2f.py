@@ -3,8 +3,6 @@ import datetime
 from hashlib import sha256
 from unittest import TestCase
 
-import eduid.userdb.element
-import eduid.userdb.exceptions
 from eduid.userdb.credentials import U2F, CredentialList
 
 __author__ = 'lundberg'

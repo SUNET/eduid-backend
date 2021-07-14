@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from copy import deepcopy
 from unittest import TestCase
 
 from eduid.userdb.fixtures.users import mocked_user_standard

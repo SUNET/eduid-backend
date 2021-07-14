@@ -31,11 +31,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from datetime import timedelta
-
 from flask import render_template
 
-from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User
 from eduid.userdb.element import DuplicateElementViolation
 from eduid.userdb.logs import PhoneNumberProofing

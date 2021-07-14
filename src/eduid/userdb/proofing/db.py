@@ -33,10 +33,10 @@
 import datetime
 import logging
 from operator import itemgetter
-from typing import ClassVar, Optional, Type, TypeVar
+from typing import Optional, Type, TypeVar
 
 from eduid.userdb.db import BaseDB
-from eduid.userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
+from eduid.userdb.exceptions import DocumentOutOfSync
 from eduid.userdb.proofing.state import (
     EmailProofingState,
     LetterProofingState,

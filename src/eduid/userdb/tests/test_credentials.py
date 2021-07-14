@@ -15,7 +15,6 @@ __author__ = 'lundberg'
 #    'source': 'signup',
 #    'created_ts': datetime.datetime.utcnow(),
 # }}
-from eduid.userdb.testing import normalised_data
 
 _one_dict = {
     'credential_id': '111111111111111111111111',

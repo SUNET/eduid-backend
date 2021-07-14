@@ -13,7 +13,6 @@
 Common code for SSO login/logout requests.
 """
 from abc import ABC
-from html import escape
 from typing import Optional
 
 from flask import request

@@ -32,7 +32,7 @@
 #
 import logging
 from datetime import datetime
-from typing import Any, Dict, Mapping, Optional, TypeVar, Union
+from typing import Any, Dict, Mapping, Optional, Union
 
 from eduid.userdb.db import BaseDB
 from eduid.userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned

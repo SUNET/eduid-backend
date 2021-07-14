@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import logging
-from datetime import datetime
 from typing import Mapping, Type
 
 from bson import ObjectId

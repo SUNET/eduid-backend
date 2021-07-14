@@ -42,7 +42,6 @@ from pydantic import BaseModel, Field
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials.base import CredentialKey
-from eduid.userdb.idp import IdPUser, IdPUserDb
 from eduid.webapp.common.session.logindata import ExternalMfaData
 from eduid.webapp.idp.idp_authn import AuthnData
 

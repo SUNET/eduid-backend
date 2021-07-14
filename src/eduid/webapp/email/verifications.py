@@ -31,8 +31,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-import time
-
 from flask import current_app, render_template, url_for
 from flask_babel import gettext as _
 

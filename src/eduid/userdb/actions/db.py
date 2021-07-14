@@ -30,12 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 from bson import ObjectId
 from bson.errors import InvalidId
 from pymongo.cursor import Cursor
-from pymongo.results import DeleteResult
 
 from eduid.userdb.actions import Action
 from eduid.userdb.db import BaseDB
