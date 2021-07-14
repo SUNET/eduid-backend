@@ -18,6 +18,8 @@ from eduid.userdb.credentials.base import CredentialKey
 
 __author__ = 'ft'
 
+from eduid.webapp.common.api.messages import TranslatableMsg
+
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
 
 logger = logging.getLogger(__name__)
@@ -53,6 +55,7 @@ class Common(SessionNSBase):
 
 class MfaAction(SessionNSBase):
     success: bool = False
+    error: Optional[TranslatableMsg] = None
     # Third-party MFA parameters
     issuer: Optional[str] = None
     authn_instant: Optional[str] = None

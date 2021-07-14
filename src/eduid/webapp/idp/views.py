@@ -336,6 +336,13 @@ def mfa_auth(ref: RequestRef, webauthn_response: Optional[Dict[str, str]] = None
         del session.mfa_action
         return success_response(payload={'finished': True})
 
+    # Third party service MFA errors
+    if session.mfa_action.error is not None:
+        resp = error_response(message=session.mfa_action.error)
+        # Clear mfa_action from session when we've consumed it
+        del session.mfa_action
+        return resp
+
     #
     # No external MFA
     #

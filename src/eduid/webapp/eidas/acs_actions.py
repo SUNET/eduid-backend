@@ -271,13 +271,16 @@ def mfa_authentication_action(session_info: SessionInfo, authndata: SP_AuthnRequ
     #
     redirect_url = sanitise_redirect_url(authndata.redirect_url)
     if not redirect_url:
+        session.mfa_action.error = TranslatableMsg.eidas_no_redirect_url
         current_app.logger.error('Missing redirect url for mfa authentication')
         return redirect_with_msg(current_app.conf.action_url, TranslatableMsg.eidas_no_redirect_url)
 
     if not is_required_loa(session_info, 'loa3'):
+        session.mfa_action.error = TranslatableMsg.eidas_authn_context_mismatch
         return redirect_with_msg(redirect_url, TranslatableMsg.eidas_authn_context_mismatch)
 
     if not is_valid_reauthn(session_info):
+        session.mfa_action.error = TranslatableMsg.eidas_reauthn_expired
         return redirect_with_msg(redirect_url, TranslatableMsg.eidas_reauthn_expired)
 
     # Check that a verified NIN is equal to the asserted attribute personalIdentityNumber
@@ -286,6 +289,7 @@ def mfa_authentication_action(session_info: SessionInfo, authndata: SP_AuthnRequ
         current_app.logger.error(
             'Got no personalIdentityNumber attributes. pysaml2 without the right attribute_converter?'
         )
+        session.mfa_action.error = TranslatableMsg.eidas_no_nin_attribute_received
         return redirect_with_msg(redirect_url, TranslatableMsg.eidas_no_nin_attribute_received)
 
     if not session.common.eppn:
@@ -300,6 +304,7 @@ def mfa_authentication_action(session_info: SessionInfo, authndata: SP_AuthnRequ
         current_app.logger.error('Asserted NIN not matching user verified nins')
         current_app.logger.debug('Asserted NIN: {}'.format(asserted_nin))
         current_app.stats.count(name='mfa_auth_nin_not_matching')
+        session.mfa_action.error = TranslatableMsg.eidas_nin_not_matching
         return redirect_with_msg(redirect_url, TranslatableMsg.eidas_nin_not_matching)
 
     if session.mfa_action is None:

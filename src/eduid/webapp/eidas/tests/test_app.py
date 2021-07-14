@@ -354,6 +354,7 @@ class EidasTests(EduidAPITestCase):
         age: int = 10,
         nin: Optional[str] = None,
         expect_error: bool = False,
+        expect_session_message: bool = False,
         expect_redirect_url: Optional[str] = None,
     ) -> None:
         if expect_redirect_url is None:
@@ -363,6 +364,7 @@ class EidasTests(EduidAPITestCase):
             eppn=eppn,
             expect_msg=expect_msg,
             expect_error=expect_error,
+            expect_session_message=expect_session_message,
             expect_redirect_url=expect_redirect_url,
             age=age,
             nin=nin,
@@ -406,6 +408,7 @@ class EidasTests(EduidAPITestCase):
         expect_redirect_url: str,
         expect_error: bool = False,
         expect_saml_error: bool = False,
+        expect_session_message: bool = False,
         age: int = 10,
         nin: Optional[str] = None,
         response_template: Optional[str] = None,
@@ -454,9 +457,9 @@ class EidasTests(EduidAPITestCase):
             data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': ''}
             response = browser.post('/saml2-acs', data=data)
 
-            # if expect_error:
-            #    with browser.session_transaction() as sess:
-            #        assert sess.mfa_action.error == expect_msg
+            if expect_error and expect_session_message:
+                with browser.session_transaction() as sess:
+                    assert sess.mfa_action.error == expect_msg
 
         if expect_saml_error:
             assert response.status_code == 400
@@ -756,7 +759,11 @@ class EidasTests(EduidAPITestCase):
 
     def test_mfa_authentication_too_old_authn_instant(self):
         self.reauthn(
-            endpoint='/mfa-authentication', age=61, expect_msg=TranslatableMsg.eidas_reauthn_expired, expect_error=True
+            endpoint='/mfa-authentication',
+            age=61,
+            expect_msg=TranslatableMsg.eidas_reauthn_expired,
+            expect_error=True,
+            expect_session_message=True,
         )
 
     def test_mfa_authentication_wrong_nin(self):
@@ -767,6 +774,7 @@ class EidasTests(EduidAPITestCase):
             endpoint='/mfa-authentication',
             expect_msg=TranslatableMsg.eidas_nin_not_matching,
             expect_error=True,
+            expect_session_message=True,
             nin=self.test_user_wrong_nin,
         )
 
