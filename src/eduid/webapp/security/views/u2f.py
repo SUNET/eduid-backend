@@ -12,12 +12,12 @@ from eduid.userdb import User
 from eduid.userdb.credentials import U2F
 from eduid.userdb.security import SecurityUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid.webapp.common.api.messages import FluxData, error_response, success_response
+from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response, success_response
 from eduid.webapp.common.api.schemas.u2f import U2FEnrollResponseSchema, U2FSignResponseSchema
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.session import session
 from eduid.webapp.security.app import current_security_app as current_app
-from eduid.webapp.security.helpers import SecurityMsg, compile_credential_list, credentials_to_registered_keys
+from eduid.webapp.security.helpers import compile_credential_list, credentials_to_registered_keys
 from eduid.webapp.security.schemas import (
     BindU2FRequestSchema,
     EnrollU2FTokenResponseSchema,
@@ -44,7 +44,7 @@ def enroll(user: User):
         current_app.logger.error(
             'User tried to register more than {} tokens.'.format(current_app.conf.u2f_max_allowed_tokens)
         )
-        return error_response(message=SecurityMsg.max_tokens)
+        return error_response(message=TranslatableMsg.security_max_tokens)
     registered_keys = credentials_to_registered_keys(user_u2f_tokens)
     enrollment = begin_registration(current_app.conf.u2f_app_id, registered_keys)
     session['_u2f_enroll_'] = enrollment.json
@@ -67,7 +67,7 @@ def bind(user: User, version: str, registration_data: str, client_data: str, des
     enrollment_data = session.pop('_u2f_enroll_', None)
     if not enrollment_data:
         current_app.logger.error('Found no U2F enrollment data in session.')
-        return error_response(message=SecurityMsg.missing_data)
+        return error_response(message=TranslatableMsg.security_missing_data)
 
     data = {'version': version, 'registrationData': registration_data, 'clientData': client_data}
     device, der_cert = complete_registration(enrollment_data, data, current_app.conf.u2f_valid_facets)
@@ -92,7 +92,7 @@ def bind(user: User, version: str, registration_data: str, client_data: str, des
     save_and_sync_user(security_user)
     current_app.stats.count(name='u2f_token_bind')
     credentials = compile_credential_list(security_user)
-    return success_response(payload=dict(credentials=credentials), message=SecurityMsg.u2f_registered)
+    return success_response(payload=dict(credentials=credentials), message=TranslatableMsg.security_u2f_registered)
 
 
 @u2f_views.route('/sign', methods=['GET'])
@@ -102,7 +102,7 @@ def sign(user: User):
     user_u2f_tokens = user.credentials.filter(U2F)
     if not user_u2f_tokens.count:
         current_app.logger.error('Found no U2F token for user.')
-        return error_response(message=SecurityMsg.no_u2f)
+        return error_response(message=TranslatableMsg.security_no_u2f)
 
     registered_keys = credentials_to_registered_keys(user_u2f_tokens)
     challenge = begin_authentication(current_app.conf.u2f_app_id, registered_keys)
@@ -119,7 +119,7 @@ def verify(user: User, key_handle: str, signature_data: str, client_data: str):
     challenge = session.pop('_u2f_challenge_')
     if not challenge:
         current_app.logger.error('Found no U2F challenge data in session.')
-        return error_response(message=SecurityMsg.no_challenge)
+        return error_response(message=TranslatableMsg.security_no_challenge)
 
     data = {'keyHandle': key_handle, 'signatureData': signature_data, 'clientData': client_data}
     device, c, t = complete_authentication(challenge, data, current_app.conf.u2f_valid_facets)
@@ -136,7 +136,7 @@ def modify(user: User, credential_key: str, description: str) -> FluxData:
     token_to_modify = security_user.credentials.filter(U2F).find(credential_key)
     if not token_to_modify:
         current_app.logger.error('Did not find requested U2F token for user.')
-        return error_response(message=SecurityMsg.no_token)
+        return error_response(message=TranslatableMsg.security_no_token)
 
     if len(description) > current_app.conf.u2f_max_description_length:
         current_app.logger.error(
@@ -144,7 +144,7 @@ def modify(user: User, credential_key: str, description: str) -> FluxData:
                 current_app.conf.u2f_max_description_length
             )
         )
-        return error_response(message=SecurityMsg.long_desc)
+        return error_response(message=TranslatableMsg.security_long_desc)
 
     token_to_modify.description = description
     save_and_sync_user(security_user)
@@ -166,4 +166,4 @@ def remove(user: User, credential_key) -> FluxData:
         current_app.stats.count(name='u2f_token_remove')
 
     credentials = compile_credential_list(security_user)
-    return success_response(payload=dict(credentials=credentials), message=SecurityMsg.rm_u2f_success)
+    return success_response(payload=dict(credentials=credentials), message=TranslatableMsg.security_rm_u2f_success)

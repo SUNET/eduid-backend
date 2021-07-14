@@ -75,24 +75,21 @@ supplemented with a text input for the SMS'ed code. In this case submitting the
 form will also result in resetting her password, but without unverifying any of
 her data.
 """
-from datetime import datetime, timedelta
 from typing import Optional
 
 from flask import Blueprint, abort, request
 
 from eduid.userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState
-from eduid.userdb.util import utc_now
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.exceptions import MailTaskFailed, MsgTaskFailed, ThrottledException
 from eduid.webapp.common.api.helpers import check_magic_cookie
-from eduid.webapp.common.api.messages import FluxData, error_response, success_response
+from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response, success_response
 from eduid.webapp.common.api.schemas.csrf import EmptyResponse
 from eduid.webapp.common.authn import fido_tokens
 from eduid.webapp.common.session import session
 from eduid.webapp.reset_password.app import current_reset_password_app as current_app
 from eduid.webapp.reset_password.helpers import (
-    ResetPwMsg,
     StateException,
     generate_suggested_password,
     get_context,
@@ -156,19 +153,19 @@ def start_reset_pw(email: str) -> FluxData:
         send_password_reset_mail(email)
     except UserDoesNotExist:
         current_app.logger.error(f'No user with email {email} found')
-        return error_response(message=ResetPwMsg.user_not_found)
+        return error_response(message=TranslatableMsg.reset_password_user_not_found)
     except ThrottledException:
         current_app.logger.error(f'Email resending throttled for {email}')
-        return error_response(message=ResetPwMsg.email_send_throttled)
+        return error_response(message=TranslatableMsg.reset_password_email_send_throttled)
     except UserHasNotCompletedSignup:
         # Old bug where incomplete signup users where written to the central db
         current_app.logger.exception(f'User with email {email} has to complete signup')
-        return error_response(message=ResetPwMsg.invalid_user)
+        return error_response(message=TranslatableMsg.reset_password_invalid_user)
     except MailTaskFailed:
         current_app.logger.exception(f'Sending password reset email failed')
-        return error_response(message=ResetPwMsg.email_send_failure)
+        return error_response(message=TranslatableMsg.reset_password_email_send_failure)
 
-    return success_response(message=ResetPwMsg.reset_pw_initialized)
+    return success_response(message=TranslatableMsg.reset_password_reset_pw_initialized)
 
 
 @reset_password_views.route('/verify-email/', methods=['POST'])
@@ -311,13 +308,13 @@ def choose_extra_security_phone(email_code: str, phone_index: int) -> FluxData:
     if isinstance(context.state, ResetPasswordEmailAndPhoneState):
         if context.state.is_throttled(current_app.conf.throttle_sms_seconds):
             current_app.logger.error(f'Throttling reset password SMS for: {context.state.eppn}')
-            return error_response(message=ResetPwMsg.send_sms_throttled)
+            return error_response(message=TranslatableMsg.reset_password_send_sms_throttled)
 
     current_app.logger.info(f'Password reset: choose_extra_security for user {context.user}')
     # Check that the email code has been validated
     if not context.state.email_code.is_verified:
         current_app.logger.info(f'User with eppn {context.state.eppn} has not verified their email address')
-        return error_response(message=ResetPwMsg.email_not_validated)
+        return error_response(message=TranslatableMsg.reset_password_email_not_validated)
 
     if context.state.extra_security is None:  # please mypy
         raise ValueError(f'User {context.user} trying to reset password with extra security without alternatives')
@@ -326,17 +323,17 @@ def choose_extra_security_phone(email_code: str, phone_index: int) -> FluxData:
         phone_number = context.state.extra_security['phone_numbers'][phone_index]
     except IndexError:
         current_app.logger.exception(f'Phone number at index {phone_index} does not exist')
-        return error_response(message=ResetPwMsg.unknown_phone_number)
+        return error_response(message=TranslatableMsg.reset_password_unknown_phone_number)
 
     current_app.logger.info(f'Trying to send password reset sms to user {context.user}')
     try:
         send_verify_phone_code(context.state, phone_number["number"])
     except MsgTaskFailed:
         current_app.logger.exception(f'Sending sms failed')
-        return error_response(message=ResetPwMsg.send_sms_failure)
+        return error_response(message=TranslatableMsg.reset_password_send_sms_failure)
 
     current_app.stats.count(name='extra_security_phone_sent')
-    return success_response(message=ResetPwMsg.send_sms_success)
+    return success_response(message=TranslatableMsg.reset_password_send_sms_success)
 
 
 @reset_password_views.route('/new-password-extra-security-phone/', methods=['POST'])
@@ -377,12 +374,12 @@ def set_new_pw_extra_security_phone(email_code: str, password: str, phone_code: 
     if phone_code == context.state.phone_code.code:
         if not verify_phone_number(context.state):
             current_app.logger.info(f'Could not verify phone code for user {context.user}')
-            return error_response(message=ResetPwMsg.phone_invalid)
+            return error_response(message=TranslatableMsg.reset_password_phone_invalid)
         current_app.logger.info(f'Phone code verified for user {context.user}')
         current_app.stats.count(name='extra_security_phone_success')
     else:
         current_app.logger.info(f'Could not verify phone code for user {context.user}')
-        return error_response(message=ResetPwMsg.unknown_phone_code)
+        return error_response(message=TranslatableMsg.reset_password_unknown_phone_code)
 
     return reset_user_password(user=context.user, state=context.state, password=password)
 
@@ -450,7 +447,7 @@ def set_new_pw_extra_security_token(
         current_app.logger.error(f'No webauthn data in request for {context.user}')
 
     if not success:
-        return error_response(message=ResetPwMsg.fido_token_fail)
+        return error_response(message=TranslatableMsg.reset_password_fido_token_fail)
 
     return reset_user_password(user=context.user, state=context.state, password=password, mfa_used=success)
 
@@ -467,7 +464,7 @@ def set_new_pw_extra_security_external_mfa(
         return error_response(message=e.msg)
 
     if session.mfa_action.success is not True:  # Explicit check that success is the boolean True
-        return error_response(message=ResetPwMsg.external_mfa_fail)
+        return error_response(message=TranslatableMsg.reset_password_external_mfa_fail)
 
     current_app.logger.info(f'User used external MFA service {session.mfa_action.issuer} as extra security')
     current_app.logger.info(

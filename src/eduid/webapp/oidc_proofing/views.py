@@ -18,10 +18,9 @@ from eduid.userdb.util import UTC
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
 from eduid.webapp.common.api.exceptions import TaskFailed
 from eduid.webapp.common.api.helpers import add_nin_to_user
-from eduid.webapp.common.api.messages import CommonMsg, error_response
+from eduid.webapp.common.api.messages import TranslatableMsg, error_response
 from eduid.webapp.oidc_proofing import helpers, schemas
 from eduid.webapp.oidc_proofing.app import current_oidcp_app as current_app
-from eduid.webapp.oidc_proofing.helpers import OIDCMsg
 
 __author__ = 'lundberg'
 
@@ -170,10 +169,10 @@ def seleg_proofing(user, nin):
             success = helpers.do_authn_request(proofing_state, claims_request, redirect_url)
             if not success:
                 current_app.stats.count(name='seleg.authn_request_op_error')
-                return error_response(message=CommonMsg.temp_problem)
+                return error_response(message=TranslatableMsg.temp_problem)
         except requests.exceptions.ConnectionError as e:
             current_app.logger.error('No connection to authorization endpoint: {!s}'.format(e))
-            return error_response(message=OIDCMsg.no_conn)
+            return error_response(message=TranslatableMsg.oidc_proofing_no_conn)
 
         # If authentication request went well save user state
         current_app.stats.count(name='seleg.authn_request_success')
@@ -239,10 +238,10 @@ def freja_proofing(user, nin):
             success = helpers.do_authn_request(proofing_state, claims_request, redirect_url)
             if not success:
                 current_app.stats.count(name='freja.authn_request_op_error')
-                return error_response(message=CommonMsg.temp_problem)
+                return error_response(message=TranslatableMsg.temp_problem)
         except requests.exceptions.ConnectionError as e:
             current_app.logger.error('No connection to authorization endpoint: {!s}'.format(e))
-            return error_response(message=OIDCMsg.no_conn)
+            return error_response(message=TranslatableMsg.oidc_proofing_no_conn)
 
         # If authentication request went well save user state
         current_app.stats.count(name='freja.authn_request_success')

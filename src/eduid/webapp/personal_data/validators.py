@@ -30,12 +30,11 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-import re
 
 from marshmallow import ValidationError
 
+from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.personal_data.app import current_pdata_app as current_app
-from eduid.webapp.personal_data.helpers import PDataMsg
 
 
 def validate_language(lang):
@@ -46,4 +45,4 @@ def validate_language(lang):
 
 def validate_nonempty(value):
     if not value.strip():  # Remove whitespace
-        raise ValidationError(PDataMsg.required.value)
+        raise ValidationError(TranslatableMsg.personal_data_required.value)

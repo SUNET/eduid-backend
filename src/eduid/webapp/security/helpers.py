@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime, timedelta
-from enum import unique
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from flask import render_template, url_for
 from flask_babel import gettext as _
 
 from eduid.common.decorators import deprecated
 from eduid.common.misc.timeutil import utc_now
-from eduid.userdb.authninfo import AuthnCredType
-from eduid.userdb.credentials import Credential, CredentialList
+from eduid.userdb.credentials import CredentialList
 from eduid.userdb.exceptions import UserHasNotCompletedSignup
 from eduid.userdb.logs import MailAddressProofing, PhoneNumberProofing
 from eduid.userdb.security import PasswordResetEmailAndPhoneState, PasswordResetEmailState, SecurityUser
@@ -20,69 +18,11 @@ from eduid.webapp.common.api.schemas.u2f import U2FRegisteredKey
 from eduid.webapp.common.api.utils import get_short_hash, get_unique_hash, save_and_sync_user
 from eduid.webapp.common.authn.utils import generate_password
 from eduid.webapp.common.authn.vccs import reset_password
-from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import SP_AuthnRequest
 from eduid.webapp.security.app import current_security_app as current_app
 from eduid.webapp.security.schemas import ConvertRegisteredKeys
 
 __author__ = 'lundberg'
-
-
-@unique
-class SecurityMsg(TranslatableMsg):
-    """
-    Messages sent to the front end with information on the results of the
-    attempted operations on the back end.
-    """
-
-    # Too much time passed since re-authn for account termination
-    stale_reauthn = 'security.stale_authn_info'
-    # No reauthn
-    no_reauthn = 'security.no_reauthn'
-    # removing a verified NIN is not allowed
-    rm_verified = 'nins.verified_no_rm'
-    # success removing nin
-    rm_success = 'nins.success_removal'
-    # the user already has the nin
-    already_exists = 'nins.already_exists'
-    # success adding a new nin
-    add_success = 'nins.successfully_added'
-    # The user tried to register more than the allowed number of tokens
-    max_tokens = 'security.u2f.max_allowed_tokens'
-    max_webauthn = 'security.webauthn.max_allowed_tokens'
-    # missing u2f enrollment data
-    missing_data = 'security.u2f.missing_enrollment_data'
-    # successfully registered u2f token
-    u2f_registered = 'security.u2f_register_success'
-    # No u2f tokens found for the user
-    no_u2f = 'security.u2f.no_token_found'
-    # no challenge data found in session during u2f token verification
-    no_challenge = 'security.u2f.missing_challenge_data'
-    # u2f token not found in user
-    no_token = 'security.u2f.missing_token'
-    # the description provided for the token is too long
-    long_desc = 'security.u2f.description_to_long'
-    # success removing u2f token
-    rm_u2f_success = 'security.u2f-token-removed'
-    # the account has to have personal data to be able to register webauthn data
-    no_pdata = 'security.webauthn-missing-pdata'
-    # success registering webauthn token
-    webauthn_success = 'security.webauthn_register_success'
-    # It is not allowed to remove the last webauthn credential left
-    no_last = 'security.webauthn-noremove-last'
-    # Success removing webauthn token
-    rm_webauthn = 'security.webauthn-token-removed'
-    # token to remove not found
-    no_webauthn = 'security.webauthn-token-notfound'
-    # old_password or new_password missing
-    chpass_no_data = 'security.change_password_no_data'
-    # weak password
-    chpass_weak = 'security.change_password_weak'
-    # wrong old password
-    unrecognized_pw = 'security.change_password_wrong_old_password'
-    # I think these chpass_ values are for the old change-password views (which are still the ones in use)
-    chpass_password_changed = 'security.change_password_complete'
-    chpass_password_changed2 = 'chpass.password-changed'
 
 
 def credentials_to_registered_keys(user_u2f_tokens: CredentialList) -> List[U2FRegisteredKey]:
@@ -456,12 +396,12 @@ def check_reauthn(authn: Optional[SP_AuthnRequest], max_age: timedelta) -> Optio
     """ Check if a re-authentication has been performed recently enough for this action """
     if not authn or not authn.authn_instant:
         current_app.logger.info(f'Action requires re-authentication')
-        return error_response(message=SecurityMsg.no_reauthn)
+        return error_response(message=TranslatableMsg.security_no_reauthn)
 
     delta = utc_now() - authn.authn_instant
 
     if delta > max_age:
         current_app.logger.info(f'Re-authentication age {delta} too old')
-        return error_response(message=SecurityMsg.stale_reauthn)
+        return error_response(message=TranslatableMsg.security_stale_reauthn)
 
     return None

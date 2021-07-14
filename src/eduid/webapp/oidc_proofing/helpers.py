@@ -3,7 +3,6 @@
 
 import json
 from datetime import datetime, timedelta
-from enum import unique
 from typing import Any, Mapping
 
 import requests
@@ -16,22 +15,10 @@ from eduid.userdb.logs import SeLegProofing, SeLegProofingFrejaEid
 from eduid.userdb.proofing import OidcProofingState, ProofingUser
 from eduid.userdb.proofing.element import NinProofingElement
 from eduid.webapp.common.api.helpers import number_match_proofing, verify_nin_for_user
-from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.api.utils import get_unique_hash
 from eduid.webapp.oidc_proofing.app import current_oidcp_app as current_app
 
 __author__ = 'lundberg'
-
-
-@unique
-class OIDCMsg(TranslatableMsg):
-    """
-    Messages sent to the front end with information on the results of the
-    attempted operations on the back end.
-    """
-
-    # Connection error sending a request to the authz endpoint
-    no_conn = 'No connection to authorization endpoint'
 
 
 def create_proofing_state(user: ProofingUser, nin: str) -> OidcProofingState:

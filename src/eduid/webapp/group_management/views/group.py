@@ -40,10 +40,9 @@ from eduid.userdb import User
 from eduid.userdb.exceptions import EduIDDBError
 from eduid.userdb.group_management import GroupRole
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
+from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response, success_response
 from eduid.webapp.group_management.app import current_group_management_app as current_app
 from eduid.webapp.group_management.helpers import (
-    GroupManagementMsg,
     get_all_group_data,
     get_incoming_invites,
     get_or_create_scim_user_by_eppn,
@@ -104,7 +103,7 @@ def create_group(user: User, display_name: str) -> FluxData:
 
     if not current_app.scimapi_groupdb.save(group):
         current_app.logger.error(f'Failed to create ScimApiGroup with scim_id: {group.scim_id}')
-        return error_response(message=CommonMsg.temp_problem)
+        return error_response(message=TranslatableMsg.temp_problem)
 
     current_app.logger.info(f'Created ScimApiGroup with scim_id: {group.scim_id}')
     current_app.stats.count(name='group_created')
@@ -119,11 +118,11 @@ def delete_group(user: User, group_identifier: UUID) -> FluxData:
     scim_user = get_scim_user_by_eppn(user.eppn)
     if not scim_user:
         current_app.logger.error('User does not exist in scimapi_userdb')
-        return error_response(message=GroupManagementMsg.user_does_not_exist)
+        return error_response(message=TranslatableMsg.group_management_user_does_not_exist)
 
     if not is_owner(scim_user, group_identifier):
         current_app.logger.error(f'User is not owner of group with scim_id: {group_identifier}')
-        return error_response(message=GroupManagementMsg.user_not_owner)
+        return error_response(message=TranslatableMsg.group_management_user_not_owner)
 
     group = current_app.scimapi_groupdb.get_group_by_scim_id(scim_id=str(group_identifier))
     if group and current_app.scimapi_groupdb.remove_group(group):
@@ -145,34 +144,34 @@ def remove_user(user: User, group_identifier: UUID, user_identifier: UUID, role:
     scim_user = get_scim_user_by_eppn(user.eppn)
     if not scim_user:
         current_app.logger.error('User does not exist in scimapi_userdb')
-        return error_response(message=GroupManagementMsg.user_does_not_exist)
+        return error_response(message=TranslatableMsg.group_management_user_does_not_exist)
 
     _removing_self = user_identifier == scim_user.scim_id
 
     group = current_app.scimapi_groupdb.get_group_by_scim_id(scim_id=str(group_identifier))
     if not group:
         current_app.logger.error(f'Group with scim_id {group_identifier} not found')
-        return error_response(message=GroupManagementMsg.group_not_found)
+        return error_response(message=TranslatableMsg.group_management_group_not_found)
 
     # Check that it is either the user or a group owner that removes the user from the group
     if not _removing_self and not is_owner(scim_user, group_identifier):
         current_app.logger.error(f'User is not owner of group with scim_id: {group_identifier}')
-        return error_response(message=GroupManagementMsg.user_not_owner)
+        return error_response(message=TranslatableMsg.group_management_user_not_owner)
 
     user_to_remove = current_app.scimapi_userdb.get_user_by_scim_id(scim_id=str(user_identifier))
     if not user_to_remove:
         current_app.logger.error('User to remove does not exist in scimapi_userdb')
-        return error_response(message=GroupManagementMsg.user_to_be_removed_does_not_exist)
+        return error_response(message=TranslatableMsg.group_management_user_to_be_removed_does_not_exist)
 
     # Check so we don't remove the last owner of a group
     if role == GroupRole.OWNER and len(group.owners) == 1:
         current_app.logger.error(f'Can not remove the last owner in group with scim_id: {group_identifier}')
-        return error_response(message=GroupManagementMsg.can_not_remove_last_owner)
+        return error_response(message=TranslatableMsg.group_management_can_not_remove_last_owner)
 
     try:
         remove_user_from_group(user_to_remove, group, role)
     except EduIDDBError:
-        return error_response(message=CommonMsg.temp_problem)
+        return error_response(message=TranslatableMsg.temp_problem)
 
     if _removing_self:
         # If the user initiates the removal count it as "left the group"

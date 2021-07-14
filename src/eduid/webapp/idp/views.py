@@ -30,7 +30,6 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from datetime import timedelta
 from typing import Any, Dict, List, Optional, Sequence, Union
 
 from bson import ObjectId
@@ -43,10 +42,9 @@ from eduid.userdb import ToUEvent
 from eduid.userdb.actions.tou import ToUUser
 from eduid.userdb.credentials import FidoCredential
 from eduid.userdb.exceptions import UserOutOfSync
-from eduid.userdb.idp import IdPUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.exceptions import EduidForbidden, EduidTooManyRequests
-from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
+from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response, success_response
 from eduid.webapp.common.api.schemas.models import FluxSuccessResponse
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.authn import fido_tokens
@@ -55,7 +53,7 @@ from eduid.webapp.common.session.logindata import ExternalMfaData
 from eduid.webapp.common.session.namespaces import OnetimeCredential, OnetimeCredType, RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import get_requested_authn_context
-from eduid.webapp.idp.helpers import IdPAction, IdPMsg
+from eduid.webapp.idp.helpers import IdPAction
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.login import SSO, do_verify, get_ticket, login_next_step, show_login_page
 from eduid.webapp.idp.logout import SLO
@@ -155,57 +153,59 @@ def next(ref: RequestRef) -> FluxData:
     current_app.logger.debug(f'--- Next ---')
 
     if not current_app.conf.login_bundle_url:
-        return error_response(message=IdPMsg.not_available)
+        return error_response(message=TranslatableMsg.idp_not_available)
 
     _info = SAMLQueryParams(request_ref=ref)
     ticket = get_ticket(_info, None)
     if not ticket:
-        return error_response(message=IdPMsg.bad_ref)
+        return error_response(message=TranslatableMsg.idp_bad_ref)
 
     sso_session = current_app._lookup_sso_session()
 
     _next = login_next_step(ticket, sso_session)
     current_app.logger.debug(f'Login Next: {_next}')
 
-    if _next.message == IdPMsg.must_authenticate:
+    if _next.message == TranslatableMsg.idp_must_authenticate:
         return success_response(
-            message=IdPMsg.must_authenticate,
+            message=TranslatableMsg.idp_must_authenticate,
             payload={'action': IdPAction.PWAUTH.value, 'target': url_for('idp.pw_auth')},
         )
 
-    if _next.message == IdPMsg.mfa_required:
+    if _next.message == TranslatableMsg.idp_mfa_required:
         return success_response(
-            message=IdPMsg.mfa_required, payload={'action': IdPAction.MFA.value, 'target': url_for('idp.mfa_auth')}
+            message=TranslatableMsg.idp_mfa_required,
+            payload={'action': IdPAction.MFA.value, 'target': url_for('idp.mfa_auth')},
         )
 
-    if _next.message == IdPMsg.tou_required:
+    if _next.message == TranslatableMsg.idp_tou_required:
         return success_response(
-            message=IdPMsg.tou_required, payload={'action': IdPAction.TOU.value, 'target': url_for('idp.tou')}
+            message=TranslatableMsg.idp_tou_required,
+            payload={'action': IdPAction.TOU.value, 'target': url_for('idp.tou')},
         )
 
-    if _next.message == IdPMsg.user_terminated:
-        return error_response(message=IdPMsg.user_terminated)
+    if _next.message == TranslatableMsg.idp_user_terminated:
+        return error_response(message=TranslatableMsg.idp_user_terminated)
 
-    if _next.message == IdPMsg.swamid_mfa_required:
-        return error_response(message=IdPMsg.swamid_mfa_required)
+    if _next.message == TranslatableMsg.idp_swamid_mfa_required:
+        return error_response(message=TranslatableMsg.idp_swamid_mfa_required)
 
-    if _next.message == IdPMsg.proceed:
+    if _next.message == TranslatableMsg.idp_proceed:
         if not sso_session:
-            return error_response(message=IdPMsg.no_sso_session)
+            return error_response(message=TranslatableMsg.idp_no_sso_session)
 
         user = current_app.userdb.lookup_user(sso_session.eppn)
         if not user:
             current_app.logger.error(f'User with eppn {sso_session.eppn} (from SSO session) not found')
-            return error_response(message=IdPMsg.general_failure)
+            return error_response(message=TranslatableMsg.idp_general_failure)
 
         sso = SSO(sso_session=sso_session)
         assert _next.authn_info  # please mypy
         saml_params = sso.get_response_params(_next.authn_info, ticket, user)
         if saml_params.binding != BINDING_HTTP_POST:
             current_app.logger.error(f'SAML response does not have binding HTTP_POST')
-            return error_response(message=IdPMsg.general_failure)
+            return error_response(message=TranslatableMsg.idp_general_failure)
         return success_response(
-            message=IdPMsg.finished,
+            message=TranslatableMsg.idp_finished,
             payload={
                 'action': IdPAction.FINISHED.value,
                 'target': saml_params.url,
@@ -213,7 +213,7 @@ def next(ref: RequestRef) -> FluxData:
             },
         )
 
-    return error_response(message=IdPMsg.not_implemented)
+    return error_response(message=TranslatableMsg.idp_not_implemented)
 
 
 @idp_views.route('/pw_auth', methods=['POST'])
@@ -224,31 +224,31 @@ def pw_auth(ref: RequestRef, username: str, password: str) -> Union[FluxData, We
     current_app.logger.debug(f'--- Password authentication ({request.method}) ---')
 
     if not current_app.conf.login_bundle_url:
-        return error_response(message=IdPMsg.not_available)
+        return error_response(message=TranslatableMsg.idp_not_available)
 
     _info = SAMLQueryParams(request_ref=ref)
     ticket = get_ticket(_info, None)
     if not ticket:
-        return error_response(message=IdPMsg.bad_ref)
+        return error_response(message=TranslatableMsg.idp_bad_ref)
 
     if not username or not password:
         current_app.logger.debug(f'Credentials not supplied')
-        return error_response(message=IdPMsg.wrong_credentials)
+        return error_response(message=TranslatableMsg.idp_wrong_credentials)
 
     try:
         pwauth = current_app.authn.password_authn(username, password)
     except EduidTooManyRequests:
-        return error_response(message=IdPMsg.user_temporary_locked)
+        return error_response(message=TranslatableMsg.idp_user_temporary_locked)
     except EduidForbidden as e:
         if e.args[0] == 'CREDENTIAL_EXPIRED':
-            return error_response(message=IdPMsg.credential_expired)
-        return error_response(message=IdPMsg.wrong_credentials)
+            return error_response(message=TranslatableMsg.idp_credential_expired)
+        return error_response(message=TranslatableMsg.idp_wrong_credentials)
     finally:
         del password  # keep out of any exception logs
 
     if not pwauth:
         current_app.logger.info(f'{ticket.request_ref}: Password authentication failed')
-        return error_response(message=IdPMsg.wrong_credentials)
+        return error_response(message=TranslatableMsg.idp_wrong_credentials)
 
     # Create SSO session
     current_app.logger.debug(f'User {pwauth.user} authenticated OK (SAML id {repr(ticket.saml_req.request_id)})')
@@ -296,22 +296,22 @@ def mfa_auth(ref: RequestRef, webauthn_response: Optional[Dict[str, str]] = None
     current_app.logger.debug(f'--- MFA authentication ({request.method}) ---')
 
     if not current_app.conf.login_bundle_url:
-        return error_response(message=IdPMsg.not_available)
+        return error_response(message=TranslatableMsg.idp_not_available)
 
     _info = SAMLQueryParams(request_ref=ref)
     ticket = get_ticket(_info, None)
     if not ticket:
-        return error_response(message=IdPMsg.bad_ref)
+        return error_response(message=TranslatableMsg.idp_bad_ref)
 
     sso_session = current_app._lookup_sso_session()
     if not sso_session:
         current_app.logger.error(f'MFA auth called without an SSO session')
-        return error_response(message=IdPMsg.no_sso_session)
+        return error_response(message=TranslatableMsg.idp_no_sso_session)
 
     user = current_app.userdb.lookup_user(sso_session.eppn)
     if not user:
         current_app.logger.error(f'User with eppn {sso_session.eppn} (from SSO session) not found')
-        return error_response(message=IdPMsg.general_failure)
+        return error_response(message=TranslatableMsg.idp_general_failure)
 
     # Third party service MFA
     if session.mfa_action.success is True:  # Explicit check that success is the boolean True
@@ -362,19 +362,19 @@ def mfa_auth(ref: RequestRef, webauthn_response: Optional[Dict[str, str]] = None
     except fido_tokens.VerificationProblem:
         current_app.logger.exception('Webauthn verification failed')
         current_app.logger.debug(f'webauthn_response: {repr(webauthn_response)}')
-        return error_response(message=IdPMsg.mfa_auth_failed)
+        return error_response(message=TranslatableMsg.idp_mfa_auth_failed)
 
     current_app.logger.debug(f'verify_webauthn result: {result}')
 
     if not result.success:
-        return error_response(message=IdPMsg.mfa_auth_failed)
+        return error_response(message=TranslatableMsg.idp_mfa_auth_failed)
 
     _utc_now = utc_now()
 
     cred = user.credentials.find(result.credential_key)
     if not cred:
         current_app.logger.error(f'Could not find credential {result.credential_key} on user {user}')
-        return error_response(message=IdPMsg.general_failure)
+        return error_response(message=TranslatableMsg.idp_general_failure)
 
     authn = AuthnData(cred_id=result.credential_key, timestamp=_utc_now)
     sso_session.add_authn_credential(authn)
@@ -395,26 +395,26 @@ def tou(ref: RequestRef, versions: Optional[Sequence[str]] = None, user_accepts:
     current_app.logger.debug(f'--- Terms of Use ({request.method}) ---')
 
     if not current_app.conf.login_bundle_url:
-        return error_response(message=IdPMsg.not_available)
+        return error_response(message=TranslatableMsg.idp_not_available)
 
     _info = SAMLQueryParams(request_ref=ref)
     ticket = get_ticket(_info, None)
     if not ticket:
-        return error_response(message=IdPMsg.bad_ref)
+        return error_response(message=TranslatableMsg.idp_bad_ref)
 
     if user_accepts:
         if user_accepts != current_app.conf.tou_version:
-            return error_response(message=IdPMsg.tou_not_acceptable)
+            return error_response(message=TranslatableMsg.idp_tou_not_acceptable)
 
         sso_session = current_app._lookup_sso_session()
         if not sso_session:
             current_app.logger.error(f'TOU called without an SSO session')
-            return error_response(message=IdPMsg.general_failure)
+            return error_response(message=TranslatableMsg.idp_general_failure)
 
         user = current_app.userdb.lookup_user(sso_session.eppn)
         if not user:
             current_app.logger.error(f'User with eppn {sso_session.eppn} (from SSO session) not found')
-            return error_response(message=IdPMsg.general_failure)
+            return error_response(message=TranslatableMsg.idp_general_failure)
 
         current_app.logger.info(f'ToU version {user_accepts} accepted by user {user}')
 
@@ -427,11 +427,11 @@ def tou(ref: RequestRef, versions: Optional[Sequence[str]] = None, user_accepts:
             res = save_and_sync_user(tou_user, private_userdb=current_app.tou_db, app_name_override='eduid_tou')
         except UserOutOfSync:
             current_app.logger.debug(f"Couldn't save ToU {user_accepts} for user {tou_user}, data out of sync")
-            return error_response(message=CommonMsg.out_of_sync)
+            return error_response(message=TranslatableMsg.out_of_sync)
 
         if not res:
             current_app.logger.error(f'Failed saving/syncing user after accepting ToU')
-            return error_response(message=IdPMsg.general_failure)
+            return error_response(message=TranslatableMsg.idp_general_failure)
 
         return success_response(payload={'finished': True})
 
@@ -444,4 +444,4 @@ def tou(ref: RequestRef, versions: Optional[Sequence[str]] = None, user_accepts:
     current_app.logger.debug(
         f'Available versions in frontend: {versions}, current version {current_app.conf.tou_version} is not there'
     )
-    return error_response(message=IdPMsg.tou_not_acceptable)
+    return error_response(message=TranslatableMsg.idp_tou_not_acceptable)

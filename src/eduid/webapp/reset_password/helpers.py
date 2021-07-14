@@ -33,7 +33,6 @@
 import datetime
 import math
 from dataclasses import dataclass
-from enum import unique
 from typing import Any, Dict, List, Mapping, Optional, Union
 
 import bcrypt
@@ -44,12 +43,7 @@ from eduid.common.config.base import EduidEnvironment
 from eduid.common.utils import urlappend
 from eduid.userdb.exceptions import DocumentDoesNotExist, UserDoesNotExist
 from eduid.userdb.logs import MailAddressProofing, PhoneNumberProofing
-from eduid.userdb.reset_password import (
-    ResetPasswordEmailAndPhoneState,
-    ResetPasswordEmailState,
-    ResetPasswordState,
-    ResetPasswordUser,
-)
+from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState, ResetPasswordUser
 from eduid.userdb.reset_password.element import CodeElement
 from eduid.userdb.user import User
 from eduid.webapp.common.api.exceptions import MailTaskFailed, ThrottledException
@@ -62,61 +56,6 @@ from eduid.webapp.common.authn.utils import generate_password
 from eduid.webapp.common.authn.vccs import reset_password
 from eduid.webapp.common.session import session
 from eduid.webapp.reset_password.app import current_reset_password_app as current_app
-
-
-@unique
-class ResetPwMsg(TranslatableMsg):
-    """
-    Messages sent to the front end with information on the results of the
-    attempted operations on the back end.
-    """
-
-    # The user has sent a code that corresponds to no known password reset
-    # request
-    state_not_found = 'resetpw.state-not-found'
-    # Some required input data is empty
-    missing_data = 'resetpw.missing-data'
-    # The user has sent an SMS'ed code that corresponds to no known password
-    # reset request
-    unknown_phone_code = 'resetpw.phone-code-unknown'
-    # The phone number choice is out of bounds
-    unknown_phone_number = 'resetpw.phone-number-unknown'
-    # The user has sent a code that has expired
-    expired_email_code = 'resetpw.expired-email-code'
-    # The user has sent an SMS'ed code that has expired
-    expired_phone_code = 'resetpw.expired-phone-code'
-    # There was some problem sending the email with the code.
-    email_send_failure = 'resetpw.email-send-failure'
-    # A new code has been generated and sent by email successfully
-    email_send_throttled = 'resetpw.email-throttled'
-    # Sending the email has been throttled.
-    reset_pw_initialized = 'resetpw.reset-pw-initialized'
-    # The password has been successfully reset
-    pw_reset_success = 'resetpw.pw-reset-success'
-    # The password has _NOT_ been successfully reset
-    pw_reset_fail = 'resetpw.pw-reset-fail'
-    # There was some problem sending the SMS with the (extra security) code.
-    send_sms_throttled = 'resetpw.sms-throttled'
-    # Sending the SMS with the (extra security) code has been throttled.
-    send_sms_failure = 'resetpw.send-sms-failed'
-    # A new (extra security) code has been generated and sent by SMS
-    # successfully
-    send_sms_success = 'resetpw.send-sms-success'
-    # The phone number has not been verified. Should not happen.
-    phone_invalid = 'resetpw.phone-invalid'
-    # No user was found corresponding to the password reset state. Should not
-    # happen.
-    user_not_found = 'resetpw.user-not-found'
-    # The email address has not been verified. Should not happen.
-    email_not_validated = 'resetpw.email-not-validated'
-    # User has not completed signup
-    invalid_user = 'resetpw.invalid-user'
-    # extra security with fido tokens failed - wrong token
-    fido_token_fail = 'resetpw.fido-token-fail'
-    # extra security with external MFA service failed
-    external_mfa_fail = 'resetpw.external-mfa-fail'
-    # The password chosen is too weak
-    resetpw_weak = 'resetpw.weak-password'
 
 
 class StateException(Exception):
@@ -144,7 +83,7 @@ def get_context(email_code: str) -> ResetPasswordContext:
     except UserDoesNotExist as e:
         # User has been removed before reset password was completed
         current_app.logger.error(f'User not found for state {state.email_code}: {e}')
-        raise StateException(msg=ResetPwMsg.user_not_found)
+        raise StateException(msg=TranslatableMsg.reset_password_user_not_found)
 
     return ResetPasswordContext(state=state, user=user)
 
@@ -163,11 +102,11 @@ def get_pwreset_state(email_code: str) -> Union[ResetPasswordEmailState, ResetPa
         assert state is not None  # assure mypy, raise_on_missing=True will make this never happen
     except DocumentDoesNotExist:
         current_app.logger.info(f'State not found: {email_code}')
-        raise StateException(msg=ResetPwMsg.state_not_found)
+        raise StateException(msg=TranslatableMsg.reset_password_state_not_found)
 
     if state.email_code.is_expired(mail_expiration_time):
         current_app.logger.info(f'State expired: {email_code}')
-        raise StateException(msg=ResetPwMsg.expired_email_code)
+        raise StateException(msg=TranslatableMsg.reset_password_expired_email_code)
 
     if isinstance(state, ResetPasswordEmailAndPhoneState) and state.phone_code.is_expired(sms_expiration_time):
         current_app.logger.info(f'Phone code expired for state: {email_code}')
@@ -175,7 +114,7 @@ def get_pwreset_state(email_code: str) -> Union[ResetPasswordEmailState, ResetPa
         current_app.password_reset_state_db.remove_state(state)
         state = ResetPasswordEmailState(eppn=state.eppn, email_address=state.email_address, email_code=state.email_code)
         current_app.password_reset_state_db.save(state)
-        raise StateException(msg=ResetPwMsg.expired_phone_code)
+        raise StateException(msg=TranslatableMsg.reset_password_expired_phone_code)
     return state
 
 
@@ -335,7 +274,7 @@ def reset_user_password(
             min_score=current_app.conf.min_zxcvbn_score,
         )
     except ValueError:
-        return error_response(message=ResetPwMsg.resetpw_weak)
+        return error_response(message=TranslatableMsg.reset_password_resetpw_weak)
 
     reset_password_user = ResetPasswordUser.from_user(user, private_userdb=current_app.private_userdb)
 
@@ -357,7 +296,7 @@ def reset_user_password(
         # Uh oh, reset password failed. Credentials _might_ have been reset in the backend but we don't know.
         current_app.stats.count(name='password_reset_fail', value=1)
         current_app.logger.error(f'Reset password failed for user {reset_password_user}')
-        return error_response(message=ResetPwMsg.pw_reset_fail)
+        return error_response(message=TranslatableMsg.reset_password_pw_reset_fail)
 
     # Undo termination if user is terminated
     if reset_password_user.terminated is not None:
@@ -370,7 +309,7 @@ def reset_user_password(
 
     current_app.logger.info(f'Password reset done, removing state for {user}')
     current_app.password_reset_state_db.remove_state(state)
-    return success_response(message=ResetPwMsg.pw_reset_success)
+    return success_response(message=TranslatableMsg.reset_password_pw_reset_success)
 
 
 def get_extra_security_alternatives(user: User) -> dict:

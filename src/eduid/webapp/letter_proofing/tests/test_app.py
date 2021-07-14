@@ -11,10 +11,9 @@ from mock import Mock, patch
 
 from eduid.userdb.locked_identity import LockedIdentityNin
 from eduid.userdb.nin import Nin
+from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.letter_proofing.app import init_letter_proofing_app
-from eduid.webapp.letter_proofing.helpers import LetterMsg
-from eduid.webapp.letter_proofing.settings.common import LetterProofingConfig
 
 __author__ = 'lundberg'
 
@@ -104,7 +103,7 @@ class LetterProofingTests(EduidAPITestCase):
         response = self._send_letter2(nin, csrf_token)
         if validate_response:
             self._check_success_response(
-                response, type_='POST_LETTER_PROOFING_PROOFING_SUCCESS', msg=LetterMsg.letter_sent
+                response, type_='POST_LETTER_PROOFING_PROOFING_SUCCESS', msg=TranslatableMsg.letter_proofing_letter_sent
             )
         return response
 
@@ -136,7 +135,9 @@ class LetterProofingTests(EduidAPITestCase):
         response = self._verify_code2(code, csrf_token)
         if validate_response:
             self._check_success_response(
-                response, type_='POST_LETTER_PROOFING_VERIFY_CODE_SUCCESS', msg=LetterMsg.verify_success
+                response,
+                type_='POST_LETTER_PROOFING_VERIFY_CODE_SUCCESS',
+                msg=TranslatableMsg.letter_proofing_verify_success,
             )
         return response
 
@@ -198,7 +199,7 @@ class LetterProofingTests(EduidAPITestCase):
 
     def test_letter_not_sent_status(self):
         json_data = self.get_state()
-        assert json_data['payload']['message'] == LetterMsg.no_state.value
+        assert json_data['payload']['message'] == TranslatableMsg.letter_proofing_no_state.value
 
     def test_send_letter(self):
         response = self.send_letter(self.test_user_nin)
@@ -218,7 +219,7 @@ class LetterProofingTests(EduidAPITestCase):
         csrf_token = response.json['payload']['csrf_token']
         response2 = self.send_letter(self.test_user_nin, csrf_token, validate_response=False)
         self._check_success_response(
-            response2, type_='POST_LETTER_PROOFING_PROOFING_SUCCESS', msg=LetterMsg.already_sent
+            response2, type_='POST_LETTER_PROOFING_PROOFING_SUCCESS', msg=TranslatableMsg.letter_proofing_already_sent
         )
 
         expires = response2.json['payload']['letter_expires']
@@ -281,7 +282,9 @@ class LetterProofingTests(EduidAPITestCase):
     def test_verify_letter_code_fail(self):
         self.send_letter(self.test_user_nin)
         response = self.verify_code('wrong code', validate_response=False)
-        self._check_error_response(response, type_='POST_LETTER_PROOFING_VERIFY_CODE_FAIL', msg=LetterMsg.wrong_code)
+        self._check_error_response(
+            response, type_='POST_LETTER_PROOFING_VERIFY_CODE_FAIL', msg=TranslatableMsg.letter_proofing_wrong_code
+        )
 
     def test_verify_letter_expired(self):
         response = self.send_letter(self.test_user_nin)
@@ -293,7 +296,7 @@ class LetterProofingTests(EduidAPITestCase):
         csrf_token = response.json['payload']['csrf_token']
         response = self.verify_code(proofing_state.nin.verification_code, csrf_token, validate_response=False)
         self._check_error_response(
-            response, type_='POST_LETTER_PROOFING_VERIFY_CODE_FAIL', msg=LetterMsg.letter_expired
+            response, type_='POST_LETTER_PROOFING_VERIFY_CODE_FAIL', msg=TranslatableMsg.letter_proofing_letter_expired
         )
 
     def test_proofing_flow(self):
@@ -488,7 +491,7 @@ class LetterProofingTests(EduidAPITestCase):
         assert json_data['payload']['letter_sent_days_ago'] == 0
         assert json_data['payload']['letter_expires_in_days'] == 14
         assert json_data['payload']['letter_expired'] is False
-        assert json_data['payload']['message'] == LetterMsg.already_sent.value
+        assert json_data['payload']['message'] == TranslatableMsg.letter_proofing_already_sent.value
 
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
 
@@ -503,7 +506,7 @@ class LetterProofingTests(EduidAPITestCase):
         assert json_data['payload']['letter_sent_days_ago'] == 1
         assert json_data['payload']['letter_expires_in_days'] == 13
         assert json_data['payload']['letter_expired'] is False
-        assert json_data['payload']['message'] == LetterMsg.already_sent.value
+        assert json_data['payload']['message'] == TranslatableMsg.letter_proofing_already_sent.value
 
         # move back the 'letter sent' value to the last day of validity
         new_ts = proofing_state.proofing_letter.sent_ts - timedelta(days=13)
@@ -516,7 +519,7 @@ class LetterProofingTests(EduidAPITestCase):
         assert json_data['payload']['letter_sent_days_ago'] == 14
         assert json_data['payload']['letter_expires_in_days'] == 0
         assert json_data['payload']['letter_expired'] is False
-        assert json_data['payload']['message'] == LetterMsg.already_sent.value
+        assert json_data['payload']['message'] == TranslatableMsg.letter_proofing_already_sent.value
 
         # make the state expired
         new_ts = proofing_state.proofing_letter.sent_ts - timedelta(days=1)
@@ -529,7 +532,7 @@ class LetterProofingTests(EduidAPITestCase):
         assert json_data['payload']['letter_sent_days_ago'] == 15
         assert 'letter_expires_in_days' not in json_data['payload']
         assert json_data['payload']['letter_expired'] is True
-        assert json_data['payload']['message'] == LetterMsg.letter_expired.value
+        assert json_data['payload']['message'] == TranslatableMsg.letter_proofing_letter_expired.value
 
     def test_proofing_with_a_verified_nin(self):
         """ Test that no letter is sent when the user already has a verified NIN """

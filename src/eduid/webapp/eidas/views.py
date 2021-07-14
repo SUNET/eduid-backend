@@ -12,7 +12,7 @@ from eduid.userdb.credentials.fido import FidoCredential
 from eduid.webapp.authn.helpers import credential_used_to_log_in
 from eduid.webapp.common.api.decorators import MarshalWith, require_user
 from eduid.webapp.common.api.helpers import check_magic_cookie
-from eduid.webapp.common.api.messages import FluxData, redirect_with_msg, success_response
+from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, redirect_with_msg, success_response
 from eduid.webapp.common.api.schemas.csrf import EmptyResponse
 from eduid.webapp.common.api.utils import urlappend
 from eduid.webapp.common.authn.acs_enums import EidasAcsAction
@@ -23,7 +23,7 @@ from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
 from eduid.webapp.eidas.acs_actions import nin_verify_BACKDOOR
 from eduid.webapp.eidas.app import current_eidas_app as current_app
-from eduid.webapp.eidas.helpers import EidasMsg, create_authn_request, create_metadata, staging_nin_remap
+from eduid.webapp.eidas.helpers import create_authn_request, create_metadata, staging_nin_remap
 
 __author__ = 'lundberg'
 
@@ -46,7 +46,7 @@ def verify_token(user: User, credential_id: CredentialKey) -> Union[FluxData, We
     # Check if requested key id is a mfa token and if the user used that to log in
     token_to_verify = user.credentials.filter(FidoCredential).find(credential_id)
     if not token_to_verify:
-        return redirect_with_msg(redirect_url, EidasMsg.token_not_found)
+        return redirect_with_msg(redirect_url, TranslatableMsg.eidas_token_not_found)
 
     # Check if the credential was just now used to log in
     credential_already_used = credential_used_to_log_in(token_to_verify)

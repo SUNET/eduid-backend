@@ -42,10 +42,10 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 from eduid.common.misc.tous import get_tous as common_get_tous
 from eduid.userdb.actions import Action
 from eduid.webapp.actions.app import current_actions_app as current_app
-from eduid.webapp.actions.helpers import ActionsMsg, get_next_action
+from eduid.webapp.actions.helpers import get_next_action
 from eduid.webapp.actions.schemas import PostActionRequestSchema, PostActionResponseSchema
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
-from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
+from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response, success_response
 from eduid.webapp.common.api.schemas.base import FluxStandardAction
 from eduid.webapp.common.authn.utils import check_previous_identification
 from eduid.webapp.common.session import session
@@ -150,12 +150,12 @@ def _do_action() -> FluxData:
         # TODO: Really decrease current_step here, even though we haven't increased it yet?
         if session.actions.current_step is not None:
             session.actions.current_step -= 1
-        return error_response(payload={'errors': errors}, message=CommonMsg.form_errors)
+        return error_response(payload={'errors': errors}, message=TranslatableMsg.form_errors)
 
     eppn = session.common.eppn
     if session.actions.total_steps == session.actions.current_step:
         current_app.logger.info(f'Finished pre-login action {action.action_type} for eppn {eppn}')
-        return success_response(payload=dict(data=data), message=ActionsMsg.action_completed)
+        return success_response(payload=dict(data=data), message=TranslatableMsg.actions_action_completed)
 
     current_app.logger.info(
         'Performed step {} for action {} for eppn {}'.format(action.action_type, session.actions.current_step, eppn)

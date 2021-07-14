@@ -32,9 +32,9 @@
 #
 
 import json
-from datetime import datetime, timedelta
+from datetime import timedelta
 
-from flask import Blueprint, abort, redirect, request, url_for
+from flask import Blueprint, redirect, request, url_for
 from marshmallow import ValidationError
 from six.moves.urllib_parse import parse_qs, urlencode, urlparse, urlunparse
 
@@ -48,14 +48,13 @@ from eduid.userdb.security import SecurityUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid.webapp.common.api.helpers import add_nin_to_user
-from eduid.webapp.common.api.messages import CommonMsg, error_response, success_response
+from eduid.webapp.common.api.messages import TranslatableMsg, error_response, success_response
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.authn.vccs import add_credentials, revoke_all_credentials
 from eduid.webapp.common.session import session
 from eduid.webapp.security.app import current_security_app as current_app
 from eduid.webapp.security.helpers import (
-    SecurityMsg,
     check_reauthn,
     compile_credential_list,
     generate_suggested_password,
@@ -166,7 +165,7 @@ def change_password(user):
     credentials = {
         'next_url': next_url,
         'credentials': compile_credential_list(security_user),
-        'message': SecurityMsg.chpass_password_changed2.value,
+        'message': TranslatableMsg.security_chpass_password_changed2.value,
     }
 
     return credentials
@@ -237,7 +236,7 @@ def account_terminated(user: User):
     try:
         save_and_sync_user(security_user)
     except UserOutOfSync:
-        return error_response(message=CommonMsg.out_of_sync)
+        return error_response(message=TranslatableMsg.out_of_sync)
 
     current_app.stats.count(name='security_account_terminated', value=1)
     current_app.logger.info('Terminated user account')
@@ -265,18 +264,18 @@ def remove_nin(user, nin):
     nin_obj = security_user.nins.find(nin)
     if nin_obj and nin_obj.is_verified:
         current_app.logger.info('NIN verified. Will not remove it.')
-        return error_response(message=SecurityMsg.rm_verified)
+        return error_response(message=TranslatableMsg.security_rm_verified)
 
     try:
         remove_nin_from_user(security_user, nin)
         return success_response(
-            payload=dict(nins=security_user.nins.to_list_of_dicts()), message=SecurityMsg.rm_success
+            payload=dict(nins=security_user.nins.to_list_of_dicts()), message=TranslatableMsg.security_rm_success
         )
     except AmTaskFailed as e:
         current_app.logger.error('Removing nin from user failed')
         current_app.logger.debug(f'NIN: {nin}')
         current_app.logger.error('{}'.format(e))
-        return error_response(message=CommonMsg.temp_problem)
+        return error_response(message=TranslatableMsg.temp_problem)
 
 
 @security_views.route('/add-nin', methods=['POST'])
@@ -291,17 +290,17 @@ def add_nin(user, nin):
     nin_obj = security_user.nins.find(nin)
     if nin_obj:
         current_app.logger.info('NIN already added.')
-        return error_response(message=SecurityMsg.already_exists)
+        return error_response(message=TranslatableMsg.security_already_exists)
 
     try:
         nin_element = NinProofingElement(number=nin, created_by='security', is_verified=False)
         proofing_state = NinProofingState(id=None, eppn=security_user.eppn, nin=nin_element, modified_ts=None)
         add_nin_to_user(user, proofing_state, user_class=SecurityUser)
         return success_response(
-            payload=dict(nins=security_user.nins.to_list_of_dicts()), message=SecurityMsg.add_success
+            payload=dict(nins=security_user.nins.to_list_of_dicts()), message=TranslatableMsg.security_add_success
         )
     except AmTaskFailed as e:
         current_app.logger.error('Adding nin to user failed')
         current_app.logger.debug(f'NIN: {nin}')
         current_app.logger.error('{}'.format(e))
-        return error_response(message=CommonMsg.temp_problem)
+        return error_response(message=TranslatableMsg.temp_problem)

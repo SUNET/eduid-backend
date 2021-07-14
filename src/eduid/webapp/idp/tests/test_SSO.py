@@ -49,10 +49,10 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, U2F, Credential, Password
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.nin import Nin, NinList
+from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData, LoginContext
 from eduid.webapp.common.session.namespaces import IdP_PendingRequest, RequestRef
-from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.idp_saml import IdP_SAMLRequest
 from eduid.webapp.idp.login import NextResult, login_next_step
@@ -293,7 +293,7 @@ class TestSSO(SSOIdPTests):
         out = self._get_login_response_authn(
             user=user, req_class_ref=cc['REFEDS_MFA'], credentials=['pw', _U2F_SWAMID_AL2_HI],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == TranslatableMsg.idp_proceed
         assert out.authn_info
         assert out.authn_info.class_ref == cc['REFEDS_MFA']
         assert out.authn_info.authn_attributes['eduPersonAssurance'] == [SWAMID_AL1, SWAMID_AL2, SWAMID_AL2_MFA_HI]
@@ -309,7 +309,7 @@ class TestSSO(SSOIdPTests):
         out = self._get_login_response_authn(
             user=user, req_class_ref=cc['REFEDS_MFA'], credentials=['pw', _U2F_SWAMID_AL2],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == TranslatableMsg.idp_proceed
         assert out.authn_info
         assert out.authn_info.class_ref == cc['REFEDS_MFA']
         assert out.authn_info.authn_attributes['eduPersonAssurance'] == [SWAMID_AL1, SWAMID_AL2]
@@ -321,7 +321,7 @@ class TestSSO(SSOIdPTests):
         Expect a failure because a self-registered U2F token is not acceptable as REFEDS MFA.
         """
         out = self._get_login_response_authn(req_class_ref=cc['REFEDS_MFA'], credentials=['pw', 'u2f'],)
-        assert out.message == IdPMsg.swamid_mfa_required
+        assert out.message == TranslatableMsg.idp_swamid_mfa_required
         assert out.error == True
 
     def test__get_login_response_external_multifactor(self):
@@ -339,7 +339,7 @@ class TestSSO(SSOIdPTests):
         out = self._get_login_response_authn(
             user=user, req_class_ref=cc['REFEDS_MFA'], credentials=['pw', external_mfa],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == TranslatableMsg.idp_proceed
         assert out.authn_info
         assert out.authn_info.class_ref == cc['REFEDS_MFA']
         assert out.authn_info.authn_attributes['eduPersonAssurance'] == [SWAMID_AL1, SWAMID_AL2, SWAMID_AL2_MFA_HI]
@@ -351,7 +351,7 @@ class TestSSO(SSOIdPTests):
         Expect the response Authn to be REFEDS SFA.
         """
         out = self._get_login_response_authn(req_class_ref=cc['REFEDS_SFA'], credentials=['pw', 'u2f'],)
-        assert out.message == IdPMsg.proceed
+        assert out.message == TranslatableMsg.idp_proceed
         assert out.authn_info
         assert out.authn_info.class_ref == cc['REFEDS_SFA']
         assert out.authn_info.authn_attributes['eduPersonAssurance'] == [SWAMID_AL1]
@@ -363,7 +363,7 @@ class TestSSO(SSOIdPTests):
         Expect the response Authn to be REFEDS SFA.
         """
         out = self._get_login_response_authn(req_class_ref=cc['REFEDS_SFA'], credentials=['pw'],)
-        assert out.message == IdPMsg.proceed
+        assert out.message == TranslatableMsg.idp_proceed
         assert out.authn_info
         assert out.authn_info.class_ref == cc['REFEDS_SFA']
         assert out.authn_info.authn_attributes['eduPersonAssurance'] == [SWAMID_AL1]
@@ -375,7 +375,7 @@ class TestSSO(SSOIdPTests):
         Expect the response Authn to be REFEDS SFA.
         """
         out = self._get_login_response_authn(req_class_ref=cc['REFEDS_SFA'], credentials=['u2f'],)
-        assert out.message == IdPMsg.proceed
+        assert out.message == TranslatableMsg.idp_proceed
         assert out.authn_info
         assert out.authn_info.class_ref == cc['REFEDS_SFA']
         assert out.authn_info.authn_attributes['eduPersonAssurance'] == [SWAMID_AL1]
@@ -387,7 +387,7 @@ class TestSSO(SSOIdPTests):
         Expect the response Authn to be FIDO U2F.
         """
         out = self._get_login_response_authn(req_class_ref=cc['FIDO_U2F'], credentials=['pw', 'u2f'],)
-        assert out.message == IdPMsg.proceed
+        assert out.message == TranslatableMsg.idp_proceed
         assert out.authn_info
         assert out.authn_info.class_ref == cc['FIDO_U2F']
         assert out.authn_info.authn_attributes['eduPersonAssurance'] == [SWAMID_AL1]
@@ -399,7 +399,7 @@ class TestSSO(SSOIdPTests):
         Expect the response Authn to be password-protected-transport.
         """
         out = self._get_login_response_authn(req_class_ref=PASSWORDPROTECTEDTRANSPORT, credentials=['pw', 'u2f'],)
-        assert out.message == IdPMsg.proceed
+        assert out.message == TranslatableMsg.idp_proceed
         assert out.authn_info
         assert out.authn_info.class_ref == PASSWORDPROTECTEDTRANSPORT
         assert out.authn_info.authn_attributes['eduPersonAssurance'] == [SWAMID_AL1]
@@ -411,7 +411,7 @@ class TestSSO(SSOIdPTests):
         Expect the response Authn to be password-protected-transport.
         """
         out = self._get_login_response_authn(req_class_ref=PASSWORDPROTECTEDTRANSPORT, credentials=['pw'],)
-        assert out.message == IdPMsg.proceed
+        assert out.message == TranslatableMsg.idp_proceed
         assert out.authn_info
         assert out.authn_info.class_ref == PASSWORDPROTECTEDTRANSPORT
         assert out.authn_info.authn_attributes['eduPersonAssurance'] == [SWAMID_AL1]
@@ -423,7 +423,7 @@ class TestSSO(SSOIdPTests):
         Expect the response Authn to be REFEDS MFA.
         """
         out = self._get_login_response_authn(req_class_ref='urn:no-such-class', credentials=['pw', 'u2f'],)
-        assert out.message == IdPMsg.proceed
+        assert out.message == TranslatableMsg.idp_proceed
         assert out.authn_info
         assert out.authn_info.class_ref == cc['REFEDS_MFA']
         assert out.authn_info.authn_attributes['eduPersonAssurance'] == [SWAMID_AL1]
@@ -435,7 +435,7 @@ class TestSSO(SSOIdPTests):
         Expect the response Authn to be password-protected-transport.
         """
         out = self._get_login_response_authn(req_class_ref='urn:no-such-class', credentials=['pw'],)
-        assert out.message == IdPMsg.proceed
+        assert out.message == TranslatableMsg.idp_proceed
         assert out.authn_info
         assert out.authn_info.class_ref == PASSWORDPROTECTEDTRANSPORT
         assert out.authn_info.authn_attributes['eduPersonAssurance'] == [SWAMID_AL1]
@@ -445,7 +445,7 @@ class TestSSO(SSOIdPTests):
         Make sure eduPersonAssurace is SWAMID AL1 with no verified nin.
         """
         out = self._get_login_response_authn(req_class_ref='urn:no-such-class', credentials=['pw'],)
-        assert out.message == IdPMsg.proceed
+        assert out.message == TranslatableMsg.idp_proceed
         assert out.authn_info
         assert out.authn_info.class_ref == PASSWORDPROTECTEDTRANSPORT
         assert out.authn_info.authn_attributes['eduPersonAssurance'] == [SWAMID_AL1]
@@ -456,7 +456,7 @@ class TestSSO(SSOIdPTests):
         """
         user = self.get_user_set_nins(self.test_user.eppn, ['190101011234'])
         out = self._get_login_response_authn(user=user, req_class_ref='urn:no-such-class', credentials=['pw'],)
-        assert out.message == IdPMsg.proceed
+        assert out.message == TranslatableMsg.idp_proceed
         assert out.authn_info
         assert out.authn_info.class_ref == PASSWORDPROTECTEDTRANSPORT
         assert out.authn_info.authn_attributes['eduPersonAssurance'] == [SWAMID_AL1, SWAMID_AL2]
@@ -468,7 +468,7 @@ class TestSSO(SSOIdPTests):
         Expect the response Authn to be EDUID_MFA, eduPersonAssurance AL1
         """
         out = self._get_login_response_authn(req_class_ref=cc['EDUID_MFA'], credentials=['pw', 'u2f'],)
-        assert out.message == IdPMsg.proceed
+        assert out.message == TranslatableMsg.idp_proceed
         assert out.authn_info
         assert out.authn_info.class_ref == cc['EDUID_MFA']
         assert out.authn_info.authn_attributes['eduPersonAssurance'] == [SWAMID_AL1]
@@ -482,7 +482,7 @@ class TestSSO(SSOIdPTests):
         user = self.get_user_set_nins(self.test_user.eppn, ['190101011234'])
         user.credentials.add(_U2F)
         out = self._get_login_response_authn(user=user, req_class_ref=cc['EDUID_MFA'], credentials=['pw', _U2F],)
-        assert out.message == IdPMsg.proceed
+        assert out.message == TranslatableMsg.idp_proceed
         assert out.authn_info
         assert out.authn_info.class_ref == cc['EDUID_MFA']
         assert out.authn_info.authn_attributes['eduPersonAssurance'] == [SWAMID_AL1, SWAMID_AL2]
@@ -498,7 +498,7 @@ class TestSSO(SSOIdPTests):
         out = self._get_login_response_authn(
             user=user, req_class_ref=cc['EDUID_MFA'], credentials=['pw', _U2F_SWAMID_AL2],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == TranslatableMsg.idp_proceed
         assert out.authn_info
         assert out.authn_info.class_ref == cc['EDUID_MFA']
         assert out.authn_info.authn_attributes['eduPersonAssurance'] == [SWAMID_AL1, SWAMID_AL2]
@@ -514,7 +514,7 @@ class TestSSO(SSOIdPTests):
         out = self._get_login_response_authn(
             user=user, req_class_ref=cc['EDUID_MFA'], credentials=['pw', _U2F_SWAMID_AL2_HI],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == TranslatableMsg.idp_proceed
         assert out.authn_info
         assert out.authn_info.class_ref == cc['EDUID_MFA']
         assert out.authn_info.authn_attributes['eduPersonAssurance'] == [SWAMID_AL1, SWAMID_AL2]
@@ -534,7 +534,7 @@ class TestSSO(SSOIdPTests):
         out = self._get_login_response_authn(
             user=user, req_class_ref=cc['EDUID_MFA'], credentials=['pw', external_mfa],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == TranslatableMsg.idp_proceed
         assert out.authn_info
         assert out.authn_info.class_ref == cc['EDUID_MFA']
         assert out.authn_info.authn_attributes['eduPersonAssurance'] == [SWAMID_AL1, SWAMID_AL2]
@@ -546,7 +546,7 @@ class TestSSO(SSOIdPTests):
         This is not a failure, the user just needs to do MFA too.
         """
         out = self._get_login_response_authn(req_class_ref=cc['EDUID_MFA'], credentials=['pw'])
-        assert out.message == IdPMsg.mfa_required
+        assert out.message == TranslatableMsg.idp_mfa_required
         assert out.error == False
 
     def test__forceauthn_request(self):

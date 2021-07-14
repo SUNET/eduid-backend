@@ -31,11 +31,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from enum import unique
 from unittest import TestCase
 
 from eduid.webapp.common.api.messages import (
-    CommonMsg,
     TranslatableMsg,
     error_response,
     make_query_string,
@@ -45,23 +43,19 @@ from eduid.webapp.common.api.messages import (
 from eduid.webapp.common.api.schemas.models import FluxResponseStatus
 
 
-@unique
-class TestsMsg(TranslatableMsg):
-    fst_test_msg = 'test.first_msg'
-    snd_test_msg = 'test.second_msg'
-
-
 class MessageTests(TestCase):
     def test_success_message(self):
-        message = success_response(message=TestsMsg.fst_test_msg)
+        message = success_response(message=TranslatableMsg.test_fst_test_msg)
         assert message.status == FluxResponseStatus.OK
-        assert message.payload == dict(message=TestsMsg.fst_test_msg.value, success=True)
+        assert message.payload == dict(message=TranslatableMsg.test_fst_test_msg.value, success=True)
 
     def test_success_message_with_data(self):
         data = {'email': 'test@example.com'}
-        message = success_response(payload=data, message=TestsMsg.fst_test_msg)
+        message = success_response(payload=data, message=TranslatableMsg.test_fst_test_msg)
         assert message.status == FluxResponseStatus.OK
-        assert message.payload == dict(message=TestsMsg.fst_test_msg.value, success=True, email='test@example.com')
+        assert message.payload == dict(
+            message=TranslatableMsg.test_fst_test_msg.value, success=True, email='test@example.com'
+        )
 
     def test_success_message_from_str(self):
         message = success_response(message='test.str_msg')
@@ -76,35 +70,41 @@ class MessageTests(TestCase):
 
     def test_success_message_unknown(self):
         with self.assertRaises(AttributeError):
-            success_response(TestsMsg.unknown_msg)
+            success_response(TranslatableMsg.test_unknown_msg)
 
     def test_success_message_unknown_with_data(self):
         data = {'email': 'test@example.com'}
         with self.assertRaises(AttributeError):
-            success_response(payload=data, message=TestsMsg.unknown_msg)
+            success_response(payload=data, message=TranslatableMsg.test_unknown_msg)
 
     def test_error_message(self):
-        message = error_response(message=TestsMsg.fst_test_msg)
+        message = error_response(message=TranslatableMsg.test_fst_test_msg)
         assert message.status == FluxResponseStatus.ERROR
-        assert message.payload == dict(message=TestsMsg.fst_test_msg.value, success=False)
+        assert message.payload == dict(message=TranslatableMsg.test_fst_test_msg.value, success=False)
 
     def test_error_message_with_errors(self):
         data = {'errors': {'email': 'required'}}
-        message = error_response(payload=data, message=TestsMsg.fst_test_msg)
+        message = error_response(payload=data, message=TranslatableMsg.test_fst_test_msg)
         assert message.status == FluxResponseStatus.ERROR
-        assert message.payload == dict(message=TestsMsg.fst_test_msg.value, success=False, errors=data['errors'])
+        assert message.payload == dict(
+            message=TranslatableMsg.test_fst_test_msg.value, success=False, errors=data['errors']
+        )
 
     def test_error_message_with_status(self):
         data = {'status': 'stale'}
-        message = error_response(payload=data, message=TestsMsg.fst_test_msg)
+        message = error_response(payload=data, message=TranslatableMsg.test_fst_test_msg)
         assert message.status == FluxResponseStatus.ERROR
-        assert message.payload == dict(message=TestsMsg.fst_test_msg.value, success=False, status=data['status'])
+        assert message.payload == dict(
+            message=TranslatableMsg.test_fst_test_msg.value, success=False, status=data['status']
+        )
 
     def test_error_message_with_next(self):
         data = {'next': '/next'}
-        message = error_response(payload=data, message=TestsMsg.fst_test_msg)
+        message = error_response(payload=data, message=TranslatableMsg.test_fst_test_msg)
         assert message.status == FluxResponseStatus.ERROR
-        assert message.payload == dict(message=TestsMsg.fst_test_msg.value, success=False, next=data['next'])
+        assert message.payload == dict(
+            message=TranslatableMsg.test_fst_test_msg.value, success=False, next=data['next']
+        )
 
     def test_error_message_from_str(self):
         message = error_response(message='test.str_msg')
@@ -131,27 +131,27 @@ class MessageTests(TestCase):
 
     def test_error_message_unknown(self):
         with self.assertRaises(AttributeError):
-            error_response(TestsMsg.unknown_msg)
+            error_response(TranslatableMsg.test_unknown_msg)
 
     def test_make_query_string_error(self):
-        qs = make_query_string(TestsMsg.fst_test_msg)
+        qs = make_query_string(TranslatableMsg.test_fst_test_msg)
         self.assertEqual(qs, 'msg=%3AERROR%3Atest.first_msg')
 
     def test_make_query_string_success(self):
-        qs = make_query_string(TestsMsg.fst_test_msg, error=False)
+        qs = make_query_string(TranslatableMsg.test_fst_test_msg, error=False)
         self.assertEqual(qs, 'msg=test.first_msg')
 
     def test_make_query_string_error_unknown(self):
         with self.assertRaises(AttributeError):
-            make_query_string(TestsMsg.unknown_msg)
+            make_query_string(TranslatableMsg.test_unknown_msg)
 
     def test_make_query_string_success_unknown(self):
         with self.assertRaises(AttributeError):
-            make_query_string(TestsMsg.unknown_msg, error=False)
+            make_query_string(TranslatableMsg.test_unknown_msg, error=False)
 
     def test_make_redirect_error(self):
         url = 'https://example.com'
-        response = redirect_with_msg(url, TestsMsg.fst_test_msg)
+        response = redirect_with_msg(url, TranslatableMsg.test_fst_test_msg)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.location, 'https://example.com?msg=%3AERROR%3Atest.first_msg')
 
@@ -163,7 +163,7 @@ class MessageTests(TestCase):
 
     def test_make_redirect_success(self):
         url = 'https://example.com'
-        response = redirect_with_msg(url, TestsMsg.fst_test_msg, error=False)
+        response = redirect_with_msg(url, TranslatableMsg.test_fst_test_msg, error=False)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.location, 'https://example.com?msg=test.first_msg')
 
@@ -172,16 +172,3 @@ class MessageTests(TestCase):
         response = redirect_with_msg(url, 'test.str_msg', error=False)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.location, 'https://example.com?msg=test.str_msg')
-
-
-class MessagesTests(TestCase):
-    def test_messages(self):
-        """"""
-        self.assertEqual(CommonMsg.temp_problem.value, 'Temporary technical problems')
-        self.assertEqual(CommonMsg.form_errors.value, 'form-errors')
-        self.assertEqual(CommonMsg.out_of_sync.value, 'user-out-of-sync')
-        self.assertEqual(CommonMsg.navet_error.value, 'error_navet_task')
-        self.assertEqual(CommonMsg.nin_invalid.value, 'nin needs to be formatted as 18|19|20yymmddxxxx')
-        self.assertEqual(CommonMsg.email_invalid.value, 'email needs to be formatted according to RFC2822')
-        self.assertEqual(CommonMsg.csrf_try_again.value, 'csrf.try_again')
-        self.assertEqual(CommonMsg.csrf_missing.value, 'csrf.missing')

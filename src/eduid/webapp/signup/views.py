@@ -36,15 +36,10 @@ from flask import Blueprint, abort, request
 from eduid.userdb.exceptions import EduIDUserDBError
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.helpers import check_magic_cookie
-from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
+from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response, success_response
 from eduid.webapp.common.api.schemas.base import FluxStandardAction
 from eduid.webapp.signup.app import current_signup_app as current_app
-from eduid.webapp.signup.helpers import (
-    SignupMsg,
-    check_email_status,
-    complete_registration,
-    remove_users_with_mail_address,
-)
+from eduid.webapp.signup.helpers import check_email_status, complete_registration, remove_users_with_mail_address
 from eduid.webapp.signup.schemas import AccountCreatedResponse, RegisterEmailSchema
 from eduid.webapp.signup.verifications import (
     AlreadyVerifiedException,
@@ -66,7 +61,7 @@ def trycaptcha(email: str, recaptcha_response: str, tou_accepted: bool) -> FluxD
     Kantara requires a check for humanness even at level AL1.
     """
     if not tou_accepted:
-        return error_response(message=SignupMsg.no_tou)
+        return error_response(message=TranslatableMsg.signup_no_tou)
 
     recaptcha_verified = False
 
@@ -92,19 +87,19 @@ def trycaptcha(email: str, recaptcha_response: str, tou_accepted: bool) -> FluxD
             # Workaround for failed earlier sync of user to userdb: Remove any signup_user with this e-mail address.
             remove_users_with_mail_address(email)
             send_verification_mail(email)
-            return success_response(payload=dict(next=next), message=SignupMsg.reg_new)
+            return success_response(payload=dict(next=next), message=TranslatableMsg.signup_reg_new)
 
         elif next == 'resend-code':
             send_verification_mail(email)
             current_app.stats.count(name='resend_code')
             # Show the same end screen for resending a mail and a new registration
-            return success_response(payload=dict(next='new'), message=SignupMsg.reg_new)
+            return success_response(payload=dict(next='new'), message=TranslatableMsg.signup_reg_new)
 
         elif next == 'address-used':
             current_app.stats.count(name='address_used_error')
-            return error_response(payload=dict(next=next), message=SignupMsg.email_used)
+            return error_response(payload=dict(next=next), message=TranslatableMsg.signup_email_used)
 
-    return error_response(message=SignupMsg.no_recaptcha)
+    return error_response(message=TranslatableMsg.signup_no_recaptcha)
 
 
 @signup_views.route('/verify-link/<code>', methods=['GET'])
@@ -113,16 +108,16 @@ def verify_link(code: str) -> FluxData:
     try:
         user = verify_email_code(code)
     except CodeDoesNotExist:
-        return error_response(payload=dict(status='unknown-code'), message=SignupMsg.unknown_code)
+        return error_response(payload=dict(status='unknown-code'), message=TranslatableMsg.signup_unknown_code)
 
     except AlreadyVerifiedException:
-        return error_response(payload=dict(status='already-verified'), message=SignupMsg.already_verified)
+        return error_response(payload=dict(status='already-verified'), message=TranslatableMsg.signup_already_verified)
 
     except ProofingLogFailure:
-        return error_response(message=CommonMsg.temp_problem)
+        return error_response(message=TranslatableMsg.temp_problem)
 
     except EduIDUserDBError:
-        return error_response(payload=dict(status='unknown-code'), message=SignupMsg.unknown_code)
+        return error_response(payload=dict(status='unknown-code'), message=TranslatableMsg.signup_unknown_code)
 
     return complete_registration(user)
 

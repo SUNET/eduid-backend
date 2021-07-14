@@ -38,18 +38,13 @@ from eduid.userdb import User
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.security import SecurityUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
+from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response, success_response
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.api.validation import is_valid_password
 from eduid.webapp.common.authn.vccs import change_password
 from eduid.webapp.common.session import session
 from eduid.webapp.security.app import current_security_app as current_app
-from eduid.webapp.security.helpers import (
-    SecurityMsg,
-    compile_credential_list,
-    generate_suggested_password,
-    get_zxcvbn_terms,
-)
+from eduid.webapp.security.helpers import compile_credential_list, generate_suggested_password, get_zxcvbn_terms
 from eduid.webapp.security.schemas import ChpassRequestSchema, ChpassResponseSchema, SuggestedPasswordResponseSchema
 
 # TODO: move check_password and hash_password to eduid.webapp.common
@@ -86,7 +81,7 @@ def change_password_view(user: User, old_password: str, new_password: str) -> Fl
     View to change the password
     """
     if not old_password or not new_password:
-        return error_response(message=SecurityMsg.chpass_no_data)
+        return error_response(message=TranslatableMsg.security_chpass_no_data)
 
     try:
         is_valid_password(
@@ -96,17 +91,17 @@ def change_password_view(user: User, old_password: str, new_password: str) -> Fl
             min_score=current_app.conf.min_zxcvbn_score,
         )
     except ValueError:
-        return error_response(message=SecurityMsg.chpass_weak)
+        return error_response(message=TranslatableMsg.security_chpass_weak)
 
     authn_ts = session.get('reauthn-for-chpass', None)
     if authn_ts is None:
-        return error_response(message=SecurityMsg.no_reauthn)
+        return error_response(message=TranslatableMsg.security_no_reauthn)
 
     now = datetime.utcnow()
     delta = now - datetime.fromtimestamp(authn_ts)
     timeout = current_app.conf.chpass_timeout
     if int(delta.total_seconds()) > timeout:
-        return error_response(message=SecurityMsg.stale_reauthn)
+        return error_response(message=TranslatableMsg.security_stale_reauthn)
 
     # TODO: uncomment after check_password is available in eduid.webapp.common
     # hashed = session.security.generated_password_hash
@@ -126,13 +121,13 @@ def change_password_view(user: User, old_password: str, new_password: str) -> Fl
 
     if not added:
         current_app.logger.debug(f'Problem verifying the old credentials for {user}')
-        return error_response(message=SecurityMsg.unrecognized_pw)
+        return error_response(message=TranslatableMsg.security_unrecognized_pw)
 
     security_user.terminated = None
     try:
         save_and_sync_user(security_user)
     except UserOutOfSync:
-        return error_response(message=CommonMsg.out_of_sync)
+        return error_response(message=TranslatableMsg.out_of_sync)
 
     # del session['reauthn-for-chpass']
 
@@ -144,7 +139,7 @@ def change_password_view(user: User, old_password: str, new_password: str) -> Fl
         payload={
             'next_url': next_url,
             'credentials': compile_credential_list(security_user),
-            'message': SecurityMsg.chpass_password_changed,
+            'message': TranslatableMsg.security_chpass_password_changed,
         },
-        message=SecurityMsg.chpass_password_changed,
+        message=TranslatableMsg.security_chpass_password_changed,
     )

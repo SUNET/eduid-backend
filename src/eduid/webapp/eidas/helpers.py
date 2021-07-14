@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import logging
-from enum import unique
 
 from dateutil.parser import parse as dt_parse
 from saml2 import BINDING_HTTP_REDIRECT
@@ -12,7 +11,6 @@ from saml2.saml import AuthnContextClassRef
 from saml2.samlp import RequestedAuthnContext
 
 from eduid.common.misc.timeutil import utc_now
-from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.authn.cache import OutstandingQueriesCache
 from eduid.webapp.common.authn.eduid_saml2 import get_authn_ctx
 from eduid.webapp.common.authn.session_info import SessionInfo
@@ -23,36 +21,6 @@ from eduid.webapp.eidas.app import current_eidas_app as current_app
 __author__ = 'lundberg'
 
 logger = logging.getLogger(__name__)
-
-
-@unique
-class EidasMsg(TranslatableMsg):
-    """
-    Messages sent to the front end with information on the results of the
-    attempted operations on the back end.
-    """
-
-    # LOA 3 not needed
-    authn_context_mismatch = 'eidas.authn_context_mismatch'
-    # re-authentication expired
-    reauthn_expired = 'eidas.reauthn_expired'
-    # the token was not used to authenticate this session
-    token_not_in_creds = 'eidas.token_not_in_credentials_used'
-    # the personalIdentityNumber from eidas does not correspond
-    # to a verified nin in the user's account
-    nin_not_matching = 'eidas.nin_not_matching'
-    # successfully verified the token
-    verify_success = 'eidas.token_verify_success'
-    # The user already has a verified NIN
-    nin_already_verified = 'eidas.nin_already_verified'
-    # Successfully verified the NIN
-    nin_verify_success = 'eidas.nin_verify_success'
-    # missing redirect URL for mfa authn
-    no_redirect_url = 'eidas.no_redirect_url'
-    # Action completed, redirect to actions app
-    action_completed = 'actions.action-completed'
-    # Token not found on the credentials in the user's account
-    token_not_found = 'eidas.token_not_found'
 
 
 def create_authn_request(

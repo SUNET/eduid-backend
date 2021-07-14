@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from enum import unique
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User
@@ -13,33 +12,6 @@ from eduid.webapp.letter_proofing import pdf
 from eduid.webapp.letter_proofing.app import current_letterp_app as current_app
 
 __author__ = 'lundberg'
-
-
-@unique
-class LetterMsg(TranslatableMsg):
-    """
-    Messages sent to the front end with information on the results of the
-    attempted operations on the back end.
-    """
-
-    # No letter proofing state found in the db
-    no_state = 'letter.no_state_found'
-    # a letter has already been sent
-    already_sent = 'letter.already-sent'
-    # the letter has been sent, but enough time has passed to send a new one
-    letter_expired = 'letter.expired'
-    # some unspecified problem sending the letter
-    not_sent = 'letter.not-sent'
-    # no postal address found
-    address_not_found = 'letter.no-address-found'
-    # errors in the format of the postal address
-    bad_address = 'letter.bad-postal-address'
-    # letter sent and state saved w/o errors
-    letter_sent = 'letter.saved-unconfirmed'
-    # wrong verification code received
-    wrong_code = 'letter.wrong-code'
-    # success verifying the code
-    verify_success = 'letter.verification_success'
 
 
 @dataclass
@@ -89,7 +61,13 @@ def check_state(state: LetterProofingState) -> StateExpireInfo:
         current_app.logger.info('Unfinished state for user with eppn {!s}'.format(state.eppn))
         # need a datetime for typing, but sent/expires/is_expired are not included in error responses
         _fake_dt = datetime.fromtimestamp(0)
-        return StateExpireInfo(sent=_fake_dt, expires=_fake_dt, is_expired=True, error=True, message=LetterMsg.not_sent)
+        return StateExpireInfo(
+            sent=_fake_dt,
+            expires=_fake_dt,
+            is_expired=True,
+            error=True,
+            message=TranslatableMsg.letter_proofing_not_sent,
+        )
 
     current_app.logger.info('Letter is sent for user with eppn {!s}'.format(state.eppn))
     # Check how long ago the letter was sent
@@ -107,12 +85,20 @@ def check_state(state: LetterProofingState) -> StateExpireInfo:
         current_app.logger.info(f'Code expires: {expires_at}')
         # The user has to wait for the letter to arrive
         return StateExpireInfo(
-            sent=sent_dt, expires=expires_at, is_expired=False, error=False, message=LetterMsg.already_sent
+            sent=sent_dt,
+            expires=expires_at,
+            is_expired=False,
+            error=False,
+            message=TranslatableMsg.letter_proofing_already_sent,
         )
     else:
         current_app.logger.info('Letter expired for user with eppn {!s}.'.format(state.eppn))
         return StateExpireInfo(
-            sent=sent_dt, expires=expires_at, is_expired=True, error=False, message=LetterMsg.letter_expired
+            sent=sent_dt,
+            expires=expires_at,
+            is_expired=True,
+            error=False,
+            message=TranslatableMsg.letter_proofing_letter_expired,
         )
 
 

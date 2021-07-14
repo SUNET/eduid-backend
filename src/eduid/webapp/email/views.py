@@ -42,10 +42,9 @@ from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.user import User
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid.webapp.common.api.helpers import check_magic_cookie
-from eduid.webapp.common.api.messages import CommonMsg, error_response, redirect_with_msg, success_response
+from eduid.webapp.common.api.messages import TranslatableMsg, error_response, redirect_with_msg, success_response
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.email.app import current_email_app as current_app
-from eduid.webapp.email.helpers import EmailMsg
 from eduid.webapp.email.schemas import (
     AddEmailSchema,
     ChangeEmailSchema,
@@ -67,7 +66,7 @@ def get_all_emails(user):
 
     email_list = EmailListPayload().dump(emails)
 
-    return success_response(payload=email_list, message=EmailMsg.get_success)
+    return success_response(payload=email_list, message=TranslatableMsg.email_get_success)
 
 
 @email_views.route('/new', methods=['POST'])
@@ -83,13 +82,13 @@ def post_email(user, email, verified, primary):
     try:
         proofing_user.mail_addresses.add(new_mail)
     except DuplicateElementViolation:
-        return error_response(message=EmailMsg.dupe)
+        return error_response(message=TranslatableMsg.email_dupe)
 
     try:
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
         current_app.logger.debug('Couldnt save email {} for user {}, ' 'data out of sync'.format(email, proofing_user))
-        return error_response(message=CommonMsg.out_of_sync)
+        return error_response(message=TranslatableMsg.out_of_sync)
     current_app.logger.info('Saved unconfirmed email {!r} ' 'for user {}'.format(email, proofing_user))
     current_app.stats.count(name='email_save_unconfirmed_email', value=1)
 
@@ -98,11 +97,11 @@ def post_email(user, email, verified, primary):
     email_list = EmailListPayload().dump(emails)
 
     if not sent:
-        return success_response(payload=email_list, message=EmailMsg.added_and_throttled)
+        return success_response(payload=email_list, message=TranslatableMsg.email_added_and_throttled)
 
     current_app.stats.count(name='email_send_verification_code', value=1)
 
-    return success_response(payload=email_list, message=EmailMsg.saved)
+    return success_response(payload=email_list, message=TranslatableMsg.email_saved)
 
 
 @email_views.route('/primary', methods=['POST'])
@@ -119,13 +118,13 @@ def post_primary(user, email):
         current_app.logger.debug(
             'Couldnt save email {!r} as primary for user {}, data out of sync'.format(email, proofing_user)
         )
-        return error_response(message=CommonMsg.out_of_sync)
+        return error_response(message=TranslatableMsg.out_of_sync)
 
     if not mail.is_verified:
         current_app.logger.debug(
             'Couldnt save email {!r} as primary for user {}, email unconfirmed'.format(email, proofing_user)
         )
-        return error_response(message=EmailMsg.unconfirmed_not_primary)
+        return error_response(message=TranslatableMsg.email_unconfirmed_not_primary)
 
     proofing_user.mail_addresses.primary = mail.email
     try:
@@ -134,13 +133,13 @@ def post_primary(user, email):
         current_app.logger.debug(
             'Couldnt save email {!r} as primary for user' ' {}, data out of sync'.format(email, proofing_user)
         )
-        return error_response(message=CommonMsg.out_of_sync)
+        return error_response(message=TranslatableMsg.out_of_sync)
     current_app.logger.info('Email address {!r} made primary ' 'for user {}'.format(email, proofing_user))
     current_app.stats.count(name='email_set_primary', value=1)
 
     emails = {'emails': proofing_user.mail_addresses.to_list_of_dicts()}
     email_list = EmailListPayload().dump(emails)
-    return success_response(payload=email_list, message=EmailMsg.success_primary)
+    return success_response(payload=email_list, message=TranslatableMsg.email_success_primary)
 
 
 @email_views.route('/verify', methods=['POST'])
@@ -160,10 +159,10 @@ def verify(user, code, email):
             current_app.logger.info("Verification code is expired. Removing the state")
             current_app.logger.debug("Proofing state: {}".format(state))
             current_app.proofing_statedb.remove_state(state)
-            return error_response(message=EmailMsg.invalid_code)
+            return error_response(message=TranslatableMsg.email_invalid_code)
     except DocumentDoesNotExist:
         current_app.logger.info('Could not find proofing state for email {}'.format(email))
-        return error_response(message=EmailMsg.unknown_email)
+        return error_response(message=TranslatableMsg.email_unknown_email)
 
     if code == state.verification.verification_code:
         try:
@@ -174,14 +173,14 @@ def verify(user, code, email):
                 'emails': proofing_user.mail_addresses.to_list_of_dicts(),
             }
             email_list = EmailListPayload().dump(emails)
-            return success_response(payload=email_list, message=EmailMsg.verify_success)
+            return success_response(payload=email_list, message=TranslatableMsg.email_verify_success)
         except UserOutOfSync:
             current_app.logger.info('Could not confirm email, data out of sync')
             current_app.logger.debug('Mail address: {}'.format(email))
-            return error_response(message=CommonMsg.out_of_sync)
+            return error_response(message=TranslatableMsg.out_of_sync)
     current_app.logger.info("Invalid verification code")
     current_app.logger.debug("Email address: {}".format(state.verification.email))
-    return error_response(message=EmailMsg.invalid_code)
+    return error_response(message=TranslatableMsg.email_invalid_code)
 
 
 @email_views.route('/verify', methods=['GET'])
@@ -207,7 +206,7 @@ def verify_link(user):
         )
         if not state:
             current_app.logger.info(f'Could not find proofing state for email {schema["email"]}')
-            return redirect_with_msg(redirect_url, EmailMsg.unknown_email)
+            return redirect_with_msg(redirect_url, TranslatableMsg.email_unknown_email)
         current_app.logger.debug(f'Trying to save email address {schema["email"]} as verified')
     except (KeyError, ValidationError) as e:
         current_app.logger.warning(f'Schema validation error: {e}')
@@ -218,23 +217,23 @@ def verify_link(user):
         current_app.logger.info('Verification code is expired. Removing the state')
         current_app.logger.debug(f'Proofing state: {state}')
         current_app.proofing_statedb.remove_state(state)
-        return redirect_with_msg(redirect_url, EmailMsg.invalid_code)
+        return redirect_with_msg(redirect_url, TranslatableMsg.email_invalid_code)
 
     if code != state.verification.verification_code:
         current_app.logger.info('Invalid verification code')
         current_app.logger.debug(f'Email address: {state.verification.email}')
-        return redirect_with_msg(redirect_url, EmailMsg.invalid_code)
+        return redirect_with_msg(redirect_url, TranslatableMsg.email_invalid_code)
 
     # Everything seems to be in order, verify the mail address for the user
     try:
         verify_mail_address(state, proofing_user)
         current_app.logger.info('Email successfully verified')
         current_app.logger.debug(f'Email address: {state.verification.email}')
-        return redirect_with_msg(redirect_url, EmailMsg.verify_success, error=False)
+        return redirect_with_msg(redirect_url, TranslatableMsg.email_verify_success, error=False)
     except UserOutOfSync:
         current_app.logger.info('Could not confirm email, data out of sync')
         current_app.logger.debug(f'Email address: {state.verification.email}')
-        return redirect_with_msg(redirect_url, CommonMsg.out_of_sync)
+        return redirect_with_msg(redirect_url, TranslatableMsg.out_of_sync)
 
 
 @email_views.route('/remove', methods=['POST'])
@@ -251,12 +250,12 @@ def post_remove(user, email):
     # Do not let the user remove all mail addresses
     if len(emails) == 1:
         current_app.logger.debug('Cannot remove the last address: {}'.format(email))
-        return error_response(message=EmailMsg.cannot_remove_last)
+        return error_response(message=TranslatableMsg.email_cannot_remove_last)
 
     # Do not let the user remove all verified mail addresses
     if len(verified_emails) == 1 and verified_emails[0].email == email:
         current_app.logger.debug('Cannot remove last verified address: {}'.format(email))
-        return error_response(message=EmailMsg.cannot_remove_last_verified)
+        return error_response(message=TranslatableMsg.email_cannot_remove_last_verified)
 
     try:
         proofing_user.mail_addresses.remove(email)
@@ -271,14 +270,14 @@ def post_remove(user, email):
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
         current_app.logger.debug('Could not remove email {} for user, data out of sync'.format(email))
-        return error_response(message=CommonMsg.out_of_sync)
+        return error_response(message=TranslatableMsg.out_of_sync)
 
     current_app.logger.info('Email address {} removed'.format(email))
     current_app.stats.count(name='email_remove_success', value=1)
 
     emails = {'emails': proofing_user.mail_addresses.to_list_of_dicts()}
     email_list = EmailListPayload().dump(emails)
-    return success_response(payload=email_list, message=EmailMsg.removal_success)
+    return success_response(payload=email_list, message=TranslatableMsg.email_removal_success)
 
 
 @email_views.route('/resend-code', methods=['POST'])
@@ -292,17 +291,17 @@ def resend_code(user, email):
 
     if not user.mail_addresses.find(email):
         current_app.logger.debug('Unknown email {!r} in resend_code_action,' ' user {}'.format(email, user))
-        return error_response(message=CommonMsg.out_of_sync)
+        return error_response(message=TranslatableMsg.out_of_sync)
 
     sent = send_verification_code(email, user)
     if not sent:
-        return error_response(message=EmailMsg.still_valid_code)
+        return error_response(message=TranslatableMsg.still_valid_code)
 
     current_app.logger.debug('New verification code sent to ' 'address {} for user {}'.format(email, user))
     current_app.stats.count(name='email_resend_code', value=1)
 
     emails = {'emails': user.mail_addresses.to_list_of_dicts()}
-    return success_response(payload=emails, message=EmailMsg.code_sent)
+    return success_response(payload=emails, message=TranslatableMsg.email_code_sent)
 
 
 @email_views.route('/get-code', methods=['GET'])

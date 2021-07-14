@@ -10,11 +10,11 @@ from eduid.userdb.proofing import ProofingUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
 from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid.webapp.common.api.helpers import add_nin_to_user, check_magic_cookie, verify_nin_for_user
-from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
+from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response, success_response
 from eduid.webapp.letter_proofing import pdf, schemas
 from eduid.webapp.letter_proofing.app import current_letterp_app as current_app
 from eduid.webapp.letter_proofing.ekopost import EkopostException
-from eduid.webapp.letter_proofing.helpers import LetterMsg, check_state, create_proofing_state, get_address, send_letter
+from eduid.webapp.letter_proofing.helpers import check_state, create_proofing_state, get_address, send_letter
 
 __author__ = 'lundberg'
 
@@ -35,9 +35,9 @@ def get_state(user) -> FluxData:
             current_app.logger.info(f'Backwards-compat removing expired state for user {user}')
             current_app.proofing_statedb.remove_state(proofing_state)
             current_app.stats.count('letter_expired')
-            return success_response(message=LetterMsg.no_state)
+            return success_response(message=TranslatableMsg.letter_proofing_no_state)
         return result.to_response()
-    return success_response(message=LetterMsg.no_state)
+    return success_response(message=TranslatableMsg.letter_proofing_no_state)
 
 
 @letter_proofing_views.route('/proofing', methods=['POST'])
@@ -80,11 +80,11 @@ def proofing(user: User, nin: str) -> FluxData:
         address = get_address(user, proofing_state)
         if not address:
             current_app.logger.error('No address found for user {}'.format(user))
-            return error_response(message=LetterMsg.address_not_found)
+            return error_response(message=TranslatableMsg.letter_proofing_address_not_found)
     except MsgTaskFailed:
         current_app.logger.exception(f'Navet lookup failed for user {user}')
         current_app.stats.count('navet_error')
-        return error_response(message=CommonMsg.navet_error)
+        return error_response(message=TranslatableMsg.navet_error)
 
     # Set and save official address
     proofing_state.proofing_letter.address = address
@@ -96,11 +96,11 @@ def proofing(user: User, nin: str) -> FluxData:
     except pdf.AddressFormatException:
         current_app.logger.exception('Failed formatting address')
         current_app.stats.count('address_format_error')
-        return error_response(message=LetterMsg.bad_address)
+        return error_response(message=TranslatableMsg.letter_proofing_bad_address)
     except EkopostException:
         current_app.logger.exception('Ekopost returned an error')
         current_app.stats.count('ekopost_error')
-        return error_response(message=CommonMsg.temp_problem)
+        return error_response(message=TranslatableMsg.temp_problem)
 
     # Save the users proofing state
     proofing_state.proofing_letter.transaction_id = campaign_id
@@ -108,7 +108,7 @@ def proofing(user: User, nin: str) -> FluxData:
     proofing_state.proofing_letter.sent_ts = utc_now()
     current_app.proofing_statedb.save(proofing_state)
     result = check_state(proofing_state)
-    result.message = LetterMsg.letter_sent
+    result.message = TranslatableMsg.letter_proofing_letter_sent
     return result.to_response()
 
 
@@ -121,13 +121,13 @@ def verify_code(user: User, code: str) -> FluxData:
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
 
     if not proofing_state:
-        return error_response(message=LetterMsg.no_state)
+        return error_response(message=TranslatableMsg.letter_proofing_no_state)
 
     # Check if provided code matches the one in the letter
     if not code == proofing_state.nin.verification_code:
         current_app.logger.error('Verification code for user {} does not match'.format(user))
         # TODO: Throttling to discourage an adversary to try brute force
-        return error_response(message=LetterMsg.wrong_code)
+        return error_response(message=TranslatableMsg.letter_proofing_wrong_code)
 
     state_info = check_state(proofing_state)
     if state_info.error:
@@ -145,7 +145,7 @@ def verify_code(user: User, code: str) -> FluxData:
     except MsgTaskFailed:
         current_app.logger.exception(f'Navet lookup failed for user {user}')
         current_app.stats.count('navet_error')
-        return error_response(message=CommonMsg.navet_error)
+        return error_response(message=TranslatableMsg.navet_error)
 
     proofing_log_entry = LetterProofing(
         eppn=user.eppn,
@@ -161,17 +161,18 @@ def verify_code(user: User, code: str) -> FluxData:
         proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
         if not verify_nin_for_user(proofing_user, proofing_state, proofing_log_entry):
             current_app.logger.error(f'Failed verifying NIN for user {user}')
-            return error_response(message=CommonMsg.temp_problem)
+            return error_response(message=TranslatableMsg.temp_problem)
         current_app.logger.info(f'Verified code for user {user}')
         # Remove proofing state
         current_app.proofing_statedb.remove_state(proofing_state)
         current_app.stats.count(name='nin_verified')
         return success_response(
-            payload=dict(nins=proofing_user.nins.to_list_of_dicts()), message=LetterMsg.verify_success
+            payload=dict(nins=proofing_user.nins.to_list_of_dicts()),
+            message=TranslatableMsg.letter_proofing_verify_success,
         )
     except AmTaskFailed:
         current_app.logger.exception(f'Verifying nin for user {user} failed')
-        return error_response(message=CommonMsg.temp_problem)
+        return error_response(message=TranslatableMsg.temp_problem)
 
 
 @letter_proofing_views.route('/get-code', methods=['GET'])

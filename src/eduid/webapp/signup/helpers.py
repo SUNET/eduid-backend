@@ -34,7 +34,6 @@
 import datetime
 import os
 import struct
-from enum import unique
 from re import findall
 from typing import Optional
 
@@ -47,32 +46,11 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup, UserOutOfSync
 from eduid.userdb.signup import SignupUser
 from eduid.userdb.tou import ToUEvent
-from eduid.webapp.common.api.messages import CommonMsg, FluxData, TranslatableMsg, error_response, success_response
+from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response, success_response
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.authn.vccs import add_password
 from eduid.webapp.common.session import session
 from eduid.webapp.signup.app import current_signup_app as current_app
-
-
-@unique
-class SignupMsg(TranslatableMsg):
-    """
-    Messages sent to the front end with information on the results of the
-    attempted operations on the back end.
-    """
-
-    # the ToU has not been accepted
-    no_tou = 'signup.tou-not-accepted'
-    # partial success registering new account
-    reg_new = 'signup.registering-new'
-    # The email address used is already known
-    email_used = 'signup.registering-address-used'
-    # recaptcha not verified
-    no_recaptcha = 'signup.recaptcha-not-verified'
-    # unrecognized verification code
-    unknown_code = 'signup.unknown-code'
-    # the verification code has already been verified
-    already_verified = 'signup.already-verified'
 
 
 def generate_eppn() -> str:
@@ -181,7 +159,7 @@ def complete_registration(signup_user: SignupUser) -> FluxData:
     # TODO: add_password needs to understand that signup_user is a decendent from User
     if not add_password(signup_user, password, application='signup', vccs_url=current_app.conf.vccs_url):
         current_app.logger.error(f'Failed adding a credential to user {signup_user}')
-        return error_response(message=CommonMsg.temp_problem)
+        return error_response(message=TranslatableMsg.temp_problem)
 
     # Record the acceptance of the terms of use
     record_tou(signup_user, 'signup')
@@ -189,7 +167,7 @@ def complete_registration(signup_user: SignupUser) -> FluxData:
         save_and_sync_user(signup_user)
     except UserOutOfSync:
         current_app.logger.error(f'Failed saving user {signup_user}, data out of sync')
-        return error_response(message=CommonMsg.out_of_sync)
+        return error_response(message=TranslatableMsg.out_of_sync)
 
     if session.common is not None:  # please mypy
         session.common.eppn = signup_user.eppn

@@ -11,14 +11,13 @@
 """
 Code handling Single Sign On logins.
 """
-import dataclasses
 import hmac
 import pprint
 import time
 from base64 import b64encode
 from dataclasses import dataclass
 from hashlib import sha256
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 from defusedxml import ElementTree as DefusedElementTree
@@ -34,6 +33,7 @@ from eduid.common.utils import urlappend
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.idp.user import SAMLAttributeSettings
 from eduid.webapp.common.api import exceptions
+from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import LoginContext
 from eduid.webapp.common.session.namespaces import IdP_PendingRequest, RequestRef
@@ -48,7 +48,6 @@ from eduid.webapp.idp.assurance import (
     WrongMultiFactor,
     get_requested_authn_context,
 )
-from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.idp_actions import redirect_to_actions
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.idp_saml import IdP_SAMLRequest, ResponseArgs, SamlResponse
@@ -73,7 +72,7 @@ class MustAuthenticate(Exception):
 
 
 class NextResult(BaseModel):
-    message: IdPMsg
+    message: TranslatableMsg
     error: bool = False
     authn_info: Optional[AuthnInfo] = None
     # kludge for the template processing, pydantic doesn't embed dataclasses very well:
@@ -95,53 +94,53 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
     """ The main state machine for the login flow(s). """
     if not isinstance(sso_session, SSOSession):
         current_app.logger.debug('No SSO session found - initiating authentication')
-        return NextResult(message=IdPMsg.must_authenticate)
+        return NextResult(message=TranslatableMsg.idp_must_authenticate)
 
     user = current_app.userdb.lookup_user(sso_session.eppn)
     if not user:
         current_app.logger.error(f'User with eppn {sso_session.eppn} (from SSO session) not found')
-        return NextResult(message=IdPMsg.general_failure, error=True)
+        return NextResult(message=TranslatableMsg.idp_general_failure, error=True)
 
     if user.terminated:
         current_app.logger.info(f'User {user} is terminated')
-        return NextResult(message=IdPMsg.user_terminated, error=True)
+        return NextResult(message=TranslatableMsg.idp_user_terminated, error=True)
 
     if template_mode:
         process_mfa_action_results(user, ticket, sso_session)
 
-    res = NextResult(message=IdPMsg.assurance_failure, error=True)
+    res = NextResult(message=TranslatableMsg.idp_assurance_failure, error=True)
 
     try:
         authn_info = assurance.response_authn(ticket, user, sso_session)
-        res = NextResult(message=IdPMsg.proceed, authn_info=authn_info)
+        res = NextResult(message=TranslatableMsg.idp_proceed, authn_info=authn_info)
     except MissingPasswordFactor:
-        res = NextResult(message=IdPMsg.must_authenticate)
+        res = NextResult(message=TranslatableMsg.idp_must_authenticate)
     except MissingMultiFactor:
-        res = NextResult(message=IdPMsg.mfa_required, user=user if template_mode else None)
+        res = NextResult(message=TranslatableMsg.idp_mfa_required, user=user if template_mode else None)
     except MissingAuthentication:
-        res = NextResult(message=IdPMsg.must_authenticate)
+        res = NextResult(message=TranslatableMsg.idp_must_authenticate)
     except WrongMultiFactor as exc:
         current_app.logger.info(f'Assurance not possible: {repr(exc)}')
-        res = NextResult(message=IdPMsg.swamid_mfa_required, error=True)
+        res = NextResult(message=TranslatableMsg.idp_swamid_mfa_required, error=True)
     except AssuranceException as exc:
         current_app.logger.info(f'Assurance not possible: {repr(exc)}')
-        res = NextResult(message=IdPMsg.assurance_not_possible, error=True)
+        res = NextResult(message=TranslatableMsg.idp_assurance_not_possible, error=True)
 
-    if res.message == IdPMsg.must_authenticate:
+    if res.message == TranslatableMsg.idp_must_authenticate:
         # User might not be authenticated enough for e.g. ToU acceptance yet
         return res
 
     # User is at least partially authenticated, put the eppn in the shared session
     if session.common.eppn and session.common.eppn != user.eppn:
         current_app.logger.warning(f'Refusing to change eppn in session from {session.common.eppn} to {user.eppn}')
-        return NextResult(message=IdPMsg.wrong_user, error=True)
+        return NextResult(message=TranslatableMsg.idp_wrong_user, error=True)
     session.common.eppn = user.eppn
 
     if need_tou_acceptance(user):
-        return NextResult(message=IdPMsg.tou_required, user=user if template_mode else None)
+        return NextResult(message=TranslatableMsg.idp_tou_required, user=user if template_mode else None)
 
     if need_security_key(user, ticket):
-        return NextResult(message=IdPMsg.mfa_required, user=user if template_mode else None)
+        return NextResult(message=TranslatableMsg.idp_mfa_required, user=user if template_mode else None)
 
     return res
 
@@ -206,7 +205,7 @@ class SSO(Service):
         _next = login_next_step(ticket, self.sso_session, template_mode=True)
         current_app.logger.debug(f'Login Next: {_next}')
 
-        if _next.message == IdPMsg.must_authenticate:
+        if _next.message == TranslatableMsg.idp_must_authenticate:
             if not self.sso_session:
                 current_app.logger.info(f'{ticket.request_ref}: authenticate ip={request.remote_addr}')
             elif ticket.saml_req.force_authn:
@@ -214,24 +213,24 @@ class SSO(Service):
 
             return redirect(url_for('idp.verify') + '?ref=' + ticket.request_ref)
 
-        if _next.message == IdPMsg.user_terminated:
+        if _next.message == TranslatableMsg.idp_user_terminated:
             raise Forbidden('USER_TERMINATED')
-        if _next.message == IdPMsg.swamid_mfa_required:
+        if _next.message == TranslatableMsg.idp_swamid_mfa_required:
             raise Forbidden('SWAMID_MFA_REQUIRED')
-        if _next.message == IdPMsg.wrong_user:
+        if _next.message == TranslatableMsg.idp_wrong_user:
             raise BadRequest('WRONG_USER')
 
-        if _next.message == IdPMsg.tou_required:
+        if _next.message == TranslatableMsg.idp_tou_required:
             assert isinstance(_next.user, IdPUser)  # please mypy
             add_tou_action(_next.user)
             return redirect_to_actions(_next.user, ticket)
 
-        if _next.message == IdPMsg.mfa_required:
+        if _next.message == TranslatableMsg.idp_mfa_required:
             assert isinstance(_next.user, IdPUser)  # please mypy
             add_mfa_action(_next.user, ticket)
             return redirect_to_actions(_next.user, ticket)
 
-        if _next.message == IdPMsg.proceed:
+        if _next.message == TranslatableMsg.idp_proceed:
             assert self.sso_session  # please mypy
             current_app.logger.info(
                 f'{ticket.request_ref}: proceeding sso_session={self.sso_session.public_id}, age={self.sso_session.age}'

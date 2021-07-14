@@ -45,7 +45,7 @@ from eduid.userdb.actions.tou import ToUUser, ToUUserDB
 from eduid.userdb.tou import ToUEvent
 from eduid.webapp.actions.action_abc import ActionPlugin
 from eduid.webapp.actions.app import current_actions_app as current_app
-from eduid.webapp.actions.helpers import ActionsMsg
+from eduid.webapp.common.api.messages import TranslatableMsg
 
 
 class Plugin(ActionPlugin):
@@ -69,7 +69,7 @@ class Plugin(ActionPlugin):
         tous = get_tous(version=action.params['version'], languages=current_app.conf.available_languages.keys())
         if not tous:
             current_app.logger.error('Could not load any TOUs')
-            raise self.ActionError(ActionsMsg.no_tou)
+            raise self.ActionError(TranslatableMsg.actions_no_tou)
         return {
             'version': action.params['version'],
             'tous': tous,
@@ -78,7 +78,7 @@ class Plugin(ActionPlugin):
 
     def perform_step(self, action: Action) -> ActionResult:
         if not request.get_json().get('accept', ''):
-            raise self.ActionError(ActionsMsg.must_accept)
+            raise self.ActionError(TranslatableMsg.actions_must_accept)
 
         eppn = action.eppn
         central_user = current_app.central_userdb.get_user_by_eppn(eppn)
@@ -114,4 +114,4 @@ class Plugin(ActionPlugin):
             return ActionResult(success=True)
         except Exception as e:
             current_app.logger.error("Failed Attribute Manager sync request: " + str(e))
-            raise self.ActionError(ActionsMsg.sync_problem)
+            raise self.ActionError(TranslatableMsg.actions_sync_problem)

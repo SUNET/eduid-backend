@@ -30,40 +30,11 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from enum import unique
 
 from flask import abort
 
 from eduid.webapp.actions.app import current_actions_app as current_app
-from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.session import session
-
-
-@unique
-class ActionsMsg(TranslatableMsg):
-    """
-    Messages sent to the front end with information on the results of the
-    attempted operations on the back end.
-    """
-
-    # the user corresponding to the action has not been found in the db
-    user_not_found = 'mfa.user-not-found'
-    # The (mfa|tou|...) action has been completed successfully
-    action_completed = 'actions.action-completed'
-    # No mfa data sent in authn request
-    no_data = 'mfa.no-request-data'
-    # Neither u2f nor webauthn data in request to authn
-    no_response = 'mfa.no-token-response'
-    # The mfa data sent does not correspond to a known mfa token
-    unknown_token = 'mfa.unknown-token'
-    # Cannot find the text for the he ToU version configured
-    no_tou = 'tou.no-tou'
-    # The user has not accepted the ToU
-    must_accept = 'tou.must-accept'
-    # Error synchronizing the ToU acceptance to the central db
-    sync_problem = 'tou.sync-problem'
-    # for use in the tests
-    test_error = 'test error'
 
 
 def get_next_action(user):

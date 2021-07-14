@@ -37,10 +37,9 @@ from flask import Blueprint
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.personal_data import PersonalDataUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid.webapp.common.api.messages import CommonMsg, error_response, success_response
+from eduid.webapp.common.api.messages import TranslatableMsg, error_response, success_response
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.personal_data.app import current_pdata_app as current_app
-from eduid.webapp.personal_data.helpers import PDataMsg
 from eduid.webapp.personal_data.schemas import (
     AllDataResponseSchema,
     NinsResponseSchema,
@@ -80,12 +79,12 @@ def post_user(user, given_name, surname, display_name, language):
     try:
         save_and_sync_user(personal_data_user)
     except UserOutOfSync:
-        return error_response(message=CommonMsg.out_of_sync)
+        return error_response(message=TranslatableMsg.out_of_sync)
     current_app.stats.count(name='personal_data_saved', value=1)
     current_app.logger.info('Saved personal data for user {}'.format(personal_data_user))
 
     personal_data = personal_data_user.to_dict()
-    return success_response(payload=personal_data, message=PDataMsg.save_success)
+    return success_response(payload=personal_data, message=TranslatableMsg.personal_data_save_success)
 
 
 @pd_views.route('/nins', methods=['GET'])

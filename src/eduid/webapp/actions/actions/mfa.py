@@ -39,7 +39,7 @@ from eduid.userdb.actions.action import ActionResult, ActionResultMFA, ActionRes
 from eduid.webapp.actions.action_abc import ActionPlugin
 from eduid.webapp.actions.app import ActionsApp
 from eduid.webapp.actions.app import current_actions_app as current_app
-from eduid.webapp.actions.helpers import ActionsMsg
+from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.authn import fido_tokens
 from eduid.webapp.common.session import session
 
@@ -65,7 +65,7 @@ class Plugin(ActionPlugin):
         user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=False)
         current_app.logger.debug('Loaded User {} from db'.format(user))
         if not user:
-            raise self.ActionError(ActionsMsg.user_not_found)
+            raise self.ActionError(TranslatableMsg.actions_user_not_found)
 
         config = fido_tokens.start_token_verification(user, current_app.conf.fido2_rp_id)
 
@@ -109,7 +109,7 @@ class Plugin(ActionPlugin):
         req_json = request.get_json()
         if not req_json:
             current_app.logger.error(f'No data in request to authn {user}')
-            raise self.ActionError(ActionsMsg.no_data)
+            raise self.ActionError(TranslatableMsg.actions_no_data)
 
         # Process POSTed data
         if 'authenticatorData' in req_json:
@@ -132,4 +132,4 @@ class Plugin(ActionPlugin):
 
         current_app.logger.error(f'No Thirdparty-MFA/Webauthn data in request to authn {user}')
         current_app.logger.debug(f'Request: {req_json}')
-        raise self.ActionError(ActionsMsg.no_response)
+        raise self.ActionError(TranslatableMsg.actions_no_response)

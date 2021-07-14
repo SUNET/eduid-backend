@@ -37,9 +37,9 @@ from urllib.parse import quote_plus
 
 from mock import patch
 
+from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.phone.app import PhoneApp, phone_init_app
-from eduid.webapp.phone.helpers import PhoneMsg
 
 
 class PhoneTests(EduidAPITestCase):
@@ -384,7 +384,7 @@ class PhoneTests(EduidAPITestCase):
         new_phone_data = json.loads(response.data)
 
         self.assertEqual('POST_PHONE_PRIMARY_FAIL', new_phone_data['type'])
-        self.assertEqual(PhoneMsg.unknown_phone.value, new_phone_data['payload']['message'])
+        self.assertEqual(TranslatableMsg.phone_unknown_phone.value, new_phone_data['payload']['message'])
 
     def test_remove(self):
         response = self._remove()

@@ -32,7 +32,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import json
-import time
 from datetime import timedelta
 from typing import Any, Dict, Mapping, Optional
 from uuid import uuid4
@@ -40,11 +39,11 @@ from uuid import uuid4
 from mock import patch
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
 from eduid.webapp.security.app import SecurityApp, security_init_app
-from eduid.webapp.security.helpers import SecurityMsg
 
 
 class SecurityTests(EduidAPITestCase):
@@ -230,12 +229,14 @@ class SecurityTests(EduidAPITestCase):
 
     def test_account_terminated_no_reauthn(self):
         response = self._account_terminated()
-        self._check_error_response(response, type_='GET_SECURITY_ACCOUNT_TERMINATED_FAIL', msg=SecurityMsg.no_reauthn)
+        self._check_error_response(
+            response, type_='GET_SECURITY_ACCOUNT_TERMINATED_FAIL', msg=TranslatableMsg.security_no_reauthn
+        )
 
     def test_account_terminated_stale(self):
         response = self._account_terminated(reauthn=1200)
         self._check_error_response(
-            response, type_='GET_SECURITY_ACCOUNT_TERMINATED_FAIL', msg=SecurityMsg.stale_reauthn
+            response, type_='GET_SECURITY_ACCOUNT_TERMINATED_FAIL', msg=TranslatableMsg.security_stale_reauthn
         )
 
     @patch('eduid.webapp.security.views.security.send_termination_mail')
@@ -419,7 +420,9 @@ class SecurityTests(EduidAPITestCase):
                         'old_password': '5678',
                     }
             response2 = client.post('/change-password', data=json.dumps(data), content_type=self.content_type_json)
-        self._check_error_response(response2, type_='POST_SECURITY_CHANGE_PASSWORD_FAIL', msg=SecurityMsg.no_reauthn)
+        self._check_error_response(
+            response2, type_='POST_SECURITY_CHANGE_PASSWORD_FAIL', msg=TranslatableMsg.security_no_reauthn
+        )
 
     def test_change_passwd_stale(self):
         eppn = self.test_user_data['eduPersonPrincipalName']
@@ -439,7 +442,9 @@ class SecurityTests(EduidAPITestCase):
                         'old_password': '5678',
                     }
             response2 = client.post('/change-password', data=json.dumps(data), content_type=self.content_type_json)
-        self._check_error_response(response2, type_='POST_SECURITY_CHANGE_PASSWORD_FAIL', msg=SecurityMsg.stale_reauthn)
+        self._check_error_response(
+            response2, type_='POST_SECURITY_CHANGE_PASSWORD_FAIL', msg=TranslatableMsg.security_stale_reauthn
+        )
 
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_change_passwd_no_csrf(self, mock_request_user_sync):
@@ -513,5 +518,7 @@ class SecurityTests(EduidAPITestCase):
                         }
                 response2 = client.post('/change-password', data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(
-            response2, type_='POST_SECURITY_CHANGE_PASSWORD_SUCCESS', msg=SecurityMsg.chpass_password_changed2
+            response2,
+            type_='POST_SECURITY_CHANGE_PASSWORD_SUCCESS',
+            msg=TranslatableMsg.security_chpass_password_changed2,
         )

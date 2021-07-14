@@ -44,10 +44,9 @@ from eduid.userdb.proofing import ProofingUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid.webapp.common.api.exceptions import MsgTaskFailed
 from eduid.webapp.common.api.helpers import check_magic_cookie
-from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
+from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response, success_response
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.phone.app import current_phone_app as current_app
-from eduid.webapp.phone.helpers import PhoneMsg
 from eduid.webapp.phone.schemas import PhoneResponseSchema, PhoneSchema, SimplePhoneSchema, VerificationCodeSchema
 from eduid.webapp.phone.verifications import SMSThrottleException, send_verification_code, verify_phone_number
 
@@ -88,7 +87,7 @@ def post_phone(user: User, number: str, verified, primary) -> FluxData:
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
         current_app.logger.error('Could not save phone number, data out of sync')
-        return error_response(message=CommonMsg.out_of_sync)
+        return error_response(message=TranslatableMsg.out_of_sync)
 
     current_app.logger.info('Saved unconfirmed phone number')
     current_app.stats.count(name='mobile_save_unconfirmed_mobile', value=1)
@@ -96,13 +95,13 @@ def post_phone(user: User, number: str, verified, primary) -> FluxData:
     try:
         send_verification_code(proofing_user, number)
     except SMSThrottleException:
-        return error_response(message=PhoneMsg.still_valid_code)
+        return error_response(message=TranslatableMsg.still_valid_code)
     except MsgTaskFailed:
-        return error_response(message=CommonMsg.temp_problem)
+        return error_response(message=TranslatableMsg.temp_problem)
 
     current_app.stats.count(name='mobile_send_verification_code', value=1)
     phones = {'phones': proofing_user.phone_numbers.to_list_of_dicts()}
-    return success_response(payload=phones, message=PhoneMsg.save_success)
+    return success_response(payload=phones, message=TranslatableMsg.phone_save_success)
 
 
 @phone_views.route('/primary', methods=['POST'])
@@ -123,23 +122,23 @@ def post_primary(user: User, number: str) -> FluxData:
     phone_element: Optional[PhoneNumber] = proofing_user.phone_numbers.find(number)
     if not phone_element:
         current_app.logger.error('Phone number not found, could not save it as primary')
-        return error_response(message=PhoneMsg.unknown_phone)
+        return error_response(message=TranslatableMsg.phone_unknown_phone)
 
     if not phone_element.is_verified:
         current_app.logger.error('Could not save phone number as primary, phone number unconfirmed')
-        return error_response(message=PhoneMsg.unconfirmed_primary)
+        return error_response(message=TranslatableMsg.phone_unconfirmed_primary)
 
     proofing_user.phone_numbers.primary = phone_element.number
     try:
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
         current_app.logger.error('Could not save phone number as primary, data out of sync')
-        return error_response(message=CommonMsg.out_of_sync)
+        return error_response(message=TranslatableMsg.out_of_sync)
 
     current_app.logger.info('Phone number set as primary')
     current_app.stats.count(name='mobile_set_primary', value=1)
     phones = {'phones': proofing_user.phone_numbers.to_list_of_dicts()}
-    return success_response(payload=phones, message=PhoneMsg.primary_success)
+    return success_response(payload=phones, message=TranslatableMsg.phone_primary_success)
 
 
 @phone_views.route('/verify', methods=['POST'])
@@ -165,15 +164,15 @@ def verify(user: User, code: str, number: str) -> FluxData:
             current_app.logger.info('Proofing state is expired. Removing the state.')
             current_app.logger.debug(f'Proofing state: {state}')
             current_app.proofing_statedb.remove_state(state)
-            return error_response(message=PhoneMsg.code_invalid)
+            return error_response(message=TranslatableMsg.phone_code_invalid)
     except DocumentDoesNotExist:
         current_app.logger.error('Proofing state not found')
-        return error_response(message=PhoneMsg.unknown_phone)
+        return error_response(message=TranslatableMsg.phone_unknown_phone)
 
     if code != state.verification.verification_code:
         current_app.logger.info('Invalid verification code')
         current_app.logger.debug(f'Proofing state: {state}')
-        return error_response(message=PhoneMsg.code_invalid)
+        return error_response(message=TranslatableMsg.phone_code_invalid)
 
     try:
         verify_phone_number(state, proofing_user)
@@ -181,10 +180,10 @@ def verify(user: User, code: str, number: str) -> FluxData:
         phones = {
             'phones': proofing_user.phone_numbers.to_list_of_dicts(),
         }
-        return success_response(payload=phones, message=PhoneMsg.verify_success)
+        return success_response(payload=phones, message=TranslatableMsg.phone_verify_success)
     except UserOutOfSync:
         current_app.logger.info('Could not confirm phone number, data out of sync')
-        return error_response(message=CommonMsg.out_of_sync)
+        return error_response(message=TranslatableMsg.out_of_sync)
 
 
 @phone_views.route('/remove', methods=['POST'])
@@ -211,19 +210,19 @@ def post_remove(user: User, number: str) -> FluxData:
         proofing_user.phone_numbers.remove(number)
     except UserDBValueError:
         current_app.logger.error('Tried to remove a non existing phone number')
-        return error_response(message=PhoneMsg.unknown_phone)
+        return error_response(message=TranslatableMsg.phone_unknown_phone)
 
     try:
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
         current_app.logger.error('Could not remove phone number, data out of sync')
-        return error_response(message=CommonMsg.out_of_sync)
+        return error_response(message=TranslatableMsg.out_of_sync)
 
     current_app.logger.info('Phone number removed')
     current_app.stats.count(name='mobile_remove_success', value=1)
 
     phones = {'phones': proofing_user.phone_numbers.to_list_of_dicts()}
-    return success_response(payload=phones, message=PhoneMsg.removal_success)
+    return success_response(payload=phones, message=TranslatableMsg.phone_removal_success)
 
 
 @phone_views.route('/resend-code', methods=['POST'])
@@ -242,20 +241,20 @@ def resend_code(user: User, number: str) -> FluxData:
 
     if not user.phone_numbers.find(number):
         current_app.logger.error('Unknown phone number used for resend code')
-        return error_response(message=CommonMsg.out_of_sync)
+        return error_response(message=TranslatableMsg.out_of_sync)
 
     try:
         send_verification_code(user, number)
     except SMSThrottleException:
-        return error_response(message=PhoneMsg.still_valid_code)
+        return error_response(message=TranslatableMsg.still_valid_code)
     except MsgTaskFailed:
-        return error_response(message=CommonMsg.temp_problem)
+        return error_response(message=TranslatableMsg.temp_problem)
 
     current_app.logger.info('New verification code sent')
     current_app.stats.count(name='mobile_resend_code', value=1)
 
     phones = {'phones': user.phone_numbers.to_list_of_dicts()}
-    return success_response(payload=phones, message=PhoneMsg.resend_success)
+    return success_response(payload=phones, message=TranslatableMsg.phone_resend_success)
 
 
 @phone_views.route('/get-code', methods=['GET'])

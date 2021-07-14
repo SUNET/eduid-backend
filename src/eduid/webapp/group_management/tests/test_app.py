@@ -44,9 +44,9 @@ from eduid.scimapi.db.groupdb import GroupExtensions, ScimApiGroup
 from eduid.scimapi.db.userdb import ScimApiUser
 from eduid.userdb import User
 from eduid.userdb.exceptions import DocumentDoesNotExist
+from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.api.testing import EduidAPITestCase, normalised_data
 from eduid.webapp.group_management.app import GroupManagementApp, init_group_management_app
-from eduid.webapp.group_management.helpers import GroupManagementMsg
 from eduid.webapp.group_management.schemas import GroupRole
 
 __author__ = 'lundberg'
@@ -345,7 +345,9 @@ class GroupManagementTests(EduidAPITestCase):
                     data = {'group_identifier': str(self.scim_group1.scim_id), 'csrf_token': sess.get_csrf_token()}
                 response = client.post('/delete', data=json.dumps(data), content_type=self.content_type_json)
         self._check_error_response(
-            response, type_='POST_GROUP_MANAGEMENT_DELETE_FAIL', msg=GroupManagementMsg.user_does_not_exist
+            response,
+            type_='POST_GROUP_MANAGEMENT_DELETE_FAIL',
+            msg=TranslatableMsg.group_management_user_does_not_exist,
         )
         assert self.app.scimapi_groupdb.group_exists(str(self.scim_group1.scim_id)) is True
 
@@ -363,7 +365,7 @@ class GroupManagementTests(EduidAPITestCase):
                     data = {'group_identifier': str(self.scim_group1.scim_id), 'csrf_token': sess.get_csrf_token()}
                 response = client.post('/delete', data=json.dumps(data), content_type=self.content_type_json)
         self._check_error_response(
-            response, type_='POST_GROUP_MANAGEMENT_DELETE_FAIL', msg=GroupManagementMsg.user_not_owner
+            response, type_='POST_GROUP_MANAGEMENT_DELETE_FAIL', msg=TranslatableMsg.group_management_user_not_owner
         )
         assert self.app.scimapi_groupdb.group_exists(str(self.scim_group1.scim_id)) is True
 
@@ -446,7 +448,9 @@ class GroupManagementTests(EduidAPITestCase):
                     }
                 response = client.post('/remove-user', data=json.dumps(data), content_type=self.content_type_json)
         self._check_error_response(
-            response, type_='POST_GROUP_MANAGEMENT_REMOVE_USER_FAIL', msg=GroupManagementMsg.user_not_owner
+            response,
+            type_='POST_GROUP_MANAGEMENT_REMOVE_USER_FAIL',
+            msg=TranslatableMsg.group_management_user_not_owner,
         )
 
         # Check that test_user2 is still a member of scim_group1

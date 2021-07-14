@@ -5,10 +5,9 @@ from typing import Any, Dict, Mapping, Optional
 from unittest import skip
 from unittest.mock import patch
 
+from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.api.testing import EduidAPITestCase
-from eduid.webapp.reset_password.helpers import ResetPwMsg
 from eduid.webapp.security.app import SecurityApp, security_init_app
-from eduid.webapp.security.helpers import SecurityMsg
 
 
 @skip('Not used yet')
@@ -158,11 +157,7 @@ class ChangePasswordTests(EduidAPITestCase):
         reauthn = int(time.time())
         response = self._change_password(reauthn=reauthn)
         self._check_success_response(
-            response,
-            type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SUCCESS',
-            # TODO: this endpoint does not return an ResetPwMsg
-            # msg=ResetPwMsg.pw_resetted,
-            msg=None,
+            response, type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SUCCESS', msg=None,
         )
         self.assertEqual(response.json['type'], "POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SUCCESS")
 
@@ -181,19 +176,19 @@ class ChangePasswordTests(EduidAPITestCase):
         data1 = {'new_password': '', 'old_password': ''}
         response = self._change_password(data1=data1)
         self._check_success_response(
-            response, type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL', msg=ResetPwMsg.chpass_no_data
+            response, type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL', msg=TranslatableMsg.security_chpass_no_data
         )
 
     def test_change_passwd_no_reauthn(self):
         response = self._change_password()
         self._check_success_response(
-            response, type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL', msg=SecurityMsg.no_reauthn
+            response, type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL', msg=TranslatableMsg.security_no_reauthn
         )
 
     def test_change_passwd_stale(self):
         response = self._change_password(reauthn=1)
         self._check_success_response(
-            response, type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL', msg=SecurityMsg.stale_reauthn
+            response, type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_FAIL', msg=TranslatableMsg.security_stale_reauthn
         )
 
     @patch('eduid.webapp.security.views.change_password.change_password')

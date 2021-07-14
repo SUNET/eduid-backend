@@ -40,10 +40,9 @@ from eduid.userdb.exceptions import EduIDDBError
 from eduid.userdb.group_management import GroupInviteState, GroupRole
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid.webapp.common.api.exceptions import MailTaskFailed
-from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
+from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response, success_response
 from eduid.webapp.group_management.app import current_group_management_app as current_app
 from eduid.webapp.group_management.helpers import (
-    GroupManagementMsg,
     accept_group_invitation,
     get_incoming_invites,
     get_or_create_scim_user_by_eppn,
@@ -94,11 +93,11 @@ def create_invite(user: User, group_identifier: UUID, email_address: str, role: 
     scim_user = get_scim_user_by_eppn(user.eppn)
     if not scim_user:
         current_app.logger.error('User does not exist in scimapi_userdb')
-        return error_response(message=GroupManagementMsg.user_does_not_exist)
+        return error_response(message=TranslatableMsg.group_management_user_does_not_exist)
 
     if not is_owner(scim_user, group_identifier):
         current_app.logger.error(f'User is not owner of group with scim_id: {group_identifier}')
-        return error_response(message=GroupManagementMsg.user_not_owner)
+        return error_response(message=TranslatableMsg.group_management_user_not_owner)
 
     invite_state = GroupInviteState(
         group_scim_id=str(group_identifier), email_address=email_address, role=role, inviter_eppn=user.eppn
@@ -114,11 +113,11 @@ def create_invite(user: User, group_identifier: UUID, email_address: str, role: 
         group = current_app.scimapi_groupdb.get_group_by_scim_id(invite_state.group_scim_id)
         if not group:
             current_app.logger.error(f'Group with scim_id {invite_state.group_scim_id} not found')
-            return error_response(message=GroupManagementMsg.group_not_found)
+            return error_response(message=TranslatableMsg.group_management_group_not_found)
         try:
             accept_group_invitation(scim_user, group, invite_state)
         except EduIDDBError:
-            return error_response(message=CommonMsg.temp_problem)
+            return error_response(message=TranslatableMsg.temp_problem)
         return outgoing_invites()
 
     try:
@@ -132,7 +131,7 @@ def create_invite(user: User, group_identifier: UUID, email_address: str, role: 
     try:
         send_invite_email(invite_state)
     except MailTaskFailed:
-        return error_response(message=CommonMsg.temp_problem)
+        return error_response(message=TranslatableMsg.temp_problem)
     current_app.stats.count(name='invite_created')
     return outgoing_invites()
 
@@ -145,11 +144,11 @@ def delete_invite(user: User, group_identifier: UUID, email_address: str, role: 
     scim_user = get_scim_user_by_eppn(user.eppn)
     if not scim_user:
         current_app.logger.error('User does not exist in scimapi_userdb')
-        return error_response(message=GroupManagementMsg.user_does_not_exist)
+        return error_response(message=TranslatableMsg.group_management_user_does_not_exist)
 
     if not is_owner(scim_user, group_identifier):
         current_app.logger.error(f'User is not owner of group with scim_id: {group_identifier}')
-        return error_response(message=GroupManagementMsg.user_not_owner)
+        return error_response(message=TranslatableMsg.group_management_user_not_owner)
 
     invite_state = current_app.invite_state_db.get_state(
         group_scim_id=str(group_identifier), email_address=email_address, role=role, raise_on_missing=False
@@ -157,19 +156,19 @@ def delete_invite(user: User, group_identifier: UUID, email_address: str, role: 
 
     if not invite_state:
         current_app.logger.error(f'Invite for group {group_identifier} does not exist')
-        return error_response(message=GroupManagementMsg.invite_not_found)
+        return error_response(message=TranslatableMsg.group_management_invite_not_found)
 
     # Remove group invite
     try:
         current_app.invite_state_db.remove_state(invite_state)
     except EduIDDBError:
-        return error_response(message=CommonMsg.temp_problem)
+        return error_response(message=TranslatableMsg.temp_problem)
     current_app.stats.count(name='invite_deleted')
 
     try:
         send_delete_invite_email(invite_state)
     except MailTaskFailed:
-        return error_response(message=CommonMsg.temp_problem)
+        return error_response(message=TranslatableMsg.temp_problem)
 
     return outgoing_invites()
 
@@ -183,14 +182,14 @@ def accept_invite(user: User, group_identifier: UUID, email_address: str, role: 
     user_email_address = user.mail_addresses.find(email_address)
     if not user_email_address or not user_email_address.is_verified:
         current_app.logger.error(f'User has not verified email address: {email_address}')
-        return error_response(message=GroupManagementMsg.mail_address_not_verified)
+        return error_response(message=TranslatableMsg.group_management_mail_address_not_verified)
 
     invite_state = current_app.invite_state_db.get_state(
         group_scim_id=str(group_identifier), email_address=email_address, role=role, raise_on_missing=False
     )
     if not invite_state:
         current_app.logger.error(f'Invite for group {group_identifier} does not exist')
-        return error_response(message=GroupManagementMsg.invite_not_found)
+        return error_response(message=TranslatableMsg.group_management_invite_not_found)
 
     # Invite exists and current user is the one invited
     scim_user = get_or_create_scim_user_by_eppn(user.eppn)
@@ -198,13 +197,13 @@ def accept_invite(user: User, group_identifier: UUID, email_address: str, role: 
     group = current_app.scimapi_groupdb.get_group_by_scim_id(invite_state.group_scim_id)
     if not group:
         current_app.logger.error(f'Group with scim_id {invite_state.group_scim_id} not found')
-        return error_response(message=GroupManagementMsg.group_not_found)
+        return error_response(message=TranslatableMsg.group_management_group_not_found)
 
     # Try to add user to group
     try:
         accept_group_invitation(scim_user, group, invite_state)
     except EduIDDBError:
-        return error_response(message=CommonMsg.temp_problem)
+        return error_response(message=TranslatableMsg.temp_problem)
 
     current_app.invite_state_db.remove_state(invite_state)
     current_app.stats.count(name=f'invite_accepted_{invite_state.role.value}')
@@ -220,20 +219,20 @@ def decline_invite(user: User, group_identifier: UUID, email_address: str, role:
     user_email_address = user.mail_addresses.find(email_address)
     if not user_email_address or not user_email_address.is_verified:
         current_app.logger.error(f'User has not verified email address: {email_address}')
-        return error_response(message=GroupManagementMsg.mail_address_not_verified)
+        return error_response(message=TranslatableMsg.group_management_mail_address_not_verified)
 
     invite_state = current_app.invite_state_db.get_state(
         group_scim_id=str(group_identifier), email_address=email_address, role=role, raise_on_missing=False
     )
     if not invite_state:
         current_app.logger.error('Invite does not exist')
-        return error_response(message=GroupManagementMsg.invite_not_found)
+        return error_response(message=TranslatableMsg.group_management_invite_not_found)
 
     # Remove group invite
     try:
         current_app.invite_state_db.remove_state(invite_state)
     except EduIDDBError:
-        return error_response(message=CommonMsg.temp_problem)
+        return error_response(message=TranslatableMsg.temp_problem)
 
     current_app.stats.count(name=f'invite_declined_{invite_state.role.value}')
     return incoming_invites()

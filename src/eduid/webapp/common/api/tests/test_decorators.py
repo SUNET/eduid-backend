@@ -3,9 +3,8 @@ from unittest.case import TestCase
 import flask
 
 from eduid.webapp.common.api.decorators import MarshalWith
-from eduid.webapp.common.api.messages import FluxData, error_response, success_response
+from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response, success_response
 from eduid.webapp.common.api.schemas.base import FluxStandardAction
-from eduid.webapp.common.api.tests.test_messages import TestsMsg
 
 test_views = flask.Blueprint('test', __name__, url_prefix='/test', template_folder='templates')
 
@@ -23,7 +22,7 @@ class MarshalDecoratorTests(TestCase):
 
     def test_success_message(self):
         """ Test that a simple success_message is turned into a well-formed Flux Standard Action response"""
-        msg = success_response(message=TestsMsg.fst_test_msg)
+        msg = success_response(message=TranslatableMsg.test_fst_test_msg)
         with self.app.test_request_context('/test/foo'):
             response = self.flask_view(msg)
             assert response.json == {
@@ -33,7 +32,7 @@ class MarshalDecoratorTests(TestCase):
 
     def test_success_message_with_data(self):
         """ Test that a success_message with data is turned into a well-formed Flux Standard Action response"""
-        msg = success_response(payload={'working': True}, message=TestsMsg.fst_test_msg)
+        msg = success_response(payload={'working': True}, message=TranslatableMsg.test_fst_test_msg)
         with self.app.test_request_context('/test/foo'):
             response = self.flask_view(msg)
             assert response.json == {
@@ -43,7 +42,7 @@ class MarshalDecoratorTests(TestCase):
 
     def test_error_message(self):
         """ Test that a simple success_message is turned into a well-formed Flux Standard Action response"""
-        msg = error_response(message=TestsMsg.fst_test_msg)
+        msg = error_response(message=TranslatableMsg.test_fst_test_msg)
         with self.app.test_request_context('/test/foo'):
             response = self.flask_view(msg)
             assert response.json == {
@@ -54,7 +53,7 @@ class MarshalDecoratorTests(TestCase):
 
     def test_error_message_with_data(self):
         """ Test that an error_message with data is turned into a well-formed Flux Standard Action response"""
-        msg = error_response(payload={'working': True}, message=TestsMsg.fst_test_msg)
+        msg = error_response(payload={'working': True}, message=TranslatableMsg.test_fst_test_msg)
         with self.app.test_request_context('/test/foo'):
             response = self.flask_view(msg)
             assert response.json == {

@@ -7,9 +7,9 @@ from typing import Any, Dict, Mapping
 from mock import patch
 
 from eduid.common.rpc.lookup_mobile_relay import LookupMobileTaskFailed
+from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.lookup_mobile_proofing.app import MobileProofingApp, init_lookup_mobile_proofing_app
-from eduid.webapp.lookup_mobile_proofing.helpers import MobileMsg
 
 __author__ = 'lundberg'
 
@@ -164,7 +164,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
             response = browser.post('/proofing', data=json.dumps(data), content_type=self.content_type_json)
             response = json.loads(response.data)
         self.assertEqual('POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL', response['type'])
-        self.assertEqual(MobileMsg.lookup_error.value, response['payload']['message'])
+        self.assertEqual(TranslatableMsg.lookup_mobile_lookup_error.value, response['payload']['message'])
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.count, 1)

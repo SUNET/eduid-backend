@@ -43,7 +43,7 @@ from eduid.userdb.fixtures.users import mocked_user_standard
 from eduid.userdb.userdb import User
 from eduid.webapp.actions.action_abc import ActionPlugin
 from eduid.webapp.actions.app import ActionsApp, actions_init_app
-from eduid.webapp.actions.helpers import ActionsMsg
+from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.session import session
 
@@ -76,19 +76,19 @@ class TestingActionPlugin(ActionPlugin):
 
     def get_url_for_bundle(self, action):
         if 'action_error' in action.to_dict()['params']:
-            raise self.ActionError(ActionsMsg.test_error)
+            raise self.ActionError(TranslatableMsg.actions_test_error)
         return "http://example.com/plugin.js"
 
     def get_config_for_bundle(self, action):
         if 'action_error' in action.to_dict()['params']:
-            raise self.ActionError(ActionsMsg.test_error)
+            raise self.ActionError(TranslatableMsg.actions_test_error)
         return {'setting1': 'dummy'}
 
     def perform_step(self, action):
         if 'action_error' in action.to_dict()['params']:
-            raise self.ActionError(ActionsMsg.test_error)
+            raise self.ActionError(TranslatableMsg.actions_test_error)
         if 'rm_action' in action.to_dict()['params']:
-            raise self.ActionError(ActionsMsg.test_error, rm=True)
+            raise self.ActionError(TranslatableMsg.actions_test_error, rm=True)
         if 'validation_error' in action.to_dict()['params']:
             raise self.ValidationError({'field1': 'field test error'})
         return {'completed': 'done'}

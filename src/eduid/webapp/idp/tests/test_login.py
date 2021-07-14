@@ -7,8 +7,9 @@ from saml2.authn_context import requested_authn_context
 from saml2.client import Saml2Client
 
 from eduid.vccs.client import VCCSClient
+from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.authn.utils import get_saml2_config
-from eduid.webapp.idp.helpers import IdPAction, IdPMsg
+from eduid.webapp.idp.helpers import IdPAction
 from eduid.webapp.idp.tests.test_api import IdPAPITests
 from eduid.webapp.idp.tests.test_app import IdPTests, LoginState
 from eduid.workers.am import AmCelerySingleton
@@ -201,7 +202,7 @@ class IdPTestLoginAPI(IdPAPITests):
         result = self._try_login(username=self.test_user.eppn, password='bar')
         assert result.visit_order == [IdPAction.PWAUTH, IdPAction.PWAUTH]
         assert result.sso_cookie_val is None
-        assert result.pwauth_result.payload['message'] == IdPMsg.wrong_credentials.value
+        assert result.pwauth_result.payload['message'] == TranslatableMsg.idp_wrong_credentials.value
 
     def test_login_pwauth_right_password(self):
         # pre-accept ToU for this test
@@ -214,7 +215,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
         assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
         assert result.sso_cookie_val is not None
-        assert result.finished_result.payload['message'] == IdPMsg.finished.value
+        assert result.finished_result.payload['message'] == TranslatableMsg.idp_finished.value
         assert result.finished_result.payload['target'] == 'https://sp.example.edu/saml2/acs/'
         assert result.finished_result.payload['parameters']['RelayState'] == self.relay_state
         # TODO: test parsing the SAML response
@@ -230,7 +231,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
         assert result.visit_order == [IdPAction.PWAUTH, IdPAction.TOU, IdPAction.FINISHED]
         assert result.sso_cookie_val is not None
-        assert result.finished_result.payload['message'] == IdPMsg.finished.value
+        assert result.finished_result.payload['message'] == TranslatableMsg.idp_finished.value
         assert result.finished_result.payload['target'] == 'https://sp.example.edu/saml2/acs/'
         assert result.finished_result.payload['parameters']['RelayState'] == self.relay_state
         # TODO: test parsing the SAML response

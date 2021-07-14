@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from dataclasses import asdict, dataclass
-from enum import unique
 from typing import Any, Dict, List, Optional, Set, Union
 from uuid import UUID
 
@@ -15,28 +14,10 @@ from eduid.userdb.exceptions import DocumentDoesNotExist, EduIDDBError
 from eduid.userdb.group_management import GroupInviteState
 from eduid.webapp.common.api.exceptions import MailTaskFailed
 from eduid.webapp.common.api.helpers import send_mail
-from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.group_management.app import current_group_management_app as current_app
 from eduid.webapp.group_management.schemas import GroupRole
 
 __author__ = 'lundberg'
-
-
-@unique
-class GroupManagementMsg(TranslatableMsg):
-    """
-    Messages sent to the front end with information on the results of the
-    attempted operations on the back end.
-    """
-
-    user_does_not_exist = 'group.user_does_not_exist'
-    user_to_be_removed_does_not_exist = 'group.user_to_be_removed_does_not_exist'
-    can_not_remove_last_owner = 'group.can_not_remove_last_owner'
-    group_not_found = 'group.group_not_found'
-    invite_not_found = 'group.invite_not_found'
-    create_failed = 'group.create_failed'
-    user_not_owner = 'group.user_not_owner'
-    mail_address_not_verified = 'group.mail_address_not_verified'
 
 
 @dataclass
