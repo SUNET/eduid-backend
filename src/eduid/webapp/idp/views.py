@@ -52,7 +52,7 @@ from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.authn import fido_tokens
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData
-from eduid.webapp.common.session.namespaces import OnetimeCredential, OnetimeCredType, RequestRef
+from eduid.webapp.common.session.namespaces import MfaActionError, OnetimeCredential, OnetimeCredType, RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import get_requested_authn_context
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
@@ -335,6 +335,16 @@ def mfa_auth(ref: RequestRef, webauthn_response: Optional[Dict[str, str]] = None
         # Clear mfa_action from session when we've consumed it
         del session.mfa_action
         return success_response(payload={'finished': True})
+
+    # External MFA was tried and failed
+    if session.mfa_action.error is not None:
+        # mfa_action.error is set in the eidas app
+        if session.mfa_action.error is MfaActionError.authn_context_mismatch:
+            return error_response(message=IdPMsg.eidas_authn_context_mismatch)
+        elif session.mfa_action.error is MfaActionError.authn_to_old:
+            return error_response(message=IdPMsg.eidas_reauthn_expired)
+        elif session.mfa_action.error is MfaActionError.nin_not_matching:
+            return error_response(message=IdPMsg.eidas_nin_not_matching)
 
     #
     # No external MFA

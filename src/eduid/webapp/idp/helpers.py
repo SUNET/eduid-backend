@@ -26,6 +26,10 @@ class IdPMsg(str, TranslatableMsg):
     user_terminated = 'login.user_terminated'
     wrong_credentials = 'login.wrong_credentials'
     wrong_user = 'login.wrong_user'
+    # copied from eidas.helpers.EidasMsg
+    eidas_authn_context_mismatch = 'eidas.authn_context_mismatch'
+    eidas_reauthn_expired = 'eidas.reauthn_expired'
+    eidas_nin_not_matching = 'eidas.nin_not_matching'
 
 
 @unique
