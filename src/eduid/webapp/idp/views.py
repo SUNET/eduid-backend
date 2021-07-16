@@ -336,14 +336,16 @@ def mfa_auth(ref: RequestRef, webauthn_response: Optional[Dict[str, str]] = None
         del session.mfa_action
         return success_response(payload={'finished': True})
 
-    # External MFA was tried and failed
+    # External MFA was tried and failed, mfa_action.error is set in the eidas app
     if session.mfa_action.error is not None:
-        # mfa_action.error is set in the eidas app
-        if session.mfa_action.error is MfaActionError.authn_context_mismatch:
+        error = session.mfa_action.error
+        # Clear mfa_action from session when we've consumed it
+        del session.mfa_action
+        if error is MfaActionError.authn_context_mismatch:
             return error_response(message=IdPMsg.eidas_authn_context_mismatch)
-        elif session.mfa_action.error is MfaActionError.authn_too_old:
+        elif error is MfaActionError.authn_too_old:
             return error_response(message=IdPMsg.eidas_reauthn_expired)
-        elif session.mfa_action.error is MfaActionError.nin_not_matching:
+        elif error is MfaActionError.nin_not_matching:
             return error_response(message=IdPMsg.eidas_nin_not_matching)
 
     #
