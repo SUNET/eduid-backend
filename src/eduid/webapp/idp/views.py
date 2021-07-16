@@ -347,6 +347,8 @@ def mfa_auth(ref: RequestRef, webauthn_response: Optional[Dict[str, str]] = None
             return error_response(message=IdPMsg.eidas_reauthn_expired)
         elif error is MfaActionError.nin_not_matching:
             return error_response(message=IdPMsg.eidas_nin_not_matching)
+        else:
+            current_app.logger.warning(f'eidas returned {session.mfa_action.error} that did not match an error message')
 
     #
     # No external MFA
