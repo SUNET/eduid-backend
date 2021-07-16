@@ -277,7 +277,7 @@ def mfa_authentication_action(session_info: SessionInfo, authndata: SP_AuthnRequ
         return redirect_with_msg(redirect_url, EidasMsg.authn_context_mismatch)
 
     if not is_valid_reauthn(session_info):
-        session.mfa_action.error = MfaActionError.authn_to_old
+        session.mfa_action.error = MfaActionError.authn_too_old
         return redirect_with_msg(redirect_url, EidasMsg.reauthn_expired)
 
     # Check that third party service returned a NIN

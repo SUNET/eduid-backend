@@ -341,7 +341,7 @@ def mfa_auth(ref: RequestRef, webauthn_response: Optional[Dict[str, str]] = None
         # mfa_action.error is set in the eidas app
         if session.mfa_action.error is MfaActionError.authn_context_mismatch:
             return error_response(message=IdPMsg.eidas_authn_context_mismatch)
-        elif session.mfa_action.error is MfaActionError.authn_to_old:
+        elif session.mfa_action.error is MfaActionError.authn_too_old:
             return error_response(message=IdPMsg.eidas_reauthn_expired)
         elif session.mfa_action.error is MfaActionError.nin_not_matching:
             return error_response(message=IdPMsg.eidas_nin_not_matching)

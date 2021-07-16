@@ -47,7 +47,7 @@ class LoginApplication(str, Enum):
 @unique
 class MfaActionError(str, Enum):
     authn_context_mismatch = 'authn_context_mismatch'
-    authn_to_old = 'authn_to_old'
+    authn_too_old = 'authn_too_old'
     nin_not_matching = 'nin_not_matching'
 
 

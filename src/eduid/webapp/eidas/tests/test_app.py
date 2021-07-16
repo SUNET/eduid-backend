@@ -763,7 +763,7 @@ class EidasTests(EduidAPITestCase):
             endpoint='/mfa-authentication',
             age=61,
             expect_msg=EidasMsg.reauthn_expired,
-            expect_mfa_action_error=MfaActionError.authn_to_old,
+            expect_mfa_action_error=MfaActionError.authn_too_old,
             expect_error=True,
         )
 
