@@ -30,6 +30,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from copy import deepcopy
 from datetime import timedelta
 from typing import Any, Dict, List, Optional, Sequence, Union
 
@@ -52,7 +53,7 @@ from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.authn import fido_tokens
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData
-from eduid.webapp.common.session.namespaces import OnetimeCredential, OnetimeCredType, RequestRef
+from eduid.webapp.common.session.namespaces import MfaActionError, OnetimeCredential, OnetimeCredType, RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import get_requested_authn_context
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
@@ -313,15 +314,21 @@ def mfa_auth(ref: RequestRef, webauthn_response: Optional[Dict[str, str]] = None
         current_app.logger.error(f'User with eppn {sso_session.eppn} (from SSO session) not found')
         return error_response(message=IdPMsg.general_failure)
 
+    # Clear mfa_action from session, so that we know if the user did external MFA
+    # Yes - this should be done even if the user has FIDO credentials because the user might
+    # opt to do external MFA anyways.
+    session_mfa_action = deepcopy(session.mfa_action)
+    del session.mfa_action
+
     # Third party service MFA
-    if session.mfa_action.success is True:  # Explicit check that success is the boolean True
-        current_app.logger.info(f'User {user} logged in using external MFA service {session.mfa_action.issuer}')
+    if session_mfa_action.success is True:  # Explicit check that success is the boolean True
+        current_app.logger.info(f'User {user} logged in using external MFA service {session_mfa_action.issuer}')
 
         _utc_now = utc_now()
 
         # External MFA authentication
         sso_session.external_mfa = ExternalMfaData(
-            issuer=session.mfa_action.issuer, authn_context=session.mfa_action.authn_context, timestamp=_utc_now
+            issuer=session_mfa_action.issuer, authn_context=session_mfa_action.authn_context, timestamp=_utc_now
         )
         # Remember the MFA credential used for this particular request
         otc = OnetimeCredential(
@@ -332,19 +339,24 @@ def mfa_auth(ref: RequestRef, webauthn_response: Optional[Dict[str, str]] = None
         )
         session.idp.log_credential_used(ref, otc, _utc_now)
 
-        # Clear mfa_action from session when we've consumed it
-        del session.mfa_action
         return success_response(payload={'finished': True})
+
+    # External MFA was tried and failed, mfa_action.error is set in the eidas app
+    if session_mfa_action.error is not None:
+        if session_mfa_action.error is MfaActionError.authn_context_mismatch:
+            return error_response(message=IdPMsg.eidas_authn_context_mismatch)
+        elif session_mfa_action.error is MfaActionError.authn_too_old:
+            return error_response(message=IdPMsg.eidas_reauthn_expired)
+        elif session_mfa_action.error is MfaActionError.nin_not_matching:
+            return error_response(message=IdPMsg.eidas_nin_not_matching)
+        else:
+            current_app.logger.warning(f'eidas returned {session_mfa_action.error} that did not match an error message')
+            return error_response(message=IdPMsg.general_failure)
 
     #
     # No external MFA
     #
     if webauthn_response is None:
-        # Clear mfa_action from session, so that we know if the user did external MFA
-        # Yes - this should be done even if the user has FIDO credentials because the user might
-        # opt to do external MFA anyways.
-        del session.mfa_action
-
         payload: Dict[str, Any] = {'finished': False}
 
         candidates = user.credentials.filter(FidoCredential)

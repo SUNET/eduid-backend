@@ -52,8 +52,8 @@ class EidasConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MsgConfig
     action_url: str
     token_service_url: str
 
-    token_verify_redirect_url: str = '/profile/security'
-    nin_verify_redirect_url: str = '/profile/nins'
+    token_verify_redirect_url: str
+    nin_verify_redirect_url: str
 
     # Federation config
     authentication_context_map: Dict[str, str] = Field(

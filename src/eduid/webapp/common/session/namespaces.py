@@ -44,6 +44,13 @@ class LoginApplication(str, Enum):
     signup = 'signup'
 
 
+@unique
+class MfaActionError(str, Enum):
+    authn_context_mismatch = 'authn_context_mismatch'
+    authn_too_old = 'authn_too_old'
+    nin_not_matching = 'nin_not_matching'
+
+
 class Common(SessionNSBase):
     eppn: Optional[str] = None
     is_logged_in: bool = False
@@ -53,6 +60,7 @@ class Common(SessionNSBase):
 
 class MfaAction(SessionNSBase):
     success: bool = False
+    error: Optional[MfaActionError] = None
     # Third-party MFA parameters
     issuer: Optional[str] = None
     authn_instant: Optional[str] = None
