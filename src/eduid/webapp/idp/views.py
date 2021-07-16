@@ -348,7 +348,7 @@ def mfa_auth(ref: RequestRef, webauthn_response: Optional[Dict[str, str]] = None
         elif error is MfaActionError.nin_not_matching:
             return error_response(message=IdPMsg.eidas_nin_not_matching)
         else:
-            current_app.logger.warning(f'eidas returned {session.mfa_action.error} that did not match an error message')
+            current_app.logger.warning(f'eidas returned {error} that did not match an error message')
             return error_response(message=IdPMsg.general_failure)
 
     #
