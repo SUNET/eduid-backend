@@ -31,7 +31,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from copy import deepcopy
-from datetime import timedelta
 from typing import Any, Dict, List, Optional, Sequence, Union
 
 from bson import ObjectId
@@ -44,7 +43,6 @@ from eduid.userdb import ToUEvent
 from eduid.userdb.actions.tou import ToUUser
 from eduid.userdb.credentials import FidoCredential
 from eduid.userdb.exceptions import UserOutOfSync
-from eduid.userdb.idp import IdPUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.exceptions import EduidForbidden, EduidTooManyRequests
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
@@ -171,17 +169,19 @@ def next(ref: RequestRef) -> FluxData:
     if _next.message == IdPMsg.must_authenticate:
         return success_response(
             message=IdPMsg.must_authenticate,
-            payload={'action': IdPAction.PWAUTH.value, 'target': url_for('idp.pw_auth')},
+            payload={'action': IdPAction.PWAUTH.value, 'target': url_for('idp.pw_auth', _external=True)},
         )
 
     if _next.message == IdPMsg.mfa_required:
         return success_response(
-            message=IdPMsg.mfa_required, payload={'action': IdPAction.MFA.value, 'target': url_for('idp.mfa_auth')}
+            message=IdPMsg.mfa_required,
+            payload={'action': IdPAction.MFA.value, 'target': url_for('idp.mfa_auth', _external=True)},
         )
 
     if _next.message == IdPMsg.tou_required:
         return success_response(
-            message=IdPMsg.tou_required, payload={'action': IdPAction.TOU.value, 'target': url_for('idp.tou')}
+            message=IdPMsg.tou_required,
+            payload={'action': IdPAction.TOU.value, 'target': url_for('idp.tou', _external=True)},
         )
 
     if _next.message == IdPMsg.user_terminated:
