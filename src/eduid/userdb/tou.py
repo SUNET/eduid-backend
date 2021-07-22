@@ -35,7 +35,6 @@
 from __future__ import annotations
 
 import datetime
-from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Type
 
 from eduid.userdb.event import Event, EventList
@@ -43,7 +42,6 @@ from eduid.userdb.exceptions import EduIDUserDBError, UserDBValueError
 from eduid.userdb.util import utc_now
 
 
-@dataclass
 class ToUEvent(Event):
     """
     A record of a user's acceptance of a particular version of the Terms of Use.

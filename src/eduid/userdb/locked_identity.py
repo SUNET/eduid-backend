@@ -1,27 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Dict, Type
-
 from eduid.userdb.element import Element, ElementList
 from eduid.userdb.exceptions import EduIDUserDBError
 
 __author__ = 'lundberg'
 
 
-@dataclass
-class _LockedIdentityElementRequired:
-    """
-    Required fields for LockedElement, so that they go before the optional
-    arguments of Element in the implicit constructor.
-    """
-
-    identity_type: str
-
-
-@dataclass
-class LockedIdentityElement(Element, _LockedIdentityElementRequired):
+class LockedIdentityElement(Element):
 
     """
     Element that is used to lock an identity to a user
@@ -31,6 +17,8 @@ class LockedIdentityElement(Element, _LockedIdentityElementRequired):
         identity_type
     """
 
+    identity_type: str
+
     @property
     def key(self) -> str:
         """
@@ -39,18 +27,7 @@ class LockedIdentityElement(Element, _LockedIdentityElementRequired):
         return self.identity_type
 
 
-@dataclass
-class _LockedIdentityNinRequired:
-    """
-    Required fields for LockedElementNin, so that they go before the optional
-    arguments of Element in the implicit constructor.
-    """
-
-    number: str
-
-
-@dataclass
-class LockedIdentityNin(LockedIdentityElement, _LockedIdentityNinRequired):
+class LockedIdentityNin(LockedIdentityElement):
 
     """
     Element that is used to lock a NIN to a user
@@ -60,6 +37,7 @@ class LockedIdentityNin(LockedIdentityElement, _LockedIdentityNinRequired):
         number
     """
 
+    number: str
     identity_type: str = 'nin'
 
 

@@ -33,15 +33,13 @@
 #
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, ClassVar, Dict, Optional, Type
+from typing import Any, Dict, Optional, Type
 
 from eduid.userdb.element import PrimaryElement, PrimaryElementList
 
 __author__ = 'ft'
 
 
-@dataclass
 class PhoneNumber(PrimaryElement):
     """
     """

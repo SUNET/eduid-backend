@@ -25,10 +25,8 @@ class LogDB(BaseDB):
         @return: Boolean
         @rtype: bool
         """
-        if log_element.validate():
-            self._insert(log_element.to_dict())
-            return True
-        return False
+        self._insert(log_element.to_dict())
+        return True
 
 
 class ProofingLog(LogDB):

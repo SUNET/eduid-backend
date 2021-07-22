@@ -1,26 +1,18 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Dict, Mapping, Type, Union
 
 from eduid.userdb.element import Element
 
 
-@dataclass
-class _CodeElementRequired:
+class CodeElement(Element):
     """
     """
 
     code: str
     is_verified: bool
-
-
-@dataclass
-class CodeElement(Element, _CodeElementRequired):
-    """
-    """
 
     @property
     def key(self) -> str:

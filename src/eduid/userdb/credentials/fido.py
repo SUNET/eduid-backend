@@ -45,43 +45,23 @@ __author__ = 'ft'
 from eduid.userdb.credentials.base import CredentialKey
 
 
-@dataclass
-class _FidoCredentialRequired:
-    """
-    Required fields for FidoCredential, so that they go before the optional
-    arguments of Element in the implicit constructor.
-    """
-
-    keyhandle: str
-    app_id: str
-
-
-@dataclass
-class FidoCredential(Credential, _FidoCredentialRequired):
+class FidoCredential(Credential):
     """
     Token authentication credential
     """
 
+    keyhandle: str
+    app_id: str
     description: str = ''
 
 
-@dataclass
-class _U2FCredentialRequired:
-    """
-    Required fields for U2F, so that they go before the optional
-    arguments in the implicit constructor.
-    """
-
-    version: str
-    public_key: str
-
-
-@dataclass
-class U2F(FidoCredential, _U2FCredentialRequired):
+class U2F(FidoCredential):
     """
     U2F token authentication credential
     """
 
+    version: str
+    public_key: str
     attest_cert: Optional[str] = None
 
     @property

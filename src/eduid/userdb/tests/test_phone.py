@@ -2,6 +2,9 @@ import copy
 import datetime
 import unittest
 
+import pytest
+from pydantic import ValidationError
+
 import eduid.userdb.element
 import eduid.userdb.exceptions
 from eduid.userdb.element import Element
@@ -90,7 +93,7 @@ class TestPhoneNumberList(unittest.TestCase):
         assert got == expected, 'Phone number list contains wrong data'
 
     def test_add_another_primary(self):
-        new = eduid.userdb.phone.phone_from_dict({'number': '+46700000009', 'verified': True, 'primary': True,})
+        new = PhoneNumber(number='+46700000009', is_verified=True, is_primary=True)
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
             self.one.add(new)
 
@@ -231,8 +234,12 @@ class TestPhoneNumber(unittest.TestCase):
     def test_unknown_input_data(self):
         one = copy.deepcopy(_one_dict)
         one['foo'] = 'bar'
-        with self.assertRaises(TypeError):
+        with pytest.raises(ValidationError) as exc_info:
             PhoneNumber.from_dict(one)
+
+        assert exc_info.value.errors() == [
+            {'loc': ('foo',), 'msg': 'extra fields not permitted', 'type': 'value_error.extra'}
+        ]
 
     def test_changing_is_verified_on_primary(self):
         this = self.one.primary

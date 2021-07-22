@@ -33,25 +33,23 @@
 #
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, Optional, Type, Union
+
+from pydantic import validator
 
 from eduid.userdb.element import PrimaryElement, PrimaryElementList
 
 __author__ = 'ft'
 
 
-@dataclass()
-class _MailAddressRequired:
+class MailAddress(PrimaryElement):
     email: str
 
-    def __post_init__(self):
-        self.email = self.email.lower()
-
-
-@dataclass()
-class MailAddress(PrimaryElement, _MailAddressRequired):
-    """"""
+    @validator('email')
+    def validate_email(cls, v):
+        if not isinstance(v, str):
+            ValueError('must be a string')
+        return v.lower()
 
     @property
     def key(self) -> Optional[str]:
@@ -66,9 +64,6 @@ class MailAddress(PrimaryElement, _MailAddressRequired):
         Transform data received in eduid format into pythonic format.
         """
         data = super()._from_dict_transform(data)
-
-        if 'added_timestamp' in data:
-            data['created_ts'] = data.pop('added_timestamp')
 
         if 'csrf' in data:
             del data['csrf']

@@ -3,6 +3,9 @@ import datetime
 import unittest
 from unittest import TestCase
 
+import pytest
+from pydantic import ValidationError
+
 import eduid.userdb.element
 import eduid.userdb.exceptions
 from eduid.userdb.element import Element
@@ -188,8 +191,12 @@ class TestMailAddress(TestCase):
     def test_unknown_input_data(self):
         one = copy.deepcopy(_one_dict)
         one['foo'] = 'bar'
-        with self.assertRaises(TypeError):
+        with pytest.raises(ValidationError) as exc_info:
             MailAddress.from_dict(one)
+
+        assert exc_info.value.errors() == [
+            {'loc': ('foo',), 'msg': 'extra fields not permitted', 'type': 'value_error.extra'}
+        ]
 
     def test_changing_is_verified_on_primary(self):
         this = self.one.primary

@@ -32,9 +32,10 @@
 #
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, Mapping, Optional, Type, TypeVar
+
+from pydantic import validator
 
 from eduid.userdb.element import Element, VerifiedElement
 
@@ -44,7 +45,6 @@ __author__ = 'lundberg'
 TProofingElementSubclass = TypeVar('TProofingElementSubclass', bound='ProofingElement')
 
 
-@dataclass
 class ProofingElement(VerifiedElement):
     """
     Element for holding the state of a proofing flow. It should contain meta data needed for logging
@@ -78,17 +78,7 @@ class ProofingElement(VerifiedElement):
         return data
 
 
-@dataclass
-class _NumberProofingElementRequired:
-    """
-    Required fields for NinProofingElement and PhoneProofingElement
-    """
-
-    number: str
-
-
-@dataclass
-class NinProofingElement(ProofingElement, _NumberProofingElementRequired):
+class NinProofingElement(ProofingElement):
     """
     Element for holding the state of a nin proofing flow.
 
@@ -103,22 +93,10 @@ class NinProofingElement(ProofingElement, _NumberProofingElementRequired):
         verification_code
     """
 
-
-@dataclass
-class _EmailProofingElementRequired:
-    """
-    Required fields for EmailProofingElement
-    """
-
-    email: str
-
-    def __post_init__(self):
-        # Make sure email is lowercase on init as we had trouble with mixed case
-        self.email = self.email.lower()
+    number: str
 
 
-@dataclass
-class EmailProofingElement(ProofingElement, _EmailProofingElementRequired):
+class EmailProofingElement(ProofingElement):
     """
     Element for holding the state of an email proofing flow.
 
@@ -133,9 +111,16 @@ class EmailProofingElement(ProofingElement, _EmailProofingElementRequired):
         verification_code
     """
 
+    email: str
 
-@dataclass
-class PhoneProofingElement(ProofingElement, _NumberProofingElementRequired):
+    @validator('email')
+    def validate_email(cls, v):
+        if not isinstance(v, str):
+            ValueError('must be a string')
+        return v.lower()
+
+
+class PhoneProofingElement(ProofingElement):
     """
     Element for holding the state of a phone number proofing flow.
 
@@ -150,8 +135,9 @@ class PhoneProofingElement(ProofingElement, _NumberProofingElementRequired):
         verification_code
     """
 
+    number: str
 
-@dataclass
+
 class SentLetterElement(Element):
     """
     Properties of SentLetterElement:

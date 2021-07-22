@@ -33,7 +33,6 @@
 #
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
 from eduid.userdb.element import PrimaryElement, PrimaryElementList
@@ -41,7 +40,6 @@ from eduid.userdb.element import PrimaryElement, PrimaryElementList
 __author__ = 'ft'
 
 
-@dataclass
 class Nin(PrimaryElement):
     """
     """

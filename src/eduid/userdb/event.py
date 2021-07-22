@@ -34,10 +34,10 @@
 #
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Type, TypeVar
 
 from bson import ObjectId
+from pydantic import validator
 
 from eduid.userdb.element import DuplicateElementViolation, Element, ElementList
 from eduid.userdb.exceptions import BadEvent, UserDBValueError
@@ -53,7 +53,6 @@ class EventId(ObjectId):
 TEventSubclass = TypeVar('TEventSubclass', bound='Event')
 
 
-@dataclass
 class Event(Element):
     """
     """
@@ -63,7 +62,19 @@ class Event(Element):
     event_id: Optional[str] = None
     # This is a short-term hack to deploy new dataclass based events without
     # any changes to data in the production database. Remove after a burn-in period.
-    _no_event_type_in_db: bool = False
+    no_event_type_in_db: bool = False
+
+    class Config:
+        arbitrary_types_allowed = True  # allow event_id: ObjectId
+
+    @validator('event_id', pre=True)
+    def event_id_objectid(cls, v):
+        """ Turn string into ObjectId """
+        if isinstance(v, str):
+            v = ObjectId(v)
+        if not isinstance(v, ObjectId):
+            raise TypeError('must be a string or ObjectId')
+        return v
 
     @property
     def key(self) -> EventId:
@@ -78,7 +89,7 @@ class Event(Element):
         data = super()._from_dict_transform(data)
 
         if 'event_type' not in data:
-            data['_no_event_type_in_db'] = True  # Remove this line when Event._no_event_type_in_db is removed
+            data['no_event_type_in_db'] = True  # Remove this line when Event.no_event_type_in_db is removed
 
         if 'id' in data:
             data['event_id'] = data.pop('id')
@@ -93,8 +104,8 @@ class Event(Element):
 
         # If there was no event_type in the data that was loaded from the database,
         # don't write one back if it matches the implied one of 'tou_event'
-        if '_no_event_type_in_db' in data:
-            if data.pop('_no_event_type_in_db') == True:
+        if 'no_event_type_in_db' in data:
+            if data.pop('no_event_type_in_db') == True:
                 if 'event_type' in data:
                     del data['event_type']
 
