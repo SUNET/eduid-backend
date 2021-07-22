@@ -437,15 +437,25 @@ def set_new_pw_extra_security_token(
             'authenticatorData': authenticator_data,
             'signature': signature,
         }
+        if not session.mfa_action.webauthn_state:
+            current_app.logger.error(f'No webauthn state in session')
+            return error_response(message=ResetPwMsg.missing_data)
+
         try:
             result = fido_tokens.verify_webauthn(
-                user=context.user, request_dict=request_dict, rp_id=current_app.conf.fido2_rp_id,
+                user=context.user,
+                request_dict=request_dict,
+                rp_id=current_app.conf.fido2_rp_id,
+                state=session.mfa_action,
             )
             success = result.success
             if success:
                 current_app.stats.count(name='extra_security_security_key_webauthn_success')
         except fido_tokens.VerificationProblem:
             pass
+        finally:
+            # reset webauthn_state to avoid challenge reuse
+            session.mfa_action.webauthn_state = None
     else:
         current_app.logger.error(f'No webauthn data in request for {context.user}')
 
