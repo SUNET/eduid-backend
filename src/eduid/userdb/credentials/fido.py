@@ -73,16 +73,6 @@ class U2F(FidoCredential):
         return CredentialKey('sha256:' + _digest)
 
 
-def u2f_from_dict(data: Dict[str, Any]) -> U2F:
-    """
-    Create an U2F instance from a dict.
-
-    :param data: Credential parameters from database
-    """
-    return U2F.from_dict(data)
-
-
-@dataclass
 class Webauthn(FidoCredential):
     """
     Webauthn token authentication credential
@@ -98,12 +88,3 @@ class Webauthn(FidoCredential):
         """
         _digest = sha256(self.keyhandle.encode('utf-8') + self.credential_data.encode('utf-8')).hexdigest()
         return CredentialKey('sha256:' + _digest)
-
-
-def webauthn_from_dict(data: Dict[str, Any]) -> Webauthn:
-    """
-    Create an Webauthn instance from a dict.
-
-    :param data: Credential parameters from database
-    """
-    return Webauthn.from_dict(data)
