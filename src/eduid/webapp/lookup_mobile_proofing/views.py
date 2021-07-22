@@ -45,7 +45,7 @@ def proofing(user: User, nin: str) -> FluxData:
         return error_response(message=MobileMsg.no_phone)
 
     try:
-        success, proofing_log_entry = match_mobile_to_user(user, nin, verified_mobiles)
+        proofing_log_entry = match_mobile_to_user(user, nin, verified_mobiles)
     except LookupMobileTaskFailed:
         current_app.stats.count('validate_nin_by_mobile_error')
         return error_response(message=MobileMsg.lookup_error)
@@ -53,7 +53,7 @@ def proofing(user: User, nin: str) -> FluxData:
         current_app.stats.count('navet_error')
         return error_response(message=CommonMsg.navet_error)
 
-    if success:
+    if proofing_log_entry:
         try:
             # Verify nin for user
             if not verify_nin_for_user(user, proofing_state, proofing_log_entry):

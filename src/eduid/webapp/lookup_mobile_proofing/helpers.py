@@ -70,13 +70,13 @@ def create_proofing_state(user: User, nin: str) -> NinProofingState:
 
 def match_mobile_to_user(
     user: User, self_asserted_nin: str, verified_mobile_numbers: List[str]
-) -> Tuple[bool, Optional[TeleAdressProofing]]:
+) -> Optional[TeleAdressProofing]:
     """
     :param user: Central userdb user
     :param self_asserted_nin: Self asserted national identity number
     :param verified_mobile_numbers: Verified mobile numbers
 
-    :return: Tuple with (True|False, proofing_log_entry|None,)
+    :return: A proofing log entry on success
     """
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
 
@@ -98,7 +98,7 @@ def match_mobile_to_user(
             proofing_version='2014v1',
         )
         current_app.stats.count('validate_nin_by_mobile_magic_cookie')
-        return True, proofing_log_entry
+        return proofing_log_entry
 
     age = nin_to_age(self_asserted_nin)
 
@@ -107,10 +107,10 @@ def match_mobile_to_user(
             registered_to_nin = current_app.lookup_mobile_relay.find_nin_by_mobile(mobile_number)
             registered_to_nin = format_NIN(registered_to_nin)
             current_app.logger.debug(f'Mobile {mobile_number} registered to NIN: {registered_to_nin}')
-        except LookupMobileTaskFailed as e:
+        except LookupMobileTaskFailed:
             current_app.logger.error('Lookup mobile task failed for user')
             current_app.logger.debug(f'Mobile number: {mobile_number}')
-            raise e
+            raise
 
         # Check if registered nin was the self asserted nin
         if registered_to_nin == self_asserted_nin:
@@ -128,7 +128,7 @@ def match_mobile_to_user(
                 proofing_version='2014v1',
             )
             current_app.stats.count('validate_nin_by_mobile_exact_match')
-            return True, proofing_log_entry
+            return proofing_log_entry
         # Check if registered nin is related to given nin if the user is under 18 years of age
         elif registered_to_nin and age < 18:
             relations = current_app.msg_relay.get_relations_to(self_asserted_nin, registered_to_nin)
@@ -159,7 +159,7 @@ def match_mobile_to_user(
                     proofing_version='2014v1',
                 )
                 current_app.stats.count('validate_nin_by_mobile_relative_match')
-                return True, proofing_log_entry
+                return proofing_log_entry
         # No match
         else:
             current_app.logger.info(f'Mobile {mobile_number} number NOT matched to users NIN')
@@ -168,4 +168,4 @@ def match_mobile_to_user(
 
     # None of the users verified mobile phone numbers matched the NIN
     current_app.stats.count('validate_nin_by_mobile_no_match')
-    return False, None
+    return None
