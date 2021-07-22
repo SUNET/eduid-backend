@@ -47,7 +47,6 @@ from eduid.userdb.logs import MailAddressProofing, PhoneNumberProofing
 from eduid.userdb.reset_password import (
     ResetPasswordEmailAndPhoneState,
     ResetPasswordEmailState,
-    ResetPasswordState,
     ResetPasswordUser,
 )
 from eduid.userdb.reset_password.element import CodeElement
@@ -389,7 +388,9 @@ def get_extra_security_alternatives(user: User) -> dict:
     tokens = fido_tokens.get_user_credentials(user)
 
     if tokens:
-        alternatives['tokens'] = fido_tokens.start_token_verification(user, current_app.conf.fido2_rp_id)
+        alternatives['tokens'] = fido_tokens.start_token_verification(
+            user, current_app.conf.fido2_rp_id, session.mfa_action
+        )
 
     return alternatives
 

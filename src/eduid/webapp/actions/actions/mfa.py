@@ -67,7 +67,7 @@ class Plugin(ActionPlugin):
         if not user:
             raise self.ActionError(ActionsMsg.user_not_found)
 
-        config = fido_tokens.start_token_verification(user, current_app.conf.fido2_rp_id)
+        config = fido_tokens.start_token_verification(user, current_app.conf.fido2_rp_id, session.mfa_action)
 
         # Explicit check for boolean True
         if current_app.conf.mfa_testing is True:
@@ -114,10 +114,17 @@ class Plugin(ActionPlugin):
         # Process POSTed data
         if 'authenticatorData' in req_json:
             # CTAP2/Webauthn
+            if not session.mfa_action.webauthn_state:
+                current_app.logger.error(f'No webauthn state in session')
+                raise self.ActionError(ActionsMsg.no_data)
+
             try:
-                result = fido_tokens.verify_webauthn(user, req_json, current_app.conf.fido2_rp_id)
+                result = fido_tokens.verify_webauthn(user, req_json, current_app.conf.fido2_rp_id, session.mfa_action)
             except fido_tokens.VerificationProblem as exc:
                 raise self.ActionError(exc.msg)
+            finally:
+                # reset webauthn_state to avoid challenge reuse
+                session.mfa_action.webauthn_state = None
 
             action.result = ActionResultMFA(
                 success=result.success,

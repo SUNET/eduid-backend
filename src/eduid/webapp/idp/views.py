@@ -317,18 +317,18 @@ def mfa_auth(ref: RequestRef, webauthn_response: Optional[Dict[str, str]] = None
     # Clear mfa_action from session, so that we know if the user did external MFA
     # Yes - this should be done even if the user has FIDO credentials because the user might
     # opt to do external MFA anyways.
-    session_mfa_action = deepcopy(session.mfa_action)
+    saved_mfa_action = deepcopy(session.mfa_action)
     del session.mfa_action
 
     # Third party service MFA
-    if session_mfa_action.success is True:  # Explicit check that success is the boolean True
-        current_app.logger.info(f'User {user} logged in using external MFA service {session_mfa_action.issuer}')
+    if saved_mfa_action.success is True:  # Explicit check that success is the boolean True
+        current_app.logger.info(f'User {user} logged in using external MFA service {saved_mfa_action.issuer}')
 
         _utc_now = utc_now()
 
         # External MFA authentication
         sso_session.external_mfa = ExternalMfaData(
-            issuer=session_mfa_action.issuer, authn_context=session_mfa_action.authn_context, timestamp=_utc_now
+            issuer=saved_mfa_action.issuer, authn_context=saved_mfa_action.authn_context, timestamp=_utc_now
         )
         # Remember the MFA credential used for this particular request
         otc = OnetimeCredential(
@@ -342,15 +342,15 @@ def mfa_auth(ref: RequestRef, webauthn_response: Optional[Dict[str, str]] = None
         return success_response(payload={'finished': True})
 
     # External MFA was tried and failed, mfa_action.error is set in the eidas app
-    if session_mfa_action.error is not None:
-        if session_mfa_action.error is MfaActionError.authn_context_mismatch:
+    if saved_mfa_action.error is not None:
+        if saved_mfa_action.error is MfaActionError.authn_context_mismatch:
             return error_response(message=IdPMsg.eidas_authn_context_mismatch)
-        elif session_mfa_action.error is MfaActionError.authn_too_old:
+        elif saved_mfa_action.error is MfaActionError.authn_too_old:
             return error_response(message=IdPMsg.eidas_reauthn_expired)
-        elif session_mfa_action.error is MfaActionError.nin_not_matching:
+        elif saved_mfa_action.error is MfaActionError.nin_not_matching:
             return error_response(message=IdPMsg.eidas_nin_not_matching)
         else:
-            current_app.logger.warning(f'eidas returned {session_mfa_action.error} that did not match an error message')
+            current_app.logger.warning(f'eidas returned {saved_mfa_action.error} that did not match an error message')
             return error_response(message=IdPMsg.general_failure)
 
     #
@@ -361,7 +361,7 @@ def mfa_auth(ref: RequestRef, webauthn_response: Optional[Dict[str, str]] = None
 
         candidates = user.credentials.filter(FidoCredential)
         if candidates.count:
-            options = fido_tokens.start_token_verification(user, current_app.conf.fido2_rp_id)
+            options = fido_tokens.start_token_verification(user, current_app.conf.fido2_rp_id, session.mfa_action)
             payload.update(options)
 
         return success_response(payload=payload)
@@ -369,8 +369,12 @@ def mfa_auth(ref: RequestRef, webauthn_response: Optional[Dict[str, str]] = None
     #
     # Process webauthn_response
     #
+    if not saved_mfa_action.webauthn_state:
+        current_app.logger.error(f'No active webauthn challenge found in the session, can\'t do verification')
+        return error_response(message=IdPMsg.general_failure)
+
     try:
-        result = fido_tokens.verify_webauthn(user, webauthn_response, current_app.conf.fido2_rp_id)
+        result = fido_tokens.verify_webauthn(user, webauthn_response, current_app.conf.fido2_rp_id, saved_mfa_action)
     except fido_tokens.VerificationProblem:
         current_app.logger.exception('Webauthn verification failed')
         current_app.logger.debug(f'webauthn_response: {repr(webauthn_response)}')

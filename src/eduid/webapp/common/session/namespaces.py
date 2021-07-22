@@ -58,6 +58,9 @@ class Common(SessionNSBase):
     preferred_language: Optional[str] = None
 
 
+WebauthnState = NewType('WebauthnState', Dict[str, Any])
+
+
 class MfaAction(SessionNSBase):
     success: bool = False
     error: Optional[MfaActionError] = None
@@ -66,7 +69,7 @@ class MfaAction(SessionNSBase):
     authn_instant: Optional[str] = None
     authn_context: Optional[str] = None
     # Webauthn MFA parameters
-    webauthn_state: Optional[Dict[str, Any]] = None
+    webauthn_state: Optional[WebauthnState] = None
 
 
 class TimestampedNS(SessionNSBase):

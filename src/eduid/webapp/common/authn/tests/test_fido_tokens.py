@@ -61,8 +61,10 @@ def start_verification():
     current_app.logger.info('Endpoint start_verification called')
     user = current_app.central_userdb.get_user_by_eppn('hubba-bubba')
     data = json.loads(request.query_string[len('webauthn_request=') :])
+    from eduid.webapp.common.session import session
+
     try:
-        result = verify_webauthn(user, data, current_app.conf.fido2_rp_id).json()
+        result = verify_webauthn(user, data, current_app.conf.fido2_rp_id, session.mfa_action).json()
     except VerificationProblem as exc:
         current_app.logger.error(f'Webauthn verification failed: {repr(exc)}')
         result = {'success': False, 'message': 'mfa.verification-problem'}
@@ -139,9 +141,9 @@ class FidoTokensTestCase(EduidAPITestCase):
         eppn = self.test_user.eppn
 
         with self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction():
+            with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    config = start_token_verification(self.test_user, self.app.conf.fido2_rp_id)
+                    config = start_token_verification(self.test_user, self.app.conf.fido2_rp_id, sess.mfa_action)
                     assert 'u2fdata' not in config
                     assert 'webauthn_options' in config
                     s = config['webauthn_options']
@@ -150,6 +152,7 @@ class FidoTokensTestCase(EduidAPITestCase):
                     assert b'publicKey' in _decoded
                     assert bytes(self.app.conf.fido2_rp_id, 'ascii') in _decoded
                     assert b'challenge' in _decoded
+                    assert sess.mfa_action.webauthn_state is not None
 
     def test_webauthn_start_verification(self):
         # Add a working Webauthn credential for this test
@@ -159,9 +162,9 @@ class FidoTokensTestCase(EduidAPITestCase):
         eppn = self.test_user.eppn
 
         with self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction():
+            with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    config = start_token_verification(self.test_user, self.app.conf.fido2_rp_id)
+                    config = start_token_verification(self.test_user, self.app.conf.fido2_rp_id, sess.mfa_action)
                     assert 'u2fdata' not in config
                     assert 'webauthn_options' in config
                     s = config['webauthn_options']
@@ -170,6 +173,7 @@ class FidoTokensTestCase(EduidAPITestCase):
                     assert b'publicKey' in _decoded
                     assert bytes(self.app.conf.fido2_rp_id, 'ascii') in _decoded
                     assert b'challenge' in _decoded
+                    assert sess.mfa_action.webauthn_state is not None
 
     @patch('fido2.cose.ES256.verify')
     def test_webauthn_verify(self, mock_verify):
