@@ -49,7 +49,7 @@ class Nin(PrimaryElement):
     @property
     def key(self) -> Optional[str]:
         """
-        Return the element that is used as key for nin numberes in a PrimaryElementList.
+        Return the element that is used as key for nin numbers in a PrimaryElementList.
         """
         return self.number
 

@@ -2,6 +2,7 @@
 
 import time
 from enum import unique
+from typing import List, Optional, Tuple
 
 from eduid.common.rpc.lookup_mobile_relay import LookupMobileTaskFailed
 from eduid.userdb import User
@@ -67,18 +68,15 @@ def create_proofing_state(user: User, nin: str) -> NinProofingState:
     return NinProofingState(id=None, modified_ts=None, eppn=proofing_user.eppn, nin=nin_element)
 
 
-def match_mobile_to_user(user, self_asserted_nin, verified_mobile_numbers):
+def match_mobile_to_user(
+    user: User, self_asserted_nin: str, verified_mobile_numbers: List[str]
+) -> Tuple[bool, Optional[TeleAdressProofing]]:
     """
     :param user: Central userdb user
     :param self_asserted_nin: Self asserted national identity number
     :param verified_mobile_numbers: Verified mobile numbers
 
-    :type user: eduid.userdb.user.User
-    :type self_asserted_nin: six.string_types
-    :type verified_mobile_numbers: list
-
-    :return: True|False, proofing_log_entry|None
-    :rtype: tuple
+    :return: Tuple with (True|False, proofing_log_entry|None,)
     """
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
 

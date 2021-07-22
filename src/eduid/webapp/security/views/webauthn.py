@@ -150,9 +150,7 @@ def remove(user, credential_key):
         current_app.logger.info(f'User {security_user} has removed a security token: {credential_key}')
         message = SecurityMsg.rm_webauthn
     else:
-        current_app.logger.info(
-            f'User {security_user} has tried to remove a' f' missing security token: {credential_key}'
-        )
+        current_app.logger.info(f'User {security_user} has tried to remove a missing security token: {credential_key}')
         message = SecurityMsg.no_webauthn
 
     credentials = compile_credential_list(security_user)

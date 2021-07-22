@@ -13,7 +13,7 @@ from eduid.userdb.tou import ToUEvent, ToUList
 __author__ = 'ft'
 
 _one_dict = {
-    'id': bson.ObjectId(),  # Keep 'id' instead of event_id to test compatiblity code
+    'id': bson.ObjectId(),  # Keep 'id' instead of event_id to test compatibility code
     'event_type': 'tou_event',
     'version': '1',
     'created_by': 'test',
