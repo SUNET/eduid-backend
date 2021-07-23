@@ -35,10 +35,10 @@ _three_dict = {
 class TestMailAddressList(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
-        self.empty = MailAddressList([])
-        self.one = MailAddressList([_one_dict])
-        self.two = MailAddressList([_one_dict, _two_dict])
-        self.three = MailAddressList([_one_dict, _two_dict, _three_dict])
+        self.empty = MailAddressList()
+        self.one = MailAddressList.from_list_of_dicts([_one_dict])
+        self.two = MailAddressList.from_list_of_dicts([_one_dict, _two_dict])
+        self.three = MailAddressList.from_list_of_dicts([_one_dict, _two_dict, _three_dict])
 
     def test_init_bad_data(self):
         with self.assertRaises(eduid.userdb.element.UserDBValueError):
@@ -76,7 +76,7 @@ class TestMailAddressList(unittest.TestCase):
 
     def test_add_mailaddress(self):
         third = self.three.find('ft@three.example.org')
-        this = MailAddressList([_one_dict, _two_dict, third])
+        this = MailAddressList.from_list_of_dicts([_one_dict, _two_dict, third.to_dict()])
 
         expected = self.three.to_list_of_dicts()
         obtained = this.to_list_of_dicts()
@@ -153,7 +153,7 @@ class TestMailAddressList(unittest.TestCase):
         one['primary'] = True
         two['primary'] = True
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
-            MailAddressList([one, two])
+            MailAddressList.from_list_of_dicts([one, two])
 
     def test_bad_input_unverified_primary(self):
         one = copy.deepcopy(_one_dict)
@@ -164,10 +164,10 @@ class TestMailAddressList(unittest.TestCase):
 
 class TestMailAddress(TestCase):
     def setUp(self):
-        self.empty = MailAddressList([])
-        self.one = MailAddressList([_one_dict])
-        self.two = MailAddressList([_one_dict, _two_dict])
-        self.three = MailAddressList([_one_dict, _two_dict, _three_dict])
+        self.empty = MailAddressList()
+        self.one = MailAddressList.from_list_of_dicts([_one_dict])
+        self.two = MailAddressList.from_list_of_dicts([_one_dict, _two_dict])
+        self.three = MailAddressList.from_list_of_dicts([_one_dict, _two_dict, _three_dict])
 
     def test_key(self):
         """
@@ -184,7 +184,7 @@ class TestMailAddress(TestCase):
             this_list = this.to_list_of_dicts()
 
             expected = this.to_list_of_dicts()
-            cycled = MailAddressList(this_list).to_list_of_dicts()
+            cycled = MailAddressList.from_list_of_dicts(this_list).to_list_of_dicts()
 
             assert cycled == expected
 

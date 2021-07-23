@@ -37,6 +37,8 @@ from __future__ import annotations
 import datetime
 from typing import Any, Dict, List, Optional, Type
 
+from pydantic import Field
+
 from eduid.userdb.event import Event, EventList
 from eduid.userdb.exceptions import EduIDUserDBError, UserDBValueError
 from eduid.userdb.util import utc_now
@@ -84,8 +86,18 @@ class ToUList(EventList):
           has_accepted() is the interface to find an ToU event using a version number.
     """
 
-    def __init__(self, events):
-        EventList.__init__(self, events, event_class=ToUEvent)
+    elements: List[ToUEvent] = Field(default_factory=list)
+
+    def _get_elements(self) -> List[ToUEvent]:
+        """
+        This construct allows typing to infer the correct type of the elements
+        when called from functions in the superclass.
+        """
+        return self.elements
+
+    @classmethod
+    def from_list_of_dicts(cls: Type[ToUList], items: List[Dict[str, Any]]) -> ToUList:
+        return cls(elements=[ToUEvent.from_dict(this) for this in items])
 
     def add(self, event: ToUEvent) -> None:
         """ Add a ToUEvent to the list. """
@@ -128,8 +140,3 @@ class ToUList(EventList):
             if this.version == version and not this.is_expired(interval_seconds=reaccept_interval):
                 return True
         return False
-
-    @property
-    def elements(self) -> List[ToUEvent]:
-        """ Return typing friendly list of ToU events """
-        return [x for x in self._elements if isinstance(x, ToUEvent)]

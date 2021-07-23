@@ -42,14 +42,14 @@ _three_dict = {
 
 class TestEventList(TestCase):
     def setUp(self):
-        self.empty = EventList([])
-        self.one = EventList([_one_dict])
-        self.two = EventList([_one_dict, _two_dict])
-        self.three = EventList([_one_dict, _two_dict, _three_dict])
+        self.empty = EventList()
+        self.one = EventList.from_list_of_dicts([_one_dict])
+        self.two = EventList.from_list_of_dicts([_one_dict, _two_dict])
+        self.three = EventList.from_list_of_dicts([_one_dict, _two_dict, _three_dict])
 
     def test_init_bad_data(self):
         with self.assertRaises(eduid.userdb.element.UserDBValueError):
-            EventList('bad input data')
+            EventList(elements='bad input data')
 
     def test_to_list(self):
         self.assertEqual([], self.empty.to_list(), list)
@@ -114,7 +114,7 @@ class TestEventList(TestCase):
             'id': bson.ObjectId(),
         }
         with self.assertRaises(eduid.userdb.exceptions.BadEvent) as cm:
-            EventList([e1])
+            EventList.from_list_of_dicts([e1])
         exc = cm.exception
         self.assertIn('Unknown event_type', exc.reason)
 
@@ -127,7 +127,7 @@ class TestEventList(TestCase):
             'created_ts': datetime.datetime(2015, 9, 24, 1, 1, 1, 111111),
         }
         self.assertNotIn('modified_ts', _event_no_modified_ts)
-        el = EventList([_event_no_modified_ts])
+        el = EventList.from_list_of_dicts([_event_no_modified_ts])
         assert el.count == 1
         for event in el.to_list_of_dicts():
             # As long as the _no_modified_ts_in_db property exists on Element, we expect
@@ -152,7 +152,7 @@ class TestEventList(TestCase):
             'modified_ts': datetime.datetime(2015, 9, 24, 1, 1, 1, 111111),
         }
         self.assertIn('modified_ts', _event_modified_ts)
-        el = EventList([_event_modified_ts])
+        el = EventList.from_list_of_dicts([_event_modified_ts])
         event = el.to_list()[0]
 
         self.assertIsInstance(event.modified_ts, datetime.datetime)
@@ -184,5 +184,5 @@ class TestEventList(TestCase):
                 "created_by": "eduid_tou_plugin",
             },
         ]
-        el = ToUList(data)
+        el = ToUList.from_list_of_dicts(data)
         self.assertEqual(el.count, 2)

@@ -145,9 +145,9 @@ class TestNewUser(unittest.TestCase):
         self.user1 = User(
             user_id=ObjectId('547357c3d00690878ae9b620'),
             eppn='guvat-nalif',
-            mail_addresses=MailAddressList(mailAliases_list),
-            credentials=CredentialList(password_list),
-            nins=NinList(nin_list),
+            mail_addresses=MailAddressList(elements=mailAliases_list),
+            credentials=CredentialList(elements=password_list),
+            nins=NinList(elements=nin_list),
             subject=SubjectType('physical person'),
             entitlements=[u'http://foo.example.org'],
             language='en',
@@ -207,10 +207,10 @@ class TestNewUser(unittest.TestCase):
             eppn='birub-gagoz',
             display_name='Some \xf6ne',
             given_name='Some',
-            mail_addresses=MailAddressList(mailAliases_list),
-            phone_numbers=PhoneNumberList(phone_list),
-            credentials=CredentialList(credential_list),
-            profiles=ProfileList([profile]),
+            mail_addresses=MailAddressList(elements=mailAliases_list),
+            phone_numbers=PhoneNumberList(elements=phone_list),
+            credentials=CredentialList(elements=credential_list),
+            profiles=ProfileList(elements=[profile]),
             language='sv',
             surname='\xf6ne',
             subject=SubjectType('physical person'),
@@ -568,7 +568,7 @@ class TestNewUser(unittest.TestCase):
             u'mailAliases': [{u'email': u'test@gmail.com', u'verified': True}],
             u'phone': [
                 {u'number': u'+11111111111', u'primary': True, u'verified': False},
-                {u'number': u'+22222222222', u'primary': False, u'verified': True,},
+                {u'number': u'+22222222222', u'primary': False, u'verified': True},
             ],
             u'passwords': [
                 {
@@ -587,12 +587,12 @@ class TestNewUser(unittest.TestCase):
         Basic test for user ToU.
         """
         tou_dict = {
-            'event_id': ObjectId(),
+            'event_id': str(ObjectId()),
             'event_type': 'tou_event',
             'version': '1',
             'created_by': 'unit test',
         }
-        tou_events = ToUList([tou_dict])
+        tou_events = ToUList.from_list_of_dicts([tou_dict])
         data = self.data1
         data.update({'tou': tou_events.to_list_of_dicts()})
         user = User.from_dict(data)
@@ -605,13 +605,13 @@ class TestNewUser(unittest.TestCase):
         Basic test for user ToU.
         """
         tou_dict = {
-            'event_id': ObjectId(),
+            'event_id': str(ObjectId()),
             'event_type': 'tou_event',
             'version': '1',
             'created_by': 'unit test',
             'created_ts': utc_now(),
         }
-        tou_events = ToUList([tou_dict])
+        tou_events = ToUList.from_list_of_dicts([tou_dict])
         data = self.data1
         data.update({'tou': tou_events.to_list_of_dicts()})
         user = User.from_dict(data)
@@ -747,7 +747,7 @@ class TestNewUser(unittest.TestCase):
         """ Test user that has both 'mobile' and 'phone' """
         phone = [
             {'number': '+4673123', 'primary': True, 'verified': True},
-            {'created_by': 'phone', 'number': '+4670999', 'primary': False, 'verified': False,},
+            {'created_by': 'phone', 'number': '+4670999', 'primary': False, 'verified': False},
         ]
         user = User.from_dict(
             data={
@@ -798,7 +798,7 @@ class TestNewUser(unittest.TestCase):
                 'primary': True,
             },
         ]
-        mail_addresses = MailAddressList(mailAliases_list)
+        mail_addresses = MailAddressList.from_list_of_dicts(mailAliases_list)
 
         to_dict_output = mail_addresses.to_list_of_dicts()
 
@@ -806,11 +806,11 @@ class TestNewUser(unittest.TestCase):
         found = False
         for this in to_dict_output:
             if this['email'] == 'someone+test1@gmail.com':
-                assert this['primary'] == False
+                assert this['primary'] is False
                 # now delete the marking from the to_list_of_dicts output to be able to compare it to the input below
                 del this['primary']
                 found = True
-        assert found == True, 'The non-primary e-mail in the input dict was not marked as non-primary'
+        assert found is True, 'The non-primary e-mail in the input dict was not marked as non-primary'
 
         assert to_dict_output == mailAliases_list
 
@@ -826,7 +826,7 @@ class TestNewUser(unittest.TestCase):
                 'verified': True,
             }
         ]
-        phone_numbers = PhoneNumberList(phone_list)
+        phone_numbers = PhoneNumberList.from_list_of_dicts(phone_list)
         to_dict_result = phone_numbers.to_list_of_dicts()
         assert to_dict_result == phone_list
 
@@ -852,7 +852,7 @@ class TestNewUser(unittest.TestCase):
         }
 
         password_list = [first, second]
-        passwords = CredentialList(password_list)
+        passwords = CredentialList.from_list_of_dicts(password_list)
 
         to_dict_result = passwords.to_list_of_dicts()
 

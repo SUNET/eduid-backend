@@ -1,4 +1,9 @@
+from __future__ import annotations
+
+from typing import Any, Dict, List, Type
+
 from bson import ObjectId
+from pydantic import Field
 
 from eduid.userdb.credentials.base import Credential
 from eduid.userdb.credentials.fido import U2F, Webauthn
@@ -13,17 +18,23 @@ class CredentialList(ElementList):
 
     Provide methods to add, update and remove elements from the list while
     maintaining some governing principles, such as ensuring there no duplicates in the list.
-
-    :param credentials: List of credentials
-    :type credentials: [dict | Password | U2F]
     """
 
-    def __init__(self, creds):
+    elements: List[Credential] = Field(default_factory=list)
+
+    def _get_elements(self) -> List[Credential]:
+        """
+        This construct allows typing to infer the correct type of the elements
+        when called from functions in the superclass.
+        """
+        return self.elements
+
+    @classmethod
+    def from_list_of_dicts(cls: Type[CredentialList], items: List[Dict[str, Any]]) -> CredentialList:
         elements = []
-        for this in creds:
-            if isinstance(this, Credential):
-                credential = this
-            elif isinstance(this, dict) and 'salt' in this:
+        for this in items:
+            credential: Credential
+            if isinstance(this, dict) and 'salt' in this:
                 credential = Password.from_dict(this)
             elif isinstance(this, dict) and 'keyhandle' in this:
                 if 'public_key' in this:
@@ -34,7 +45,7 @@ class CredentialList(ElementList):
                 raise UserHasUnknownData('Unknown credential data (type {}): {!r}'.format(type(this), this))
             elements.append(credential)
 
-        ElementList.__init__(self, elements)
+        return cls(elements=elements)
 
     def add(self, element):
         if self.find(element.key):

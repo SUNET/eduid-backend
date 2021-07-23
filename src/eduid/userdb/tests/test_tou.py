@@ -14,7 +14,7 @@ from eduid.userdb.tou import ToUEvent, ToUList
 __author__ = 'ft'
 
 _one_dict = {
-    'event_id': bson.ObjectId(),
+    'event_id': str(bson.ObjectId()),
     'event_type': 'tou_event',
     'version': '1',
     'created_by': 'test',
@@ -22,7 +22,7 @@ _one_dict = {
 }
 
 _two_dict = {
-    'event_id': bson.ObjectId(),
+    'event_id': str(bson.ObjectId()),
     'event_type': 'tou_event',
     'version': '2',
     'created_by': 'test',
@@ -31,7 +31,7 @@ _two_dict = {
 }
 
 _three_dict = {
-    'event_id': bson.ObjectId(),
+    'event_id': str(bson.ObjectId()),
     'event_type': 'tou_event',
     'version': '3',
     'created_by': 'test',
@@ -42,10 +42,10 @@ _three_dict = {
 
 class TestToUEvent(TestCase):
     def setUp(self):
-        self.empty = EventList([])
-        self.one = EventList([_one_dict])
-        self.two = EventList([_one_dict, _two_dict])
-        self.three = EventList([_one_dict, _two_dict, _three_dict])
+        self.empty = EventList()
+        self.one = EventList.from_list_of_dicts([_one_dict])
+        self.two = EventList.from_list_of_dicts([_one_dict, _two_dict])
+        self.three = EventList.from_list_of_dicts([_one_dict, _two_dict, _three_dict])
 
     def test_key(self):
         """
@@ -60,7 +60,7 @@ class TestToUEvent(TestCase):
         """
         for this in [self.one, self.two, self.three]:
             this_dict = this.to_list_of_dicts()
-            eventlist_again = EventList(this_dict)
+            eventlist_again = EventList.from_list_of_dicts(this_dict)
             self.assertEqual(eventlist_again.to_list_of_dicts(), this.to_list_of_dicts())
 
     def test_created_by(self):
@@ -77,7 +77,7 @@ class TestToUEvent(TestCase):
         self.assertGreater(_two_dict['modified_ts'] - _two_dict['created_ts'], three_years)
         self.assertLess(_three_dict['modified_ts'] - _three_dict['created_ts'], three_years)
 
-        tl = ToUList([_two_dict, _three_dict])
+        tl = ToUList.from_list_of_dicts([_two_dict, _three_dict])
         self.assertTrue(tl.has_accepted(version='2', reaccept_interval=int(three_years.total_seconds())))
         self.assertFalse(tl.has_accepted(version='3', reaccept_interval=int(three_years.total_seconds())))
 
@@ -97,7 +97,7 @@ class TestTouUser(TestCase):
 
     def test_proper_new_user(self):
         one = copy.deepcopy(_one_dict)
-        tou = ToUList([ToUEvent.from_dict(one)])
+        tou = ToUList.from_list_of_dicts([ToUEvent.from_dict(one)])
         userdata = new_user_example.to_dict()
         userid = userdata.pop('_id')
         eppn = userdata.pop('eduPersonPrincipalName')
@@ -107,24 +107,24 @@ class TestTouUser(TestCase):
 
     def test_proper_new_user_no_id(self):
         one = copy.deepcopy(_one_dict)
-        tou = ToUList([ToUEvent.from_dict(one)])
+        tou = ToUList(elements=[ToUEvent.from_dict(one)])
         userdata = new_user_example.to_dict()
-        passwords = CredentialList(userdata['passwords'])
+        passwords = CredentialList.from_list_of_dicts(userdata['passwords'])
         with self.assertRaises(TypeError):
             ToUUser(tou=tou, credentials=passwords)
 
     def test_proper_new_user_no_eppn(self):
         one = copy.deepcopy(_one_dict)
-        tou = ToUList([ToUEvent.from_dict(one)])
+        tou = ToUList.from_list_of_dicts([one])
         userdata = new_user_example.to_dict()
         userid = userdata.pop('_id')
-        passwords = CredentialList(userdata['passwords'])
+        passwords = CredentialList.from_list_of_dicts(userdata['passwords'])
         with self.assertRaises(TypeError):
             ToUUser(user_id=userid, tou=tou, credentials=passwords)
 
     def test_missing_eppn(self):
         one = copy.deepcopy(_one_dict)
-        tou = ToUList([ToUEvent.from_dict(one)])
+        tou = ToUList.from_list_of_dicts([one])
         with self.assertRaises(UserMissingData):
             ToUUser.from_dict(data=dict(tou=tou, userid=USERID))
 

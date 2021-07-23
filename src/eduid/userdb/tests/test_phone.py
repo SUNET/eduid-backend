@@ -39,11 +39,11 @@ _four_dict = {
 
 class TestPhoneNumberList(unittest.TestCase):
     def setUp(self):
-        self.empty = PhoneNumberList([])
-        self.one = PhoneNumberList([_one_dict])
-        self.two = PhoneNumberList([_one_dict, _two_dict])
-        self.three = PhoneNumberList([_one_dict, _two_dict, _three_dict])
-        self.four = PhoneNumberList([_three_dict, _four_dict])
+        self.empty = PhoneNumberList()
+        self.one = PhoneNumberList.from_list_of_dicts([_one_dict])
+        self.two = PhoneNumberList.from_list_of_dicts([_one_dict, _two_dict])
+        self.three = PhoneNumberList.from_list_of_dicts([_one_dict, _two_dict, _three_dict])
+        self.four = PhoneNumberList.from_list_of_dicts([_three_dict, _four_dict])
 
     def test_init_bad_data(self):
         with self.assertRaises(eduid.userdb.element.UserDBValueError):
@@ -85,7 +85,7 @@ class TestPhoneNumberList(unittest.TestCase):
 
     def test_add_phonenumber(self):
         third = self.three.find('+46700000003')
-        this = PhoneNumberList([_one_dict, _two_dict, third])
+        this = PhoneNumberList.from_list_of_dicts([_one_dict, _two_dict, third.to_dict()])
 
         expected = self.three.to_list_of_dicts()
         got = this.to_list_of_dicts()
@@ -190,21 +190,21 @@ class TestPhoneNumberList(unittest.TestCase):
         one['primary'] = True
         two['primary'] = True
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
-            PhoneNumberList([one, two])
+            PhoneNumberList.from_list_of_dicts([one, two])
 
     def test_unverified_primary(self):
         one = copy.deepcopy(_one_dict)
         one['verified'] = False
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
-            PhoneNumberList([one])
+            PhoneNumberList.from_list_of_dicts([one])
 
 
 class TestPhoneNumber(unittest.TestCase):
     def setUp(self):
-        self.empty = PhoneNumberList([])
-        self.one = PhoneNumberList([_one_dict])
-        self.two = PhoneNumberList([_one_dict, _two_dict])
-        self.three = PhoneNumberList([_one_dict, _two_dict, _three_dict])
+        self.empty = PhoneNumberList()
+        self.one = PhoneNumberList.from_list_of_dicts([_one_dict])
+        self.two = PhoneNumberList.from_list_of_dicts([_one_dict, _two_dict])
+        self.three = PhoneNumberList.from_list_of_dicts([_one_dict, _two_dict, _three_dict])
 
     def test_key(self):
         """
@@ -229,7 +229,7 @@ class TestPhoneNumber(unittest.TestCase):
         """
         for this in [self.one, self.two, self.three]:
             this_dict = this.to_list_of_dicts()
-            self.assertEqual(PhoneNumberList(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
+            self.assertEqual(PhoneNumberList.from_list_of_dicts(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
 
     def test_unknown_input_data(self):
         one = copy.deepcopy(_one_dict)

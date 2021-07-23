@@ -33,7 +33,9 @@
 #
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Type
+
+from pydantic import Field
 
 from eduid.userdb.element import PrimaryElement, PrimaryElementList
 
@@ -61,22 +63,20 @@ class NinList(PrimaryElementList):
     Provide methods to add, update and remove elements from the list while
     maintaining some governing principles, such as ensuring there is exactly
     one primary nin number in the list (except if the list is empty).
-
-    :param nins: List of nin number records
-    :type nins: [dict | Nin]
     """
 
-    def __init__(self, nins):
-        elements = []
+    elements: List[Nin] = Field(default_factory=list)
 
-        for this in nins:
-            if isinstance(this, Nin):
-                nin = this
-            else:
-                nin = nin_from_dict(this)
-            elements.append(nin)
+    def _get_elements(self) -> List[Nin]:
+        """
+        This construct allows typing to infer the correct type of the elements
+        when called from functions in the superclass.
+        """
+        return self.elements
 
-        PrimaryElementList.__init__(self, elements)
+    @classmethod
+    def from_list_of_dicts(cls: Type[NinList], items: List[Dict[str, Any]]) -> NinList:
+        return cls(elements=[Nin.from_dict(this) for this in items])
 
     @property
     def primary(self):

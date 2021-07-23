@@ -32,14 +32,14 @@ class ProfileTest(TestCase):
             owner='test owner 2', created_by='test created_by', profile_schema='test schema', profile_data=OPAQUE_DATA,
         )
 
-        profile_list = ProfileList([profile, profile2])
+        profile_list = ProfileList(elements=[profile, profile2])
         self.assertIsNotNone(profile_list)
         self.assertEqual(profile_list.count, 2)
         self.assertIsNotNone(profile_list.find('test owner 1'))
         self.assertIsNotNone(profile_list.find('test owner 2'))
 
     def test_empty_profile_list(self):
-        profile_list = ProfileList([])
+        profile_list = ProfileList()
         self.assertIsNotNone(profile_list)
         self.assertEqual(profile_list.count, 0)
 
@@ -51,4 +51,4 @@ class ProfileTest(TestCase):
         profile2 = Profile.from_dict(profile_dict)
 
         with self.assertRaises(DuplicateElementViolation):
-            ProfileList([profile, profile2])
+            ProfileList(elements=[profile, profile2])

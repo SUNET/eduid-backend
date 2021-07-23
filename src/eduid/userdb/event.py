@@ -122,7 +122,7 @@ class EventList(ElementList):
     :param event_class: Enforce all elements are of this type
     """
 
-    def __init__(self, events: list, event_class: Type[Event] = Event):
+    def old__init__(self, events: list, event_class: Type[Event] = Event):
         self._event_class = event_class
         ElementList.__init__(self, elements=[])
 
@@ -150,13 +150,13 @@ class EventList(ElementList):
                 # Silently accept duplicate identical events to clean out bad entrys from the database
                 return
             raise DuplicateElementViolation("Event {!s} already in list".format(event.key))
-        super(EventList, self).add(event)
+        super().add(event)
 
     def to_list_of_dicts(self) -> List[Dict[str, Any]]:
         """
         Get the elements in a serialized format that can be stored in MongoDB.
         """
-        return [this.to_dict() for this in self._elements if isinstance(this, Event)]
+        return [this.to_dict() for this in self._get_elements() if isinstance(this, Event)]
 
 
 def event_from_dict(data: Dict[str, Any]):

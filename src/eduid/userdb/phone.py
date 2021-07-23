@@ -33,7 +33,9 @@
 #
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, List, Optional, Type
+
+from pydantic import Field
 
 from eduid.userdb.element import PrimaryElement, PrimaryElementList
 
@@ -79,22 +81,20 @@ class PhoneNumberList(PrimaryElementList):
     Provide methods to add, update and remove elements from the list while
     maintaining some governing principles, such as ensuring there is exactly
     one primary phone number in the list (except if the list is empty).
-
-    :param phones: List of phone number records
-    :type phones: [dict | PhoneNumber]
     """
 
-    def __init__(self, phones):
-        elements = []
+    elements: List[PhoneNumber] = Field(default_factory=list)
 
-        for this in phones:
-            if isinstance(this, PhoneNumber):
-                phone = this
-            else:
-                phone = PhoneNumber.from_dict(this)
-            elements.append(phone)
+    def _get_elements(self) -> List[PhoneNumber]:
+        """
+        This construct allows typing to infer the correct type of the elements
+        when called from functions in the superclass.
+        """
+        return self.elements
 
-        PrimaryElementList.__init__(self, elements)
+    @classmethod
+    def from_list_of_dicts(cls: Type[PhoneNumberList], items: List[Dict[str, Any]]) -> PhoneNumberList:
+        return cls(elements=[PhoneNumber.from_dict(this) for this in items])
 
     @property
     def primary(self):

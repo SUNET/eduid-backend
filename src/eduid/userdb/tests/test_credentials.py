@@ -49,11 +49,11 @@ def _keyid(key):
 class TestCredentialList(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None  # make pytest always show full diffs
-        self.empty = CredentialList([])
-        self.one = CredentialList([_one_dict])
-        self.two = CredentialList([_one_dict, _two_dict])
-        self.three = CredentialList([_one_dict, _two_dict, _three_dict])
-        self.four = CredentialList([_one_dict, _two_dict, _three_dict, _four_dict])
+        self.empty = CredentialList()
+        self.one = CredentialList.from_list_of_dicts([_one_dict])
+        self.two = CredentialList.from_list_of_dicts([_one_dict, _two_dict])
+        self.three = CredentialList.from_list_of_dicts([_one_dict, _two_dict, _three_dict])
+        self.four = CredentialList.from_list_of_dicts([_one_dict, _two_dict, _three_dict, _four_dict])
 
     def test_to_list(self):
         self.assertEqual([], self.empty.to_list(), list)
@@ -106,7 +106,7 @@ class TestCredentialList(unittest.TestCase):
 
     def test_add_password(self):
         third = self.three.find(ObjectId('333333333333333333333333'))
-        this = CredentialList([_one_dict, _two_dict] + [third])
+        this = CredentialList.from_list_of_dicts([_one_dict, _two_dict] + [_three_dict])
 
         expected = self.three.to_list_of_dicts()
         obtained = this.to_list_of_dicts()

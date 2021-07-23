@@ -33,9 +33,9 @@
 #
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Type, Union
 
-from pydantic import validator
+from pydantic import Field, validator
 
 from eduid.userdb.element import PrimaryElement, PrimaryElementList
 
@@ -78,22 +78,20 @@ class MailAddressList(PrimaryElementList):
     Provide methods to add, update and remove elements from the list while
     maintaining some governing principles, such as ensuring there is exactly
     one primary e-mail address in the list (except if the list is empty).
-
-    :param addresses: List of e-mail addresses
-    :type addresses: [dict | MailAddress]
     """
 
-    def __init__(self, addresses):
-        elements = []
+    elements: List[MailAddress] = Field(default_factory=list)
 
-        for this in addresses:
-            if isinstance(this, MailAddress):
-                address = this
-            else:
-                address = address_from_dict(this)
-            elements.append(address)
+    def _get_elements(self) -> List[MailAddress]:
+        """
+        This construct allows typing to infer the correct type of the elements
+        when called from functions in the superclass.
+        """
+        return self.elements
 
-        PrimaryElementList.__init__(self, elements)
+    @classmethod
+    def from_list_of_dicts(cls: Type[MailAddressList], items: List[Dict[str, Any]]) -> MailAddressList:
+        return cls(elements=[MailAddress.from_dict(this) for this in items])
 
     @property
     def primary(self):
@@ -121,7 +119,7 @@ class MailAddressList(PrimaryElementList):
         """
         PrimaryElementList.primary.fset(self, email)
 
-    def find(self, email: str) -> Union[MailAddress, bool]:
+    def find(self, email: str) -> Optional[MailAddress]:
         """
         Find an MailAddress from the element list, using the key.
 
@@ -129,7 +127,7 @@ class MailAddressList(PrimaryElementList):
         :return: MailAddress instance if found, or False if none was found
         """
         # implemented here to get proper type information
-        return PrimaryElementList.find(self, email)
+        return super().find(email)
 
 
 def address_from_dict(data):

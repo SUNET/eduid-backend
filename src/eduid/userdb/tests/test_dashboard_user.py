@@ -1,10 +1,8 @@
-import copy
 from unittest import TestCase
 
 from eduid.userdb.credentials import CredentialList
 from eduid.userdb.dashboard import DashboardLegacyUser as User
 from eduid.userdb.dashboard.user import DashboardUser
-from eduid.userdb.exceptions import UserMissingData
 from eduid.userdb.fixtures.users import mocked_user_standard, new_user_example
 
 
@@ -44,7 +42,7 @@ class TestPdataUser(TestCase):
         userdata = new_user_example.to_dict()
         userid = userdata.pop('_id')
         eppn = userdata.pop('eduPersonPrincipalName')
-        passwords = CredentialList(userdata['passwords'])
+        passwords = CredentialList.from_list_of_dicts(userdata['passwords'])
         user = DashboardUser(user_id=userid, eppn=eppn, credentials=passwords)
         self.assertEqual(user.user_id, userid)
         self.assertEqual(user.eppn, eppn)
@@ -53,7 +51,7 @@ class TestPdataUser(TestCase):
         userdata = new_user_example.to_dict()
         userid = userdata.pop('_id')
         eppn = userdata.pop('eduPersonPrincipalName')
-        passwords = CredentialList(userdata['passwords'])
+        passwords = CredentialList.from_list_of_dicts(userdata['passwords'])
         user = DashboardUser(eppn=eppn, credentials=passwords)
         self.assertNotEqual(user.user_id, userid)
 

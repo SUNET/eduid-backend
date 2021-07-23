@@ -79,10 +79,11 @@ subclasses.
 from __future__ import annotations
 
 import copy
+from abc import ABC
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Type, TypeVar
 
-from pydantic import BaseModel, Extra, Field
+from pydantic import BaseModel, Extra, Field, validator
 
 from eduid.userdb.exceptions import EduIDUserDBError, UserDBValueError
 
@@ -301,23 +302,28 @@ class PrimaryElement(VerifiedElement):
         return data
 
 
-class ElementList(object):
+class ElementList(BaseModel, ABC):
     """
     Hold a list of Element instances.
 
     Provide methods to find, add and remove elements from the list.
-
-    :param elements: List of elements
     """
 
-    def __init__(self, elements: List[Element]):
-        for this in elements:
-            if not isinstance(this, Element):
-                raise ValueError("Not an Element")
-        self._elements = elements
+    class Config:
+        validate_assignment = True  # validate data when updated, not just when initialised
+        extra = Extra.forbid  # reject unknown data
+
+    def _get_elements(self):
+        # must be implemented by subclass to get correct type information
+        raise NotImplementedError()
+
+    @classmethod
+    def from_list_of_dicts(cls, items):
+        # must be implemented by subclass to get correct type information
+        raise NotImplementedError()
 
     def __repr__(self):
-        return '<eduID {!s}: {!r}>'.format(self.__class__.__name__, getattr(self, '_elements', None))
+        return '<eduID {!s}: {!r}>'.format(self.__class__.__name__, getattr(self, 'elements', None))
 
     __str__ = __repr__
 
@@ -325,9 +331,8 @@ class ElementList(object):
         """
         Return the list of elements as an iterable.
         :return: List of elements
-        :rtype: [Element]
         """
-        return self._elements
+        return self._get_elements()
 
     def to_list_of_dicts(self) -> List[Dict[str, Any]]:
         """
@@ -335,7 +340,7 @@ class ElementList(object):
 
         :return: List of dicts
         """
-        return [this.to_dict() for this in self._elements]
+        return [this.to_dict() for this in self._get_elements()]
 
     def find(self, key):
         """
@@ -345,7 +350,7 @@ class ElementList(object):
         :return: Element found, or False if none was found
         :rtype: Element | False
         """
-        res = [x for x in self._elements if x.key == key]
+        res = [x for x in self._get_elements() if x.key == key]
         if len(res) == 1:
             return res[0]
         if len(res) > 1:
@@ -363,7 +368,7 @@ class ElementList(object):
         if not isinstance(element, Element):
             raise UserDBValueError("Invalid element: {!r}".format(element))
 
-        self._elements.append(element)
+        self._get_elements().append(element)
         return self
 
     def remove(self, key):
@@ -377,7 +382,7 @@ class ElementList(object):
         if not match:
             raise UserDBValueError("Element not found in list")
 
-        self._elements = [this for this in self._elements if this != match]
+        self.elements = [this for this in self._get_elements() if this != match]
         return self
 
     def filter(self, cls):
@@ -387,14 +392,14 @@ class ElementList(object):
         :param cls: Class of interest
         :return: ElementList
         """
-        return ElementList([x for x in self._elements if isinstance(x, cls)])
+        return type(self)(elements=[x for x in self._get_elements() if isinstance(x, cls)])
 
     @property
     def count(self):
         """
         Return the number of elements in the list
         """
-        return len(self._elements)
+        return len(self._get_elements())
 
 
 class PrimaryElementList(ElementList):
@@ -405,14 +410,13 @@ class PrimaryElementList(ElementList):
     maintaining some governing principles, such as ensuring there is exactly
     one primary element in the list (except if the list is empty or there are
     no confirmed elements).
-
-    :param elements: List of elements
-    :type elements: [dict | Element]
     """
 
-    def __init__(self, elements):
-        self._get_primary(elements)
-        ElementList.__init__(self, elements)
+    @validator('elements', check_fields=False)
+    def validate_primary_elements(cls, v):
+        # call _get_primary to validate the elements - will raise an exception on errors
+        cls._get_primary(v)
+        return v
 
     def add(self, element):
         """
@@ -434,7 +438,7 @@ class PrimaryElementList(ElementList):
         if self.find(element.key):
             raise DuplicateElementViolation("Element {!s} already in list".format(element.key))
 
-        old_list = self._elements
+        old_list = self._get_elements()
         ElementList.add(self, element)
         self._check_primary(old_list)
         return self
@@ -450,7 +454,7 @@ class PrimaryElementList(ElementList):
         :type key: str | unicode
         :return: ElementList
         """
-        old_list = self._elements
+        old_list = self._get_elements()
         ElementList.remove(self, key)
         self._check_primary(old_list)
         return self
@@ -466,7 +470,7 @@ class PrimaryElementList(ElementList):
 
         :rtype: PrimaryElement
         """
-        return self._get_primary(self._elements)
+        return self._get_primary(self._get_elements())
 
     @primary.setter
     def primary(self, key):
@@ -502,12 +506,14 @@ class PrimaryElementList(ElementList):
         :type old_list: list
         """
         try:
-            self._get_primary(self._elements)
+            self._get_primary(self._get_elements())
         except PrimaryElementViolation:
+            raise NotImplementedError('TRY TO CHANGE THIS INTO SOMETHING IN A VALIDATOR INSTEAD')
             self._elements = copy.copy(old_list)
             raise
 
-    def _get_primary(self, elements):
+    @classmethod
+    def _get_primary(cls, elements):
         """
         Find the primary element in a list, and ensure there is exactly one (unless
         there are no confirmed elements, in which case, ensure there are exactly zero).
@@ -528,9 +534,8 @@ class PrimaryElementList(ElementList):
 
         res = [x for x in verified if x.is_primary is True]
         if len(res) != 1:
-            raise PrimaryElementViolation(
-                "{!s} contains {!s}/{!s} primary elements".format(self.__class__.__name__, len(res), len(elements))
-            )
+            _name = cls.__class__.__name__
+            raise PrimaryElementViolation(f'{_name} contains {len(res)}/{len(elements)} primary elements')
         return res[0]
 
     @property
@@ -538,5 +543,5 @@ class PrimaryElementList(ElementList):
         """
         get a PrimaryElementList with only the confirmed elements.
         """
-        verified_elements = [e for e in self._elements if e.is_verified]
-        return self.__class__(verified_elements)
+        verified_elements = [e for e in self._get_elements() if e.is_verified]
+        return self.__class__(elements=verified_elements)

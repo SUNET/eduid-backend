@@ -32,10 +32,10 @@ _three_dict = {
 class TestNinList(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None  # Make pytest show full diffs
-        self.empty = NinList([])
-        self.one = NinList([_one_dict])
-        self.two = NinList([_one_dict, _two_dict])
-        self.three = NinList([_one_dict, _two_dict, _three_dict])
+        self.empty = NinList()
+        self.one = NinList.from_list_of_dicts([_one_dict])
+        self.two = NinList.from_list_of_dicts([_one_dict, _two_dict])
+        self.three = NinList.from_list_of_dicts([_one_dict, _two_dict, _three_dict])
 
     def test_init_bad_data(self):
         with self.assertRaises(eduid.userdb.element.UserDBValueError):
@@ -73,7 +73,7 @@ class TestNinList(unittest.TestCase):
 
     def test_add_mailaddress(self):
         third = self.three.find('197803033456')
-        this = NinList([_one_dict, _two_dict, third])
+        this = NinList.from_list_of_dicts([_one_dict, _two_dict, third.to_dict()])
 
         expected = self.three.to_list_of_dicts()
         obtained = this.to_list_of_dicts()
@@ -159,10 +159,10 @@ class TestNinList(unittest.TestCase):
 
 class TestNin(TestCase):
     def setUp(self):
-        self.empty = NinList([])
-        self.one = NinList([_one_dict])
-        self.two = NinList([_one_dict, _two_dict])
-        self.three = NinList([_one_dict, _two_dict, _three_dict])
+        self.empty = NinList()
+        self.one = NinList.from_list_of_dicts([_one_dict])
+        self.two = NinList.from_list_of_dicts([_one_dict, _two_dict])
+        self.three = NinList.from_list_of_dicts([_one_dict, _two_dict, _three_dict])
 
     def test_key(self):
         """
@@ -177,7 +177,7 @@ class TestNin(TestCase):
         """
         for this in [self.one, self.two, self.three]:
             this_dict = this.to_list_of_dicts()
-            self.assertEqual(NinList(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
+            self.assertEqual(NinList.from_list_of_dicts(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
 
     def test_changing_is_verified_on_primary(self):
         this = self.one.primary
