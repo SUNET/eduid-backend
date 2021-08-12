@@ -3,9 +3,12 @@ import datetime
 import unittest
 from unittest import TestCase
 
+import pytest
+from pydantic import ValidationError
+
 import eduid.userdb.element
 import eduid.userdb.exceptions
-from eduid.userdb.element import Element
+from eduid.userdb import PhoneNumber
 from eduid.userdb.nin import Nin, NinList
 
 __author__ = 'ft'
@@ -38,8 +41,10 @@ class TestNinList(unittest.TestCase):
         self.three = NinList.from_list_of_dicts([_one_dict, _two_dict, _three_dict])
 
     def test_init_bad_data(self):
-        with self.assertRaises(eduid.userdb.element.UserDBValueError):
-            NinList('bad input data')
+        with pytest.raises(ValidationError):
+            NinList(elements='bad input data')
+        with pytest.raises(ValidationError):
+            NinList(elements=['bad input data'])
 
     def test_to_list(self):
         self.assertEqual([], self.empty.to_list(), list)
@@ -66,10 +71,15 @@ class TestNinList(unittest.TestCase):
 
         assert obtained == expected, 'List with removed NIN has unexpected data'
 
-    def test_add_duplicate(self):
+    def test_add_duplicate(self) -> None:
+        assert isinstance(self.two, NinList)
         dup = self.two.find(self.two.primary.number)
-        with self.assertRaises(eduid.userdb.element.DuplicateElementViolation):
+        with pytest.raises(ValidationError) as exc_info:
             self.two.add(dup)
+
+        assert exc_info.value.errors() == [
+            {'loc': ('elements',), 'msg': 'Duplicate element key: \'197801011234\'', 'type': 'value_error'}
+        ]
 
     def test_add_mailaddress(self):
         third = self.three.find('197803033456')
@@ -81,17 +91,25 @@ class TestNinList(unittest.TestCase):
         assert obtained == expected, 'List with added mail address has unexpected data'
 
     def test_add_another_primary(self):
-        new = eduid.userdb.nin.nin_from_dict({'number': '+46700000009', 'verified': True, 'primary': True,})
+        new = eduid.userdb.nin.nin_from_dict({'number': '+46700000009', 'verified': True, 'primary': True})
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
             self.one.add(new)
 
     def test_add_wrong_type(self):
-        elemdict = {
-            'created_by': 'tests',
-        }
-        new = Element.from_dict(elemdict)
-        with self.assertRaises(eduid.userdb.element.UserDBValueError):
+        """ Test adding a phone number to the nin-list.
+        Specifically phone, since pydantic can coerce it into a nin since they both have the 'number' field.
+        """
+        new = PhoneNumber(number='+4612345678')
+        with pytest.raises(ValidationError) as exc_info:
             self.one.add(new)
+        assert exc_info.value.errors() == [
+            {
+                'loc': ('elements',),
+                'msg': "Value of type <class 'eduid.userdb.phone.PhoneNumber'> is not an "
+                "<class 'eduid.userdb.nin.Nin'>",
+                'type': 'type_error',
+            }
+        ]
 
     def test_remove(self):
         now_two = self.three.remove('197803033456')
@@ -122,23 +140,23 @@ class TestNinList(unittest.TestCase):
 
     def test_set_primary_to_same(self):
         match = self.one.primary
-        self.one.primary = match.number
+        self.one.set_primary(match.number)
 
         match = self.two.primary
-        self.two.primary = match.number
+        self.two.set_primary(match.number)
 
     def test_set_unknown_as_primary(self):
         with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
-            self.one.primary = '+46709999999'
+            self.one.set_primary('+46709999999')
 
     def test_set_unverified_as_primary(self):
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
-            self.three.primary = '197803033456'
+            self.three.set_primary('197803033456')
 
     def test_change_primary(self):
         match = self.two.primary
         self.assertEqual(match.number, '197801011234')
-        self.two.primary = '197802022345'
+        self.two.set_primary('197802022345')
         updated = self.two.primary
         self.assertEqual(updated.number, '197802022345')
 
@@ -148,13 +166,13 @@ class TestNinList(unittest.TestCase):
         one['primary'] = True
         two['primary'] = True
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
-            NinList([one, two])
+            NinList.from_list_of_dicts([one, two])
 
     def test_bad_input_unverified_primary(self):
         one = copy.deepcopy(_one_dict)
         one['verified'] = False
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
-            this = NinList([one])
+            NinList.from_list_of_dicts([one])
 
 
 class TestNin(TestCase):

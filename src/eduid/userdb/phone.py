@@ -35,7 +35,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Type
 
-from pydantic import Field
+from pydantic import Field, validator
 
 from eduid.userdb.element import PrimaryElement, PrimaryElementList
 
@@ -46,10 +46,10 @@ class PhoneNumber(PrimaryElement):
     """
     """
 
-    number: Optional[str] = None
+    number: str
 
     @property
-    def key(self) -> Optional[str]:
+    def key(self) -> str:
         """
         Return the element that is used as key for phone numbers in a PrimaryElementList.
         """
@@ -74,7 +74,7 @@ class PhoneNumber(PrimaryElement):
         return data
 
 
-class PhoneNumberList(PrimaryElementList):
+class PhoneNumberList(PrimaryElementList[PhoneNumber]):
     """
     Hold a list of PhoneNumber instance.
 
@@ -83,42 +83,6 @@ class PhoneNumberList(PrimaryElementList):
     one primary phone number in the list (except if the list is empty).
     """
 
-    elements: List[PhoneNumber] = Field(default_factory=list)
-
-    def _get_elements(self) -> List[PhoneNumber]:
-        """
-        This construct allows typing to infer the correct type of the elements
-        when called from functions in the superclass.
-        """
-        return self.elements
-
     @classmethod
     def from_list_of_dicts(cls: Type[PhoneNumberList], items: List[Dict[str, Any]]) -> PhoneNumberList:
         return cls(elements=[PhoneNumber.from_dict(this) for this in items])
-
-    @property
-    def primary(self):
-        """
-        :return: Return the primary PhoneNumber.
-
-        There must always be exactly one primary element in the list, so an
-        PrimaryElementViolation is raised in case this assertion does not hold.
-
-        :rtype: PhoneNumber
-        """
-
-        return PrimaryElementList.primary.fget(self)
-
-    @primary.setter
-    def primary(self, phone):
-        """
-        Mark phone as the users primary PhoneNumber.
-
-        This is a PhoneNumberList operation since it needs to atomically update more than one
-        element in the list. Marking an element as primary will result in some other element
-        loosing it's primary status.
-
-        :param phone: the key of the element to set as primary
-        :type  phone: str | unicode
-        """
-        PrimaryElementList.primary.fset(self, phone)

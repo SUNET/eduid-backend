@@ -34,12 +34,13 @@
 #
 from __future__ import annotations
 
-from typing import Any, Dict, List, NewType, Optional, Type, TypeVar
+from abc import ABC
+from typing import Any, Dict, Generic, Optional, Type, TypeVar
 
 from bson import ObjectId
 from pydantic import validator
 
-from eduid.userdb.element import DuplicateElementViolation, Element, ElementList
+from eduid.userdb.element import Element, ElementList, ListElement
 from eduid.userdb.exceptions import BadEvent, UserDBValueError
 
 
@@ -104,59 +105,22 @@ class Event(Element):
         # If there was no event_type in the data that was loaded from the database,
         # don't write one back if it matches the implied one of 'tou_event'
         if 'no_event_type_in_db' in data:
-            if data.pop('no_event_type_in_db') == True:
+            if data.pop('no_event_type_in_db') is True:
                 if 'event_type' in data:
                     del data['event_type']
 
         return data
 
 
-class EventList(ElementList):
+class EventList(ElementList[ListElement], Generic[ListElement], ABC):
     """
     Hold a list of Event instances.
 
     Provide methods to add, update and remove elements from the list while
     maintaining some governing principles, such as ensuring there no duplicates in the list.
-
-    :param events: List of events
-    :param event_class: Enforce all elements are of this type
     """
 
-    def old__init__(self, events: list, event_class: Type[Event] = Event):
-        self._event_class = event_class
-        ElementList.__init__(self, elements=[])
-
-        if not isinstance(events, list):
-            raise UserDBValueError('events should be a list')
-
-        for this in events:
-            if isinstance(this, self._event_class):
-                self.add(this)
-            else:
-                event: Event
-                if 'event_type' in this:
-                    event = event_from_dict(this)
-                else:
-                    event = self._event_class.from_dict(this)
-                self.add(event)
-
-    def add(self, event) -> None:
-        """ Add an event to the list. """
-        if not isinstance(event, self._event_class):
-            raise UserDBValueError("Invalid event: {!r} (expected {!r})".format(event, self._event_class))
-        existing = self.find(event.key)
-        if existing:
-            if event.to_dict() == existing.to_dict():
-                # Silently accept duplicate identical events to clean out bad entrys from the database
-                return
-            raise DuplicateElementViolation("Event {!s} already in list".format(event.key))
-        super().add(event)
-
-    def to_list_of_dicts(self) -> List[Dict[str, Any]]:
-        """
-        Get the elements in a serialized format that can be stored in MongoDB.
-        """
-        return [this.to_dict() for this in self._get_elements() if isinstance(this, Event)]
+    pass
 
 
 def event_from_dict(data: Dict[str, Any]):

@@ -35,8 +35,6 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Type
 
-from pydantic import Field
-
 from eduid.userdb.element import PrimaryElement, PrimaryElementList
 
 __author__ = 'ft'
@@ -56,7 +54,7 @@ class Nin(PrimaryElement):
         return self.number
 
 
-class NinList(PrimaryElementList):
+class NinList(PrimaryElementList[Nin]):
     """
     Hold a list of Nin instance.
 
@@ -65,44 +63,9 @@ class NinList(PrimaryElementList):
     one primary nin number in the list (except if the list is empty).
     """
 
-    elements: List[Nin] = Field(default_factory=list)
-
-    def _get_elements(self) -> List[Nin]:
-        """
-        This construct allows typing to infer the correct type of the elements
-        when called from functions in the superclass.
-        """
-        return self.elements
-
     @classmethod
     def from_list_of_dicts(cls: Type[NinList], items: List[Dict[str, Any]]) -> NinList:
         return cls(elements=[Nin.from_dict(this) for this in items])
-
-    @property
-    def primary(self):
-        """
-        :return: Return the primary Nin.
-
-        There must always be exactly one primary element in the list, so an
-        PrimaryElementViolation is raised in case this assertion does not hold.
-
-        :rtype: Nin
-        """
-        return PrimaryElementList.primary.fget(self)
-
-    @primary.setter
-    def primary(self, nin):
-        """
-        Mark nin as the users primary Nin.
-
-        This is a NinList operation since it needs to atomically update more than one
-        element in the list. Marking an element as primary will result in some other element
-        loosing it's primary status.
-
-        :param nin: the key of the element to set as primary
-        :type  nin: str | unicode
-        """
-        PrimaryElementList.primary.fset(self, nin)
 
 
 def nin_from_dict(data: Dict[str, Any]) -> Nin:

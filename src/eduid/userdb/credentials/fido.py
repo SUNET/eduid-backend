@@ -34,9 +34,8 @@
 #
 from __future__ import annotations
 
-from dataclasses import dataclass
 from hashlib import sha256
-from typing import Any, Dict, Optional
+from typing import Optional
 
 from eduid.userdb.credentials import Credential
 

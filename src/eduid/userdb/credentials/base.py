@@ -66,13 +66,14 @@ class Credential(VerifiedElement):
             # probably an object id in string format, don't cut it
             shortkey = self.key
         else:
-            shortkey = self.key[:12]
+            shortkey = self.key[:12] + '...'
         if self.is_verified:
-            return '<eduID {!s}(key=\'{!s}...\'): verified=True, proofing=({!r} v {!r})>'.format(
-                self.__class__.__name__, shortkey, self.proofing_method, self.proofing_version
+            return (
+                f'<eduID {self.__class__.__name__}(key={repr(shortkey)}): verified=True, '
+                f'proofing=({repr(self.proofing_method)} v={repr(self.proofing_version)})>'
             )
         else:
-            return '<eduID {!s}(key=\'{!s}...\'): verified=False>'.format(self.__class__.__name__, shortkey)
+            return f'<eduID {self.__class__.__name__}(key={repr(shortkey)}): verified=False>'
 
     def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """

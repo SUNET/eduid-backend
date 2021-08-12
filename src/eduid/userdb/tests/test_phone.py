@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 import eduid.userdb.element
 import eduid.userdb.exceptions
+from eduid.userdb import MailAddress
 from eduid.userdb.element import Element
 from eduid.userdb.phone import PhoneNumber, PhoneNumberList
 
@@ -46,8 +47,10 @@ class TestPhoneNumberList(unittest.TestCase):
         self.four = PhoneNumberList.from_list_of_dicts([_three_dict, _four_dict])
 
     def test_init_bad_data(self):
-        with self.assertRaises(eduid.userdb.element.UserDBValueError):
-            PhoneNumberList('bad input data')
+        with pytest.raises(ValidationError):
+            PhoneNumberList(elements='bad input data')
+        with pytest.raises(ValidationError):
+            PhoneNumberList(elements=['bad input data'])
 
     def test_to_list(self):
         assert self.empty.to_list_of_dicts() == []
@@ -80,8 +83,12 @@ class TestPhoneNumberList(unittest.TestCase):
 
     def test_add_duplicate(self):
         dup = self.two.find(self.two.primary.number)
-        with self.assertRaises(eduid.userdb.element.DuplicateElementViolation):
+        with pytest.raises(ValidationError) as exc_info:
             self.two.add(dup)
+
+        assert exc_info.value.errors() == [
+            {'loc': ('elements',), 'msg': 'Duplicate element key: \'+46700000001\'', 'type': 'value_error'}
+        ]
 
     def test_add_phonenumber(self):
         third = self.three.find('+46700000003')
@@ -98,12 +105,17 @@ class TestPhoneNumberList(unittest.TestCase):
             self.one.add(new)
 
     def test_add_wrong_type(self):
-        elemdict = {
-            'created_by': 'foo',
-        }
-        new = Element.from_dict(elemdict)
-        with self.assertRaises(eduid.userdb.element.UserDBValueError):
+        new = MailAddress(email='ft@example.org')
+        with pytest.raises(ValidationError) as exc_info:
             self.one.add(new)
+        assert exc_info.value.errors() == [
+            {
+                'loc': ('elements',),
+                'msg': "Value of type <class 'eduid.userdb.mail.MailAddress'> is not an "
+                "<class 'eduid.userdb.phone.PhoneNumber'>",
+                'type': 'type_error',
+            }
+        ]
 
     def test_remove(self):
         now_two = self.three.remove('+46700000003')
@@ -148,12 +160,13 @@ class TestPhoneNumberList(unittest.TestCase):
 
     def test_unverify_all(self):
         verified = self.three.verified.to_list()
-        if verified:
-            self.three.primary.is_primary = False
-            for mobile in verified:
-                if not mobile.is_primary:
-                    mobile.is_verified = False
-        self.assertTrue(all([not x.is_verified for x in self.three.to_list()]))
+
+        for mobile in verified:
+            mobile.is_primary = False
+            mobile.is_verified = False
+
+        verified_now = self.three.verified.to_list()
+        assert verified_now == []
 
     def test_primary(self):
         match = self.one.primary
@@ -164,23 +177,23 @@ class TestPhoneNumberList(unittest.TestCase):
 
     def test_set_primary_to_same(self):
         match = self.one.primary
-        self.one.primary = match.number
+        self.one.set_primary(match.number)
 
         match = self.two.primary
-        self.two.primary = match.number
+        self.two.set_primary(match.number)
 
     def test_set_unknown_as_primary(self):
         with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
-            self.one.primary = '+46709999999'
+            self.one.set_primary('+46709999999')
 
     def test_set_unverified_as_primary(self):
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
-            self.three.primary = '+46700000003'
+            self.three.set_primary('+46700000003')
 
     def test_change_primary(self):
         match = self.two.primary
         self.assertEqual(match.number, '+46700000001')
-        self.two.primary = '+46700000002'
+        self.two.set_primary('+46700000002')
         updated = self.two.primary
         self.assertEqual(updated.number, '+46700000002')
 

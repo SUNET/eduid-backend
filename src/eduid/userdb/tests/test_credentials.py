@@ -1,11 +1,13 @@
 import unittest
 from hashlib import sha256
 
+import pytest
 from bson.objectid import ObjectId
+from pydantic import ValidationError
 
 import eduid.userdb.element
 import eduid.userdb.exceptions
-from eduid.userdb.credentials import U2F, CredentialList
+from eduid.userdb.credentials import CredentialList, U2F
 
 __author__ = 'lundberg'
 
@@ -16,7 +18,6 @@ __author__ = 'lundberg'
 #    'created_ts': datetime.datetime.utcnow(),
 # }}
 from eduid.userdb.credentials.password import Password
-from eduid.userdb.testing import normalised_data
 
 _one_dict = {
     'credential_id': '111111111111111111111111',
@@ -80,7 +81,7 @@ class TestCredentialList(unittest.TestCase):
     def test_find_with_objectid(self):
         """ Test that backwards compatibility in find() works """
         first = self.two.find('222222222222222222222222')
-        second = self.two.find(ObjectId('222222222222222222222222'))
+        second = self.two.find(ObjectId('222222222222222222222222'))  # type: ignore
         self.assertEqual(first, second)
 
     def test_filter(self):
@@ -91,7 +92,7 @@ class TestCredentialList(unittest.TestCase):
         self.assertEqual(token.public_key, 'foo')
 
     def test_add(self):
-        second = self.two.find(ObjectId('222222222222222222222222'))
+        second = self.two.find(str(ObjectId('222222222222222222222222')))
         self.one.add(second)
 
         expected = self.two.to_list_of_dicts()
@@ -100,12 +101,15 @@ class TestCredentialList(unittest.TestCase):
         assert obtained == expected, 'List of credentials with added credential different than expected'
 
     def test_add_duplicate(self):
-        dup = self.two.find(ObjectId('222222222222222222222222'))
-        with self.assertRaises(eduid.userdb.element.DuplicateElementViolation):
+        dup = self.two.find(str(ObjectId('222222222222222222222222')))
+        with pytest.raises(ValidationError) as exc_info:
             self.two.add(dup)
 
+        assert exc_info.value.errors() == [
+            {'loc': ('elements',), 'msg': 'Duplicate element key: \'222222222222222222222222\'', 'type': 'value_error'}
+        ]
+
     def test_add_password(self):
-        third = self.three.find(ObjectId('333333333333333333333333'))
         this = CredentialList.from_list_of_dicts([_one_dict, _two_dict] + [_three_dict])
 
         expected = self.three.to_list_of_dicts()
@@ -114,7 +118,7 @@ class TestCredentialList(unittest.TestCase):
         assert obtained == expected, 'List of credentials with added password different than expected'
 
     def test_remove(self):
-        now_two = self.three.remove(ObjectId('333333333333333333333333'))
+        now_two = self.three.remove(str(ObjectId('333333333333333333333333')))
 
         expected = self.two.to_list_of_dicts()
         obtained = now_two.to_list_of_dicts()
@@ -123,7 +127,7 @@ class TestCredentialList(unittest.TestCase):
 
     def test_remove_unknown(self):
         with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
-            self.one.remove(ObjectId('55002741d00690878ae9b603'))
+            self.one.remove(str(ObjectId('55002741d00690878ae9b603')))
 
     def test_generated(self):
         match = self.three.find('222222222222222222222222')

@@ -197,7 +197,7 @@ def check_locked_identity(userdb: UserDB, user_id: ObjectId, attributes: Dict, a
         user = userdb.get_user_by_id(user_id)
         locked_identities = user.locked_identity
     except DocumentDoesNotExist:
-        locked_identities = LockedIdentityList({})
+        locked_identities = LockedIdentityList()
 
     locked_nin = locked_identities.find('nin')
     # Create a new locked nin if it does not already exist

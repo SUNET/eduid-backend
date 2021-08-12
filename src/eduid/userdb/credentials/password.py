@@ -34,7 +34,6 @@
 #
 from __future__ import annotations
 
-import bson
 from bson import ObjectId
 from pydantic import Field, validator
 

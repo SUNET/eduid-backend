@@ -33,7 +33,7 @@
 #
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Type
 
 from pydantic import Field, validator
 
@@ -71,7 +71,7 @@ class MailAddress(PrimaryElement):
         return data
 
 
-class MailAddressList(PrimaryElementList):
+class MailAddressList(PrimaryElementList[MailAddress]):
     """
     Hold a list of MailAddress instance.
 
@@ -80,54 +80,9 @@ class MailAddressList(PrimaryElementList):
     one primary e-mail address in the list (except if the list is empty).
     """
 
-    elements: List[MailAddress] = Field(default_factory=list)
-
-    def _get_elements(self) -> List[MailAddress]:
-        """
-        This construct allows typing to infer the correct type of the elements
-        when called from functions in the superclass.
-        """
-        return self.elements
-
     @classmethod
     def from_list_of_dicts(cls: Type[MailAddressList], items: List[Dict[str, Any]]) -> MailAddressList:
         return cls(elements=[MailAddress.from_dict(this) for this in items])
-
-    @property
-    def primary(self):
-        """
-        :return: Return the primary MailAddress.
-
-        There must always be exactly one primary element in the list, so an
-        PrimaryElementViolation is raised in case this assertion does not hold.
-
-        :rtype: MailAddress
-        """
-        return PrimaryElementList.primary.fget(self)
-
-    @primary.setter
-    def primary(self, email):
-        """
-        Mark email as the users primary MailAddress.
-
-        This is a MailAddressList operation since it needs to atomically update more than one
-        element in the list. Marking an element as primary will result in some other element
-        loosing it's primary status.
-
-        :param email: the key of the element to set as primary
-        :type  email: str | unicode
-        """
-        PrimaryElementList.primary.fset(self, email)
-
-    def find(self, email: str) -> Optional[MailAddress]:
-        """
-        Find an MailAddress from the element list, using the key.
-
-        :param email: the e-mail address to look for in the list of elements
-        :return: MailAddress instance if found, or False if none was found
-        """
-        # implemented here to get proper type information
-        return super().find(email)
 
 
 def address_from_dict(data):

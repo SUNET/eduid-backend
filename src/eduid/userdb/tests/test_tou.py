@@ -43,9 +43,9 @@ _three_dict = {
 class TestToUEvent(TestCase):
     def setUp(self):
         self.empty = EventList()
-        self.one = EventList.from_list_of_dicts([_one_dict])
-        self.two = EventList.from_list_of_dicts([_one_dict, _two_dict])
-        self.three = EventList.from_list_of_dicts([_one_dict, _two_dict, _three_dict])
+        self.one = ToUList.from_list_of_dicts([_one_dict])
+        self.two = ToUList.from_list_of_dicts([_one_dict, _two_dict])
+        self.three = ToUList.from_list_of_dicts([_one_dict, _two_dict, _three_dict])
 
     def test_key(self):
         """
@@ -60,8 +60,8 @@ class TestToUEvent(TestCase):
         """
         for this in [self.one, self.two, self.three]:
             this_dict = this.to_list_of_dicts()
-            eventlist_again = EventList.from_list_of_dicts(this_dict)
-            self.assertEqual(eventlist_again.to_list_of_dicts(), this.to_list_of_dicts())
+            new_list = ToUList.from_list_of_dicts(this_dict)
+            assert new_list.to_list_of_dicts() == this.to_list_of_dicts()
 
     def test_created_by(self):
         this = Event.from_dict(dict(created_by=None, event_id=bson.ObjectId(), event_type='test_event'))
@@ -97,11 +97,11 @@ class TestTouUser(TestCase):
 
     def test_proper_new_user(self):
         one = copy.deepcopy(_one_dict)
-        tou = ToUList.from_list_of_dicts([ToUEvent.from_dict(one)])
+        tou = ToUList.from_list_of_dicts([one])
         userdata = new_user_example.to_dict()
         userid = userdata.pop('_id')
         eppn = userdata.pop('eduPersonPrincipalName')
-        passwords = CredentialList(userdata['passwords'])
+        passwords = CredentialList(elements=userdata['passwords'])
         user = ToUUser(user_id=userid, eppn=eppn, tou=tou, credentials=passwords)
         self.assertEqual(user.tou.to_list_of_dicts()[0]['version'], '1')
 

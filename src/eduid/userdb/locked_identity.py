@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Type
 
-from pydantic import Field
+from pydantic import Field, validator
 
 from eduid.userdb.element import Element, ElementList
 from eduid.userdb.exceptions import EduIDUserDBError
@@ -45,21 +45,12 @@ class LockedIdentityNin(LockedIdentityElement):
     identity_type: str = 'nin'
 
 
-class LockedIdentityList(ElementList):
+class LockedIdentityList(ElementList[LockedIdentityElement]):
     """
     Hold a list of LockedIdentityElement instances.
 
     Provide methods to find and add to the list.
     """
-
-    elements: List[LockedIdentityElement] = Field(default_factory=list)
-
-    def _get_elements(self) -> List[LockedIdentityElement]:
-        """
-        This construct allows typing to infer the correct type of the elements
-        when called from functions in the superclass.
-        """
-        return self.elements
 
     @classmethod
     def from_list_of_dicts(cls: Type[LockedIdentityList], items: List[Dict[str, Any]]) -> LockedIdentityList:

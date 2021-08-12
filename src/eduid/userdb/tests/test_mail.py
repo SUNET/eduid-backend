@@ -1,13 +1,15 @@
 import copy
 import datetime
 import unittest
+from typing import List
 from unittest import TestCase
 
 import pytest
-from pydantic import ValidationError
+from pydantic import BaseModel, Extra, ValidationError, validator
 
 import eduid.userdb.element
 import eduid.userdb.exceptions
+from eduid.userdb import PhoneNumber
 from eduid.userdb.element import Element
 from eduid.userdb.mail import MailAddress, MailAddressList
 
@@ -41,8 +43,10 @@ class TestMailAddressList(unittest.TestCase):
         self.three = MailAddressList.from_list_of_dicts([_one_dict, _two_dict, _three_dict])
 
     def test_init_bad_data(self):
-        with self.assertRaises(eduid.userdb.element.UserDBValueError):
-            MailAddressList('bad input data')
+        with pytest.raises(ValidationError):
+            MailAddressList(elements='bad input data')
+        with pytest.raises(ValidationError):
+            MailAddressList(elements=['bad input data'])
 
     def test_to_list(self):
         self.assertEqual([], self.empty.to_list(), list)
@@ -71,8 +75,12 @@ class TestMailAddressList(unittest.TestCase):
 
     def test_add_duplicate(self):
         dup = self.two.find(self.two.primary.email)
-        with self.assertRaises(eduid.userdb.element.DuplicateElementViolation):
+        with pytest.raises(ValidationError) as exc_info:
             self.two.add(dup)
+
+        assert exc_info.value.errors() == [
+            {'loc': ('elements',), 'msg': 'Duplicate element key: \'ft@one.example.org\'', 'type': 'value_error'}
+        ]
 
     def test_add_mailaddress(self):
         third = self.three.find('ft@three.example.org')
@@ -85,17 +93,14 @@ class TestMailAddressList(unittest.TestCase):
 
     def test_add_another_primary(self):
         new = eduid.userdb.mail.address_from_dict(
-            {'email': 'ft@primary.example.org', 'verified': True, 'primary': True,}
+            {'email': 'ft@primary.example.org', 'verified': True, 'primary': True}
         )
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
             self.one.add(new)
 
     def test_add_wrong_type(self):
-        elemdict = {
-            'created_by': 'tests',
-        }
-        new = Element.from_dict(elemdict)
-        with self.assertRaises(eduid.userdb.element.UserDBValueError):
+        new = PhoneNumber(number='+4612345678')
+        with pytest.raises(ValidationError):
             self.one.add(new)
 
     def test_remove(self):
@@ -111,8 +116,10 @@ class TestMailAddressList(unittest.TestCase):
             self.one.remove('foo@no-such-address.example.org')
 
     def test_remove_primary(self):
-        with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
-            self.two.remove(self.two.primary.email)
+        with pytest.raises(
+            eduid.userdb.element.PrimaryElementViolation, match='Removing the primary element is not allowed'
+        ):
+            self.two.remove(self.two.primary.key)
 
     def test_remove_primary_single(self):
         now_empty = self.one.remove(self.one.primary.email)
@@ -127,23 +134,23 @@ class TestMailAddressList(unittest.TestCase):
 
     def test_set_primary_to_same(self):
         match = self.one.primary
-        self.one.primary = match.email
+        self.one.set_primary(match.email)
 
         match = self.two.primary
-        self.two.primary = match.email
+        self.two.set_primary(match.email)
 
     def test_set_unknown_as_primary(self):
         with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
-            self.one.primary = 'foo@no-such-address.example.org'
+            self.one.set_primary('foo@no-such-address.example.org')
 
     def test_set_unverified_as_primary(self):
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
-            self.three.primary = 'ft@three.example.org'
+            self.three.set_primary('ft@three.example.org')
 
     def test_change_primary(self):
         match = self.two.primary
         self.assertEqual(match.email, 'ft@one.example.org')
-        self.two.primary = 'ft@two.example.org'
+        self.two.set_primary('ft@two.example.org')
         updated = self.two.primary
         self.assertEqual(updated.email, 'ft@two.example.org')
 
@@ -159,7 +166,7 @@ class TestMailAddressList(unittest.TestCase):
         one = copy.deepcopy(_one_dict)
         one['verified'] = False
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
-            MailAddressList([one])
+            MailAddressList.from_list_of_dicts([one])
 
 
 class TestMailAddress(TestCase):
@@ -250,3 +257,22 @@ class TestMailAddress(TestCase):
         address = 'UPPERCASE@example.com'
         mail_address = MailAddress(email=address)
         self.assertEqual(address.lower(), mail_address.email)
+
+
+class MyData(BaseModel):
+    elements: List[int]
+
+    class Config:
+        validate_assignment = True  # validate data when updated, not just when initialised
+        extra = Extra.forbid  # reject unknown data
+
+    @validator('elements', check_fields=False)
+    def validate_primary_elements(cls, v):
+        print(f'VALIDATE: {v}')
+        return v
+
+
+class TestMyData(TestCase):
+    def test_one(self):
+        t = MyData(elements=[1])
+        t.elements.append(2)

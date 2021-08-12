@@ -2,6 +2,9 @@
 
 from unittest import TestCase
 
+import pytest
+from pydantic import ValidationError
+
 from eduid.userdb.element import DuplicateElementViolation
 from eduid.userdb.profile import Profile, ProfileList
 
@@ -50,5 +53,9 @@ class ProfileTest(TestCase):
         profile_dict = profile.to_dict()
         profile2 = Profile.from_dict(profile_dict)
 
-        with self.assertRaises(DuplicateElementViolation):
+        with pytest.raises(ValidationError) as exc_info:
             ProfileList(elements=[profile, profile2])
+
+        assert exc_info.value.errors() == [
+            {'loc': ('elements',), 'msg': "Duplicate element key: 'test owner 1'", 'type': 'value_error'}
+        ]

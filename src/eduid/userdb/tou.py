@@ -37,7 +37,7 @@ from __future__ import annotations
 import datetime
 from typing import Any, Dict, List, Optional, Type
 
-from pydantic import Field
+from pydantic import Field, validator
 
 from eduid.userdb.event import Event, EventList
 from eduid.userdb.exceptions import EduIDUserDBError, UserDBValueError
@@ -50,7 +50,15 @@ class ToUEvent(Event):
     """
 
     created_by: str
-    version: Optional[str] = None
+    version: str
+
+    @validator('version')
+    def _validate_tou_version(cls, v):
+        if not v:
+            raise ValueError('ToU must have a version')
+        if not isinstance(v, str):
+            raise TypeError('ToU version must be a string')
+        return v
 
     @classmethod
     def _from_dict_transform(cls: Type[ToUEvent], data: Dict[str, Any]) -> Dict[str, Any]:
@@ -78,7 +86,7 @@ class ToUEvent(Event):
         return expiry_date < utc_now()
 
 
-class ToUList(EventList):
+class ToUList(EventList[ToUEvent]):
     """
     List of ToUEvents.
 
@@ -86,43 +94,9 @@ class ToUList(EventList):
           has_accepted() is the interface to find an ToU event using a version number.
     """
 
-    elements: List[ToUEvent] = Field(default_factory=list)
-
-    def _get_elements(self) -> List[ToUEvent]:
-        """
-        This construct allows typing to infer the correct type of the elements
-        when called from functions in the superclass.
-        """
-        return self.elements
-
     @classmethod
     def from_list_of_dicts(cls: Type[ToUList], items: List[Dict[str, Any]]) -> ToUList:
         return cls(elements=[ToUEvent.from_dict(this) for this in items])
-
-    def add(self, event: ToUEvent) -> None:
-        """ Add a ToUEvent to the list. """
-        if event.version is None:
-            raise ValueError('Invalid ToUEvent without version')
-
-        existing = self.find(event.version)
-        if existing:
-            if event.created_ts >= existing.created_ts:
-                # Silently replace existing events with newer ones to flush out duplicate events in the database
-                self.remove(existing.version)
-        super().add(event)
-
-    def find(self, version: str) -> Optional[ToUEvent]:
-        """
-        Find an ToUEvent from the ToUList using ToU version.
-
-        :param version: ToU version to find
-        """
-        res = [this for this in self.elements if this.version == version]
-        if len(res) == 1:
-            return res[0]
-        if len(res) > 1:
-            raise EduIDUserDBError(f'More than one ToUEvent with version {version} found')
-        return None
 
     def has_accepted(self, version: str, reaccept_interval: int) -> bool:
         """
@@ -137,6 +111,9 @@ class ToUList(EventList):
         if version in ['2014-v1', '2014-dev-v1']:
             return True
         for this in self.elements:
+            if not isinstance(this, ToUEvent):
+                raise UserDBValueError(f'Event {repr(this)} is not of type ToUEvent')
+
             if this.version == version and not this.is_expired(interval_seconds=reaccept_interval):
                 return True
         return False
