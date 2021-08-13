@@ -72,7 +72,7 @@ def unverify_mail_aliases(userdb, user_id, mail_aliases):
                         # Promote some other verified e-mail address to primary
                         for address in user.mail_addresses.to_list():
                             if address.is_verified and address.email != email:
-                                user.mail_addresses.primary = address.email
+                                user.mail_addresses.set_primary(address.email)
                                 break
                     user.mail_addresses.find(email).is_primary = False
                     user.mail_addresses.find(email).is_verified = False
@@ -113,7 +113,7 @@ def unverify_phones(userdb, user_id, phones):
                         # Promote some other verified phone number to primary
                         for phone in user.phone_numbers.verified.to_list():
                             if phone.number != number:
-                                user.phone_numbers.primary = phone.number
+                                user.phone_numbers.set_primary(phone.number)
                                 break
                     user.phone_numbers.find(number).is_primary = False
                     user.phone_numbers.find(number).is_verified = False

@@ -31,12 +31,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-import time
-
 from flask import current_app, render_template, url_for
 from flask_babel import gettext as _
+from pydantic import ValidationError
 
-from eduid.userdb.element import DuplicateElementViolation
 from eduid.userdb.logs import MailAddressProofing
 from eduid.userdb.mail import MailAddress
 from eduid.userdb.proofing import EmailProofingElement, EmailProofingState
@@ -111,7 +109,9 @@ def verify_mail_address(state, proofing_user):
         new_email.is_primary = True
     try:
         proofing_user.mail_addresses.add(new_email)
-    except DuplicateElementViolation:
+    except ValidationError as exc:
+        if 'Duplicate element key:' not in str(exc):
+            raise
         proofing_user.mail_addresses.find(state.verification.email).is_verified = True
         if has_primary is None:
             proofing_user.mail_addresses.find(state.verification.email).is_primary = True

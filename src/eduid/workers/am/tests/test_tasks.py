@@ -145,11 +145,11 @@ class TestTasks(AMTestCase):
 
     def test_create_locked_identity(self):
         user_id = ObjectId('901234567890123456789012')  # johnsmith@example.org / babba-labba
-        attributes = {'$set': {'nins': [{'verified': True, 'number': '200102031234', 'primary': True}],}}
+        attributes = {'$set': {'nins': [{'verified': True, 'number': '200102031234', 'primary': True}]}}
         new_attributes = check_locked_identity(self.amdb, user_id, attributes, 'test')
 
         locked_nin = LockedIdentityNin.from_dict(dict(number='200102031234', created_by='test', created_ts=True))
-        locked_identities = LockedIdentityList({}).add(locked_nin)
+        locked_identities = LockedIdentityList().add(locked_nin)
         attributes['$set']['locked_identity'] = locked_identities.to_list_of_dicts()
 
         self.assertDictEqual(attributes, new_attributes)
@@ -169,7 +169,7 @@ class TestTasks(AMTestCase):
         new_attributes = check_locked_identity(self.amdb, user_id, attributes, 'test')
 
         locked_nin = LockedIdentityNin.from_dict(dict(number='197801011234', created_by='test', created_ts=True))
-        locked_identities = LockedIdentityList({}).add(locked_nin)
+        locked_identities = LockedIdentityList().add(locked_nin)
         attributes['$set']['locked_identity'] = locked_identities.to_list_of_dicts()
 
         self.assertDictEqual(attributes, new_attributes)
@@ -181,16 +181,16 @@ class TestTasks(AMTestCase):
             LockedIdentityNin.from_dict(dict(number='200102031234', created_by='test', created_ts=True))
         )
         self.amdb.save(user)
-        attributes = {'$set': {'nins': [{'verified': True, 'number': '200506076789', 'primary': True}],}}
+        attributes = {'$set': {'nins': [{'verified': True, 'number': '200506076789', 'primary': True}]}}
         with self.assertRaises(EduIDUserDBError):
             check_locked_identity(self.amdb, user_id, attributes, 'test')
 
     def test_check_locked_identity_no_verified_nin(self):
         user_id = ObjectId('012345678901234567890123')  # johnsmith@example.com / hubba-bubba
-        attributes = {'$set': {'phone': [{'verified': True, 'number': '+34609609609', 'primary': True}],}}
+        attributes = {'$set': {'phone': [{'verified': True, 'number': '+34609609609', 'primary': True}]}}
         new_attributes = check_locked_identity(self.amdb, user_id, attributes, 'test')
         self.assertDictEqual(attributes, new_attributes)
 
-        attributes = {'$set': {'nins': [{'verified': False, 'number': '200506076789', 'primary': False}],}}
+        attributes = {'$set': {'nins': [{'verified': False, 'number': '200506076789', 'primary': False}]}}
         new_attributes = check_locked_identity(self.amdb, user_id, attributes, 'test')
         self.assertDictEqual(attributes, new_attributes)
