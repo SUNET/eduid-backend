@@ -543,7 +543,7 @@ class EmailTests(EduidAPITestCase):
 
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         self.assertEqual(user.mail_addresses.count, 1)
-        self.assertEqual(user.mail_addresses.verified.count, 1)
+        self.assertEqual(len(user.mail_addresses.verified), 1)
         self.assertEqual(user.mail_addresses.primary.email, 'verified2@example.com')
 
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
@@ -570,7 +570,7 @@ class EmailTests(EduidAPITestCase):
 
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         self.assertEqual(user.mail_addresses.count, 2)
-        self.assertEqual(user.mail_addresses.verified.count, 1)
+        self.assertEqual(len(user.mail_addresses.verified), 1)
         self.assertEqual(user.mail_addresses.primary.email, 'verified@example.com')
 
     def test_remove_fail(self):

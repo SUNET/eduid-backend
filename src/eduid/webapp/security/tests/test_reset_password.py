@@ -393,7 +393,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
 
         # Remove extra security alternatives
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        for phone in user.phone_numbers.verified.to_list():
+        for phone in user.phone_numbers.verified:
             user.phone_numbers.remove(phone.number)
         self.request_user_sync(user)
 
@@ -506,9 +506,9 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.credentials.filter(Password).count, 1)
         self.assertEqual(user.credentials.filter(Password).to_list()[0].key, old_password.key)
-        for nin in user.nins.verified.to_list():
+        for nin in user.nins.verified:
             self.assertEqual(nin.is_verified, True)
-        for phone_number in user.phone_numbers.verified.to_list():
+        for phone_number in user.phone_numbers.verified:
             self.assertEqual(phone_number.is_verified, True)
 
     @patch('eduid.webapp.common.authn.vccs.get_vccs_client')
@@ -545,9 +545,9 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.credentials.filter(Password).count, 1)
         self.assertEqual(user.credentials.filter(Password).to_list()[0].key, old_password.key)
-        for nin in user.nins.verified.to_list():
+        for nin in user.nins.verified:
             self.assertEqual(nin.is_verified, True)
-        for phone_number in user.phone_numbers.verified.to_list():
+        for phone_number in user.phone_numbers.verified:
             self.assertEqual(phone_number.is_verified, True)
 
     @patch('eduid.webapp.common.authn.vccs.get_vccs_client')
@@ -588,9 +588,9 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.credentials.filter(Password).count, 1)
         self.assertEqual(user.credentials.filter(Password).to_list()[0].key, old_password.key)
-        for nin in user.nins.verified.to_list():
+        for nin in user.nins.verified:
             self.assertEqual(nin.is_verified, True)
-        for phone_number in user.phone_numbers.verified.to_list():
+        for phone_number in user.phone_numbers.verified:
             self.assertEqual(phone_number.is_verified, True)
 
     @patch('eduid.webapp.common.authn.vccs.get_vccs_client')

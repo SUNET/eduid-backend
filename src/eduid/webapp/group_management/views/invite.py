@@ -105,7 +105,7 @@ def create_invite(user: User, group_identifier: UUID, email_address: str, role: 
     )
 
     # Short circuit self inviting (owner can invite self as member)
-    if email_address in [item.email for item in user.mail_addresses.verified.to_list()]:
+    if email_address in [item.email for item in user.mail_addresses.verified]:
         current_app.logger.info(f'User is inviting self to group {group_identifier} as {role}')
         if role is GroupRole.OWNER:
             current_app.logger.info(f'User already owner of group {group_identifier}, aborting.')

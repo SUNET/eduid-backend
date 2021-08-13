@@ -137,7 +137,7 @@ class TestPhoneNumberList(unittest.TestCase):
         self.assertEqual([], now_empty.to_list())
 
     def test_remove_all_mix(self):
-        verified = self.three.verified.to_list()
+        verified = self.three.verified
         if verified:
             for mobile in verified:
                 if not mobile.is_primary:
@@ -148,7 +148,7 @@ class TestPhoneNumberList(unittest.TestCase):
         self.assertEqual([], self.three.to_list())
 
     def test_remove_all_no_verified(self):
-        verified = self.four.verified.to_list()
+        verified = self.four.verified
         if verified:
             for mobile in verified:
                 if not mobile.is_primary:
@@ -159,13 +159,13 @@ class TestPhoneNumberList(unittest.TestCase):
         self.assertEqual([], self.four.to_list())
 
     def test_unverify_all(self):
-        verified = self.three.verified.to_list()
+        verified = self.three.verified
 
         for mobile in verified:
             mobile.is_primary = False
             mobile.is_verified = False
 
-        verified_now = self.three.verified.to_list()
+        verified_now = self.three.verified
         assert verified_now == []
 
     def test_primary(self):

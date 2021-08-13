@@ -330,11 +330,11 @@ class EidasTests(EduidAPITestCase):
         if num_verified_nins is not None:
             # Check number of verified nins
             assert (
-                user.nins.verified.count == num_verified_nins
-            ), f'User does not have {num_verified_nins} verified NINs (has {user.nins.verified.count})'
+                len(user.nins.verified) == num_verified_nins
+            ), f'User does not have {num_verified_nins} verified NINs (has {len(user.nins.verified)})'
 
         if at_least_one_verified_nin is True:
-            assert user.nins.verified.count != 0, 'User was expected to have at least one verified NIN'
+            assert len(user.nins.verified) != 0, 'User was expected to have at least one verified NIN'
 
         if nin is not None:
             # Check parameters of a specific nin
@@ -738,7 +738,7 @@ class EidasTests(EduidAPITestCase):
         self._verify_user_parameters(eppn, num_mfa_tokens=0, nin=nin, nin_verified=True)
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        assert user.nins.verified.count != 0
+        assert len(user.nins.verified) != 0
 
         self.reauthn(
             '/verify-nin',
@@ -750,7 +750,7 @@ class EidasTests(EduidAPITestCase):
 
     def test_mfa_authentication_verified_user(self):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        assert user.nins.verified.count != 0, 'User was expected to have a verified NIN'
+        assert len(user.nins.verified) != 0, 'User was expected to have a verified NIN'
 
         self.reauthn(
             endpoint='/mfa-authentication',
@@ -769,7 +769,7 @@ class EidasTests(EduidAPITestCase):
 
     def test_mfa_authentication_wrong_nin(self):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        assert user.nins.verified.count != 0, 'User was expected to have a verified NIN'
+        assert len(user.nins.verified) != 0, 'User was expected to have a verified NIN'
 
         self.reauthn(
             endpoint='/mfa-authentication',

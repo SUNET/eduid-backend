@@ -546,14 +546,13 @@ class PrimaryElementList(ElementList[ListElement], Generic[ListElement], ABC):
         return res[0]
 
     @property
-    def verified(self):
+    def verified(self) -> List[ListElement]:
         """
-        get a PrimaryElementList with only the confirmed elements.
+        Get all the verified elements in the ElementList.
 
-        TODO: Change into just returning a list - re-instantiating __class__ seems to do a deep copy with Pydantic
         """
         verified_elements = [e for e in self.elements if e.is_verified]
-        return self.__class__(elements=verified_elements)
+        return verified_elements
 
     def remove(self, key: str):
         """

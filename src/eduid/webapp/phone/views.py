@@ -129,7 +129,7 @@ def post_primary(user: User, number: str) -> FluxData:
         current_app.logger.error('Could not save phone number as primary, phone number unconfirmed')
         return error_response(message=PhoneMsg.unconfirmed_primary)
 
-    proofing_user.phone_numbers.primary = phone_element.number
+    proofing_user.phone_numbers.set_primary(phone_element.number)
     try:
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
@@ -205,7 +205,7 @@ def post_remove(user: User, number: str) -> FluxData:
         proofing_user.phone_numbers.remove(number)
     except PrimaryElementViolation:
         current_app.logger.info('Removing primary phone number, trying to set another phone number as primary')
-        verified = proofing_user.phone_numbers.verified.to_list()
+        verified = proofing_user.phone_numbers.verified
         new_index = 1 if verified[0].number == number else 0
         proofing_user.phone_numbers.primary = verified[new_index].number
         proofing_user.phone_numbers.remove(number)

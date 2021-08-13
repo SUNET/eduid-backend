@@ -198,7 +198,7 @@ def send_termination_mail(user):
     subject = _('Terminate account')
     text_template = "termination_email.txt.jinja2"
     html_template = "termination_email.html.jinja2"
-    to_addresses = [address.email for address in user.mail_addresses.verified.to_list()]
+    to_addresses = [address.email for address in user.mail_addresses.verified]
     send_mail(subject, to_addresses, text_template, html_template, current_app)
     current_app.logger.info("Sent termination email to user.")
 
@@ -233,7 +233,7 @@ def send_password_reset_mail(email_address):
 
     text_template = 'reset_password_email.txt.jinja2'
     html_template = 'reset_password_email.html.jinja2'
-    to_addresses = [address.email for address in user.mail_addresses.verified.to_list()]
+    to_addresses = [address.email for address in user.mail_addresses.verified]
 
     password_reset_timeout = current_app.conf.email_code_timeout // 60 // 60  # seconds to hours
     context = {
@@ -357,7 +357,7 @@ def reset_user_password(state, password):
     if not extra_security_used(state):
         current_app.logger.info('No extra security used by user {}'.format(state.eppn))
         # Phone numbers
-        verified_phone_numbers = security_user.phone_numbers.verified.to_list()
+        verified_phone_numbers = security_user.phone_numbers.verified
         if verified_phone_numbers:
             current_app.logger.info('Unverifying phone numbers for user {}'.format(state.eppn))
             security_user.phone_numbers.primary.is_primary = False
@@ -365,7 +365,7 @@ def reset_user_password(state, password):
                 phone_number.is_verified = False
                 current_app.logger.debug('Phone number {} unverified'.format(phone_number.number))
         # NINs
-        verified_nins = security_user.nins.verified.to_list()
+        verified_nins = security_user.nins.verified
         if verified_nins:
             current_app.logger.info('Unverifying nins for user {}'.format(state.eppn))
             security_user.nins.primary.is_primary = False
@@ -394,8 +394,8 @@ def get_extra_security_alternatives(eppn):
     alternatives = {}
     user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
 
-    if user.phone_numbers.verified.count:
-        verified_phone_numbers = [item.number for item in user.phone_numbers.verified.to_list()]
+    if len(user.phone_numbers.verified):
+        verified_phone_numbers = [item.number for item in user.phone_numbers.verified]
         alternatives['phone_numbers'] = verified_phone_numbers
     return alternatives
 

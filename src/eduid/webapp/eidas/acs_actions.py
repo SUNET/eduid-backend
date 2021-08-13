@@ -65,7 +65,7 @@ def token_verify_action(
         return redirect_with_msg(redirect_url, EidasMsg.token_not_in_creds)
 
     # Verify asserted NIN for user if there are no verified NIN
-    if proofing_user.nins.verified.count == 0:
+    if len(proofing_user.nins.verified) == 0:
         nin_verify_action(session_info, authndata)
         user = current_app.central_userdb.get_user_by_eppn(user.eppn)
         proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
@@ -80,8 +80,8 @@ def token_verify_action(
         raise ValueError("Missing NIN in SAML session info")
 
     asserted_nin = _nin_list[0]
-    user_nin = proofing_user.nins.verified.find(asserted_nin)
-    if not user_nin:
+    user_nin = proofing_user.nins.find(asserted_nin)
+    if not user_nin or not user_nin.is_verified:
         current_app.logger.error('Asserted NIN not matching user verified nins')
         current_app.logger.debug('Asserted NIN: {}'.format(asserted_nin))
         return redirect_with_msg(redirect_url, EidasMsg.nin_not_matching)
@@ -159,7 +159,7 @@ def nin_verify_action(session_info: SessionInfo, authndata: Optional[SP_AuthnReq
 
     asserted_nin = _nin_list[0]
 
-    if proofing_user.nins.verified.count != 0:
+    if len(proofing_user.nins.verified) != 0:
         current_app.logger.error('User already has a verified NIN')
         current_app.logger.debug(
             'Primary NIN: {}. Asserted NIN: {}'.format(proofing_user.nins.primary.number, asserted_nin)
@@ -224,7 +224,7 @@ def nin_verify_BACKDOOR(user: User) -> WerkzeugResponse:
     if asserted_nin is None:
         raise RuntimeError("No backdoor without a NIN in a cookie")
 
-    if proofing_user.nins.verified.count != 0:
+    if len(proofing_user.nins.verified) != 0:
         current_app.logger.error('User already has a verified NIN')
         current_app.logger.debug(
             'Primary NIN: {}. Asserted NIN: {}'.format(proofing_user.nins.primary.number, asserted_nin)
@@ -297,8 +297,8 @@ def mfa_authentication_action(session_info: SessionInfo, authndata: SP_AuthnRequ
 
     # Check that a verified NIN is equal to the asserted attribute personalIdentityNumber
     asserted_nin = _personal_idns[0]
-    user_nin = user.nins.verified.find(asserted_nin)
-    if not user_nin:
+    user_nin = user.nins.find(asserted_nin)
+    if not user_nin or not user_nin.is_verified:
         current_app.logger.error('Asserted NIN not matching user verified nins')
         current_app.logger.debug('Asserted NIN: {}'.format(asserted_nin))
         current_app.stats.count(name='mfa_auth_nin_not_matching')

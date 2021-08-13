@@ -127,15 +127,15 @@ def post_primary(user, email):
         )
         return error_response(message=EmailMsg.unconfirmed_not_primary)
 
-    proofing_user.mail_addresses.primary = mail.email
+    proofing_user.mail_addresses.set_primary(mail.email)
     try:
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
         current_app.logger.debug(
-            'Couldnt save email {!r} as primary for user' ' {}, data out of sync'.format(email, proofing_user)
+            f'Couldn\'t save email {repr(email)} as primary for user {proofing_user}, data out of sync'
         )
         return error_response(message=CommonMsg.out_of_sync)
-    current_app.logger.info('Email address {!r} made primary ' 'for user {}'.format(email, proofing_user))
+    current_app.logger.info(f'Email address {repr(email)} made primary for user {proofing_user}')
     current_app.stats.count(name='email_set_primary', value=1)
 
     emails = {'emails': proofing_user.mail_addresses.to_list_of_dicts()}
@@ -246,7 +246,7 @@ def post_remove(user, email):
     current_app.logger.debug('Trying to remove email address {!r} ' 'from user {}'.format(email, proofing_user))
 
     emails = proofing_user.mail_addresses.to_list()
-    verified_emails = proofing_user.mail_addresses.verified.to_list()
+    verified_emails = proofing_user.mail_addresses.verified
 
     # Do not let the user remove all mail addresses
     if len(emails) == 1:

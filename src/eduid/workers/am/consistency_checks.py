@@ -111,7 +111,7 @@ def unverify_phones(userdb, user_id, phones):
                     logger.debug('Old user phone numbers BEFORE: {}.'.format(user.phone_numbers.to_list()))
                     if user.phone_numbers.primary.number == number:
                         # Promote some other verified phone number to primary
-                        for phone in user.phone_numbers.verified.to_list():
+                        for phone in user.phone_numbers.verified:
                             if phone.number != number:
                                 user.phone_numbers.set_primary(phone.number)
                                 break
@@ -152,7 +152,7 @@ def unverify_nins(userdb, user_id, nins):
                     logger.debug('Old user NINs BEFORE: {}.'.format(user.nins.to_list()))
                     if user.nins.primary.number == number:
                         # Promote some other verified nin to primary (future proofing)
-                        old_nins = user.nins.verified.to_list()
+                        old_nins = user.nins.verified
                         for this in old_nins:
                             if this.number != number:
                                 user.nins.primary = this.number

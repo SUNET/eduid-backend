@@ -218,7 +218,7 @@ def send_password_reset_mail(email_address: str) -> None:
     # Send email
     text_template = 'reset_password_email.txt.jinja2'
     html_template = 'reset_password_email.html.jinja2'
-    to_addresses = [address.email for address in user.mail_addresses.verified.to_list()]
+    to_addresses = [address.email for address in user.mail_addresses.verified]
     pwreset_timeout = current_app.conf.email_code_timeout // 60 // 60  # seconds to hours
     # We must send the user to an url that does not correspond to a flask view,
     # but to a js bundle (i.e. a flask view in a *different* app)
@@ -270,7 +270,7 @@ def unverify_user(user: ResetPasswordUser) -> None:
     Unverify the users verified information (phone numbers and NIN)
     """
     # Phone numbers
-    verified_phone_numbers = user.phone_numbers.verified.to_list()
+    verified_phone_numbers = user.phone_numbers.verified
     if verified_phone_numbers:
         current_app.logger.info(f'Unverifying phone numbers for user {user}')
         user.phone_numbers.primary.is_primary = False
@@ -280,7 +280,7 @@ def unverify_user(user: ResetPasswordUser) -> None:
             current_app.logger.debug(f'Phone number: {phone_number.number}')
             current_app.stats.count(name='unverified_phone', value=1)
     # NINs
-    verified_nins = user.nins.verified.to_list()
+    verified_nins = user.nins.verified
     if verified_nins:
         current_app.logger.info(f'Unverifying nins for user {user}')
         user.nins.primary.is_primary = False
@@ -360,7 +360,7 @@ def get_extra_security_alternatives(user: User) -> dict:
 
     if user.phone_numbers.verified.count:
         verified_phone_numbers = [
-            {'number': item.number, 'index': n} for n, item in enumerate(user.phone_numbers.verified.to_list())
+            {'number': item.number, 'index': n} for n, item in enumerate(user.phone_numbers.verified)
         ]
         alternatives['phone_numbers'] = verified_phone_numbers
 
