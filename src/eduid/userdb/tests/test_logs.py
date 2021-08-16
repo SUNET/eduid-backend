@@ -85,7 +85,7 @@ class TestProofingLog(TestCase):
             'mobile_number': 'some_mobile_number',
             'user_postal_address': {'response_data': {'some': 'data'}},
             'mobile_number_registered_to': 'registered_national_identity_number',
-            'registered_relation': 'registered_relation_to_user',
+            'registered_relation': ['registered_relation_to_user'],
             'registered_postal_address': {'response_data': {'some': 'data'}},
             'proofing_version': 'test',
         }

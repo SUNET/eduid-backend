@@ -151,6 +151,7 @@ class Element(BaseModel):
         allow_population_by_field_name = True  # allow setting created_ts by name, not just it's alias
         validate_assignment = True  # validate data when updated, not just when initialised
         extra = Extra.forbid  # reject unknown data
+        arbitrary_types_allowed = True  # allow ObjectId as type in Event
 
     def __str__(self) -> str:
         return f'<eduID {self.__class__.__name__}: {self.dict()}>'
@@ -278,9 +279,6 @@ class PrimaryElement(VerifiedElement):
     """
 
     is_primary: bool = Field(default=False, alias='primary')  # primary is the old name
-
-    class Config:
-        allow_population_by_field_name = True  # to allow setting is_primary using the name, not only the alias
 
     def __setattr__(self, key: str, value: Any):
         """

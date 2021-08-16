@@ -34,7 +34,7 @@
 #
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Type, TypeVar
+from typing import Any, Dict, List, NewType, Optional, Type, TypeVar
 
 from bson import ObjectId
 from pydantic import validator
@@ -59,20 +59,17 @@ class Event(Element):
 
     data: Optional[Dict[str, Any]] = None
     event_type: Optional[str] = None
-    event_id: Optional[str] = None
+    event_id: Optional[EventId] = None
     # This is a short-term hack to deploy new dataclass based events without
     # any changes to data in the production database. Remove after a burn-in period.
     no_event_type_in_db: bool = False
 
-    class Config:
-        arbitrary_types_allowed = True  # allow event_id: ObjectId
-
     @validator('event_id', pre=True)
     def event_id_objectid(cls, v):
-        """ Turn string into ObjectId """
+        """ Turn string into EventId """
         if isinstance(v, str):
-            v = ObjectId(v)
-        if not isinstance(v, ObjectId):
+            v = EventId(v)
+        if not isinstance(v, EventId):
             raise TypeError('must be a string or ObjectId')
         return v
 
@@ -93,6 +90,8 @@ class Event(Element):
 
         if 'id' in data:
             data['event_id'] = data.pop('id')
+
+        data['event_id'] = EventId(data['event_id'])
 
         return data
 

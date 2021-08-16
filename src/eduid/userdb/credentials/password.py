@@ -50,9 +50,6 @@ class Password(Credential):
     salt: str
     is_generated: bool = False
 
-    class Config:
-        allow_population_by_field_name = True  # to allow setting credential_id by name, not just it's alias
-
     @validator('credential_id', pre=True)
     def credential_id_objectid(cls, v):
         """ Turn string into ObjectId """
