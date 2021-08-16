@@ -155,7 +155,7 @@ def unverify_nins(userdb, user_id, nins):
                         old_nins = user.nins.verified
                         for this in old_nins:
                             if this.number != number:
-                                user.nins.primary = this.number
+                                user.nins.set_primary(this.number)
                                 break
                     user.nins.find(number).is_primary = False
                     user.nins.find(number).is_verified = False

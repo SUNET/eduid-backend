@@ -263,7 +263,7 @@ def post_remove(user, email):
     except PrimaryElementViolation:
         # Trying to remove the primary mail address, set next verified mail address as primary
         other_verified = [address for address in verified_emails if address.email != email]
-        proofing_user.mail_addresses.primary = other_verified[0].email
+        proofing_user.mail_addresses.set_primary(other_verified[0].email)
         # Now remove the unwanted and previous primary mail address
         proofing_user.mail_addresses.remove(email)
 

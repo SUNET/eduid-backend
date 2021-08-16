@@ -207,7 +207,7 @@ def post_remove(user: User, number: str) -> FluxData:
         current_app.logger.info('Removing primary phone number, trying to set another phone number as primary')
         verified = proofing_user.phone_numbers.verified
         new_index = 1 if verified[0].number == number else 0
-        proofing_user.phone_numbers.primary = verified[new_index].number
+        proofing_user.phone_numbers.set_primary(verified[new_index].number)
         proofing_user.phone_numbers.remove(number)
     except UserDBValueError:
         current_app.logger.error('Tried to remove a non existing phone number')
