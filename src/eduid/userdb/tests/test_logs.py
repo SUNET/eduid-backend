@@ -3,6 +3,9 @@
 from copy import deepcopy
 from unittest import TestCase
 
+import pytest
+from pydantic import ValidationError
+
 from eduid.userdb.fixtures.users import mocked_user_standard
 from eduid.userdb.logs.db import ProofingLog
 from eduid.userdb.logs.element import (
@@ -82,7 +85,7 @@ class TestProofingLog(TestCase):
             'mobile_number': 'some_mobile_number',
             'user_postal_address': {'response_data': {'some': 'data'}},
             'mobile_number_registered_to': 'registered_national_identity_number',
-            'registered_relation': 'registered_relation_to_user',
+            'registered_relation': ['registered_relation_to_user'],
             'registered_postal_address': {'response_data': {'some': 'data'}},
             'proofing_version': 'test',
         }
@@ -256,9 +259,17 @@ class TestProofingLog(TestCase):
             'reference': 'reference id',
         }
         proofing_element = PhoneNumberProofing(**data)
-        proofing_element.phone_number = ''
+        with pytest.raises(ValidationError) as exc_info:
+            proofing_element.phone_number = ''
 
-        self.assertFalse(self.proofing_log_db.save(proofing_element))
+        assert exc_info.value.errors() == [
+            {
+                'ctx': {'limit_value': 1},
+                'loc': ('phone_number',),
+                'msg': 'ensure this value has at least 1 characters',
+                'type': 'value_error.any_str.min_length',
+            }
+        ]
 
     def test_boolean_false_proofing_data(self):
         data = {

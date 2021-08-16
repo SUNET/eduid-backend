@@ -33,25 +33,23 @@
 #
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, Optional, Type, Union
+
+from pydantic import validator
 
 from eduid.userdb.element import PrimaryElement, PrimaryElementList
 
 __author__ = 'ft'
 
 
-@dataclass()
-class _MailAddressRequired:
+class MailAddress(PrimaryElement):
     email: str
 
-    def __post_init__(self):
-        self.email = self.email.lower()
-
-
-@dataclass()
-class MailAddress(PrimaryElement, _MailAddressRequired):
-    """"""
+    @validator('email', pre=True)
+    def validate_email(cls, v):
+        if not isinstance(v, str):
+            raise ValueError('must be a string')
+        return v.lower()
 
     @property
     def key(self) -> Optional[str]:
@@ -66,9 +64,6 @@ class MailAddress(PrimaryElement, _MailAddressRequired):
         Transform data received in eduid format into pythonic format.
         """
         data = super()._from_dict_transform(data)
-
-        if 'added_timestamp' in data:
-            data['created_ts'] = data.pop('added_timestamp')
 
         if 'csrf' in data:
             del data['csrf']
@@ -126,14 +121,12 @@ class MailAddressList(PrimaryElementList):
         """
         PrimaryElementList.primary.fset(self, email)
 
-    def find(self, email):
+    def find(self, email: str) -> Union[MailAddress, bool]:
         """
         Find an MailAddress from the element list, using the key.
 
         :param email: the e-mail address to look for in the list of elements
-        :type email: str | unicode
         :return: MailAddress instance if found, or False if none was found
-        :rtype: MailAddress | False
         """
         # implemented here to get proper type information
         return PrimaryElementList.find(self, email)

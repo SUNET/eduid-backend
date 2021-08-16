@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Type
 
 from eduid.userdb.element import Element, VerifiedElement
@@ -10,11 +9,9 @@ from eduid.userdb.element import Element, VerifiedElement
 __author__ = 'lundberg'
 
 
-@dataclass
-class _OidcIdTokenRequired:
+class OidcIdToken(Element):
     """
-    This is used to order the required args for OidcIdToken
-    before the optional args for Element
+    OpenID Connect ID token data
     """
 
     # Issuer identifier
@@ -28,14 +25,6 @@ class _OidcIdTokenRequired:
     # Time at which the JWT was issued. Its value is a JSON number representing
     # the number of seconds from 1970-01-01T0:0:0Z as measured in UTC until the date/time.
     iat: int
-
-
-@dataclass
-class OidcIdToken(Element, _OidcIdTokenRequired):
-    """
-    OpenID Connect ID token data
-    """
-
     # Nonce used to associate a Client session with an ID Token, and to mitigate replay attacks.
     nonce: Optional[str] = None
     # Time when the End-User authentication occurred.
@@ -69,24 +58,14 @@ class OidcIdToken(Element, _OidcIdTokenRequired):
         return data
 
 
-@dataclass
-class _OidcAuthorizationRequired:
+class OidcAuthorization(Element):
     """
-    This is used to order the required args for OidcAuthorization
-    before the optional args for Element
+    OpenID Connect Authorization data
     """
 
     access_token: str
     token_type: str
     id_token: OidcIdToken
-
-
-@dataclass
-class OidcAuthorization(Element, _OidcAuthorizationRequired):
-    """
-    OpenID Connect Authorization data
-    """
-
     expires_in: Optional[int] = None
     refresh_token: Optional[str] = None
 
@@ -126,22 +105,10 @@ class OidcAuthorization(Element, _OidcAuthorizationRequired):
         return data
 
 
-@dataclass
-class _OrcidRequired:
-    """
-    Required fields for Orcid
-    """
-
+class Orcid(VerifiedElement):
     # User's ORCID
     id: str
     oidc_authz: OidcAuthorization
-
-
-@dataclass
-class Orcid(VerifiedElement, _OrcidRequired):
-    """
-    """
-
     name: Optional[str] = None
     given_name: Optional[str] = None
     family_name: Optional[str] = None

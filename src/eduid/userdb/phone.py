@@ -33,15 +33,13 @@
 #
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, ClassVar, Dict, Optional, Type
+from typing import Any, Dict, Optional, Type
 
 from eduid.userdb.element import PrimaryElement, PrimaryElementList
 
 __author__ = 'ft'
 
 
-@dataclass
 class PhoneNumber(PrimaryElement):
     """
     """
@@ -93,7 +91,7 @@ class PhoneNumberList(PrimaryElementList):
             if isinstance(this, PhoneNumber):
                 phone = this
             else:
-                phone = phone_from_dict(this)
+                phone = PhoneNumber.from_dict(this)
             elements.append(phone)
 
         PrimaryElementList.__init__(self, elements)
@@ -124,12 +122,3 @@ class PhoneNumberList(PrimaryElementList):
         :type  phone: str | unicode
         """
         PrimaryElementList.primary.fset(self, phone)
-
-
-def phone_from_dict(data: Dict[str, Any]) -> PhoneNumber:
-    """
-    Create a PhoneNumber instance from a dict.
-
-    :param data: Phone number parameters from database
-    """
-    return PhoneNumber.from_dict(data)

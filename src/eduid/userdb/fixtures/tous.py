@@ -32,15 +32,12 @@
 #
 from datetime import datetime
 
-from bson import ObjectId
-
+from eduid.userdb.event import EventId
 from eduid.userdb.tou import ToUEvent
 
-signup_2016_v1 = ToUEvent.from_dict(
-    {
-        'event_id': ObjectId('912345678901234567890123'),
-        'version': '2016-v1',
-        'created_ts': datetime.fromisoformat("2017-01-04T16:47:30"),
-        'created_by': 'signup',
-    }
+signup_2016_v1 = ToUEvent(
+    event_id=EventId('912345678901234567890123'),
+    version='2016-v1',
+    created_ts=datetime.fromisoformat('2017-01-04T16:47:30'),
+    created_by='signup',
 )

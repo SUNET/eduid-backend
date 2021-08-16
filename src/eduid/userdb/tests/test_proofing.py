@@ -95,7 +95,7 @@ class ProofingStateTest(TestCase):
         # the resulting object will get a _no_created_ts_in_db attr set to True, and its to_dict method will
         # discard the created_ts key.
         _nin_expected_keys = ['created_by', 'number', 'verification_code', 'verified']
-        if not state.nin._no_modified_ts_in_db:
+        if not state.nin.no_modified_ts_in_db:
             # When _no_modified_ts_in_db is removed from Element,
             # 'modified_ts' should be added to _nin_expected_keys above
             _nin_expected_keys += ['modified_ts']
@@ -124,7 +124,7 @@ class ProofingStateTest(TestCase):
         )
 
         _nin_expected_keys = ['created_by', 'created_ts', 'number', 'verification_code', 'verified']
-        if not state.nin._no_modified_ts_in_db:
+        if not state.nin.no_modified_ts_in_db:
             # When _no_modified_ts_in_db is removed from Element,
             # 'modified_ts' should be added to _nin_expected_keys above
             _nin_expected_keys += ['modified_ts']
@@ -150,7 +150,7 @@ class ProofingStateTest(TestCase):
         )
 
         _nin_expected_keys = ['created_by', 'created_ts', 'number', 'verification_code', 'verified']
-        if not state.nin._no_modified_ts_in_db:
+        if not state.nin.no_modified_ts_in_db:
             # When _no_modified_ts_in_db is removed from Element,
             # 'modified_ts' should be added to _nin_expected_keys above
             _nin_expected_keys += ['modified_ts']

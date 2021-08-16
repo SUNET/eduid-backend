@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any, Dict, List, Mapping, Optional
 
 from eduid.userdb.element import DuplicateElementViolation, Element, ElementList
@@ -11,20 +10,10 @@ from eduid.userdb.exceptions import UserDBValueError
 __author__ = 'lundberg'
 
 
-@dataclass
-class _ProfileRequired:
-    """
-    """
-
+class Profile(Element):
     owner: str
-    schema: str
+    profile_schema: str
     profile_data: Mapping[str, Any]
-
-
-@dataclass
-class Profile(Element, _ProfileRequired):
-    """
-    """
 
     @property
     def key(self) -> Optional[str]:

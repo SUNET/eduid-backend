@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 import unittest
 
+import pytest
+from pydantic import ValidationError
+
 import eduid.userdb.element
 import eduid.userdb.exceptions
 from eduid.userdb.orcid import OidcAuthorization, OidcIdToken, Orcid
@@ -118,10 +121,14 @@ class TestOrcid(unittest.TestCase):
 
         assert dict_1 == dict_2
 
-        with self.assertRaises(TypeError):
-            data = orcid_1.to_dict()
-            data['unknown_key'] = 'test'
-            Orcid.from_dict(data)
+        data = orcid_1.to_dict()
+        data['unknown_key'] = 'test'
 
-        with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
+        with pytest.raises(ValidationError) as exc_info:
+            Orcid.from_dict(data)
+        assert exc_info.value.errors() == [
+            {'loc': ('unknown_key',), 'msg': 'extra fields not permitted', 'type': 'value_error.extra'}
+        ]
+
+        with pytest.raises(eduid.userdb.exceptions.UserDBValueError):
             Orcid.from_dict(None)
