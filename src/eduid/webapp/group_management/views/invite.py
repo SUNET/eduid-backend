@@ -181,7 +181,8 @@ def delete_invite(user: User, group_identifier: UUID, email_address: str, role: 
 def accept_invite(user: User, group_identifier: UUID, email_address: str, role: GroupRole) -> FluxData:
     # Check that the current user has verified the invited email address
     user_email_address = user.mail_addresses.find(email_address)
-    if not user_email_address or not user_email_address.is_verified:
+    # TODO: remove the isinstance on the line below when find() has been updated to never return a bool (False)
+    if isinstance(user_email_address, bool) or not user_email_address or not user_email_address.is_verified:
         current_app.logger.error(f'User has not verified email address: {email_address}')
         return error_response(message=GroupManagementMsg.mail_address_not_verified)
 
@@ -218,7 +219,8 @@ def accept_invite(user: User, group_identifier: UUID, email_address: str, role: 
 def decline_invite(user: User, group_identifier: UUID, email_address: str, role: GroupRole) -> FluxData:
     # Check that the current user has verified the invited email address
     user_email_address = user.mail_addresses.find(email_address)
-    if not user_email_address or not user_email_address.is_verified:
+    # TODO: remove the isinstance on the line below when find() has been updated to never return a bool (False)
+    if isinstance(user_email_address, bool) or not user_email_address or not user_email_address.is_verified:
         current_app.logger.error(f'User has not verified email address: {email_address}')
         return error_response(message=GroupManagementMsg.mail_address_not_verified)
 
