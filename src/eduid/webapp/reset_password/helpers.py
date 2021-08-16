@@ -246,27 +246,9 @@ def generate_suggested_password(password_length: int) -> str:
     return password
 
 
-def hash_password(password: str) -> str:
-    """
-    Return a hash of the provided password
-
-    :param password: password as plaintext
-    """
-    password = ''.join(password.split())
-    return bcrypt.hashpw(password, bcrypt.gensalt())
-
-
-def check_password(password: str, hashed: Optional[str]) -> bool:
-    """
-    Check that the provided password corresponds to the provided hash
-    """
-    if hashed is None:
-        return False
-    password = ''.join(password.split())
-    return bcrypt.checkpw(password, hashed)
-
-
-def extra_security_used(state: ResetPasswordState, security_key_used: bool = False) -> bool:
+def extra_security_used(
+    state: Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState], mfa_used: bool = False
+) -> bool:
     """
     Check if any extra security method was used
 
