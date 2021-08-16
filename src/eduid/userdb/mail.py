@@ -45,10 +45,10 @@ __author__ = 'ft'
 class MailAddress(PrimaryElement):
     email: str
 
-    @validator('email')
+    @validator('email', pre=True)
     def validate_email(cls, v):
         if not isinstance(v, str):
-            ValueError('must be a string')
+            raise ValueError('must be a string')
         return v.lower()
 
     @property

@@ -198,6 +198,14 @@ class TestMailAddress(TestCase):
             {'loc': ('foo',), 'msg': 'extra fields not permitted', 'type': 'value_error.extra'}
         ]
 
+    def test_bad_input_type(self):
+        one = copy.deepcopy(_one_dict)
+        one['email'] = False
+        with pytest.raises(ValidationError) as exc_info:
+            MailAddress.from_dict(one)
+
+        assert exc_info.value.errors() == [{'loc': ('email',), 'msg': 'must be a string', 'type': 'value_error'}]
+
     def test_changing_is_verified_on_primary(self):
         this = self.one.primary
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
