@@ -193,7 +193,7 @@ class TestNewUser(unittest.TestCase):
             created_by='test application',
             created_ts=datetime.fromisoformat('2020-02-04T17:42:33.696751'),
             owner='test owner 1',
-            schema='test schema',
+            profile_schema='test schema',
             profile_data={
                 'a_string': 'I am a string',
                 'an_int': 3,

@@ -79,9 +79,10 @@ subclasses.
 from __future__ import annotations
 
 import copy
-from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Type, TypeVar
+
+from pydantic import BaseModel, Extra, Field
 
 from eduid.userdb.exceptions import EduIDUserDBError, UserDBValueError
 
@@ -126,8 +127,7 @@ class PrimaryElementViolation(PrimaryElementError):
 TElementSubclass = TypeVar('TElementSubclass', bound='Element')
 
 
-@dataclass
-class Element:
+class Element(BaseModel):
     """
     Base class for elements.
 
@@ -139,16 +139,22 @@ class Element:
             EventElement
     """
 
-    created_by: Optional[str] = None
-    created_ts: datetime = field(default_factory=utc_now)
-    modified_ts: datetime = field(default_factory=utc_now)
+    created_by: Optional[str] = Field(default=None, alias='source')
+    created_ts: datetime = Field(default_factory=utc_now, alias='added_timestamp')
+    modified_ts: datetime = Field(default_factory=utc_now)
     # This is a short-term hack to deploy new dataclass based elements without
     # any changes to data in the production database. Remove after a burn-in period.
-    _no_created_ts_in_db: bool = False
-    _no_modified_ts_in_db: bool = False
+    no_created_ts_in_db: bool = False
+    no_modified_ts_in_db: bool = False
+
+    class Config:
+        allow_population_by_field_name = True  # allow setting created_ts by name, not just it's alias
+        validate_assignment = True  # validate data when updated, not just when initialised
+        extra = Extra.forbid  # reject unknown data
+        arbitrary_types_allowed = True  # allow ObjectId as type in Event
 
     def __str__(self) -> str:
-        return f'<eduID {self.__class__.__name__}: {asdict(self)}>'
+        return f'<eduID {self.__class__.__name__}: {self.dict()}>'
 
     @classmethod
     def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any]) -> TElementSubclass:
@@ -169,7 +175,7 @@ class Element:
         Convert Element to a dict in eduid format, that can be used to reconstruct the
         Element later.
         """
-        data = asdict(self)
+        data = self.dict(exclude_none=True)
 
         data = self._to_dict_transform(data)
 
@@ -188,11 +194,11 @@ class Element:
 
         if 'created_ts' not in data:
             # some really old nin entries in the database have neither created_ts nor modified_ts
-            data['_no_created_ts_in_db'] = True
+            data['no_created_ts_in_db'] = True
             data['created_ts'] = datetime.fromisoformat('1900-01-01T00:00:00+00:00')
 
         if 'modified_ts' not in data:
-            data['_no_modified_ts_in_db'] = True
+            data['no_modified_ts_in_db'] = True
             # Use created_ts as modified_ts if no explicit modified_ts was found
             data['modified_ts'] = data['created_ts']
 
@@ -204,18 +210,15 @@ class Element:
         """
         # If there was no modified_ts in the data that was loaded from the database,
         # don't write one back if it matches the implied one of created_ts
-        if '_no_modified_ts_in_db' in data:
-            if data.pop('_no_modified_ts_in_db') is True:
+        if 'no_modified_ts_in_db' in data:
+            if data.pop('no_modified_ts_in_db') is True:
                 if data.get('modified_ts') == data.get('created_ts'):
                     del data['modified_ts']
 
-        if '_no_created_ts_in_db' in data:
-            if data.pop('_no_created_ts_in_db') is True:
+        if 'no_created_ts_in_db' in data:
+            if data.pop('no_created_ts_in_db') is True:
                 if 'created_ts' in data:
                     del data['created_ts']
-
-        # remove None values
-        data = {k: v for k, v in data.items() if v is not None}
 
         return data
 
@@ -231,7 +234,6 @@ class Element:
 TVerifiedElementSubclass = TypeVar('TVerifiedElementSubclass', bound='VerifiedElement')
 
 
-@dataclass
 class VerifiedElement(Element):
     """
     Elements that can be verified or not.
@@ -271,13 +273,12 @@ class VerifiedElement(Element):
 TPrimaryElementSubclass = TypeVar('TPrimaryElementSubclass', bound='PrimaryElement')
 
 
-@dataclass
 class PrimaryElement(VerifiedElement):
     """
     Elements that can be either primary or not.
     """
 
-    is_primary: bool = False
+    is_primary: bool = Field(default=False, alias='primary')  # primary is the old name
 
     def __setattr__(self, key: str, value: Any):
         """
@@ -288,21 +289,9 @@ class PrimaryElement(VerifiedElement):
 
         super().__setattr__(key, value)
 
-    @classmethod
-    def _from_dict_transform(cls: Type[TPrimaryElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Transform data received in eduid format into pythonic format.
-        """
-        data = super()._from_dict_transform(data)
-
-        if 'primary' in data:
-            data['is_primary'] = data.pop('primary')
-
-        return data
-
     def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Transform data kept in pythonic format into eduid format.
+        Transform data kept in pythonic format into database format.
         """
         if 'is_primary' in data:
             data['primary'] = data.pop('is_primary')

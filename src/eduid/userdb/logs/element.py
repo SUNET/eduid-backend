@@ -3,8 +3,7 @@
 # Helper functions to log proofing events.
 #
 import logging
-from dataclasses import dataclass, fields
-from typing import Any, Dict, Type, TypeVar
+from typing import Any, Dict, List, Type, TypeVar
 
 import six
 
@@ -18,7 +17,6 @@ logger = logging.getLogger(__name__)
 TLogElementSubclass = TypeVar('TLogElementSubclass', bound='LogElement')
 
 
-@dataclass
 class LogElement(Element):
     """
     """
@@ -26,19 +24,8 @@ class LogElement(Element):
     # Application creating the log element
     created_by: str
 
-    def validate(self) -> bool:
-        element_keys = set([elem.name for elem in fields(Element)])
-        self_keys = set([elem.name for elem in fields(self)])
-        required_keys = tuple(self_keys - element_keys)
-        required_keys += ('created_ts', 'created_by')
-        # Check that all keys are accounted for and that no string values are blank
-        for key in required_keys:
-            data = getattr(self, key)
-            if isinstance(data, six.string_types):
-                if not data:
-                    logger.error('Not enough data to log proofing event: "{}" can not be blank.'.format(key))
-                    return False
-        return True
+    class Config:
+        min_anystr_length = 1  # No empty strings allowed in log records
 
     @classmethod
     def _from_dict_transform(cls: Type[TLogElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
@@ -64,31 +51,20 @@ class LogElement(Element):
         return data
 
 
-@dataclass
-class _ProofingLogElementRequired:
+class ProofingLogElement(LogElement):
     """
-    Required fields for ProofingLogElement
     """
 
     # eduPersonPrincipalName
     eppn: str
     # Proofing method version number
     proofing_version: str
-
-
-@dataclass
-class ProofingLogElement(LogElement, _ProofingLogElementRequired):
-    """
-    """
-
     # Proofing method name
     proofing_method: str = ''
 
 
-@dataclass
-class _NinProofingLogElementRequired:
+class NinProofingLogElement(ProofingLogElement):
     """
-    Required fields for NinProofingLogElement
     """
 
     # National identity number
@@ -97,60 +73,32 @@ class _NinProofingLogElementRequired:
     user_postal_address: Dict[str, Any]
 
 
-@dataclass
-class NinProofingLogElement(ProofingLogElement, _NinProofingLogElementRequired):
+class MailAddressProofing(ProofingLogElement):
     """
-    """
-
-
-@dataclass
-class _MailAddressProofingRequired:
-    """
-    Required fields for MailAddressProofing
+    {
+        'eduPersonPrincipalName': eppn,
+        'created_ts': utc_now(),
+        'created_by': 'application',
+        'proofing_method': 'e-mail',
+        'proofing_version': '2013v1',
+        'mail_address': 'mail_address',
+        'reference': 'reference id'
+    }
     """
 
     # e-mail address
     mail_address: str
     # Audit reference to help cross reference audit log and events
     reference: str
-
-
-@dataclass
-class MailAddressProofing(ProofingLogElement, _MailAddressProofingRequired):
-    """
-    {
-        'eduPersonPrincipalName': eppn,
-        'created_ts': datetime.utcnow()
-        'created_by': 'application',
-        'proofing_method': 'e-mail',
-        'proofing_version': '2013v1',
-        'mail_address': 'mail_address'
-        'reference': 'reference id'
-    }
-    """
-
     # Proofing method name
     proofing_method: str = 'e-mail'
 
 
-@dataclass
-class _PhoneNumberProofingRequired:
-    """
-    Required fields for PhoneNumberProofing
-    """
-
-    # phone number
-    phone_number: str
-    # Audit reference to help cross reference audit log and events
-    reference: str
-
-
-@dataclass
-class PhoneNumberProofing(ProofingLogElement, _PhoneNumberProofingRequired):
+class PhoneNumberProofing(ProofingLogElement):
     """
     {
         'eduPersonPrincipalName': eppn,
-        'created_ts': datetime.utcnow()
+        'created_ts': utc_now(),
         'created_by': 'application',
         'proofing_method': 'sms',
         'proofing_version': '2013v1',
@@ -159,28 +107,19 @@ class PhoneNumberProofing(ProofingLogElement, _PhoneNumberProofingRequired):
     }
     """
 
+    # phone number
+    phone_number: str
+    # Audit reference to help cross reference audit log and events
+    reference: str
     # Proofing method name
     proofing_method: str = 'sms'
 
 
-@dataclass
-class _TeleAdressProofingRequired:
-    """
-    Required fields for TeleAdressProofing
-    """
-
-    # Mobile phone number
-    mobile_number: str
-    # Reason for mobile phone number match to user
-    reason: str
-
-
-@dataclass
-class TeleAdressProofing(NinProofingLogElement, _TeleAdressProofingRequired):
+class TeleAdressProofing(NinProofingLogElement):
     """
     {
         'eduPersonPrincipalName': eppn,
-        'created_ts': datetime.utcnow()
+        'created_ts': utc_now(),
         'created_by': 'application',
         'proofing_method': 'TeleAdress',
         'proofing_version': '2014v1',
@@ -192,30 +131,19 @@ class TeleAdressProofing(NinProofingLogElement, _TeleAdressProofingRequired):
     }
     """
 
+    # Mobile phone number
+    mobile_number: str
+    # Reason for mobile phone number match to user
+    reason: str
     # Proofing method name
     proofing_method: str = 'TeleAdress'
 
 
-@dataclass
-class _TeleAdressProofingRelationRequired:
-    """
-    Required fields for TeleAdressProofingRelation
-    """
-
-    # NIN of registered user of mobile phone subscription
-    mobile_number_registered_to: str
-    # Relation of mobile phone subscriber to User
-    registered_relation: str
-    # Navet response for mobile phone subscriber
-    registered_postal_address: str
-
-
-@dataclass
-class TeleAdressProofingRelation(TeleAdressProofing, _TeleAdressProofingRelationRequired):
+class TeleAdressProofingRelation(TeleAdressProofing):
     """
     {
         'eduPersonPrincipalName': eppn,
-        'created_ts': datetime.utcnow()
+        'created_ts': utc_now(),
         'created_by': 'application',
         'proofing_method': 'TeleAdress',
         'proofing_version': '2014v1',
@@ -223,35 +151,28 @@ class TeleAdressProofingRelation(TeleAdressProofing, _TeleAdressProofingRelation
         'nin': national_identity_number,
         'mobile_number': mobile_number,
         'teleadress_response': {teleadress_response},
-        'user_postal_address': {postal_address_from_navet}
+        'user_postal_address': {postal_address_from_navet},
         'mobile_number_registered_to': 'registered_national_identity_number',
         'registered_relation': 'registered_relation_to_user'
         'registered_postal_address': {postal_address_from_navet}
     }
     """
 
+    # NIN of registered user of mobile phone subscription
+    mobile_number_registered_to: str
+    # Relation of mobile phone subscriber to User
+    registered_relation: List[str]
+    # Navet response for mobile phone subscriber
+    registered_postal_address: Dict[str, Any]
     # Proofing method name
     proofing_method: str = 'TeleAdress'
 
 
-@dataclass
-class _LetterProofingRequired:
-    """
-    Required fields for LetterProofing
-    """
-
-    # Name and address the letter was sent to
-    letter_sent_to: str
-    # Letter service transaction id
-    transaction_id: str
-
-
-@dataclass
-class LetterProofing(NinProofingLogElement, _LetterProofingRequired):
+class LetterProofing(NinProofingLogElement):
     """
     {
         'eduPersonPrincipalName': eppn,
-        'created_ts': datetime.utcnow()
+        'created_ts': utc_now(),
         'created_by': 'application',
         'proofing_method': 'letter',
         'proofing_version': '2016v1',
@@ -262,26 +183,19 @@ class LetterProofing(NinProofingLogElement, _LetterProofingRequired):
     }
     """
 
+    # Name and address the letter was sent to
+    letter_sent_to: Dict[str, Any]
+    # Letter service transaction id
+    transaction_id: str
     # Proofing method name
     proofing_method: str = 'letter'
 
 
-@dataclass
-class _SeLegProofingRequired:
-    """
-    Required fields for SeLegProofing
-    """
-
-    # Provider transaction id
-    transaction_id: str
-
-
-@dataclass
-class SeLegProofing(NinProofingLogElement, _SeLegProofingRequired):
+class SeLegProofing(NinProofingLogElement):
     """
     {
         'eduPersonPrincipalName': eppn,
-        'created_ts': datetime.utcnow()
+        'created_ts': utc_now(),
         'created_by': 'application',
         'proofing_method': 'se-leg',
         'proofing_version': '2017v1',
@@ -292,28 +206,19 @@ class SeLegProofing(NinProofingLogElement, _SeLegProofingRequired):
     }
     """
 
+    # Provider transaction id
+    transaction_id: str
     # Proofing method name
     proofing_method: str = 'se-leg'
     # Name of the provider who performed the vetting
     vetting_by: str = ''
 
 
-@dataclass
-class _SeLegProofingFrejaEidRequired:
-    """
-    Required fields for SeLegProofingFrejaEid
-    """
-
-    # Data used to initialize the vetting process
-    opaque_data: str
-
-
-@dataclass
-class SeLegProofingFrejaEid(SeLegProofing, _SeLegProofingFrejaEidRequired):
+class SeLegProofingFrejaEid(SeLegProofing):
     """
     {
         'eduPersonPrincipalName': eppn,
-        'created_ts': datetime.utcnow()
+        'created_ts': utc_now(),
         'created_by': 'application',
         'proofing_method': 'se-leg',
         'proofing_version': '2017v1',
@@ -325,30 +230,17 @@ class SeLegProofingFrejaEid(SeLegProofing, _SeLegProofingFrejaEidRequired):
     }
     """
 
+    # Data used to initialize the vetting process
+    opaque_data: str
     # Name of the provider who performed the vetting
     vetting_by: str = 'Freja eID'
 
 
-@dataclass
-class _OrcidProofingRequired:
-    """
-    Required fields for OrcidProofing
-    """
-
-    # Users unique id
-    orcid: str
-    # OIDC issuer
-    issuer: str
-    # OIDC audience
-    audience: str
-
-
-@dataclass
-class OrcidProofing(ProofingLogElement, _OrcidProofingRequired):
+class OrcidProofing(ProofingLogElement):
     """
     {
         'eduPersonPrincipalName': eppn,
-        'created_ts': datetime.utcnow(),
+        'created_ts': utc_now(),
         'created_by': 'application',
         'orcid': 'Users orcid',
         'issuer': 'Issuer url',
@@ -358,28 +250,21 @@ class OrcidProofing(ProofingLogElement, _OrcidProofingRequired):
     }
     """
 
+    # Users unique id
+    orcid: str
+    # OIDC issuer
+    issuer: str
+    # OIDC audience
+    audience: List[str]
     # Proofing method name
     proofing_method: str = 'oidc'
 
 
-@dataclass
-class _SwedenConnectProofingRequired:
-    """
-    Required fields for SwedenConnectProofing
-    """
-
-    # Provider transaction id
-    issuer: str
-    # The authentication context class asserted
-    authn_context_class: str
-
-
-@dataclass
-class SwedenConnectProofing(NinProofingLogElement, _SwedenConnectProofingRequired):
+class SwedenConnectProofing(NinProofingLogElement):
     """
     {
         'eduPersonPrincipalName': eppn,
-        'created_ts': datetime.utcnow()
+        'created_ts': utc_now(),
         'created_by': 'application',
         'proofing_method': 'swedenconnect',
         'proofing_version': '2018v1',
@@ -390,26 +275,19 @@ class SwedenConnectProofing(NinProofingLogElement, _SwedenConnectProofingRequire
     }
     """
 
+    # Provider transaction id
+    issuer: str
+    # The authentication context class asserted
+    authn_context_class: str
     # Proofing method name
     proofing_method: str = 'swedenconnect'
 
 
-@dataclass
-class _MFATokenProofingRequired:
-    """
-    Required fields for MFATokenProofing
-    """
-
-    # Data used to initialize the vetting process
-    key_id: str
-
-
-@dataclass
-class MFATokenProofing(SwedenConnectProofing, _MFATokenProofingRequired):
+class MFATokenProofing(SwedenConnectProofing):
     """
     {
         'eduPersonPrincipalName': eppn,
-        'created_ts': datetime.utcnow()
+        'created_ts': utc_now(),
         'created_by': 'application',
         'proofing_method': 'swedenconnect',
         'proofing_version': '2018v1',
@@ -421,5 +299,7 @@ class MFATokenProofing(SwedenConnectProofing, _MFATokenProofingRequired):
     }
     """
 
+    # Data used to initialize the vetting process
+    key_id: str
     # Proofing method name
     proofing_method: str = 'swedenconnect'

@@ -1,8 +1,8 @@
 from bson import ObjectId
 
 from eduid.userdb.credentials.base import Credential
-from eduid.userdb.credentials.fido import u2f_from_dict, webauthn_from_dict
-from eduid.userdb.credentials.password import password_from_dict
+from eduid.userdb.credentials.fido import U2F, Webauthn
+from eduid.userdb.credentials.password import Password
 from eduid.userdb.element import DuplicateElementViolation, ElementList
 from eduid.userdb.exceptions import UserHasUnknownData
 
@@ -24,12 +24,12 @@ class CredentialList(ElementList):
             if isinstance(this, Credential):
                 credential = this
             elif isinstance(this, dict) and 'salt' in this:
-                credential = password_from_dict(this)
+                credential = Password.from_dict(this)
             elif isinstance(this, dict) and 'keyhandle' in this:
                 if 'public_key' in this:
-                    credential = u2f_from_dict(this)
+                    credential = U2F.from_dict(this)
                 else:
-                    credential = webauthn_from_dict(this)
+                    credential = Webauthn.from_dict(this)
             else:
                 raise UserHasUnknownData('Unknown credential data (type {}): {!r}'.format(type(this), this))
             elements.append(credential)

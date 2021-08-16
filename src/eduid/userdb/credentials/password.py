@@ -34,10 +34,9 @@
 #
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Dict, Type
-
 import bson
+from bson import ObjectId
+from pydantic import Field, validator
 
 from eduid.userdb.credentials import Credential
 
@@ -46,27 +45,19 @@ __author__ = 'lundberg'
 from eduid.userdb.credentials.base import CredentialKey
 
 
-@dataclass
-class _PasswordRequired:
-    """
-    Required fields for Password
-    """
-
-    credential_id: str
+class Password(Credential):
+    credential_id: str = Field(alias='id')
     salt: str
-
-    def __post_init__(self):
-        # backwards compat
-        if isinstance(self.credential_id, bson.ObjectId):
-            self.credential_id = str(self.credential_id)
-
-
-@dataclass
-class Password(Credential, _PasswordRequired):
-    """
-    """
-
     is_generated: bool = False
+
+    @validator('credential_id', pre=True)
+    def credential_id_objectid(cls, v):
+        """ Turn string into ObjectId """
+        if isinstance(v, ObjectId):
+            v = str(v)
+        if not isinstance(v, str):
+            raise TypeError('must be a string or ObjectId')
+        return v
 
     @property
     def key(self) -> CredentialKey:
@@ -74,36 +65,3 @@ class Password(Credential, _PasswordRequired):
         Return the element that is used as key.
         """
         return CredentialKey(self.credential_id)
-
-    @classmethod
-    def _from_dict_transform(cls: Type[Password], data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Transform data received in eduid format into pythonic format.
-        """
-        data = super()._from_dict_transform(data)
-
-        if 'source' in data:
-            data['created_by'] = data.pop('source')
-
-        if 'id' in data:
-            data['credential_id'] = data.pop('id')
-
-        return data
-
-    def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Transform data kept in pythonic format into eduid format.
-        """
-
-        data = super()._to_dict_transform(data)
-
-        return data
-
-
-def password_from_dict(data: Dict[str, Any]) -> Password:
-    """
-    Create a Password instance from a dict.
-
-    :param data: Password parameters from database
-    """
-    return Password.from_dict(data)

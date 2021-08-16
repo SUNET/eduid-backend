@@ -14,10 +14,10 @@ OPAQUE_DATA = {'a_string': 'I am a string', 'an_int': 3, 'a_list': ['eins', 2, '
 class ProfileTest(TestCase):
     def test_create_profile(self):
         profile = Profile(
-            owner='test owner', schema='test schema', profile_data=OPAQUE_DATA, created_by='test created_by',
+            owner='test owner', profile_schema='test schema', profile_data=OPAQUE_DATA, created_by='test created_by',
         )
         self.assertEqual(profile.owner, 'test owner')
-        self.assertEqual(profile.schema, 'test schema')
+        self.assertEqual(profile.profile_schema, 'test schema')
         self.assertEqual(profile.created_by, 'test created_by')
         self.assertIsNotNone(profile.created_ts)
         for key, value in OPAQUE_DATA.items():
@@ -26,10 +26,10 @@ class ProfileTest(TestCase):
 
     def test_profile_list(self):
         profile = Profile(
-            owner='test owner 1', schema='test schema', profile_data=OPAQUE_DATA, created_by='test created_by',
+            owner='test owner 1', profile_schema='test schema', profile_data=OPAQUE_DATA, created_by='test created_by',
         )
         profile2 = Profile(
-            owner='test owner 2', created_by='test created_by', schema='test schema', profile_data=OPAQUE_DATA,
+            owner='test owner 2', created_by='test created_by', profile_schema='test schema', profile_data=OPAQUE_DATA,
         )
 
         profile_list = ProfileList([profile, profile2])
@@ -45,7 +45,7 @@ class ProfileTest(TestCase):
 
     def test_profile_list_owner_conflict(self):
         profile = Profile(
-            owner='test owner 1', schema='test schema', profile_data=OPAQUE_DATA, created_by='test created_by',
+            owner='test owner 1', profile_schema='test schema', profile_data=OPAQUE_DATA, created_by='test created_by',
         )
         profile_dict = profile.to_dict()
         profile2 = Profile.from_dict(profile_dict)

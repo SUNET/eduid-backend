@@ -3,6 +3,9 @@ import datetime
 from hashlib import sha256
 from unittest import TestCase
 
+import pytest
+from pydantic import ValidationError
+
 import eduid.userdb.element
 import eduid.userdb.exceptions
 from eduid.userdb.credentials import U2F, CredentialList
@@ -65,8 +68,11 @@ class TestU2F(TestCase):
     def test_unknown_input_data(self):
         one = copy.deepcopy(_one_dict)
         one['foo'] = 'bar'
-        with self.assertRaises(TypeError):
+        with pytest.raises(ValidationError) as exc_info:
             U2F.from_dict(one)
+        assert exc_info.value.errors() == [
+            {'loc': ('foo',), 'msg': 'extra fields not permitted', 'type': 'value_error.extra'}
+        ]
 
     def test_created_by(self):
         this = self.three.find(_keyid(_three_dict))

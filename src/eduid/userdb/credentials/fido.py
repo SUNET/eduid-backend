@@ -45,43 +45,23 @@ __author__ = 'ft'
 from eduid.userdb.credentials.base import CredentialKey
 
 
-@dataclass
-class _FidoCredentialRequired:
-    """
-    Required fields for FidoCredential, so that they go before the optional
-    arguments of Element in the implicit constructor.
-    """
-
-    keyhandle: str
-    app_id: str
-
-
-@dataclass
-class FidoCredential(Credential, _FidoCredentialRequired):
+class FidoCredential(Credential):
     """
     Token authentication credential
     """
 
+    keyhandle: str
+    app_id: str
     description: str = ''
 
 
-@dataclass
-class _U2FCredentialRequired:
-    """
-    Required fields for U2F, so that they go before the optional
-    arguments in the implicit constructor.
-    """
-
-    version: str
-    public_key: str
-
-
-@dataclass
-class U2F(FidoCredential, _U2FCredentialRequired):
+class U2F(FidoCredential):
     """
     U2F token authentication credential
     """
 
+    version: str
+    public_key: str
     attest_cert: Optional[str] = None
 
     @property
@@ -93,16 +73,6 @@ class U2F(FidoCredential, _U2FCredentialRequired):
         return CredentialKey('sha256:' + _digest)
 
 
-def u2f_from_dict(data: Dict[str, Any]) -> U2F:
-    """
-    Create an U2F instance from a dict.
-
-    :param data: Credential parameters from database
-    """
-    return U2F.from_dict(data)
-
-
-@dataclass
 class Webauthn(FidoCredential):
     """
     Webauthn token authentication credential
@@ -118,12 +88,3 @@ class Webauthn(FidoCredential):
         """
         _digest = sha256(self.keyhandle.encode('utf-8') + self.credential_data.encode('utf-8')).hexdigest()
         return CredentialKey('sha256:' + _digest)
-
-
-def webauthn_from_dict(data: Dict[str, Any]) -> Webauthn:
-    """
-    Create an Webauthn instance from a dict.
-
-    :param data: Credential parameters from database
-    """
-    return Webauthn.from_dict(data)

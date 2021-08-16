@@ -13,7 +13,7 @@ from eduid.userdb.tou import ToUEvent, ToUList
 __author__ = 'ft'
 
 _one_dict = {
-    'id': bson.ObjectId(),  # Keep 'id' instead of event_id to test compatiblity code
+    'id': bson.ObjectId(),  # Keep 'id' instead of event_id to test compatibility code
     'event_type': 'tou_event',
     'version': '1',
     'created_by': 'test',
@@ -134,7 +134,7 @@ class TestEventList(TestCase):
             # there to be no modified_ts in the output dict when there was none in the
             # input dict. Written this way to be obvious what needs to change in this test
             # case when _no_modified_ts_in_db is removed from Element.
-            if el.to_list()[0]._no_modified_ts_in_db:
+            if el.to_list()[0].no_modified_ts_in_db:
                 assert 'modified_ts' not in event
             else:
                 self.assertIsInstance(event['modified_ts'], datetime.datetime)

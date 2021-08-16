@@ -5,7 +5,7 @@ from bson.objectid import ObjectId
 
 import eduid.userdb.element
 import eduid.userdb.exceptions
-from eduid.userdb.credentials import U2F, CredentialList, Password
+from eduid.userdb.credentials import U2F, CredentialList
 
 __author__ = 'lundberg'
 
@@ -15,6 +15,7 @@ __author__ = 'lundberg'
 #    'source': 'signup',
 #    'created_ts': datetime.datetime.utcnow(),
 # }}
+from eduid.userdb.credentials.password import Password
 from eduid.userdb.testing import normalised_data
 
 _one_dict = {

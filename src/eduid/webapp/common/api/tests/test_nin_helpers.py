@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 from typing import Any, Mapping
 
+import pytest
 from mock import MagicMock, patch
+from pydantic import ValidationError
 
 from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.common.config.parsers import load_config
@@ -241,7 +243,7 @@ class NinHelpersTest(EduidAPITestCase):
         )
         proofing_state = NinProofingState.from_dict({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
         proofing_log_entry = ProofingLogElement(
-            user, created_by=proofing_state.nin.created_by, proofing_method='test', proofing_version='2017'
+            eppn=user.eppn, created_by=proofing_state.nin.created_by, proofing_method='test', proofing_version='2017'
         )
         with self.app.app_context():
             assert verify_nin_for_user(user, proofing_state, proofing_log_entry) is True
@@ -253,21 +255,24 @@ class NinHelpersTest(EduidAPITestCase):
             dict(number=self.test_user_nin, created_by='NinHelpersTest', verified=False)
         )
         proofing_state = NinProofingState.from_dict({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
-        # Create a ProofingLogElement with an empty created_by, which should be rejected on save in LogDB
-        proofing_log_entry = NinProofingLogElement(
-            eppn=user.eppn,
-            created_by='',
-            nin=proofing_state.nin.number,
-            user_postal_address=self.navet_response,
-            proofing_method='test',
-            proofing_version='2017',
-        )
-        with self.app.app_context():
-            # Verify that failure to save the proofing log element is returned to caller
-            assert verify_nin_for_user(user, proofing_state, proofing_log_entry) is False
-        # Validate that the user wasn't added to the private_userdb
-        user = self.app.private_userdb.get_user_by_eppn(eppn, raise_on_missing=False)
-        assert user is None
+        # Create a ProofingLogElement with an empty created_by, which should be rejected
+        with pytest.raises(ValidationError) as exc_info:
+            NinProofingLogElement(
+                eppn=user.eppn,
+                created_by='',
+                nin=proofing_state.nin.number,
+                user_postal_address=self.navet_response,
+                proofing_method='test',
+                proofing_version='2017',
+            )
+        assert exc_info.value.errors() == [
+            {
+                'ctx': {'limit_value': 1},
+                'loc': ('created_by',),
+                'msg': 'ensure this value has at least 1 characters',
+                'type': 'value_error.any_str.min_length',
+            }
+        ]
 
     def test_set_user_names_from_offical_address_1(self):
         userdata = new_user_example.to_dict()

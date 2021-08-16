@@ -6,6 +6,8 @@ from eduid.userdb.db import BaseDB
 
 __author__ = 'lundberg'
 
+from eduid.userdb.logs.element import LogElement
+
 logger = logging.getLogger(__name__)
 
 
@@ -18,17 +20,13 @@ class LogDB(BaseDB):
     def _insert(self, doc):
         self._coll.insert_one(doc)
 
-    def save(self, log_element):
+    def save(self, log_element: LogElement) -> bool:
         """
-        @param log_element:
-        @type log_element: eduid.userdb.logs.element.LogElement
-        @return: Boolean
-        @rtype: bool
+        :param log_element: The log element to save
+        :return: True on success
         """
-        if log_element.validate():
-            self._insert(log_element.to_dict())
-            return True
-        return False
+        self._insert(log_element.to_dict())
+        return True
 
 
 class ProofingLog(LogDB):
