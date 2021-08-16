@@ -33,7 +33,6 @@
 
 from flask import current_app, render_template, url_for
 from flask_babel import gettext as _
-from pydantic import ValidationError
 
 from eduid.userdb.logs import MailAddressProofing
 from eduid.userdb.mail import MailAddress
@@ -102,32 +101,27 @@ def verify_mail_address(state, proofing_user):
     :return: None
 
     """
-    new_email = MailAddress(email=state.verification.email, created_by='email', is_verified=True, is_primary=False)
+    email = proofing_user.mail_addresses.find(state.verification.email)
+    if not email:
+        email = MailAddress(email=state.verification.email, created_by='email', is_verified=True, is_primary=False)
+        proofing_user.mail_addresses.add(email)
+        # Adding the phone to the list creates a copy of the element, so we have to 'find' it again
+        email = proofing_user.mail_addresses.find(state.verification.email)
 
-    has_primary = proofing_user.mail_addresses.primary
-    if has_primary is None:
-        new_email.is_primary = True
-    try:
-        proofing_user.mail_addresses.add(new_email)
-    except ValidationError as exc:
-        if 'Duplicate element key:' not in str(exc):
-            raise
-        proofing_user.mail_addresses.find(state.verification.email).is_verified = True
-        if has_primary is None:
-            proofing_user.mail_addresses.find(state.verification.email).is_primary = True
+    email.is_verified = True
+    if not proofing_user.mail_addresses.primary:
+        email.is_primary = True
 
     mail_address_proofing = MailAddressProofing(
         eppn=proofing_user.eppn,
         created_by='email',
-        mail_address=new_email.email,
+        mail_address=email.email,
         reference=state.reference,
         proofing_version='2013v1',
     )
     if current_app.proofing_log.save(mail_address_proofing):
         save_and_sync_user(proofing_user)
-        current_app.logger.info(
-            'Email address {!r} confirmed ' 'for user {}'.format(state.verification.email, proofing_user)
-        )
+        current_app.logger.info(f'Email address {repr(state.verification.email)} confirmed for user {proofing_user}')
         current_app.stats.count(name='email_verify_success', value=1)
         current_app.proofing_statedb.remove_state(state)
-        current_app.logger.debug('Removed proofing state: {} '.format(state))
+        current_app.logger.debug(f'Removed proofing state: {state}')

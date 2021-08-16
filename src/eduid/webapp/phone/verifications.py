@@ -31,13 +31,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from datetime import timedelta
-
 from flask import render_template
 
-from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User
-from eduid.userdb.element import DuplicateElementViolation
 from eduid.userdb.logs import PhoneNumberProofing
 from eduid.userdb.phone import PhoneNumber
 from eduid.userdb.proofing import PhoneProofingElement, PhoneProofingState, ProofingUser
@@ -102,20 +98,16 @@ def verify_phone_number(state: PhoneProofingState, proofing_user: ProofingUser) 
 
     """
     number = state.verification.number
-    new_phone = PhoneNumber(number=number, created_by='eduid_phone', is_verified=True, is_primary=False)
+    phone = proofing_user.phone_numbers.find(number)
+    if not phone:
+        phone = PhoneNumber(number=number, created_by='eduid_phone', is_verified=True, is_primary=False)
+        proofing_user.phone_numbers.add(phone)
+        # Adding the phone to the list creates a copy of the element, so we have to 'find' it again
+        phone = proofing_user.phone_numbers.find(number)
 
-    has_primary = proofing_user.phone_numbers.primary
-    if has_primary is None:
-        new_phone.is_primary = True
-    try:
-        # Try to add the new phone number element
-        proofing_user.phone_numbers.add(new_phone)
-    except DuplicateElementViolation:
-        # The phone number element was already added as a unverified phone number,
-        # verify it and set it as primary if no other primary number was found
-        proofing_user.phone_numbers.find(number).is_verified = True
-        if has_primary is None:
-            proofing_user.phone_numbers.find(number).is_primary = True
+    phone.is_verified = True
+    if not proofing_user.phone_numbers.primary:
+        phone.is_primary = True
 
     phone_number_proofing = PhoneNumberProofing(
         eppn=proofing_user.eppn,
