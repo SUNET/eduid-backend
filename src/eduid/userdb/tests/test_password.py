@@ -27,7 +27,7 @@ class TestPassword(TestCase):
         """
         Test that the 'key' property (used by CredentialList) works for the Password.
         """
-        password = self.one.find(ObjectId('55002741d00690878ae9b600'))
+        password = self.one.find(str(ObjectId('55002741d00690878ae9b600')))
         self.assertEqual(password.key, password.credential_id)
 
     def test_parse_cycle(self):
@@ -39,10 +39,10 @@ class TestPassword(TestCase):
             self.assertEqual(CredentialList.from_list_of_dicts(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
 
     def test_created_by(self):
-        this = self.three.find(ObjectId('55002741d00690878ae9b600'))
+        this = self.three.find(str(ObjectId('55002741d00690878ae9b600')))
         this.created_by = 'unit test'
         self.assertEqual(this.created_by, 'unit test')
 
     def test_created_ts(self):
-        this = self.three.find(ObjectId('55002741d00690878ae9b600'))
+        this = self.three.find(str(ObjectId('55002741d00690878ae9b600')))
         self.assertIsInstance(this.created_ts, datetime.datetime)

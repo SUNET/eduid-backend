@@ -39,6 +39,7 @@ from typing import Any, Dict, Generic, Optional, Type, TypeVar
 
 from bson import ObjectId
 from pydantic import validator
+from pydantic import Field
 
 from eduid.userdb.element import Element, ElementList, ListElement
 from eduid.userdb.exceptions import BadEvent, UserDBValueError
@@ -60,7 +61,7 @@ class Event(Element):
 
     data: Optional[Dict[str, Any]] = None
     event_type: Optional[str] = None
-    event_id: Optional[EventId] = None
+    event_id: Optional[EventId] = Field(default=None, alias='id')
     # This is a short-term hack to deploy new dataclass based events without
     # any changes to data in the production database. Remove after a burn-in period.
     no_event_type_in_db: bool = False

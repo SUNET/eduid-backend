@@ -5,7 +5,6 @@ from unittest import TestCase
 import pytest
 from pydantic import ValidationError
 
-from eduid.userdb.element import DuplicateElementViolation
 from eduid.userdb.profile import Profile, ProfileList
 
 __author__ = 'lundberg'

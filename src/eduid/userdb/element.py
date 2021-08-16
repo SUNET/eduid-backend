@@ -81,7 +81,7 @@ from __future__ import annotations
 import copy
 from abc import ABC
 from datetime import datetime
-from typing import Any, Dict, Generic, List, NewType, Optional, Type, TypeVar
+from typing import Any, Dict, Generic, List, Optional, Type, TypeVar
 
 from pydantic import BaseModel, Extra, Field, validator
 from pydantic.generics import GenericModel
@@ -96,14 +96,6 @@ from eduid.userdb.util import utc_now
 class ElementError(EduIDUserDBError):
     """
     Base exception class for PrimaryElement errors.
-    """
-
-    pass
-
-
-class DuplicateElementViolation(ElementError):
-    """
-    Raised when some operation would result in duplicate elements in a list.
     """
 
     pass
@@ -386,7 +378,6 @@ class ElementList(GenericModel, Generic[ListElement], ABC):
         :return: Element found, or False if none was found
         :rtype: Element | False
         """
-        key = str(key)
         res = [x for x in self.elements if isinstance(x, Element) and x.key == key]
         if len(res) == 1:
             return res[0]

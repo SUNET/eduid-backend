@@ -35,12 +35,12 @@
 from __future__ import annotations
 
 import datetime
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List, Type
 
-from pydantic import Field, validator
+from pydantic import validator
 
 from eduid.userdb.event import Event, EventList
-from eduid.userdb.exceptions import EduIDUserDBError, UserDBValueError
+from eduid.userdb.exceptions import UserDBValueError
 from eduid.userdb.util import utc_now
 
 
@@ -73,7 +73,7 @@ class ToUEvent(Event):
 
     def is_expired(self, interval_seconds: int) -> bool:
         """
-        Check whether the ToU event needs to be reaccepted.
+        Check whether the ToU event needs to be re-accepted.
 
         :param interval_seconds: the max number of seconds between a users acceptance of the ToU
         """
@@ -104,8 +104,6 @@ class ToUList(EventList[ToUEvent]):
 
         :param version: Version of ToU
         :param reaccept_interval: Time between accepting and the need to reaccept (default 3 years)
-
-        :return: True or False
         """
         # All users have implicitly accepted the first ToU version (info stored in another collection)
         if version in ['2014-v1', '2014-dev-v1']:

@@ -35,7 +35,7 @@
 from flask import Blueprint, abort, request
 from marshmallow import ValidationError
 
-from eduid.userdb.element import DuplicateElementViolation, PrimaryElementViolation
+from eduid.userdb.element import PrimaryElementViolation
 from eduid.userdb.exceptions import DocumentDoesNotExist, UserOutOfSync
 from eduid.userdb.mail import MailAddress
 from eduid.userdb.proofing import ProofingUser
@@ -76,7 +76,7 @@ def get_all_emails(user):
 @require_user
 def post_email(user, email, verified, primary):
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    current_app.logger.debug('Trying to save unconfirmed email {!r} ' 'for user {}'.format(email, proofing_user))
+    current_app.logger.debug(f'Trying to save unconfirmed email {repr(email)} for user {proofing_user}')
 
     new_mail = MailAddress(email=email, created_by='email', is_verified=False, is_primary=False)
 
@@ -88,9 +88,9 @@ def post_email(user, email, verified, primary):
     try:
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
-        current_app.logger.debug('Couldnt save email {} for user {}, ' 'data out of sync'.format(email, proofing_user))
+        current_app.logger.debug(f'Couldn\'t save email {email} for user {proofing_user}, data out of sync')
         return error_response(message=CommonMsg.out_of_sync)
-    current_app.logger.info('Saved unconfirmed email {!r} ' 'for user {}'.format(email, proofing_user))
+    current_app.logger.info(f'Saved unconfirmed email {repr(email)} for user {proofing_user}')
     current_app.stats.count(name='email_save_unconfirmed_email', value=1)
 
     sent = send_verification_code(email, proofing_user)
