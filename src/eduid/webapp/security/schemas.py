@@ -67,44 +67,36 @@ class SecurityResponseSchema(FluxStandardAction):
     payload = fields.Nested(CredentialList)
 
 
-class ChpassCredentialList(EduidSchema, CSRFResponseMixin):
-    credentials = fields.Nested(CredentialSchema, many=True)
-    next_url = fields.String(required=True)
+# TODO: Replace ChpassResponseSchema with SecurityResponseSchema in views when
+#   new change_password is done
+class ChpassResponseSchema(SecurityResponseSchema):
+    class ChpassResponsePayload(CredentialList):
+        next_url = fields.String(required=True)
+
+    payload = fields.Nested(ChpassResponsePayload)
 
 
-class ChpassResponseSchema(FluxStandardAction):
-    payload = fields.Nested(ChpassCredentialList)
-
-
-class ChpassRequestSchema(EduidSchema, CSRFRequestMixin):
+class ChangePasswordRequestSchema(EduidSchema, CSRFRequestMixin):
 
     old_password = fields.String(required=True)
     new_password = fields.String(required=True)
 
 
-class CsrfSchema(EduidSchema, CSRFRequestMixin):
-    pass
-
-
-class RedirectSchema(EduidSchema, CSRFResponseMixin):
-    location = fields.String(required=True)
-
-
 class RedirectResponseSchema(FluxStandardAction):
+    class RedirectPayload(EduidSchema, CSRFResponseMixin):
+        location = fields.String(required=True)
 
-    payload = fields.Nested(RedirectSchema, many=False)
-
-
-class SuggestedPassword(EduidSchema, CSRFResponseMixin):
-
-    suggested_password = fields.String(required=True)
+    payload = fields.Nested(RedirectPayload, many=False)
 
 
 class SuggestedPasswordResponseSchema(FluxStandardAction):
+    class SuggestedPasswordPayload(EduidSchema, CSRFResponseMixin):
+        suggested_password = fields.String(required=True)
 
-    payload = fields.Nested(SuggestedPassword, many=False)
+    payload = fields.Nested(SuggestedPasswordPayload, many=False)
 
 
+# TODO: used for old change password, remove later
 class ChangePasswordSchema(PasswordSchema):
 
     csrf_token = fields.String(required=True)
@@ -279,7 +271,7 @@ class NINRequestSchema(EduidSchema, CSRFRequestMixin):
 
 class NINResponseSchema(FluxStandardAction):
     class RemoveNINPayload(EduidSchema, CSRFResponseMixin):
-        success = fields.Boolean(required=True)
+        success = fields.Boolean(required=True)  # TODO: is this used? we should remove it as message should be used
         message = fields.String(required=False)
         nins = fields.Nested(NinSchema, many=True)
 

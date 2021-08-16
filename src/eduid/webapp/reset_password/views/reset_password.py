@@ -75,19 +75,18 @@ supplemented with a text input for the SMS'ed code. In this case submitting the
 form will also result in resetting her password, but without unverifying any of
 her data.
 """
-from datetime import datetime, timedelta
 from typing import Optional
 
 from flask import Blueprint, abort, request
 
 from eduid.userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState
-from eduid.userdb.util import utc_now
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.exceptions import MailTaskFailed, MsgTaskFailed, ThrottledException
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
 from eduid.webapp.common.api.schemas.csrf import EmptyResponse
+from eduid.webapp.common.api.utils import hash_password
 from eduid.webapp.common.authn import fido_tokens
 from eduid.webapp.common.session import session
 from eduid.webapp.reset_password.app import current_reset_password_app as current_app
@@ -98,7 +97,6 @@ from eduid.webapp.reset_password.helpers import (
     get_context,
     get_extra_security_alternatives,
     get_zxcvbn_terms,
-    hash_password,
     mask_alternatives,
     reset_user_password,
     send_password_reset_mail,

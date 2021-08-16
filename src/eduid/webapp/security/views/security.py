@@ -32,9 +32,10 @@
 #
 
 import json
-from datetime import datetime, timedelta
+from datetime import timedelta
+from typing import Dict
 
-from flask import Blueprint, abort, redirect, request, url_for
+from flask import Blueprint, redirect, request, url_for
 from marshmallow import ValidationError
 from six.moves.urllib_parse import parse_qs, urlencode, urlparse, urlunparse
 
@@ -49,6 +50,7 @@ from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, requi
 from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid.webapp.common.api.helpers import add_nin_to_user
 from eduid.webapp.common.api.messages import CommonMsg, error_response, success_response
+from eduid.webapp.common.api.schemas.csrf import EmptyRequest
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.authn.vccs import add_credentials, revoke_all_credentials
@@ -67,7 +69,6 @@ from eduid.webapp.security.schemas import (
     AccountTerminatedSchema,
     ChangePasswordSchema,
     ChpassResponseSchema,
-    CsrfSchema,
     NINRequestSchema,
     NINResponseSchema,
     RedirectResponseSchema,
@@ -92,6 +93,7 @@ def get_credentials(user):
     return credentials
 
 
+# TODO: Remove this when removing change_password below
 @security_views.route('/suggested-password', methods=['GET'])
 @MarshalWith(SuggestedPasswordResponseSchema)
 @require_user
@@ -105,6 +107,7 @@ def get_suggested(user):
     return suggested
 
 
+# TODO: Remove this when frontend for new change password view exist
 @security_views.route('/change-password', methods=['POST'])
 @MarshalWith(ChpassResponseSchema)
 @require_user
@@ -174,16 +177,16 @@ def change_password(user):
 
 @security_views.route('/terminate-account', methods=['POST'])
 @MarshalWith(RedirectResponseSchema)
-@UnmarshalWith(CsrfSchema)
+@UnmarshalWith(EmptyRequest)
 @require_user
-def delete_account(user):
+def delete_account(user: User):
     """
     Terminate account view.
     It receives a POST request, checks the csrf token,
     schedules the account termination action,
     and redirects to the IdP.
     """
-    current_app.logger.debug('Initiating account termination for user {}'.format(user))
+    current_app.logger.debug('Initiating account termination for user')
 
     ts_url = current_app.conf.token_service_url
     terminate_url = urlappend(ts_url, 'terminate')
@@ -192,7 +195,7 @@ def delete_account(user):
     params = {'next': next_url}
 
     url_parts = list(urlparse(terminate_url))
-    query = parse_qs(url_parts[4])
+    query: Dict = parse_qs(url_parts[4])
     query.update(params)
 
     url_parts[4] = urlencode(query)
@@ -213,15 +216,13 @@ def account_terminated(user: User):
     and logs out the session.
     """
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
-    authn = session.authn.sp.get_authn_for_action(AuthnAcsAction.terminate_account)
-    current_app.logger.debug(f'account_terminated called for user {user}, authn {authn}')
 
+    authn = session.authn.sp.get_authn_for_action(AuthnAcsAction.terminate_account)
+    current_app.logger.debug(f'account_terminated called with authn {authn}')
     # TODO: 10 minutes to complete account termination seems overly generous
     _need_reauthn = check_reauthn(authn, timedelta(seconds=600))
     if _need_reauthn:
         return _need_reauthn
-
-    # del session['reauthn-for-termination']
 
     # revoke all user passwords
     revoke_all_credentials(security_user, vccs_url=current_app.conf.vccs_url)
@@ -253,6 +254,34 @@ def account_terminated(user: User):
     return redirect(f'{current_app.conf.logout_endpoint}?next={current_app.conf.termination_redirect_url}')
 
 
+@security_views.route('/add-nin', methods=['POST'])
+@UnmarshalWith(NINRequestSchema)
+@MarshalWith(NINResponseSchema)
+@require_user
+def add_nin(user, nin):
+    security_user = SecurityUser.from_user(user, current_app.private_userdb)
+    current_app.logger.info('Adding NIN to user')
+    current_app.logger.debug('NIN: {}'.format(nin))
+
+    nin_obj = security_user.nins.find(nin)
+    if nin_obj:
+        current_app.logger.info('NIN already added.')
+        return error_response(message=SecurityMsg.already_exists)
+
+    nin_element = NinProofingElement(number=nin, created_by='security', is_verified=False)
+    proofing_state = NinProofingState(id=None, eppn=security_user.eppn, nin=nin_element, modified_ts=None)
+
+    try:
+        add_nin_to_user(user, proofing_state, user_class=SecurityUser)
+    except AmTaskFailed as e:
+        current_app.logger.error('Adding nin to user failed')
+        current_app.logger.debug(f'NIN: {nin}')
+        current_app.logger.error('{}'.format(e))
+        return error_response(message=CommonMsg.temp_problem)
+
+    return success_response(payload=dict(nins=security_user.nins.to_list_of_dicts()), message=SecurityMsg.add_success)
+
+
 @security_views.route('/remove-nin', methods=['POST'])
 @UnmarshalWith(NINRequestSchema)
 @MarshalWith(NINResponseSchema)
@@ -269,39 +298,10 @@ def remove_nin(user, nin):
 
     try:
         remove_nin_from_user(security_user, nin)
-        return success_response(
-            payload=dict(nins=security_user.nins.to_list_of_dicts()), message=SecurityMsg.rm_success
-        )
     except AmTaskFailed as e:
         current_app.logger.error('Removing nin from user failed')
         current_app.logger.debug(f'NIN: {nin}')
         current_app.logger.error('{}'.format(e))
         return error_response(message=CommonMsg.temp_problem)
 
-
-@security_views.route('/add-nin', methods=['POST'])
-@UnmarshalWith(NINRequestSchema)
-@MarshalWith(NINResponseSchema)
-@require_user
-def add_nin(user, nin):
-    security_user = SecurityUser.from_user(user, current_app.private_userdb)
-    current_app.logger.info('Removing NIN from user')
-    current_app.logger.debug('NIN: {}'.format(nin))
-
-    nin_obj = security_user.nins.find(nin)
-    if nin_obj:
-        current_app.logger.info('NIN already added.')
-        return error_response(message=SecurityMsg.already_exists)
-
-    try:
-        nin_element = NinProofingElement(number=nin, created_by='security', is_verified=False)
-        proofing_state = NinProofingState(id=None, eppn=security_user.eppn, nin=nin_element, modified_ts=None)
-        add_nin_to_user(user, proofing_state, user_class=SecurityUser)
-        return success_response(
-            payload=dict(nins=security_user.nins.to_list_of_dicts()), message=SecurityMsg.add_success
-        )
-    except AmTaskFailed as e:
-        current_app.logger.error('Adding nin to user failed')
-        current_app.logger.debug(f'NIN: {nin}')
-        current_app.logger.error('{}'.format(e))
-        return error_response(message=CommonMsg.temp_problem)
+    return success_response(payload=dict(nins=security_user.nins.to_list_of_dicts()), message=SecurityMsg.rm_success)

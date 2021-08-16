@@ -1,0 +1,87 @@
+@startuml
+title security
+
+legend
+    CREDENTIAL: {
+        key: str
+        credential_type: str
+        created_ts: str
+        success_ts: str
+        used_for_login: bool
+        verified: bool
+        description: str
+    }
+
+    NIN: {
+        number: str
+        verified: bool
+        primary: bool
+    }
+end legend
+
+Client->"/credentials": GET
+"/credentials"->Client: {"payload":{"credentials": [CREDENTIAL]},"type":"GET_SECURITY_CREDENTIALS_SUCCESS"}
+|||
+Client->"/terminate-account": POST {}
+"/terminate-account"->Client: Redirect to the IdP
+|||
+Client -> "/account-terminated": GET
+alt account terminated successfully
+    "/account-terminated"->Client: Redirect to landing page
+else no reauthn
+    "/account-terminated"->Client: {"error": true, "payload":{"message":"security.no_reauthn"},"type":"GET_SECURITY_ACCOUNT_TERMINATED_FAIL"}
+else reauthn is too old
+    "/account-terminated"->Client: {"error": true, "payload":{"message":"security.stale_authn_info"},"type":"GET_SECURITY_ACCOUNT_TERMINATED_FAIL"}
+end
+|||
+Client -> "/add-nin": POST {nin: str}
+alt nin added to user
+    "/add-nin"->Client: {"payload":{"message":"nins.successfully_added", "nins": [NIN]},"type":"POST_SECURITY_ADD_NIN_SUCCESS"}
+else nin already exist
+    "/add-nin"->Client: {"error": true, "payload":{"message":"nins.already_exists"},"type":"POST_SECURITY_ADD_NIN_FAIL"}
+else invalid nin
+    "/add-nin"->Client: {"error": true, "payload":{"error":{'nin': ['nin needs to be formatted as 18|19|20yymmddxxxx']}},"type":"POST_SECURITY_ADD_NIN_FAIL"}
+end
+|||
+Client -> "/remove-nin": POST {nin: str}
+alt nin removed from user
+    "/remove-nin"->Client: {"payload":{"message":"nins.success_removal", "nins": [NIN]},"type":"POST_SECURITY_REMOVE_NIN_SUCCESS"}
+else nin is verified
+    "/remove-nin"->Client: {"error": true, "payload":{"message":"nins.verified_no_rm"},"type":"POST_SECURITY_REMOVE_NIN_FAIL"}
+else invalid nin
+    "/remove-nin"->Client: {"error": true, "payload":{"error":{'nin': ['nin needs to be formatted as 18|19|20yymmddxxxx']}},"type":"POST_SECURITY_REMOVE_NIN_FAIL"}
+end
+|||
+Client -> "/webauthn/register/begin": POST {authenticator: str}
+alt registration started
+    "/webauthn/register/begin"->Client: {"payload":{"registration_data": str},"type":"POST_SECURITY_WEBAUTHN_REGISTER_BEGIN_SUCCESS"}
+else user has to many security keys
+    "/webauthn/register/begin"->Client: {"error": true, "payload":{"message":"security.webauthn.max_allowed_tokens"},"type":"POST_SECURITY_WEBAUTHN_REGISTER_BEGIN_FAIL"}
+else user has not set name
+    "/webauthn/register/begin"->Client: {"error": true, "payload":{"message":"security.webauthn-missing-pdata"},"type":"POST_SECURITY_WEBAUTHN_REGISTER_BEGIN_FAIL"}
+end
+|||
+Client -> "/webauthn/register/complete": POST {credential_id: str, attestation_object: str, client_data: str, description: str}
+"/webauthn/register/complete"->Client: {"payload":{"message":"security.webauthn_register_success","credentials": [CREDENTIAL]},"type":"POST_SECURITY_WEBAUTHN_REGISTER_COMPLETE_SUCCESS"}
+|||
+Client -> "/webauthn/remove": POST {credential_key: str}
+alt security key removed
+    "/webauthn/remove"->Client: {"payload":{"message":"security.webauthn-token-removed","credentials": [CREDENTIAL]},"type":"POST_SECURITY_WEBAUTHN_REMOVE_SUCCESS"}
+else user tries to remove the last security key
+    "/webauthn/remove"->Client: {"error": true, "payload":{"message":"security.webauthn-noremove-last"},"type":"POST_SECURITY_WEBAUTHN_REMOVE_FAIL"}
+end
+|||
+Client->"/change-password/suggested-password": GET
+"/change-password/suggested-password"->Client: {"payload":{"suggested_password": str},"type":"'GET_CHANGE_PASSWORD_CHANGE_PASSWORD_SUGGESTED_PASSWORD_SUCCESS'"}
+|||
+Client -> "/change-password/set-password": POST {old_password: str, new_password: str}
+alt password changed successfully
+    "/change-password/set-password"->Client: {"payload":{"message":"security.change-password-success","credentials": [CREDENTIAL]},"type":"POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_SUCCESS"}
+else old_password or new_password is missing
+    "/change-password/set-password"->Client: {"error": true, "payload":{"message":"security.change_password_no_data"},"type":"POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_FAIL"}
+else new password is weak
+    "/change-password/set-password"->Client: {"error": true, "payload":{"message":"security.change_password_weak"},"type":"POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_FAIL"}
+else old password is wrong
+    "/change-password/set-password"->Client: {"error": true, "payload":{"message":"security.change_password_wrong_old_password"},"type":"POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_FAIL"}
+end
+@enduml

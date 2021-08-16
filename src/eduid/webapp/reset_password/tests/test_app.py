@@ -32,7 +32,7 @@
 #
 import datetime
 import json
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional
 from unittest.mock import Mock, patch
 from urllib.parse import quote_plus
 
@@ -44,6 +44,7 @@ from eduid.userdb.exceptions import DocumentDoesNotExist, UserHasNotCompletedSig
 from eduid.userdb.fixtures.fido_credentials import webauthn_credential as sample_credential
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState
 from eduid.webapp.common.api.testing import EduidAPITestCase
+from eduid.webapp.common.api.utils import hash_password
 from eduid.webapp.common.authn.testing import TestVCCSClient
 from eduid.webapp.common.authn.tests.test_fido_tokens import (
     SAMPLE_WEBAUTHN_APP_CONFIG,
@@ -57,7 +58,6 @@ from eduid.webapp.reset_password.helpers import (
     generate_suggested_password,
     get_extra_security_alternatives,
     get_zxcvbn_terms,
-    hash_password,
     send_verify_phone_code,
 )
 

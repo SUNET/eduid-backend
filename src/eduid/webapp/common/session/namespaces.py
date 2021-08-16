@@ -92,6 +92,11 @@ class ResetPasswordNS(SessionNSBase):
     extrasec_webauthn_state: Optional[str] = None
 
 
+class SecurityNS(SessionNSBase):
+    # used for new change_password
+    generated_password_hash: Optional[str] = None
+
+
 class Signup(TimestampedNS):
     email_verification_code: Optional[str] = None
 
