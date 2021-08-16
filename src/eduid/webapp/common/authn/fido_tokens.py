@@ -46,7 +46,7 @@ from pydantic import BaseModel
 from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.credentials.base import CredentialKey
 from eduid.userdb.user import User
-from eduid.webapp.common.session import session
+from eduid.webapp.common.session.namespaces import MfaAction, WebauthnState
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +119,7 @@ def _get_fido2server(credentials: Dict[CredentialKey, FidoCred], fido2rp: Public
     return Fido2Server(fido2rp)
 
 
-def start_token_verification(user: User, fido2_rp_id: str) -> Dict[str, Any]:
+def start_token_verification(user: User, fido2_rp_id: str, state: MfaAction) -> Dict[str, Any]:
     """
     Begin authentication process based on the hardware tokens registered by the user.
     """
@@ -141,7 +141,7 @@ def start_token_verification(user: User, fido2_rp_id: str) -> Dict[str, Any]:
     fido2data = fido2data.rstrip('=')
 
     logger.debug(f'FIDO2/Webauthn state for user {user}: {fido2state}')
-    session.mfa_action.webauthn_state = fido2state
+    state.webauthn_state = WebauthnState(fido2state)
 
     return {'webauthn_options': fido2data}
 
@@ -162,7 +162,7 @@ class WebauthnResult(BaseModel):
     credential_key: CredentialKey
 
 
-def verify_webauthn(user: User, request_dict: Dict[str, Any], rp_id: str) -> WebauthnResult:
+def verify_webauthn(user: User, request_dict: Dict[str, Any], rp_id: str, state: MfaAction) -> WebauthnResult:
     """
     Verify received Webauthn data against the user's credentials.
 
@@ -197,11 +197,6 @@ def verify_webauthn(user: User, request_dict: Dict[str, Any], rp_id: str) -> Web
     auth_data = AuthenticatorData(req.authenticatorData)
 
     credentials = get_user_credentials(user)
-    fido2state = {}
-    if session.mfa_action.webauthn_state:
-        fido2state = session.mfa_action.webauthn_state
-        # reset webauthn_state to avoid challenge reuse
-        session.mfa_action.webauthn_state = None
 
     fido2rp = PublicKeyCredentialRpEntity(rp_id, 'eduID')
     fido2server = _get_fido2server(credentials, fido2rp)
@@ -214,7 +209,7 @@ def verify_webauthn(user: User, request_dict: Dict[str, Any], rp_id: str) -> Web
 
     try:
         authn_cred = fido2server.authenticate_complete(
-            fido2state,
+            state.webauthn_state,
             [this.webauthn for this in matching_credentials.values()],
             req.credentialId,
             client_data,

@@ -24,7 +24,7 @@ from eduid.webapp.common.authn.eduid_saml2 import get_authn_ctx
 from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.authn.utils import get_saml_attribute
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import SP_AuthnRequest
+from eduid.webapp.common.session.namespaces import MfaActionError, SP_AuthnRequest
 from eduid.webapp.eidas.app import current_eidas_app as current_app
 from eduid.webapp.eidas.helpers import EidasMsg, is_required_loa, is_valid_reauthn
 
@@ -267,45 +267,43 @@ def nin_verify_BACKDOOR(user: User) -> WerkzeugResponse:
 
 @acs_action(EidasAcsAction.mfa_authn)
 def mfa_authentication_action(session_info: SessionInfo, authndata: SP_AuthnRequest) -> WerkzeugResponse:
+    #
+    # TODO: Stop redirecting with message after we stop using actions
+    #
     redirect_url = sanitise_redirect_url(authndata.redirect_url)
-    if not redirect_url:
-        # With no redirect url just redirect the user to dashboard for a new try to log in
-        # TODO: This will result in a error 400 until we put the authentication in the session
-        current_app.logger.error('Missing redirect url for mfa authentication')
-        return redirect_with_msg(current_app.conf.action_url, EidasMsg.no_redirect_url)
 
     if not is_required_loa(session_info, 'loa3'):
+        session.mfa_action.error = MfaActionError.authn_context_mismatch
         return redirect_with_msg(redirect_url, EidasMsg.authn_context_mismatch)
 
     if not is_valid_reauthn(session_info):
+        session.mfa_action.error = MfaActionError.authn_too_old
         return redirect_with_msg(redirect_url, EidasMsg.reauthn_expired)
 
-    # Check that a verified NIN is equal to the asserted attribute personalIdentityNumber
+    # Check that third party service returned a NIN
     _personal_idns = get_saml_attribute(session_info, 'personalIdentityNumber')
     if _personal_idns is None:
         current_app.logger.error(
             'Got no personalIdentityNumber attributes. pysaml2 without the right attribute_converter?'
         )
         # TODO: change to reasonable redirect_with_msg when the ENUM work for that is merged
-        raise RuntimeError('Got no personalIdentityNumber')
-
-    if not session.common.eppn:
-        raise RuntimeError('No eppn in session')
+        raise RuntimeError('Got no attribute personalIdentityNumber')
 
     # Get user from central database
-    user = current_app.central_userdb.get_user_by_eppn(session.common.eppn, raise_on_missing=True)
+    user = current_app.central_userdb.get_user_by_eppn(session.common.eppn, raise_on_missing=False)
+    if user is None:
+        # Please mypy
+        raise RuntimeError(f'No user with eppn {session.common.eppn} found')
 
+    # Check that a verified NIN is equal to the asserted attribute personalIdentityNumber
     asserted_nin = _personal_idns[0]
     user_nin = user.nins.verified.find(asserted_nin)
     if not user_nin:
         current_app.logger.error('Asserted NIN not matching user verified nins')
         current_app.logger.debug('Asserted NIN: {}'.format(asserted_nin))
         current_app.stats.count(name='mfa_auth_nin_not_matching')
+        session.mfa_action.error = MfaActionError.nin_not_matching
         return redirect_with_msg(redirect_url, EidasMsg.nin_not_matching)
-
-    if session.mfa_action is None:
-        # TODO: change to reasonable redirect_with_msg? This should not happen...
-        raise RuntimeError('No MFA info in the session')
 
     session.mfa_action.success = True
     session.mfa_action.issuer = session_info['issuer']
@@ -313,12 +311,5 @@ def mfa_authentication_action(session_info: SessionInfo, authndata: SP_AuthnRequ
     session.mfa_action.authn_context = get_authn_ctx(session_info)
     current_app.stats.count(name='mfa_auth_success')
     current_app.stats.count(name=f'mfa_auth_{session_info["issuer"]}_success')
-
-    # Redirect back to action app but to the redirect-action view
-    resp = redirect_with_msg(redirect_url, EidasMsg.action_completed, error=False)
-    parsed_url = urlsplit(str(resp.location))
-    new_path = urlappend(str(parsed_url.path), 'redirect-action')
-    parsed_url = parsed_url._replace(path=new_path)
-    new_url = urlunsplit(parsed_url)
-    current_app.logger.debug(f'Redirecting to: {new_url}')
-    return redirect(new_url)
+    current_app.logger.info(f'Redirecting to: {redirect_url}')
+    return redirect_with_msg(redirect_url, EidasMsg.action_completed, error=False)

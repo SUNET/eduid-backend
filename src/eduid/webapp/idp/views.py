@@ -30,7 +30,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from datetime import timedelta
+from copy import deepcopy
 from typing import Any, Dict, List, Optional, Sequence, Union
 
 from bson import ObjectId
@@ -43,7 +43,6 @@ from eduid.userdb import ToUEvent
 from eduid.userdb.actions.tou import ToUUser
 from eduid.userdb.credentials import FidoCredential
 from eduid.userdb.exceptions import UserOutOfSync
-from eduid.userdb.idp import IdPUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.exceptions import EduidForbidden, EduidTooManyRequests
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
@@ -52,7 +51,7 @@ from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.authn import fido_tokens
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData
-from eduid.webapp.common.session.namespaces import OnetimeCredential, OnetimeCredType, RequestRef
+from eduid.webapp.common.session.namespaces import MfaActionError, OnetimeCredential, OnetimeCredType, RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import get_requested_authn_context
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
@@ -170,17 +169,19 @@ def next(ref: RequestRef) -> FluxData:
     if _next.message == IdPMsg.must_authenticate:
         return success_response(
             message=IdPMsg.must_authenticate,
-            payload={'action': IdPAction.PWAUTH.value, 'target': url_for('idp.pw_auth')},
+            payload={'action': IdPAction.PWAUTH.value, 'target': url_for('idp.pw_auth', _external=True)},
         )
 
     if _next.message == IdPMsg.mfa_required:
         return success_response(
-            message=IdPMsg.mfa_required, payload={'action': IdPAction.MFA.value, 'target': url_for('idp.mfa_auth')}
+            message=IdPMsg.mfa_required,
+            payload={'action': IdPAction.MFA.value, 'target': url_for('idp.mfa_auth', _external=True)},
         )
 
     if _next.message == IdPMsg.tou_required:
         return success_response(
-            message=IdPMsg.tou_required, payload={'action': IdPAction.TOU.value, 'target': url_for('idp.tou')}
+            message=IdPMsg.tou_required,
+            payload={'action': IdPAction.TOU.value, 'target': url_for('idp.tou', _external=True)},
         )
 
     if _next.message == IdPMsg.user_terminated:
@@ -313,15 +314,21 @@ def mfa_auth(ref: RequestRef, webauthn_response: Optional[Dict[str, str]] = None
         current_app.logger.error(f'User with eppn {sso_session.eppn} (from SSO session) not found')
         return error_response(message=IdPMsg.general_failure)
 
+    # Clear mfa_action from session, so that we know if the user did external MFA
+    # Yes - this should be done even if the user has FIDO credentials because the user might
+    # opt to do external MFA anyways.
+    saved_mfa_action = deepcopy(session.mfa_action)
+    del session.mfa_action
+
     # Third party service MFA
-    if session.mfa_action.success is True:  # Explicit check that success is the boolean True
-        current_app.logger.info(f'User {user} logged in using external MFA service {session.mfa_action.issuer}')
+    if saved_mfa_action.success is True:  # Explicit check that success is the boolean True
+        current_app.logger.info(f'User {user} logged in using external MFA service {saved_mfa_action.issuer}')
 
         _utc_now = utc_now()
 
         # External MFA authentication
         sso_session.external_mfa = ExternalMfaData(
-            issuer=session.mfa_action.issuer, authn_context=session.mfa_action.authn_context, timestamp=_utc_now
+            issuer=saved_mfa_action.issuer, authn_context=saved_mfa_action.authn_context, timestamp=_utc_now
         )
         # Remember the MFA credential used for this particular request
         otc = OnetimeCredential(
@@ -332,24 +339,29 @@ def mfa_auth(ref: RequestRef, webauthn_response: Optional[Dict[str, str]] = None
         )
         session.idp.log_credential_used(ref, otc, _utc_now)
 
-        # Clear mfa_action from session when we've consumed it
-        del session.mfa_action
         return success_response(payload={'finished': True})
+
+    # External MFA was tried and failed, mfa_action.error is set in the eidas app
+    if saved_mfa_action.error is not None:
+        if saved_mfa_action.error is MfaActionError.authn_context_mismatch:
+            return error_response(message=IdPMsg.eidas_authn_context_mismatch)
+        elif saved_mfa_action.error is MfaActionError.authn_too_old:
+            return error_response(message=IdPMsg.eidas_reauthn_expired)
+        elif saved_mfa_action.error is MfaActionError.nin_not_matching:
+            return error_response(message=IdPMsg.eidas_nin_not_matching)
+        else:
+            current_app.logger.warning(f'eidas returned {saved_mfa_action.error} that did not match an error message')
+            return error_response(message=IdPMsg.general_failure)
 
     #
     # No external MFA
     #
     if webauthn_response is None:
-        # Clear mfa_action from session, so that we know if the user did external MFA
-        # Yes - this should be done even if the user has FIDO credentials because the user might
-        # opt to do external MFA anyways.
-        del session.mfa_action
-
         payload: Dict[str, Any] = {'finished': False}
 
         candidates = user.credentials.filter(FidoCredential)
         if candidates.count:
-            options = fido_tokens.start_token_verification(user, current_app.conf.fido2_rp_id)
+            options = fido_tokens.start_token_verification(user, current_app.conf.fido2_rp_id, session.mfa_action)
             payload.update(options)
 
         return success_response(payload=payload)
@@ -357,8 +369,12 @@ def mfa_auth(ref: RequestRef, webauthn_response: Optional[Dict[str, str]] = None
     #
     # Process webauthn_response
     #
+    if not saved_mfa_action.webauthn_state:
+        current_app.logger.error(f'No active webauthn challenge found in the session, can\'t do verification')
+        return error_response(message=IdPMsg.general_failure)
+
     try:
-        result = fido_tokens.verify_webauthn(user, webauthn_response, current_app.conf.fido2_rp_id)
+        result = fido_tokens.verify_webauthn(user, webauthn_response, current_app.conf.fido2_rp_id, saved_mfa_action)
     except fido_tokens.VerificationProblem:
         current_app.logger.exception('Webauthn verification failed')
         current_app.logger.debug(f'webauthn_response: {repr(webauthn_response)}')

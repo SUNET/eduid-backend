@@ -435,22 +435,56 @@ def set_new_pw_extra_security_token(
             'authenticatorData': authenticator_data,
             'signature': signature,
         }
+        if not session.mfa_action.webauthn_state:
+            current_app.logger.error(f'No webauthn state in session')
+            return error_response(message=ResetPwMsg.missing_data)
+
         try:
             result = fido_tokens.verify_webauthn(
-                user=context.user, request_dict=request_dict, rp_id=current_app.conf.fido2_rp_id,
+                user=context.user,
+                request_dict=request_dict,
+                rp_id=current_app.conf.fido2_rp_id,
+                state=session.mfa_action,
             )
             success = result.success
             if success:
                 current_app.stats.count(name='extra_security_security_key_webauthn_success')
         except fido_tokens.VerificationProblem:
             pass
+        finally:
+            # reset webauthn_state to avoid challenge reuse
+            session.mfa_action.webauthn_state = None
     else:
         current_app.logger.error(f'No webauthn data in request for {context.user}')
 
     if not success:
         return error_response(message=ResetPwMsg.fido_token_fail)
 
-    return reset_user_password(user=context.user, state=context.state, password=password, security_key_used=success)
+    return reset_user_password(user=context.user, state=context.state, password=password, mfa_used=success)
+
+
+@reset_password_views.route('/new-password-extra-security-external-mfa/', methods=['POST'])
+@UnmarshalWith(NewPasswordSecureTokenRequestSchema)
+@MarshalWith(ResetPasswordResponseSchema)
+def set_new_pw_extra_security_external_mfa(
+    email_code: str, password: str,
+):
+    try:
+        context = get_context(email_code=email_code)
+    except StateException as e:
+        return error_response(message=e.msg)
+
+    if session.mfa_action.success is not True:  # Explicit check that success is the boolean True
+        return error_response(message=ResetPwMsg.external_mfa_fail)
+
+    current_app.logger.info(f'User used external MFA service {session.mfa_action.issuer} as extra security')
+    current_app.logger.info(
+        f'Issued: {session.mfa_action.authn_instant}. Authn context: {session.mfa_action.authn_context}'
+    )
+    # Clear mfa_action from session
+    del session.mfa_action
+
+    return reset_user_password(user=context.user, state=context.state, password=password, mfa_used=True)
 
 
 @reset_password_views.route('/get-email-code', methods=['GET'])
