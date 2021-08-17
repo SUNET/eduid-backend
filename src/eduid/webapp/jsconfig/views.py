@@ -112,6 +112,7 @@ def get_login_config() -> dict:
         'eduid_site_url': current_app.front_conf.eduid_site_url,
         'eidas_url': current_app.front_conf.eidas_url,
         'mfa_auth_idp': current_app.front_conf.token_verify_idp,
+        'sentry_dsn': current_app.front_conf.sentry_dsn,
         'environment': current_app.conf.environment.value,
     }
 
