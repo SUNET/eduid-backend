@@ -48,8 +48,8 @@ from pydantic import BaseModel, Field
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import MongoDB
-from eduid.userdb.credentials import Credential, Password
-from eduid.userdb.credentials.base import CredentialKey
+from eduid.userdb.credentials import Password
+from eduid.userdb.element import ElementKey
 from eduid.userdb.exceptions import UserHasNotCompletedSignup
 from eduid.userdb.idp import IdPUser, IdPUserDb
 from eduid.vccs.client import VCCSClientHTTPError, VCCSPasswordFactor
@@ -67,7 +67,7 @@ class AuthnData(BaseModel):
     Returned from functions performing authentication.
     """
 
-    cred_id: CredentialKey
+    cred_id: ElementKey
     timestamp: datetime = Field(default_factory=utc_now, alias='authn_ts')  # authn_ts was the old name in the db
 
     class Config:
@@ -327,7 +327,7 @@ class AuthnInfoStore:
             query={'_id': user_id},
             update={
                 '$set': {'success_ts': ts, 'last_credential_ids': success},
-                '$inc': {f'fail_count.{this_month}': len(failure), f'success_count.{this_month}': len(success),},
+                '$inc': {f'fail_count.{this_month}': len(failure), f'success_count.{this_month}': len(success)},
             },
             upsert=True,
             new=True,

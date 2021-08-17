@@ -37,12 +37,12 @@ from __future__ import annotations
 
 from typing import Any, Dict, NewType, Optional
 
-from eduid.userdb.element import VerifiedElement
+from eduid.userdb.element import ElementKey, VerifiedElement
 
 __author__ = 'ft'
 
 
-CredentialKey = NewType('CredentialKey', str)
+CredentialKey = NewType('CredentialKey', ElementKey)
 
 
 class Credential(VerifiedElement):

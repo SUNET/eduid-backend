@@ -38,6 +38,8 @@ from xml.etree.ElementTree import ParseError
 
 from dateutil.parser import parse as dt_parse
 from flask import abort, make_response, redirect, request
+
+from eduid.userdb.element import ElementKey
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.ident import decode
@@ -326,7 +328,7 @@ def process_assertion(
         credentials_used = get_saml_attribute(session_info, 'eduidIdPCredentialsUsed')
         if credentials_used:
             for cred_used in credentials_used:
-                this = user.credentials.find(cred_used)
+                this = user.credentials.find(ElementKey(cred_used))
                 if not this:
                     current_app.logger.warning(f'Could not find credential with key {cred_used} on user {user}')
                     continue

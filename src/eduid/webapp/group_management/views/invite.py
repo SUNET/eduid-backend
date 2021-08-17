@@ -36,6 +36,7 @@ from flask import Blueprint
 from pymongo.errors import DuplicateKeyError
 
 from eduid.userdb import User
+from eduid.userdb.element import ElementKey
 from eduid.userdb.exceptions import EduIDDBError
 from eduid.userdb.group_management import GroupInviteState, GroupRole
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
@@ -180,7 +181,7 @@ def delete_invite(user: User, group_identifier: UUID, email_address: str, role: 
 @require_user
 def accept_invite(user: User, group_identifier: UUID, email_address: str, role: GroupRole) -> FluxData:
     # Check that the current user has verified the invited email address
-    user_email_address = user.mail_addresses.find(email_address)
+    user_email_address = user.mail_addresses.find(ElementKey(email_address))
     # TODO: remove the isinstance on the line below when find() has been updated to never return a bool (False)
     if isinstance(user_email_address, bool) or not user_email_address or not user_email_address.is_verified:
         current_app.logger.error(f'User has not verified email address: {email_address}')
@@ -218,7 +219,7 @@ def accept_invite(user: User, group_identifier: UUID, email_address: str, role: 
 @require_user
 def decline_invite(user: User, group_identifier: UUID, email_address: str, role: GroupRole) -> FluxData:
     # Check that the current user has verified the invited email address
-    user_email_address = user.mail_addresses.find(email_address)
+    user_email_address = user.mail_addresses.find(ElementKey(email_address))
     # TODO: remove the isinstance on the line below when find() has been updated to never return a bool (False)
     if isinstance(user_email_address, bool) or not user_email_address or not user_email_address.is_verified:
         current_app.logger.error(f'User has not verified email address: {email_address}')

@@ -30,16 +30,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import logging
-from typing import List, Optional, Union
+from typing import List, Optional
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.actions import Action
 from eduid.userdb.actions.action import ActionResultMFA, ActionResultThirdPartyMFA
-from eduid.userdb.credentials import U2F, Credential, FidoCredential, Webauthn
+from eduid.userdb.credentials import FidoCredential, U2F, Webauthn
+from eduid.userdb.element import ElementKey
 from eduid.userdb.idp.user import IdPUser
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData, LoginContext
-from eduid.webapp.common.session.namespaces import OnetimeCredential, OnetimeCredType, RequestRef
+from eduid.webapp.common.session.namespaces import OnetimeCredType, OnetimeCredential, RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import EduidAuthnContextClass, get_requested_authn_context
 from eduid.webapp.idp.idp_authn import AuthnData
@@ -95,9 +96,9 @@ def add_actions(user: IdPUser, ticket: LoginContext, sso_session: SSOSession) ->
         require_mfa = True
 
     # Security Keys
-    u2f_tokens = user.credentials.filter(U2F)
-    webauthn_tokens = user.credentials.filter(Webauthn)
-    tokens: List[FidoCredential] = u2f_tokens + webauthn_tokens
+    u2f_tokens: List[FidoCredential] = user.credentials.filter(U2F)
+    webauthn_tokens: List[FidoCredential] = user.credentials.filter(Webauthn)
+    tokens = u2f_tokens + webauthn_tokens
 
     if not tokens and not require_mfa:
         current_app.logger.debug('User does not have any FIDO tokens registered and SP did not require MFA')
@@ -189,7 +190,7 @@ def check_authn_result(user: IdPUser, ticket: LoginContext, actions: List[Action
                 res = True
                 continue
             elif isinstance(this.result, ActionResultMFA):
-                cred = user.credentials.find(this.result.cred_key)
+                cred = user.credentials.find(ElementKey(this.result.cred_key))
                 if not cred:
                     current_app.logger.error(f'MFA action completed with unknown credential {this.result.cred_key}')
                     continue

@@ -42,6 +42,7 @@ from eduid.userdb.credentials import Credential
 __author__ = 'ft'
 
 from eduid.userdb.credentials.base import CredentialKey
+from eduid.userdb.element import ElementKey
 
 
 class FidoCredential(Credential):
@@ -64,12 +65,12 @@ class U2F(FidoCredential):
     attest_cert: Optional[str] = None
 
     @property
-    def key(self) -> CredentialKey:
+    def key(self) -> ElementKey:
         """
         Return the element that is used as key.
         """
         _digest = sha256(self.keyhandle.encode('utf-8') + self.public_key.encode('utf-8')).hexdigest()
-        return CredentialKey('sha256:' + _digest)
+        return ElementKey('sha256:' + _digest)
 
 
 class Webauthn(FidoCredential):
@@ -81,9 +82,9 @@ class Webauthn(FidoCredential):
     credential_data: str = ''
 
     @property
-    def key(self) -> CredentialKey:
+    def key(self) -> ElementKey:
         """
         Return the element that is used as key.
         """
         _digest = sha256(self.keyhandle.encode('utf-8') + self.credential_data.encode('utf-8')).hexdigest()
-        return CredentialKey('sha256:' + _digest)
+        return ElementKey('sha256:' + _digest)

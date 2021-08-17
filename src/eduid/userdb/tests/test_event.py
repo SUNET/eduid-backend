@@ -121,7 +121,8 @@ class TestEventList(TestCase):
             self.one.add(new)
 
     def test_remove(self):
-        now_two = self.three.remove(self.three.to_list()[-1].key)
+        self.three.remove(self.three.to_list()[-1].key)
+        now_two = self.three
         self.assertEqual(self.two.to_list_of_dicts(), now_two.to_list_of_dicts())
 
     def test_remove_unknown(self):

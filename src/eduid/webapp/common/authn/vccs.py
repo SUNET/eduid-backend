@@ -200,7 +200,7 @@ def change_password(
 
     # Revoke the old password
     vccs.revoke_credentials(str(user.user_id), [revoke_factor])
-    user.credentials.remove(checked_password.credential_id)
+    user.credentials.remove(checked_password.key)
     logger.info('Revoked credential {} for user {}'.format(revoke_factor.credential_id, user))
 
     # Add new password to user
@@ -258,7 +258,7 @@ def add_credentials(
     if checked_password:
         old_factor = VCCSRevokeFactor(str(checked_password.credential_id), 'changing password', reference=source)
         vccs.revoke_credentials(str(user.user_id), [old_factor])
-        user.credentials.remove(checked_password.credential_id)
+        user.credentials.remove(checked_password.key)
         logger.debug("Revoked old credential {!s} (user {!s})".format(old_factor.credential_id, user))
 
     if not old_password_supplied:
@@ -267,7 +267,7 @@ def add_credentials(
         for password in user.credentials.filter(Password):
             revoked.append(VCCSRevokeFactor(str(password.credential_id), 'reset password', reference=source))
             logger.debug(f'Revoking old credential (password reset) {password.credential_id} (user {user})')
-            user.credentials.remove(password.credential_id)
+            user.credentials.remove(password.key)
         if revoked:
             try:
                 vccs.revoke_credentials(str(user.user_id), revoked)

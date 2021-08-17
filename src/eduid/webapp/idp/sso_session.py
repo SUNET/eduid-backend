@@ -41,8 +41,7 @@ from bson import ObjectId
 from pydantic import BaseModel, Field
 
 from eduid.common.misc.timeutil import utc_now
-from eduid.userdb.credentials.base import CredentialKey
-from eduid.userdb.idp import IdPUser, IdPUserDb
+from eduid.userdb.element import ElementKey
 from eduid.webapp.common.session.logindata import ExternalMfaData
 from eduid.webapp.idp.idp_authn import AuthnData
 
@@ -137,7 +136,7 @@ class SSOSession(BaseModel):
             raise ValueError(f'data should be AuthnData (not {type(authn)})')
 
         # Store only the latest use of a particular credential.
-        _creds: Dict[CredentialKey, AuthnData] = {x.cred_id: x for x in self.authn_credentials}
+        _creds: Dict[ElementKey, AuthnData] = {x.cred_id: x for x in self.authn_credentials}
         _existing = _creds.get(authn.cred_id)
         # only replace if newer
         if not _existing or authn.timestamp > _existing.timestamp:

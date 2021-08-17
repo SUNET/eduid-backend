@@ -33,11 +33,9 @@
 #
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List, Type
 
-from pydantic import Field, validator
-
-from eduid.userdb.element import PrimaryElement, PrimaryElementList
+from eduid.userdb.element import ElementKey, PrimaryElement, PrimaryElementList
 
 __author__ = 'ft'
 
@@ -49,11 +47,11 @@ class PhoneNumber(PrimaryElement):
     number: str
 
     @property
-    def key(self) -> str:
+    def key(self) -> ElementKey:
         """
         Return the element that is used as key for phone numbers in a PrimaryElementList.
         """
-        return self.number
+        return ElementKey(self.number)
 
     @classmethod
     def _from_dict_transform(cls: Type[PhoneNumber], data: Dict[str, Any]) -> Dict[str, Any]:

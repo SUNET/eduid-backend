@@ -75,17 +75,17 @@ class User(object):
     surname: str = ''
     subject: Optional[SubjectType] = None
     language: str = 'sv'
-    mail_addresses: MailAddressList = field(default_factory=lambda: MailAddressList())
-    phone_numbers: PhoneNumberList = field(default_factory=lambda: PhoneNumberList())
-    credentials: CredentialList = field(default_factory=lambda: CredentialList())
-    nins: NinList = field(default_factory=lambda: NinList())
+    mail_addresses: MailAddressList = field(default_factory=MailAddressList)
+    phone_numbers: PhoneNumberList = field(default_factory=PhoneNumberList)
+    credentials: CredentialList = field(default_factory=CredentialList)
+    nins: NinList = field(default_factory=NinList)
     modified_ts: Optional[datetime] = None
     entitlements: List[str] = field(default_factory=list)
-    tou: ToUList = field(default_factory=lambda: ToUList())
+    tou: ToUList = field(default_factory=ToUList)
     terminated: Optional[datetime] = None
-    locked_identity: LockedIdentityList = field(default_factory=lambda: LockedIdentityList())
+    locked_identity: LockedIdentityList = field(default_factory=LockedIdentityList)
     orcid: Optional[Orcid] = None
-    profiles: ProfileList = field(default_factory=lambda: ProfileList())
+    profiles: ProfileList = field(default_factory=ProfileList)
     letter_proofing_data: Optional[dict] = None
     revoked_ts: Optional[datetime] = None
 
@@ -337,9 +337,7 @@ class User(object):
                 if isinstance(this, str):
                     # XXX lookup NIN in eduid-dashboards verifications to make sure it is verified somehow?
                     _primary = not _nins
-                    _nins.append(
-                        {'number': this, 'primary': _primary, 'verified': True,}
-                    )
+                    _nins.append({'number': this, 'primary': _primary, 'verified': True})
                 elif isinstance(this, dict):
                     _nins.append(
                         {

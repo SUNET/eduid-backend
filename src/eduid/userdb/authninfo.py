@@ -7,7 +7,7 @@ from typing import Mapping, Optional
 
 from eduid.userdb import User
 from eduid.userdb.credentials import U2F, Password, Webauthn
-from eduid.userdb.credentials.base import CredentialKey
+from eduid.userdb.element import ElementKey
 from eduid.userdb.userdb import BaseDB
 
 logger = logging.getLogger(__name__)
@@ -37,15 +37,13 @@ class AuthnInfoDB(BaseDB):
     def __init__(self, db_uri, db_name='eduid_idp_authninfo', collection='authn_info'):
         super(AuthnInfoDB, self).__init__(db_uri, db_name, collection)
 
-    def get_authn_info(self, user: User) -> Mapping[CredentialKey, AuthnInfoElement]:
+    def get_authn_info(self, user: User) -> Mapping[ElementKey, AuthnInfoElement]:
         """
         :param user: User object
         :return: Mapping from credential.key to AuthnInfoElement for each user credential
         """
         authninfo = {}
         for credential in user.credentials.to_list():
-            created_ts = credential.created_ts.isoformat()
-            success_ts = None
             data_type = AuthnCredType.unknown
             if isinstance(credential, Password):
                 data_type = AuthnCredType.password
@@ -56,10 +54,11 @@ class AuthnInfoDB(BaseDB):
 
             auth_entry = self._coll.find_one(credential.key)
             logger.debug(f'get_authn_info {user}: cred id: {credential.key} auth entry: {auth_entry}')
+            success_ts = None
             if auth_entry:
-                success_ts = auth_entry['success_ts'].isoformat()
+                success_ts = auth_entry['success_ts']
 
             authninfo[credential.key] = AuthnInfoElement(
-                credential_type=data_type, created_ts=created_ts, success_ts=success_ts
+                credential_type=data_type, created_ts=credential.created_ts, success_ts=success_ts
             )
         return authninfo

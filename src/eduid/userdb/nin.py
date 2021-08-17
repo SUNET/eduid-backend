@@ -33,9 +33,9 @@
 #
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List, Type
 
-from eduid.userdb.element import PrimaryElement, PrimaryElementList
+from eduid.userdb.element import ElementKey, PrimaryElement, PrimaryElementList
 
 __author__ = 'ft'
 
@@ -44,14 +44,14 @@ class Nin(PrimaryElement):
     """
     """
 
-    number: Optional[str] = None
+    number: str
 
     @property
-    def key(self) -> Optional[str]:
+    def key(self) -> ElementKey:
         """
         Return the element that is used as key for nin numbers in a PrimaryElementList.
         """
-        return self.number
+        return ElementKey(self.number)
 
 
 class NinList(PrimaryElementList[Nin]):

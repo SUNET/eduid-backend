@@ -6,9 +6,9 @@ from unittest import TestCase
 import pytest
 from pydantic import ValidationError
 
-import eduid.userdb.element
 import eduid.userdb.exceptions
 from eduid.userdb import PhoneNumber
+from eduid.userdb.element import ElementKey
 from eduid.userdb.nin import Nin, NinList
 
 __author__ = 'ft'
@@ -56,14 +56,14 @@ class TestNinList(unittest.TestCase):
         self.assertEqual([], self.empty.to_list_of_dicts(), list)
 
     def test_find(self):
-        match = self.one.find('197801011234')
+        match = self.one.find(ElementKey('197801011234'))
         self.assertIsInstance(match, Nin)
         self.assertEqual(match.number, '197801011234')
         self.assertEqual(match.is_verified, True)
         self.assertEqual(match.verified_ts, None)
 
     def test_add(self):
-        second = self.two.find('197802022345')
+        second = self.two.find(ElementKey('197802022345'))
         self.one.add(second)
 
         expected = self.two.to_list_of_dicts()
@@ -73,7 +73,7 @@ class TestNinList(unittest.TestCase):
 
     def test_add_duplicate(self) -> None:
         assert isinstance(self.two, NinList)
-        dup = self.two.find(self.two.primary.number)
+        dup = self.two.find(self.two.primary.key)
         with pytest.raises(ValidationError) as exc_info:
             self.two.add(dup)
 
@@ -81,14 +81,14 @@ class TestNinList(unittest.TestCase):
             {'loc': ('elements',), 'msg': 'Duplicate element key: \'197801011234\'', 'type': 'value_error'}
         ]
 
-    def test_add_mailaddress(self):
-        third = self.three.find('197803033456')
+    def test_add_nin(self):
+        third = self.three.find(ElementKey('197803033456'))
         this = NinList.from_list_of_dicts([_one_dict, _two_dict, third.to_dict()])
 
         expected = self.three.to_list_of_dicts()
         obtained = this.to_list_of_dicts()
 
-        assert obtained == expected, 'List with added mail address has unexpected data'
+        assert obtained == expected, 'List with added nin has unexpected data'
 
     def test_add_another_primary(self):
         new = eduid.userdb.nin.nin_from_dict({'number': '+46700000009', 'verified': True, 'primary': True})
@@ -112,7 +112,8 @@ class TestNinList(unittest.TestCase):
         ]
 
     def test_remove(self):
-        now_two = self.three.remove('197803033456')
+        self.three.remove(ElementKey('197803033456'))
+        now_two = self.three
 
         expected = self.two.to_list_of_dicts()
         obtained = now_two.to_list_of_dicts()
@@ -121,14 +122,15 @@ class TestNinList(unittest.TestCase):
 
     def test_remove_unknown(self):
         with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
-            self.one.remove('+46709999999')
+            self.one.remove(ElementKey('+46709999999'))
 
     def test_remove_primary(self):
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
-            self.two.remove(self.two.primary.number)
+            self.two.remove(self.two.primary.key)
 
     def test_remove_primary_single(self):
-        now_empty = self.one.remove(self.one.primary.number)
+        self.one.remove(self.one.primary.key)
+        now_empty = self.one
         self.assertEqual([], now_empty.to_list())
 
     def test_primary(self):
@@ -140,23 +142,23 @@ class TestNinList(unittest.TestCase):
 
     def test_set_primary_to_same(self):
         match = self.one.primary
-        self.one.set_primary(match.number)
+        self.one.set_primary(match.key)
 
         match = self.two.primary
-        self.two.set_primary(match.number)
+        self.two.set_primary(match.key)
 
     def test_set_unknown_as_primary(self):
         with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
-            self.one.set_primary('+46709999999')
+            self.one.set_primary(ElementKey('+46709999999'))
 
     def test_set_unverified_as_primary(self):
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
-            self.three.set_primary('197803033456')
+            self.three.set_primary(ElementKey('197803033456'))
 
     def test_change_primary(self):
         match = self.two.primary
         self.assertEqual(match.number, '197801011234')
-        self.two.set_primary('197802022345')
+        self.two.set_primary(ElementKey('197802022345'))
         updated = self.two.primary
         self.assertEqual(updated.number, '197802022345')
 
@@ -203,38 +205,38 @@ class TestNin(TestCase):
             this.is_verified = False
 
     def test_changing_is_verified(self):
-        this = self.three.find('197803033456')
+        this = self.three.find(ElementKey('197803033456'))
         this.is_verified = False  # was False already
         this.is_verified = True
 
     def test_verified_by(self):
-        this = self.three.find('197803033456')
+        this = self.three.find(ElementKey('197803033456'))
         this.verified_by = 'unit test'
         self.assertEqual(this.verified_by, 'unit test')
 
     def test_modify_verified_by(self):
-        this = self.three.find('197803033456')
+        this = self.three.find(ElementKey('197803033456'))
         this.verified_by = 'unit test'
         this.verified_by = 'test unit'
         self.assertEqual(this.verified_by, 'test unit')
 
     def test_modify_verified_ts(self):
-        this = self.three.find('197803033456')
+        this = self.three.find(ElementKey('197803033456'))
         now = datetime.datetime.utcnow()
         this.verified_ts = now
         self.assertEqual(this.verified_ts, now)
 
     def test_created_by(self):
-        this = self.three.find('197803033456')
+        this = self.three.find(ElementKey('197803033456'))
         this.created_by = 'unit test'
         self.assertEqual(this.created_by, 'unit test')
 
     def test_modify_created_by(self):
-        this = self.three.find('197803033456')
+        this = self.three.find(ElementKey('197803033456'))
         this.created_by = 'unit test'
 
         assert this.created_by == 'unit test'
 
     def test_created_ts(self):
-        this = self.three.find('197803033456')
+        this = self.three.find(ElementKey('197803033456'))
         self.assertIsInstance(this.created_ts, datetime.datetime)

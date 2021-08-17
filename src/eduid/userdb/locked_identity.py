@@ -3,9 +3,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Type
 
-from pydantic import Field, validator
-
-from eduid.userdb.element import Element, ElementList
+from eduid.userdb.element import Element, ElementKey, ElementList
 from eduid.userdb.exceptions import EduIDUserDBError
 
 __author__ = 'lundberg'
@@ -24,11 +22,11 @@ class LockedIdentityElement(Element):
     identity_type: str
 
     @property
-    def key(self) -> str:
+    def key(self) -> ElementKey:
         """
         :return: Type of identity
         """
-        return self.identity_type
+        return ElementKey(self.identity_type)
 
 
 class LockedIdentityNin(LockedIdentityElement):

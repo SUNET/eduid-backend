@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Mapping, Optional, Type
+from typing import Any, Dict, List, Mapping, Type
 
-from pydantic import Field, validator
-
-from eduid.userdb.element import Element, ElementList
+from eduid.userdb.element import Element, ElementKey, ElementList
 
 __author__ = 'lundberg'
 
@@ -17,9 +15,9 @@ class Profile(Element):
     profile_data: Mapping[str, Any]
 
     @property
-    def key(self) -> Optional[str]:
+    def key(self) -> ElementKey:
         """ Return the element that is used as key in a ElementList """
-        return self.owner
+        return ElementKey(self.owner)
 
 
 class ProfileList(ElementList[Profile]):

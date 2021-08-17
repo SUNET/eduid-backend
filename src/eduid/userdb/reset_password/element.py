@@ -35,7 +35,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Any, Dict, Mapping, Type, Union
 
-from eduid.userdb.element import Element
+from eduid.userdb.element import Element, ElementKey
 
 
 class CodeElement(Element):
@@ -46,9 +46,9 @@ class CodeElement(Element):
     is_verified: bool
 
     @property
-    def key(self) -> str:
+    def key(self) -> ElementKey:
         """Get element key."""
-        return self.code
+        return ElementKey(self.code)
 
     @classmethod
     def _from_dict_transform(cls: Type[CodeElement], data: Dict[str, Any]) -> Dict[str, Any]:

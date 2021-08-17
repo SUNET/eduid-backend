@@ -10,6 +10,7 @@ from u2flib_server.u2f import begin_authentication, begin_registration, complete
 
 from eduid.userdb import User
 from eduid.userdb.credentials import U2F
+from eduid.userdb.element import ElementKey
 from eduid.userdb.security import SecurityUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
@@ -133,7 +134,7 @@ def verify(user: User, key_handle: str, signature_data: str, client_data: str):
 @require_user
 def modify(user: User, credential_key: str, description: str) -> FluxData:
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
-    token_to_modify = security_user.credentials.find(credential_key)
+    token_to_modify = security_user.credentials.find(ElementKey(credential_key))
     if not isinstance(token_to_modify, U2F):
         current_app.logger.error(f'Credential is not an U2F credential: {token_to_modify}')
         return error_response(message=SecurityMsg.no_token)

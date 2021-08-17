@@ -3,12 +3,12 @@
 
 from typing import Optional
 
-from flask import redirect, request
-from six.moves.urllib_parse import urlsplit, urlunsplit
+from flask import request
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.userdb import User
 from eduid.userdb.credentials.fido import FidoCredential
+from eduid.userdb.element import ElementKey
 from eduid.userdb.logs import MFATokenProofing, SwedenConnectProofing
 from eduid.userdb.proofing.state import NinProofingElement, NinProofingState
 from eduid.userdb.proofing.user import ProofingUser
@@ -17,7 +17,7 @@ from eduid.webapp.common.api.decorators import require_user
 from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid.webapp.common.api.helpers import verify_nin_for_user
 from eduid.webapp.common.api.messages import CommonMsg, redirect_with_msg
-from eduid.webapp.common.api.utils import sanitise_redirect_url, save_and_sync_user, urlappend
+from eduid.webapp.common.api.utils import sanitise_redirect_url, save_and_sync_user
 from eduid.webapp.common.authn.acs_enums import EidasAcsAction
 from eduid.webapp.common.authn.acs_registry import acs_action
 from eduid.webapp.common.authn.eduid_saml2 import get_authn_ctx
@@ -82,7 +82,7 @@ def token_verify_action(
         raise ValueError("Missing NIN in SAML session info")
 
     asserted_nin = _nin_list[0]
-    user_nin = proofing_user.nins.find(asserted_nin)
+    user_nin = proofing_user.nins.find(ElementKey(asserted_nin))
     if not user_nin or not user_nin.is_verified:
         current_app.logger.error('Asserted NIN not matching user verified nins')
         current_app.logger.debug('Asserted NIN: {}'.format(asserted_nin))

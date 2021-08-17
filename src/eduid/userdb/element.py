@@ -81,7 +81,7 @@ from __future__ import annotations
 import copy
 from abc import ABC
 from datetime import datetime
-from typing import Any, Dict, Generic, List, Optional, Type, TypeVar
+from typing import Any, Dict, Generic, List, NewType, Optional, Type, TypeVar
 
 from pydantic import BaseModel, Extra, Field, validator
 from pydantic.generics import GenericModel
@@ -119,6 +119,7 @@ class PrimaryElementViolation(PrimaryElementError):
 
 
 TElementSubclass = TypeVar('TElementSubclass', bound='Element')
+ElementKey = NewType('ElementKey', str)
 
 
 class Element(BaseModel):
@@ -217,7 +218,7 @@ class Element(BaseModel):
         return data
 
     @property
-    def key(self):
+    def key(self) -> ElementKey:
         """
         Return the element that is used as key in an ElementList.
         Must be implemented in subclasses of Element.
@@ -368,16 +369,16 @@ class ElementList(GenericModel, Generic[ListElement], ABC):
         """
         return [this.to_dict() for this in self.elements if isinstance(this, Element)]
 
-    def find(self, key: str) -> Optional[ListElement]:
+    def find(self, key: Optional[ElementKey]) -> Optional[ListElement]:
         """
         Find an Element from the element list, using the key.
 
-        TODO: Make ElementKey a distinct type (like CredentialKey is)
-
         :param key: the key to look for in the list of elements
-        :return: Element found, or False if none was found
-        :rtype: Element | False
+        :return: Element found, if any
         """
+        if not key:
+            # Allow None as argument to not have to check for None before calling find everywhere
+            return None
         res = [x for x in self.elements if isinstance(x, Element) and x.key == key]
         if not res:
             return None
@@ -395,7 +396,7 @@ class ElementList(GenericModel, Generic[ListElement], ABC):
         self.elements += [element]
         return None
 
-    def remove(self, key: str) -> None:
+    def remove(self, key: ElementKey) -> None:
         """
         Remove an existing Element from the list.
 
@@ -474,7 +475,7 @@ class PrimaryElementList(ElementList[ListElement], Generic[ListElement], ABC):
 
         return match
 
-    def set_primary(self, key: str):
+    def set_primary(self, key: ElementKey) -> None:
         """
         Mark element as the users primary element.
 
@@ -539,7 +540,7 @@ class PrimaryElementList(ElementList[ListElement], Generic[ListElement], ABC):
         verified_elements = [e for e in self.elements if e.is_verified]
         return verified_elements
 
-    def remove(self, key: str):
+    def remove(self, key: ElementKey):
         """
         Remove an existing Element from the list. Removing the primary element is not allowed.
 

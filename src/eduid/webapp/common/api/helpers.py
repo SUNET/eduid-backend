@@ -78,7 +78,7 @@ def add_nin_to_user(user: User, proofing_state: NinProofingState, user_class: Ty
 
     proofing_user = user_class.from_user(user, current_app.private_userdb)
     # Add nin to user if not already there
-    if not proofing_user.nins.find(proofing_state.nin.number):
+    if not proofing_user.nins.find(proofing_state.nin.key):
         current_app.logger.info('Adding NIN for user {}'.format(user))
         current_app.logger.debug('Self asserted NIN: {}'.format(proofing_state.nin.number))
         nin_element = Nin.from_dict(
@@ -124,7 +124,7 @@ def verify_nin_for_user(
         # the new NIN element without re-loading the user from the central database.
         warnings.warn('verify_nin_for_user() called with a User, not a ProofingUser', DeprecationWarning)
         proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    nin_element = proofing_user.nins.find(proofing_state.nin.number)
+    nin_element = proofing_user.nins.find(proofing_state.nin.key)
     if not nin_element:
         nin_element = Nin(
             number=proofing_state.nin.number,
@@ -136,7 +136,7 @@ def verify_nin_for_user(
         proofing_user.nins.add(nin_element)
         # What is added to the list of nins is a copy of the element, so in order
         # to continue updating it below we have to fetch it from the list again.
-        nin_element = proofing_user.nins.find(proofing_state.nin.number)
+        nin_element = proofing_user.nins.find(proofing_state.nin.key)
 
     # Check if the NIN is already verified
     if nin_element and nin_element.is_verified:
