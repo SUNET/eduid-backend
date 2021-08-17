@@ -228,7 +228,7 @@ class Element(BaseModel):
 TVerifiedElementSubclass = TypeVar('TVerifiedElementSubclass', bound='VerifiedElement')
 
 
-class VerifiedElement(Element):
+class VerifiedElement(Element, ABC):
     """
     Elements that can be verified or not.
     """
@@ -270,7 +270,7 @@ class VerifiedElement(Element):
 TPrimaryElementSubclass = TypeVar('TPrimaryElementSubclass', bound='PrimaryElement')
 
 
-class PrimaryElement(VerifiedElement):
+class PrimaryElement(VerifiedElement, ABC):
     """
     Elements that can be either primary or not.
     """
@@ -373,39 +373,34 @@ class ElementList(GenericModel, Generic[ListElement], ABC):
         Find an Element from the element list, using the key.
 
         TODO: Make ElementKey a distinct type (like CredentialKey is)
-        TODO: return None rather than False in this function, to match typing with Optional
 
         :param key: the key to look for in the list of elements
         :return: Element found, or False if none was found
         :rtype: Element | False
         """
         res = [x for x in self.elements if isinstance(x, Element) and x.key == key]
-        if len(res) == 1:
-            return res[0]
+        if not res:
+            return None
         if len(res) > 1:
-            raise EduIDUserDBError("More than one element found")
-        return False
+            raise EduIDUserDBError('More than one element found')
+        return res[0]
 
     def add(self, element: ListElement):
         """
         Add an element to the list.
 
-        TODO: Change into returning None
-
         :param element: Element
-        :return: ElementList
+        :return: None
         """
         self.elements += [element]
-        return self
+        return None
 
-    def remove(self, key: str):
+    def remove(self, key: str) -> None:
         """
         Remove an existing Element from the list.
 
-        TODO: Change into returning None
-
         :param key: Key of element to remove
-        :return: ElementList
+        :return: None
         """
         match = self.find(key)
         if not match:
@@ -413,7 +408,7 @@ class ElementList(GenericModel, Generic[ListElement], ABC):
 
         self.elements = [this for this in self.elements if this != match]
 
-        return self
+        return None
 
     def filter(self, cls: Type[MatchingElement]) -> List[MatchingElement]:
         """

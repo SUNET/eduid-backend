@@ -78,12 +78,6 @@ class TestCredentialList(unittest.TestCase):
         self.assertEqual(match.salt, 'secondPasswordElement')
         self.assertEqual(match.created_by, 'test')
 
-    def test_find_with_objectid(self):
-        """ Test that backwards compatibility in find() works """
-        first = self.two.find('222222222222222222222222')
-        second = self.two.find(ObjectId('222222222222222222222222'))  # type: ignore
-        self.assertEqual(first, second)
-
     def test_filter(self):
         match = self.four.filter(U2F)
         assert len(match) == 1
@@ -118,7 +112,8 @@ class TestCredentialList(unittest.TestCase):
         assert obtained == expected, 'List of credentials with added password different than expected'
 
     def test_remove(self):
-        now_two = self.three.remove(str(ObjectId('333333333333333333333333')))
+        self.three.remove(str(ObjectId('333333333333333333333333')))
+        now_two = self.three
 
         expected = self.two.to_list_of_dicts()
         obtained = now_two.to_list_of_dicts()
@@ -131,6 +126,8 @@ class TestCredentialList(unittest.TestCase):
 
     def test_generated(self):
         match = self.three.find('222222222222222222222222')
-        self.assertFalse(match.is_generated)
+        assert isinstance(match, Password)
+        assert match.is_generated is False
         match = self.three.find('333333333333333333333333')
-        self.assertTrue(match.is_generated)
+        assert isinstance(match, Password)
+        assert match.is_generated is True

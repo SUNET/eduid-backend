@@ -88,10 +88,8 @@ EPPN = 'hubba-bubba'
 
 class TestTouUser(TestCase):
     def test_proper_user(self):
-        one = copy.deepcopy(_one_dict)
-        tou = ToUEvent.from_dict(one)
         userdata = new_user_example.to_dict()
-        userdata['tou'] = [tou]
+        userdata['tou'] = [copy.deepcopy(_one_dict)]
         user = ToUUser.from_dict(data=userdata)
         self.assertEqual(user.tou.to_list_of_dicts()[0]['version'], '1')
 
@@ -101,7 +99,7 @@ class TestTouUser(TestCase):
         userdata = new_user_example.to_dict()
         userid = userdata.pop('_id')
         eppn = userdata.pop('eduPersonPrincipalName')
-        passwords = CredentialList(elements=userdata['passwords'])
+        passwords = CredentialList.from_list_of_dicts(userdata['passwords'])
         user = ToUUser(user_id=userid, eppn=eppn, tou=tou, credentials=passwords)
         self.assertEqual(user.tou.to_list_of_dicts()[0]['version'], '1')
 
