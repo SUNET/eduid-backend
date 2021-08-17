@@ -9,7 +9,7 @@ from flask_babel import gettext as _
 
 from eduid.common.decorators import deprecated
 from eduid.common.misc.timeutil import utc_now
-from eduid.userdb.credentials import CredentialList
+from eduid.userdb.credentials import CredentialList, FidoCredential
 from eduid.userdb.exceptions import UserHasNotCompletedSignup
 from eduid.userdb.logs import MailAddressProofing, PhoneNumberProofing
 from eduid.userdb.security import PasswordResetEmailAndPhoneState, PasswordResetEmailState, SecurityUser
@@ -82,13 +82,13 @@ class SecurityMsg(TranslatableMsg):
     chpass_password_changed2 = 'chpass.password-changed'
 
 
-def credentials_to_registered_keys(user_u2f_tokens: CredentialList) -> List[U2FRegisteredKey]:
+def credentials_to_registered_keys(user_u2f_tokens: List[FidoCredential]) -> List[U2FRegisteredKey]:
     """
     :param user_u2f_tokens: List of users U2F credentials
 
     :return: List of registered keys
     """
-    u2f_dicts = user_u2f_tokens.to_list_of_dicts()
+    u2f_dicts = [x.to_dict() for x in user_u2f_tokens]
     data = ConvertRegisteredKeys().dump({'registered_keys': u2f_dicts})
     return data['registered_keys']
 

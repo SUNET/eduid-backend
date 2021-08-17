@@ -69,7 +69,7 @@ def _get_user_credentials_u2f(user: User) -> Dict[CredentialKey, FidoCred]:
     Get the U2F credentials for the user
     """
     res: Dict[CredentialKey, FidoCred] = {}
-    for this in user.credentials.filter(U2F).to_list():
+    for this in user.credentials.filter(U2F):
         acd = AttestedCredentialData.from_ctap1(websafe_decode(this.keyhandle), websafe_decode(this.public_key))
         res[this.key] = FidoCred(
             app_id=this.app_id,
@@ -84,7 +84,7 @@ def _get_user_credentials_webauthn(user: User) -> Dict[CredentialKey, FidoCred]:
     Get the Webauthn credentials for the user
     """
     res: Dict[CredentialKey, FidoCred] = {}
-    for this in user.credentials.filter(Webauthn).to_list():
+    for this in user.credentials.filter(Webauthn):
         cred_data = base64.urlsafe_b64decode(this.credential_data.encode('ascii'))
         credential_data, rest = AttestedCredentialData.unpack_from(cred_data)
         version = 'webauthn'
@@ -124,10 +124,8 @@ def start_token_verification(user: User, fido2_rp_id: str, state: MfaAction) -> 
     Begin authentication process based on the hardware tokens registered by the user.
     """
     credential_data = get_user_credentials(user)
-    logger.debug(f'Extra debug: U2F credentials for user: {[str(x) for x in user.credentials.filter(U2F).to_list()]}')
-    logger.debug(
-        f'Extra debug: Webauthn credentials for user: {[str(x) for x in user.credentials.filter(Webauthn).to_list()]}'
-    )
+    logger.debug(f'Extra debug: U2F credentials for user: {[str(x) for x in user.credentials.filter(U2F)]}')
+    logger.debug(f'Extra debug: Webauthn credentials for user: {[str(x) for x in user.credentials.filter(Webauthn)]}')
     logger.debug(f'FIDO credentials for user {user}:\n{pprint.pformat(list(credential_data.keys()))}')
 
     webauthn_credentials = [v.webauthn for v in credential_data.values()]

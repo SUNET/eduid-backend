@@ -53,7 +53,7 @@ logger = logging.getLogger(__name__)
 def need_security_key(user: IdPUser, ticket: LoginContext) -> bool:
     """ Check if the user needs to use a Security Key for this very request, regardless of authnContextClassRef """
     tokens = user.credentials.filter(FidoCredential)
-    if not tokens.count:
+    if not tokens:
         logger.debug('User has no FIDO credentials, no extra requirement for MFA this session imposed')
         return False
 
@@ -95,9 +95,9 @@ def add_actions(user: IdPUser, ticket: LoginContext, sso_session: SSOSession) ->
         require_mfa = True
 
     # Security Keys
-    u2f_tokens = user.credentials.filter(U2F).to_list()
-    webauthn_tokens = user.credentials.filter(Webauthn).to_list()
-    tokens = u2f_tokens + webauthn_tokens
+    u2f_tokens = user.credentials.filter(U2F)
+    webauthn_tokens = user.credentials.filter(Webauthn)
+    tokens: List[FidoCredential] = u2f_tokens + webauthn_tokens
 
     if not tokens and not require_mfa:
         current_app.logger.debug('User does not have any FIDO tokens registered and SP did not require MFA')
@@ -127,7 +127,7 @@ def add_actions(user: IdPUser, ticket: LoginContext, sso_session: SSOSession) ->
 def add_mfa_action(user: IdPUser, ticket: LoginContext) -> Optional[Action]:
     tokens = user.credentials.filter(FidoCredential)
 
-    logger.debug(f'User must authenticate with a token (has {tokens.count} token(s))')
+    logger.debug(f'User must authenticate with a token (has {len(tokens)} token(s))')
     return current_app.actions_db.add_action(
         user.eppn, action_type='mfa', preference=1, session=ticket.request_ref, params={}
     )

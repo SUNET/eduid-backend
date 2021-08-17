@@ -86,10 +86,10 @@ class TestCredentialList(unittest.TestCase):
 
     def test_filter(self):
         match = self.four.filter(U2F)
-        self.assertEqual(match.count, 1)
-        token = match.to_list()[0]
-        self.assertEqual(token.key, _keyid(_four_dict))
-        self.assertEqual(token.public_key, 'foo')
+        assert len(match) == 1
+        token = match[0]
+        assert token.key == _keyid(_four_dict)
+        assert token.public_key == 'foo'
 
     def test_add(self):
         second = self.two.find(str(ObjectId('222222222222222222222222')))

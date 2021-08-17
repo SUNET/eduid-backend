@@ -305,6 +305,7 @@ class PrimaryElement(VerifiedElement):
 
 
 ListElement = TypeVar('ListElement')
+MatchingElement = TypeVar('MatchingElement')
 
 
 class ElementList(GenericModel, Generic[ListElement], ABC):
@@ -414,16 +415,14 @@ class ElementList(GenericModel, Generic[ListElement], ABC):
 
         return self
 
-    def filter(self, cls: Type[ListElement]) -> ElementList[ListElement]:
+    def filter(self, cls: Type[MatchingElement]) -> List[MatchingElement]:
         """
         Return a new ElementList with the elements that were instances of cls.
 
-        TODO: Change into just returning a list - re-instantiating __class__ seems to do a deep copy with Pydantic
-
         :param cls: Class of interest
-        :return: ElementList
+        :return: List with matching elements
         """
-        return self.__class__(elements=[x for x in self.elements if isinstance(x, cls)])
+        return [x for x in self.elements if isinstance(x, cls)]
 
     @property
     def count(self) -> int:

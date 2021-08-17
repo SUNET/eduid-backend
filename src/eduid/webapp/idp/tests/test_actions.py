@@ -225,7 +225,7 @@ class TestActions(SSOIdPTests):
             self.test_user.eppn, action_type='mfa', preference=100, params={}, session=self.mock_session_key
         )
         # Add a fake response to the action
-        cred = self.test_user.credentials.filter(Webauthn).to_list()[0]
+        cred = self.test_user.credentials.filter(Webauthn)[0]
         if cred_key is None:
             cred_key = cred.key
         completed_action.result = ActionResultMFA(

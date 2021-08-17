@@ -40,7 +40,7 @@ u2f_views = Blueprint('u2f', __name__, url_prefix='/u2f', template_folder='templ
 @require_user
 def enroll(user: User):
     user_u2f_tokens = user.credentials.filter(U2F)
-    if user_u2f_tokens.count >= current_app.conf.u2f_max_allowed_tokens:
+    if len(user_u2f_tokens) >= current_app.conf.u2f_max_allowed_tokens:
         current_app.logger.error(
             'User tried to register more than {} tokens.'.format(current_app.conf.u2f_max_allowed_tokens)
         )
@@ -133,9 +133,9 @@ def verify(user: User, key_handle: str, signature_data: str, client_data: str):
 @require_user
 def modify(user: User, credential_key: str, description: str) -> FluxData:
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
-    token_to_modify = security_user.credentials.filter(U2F).find(credential_key)
-    if not token_to_modify:
-        current_app.logger.error('Did not find requested U2F token for user.')
+    token_to_modify = security_user.credentials.find(credential_key)
+    if not isinstance(token_to_modify, U2F):
+        current_app.logger.error(f'Credential is not an U2F credential: {token_to_modify}')
         return error_response(message=SecurityMsg.no_token)
 
     if len(description) > current_app.conf.u2f_max_description_length:
@@ -159,8 +159,8 @@ def modify(user: User, credential_key: str, description: str) -> FluxData:
 @require_user
 def remove(user: User, credential_key) -> FluxData:
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
-    token_to_remove = security_user.credentials.filter(U2F).find(credential_key)
-    if token_to_remove:
+    token_to_remove = security_user.credentials.find(credential_key)
+    if isinstance(token_to_remove, U2F):
         security_user.credentials.remove(credential_key)
         save_and_sync_user(security_user)
         current_app.stats.count(name='u2f_token_remove')

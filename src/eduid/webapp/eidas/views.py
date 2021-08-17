@@ -44,8 +44,9 @@ def verify_token(user: User, credential_id: CredentialKey) -> Union[FluxData, We
     redirect_url = current_app.conf.token_verify_redirect_url
 
     # Check if requested key id is a mfa token and if the user used that to log in
-    token_to_verify = user.credentials.filter(FidoCredential).find(credential_id)
-    if not token_to_verify:
+    token_to_verify = user.credentials.find(credential_id)
+    if not isinstance(token_to_verify, FidoCredential):
+        current_app.logger.error(f'Credential {token_to_verify} is not a FidoCredential')
         return redirect_with_msg(redirect_url, EidasMsg.token_not_found)
 
     # Check if the credential was just now used to log in

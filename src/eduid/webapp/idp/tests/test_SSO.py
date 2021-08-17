@@ -243,14 +243,14 @@ class TestSSO(SSOIdPTests):
             user = self.get_user_set_nins(self.test_user.eppn, [])
 
         sso_session_1 = SSOSession(authn_request_id='some-unique-id-1', authn_credentials=[], eppn=user.eppn,)
-        if 'u2f' in credentials and not user.credentials.filter(U2F).to_list():
+        if 'u2f' in credentials and not user.credentials.filter(U2F):
             # add a U2F credential to the user
             user.credentials.add(_U2F)
         for this in credentials:
             if this == 'pw':
-                this = user.credentials.filter(Password).to_list()[0]
+                this = user.credentials.filter(Password)[0]
             elif this == 'u2f':
-                this = user.credentials.filter(U2F).to_list()[0]
+                this = user.credentials.filter(U2F)[0]
 
             if isinstance(this, AuthnData):
                 sso_session_1.add_authn_credential(this)

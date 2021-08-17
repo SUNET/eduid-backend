@@ -144,10 +144,8 @@ class IdPAuthn(object):
         online attacker is to guess any one of them.
 
         :return: IdPUser on successful authentication
-
-        :rtype: Credential | None
         """
-        pw_credentials = user.credentials.filter(Password).to_list()
+        pw_credentials = user.credentials.filter(Password)
         if self.authn_store:  # requires optional configuration
             authn_info = self.authn_store.get_user_authn_info(user)
             if authn_info.failures_this_month > self.config.max_authn_failures_per_month:

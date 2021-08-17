@@ -319,7 +319,7 @@ class EidasTests(EduidAPITestCase):
         and then again at the end to ensure the right set of changes occurred to the user in the database.
          """
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        user_mfa_tokens = user.credentials.filter(FidoCredential).to_list()
+        user_mfa_tokens = user.credentials.filter(FidoCredential)
 
         # Check token status
         assert len(user_mfa_tokens) == num_mfa_tokens, 'Unexpected number of FidoCredentials on user'

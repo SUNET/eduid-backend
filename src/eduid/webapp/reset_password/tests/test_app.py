@@ -895,7 +895,7 @@ class ResetPasswordTests(EduidAPITestCase):
             msg=ResetPwMsg.pw_reset_success,
         )
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        for cred in user.credentials.filter(Password).to_list():
+        for cred in user.credentials.filter(Password):
             self.assertFalse(cred.is_generated)
 
     def test_post_reset_password_secure_token_no_data(self):
