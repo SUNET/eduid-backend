@@ -54,9 +54,10 @@ def token_verify_action(
         return redirect_with_msg(redirect_url, EidasMsg.reauthn_expired)
 
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    token_to_verify = proofing_user.credentials.filter(FidoCredential).find(
-        session.eidas.verify_token_action_credential_id
-    )
+    token_to_verify = proofing_user.credentials.find(session.eidas.verify_token_action_credential_id)
+    if not isinstance(token_to_verify, FidoCredential):
+        current_app.logger.error(f'Credential {token_to_verify} is not a FidoCredential')
+        return redirect_with_msg(redirect_url, EidasMsg.token_not_in_creds)
 
     # Check (again) if token was used to authenticate this session. The first time we checked,
     # we verified that the token was used very recently, but we have to allow for more time
@@ -69,9 +70,10 @@ def token_verify_action(
         nin_verify_action(session_info, authndata)
         user = current_app.central_userdb.get_user_by_eppn(user.eppn)
         proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-        token_to_verify = proofing_user.credentials.filter(FidoCredential).find(
-            session.eidas.verify_token_action_credential_id
-        )
+        token_to_verify = proofing_user.credentials.find(session.eidas.verify_token_action_credential_id)
+        # Keep type checking calm
+        if not token_to_verify:
+            raise RuntimeError(f'Credential {session.eidas.verify_token_action_credential_id} disappeared')
 
     # Check that a verified NIN is equal to the asserted attribute personalIdentityNumber
     _nin_list = get_saml_attribute(session_info, 'personalIdentityNumber')
@@ -159,11 +161,15 @@ def nin_verify_action(session_info: SessionInfo, authndata: Optional[SP_AuthnReq
 
     asserted_nin = _nin_list[0]
 
+    if not asserted_nin:
+        raise ValueError(f'Missing NIN in SAML session info: {_nin_list}')
+
     if len(proofing_user.nins.verified) != 0:
         current_app.logger.error('User already has a verified NIN')
-        current_app.logger.debug(
-            'Primary NIN: {}. Asserted NIN: {}'.format(proofing_user.nins.primary.number, asserted_nin)
-        )
+        if proofing_user.nins.primary:
+            current_app.logger.debug(f'Primary NIN: {proofing_user.nins.primary.number}. Asserted NIN: {asserted_nin}')
+        else:
+            current_app.logger.debug(f'Primary NIN: {proofing_user.nins.primary}. Asserted NIN: {asserted_nin}')
         return redirect_with_msg(redirect_url, EidasMsg.nin_already_verified)
 
     # Create a proofing log
@@ -226,9 +232,10 @@ def nin_verify_BACKDOOR(user: User) -> WerkzeugResponse:
 
     if len(proofing_user.nins.verified) != 0:
         current_app.logger.error('User already has a verified NIN')
-        current_app.logger.debug(
-            'Primary NIN: {}. Asserted NIN: {}'.format(proofing_user.nins.primary.number, asserted_nin)
-        )
+        if proofing_user.nins.primary:
+            current_app.logger.debug(f'Primary NIN: {proofing_user.nins.primary.number}. Asserted NIN: {asserted_nin}')
+        else:
+            current_app.logger.debug(f'Primary NIN: {proofing_user.nins.primary}. Asserted NIN: {asserted_nin}')
         return redirect_with_msg(redirect_url, ':ERROR:eidas.nin_already_verified')
 
     # Create a proofing log
