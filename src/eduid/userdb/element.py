@@ -384,7 +384,9 @@ class ElementList(GenericModel, Generic[ListElement], ABC):
             return None
         if len(res) > 1:
             raise EduIDUserDBError('More than one element found')
-        return res[0]
+        # mypy figures out the real type of elements in `res' since isinstance() is used above and complains
+        #    error: Incompatible return value type (got "Element", expected "Optional[ListElement]")
+        return res[0]  # type: ignore
 
     def add(self, element: ListElement):
         """
@@ -473,7 +475,9 @@ class PrimaryElementList(ElementList[ListElement], Generic[ListElement], ABC):
         if not isinstance(match, PrimaryElement):
             raise UserDBValueError(f'Primary element {repr(match)} is not of type PrimaryElement')
 
-        return match
+        # mypy figures out the real type of match since isinstance() is used above and complains
+        #    error: Incompatible return value type (got "PrimaryElement", expected "Optional[ListElement]")
+        return match  # type: ignore
 
     def set_primary(self, key: ElementKey) -> None:
         """
@@ -504,7 +508,10 @@ class PrimaryElementList(ElementList[ListElement], Generic[ListElement], ABC):
                 raise UserDBValueError(f'Element {repr(this)} is not of type PrimaryElement')
             this.is_primary = bool(this.key == key)
             new += [this]
-        self.elements = new
+        # mypy figures out the real type of `new' since isinstance() is used above and complains
+        #    error: Incompatible types in assignment (expression has type "List[PrimaryElement]",
+        #           variable has type "List[ListElement]")
+        self.elements = new  # type: ignore
 
     @classmethod
     def _get_primary(cls, elements: List[ListElement]) -> Optional[ListElement]:
@@ -529,7 +536,10 @@ class PrimaryElementList(ElementList[ListElement], Generic[ListElement], ABC):
         primary = res[0]
         if not primary.is_verified:
             raise PrimaryElementViolation('Primary element is not verified')
-        return res[0]
+
+        # mypy figures out the real type of `res[0]' since isinstance() is used above and complains
+        #    error: Incompatible return value type (got "PrimaryElement", expected "Optional[ListElement]")
+        return res[0]  # type: ignore
 
     @property
     def verified(self) -> List[ListElement]:
@@ -538,7 +548,9 @@ class PrimaryElementList(ElementList[ListElement], Generic[ListElement], ABC):
 
         """
         verified_elements = [e for e in self.elements if isinstance(e, VerifiedElement) and e.is_verified]
-        return verified_elements
+        # mypy figures out the real type of `verified_elements' since isinstance() is used above and complains
+        #    error: Incompatible return value type (got "List[VerifiedElement]", expected "List[ListElement]")
+        return verified_elements  # type: ignore
 
     def remove(self, key: ElementKey) -> None:
         """
