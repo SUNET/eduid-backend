@@ -518,7 +518,7 @@ class PrimaryElementList(ElementList[ListElement], Generic[ListElement], ABC):
         if not elements:
             return None
 
-        res = [x for x in elements if x.is_primary is True]
+        res = [x for x in elements if isinstance(x, PrimaryElement) and x.is_primary is True]
         if not res:
             return None
 
@@ -537,26 +537,22 @@ class PrimaryElementList(ElementList[ListElement], Generic[ListElement], ABC):
         Get all the verified elements in the ElementList.
 
         """
-        verified_elements = [e for e in self.elements if e.is_verified]
+        verified_elements = [e for e in self.elements if isinstance(e, VerifiedElement) and e.is_verified]
         return verified_elements
 
-    def remove(self, key: ElementKey):
+    def remove(self, key: ElementKey) -> None:
         """
         Remove an existing Element from the list. Removing the primary element is not allowed.
-
-        TODO: Change into returning None
-
         :param key: Key of element to remove
-        :return: ElementList
         """
         match = self.find(key)
         if not match:
             raise UserDBValueError("Element not found in list")
 
-        if match.is_primary and self.count > 1:
+        if isinstance(match, PrimaryElement) and match.is_primary and self.count > 1:
             # This is not allowed since a PrimaryElementList with any entries in it must have a primary
             raise PrimaryElementViolation('Removing the primary element is not allowed')
 
         self.elements = [this for this in self.elements if this != match]
 
-        return self
+        return None

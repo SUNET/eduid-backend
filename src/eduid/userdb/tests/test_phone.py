@@ -118,7 +118,9 @@ class TestPhoneNumberList(unittest.TestCase):
         ]
 
     def test_remove(self):
-        now_two = self.three.remove('+46700000003')
+        self.three.remove('+46700000003')
+        now_two = self.three
+
         expected = self.two.to_list_of_dicts()
         got = now_two.to_list_of_dicts()
 
@@ -133,19 +135,19 @@ class TestPhoneNumberList(unittest.TestCase):
             self.two.remove(self.two.primary.number)
 
     def test_remove_primary_single(self):
-        now_empty = self.one.remove(self.one.primary.number)
-        self.assertEqual([], now_empty.to_list())
+        self.one.remove(self.one.primary.number)
+        now_empty = self.one
+
+        assert now_empty.to_list() == []
 
     def test_remove_all_mix(self):
-        verified = self.three.verified
-        if verified:
-            for mobile in verified:
-                if not mobile.is_primary:
-                    self.three.remove(mobile.number)
-            self.three.remove(self.three.primary.number)
+        # First, remove all numbers except the primary
         for mobile in self.three.to_list():
-            self.three.remove(mobile.number)
-        self.assertEqual([], self.three.to_list())
+            if not mobile.is_primary:
+                self.three.remove(mobile.key)
+        # Now, remove the primary number (which can't be removed until it is the last element)
+        self.three.remove(self.three.primary.key)
+        assert self.three.to_list() == []
 
     def test_remove_all_no_verified(self):
         verified = self.four.verified

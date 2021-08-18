@@ -73,7 +73,9 @@ class TestNinList(unittest.TestCase):
 
     def test_add_duplicate(self) -> None:
         assert isinstance(self.two, NinList)
+        assert self.two.primary is not None
         dup = self.two.find(self.two.primary.key)
+        assert dup is not None
         with pytest.raises(ValidationError) as exc_info:
             self.two.add(dup)
 

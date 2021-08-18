@@ -105,6 +105,7 @@ def verify_phone_number(state: PhoneProofingState, proofing_user: ProofingUser) 
         proofing_user.phone_numbers.add(phone)
         # Adding the phone to the list creates a copy of the element, so we have to 'find' it again
         phone = proofing_user.phone_numbers.find(phone.key)
+        assert phone is not None  # ensure mypy
 
     phone.is_verified = True
     if not proofing_user.phone_numbers.primary:

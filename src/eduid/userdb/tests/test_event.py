@@ -89,12 +89,6 @@ class TestEventList(TestCase):
         self.one.add(second)
         self.assertEqual(self.one.to_list_of_dicts(), self.two.to_list_of_dicts())
 
-    def test_add_identical_duplicate(self):
-        old_len = self.two.count
-        dup = self.two.to_list()[-1]
-        self.two.add(dup)
-        self.assertEqual(old_len, self.two.count)
-
     def test_add_duplicate_key(self):
         data = deepcopy(_two_dict)
         data['version'] = 'other version'
@@ -103,11 +97,7 @@ class TestEventList(TestCase):
             self.two.add(dup)
 
         assert exc_info.value.errors() == [
-            {
-                'loc': ('elements',),
-                'msg': "Duplicate element key: ObjectId('222222222222222222222222')",
-                'type': 'value_error',
-            }
+            {'loc': ('elements',), 'msg': "Duplicate element key: '222222222222222222222222'", 'type': 'value_error',}
         ]
 
     def test_add_event(self):
@@ -132,16 +122,19 @@ class TestEventList(TestCase):
     def test_unknown_event_type(self):
         e1 = {
             'event_type': 'unknown_event',
-            'id': bson.ObjectId(),
+            'id': str(bson.ObjectId()),
         }
-        with self.assertRaises(eduid.userdb.exceptions.BadEvent) as cm:
+
+        with pytest.raises(ValidationError) as exc_info:
             SomeEventList.from_list_of_dicts([e1])
-        exc = cm.exception
-        self.assertIn('Unknown event_type', exc.reason)
+
+        assert exc_info.value.errors() == [
+            {'loc': ('created_by',), 'msg': 'field required', 'type': 'value_error.missing'},
+            {'loc': ('version',), 'msg': 'field required', 'type': 'value_error.missing'},
+        ]
 
     def test_modified_ts_addition(self):
         _event_no_modified_ts = {
-            'event_id': bson.ObjectId(),
             'event_type': 'tou_event',
             'version': '1',
             'created_by': 'test',
@@ -165,7 +158,6 @@ class TestEventList(TestCase):
 
     def test_update_modified_ts(self):
         _event_modified_ts = {
-            'event_id': bson.ObjectId(),
             'event_type': 'tou_event',
             'version': '1',
             'created_by': 'test',
@@ -183,27 +175,3 @@ class TestEventList(TestCase):
         self.assertIsInstance(event.modified_ts, datetime)
         self.assertEqual(event.modified_ts, datetime(2018, 9, 24, 1, 1, 1, 111111))
         self.assertNotEqual(event.modified_ts, event.created_ts)
-
-    def test_loading_duplicate_tou_events(self):
-        data = [
-            {
-                "event_id": bson.ObjectId("5699fdbed300e400155be719"),
-                "version": "2014-v1",
-                "created_ts": datetime.fromisoformat("2016-01-16T08:22:22.520"),
-                "created_by": "signup",
-            },
-            {
-                "event_id": bson.ObjectId("581c3084df7c670064b583d6"),
-                "version": "2016-v1",
-                "created_ts": datetime.fromisoformat("2016-11-04T06:53:56.217"),
-                "created_by": "eduid_tou_plugin",
-            },
-            {
-                "event_id": bson.ObjectId("581c308e70971c006488d7d7"),
-                "version": "2016-v1",
-                "created_ts": datetime.fromisoformat("2016-11-04T06:54:06.676"),
-                "created_by": "eduid_tou_plugin",
-            },
-        ]
-        el = ToUList.from_list_of_dicts(data)
-        self.assertEqual(el.count, 2)

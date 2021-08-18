@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.common.config.parsers import load_config
+from eduid.userdb.element import ElementKey
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.fixtures.users import new_user_example
 from eduid.userdb.logs import ProofingLog
@@ -151,7 +152,7 @@ class NinHelpersTest(EduidAPITestCase):
             assert verify_nin_for_user(user, proofing_state, proofing_log_entry) is True
         # The problem with passing a User to verify_nin_for_user is that the nins list on 'user'
         # has not been updated
-        assert user.nins.find(self.test_user_nin) is False
+        assert not user.nins.find(ElementKey(self.test_user_nin))
 
         user = self.app.private_userdb.get_user_by_eppn(eppn)
         self.assertEqual(user.nins.count, 1)

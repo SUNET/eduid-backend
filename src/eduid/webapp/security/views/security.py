@@ -42,6 +42,7 @@ from six.moves.urllib_parse import parse_qs, urlencode, urlparse, urlunparse
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.utils import urlappend
 from eduid.userdb import User
+from eduid.userdb.element import ElementKey
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.proofing import NinProofingElement
 from eduid.userdb.proofing.state import NinProofingState
@@ -49,7 +50,7 @@ from eduid.userdb.security import SecurityUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid.webapp.common.api.helpers import add_nin_to_user
-from eduid.webapp.common.api.messages import CommonMsg, error_response, success_response
+from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.schemas.csrf import EmptyRequest
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
@@ -286,22 +287,22 @@ def add_nin(user, nin):
 @UnmarshalWith(NINRequestSchema)
 @MarshalWith(NINResponseSchema)
 @require_user
-def remove_nin(user, nin):
+def remove_nin(user: User, nin: str) -> FluxData:
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
     current_app.logger.info('Removing NIN from user')
     current_app.logger.debug('NIN: {}'.format(nin))
 
-    nin_obj = security_user.nins.find(nin)
+    nin_obj = security_user.nins.find(ElementKey(nin))
     if nin_obj and nin_obj.is_verified:
         current_app.logger.info('NIN verified. Will not remove it.')
         return error_response(message=SecurityMsg.rm_verified)
 
     try:
-        remove_nin_from_user(security_user, nin)
-    except AmTaskFailed as e:
-        current_app.logger.error('Removing nin from user failed')
+        if nin_obj:
+            remove_nin_from_user(security_user, nin_obj)
+    except AmTaskFailed:
+        current_app.logger.exception('Removing nin from user failed')
         current_app.logger.debug(f'NIN: {nin}')
-        current_app.logger.error('{}'.format(e))
         return error_response(message=CommonMsg.temp_problem)
 
     return success_response(payload=dict(nins=security_user.nins.to_list_of_dicts()), message=SecurityMsg.rm_success)

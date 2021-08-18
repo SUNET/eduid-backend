@@ -18,7 +18,6 @@ from eduid.userdb.credentials import Credential
 __author__ = 'ft'
 
 from eduid.userdb.element import ElementKey
-
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
 
 logger = logging.getLogger(__name__)
@@ -117,8 +116,7 @@ class OnetimeCredType(str, Enum):
     external_mfa = 'ext_mfa'
 
 
-class OnetimeCredential(BaseModel):
-    key: ElementKey = Field(default_factory=lambda: ElementKey(str(uuid4())))
+class OnetimeCredential(Credential):
     type: OnetimeCredType
 
     # External MFA auth parameters

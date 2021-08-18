@@ -247,20 +247,16 @@ class TestSSO(SSOIdPTests):
             # add a U2F credential to the user
             user.credentials.add(_U2F)
         for this in credentials:
+            _cred: Credential
             if this == 'pw':
-                this = user.credentials.filter(Password)[0]
+                _cred = user.credentials.filter(Password)[0]
             elif this == 'u2f':
-                this = user.credentials.filter(U2F)[0]
-
-            if isinstance(this, AuthnData):
-                sso_session_1.add_authn_credential(this)
-            elif isinstance(this, ExternalMfaData):
-                sso_session_1.external_mfa = this
-            elif isinstance(this, Credential):
-                data = AuthnData(cred_id=this.key)
-                sso_session_1.add_authn_credential(data)
+                _cred = user.credentials.filter(U2F)[0]
             else:
                 raise ValueError(f'Unhandled test data: {repr(this)}')
+
+            data = AuthnData(cred_id=_cred.key)
+            sso_session_1.add_authn_credential(data)
 
         # Need to save any changed credentials to the user
         self.amdb.save(user, check_sync=False)
@@ -480,8 +476,7 @@ class TestSSO(SSOIdPTests):
         Expect the response Authn to be EDUID_MFA, eduPersonAssurance AL1,Al2
         """
         user = self.get_user_set_nins(self.test_user.eppn, ['190101011234'])
-        user.credentials.add(_U2F)
-        out = self._get_login_response_authn(user=user, req_class_ref=cc['EDUID_MFA'], credentials=['pw', _U2F],)
+        out = self._get_login_response_authn(user=user, req_class_ref=cc['EDUID_MFA'], credentials=['pw', 'u2f'],)
         assert out.message == IdPMsg.proceed
         assert out.authn_info
         assert out.authn_info.class_ref == cc['EDUID_MFA']

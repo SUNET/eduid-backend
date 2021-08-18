@@ -104,7 +104,8 @@ class TestMailAddressList(unittest.TestCase):
             self.one.add(new)
 
     def test_remove(self):
-        now_two = self.three.remove('ft@three.example.org')
+        self.three.remove('ft@three.example.org')
+        now_two = self.three
 
         expected = self.two.to_list_of_dicts()
         obtained = now_two.to_list_of_dicts()
@@ -122,7 +123,8 @@ class TestMailAddressList(unittest.TestCase):
             self.two.remove(self.two.primary.key)
 
     def test_remove_primary_single(self):
-        now_empty = self.one.remove(self.one.primary.email)
+        self.one.remove(self.one.primary.email)
+        now_empty = self.one
         self.assertEqual([], now_empty.to_list())
 
     def test_primary(self):

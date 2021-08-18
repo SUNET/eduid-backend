@@ -36,20 +36,13 @@ from __future__ import annotations
 
 from abc import ABC
 from typing import Any, Dict, Generic, Optional, Type, TypeVar
+from uuid import uuid4
 
 from bson import ObjectId
-from pydantic import validator
-from pydantic import Field
+from pydantic import Field, validator
 
-from eduid.userdb.element import Element, ElementList, ListElement
+from eduid.userdb.element import Element, ElementKey, ElementList, ListElement
 from eduid.userdb.exceptions import BadEvent, UserDBValueError
-
-
-# Unique type for the events 'key' property. Not created with EventId = NewType('EventId', ObjectId)
-# because of a problem with mypy not deducing the type of bson.ObjectId:
-#   src/eduid_userdb/event.py:45: error: Argument 2 to NewType(...) must be subclassable (got "Any")
-class EventId(ObjectId):
-    pass
 
 
 TEventSubclass = TypeVar('TEventSubclass', bound='Event')
@@ -61,24 +54,15 @@ class Event(Element):
 
     data: Optional[Dict[str, Any]] = None
     event_type: Optional[str] = None
-    event_id: Optional[EventId] = Field(default=None, alias='id')
+    event_id: str = Field(default_factory=lambda: str(uuid4()), alias='id')
     # This is a short-term hack to deploy new dataclass based events without
     # any changes to data in the production database. Remove after a burn-in period.
     no_event_type_in_db: bool = False
 
-    @validator('event_id', pre=True)
-    def event_id_objectid(cls, v):
-        """ Turn string into EventId """
-        if isinstance(v, str):
-            v = EventId(v)
-        if not isinstance(v, EventId):
-            raise TypeError('must be a string or ObjectId')
-        return v
-
     @property
-    def key(self) -> EventId:
+    def key(self) -> ElementKey:
         """ Return the element that is used as key for events in an ElementList. """
-        return EventId(self.event_id)
+        return ElementKey(self.event_id)
 
     @classmethod
     def _from_dict_transform(cls: Type[TEventSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
@@ -92,8 +76,6 @@ class Event(Element):
 
         if 'id' in data:
             data['event_id'] = data.pop('id')
-
-        data['event_id'] = EventId(data['event_id'])
 
         return data
 

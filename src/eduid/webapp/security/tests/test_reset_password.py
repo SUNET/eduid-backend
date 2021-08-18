@@ -439,7 +439,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert len(user.credentials.filter(Password)) == 1
-        assert user.credentials.filter(Password) == old_passwords
+        assert user.credentials.filter(Password) != old_passwords
         assert user.nins.primary.is_verified is True
         assert user.phone_numbers.primary.is_verified is True
 

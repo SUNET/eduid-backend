@@ -1,6 +1,7 @@
 import copy
 from datetime import datetime, timedelta
 from unittest import TestCase
+from uuid import uuid4
 
 import bson
 
@@ -22,7 +23,7 @@ _one_dict = {
 }
 
 _two_dict = {
-    'event_id': str(bson.ObjectId()),
+    'event_id': str(uuid4()),
     'event_type': 'tou_event',
     'version': '2',
     'created_by': 'test',
@@ -64,7 +65,7 @@ class TestToUEvent(TestCase):
             assert new_list.to_list_of_dicts() == this.to_list_of_dicts()
 
     def test_created_by(self):
-        this = Event.from_dict(dict(created_by=None, event_id=bson.ObjectId(), event_type='test_event'))
+        this = Event.from_dict(dict(created_by=None, event_type='test_event'))
         this.created_by = 'unit test'
         self.assertEqual(this.created_by, 'unit test')
 

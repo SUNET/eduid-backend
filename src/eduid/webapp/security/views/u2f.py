@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+from typing import List
 
 import six
 from cryptography import x509
@@ -9,7 +9,7 @@ from OpenSSL import crypto
 from u2flib_server.u2f import begin_authentication, begin_registration, complete_authentication, complete_registration
 
 from eduid.userdb import User
-from eduid.userdb.credentials import U2F
+from eduid.userdb.credentials import U2F, FidoCredential
 from eduid.userdb.element import ElementKey
 from eduid.userdb.security import SecurityUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
@@ -40,11 +40,9 @@ u2f_views = Blueprint('u2f', __name__, url_prefix='/u2f', template_folder='templ
 @MarshalWith(EnrollU2FTokenResponseSchema)
 @require_user
 def enroll(user: User):
-    user_u2f_tokens = user.credentials.filter(U2F)
+    user_u2f_tokens: List[FidoCredential] = user.credentials.filter(U2F)
     if len(user_u2f_tokens) >= current_app.conf.u2f_max_allowed_tokens:
-        current_app.logger.error(
-            'User tried to register more than {} tokens.'.format(current_app.conf.u2f_max_allowed_tokens)
-        )
+        current_app.logger.error(f'User tried to register more than {current_app.conf.u2f_max_allowed_tokens} tokens.')
         return error_response(message=SecurityMsg.max_tokens)
     registered_keys = credentials_to_registered_keys(user_u2f_tokens)
     enrollment = begin_registration(current_app.conf.u2f_app_id, registered_keys)
@@ -100,7 +98,7 @@ def bind(user: User, version: str, registration_data: str, client_data: str, des
 @MarshalWith(SignWithU2FTokenResponseSchema)
 @require_user
 def sign(user: User):
-    user_u2f_tokens = user.credentials.filter(U2F)
+    user_u2f_tokens: List[FidoCredential] = user.credentials.filter(U2F)
     if not user_u2f_tokens.count:
         current_app.logger.error('Found no U2F token for user.')
         return error_response(message=SecurityMsg.no_u2f)

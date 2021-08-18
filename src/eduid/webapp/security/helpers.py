@@ -9,7 +9,8 @@ from flask_babel import gettext as _
 
 from eduid.common.decorators import deprecated
 from eduid.common.misc.timeutil import utc_now
-from eduid.userdb.credentials import CredentialList, FidoCredential
+from eduid.userdb import Nin
+from eduid.userdb.credentials import FidoCredential
 from eduid.userdb.exceptions import UserHasNotCompletedSignup
 from eduid.userdb.logs import MailAddressProofing, PhoneNumberProofing
 from eduid.userdb.security import PasswordResetEmailAndPhoneState, PasswordResetEmailState, SecurityUser
@@ -111,45 +112,38 @@ def compile_credential_list(security_user: SecurityUser) -> List[CredentialInfo]
     authn_info = current_app.authninfo_db.get_authn_info(security_user)
     for cred_key, authn in authn_info.items():
         cred = security_user.credentials.find(cred_key)
-        try:
-            # Some credentials have description, some don't
-            description = cred.description
-        except AttributeError:
-            description = None
+        # pick up attributes not present on all types of credentials
+        _description: Optional[str] = None
+        _is_verified = False
+        if hasattr(cred, 'description'):
+            _description = cred.description  # type: ignore
+        if hasattr(cred, 'is_verified'):
+            _is_verified = cred.is_verified  # type: ignore
         info = CredentialInfo(
             key=cred_key,
             credential_type=authn.credential_type.value,
             created_ts=authn.created_ts,
-            description=description,
+            description=_description,
             success_ts=authn.success_ts,
-            verified=cred.is_verified,
+            verified=_is_verified,
         )
         credentials.append(info)
     return credentials
 
 
-def remove_nin_from_user(security_user, nin):
+def remove_nin_from_user(security_user: SecurityUser, nin: Nin) -> None:
     """
     :param security_user: Private userdb user
     :param nin: NIN to remove
-
-    :type security_user: eduid.userdb.security.SecurityUser
-    :type nin: str
-
-    :return: None
     """
-    if security_user.nins.find(nin):
-        security_user.nins.remove(nin)
-        security_user.modified_ts = datetime.utcnow()
-        # Save user to private db
-        current_app.private_userdb.save(security_user, check_sync=False)
-        # Ask am to sync user to central db
-        current_app.logger.debug('Request sync for user {!s}'.format(security_user))
-        result = current_app.am_relay.request_user_sync(security_user)
-        current_app.logger.info('Sync result for user {!s}: {!s}'.format(security_user, result))
-    else:
-        current_app.logger.info("Can't remove NIN - NIN not found")
-        current_app.logger.info("NIN: {}".format(nin))
+    security_user.nins.remove(nin.key)
+    security_user.modified_ts = utc_now()
+    # Save user to private db
+    current_app.private_userdb.save(security_user, check_sync=False)
+    # Ask am to sync user to central db
+    current_app.logger.debug(f'Request sync for user {security_user}')
+    result = current_app.am_relay.request_user_sync(security_user)
+    current_app.logger.info(f'Sync result for user {security_user}: {result}')
 
 
 @deprecated("Remove once the password reset views are served from their own webapp")

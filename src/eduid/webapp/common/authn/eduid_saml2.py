@@ -38,8 +38,6 @@ from xml.etree.ElementTree import ParseError
 
 from dateutil.parser import parse as dt_parse
 from flask import abort, make_response, redirect, request
-
-from eduid.userdb.element import ElementKey
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.ident import decode
@@ -49,6 +47,7 @@ from werkzeug.wrappers import Response
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.userdb import UserDB
+from eduid.userdb.element import ElementKey
 from eduid.userdb.exceptions import MultipleUsersReturned, UserDoesNotExist
 from eduid.userdb.user import User
 from eduid.webapp.authn.app import current_authn_app as current_app

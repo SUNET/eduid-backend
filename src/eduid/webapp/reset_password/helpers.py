@@ -43,11 +43,7 @@ from eduid.common.config.base import EduidEnvironment
 from eduid.common.utils import urlappend
 from eduid.userdb.exceptions import DocumentDoesNotExist, UserDoesNotExist
 from eduid.userdb.logs import MailAddressProofing, PhoneNumberProofing
-from eduid.userdb.reset_password import (
-    ResetPasswordEmailAndPhoneState,
-    ResetPasswordEmailState,
-    ResetPasswordUser,
-)
+from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState, ResetPasswordUser
 from eduid.userdb.reset_password.element import CodeElement
 from eduid.userdb.user import User
 from eduid.webapp.common.api.exceptions import MailTaskFailed, ThrottledException
@@ -273,7 +269,8 @@ def unverify_user(user: ResetPasswordUser) -> None:
     verified_phone_numbers = user.phone_numbers.verified
     if verified_phone_numbers:
         current_app.logger.info(f'Unverifying phone numbers for user {user}')
-        user.phone_numbers.primary.is_primary = False
+        if user.phone_numbers.primary:
+            user.phone_numbers.primary.is_primary = False
         for phone_number in verified_phone_numbers:
             phone_number.is_verified = False
             current_app.logger.info('Phone number unverified')
@@ -283,7 +280,8 @@ def unverify_user(user: ResetPasswordUser) -> None:
     verified_nins = user.nins.verified
     if verified_nins:
         current_app.logger.info(f'Unverifying nins for user {user}')
-        user.nins.primary.is_primary = False
+        if user.nins.primary:
+            user.nins.primary.is_primary = False
         for nin in verified_nins:
             nin.is_verified = False
             current_app.logger.info('NIN unverified')
