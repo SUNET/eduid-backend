@@ -34,7 +34,7 @@
 
 from eduid.webapp.actions.app import actions_init_app
 
-app = actions_init_app(name='actions2')
+app = actions_init_app(name='actions')
 
 if __name__ == '__main__':
     app.logger.info(f'Starting {app}...')
