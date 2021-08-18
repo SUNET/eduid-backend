@@ -64,7 +64,6 @@ class ResetPasswordApp(EduIDBaseApp):
         self.private_userdb = ResetPasswordUserDB(self.conf.mongo_uri)
         self.password_reset_state_db = ResetPasswordStateDB(self.conf.mongo_uri)
         self.proofing_log = ProofingLog(self.conf.mongo_uri)
-        self.authninfo_db = AuthnInfoDB(self.conf.mongo_uri)
 
 
 current_reset_password_app: ResetPasswordApp = cast(ResetPasswordApp, current_app)
