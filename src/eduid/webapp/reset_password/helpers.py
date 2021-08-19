@@ -111,6 +111,8 @@ class ResetPwMsg(TranslatableMsg):
     external_mfa_fail = 'resetpw.external-mfa-fail'
     # The password chosen is too weak
     resetpw_weak = 'resetpw.weak-password'
+    # The browser already has a session for another user
+    invalid_session = 'resetpw.invalid_session'
 
 
 class StateException(Exception):
