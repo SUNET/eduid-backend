@@ -259,22 +259,3 @@ class TestMailAddress(TestCase):
         address = 'UPPERCASE@example.com'
         mail_address = MailAddress(email=address)
         self.assertEqual(address.lower(), mail_address.email)
-
-
-class MyData(BaseModel):
-    elements: List[int]
-
-    class Config:
-        validate_assignment = True  # validate data when updated, not just when initialised
-        extra = Extra.forbid  # reject unknown data
-
-    @validator('elements', check_fields=False)
-    def validate_primary_elements(cls, v):
-        print(f'VALIDATE: {v}')
-        return v
-
-
-class TestMyData(TestCase):
-    def test_one(self):
-        t = MyData(elements=[1])
-        t.elements.append(2)
