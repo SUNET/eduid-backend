@@ -121,6 +121,9 @@ class ResetPasswordTests(EduidAPITestCase):
         """
         mock_sendmail.return_value = sendmail_return
         mock_sendmail.side_effect = sendmail_side_effect
+        if self.test_user.mail_addresses.primary is None:
+            raise RuntimeError(f'user {self.test_user} has no primary email address')
+
         with self.session_cookie_anon(self.browser) as c:
             # TODO: GET a csrf token, this should be a call to jsconfig
             response = c.get('/', content_type=self.content_type_json)
@@ -699,6 +702,9 @@ class ResetPasswordTests(EduidAPITestCase):
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
     def test_post_reset_invalid_session_eppn(self, mock_sendmail):
         mock_sendmail.return_value = True
+        if self.test_user.mail_addresses.primary is None:
+            raise RuntimeError(f'user {self.test_user} has no primary email address')
+
         # Request reset password email for test_user using other_test_user session
         with self.app.test_request_context():
             request_url = url_for('reset_password.start_reset_pw', _external=True)
