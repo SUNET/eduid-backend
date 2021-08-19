@@ -181,7 +181,7 @@ def add_eduperson_assurance(attributes: Dict[str, Any], user: IdPUser) -> Dict[s
     :return: New attributes
     """
     attributes['eduPersonAssurance'] = ['http://www.swamid.se/policy/assurance/al1']
-    if user.nins.verified.count:
+    if len(user.nins.verified):
         attributes['eduPersonAssurance'] = ['http://www.swamid.se/policy/assurance/al2']
     return attributes
 

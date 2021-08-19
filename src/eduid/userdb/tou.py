@@ -35,10 +35,13 @@
 from __future__ import annotations
 
 import datetime
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List, Type
+
+from bson import ObjectId
+from pydantic import validator
 
 from eduid.userdb.event import Event, EventList
-from eduid.userdb.exceptions import EduIDUserDBError, UserDBValueError
+from eduid.userdb.exceptions import UserDBValueError
 from eduid.userdb.util import utc_now
 
 
@@ -48,7 +51,15 @@ class ToUEvent(Event):
     """
 
     created_by: str
-    version: Optional[str] = None
+    version: str
+
+    @validator('version')
+    def _validate_tou_version(cls, v):
+        if not v:
+            raise ValueError('ToU must have a version')
+        if not isinstance(v, str):
+            raise TypeError('ToU version must be a string')
+        return v
 
     @classmethod
     def _from_dict_transform(cls: Type[ToUEvent], data: Dict[str, Any]) -> Dict[str, Any]:
@@ -59,11 +70,14 @@ class ToUEvent(Event):
         if 'event_type' not in data:
             data['event_type'] = 'tou_event'
 
+        if 'event_id' in data and isinstance(data['event_id'], ObjectId):
+            data['event_id'] = str(data['event_id'])
+
         return data
 
     def is_expired(self, interval_seconds: int) -> bool:
         """
-        Check whether the ToU event needs to be reaccepted.
+        Check whether the ToU event needs to be re-accepted.
 
         :param interval_seconds: the max number of seconds between a users acceptance of the ToU
         """
@@ -76,7 +90,7 @@ class ToUEvent(Event):
         return expiry_date < utc_now()
 
 
-class ToUList(EventList):
+class ToUList(EventList[ToUEvent]):
     """
     List of ToUEvents.
 
@@ -84,33 +98,9 @@ class ToUList(EventList):
           has_accepted() is the interface to find an ToU event using a version number.
     """
 
-    def __init__(self, events):
-        EventList.__init__(self, events, event_class=ToUEvent)
-
-    def add(self, event: ToUEvent) -> None:
-        """ Add a ToUEvent to the list. """
-        if event.version is None:
-            raise ValueError('Invalid ToUEvent without version')
-
-        existing = self.find(event.version)
-        if existing:
-            if event.created_ts >= existing.created_ts:
-                # Silently replace existing events with newer ones to flush out duplicate events in the database
-                self.remove(existing.version)
-        super().add(event)
-
-    def find(self, version: str) -> Optional[ToUEvent]:
-        """
-        Find an ToUEvent from the ToUList using ToU version.
-
-        :param version: ToU version to find
-        """
-        res = [this for this in self.elements if this.version == version]
-        if len(res) == 1:
-            return res[0]
-        if len(res) > 1:
-            raise EduIDUserDBError(f'More than one ToUEvent with version {version} found')
-        return None
+    @classmethod
+    def from_list_of_dicts(cls: Type[ToUList], items: List[Dict[str, Any]]) -> ToUList:
+        return cls(elements=[ToUEvent.from_dict(this) for this in items])
 
     def has_accepted(self, version: str, reaccept_interval: int) -> bool:
         """
@@ -118,18 +108,14 @@ class ToUList(EventList):
 
         :param version: Version of ToU
         :param reaccept_interval: Time between accepting and the need to reaccept (default 3 years)
-
-        :return: True or False
         """
         # All users have implicitly accepted the first ToU version (info stored in another collection)
         if version in ['2014-v1', '2014-dev-v1']:
             return True
         for this in self.elements:
+            if not isinstance(this, ToUEvent):
+                raise UserDBValueError(f'Event {repr(this)} is not of type ToUEvent')
+
             if this.version == version and not this.is_expired(interval_seconds=reaccept_interval):
                 return True
         return False
-
-    @property
-    def elements(self) -> List[ToUEvent]:
-        """ Return typing friendly list of ToU events """
-        return [x for x in self._elements if isinstance(x, ToUEvent)]

@@ -45,10 +45,10 @@ def _keyid(key):
 
 class TestU2F(TestCase):
     def setUp(self):
-        self.empty = CredentialList([])
-        self.one = CredentialList([_one_dict])
-        self.two = CredentialList([_one_dict, _two_dict])
-        self.three = CredentialList([_one_dict, _two_dict, _three_dict])
+        self.empty = CredentialList()
+        self.one = CredentialList.from_list_of_dicts([_one_dict])
+        self.two = CredentialList.from_list_of_dicts([_one_dict, _two_dict])
+        self.three = CredentialList.from_list_of_dicts([_one_dict, _two_dict, _three_dict])
 
     def test_key(self):
         """
@@ -63,7 +63,7 @@ class TestU2F(TestCase):
         """
         for this in [self.one, self.two, self.three]:
             this_dict = this.to_list_of_dicts()
-            self.assertEqual(CredentialList(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
+            self.assertEqual(CredentialList.from_list_of_dicts(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
 
     def test_unknown_input_data(self):
         one = copy.deepcopy(_one_dict)

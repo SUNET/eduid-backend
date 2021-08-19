@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Type
 
-from eduid.userdb.element import Element, VerifiedElement
+from eduid.userdb.element import Element, ElementKey, VerifiedElement
 
 __author__ = 'lundberg'
 
@@ -37,11 +37,11 @@ class OidcIdToken(Element):
     azp: Optional[str] = None
 
     @property
-    def key(self) -> str:
+    def key(self) -> ElementKey:
         """
         :return: Unique identifier
         """
-        return f'{self.iss}{self.sub}'
+        return ElementKey(f'{self.iss}{self.sub}')
 
     @classmethod
     def _from_dict_transform(cls: Type[OidcIdToken], data: Dict[str, Any]) -> Dict[str, Any]:
@@ -70,7 +70,7 @@ class OidcAuthorization(Element):
     refresh_token: Optional[str] = None
 
     @property
-    def key(self) -> str:
+    def key(self) -> ElementKey:
         """
         :return: Unique identifier
         """
@@ -114,11 +114,11 @@ class Orcid(VerifiedElement):
     family_name: Optional[str] = None
 
     @property
-    def key(self) -> str:
+    def key(self) -> ElementKey:
         """
         Unique id
         """
-        return self.id
+        return ElementKey(self.id)
 
     @classmethod
     def _from_dict_transform(cls: Type[Orcid], data: Dict[str, Any]) -> Dict[str, Any]:
@@ -140,7 +140,7 @@ class Orcid(VerifiedElement):
         """
         data['oidc_authz'] = self.oidc_authz.to_dict()
 
-        _has_empty_name = 'name' in data and data['name'] == None
+        _has_empty_name = 'name' in data and data['name'] is None
 
         data = super()._to_dict_transform(data)
 

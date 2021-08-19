@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from eduid.userdb.element import Element, ElementList
+from typing import Any, Dict, List, Type
+
+from eduid.userdb.element import Element, ElementKey, ElementList
 from eduid.userdb.exceptions import EduIDUserDBError
 
 __author__ = 'lundberg'
@@ -20,11 +22,11 @@ class LockedIdentityElement(Element):
     identity_type: str
 
     @property
-    def key(self) -> str:
+    def key(self) -> ElementKey:
         """
         :return: Type of identity
         """
-        return self.identity_type
+        return ElementKey(self.identity_type)
 
 
 class LockedIdentityNin(LockedIdentityElement):
@@ -41,25 +43,16 @@ class LockedIdentityNin(LockedIdentityElement):
     identity_type: str = 'nin'
 
 
-class LockedIdentityList(ElementList):
+class LockedIdentityList(ElementList[LockedIdentityElement]):
     """
     Hold a list of LockedIdentityElement instances.
 
     Provide methods to find and add to the list.
-
-    :param locked_identities: List of LockedIdentityElements
-    :type locked_identities: [dict | Element]
     """
 
-    def __init__(self, locked_identities):
-        elements = []
-        for item in locked_identities:
-            if isinstance(item, LockedIdentityElement):
-                elements.append(item)
-            else:
-                if item['identity_type'] == 'nin':
-                    elements.append(LockedIdentityNin.from_dict(item))
-        ElementList.__init__(self, elements)
+    @classmethod
+    def from_list_of_dicts(cls: Type[LockedIdentityList], items: List[Dict[str, Any]]) -> LockedIdentityList:
+        return cls(elements=[LockedIdentityNin.from_dict(this) for this in items if this.get('identity_type') == 'nin'])
 
     def remove(self, key):
         """

@@ -39,6 +39,7 @@ from urllib.parse import quote_plus
 from flask import url_for
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.userdb import User
 from eduid.userdb.credentials import Password, Webauthn
 from eduid.userdb.exceptions import DocumentDoesNotExist, UserHasNotCompletedSignup
 from eduid.userdb.fixtures.fido_credentials import webauthn_credential as sample_credential
@@ -180,9 +181,9 @@ class ResetPasswordTests(EduidAPITestCase):
 
         # check that the user has verified data
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        verified_phone_numbers = user.phone_numbers.verified.to_list()
+        verified_phone_numbers = user.phone_numbers.verified
         self.assertEqual(len(verified_phone_numbers), 1)
-        verified_nins = user.nins.verified.to_list()
+        verified_nins = user.nins.verified
         self.assertEqual(len(verified_nins), 2)
 
         response = self._post_email_address(data1=data1)
@@ -536,9 +537,9 @@ class ResetPasswordTests(EduidAPITestCase):
     def test_correct_user_setup(self):
         # Check that user has verified data
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        verified_phone_numbers = user.phone_numbers.verified.to_list()
+        verified_phone_numbers = user.phone_numbers.verified
         self.assertEqual(1, len(verified_phone_numbers))
-        verified_nins = user.nins.verified.to_list()
+        verified_nins = user.nins.verified
         self.assertEqual(2, len(verified_nins))
 
     def test_get_zxcvbn_terms(self):
@@ -664,10 +665,10 @@ class ResetPasswordTests(EduidAPITestCase):
             self._post_reset_code(data1=data1)
 
     def test_post_reset_code_no_extra_sec(self):
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        # Unverify phone numbers
-        for number in user.phone_numbers.verified.to_list():
-            user.phone_numbers.remove(number.key)
+        user: User = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+        # Remove all verified phone numbers
+        for number in user.phone_numbers.verified:
+            user.phone_numbers.remove_handling_primary(number.key)
         self.app.central_userdb.save(user)
         response = self._post_reset_code()
         self._check_success_response(
@@ -732,9 +733,9 @@ class ResetPasswordTests(EduidAPITestCase):
 
         # check that the user no longer has verified data
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        verified_phone_numbers = user.phone_numbers.verified.to_list()
+        verified_phone_numbers = user.phone_numbers.verified
         self.assertEqual(len(verified_phone_numbers), 0)
-        verified_nins = user.nins.verified.to_list()
+        verified_nins = user.nins.verified
         self.assertEqual(len(verified_nins), 0)
 
         # check that the password is marked as generated
@@ -773,9 +774,9 @@ class ResetPasswordTests(EduidAPITestCase):
 
         # check that the user still has verified data
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        verified_phone_numbers = user.phone_numbers.verified.to_list()
+        verified_phone_numbers = user.phone_numbers.verified
         self.assertEqual(len(verified_phone_numbers), 1)
-        verified_nins = user.nins.verified.to_list()
+        verified_nins = user.nins.verified
         self.assertEqual(len(verified_nins), 2)
 
     def test_post_reset_password_custom(self):
@@ -857,9 +858,9 @@ class ResetPasswordTests(EduidAPITestCase):
 
         # check that the user still has verified data
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        verified_phone_numbers = user.phone_numbers.verified.to_list()
+        verified_phone_numbers = user.phone_numbers.verified
         self.assertEqual(1, len(verified_phone_numbers))
-        verified_nins = user.nins.verified.to_list()
+        verified_nins = user.nins.verified
         self.assertEqual(2, len(verified_nins))
 
     @patch('eduid.webapp.reset_password.views.reset_password.verify_phone_number')
@@ -912,9 +913,9 @@ class ResetPasswordTests(EduidAPITestCase):
 
         # check that the user still has verified data
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        verified_phone_numbers = user.phone_numbers.verified.to_list()
+        verified_phone_numbers = user.phone_numbers.verified
         self.assertEqual(1, len(verified_phone_numbers))
-        verified_nins = user.nins.verified.to_list()
+        verified_nins = user.nins.verified
         self.assertEqual(2, len(verified_nins))
 
     def test_post_reset_password_secure_token_custom_pw(self):
@@ -925,7 +926,7 @@ class ResetPasswordTests(EduidAPITestCase):
             msg=ResetPwMsg.pw_reset_success,
         )
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        for cred in user.credentials.filter(Password).to_list():
+        for cred in user.credentials.filter(Password):
             self.assertFalse(cred.is_generated)
 
     def test_post_reset_password_secure_token_no_data(self):
@@ -989,9 +990,9 @@ class ResetPasswordTests(EduidAPITestCase):
 
         # check that the user still has verified data
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        verified_phone_numbers = user.phone_numbers.verified.to_list()
+        verified_phone_numbers = user.phone_numbers.verified
         self.assertEqual(1, len(verified_phone_numbers))
-        verified_nins = user.nins.verified.to_list()
+        verified_nins = user.nins.verified
         self.assertEqual(2, len(verified_nins))
 
     def test_post_reset_password_secure_external_mfa_no_mfa_auth(self):

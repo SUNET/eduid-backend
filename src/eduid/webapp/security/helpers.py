@@ -9,7 +9,8 @@ from flask_babel import gettext as _
 
 from eduid.common.decorators import deprecated
 from eduid.common.misc.timeutil import utc_now
-from eduid.userdb.credentials import CredentialList
+from eduid.userdb import Nin
+from eduid.userdb.credentials import FidoCredential
 from eduid.userdb.exceptions import UserHasNotCompletedSignup
 from eduid.userdb.logs import MailAddressProofing, PhoneNumberProofing
 from eduid.userdb.security import PasswordResetEmailAndPhoneState, PasswordResetEmailState, SecurityUser
@@ -82,13 +83,13 @@ class SecurityMsg(TranslatableMsg):
     chpass_password_changed2 = 'chpass.password-changed'
 
 
-def credentials_to_registered_keys(user_u2f_tokens: CredentialList) -> List[U2FRegisteredKey]:
+def credentials_to_registered_keys(user_u2f_tokens: List[FidoCredential]) -> List[U2FRegisteredKey]:
     """
     :param user_u2f_tokens: List of users U2F credentials
 
     :return: List of registered keys
     """
-    u2f_dicts = user_u2f_tokens.to_list_of_dicts()
+    u2f_dicts = [x.to_dict() for x in user_u2f_tokens]
     data = ConvertRegisteredKeys().dump({'registered_keys': u2f_dicts})
     return data['registered_keys']
 
@@ -111,45 +112,38 @@ def compile_credential_list(security_user: SecurityUser) -> List[CredentialInfo]
     authn_info = current_app.authninfo_db.get_authn_info(security_user)
     for cred_key, authn in authn_info.items():
         cred = security_user.credentials.find(cred_key)
-        try:
-            # Some credentials have description, some don't
-            description = cred.description
-        except AttributeError:
-            description = None
+        # pick up attributes not present on all types of credentials
+        _description: Optional[str] = None
+        _is_verified = False
+        if hasattr(cred, 'description'):
+            _description = cred.description  # type: ignore
+        if hasattr(cred, 'is_verified'):
+            _is_verified = cred.is_verified  # type: ignore
         info = CredentialInfo(
             key=cred_key,
             credential_type=authn.credential_type.value,
             created_ts=authn.created_ts,
-            description=description,
+            description=_description,
             success_ts=authn.success_ts,
-            verified=cred.is_verified,
+            verified=_is_verified,
         )
         credentials.append(info)
     return credentials
 
 
-def remove_nin_from_user(security_user, nin):
+def remove_nin_from_user(security_user: SecurityUser, nin: Nin) -> None:
     """
     :param security_user: Private userdb user
     :param nin: NIN to remove
-
-    :type security_user: eduid.userdb.security.SecurityUser
-    :type nin: str
-
-    :return: None
     """
-    if security_user.nins.find(nin):
-        security_user.nins.remove(nin)
-        security_user.modified_ts = datetime.utcnow()
-        # Save user to private db
-        current_app.private_userdb.save(security_user, check_sync=False)
-        # Ask am to sync user to central db
-        current_app.logger.debug('Request sync for user {!s}'.format(security_user))
-        result = current_app.am_relay.request_user_sync(security_user)
-        current_app.logger.info('Sync result for user {!s}: {!s}'.format(security_user, result))
-    else:
-        current_app.logger.info("Can't remove NIN - NIN not found")
-        current_app.logger.info("NIN: {}".format(nin))
+    security_user.nins.remove(nin.key)
+    security_user.modified_ts = utc_now()
+    # Save user to private db
+    current_app.private_userdb.save(security_user, check_sync=False)
+    # Ask am to sync user to central db
+    current_app.logger.debug(f'Request sync for user {security_user}')
+    result = current_app.am_relay.request_user_sync(security_user)
+    current_app.logger.info(f'Sync result for user {security_user}: {result}')
 
 
 @deprecated("Remove once the password reset views are served from their own webapp")
@@ -198,7 +192,7 @@ def send_termination_mail(user):
     subject = _('Terminate account')
     text_template = "termination_email.txt.jinja2"
     html_template = "termination_email.html.jinja2"
-    to_addresses = [address.email for address in user.mail_addresses.verified.to_list()]
+    to_addresses = [address.email for address in user.mail_addresses.verified]
     send_mail(subject, to_addresses, text_template, html_template, current_app)
     current_app.logger.info("Sent termination email to user.")
 
@@ -233,7 +227,7 @@ def send_password_reset_mail(email_address):
 
     text_template = 'reset_password_email.txt.jinja2'
     html_template = 'reset_password_email.html.jinja2'
-    to_addresses = [address.email for address in user.mail_addresses.verified.to_list()]
+    to_addresses = [address.email for address in user.mail_addresses.verified]
 
     password_reset_timeout = current_app.conf.email_code_timeout // 60 // 60  # seconds to hours
     context = {
@@ -357,7 +351,7 @@ def reset_user_password(state, password):
     if not extra_security_used(state):
         current_app.logger.info('No extra security used by user {}'.format(state.eppn))
         # Phone numbers
-        verified_phone_numbers = security_user.phone_numbers.verified.to_list()
+        verified_phone_numbers = security_user.phone_numbers.verified
         if verified_phone_numbers:
             current_app.logger.info('Unverifying phone numbers for user {}'.format(state.eppn))
             security_user.phone_numbers.primary.is_primary = False
@@ -365,7 +359,7 @@ def reset_user_password(state, password):
                 phone_number.is_verified = False
                 current_app.logger.debug('Phone number {} unverified'.format(phone_number.number))
         # NINs
-        verified_nins = security_user.nins.verified.to_list()
+        verified_nins = security_user.nins.verified
         if verified_nins:
             current_app.logger.info('Unverifying nins for user {}'.format(state.eppn))
             security_user.nins.primary.is_primary = False
@@ -394,8 +388,8 @@ def get_extra_security_alternatives(eppn):
     alternatives = {}
     user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
 
-    if user.phone_numbers.verified.count:
-        verified_phone_numbers = [item.number for item in user.phone_numbers.verified.to_list()]
+    if len(user.phone_numbers.verified):
+        verified_phone_numbers = [item.number for item in user.phone_numbers.verified]
         alternatives['phone_numbers'] = verified_phone_numbers
     return alternatives
 

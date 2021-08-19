@@ -56,7 +56,7 @@ def need_tou_acceptance(user: IdPUser) -> bool:
         logger.debug(f'User has already accepted ToU version {repr(version)}')
         return False
 
-    tous = [x.version for x in user.tou.elements]
+    tous = [x.version for x in user.tou.to_list()]
     logger.info(f'User needs to accepted ToU version {repr(version)} (has accepted: {tous})')
 
     return True
@@ -78,6 +78,6 @@ def add_tou_action(user: IdPUser, ticket: Optional[LoginContext] = None) -> Opti
     if current_app.actions_db.has_actions(user.eppn, action_type='tou', params={'version': version}):
         return None
 
-    tous = [x.version for x in user.tou.elements]
+    tous = [x.version for x in user.tou.to_list()]
     current_app.logger.debug(f'Adding action to require user to accept ToU version {version!r} (has accepted: {tous})')
     return current_app.actions_db.add_action(user.eppn, action_type='tou', preference=100, params={'version': version})

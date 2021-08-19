@@ -34,7 +34,6 @@
 #
 from __future__ import annotations
 
-import bson
 from bson import ObjectId
 from pydantic import Field, validator
 
@@ -42,7 +41,7 @@ from eduid.userdb.credentials import Credential
 
 __author__ = 'lundberg'
 
-from eduid.userdb.credentials.base import CredentialKey
+from eduid.userdb.element import ElementKey
 
 
 class Password(Credential):
@@ -52,7 +51,7 @@ class Password(Credential):
 
     @validator('credential_id', pre=True)
     def credential_id_objectid(cls, v):
-        """ Turn string into ObjectId """
+        """ Turn ObjectId into string """
         if isinstance(v, ObjectId):
             v = str(v)
         if not isinstance(v, str):
@@ -60,8 +59,8 @@ class Password(Credential):
         return v
 
     @property
-    def key(self) -> CredentialKey:
+    def key(self) -> ElementKey:
         """
         Return the element that is used as key.
         """
-        return CredentialKey(self.credential_id)
+        return ElementKey(self.credential_id)

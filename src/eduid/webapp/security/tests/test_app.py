@@ -155,14 +155,14 @@ class SecurityTests(EduidAPITestCase):
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.count, 2)
-        self.assertEqual(user.nins.verified.count, 2)
+        self.assertEqual(len(user.nins.verified), 2)
 
         if unverify:
             user.nins.find(self.test_user_nin).is_primary = False
             user.nins.find(self.test_user_nin).is_verified = False
             self.app.central_userdb.save(user, check_sync=False)
 
-            self.assertEqual(user.nins.verified.count, 1)
+            self.assertEqual(len(user.nins.verified), 1)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             with self.app.test_request_context():
@@ -185,12 +185,12 @@ class SecurityTests(EduidAPITestCase):
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.count, 2)
-        self.assertEqual(user.nins.verified.count, 2)
+        self.assertEqual(len(user.nins.verified), 2)
 
         if remove:
             user.nins.remove(self.test_user_nin)
             self.app.central_userdb.save(user, check_sync=False)
-            self.assertEqual(user.nins.verified.count, 1)
+            self.assertEqual(len(user.nins.verified), 1)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             with self.app.test_request_context():
@@ -269,7 +269,7 @@ class SecurityTests(EduidAPITestCase):
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.count, 1)
-        self.assertEqual(user.nins.verified.count, 1)
+        self.assertEqual(len(user.nins.verified), 1)
 
     def test_remove_not_existing_nin(self):
         response = self._remove_nin(data1={'nin': '190102031234'})
@@ -285,8 +285,8 @@ class SecurityTests(EduidAPITestCase):
             },
         )
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.count, 2)
-        self.assertEqual(user.nins.verified.count, 1)
+        assert user.nins.count == 2
+        assert len(user.nins.verified) == 1
 
     @patch('eduid.webapp.security.views.security.remove_nin_from_user')
     def test_remove_nin_am_fail(self, mock_remove: Any):
@@ -305,7 +305,7 @@ class SecurityTests(EduidAPITestCase):
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.count, 2)
-        self.assertEqual(user.nins.verified.count, 1)
+        self.assertEqual(len(user.nins.verified), 1)
 
     def test_remove_verified_nin(self):
         response = self._remove_nin(unverify=False)
@@ -313,7 +313,7 @@ class SecurityTests(EduidAPITestCase):
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.count, 2)
-        self.assertEqual(user.nins.verified.count, 2)
+        self.assertEqual(len(user.nins.verified), 2)
 
     def test_add_nin(self):
         response = self._add_nin()
@@ -327,7 +327,7 @@ class SecurityTests(EduidAPITestCase):
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.count, 2)
-        self.assertEqual(user.nins.verified.count, 1)
+        self.assertEqual(len(user.nins.verified), 1)
 
     def test_add_existing_nin(self):
         response = self._add_nin(remove=False)
@@ -337,7 +337,7 @@ class SecurityTests(EduidAPITestCase):
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.count, 2)
-        self.assertEqual(user.nins.verified.count, 2)
+        self.assertEqual(len(user.nins.verified), 2)
 
     @patch('eduid.webapp.security.views.security.add_nin_to_user')
     def test_add_nin_task_failed(self, mock_add):
@@ -356,7 +356,7 @@ class SecurityTests(EduidAPITestCase):
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.count, 2)
-        self.assertEqual(user.nins.verified.count, 2)
+        self.assertEqual(len(user.nins.verified), 2)
 
     def test_add_invalid_nin(self):
         data1 = {'nin': '123456789'}
@@ -370,7 +370,7 @@ class SecurityTests(EduidAPITestCase):
         )
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.count, 2)
-        self.assertEqual(user.nins.verified.count, 2)
+        self.assertEqual(len(user.nins.verified), 2)
 
     # Tests below are for deprecated views (moved to the reset-password service),
     # to be removed whith the views
@@ -388,7 +388,7 @@ class SecurityTests(EduidAPITestCase):
         expected_payload = {
             'credentials': [
                 {
-                    'created_ts': '2013-09-02T10:23:25+00:00',
+                    'created_ts': '2013-09-02 10:23:25+00:00',
                     'credential_type': 'security.password_credential_type',
                     'description': None,
                     'key': '112345678901234567890123',

@@ -3,9 +3,12 @@ import datetime
 import unittest
 from unittest import TestCase
 
-import eduid.userdb.element
+import pytest
+from pydantic import ValidationError
+
 import eduid.userdb.exceptions
-from eduid.userdb.element import Element
+from eduid.userdb import PhoneNumber
+from eduid.userdb.element import ElementKey
 from eduid.userdb.nin import Nin, NinList
 
 __author__ = 'ft'
@@ -32,14 +35,16 @@ _three_dict = {
 class TestNinList(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None  # Make pytest show full diffs
-        self.empty = NinList([])
-        self.one = NinList([_one_dict])
-        self.two = NinList([_one_dict, _two_dict])
-        self.three = NinList([_one_dict, _two_dict, _three_dict])
+        self.empty = NinList()
+        self.one = NinList.from_list_of_dicts([_one_dict])
+        self.two = NinList.from_list_of_dicts([_one_dict, _two_dict])
+        self.three = NinList.from_list_of_dicts([_one_dict, _two_dict, _three_dict])
 
     def test_init_bad_data(self):
-        with self.assertRaises(eduid.userdb.element.UserDBValueError):
-            NinList('bad input data')
+        with pytest.raises(ValidationError):
+            NinList(elements='bad input data')
+        with pytest.raises(ValidationError):
+            NinList(elements=['bad input data'])
 
     def test_to_list(self):
         self.assertEqual([], self.empty.to_list(), list)
@@ -66,35 +71,51 @@ class TestNinList(unittest.TestCase):
 
         assert obtained == expected, 'List with removed NIN has unexpected data'
 
-    def test_add_duplicate(self):
-        dup = self.two.find(self.two.primary.number)
-        with self.assertRaises(eduid.userdb.element.DuplicateElementViolation):
+    def test_add_duplicate(self) -> None:
+        assert isinstance(self.two, NinList)
+        assert self.two.primary is not None
+        dup = self.two.find(self.two.primary.key)
+        assert dup is not None
+        with pytest.raises(ValidationError) as exc_info:
             self.two.add(dup)
 
-    def test_add_mailaddress(self):
+        assert exc_info.value.errors() == [
+            {'loc': ('elements',), 'msg': 'Duplicate element key: \'197801011234\'', 'type': 'value_error'}
+        ]
+
+    def test_add_nin(self):
         third = self.three.find('197803033456')
-        this = NinList([_one_dict, _two_dict, third])
+        this = NinList.from_list_of_dicts([_one_dict, _two_dict, third.to_dict()])
 
         expected = self.three.to_list_of_dicts()
         obtained = this.to_list_of_dicts()
 
-        assert obtained == expected, 'List with added mail address has unexpected data'
+        assert obtained == expected, 'List with added nin has unexpected data'
 
     def test_add_another_primary(self):
-        new = eduid.userdb.nin.nin_from_dict({'number': '+46700000009', 'verified': True, 'primary': True,})
+        new = eduid.userdb.nin.nin_from_dict({'number': '+46700000009', 'verified': True, 'primary': True})
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
             self.one.add(new)
 
     def test_add_wrong_type(self):
-        elemdict = {
-            'created_by': 'tests',
-        }
-        new = Element.from_dict(elemdict)
-        with self.assertRaises(eduid.userdb.element.UserDBValueError):
+        """ Test adding a phone number to the nin-list.
+        Specifically phone, since pydantic can coerce it into a nin since they both have the 'number' field.
+        """
+        new = PhoneNumber(number='+4612345678')
+        with pytest.raises(ValidationError) as exc_info:
             self.one.add(new)
+        assert exc_info.value.errors() == [
+            {
+                'loc': ('elements',),
+                'msg': "Value of type <class 'eduid.userdb.phone.PhoneNumber'> is not an "
+                "<class 'eduid.userdb.nin.Nin'>",
+                'type': 'type_error',
+            }
+        ]
 
     def test_remove(self):
-        now_two = self.three.remove('197803033456')
+        self.three.remove(ElementKey('197803033456'))
+        now_two = self.three
 
         expected = self.two.to_list_of_dicts()
         obtained = now_two.to_list_of_dicts()
@@ -103,14 +124,15 @@ class TestNinList(unittest.TestCase):
 
     def test_remove_unknown(self):
         with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
-            self.one.remove('+46709999999')
+            self.one.remove(ElementKey('+46709999999'))
 
     def test_remove_primary(self):
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
-            self.two.remove(self.two.primary.number)
+            self.two.remove(self.two.primary.key)
 
     def test_remove_primary_single(self):
-        now_empty = self.one.remove(self.one.primary.number)
+        self.one.remove(self.one.primary.key)
+        now_empty = self.one
         self.assertEqual([], now_empty.to_list())
 
     def test_primary(self):
@@ -122,23 +144,23 @@ class TestNinList(unittest.TestCase):
 
     def test_set_primary_to_same(self):
         match = self.one.primary
-        self.one.primary = match.number
+        self.one.set_primary(match.key)
 
         match = self.two.primary
-        self.two.primary = match.number
+        self.two.set_primary(match.key)
 
     def test_set_unknown_as_primary(self):
         with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
-            self.one.primary = '+46709999999'
+            self.one.set_primary(ElementKey('+46709999999'))
 
     def test_set_unverified_as_primary(self):
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
-            self.three.primary = '197803033456'
+            self.three.set_primary(ElementKey('197803033456'))
 
     def test_change_primary(self):
         match = self.two.primary
         self.assertEqual(match.number, '197801011234')
-        self.two.primary = '197802022345'
+        self.two.set_primary(ElementKey('197802022345'))
         updated = self.two.primary
         self.assertEqual(updated.number, '197802022345')
 
@@ -148,21 +170,21 @@ class TestNinList(unittest.TestCase):
         one['primary'] = True
         two['primary'] = True
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
-            NinList([one, two])
+            NinList.from_list_of_dicts([one, two])
 
     def test_bad_input_unverified_primary(self):
         one = copy.deepcopy(_one_dict)
         one['verified'] = False
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
-            this = NinList([one])
+            NinList.from_list_of_dicts([one])
 
 
 class TestNin(TestCase):
     def setUp(self):
-        self.empty = NinList([])
-        self.one = NinList([_one_dict])
-        self.two = NinList([_one_dict, _two_dict])
-        self.three = NinList([_one_dict, _two_dict, _three_dict])
+        self.empty = NinList()
+        self.one = NinList.from_list_of_dicts([_one_dict])
+        self.two = NinList.from_list_of_dicts([_one_dict, _two_dict])
+        self.three = NinList.from_list_of_dicts([_one_dict, _two_dict, _three_dict])
 
     def test_key(self):
         """
@@ -177,7 +199,7 @@ class TestNin(TestCase):
         """
         for this in [self.one, self.two, self.three]:
             this_dict = this.to_list_of_dicts()
-            self.assertEqual(NinList(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
+            self.assertEqual(NinList.from_list_of_dicts(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
 
     def test_changing_is_verified_on_primary(self):
         this = self.one.primary

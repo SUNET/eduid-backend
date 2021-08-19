@@ -1,7 +1,9 @@
 import unittest
 from hashlib import sha256
 
+import pytest
 from bson.objectid import ObjectId
+from pydantic import ValidationError
 
 import eduid.userdb.element
 import eduid.userdb.exceptions
@@ -16,7 +18,6 @@ __author__ = 'lundberg'
 #    'created_ts': datetime.datetime.utcnow(),
 # }}
 from eduid.userdb.credentials.password import Password
-from eduid.userdb.testing import normalised_data
 
 _one_dict = {
     'credential_id': '111111111111111111111111',
@@ -49,11 +50,11 @@ def _keyid(key):
 class TestCredentialList(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None  # make pytest always show full diffs
-        self.empty = CredentialList([])
-        self.one = CredentialList([_one_dict])
-        self.two = CredentialList([_one_dict, _two_dict])
-        self.three = CredentialList([_one_dict, _two_dict, _three_dict])
-        self.four = CredentialList([_one_dict, _two_dict, _three_dict, _four_dict])
+        self.empty = CredentialList()
+        self.one = CredentialList.from_list_of_dicts([_one_dict])
+        self.two = CredentialList.from_list_of_dicts([_one_dict, _two_dict])
+        self.three = CredentialList.from_list_of_dicts([_one_dict, _two_dict, _three_dict])
+        self.four = CredentialList.from_list_of_dicts([_one_dict, _two_dict, _three_dict, _four_dict])
 
     def test_to_list(self):
         self.assertEqual([], self.empty.to_list(), list)
@@ -77,21 +78,15 @@ class TestCredentialList(unittest.TestCase):
         self.assertEqual(match.salt, 'secondPasswordElement')
         self.assertEqual(match.created_by, 'test')
 
-    def test_find_with_objectid(self):
-        """ Test that backwards compatibility in find() works """
-        first = self.two.find('222222222222222222222222')
-        second = self.two.find(ObjectId('222222222222222222222222'))
-        self.assertEqual(first, second)
-
     def test_filter(self):
         match = self.four.filter(U2F)
-        self.assertEqual(match.count, 1)
-        token = match.to_list()[0]
-        self.assertEqual(token.key, _keyid(_four_dict))
-        self.assertEqual(token.public_key, 'foo')
+        assert len(match) == 1
+        token = match[0]
+        assert token.key == _keyid(_four_dict)
+        assert token.public_key == 'foo'
 
     def test_add(self):
-        second = self.two.find(ObjectId('222222222222222222222222'))
+        second = self.two.find(str(ObjectId('222222222222222222222222')))
         self.one.add(second)
 
         expected = self.two.to_list_of_dicts()
@@ -100,13 +95,16 @@ class TestCredentialList(unittest.TestCase):
         assert obtained == expected, 'List of credentials with added credential different than expected'
 
     def test_add_duplicate(self):
-        dup = self.two.find(ObjectId('222222222222222222222222'))
-        with self.assertRaises(eduid.userdb.element.DuplicateElementViolation):
+        dup = self.two.find(str(ObjectId('222222222222222222222222')))
+        with pytest.raises(ValidationError) as exc_info:
             self.two.add(dup)
 
+        assert exc_info.value.errors() == [
+            {'loc': ('elements',), 'msg': 'Duplicate element key: \'222222222222222222222222\'', 'type': 'value_error'}
+        ]
+
     def test_add_password(self):
-        third = self.three.find(ObjectId('333333333333333333333333'))
-        this = CredentialList([_one_dict, _two_dict] + [third])
+        this = CredentialList.from_list_of_dicts([_one_dict, _two_dict] + [_three_dict])
 
         expected = self.three.to_list_of_dicts()
         obtained = this.to_list_of_dicts()
@@ -114,7 +112,8 @@ class TestCredentialList(unittest.TestCase):
         assert obtained == expected, 'List of credentials with added password different than expected'
 
     def test_remove(self):
-        now_two = self.three.remove(ObjectId('333333333333333333333333'))
+        self.three.remove(str(ObjectId('333333333333333333333333')))
+        now_two = self.three
 
         expected = self.two.to_list_of_dicts()
         obtained = now_two.to_list_of_dicts()
@@ -123,10 +122,12 @@ class TestCredentialList(unittest.TestCase):
 
     def test_remove_unknown(self):
         with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
-            self.one.remove(ObjectId('55002741d00690878ae9b603'))
+            self.one.remove(str(ObjectId('55002741d00690878ae9b603')))
 
     def test_generated(self):
         match = self.three.find('222222222222222222222222')
-        self.assertFalse(match.is_generated)
+        assert isinstance(match, Password)
+        assert match.is_generated is False
         match = self.three.find('333333333333333333333333')
-        self.assertTrue(match.is_generated)
+        assert isinstance(match, Password)
+        assert match.is_generated is True

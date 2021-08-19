@@ -1,13 +1,15 @@
 import copy
 import datetime
 import unittest
+from typing import List
 from unittest import TestCase
 
 import pytest
-from pydantic import ValidationError
+from pydantic import BaseModel, Extra, ValidationError, validator
 
 import eduid.userdb.element
 import eduid.userdb.exceptions
+from eduid.userdb import PhoneNumber
 from eduid.userdb.element import Element
 from eduid.userdb.mail import MailAddress, MailAddressList
 
@@ -35,14 +37,16 @@ _three_dict = {
 class TestMailAddressList(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
-        self.empty = MailAddressList([])
-        self.one = MailAddressList([_one_dict])
-        self.two = MailAddressList([_one_dict, _two_dict])
-        self.three = MailAddressList([_one_dict, _two_dict, _three_dict])
+        self.empty = MailAddressList()
+        self.one = MailAddressList.from_list_of_dicts([_one_dict])
+        self.two = MailAddressList.from_list_of_dicts([_one_dict, _two_dict])
+        self.three = MailAddressList.from_list_of_dicts([_one_dict, _two_dict, _three_dict])
 
     def test_init_bad_data(self):
-        with self.assertRaises(eduid.userdb.element.UserDBValueError):
-            MailAddressList('bad input data')
+        with pytest.raises(ValidationError):
+            MailAddressList(elements='bad input data')
+        with pytest.raises(ValidationError):
+            MailAddressList(elements=['bad input data'])
 
     def test_to_list(self):
         self.assertEqual([], self.empty.to_list(), list)
@@ -71,12 +75,16 @@ class TestMailAddressList(unittest.TestCase):
 
     def test_add_duplicate(self):
         dup = self.two.find(self.two.primary.email)
-        with self.assertRaises(eduid.userdb.element.DuplicateElementViolation):
+        with pytest.raises(ValidationError) as exc_info:
             self.two.add(dup)
+
+        assert exc_info.value.errors() == [
+            {'loc': ('elements',), 'msg': 'Duplicate element key: \'ft@one.example.org\'', 'type': 'value_error'}
+        ]
 
     def test_add_mailaddress(self):
         third = self.three.find('ft@three.example.org')
-        this = MailAddressList([_one_dict, _two_dict, third])
+        this = MailAddressList.from_list_of_dicts([_one_dict, _two_dict, third.to_dict()])
 
         expected = self.three.to_list_of_dicts()
         obtained = this.to_list_of_dicts()
@@ -85,21 +93,19 @@ class TestMailAddressList(unittest.TestCase):
 
     def test_add_another_primary(self):
         new = eduid.userdb.mail.address_from_dict(
-            {'email': 'ft@primary.example.org', 'verified': True, 'primary': True,}
+            {'email': 'ft@primary.example.org', 'verified': True, 'primary': True}
         )
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
             self.one.add(new)
 
     def test_add_wrong_type(self):
-        elemdict = {
-            'created_by': 'tests',
-        }
-        new = Element.from_dict(elemdict)
-        with self.assertRaises(eduid.userdb.element.UserDBValueError):
+        new = PhoneNumber(number='+4612345678')
+        with pytest.raises(ValidationError):
             self.one.add(new)
 
     def test_remove(self):
-        now_two = self.three.remove('ft@three.example.org')
+        self.three.remove('ft@three.example.org')
+        now_two = self.three
 
         expected = self.two.to_list_of_dicts()
         obtained = now_two.to_list_of_dicts()
@@ -111,11 +117,14 @@ class TestMailAddressList(unittest.TestCase):
             self.one.remove('foo@no-such-address.example.org')
 
     def test_remove_primary(self):
-        with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
-            self.two.remove(self.two.primary.email)
+        with pytest.raises(
+            eduid.userdb.element.PrimaryElementViolation, match='Removing the primary element is not allowed'
+        ):
+            self.two.remove(self.two.primary.key)
 
     def test_remove_primary_single(self):
-        now_empty = self.one.remove(self.one.primary.email)
+        self.one.remove(self.one.primary.email)
+        now_empty = self.one
         self.assertEqual([], now_empty.to_list())
 
     def test_primary(self):
@@ -127,23 +136,23 @@ class TestMailAddressList(unittest.TestCase):
 
     def test_set_primary_to_same(self):
         match = self.one.primary
-        self.one.primary = match.email
+        self.one.set_primary(match.email)
 
         match = self.two.primary
-        self.two.primary = match.email
+        self.two.set_primary(match.email)
 
     def test_set_unknown_as_primary(self):
         with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
-            self.one.primary = 'foo@no-such-address.example.org'
+            self.one.set_primary('foo@no-such-address.example.org')
 
     def test_set_unverified_as_primary(self):
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
-            self.three.primary = 'ft@three.example.org'
+            self.three.set_primary('ft@three.example.org')
 
     def test_change_primary(self):
         match = self.two.primary
         self.assertEqual(match.email, 'ft@one.example.org')
-        self.two.primary = 'ft@two.example.org'
+        self.two.set_primary('ft@two.example.org')
         updated = self.two.primary
         self.assertEqual(updated.email, 'ft@two.example.org')
 
@@ -153,21 +162,21 @@ class TestMailAddressList(unittest.TestCase):
         one['primary'] = True
         two['primary'] = True
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
-            MailAddressList([one, two])
+            MailAddressList.from_list_of_dicts([one, two])
 
     def test_bad_input_unverified_primary(self):
         one = copy.deepcopy(_one_dict)
         one['verified'] = False
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
-            MailAddressList([one])
+            MailAddressList.from_list_of_dicts([one])
 
 
 class TestMailAddress(TestCase):
     def setUp(self):
-        self.empty = MailAddressList([])
-        self.one = MailAddressList([_one_dict])
-        self.two = MailAddressList([_one_dict, _two_dict])
-        self.three = MailAddressList([_one_dict, _two_dict, _three_dict])
+        self.empty = MailAddressList()
+        self.one = MailAddressList.from_list_of_dicts([_one_dict])
+        self.two = MailAddressList.from_list_of_dicts([_one_dict, _two_dict])
+        self.three = MailAddressList.from_list_of_dicts([_one_dict, _two_dict, _three_dict])
 
     def test_key(self):
         """
@@ -184,7 +193,7 @@ class TestMailAddress(TestCase):
             this_list = this.to_list_of_dicts()
 
             expected = this.to_list_of_dicts()
-            cycled = MailAddressList(this_list).to_list_of_dicts()
+            cycled = MailAddressList.from_list_of_dicts(this_list).to_list_of_dicts()
 
             assert cycled == expected
 

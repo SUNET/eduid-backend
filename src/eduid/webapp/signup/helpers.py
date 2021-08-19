@@ -171,10 +171,6 @@ def complete_registration(signup_user: SignupUser) -> FluxData:
 
     :return: registration status info
     """
-    # DEBUG
-    if signup_user.mail_addresses.primary.email.lower() != signup_user.mail_addresses.primary.email:
-        raise RuntimeError()
-
     current_app.logger.info(f'Completing registration for user {signup_user}')
 
     password = _generate_password()
@@ -198,9 +194,11 @@ def complete_registration(signup_user: SignupUser) -> FluxData:
     context = {
         "status": 'verified',
         "password": password,
-        "email": signup_user.mail_addresses.primary.email,
         "dashboard_url": current_app.conf.signup_authn_url,
     }
+
+    if signup_user.mail_addresses.primary:
+        context['email'] = signup_user.mail_addresses.primary.email
 
     current_app.stats.count(name='signup_complete')
     current_app.logger.info(f'Signup process for new user {signup_user} complete')
@@ -212,18 +210,14 @@ def record_tou(signup_user: SignupUser, source: str) -> None:
     Record user acceptance of terms of use.
 
     :param signup_user: the user that has accepted the ToU
-    :param source: An identificator for the proccess during which
-                   the user has accepted the ToU (e.g., "signup")
+    :param source: An identifier for the process during which the user has accepted the ToU (e.g., "signup")
     """
-
-    event_id = ObjectId()
-    created_ts = datetime.datetime.utcnow()
     tou_version = current_app.conf.tou_version
+    event = ToUEvent(version=tou_version, created_by=source)
     current_app.logger.info(
-        'Recording ToU acceptance {!r} (version {})'
-        ' for user {} (source: {})'.format(event_id, tou_version, signup_user, source)
+        f'Recording ToU acceptance {event.event_id} (version {event.version}) for user {signup_user} (source: {source})'
     )
-    signup_user.tou.add(ToUEvent(version=tou_version, created_by=source, created_ts=created_ts, event_id=str(event_id)))
+    signup_user.tou.add(event)
 
 
 def _generate_password() -> str:

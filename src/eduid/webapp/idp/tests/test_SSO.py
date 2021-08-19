@@ -35,7 +35,7 @@
 
 import datetime
 import logging
-from typing import List, Mapping, Optional, Sequence
+from typing import List, Mapping, Optional, Sequence, Union
 from uuid import uuid4
 
 import saml2.server
@@ -214,7 +214,7 @@ class TestSSO(SSOIdPTests):
         :return: IdPUser instance
         """
         user = self.app.userdb.lookup_user(eppn)
-        user.nins = NinList(nins=[])
+        user.nins = NinList()
         for number in nins:
             this_nin = Nin(
                 number=number,
@@ -231,7 +231,7 @@ class TestSSO(SSOIdPTests):
     def _get_login_response_authn(
         self,
         req_class_ref: str,
-        credentials: List[str],
+        credentials: List[Union[str, Credential, AuthnData, ExternalMfaData]],
         user: Optional[IdPUser] = None,
         add_tou: bool = True,
         add_credentials_to_this_request: bool = True,
@@ -243,24 +243,30 @@ class TestSSO(SSOIdPTests):
             user = self.get_user_set_nins(self.test_user.eppn, [])
 
         sso_session_1 = SSOSession(authn_request_id='some-unique-id-1', authn_credentials=[], eppn=user.eppn,)
-        if 'u2f' in credentials and not user.credentials.filter(U2F).to_list():
+        if 'u2f' in credentials and not user.credentials.filter(U2F):
             # add a U2F credential to the user
             user.credentials.add(_U2F)
         for this in credentials:
-            if this == 'pw':
-                this = user.credentials.filter(Password).to_list()[0]
-            elif this == 'u2f':
-                this = user.credentials.filter(U2F).to_list()[0]
-
             if isinstance(this, AuthnData):
                 sso_session_1.add_authn_credential(this)
-            elif isinstance(this, ExternalMfaData):
+                continue
+            if isinstance(this, ExternalMfaData):
                 sso_session_1.external_mfa = this
+                continue
+
+            # Handle credentials
+            _cred: Credential
+            if this == 'pw':
+                _cred = user.credentials.filter(Password)[0]
+            elif this == 'u2f':
+                _cred = user.credentials.filter(U2F)[0]
             elif isinstance(this, Credential):
-                data = AuthnData(cred_id=this.key)
-                sso_session_1.add_authn_credential(data)
+                _cred = this
             else:
                 raise ValueError(f'Unhandled test data: {repr(this)}')
+
+            data = AuthnData(cred_id=_cred.key)
+            sso_session_1.add_authn_credential(data)
 
         # Need to save any changed credentials to the user
         self.amdb.save(user, check_sync=False)
@@ -480,8 +486,7 @@ class TestSSO(SSOIdPTests):
         Expect the response Authn to be EDUID_MFA, eduPersonAssurance AL1,Al2
         """
         user = self.get_user_set_nins(self.test_user.eppn, ['190101011234'])
-        user.credentials.add(_U2F)
-        out = self._get_login_response_authn(user=user, req_class_ref=cc['EDUID_MFA'], credentials=['pw', _U2F],)
+        out = self._get_login_response_authn(user=user, req_class_ref=cc['EDUID_MFA'], credentials=['pw', 'u2f'],)
         assert out.message == IdPMsg.proceed
         assert out.authn_info
         assert out.authn_info.class_ref == cc['EDUID_MFA']

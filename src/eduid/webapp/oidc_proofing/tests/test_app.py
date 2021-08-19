@@ -258,7 +258,7 @@ class OidcProofingTests(EduidAPITestCase):
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.count, 1)
-        self.assertEqual(user.nins.verified.count, 0)
+        self.assertEqual(user.nins.verified, [])
         self.assertEqual(self.app.proofing_log.db_count(), 0)
 
     @patch('eduid.webapp.oidc_proofing.helpers.do_authn_request')

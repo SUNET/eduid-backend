@@ -7,6 +7,7 @@ from urllib.parse import quote_plus
 
 from mock import patch
 
+from eduid.userdb import User
 from eduid.userdb.credentials import Password
 from eduid.userdb.exceptions import DocumentDoesNotExist
 from eduid.userdb.security import PasswordResetEmailState
@@ -302,7 +303,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         mock_get_vccs_client.return_value = TestVCCSClient()
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        old_passwords = user.credentials.filter(Password).to_list()
+        old_passwords = user.credentials.filter(Password)
 
         self.post_email_address('johnsmith@example.com')
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
@@ -313,10 +314,10 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         self.choose_generated_password(state)
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.credentials.filter(Password).count, 1)
-        self.assertNotEqual(user.credentials.filter(Password).to_list(), old_passwords)
-        self.assertEqual(user.nins.primary.is_verified, True)
-        self.assertEqual(user.phone_numbers.primary.is_verified, True)
+        assert len(user.credentials.filter(Password)) == 1
+        assert user.credentials.filter(Password) != old_passwords
+        assert user.nins.primary.is_verified is True
+        assert user.phone_numbers.primary.is_verified is True
 
     @patch('eduid.webapp.common.authn.vccs.get_vccs_client')
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
@@ -363,7 +364,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         mock_get_vccs_client.return_value = TestVCCSClient()
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        old_passwords = user.credentials.filter(Password).to_list()
+        old_passwords = user.credentials.filter(Password)
 
         self.post_email_address('johnsmith@example.com')
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
@@ -372,12 +373,12 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         self.choose_generated_password(state)
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.credentials.filter(Password).count, 1)
-        self.assertNotEqual(user.credentials.filter(Password).to_list(), old_passwords)
+        assert len(user.credentials.filter(Password)) == 1
+        assert user.credentials.filter(Password) != old_passwords
         for nin in user.nins.to_list():
-            self.assertEqual(nin.is_verified, False)
+            assert nin.is_verified is False
         for phone_number in user.phone_numbers.to_list():
-            self.assertEqual(phone_number.is_verified, False)
+            assert phone_number.is_verified is False
 
     @patch('eduid.webapp.common.authn.vccs.get_vccs_client')
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
@@ -392,13 +393,13 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         mock_get_vccs_client.return_value = TestVCCSClient()
 
         # Remove extra security alternatives
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        for phone in user.phone_numbers.verified.to_list():
-            user.phone_numbers.remove(phone.number)
+        user: User = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        for phone in user.phone_numbers.verified:
+            user.phone_numbers.remove_handling_primary(phone.key)
         self.request_user_sync(user)
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        old_passwords = user.credentials.filter(Password).to_list()
+        old_passwords = user.credentials.filter(Password)
 
         self.post_email_address('johnsmith@example.com')
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
@@ -407,12 +408,12 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         self.choose_generated_password(state)
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.credentials.filter(Password).count, 1)
-        self.assertNotEqual(user.credentials.filter(Password).to_list(), old_passwords)
+        assert len(user.credentials.filter(Password)) == 1
+        assert user.credentials.filter(Password) != old_passwords
         for nin in user.nins.to_list():
-            self.assertEqual(nin.is_verified, False)
+            assert nin.is_verified is False
         for phone_number in user.phone_numbers.to_list():
-            self.assertEqual(phone_number.is_verified, False)
+            assert phone_number.is_verified is False
 
     @patch('eduid.webapp.common.authn.vccs.get_vccs_client')
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
@@ -427,7 +428,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         mock_get_vccs_client.return_value = TestVCCSClient()
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        old_passwords = user.credentials.filter(Password).to_list()
+        old_passwords = user.credentials.filter(Password)
 
         self.post_email_address('johnsmith@example.com')
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
@@ -438,10 +439,10 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         self.choose_custom_password(state)
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.credentials.filter(Password).count, 1)
-        self.assertNotEqual(user.credentials.filter(Password).to_list(), old_passwords)
-        self.assertEqual(user.nins.primary.is_verified, True)
-        self.assertEqual(user.phone_numbers.primary.is_verified, True)
+        assert len(user.credentials.filter(Password)) == 1
+        assert user.credentials.filter(Password) != old_passwords
+        assert user.nins.primary.is_verified is True
+        assert user.phone_numbers.primary.is_verified is True
 
     @patch('eduid.webapp.common.authn.vccs.get_vccs_client')
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
@@ -456,7 +457,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         mock_get_vccs_client.return_value = TestVCCSClient()
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        old_password = user.credentials.filter(Password).to_list()[0]
+        old_password = user.credentials.filter(Password)[0]
 
         self.post_email_address('johnsmith@example.com')
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
@@ -465,12 +466,12 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         self.choose_custom_password(state)
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.credentials.filter(Password).count, 1)
-        self.assertNotEqual(user.credentials.filter(Password).to_list()[0].key, old_password.key)
+        assert len(user.credentials.filter(Password)) == 1
+        assert user.credentials.filter(Password)[0].key != old_password.key
         for nin in user.nins.to_list():
-            self.assertEqual(nin.is_verified, False)
+            assert nin.is_verified is False
         for phone_number in user.phone_numbers.to_list():
-            self.assertEqual(phone_number.is_verified, False)
+            assert phone_number.is_verified is False
 
     @patch('eduid.webapp.common.authn.vccs.get_vccs_client')
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
@@ -485,7 +486,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         mock_get_vccs_client.return_value = TestVCCSClient()
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        old_password = user.credentials.filter(Password).to_list()[0]
+        old_password = user.credentials.filter(Password)[0]
 
         self.post_email_address('johnsmith@example.com')
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
@@ -504,12 +505,12 @@ class SecurityResetPasswordTests(EduidAPITestCase):
 
         # Check that nothing changed
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.credentials.filter(Password).count, 1)
-        self.assertEqual(user.credentials.filter(Password).to_list()[0].key, old_password.key)
-        for nin in user.nins.verified.to_list():
-            self.assertEqual(nin.is_verified, True)
-        for phone_number in user.phone_numbers.verified.to_list():
-            self.assertEqual(phone_number.is_verified, True)
+        assert len(user.credentials.filter(Password)) == 1
+        assert user.credentials.filter(Password)[0].key == old_password.key
+        for nin in user.nins.verified:
+            assert nin.is_verified is True
+        for phone_number in user.phone_numbers.verified:
+            assert phone_number.is_verified is True
 
     @patch('eduid.webapp.common.authn.vccs.get_vccs_client')
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
@@ -524,7 +525,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         mock_get_vccs_client.return_value = TestVCCSClient()
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        old_password = user.credentials.filter(Password).to_list()[0]
+        old_password = user.credentials.filter(Password)[0]
 
         self.post_email_address('johnsmith@example.com')
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
@@ -543,12 +544,12 @@ class SecurityResetPasswordTests(EduidAPITestCase):
 
         # Check that nothing changed
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.credentials.filter(Password).count, 1)
-        self.assertEqual(user.credentials.filter(Password).to_list()[0].key, old_password.key)
-        for nin in user.nins.verified.to_list():
-            self.assertEqual(nin.is_verified, True)
-        for phone_number in user.phone_numbers.verified.to_list():
-            self.assertEqual(phone_number.is_verified, True)
+        assert len(user.credentials.filter(Password)) == 1
+        assert user.credentials.filter(Password)[0].key == old_password.key
+        for nin in user.nins.verified:
+            assert nin.is_verified is True
+        for phone_number in user.phone_numbers.verified:
+            assert phone_number.is_verified is True
 
     @patch('eduid.webapp.common.authn.vccs.get_vccs_client')
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
@@ -563,7 +564,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         mock_get_vccs_client.return_value = TestVCCSClient()
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        old_password = user.credentials.filter(Password).to_list()[0]
+        old_password = user.credentials.filter(Password)[0]
 
         self.post_email_address('johnsmith@example.com')
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
@@ -586,12 +587,12 @@ class SecurityResetPasswordTests(EduidAPITestCase):
 
         # Check that nothing changed
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.credentials.filter(Password).count, 1)
-        self.assertEqual(user.credentials.filter(Password).to_list()[0].key, old_password.key)
-        for nin in user.nins.verified.to_list():
-            self.assertEqual(nin.is_verified, True)
-        for phone_number in user.phone_numbers.verified.to_list():
-            self.assertEqual(phone_number.is_verified, True)
+        assert len(user.credentials.filter(Password)) == 1
+        assert user.credentials.filter(Password)[0].key == old_password.key
+        for nin in user.nins.verified:
+            assert nin.is_verified is True
+        for phone_number in user.phone_numbers.verified:
+            assert phone_number.is_verified is True
 
     @patch('eduid.webapp.common.authn.vccs.get_vccs_client')
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')

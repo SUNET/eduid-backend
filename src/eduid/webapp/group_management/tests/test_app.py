@@ -93,7 +93,7 @@ class GroupManagementTests(EduidAPITestCase):
         # Due to mixup in base user data
         correct_address = self.test_user2.mail_addresses.find('johnsmith2@example.com')
         correct_address.is_verified = True
-        self.test_user2.mail_addresses.primary = correct_address.email
+        self.test_user2.mail_addresses.set_primary(correct_address.email)
         self.test_user2.mail_addresses.remove('johnsmith@example.com')
         self.app.central_userdb.save(self.test_user2)
 

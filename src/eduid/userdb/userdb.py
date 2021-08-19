@@ -377,7 +377,7 @@ class UserDB(BaseDB):
         al2_urn = 'http://www.swamid.se/policy/assurance/al2'
         user = self.get_user_by_id(user.user_id)
         if user is not None:
-            if user.nins.verified.count > 0:
+            if len(user.nins.verified) > 0:
                 return al2_urn
 
         return al1_urn

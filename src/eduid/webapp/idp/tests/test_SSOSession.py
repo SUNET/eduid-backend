@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 from bson import ObjectId
 
-from eduid.userdb.credentials.base import CredentialKey
+from eduid.userdb.element import ElementKey
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.tests.test_app import IdPTests
@@ -55,9 +55,9 @@ class test_SSOSession(IdPTests):
         assert session2.to_dict() == self.data
 
     def test_only_store_newest_credential_use(self):
-        pw = AuthnData(cred_id=CredentialKey('password'), timestamp=datetime.fromtimestamp(10, tz=timezone.utc))
-        older = AuthnData(cred_id=CredentialKey('token'), timestamp=datetime.fromtimestamp(20, tz=timezone.utc))
-        newer = AuthnData(cred_id=CredentialKey('token'), timestamp=datetime.fromtimestamp(30, tz=timezone.utc))
+        pw = AuthnData(cred_id=ElementKey('password'), timestamp=datetime.fromtimestamp(10, tz=timezone.utc))
+        older = AuthnData(cred_id=ElementKey('token'), timestamp=datetime.fromtimestamp(20, tz=timezone.utc))
+        newer = AuthnData(cred_id=ElementKey('token'), timestamp=datetime.fromtimestamp(30, tz=timezone.utc))
 
         _data = dict(self.data)
         _data['authn_credentials'] = []

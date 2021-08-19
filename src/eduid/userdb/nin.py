@@ -33,9 +33,9 @@
 #
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Type
 
-from eduid.userdb.element import PrimaryElement, PrimaryElementList
+from eduid.userdb.element import ElementKey, PrimaryElement, PrimaryElementList
 
 __author__ = 'ft'
 
@@ -44,65 +44,28 @@ class Nin(PrimaryElement):
     """
     """
 
-    number: Optional[str] = None
+    number: str
 
     @property
-    def key(self) -> Optional[str]:
+    def key(self) -> ElementKey:
         """
         Return the element that is used as key for nin numbers in a PrimaryElementList.
         """
-        return self.number
+        return ElementKey(self.number)
 
 
-class NinList(PrimaryElementList):
+class NinList(PrimaryElementList[Nin]):
     """
     Hold a list of Nin instance.
 
     Provide methods to add, update and remove elements from the list while
     maintaining some governing principles, such as ensuring there is exactly
     one primary nin number in the list (except if the list is empty).
-
-    :param nins: List of nin number records
-    :type nins: [dict | Nin]
     """
 
-    def __init__(self, nins):
-        elements = []
-
-        for this in nins:
-            if isinstance(this, Nin):
-                nin = this
-            else:
-                nin = nin_from_dict(this)
-            elements.append(nin)
-
-        PrimaryElementList.__init__(self, elements)
-
-    @property
-    def primary(self):
-        """
-        :return: Return the primary Nin.
-
-        There must always be exactly one primary element in the list, so an
-        PrimaryElementViolation is raised in case this assertion does not hold.
-
-        :rtype: Nin
-        """
-        return PrimaryElementList.primary.fget(self)
-
-    @primary.setter
-    def primary(self, nin):
-        """
-        Mark nin as the users primary Nin.
-
-        This is a NinList operation since it needs to atomically update more than one
-        element in the list. Marking an element as primary will result in some other element
-        loosing it's primary status.
-
-        :param nin: the key of the element to set as primary
-        :type  nin: str | unicode
-        """
-        PrimaryElementList.primary.fset(self, nin)
+    @classmethod
+    def from_list_of_dicts(cls: Type[NinList], items: List[Dict[str, Any]]) -> NinList:
+        return cls(elements=[Nin.from_dict(this) for this in items])
 
 
 def nin_from_dict(data: Dict[str, Any]) -> Nin:

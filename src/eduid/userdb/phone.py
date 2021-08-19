@@ -33,9 +33,9 @@
 #
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, List, Type
 
-from eduid.userdb.element import PrimaryElement, PrimaryElementList
+from eduid.userdb.element import ElementKey, PrimaryElement, PrimaryElementList
 
 __author__ = 'ft'
 
@@ -44,14 +44,14 @@ class PhoneNumber(PrimaryElement):
     """
     """
 
-    number: Optional[str] = None
+    number: str
 
     @property
-    def key(self) -> Optional[str]:
+    def key(self) -> ElementKey:
         """
         Return the element that is used as key for phone numbers in a PrimaryElementList.
         """
-        return self.number
+        return ElementKey(self.number)
 
     @classmethod
     def _from_dict_transform(cls: Type[PhoneNumber], data: Dict[str, Any]) -> Dict[str, Any]:
@@ -72,53 +72,15 @@ class PhoneNumber(PrimaryElement):
         return data
 
 
-class PhoneNumberList(PrimaryElementList):
+class PhoneNumberList(PrimaryElementList[PhoneNumber]):
     """
     Hold a list of PhoneNumber instance.
 
     Provide methods to add, update and remove elements from the list while
     maintaining some governing principles, such as ensuring there is exactly
     one primary phone number in the list (except if the list is empty).
-
-    :param phones: List of phone number records
-    :type phones: [dict | PhoneNumber]
     """
 
-    def __init__(self, phones):
-        elements = []
-
-        for this in phones:
-            if isinstance(this, PhoneNumber):
-                phone = this
-            else:
-                phone = PhoneNumber.from_dict(this)
-            elements.append(phone)
-
-        PrimaryElementList.__init__(self, elements)
-
-    @property
-    def primary(self):
-        """
-        :return: Return the primary PhoneNumber.
-
-        There must always be exactly one primary element in the list, so an
-        PrimaryElementViolation is raised in case this assertion does not hold.
-
-        :rtype: PhoneNumber
-        """
-
-        return PrimaryElementList.primary.fget(self)
-
-    @primary.setter
-    def primary(self, phone):
-        """
-        Mark phone as the users primary PhoneNumber.
-
-        This is a PhoneNumberList operation since it needs to atomically update more than one
-        element in the list. Marking an element as primary will result in some other element
-        loosing it's primary status.
-
-        :param phone: the key of the element to set as primary
-        :type  phone: str | unicode
-        """
-        PrimaryElementList.primary.fset(self, phone)
+    @classmethod
+    def from_list_of_dicts(cls: Type[PhoneNumberList], items: List[Dict[str, Any]]) -> PhoneNumberList:
+        return cls(elements=[PhoneNumber.from_dict(this) for this in items])

@@ -79,10 +79,12 @@ subclasses.
 from __future__ import annotations
 
 import copy
+from abc import ABC
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Type, TypeVar
+from typing import Any, Dict, Generic, List, NewType, Optional, Type, TypeVar, Union
 
-from pydantic import BaseModel, Extra, Field
+from pydantic import BaseModel, Extra, Field, validator
+from pydantic.generics import GenericModel
 
 from eduid.userdb.exceptions import EduIDUserDBError, UserDBValueError
 
@@ -94,14 +96,6 @@ from eduid.userdb.util import utc_now
 class ElementError(EduIDUserDBError):
     """
     Base exception class for PrimaryElement errors.
-    """
-
-    pass
-
-
-class DuplicateElementViolation(ElementError):
-    """
-    Raised when some operation would result in duplicate elements in a list.
     """
 
     pass
@@ -125,6 +119,7 @@ class PrimaryElementViolation(PrimaryElementError):
 
 
 TElementSubclass = TypeVar('TElementSubclass', bound='Element')
+ElementKey = NewType('ElementKey', str)
 
 
 class Element(BaseModel):
@@ -223,10 +218,10 @@ class Element(BaseModel):
         return data
 
     @property
-    def key(self):
+    def key(self) -> ElementKey:
         """
-        Return the element that is used as key in a PrimaryElementList.
-        Must be implemented in subclasses of PrimaryElement.
+        Return the element that is used as key in an ElementList.
+        Must be implemented in subclasses of Element.
         """
         raise NotImplementedError("'key' not implemented for Element subclass")
 
@@ -234,7 +229,7 @@ class Element(BaseModel):
 TVerifiedElementSubclass = TypeVar('TVerifiedElementSubclass', bound='VerifiedElement')
 
 
-class VerifiedElement(Element):
+class VerifiedElement(Element, ABC):
     """
     Elements that can be verified or not.
     """
@@ -243,10 +238,13 @@ class VerifiedElement(Element):
     verified_by: Optional[str] = None
     verified_ts: Optional[datetime] = None
 
+    def __str__(self):
+        return f'<eduID {self.__class__.__name__}(key={repr(self.key)}): verified={self.is_verified}>'
+
     @classmethod
     def _from_dict_transform(cls: Type[TVerifiedElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Transform data received in eduid format into pythonic format.
+        Transform data from eduid database format into pythonic format.
         """
         data = super()._from_dict_transform(data)
 
@@ -260,7 +258,7 @@ class VerifiedElement(Element):
 
     def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Transform data kept in pythonic format into eduid format.
+        Transform data kept in pythonic format into eduid database format.
         """
         if 'is_verified' in data:
             data['verified'] = data.pop('is_verified')
@@ -273,7 +271,7 @@ class VerifiedElement(Element):
 TPrimaryElementSubclass = TypeVar('TPrimaryElementSubclass', bound='PrimaryElement')
 
 
-class PrimaryElement(VerifiedElement):
+class PrimaryElement(VerifiedElement, ABC):
     """
     Elements that can be either primary or not.
     """
@@ -289,6 +287,12 @@ class PrimaryElement(VerifiedElement):
 
         super().__setattr__(key, value)
 
+    def __str__(self):
+        return (
+            f'<eduID {self.__class__.__name__}(key={repr(self.key)}): '
+            f'primary={self.is_primary}, verified={self.is_verified}>'
+        )
+
     def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data kept in pythonic format into database format.
@@ -301,33 +305,61 @@ class PrimaryElement(VerifiedElement):
         return data
 
 
-class ElementList(object):
+ListElement = TypeVar('ListElement')
+MatchingElement = TypeVar('MatchingElement')
+
+
+class ElementList(GenericModel, Generic[ListElement], ABC):
     """
     Hold a list of Element instances.
 
     Provide methods to find, add and remove elements from the list.
-
-    :param elements: List of elements
     """
 
-    def __init__(self, elements: List[Element]):
-        for this in elements:
+    elements: List[ListElement] = Field(default=[])
+
+    class Config:
+        validate_assignment = True  # validate data when updated, not just when initialised
+        extra = Extra.forbid  # reject unknown data
+
+    def __str__(self):
+        return '<eduID {!s}: {!r}>'.format(self.__class__.__name__, getattr(self, 'elements', None))
+
+    @validator('elements', pre=True)
+    def _validate_element_values(cls, values, field):
+        cls._validate_elements(values, field)
+        return values
+
+    @classmethod
+    def _validate_elements(cls, values, field):
+        """
+        Validate elements. Since the 'elements' property is defined on subclasses
+        (to get the right type information), a pydantic validator can't be placed here
+        on the superclass.
+        """
+        # Ensure no elements have duplicate keys
+        for this in values:
             if not isinstance(this, Element):
-                raise ValueError("Not an Element")
-        self._elements = elements
+                raise TypeError(f'Value is of type {type(this)} which is not an Element subclass')
+            if not isinstance(this, field.type_):
+                raise TypeError(f'Value of type {type(this)} is not an {field.type_}')
+            same_key = [x for x in values if x.key == this.key]
+            if len(same_key) != 1:
+                raise ValueError(f'Duplicate element key: {repr(this.key)}')
+        return values
 
-    def __repr__(self):
-        return '<eduID {!s}: {!r}>'.format(self.__class__.__name__, getattr(self, '_elements', None))
+    @classmethod
+    def from_list_of_dicts(cls, items):
+        # must be implemented by subclass to get correct type information
+        raise NotImplementedError()
 
-    __str__ = __repr__
-
-    def to_list(self):
+    def to_list(self) -> List[ListElement]:
         """
-        Return the list of elements as an iterable.
+        Return the list of elements as a list.
+
         :return: List of elements
-        :rtype: [Element]
         """
-        return self._elements
+        return self.elements
 
     def to_list_of_dicts(self) -> List[Dict[str, Any]]:
         """
@@ -335,141 +367,119 @@ class ElementList(object):
 
         :return: List of dicts
         """
-        return [this.to_dict() for this in self._elements]
+        return [this.to_dict() for this in self.elements if isinstance(this, Element)]
 
-    def find(self, key):
+    def find(self, key: Optional[Union[ElementKey, str]]) -> Optional[ListElement]:
         """
         Find an Element from the element list, using the key.
 
         :param key: the key to look for in the list of elements
-        :return: Element found, or False if none was found
-        :rtype: Element | False
+        :return: Element found, if any
         """
-        res = [x for x in self._elements if x.key == key]
-        if len(res) == 1:
-            return res[0]
+        if not key:
+            # Allow None as argument to not have to check for None before calling find everywhere
+            return None
+        res = [x for x in self.elements if isinstance(x, Element) and x.key == key]
+        if not res:
+            return None
         if len(res) > 1:
-            raise EduIDUserDBError("More than one element found")
-        return False
+            raise EduIDUserDBError('More than one element found')
+        # mypy figures out the real type of elements in `res' since isinstance() is used above and complains
+        #    error: Incompatible return value type (got "Element", expected "Optional[ListElement]")
+        return res[0]  # type: ignore
 
-    def add(self, element):
+    def add(self, element: ListElement):
         """
         Add an element to the list.
 
         :param element: Element
-        :type element: Element
-        :return: ElementList
+        :return: None
         """
-        if not isinstance(element, Element):
-            raise UserDBValueError("Invalid element: {!r}".format(element))
+        self.elements += [element]
+        return None
 
-        self._elements.append(element)
-        return self
-
-    def remove(self, key):
+    def remove(self, key: ElementKey) -> None:
         """
         Remove an existing Element from the list.
 
         :param key: Key of element to remove
-        :return: ElementList
+        :return: None
         """
         match = self.find(key)
         if not match:
             raise UserDBValueError("Element not found in list")
 
-        self._elements = [this for this in self._elements if this != match]
-        return self
+        self.elements = [this for this in self.elements if this != match]
 
-    def filter(self, cls):
+        return None
+
+    def filter(self, cls: Type[MatchingElement]) -> List[MatchingElement]:
         """
         Return a new ElementList with the elements that were instances of cls.
 
         :param cls: Class of interest
-        :return: ElementList
+        :return: List with matching elements
         """
-        return ElementList([x for x in self._elements if isinstance(x, cls)])
+        return [x for x in self.elements if isinstance(x, cls)]
 
     @property
-    def count(self):
+    def count(self) -> int:
         """
         Return the number of elements in the list
         """
-        return len(self._elements)
+        return len(self.elements)
 
 
-class PrimaryElementList(ElementList):
+class PrimaryElementList(ElementList[ListElement], Generic[ListElement], ABC):
     """
-    Hold a list of Element instance.
+    Hold a list of PrimaryElement instances.
 
     Provide methods to add, update and remove elements from the list while
     maintaining some governing principles, such as ensuring there is exactly
     one primary element in the list (except if the list is empty or there are
     no confirmed elements).
-
-    :param elements: List of elements
-    :type elements: [dict | Element]
     """
 
-    def __init__(self, elements):
-        self._get_primary(elements)
-        ElementList.__init__(self, elements)
-
-    def add(self, element):
+    @classmethod
+    def _validate_elements(cls, values, field):
         """
-        Add a element to the list.
-
-        Raises PrimaryElementViolation if the operation results in != 1 primary
-        element in the list and there are confirmed elements.
-
-        Raises DuplicateElementViolation if the element already exist in
-        the list.
-
-        :param element: PrimaryElement to add
-        :type element: PrimaryElement
-        :return: PrimaryElementList
+        Validate elements. Since the 'elements' property is defined on subclasses
+        (to get the right type information), a pydantic validator can't be placed here
+        on the superclass.
         """
-        if not isinstance(element, PrimaryElement):
-            raise UserDBValueError("Invalid element: {!r}".format(element))
-
-        if self.find(element.key):
-            raise DuplicateElementViolation("Element {!s} already in list".format(element.key))
-
-        old_list = self._elements
-        ElementList.add(self, element)
-        self._check_primary(old_list)
-        return self
-
-    def remove(self, key):
-        """
-        Remove an existing Element from the list.
-
-        Raises PrimaryElementViolation if the operation results in 0 primary
-        element in the list but there are confirmed elements.
-
-        :param key: Key of element to remove
-        :type key: str | unicode
-        :return: ElementList
-        """
-        old_list = self._elements
-        ElementList.remove(self, key)
-        self._check_primary(old_list)
-        return self
+        super()._validate_elements(values, field)
+        # call _get_primary to validate the elements - will raise an exception on errors
+        cls._get_primary(values)
+        return values
 
     @property
-    def primary(self):
+    def primary(self) -> Optional[ListElement]:
         """
         :return: Return the primary Element.
 
         There must always be exactly one primary element if there are confirmed
         elements in the list, and exactly zero if there are no confirmed elements, so a
         PrimaryElementViolation is raised in case any of these assertions do not hold.
-
-        :rtype: PrimaryElement
         """
-        return self._get_primary(self._elements)
 
-    @primary.setter
-    def primary(self, key):
+        _primary = [x for x in self.elements if isinstance(x, PrimaryElement) and x.is_primary]
+
+        if not _primary:
+            return None
+
+        if len(_primary) != 1:
+            raise UserDBValueError(f'More than one primary element found ({_primary})')
+
+        match = _primary[0]
+
+        if not isinstance(match, PrimaryElement):
+            raise UserDBValueError(f'Primary element {repr(match)} is not of type PrimaryElement')
+
+        # mypy figures out the real type of match since isinstance() is used above and complains
+        #    error: Incompatible return value type (got "PrimaryElement", expected "Optional[ListElement]")
+        return match  # type: ignore
+
+    def set_primary(self, key: ElementKey) -> None:
         """
         Mark element as the users primary element.
 
@@ -478,65 +488,110 @@ class PrimaryElementList(ElementList):
         loosing it's primary status.
 
         :param key: the key of the element to set as primary
-        :type  key: str | unicode
         """
         match = self.find(key)
 
         if not match:
             raise UserDBValueError("Element not found in list, can't set as primary")
 
+        if not isinstance(match, PrimaryElement):
+            raise UserDBValueError(f'Primary element {repr(match)} is not of type PrimaryElement')
+
         if not match.is_verified:
             raise PrimaryElementViolation("Primary element must be verified")
 
         # Go through the whole list. Mark element as primary and all other as *not* primary.
-        for this in self._elements:
+        # Build a new list and re-assign to make sure the validators run.
+        new = []
+        for this in self.elements:
+            if not isinstance(this, PrimaryElement):
+                raise UserDBValueError(f'Element {repr(this)} is not of type PrimaryElement')
             this.is_primary = bool(this.key == key)
+            new += [this]
+        # mypy figures out the real type of `new' since isinstance() is used above and complains
+        #    error: Incompatible types in assignment (expression has type "List[PrimaryElement]",
+        #           variable has type "List[ListElement]")
+        self.elements = new  # type: ignore
 
-    def _check_primary(self, old_list):
-        """
-        If there are confirmed elements, there must be exactly one primary
-        element. If there are no confirmed elements, there must be 0 primary
-        elements.
-
-        :param old_list: list of elements to get back to if the constraints are violated
-        :type old_list: list
-        """
-        try:
-            self._get_primary(self._elements)
-        except PrimaryElementViolation:
-            self._elements = copy.copy(old_list)
-            raise
-
-    def _get_primary(self, elements):
+    @classmethod
+    def _get_primary(cls, elements: List[ListElement]) -> Optional[ListElement]:
         """
         Find the primary element in a list, and ensure there is exactly one (unless
         there are no confirmed elements, in which case, ensure there are exactly zero).
 
         :param elements: List of Element instances
-        :type elements: [Element]
         :return: Primary Element
-        :rtype: PrimaryElement | None
         """
         if not elements:
             return None
-        verified = [x for x in elements if x.is_verified is True]
 
-        if len(verified) == 0:
-            if len([e for e in elements if e.is_primary]) > 0:
-                raise PrimaryElementViolation('There are unconfirmed primary elements')
+        res = [x for x in elements if isinstance(x, PrimaryElement) and x.is_primary is True]
+        if not res:
             return None
 
-        res = [x for x in verified if x.is_primary is True]
         if len(res) != 1:
-            raise PrimaryElementViolation(
-                "{!s} contains {!s}/{!s} primary elements".format(self.__class__.__name__, len(res), len(elements))
-            )
-        return res[0]
+            _name = cls.__class__.__name__
+            raise PrimaryElementViolation(f'{_name} contains {len(res)}/{len(elements)} primary elements')
+
+        primary = res[0]
+        if not primary.is_verified:
+            raise PrimaryElementViolation('Primary element is not verified')
+
+        # mypy figures out the real type of `res[0]' since isinstance() is used above and complains
+        #    error: Incompatible return value type (got "PrimaryElement", expected "Optional[ListElement]")
+        return res[0]  # type: ignore
 
     @property
-    def verified(self):
+    def verified(self) -> List[ListElement]:
         """
-        get a PrimaryElementList with only the confirmed elements.
+        Get all the verified elements in the ElementList.
+
         """
-        verified_elements = [e for e in self._elements if e.is_verified]
-        return self.__class__(verified_elements)
+        verified_elements = [e for e in self.elements if isinstance(e, VerifiedElement) and e.is_verified]
+        # mypy figures out the real type of `verified_elements' since isinstance() is used above and complains
+        #    error: Incompatible return value type (got "List[VerifiedElement]", expected "List[ListElement]")
+        return verified_elements  # type: ignore
+
+    def remove(self, key: ElementKey) -> None:
+        """
+        Remove an existing Element from the list. Removing the primary element is not allowed.
+        :param key: Key of element to remove
+        """
+        match = self.find(key)
+        if not match:
+            raise UserDBValueError("Element not found in list")
+
+        if isinstance(match, PrimaryElement) and match.is_primary and self.count > 1:
+            # This is not allowed since a PrimaryElementList with any entries in it must have a primary
+            raise PrimaryElementViolation('Removing the primary element is not allowed')
+
+        self.elements = [this for this in self.elements if this != match]
+
+        return None
+
+    def remove_handling_primary(self, key: ElementKey) -> None:
+        """ Remove an element from the list. If the element is primary, first promote
+        any other present verified element to primary in order to not get a PrimaryElementViolation.
+
+        TODO: This should perhaps be done in the regular `remove' method of PrimaryElementList,
+              but I did not want to change those semantics in this PR.
+        """
+        elem = self.find(key)
+        if not elem:
+            return None
+
+        # Assure the type checking system that elements are PrimaryElement
+        if not isinstance(elem, PrimaryElement):
+            return None
+
+        if elem.is_primary:
+            # Look for other verified elements
+            other_verified = [x for x in self.verified if isinstance(x, PrimaryElement) and x.key != key]
+            if other_verified:
+                # Promote the first other verified element found to primary
+                self.set_primary(other_verified[0].key)
+            else:
+                elem.is_primary = False
+
+        self.remove(key)
+        return None

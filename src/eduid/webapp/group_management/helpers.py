@@ -210,7 +210,7 @@ def get_incoming_invites(user: User) -> List[Dict[str, Any]]:
     Return all incoming invites to groups for the user
     """
     invites = []
-    emails = [item.email for item in user.mail_addresses.verified.to_list()]
+    emails = [item.email for item in user.mail_addresses.verified]
     states = current_app.invite_state_db.get_states_by_email_addresses(emails, raise_on_missing=False)
     for state in states:
         group = current_app.scimapi_groupdb.get_group_by_scim_id(state.group_scim_id)
