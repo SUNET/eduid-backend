@@ -42,6 +42,7 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import Password, Webauthn
 from eduid.userdb.exceptions import DocumentDoesNotExist, UserHasNotCompletedSignup
 from eduid.userdb.fixtures.fido_credentials import webauthn_credential as sample_credential
+from eduid.userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.api.utils import hash_password
@@ -70,8 +71,8 @@ class ResetPasswordTests(EduidAPITestCase):
     app: ResetPasswordApp
 
     def setUp(self, *args, **kwargs):
-        self.test_user_eppn = 'hubba-bubba'
-        self.test_user_email = 'johnsmith@example.com'
+        self.test_user = mocked_user_standard
+        self.other_test_user = mocked_user_standard_2
         super().setUp(*args, **kwargs)
 
     def load_app(self, config: Optional[Mapping[str, Any]]) -> ResetPasswordApp:
@@ -123,7 +124,7 @@ class ResetPasswordTests(EduidAPITestCase):
             # TODO: GET a csrf token, this should be a call to jsconfig
             response = c.get('/', content_type=self.content_type_json)
             data = {
-                'email': self.test_user_email,
+                'email': self.test_user.mail_addresses.primary.email,
                 'csrf_token': response.json['payload']['csrf_token'],
             }
             if data1 is not None:
@@ -142,7 +143,7 @@ class ResetPasswordTests(EduidAPITestCase):
         :param data2: to control the data (verification code) used to get the configuration.
         """
         response = self._post_email_address(data1=data1)
-        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         assert isinstance(state, ResetPasswordEmailState)
 
         with self.app.test_request_context():
@@ -178,14 +179,14 @@ class ResetPasswordTests(EduidAPITestCase):
         mock_get_vccs_client.return_value = TestVCCSClient()
 
         # check that the user has verified data
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         verified_phone_numbers = user.phone_numbers.verified.to_list()
         self.assertEqual(len(verified_phone_numbers), 1)
         verified_nins = user.nins.verified.to_list()
         self.assertEqual(len(verified_nins), 2)
 
         response = self._post_email_address(data1=data1)
-        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         assert isinstance(state, ResetPasswordEmailState)
 
         with self.app.test_request_context():
@@ -242,7 +243,7 @@ class ResetPasswordTests(EduidAPITestCase):
             mock_sendsms.side_effect = sendsms_side_effect
 
         response = self._post_email_address(data1=data1)
-        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         assert isinstance(state, ResetPasswordEmailState)
 
         with self.app.test_request_context():
@@ -299,10 +300,10 @@ class ResetPasswordTests(EduidAPITestCase):
         mock_sendsms.return_value = True
 
         response = self._post_email_address(data1=data1)
-        state1 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        state1 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         assert isinstance(state1, ResetPasswordEmailState)
 
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         alternatives = get_extra_security_alternatives(user)
         state1.extra_security = alternatives
         state1.email_code.is_verified = True
@@ -313,7 +314,7 @@ class ResetPasswordTests(EduidAPITestCase):
             send_verify_phone_code(state1, phone_number['number'])
             url = url_for('reset_password.set_new_pw_extra_security_phone', _external=True)
 
-        state2 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        state2 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         assert isinstance(state2, ResetPasswordEmailAndPhoneState)
 
         with self.session_cookie_anon(self.browser) as c:
@@ -365,12 +366,12 @@ class ResetPasswordTests(EduidAPITestCase):
         if credential_data:
             credential.update(credential_data)
         webauthn_credential = Webauthn.from_dict(credential)
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         user.credentials.add(webauthn_credential)
         self.app.central_userdb.save(user, check_sync=False)
 
         response = self._post_email_address(data1=data1)
-        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         assert isinstance(state, ResetPasswordEmailState)
 
         with self.app.test_request_context():
@@ -423,10 +424,10 @@ class ResetPasswordTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_get_vccs_client.return_value = TestVCCSClient()
 
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
 
         response = self._post_email_address(data1=data1)
-        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         assert isinstance(state, ResetPasswordEmailState)
 
         with self.app.test_request_context():
@@ -472,12 +473,12 @@ class ResetPasswordTests(EduidAPITestCase):
         :param data1: to control the data (email) sent to create the reset state
         """
         self._post_email_address(data1=data1)
-        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         assert isinstance(state, ResetPasswordEmailState)
 
         with self.session_cookie_anon(self.browser) as client:
             client.set_cookie('localhost', key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
-            eppn = quote_plus(self.test_user_eppn)
+            eppn = quote_plus(self.test_user.eppn)
             return client.get(f'/get-email-code?eppn={eppn}')
 
     @patch('eduid.webapp.common.authn.vccs.get_vccs_client')
@@ -501,7 +502,7 @@ class ResetPasswordTests(EduidAPITestCase):
             mock_sendsms.side_effect = sendsms_side_effect
 
         response = self._post_email_address()
-        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         assert isinstance(state, ResetPasswordEmailState)
 
         with self.app.test_request_context():
@@ -527,14 +528,14 @@ class ResetPasswordTests(EduidAPITestCase):
 
             client.set_cookie('localhost', key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
 
-            eppn = quote_plus(self.test_user_eppn)
+            eppn = quote_plus(self.test_user.eppn)
 
             return client.get(f'/get-phone-code?eppn={eppn}')
 
     # actual tests
     def test_correct_user_setup(self):
         # Check that user has verified data
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         verified_phone_numbers = user.phone_numbers.verified.to_list()
         self.assertEqual(1, len(verified_phone_numbers))
         verified_nins = user.nins.verified.to_list()
@@ -572,7 +573,7 @@ class ResetPasswordTests(EduidAPITestCase):
     def test_post_email_address(self):
         response = self._post_email_address()
         self._check_success_response(response, msg=ResetPwMsg.reset_pw_initialized, type_='POST_RESET_PASSWORD_SUCCESS')
-        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         self.assertEqual(state.email_address, 'johnsmith@example.com')
 
     def test_post_email_address_throttled(self):
@@ -590,7 +591,7 @@ class ResetPasswordTests(EduidAPITestCase):
         self._check_success_response(
             response1, msg=ResetPwMsg.reset_pw_initialized, type_='POST_RESET_PASSWORD_SUCCESS'
         )
-        state1 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        state1 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         self.assertEqual(state1.email_address, 'johnsmith@example.com')
         self.assertIsNotNone(state1.email_code.code)
 
@@ -598,7 +599,7 @@ class ResetPasswordTests(EduidAPITestCase):
         self._check_success_response(
             response2, msg=ResetPwMsg.reset_pw_initialized, type_='POST_RESET_PASSWORD_SUCCESS'
         )
-        state2 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        state2 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         self.assertEqual(state1.email_code.code, state2.email_code.code)
 
     def test_overwrite_expired_email_state(self):
@@ -606,7 +607,7 @@ class ResetPasswordTests(EduidAPITestCase):
         self._check_success_response(
             response1, msg=ResetPwMsg.reset_pw_initialized, type_='POST_RESET_PASSWORD_SUCCESS'
         )
-        state1 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        state1 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         # Set created time 5 minutes before email_code_timeout
         state1.email_code.created_ts = datetime.datetime.utcnow() - (
             datetime.timedelta(seconds=self.app.conf.email_code_timeout) + datetime.timedelta(minutes=5)
@@ -617,7 +618,7 @@ class ResetPasswordTests(EduidAPITestCase):
         self._check_success_response(
             response2, msg=ResetPwMsg.reset_pw_initialized, type_='POST_RESET_PASSWORD_SUCCESS'
         )
-        state2 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        state2 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         self.assertNotEqual(state1.email_code.code, state2.email_code.code)
 
     def test_post_email_address_sendmail_fail(self):
@@ -663,7 +664,7 @@ class ResetPasswordTests(EduidAPITestCase):
             self._post_reset_code(data1=data1)
 
     def test_post_reset_code_no_extra_sec(self):
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         # Unverify phone numbers
         for number in user.phone_numbers.verified.to_list():
             user.phone_numbers.remove(number.key)
@@ -730,7 +731,7 @@ class ResetPasswordTests(EduidAPITestCase):
         )
 
         # check that the user no longer has verified data
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         verified_phone_numbers = user.phone_numbers.verified.to_list()
         self.assertEqual(len(verified_phone_numbers), 0)
         verified_nins = user.nins.verified.to_list()
@@ -771,7 +772,7 @@ class ResetPasswordTests(EduidAPITestCase):
         )
 
         # check that the user still has verified data
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         verified_phone_numbers = user.phone_numbers.verified.to_list()
         self.assertEqual(len(verified_phone_numbers), 1)
         verified_nins = user.nins.verified.to_list()
@@ -784,7 +785,7 @@ class ResetPasswordTests(EduidAPITestCase):
             response, type_='POST_RESET_PASSWORD_NEW_PASSWORD_SUCCESS', msg=ResetPwMsg.pw_reset_success
         )
 
-        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
+        user = self.app.private_userdb.get_user_by_eppn(self.test_user.eppn)
         self.assertFalse(user.credentials.to_list()[0].is_generated)
 
     def test_post_choose_extra_sec(self):
@@ -855,7 +856,7 @@ class ResetPasswordTests(EduidAPITestCase):
         )
 
         # check that the user still has verified data
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         verified_phone_numbers = user.phone_numbers.verified.to_list()
         self.assertEqual(1, len(verified_phone_numbers))
         verified_nins = user.nins.verified.to_list()
@@ -910,7 +911,7 @@ class ResetPasswordTests(EduidAPITestCase):
         )
 
         # check that the user still has verified data
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         verified_phone_numbers = user.phone_numbers.verified.to_list()
         self.assertEqual(1, len(verified_phone_numbers))
         verified_nins = user.nins.verified.to_list()
@@ -923,7 +924,7 @@ class ResetPasswordTests(EduidAPITestCase):
             type_='POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_SUCCESS',
             msg=ResetPwMsg.pw_reset_success,
         )
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         for cred in user.credentials.filter(Password).to_list():
             self.assertFalse(cred.is_generated)
 
@@ -987,7 +988,7 @@ class ResetPasswordTests(EduidAPITestCase):
         )
 
         # check that the user still has verified data
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         verified_phone_numbers = user.phone_numbers.verified.to_list()
         self.assertEqual(1, len(verified_phone_numbers))
         verified_nins = user.nins.verified.to_list()
@@ -1030,7 +1031,7 @@ class ResetPasswordTests(EduidAPITestCase):
         )
 
         # check that the password is marked as generated
-        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
+        user = self.app.private_userdb.get_user_by_eppn(self.test_user.eppn)
         self.assertFalse(user.credentials.to_list()[0].is_generated)
 
     def test_get_code_backdoor(self):
@@ -1040,7 +1041,7 @@ class ResetPasswordTests(EduidAPITestCase):
 
         resp = self._get_email_code_backdoor()
 
-        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
 
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.data, state.email_code.code.encode('ascii'))
@@ -1079,7 +1080,7 @@ class ResetPasswordTests(EduidAPITestCase):
 
         resp = self._get_phone_code_backdoor()
 
-        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
 
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.data, state.phone_code.code.encode('ascii'))
