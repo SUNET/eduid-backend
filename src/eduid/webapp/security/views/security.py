@@ -292,7 +292,7 @@ def remove_nin(user: User, nin: str) -> FluxData:
     current_app.logger.info('Removing NIN from user')
     current_app.logger.debug('NIN: {}'.format(nin))
 
-    nin_obj = security_user.nins.find(ElementKey(nin))
+    nin_obj = security_user.nins.find(nin)
     if nin_obj and nin_obj.is_verified:
         current_app.logger.info('NIN verified. Will not remove it.')
         return error_response(message=SecurityMsg.rm_verified)

@@ -82,7 +82,7 @@ def token_verify_action(
         raise ValueError("Missing NIN in SAML session info")
 
     asserted_nin = _nin_list[0]
-    user_nin = proofing_user.nins.find(ElementKey(asserted_nin))
+    user_nin = proofing_user.nins.find(asserted_nin)
     if not user_nin or not user_nin.is_verified:
         current_app.logger.error('Asserted NIN not matching user verified nins')
         current_app.logger.debug('Asserted NIN: {}'.format(asserted_nin))

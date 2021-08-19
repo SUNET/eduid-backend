@@ -79,7 +79,7 @@ def add_nin_to_user(user: User, proofing_state: NinProofingState, user_class: Ty
 
     proofing_user = user_class.from_user(user, current_app.private_userdb)
     # Add nin to user if not already there
-    if not proofing_user.nins.find(ElementKey(proofing_state.nin.number)):
+    if not proofing_user.nins.find(proofing_state.nin.number):
         current_app.logger.info('Adding NIN for user {}'.format(user))
         current_app.logger.debug('Self asserted NIN: {}'.format(proofing_state.nin.number))
         nin_element = Nin.from_dict(
@@ -125,7 +125,7 @@ def verify_nin_for_user(
         # the new NIN element without re-loading the user from the central database.
         warnings.warn('verify_nin_for_user() called with a User, not a ProofingUser', DeprecationWarning)
         proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    nin_element = proofing_user.nins.find(ElementKey(proofing_state.nin.number))
+    nin_element = proofing_user.nins.find(proofing_state.nin.number)
     if not nin_element:
         nin_element = Nin(
             number=proofing_state.nin.number,

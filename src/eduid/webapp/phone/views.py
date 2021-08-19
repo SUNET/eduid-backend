@@ -120,7 +120,7 @@ def post_primary(user: User, number: str) -> FluxData:
     current_app.logger.info('Trying to save phone number as primary')
     current_app.logger.debug(f'Phone number: {number}')
 
-    phone_element = proofing_user.phone_numbers.find(ElementKey(number))
+    phone_element = proofing_user.phone_numbers.find(number)
     if not phone_element:
         current_app.logger.error('Phone number not found, could not save it as primary')
         return error_response(message=PhoneMsg.unknown_phone)
@@ -201,7 +201,7 @@ def post_remove(user: User, number: str) -> FluxData:
     current_app.logger.info('Trying to remove phone number')
     current_app.logger.debug(f'Phone number: {number}')
 
-    phone = proofing_user.phone_numbers.find(ElementKey(number))
+    phone = proofing_user.phone_numbers.find(number)
     if not phone:
         current_app.logger.error('Tried to remove a non existing phone number')
         return error_response(message=PhoneMsg.unknown_phone)
@@ -235,7 +235,7 @@ def resend_code(user: User, number: str) -> FluxData:
     current_app.logger.info('Trying to send new verification code')
     current_app.logger.debug(f'Phone number: {number}')
 
-    if not user.phone_numbers.find(ElementKey(number)):
+    if not user.phone_numbers.find(number):
         current_app.logger.error('Unknown phone number used for resend code')
         return error_response(message=CommonMsg.out_of_sync)
 

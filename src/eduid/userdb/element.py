@@ -81,7 +81,7 @@ from __future__ import annotations
 import copy
 from abc import ABC
 from datetime import datetime
-from typing import Any, Dict, Generic, List, NewType, Optional, Type, TypeVar
+from typing import Any, Dict, Generic, List, NewType, Optional, Type, TypeVar, Union
 
 from pydantic import BaseModel, Extra, Field, validator
 from pydantic.generics import GenericModel
@@ -369,7 +369,7 @@ class ElementList(GenericModel, Generic[ListElement], ABC):
         """
         return [this.to_dict() for this in self.elements if isinstance(this, Element)]
 
-    def find(self, key: Optional[ElementKey]) -> Optional[ListElement]:
+    def find(self, key: Optional[Union[ElementKey, str]]) -> Optional[ListElement]:
         """
         Find an Element from the element list, using the key.
 

@@ -99,7 +99,7 @@ def verify_phone_number(state: PhoneProofingState, proofing_user: ProofingUser) 
 
     """
     number = state.verification.number
-    phone = proofing_user.phone_numbers.find(ElementKey(number))
+    phone = proofing_user.phone_numbers.find(number)
     if not phone:
         phone = PhoneNumber(number=number, created_by='eduid_phone', is_verified=True, is_primary=False)
         proofing_user.phone_numbers.add(phone)

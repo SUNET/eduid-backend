@@ -56,14 +56,14 @@ class TestNinList(unittest.TestCase):
         self.assertEqual([], self.empty.to_list_of_dicts(), list)
 
     def test_find(self):
-        match = self.one.find(ElementKey('197801011234'))
+        match = self.one.find('197801011234')
         self.assertIsInstance(match, Nin)
         self.assertEqual(match.number, '197801011234')
         self.assertEqual(match.is_verified, True)
         self.assertEqual(match.verified_ts, None)
 
     def test_add(self):
-        second = self.two.find(ElementKey('197802022345'))
+        second = self.two.find('197802022345')
         self.one.add(second)
 
         expected = self.two.to_list_of_dicts()
@@ -84,7 +84,7 @@ class TestNinList(unittest.TestCase):
         ]
 
     def test_add_nin(self):
-        third = self.three.find(ElementKey('197803033456'))
+        third = self.three.find('197803033456')
         this = NinList.from_list_of_dicts([_one_dict, _two_dict, third.to_dict()])
 
         expected = self.three.to_list_of_dicts()
@@ -207,38 +207,38 @@ class TestNin(TestCase):
             this.is_verified = False
 
     def test_changing_is_verified(self):
-        this = self.three.find(ElementKey('197803033456'))
+        this = self.three.find('197803033456')
         this.is_verified = False  # was False already
         this.is_verified = True
 
     def test_verified_by(self):
-        this = self.three.find(ElementKey('197803033456'))
+        this = self.three.find('197803033456')
         this.verified_by = 'unit test'
         self.assertEqual(this.verified_by, 'unit test')
 
     def test_modify_verified_by(self):
-        this = self.three.find(ElementKey('197803033456'))
+        this = self.three.find('197803033456')
         this.verified_by = 'unit test'
         this.verified_by = 'test unit'
         self.assertEqual(this.verified_by, 'test unit')
 
     def test_modify_verified_ts(self):
-        this = self.three.find(ElementKey('197803033456'))
+        this = self.three.find('197803033456')
         now = datetime.datetime.utcnow()
         this.verified_ts = now
         self.assertEqual(this.verified_ts, now)
 
     def test_created_by(self):
-        this = self.three.find(ElementKey('197803033456'))
+        this = self.three.find('197803033456')
         this.created_by = 'unit test'
         self.assertEqual(this.created_by, 'unit test')
 
     def test_modify_created_by(self):
-        this = self.three.find(ElementKey('197803033456'))
+        this = self.three.find('197803033456')
         this.created_by = 'unit test'
 
         assert this.created_by == 'unit test'
 
     def test_created_ts(self):
-        this = self.three.find(ElementKey('197803033456'))
+        this = self.three.find('197803033456')
         self.assertIsInstance(this.created_ts, datetime.datetime)

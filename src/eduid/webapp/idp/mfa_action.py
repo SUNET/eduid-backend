@@ -191,7 +191,7 @@ def check_authn_result(user: IdPUser, ticket: LoginContext, actions: List[Action
                 res = True
                 continue
             elif isinstance(this.result, ActionResultMFA):
-                cred = user.credentials.find(ElementKey(this.result.cred_key))
+                cred = user.credentials.find(this.result.cred_key)
                 if not cred:
                     current_app.logger.error(f'MFA action completed with unknown credential {this.result.cred_key}')
                     continue

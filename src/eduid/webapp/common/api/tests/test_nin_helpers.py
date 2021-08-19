@@ -152,7 +152,7 @@ class NinHelpersTest(EduidAPITestCase):
             assert verify_nin_for_user(user, proofing_state, proofing_log_entry) is True
         # The problem with passing a User to verify_nin_for_user is that the nins list on 'user'
         # has not been updated
-        assert not user.nins.find(ElementKey(self.test_user_nin))
+        assert not user.nins.find(self.test_user_nin)
 
         user = self.app.private_userdb.get_user_by_eppn(eppn)
         self.assertEqual(user.nins.count, 1)

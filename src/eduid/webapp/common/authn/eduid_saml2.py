@@ -327,7 +327,7 @@ def process_assertion(
         credentials_used = get_saml_attribute(session_info, 'eduidIdPCredentialsUsed')
         if credentials_used:
             for cred_used in credentials_used:
-                this = user.credentials.find(ElementKey(cred_used))
+                this = user.credentials.find(cred_used)
                 if not this:
                     current_app.logger.warning(f'Could not find credential with key {cred_used} on user {user}')
                     continue
