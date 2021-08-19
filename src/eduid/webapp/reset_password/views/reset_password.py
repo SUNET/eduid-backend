@@ -218,8 +218,6 @@ def verify_email(email_code: str) -> FluxData:
     context.state.extra_security = alternatives
     current_app.password_reset_state_db.save(context.state)
 
-    m = mask_alternatives(alternatives)
-
     return success_response(
         payload={
             'suggested_password': new_password,
