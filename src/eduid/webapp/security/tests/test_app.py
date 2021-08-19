@@ -285,8 +285,8 @@ class SecurityTests(EduidAPITestCase):
             },
         )
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.count, 2)
-        self.assertEqual(user.nins.verified.count, 1)
+        assert user.nins.count == 2
+        assert len(user.nins.verified) == 1
 
     @patch('eduid.webapp.security.views.security.remove_nin_from_user')
     def test_remove_nin_am_fail(self, mock_remove: Any):

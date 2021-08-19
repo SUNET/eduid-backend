@@ -117,12 +117,17 @@ class OnetimeCredType(str, Enum):
 
 
 class OnetimeCredential(Credential):
+    credential_id: str = Field(default_factory=lambda: str(uuid4()))
     type: OnetimeCredType
 
     # External MFA auth parameters
     issuer: str
     authn_context: str
     timestamp: datetime
+
+    @property
+    def key(self) -> ElementKey:
+        return ElementKey(self.credential_id)
 
 
 class IdP_PendingRequest(BaseModel):

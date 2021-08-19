@@ -185,7 +185,7 @@ class NinHelpersTest(EduidAPITestCase):
         )
         proofing_user = ProofingUser.from_user(user, self.app.private_userdb)
         # check that there is no NIN on the proofing_user before calling verify_nin_for_user
-        assert proofing_user.nins.find(self.test_user_nin) is False
+        assert not proofing_user.nins.find(self.test_user_nin)
         with self.app.app_context():
             assert verify_nin_for_user(proofing_user, proofing_state, proofing_log_entry) is True
         # check that there is a NIN there now, and that it is verified

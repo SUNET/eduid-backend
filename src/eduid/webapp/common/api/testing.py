@@ -302,6 +302,8 @@ class EduidAPITestCase(CommonTestCase):
             if payload is not None:
                 for k, v in payload.items():
                     assert k in response.json['payload'], f'The Flux response payload does not contain {repr(k)}'
+                    response_payload_v = response.json['payload'][k]
+                    assert v == response_payload_v
                     assert (
                         v == response.json['payload'][k]
                     ), f'The Flux response payload item {repr(k)} is not {repr(v)}'

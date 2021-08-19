@@ -16,8 +16,8 @@ from mock import patch
 from eduid.common.config.base import EduidEnvironment
 from eduid.userdb import Nin
 from eduid.userdb.credentials import U2F, Webauthn
-from eduid.userdb.credentials.base import CredentialKey
 from eduid.userdb.credentials.fido import FidoCredential
+from eduid.userdb.element import ElementKey
 from eduid.webapp.common.api.messages import TranslatableMsg, redirect_with_msg
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
@@ -201,7 +201,7 @@ class EidasTests(EduidAPITestCase):
         saml_response_tpl: str,
         asserted_nin=None,
         age: int = 10,
-        credentials_used: Optional[List[CredentialKey]] = None,
+        credentials_used: Optional[List[ElementKey]] = None,
     ) -> bytes:
         """
         Generates a fresh signed authentication response
@@ -249,8 +249,8 @@ class EidasTests(EduidAPITestCase):
         action: EidasAcsAction,
         req_id: Optional[str] = None,
         relay_state: str = '/',
-        verify_token: Optional[CredentialKey] = None,
-        credentials_used: Optional[List[CredentialKey]] = None,
+        verify_token: Optional[ElementKey] = None,
+        credentials_used: Optional[List[ElementKey]] = None,
     ) -> None:
         assert isinstance(session, EduidSession)
         if req_id is not None:
@@ -263,7 +263,7 @@ class EidasTests(EduidAPITestCase):
         if credentials_used is not None:
             self._setup_faked_login(session=session, credentials_used=credentials_used)
 
-    def _setup_faked_login(self, session: EduidSession, credentials_used: List[CredentialKey]) -> None:
+    def _setup_faked_login(self, session: EduidSession, credentials_used: List[ElementKey]) -> None:
         logger.debug(f'Test setting credentials used for login in session {session}: {credentials_used}')
         _authn_id = AuthnRequestRef(str(uuid4()))
         session.authn.sp.authns[_authn_id] = SP_AuthnRequest(
@@ -382,8 +382,8 @@ class EidasTests(EduidAPITestCase):
         age: int = 10,
         nin: Optional[str] = None,
         response_template: Optional[str] = None,
-        credentials_used: Optional[List[CredentialKey]] = None,
-        verify_credential: Optional[CredentialKey] = None,
+        credentials_used: Optional[List[ElementKey]] = None,
+        verify_credential: Optional[ElementKey] = None,
     ) -> None:
         if expect_redirect_url is None:
             expect_redirect_url = self.app.conf.token_verify_redirect_url
@@ -413,8 +413,8 @@ class EidasTests(EduidAPITestCase):
         age: int = 10,
         nin: Optional[str] = None,
         response_template: Optional[str] = None,
-        credentials_used: Optional[List[CredentialKey]] = None,
-        verify_credential: Optional[CredentialKey] = None,
+        credentials_used: Optional[List[ElementKey]] = None,
+        verify_credential: Optional[ElementKey] = None,
     ) -> None:
 
         if eppn is None:

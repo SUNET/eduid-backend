@@ -149,7 +149,7 @@ class TestTasks(AMTestCase):
         new_attributes = check_locked_identity(self.amdb, user_id, attributes, 'test')
 
         locked_nin = LockedIdentityNin.from_dict(dict(number='200102031234', created_by='test', created_ts=True))
-        locked_identities = LockedIdentityList().add(locked_nin)
+        locked_identities = LockedIdentityList(elements=[locked_nin])
         attributes['$set']['locked_identity'] = locked_identities.to_list_of_dicts()
 
         self.assertDictEqual(attributes, new_attributes)
@@ -157,19 +157,18 @@ class TestTasks(AMTestCase):
     def test_check_locked_identity(self):
         user_id = ObjectId('012345678901234567890123')  # johnsmith@example.com / hubba-bubba
         user = self.amdb.get_user_by_id(user_id)
-        user.locked_identity.add(
-            LockedIdentityNin.from_dict(dict(number='197801011234', created_by='test', created_ts=True))
-        )
+        locked_nin = LockedIdentityNin(number='197801011234', created_by='test')
+
+        user.locked_identity.add(locked_nin)
         self.amdb.save(user)
         attributes = {
             '$set': {
-                'nins': [{'verified': True, 'number': '197801011234', 'primary': True}],  # hubba-bubba's primary nin
+                'nins': [{'verified': True, 'number': locked_nin.number, 'primary': True}],  # hubba-bubba's primary nin
             }
         }
         new_attributes = check_locked_identity(self.amdb, user_id, attributes, 'test')
 
-        locked_nin = LockedIdentityNin.from_dict(dict(number='197801011234', created_by='test', created_ts=True))
-        locked_identities = LockedIdentityList().add(locked_nin)
+        locked_identities = LockedIdentityList(elements=[locked_nin])
         attributes['$set']['locked_identity'] = locked_identities.to_list_of_dicts()
 
         self.assertDictEqual(attributes, new_attributes)

@@ -126,7 +126,7 @@ class TestActions(SSOIdPTests):
                 version=self.app.conf.tou_version,
                 created_by='unit test',
                 created_ts=datetime.utcnow(),
-                event_id=bson.ObjectId(),
+                event_id=str(bson.ObjectId()),
             )
         )
         self._test_no_actions(tou)

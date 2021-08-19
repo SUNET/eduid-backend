@@ -41,7 +41,6 @@ from eduid.userdb.credentials import Credential
 
 __author__ = 'ft'
 
-from eduid.userdb.credentials.base import CredentialKey
 from eduid.userdb.element import ElementKey
 
 

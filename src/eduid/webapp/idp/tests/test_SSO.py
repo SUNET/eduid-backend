@@ -35,7 +35,7 @@
 
 import datetime
 import logging
-from typing import List, Mapping, Optional, Sequence
+from typing import List, Mapping, Optional, Sequence, Union
 from uuid import uuid4
 
 import saml2.server
@@ -231,7 +231,7 @@ class TestSSO(SSOIdPTests):
     def _get_login_response_authn(
         self,
         req_class_ref: str,
-        credentials: List[str],
+        credentials: List[Union[str, Credential, AuthnData, ExternalMfaData]],
         user: Optional[IdPUser] = None,
         add_tou: bool = True,
         add_credentials_to_this_request: bool = True,
@@ -247,11 +247,21 @@ class TestSSO(SSOIdPTests):
             # add a U2F credential to the user
             user.credentials.add(_U2F)
         for this in credentials:
+            if isinstance(this, AuthnData):
+                sso_session_1.add_authn_credential(this)
+                continue
+            if isinstance(this, ExternalMfaData):
+                sso_session_1.external_mfa = this
+                continue
+
+            # Handle credentials
             _cred: Credential
             if this == 'pw':
                 _cred = user.credentials.filter(Password)[0]
             elif this == 'u2f':
                 _cred = user.credentials.filter(U2F)[0]
+            elif isinstance(this, Credential):
+                _cred = this
             else:
                 raise ValueError(f'Unhandled test data: {repr(this)}')
 
