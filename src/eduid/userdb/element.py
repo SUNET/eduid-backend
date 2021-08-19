@@ -586,7 +586,7 @@ class PrimaryElementList(ElementList[ListElement], Generic[ListElement], ABC):
 
         if elem.is_primary:
             # Look for other verified elements
-            other_verified = [x for x in self.verified if x.key != key]
+            other_verified = [x for x in self.verified if isinstance(x, PrimaryElement) and x.key != key]
             if other_verified:
                 # Promote the first other verified element found to primary
                 self.set_primary(other_verified[0].key)
@@ -594,3 +594,4 @@ class PrimaryElementList(ElementList[ListElement], Generic[ListElement], ABC):
                 elem.is_primary = False
 
         self.remove(key)
+        return None
