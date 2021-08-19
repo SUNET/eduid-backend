@@ -212,9 +212,8 @@ def record_tou(signup_user: SignupUser, source: str) -> None:
     :param signup_user: the user that has accepted the ToU
     :param source: An identifier for the process during which the user has accepted the ToU (e.g., "signup")
     """
-    created_ts = utc_now()
     tou_version = current_app.conf.tou_version
-    event = ToUEvent(version=tou_version, created_by=source, created_ts=created_ts)
+    event = ToUEvent(version=tou_version, created_by=source)
     current_app.logger.info(
         f'Recording ToU acceptance {event.event_id} (version {event.version}) for user {signup_user} (source: {source})'
     )
