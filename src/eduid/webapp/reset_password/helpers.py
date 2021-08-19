@@ -43,11 +43,7 @@ from eduid.common.config.base import EduidEnvironment
 from eduid.common.utils import urlappend
 from eduid.userdb.exceptions import DocumentDoesNotExist, UserDoesNotExist
 from eduid.userdb.logs import MailAddressProofing, PhoneNumberProofing
-from eduid.userdb.reset_password import (
-    ResetPasswordEmailAndPhoneState,
-    ResetPasswordEmailState,
-    ResetPasswordUser,
-)
+from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState, ResetPasswordUser
 from eduid.userdb.reset_password.element import CodeElement
 from eduid.userdb.user import User
 from eduid.webapp.common.api.exceptions import MailTaskFailed, ThrottledException
