@@ -35,7 +35,7 @@ from typing import List, Optional
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.actions import Action
 from eduid.userdb.actions.action import ActionResultMFA, ActionResultThirdPartyMFA
-from eduid.userdb.credentials import Credential, U2F, FidoCredential, Webauthn
+from eduid.userdb.credentials import U2F, Credential, FidoCredential, Webauthn
 from eduid.userdb.element import ElementKey
 from eduid.userdb.idp.user import IdPUser
 from eduid.webapp.common.session import session

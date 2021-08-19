@@ -44,7 +44,6 @@ from pydantic import Field, validator
 from eduid.userdb.element import Element, ElementKey, ElementList, ListElement
 from eduid.userdb.exceptions import BadEvent, UserDBValueError
 
-
 TEventSubclass = TypeVar('TEventSubclass', bound='Event')
 
 
