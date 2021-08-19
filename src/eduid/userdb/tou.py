@@ -37,6 +37,7 @@ from __future__ import annotations
 import datetime
 from typing import Any, Dict, List, Type
 
+from bson import ObjectId
 from pydantic import validator
 
 from eduid.userdb.event import Event, EventList
@@ -68,6 +69,9 @@ class ToUEvent(Event):
 
         if 'event_type' not in data:
             data['event_type'] = 'tou_event'
+
+        if 'event_id' in data and isinstance(data['event_id'], ObjectId):
+            data['event_id'] = str(data['event_id'])
 
         return data
 
