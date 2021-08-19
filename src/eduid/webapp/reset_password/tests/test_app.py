@@ -694,6 +694,35 @@ class ResetPasswordTests(EduidAPITestCase):
             response, type_='POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL', error={'csrf_token': ['CSRF failed to validate']},
         )
 
+    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
+    def test_post_reset_invalid_session_eppn(self, mock_sendmail):
+        mock_sendmail.return_value = True
+        # Request reset password email for test_user using other_test_user session
+        with self.app.test_request_context():
+            request_url = url_for('reset_password.start_reset_pw', _external=True)
+        with self.session_cookie(self.browser, eppn=self.other_test_user.eppn) as c:
+            response = c.get('/', content_type=self.content_type_json)
+            data = {
+                'email': self.test_user.mail_addresses.primary.email,
+                'csrf_token': response.json['payload']['csrf_token'],
+            }
+            response = c.post(request_url, data=json.dumps(data), content_type=self.content_type_json)
+
+        # Try to verify email code for test_user using other_test_user session
+        with self.app.test_request_context():
+            verify_url = url_for('reset_password.verify_email', _external=True)
+        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        with self.session_cookie(self.browser, eppn=self.other_test_user.eppn) as c:
+            data = {
+                'email_code': state.email_code.code,
+                'csrf_token': response.json['payload']['csrf_token'],
+            }
+            response = c.post(verify_url, data=json.dumps(data), content_type=self.content_type_json)
+
+        self._check_error_response(
+            response=response, type_='POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL', msg=ResetPwMsg.invalid_session
+        )
+
     def test_post_reset_password(self):
         response = self._post_reset_password()
         self._check_success_response(
