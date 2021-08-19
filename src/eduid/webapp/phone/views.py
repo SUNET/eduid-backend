@@ -206,14 +206,7 @@ def post_remove(user: User, number: str) -> FluxData:
         current_app.logger.error('Tried to remove a non existing phone number')
         return error_response(message=PhoneMsg.unknown_phone)
 
-    try:
-        proofing_user.phone_numbers.remove(phone.key)
-    except PrimaryElementViolation:
-        current_app.logger.info('Removing primary phone number, trying to set another phone number as primary')
-        verified = proofing_user.phone_numbers.verified
-        new_index = 1 if verified[0].key == phone.key else 0
-        proofing_user.phone_numbers.set_primary(verified[new_index].key)
-        proofing_user.phone_numbers.remove(phone.key)
+    proofing_user.phone_numbers.remove_handling_primary(phone.key)
 
     try:
         save_and_sync_user(proofing_user)

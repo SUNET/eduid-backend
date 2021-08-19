@@ -7,6 +7,7 @@ from urllib.parse import quote_plus
 
 from mock import patch
 
+from eduid.userdb import User
 from eduid.userdb.credentials import Password
 from eduid.userdb.exceptions import DocumentDoesNotExist
 from eduid.userdb.security import PasswordResetEmailState
@@ -392,9 +393,9 @@ class SecurityResetPasswordTests(EduidAPITestCase):
         mock_get_vccs_client.return_value = TestVCCSClient()
 
         # Remove extra security alternatives
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        user: User = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         for phone in user.phone_numbers.verified:
-            user.phone_numbers.remove(phone.number)
+            user.phone_numbers.remove_handling_primary(phone.key)
         self.request_user_sync(user)
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -408,7 +409,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert len(user.credentials.filter(Password)) == 1
-        assert user.credentials.filter(Password) == old_passwords
+        assert user.credentials.filter(Password) != old_passwords
         for nin in user.nins.to_list():
             assert nin.is_verified is False
         for phone_number in user.phone_numbers.to_list():

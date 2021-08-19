@@ -39,6 +39,7 @@ from urllib.parse import quote_plus
 from flask import url_for
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.userdb import User
 from eduid.userdb.credentials import Password, Webauthn
 from eduid.userdb.exceptions import DocumentDoesNotExist, UserHasNotCompletedSignup
 from eduid.userdb.fixtures.fido_credentials import webauthn_credential as sample_credential
@@ -663,10 +664,10 @@ class ResetPasswordTests(EduidAPITestCase):
             self._post_reset_code(data1=data1)
 
     def test_post_reset_code_no_extra_sec(self):
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        # Unverify phone numbers
+        user: User = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        # Remove all verified phone numbers
         for number in user.phone_numbers.verified:
-            user.phone_numbers.remove(number.key)
+            user.phone_numbers.remove_handling_primary(number.key)
         self.app.central_userdb.save(user)
         response = self._post_reset_code()
         self._check_success_response(

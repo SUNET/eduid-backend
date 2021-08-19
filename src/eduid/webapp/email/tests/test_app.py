@@ -36,6 +36,7 @@ from typing import Any, Dict, Mapping, Optional
 
 from mock import patch
 
+from eduid.userdb import User
 from eduid.userdb.mail import MailAddress
 from eduid.userdb.proofing import EmailProofingElement, EmailProofingState
 from eduid.webapp.common.api.testing import EduidAPITestCase
@@ -68,15 +69,13 @@ class EmailTests(EduidAPITestCase):
         )
         return config
 
-    def _remove_all_emails(self, user):
+    def _remove_all_emails(self, user: User):
         unverified = [address for address in user.mail_addresses.to_list() if not address.is_verified]
         verified = [address for address in user.mail_addresses.to_list() if address.is_verified]
         for address in unverified:
-            user.mail_addresses.remove(address.email)
+            user.mail_addresses.remove(address.key)
         for address in verified:
-            address.is_primary = False
-            address.is_verified = False
-            user.mail_addresses.remove(address.email)
+            user.mail_addresses.remove(address.key)
 
     def _add_2_emails(self, user):
         verified = MailAddress(email='verified@example.com', created_by='test', is_verified=True, is_primary=True)

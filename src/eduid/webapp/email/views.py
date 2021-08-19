@@ -258,14 +258,7 @@ def post_remove(user, email):
         current_app.logger.debug('Cannot remove last verified address: {}'.format(email))
         return error_response(message=EmailMsg.cannot_remove_last_verified)
 
-    try:
-        proofing_user.mail_addresses.remove(email)
-    except PrimaryElementViolation:
-        # Trying to remove the primary mail address, set next verified mail address as primary
-        other_verified = [address for address in verified_emails if address.email != email]
-        proofing_user.mail_addresses.set_primary(other_verified[0].email)
-        # Now remove the unwanted and previous primary mail address
-        proofing_user.mail_addresses.remove(email)
+    proofing_user.mail_addresses.remove_handling_primary(email)
 
     try:
         save_and_sync_user(proofing_user)

@@ -568,3 +568,29 @@ class PrimaryElementList(ElementList[ListElement], Generic[ListElement], ABC):
         self.elements = [this for this in self.elements if this != match]
 
         return None
+
+    def remove_handling_primary(self, key: ElementKey) -> None:
+        """ Remove an element from the list. If the element is primary, first promote
+        any other present verified element to primary in order to not get a PrimaryElementViolation.
+
+        TODO: This should perhaps be done in the regular `remove' method of PrimaryElementList,
+              but I did not want to change those semantics in this PR.
+        """
+        elem = self.find(key)
+        if not elem:
+            return None
+
+        # Assure the type checking system that elements are PrimaryElement
+        if not isinstance(elem, PrimaryElement):
+            return None
+
+        if elem.is_primary:
+            # Look for other verified elements
+            other_verified = [x for x in self.verified if x.key != key]
+            if other_verified:
+                # Promote the first other verified element found to primary
+                self.set_primary(other_verified[0].key)
+            else:
+                elem.is_primary = False
+
+        self.remove(key)
