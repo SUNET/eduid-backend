@@ -210,7 +210,7 @@ def verify_email(email_code: str) -> FluxData:
     if session.common.eppn and session.common.eppn != context.user.eppn:
         # Do not allow eppn change in an existing session
         current_app.logger.warning(
-            f'eppn in session {session.common.eppn} not same as in the state {context.user.eppn}. Removing session'
+            f'eppn in session {session.common.eppn} not same as in the state {context.user.eppn}. Removing session.'
         )
         session.invalidate()
         return error_response(message=ResetPwMsg.invalid_session)
