@@ -30,12 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import logging
-from typing import List, Optional, Union
+from typing import List, Optional
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.actions import Action
 from eduid.userdb.actions.action import ActionResultMFA, ActionResultThirdPartyMFA
 from eduid.userdb.credentials import U2F, Credential, FidoCredential, Webauthn
+from eduid.userdb.element import ElementKey
 from eduid.userdb.idp.user import IdPUser
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData, LoginContext
@@ -53,11 +54,12 @@ logger = logging.getLogger(__name__)
 def need_security_key(user: IdPUser, ticket: LoginContext) -> bool:
     """ Check if the user needs to use a Security Key for this very request, regardless of authnContextClassRef """
     tokens = user.credentials.filter(FidoCredential)
-    if not tokens.count:
+    if not tokens:
         logger.debug('User has no FIDO credentials, no extra requirement for MFA this session imposed')
         return False
 
     for cred_key in ticket.saml_data.credentials_used:
+        credential: Optional[Credential]
         if cred_key in ticket.saml_data.onetime_credentials:
             credential = ticket.saml_data.onetime_credentials[cred_key]
         else:
@@ -95,8 +97,8 @@ def add_actions(user: IdPUser, ticket: LoginContext, sso_session: SSOSession) ->
         require_mfa = True
 
     # Security Keys
-    u2f_tokens = user.credentials.filter(U2F).to_list()
-    webauthn_tokens = user.credentials.filter(Webauthn).to_list()
+    u2f_tokens: List[FidoCredential] = user.credentials.filter(U2F)
+    webauthn_tokens: List[FidoCredential] = user.credentials.filter(Webauthn)
     tokens = u2f_tokens + webauthn_tokens
 
     if not tokens and not require_mfa:
@@ -127,7 +129,7 @@ def add_actions(user: IdPUser, ticket: LoginContext, sso_session: SSOSession) ->
 def add_mfa_action(user: IdPUser, ticket: LoginContext) -> Optional[Action]:
     tokens = user.credentials.filter(FidoCredential)
 
-    logger.debug(f'User must authenticate with a token (has {tokens.count} token(s))')
+    logger.debug(f'User must authenticate with a token (has {len(tokens)} token(s))')
     return current_app.actions_db.add_action(
         user.eppn, action_type='mfa', preference=1, session=ticket.request_ref, params={}
     )

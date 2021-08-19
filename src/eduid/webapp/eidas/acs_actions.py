@@ -3,12 +3,12 @@
 
 from typing import Optional
 
-from flask import redirect, request
-from six.moves.urllib_parse import urlsplit, urlunsplit
+from flask import request
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.userdb import User
 from eduid.userdb.credentials.fido import FidoCredential
+from eduid.userdb.element import ElementKey
 from eduid.userdb.logs import MFATokenProofing, SwedenConnectProofing
 from eduid.userdb.proofing.state import NinProofingElement, NinProofingState
 from eduid.userdb.proofing.user import ProofingUser
@@ -17,7 +17,7 @@ from eduid.webapp.common.api.decorators import require_user
 from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid.webapp.common.api.helpers import verify_nin_for_user
 from eduid.webapp.common.api.messages import CommonMsg, redirect_with_msg
-from eduid.webapp.common.api.utils import sanitise_redirect_url, save_and_sync_user, urlappend
+from eduid.webapp.common.api.utils import sanitise_redirect_url, save_and_sync_user
 from eduid.webapp.common.authn.acs_enums import EidasAcsAction
 from eduid.webapp.common.authn.acs_registry import acs_action
 from eduid.webapp.common.authn.eduid_saml2 import get_authn_ctx
@@ -54,9 +54,10 @@ def token_verify_action(
         return redirect_with_msg(redirect_url, EidasMsg.reauthn_expired)
 
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    token_to_verify = proofing_user.credentials.filter(FidoCredential).find(
-        session.eidas.verify_token_action_credential_id
-    )
+    token_to_verify = proofing_user.credentials.find(session.eidas.verify_token_action_credential_id)
+    if not isinstance(token_to_verify, FidoCredential):
+        current_app.logger.error(f'Credential {token_to_verify} is not a FidoCredential')
+        return redirect_with_msg(redirect_url, EidasMsg.token_not_in_creds)
 
     # Check (again) if token was used to authenticate this session. The first time we checked,
     # we verified that the token was used very recently, but we have to allow for more time
@@ -65,13 +66,14 @@ def token_verify_action(
         return redirect_with_msg(redirect_url, EidasMsg.token_not_in_creds)
 
     # Verify asserted NIN for user if there are no verified NIN
-    if proofing_user.nins.verified.count == 0:
+    if len(proofing_user.nins.verified) == 0:
         nin_verify_action(session_info, authndata)
         user = current_app.central_userdb.get_user_by_eppn(user.eppn)
         proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-        token_to_verify = proofing_user.credentials.filter(FidoCredential).find(
-            session.eidas.verify_token_action_credential_id
-        )
+        token_to_verify = proofing_user.credentials.find(session.eidas.verify_token_action_credential_id)
+        # Keep type checking calm
+        if not token_to_verify:
+            raise RuntimeError(f'Credential {session.eidas.verify_token_action_credential_id} disappeared')
 
     # Check that a verified NIN is equal to the asserted attribute personalIdentityNumber
     _nin_list = get_saml_attribute(session_info, 'personalIdentityNumber')
@@ -80,8 +82,8 @@ def token_verify_action(
         raise ValueError("Missing NIN in SAML session info")
 
     asserted_nin = _nin_list[0]
-    user_nin = proofing_user.nins.verified.find(asserted_nin)
-    if not user_nin:
+    user_nin = proofing_user.nins.find(asserted_nin)
+    if not user_nin or not user_nin.is_verified:
         current_app.logger.error('Asserted NIN not matching user verified nins')
         current_app.logger.debug('Asserted NIN: {}'.format(asserted_nin))
         return redirect_with_msg(redirect_url, EidasMsg.nin_not_matching)
@@ -159,11 +161,15 @@ def nin_verify_action(session_info: SessionInfo, authndata: Optional[SP_AuthnReq
 
     asserted_nin = _nin_list[0]
 
-    if proofing_user.nins.verified.count != 0:
+    if not asserted_nin:
+        raise ValueError(f'Missing NIN in SAML session info: {_nin_list}')
+
+    if len(proofing_user.nins.verified) != 0:
         current_app.logger.error('User already has a verified NIN')
-        current_app.logger.debug(
-            'Primary NIN: {}. Asserted NIN: {}'.format(proofing_user.nins.primary.number, asserted_nin)
-        )
+        if proofing_user.nins.primary:
+            current_app.logger.debug(f'Primary NIN: {proofing_user.nins.primary.number}. Asserted NIN: {asserted_nin}')
+        else:
+            current_app.logger.debug(f'Primary NIN: {proofing_user.nins.primary}. Asserted NIN: {asserted_nin}')
         return redirect_with_msg(redirect_url, EidasMsg.nin_already_verified)
 
     # Create a proofing log
@@ -224,11 +230,12 @@ def nin_verify_BACKDOOR(user: User) -> WerkzeugResponse:
     if asserted_nin is None:
         raise RuntimeError("No backdoor without a NIN in a cookie")
 
-    if proofing_user.nins.verified.count != 0:
+    if len(proofing_user.nins.verified) != 0:
         current_app.logger.error('User already has a verified NIN')
-        current_app.logger.debug(
-            'Primary NIN: {}. Asserted NIN: {}'.format(proofing_user.nins.primary.number, asserted_nin)
-        )
+        if proofing_user.nins.primary:
+            current_app.logger.debug(f'Primary NIN: {proofing_user.nins.primary.number}. Asserted NIN: {asserted_nin}')
+        else:
+            current_app.logger.debug(f'Primary NIN: {proofing_user.nins.primary}. Asserted NIN: {asserted_nin}')
         return redirect_with_msg(redirect_url, ':ERROR:eidas.nin_already_verified')
 
     # Create a proofing log
@@ -297,8 +304,8 @@ def mfa_authentication_action(session_info: SessionInfo, authndata: SP_AuthnRequ
 
     # Check that a verified NIN is equal to the asserted attribute personalIdentityNumber
     asserted_nin = _personal_idns[0]
-    user_nin = user.nins.verified.find(asserted_nin)
-    if not user_nin:
+    user_nin = user.nins.find(asserted_nin)
+    if not user_nin or not user_nin.is_verified:
         current_app.logger.error('Asserted NIN not matching user verified nins')
         current_app.logger.debug('Asserted NIN: {}'.format(asserted_nin))
         current_app.stats.count(name='mfa_auth_nin_not_matching')

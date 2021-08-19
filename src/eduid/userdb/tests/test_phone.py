@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 import eduid.userdb.element
 import eduid.userdb.exceptions
+from eduid.userdb import MailAddress
 from eduid.userdb.element import Element
 from eduid.userdb.phone import PhoneNumber, PhoneNumberList
 
@@ -39,15 +40,17 @@ _four_dict = {
 
 class TestPhoneNumberList(unittest.TestCase):
     def setUp(self):
-        self.empty = PhoneNumberList([])
-        self.one = PhoneNumberList([_one_dict])
-        self.two = PhoneNumberList([_one_dict, _two_dict])
-        self.three = PhoneNumberList([_one_dict, _two_dict, _three_dict])
-        self.four = PhoneNumberList([_three_dict, _four_dict])
+        self.empty = PhoneNumberList()
+        self.one = PhoneNumberList.from_list_of_dicts([_one_dict])
+        self.two = PhoneNumberList.from_list_of_dicts([_one_dict, _two_dict])
+        self.three = PhoneNumberList.from_list_of_dicts([_one_dict, _two_dict, _three_dict])
+        self.four = PhoneNumberList.from_list_of_dicts([_three_dict, _four_dict])
 
     def test_init_bad_data(self):
-        with self.assertRaises(eduid.userdb.element.UserDBValueError):
-            PhoneNumberList('bad input data')
+        with pytest.raises(ValidationError):
+            PhoneNumberList(elements='bad input data')
+        with pytest.raises(ValidationError):
+            PhoneNumberList(elements=['bad input data'])
 
     def test_to_list(self):
         assert self.empty.to_list_of_dicts() == []
@@ -80,12 +83,16 @@ class TestPhoneNumberList(unittest.TestCase):
 
     def test_add_duplicate(self):
         dup = self.two.find(self.two.primary.number)
-        with self.assertRaises(eduid.userdb.element.DuplicateElementViolation):
+        with pytest.raises(ValidationError) as exc_info:
             self.two.add(dup)
+
+        assert exc_info.value.errors() == [
+            {'loc': ('elements',), 'msg': 'Duplicate element key: \'+46700000001\'', 'type': 'value_error'}
+        ]
 
     def test_add_phonenumber(self):
         third = self.three.find('+46700000003')
-        this = PhoneNumberList([_one_dict, _two_dict, third])
+        this = PhoneNumberList.from_list_of_dicts([_one_dict, _two_dict, third.to_dict()])
 
         expected = self.three.to_list_of_dicts()
         got = this.to_list_of_dicts()
@@ -98,15 +105,22 @@ class TestPhoneNumberList(unittest.TestCase):
             self.one.add(new)
 
     def test_add_wrong_type(self):
-        elemdict = {
-            'created_by': 'foo',
-        }
-        new = Element.from_dict(elemdict)
-        with self.assertRaises(eduid.userdb.element.UserDBValueError):
+        new = MailAddress(email='ft@example.org')
+        with pytest.raises(ValidationError) as exc_info:
             self.one.add(new)
+        assert exc_info.value.errors() == [
+            {
+                'loc': ('elements',),
+                'msg': "Value of type <class 'eduid.userdb.mail.MailAddress'> is not an "
+                "<class 'eduid.userdb.phone.PhoneNumber'>",
+                'type': 'type_error',
+            }
+        ]
 
     def test_remove(self):
-        now_two = self.three.remove('+46700000003')
+        self.three.remove('+46700000003')
+        now_two = self.three
+
         expected = self.two.to_list_of_dicts()
         got = now_two.to_list_of_dicts()
 
@@ -121,22 +135,22 @@ class TestPhoneNumberList(unittest.TestCase):
             self.two.remove(self.two.primary.number)
 
     def test_remove_primary_single(self):
-        now_empty = self.one.remove(self.one.primary.number)
-        self.assertEqual([], now_empty.to_list())
+        self.one.remove(self.one.primary.number)
+        now_empty = self.one
+
+        assert now_empty.to_list() == []
 
     def test_remove_all_mix(self):
-        verified = self.three.verified.to_list()
-        if verified:
-            for mobile in verified:
-                if not mobile.is_primary:
-                    self.three.remove(mobile.number)
-            self.three.remove(self.three.primary.number)
+        # First, remove all numbers except the primary
         for mobile in self.three.to_list():
-            self.three.remove(mobile.number)
-        self.assertEqual([], self.three.to_list())
+            if not mobile.is_primary:
+                self.three.remove(mobile.key)
+        # Now, remove the primary number (which can't be removed until it is the last element)
+        self.three.remove(self.three.primary.key)
+        assert self.three.to_list() == []
 
     def test_remove_all_no_verified(self):
-        verified = self.four.verified.to_list()
+        verified = self.four.verified
         if verified:
             for mobile in verified:
                 if not mobile.is_primary:
@@ -147,13 +161,14 @@ class TestPhoneNumberList(unittest.TestCase):
         self.assertEqual([], self.four.to_list())
 
     def test_unverify_all(self):
-        verified = self.three.verified.to_list()
-        if verified:
-            self.three.primary.is_primary = False
-            for mobile in verified:
-                if not mobile.is_primary:
-                    mobile.is_verified = False
-        self.assertTrue(all([not x.is_verified for x in self.three.to_list()]))
+        verified = self.three.verified
+
+        for mobile in verified:
+            mobile.is_primary = False
+            mobile.is_verified = False
+
+        verified_now = self.three.verified
+        assert verified_now == []
 
     def test_primary(self):
         match = self.one.primary
@@ -164,23 +179,23 @@ class TestPhoneNumberList(unittest.TestCase):
 
     def test_set_primary_to_same(self):
         match = self.one.primary
-        self.one.primary = match.number
+        self.one.set_primary(match.number)
 
         match = self.two.primary
-        self.two.primary = match.number
+        self.two.set_primary(match.number)
 
     def test_set_unknown_as_primary(self):
         with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
-            self.one.primary = '+46709999999'
+            self.one.set_primary('+46709999999')
 
     def test_set_unverified_as_primary(self):
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
-            self.three.primary = '+46700000003'
+            self.three.set_primary('+46700000003')
 
     def test_change_primary(self):
         match = self.two.primary
         self.assertEqual(match.number, '+46700000001')
-        self.two.primary = '+46700000002'
+        self.two.set_primary('+46700000002')
         updated = self.two.primary
         self.assertEqual(updated.number, '+46700000002')
 
@@ -190,21 +205,21 @@ class TestPhoneNumberList(unittest.TestCase):
         one['primary'] = True
         two['primary'] = True
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
-            PhoneNumberList([one, two])
+            PhoneNumberList.from_list_of_dicts([one, two])
 
     def test_unverified_primary(self):
         one = copy.deepcopy(_one_dict)
         one['verified'] = False
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
-            PhoneNumberList([one])
+            PhoneNumberList.from_list_of_dicts([one])
 
 
 class TestPhoneNumber(unittest.TestCase):
     def setUp(self):
-        self.empty = PhoneNumberList([])
-        self.one = PhoneNumberList([_one_dict])
-        self.two = PhoneNumberList([_one_dict, _two_dict])
-        self.three = PhoneNumberList([_one_dict, _two_dict, _three_dict])
+        self.empty = PhoneNumberList()
+        self.one = PhoneNumberList.from_list_of_dicts([_one_dict])
+        self.two = PhoneNumberList.from_list_of_dicts([_one_dict, _two_dict])
+        self.three = PhoneNumberList.from_list_of_dicts([_one_dict, _two_dict, _three_dict])
 
     def test_key(self):
         """
@@ -229,7 +244,7 @@ class TestPhoneNumber(unittest.TestCase):
         """
         for this in [self.one, self.two, self.three]:
             this_dict = this.to_list_of_dicts()
-            self.assertEqual(PhoneNumberList(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
+            self.assertEqual(PhoneNumberList.from_list_of_dicts(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
 
     def test_unknown_input_data(self):
         one = copy.deepcopy(_one_dict)

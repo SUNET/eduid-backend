@@ -18,16 +18,16 @@ _three_dict = {'id': '55002741d00690878ae9b602', 'salt': 'thirdPasswordElement',
 
 class TestPassword(TestCase):
     def setUp(self):
-        self.empty = CredentialList([])
-        self.one = CredentialList([_one_dict])
-        self.two = CredentialList([_one_dict, _two_dict])
-        self.three = CredentialList([_one_dict, _two_dict, _three_dict])
+        self.empty = CredentialList()
+        self.one = CredentialList.from_list_of_dicts([_one_dict])
+        self.two = CredentialList.from_list_of_dicts([_one_dict, _two_dict])
+        self.three = CredentialList.from_list_of_dicts([_one_dict, _two_dict, _three_dict])
 
     def test_key(self):
         """
         Test that the 'key' property (used by CredentialList) works for the Password.
         """
-        password = self.one.find(ObjectId('55002741d00690878ae9b600'))
+        password = self.one.find(str(ObjectId('55002741d00690878ae9b600')))
         self.assertEqual(password.key, password.credential_id)
 
     def test_parse_cycle(self):
@@ -36,13 +36,13 @@ class TestPassword(TestCase):
         """
         for this in [self.one, self.two, self.three]:
             this_dict = this.to_list_of_dicts()
-            self.assertEqual(CredentialList(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
+            self.assertEqual(CredentialList.from_list_of_dicts(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
 
     def test_created_by(self):
-        this = self.three.find(ObjectId('55002741d00690878ae9b600'))
+        this = self.three.find(str(ObjectId('55002741d00690878ae9b600')))
         this.created_by = 'unit test'
         self.assertEqual(this.created_by, 'unit test')
 
     def test_created_ts(self):
-        this = self.three.find(ObjectId('55002741d00690878ae9b600'))
+        this = self.three.find(str(ObjectId('55002741d00690878ae9b600')))
         self.assertIsInstance(this.created_ts, datetime.datetime)

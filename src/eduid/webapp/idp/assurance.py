@@ -47,7 +47,7 @@ from eduid.userdb.credentials import (
     FidoCredential,
     Password,
 )
-from eduid.userdb.credentials.base import CredentialKey
+from eduid.userdb.element import ElementKey
 from eduid.userdb.idp import IdPUser
 from eduid.webapp.common.session.logindata import LoginContext
 from eduid.webapp.common.session.namespaces import OnetimeCredential, OnetimeCredType
@@ -147,7 +147,7 @@ class AuthnState(object):
             else:
                 raise ValueError(f'Unrecognised used credential: {this}')
 
-        if user.nins.verified.to_list():
+        if user.nins.verified:
             self.is_swamid_al2 = True
 
     def _gather_credentials(self, sso_session: SSOSession, ticket: LoginContext, user: IdPUser) -> List[UsedCredential]:
@@ -157,7 +157,7 @@ class AuthnState(object):
         Add all credentials used with this very request and then, unless the request has forceAuthn set,
         add credentials from the SSO session.
         """
-        _used_credentials: Dict[CredentialKey, UsedCredential] = {}
+        _used_credentials: Dict[ElementKey, UsedCredential] = {}
 
         # Add all credentials used while the IdP processed this very request
         for key, ts in ticket.saml_data.credentials_used.items():
@@ -198,14 +198,14 @@ class AuthnState(object):
         # External mfa check
         if sso_session.external_mfa is not None:
             logger.debug(f'External MFA (in SSO session) issuer: {sso_session.external_mfa.issuer}')
-            credential = OnetimeCredential(
+            _otc = OnetimeCredential(
                 authn_context=sso_session.external_mfa.authn_context,
                 issuer=sso_session.external_mfa.issuer,
                 timestamp=sso_session.external_mfa.timestamp,
                 type=OnetimeCredType.external_mfa,
             )
-            cred = UsedCredential(credential=credential, ts=sso_session.authn_timestamp, source=UsedWhere.SSO)
-            _used_credentials[CredentialKey('SSO_external_MFA')] = cred
+            cred = UsedCredential(credential=_otc, ts=sso_session.authn_timestamp, source=UsedWhere.SSO)
+            _used_credentials[ElementKey('SSO_external_MFA')] = cred
 
         _used_sso = [x for x in _used_credentials.values() if x.source == UsedWhere.SSO]
         logger.debug(f'Number of credentials inherited from the SSO session: {len(_used_sso)}')
@@ -250,8 +250,6 @@ def response_authn(ticket: LoginContext, user: IdPUser, sso_session: SSOSession)
     """
     Figure out what AuthnContext to assert in a SAML response,
     given the RequestedAuthnContext from the SAML request.
-
-    :param req_authn_ctx: Requested authn context class
     """
     req_authn_ctx = get_requested_authn_context(ticket)
 

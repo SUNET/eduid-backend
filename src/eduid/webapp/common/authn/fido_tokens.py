@@ -44,7 +44,7 @@ from fido2.webauthn import PublicKeyCredentialRpEntity
 from pydantic import BaseModel
 
 from eduid.userdb.credentials import U2F, Webauthn
-from eduid.userdb.credentials.base import CredentialKey
+from eduid.userdb.element import ElementKey
 from eduid.userdb.user import User
 from eduid.webapp.common.session.namespaces import MfaAction, WebauthnState
 
@@ -64,12 +64,12 @@ class FidoCred(BaseModel):
     webauthn: Any
 
 
-def _get_user_credentials_u2f(user: User) -> Dict[CredentialKey, FidoCred]:
+def _get_user_credentials_u2f(user: User) -> Dict[ElementKey, FidoCred]:
     """
     Get the U2F credentials for the user
     """
-    res: Dict[CredentialKey, FidoCred] = {}
-    for this in user.credentials.filter(U2F).to_list():
+    res: Dict[ElementKey, FidoCred] = {}
+    for this in user.credentials.filter(U2F):
         acd = AttestedCredentialData.from_ctap1(websafe_decode(this.keyhandle), websafe_decode(this.public_key))
         res[this.key] = FidoCred(
             app_id=this.app_id,
@@ -79,12 +79,12 @@ def _get_user_credentials_u2f(user: User) -> Dict[CredentialKey, FidoCred]:
     return res
 
 
-def _get_user_credentials_webauthn(user: User) -> Dict[CredentialKey, FidoCred]:
+def _get_user_credentials_webauthn(user: User) -> Dict[ElementKey, FidoCred]:
     """
     Get the Webauthn credentials for the user
     """
-    res: Dict[CredentialKey, FidoCred] = {}
-    for this in user.credentials.filter(Webauthn).to_list():
+    res: Dict[ElementKey, FidoCred] = {}
+    for this in user.credentials.filter(Webauthn):
         cred_data = base64.urlsafe_b64decode(this.credential_data.encode('ascii'))
         credential_data, rest = AttestedCredentialData.unpack_from(cred_data)
         version = 'webauthn'
@@ -96,7 +96,7 @@ def _get_user_credentials_webauthn(user: User) -> Dict[CredentialKey, FidoCred]:
     return res
 
 
-def get_user_credentials(user: User) -> Dict[CredentialKey, FidoCred]:
+def get_user_credentials(user: User) -> Dict[ElementKey, FidoCred]:
     """
     Get U2F and Webauthn credentials for the user
     """
@@ -105,7 +105,7 @@ def get_user_credentials(user: User) -> Dict[CredentialKey, FidoCred]:
     return res
 
 
-def _get_fido2server(credentials: Dict[CredentialKey, FidoCred], fido2rp: PublicKeyCredentialRpEntity) -> Fido2Server:
+def _get_fido2server(credentials: Dict[ElementKey, FidoCred], fido2rp: PublicKeyCredentialRpEntity) -> Fido2Server:
     # See if any of the credentials is a legacy U2F credential with an app-id
     # (assume all app-ids are the same - authenticating with a mix of different
     # app-ids isn't supported in current Webauthn)
@@ -124,10 +124,8 @@ def start_token_verification(user: User, fido2_rp_id: str, state: MfaAction) -> 
     Begin authentication process based on the hardware tokens registered by the user.
     """
     credential_data = get_user_credentials(user)
-    logger.debug(f'Extra debug: U2F credentials for user: {[str(x) for x in user.credentials.filter(U2F).to_list()]}')
-    logger.debug(
-        f'Extra debug: Webauthn credentials for user: {[str(x) for x in user.credentials.filter(Webauthn).to_list()]}'
-    )
+    logger.debug(f'Extra debug: U2F credentials for user: {[str(x) for x in user.credentials.filter(U2F)]}')
+    logger.debug(f'Extra debug: Webauthn credentials for user: {[str(x) for x in user.credentials.filter(Webauthn)]}')
     logger.debug(f'FIDO credentials for user {user}:\n{pprint.pformat(list(credential_data.keys()))}')
 
     webauthn_credentials = [v.webauthn for v in credential_data.values()]
@@ -159,7 +157,7 @@ class WebauthnResult(BaseModel):
     user_present: bool
     user_verified: bool
     counter: int
-    credential_key: CredentialKey
+    credential_key: ElementKey
 
 
 def verify_webauthn(user: User, request_dict: Dict[str, Any], rp_id: str, state: MfaAction) -> WebauthnResult:

@@ -37,7 +37,7 @@ from typing import Optional
 from flask import Blueprint, abort, request
 
 from eduid.userdb import User
-from eduid.userdb.element import PrimaryElementViolation, UserDBValueError
+from eduid.userdb.element import ElementKey, PrimaryElementViolation, UserDBValueError
 from eduid.userdb.exceptions import DocumentDoesNotExist, UserOutOfSync
 from eduid.userdb.phone import PhoneNumber
 from eduid.userdb.proofing import ProofingUser
@@ -120,7 +120,7 @@ def post_primary(user: User, number: str) -> FluxData:
     current_app.logger.info('Trying to save phone number as primary')
     current_app.logger.debug(f'Phone number: {number}')
 
-    phone_element: Optional[PhoneNumber] = proofing_user.phone_numbers.find(number)
+    phone_element = proofing_user.phone_numbers.find(number)
     if not phone_element:
         current_app.logger.error('Phone number not found, could not save it as primary')
         return error_response(message=PhoneMsg.unknown_phone)
@@ -129,7 +129,7 @@ def post_primary(user: User, number: str) -> FluxData:
         current_app.logger.error('Could not save phone number as primary, phone number unconfirmed')
         return error_response(message=PhoneMsg.unconfirmed_primary)
 
-    proofing_user.phone_numbers.primary = phone_element.number
+    proofing_user.phone_numbers.set_primary(phone_element.key)
     try:
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
@@ -201,17 +201,12 @@ def post_remove(user: User, number: str) -> FluxData:
     current_app.logger.info('Trying to remove phone number')
     current_app.logger.debug(f'Phone number: {number}')
 
-    try:
-        proofing_user.phone_numbers.remove(number)
-    except PrimaryElementViolation:
-        current_app.logger.info('Removing primary phone number, trying to set another phone number as primary')
-        verified = proofing_user.phone_numbers.verified.to_list()
-        new_index = 1 if verified[0].number == number else 0
-        proofing_user.phone_numbers.primary = verified[new_index].number
-        proofing_user.phone_numbers.remove(number)
-    except UserDBValueError:
+    phone = proofing_user.phone_numbers.find(number)
+    if not phone:
         current_app.logger.error('Tried to remove a non existing phone number')
         return error_response(message=PhoneMsg.unknown_phone)
+
+    proofing_user.phone_numbers.remove_handling_primary(phone.key)
 
     try:
         save_and_sync_user(proofing_user)

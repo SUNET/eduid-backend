@@ -43,11 +43,7 @@ from eduid.common.config.base import EduidEnvironment
 from eduid.common.utils import urlappend
 from eduid.userdb.exceptions import DocumentDoesNotExist, UserDoesNotExist
 from eduid.userdb.logs import MailAddressProofing, PhoneNumberProofing
-from eduid.userdb.reset_password import (
-    ResetPasswordEmailAndPhoneState,
-    ResetPasswordEmailState,
-    ResetPasswordUser,
-)
+from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState, ResetPasswordUser
 from eduid.userdb.reset_password.element import CodeElement
 from eduid.userdb.user import User
 from eduid.webapp.common.api.exceptions import MailTaskFailed, ThrottledException
@@ -218,7 +214,7 @@ def send_password_reset_mail(email_address: str) -> None:
     # Send email
     text_template = 'reset_password_email.txt.jinja2'
     html_template = 'reset_password_email.html.jinja2'
-    to_addresses = [address.email for address in user.mail_addresses.verified.to_list()]
+    to_addresses = [address.email for address in user.mail_addresses.verified]
     pwreset_timeout = current_app.conf.email_code_timeout // 60 // 60  # seconds to hours
     # We must send the user to an url that does not correspond to a flask view,
     # but to a js bundle (i.e. a flask view in a *different* app)
@@ -270,20 +266,22 @@ def unverify_user(user: ResetPasswordUser) -> None:
     Unverify the users verified information (phone numbers and NIN)
     """
     # Phone numbers
-    verified_phone_numbers = user.phone_numbers.verified.to_list()
+    verified_phone_numbers = user.phone_numbers.verified
     if verified_phone_numbers:
         current_app.logger.info(f'Unverifying phone numbers for user {user}')
-        user.phone_numbers.primary.is_primary = False
+        if user.phone_numbers.primary:
+            user.phone_numbers.primary.is_primary = False
         for phone_number in verified_phone_numbers:
             phone_number.is_verified = False
             current_app.logger.info('Phone number unverified')
             current_app.logger.debug(f'Phone number: {phone_number.number}')
             current_app.stats.count(name='unverified_phone', value=1)
     # NINs
-    verified_nins = user.nins.verified.to_list()
+    verified_nins = user.nins.verified
     if verified_nins:
         current_app.logger.info(f'Unverifying nins for user {user}')
-        user.nins.primary.is_primary = False
+        if user.nins.primary:
+            user.nins.primary.is_primary = False
         for nin in verified_nins:
             nin.is_verified = False
             current_app.logger.info('NIN unverified')
@@ -358,9 +356,9 @@ def get_extra_security_alternatives(user: User) -> dict:
     """
     alternatives: Dict[str, Any] = {}
 
-    if user.phone_numbers.verified.count:
+    if len(user.phone_numbers.verified):
         verified_phone_numbers = [
-            {'number': item.number, 'index': n} for n, item in enumerate(user.phone_numbers.verified.to_list())
+            {'number': item.number, 'index': n} for n, item in enumerate(user.phone_numbers.verified)
         ]
         alternatives['phone_numbers'] = verified_phone_numbers
 

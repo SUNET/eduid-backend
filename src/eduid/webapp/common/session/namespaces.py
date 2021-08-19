@@ -14,10 +14,10 @@ from pydantic import BaseModel, Field
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.actions import Action
 from eduid.userdb.credentials import Credential
-from eduid.userdb.credentials.base import CredentialKey
 
 __author__ = 'ft'
 
+from eduid.userdb.element import ElementKey
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
 
 logger = logging.getLogger(__name__)
@@ -116,14 +116,18 @@ class OnetimeCredType(str, Enum):
     external_mfa = 'ext_mfa'
 
 
-class OnetimeCredential(BaseModel):
-    key: CredentialKey = Field(default_factory=lambda: CredentialKey(str(uuid4())))
+class OnetimeCredential(Credential):
+    credential_id: str = Field(default_factory=lambda: str(uuid4()))
     type: OnetimeCredType
 
     # External MFA auth parameters
     issuer: str
     authn_context: str
     timestamp: datetime
+
+    @property
+    def key(self) -> ElementKey:
+        return ElementKey(self.credential_id)
 
 
 class IdP_PendingRequest(BaseModel):
@@ -132,8 +136,8 @@ class IdP_PendingRequest(BaseModel):
     relay_state: Optional[str]
     template_show_msg: Optional[str]  # set when the template version of the idp should show a message to the user
     # Credentials used while authenticating _this SAML request_. Not ones inherited from SSO.
-    credentials_used: Dict[CredentialKey, datetime] = Field(default={})
-    onetime_credentials: Dict[CredentialKey, OnetimeCredential] = Field(default={})
+    credentials_used: Dict[ElementKey, datetime] = Field(default={})
+    onetime_credentials: Dict[ElementKey, OnetimeCredential] = Field(default={})
 
 
 class IdP_Namespace(TimestampedNS):
@@ -154,7 +158,7 @@ class IdP_Namespace(TimestampedNS):
 class SP_AuthnRequest(BaseModel):
     redirect_url: str
     post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction]] = None
-    credentials_used: List[CredentialKey] = Field(default=[])
+    credentials_used: List[ElementKey] = Field(default=[])
     created_ts: datetime = Field(default_factory=utc_now)
     authn_instant: Optional[datetime] = None
 
@@ -176,7 +180,7 @@ class SPAuthnData(BaseModel):
 
 class Eidas_Namespace(SessionNSBase):
 
-    verify_token_action_credential_id: Optional[CredentialKey] = None
+    verify_token_action_credential_id: Optional[ElementKey] = None
     sp: SPAuthnData = Field(default=SPAuthnData())
 
 

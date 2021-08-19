@@ -7,8 +7,8 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.userdb import User
-from eduid.userdb.credentials.base import CredentialKey
 from eduid.userdb.credentials.fido import FidoCredential
+from eduid.userdb.element import ElementKey
 from eduid.webapp.authn.helpers import credential_used_to_log_in
 from eduid.webapp.common.api.decorators import MarshalWith, require_user
 from eduid.webapp.common.api.helpers import check_magic_cookie
@@ -39,13 +39,14 @@ def index(user) -> FluxData:
 
 @eidas_views.route('/verify-token/<credential_id>', methods=['GET'])
 @require_user
-def verify_token(user: User, credential_id: CredentialKey) -> Union[FluxData, WerkzeugResponse]:
+def verify_token(user: User, credential_id: ElementKey) -> Union[FluxData, WerkzeugResponse]:
     current_app.logger.debug(f'verify-token called with credential_id: {credential_id}')
     redirect_url = current_app.conf.token_verify_redirect_url
 
     # Check if requested key id is a mfa token and if the user used that to log in
-    token_to_verify = user.credentials.filter(FidoCredential).find(credential_id)
-    if not token_to_verify:
+    token_to_verify = user.credentials.find(credential_id)
+    if not isinstance(token_to_verify, FidoCredential):
+        current_app.logger.error(f'Credential {token_to_verify} is not a FidoCredential')
         return redirect_with_msg(redirect_url, EidasMsg.token_not_found)
 
     # Check if the credential was just now used to log in

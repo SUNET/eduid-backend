@@ -130,6 +130,10 @@ def send_new_verification_method_mail(user: User) -> None:
     site_url = current_app.conf.eduid_site_url
     subject = _('%(site_name)s account verification', site_name=site_name)
 
+    if not user.mail_addresses.primary:
+        current_app.logger.info('User has no primary e-mail address, can\'t send email requesting other vetting method')
+        return None
+
     email_address = user.mail_addresses.primary.email
 
     context = {

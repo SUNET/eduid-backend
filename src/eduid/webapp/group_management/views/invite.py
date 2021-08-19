@@ -36,6 +36,7 @@ from flask import Blueprint
 from pymongo.errors import DuplicateKeyError
 
 from eduid.userdb import User
+from eduid.userdb.element import ElementKey
 from eduid.userdb.exceptions import EduIDDBError
 from eduid.userdb.group_management import GroupInviteState, GroupRole
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
@@ -105,7 +106,7 @@ def create_invite(user: User, group_identifier: UUID, email_address: str, role: 
     )
 
     # Short circuit self inviting (owner can invite self as member)
-    if email_address in [item.email for item in user.mail_addresses.verified.to_list()]:
+    if email_address in [item.email for item in user.mail_addresses.verified]:
         current_app.logger.info(f'User is inviting self to group {group_identifier} as {role}')
         if role is GroupRole.OWNER:
             current_app.logger.info(f'User already owner of group {group_identifier}, aborting.')

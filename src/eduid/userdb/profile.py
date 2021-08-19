@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Type
 
-from eduid.userdb.element import DuplicateElementViolation, Element, ElementList
-from eduid.userdb.exceptions import UserDBValueError
+from eduid.userdb.element import Element, ElementKey, ElementList
 
 __author__ = 'lundberg'
 
@@ -16,12 +15,12 @@ class Profile(Element):
     profile_data: Mapping[str, Any]
 
     @property
-    def key(self) -> Optional[str]:
+    def key(self) -> ElementKey:
         """ Return the element that is used as key in a ElementList """
-        return self.owner
+        return ElementKey(self.owner)
 
 
-class ProfileList(ElementList):
+class ProfileList(ElementList[Profile]):
     """
     Hold a list of Profile instance.
 
@@ -30,21 +29,6 @@ class ProfileList(ElementList):
     owner with the same name.
     """
 
-    def __init__(self, profiles: List[Profile]):
-        super().__init__(elements=list())
-
-        for profile in profiles:
-            if not isinstance(profile, Profile):
-                raise UserDBValueError(f"Instance not of type 'Profile': {repr(profile)}")
-
-            if self.find(profile.key):
-                raise DuplicateElementViolation(f'Profile "{profile.key}" already in list')
-
-            self.add(profile)
-
     @classmethod
-    def from_list_of_dicts(cls, items: List[Dict[str, Any]]) -> ProfileList:
-        profiles = list()
-        for item in items:
-            profiles.append(Profile.from_dict(item))
-        return cls(profiles=profiles)
+    def from_list_of_dicts(cls: Type[ProfileList], items: List[Dict[str, Any]]) -> ProfileList:
+        return cls(elements=[Profile.from_dict(this) for this in items])

@@ -75,17 +75,17 @@ class User(object):
     surname: str = ''
     subject: Optional[SubjectType] = None
     language: str = 'sv'
-    mail_addresses: MailAddressList = field(default_factory=lambda: MailAddressList([]))
-    phone_numbers: PhoneNumberList = field(default_factory=lambda: PhoneNumberList([]))
-    credentials: CredentialList = field(default_factory=lambda: CredentialList([]))
-    nins: NinList = field(default_factory=lambda: NinList([]))
+    mail_addresses: MailAddressList = field(default_factory=MailAddressList)
+    phone_numbers: PhoneNumberList = field(default_factory=PhoneNumberList)
+    credentials: CredentialList = field(default_factory=CredentialList)
+    nins: NinList = field(default_factory=NinList)
     modified_ts: Optional[datetime] = None
     entitlements: List[str] = field(default_factory=list)
-    tou: ToUList = field(default_factory=lambda: ToUList([]))
+    tou: ToUList = field(default_factory=ToUList)
     terminated: Optional[datetime] = None
-    locked_identity: LockedIdentityList = field(default_factory=lambda: LockedIdentityList([]))
+    locked_identity: LockedIdentityList = field(default_factory=LockedIdentityList)
     orcid: Optional[Orcid] = None
-    profiles: ProfileList = field(default_factory=lambda: ProfileList([]))
+    profiles: ProfileList = field(default_factory=ProfileList)
     letter_proofing_data: Optional[dict] = None
     revoked_ts: Optional[datetime] = None
 
@@ -150,7 +150,7 @@ class User(object):
         data_in['orcid'] = cls._parse_orcid(data_in)
         data_in['profiles'] = cls._parse_profiles(data_in)
 
-        data_in['credentials'] = CredentialList(data_in.pop('passwords', []))
+        data_in['credentials'] = CredentialList.from_list_of_dicts(data_in.pop('passwords', []))
         # generic (known) attributes
         if 'eduPersonPrincipalName' in data_in:
             # Mandatory, let it raise a TypeError if missing
@@ -254,7 +254,7 @@ class User(object):
         Derived classes can override this method to check that the provided data
         is enough for their purposes, or to deal specially with particular bits of it.
 
-        In case of problems they sould raise whatever Exception is appropriate.
+        In case of problems they should raise whatever Exception is appropriate.
         """
         if 'passwords' not in data:
             raise UserHasNotCompletedSignup(
@@ -291,7 +291,7 @@ class User(object):
                 # A single mail address was not set as Primary until it was verified
                 _mail_addresses[0]['primary'] = True
 
-        return MailAddressList(_mail_addresses)
+        return MailAddressList.from_list_of_dicts(_mail_addresses)
 
     @classmethod
     def _parse_phone_numbers(cls, data: Dict[str, Any]) -> PhoneNumberList:
@@ -322,7 +322,7 @@ class User(object):
 
         _phones = data.pop('phone', [])
 
-        return PhoneNumberList(_phones)
+        return PhoneNumberList.from_list_of_dicts(_phones)
 
     @classmethod
     def _parse_nins(cls, data: Dict[str, Any]) -> NinList:
@@ -337,9 +337,7 @@ class User(object):
                 if isinstance(this, str):
                     # XXX lookup NIN in eduid-dashboards verifications to make sure it is verified somehow?
                     _primary = not _nins
-                    _nins.append(
-                        {'number': this, 'primary': _primary, 'verified': True,}
-                    )
+                    _nins.append({'number': this, 'primary': _primary, 'verified': True})
                 elif isinstance(this, dict):
                     _nins.append(
                         {
@@ -352,7 +350,7 @@ class User(object):
                         raise UserDBValueError('Old-style NIN-as-dict has unknown data')
                 else:
                     raise UserDBValueError('Old-style NIN is not a string or dict')
-        return NinList(_nins)
+        return NinList.from_list_of_dicts(_nins)
 
     @classmethod
     def _parse_tous(cls, data: Dict[str, Any]) -> ToUList:
@@ -360,7 +358,7 @@ class User(object):
         Parse the ToU acceptance events.
         """
         _tou = data.pop('tou', [])
-        return ToUList(_tou)
+        return ToUList.from_list_of_dicts(_tou)
 
     @classmethod
     def _parse_locked_identity(cls, data: Dict[str, Any]) -> LockedIdentityList:
@@ -368,7 +366,7 @@ class User(object):
         Parse the LockedIdentity elements.
         """
         _locked_identity = data.pop('locked_identity', [])
-        return LockedIdentityList(_locked_identity)
+        return LockedIdentityList.from_list_of_dicts(_locked_identity)
 
     @classmethod
     def _parse_orcid(cls, data: Dict[str, Any]) -> Optional[Orcid]:

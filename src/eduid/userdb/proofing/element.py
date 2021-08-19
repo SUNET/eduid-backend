@@ -113,7 +113,7 @@ class EmailProofingElement(ProofingElement):
 
     email: str
 
-    @validator('email')
+    @validator('email', pre=True)
     def validate_email(cls, v):
         if not isinstance(v, str):
             ValueError('must be a string')

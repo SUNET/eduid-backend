@@ -69,7 +69,7 @@ def check_password(
     if vccs is None:
         vccs = get_vccs_client(vccs_url)
 
-    for user_password in user.credentials.filter(Password).to_list():
+    for user_password in user.credentials.filter(Password):
         factor = VCCSPasswordFactor(password, credential_id=str(user_password.key), salt=user_password.salt)
         try:
             if vccs.authenticate(str(user.user_id), [factor]):
@@ -200,7 +200,7 @@ def change_password(
 
     # Revoke the old password
     vccs.revoke_credentials(str(user.user_id), [revoke_factor])
-    user.credentials.remove(checked_password.credential_id)
+    user.credentials.remove(checked_password.key)
     logger.info('Revoked credential {} for user {}'.format(revoke_factor.credential_id, user))
 
     # Add new password to user
@@ -242,7 +242,7 @@ def add_credentials(
     # remember if an old password was supplied or not, without keeping it in
     # memory longer than we have to
     old_password_supplied = bool(old_password)
-    if user.credentials.filter(Password).count > 0 and old_password_supplied:
+    if len(user.credentials.filter(Password)) > 0 and old_password_supplied:
         assert old_password is not None  # mypy doesn't get that old_password can't be None here
         # Find the old credential to revoke
         checked_password = check_password(old_password, user, vccs_url=vccs_url, vccs=vccs)
@@ -258,18 +258,16 @@ def add_credentials(
     if checked_password:
         old_factor = VCCSRevokeFactor(str(checked_password.credential_id), 'changing password', reference=source)
         vccs.revoke_credentials(str(user.user_id), [old_factor])
-        user.credentials.remove(checked_password.credential_id)
+        user.credentials.remove(checked_password.key)
         logger.debug("Revoked old credential {!s} (user {!s})".format(old_factor.credential_id, user))
 
     if not old_password_supplied:
         # XXX: Revoke all current credentials on password reset for now
         revoked = []
-        for password in user.credentials.filter(Password).to_list():
+        for password in user.credentials.filter(Password):
             revoked.append(VCCSRevokeFactor(str(password.credential_id), 'reset password', reference=source))
-            logger.debug(
-                "Revoking old credential (password reset) " "{!s} (user {!s})".format(password.credential_id, user)
-            )
-            user.credentials.remove(password.credential_id)
+            logger.debug(f'Revoking old credential (password reset) {password.credential_id} (user {user})')
+            user.credentials.remove(password.key)
         if revoked:
             try:
                 vccs.revoke_credentials(str(user.user_id), revoked)
@@ -277,7 +275,7 @@ def add_credentials(
                 # Password already revoked
                 # TODO: vccs backend should be changed to return something more informative than
                 # TODO: VCCSClientHTTPError when the credential is already revoked or just return success.
-                logger.warning("VCCS failed to revoke all passwords for " "user {!s}".format(user))
+                logger.warning(f'VCCS failed to revoke all passwords for user {user}')
 
     _new_cred = Password(credential_id=new_factor.credential_id, salt=new_factor.salt, created_by=source)
     user.credentials.add(_new_cred)
@@ -300,7 +298,7 @@ def revoke_passwords(
         vccs = get_vccs_client(vccs_url)
 
     revoke_factors = []
-    for password in user.credentials.filter(Password).to_list():
+    for password in user.credentials.filter(Password):
         credential_id = str(password.key)
         factor = VCCSRevokeFactor(credential_id, reason, reference=application)
         logger.debug(f'Revoking credential {credential_id} for user {user} with reason "{reason}"')
@@ -326,8 +324,8 @@ def revoke_all_credentials(
     if vccs is None:
         vccs = get_vccs_client(vccs_url)
     to_revoke = []
-    for password in user.credentials.filter(Password).to_list():
-        credential_id = str(password.credential_id)
+    for password in user.credentials.filter(Password):
+        credential_id = password.credential_id
         factor = VCCSRevokeFactor(credential_id, 'subscriber requested termination', reference=source)
         logger.debug("Revoked old credential (account termination) {!s} (user {!s})".format(credential_id, user))
         to_revoke.append(factor)

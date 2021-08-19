@@ -159,6 +159,7 @@ class IdPTests(EduidAPITestCase):
                 return LoginResult(url=redirect_loc, reached_state=LoginState.S1_LOGIN_FORM, response=resp)
 
             form_data = self._extract_form_inputs(resp.data.decode('utf-8'))
+            assert self.test_user.mail_addresses.primary  # please mypy
             form_data['username'] = self.test_user.mail_addresses.primary.email
             form_data['password'] = 'Jenka'
             if 'ref' not in form_data:

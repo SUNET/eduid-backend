@@ -6,6 +6,7 @@ from typing import List, Optional, Type, Union
 from flask import current_app, render_template, request
 
 from eduid.common.config.base import MagicCookieMixin
+from eduid.userdb.element import ElementKey
 from eduid.userdb.logs.element import ProofingLogElement
 from eduid.userdb.nin import Nin
 from eduid.userdb.proofing import ProofingUser
@@ -126,16 +127,18 @@ def verify_nin_for_user(
         proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     nin_element = proofing_user.nins.find(proofing_state.nin.number)
     if not nin_element:
-        nin_element = Nin.from_dict(
-            dict(
-                number=proofing_state.nin.number,
-                created_by=proofing_state.nin.created_by,
-                created_ts=proofing_state.nin.created_ts,
-                verified=False,
-                primary=False,
-            )
+        nin_element = Nin(
+            number=proofing_state.nin.number,
+            created_by=proofing_state.nin.created_by,
+            created_ts=proofing_state.nin.created_ts,
+            is_verified=False,
+            is_primary=False,
         )
         proofing_user.nins.add(nin_element)
+        # What is added to the list of nins is a copy of the element, so in order
+        # to continue updating it below we have to fetch it from the list again.
+        nin_element = proofing_user.nins.find(nin_element.key)
+        assert nin_element  # please mypy
 
     # Check if the NIN is already verified
     if nin_element and nin_element.is_verified:

@@ -72,7 +72,7 @@ def unverify_mail_aliases(userdb, user_id, mail_aliases):
                         # Promote some other verified e-mail address to primary
                         for address in user.mail_addresses.to_list():
                             if address.is_verified and address.email != email:
-                                user.mail_addresses.primary = address.email
+                                user.mail_addresses.set_primary(address.email)
                                 break
                     user.mail_addresses.find(email).is_primary = False
                     user.mail_addresses.find(email).is_verified = False
@@ -111,9 +111,9 @@ def unverify_phones(userdb, user_id, phones):
                     logger.debug('Old user phone numbers BEFORE: {}.'.format(user.phone_numbers.to_list()))
                     if user.phone_numbers.primary.number == number:
                         # Promote some other verified phone number to primary
-                        for phone in user.phone_numbers.verified.to_list():
+                        for phone in user.phone_numbers.verified:
                             if phone.number != number:
-                                user.phone_numbers.primary = phone.number
+                                user.phone_numbers.set_primary(phone.number)
                                 break
                     user.phone_numbers.find(number).is_primary = False
                     user.phone_numbers.find(number).is_verified = False
@@ -152,10 +152,10 @@ def unverify_nins(userdb, user_id, nins):
                     logger.debug('Old user NINs BEFORE: {}.'.format(user.nins.to_list()))
                     if user.nins.primary.number == number:
                         # Promote some other verified nin to primary (future proofing)
-                        old_nins = user.nins.verified.to_list()
+                        old_nins = user.nins.verified
                         for this in old_nins:
                             if this.number != number:
-                                user.nins.primary = this.number
+                                user.nins.set_primary(this.number)
                                 break
                     user.nins.find(number).is_primary = False
                     user.nins.find(number).is_verified = False
@@ -197,7 +197,7 @@ def check_locked_identity(userdb: UserDB, user_id: ObjectId, attributes: Dict, a
         user = userdb.get_user_by_id(user_id)
         locked_identities = user.locked_identity
     except DocumentDoesNotExist:
-        locked_identities = LockedIdentityList({})
+        locked_identities = LockedIdentityList()
 
     locked_nin = locked_identities.find('nin')
     # Create a new locked nin if it does not already exist

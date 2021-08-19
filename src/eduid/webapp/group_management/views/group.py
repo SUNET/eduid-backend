@@ -98,7 +98,8 @@ def get_groups(user: User) -> FluxData:
 @require_user
 def create_group(user: User, display_name: str) -> FluxData:
     scim_user = get_or_create_scim_user_by_eppn(user.eppn)
-    graph_user = GraphUser(identifier=str(scim_user.scim_id), display_name=user.mail_addresses.primary.email)
+    _gu_name = user.mail_addresses.primary.email if user.mail_addresses.primary else user.eppn
+    graph_user = GraphUser(identifier=str(scim_user.scim_id), display_name=_gu_name)
     group = ScimApiGroup(display_name=display_name)
     group.owners = {graph_user}
 

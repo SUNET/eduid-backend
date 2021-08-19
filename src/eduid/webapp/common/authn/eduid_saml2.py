@@ -47,6 +47,7 @@ from werkzeug.wrappers import Response
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.userdb import UserDB
+from eduid.userdb.element import ElementKey
 from eduid.userdb.exceptions import MultipleUsersReturned, UserDoesNotExist
 from eduid.userdb.user import User
 from eduid.webapp.authn.app import current_authn_app as current_app
