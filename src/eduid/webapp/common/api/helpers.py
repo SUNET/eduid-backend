@@ -6,27 +6,22 @@ from typing import List, Optional, Type, Union
 from flask import current_app, render_template, request
 
 from eduid.common.config.base import MagicCookieMixin
-from eduid.userdb.element import ElementKey
 from eduid.userdb.logs.element import ProofingLogElement
 from eduid.userdb.nin import Nin
 from eduid.userdb.proofing import ProofingUser
-from eduid.userdb.proofing.state import NinProofingState
+from eduid.userdb.proofing.state import NinProofingState, OidcProofingState
 from eduid.userdb.user import User
 from eduid.webapp.common.api.app import EduIDBaseApp
 
 __author__ = 'lundberg'
 
-
-def set_user_names_from_offical_address(proofing_user, proofing_log_entry):
+# TODO: type proofing_log_entry (NinProofingLogElement?)
+def set_user_names_from_official_address(proofing_user: ProofingUser, proofing_log_entry) -> ProofingUser:
     """
     :param proofing_user: Proofing app private userdb user
     :param proofing_log_entry: Proofing log entry element
 
-    :type proofing_user: eduid.userdb.proofing.ProofingUser
-    :type proofing_log_entry: eduid.userdb.log.element.NinProofingLogElement
-
     :returns: User object
-    :rtype: eduid.userdb.proofing.ProofingUser
     """
     navet_data = proofing_log_entry.user_postal_address
     name = navet_data['Name']
@@ -53,18 +48,13 @@ def set_user_names_from_offical_address(proofing_user, proofing_log_entry):
     return proofing_user
 
 
-def number_match_proofing(user, proofing_state, number):
+def number_match_proofing(user: User, proofing_state: OidcProofingState, number: str) -> bool:
     """
     :param user: Central userdb user
     :param proofing_state: Proofing state for user
-    :param number: National identityt number
-
-    :type user: eduid.userdb.user.User
-    :type proofing_state: eduid.userdb.proofing.OidcProofingState
-    :type number: six.string_types
+    :param number: National identity number
 
     :return: True|False
-    :rtype: bool
     """
     if proofing_state.nin.number == number:
         return True
@@ -156,7 +146,7 @@ def verify_nin_for_user(
     nin_element.verified_by = proofing_state.nin.created_by
 
     # Update users name
-    proofing_user = set_user_names_from_offical_address(proofing_user, proofing_log_entry)
+    proofing_user = set_user_names_from_official_address(proofing_user, proofing_log_entry)
 
     # If user was updated successfully continue with logging the proof and saving the user to central db
     # Send proofing data to the proofing log
@@ -223,7 +213,7 @@ def check_magic_cookie(config: MagicCookieMixin) -> bool:
 
     :param config: A configuration object
     """
-    if not config.environment in ('dev', 'staging'):
+    if config.environment not in ('dev', 'staging'):
         current_app.logger.error(f'Magic cookie not allowed in environment {config.environment}')
         return False
 

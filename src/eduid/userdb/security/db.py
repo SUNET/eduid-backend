@@ -31,11 +31,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import logging
+from typing import Any, Dict, Mapping, Optional, Union
 
 from eduid.userdb.db import BaseDB
 from eduid.userdb.deprecation import deprecated
 from eduid.userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
-from eduid.userdb.security.state import PasswordResetEmailAndPhoneState, PasswordResetEmailState
+from eduid.userdb.security.state import PasswordResetEmailAndPhoneState, PasswordResetEmailState, PasswordResetState
 from eduid.userdb.security.user import SecurityUser
 from eduid.userdb.userdb import UserDB
 
@@ -61,18 +62,14 @@ class PasswordResetStateDB(BaseDB):
     def __init__(self, db_uri, db_name='eduid_security', collection='password_reset_data'):
         super(PasswordResetStateDB, self).__init__(db_uri, db_name, collection=collection)
 
-    def get_state_by_email_code(self, email_code, raise_on_missing=True):
+    def get_state_by_email_code(self, email_code: str, raise_on_missing: bool = True) -> Optional[PasswordResetState]:
         """
         Locate a state in the db given the state's email code.
 
         :param email_code: Code sent to the user
         :param raise_on_missing: Raise exception if True else return None
 
-        :type email_code: six.string_types
-        :type raise_on_missing: bool
-
-        :return: PasswordResetState instance | None
-        :rtype: PasswordResetState | None
+        :return: state, if found
 
         :raise self.DocumentDoesNotExist: No document match the search criteria
         :raise self.MultipleDocumentsReturned: More than one document matches the search criteria
@@ -88,18 +85,14 @@ class PasswordResetStateDB(BaseDB):
 
         return self.init_state(states[0])
 
-    def get_state_by_eppn(self, eppn, raise_on_missing=True):
+    def get_state_by_eppn(self, eppn: str, raise_on_missing: bool = True) -> Optional[PasswordResetState]:
         """
         Locate a state in the db given the users eppn.
 
         :param eppn: Users unique eppn
         :param raise_on_missing: Raise exception if True else return None
 
-        :type eppn: six.string_types
-        :type raise_on_missing: bool
-
-        :return: PasswordResetState instance | None
-        :rtype: PasswordResetState | None
+        :return: state, if found
 
         :raise self.DocumentDoesNotExist: No document match the search criteria
         :raise self.MultipleDocumentsReturned: More than one document matches the search criteria
@@ -107,13 +100,17 @@ class PasswordResetStateDB(BaseDB):
         state = self._get_document_by_attr('eduPersonPrincipalName', eppn, raise_on_missing)
         if state:
             return self.init_state(state)
+        return None
 
     @staticmethod
-    def init_state(state):
+    def init_state(
+        state: Mapping[str, Any]
+    ) -> Optional[Union[PasswordResetEmailState, PasswordResetEmailAndPhoneState]]:
         if state.get('method') == 'email':
             return PasswordResetEmailState.from_dict(state)
         if state.get('method') == 'email_and_phone':
             return PasswordResetEmailAndPhoneState.from_dict(state)
+        return None
 
     def save(self, state, check_sync=True):
         """
