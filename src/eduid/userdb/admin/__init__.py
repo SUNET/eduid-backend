@@ -12,7 +12,6 @@ import bson
 import bson.json_util
 from pymongo import MongoClient, ReadPreference
 from pymongo.errors import PyMongoError
-from six import string_types
 
 volunteers = {
     'ft:staging': 'vofaz-tajod',
@@ -134,11 +133,11 @@ class RawDb(object):
         The format is intended to be easy to grep through.
         """
 
-        def safe_encode(k, v):
+        def safe_encode(k2, v2):
             try:
-                return bson.json_util.dumps({k: v})
+                return bson.json_util.dumps({k2: v2})
             except:
-                sys.stderr.write('Failed encoding key {!r}: {!r}\n\n'.format(k, v))
+                sys.stderr.write('Failed encoding key {!r}: {!r}\n\n'.format(k2, v2))
                 raise
 
         filename = self._get_backup_filename(backup_dir, 'changes', 'txt')
@@ -269,7 +268,7 @@ class RawData(object):
         """
         res = []
         for (key, value) in self.doc.items():
-            if isinstance(value, string_types):
+            if isinstance(value, str):
                 res.extend(['  {!s:>25}: {!s}'.format(key, value.encode('utf-8'))])
             elif isinstance(value, datetime.datetime):
                 res.extend(['  {!s:>25}: {!s}'.format(key, value.isoformat())])

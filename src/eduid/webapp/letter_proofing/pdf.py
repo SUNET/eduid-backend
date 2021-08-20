@@ -2,9 +2,9 @@
 
 import logging
 from datetime import datetime, timedelta
+from io import BytesIO, StringIO
 from typing import Mapping, OrderedDict
 
-from six import BytesIO, StringIO
 from xhtml2pdf import pisa
 
 logger = logging.getLogger(__name__)

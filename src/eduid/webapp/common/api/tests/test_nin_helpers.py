@@ -17,7 +17,7 @@ from eduid.userdb.proofing import LetterProofingStateDB, LetterProofingUserDB, N
 from eduid.userdb.proofing.state import NinProofingState
 from eduid.userdb.user import User
 from eduid.webapp.common.api.app import EduIDBaseApp
-from eduid.webapp.common.api.helpers import add_nin_to_user, set_user_names_from_offical_address, verify_nin_for_user
+from eduid.webapp.common.api.helpers import add_nin_to_user, set_user_names_from_official_address, verify_nin_for_user
 from eduid.webapp.common.api.testing import EduidAPITestCase, normalised_data
 from eduid.webapp.common.session.eduid_session import SessionFactory
 
@@ -288,7 +288,7 @@ class NinHelpersTest(EduidAPITestCase):
             proofing_version='2018v1',
         )
         with self.app.app_context():
-            user = set_user_names_from_offical_address(user, proofing_element)
+            user = set_user_names_from_official_address(user, proofing_element)
             self.assertEqual(user.given_name, 'Testaren Test')
             self.assertEqual(user.surname, 'Testsson')
             self.assertEqual(user.display_name, 'Test Testsson')
@@ -310,7 +310,7 @@ class NinHelpersTest(EduidAPITestCase):
             proofing_version='2018v1',
         )
         with self.app.app_context():
-            user = set_user_names_from_offical_address(user, proofing_element)
+            user = set_user_names_from_official_address(user, proofing_element)
             self.assertEqual(user.given_name, 'Test')
             self.assertEqual(user.surname, 'Testsson')
             self.assertEqual(user.display_name, 'Test Testsson')
@@ -336,7 +336,7 @@ class NinHelpersTest(EduidAPITestCase):
             proofing_version='2018v1',
         )
         with self.app.app_context():
-            user = set_user_names_from_offical_address(user, proofing_element)
+            user = set_user_names_from_official_address(user, proofing_element)
             self.assertEqual(user.given_name, u'Pippilotta Viktualia Rullgardina Krusmynta Efraimsdotter')
             self.assertEqual(user.surname, u'Långstrump')
             self.assertEqual(user.display_name, u'Rullgardina Långstrump')
@@ -358,7 +358,7 @@ class NinHelpersTest(EduidAPITestCase):
             proofing_version='2018v1',
         )
         with self.app.app_context():
-            user = set_user_names_from_offical_address(user, proofing_element)
+            user = set_user_names_from_official_address(user, proofing_element)
             self.assertEqual(user.given_name, 'Testaren Test')
             self.assertEqual(user.surname, 'Testsson')
             self.assertEqual(user.display_name, 'Testaren Test Testsson')
@@ -375,7 +375,7 @@ class NinHelpersTest(EduidAPITestCase):
             proofing_version='2018v1',
         )
         with self.app.app_context():
-            user = set_user_names_from_offical_address(user, proofing_element)
+            user = set_user_names_from_official_address(user, proofing_element)
             self.assertEqual(user.given_name, 'Testaren Test')
             self.assertEqual(user.surname, 'Testsson')
             self.assertEqual(user.display_name, 'John Smith')

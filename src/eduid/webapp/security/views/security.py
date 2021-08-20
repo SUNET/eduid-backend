@@ -34,15 +34,14 @@
 import json
 from datetime import timedelta
 from typing import Dict
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from flask import Blueprint, redirect, request, url_for
 from marshmallow import ValidationError
-from six.moves.urllib_parse import parse_qs, urlencode, urlparse, urlunparse
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.utils import urlappend
 from eduid.userdb import User
-from eduid.userdb.element import ElementKey
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.proofing import NinProofingElement
 from eduid.userdb.proofing.state import NinProofingState

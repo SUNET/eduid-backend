@@ -34,8 +34,6 @@ import inspect
 import warnings
 from functools import wraps
 
-from six import string_types
-
 
 # https://stackoverflow.com/questions/2536307/how-do-i-deprecate-python-functions/40301488#40301488
 def deprecated(reason):
@@ -45,7 +43,7 @@ def deprecated(reason):
     when the function is used.
     """
 
-    if isinstance(reason, string_types):
+    if isinstance(reason, str):
 
         # The @deprecated is used with a 'reason'.
         #

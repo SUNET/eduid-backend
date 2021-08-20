@@ -37,10 +37,10 @@ import os
 import uuid
 from dataclasses import dataclass
 from typing import Any, Dict, Mapping, Tuple
+from urllib.parse import quote_plus
 
 from flask import Blueprint
 from saml2.s_utils import deflate_and_base64_encode
-from six.moves.urllib_parse import quote_plus
 from werkzeug.exceptions import NotFound
 from werkzeug.http import dump_cookie
 
@@ -136,7 +136,7 @@ class AuthnAPITestBase(EduidAPITestCase):
 
         :return: the cookie corresponding to the authn session
         """
-        res = self.acs('/login', eppn=self.test_user.eppn, next_url=came_from)
+        res = self.acs('/login', eppn=eppn, next_url=came_from)
         cookie = res.session.meta.cookie_val
         logger.debug(f'Test logged in, got cookie {cookie}')
         return self.dump_session_cookie(cookie)
@@ -204,12 +204,9 @@ class AuthnAPITestBase(EduidAPITestCase):
 
         :param url: the url of the desired authentication mode.
         :param eppn: the eppn of the user to access the service
-        :param check_fn: the function that checks the side effects after accessing the acs
         :param next_url: Relay state
         :param expect_url_allowed: True if the next_url is expected to be accepted
         """
-        # with self.session_cookie_anon(self.browser) as browser:
-
         with self.session_cookie_anon(self.browser) as browser:
             _url = f'{url}?next={quote_plus(next_url)}'
             logger.debug(f'Test fetching {_url}')

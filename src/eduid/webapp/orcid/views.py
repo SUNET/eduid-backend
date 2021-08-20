@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
-
+from urllib.parse import urlencode
 
 from flask import Blueprint, redirect, request, url_for
 from oic.oic.message import AuthorizationResponse, Claims, ClaimsRequest
-from six.moves.urllib_parse import urlencode
 
 from eduid.userdb.logs import OrcidProofing
 from eduid.userdb.orcid import OidcAuthorization, OidcIdToken, Orcid

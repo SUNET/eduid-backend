@@ -198,10 +198,10 @@ def send_termination_mail(user):
 
 
 @deprecated("Remove once the password reset views are served from their own webapp")
-def send_password_reset_mail(email_address):
+def send_password_reset_mail(email_address: str) -> None:
     """
     :param email_address: User input for password reset
-    :type email_address: six.string_types
+    :type email_address: str
     :return:
     :rtype:
     """
@@ -338,7 +338,7 @@ def reset_user_password(state, password):
     :param state: Password reset state
     :type state: PasswordResetState
     :param password: Plain text password
-    :type password: six.string_types
+    :type password: str
     :return: None
     :rtype: None
     """
@@ -381,7 +381,7 @@ def reset_user_password(state, password):
 def get_extra_security_alternatives(eppn):
     """
     :param eppn: Users unique eppn
-    :type eppn: six.string_types
+    :type eppn: str
     :return: Dict of alternatives
     :rtype: dict
     """
@@ -417,7 +417,7 @@ def mask_alternatives(alternatives):
 def get_zxcvbn_terms(eppn):
     """
     :param eppn: User eppn
-    :type eppn: six.string_types
+    :type eppn: str
     :return: List of user info
     :rtype: list
 

@@ -3,7 +3,6 @@ from datetime import datetime
 from hashlib import sha256
 
 from bson import ObjectId
-from six import string_types
 
 from eduid.userdb import LockedIdentityNin, OidcAuthorization, OidcIdToken, Orcid
 from eduid.userdb.credentials import METHOD_SWAMID_AL2_MFA, U2F, CredentialList, Password
@@ -624,10 +623,10 @@ class TestNewUser(unittest.TestCase):
         data['locked_identity'] = [locked_identity]
         user = User.from_dict(data)
         self.assertTrue(user.locked_identity)
-        self.assertIsInstance(user.locked_identity.find('nin').created_by, string_types)
+        self.assertIsInstance(user.locked_identity.find('nin').created_by, str)
         self.assertIsInstance(user.locked_identity.find('nin').created_ts, datetime)
-        self.assertIsInstance(user.locked_identity.find('nin').identity_type, string_types)
-        self.assertIsInstance(user.locked_identity.find('nin').number, string_types)
+        self.assertIsInstance(user.locked_identity.find('nin').identity_type, str)
+        self.assertIsInstance(user.locked_identity.find('nin').number, str)
 
     def test_locked_identity_set(self):
         locked_identity = {'created_by': 'test', 'identity_type': 'nin', 'number': '197801012345'}
@@ -639,10 +638,10 @@ class TestNewUser(unittest.TestCase):
         self.assertEqual(user.locked_identity.count, 1)
 
         locked_nin = user.locked_identity.find('nin')
-        self.assertIsInstance(locked_nin.created_by, string_types)
+        self.assertIsInstance(locked_nin.created_by, str)
         self.assertIsInstance(locked_nin.created_ts, datetime)
-        self.assertIsInstance(locked_nin.identity_type, string_types)
-        self.assertIsInstance(locked_nin.number, string_types)
+        self.assertIsInstance(locked_nin.identity_type, str)
+        self.assertIsInstance(locked_nin.number, str)
 
     def test_locked_identity_to_dict(self):
         locked_identity = {'created_by': 'test', 'identity_type': 'nin', 'number': '197801012345'}
@@ -654,17 +653,17 @@ class TestNewUser(unittest.TestCase):
 
         old_user = User.from_dict(user.to_dict())
         self.assertEqual(user.locked_identity.count, 1)
-        self.assertIsInstance(old_user.locked_identity.to_list()[0].created_by, string_types)
+        self.assertIsInstance(old_user.locked_identity.to_list()[0].created_by, str)
         self.assertIsInstance(old_user.locked_identity.to_list()[0].created_ts, datetime)
-        self.assertIsInstance(old_user.locked_identity.to_list()[0].identity_type, string_types)
-        self.assertIsInstance(old_user.locked_identity.to_list()[0].number, string_types)
+        self.assertIsInstance(old_user.locked_identity.to_list()[0].identity_type, str)
+        self.assertIsInstance(old_user.locked_identity.to_list()[0].number, str)
 
         new_user = User.from_dict(user.to_dict())
         self.assertEqual(user.locked_identity.count, 1)
-        self.assertIsInstance(new_user.locked_identity.to_list()[0].created_by, string_types)
+        self.assertIsInstance(new_user.locked_identity.to_list()[0].created_by, str)
         self.assertIsInstance(new_user.locked_identity.to_list()[0].created_ts, datetime)
-        self.assertIsInstance(new_user.locked_identity.to_list()[0].identity_type, string_types)
-        self.assertIsInstance(new_user.locked_identity.to_list()[0].number, string_types)
+        self.assertIsInstance(new_user.locked_identity.to_list()[0].identity_type, str)
+        self.assertIsInstance(new_user.locked_identity.to_list()[0].number, str)
 
     def test_locked_identity_remove(self):
         locked_identity = {'created_by': 'test', 'identity_type': 'nin', 'number': '197801012345'}
@@ -674,7 +673,7 @@ class TestNewUser(unittest.TestCase):
         )
         user.locked_identity.add(locked_nin)
         with self.assertRaises(EduIDUserDBError):
-            user.locked_identity.remove('nin')
+            user.locked_identity.remove(locked_nin.key)
 
     def test_orcid(self):
         id_token = {
@@ -705,17 +704,17 @@ class TestNewUser(unittest.TestCase):
 
         old_user = User.from_dict(user.to_dict())
         self.assertIsNotNone(old_user.orcid)
-        self.assertIsInstance(old_user.orcid.created_by, string_types)
+        self.assertIsInstance(old_user.orcid.created_by, str)
         self.assertIsInstance(old_user.orcid.created_ts, datetime)
-        self.assertIsInstance(old_user.orcid.id, string_types)
+        self.assertIsInstance(old_user.orcid.id, str)
         self.assertIsInstance(old_user.orcid.oidc_authz, OidcAuthorization)
         self.assertIsInstance(old_user.orcid.oidc_authz.id_token, OidcIdToken)
 
         new_user = User.from_dict(user.to_dict())
         self.assertIsNotNone(new_user.orcid)
-        self.assertIsInstance(new_user.orcid.created_by, string_types)
+        self.assertIsInstance(new_user.orcid.created_by, str)
         self.assertIsInstance(new_user.orcid.created_ts, datetime)
-        self.assertIsInstance(new_user.orcid.id, string_types)
+        self.assertIsInstance(new_user.orcid.id, str)
         self.assertIsInstance(new_user.orcid.oidc_authz, OidcAuthorization)
         self.assertIsInstance(new_user.orcid.oidc_authz.id_token, OidcIdToken)
 

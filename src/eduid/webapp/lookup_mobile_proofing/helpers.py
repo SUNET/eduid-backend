@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import time
+from datetime import datetime
 from enum import unique
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 from eduid.common.rpc.lookup_mobile_relay import LookupMobileTaskFailed
 from eduid.userdb import User
@@ -10,6 +10,7 @@ from eduid.userdb.logs import TeleAdressProofing, TeleAdressProofingRelation
 from eduid.userdb.proofing.element import NinProofingElement
 from eduid.userdb.proofing.state import NinProofingState
 from eduid.userdb.proofing.user import ProofingUser
+from eduid.userdb.util import utc_now
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.lookup_mobile_proofing.app import current_mobilep_app as current_app
@@ -35,25 +36,17 @@ class MobileMsg(TranslatableMsg):
     no_match = 'nins.no-mobile-match'
 
 
-def nin_to_age(nin):
+def nin_to_age(nin: str, now: Optional[datetime] = None) -> int:
     """
     :param nin: National Identity Number, YYYYMMDDXXXX
-    :type nin: six.string_types
-    :return: Age
-    :rtype: int
+    :return: Age in years
     """
-    current_year = int(time.strftime("%Y"))
-    current_month = int(time.strftime("%m"))
-    current_day = int(time.strftime("%d"))
+    if now is None:
+        now = utc_now()
 
-    birth_year = int(nin[:4])
-    birth_month = int(nin[4:6])
-    birth_day = int(nin[6:8])
+    born = datetime.strptime(nin[: len('yyyymmdd')], '%Y%m%d')
 
-    age = current_year - birth_year
-
-    if current_month < birth_month or (current_month == birth_month and current_day < birth_day):
-        age -= 1
+    age = now.year - born.year - ((now.month, now.day) < (born.month, born.day))
 
     return age
 

@@ -4,13 +4,11 @@
 import unittest
 from collections import OrderedDict
 from datetime import datetime
-
-from six import BytesIO, StringIO
+from io import BytesIO, StringIO
 
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.letter_proofing import pdf
 from eduid.webapp.letter_proofing.app import init_letter_proofing_app
-from eduid.webapp.letter_proofing.settings.common import LetterProofingConfig
 
 # We need to add Navet responses that we fail to handle
 

@@ -5,8 +5,6 @@
 import logging
 from typing import Any, Dict, List, Type, TypeVar
 
-import six
-
 from eduid.userdb.element import Element
 
 __author__ = 'lundberg'

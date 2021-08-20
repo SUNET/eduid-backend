@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import datetime
+from copy import deepcopy
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, Optional, Type, TypeVar, Union
+from typing import Any, Dict, Mapping, Optional, Type, TypeVar, Union
 
 import bson
 
@@ -42,12 +43,13 @@ class PasswordResetState(object):
         return res
 
     @classmethod
-    def from_dict(cls: Type[TPasswordResetStateSubclass], data: Dict[str, Any]) -> TPasswordResetStateSubclass:
-        data['eppn'] = data.pop('eduPersonPrincipalName')
-        data['id'] = data.pop('_id')
-        if 'reference' in data:
-            data.pop('reference')
-        return cls(**data)
+    def from_dict(cls: Type[TPasswordResetStateSubclass], data: Mapping[str, Any]) -> TPasswordResetStateSubclass:
+        _data = dict(data)  # do not modify callers data
+        _data['eppn'] = _data.pop('eduPersonPrincipalName')
+        _data['id'] = _data.pop('_id')
+        if 'reference' in _data:
+            _data.pop('reference')
+        return cls(**_data)
 
 
 @dataclass
