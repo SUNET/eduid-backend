@@ -133,11 +133,11 @@ class RawDb(object):
         The format is intended to be easy to grep through.
         """
 
-        def safe_encode(k, v):
+        def safe_encode(k2, v2):
             try:
-                return bson.json_util.dumps({k: v})
+                return bson.json_util.dumps({k2: v2})
             except:
-                sys.stderr.write('Failed encoding key {!r}: {!r}\n\n'.format(k, v))
+                sys.stderr.write('Failed encoding key {!r}: {!r}\n\n'.format(k2, v2))
                 raise
 
         filename = self._get_backup_filename(backup_dir, 'changes', 'txt')
