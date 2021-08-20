@@ -12,7 +12,6 @@ import bson
 import bson.json_util
 from pymongo import MongoClient, ReadPreference
 from pymongo.errors import PyMongoError
-from six import string_types
 
 volunteers = {
     'ft:staging': 'vofaz-tajod',
@@ -269,7 +268,7 @@ class RawData(object):
         """
         res = []
         for (key, value) in self.doc.items():
-            if isinstance(value, string_types):
+            if isinstance(value, str):
                 res.extend(['  {!s:>25}: {!s}'.format(key, value.encode('utf-8'))])
             elif isinstance(value, datetime.datetime):
                 res.extend(['  {!s:>25}: {!s}'.format(key, value.isoformat())])

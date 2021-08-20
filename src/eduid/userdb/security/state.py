@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import datetime
+from copy import deepcopy
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, Optional, Type, TypeVar, Union
+from typing import Any, Dict, Mapping, Optional, Type, TypeVar, Union
 
 import bson
 

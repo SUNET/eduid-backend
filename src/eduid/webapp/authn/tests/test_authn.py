@@ -37,10 +37,10 @@ import os
 import uuid
 from dataclasses import dataclass
 from typing import Any, Dict, Mapping, Tuple
+from urllib.parse import quote_plus
 
 from flask import Blueprint
 from saml2.s_utils import deflate_and_base64_encode
-from six.moves.urllib_parse import quote_plus
 from werkzeug.exceptions import NotFound
 from werkzeug.http import dump_cookie
 

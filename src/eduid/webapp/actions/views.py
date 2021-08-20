@@ -34,9 +34,9 @@
 
 
 import json
+from urllib.parse import urlsplit, urlunsplit
 
 from flask import Blueprint, abort, redirect, render_template, request, url_for
-from six.moves.urllib_parse import urlsplit, urlunsplit
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.misc.tous import get_tous as common_get_tous

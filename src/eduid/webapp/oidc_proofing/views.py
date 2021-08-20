@@ -3,6 +3,7 @@
 
 import base64
 import binascii
+from io import BytesIO
 
 import qrcode
 import qrcode.image.svg
@@ -10,7 +11,6 @@ import requests
 from flask import Blueprint, make_response, request, url_for
 from jose import jws as jose
 from oic.oic.message import AuthorizationResponse, Claims, ClaimsRequest
-from six import BytesIO
 
 from eduid.userdb.exceptions import DocumentDoesNotExist
 from eduid.userdb.proofing import ProofingUser

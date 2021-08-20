@@ -29,10 +29,12 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-import six
+import logging
+from typing import Optional
+from urllib.parse import quote, unquote
+
 from bleach import clean
 from flask import request
-from six.moves.urllib_parse import quote, unquote
 
 
 class SanitationProblem(Exception):
@@ -44,7 +46,13 @@ class Sanitizer(object):
     Sanitize user inputs.
     """
 
-    def sanitize_input(self, untrusted_text, logger, content_type=None, strip_characters=False):
+    def sanitize_input(
+        self,
+        untrusted_text: str,
+        logger: logging.Logger,
+        content_type: Optional[str] = None,
+        strip_characters: bool = False,
+    ) -> str:
         """
         Sanitize user input by escaping or removing potentially
         harmful input using a whitelist-based approach with
@@ -53,21 +61,14 @@ class Sanitizer(object):
         :param untrusted_text: User input to sanitize
         :param logger: logging facility
         :param content_type: Content type of the input to sanitize
-        :param strip_characters: Set to True to remove instead of escaping
-                                potentially harmful input.
+        :param strip_characters: Set to True to remove instead of escaping potentially harmful input.
 
         :return: Sanitized user input
-
-        :type untrusted_text: str | unicode
-        :type logger: logging.Logger
-        :type content_type: str
-        :type strip_characters: bool
-        :rtype: str | unicode
         """
         try:
             # Test if the untrusted text is percent encoded
             # before running bleech.
-            if isinstance(untrusted_text, six.binary_type):
+            if isinstance(untrusted_text, bytes):
                 untrusted_text = untrusted_text.decode('utf-8')
             if unquote(untrusted_text) != untrusted_text:
                 use_percent_encoding = True
@@ -120,7 +121,7 @@ class Sanitizer(object):
         if content_type is None and hasattr(request, 'mimetype'):
             content_type = request.mimetype
 
-        if isinstance(content_type, six.string_types) and content_type:
+        if isinstance(content_type, str) and content_type:
 
             if content_type == "application/x-www-form-urlencoded":
                 use_percent_encoding = True

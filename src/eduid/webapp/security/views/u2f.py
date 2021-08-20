@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from typing import List
 
-import six
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from flask import Blueprint
@@ -10,7 +9,6 @@ from u2flib_server.u2f import begin_authentication, begin_registration, complete
 
 from eduid.userdb import User
 from eduid.userdb.credentials import U2F, FidoCredential
-from eduid.userdb.element import ElementKey
 from eduid.userdb.security import SecurityUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
@@ -75,7 +73,7 @@ def bind(user: User, version: str, registration_data: str, client_data: str, des
     # sorting them out.
     cert = x509.load_der_x509_certificate(der_cert, default_backend())  # type: ignore
     pem_cert = crypto.dump_certificate(crypto.FILETYPE_PEM, cert)  # type: ignore
-    if not isinstance(pem_cert, six.string_types):
+    if not isinstance(pem_cert, str):
         pem_cert = pem_cert.decode('utf-8')  # type: ignore
 
     u2f_token = U2F(

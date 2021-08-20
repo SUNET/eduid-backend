@@ -3,10 +3,10 @@
 from __future__ import absolute_import
 
 import logging
+from urllib.parse import urlsplit
 
 from flask import current_app, request
 from marshmallow import Schema, ValidationError, fields, post_load, pre_dump, validates
-from six.moves.urllib.parse import urlsplit
 
 from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid.webapp.common.session import session
