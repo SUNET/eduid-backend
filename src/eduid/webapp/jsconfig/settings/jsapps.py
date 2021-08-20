@@ -31,56 +31,52 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from typing import Dict
+from typing import Dict, Optional
 
 from pydantic import Field
 
-from eduid.common.config.base import PasswordConfigMixin, RootConfig
+from eduid.common.config.base import EduidEnvironment, PasswordConfigMixin
 
 
-class FrontConfig(RootConfig, PasswordConfigMixin):
+class JsAppsConfig(PasswordConfigMixin):
     """
     Dashboard, Signup and Login front-end configuration.
 
     This is sent to the client, so care must be taken to avoid setting secrets here.
     """
 
-    app_name: str = 'jsapps'
     debug: bool = False
-    csrf_token: str = ''
+    environment: EduidEnvironment = EduidEnvironment.production
+    csrf_token: Optional[str] = None
     available_languages: Dict[str, str] = Field(default={'en': 'English', 'sv': 'Svenska'})
-    tous: Dict[str, str] = Field(default={'en': '', 'sv': ''})
+    eduid_site_name: str = 'eduID'
+    eduid_site_url: str = 'https://eduid.se'
+    sentry_dsn: Optional[str] = None
     # URLs
-    # TODO: Remove after new design
-    static_staff_url: str = ''
-    static_students_url: str = ''
-    static_technicians_url: str = ''
-    # TODO: Remove after new design end
-    static_faq_url: str = ''
-    reset_passwd_url: str = ''
-    password_service_url: str = ''
-    dashboard_url: str = ''
-    personal_data_url: str = '/personal-data/user'
-    emails_url: str = '/services/email/'
-    mobile_url: str = '/services/phone/'
-    oidc_proofing_url: str = '/services/oidc-proofing/proofing/'
-    lookup_mobile_proofing_url: str = '/services/lookup-mobile-proofing/proofing/'
-    letter_proofing_url: str = '/services/letter-proofing/'
-    security_url: str = '/services/security/'
-    token_service_url: str = '/services/authn/'
-    oidc_proofing_freja_url: str = '/services/oidc-proofing/freja/proofing/'
-    orcid_url: str = '/services/orcid/'
-    eidas_url: str = ''
-    token_verify_idp: str = ''
-    # changing password
+    authn_url: str
+    dashboard_url: str
+    eidas_url: str
+    emails_url: str
+    letter_proofing_url: str
+    login_next_url: str
+    lookup_mobile_proofing_url: str
+    mobile_url: str  # should be replaced by phone_url
+    oidc_proofing_freja_url: str
+    oidc_proofing_url: str
+    orcid_url: str
+    password_service_url: str  # should be replaced by
+    personal_data_url: str
+    phone_url: str
+    reset_passwd_url: str  # should be replaced by reset_password_url
+    reset_password_url: str
+    security_url: str
+    signup_url: str
+    static_faq_url: str
+    token_service_url: str  # should be replaced by authn_url
+    token_verify_idp: str
+    # Dashboard config
     chpass_timeout: int = 600
     proofing_methods: list = Field(default=['letter', 'lookup_mobile', 'oidc', 'eidas'])
     default_country_code: int = 46
-    signup_authn_url: str = '/services/authn/signup-authn'
-    recaptcha_public_key: str = ''
-    sentry_dsn: str = ''
-    # Login config
-    login_next_url: str = ''
-    eduid_site_name: str = 'eduID'
-    eduid_site_url: str = 'https://eduid.se'
-    signup_url: str = 'https://signup.eduid.se'
+    # Signup config
+    recaptcha_public_key: Optional[str] = None

@@ -30,9 +30,9 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from typing import Dict
 
 from eduid.common.config.base import EduIDBaseAppConfig, PasswordConfigMixin, TouConfigMixin
+from eduid.webapp.jsconfig.settings.jsapps import JsAppsConfig
 
 
 class JSConfigConfig(EduIDBaseAppConfig, TouConfigMixin, PasswordConfigMixin):
@@ -41,25 +41,6 @@ class JSConfigConfig(EduIDBaseAppConfig, TouConfigMixin, PasswordConfigMixin):
     """
 
     app_name: str = 'jsconfig'
-
     eduid_static_url: str
-
-    dashboard_bundle_path: str = 'front-build/dashboard-bundle.dev.js'
-    dashboard_bundle_version: str = 'dev'
-    # Dashboard feature toggle settings
-    dashboard_bundle_feature_cookie: str = ''
-    dashboard_bundle_feature_version: Dict[str, str] = {}
-    # Signup config
-    signup_bundle_path: str = 'front-build/signup-bundle.dev.js'
-    signup_bundle_version: str = 'dev'
-    # Signup feature toggle settings
-    signup_bundle_feature_cookie: str = ''
-    signup_bundle_feature_version: Dict[str, str] = {}
-    # Login config
-    login_bundle_path: str = 'front-build/login-bundle.dev.js'
-    login_bundle_version: str = 'dev'
-    # Login feature toggle settings
-    login_bundle_feature_cookie: str = ''
-    login_bundle_feature_version: Dict[str, str] = {}
-
     mongo_uri: str = 'mongo_uri_not_used_in_jsconfig'
+    jsapps: JsAppsConfig
