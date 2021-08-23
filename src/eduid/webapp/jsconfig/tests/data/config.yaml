@@ -3,8 +3,27 @@ eduid:
   webapp:
     common:
       testing: true
-    jsapps:
-      password_entropy: 2
-      password_length: 3
-      dashboard_url: 'dummy-url-yaml'
-      PERSONAL_DATA_URL: 'dummy-personal-data-url'
+    jsconfig:
+      app_name: jsconfig
+      jsapps:
+        password_entropy: 12
+        password_length: 10
+        authn_url: 'authn_url'
+        dashboard_url: 'dashboard_url'
+        eidas_url: 'eidas_url'
+        emails_url: 'emails_url'
+        group_mgmt_url: 'group_mgmt_url'
+        letter_proofing_url: 'letter_proofing_url'
+        login_next_url: 'login_next_url'
+        lookup_mobile_proofing_url: 'lookup_mobile_proofing_url'
+        oidc_proofing_freja_url: 'oidc_proofing_freja_url'
+        oidc_proofing_url: 'oidc_proofing_url'
+        orcid_url: 'orcid_url'
+        personal_data_url: 'personal_data_url'
+        phone_url: 'phone_url'
+        reset_password_url: 'reset_password_url'
+        security_url: 'security_url'
+        signup_url: 'signup_url'
+        static_faq_url: 'static_faq_url'
+        token_verify_idp: 'token_verify_idp'
+        reset_password_link: 'reset_password_link'

@@ -33,7 +33,7 @@
 
 from typing import Dict, Optional
 
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 from eduid.common.config.base import EduidEnvironment, PasswordConfigMixin
 
@@ -51,32 +51,34 @@ class JsAppsConfig(PasswordConfigMixin):
     available_languages: Dict[str, str] = Field(default={'en': 'English', 'sv': 'Svenska'})
     eduid_site_name: str = 'eduID'
     eduid_site_url: str = 'https://eduid.se'
-    sentry_dsn: Optional[str] = None
-    # URLs
-    authn_url: str
     dashboard_url: str
+    signup_url: str
+    reset_password_link: str  # used for directing a user to the reset password app
+    static_faq_url: str
+    sentry_dsn: Optional[str] = None
+    # backend endpoint urls
+    authn_url: str
     eidas_url: str
     emails_url: str
+    group_mgmt_url: str
     letter_proofing_url: str
     login_next_url: str
     lookup_mobile_proofing_url: str
-    mobile_url: str  # should be replaced by phone_url
+    mobile_url: Optional[str] = None  # should be replaced by phone_url
     oidc_proofing_freja_url: str
     oidc_proofing_url: str
     orcid_url: str
-    password_service_url: str  # should be replaced by
+    password_service_url: Optional[str] = None  # should be replaced by reset_password_url
     personal_data_url: str
     phone_url: str
-    reset_passwd_url: str  # should be replaced by reset_password_url
+    reset_passwd_url: Optional[str] = None  # should be replaced by reset_password_url
     reset_password_url: str
     security_url: str
-    signup_url: str
-    static_faq_url: str
-    token_service_url: str  # should be replaced by authn_url
-    token_verify_idp: str
+    token_service_url: Optional[str] = None  # should be replaced by authn_url
     # Dashboard config
-    chpass_timeout: int = 600
     proofing_methods: list = Field(default=['letter', 'lookup_mobile', 'oidc', 'eidas'])
     default_country_code: int = 46
+    token_verify_idp: str
     # Signup config
+    tous: Optional[Dict[str, str]] = None
     recaptcha_public_key: Optional[str] = None
