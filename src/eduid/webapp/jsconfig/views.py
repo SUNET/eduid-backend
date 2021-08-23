@@ -32,7 +32,7 @@
 #
 from typing import Any, Dict, List
 
-from flask import Blueprint, abort, render_template, request
+from flask import Blueprint
 
 from eduid.common.misc.tous import get_tous
 from eduid.webapp.common.api.decorators import MarshalWith
@@ -40,7 +40,7 @@ from eduid.webapp.common.api.schemas.base import FluxStandardAction
 from eduid.webapp.common.session import session
 from eduid.webapp.jsconfig.app import current_jsconfig_app as current_app
 
-jsconfig_views = Blueprint('jsconfig', __name__, url_prefix='', template_folder='templates')
+jsconfig_views = Blueprint('jsconfig', __name__, url_prefix='')
 
 
 def _fix_available_languages(available_languages: Dict[str, str]) -> List[List[str]]:
@@ -59,107 +59,69 @@ def _fix_uppercase_config(config: Dict[str, Any]):
     return config
 
 
-@jsconfig_views.route('/config', methods=['GET'], subdomain="dashboard")
+# TODO: remove when /dashboard/config is used
+@jsconfig_views.route('/config', methods=['GET'])
+@MarshalWith(FluxStandardAction)
+def get_dashboard_config_old() -> dict:
+    return get_dashboard_config()
+
+
+@jsconfig_views.route('/dashboard/config', methods=['GET'])
 @MarshalWith(FluxStandardAction)
 def get_dashboard_config() -> dict:
     """
     Configuration for the dashboard front app
     """
-    config_dict = current_app.front_conf.dict()
+    config_dict = current_app.conf.jsapps.dict()
     config_dict['csrf_token'] = session.get_csrf_token()
 
     # Fixes for frontend
-    config_dict['available_languages'] = _fix_available_languages(current_app.front_conf.available_languages)
-    config_dict = _fix_uppercase_config(config_dict)
+    if current_app.conf.fix_dashboard_available_languages:
+        config_dict['available_languages'] = _fix_available_languages(current_app.conf.jsapps.available_languages)
+    if current_app.conf.fix_dashboard_uppercase_config:
+        config_dict = _fix_uppercase_config(config_dict)
+
     return config_dict
 
 
-@jsconfig_views.route('/signup/config', methods=['GET'], subdomain="signup")
+@jsconfig_views.route('/signup/config', methods=['GET'])
 @MarshalWith(FluxStandardAction)
 def get_signup_config() -> dict:
     """
     Configuration for the signup front app
     """
-    config_dict = current_app.front_conf.dict()
-    config_dict['debug'] = current_app.conf.debug
+    config_dict = current_app.conf.jsapps.dict()
     config_dict['csrf_token'] = session.get_csrf_token()
     config_dict['tous'] = get_tous(
-        version=current_app.conf.tou_version, languages=current_app.conf.available_languages.keys()
+        version=current_app.conf.tou_version, languages=current_app.conf.jsapps.available_languages.keys()
     )
 
     # Fixes for frontend
-    config_dict['available_languages'] = _fix_available_languages(current_app.front_conf.available_languages)
-    config_dict = _fix_uppercase_config(config_dict)
+    if current_app.conf.fix_signup_available_languages:
+        config_dict['available_languages'] = _fix_available_languages(current_app.conf.jsapps.available_languages)
+    if current_app.conf.fix_signup_uppercase_config:
+        config_dict = _fix_uppercase_config(config_dict)
+
     return config_dict
 
 
-@jsconfig_views.route('/login/config', methods=['GET'], subdomain="login")
+@jsconfig_views.route('/login/config', methods=['GET'])
 @MarshalWith(FluxStandardAction)
 def get_login_config() -> dict:
     """
     Configuration for the login front app
     """
-    current_app.logger.info(f'Serving configuration for the login app')
-
     return {
         'csrf_token': session.get_csrf_token(),
-        'next_url': current_app.front_conf.login_next_url,
-        'password_service_url': current_app.front_conf.password_service_url,
-        'password_entropy': current_app.front_conf.password_entropy,
-        'password_length': current_app.front_conf.password_length,
-        'signup_url': current_app.front_conf.signup_url,
-        'eduid_site_name': current_app.front_conf.eduid_site_name,
-        'eduid_site_url': current_app.front_conf.eduid_site_url,
-        'eidas_url': current_app.front_conf.eidas_url,
-        'mfa_auth_idp': current_app.front_conf.token_verify_idp,
-        'sentry_dsn': current_app.front_conf.sentry_dsn,
-        'environment': current_app.conf.environment.value,
+        'next_url': current_app.conf.jsapps.login_next_url,
+        'password_service_url': current_app.conf.jsapps.password_service_url,
+        'password_entropy': current_app.conf.jsapps.password_entropy,
+        'password_length': current_app.conf.jsapps.password_length,
+        'signup_url': current_app.conf.jsapps.signup_url,
+        'eduid_site_name': current_app.conf.jsapps.eduid_site_name,
+        'eduid_site_url': current_app.conf.jsapps.eduid_site_url,
+        'eidas_url': current_app.conf.jsapps.eidas_url,
+        'mfa_auth_idp': current_app.conf.jsapps.token_verify_idp,
+        'sentry_dsn': current_app.conf.jsapps.sentry_dsn,
+        'environment': current_app.conf.jsapps.environment.value,
     }
-
-
-@jsconfig_views.route('/get-bundle', methods=['GET'], subdomain="dashboard")
-def get_dashboard_bundle():
-    context = {
-        'bundle': current_app.conf.dashboard_bundle_path,
-        'version': current_app.conf.dashboard_bundle_version,
-    }
-    feature_cookie = request.cookies.get(current_app.conf.dashboard_bundle_feature_cookie)
-    if feature_cookie and feature_cookie in current_app.conf.dashboard_bundle_feature_version:
-        context['version'] = current_app.conf.dashboard_bundle_feature_version[feature_cookie]
-    try:
-        return render_template('load_bundle.jinja2', context=context)
-    except AttributeError as e:
-        current_app.logger.error(f'Template rendering failed: {e}')
-        abort(500)
-
-
-@jsconfig_views.route('/get-bundle', methods=['GET'], subdomain="signup")
-def get_signup_bundle():
-    context = {
-        'bundle': current_app.conf.signup_bundle_path,
-        'version': current_app.conf.signup_bundle_version,
-    }
-    feature_cookie = request.cookies.get(current_app.conf.signup_bundle_feature_cookie)
-    if feature_cookie and feature_cookie in current_app.conf.signup_bundle_feature_version:
-        context['version'] = current_app.conf.signup_bundle_feature_version[feature_cookie]
-    try:
-        return render_template('load_bundle.jinja2', context=context)
-    except AttributeError as e:
-        current_app.logger.error(f'Template rendering failed: {e}')
-        abort(500)
-
-
-@jsconfig_views.route('/get-bundle', methods=['GET'], subdomain="login")
-def get_login_bundle():
-    context = {
-        'bundle': current_app.conf.login_bundle_path,
-        'version': current_app.conf.login_bundle_version,
-    }
-    feature_cookie = request.cookies.get(current_app.conf.login_bundle_feature_cookie)
-    if feature_cookie and feature_cookie in current_app.conf.login_bundle_feature_version:
-        context['version'] = current_app.conf.login_bundle_feature_version[feature_cookie]
-    try:
-        return render_template('load_bundle.jinja2', context=context)
-    except AttributeError as e:
-        current_app.logger.error(f'Template rendering failed: {e}')
-        abort(500)

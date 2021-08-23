@@ -37,26 +37,18 @@ from flask import current_app
 
 from eduid.common.config.parsers import load_config
 from eduid.webapp.common.api.app import EduIDBaseApp
-from eduid.webapp.common.authn.utils import no_authn_views
 from eduid.webapp.jsconfig.settings.common import JSConfigConfig
-from eduid.webapp.jsconfig.settings.front import FrontConfig
 
 
 class JSConfigApp(EduIDBaseApp):
-    def __init__(self, config: JSConfigConfig, front_config: FrontConfig, **kwargs):
+    def __init__(self, config: JSConfigConfig, **kwargs):
 
         kwargs['init_central_userdb'] = False
-        kwargs['host_matching'] = True
         kwargs['static_folder'] = None
-        kwargs['subdomain_matching'] = True
 
         super().__init__(config, **kwargs)
 
         self.conf = config
-        self.front_conf = front_config
-
-        if self.testing is False:
-            self.url_map.host_matching = False
 
 
 current_jsconfig_app: JSConfigApp = cast(JSConfigApp, current_app)
@@ -70,18 +62,11 @@ def jsconfig_init_app(name: str = 'jsconfig', test_config: Optional[Mapping[str,
     :param test_config: Override config, used in test cases.
     """
     config = load_config(typ=JSConfigConfig, app_name=name, ns='webapp', test_config=test_config)
-    front_config = load_config(typ=FrontConfig, app_name='jsapps', ns='webapp', test_config=test_config)
-
-    app = JSConfigApp(config, front_config)
-
-    app.logger.info(f'Init {app}...')
+    app = JSConfigApp(config)
 
     from eduid.webapp.jsconfig.views import jsconfig_views
 
     app.register_blueprint(jsconfig_views)
 
-    # Register view path that should not be authorized
-    no_auth_paths = ['/get-bundle', '/signup/config']
-    no_authn_views(config, no_auth_paths)
-
+    app.logger.info(f'Init {app}...')
     return app

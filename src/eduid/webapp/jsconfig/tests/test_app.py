@@ -40,7 +40,8 @@ from eduid.common.config.parsers import load_config
 from eduid.common.misc.tous import get_tous
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.jsconfig.app import JSConfigApp, jsconfig_init_app
-from eduid.webapp.jsconfig.settings.front import FrontConfig
+from eduid.webapp.jsconfig.settings.common import JSConfigConfig
+from eduid.webapp.jsconfig.settings.jsapps import JsAppsConfig
 
 
 class JSConfigTests(EduidAPITestCase):
@@ -65,20 +66,30 @@ class JSConfigTests(EduidAPITestCase):
         config.update(
             {
                 'server_name': 'example.com',
-                'tou_url': 'dummy-url',
                 'testing': True,
-                'dashboard_bundle_path': 'dummy-dashboard-bundle',
-                'dashboard_bundle_version': 'dummy-dashboard-version',
-                'signup_bundle_path': 'dummy-signup-bundle',
-                'signup_bundle_version': 'dummy-signup-version',
-                'login_bundle_path': 'dummy-login-bundle',
-                'login_bundle_version': 'dummy-login-version',
-                'eduid_static_url': '/static',
-                # config for jsapps
-                'password_entropy': 12,
-                'password_length': 10,
-                'dashboard_url': 'dummy-url',
-                'personal_data_url': 'personal-data-url',
+                'jsapps': {
+                    'password_entropy': 12,
+                    'password_length': 10,
+                    'authn_url': 'authn_url',
+                    'dashboard_url': 'dashboard_url',
+                    'eidas_url': 'eidas_url',
+                    'emails_url': 'emails_url',
+                    'group_mgmt_url': 'group_mgmt_url',
+                    'letter_proofing_url': 'letter_proofing_url',
+                    'login_next_url': 'login_next_url',
+                    'lookup_mobile_proofing_url': 'lookup_mobile_proofing_url',
+                    'oidc_proofing_freja_url': 'oidc_proofing_freja_url',
+                    'oidc_proofing_url': 'oidc_proofing_url',
+                    'orcid_url': 'orcid_url',
+                    'personal_data_url': 'personal_data_url',
+                    'phone_url': 'phone_url',
+                    'reset_password_url': 'reset_password_url',
+                    'security_url': 'security_url',
+                    'signup_url': 'signup_url',
+                    'static_faq_url': 'static_faq_url',
+                    'token_verify_idp': 'token_verify_idp',
+                    'reset_password_link': 'reset_password_link',
+                },
             }
         )
         return config
@@ -93,14 +104,14 @@ class JSConfigTests(EduidAPITestCase):
             config_data = json.loads(response.data)
 
             assert config_data['type'] == 'GET_JSCONFIG_CONFIG_SUCCESS'
-            assert config_data['payload']['dashboard_url'] == 'dummy-url'
-            assert config_data['payload']['personal_data_url'] == 'personal-data-url'
-            assert config_data['payload']['static_faq_url'] == ''
+            assert config_data['payload']['dashboard_url'] == 'dashboard_url'
+            assert config_data['payload']['personal_data_url'] == 'personal_data_url'
+            assert config_data['payload']['static_faq_url'] == 'static_faq_url'
             assert config_data['payload']['available_languages'] == [['en', 'English'], ['sv', 'Svenska']]
 
-            assert config_data['payload']['DASHBOARD_URL'] == 'dummy-url'
-            assert config_data['payload']['PERSONAL_DATA_URL'] == 'personal-data-url'
-            assert config_data['payload']['STATIC_FAQ_URL'] == ''
+            assert config_data['payload']['DASHBOARD_URL'] == 'dashboard_url'
+            assert config_data['payload']['PERSONAL_DATA_URL'] == 'personal_data_url'
+            assert config_data['payload']['STATIC_FAQ_URL'] == 'static_faq_url'
             assert config_data['payload']['AVAILABLE_LANGUAGES'] == [['en', 'English'], ['sv', 'Svenska']]
 
     def test_get_signup_config(self):
@@ -113,15 +124,15 @@ class JSConfigTests(EduidAPITestCase):
             config_data = json.loads(response.data)
 
             assert config_data['type'] == 'GET_JSCONFIG_SIGNUP_CONFIG_SUCCESS'
-            assert config_data['payload']['dashboard_url'] == 'dummy-url'
-            assert config_data['payload']['static_faq_url'] == ''
+            assert config_data['payload']['dashboard_url'] == 'dashboard_url'
+            assert config_data['payload']['static_faq_url'] == 'static_faq_url'
             assert config_data['payload']['tous'] == get_tous(
                 self.app.conf.tou_version, self.app.conf.available_languages.keys()
             )
             assert config_data['payload']['available_languages'] == [['en', 'English'], ['sv', 'Svenska']]
 
-            assert config_data['payload']['DASHBOARD_URL'] == 'dummy-url'
-            assert config_data['payload']['STATIC_FAQ_URL'] == ''
+            assert config_data['payload']['DASHBOARD_URL'] == 'dashboard_url'
+            assert config_data['payload']['STATIC_FAQ_URL'] == 'static_faq_url'
             assert config_data['payload']['TOUS'] == get_tous(
                 self.app.conf.tou_version, self.app.conf.available_languages.keys()
             )
@@ -141,61 +152,8 @@ class JSConfigTests(EduidAPITestCase):
             assert config_data['payload']['password_entropy'] == 12
             assert config_data['payload']['password_length'] == 10
 
-    def test_get_dashboard_bundle(self):
-        eppn = self.test_user_data['eduPersonPrincipalName']
-        with self.session_cookie(self.browser, eppn, server_name='example.com', subdomain='dashboard') as client:
-            response = client.get('http://dashboard.example.com/get-bundle')
-
-            self.assertEqual(response.status_code, 200)
-
-            body = response.data
-            assert 'dummy-dashboard-bundle' in str(body)
-            assert 'dummy-dashboard-version' in str(body)
-
-    def test_get_signup_bundle(self):
-        # XXX Here we access the view by exposing it in a different path - the
-        # production manner of distinguishing it (throught its subdomain) does
-        # not work with the test client
-        from eduid.webapp.jsconfig import views
-
-        views.jsconfig_views.route('/get-signup-bundle', methods=['GET'])(views.get_signup_bundle)
-        self.app.register_blueprint(views.jsconfig_views)
-        eppn = self.test_user_data['eduPersonPrincipalName']
-        with self.session_cookie(self.browser, eppn) as client:
-            response = client.get('http://signup.example.com/get-signup-bundle')
-
-            self.assertEqual(response.status_code, 200)
-
-            body = response.data
-            assert 'dummy-signup-bundle' in str(body)
-            assert 'dummy-signup-version' in str(body)
-
-    def test_get_login_bundle(self):
-        # XXX Here we access the view by exposing it in a different path - the
-        # production manner of distinguishing it (throught its subdomain) does
-        # not work with the test client
-        from eduid.webapp.jsconfig import views
-
-        views.jsconfig_views.route('/get-login-bundle', methods=['GET'])(views.get_login_bundle)
-        self.app.register_blueprint(views.jsconfig_views)
-        eppn = self.test_user_data['eduPersonPrincipalName']
-        with self.session_cookie(self.browser, eppn) as client:
-            response = client.get('http://login.example.com/get-login-bundle')
-
-            self.assertEqual(response.status_code, 200)
-
-            body = response.data
-            assert 'dummy-login-bundle' in str(body)
-            assert 'dummy-login-version' in str(body)
-
     def test_jsapps_config_from_yaml(self):
         os.environ['EDUID_CONFIG_YAML'] = f'{self.data_dir}/config.yaml'
 
-        front_config = load_config(typ=FrontConfig, app_name='jsapps', ns='webapp')
-        assert front_config == FrontConfig(
-            testing=True,
-            password_entropy=2,
-            password_length=3,
-            dashboard_url='dummy-url-yaml',
-            personal_data_url='dummy-personal-data-url',
-        )
+        config = load_config(typ=JSConfigConfig, app_name='jsconfig', ns='webapp')
+        assert self.app.conf.jsapps.dict() == config.jsapps.dict()
