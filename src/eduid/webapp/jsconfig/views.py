@@ -76,8 +76,11 @@ def get_dashboard_config() -> dict:
     config_dict['csrf_token'] = session.get_csrf_token()
 
     # Fixes for frontend
-    config_dict['available_languages'] = _fix_available_languages(current_app.conf.jsapps.available_languages)
-    config_dict = _fix_uppercase_config(config_dict)
+    if current_app.conf.fix_dashboard_available_languages:
+        config_dict['available_languages'] = _fix_available_languages(current_app.conf.jsapps.available_languages)
+    if current_app.conf.fix_dashboard_uppercase_config:
+        config_dict = _fix_uppercase_config(config_dict)
+
     return config_dict
 
 
@@ -94,8 +97,11 @@ def get_signup_config() -> dict:
     )
 
     # Fixes for frontend
-    config_dict['available_languages'] = _fix_available_languages(current_app.conf.jsapps.available_languages)
-    config_dict = _fix_uppercase_config(config_dict)
+    if current_app.conf.fix_signup_available_languages:
+        config_dict['available_languages'] = _fix_available_languages(current_app.conf.jsapps.available_languages)
+    if current_app.conf.fix_signup_uppercase_config:
+        config_dict = _fix_uppercase_config(config_dict)
+
     return config_dict
 
 
