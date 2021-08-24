@@ -117,6 +117,7 @@ def get_login_config() -> dict:
         'password_service_url': current_app.conf.jsapps.password_service_url,
         'password_entropy': current_app.conf.jsapps.password_entropy,
         'password_length': current_app.conf.jsapps.password_length,
+        'reset_password_url': current_app.conf.jsapps.reset_password_url,
         'signup_url': current_app.conf.jsapps.signup_url,
         'eduid_site_name': current_app.conf.jsapps.eduid_site_name,
         'eduid_site_url': current_app.conf.jsapps.eduid_site_url,
