@@ -42,6 +42,7 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User
 from eduid.userdb.credentials import Password, Webauthn
 from eduid.userdb.exceptions import DocumentDoesNotExist, UserHasNotCompletedSignup
+from eduid.userdb.fixtures.fido_credentials import webauthn_credential
 from eduid.userdb.fixtures.fido_credentials import webauthn_credential as sample_credential
 from eduid.userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState
@@ -656,7 +657,7 @@ class ResetPasswordTests(EduidAPITestCase):
             type_='POST_RESET_PASSWORD_VERIFY_EMAIL_SUCCESS',
             payload={
                 'email_address': 'johnsmith@example.com',
-                'extra_security': {'phone_numbers': [{'index': 0, 'number': 'XXXXXXXXXX09'}]},
+                'extra_security': {'external_mfa': True, 'phone_numbers': [{'index': 0, 'number': 'XXXXXXXXXX09'}]},
                 'success': True,
                 'zxcvbn_terms': ['John', 'Smith', 'John', 'Smith', 'johnsmith', 'johnsmith2'],
             },
@@ -672,6 +673,9 @@ class ResetPasswordTests(EduidAPITestCase):
         # Remove all verified phone numbers
         for number in user.phone_numbers.verified:
             user.phone_numbers.remove_handling_primary(number.key)
+        # Remove all verified nins
+        for nin in user.nins.verified:
+            user.nins.remove_handling_primary(nin.key)
         self.app.central_userdb.save(user)
         response = self._post_reset_code()
         self._check_success_response(
@@ -684,6 +688,25 @@ class ResetPasswordTests(EduidAPITestCase):
                 'zxcvbn_terms': ['John', 'Smith', 'John', 'Smith', 'johnsmith', 'johnsmith2'],
             },
         )
+
+    def test_post_reset_code_extra_security_alternatives_security_key(self):
+        user: User = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+        # add security key to user
+        user.credentials.add(webauthn_credential)
+        self.app.central_userdb.save(user)
+        response = self._post_reset_code()
+        self._check_success_response(
+            response,
+            type_='POST_RESET_PASSWORD_VERIFY_EMAIL_SUCCESS',
+            payload={
+                'email_address': 'johnsmith@example.com',
+                'success': True,
+                'zxcvbn_terms': ['John', 'Smith', 'John', 'Smith', 'johnsmith', 'johnsmith2'],
+            },
+        )
+        # cant compare extra_security with _check_success_response as the value of webauthn_options is different per run
+        assert 'tokens' in response.json['payload']['extra_security']
+        assert 'webauthn_options' in response.json['payload']['extra_security']['tokens']
 
     def test_post_reset_wrong_code(self):
         data2 = {'email_code': 'wrong-code'}

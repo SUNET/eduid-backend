@@ -358,7 +358,10 @@ def get_extra_security_alternatives(user: User) -> dict:
     """
     alternatives: Dict[str, Any] = {}
 
-    if len(user.phone_numbers.verified):
+    if user.nins.verified:
+        alternatives['external_mfa'] = True
+
+    if user.phone_numbers.verified:
         verified_phone_numbers = [
             {'number': item.number, 'index': n} for n, item in enumerate(user.phone_numbers.verified)
         ]
