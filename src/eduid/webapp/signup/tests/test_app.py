@@ -175,7 +175,8 @@ class SignupTests(EduidAPITestCase):
                     # lower because we are purposefully calling it with a mixed case mail address in tests
                     send_verification_mail(email.lower())
                     signup_user = self.app.private_userdb.get_user_by_pending_mail_address(email)
-                    code = code or signup_user.pending_mail_address.verification_code
+                    if signup_user and signup_user.pending_mail_address:
+                        code = code or signup_user.pending_mail_address.verification_code or ''
 
                     return client.get('/verify-link/' + code)
 
@@ -223,7 +224,10 @@ class SignupTests(EduidAPITestCase):
                     send_verification_mail(email.lower())
 
             signup_user = self.app.private_userdb.get_user_by_pending_mail_address(email)
-            response = client.get('/verify-link/' + signup_user.pending_mail_address.verification_code)
+            code = ''
+            if signup_user and signup_user.pending_mail_address:
+                code = signup_user.pending_mail_address.verification_code or ''
+            response = client.get('/verify-link/' + code)
             return json.loads(response.data)
 
     @patch('eduid.webapp.signup.views.verify_recaptcha')

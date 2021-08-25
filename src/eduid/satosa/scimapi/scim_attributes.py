@@ -87,7 +87,7 @@ class ScimAttributes(ResponseMicroService):
             for acc in user.linked_accounts:
                 logger.debug(f'Linked account: {acc}')
                 _entity_id = self.config.mfa_stepup_issuer_to_entity_id.get(acc.issuer)
-                if _entity_id and acc.parameters.get('mfa_stepup') == True:
+                if _entity_id and acc.parameters.get('mfa_stepup') is True:
                     _stepup_accounts += [
                         {'entity_id': _entity_id, 'identifier': acc.value, 'attribute': 'eduPersonPrincipalName'}
                     ]
@@ -103,7 +103,7 @@ class ScimAttributes(ResponseMicroService):
             if not isinstance(_metadata, MetaData):
                 logger.debug(f'Element {_metadata} was not MetaData')
                 continue
-            if not entity_id in _metadata:
+            if entity_id not in _metadata:
                 logger.debug(f'entityId {entity_id} not present in this metadata ({_md_name})')
                 continue
             idpsso = _metadata[entity_id].get('idpsso_descriptor', {})

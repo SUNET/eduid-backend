@@ -90,6 +90,8 @@ class Plugin(ActionPlugin):
 
         eppn = action.eppn
         user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=False)
+        if not user:
+            raise self.ActionError(ActionsMsg.user_not_found)
         current_app.logger.debug(f'Loaded User {user} from db (in perform_action)')
 
         # Third party service MFA

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-from typing import Dict
+from typing import Any, Dict, List, Optional
 
 from bson import ObjectId
 from celery.utils.log import get_task_logger
@@ -64,7 +64,7 @@ def unverify_mail_aliases(userdb, user_id, mail_aliases):
     verified_mail_aliases = [alias['email'] for alias in mail_aliases if alias.get('verified') is True]
     for email in verified_mail_aliases:
         try:
-            for user in userdb.get_user_by_mail(email, return_list=True):
+            for user in userdb.get_users_by_mail(email):
                 if user.user_id != user_id:
                     logger.debug('Removing mail address {} from user {}'.format(email, user))
                     logger.debug('Old user mail aliases BEFORE: {}'.format(user.mail_addresses.to_list()))
@@ -84,18 +84,13 @@ def unverify_mail_aliases(userdb, user_id, mail_aliases):
     return count
 
 
-def unverify_phones(userdb, user_id, phones):
+def unverify_phones(userdb: UserDB, user_id: ObjectId, phones: List[Dict[str, Any]]) -> Optional[int]:
     """
     :param userdb: Central userdb
     :param user_id: User document _id
     :param phones: sub dict of attributes
 
-    :type userdb: eduid.userdb.userdb.UserDB
-    :type user_id: bson.ObjectId
-    :type phones: dict
-
     :return: How many phones that where unverified
-    :rtype: int
     """
     count = 0
     if phones is None:
@@ -105,7 +100,7 @@ def unverify_phones(userdb, user_id, phones):
     verified_phone_numbers = [phone['number'] for phone in phones if phone.get('verified') is True]
     for number in verified_phone_numbers:
         try:
-            for user in userdb.get_user_by_phone(number, return_list=True):
+            for user in userdb.get_users_by_phone(number):
                 if user.user_id != user_id:
                     logger.debug('Removing phone number {} from user {}'.format(number, user))
                     logger.debug('Old user phone numbers BEFORE: {}.'.format(user.phone_numbers.to_list()))
@@ -125,18 +120,13 @@ def unverify_phones(userdb, user_id, phones):
     return count
 
 
-def unverify_nins(userdb, user_id, nins):
+def unverify_nins(userdb: UserDB, user_id: ObjectId, nins: List[Dict[str, Any]]) -> Optional[int]:
     """
     :param userdb: Central userdb
     :param user_id: User document _id
     :param nins: sub dict of attributes
 
-    :type userdb: eduid.userdb.userdb.UserDB
-    :type user_id: bson.ObjectId
-    :type nins: dict
-
     :return: How many nins that where unverified
-    :rtype: int
     """
     count = 0
     if nins is None:
@@ -146,7 +136,7 @@ def unverify_nins(userdb, user_id, nins):
     verified_nins = [nin['number'] for nin in nins if nin.get('verified') is True]
     for number in verified_nins:
         try:
-            for user in userdb.get_user_by_nin(number, return_list=True):
+            for user in userdb.get_users_by_nin(number):
                 if user.user_id != user_id:
                     logger.debug('Removing nin {} from user {}'.format(number, user))
                     logger.debug('Old user NINs BEFORE: {}.'.format(user.nins.to_list()))
@@ -175,7 +165,6 @@ def check_locked_identity(userdb: UserDB, user_id: ObjectId, attributes: Dict, a
     :param app_name: calling application name, like 'eduid_signup'
 
     :return: attributes to update
-    :rtype: dict
     """
     # Check verified nins that will be set against the locked_identity attribute,
     # if that does not exist it should be created
@@ -193,11 +182,8 @@ def check_locked_identity(userdb: UserDB, user_id: ObjectId, attributes: Dict, a
     nin = verified_nins[0]
 
     # Get the users locked identities
-    try:
-        user = userdb.get_user_by_id(user_id)
-        locked_identities = user.locked_identity
-    except DocumentDoesNotExist:
-        locked_identities = LockedIdentityList()
+    user = userdb.get_user_by_id(user_id, raise_on_missing=False)
+    locked_identities = user.locked_identity if user else LockedIdentityList()
 
     locked_nin = locked_identities.find('nin')
     # Create a new locked nin if it does not already exist

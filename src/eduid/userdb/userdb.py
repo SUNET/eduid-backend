@@ -100,17 +100,14 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
                 return None
         return self._get_user_by_attr('_id', user_id, raise_on_missing)
 
-    def _get_user_by_filter(
-        self, filter: Mapping[str, Any], raise_on_missing: bool = True, return_list: bool = False
-    ) -> Union[Optional[UserVar], List[UserVar]]:
+    def _get_user_by_filter(self, filter: Mapping[str, Any], raise_on_missing: bool = True) -> List[UserVar]:
         """
         return the user matching the provided filter.
 
         :param filter: The filter to match the user
         :param raise_on_missing: If True, raise exception if no matching user object can be found.
-        :param return_list: If True, always return a list of user objects regardless of how many there is.
 
-        :return: User instance
+        :return: List of User instances
         """
         try:
             users = list(self._get_documents_by_filter(filter, raise_on_missing=raise_on_missing))
@@ -118,20 +115,20 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
             logger.debug("{!s} No user found with filter {!r} in {!r}".format(self, filter, self._coll_name))
             raise UserDoesNotExist("No user matching filter {!r}".format(filter))
 
-        if return_list:
-            return [self.user_from_dict(data=user) for user in users]
+        return [self.user_from_dict(data=user) for user in users]
 
-        if len(users) == 0:
+    def get_user_by_mail(self, email: str, raise_on_missing: bool = True) -> Optional[UserVar]:
+        """ Locate a user with a (confirmed) e-mail address """
+        res = self.get_users_by_mail(email=email, raise_on_missing=raise_on_missing)
+        if not res:
             return None
+        if len(res) > 1:
+            raise MultipleUsersReturned(f'Multiple matching users for email {repr(email)}')
+        return res[0]
 
-        if len(users) > 1:
-            raise MultipleUsersReturned("Multiple matching users for filter {!r}".format(filter))
-
-        return self.user_from_dict(data=users[0])
-
-    def get_user_by_mail(
-        self, email: str, raise_on_missing: bool = True, return_list: bool = False, include_unconfirmed: bool = False
-    ) -> Union[Optional[UserVar], List[UserVar]]:
+    def get_users_by_mail(
+        self, email: str, raise_on_missing: bool = True, include_unconfirmed: bool = False
+    ) -> List[UserVar]:
         """
         Return the user object in the central eduID UserDB having
         an email address matching `email'. Unless include_unconfirmed=True, the
@@ -139,7 +136,6 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
 
         :param email: The email address to look for
         :param raise_on_missing: If True, raise exception if no matching user object can be found.
-        :param return_list: If True, always return a list of user objects regardless of how many there is.
         :param include_unconfirmed: Require email address to be confirmed/verified.
 
         :return: User instance
@@ -149,11 +145,20 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         if include_unconfirmed:
             elemmatch = {'email': email}
         filter = {'$or': [{'mail': email}, {'mailAliases': {'$elemMatch': elemmatch}}]}
-        return self._get_user_by_filter(filter, raise_on_missing=raise_on_missing, return_list=return_list)
+        return self._get_user_by_filter(filter, raise_on_missing=raise_on_missing)
 
-    def get_user_by_nin(
-        self, nin: str, raise_on_missing: bool = True, return_list: bool = False, include_unconfirmed: bool = False
-    ) -> Union[Optional[UserVar], List[UserVar]]:
+    def get_user_by_nin(self, nin: str, raise_on_missing: bool = True) -> Optional[UserVar]:
+        """ Locate a user with a (confirmed) NIN """
+        res = self.get_users_by_nin(nin=nin, raise_on_missing=raise_on_missing)
+        if not res:
+            return None
+        if len(res) > 1:
+            raise MultipleUsersReturned(f'Multiple matching users for NIN {repr(nin)}')
+        return res[0]
+
+    def get_users_by_nin(
+        self, nin: str, raise_on_missing: bool = True, include_unconfirmed: bool = False
+    ) -> List[UserVar]:
         """
         Return the user object in the central eduID UserDB having
         a NIN matching `nin'. Unless include_unconfirmed=True, the
@@ -161,7 +166,6 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
 
         :param nin: The nin to look for
         :param raise_on_missing: If True, raise exception if no matching user object can be found.
-        :param return_list: If True, always return a list of user objects regardless of how many there is.
         :param include_unconfirmed: Require nin to be confirmed/verified.
 
         :return: User instance
@@ -172,11 +176,20 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
             newmatch = {'number': nin}
         new_filter = {'nins': {'$elemMatch': newmatch}}
         filter = {'$or': [old_filter, new_filter]}
-        return self._get_user_by_filter(filter, raise_on_missing=raise_on_missing, return_list=return_list)
+        return self._get_user_by_filter(filter, raise_on_missing=raise_on_missing)
 
-    def get_user_by_phone(
-        self, phone, raise_on_missing=True, return_list=False, include_unconfirmed=False
-    ) -> Union[Optional[UserVar], List[UserVar]]:
+    def get_user_by_phone(self, phone: str, raise_on_missing: bool = True) -> Optional[UserVar]:
+        """ Locate a user with a (confirmed) phone number """
+        res = self.get_users_by_phone(phone=phone, raise_on_missing=raise_on_missing)
+        if not res:
+            return None
+        if len(res) > 1:
+            raise MultipleUsersReturned(f'Multiple matching users for phone {repr(phone)}')
+        return res[0]
+
+    def get_users_by_phone(
+        self, phone: str, raise_on_missing: bool = True, include_unconfirmed: bool = False
+    ) -> List[UserVar]:
         """
         Return the user object in the central eduID UserDB having
         a phone number matching `phone'. Unless include_unconfirmed=True, the
@@ -184,10 +197,9 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
 
         :param phone: The phone to look for
         :param raise_on_missing: If True, raise exception if no matching user object can be found.
-        :param return_list: If True, always return a list of user objects regardless of how many there is.
         :param include_unconfirmed: Require phone to be confirmed/verified.
 
-        :return: User instance
+        :return: List of User instances
         """
         oldmatch = {'mobile': phone, 'verified': True}
         if include_unconfirmed:
@@ -198,15 +210,18 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
             newmatch = {'number': phone}
         new_filter = {'phone': {'$elemMatch': newmatch}}
         filter = {'$or': [old_filter, new_filter]}
-        return self._get_user_by_filter(filter, raise_on_missing=raise_on_missing, return_list=return_list)
+        return self._get_user_by_filter(filter, raise_on_missing=raise_on_missing)
 
-    def get_user_by_eppn(self, eppn: str, raise_on_missing: bool = True) -> UserVar:
+    def get_user_by_eppn(self, eppn: Optional[str], raise_on_missing: bool = True) -> Optional[UserVar]:
         """
         Look for a user using the eduPersonPrincipalName.
 
         :param eppn: eduPersonPrincipalName to look for
         :param raise_on_missing: If True, raise exception if no matching user object can be found.
         """
+        # allow eppn=None as convenience, to not have to check it everywhere before calling this function
+        if eppn is None:
+            return None
         return self._get_user_by_attr('eduPersonPrincipalName', eppn, raise_on_missing)
 
     def _get_user_by_attr(self, attr: str, value: Any, raise_on_missing: bool = True) -> Optional[UserVar]:
@@ -333,21 +348,6 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
             filter=query_filter, update=operations, return_document=ReturnDocument.AFTER, upsert=True
         )
         logger.debug(f'Updated/inserted document: {updated_doc}')
-
-    def get_identity_proofing(self, user: UserVar) -> str:
-        """
-        Return the proofing urn value
-
-        :param user: The user object
-        """
-        al1_urn = 'http://www.swamid.se/policy/assurance/al1'
-        al2_urn = 'http://www.swamid.se/policy/assurance/al2'
-        user = self.get_user_by_id(user.user_id)
-        if user is not None:
-            if len(user.nins.verified) > 0:
-                return al2_urn
-
-        return al1_urn
 
 
 class AmDB(UserDB[User]):

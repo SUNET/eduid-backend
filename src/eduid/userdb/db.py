@@ -179,7 +179,7 @@ def _format_mongodb_uri(parsed_uri: Mapping[str, Any]) -> str:
         user_pass = '{username!s}:{password!s}@'.format(**parsed_uri)
 
     _nodes = []
-    for host, port in parsed_uri.get('nodelist'):
+    for host, port in parsed_uri.get('nodelist', []):
         if ':' in host and not host.endswith(']'):
             # IPv6 address without brackets
             host = '[{!s}]'.format(host)
@@ -189,13 +189,14 @@ def _format_mongodb_uri(parsed_uri: Mapping[str, Any]) -> str:
             _nodes.append('{!s}:{!s}'.format(host, port))
     nodelist = ','.join(_nodes)
 
+    _opt_list = []
+    for key, value in parsed_uri.get('options', {}).items():
+        if isinstance(value, bool):
+            value = str(value).lower()
+        _opt_list.append('{!s}={!s}'.format(key, value))
+
     options = ''
-    if parsed_uri.get('options'):
-        _opt_list = []
-        for key, value in parsed_uri.get('options').items():
-            if isinstance(value, bool):
-                value = str(value).lower()
-            _opt_list.append('{!s}={!s}'.format(key, value))
+    if _opt_list:
         options = '?' + '&'.join(sorted(_opt_list))
 
     db_name = parsed_uri.get('database') or ''

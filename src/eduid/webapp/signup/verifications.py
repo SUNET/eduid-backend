@@ -118,6 +118,7 @@ def send_verification_mail(email: str) -> None:
         signup_user.pending_mail_address = mailaddress
         current_app.logger.info("New user {}/{} created. e-mail is pending confirmation".format(signup_user, email))
     else:
+        assert signup_user.pending_mail_address  # please mypy
         # update mail_address on existing user with new code
         signup_user.pending_mail_address.verification_code = code
         current_app.logger.info("User {}/{} updated with new e-mail confirmation code".format(signup_user, email))
@@ -133,7 +134,7 @@ def send_verification_mail(email: str) -> None:
     }
 
     if current_app.conf.environment == EduidEnvironment.dev:
-        # Debug-log the cerification link in plain text in development environment
+        # Debug-log the certification link in plain text in development environment
         current_app.logger.debug(f'Generating verification e-mail with context:\n{context}')
 
     text = render_template("verification_email.txt.jinja2", **context)
@@ -177,6 +178,10 @@ def verify_email_code(code: str) -> SignupUser:
 
     if not signup_user:
         current_app.logger.debug("Code {} not found in database".format(code))
+        raise CodeDoesNotExist()
+
+    if not signup_user.pending_mail_address:
+        current_app.logger.debug('User has no pending e-mails in database')
         raise CodeDoesNotExist()
 
     email = signup_user.pending_mail_address.email

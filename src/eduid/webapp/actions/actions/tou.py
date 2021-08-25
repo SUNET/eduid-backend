@@ -82,6 +82,8 @@ class Plugin(ActionPlugin):
 
         eppn = action.eppn
         central_user = current_app.central_userdb.get_user_by_eppn(eppn)
+        if not central_user:
+            raise self.ActionError(ActionsMsg.user_not_found)
         user = ToUUser.from_user(central_user, current_app.tou_db)
         current_app.logger.debug('Loaded ToUUser {} from db'.format(user))
 

@@ -233,12 +233,8 @@ class PhoneProofingStateDB(ProofingStateDB[PhoneProofingState]):
         self.remove_document({'eduPersonPrincipalName': state.eppn, 'verification.number': state.verification.number})
 
 
-class OidcStateDB(ProofingStateDB[ProofingState], Generic[ProofingStateVar]):
-    @classmethod
-    def state_from_dict(cls, data: Mapping[str, Any]) -> OidcProofingState:
-        return OidcProofingState.from_dict(data)
-
-    def get_state_by_oidc_state(self, oidc_state: str, raise_on_missing: bool = True) -> Optional[OidcProofingState]:
+class OidcStateDB(ProofingStateDB[ProofingStateVar], Generic[ProofingStateVar], ABC):
+    def get_state_by_oidc_state(self, oidc_state: str, raise_on_missing: bool = True) -> Optional[ProofingStateVar]:
         """
         Locate a state in the db given the user's OIDC state.
 

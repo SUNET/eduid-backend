@@ -184,6 +184,7 @@ class ResetPasswordTests(EduidAPITestCase):
 
         # check that the user has verified data
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+        assert user is not None
         verified_phone_numbers = user.phone_numbers.verified
         self.assertEqual(len(verified_phone_numbers), 1)
         verified_nins = user.nins.verified
@@ -308,6 +309,7 @@ class ResetPasswordTests(EduidAPITestCase):
         assert isinstance(state1, ResetPasswordEmailState)
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+        assert user is not None
         alternatives = get_extra_security_alternatives(user)
         state1.extra_security = alternatives
         state1.email_code.is_verified = True
@@ -371,6 +373,7 @@ class ResetPasswordTests(EduidAPITestCase):
             credential.update(credential_data)
         webauthn_credential = Webauthn.from_dict(credential)
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+        assert user is not None
         user.credentials.add(webauthn_credential)
         self.app.central_userdb.save(user, check_sync=False)
 
@@ -429,6 +432,7 @@ class ResetPasswordTests(EduidAPITestCase):
         mock_get_vccs_client.return_value = TestVCCSClient()
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+        assert user is not None
 
         response = self._post_email_address(data1=data1)
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)

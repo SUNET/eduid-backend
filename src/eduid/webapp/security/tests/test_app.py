@@ -154,12 +154,15 @@ class SecurityTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.count, 2)
-        self.assertEqual(len(user.nins.verified), 2)
+        assert user
+        assert user.nins.count == 2
+        assert len(user.nins.verified) == 2
 
         if unverify:
-            user.nins.find(self.test_user_nin).is_primary = False
-            user.nins.find(self.test_user_nin).is_verified = False
+            nin = user.nins.find(self.test_user_nin)
+            assert nin is not None
+            nin.is_primary = False
+            nin.is_verified = False
             self.app.central_userdb.save(user, check_sync=False)
 
             self.assertEqual(len(user.nins.verified), 1)
@@ -184,8 +187,9 @@ class SecurityTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.count, 2)
-        self.assertEqual(len(user.nins.verified), 2)
+        assert user is not None
+        assert user.nins.count == 2
+        assert len(user.nins.verified) == 2
 
         if remove:
             user.nins.remove(self.test_user_nin)

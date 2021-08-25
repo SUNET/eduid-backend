@@ -135,11 +135,10 @@ def get_context(email_code: str) -> ResetPasswordContext:
     """
     state = get_pwreset_state(email_code)
 
-    try:
-        user = current_app.central_userdb.get_user_by_eppn(state.eppn, raise_on_missing=True)
-    except UserDoesNotExist as e:
+    user = current_app.central_userdb.get_user_by_eppn(state.eppn, raise_on_missing=False)
+    if not user:
         # User has been removed before reset password was completed
-        current_app.logger.error(f'User not found for state {state.email_code}: {e}')
+        current_app.logger.error(f'User not found for state {state.email_code}')
         raise StateException(msg=ResetPwMsg.user_not_found)
 
     return ResetPasswordContext(state=state, user=user)
@@ -189,11 +188,10 @@ def send_password_reset_mail(email_address: str) -> None:
     """
     :param email_address: User input for password reset
     """
-    try:
-        user = current_app.central_userdb.get_user_by_mail(email_address)
-    except DocumentDoesNotExist as e:
+    user = current_app.central_userdb.get_user_by_mail(email_address, raise_on_missing=False)
+    if not user:
         current_app.logger.error(f'Cannot send reset password mail to an unknown email address: {email_address}')
-        raise e
+        raise UserDoesNotExist(f'User with e-mail address {email_address} not found')
 
     # User found, check if a state already exists
     state = current_app.password_reset_state_db.get_state_by_eppn(eppn=user.eppn, raise_on_missing=False)

@@ -36,8 +36,8 @@ class SupportUserDB(UserDB[SupportUser]):
         # if the way we find users change in the future
         results.append(self.get_user_by_eppn(query, raise_on_missing=False))
         results.append(self.get_user_by_nin(query, raise_on_missing=False))
-        results.extend(self.get_user_by_mail(query, raise_on_missing=False, return_list=True))
-        results.extend(self.get_user_by_phone(query, raise_on_missing=False, return_list=True))
+        results.extend(self.get_users_by_mail(query, raise_on_missing=False))
+        results.extend(self.get_users_by_phone(query, raise_on_missing=False))
         users = [user for user in results if user]
         return users
 
