@@ -695,8 +695,16 @@ class ResetPasswordTests(EduidAPITestCase):
         user.credentials.add(webauthn_credential)
         self.app.central_userdb.save(user)
         response = self._post_reset_code()
-        # cant compare with _check_success_response as the value of webauthn_options is different per run
-        assert response.json['type'] == 'POST_RESET_PASSWORD_VERIFY_EMAIL_SUCCESS'
+        self._check_success_response(
+            response,
+            type_='POST_RESET_PASSWORD_VERIFY_EMAIL_SUCCESS',
+            payload={
+                'email_address': 'johnsmith@example.com',
+                'success': True,
+                'zxcvbn_terms': ['John', 'Smith', 'John', 'Smith', 'johnsmith', 'johnsmith2'],
+            },
+        )
+        # cant compare extra_security with _check_success_response as the value of webauthn_options is different per run
         assert 'tokens' in response.json['payload']['extra_security']
         assert 'webauthn_options' in response.json['payload']['extra_security']['tokens']
 
