@@ -9,7 +9,7 @@ from saml2.mdstore import MetaData
 from satosa.attribute_mapping import AttributeMapper
 from satosa.micro_services.base import ResponseMicroService
 
-from eduid.scimapi.db.userdb import ScimApiUser, ScimApiUserDB
+from eduid.scimapi.db.userdb import ScimApiUser, ScimApiUserDB, ScimEduidUserDB
 from eduid.userdb import UserDB
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ class ScimAttributes(ResponseMicroService):
         super().__init__(*args, **kwargs)
         self.config = Config(**config)
         # Setup databases
-        self.eduid_userdb = UserDB(db_uri=self.config.mongo_uri, db_name='eduid_scimapi')
+        self.eduid_userdb = ScimEduidUserDB(db_uri=self.config.mongo_uri)
         logger.info(f'Connected to eduid db: {self.eduid_userdb}')
         self._userdbs: Dict[str, ScimApiUserDB] = {}
         self.converter = AttributeMapper(internal_attributes)
