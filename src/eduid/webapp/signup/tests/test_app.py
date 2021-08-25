@@ -47,8 +47,8 @@ class SignupTests(EduidAPITestCase):
 
     app: SignupApp
 
-    def setUp(self):
-        super(SignupTests, self).setUp(copy_user_to_private=True)
+    def setUp(self, *args, **kwargs):
+        super().setUp(*args, **kwargs, copy_user_to_private=True)
 
     def load_app(self, config: Mapping[str, Any]) -> SignupApp:
         """

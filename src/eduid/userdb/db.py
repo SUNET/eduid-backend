@@ -93,7 +93,9 @@ class MongoDB(object):
         """
         return self._connection
 
-    def get_database(self, database_name=None, username=None, password=None):
+    def get_database(
+        self, database_name: Optional[str] = None, username: Optional[str] = None, password: Optional[str] = None
+    ):
         """
         Get a pymongo database handle, after authenticating.
 
@@ -164,15 +166,13 @@ class MongoDB(object):
         self._connection.close()
 
 
-def _format_mongodb_uri(parsed_uri):
+def _format_mongodb_uri(parsed_uri: Mapping[str, Any]) -> str:
     """
-    Painstakenly reconsttruct a MongoDB URI parsed using pymongo.uri_parser.parse_uri.
+    Painstakingly reconstruct a MongoDB URI parsed using pymongo.uri_parser.parse_uri.
 
     :param parsed_uri: Result of pymongo.uri_parser.parse_uri
-    :type parsed_uri: dict
 
     :return: New URI
-    :rtype: str | unicode
     """
     user_pass = ''
     if parsed_uri.get('username') and parsed_uri.get('password'):
@@ -288,7 +288,7 @@ class BaseDB(object):
 
     def _get_documents_by_filter(
         self,
-        spec: dict,
+        spec: Mapping[str, Any],
         fields: Optional[dict] = None,
         skip: Optional[int] = None,
         limit: Optional[int] = None,
@@ -323,13 +323,13 @@ class BaseDB(object):
             return []
         return docs
 
-    def db_count(self, spec: Optional[dict] = None, limit: Optional[int] = None) -> int:
+    def db_count(self, spec: Optional[Mapping[str, Any]] = None, limit: Optional[int] = None) -> int:
         """
         Return number of entries in the collection.
 
         :return: Document count
         """
-        args: Dict[Any, Any] = {'filter': {}}
+        args: Dict[str, Any] = {'filter': {}}
         if spec:
             args['filter'] = spec
         if limit:

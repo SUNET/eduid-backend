@@ -49,6 +49,7 @@ import pymongo
 from eduid.userdb import User, UserDB
 from eduid.userdb.dashboard.user import DashboardUser
 from eduid.userdb.testing.temp_instance import EduidTemporaryInstance
+from eduid.userdb.userdb import AmDB
 
 logger = logging.getLogger(__name__)
 
@@ -184,7 +185,7 @@ class MongoTestCase(unittest.TestCase):
         super().setUp()
         self.tmp_db = MongoTemporaryInstance.get_instance()
         assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
-        self.amdb = UserDB(self.tmp_db.uri, 'eduid_am')
+        self.amdb = AmDB(self.tmp_db.uri)
 
         mongo_settings = {
             'mongo_replicaset': None,

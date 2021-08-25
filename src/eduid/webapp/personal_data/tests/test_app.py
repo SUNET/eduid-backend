@@ -44,8 +44,8 @@ from eduid.webapp.personal_data.app import PersonalDataApp, pd_init_app
 class PersonalDataTests(EduidAPITestCase):
     app: PersonalDataApp
 
-    def setUp(self):
-        super(PersonalDataTests, self).setUp(copy_user_to_private=True)
+    def setUp(self, *args, **kwargs):
+        super().setUp(*args, copy_user_to_private=True, **kwargs)
 
     def load_app(self, config: Mapping[str, Any]) -> PersonalDataApp:
         """

@@ -41,7 +41,6 @@ from werkzeug.http import dump_cookie
 
 from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.common.config.parsers import load_config
-from eduid.userdb import UserDB
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.decorators import UnmarshalWith
 from eduid.webapp.common.api.schemas.base import EduidSchema
@@ -90,7 +89,7 @@ def post_param_view():
 @test_views.route('/test-post-json', methods=['POST'])
 @UnmarshalWith(NonValidatingSchema)
 def post_json_view(test_data):
-    "never validates"
+    """never validates"""
     pass
 
 
@@ -124,7 +123,6 @@ class InputsTestApp(EduIDBaseApp):
 
         self.conf = config
 
-        self.central_userdb = UserDB(config.mongo_uri, 'eduid_am')
         self.session_interface = SessionFactory(config)
 
 
@@ -186,7 +184,10 @@ class InputsTests(EduidAPITestCase):
             self.assertIn('åäöхэжこんにちわ', response.data.decode('utf8'))
 
     def test_get_param_unicode_percent_encoded(self):
-        url = '/test-get-param?test-param=%C3%A5%C3%A4%C3%B6%D1%85%D1%8D%D0%B6%E3%81%93%E3%82%93%E3%81%AB%E3%81%A1%E3%82%8F'
+        url = (
+            '/test-get-param?test-param='
+            '%C3%A5%C3%A4%C3%B6%D1%85%D1%8D%D0%B6%E3%81%93%E3%82%93%E3%81%AB%E3%81%A1%E3%82%8F'
+        )
         with self.app.test_request_context(url, method='GET'):
 
             response = self.app.dispatch_request()

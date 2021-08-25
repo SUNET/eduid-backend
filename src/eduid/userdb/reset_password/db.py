@@ -48,15 +48,13 @@ from eduid.userdb.userdb import UserDB
 logger = logging.getLogger(__name__)
 
 
-class ResetPasswordUserDB(UserDB):
-
-    UserClass = ResetPasswordUser
-
+class ResetPasswordUserDB(UserDB[ResetPasswordUser]):
     def __init__(self, db_uri: str, db_name: str = 'eduid_reset_password', collection: str = 'profiles'):
-        super(ResetPasswordUserDB, self).__init__(db_uri, db_name, collection=collection)
+        super().__init__(db_uri, db_name, collection=collection)
 
-    def save(self, user: User, check_sync: bool = True) -> bool:
-        return super(ResetPasswordUserDB, self).save(user, check_sync=check_sync)
+    @classmethod
+    def user_from_dict(cls, data: Mapping[str, Any]) -> ResetPasswordUser:
+        return ResetPasswordUser.from_dict(data)
 
 
 class ResetPasswordStateDB(BaseDB):

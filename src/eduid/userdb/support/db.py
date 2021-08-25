@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import Type
+from typing import Any, List, Mapping, Type
 
 from bson import ObjectId
 
@@ -18,19 +18,18 @@ way we can minimize the risk of accidentally sharing any secret user data.
 """
 
 
-class SupportUserDB(UserDB):
+class SupportUserDB(UserDB[SupportUser]):
+    def __init__(self, db_uri: str, db_name: str = 'eduid_am', collection: str = 'attributes'):
+        super().__init__(db_uri, db_name, collection=collection)
 
-    UserClass = SupportUser
+    @classmethod
+    def user_from_dict(cls, data: Mapping[str, Any]) -> SupportUser:
+        return SupportUser.from_dict(data)
 
-    def __init__(self, db_uri, db_name='eduid_am', collection='attributes', user_class=None):
-        super(SupportUserDB, self).__init__(db_uri, db_name, collection, user_class)
-
-    def search_users(self, query):
+    def search_users(self, query: str) -> List[SupportUser]:
         """
         :param query: search query, can be a user eppn, nin, mail address or phone number
-        :type query: str | unicode
         :return: A list of user docs
-        :rtype: list
         """
         results = list()
         # We could do this with a custom filter (and one db call) but it is better to lean on existing methods

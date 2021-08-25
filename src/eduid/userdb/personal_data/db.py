@@ -31,7 +31,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import logging
+from typing import Any, Mapping
 
+from eduid.userdb import User
 from eduid.userdb.personal_data.user import PersonalDataUser
 from eduid.userdb.userdb import UserDB
 
@@ -40,12 +42,10 @@ logger = logging.getLogger(__name__)
 __author__ = 'lundberg'
 
 
-class PersonalDataUserDB(UserDB):
-
-    UserClass = PersonalDataUser
-
+class PersonalDataUserDB(UserDB[PersonalDataUser]):
     def __init__(self, db_uri, db_name='eduid_personal_data', collection='profiles'):
         super().__init__(db_uri, db_name, collection=collection)
 
-    def save(self, user, check_sync=True):
-        super().save(user, check_sync=check_sync)
+    @classmethod
+    def user_from_dict(cls, data: Mapping[str, Any]) -> User:
+        return PersonalDataUser.from_dict(data)

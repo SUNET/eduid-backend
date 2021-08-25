@@ -32,8 +32,9 @@
 #
 import datetime
 import logging
+from abc import ABC
 from operator import itemgetter
-from typing import ClassVar, Optional, Type, TypeVar
+from typing import Any, ClassVar, Dict, Generic, Mapping, Optional, Type, TypeVar
 
 from eduid.userdb.db import BaseDB
 from eduid.userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
@@ -47,6 +48,7 @@ from eduid.userdb.proofing.state import (
 )
 from eduid.userdb.proofing.user import ProofingUser
 from eduid.userdb.userdb import UserDB
+from eduid.userdb.util import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -54,36 +56,37 @@ __author__ = 'lundberg'
 
 ProofingStateInstance = TypeVar('ProofingStateInstance', bound=ProofingState)
 
+ProofingStateVar = TypeVar('ProofingStateVar')
 
-class ProofingStateDB(BaseDB):
 
-    ProofingStateClass: Type[ProofingState] = ProofingState
-
+class ProofingStateDB(BaseDB, Generic[ProofingStateVar], ABC):
     def __init__(self, db_uri: str, db_name: str, collection='proofing_data'):
         super().__init__(db_uri, db_name, collection)
 
-    def get_state_by_eppn(self, eppn, raise_on_missing=True):
+    @classmethod
+    def state_from_dict(cls, data):
+        # must be implemented by subclass to get correct type information
+        raise NotImplementedError()
+
+    def get_state_by_eppn(self, eppn: str, raise_on_missing: bool = True) -> Optional[ProofingStateVar]:
         """
         Locate a state in the db given the state user's eppn.
 
         :param eppn: eduPersonPrincipalName
         :param raise_on_missing: Raise exception if True else return None
 
-        :type eppn: str | unicode
-        :type raise_on_missing: bool
-
         :return: ProofingStateClass instance | None
-        :rtype: ProofingStateClass | None
 
         :raise self.DocumentDoesNotExist: No user match the search criteria
         :raise self.MultipleDocumentsReturned: More than one user matches the search criteria
         """
 
-        state = self._get_document_by_attr('eduPersonPrincipalName', eppn, raise_on_missing)
-        if state:
-            return self.ProofingStateClass.from_dict(state)
+        data = self._get_document_by_attr('eduPersonPrincipalName', eppn, raise_on_missing)
+        if not data:
+            return None
+        return self.state_from_dict(data)
 
-    def get_latest_state_by_spec(self, spec: dict, raise_on_missing: bool = True) -> Optional[ProofingStateInstance]:
+    def get_latest_state_by_spec(self, spec: dict, raise_on_missing: bool = True) -> Optional[ProofingStateVar]:
         """
         Returns the latest inserted state and __removes any other state found__ defined by the spec .
 
@@ -102,28 +105,25 @@ class ProofingStateDB(BaseDB):
             state_to_keep = states.pop(-1)  # Keep latest state
             for state in states:
                 self.remove_document(state['_id'])
-            return self.ProofingStateClass.from_dict(state_to_keep)
+            return self.state_from_dict(state_to_keep)
 
-        return self.ProofingStateClass.from_dict(docs[0])
+        return self.state_from_dict(docs[0])
 
-    def save(self, state, check_sync=True):
+    def save(self, state: ProofingStateVar, check_sync: bool = True) -> None:
         """
         :param state: ProofingStateClass object
         :param check_sync: Ensure the document hasn't been updated in the database since it was loaded
-
-        :type state: ProofingStateClass
-        :type check_sync: bool
-
-        :return:
         """
+        if not isinstance(state, ProofingState):
+            raise TypeError('State must be a ProofingState subclass')
         modified = state.modified_ts
-        state.modified_ts = datetime.datetime.utcnow()  # update to current time
+        state.modified_ts = utc_now()  # update to current time
         if modified is None:
             # document has never been modified
             result = self._coll.insert_one(state.to_dict())
             logging.debug(f"{self} Inserted new state {state} into {self._coll_name}): {result.inserted_id})")
         else:
-            test_doc = {'eduPersonPrincipalName': state.eppn}
+            test_doc: Dict[str, Any] = {'eduPersonPrincipalName': state.eppn}
             if check_sync:
                 test_doc['modified_ts'] = modified
             result = self._coll.replace_one(test_doc, state.to_dict(), upsert=(not check_sync))
@@ -133,7 +133,7 @@ class ProofingStateDB(BaseDB):
                 if db_state:
                     db_ts = db_state['modified_ts']
                 logging.error(
-                    f'{self} FAILED Updating state {state} (ts {modified}) in {self._coll_name}). ts in db = {db_ts!s}'
+                    f'{self} FAILED Updating state {state} (ts {modified}) in {self._coll_name}). ts in db = {db_ts}'
                 )
                 raise DocumentOutOfSync('Stale state object can\'t be saved')
 
@@ -141,27 +141,32 @@ class ProofingStateDB(BaseDB):
                 "{!s} Updated state {} (ts {}) in {}): {}".format(self, state, modified, self._coll_name, result)
             )
 
-    def remove_state(self, state):
+    def remove_state(self, state: ProofingStateVar) -> None:
         """
         :param state: ProofingStateClass object
-
-        :type state: ProofingStateClass
         """
+        if not isinstance(state, ProofingState):
+            raise TypeError('State must be a ProofingState subclass')
+
         self.remove_document({'eduPersonPrincipalName': state.eppn})
 
 
-class LetterProofingStateDB(ProofingStateDB):
-    ProofingStateClass = LetterProofingState
-
+class LetterProofingStateDB(ProofingStateDB[LetterProofingState]):
     def __init__(self, db_uri: str, db_name: str = 'eduid_idproofing_letter'):
         super().__init__(db_uri, db_name)
 
+    @classmethod
+    def state_from_dict(cls, data: Mapping[str, Any]) -> LetterProofingState:
+        return LetterProofingState.from_dict(data)
 
-class EmailProofingStateDB(ProofingStateDB):
-    ProofingStateClass = EmailProofingState
 
+class EmailProofingStateDB(ProofingStateDB[EmailProofingState]):
     def __init__(self, db_uri: str, db_name: str = 'eduid_email'):
         super().__init__(db_uri, db_name)
+
+    @classmethod
+    def state_from_dict(cls, data: Mapping[str, Any]) -> EmailProofingState:
+        return EmailProofingState.from_dict(data)
 
     def get_state_by_eppn_and_email(
         self, eppn: str, email: str, raise_on_missing: bool = True
@@ -177,22 +182,29 @@ class EmailProofingStateDB(ProofingStateDB):
         spec = {'eduPersonPrincipalName': eppn, 'verification.email': email}
         return self.get_latest_state_by_spec(spec, raise_on_missing)
 
-    def remove_state(self, state):
+    def remove_state(self, state: ProofingStateVar) -> None:
         """
         :param state: ProofingStateClass object
 
         :type state: ProofingStateClass
         """
+        if not isinstance(state, EmailProofingState):
+            raise TypeError('State must be a ProofingState subclass')
+
         self.remove_document({'eduPersonPrincipalName': state.eppn, 'verification.email': state.verification.email})
 
 
-class PhoneProofingStateDB(ProofingStateDB):
-    ProofingStateClass = PhoneProofingState
-
+class PhoneProofingStateDB(ProofingStateDB[PhoneProofingState]):
     def __init__(self, db_uri: str, db_name: str = 'eduid_phone'):
         ProofingStateDB.__init__(self, db_uri, db_name)
 
-    def get_state_by_eppn_and_mobile(self, eppn, number, raise_on_missing=True):
+    @classmethod
+    def state_from_dict(cls, data: Mapping[str, Any]) -> PhoneProofingState:
+        return PhoneProofingState.from_dict(data)
+
+    def get_state_by_eppn_and_mobile(
+        self, eppn: str, number: str, raise_on_missing: bool = True
+    ) -> Optional[PhoneProofingState]:
         """
         Locate a state in the db given the eppn of the user and the
         mobile to be verified.
@@ -200,11 +212,7 @@ class PhoneProofingStateDB(ProofingStateDB):
         :param number: mobile to verify
         :param raise_on_missing: Raise exception if True else return None
 
-        :type number: str | unicode
-        :type raise_on_missing: bool
-
         :return: ProofingStateClass instance | None
-        :rtype: ProofingStateClass | None
 
         :raise self.DocumentDoesNotExist: No user match the search criteria
         :raise self.MultipleDocumentsReturned: More than one user
@@ -213,60 +221,72 @@ class PhoneProofingStateDB(ProofingStateDB):
         spec = {'eduPersonPrincipalName': eppn, 'verification.number': number}
         return self.get_latest_state_by_spec(spec, raise_on_missing)
 
-    def remove_state(self, state):
+    def remove_state(self, state: ProofingStateVar) -> None:
         """
         :param state: ProofingStateClass object
 
         :type state: ProofingStateClass
         """
+        if not isinstance(state, PhoneProofingState):
+            raise TypeError('State must be a ProofingState subclass')
+
         self.remove_document({'eduPersonPrincipalName': state.eppn, 'verification.number': state.verification.number})
 
 
-class OidcStateDB(ProofingStateDB):
-    def get_state_by_oidc_state(self, oidc_state, raise_on_missing=True):
+class OidcStateDB(ProofingStateDB[ProofingState], Generic[ProofingStateVar]):
+    @classmethod
+    def state_from_dict(cls, data: Mapping[str, Any]) -> OidcProofingState:
+        return OidcProofingState.from_dict(data)
+
+    def get_state_by_oidc_state(self, oidc_state: str, raise_on_missing: bool = True) -> Optional[OidcProofingState]:
         """
         Locate a state in the db given the user's OIDC state.
 
         :param oidc_state: OIDC state param
         :param raise_on_missing: Raise exception if True else return None
 
-        :type oidc_state: str | unicode
-        :type raise_on_missing: bool
-
         :return: ProofingStateClass instance | None
-        :rtype: ProofingStateClass | None
 
         :raise self.DocumentDoesNotExist: No user match the search criteria
         :raise self.MultipleDocumentsReturned: More than one user matches the search criteria
         """
 
         state = self._get_document_by_attr('state', oidc_state, raise_on_missing)
-        if state:
-            return self.ProofingStateClass.from_dict(state)
+        if not state:
+            return None
+        return self.state_from_dict(state)
 
 
-class OidcProofingStateDB(OidcStateDB):
-    ProofingStateClass = OidcProofingState
-
+class OidcProofingStateDB(OidcStateDB[OidcProofingState]):
     def __init__(self, db_uri: str, db_name: str = 'eduid_oidc_proofing'):
         super().__init__(db_uri, db_name)
 
+    @classmethod
+    def state_from_dict(cls, data: Mapping[str, Any]) -> OidcProofingState:
+        return OidcProofingState.from_dict(data)
 
-class OrcidProofingStateDB(OidcStateDB):
+
+class OrcidProofingStateDB(OidcStateDB[OrcidProofingState]):
     ProofingStateClass = OrcidProofingState
 
     def __init__(self, db_uri: str, db_name: str = 'eduid_orcid'):
         super().__init__(db_uri, db_name)
 
+    @classmethod
+    def state_from_dict(cls, data: Mapping[str, Any]) -> OrcidProofingState:
+        return OrcidProofingState.from_dict(data)
 
-class ProofingUserDB(UserDB):
-    UserClass = ProofingUser
 
+class ProofingUserDB(UserDB[ProofingUser]):
     def __init__(self, db_uri: str, db_name: str, collection: str = 'profiles'):
         super().__init__(db_uri, db_name, collection=collection)
 
     def save(self, user, check_sync=True):
         super().save(user, check_sync=check_sync)
+
+    @classmethod
+    def user_from_dict(cls, data: Mapping[str, Any]) -> ProofingUser:
+        return ProofingUser.from_dict(data)
 
 
 class LetterProofingUserDB(ProofingUserDB):
