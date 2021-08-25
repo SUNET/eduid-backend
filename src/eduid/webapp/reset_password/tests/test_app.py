@@ -42,6 +42,7 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User
 from eduid.userdb.credentials import Password, Webauthn
 from eduid.userdb.exceptions import DocumentDoesNotExist, UserHasNotCompletedSignup
+from eduid.userdb.fixtures.fido_credentials import webauthn_credential
 from eduid.userdb.fixtures.fido_credentials import webauthn_credential as sample_credential
 from eduid.userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState
@@ -691,26 +692,7 @@ class ResetPasswordTests(EduidAPITestCase):
     def test_post_reset_code_extra_security_alternatives_security_key(self):
         user: User = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         # add security key to user
-        credential = Webauthn.from_dict(
-            {
-                'created_by': 'test_security',
-                'created_ts': datetime.datetime(2021, 8, 24, 14, 20, 30, 267714, tzinfo=datetime.timezone.utc),
-                'modified_ts': datetime.datetime(2021, 8, 24, 14, 20, 30, 267721, tzinfo=datetime.timezone.utc),
-                'no_created_ts_in_db': False,
-                'no_modified_ts_in_db': False,
-                'is_verified': False,
-                'verified_by': None,
-                'verified_ts': None,
-                'proofing_method': None,
-                'proofing_version': None,
-                'keyhandle': '7bad3b59fa16e9e8840e2fd15c026a3c9a7d2877fd7d97c25a3b3158d1a9cba1e14b7c9913915f912366c18bd06bc9e903bc779409a8a7c749511e2b44e54c88',
-                'app_id': 'localhost',
-                'description': 'ctap1 token',
-                'attest_obj': 'o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVjESZYN5YgOjGh0NBcPZHZgW4/krrmihjLHmVzzuoMdl2NBAAAAAgAAAAAAAAAAAAAAAAAAAAAAQHutO1n6FunohA4v0VwCajyafSh3/X2Xwlo7MVjRqcuh4Ut8mRORX5EjZsGL0GvJ6QO8d5QJqKfHSVEeK0TlTIilAQIDJiABIVggTSEL0++BrS0lf87s4e+KA+Kkzkl8qlZIZsM7m6mBVD8iWCCKA78zzCQ9j+lHKa1pBnN5Ix+IipZePnZMKYTCTciWUQ==',
-                'credential_data': 'AAAAAAAAAAAAAAAAAAAAAABAe607WfoW6eiEDi_RXAJqPJp9KHf9fZfCWjsxWNGpy6HhS3yZE5FfkSNmwYvQa8npA7x3lAmop8dJUR4rROVMiKUBAgMmIAEhWCBNIQvT74GtLSV_zuzh74oD4qTOSXyqVkhmwzubqYFUPyJYIIoDvzPMJD2P6UcprWkGc3kjH4iKll4-dkwphMJNyJZR',
-            }
-        )
-        user.credentials.add(credential)
+        user.credentials.add(webauthn_credential)
         self.app.central_userdb.save(user)
         response = self._post_reset_code()
         # cant compare with _check_success_response as the value of webauthn_options is different per run
