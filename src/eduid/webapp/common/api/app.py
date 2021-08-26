@@ -46,7 +46,7 @@ from eduid.common.config.base import EduIDBaseAppConfig, FlaskConfig
 from eduid.common.config.exceptions import BadConfiguration
 from eduid.common.logging import init_logging
 from eduid.common.stats import init_app_stats
-from eduid.userdb import UserDB
+from eduid.userdb.userdb import AmDB
 from eduid.webapp.common.api.checks import (
     CheckResult,
     FailCountItem,
@@ -122,7 +122,7 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         self.session_interface = SessionFactory(config)
 
         if init_central_userdb:
-            self.central_userdb = UserDB(config.mongo_uri, 'eduid_am')
+            self.central_userdb = AmDB(config.mongo_uri)
 
         # Set up generic health check views
         self.failure_info: Dict[str, FailCountItem] = dict()

@@ -140,7 +140,7 @@ class EduidAPITestCase(CommonTestCase):
         if copy_user_to_private:
             data = self.test_user.to_dict()
             logging.info(f'Copying test-user {self.test_user} to private_userdb {self.app.private_userdb}')
-            self.app.private_userdb.save(self.app.private_userdb.UserClass.from_dict(data=data), check_sync=False)
+            self.app.private_userdb.save(self.app.private_userdb.user_from_dict(data=data), check_sync=False)
 
     def tearDown(self):
         try:

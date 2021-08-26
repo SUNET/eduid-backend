@@ -93,7 +93,9 @@ class MongoDB(object):
         """
         return self._connection
 
-    def get_database(self, database_name=None, username=None, password=None):
+    def get_database(
+        self, database_name: Optional[str] = None, username: Optional[str] = None, password: Optional[str] = None
+    ):
         """
         Get a pymongo database handle, after authenticating.
 
@@ -164,22 +166,20 @@ class MongoDB(object):
         self._connection.close()
 
 
-def _format_mongodb_uri(parsed_uri):
+def _format_mongodb_uri(parsed_uri: Mapping[str, Any]) -> str:
     """
-    Painstakenly reconsttruct a MongoDB URI parsed using pymongo.uri_parser.parse_uri.
+    Painstakingly reconstruct a MongoDB URI parsed using pymongo.uri_parser.parse_uri.
 
     :param parsed_uri: Result of pymongo.uri_parser.parse_uri
-    :type parsed_uri: dict
 
     :return: New URI
-    :rtype: str | unicode
     """
     user_pass = ''
     if parsed_uri.get('username') and parsed_uri.get('password'):
         user_pass = '{username!s}:{password!s}@'.format(**parsed_uri)
 
     _nodes = []
-    for host, port in parsed_uri.get('nodelist'):
+    for host, port in parsed_uri.get('nodelist', []):
         if ':' in host and not host.endswith(']'):
             # IPv6 address without brackets
             host = '[{!s}]'.format(host)
@@ -189,13 +189,14 @@ def _format_mongodb_uri(parsed_uri):
             _nodes.append('{!s}:{!s}'.format(host, port))
     nodelist = ','.join(_nodes)
 
+    _opt_list = []
+    for key, value in parsed_uri.get('options', {}).items():
+        if isinstance(value, bool):
+            value = str(value).lower()
+        _opt_list.append('{!s}={!s}'.format(key, value))
+
     options = ''
-    if parsed_uri.get('options'):
-        _opt_list = []
-        for key, value in parsed_uri.get('options').items():
-            if isinstance(value, bool):
-                value = str(value).lower()
-            _opt_list.append('{!s}={!s}'.format(key, value))
+    if _opt_list:
         options = '?' + '&'.join(sorted(_opt_list))
 
     db_name = parsed_uri.get('database') or ''
@@ -268,14 +269,14 @@ class BaseDB(object):
             raise MultipleDocumentsReturned(f'Multiple matching documents for {attr}={repr(value)}')
         return docs[0]
 
-    def _get_documents_by_attr(self, attr: str, value: str, raise_on_missing: bool = True) -> List[Mapping]:
+    def _get_documents_by_attr(self, attr: str, value: str, raise_on_missing: bool = True) -> List[Dict[str, Any]]:
         """
         Return the document in the MongoDB matching field=value
 
         :param attr: The name of a field
         :param value: The field value
         :param raise_on_missing:  If True, raise exception if no matching user object can be found.
-        :return: A document dict
+        :return: A list of document dicts
         :raise DocumentDoesNotExist: No document matching the search criteria
         """
         docs = list(self._coll.find({attr: value}))
@@ -288,7 +289,7 @@ class BaseDB(object):
 
     def _get_documents_by_filter(
         self,
-        spec: dict,
+        spec: Mapping[str, Any],
         fields: Optional[dict] = None,
         skip: Optional[int] = None,
         limit: Optional[int] = None,
@@ -323,13 +324,13 @@ class BaseDB(object):
             return []
         return docs
 
-    def db_count(self, spec: Optional[dict] = None, limit: Optional[int] = None) -> int:
+    def db_count(self, spec: Optional[Mapping[str, Any]] = None, limit: Optional[int] = None) -> int:
         """
         Return number of entries in the collection.
 
         :return: Document count
         """
-        args: Dict[Any, Any] = {'filter': {}}
+        args: Dict[str, Any] = {'filter': {}}
         if spec:
             args['filter'] = spec
         if limit:

@@ -158,17 +158,17 @@ def verify(user: User, code: str, number: str) -> FluxData:
     current_app.logger.debug(f'Phone number: {number}')
 
     db = current_app.proofing_statedb
-    try:
-        state = db.get_state_by_eppn_and_mobile(proofing_user.eppn, number)
-        timeout = current_app.conf.phone_verification_timeout
-        if state.is_expired(timeout):
-            current_app.logger.info('Proofing state is expired. Removing the state.')
-            current_app.logger.debug(f'Proofing state: {state}')
-            current_app.proofing_statedb.remove_state(state)
-            return error_response(message=PhoneMsg.code_invalid)
-    except DocumentDoesNotExist:
+    state = db.get_state_by_eppn_and_mobile(proofing_user.eppn, number, raise_on_missing=False)
+    if not state:
         current_app.logger.error('Proofing state not found')
         return error_response(message=PhoneMsg.unknown_phone)
+
+    timeout = current_app.conf.phone_verification_timeout
+    if state.is_expired(timeout):
+        current_app.logger.info('Proofing state is expired. Removing the state.')
+        current_app.logger.debug(f'Proofing state: {state}')
+        current_app.proofing_statedb.remove_state(state)
+        return error_response(message=PhoneMsg.code_invalid)
 
     if code != state.verification.verification_code:
         current_app.logger.info('Invalid verification code')

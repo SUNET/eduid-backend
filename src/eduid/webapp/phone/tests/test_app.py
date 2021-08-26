@@ -46,8 +46,8 @@ class PhoneTests(EduidAPITestCase):
 
     app: PhoneApp
 
-    def setUp(self):
-        super(PhoneTests, self).setUp(copy_user_to_private=True)
+    def setUp(self, *args, **kwargs):
+        super().setUp(*args, copy_user_to_private=True, **kwargs)
 
     def load_app(self, config: Mapping[str, Any]) -> PhoneApp:
         """

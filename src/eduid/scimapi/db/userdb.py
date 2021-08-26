@@ -21,6 +21,8 @@ from eduid.scimapi.db.common import (
 
 __author__ = 'ft'
 
+from eduid.userdb import User, UserDB
+
 logger = logging.getLogger(__name__)
 
 
@@ -147,3 +149,14 @@ class ScimApiUserDB(ScimApiBaseDB):
 
     def user_exists(self, scim_id: str) -> bool:
         return bool(self.db_count(spec={'scim_id': scim_id}, limit=1))
+
+
+class ScimEduidUserDB(UserDB[User]):
+    """ EduID userdb """
+
+    def __init__(self, db_uri: str, db_name: str = 'eduid_scimapi'):
+        super().__init__(db_uri, db_name)
+
+    @classmethod
+    def user_from_dict(cls, data: Mapping[str, Any]) -> User:
+        return User.from_dict(data)

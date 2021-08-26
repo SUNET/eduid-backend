@@ -29,22 +29,25 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from typing import Any, Mapping, Optional
+
 from eduid.userdb.signup import SignupUser
 from eduid.userdb.userdb import UserDB
 
 __author__ = 'ft'
 
 
-class SignupUserDB(UserDB):
+class SignupUserDB(UserDB[SignupUser]):
+    def __init__(self, db_uri: str, db_name: str = 'eduid_signup', collection: str = 'registered'):
+        super().__init__(db_uri, db_name, collection=collection)
 
-    UserClass = SignupUser
+    @classmethod
+    def user_from_dict(cls, data: Mapping[str, Any]) -> SignupUser:
+        return SignupUser.from_dict(data)
 
-    def __init__(self, db_uri, db_name='eduid_signup', collection='registered'):
-        UserDB.__init__(self, db_uri, db_name, collection)
-
-    def get_user_by_mail_verification_code(self, code):
+    def get_user_by_mail_verification_code(self, code: str) -> Optional[SignupUser]:
         return self._get_user_by_attr('pending_mail_address.verification_code', code, raise_on_missing=False)
 
-    def get_user_by_pending_mail_address(self, mail):
+    def get_user_by_pending_mail_address(self, mail: str) -> Optional[SignupUser]:
         mail = mail.lower()
         return self._get_user_by_attr('pending_mail_address.email', mail, raise_on_missing=False)

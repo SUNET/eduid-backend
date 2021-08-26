@@ -9,6 +9,5 @@ from eduid.userdb.support.db import (
     SupportProofingDB,
     SupportProofingLogDB,
 )
-from eduid.userdb.support.user import SupportSignupUser, SupportUser
 
 __author__ = 'lundberg'

@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import logging
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Mapping, Optional, Union
 
 from eduid.userdb.db import BaseDB
 from eduid.userdb.deprecation import deprecated
@@ -45,15 +45,13 @@ logger = logging.getLogger(__name__)
 __author__ = 'lundberg'
 
 
-class SecurityUserDB(UserDB):
+class SecurityUserDB(UserDB[SecurityUser]):
+    def __init__(self, db_uri: str, db_name: str = 'eduid_security', collection: str = 'profiles'):
+        super().__init__(db_uri, db_name, collection=collection)
 
-    UserClass = SecurityUser
-
-    def __init__(self, db_uri, db_name='eduid_security', collection='profiles'):
-        super(SecurityUserDB, self).__init__(db_uri, db_name, collection=collection)
-
-    def save(self, user, check_sync=True):
-        super(SecurityUserDB, self).save(user, check_sync=check_sync)
+    @classmethod
+    def user_from_dict(cls, data: Mapping[str, Any]) -> SecurityUser:
+        return SecurityUser.from_dict(data)
 
 
 # @deprecated("Remove once the password reset views are served from their own webapp")

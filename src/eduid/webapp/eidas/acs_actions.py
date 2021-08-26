@@ -8,7 +8,6 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.userdb import User
 from eduid.userdb.credentials.fido import FidoCredential
-from eduid.userdb.element import ElementKey
 from eduid.userdb.logs import MFATokenProofing, SwedenConnectProofing
 from eduid.userdb.proofing.state import NinProofingElement, NinProofingState
 from eduid.userdb.proofing.user import ProofingUser
@@ -68,7 +67,15 @@ def token_verify_action(
     # Verify asserted NIN for user if there are no verified NIN
     if len(proofing_user.nins.verified) == 0:
         nin_verify_action(session_info, authndata)
-        user = current_app.central_userdb.get_user_by_eppn(user.eppn)
+        # nin_verify_action modifies the user in the database, so we have to load it again.
+        # TODO: refactor nin_verify_action into one action, and one worker function. Call the worker function
+        #       with both user and proofing_user as arguments, and have them modified in-place to avoid a bunch
+        #       of database operations.
+        updated_user = current_app.central_userdb.get_user_by_eppn(user.eppn)
+        if not updated_user:
+            # mostly keep mypy calm
+            raise RuntimeError(f'User {user} disappeared')
+        user = updated_user
         proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
         token_to_verify = proofing_user.credentials.find(session.eidas.verify_token_action_credential_id)
         # Keep type checking calm

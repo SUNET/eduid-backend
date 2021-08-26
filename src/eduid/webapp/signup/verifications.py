@@ -70,20 +70,17 @@ def verify_recaptcha(secret_key: str, captcha_response: str, user_ip: str, retri
             current_app.logger.debug('Sending the CAPTCHA response')
             verify_rs = requests.get(url, params=params, verify=True)
             verify_rs.raise_for_status()  # raise exception status code in 400 or 500 range
-            current_app.logger.debug("CAPTCHA response: {}".format(verify_rs))
+            current_app.logger.debug(f'CAPTCHA response: {verify_rs}')
             if verify_rs.json().get('success', False) is True:
-                current_app.logger.info("Valid CAPTCHA response from " "{}".format(user_ip))
+                current_app.logger.info(f'Valid CAPTCHA response from {user_ip}')
                 return True
-            current_app.logger.info(
-                "Invalid CAPTCHA response from {}: {}".format(
-                    user_ip, verify_rs.json().get('error-codes', 'Unspecified error')
-                )
-            )
+            _error = verify_rs.json().get('error-codes', 'Unspecified error')
+            current_app.logger.info(f'Invalid CAPTCHA response from {user_ip}: {_error}')
         except requests.exceptions.RequestException as e:
             if not retries:
-                current_app.logger.error('Caught RequestException while ' 'sending CAPTCHA, giving up.')
+                current_app.logger.error('Caught RequestException while sending CAPTCHA, giving up.')
                 raise e
-            current_app.logger.warning('Caught RequestException while ' 'sending CAPTCHA, trying again.')
+            current_app.logger.warning('Caught RequestException while sending CAPTCHA, trying again.')
             current_app.logger.warning(e)
             time.sleep(0.5)
     return False
@@ -118,6 +115,7 @@ def send_verification_mail(email: str) -> None:
         signup_user.pending_mail_address = mailaddress
         current_app.logger.info("New user {}/{} created. e-mail is pending confirmation".format(signup_user, email))
     else:
+        assert signup_user.pending_mail_address  # please mypy
         # update mail_address on existing user with new code
         signup_user.pending_mail_address.verification_code = code
         current_app.logger.info("User {}/{} updated with new e-mail confirmation code".format(signup_user, email))
@@ -133,7 +131,7 @@ def send_verification_mail(email: str) -> None:
     }
 
     if current_app.conf.environment == EduidEnvironment.dev:
-        # Debug-log the cerification link in plain text in development environment
+        # Debug-log the certification link in plain text in development environment
         current_app.logger.debug(f'Generating verification e-mail with context:\n{context}')
 
     text = render_template("verification_email.txt.jinja2", **context)
@@ -177,6 +175,10 @@ def verify_email_code(code: str) -> SignupUser:
 
     if not signup_user:
         current_app.logger.debug("Code {} not found in database".format(code))
+        raise CodeDoesNotExist()
+
+    if not signup_user.pending_mail_address:
+        current_app.logger.debug('User has no pending e-mails in database')
         raise CodeDoesNotExist()
 
     email = signup_user.pending_mail_address.email

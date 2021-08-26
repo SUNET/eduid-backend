@@ -31,7 +31,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-import datetime
 import os
 import struct
 from enum import unique
@@ -39,7 +38,6 @@ from re import findall
 from typing import Optional
 
 import proquint
-from bson import ObjectId
 from flask import abort
 from pwgen import pwgen
 
@@ -104,13 +102,11 @@ def check_email_status(email: str) -> Optional[str]:
     If exists and it has been verified before, then return 'address-used'.
 
     :param email: Address to look for
-    :type email: str | unicode
 
     :return: status
-    :rtype: string or None
     """
     try:
-        am_user = current_app.central_userdb.get_user_by_mail(email, raise_on_missing=True, include_unconfirmed=False)
+        am_user = current_app.central_userdb.get_user_by_mail(email, raise_on_missing=True)
         current_app.logger.debug("Found user {} with email {}".format(am_user, email))
         return 'address-used'
     except UserDoesNotExist:
@@ -142,7 +138,6 @@ def remove_users_with_mail_address(email: str) -> None:
     so the user can do a new signup.
 
     :param email: E-mail address
-    :param email: str | unicode
 
     :return: None
     """
@@ -151,7 +146,7 @@ def remove_users_with_mail_address(email: str) -> None:
     # in signup_db with this (non-pending) e-mail address, it is probably left-overs from a
     # previous signup where the sync to userdb failed. Clean away all such users in signup_db
     # and continue like this was a completely new signup.
-    completed_users = signup_db.get_user_by_mail(email, raise_on_missing=False, return_list=True)
+    completed_users = signup_db.get_users_by_mail(email, raise_on_missing=False)
     for user in completed_users:
         current_app.logger.warning('Removing old user {} with e-mail {} from signup_db'.format(user, email))
         signup_db.remove_user_by_id(user.user_id)
@@ -174,7 +169,7 @@ def complete_registration(signup_user: SignupUser) -> FluxData:
     current_app.logger.info(f'Completing registration for user {signup_user}')
 
     password = _generate_password()
-    # TODO: add_password needs to understand that signup_user is a decendent from User
+    # TODO: add_password needs to understand that signup_user is a descendant from User
     if not add_password(signup_user, password, application='signup', vccs_url=current_app.conf.vccs_url):
         current_app.logger.error(f'Failed adding a credential to user {signup_user}')
         return error_response(message=CommonMsg.temp_problem)

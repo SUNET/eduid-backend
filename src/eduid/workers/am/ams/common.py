@@ -77,6 +77,7 @@ class AttributeFetcher(ABC):
             raise RuntimeError('No database initialised')
         user = self.private_db.get_user_by_id(user_id)
         logger.debug(f'User: {user} found.')
+        assert user  # please mypy, raise_if_missing ensures we won't get here without a user being found
 
         user_dict = user.to_dict()
 

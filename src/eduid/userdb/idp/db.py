@@ -36,7 +36,7 @@
 """
 User and user database module.
 """
-from typing import Optional, Union
+from typing import Any, Mapping, Optional, Union
 
 from bson import ObjectId
 
@@ -44,16 +44,13 @@ from eduid.userdb import UserDB
 from eduid.userdb.idp.user import IdPUser
 
 
-class IdPUserDb(UserDB):
-    """
-    :param logger: logging logger
-    :param userdb: User database
-    """
-
-    UserClass = IdPUser
-
-    def __init__(self, db_uri, db_name='eduid_idp', collection='profiles'):
+class IdPUserDb(UserDB[IdPUser]):
+    def __init__(self, db_uri: str, db_name: str = 'eduid_idp', collection: str = 'profiles'):
         super().__init__(db_uri, db_name, collection=collection)
+
+    @classmethod
+    def user_from_dict(cls, data: Mapping[str, Any]) -> IdPUser:
+        return IdPUser.from_dict(data)
 
     def lookup_user(self, username: Union[str, ObjectId]) -> Optional[IdPUser]:
         """

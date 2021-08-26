@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from dataclasses import dataclass
+from typing import Any, Mapping
 
 from bson import ObjectId
 
@@ -23,12 +24,14 @@ class AmTestUser(eduid.userdb.User):
     uid: str = ''
 
 
-class AmTestUserDb(eduid.userdb.UserDB):
+class AmTestUserDb(eduid.userdb.UserDB[AmTestUser]):
     """
     UserDB for the 'test' plugin below.
     """
 
-    UserClass = AmTestUser
+    @classmethod
+    def user_from_dict(cls, data: Mapping[str, Any]) -> AmTestUser:
+        return AmTestUser.from_dict(data)
 
 
 class FakeAttributeFetcher(AttributeFetcher):
@@ -80,8 +83,8 @@ class MessageTest(AMTestCase):
     transforms 'uid' to its urn:oid representation.
     """
 
-    def setUp(self):
-        super().setUp(want_mongo_uri=True)
+    def setUp(self, *args, **kwargs):
+        super().setUp(*args, want_mongo_uri=True, **kwargs)
         self.private_db = AmTestUserDb(db_uri=self.tmp_db.uri, db_name='eduid_am_test')
         # register fake AMP plugin named 'test'
         AmConfig(app_name='message_test', mongo_uri=self.tmp_db.uri)

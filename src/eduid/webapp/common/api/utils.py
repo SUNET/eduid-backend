@@ -97,12 +97,9 @@ def save_and_sync_user(
     May raise UserOutOfSync exception
 
     :param user: the modified user
-    :type user: current_app.private_userdb.UserClass
     """
     if private_userdb is None:
         private_userdb = current_app.private_userdb
-    if not isinstance(user, private_userdb.UserClass):
-        raise EduIDUserDBError(f'user is not of type {private_userdb.UserClass}')
     private_userdb.save(user)
     return current_app.am_relay.request_user_sync(user, app_name_override=app_name_override)
 

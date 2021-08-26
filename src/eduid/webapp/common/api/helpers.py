@@ -6,7 +6,7 @@ from typing import List, Optional, Type, Union
 from flask import current_app, render_template, request
 
 from eduid.common.config.base import MagicCookieMixin
-from eduid.userdb.logs.element import ProofingLogElement
+from eduid.userdb.logs.element import NinProofingLogElement, ProofingLogElement
 from eduid.userdb.nin import Nin
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.proofing.state import NinProofingState, OidcProofingState
@@ -16,7 +16,9 @@ from eduid.webapp.common.api.app import EduIDBaseApp
 __author__ = 'lundberg'
 
 # TODO: type proofing_log_entry (NinProofingLogElement?)
-def set_user_names_from_official_address(proofing_user: ProofingUser, proofing_log_entry) -> ProofingUser:
+def set_user_names_from_official_address(
+    proofing_user: ProofingUser, proofing_log_entry: NinProofingLogElement
+) -> ProofingUser:
     """
     :param proofing_user: Proofing app private userdb user
     :param proofing_log_entry: Proofing log entry element
@@ -92,7 +94,7 @@ def add_nin_to_user(user: User, proofing_state: NinProofingState, user_class: Ty
 
 
 def verify_nin_for_user(
-    user: Union[User, ProofingUser], proofing_state: NinProofingState, proofing_log_entry: ProofingLogElement
+    user: Union[User, ProofingUser], proofing_state: NinProofingState, proofing_log_entry: NinProofingLogElement
 ) -> bool:
     """
     Mark a nin on a user as verified, after logging data about the proofing to the proofing log.

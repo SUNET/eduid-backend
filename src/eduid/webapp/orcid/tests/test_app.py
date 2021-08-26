@@ -19,7 +19,7 @@ class OrcidTests(EduidAPITestCase):
 
     app: OrcidApp
 
-    def setUp(self):
+    def setUp(self, *args, **kwargs):
         self.test_user_eppn = 'hubba-bubba'
         self.oidc_provider_config = {
             'token_endpoint_auth_signing_alg_values_supported': ['RS256'],
@@ -66,7 +66,7 @@ class OrcidTests(EduidAPITestCase):
             created_by='orcid',
         )
 
-        super(OrcidTests, self).setUp()
+        super().setUp(*args, **kwargs)
 
     def load_app(self, config: Mapping[str, Any]) -> OrcidApp:
         """

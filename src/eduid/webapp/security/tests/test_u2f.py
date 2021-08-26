@@ -44,6 +44,7 @@ class SecurityU2FTests(EduidAPITestCase):
 
     def add_token_to_user(self, eppn: str):
         user = self.app.central_userdb.get_user_by_eppn(eppn)
+        assert user is not None
         u2f_token = U2F(
             version='version',
             keyhandle='keyHandle',
