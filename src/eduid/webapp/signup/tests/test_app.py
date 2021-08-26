@@ -32,15 +32,33 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import json
+from dataclasses import dataclass
+from enum import Enum
 from typing import Any, Dict, Mapping, Optional
 
 from mock import patch
 
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.signup import SignupUser
+from eduid.webapp.common.api.messages import CommonMsg, TranslatableMsg
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.signup.app import SignupApp, signup_init_app
-from eduid.webapp.signup.verifications import send_verification_mail
+from eduid.webapp.signup.helpers import SignupMsg
+from eduid.webapp.signup.verifications import ProofingLogFailure, send_verification_mail
+from flask import Response as FlaskResponse
+
+
+class SignupState(Enum):
+    S5_CAPTCHA = 'captcha'
+    S6_MAIL_SENT_NO_USER = 'no_user_created'
+    S7_VERIFY_LINK = 'verify_link'
+
+
+@dataclass
+class SignupResult:
+    url: str
+    reached_state: SignupState
+    response: FlaskResponse
 
 
 class SignupTests(EduidAPITestCase):
@@ -192,7 +210,12 @@ class SignupTests(EduidAPITestCase):
         mock_recaptcha: Any,
         data1: Optional[dict] = None,
         email: str = 'dummy@example.com',
-    ):
+        captcha_expect_success: bool = True,
+        captcha_expected_message: TranslatableMsg = SignupMsg.reg_new,
+        verify_expect_success: bool = True,
+        verify_expected_message: Optional[TranslatableMsg] = None,
+        verify_expected_payload: Optional[Mapping[str, Any]] = None,
+    ) -> SignupResult:
         """
         Verify the pending account with an emailed verification code after creating the account by verifying the captcha.
 
@@ -217,18 +240,62 @@ class SignupTests(EduidAPITestCase):
                 if data1 is not None:
                     data.update(data1)
 
-                client.post('/trycaptcha', data=json.dumps(data), content_type=self.content_type_json)
+                _trycaptcha = '/trycaptcha'
+                response1 = client.post('/trycaptcha', data=json.dumps(data), content_type=self.content_type_json)
+                if response1.status_code != 200:
+                    return SignupResult(url=_trycaptcha, reached_state=SignupState.S5_CAPTCHA, response=response1)
 
-                if data1 is None:
-                    # lower because we are purposefully calling it with a mixed case mail address in tests
-                    send_verification_mail(email.lower())
+                if captcha_expect_success:
+                    self._check_api_response(
+                        response1, status=200, message=captcha_expected_message, type_='POST_SIGNUP_TRYCAPTCHA_SUCCESS'
+                    )
+                else:
+                    self._check_api_response(
+                        response1, status=200, message=captcha_expected_message, type_='POST_SIGNUP_TRYCAPTCHA_FAIL'
+                    )
+                    return SignupResult(url=_trycaptcha, reached_state=SignupState.S5_CAPTCHA, response=response1)
+
+                # if data1 is None:
+                #    # lower because we are purposefully calling it with a mixed case mail address in tests
+                #    send_verification_mail(email.lower())
 
             signup_user = self.app.private_userdb.get_user_by_pending_mail_address(email)
-            code = ''
-            if signup_user and signup_user.pending_mail_address:
-                code = signup_user.pending_mail_address.verification_code or ''
-            response = client.get('/verify-link/' + code)
-            return json.loads(response.data)
+            if not signup_user:
+                return SignupResult(url=_trycaptcha, reached_state=SignupState.S6_MAIL_SENT_NO_USER, response=response1)
+
+            assert signup_user.pending_mail_address is not None
+            assert signup_user.pending_mail_address.email == email.lower()
+            assert signup_user.pending_mail_address.verification_code is not None
+
+            _verify_link_url = '/verify-link/' + signup_user.pending_mail_address.verification_code
+            response2 = client.get(_verify_link_url)
+
+            if verify_expect_success:
+                if not verify_expected_payload:
+                    verify_expected_payload = {
+                        'dashboard_url': '/services/authn/signup-authn',
+                        'email': email.lower(),
+                        'status': 'verified',
+                    }
+
+                self._check_api_response(
+                    response2,
+                    status=200,
+                    message=verify_expected_message,
+                    type_='GET_SIGNUP_VERIFY_LINK_SUCCESS',
+                    payload=verify_expected_payload,
+                )
+
+                assert 'password' in response2.json['payload']
+                _pw_no_spaces = ''.join(response2.json['payload']['password'].split())
+                assert len(_pw_no_spaces) == self.app.conf.password_length
+
+            else:
+                self._check_api_response(
+                    response2, status=200, message=verify_expected_message, type_='GET_SIGNUP_VERIFY_LINK_FAIL'
+                )
+
+            return SignupResult(url=_verify_link_url, reached_state=SignupState.S7_VERIFY_LINK, response=response2)
 
     @patch('eduid.webapp.signup.views.verify_recaptcha')
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
@@ -457,28 +524,36 @@ class SignupTests(EduidAPITestCase):
         self.assertEqual(data['payload']['status'], 'already-verified')
 
     def test_verify_code_after_captcha(self):
-        data = self._verify_code_after_captcha()
-        self.assertEqual(data['type'], 'GET_SIGNUP_VERIFY_LINK_SUCCESS')
+        res = self._verify_code_after_captcha()
+        assert res.reached_state == SignupState.S7_VERIFY_LINK
 
     def test_verify_code_after_captcha_mixed_case(self):
-        data = self._verify_code_after_captcha(email='MixedCase@Example.com')
-        self.assertEqual(data['type'], 'GET_SIGNUP_VERIFY_LINK_SUCCESS')
+        res = self._verify_code_after_captcha(
+            email='MixedCase@Example.com',
+            captcha_expected_message=SignupMsg.reg_new,
+            verify_expect_success=True,
+            verify_expected_message=None,
+        )
+        assert res.reached_state == SignupState.S7_VERIFY_LINK
 
     def test_verify_code_after_captcha_proofing_log_error(self):
-        from eduid.webapp.signup.verifications import ProofingLogFailure
-
         with patch('eduid.webapp.signup.views.verify_email_code') as mock_verify:
             mock_verify.side_effect = ProofingLogFailure('fail')
-            data = self._verify_code_after_captcha()
-            self.assertEqual(data['type'], 'GET_SIGNUP_VERIFY_LINK_FAIL')
-            self.assertEqual(data['payload']['message'], 'Temporary technical problems')
+            res = self._verify_code_after_captcha(
+                captcha_expected_message=SignupMsg.reg_new,
+                verify_expect_success=False,
+                verify_expected_message=CommonMsg.temp_problem,
+            )
+        assert res.reached_state == SignupState.S7_VERIFY_LINK
 
     def test_verify_code_after_captcha_wrong_csrf(self):
-        with self.assertRaises(AttributeError):
-            data1 = {'csrf_token': 'wrong-token'}
-            self._verify_code_after_captcha(data1=data1)
+        data1 = {'csrf_token': 'wrong-token'}
+        res = self._verify_code_after_captcha(data1=data1, captcha_expect_success=False, captcha_expected_message=None,)
+        assert res.response.json['payload']['error'] == {'csrf_token': ['CSRF failed to validate']}
 
     def test_verify_code_after_captcha_dont_accept_tou(self):
-        with self.assertRaises(AttributeError):
-            data1 = {'tou_accepted': False}
-            self._verify_code_after_captcha(data1=data1)
+        data1 = {'tou_accepted': False}
+        res = self._verify_code_after_captcha(
+            data1=data1, captcha_expect_success=False, captcha_expected_message=SignupMsg.no_tou
+        )
+        assert res.reached_state == SignupState.S5_CAPTCHA
