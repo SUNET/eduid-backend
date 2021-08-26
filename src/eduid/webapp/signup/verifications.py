@@ -70,20 +70,17 @@ def verify_recaptcha(secret_key: str, captcha_response: str, user_ip: str, retri
             current_app.logger.debug('Sending the CAPTCHA response')
             verify_rs = requests.get(url, params=params, verify=True)
             verify_rs.raise_for_status()  # raise exception status code in 400 or 500 range
-            current_app.logger.debug("CAPTCHA response: {}".format(verify_rs))
+            current_app.logger.debug(f'CAPTCHA response: {verify_rs}')
             if verify_rs.json().get('success', False) is True:
-                current_app.logger.info("Valid CAPTCHA response from " "{}".format(user_ip))
+                current_app.logger.info(f'Valid CAPTCHA response from {user_ip}')
                 return True
-            current_app.logger.info(
-                "Invalid CAPTCHA response from {}: {}".format(
-                    user_ip, verify_rs.json().get('error-codes', 'Unspecified error')
-                )
-            )
+            _error = verify_rs.json().get('error-codes', 'Unspecified error')
+            current_app.logger.info(f'Invalid CAPTCHA response from {user_ip}: {_error}')
         except requests.exceptions.RequestException as e:
             if not retries:
-                current_app.logger.error('Caught RequestException while ' 'sending CAPTCHA, giving up.')
+                current_app.logger.error('Caught RequestException while sending CAPTCHA, giving up.')
                 raise e
-            current_app.logger.warning('Caught RequestException while ' 'sending CAPTCHA, trying again.')
+            current_app.logger.warning('Caught RequestException while sending CAPTCHA, trying again.')
             current_app.logger.warning(e)
             time.sleep(0.5)
     return False

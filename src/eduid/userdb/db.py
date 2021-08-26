@@ -269,14 +269,14 @@ class BaseDB(object):
             raise MultipleDocumentsReturned(f'Multiple matching documents for {attr}={repr(value)}')
         return docs[0]
 
-    def _get_documents_by_attr(self, attr: str, value: str, raise_on_missing: bool = True) -> List[Mapping]:
+    def _get_documents_by_attr(self, attr: str, value: str, raise_on_missing: bool = True) -> List[Dict[str, Any]]:
         """
         Return the document in the MongoDB matching field=value
 
         :param attr: The name of a field
         :param value: The field value
         :param raise_on_missing:  If True, raise exception if no matching user object can be found.
-        :return: A document dict
+        :return: A list of document dicts
         :raise DocumentDoesNotExist: No document matching the search criteria
         """
         docs = list(self._coll.find({attr: value}))

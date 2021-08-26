@@ -97,7 +97,6 @@ def save_and_sync_user(
     May raise UserOutOfSync exception
 
     :param user: the modified user
-    :type user: current_app.private_userdb.UserClass
     """
     if private_userdb is None:
         private_userdb = current_app.private_userdb
