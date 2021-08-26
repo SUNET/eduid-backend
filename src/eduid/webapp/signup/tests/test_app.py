@@ -487,19 +487,6 @@ class SignupTests(EduidAPITestCase):
         )
         assert res.reached_state == SignupState.S5_CAPTCHA
 
-    def test_captcha_unsynced(self):
-        # TODO: This test seems bugged, why do we expect success if the user was out of sync?
-        #       Does the mock really do what the author of the test presumably thought?
-        with patch('eduid.webapp.signup.helpers.save_and_sync_user') as mock_save:
-            mock_save.side_effect = UserOutOfSync('unsync')
-            res = self._captcha_new()
-            assert res.reached_state == SignupState.S5_CAPTCHA
-
-        # Do it again, without the mock - to prove the point in the note above
-        mock_save.side_effect = UserOutOfSync('unsync')
-        res = self._captcha_new()
-        assert res.reached_state == SignupState.S5_CAPTCHA
-
     def test_captcha_no_data_fail(self):
         with self.session_cookie_anon(self.browser) as client:
             response = client.post('/trycaptcha')
