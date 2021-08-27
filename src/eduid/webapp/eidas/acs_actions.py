@@ -304,7 +304,7 @@ def mfa_authentication_action(session_info: SessionInfo, authndata: SP_AuthnRequ
         raise RuntimeError('Got no attribute personalIdentityNumber')
 
     # Get user from central database
-    user = current_app.central_userdb.get_user_by_eppn(session.common.eppn, raise_on_missing=False)
+    user = current_app.central_userdb.get_user_by_eppn(session.common.eppn)
     if user is None:
         # Please mypy
         raise RuntimeError(f'No user with eppn {session.common.eppn} found')

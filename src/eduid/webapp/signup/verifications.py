@@ -182,7 +182,7 @@ def verify_email_code(code: str) -> SignupUser:
         raise CodeDoesNotExist()
 
     email = signup_user.pending_mail_address.email
-    user = current_app.central_userdb.get_user_by_mail(email, raise_on_missing=False)
+    user = current_app.central_userdb.get_user_by_mail(email)
 
     if user:
         current_app.logger.debug("Email {} already present in central db".format(email))

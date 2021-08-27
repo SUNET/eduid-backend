@@ -135,7 +135,7 @@ def get_context(email_code: str) -> ResetPasswordContext:
     """
     state = get_pwreset_state(email_code)
 
-    user = current_app.central_userdb.get_user_by_eppn(state.eppn, raise_on_missing=False)
+    user = current_app.central_userdb.get_user_by_eppn(state.eppn)
     if not user:
         # User has been removed before reset password was completed
         current_app.logger.error(f'User not found for state {state.email_code}')
@@ -152,13 +152,12 @@ def get_pwreset_state(email_code: str) -> Union[ResetPasswordEmailState, ResetPa
     """
     mail_expiration_time = current_app.conf.email_code_timeout
     sms_expiration_time = current_app.conf.phone_code_timeout
-    try:
-        state = current_app.password_reset_state_db.get_state_by_email_code(email_code, raise_on_missing=True)
-        current_app.logger.debug(f'Found state using email_code {email_code}: {state}')
-        assert state is not None  # assure mypy, raise_on_missing=True will make this never happen
-    except DocumentDoesNotExist:
+    state = current_app.password_reset_state_db.get_state_by_email_code(email_code)
+    if not state:
         current_app.logger.info(f'State not found: {email_code}')
         raise StateException(msg=ResetPwMsg.state_not_found)
+
+    current_app.logger.debug(f'Found state using email_code {email_code}: {state}')
 
     if state.email_code.is_expired(mail_expiration_time):
         current_app.logger.info(f'State expired: {email_code}')
@@ -188,13 +187,13 @@ def send_password_reset_mail(email_address: str) -> None:
     """
     :param email_address: User input for password reset
     """
-    user = current_app.central_userdb.get_user_by_mail(email_address, raise_on_missing=False)
+    user = current_app.central_userdb.get_user_by_mail(email_address)
     if not user:
         current_app.logger.error(f'Cannot send reset password mail to an unknown email address: {email_address}')
         raise UserDoesNotExist(f'User with e-mail address {email_address} not found')
 
     # User found, check if a state already exists
-    state = current_app.password_reset_state_db.get_state_by_eppn(eppn=user.eppn, raise_on_missing=False)
+    state = current_app.password_reset_state_db.get_state_by_eppn(eppn=user.eppn)
     if state and not state.email_code.is_expired(timeout_seconds=current_app.conf.email_code_timeout):
         # Let the user only send one mail every throttle_resend_seconds
         if state.is_throttled(current_app.conf.throttle_resend_seconds):
@@ -396,7 +395,7 @@ def verify_email_address(state: ResetPasswordEmailState) -> bool:
     """
     :param state: Password reset state
     """
-    user = current_app.central_userdb.get_user_by_eppn(state.eppn, raise_on_missing=False)
+    user = current_app.central_userdb.get_user_by_eppn(state.eppn)
     if not user:
         current_app.logger.error(f'Could not find user {user}')
         return False
@@ -458,7 +457,7 @@ def verify_phone_number(state: ResetPasswordEmailAndPhoneState) -> bool:
     :param state: Password reset state
     """
 
-    user = current_app.central_userdb.get_user_by_eppn(state.eppn, raise_on_missing=False)
+    user = current_app.central_userdb.get_user_by_eppn(state.eppn)
     if not user:
         current_app.logger.error(f'Could not find user {user}')
         return False

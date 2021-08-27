@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import unique
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from flask import render_template, url_for
 from flask_babel import gettext as _
@@ -13,7 +13,13 @@ from eduid.userdb import Nin
 from eduid.userdb.credentials import FidoCredential
 from eduid.userdb.exceptions import UserHasNotCompletedSignup
 from eduid.userdb.logs import MailAddressProofing, PhoneNumberProofing
-from eduid.userdb.security import PasswordResetEmailAndPhoneState, PasswordResetEmailState, SecurityUser
+from eduid.userdb.security import (
+    PasswordResetEmailAndPhoneState,
+    PasswordResetEmailState,
+    PasswordResetState,
+    SecurityUser,
+)
+from eduid.userdb.security.element import CodeElement
 from eduid.webapp.common.api.helpers import send_mail
 from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response
 from eduid.webapp.common.api.schemas.u2f import U2FRegisteredKey
@@ -206,7 +212,7 @@ def send_password_reset_mail(email_address: str) -> None:
     :rtype:
     """
     try:
-        user = current_app.central_userdb.get_user_by_mail(email_address, raise_on_missing=False)
+        user = current_app.central_userdb.get_user_by_mail(email_address)
     except UserHasNotCompletedSignup:
         # Old bug where incomplete signup users where written to the central db
         user = None
@@ -215,14 +221,15 @@ def send_password_reset_mail(email_address: str) -> None:
         return None
 
     # User found, check if a state already exists
-    state = current_app.password_reset_state_db.get_state_by_eppn(eppn=user.eppn, raise_on_missing=False)
+    state = current_app.password_reset_state_db.get_state_by_eppn(eppn=user.eppn)
     if state and not state.email_code.is_expired(timeout_seconds=current_app.conf.email_code_timeout):
         # If a state is found and not expired, just send another message with the same code
         # Update created_ts to give the user another email_code_timeout seconds to complete the password reset
         state.email_code.created_ts = datetime.utcnow()
     else:
         # create a new state
-        state = PasswordResetEmailState(eppn=user.eppn, email_address=email_address, email_code=get_unique_hash())
+        code = CodeElement(code=get_unique_hash(), is_verified=False)
+        state = PasswordResetEmailState(eppn=user.eppn, email_address=email_address, email_code=code)
     current_app.password_reset_state_db.save(state)
 
     text_template = 'reset_password_email.txt.jinja2'
@@ -243,15 +250,13 @@ def send_password_reset_mail(email_address: str) -> None:
 
 
 @deprecated("Remove once the password reset views are served from their own webapp")
-def verify_email_address(state):
+def verify_email_address(state: PasswordResetEmailState) -> bool:
     """
     :param state: Password reset state
-    :type state: PasswordResetEmailState
     :return: True|False
-    :rtype: bool
     """
 
-    user = current_app.central_userdb.get_user_by_eppn(state.eppn, raise_on_missing=False)
+    user = current_app.central_userdb.get_user_by_eppn(state.eppn)
     if not user:
         current_app.logger.error('Could not find user {}'.format(state.eppn))
         return False
@@ -295,7 +300,7 @@ def verify_phone_number(state):
     :rtype: bool
     """
 
-    user = current_app.central_userdb.get_user_by_eppn(state.eppn, raise_on_missing=False)
+    user = current_app.central_userdb.get_user_by_eppn(state.eppn)
     if not user:
         current_app.logger.error('Could not find user {}'.format(state.eppn))
         return False
@@ -333,7 +338,7 @@ def extra_security_used(state):
 
 
 @deprecated("Remove once the password reset views are served from their own webapp")
-def reset_user_password(state, password):
+def reset_user_password(state: PasswordResetState, password: str) -> None:
     """
     :param state: Password reset state
     :type state: PasswordResetState
@@ -344,7 +349,11 @@ def reset_user_password(state, password):
     """
     vccs_url = current_app.conf.vccs_url
 
-    user = current_app.central_userdb.get_user_by_eppn(state.eppn, raise_on_missing=False)
+    user = current_app.central_userdb.get_user_by_eppn(state.eppn)
+    if not user:
+        current_app.logger.error(f'User {state.eppn} from {state} not found')
+        return None
+
     security_user = SecurityUser.from_user(user, private_userdb=current_app.private_userdb)
 
     # If no extra security is all verified information (except email addresses) is set to not verified
@@ -354,7 +363,9 @@ def reset_user_password(state, password):
         verified_phone_numbers = security_user.phone_numbers.verified
         if verified_phone_numbers:
             current_app.logger.info('Unverifying phone numbers for user {}'.format(state.eppn))
-            security_user.phone_numbers.primary.is_primary = False
+            if security_user.phone_numbers.primary:
+                # mypy doesn't know that since there are verified_phone_numbers, there has to be a primary
+                security_user.phone_numbers.primary.is_primary = False
             for phone_number in verified_phone_numbers:
                 phone_number.is_verified = False
                 current_app.logger.debug('Phone number {} unverified'.format(phone_number.number))
@@ -362,7 +373,9 @@ def reset_user_password(state, password):
         verified_nins = security_user.nins.verified
         if verified_nins:
             current_app.logger.info('Unverifying nins for user {}'.format(state.eppn))
-            security_user.nins.primary.is_primary = False
+            if security_user.nins.primary:
+                # mypy doesn't know that since there are verified_nins, there has to be a primary
+                security_user.nins.primary.is_primary = False
             for nin in verified_nins:
                 nin.is_verified = False
                 current_app.logger.debug('NIN {} unverified'.format(nin.number))
@@ -371,24 +384,23 @@ def reset_user_password(state, password):
         current_app.logger.error('Failed resetting password')
         return
 
-    security_user.terminated = False
+    security_user.terminated = None
     save_and_sync_user(security_user)
     current_app.stats.count(name='security_password_reset', value=1)
     current_app.logger.info('Reset password successful for user {}'.format(security_user.eppn))
 
 
 @deprecated("Remove once the password reset views are served from their own webapp")
-def get_extra_security_alternatives(eppn):
+def get_extra_security_alternatives(eppn: str) -> Dict[str, Any]:
     """
     :param eppn: Users unique eppn
     :type eppn: str
     :return: Dict of alternatives
-    :rtype: dict
     """
     alternatives = {}
-    user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
+    user = current_app.central_userdb.get_user_by_eppn(eppn)
 
-    if len(user.phone_numbers.verified):
+    if user and len(user.phone_numbers.verified):
         verified_phone_numbers = [item.number for item in user.phone_numbers.verified]
         alternatives['phone_numbers'] = verified_phone_numbers
     return alternatives
@@ -414,16 +426,17 @@ def mask_alternatives(alternatives):
 
 
 @deprecated("Remove once the password reset views are served from their own webapp")
-def get_zxcvbn_terms(eppn):
+def get_zxcvbn_terms(eppn: str) -> List[str]:
     """
     :param eppn: User eppn
-    :type eppn: str
     :return: List of user info
-    :rtype: list
 
     Combine known data that is bad for a password to a list for zxcvbn.
     """
-    user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
+    user = current_app.central_userdb.get_user_by_eppn(eppn)
+    if not user:
+        return []
+
     user_input = list()
 
     # Personal info

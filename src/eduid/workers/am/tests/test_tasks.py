@@ -17,8 +17,7 @@ class TestTasks(AMTestCase):
     def test_get_user_by_id(self):
         user = self.amdb.get_user_by_id(mocked_user_standard.user_id)
         self.assertEqual(user.mail_addresses.primary.email, mocked_user_standard.mail_addresses.primary.email)
-        with self.assertRaises(UserDoesNotExist):
-            self.amdb.get_user_by_id(b'123456789012')
+        assert not self.amdb.get_user_by_id(b'123456789012')
 
     def test_get_user_by_mail(self):
         user = self.amdb.get_user_by_mail(mocked_user_standard.mail_addresses.primary.email)
@@ -27,8 +26,7 @@ class TestTasks(AMTestCase):
         _unverified = [x for x in mocked_user_standard.mail_addresses.to_list() if not x.is_verified]
 
         # Test unverified mail address in mailAliases, should raise UserDoesNotExist
-        with self.assertRaises(UserDoesNotExist):
-            self.amdb.get_user_by_mail(_unverified[0].email, raise_on_missing=True)
+        assert self.amdb.get_user_by_mail(_unverified[0].email) is None
 
     def test_user_duplication_exception(self):
         user1 = self.amdb.get_user_by_mail(mocked_user_standard.mail_addresses.primary.email)

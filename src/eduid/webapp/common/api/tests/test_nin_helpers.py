@@ -115,8 +115,7 @@ class NinHelpersTest(EduidAPITestCase):
         proofing_state = NinProofingState.from_dict({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
         with self.app.app_context():
             add_nin_to_user(user, proofing_state)
-        with self.assertRaises(UserDoesNotExist):
-            self.app.private_userdb.get_user_by_eppn(eppn)
+        assert self.app.private_userdb.get_user_by_eppn(eppn) is None
 
     def test_add_nin_to_user_existing_verified(self):
         eppn = self.insert_verified_user()
@@ -127,8 +126,7 @@ class NinHelpersTest(EduidAPITestCase):
         proofing_state = NinProofingState.from_dict({'eduPersonPrincipalName': eppn, 'nin': nin_element.to_dict()})
         with self.app.app_context():
             add_nin_to_user(user, proofing_state)
-        with self.assertRaises(UserDoesNotExist):
-            self.app.private_userdb.get_user_by_eppn(eppn)
+        assert self.app.private_userdb.get_user_by_eppn(eppn) is None
 
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_verify_nin_for_user(self, mock_user_sync):

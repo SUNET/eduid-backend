@@ -46,8 +46,8 @@ class SignupUserDB(UserDB[SignupUser]):
         return SignupUser.from_dict(data)
 
     def get_user_by_mail_verification_code(self, code: str) -> Optional[SignupUser]:
-        return self._get_user_by_attr('pending_mail_address.verification_code', code, raise_on_missing=False)
+        return self._get_user_by_attr('pending_mail_address.verification_code', code)
 
     def get_user_by_pending_mail_address(self, mail: str) -> Optional[SignupUser]:
         mail = mail.lower()
-        return self._get_user_by_attr('pending_mail_address.email', mail, raise_on_missing=False)
+        return self._get_user_by_attr('pending_mail_address.email', mail)

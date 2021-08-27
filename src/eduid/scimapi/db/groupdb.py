@@ -117,7 +117,6 @@ class ScimApiGroupDB(ScimApiBaseDB):
         self.setup_indexes(indexes)
 
     def _get_graph_group(self, scim_id: str) -> GraphGroup:
-        # TODO: Teach get_group raise_on_missing
         graph_group = self.graphdb.get_group(scim_id)
         if graph_group is None:
             raise RuntimeError(f'Group {scim_id} found in mongodb, but not in graphdb')
@@ -239,7 +238,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
         return db_group, changed
 
     def get_groups(self) -> List[ScimApiGroup]:
-        docs = self._get_documents_by_filter({}, raise_on_missing=False)
+        docs = self._get_documents_by_filter({})
         res: List[ScimApiGroup] = []
         for doc in docs:
             group = ScimApiGroup.from_dict(doc)
@@ -248,7 +247,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
         return res
 
     def get_group_by_scim_id(self, scim_id: str) -> Optional[ScimApiGroup]:
-        doc = self._get_document_by_attr('scim_id', scim_id, raise_on_missing=False)
+        doc = self._get_document_by_attr('scim_id', scim_id)
         if doc:
             group = ScimApiGroup.from_dict(doc)
             group.graph = self._get_graph_group(scim_id)
@@ -258,9 +257,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
     def get_groups_by_property(
         self, key: str, value: Union[str, int], skip=0, limit=100
     ) -> Tuple[List[ScimApiGroup], int]:
-        docs, count = self._get_documents_and_count_by_filter(
-            {key: value}, skip=skip, limit=limit, raise_on_missing=False
-        )
+        docs, count = self._get_documents_and_count_by_filter({key: value}, skip=skip, limit=limit)
         if not docs:
             return [], 0
         res: List[ScimApiGroup] = []

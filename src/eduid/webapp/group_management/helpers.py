@@ -11,7 +11,7 @@ from eduid.graphdb.groupdb import User as GraphUser
 from eduid.scimapi.db.groupdb import ScimApiGroup
 from eduid.scimapi.db.userdb import ScimApiUser
 from eduid.userdb import User
-from eduid.userdb.exceptions import DocumentDoesNotExist, EduIDDBError
+from eduid.userdb.exceptions import EduIDDBError
 from eduid.userdb.group_management import GroupInviteState
 from eduid.webapp.common.api.exceptions import MailTaskFailed
 from eduid.webapp.common.api.helpers import send_mail
@@ -184,9 +184,8 @@ def get_outgoing_invites(user: User) -> List[Dict[str, Any]]:
 
     groups = current_app.scimapi_groupdb.get_groups_owned_by_user_identifier(scim_user.scim_id)
     for group in groups:
-        try:
-            states = current_app.invite_state_db.get_states_by_group_scim_id(str(group.scim_id))
-        except DocumentDoesNotExist:
+        states = current_app.invite_state_db.get_states_by_group_scim_id(str(group.scim_id))
+        if not states:
             continue
         owner_invites = []
         member_invites = []
@@ -211,7 +210,7 @@ def get_incoming_invites(user: User) -> List[Dict[str, Any]]:
     """
     invites = []
     emails = [item.email for item in user.mail_addresses.verified]
-    states = current_app.invite_state_db.get_states_by_email_addresses(emails, raise_on_missing=False)
+    states = current_app.invite_state_db.get_states_by_email_addresses(emails)
     for state in states:
         group = current_app.scimapi_groupdb.get_group_by_scim_id(state.group_scim_id)
         if group is None:

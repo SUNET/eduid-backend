@@ -48,7 +48,7 @@ class SMSThrottleException(Exception):
 
 
 def get_new_proofing_state(user: User, phone: str) -> PhoneProofingState:
-    existing_state = current_app.proofing_statedb.get_state_by_eppn_and_mobile(user.eppn, phone, raise_on_missing=False)
+    existing_state = current_app.proofing_statedb.get_state_by_eppn_and_mobile(user.eppn, phone)
     if existing_state is not None:
         # User has not managed to verify their phone number using this state,
         # remove it and let the user get a new one

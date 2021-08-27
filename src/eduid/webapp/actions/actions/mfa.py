@@ -62,7 +62,7 @@ class Plugin(ActionPlugin):
 
     def get_config_for_bundle(self, action: Action) -> Mapping[str, Any]:
         eppn = action.eppn
-        user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=False)
+        user = current_app.central_userdb.get_user_by_eppn(eppn)
         current_app.logger.debug('Loaded User {} from db'.format(user))
         if not user:
             raise self.ActionError(ActionsMsg.user_not_found)
@@ -89,7 +89,7 @@ class Plugin(ActionPlugin):
             return ActionResultTesting(success=True, testing=True)
 
         eppn = action.eppn
-        user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=False)
+        user = current_app.central_userdb.get_user_by_eppn(eppn)
         if not user:
             raise self.ActionError(ActionsMsg.user_not_found)
         current_app.logger.debug(f'Loaded User {user} from db (in perform_action)')

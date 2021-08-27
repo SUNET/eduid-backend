@@ -24,7 +24,7 @@ orcid_views = Blueprint('orcid', __name__, url_prefix='', template_folder='templ
 @require_user
 def authorize(user):
     if user.orcid is None:
-        proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
+        proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
         if not proofing_state:
             current_app.logger.debug(
                 'No proofing state found for user {!s}. Initializing new proofing state.'.format(user)
@@ -77,7 +77,7 @@ def authorization_response(user):
         return redirect_with_msg(redirect_url, OrcidMsg.authz_error)
 
     user_oidc_state = authn_resp['state']
-    proofing_state = current_app.proofing_statedb.get_state_by_oidc_state(user_oidc_state, raise_on_missing=False)
+    proofing_state = current_app.proofing_statedb.get_state_by_oidc_state(user_oidc_state)
     if not proofing_state:
         current_app.logger.error('The \'state\' parameter ({!s}) does not match a user state.'.format(user_oidc_state))
         return redirect_with_msg(redirect_url, OrcidMsg.no_state)

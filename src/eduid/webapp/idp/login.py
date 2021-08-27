@@ -11,14 +11,13 @@
 """
 Code handling Single Sign On logins.
 """
-import dataclasses
 import hmac
 import pprint
 import time
 from base64 import b64encode
 from dataclasses import dataclass
 from hashlib import sha256
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 from defusedxml import ElementTree as DefusedElementTree
