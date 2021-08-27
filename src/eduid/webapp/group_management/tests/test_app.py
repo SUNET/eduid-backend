@@ -43,7 +43,6 @@ from eduid.graphdb.testing import Neo4jTemporaryInstance
 from eduid.scimapi.db.groupdb import GroupExtensions, ScimApiGroup
 from eduid.scimapi.db.userdb import ScimApiUser
 from eduid.userdb import User
-from eduid.userdb.exceptions import DocumentDoesNotExist
 from eduid.webapp.common.api.testing import EduidAPITestCase, normalised_data
 from eduid.webapp.group_management.app import GroupManagementApp, init_group_management_app
 from eduid.webapp.group_management.helpers import GroupManagementMsg
@@ -386,8 +385,7 @@ class GroupManagementTests(EduidAPITestCase):
         self._check_success_response(response, type_='POST_GROUP_MANAGEMENT_DELETE_SUCCESS')
 
         assert self.app.scimapi_groupdb.group_exists(str(self.scim_group1.scim_id)) is False
-        with self.assertRaises(DocumentDoesNotExist):
-            self.app.invite_state_db.get_states_by_group_scim_id(str(self.scim_group1.scim_id))
+        assert not self.app.invite_state_db.get_states_by_group_scim_id(str(self.scim_group1.scim_id))
 
     def test_remove_member(self):
         # Add test_user1 as group owner
@@ -624,12 +622,11 @@ class GroupManagementTests(EduidAPITestCase):
         outgoing = payload['outgoing']
         assert 0 == len(outgoing)
 
-        with self.assertRaises(DocumentDoesNotExist):
-            self.app.invite_state_db.get_state(
-                group_scim_id=str(self.scim_group1.scim_id),
-                email_address=self.test_user.mail_addresses.primary.email,
-                role=GroupRole.MEMBER,
-            )
+        assert not self.app.invite_state_db.get_state(
+            group_scim_id=str(self.scim_group1.scim_id),
+            email_address=self.test_user.mail_addresses.primary.email,
+            role=GroupRole.MEMBER,
+        )
         with self.session_cookie(self.browser, self.test_user.eppn) as client:
             response = client.get('/groups')
         self._check_success_response(response, type_='GET_GROUP_MANAGEMENT_GROUPS_SUCCESS')
@@ -666,12 +663,11 @@ class GroupManagementTests(EduidAPITestCase):
         incoming = payload['incoming']
         assert 0 == len(incoming)
 
-        with self.assertRaises(DocumentDoesNotExist):
-            self.app.invite_state_db.get_state(
-                group_scim_id=str(self.scim_group1.scim_id),
-                email_address=self.test_user2.mail_addresses.primary.email,
-                role=GroupRole.MEMBER,
-            )
+        assert not self.app.invite_state_db.get_state(
+            group_scim_id=str(self.scim_group1.scim_id),
+            email_address=self.test_user2.mail_addresses.primary.email,
+            role=GroupRole.MEMBER,
+        )
         scim_group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         scim_user = self.app.scimapi_userdb.get_user_by_external_id(
             f'{self.test_user2.eppn}@{self.app.conf.scim_external_id_scope}'
@@ -704,12 +700,11 @@ class GroupManagementTests(EduidAPITestCase):
         incoming = payload['incoming']
         assert 0 == len(incoming)
 
-        with self.assertRaises(DocumentDoesNotExist):
-            self.app.invite_state_db.get_state(
-                group_scim_id=str(self.scim_group1.scim_id),
-                email_address=self.test_user2.mail_addresses.primary.email,
-                role=GroupRole.MEMBER,
-            )
+        assert not self.app.invite_state_db.get_state(
+            group_scim_id=str(self.scim_group1.scim_id),
+            email_address=self.test_user2.mail_addresses.primary.email,
+            role=GroupRole.MEMBER,
+        )
         scim_group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         scim_user = self.app.scimapi_userdb.get_user_by_external_id(
             f'{self.test_user2.eppn}@{self.app.conf.scim_external_id_scope}'
@@ -742,12 +737,11 @@ class GroupManagementTests(EduidAPITestCase):
         outgoing = payload['outgoing']
         assert 0 == len(outgoing)
 
-        with self.assertRaises(DocumentDoesNotExist):
-            self.app.invite_state_db.get_state(
-                group_scim_id=str(self.scim_group1.scim_id),
-                email_address=self.test_user2.mail_addresses.primary.email,
-                role=GroupRole.MEMBER,
-            )
+        assert not self.app.invite_state_db.get_state(
+            group_scim_id=str(self.scim_group1.scim_id),
+            email_address=self.test_user2.mail_addresses.primary.email,
+            role=GroupRole.MEMBER,
+        )
         scim_group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         scim_user = self.app.scimapi_userdb.get_user_by_external_id(
             f'{self.test_user2.eppn}@{self.app.conf.scim_external_id_scope}'
@@ -804,12 +798,11 @@ class GroupManagementTests(EduidAPITestCase):
         outgoing = payload['outgoing']
         assert 0 == len(outgoing)
 
-        with self.assertRaises(DocumentDoesNotExist):
-            self.app.invite_state_db.get_state(
-                group_scim_id=str(self.scim_group1.scim_id),
-                email_address=self.test_user.mail_addresses.primary.email,
-                role=GroupRole.OWNER,
-            )
+        assert not self.app.invite_state_db.get_state(
+            group_scim_id=str(self.scim_group1.scim_id),
+            email_address=self.test_user.mail_addresses.primary.email,
+            role=GroupRole.OWNER,
+        )
         with self.session_cookie(self.browser, self.test_user.eppn) as client:
             response = client.get('/groups')
         self._check_success_response(response, type_='GET_GROUP_MANAGEMENT_GROUPS_SUCCESS')
@@ -846,12 +839,11 @@ class GroupManagementTests(EduidAPITestCase):
         incoming = payload['incoming']
         assert 0 == len(incoming)
 
-        with self.assertRaises(DocumentDoesNotExist):
-            self.app.invite_state_db.get_state(
-                group_scim_id=str(self.scim_group1.scim_id),
-                email_address=self.test_user2.mail_addresses.primary.email,
-                role=GroupRole.OWNER,
-            )
+        assert not self.app.invite_state_db.get_state(
+            group_scim_id=str(self.scim_group1.scim_id),
+            email_address=self.test_user2.mail_addresses.primary.email,
+            role=GroupRole.OWNER,
+        )
         scim_group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         scim_user = self.app.scimapi_userdb.get_user_by_external_id(
             f'{self.test_user2.eppn}@{self.app.conf.scim_external_id_scope}'
@@ -884,12 +876,11 @@ class GroupManagementTests(EduidAPITestCase):
         incoming = payload['incoming']
         assert 0 == len(incoming)
 
-        with self.assertRaises(DocumentDoesNotExist):
-            self.app.invite_state_db.get_state(
-                group_scim_id=str(self.scim_group1.scim_id),
-                email_address=self.test_user2.mail_addresses.primary.email,
-                role=GroupRole.OWNER,
-            )
+        assert not self.app.invite_state_db.get_state(
+            group_scim_id=str(self.scim_group1.scim_id),
+            email_address=self.test_user2.mail_addresses.primary.email,
+            role=GroupRole.OWNER,
+        )
         scim_group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         scim_user = self.app.scimapi_userdb.get_user_by_external_id(
             f'{self.test_user2.eppn}@{self.app.conf.scim_external_id_scope}'
@@ -923,12 +914,11 @@ class GroupManagementTests(EduidAPITestCase):
         outgoing = payload['outgoing']
         assert 0 == len(outgoing)
 
-        with self.assertRaises(DocumentDoesNotExist):
-            self.app.invite_state_db.get_state(
-                group_scim_id=str(self.scim_group1.scim_id),
-                email_address=self.test_user2.mail_addresses.primary.email,
-                role=GroupRole.OWNER,
-            )
+        assert not self.app.invite_state_db.get_state(
+            group_scim_id=str(self.scim_group1.scim_id),
+            email_address=self.test_user2.mail_addresses.primary.email,
+            role=GroupRole.OWNER,
+        )
         scim_group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         scim_user = self.app.scimapi_userdb.get_user_by_external_id(
             f'{self.test_user2.eppn}@{self.app.conf.scim_external_id_scope}'

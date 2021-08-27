@@ -81,61 +81,53 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         # must be implemented by subclass to get correct type information
         raise NotImplementedError(f'user_from_dict not implemented in UserDB subclass {cls}')
 
-    def get_user_by_id(self, user_id: Union[str, ObjectId], raise_on_missing: bool = True) -> Optional[UserVar]:
+    def get_user_by_id(self, user_id: Union[str, ObjectId]) -> Optional[UserVar]:
         """
         Locate a user in the userdb given the user's _id.
 
         :param user_id: User identifier
-        :param raise_on_missing: If True, raise exception if no matching user object can be found.
 
         :return: User instance | None
-
-        :raise self.UserDoesNotExist: No user match the search criteria
-        :raise self.MultipleUsersReturned: More than one user matches the search criteria
         """
         if not isinstance(user_id, ObjectId):
             try:
                 user_id = ObjectId(user_id)
             except InvalidId:
                 return None
-        return self._get_user_by_attr('_id', user_id, raise_on_missing)
+        return self._get_user_by_attr('_id', user_id)
 
-    def _get_user_by_filter(self, filter: Mapping[str, Any], raise_on_missing: bool = True) -> List[UserVar]:
+    def _get_user_by_filter(self, filter: Mapping[str, Any]) -> List[UserVar]:
         """
         return the user matching the provided filter.
 
         :param filter: The filter to match the user
-        :param raise_on_missing: If True, raise exception if no matching user object can be found.
 
         :return: List of User instances
         """
         try:
-            users = list(self._get_documents_by_filter(filter, raise_on_missing=raise_on_missing))
+            users = list(self._get_documents_by_filter(filter))
         except DocumentDoesNotExist:
             logger.debug("{!s} No user found with filter {!r} in {!r}".format(self, filter, self._coll_name))
             raise UserDoesNotExist("No user matching filter {!r}".format(filter))
 
         return [self.user_from_dict(data=user) for user in users]
 
-    def get_user_by_mail(self, email: str, raise_on_missing: bool = True) -> Optional[UserVar]:
+    def get_user_by_mail(self, email: str) -> Optional[UserVar]:
         """ Locate a user with a (confirmed) e-mail address """
-        res = self.get_users_by_mail(email=email, raise_on_missing=raise_on_missing)
+        res = self.get_users_by_mail(email=email)
         if not res:
             return None
         if len(res) > 1:
             raise MultipleUsersReturned(f'Multiple matching users for email {repr(email)}')
         return res[0]
 
-    def get_users_by_mail(
-        self, email: str, raise_on_missing: bool = True, include_unconfirmed: bool = False
-    ) -> List[UserVar]:
+    def get_users_by_mail(self, email: str, include_unconfirmed: bool = False) -> List[UserVar]:
         """
         Return the user object in the central eduID UserDB having
         an email address matching `email'. Unless include_unconfirmed=True, the
         email address has to be confirmed/verified.
 
         :param email: The email address to look for
-        :param raise_on_missing: If True, raise exception if no matching user object can be found.
         :param include_unconfirmed: Require email address to be confirmed/verified.
 
         :return: User instance
@@ -145,30 +137,27 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         if include_unconfirmed:
             elemmatch = {'email': email}
         filter = {'$or': [{'mail': email}, {'mailAliases': {'$elemMatch': elemmatch}}]}
-        return self._get_user_by_filter(filter, raise_on_missing=raise_on_missing)
+        return self._get_user_by_filter(filter)
 
-    def get_user_by_nin(self, nin: str, raise_on_missing: bool = True) -> Optional[UserVar]:
+    def get_user_by_nin(self, nin: str) -> Optional[UserVar]:
         """ Locate a user with a (confirmed) NIN """
-        res = self.get_users_by_nin(nin=nin, raise_on_missing=raise_on_missing)
+        res = self.get_users_by_nin(nin=nin)
         if not res:
             return None
         if len(res) > 1:
             raise MultipleUsersReturned(f'Multiple matching users for NIN {repr(nin)}')
         return res[0]
 
-    def get_users_by_nin(
-        self, nin: str, raise_on_missing: bool = True, include_unconfirmed: bool = False
-    ) -> List[UserVar]:
+    def get_users_by_nin(self, nin: str, include_unconfirmed: bool = False) -> List[UserVar]:
         """
         Return the user object in the central eduID UserDB having
         a NIN matching `nin'. Unless include_unconfirmed=True, the
         NIN has to be confirmed/verified.
 
         :param nin: The nin to look for
-        :param raise_on_missing: If True, raise exception if no matching user object can be found.
         :param include_unconfirmed: Require nin to be confirmed/verified.
 
-        :return: User instance
+        :return: List of User instances
         """
         old_filter = {'norEduPersonNIN': nin}
         newmatch = {'number': nin, 'verified': True}
@@ -176,27 +165,24 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
             newmatch = {'number': nin}
         new_filter = {'nins': {'$elemMatch': newmatch}}
         filter = {'$or': [old_filter, new_filter]}
-        return self._get_user_by_filter(filter, raise_on_missing=raise_on_missing)
+        return self._get_user_by_filter(filter)
 
-    def get_user_by_phone(self, phone: str, raise_on_missing: bool = True) -> Optional[UserVar]:
+    def get_user_by_phone(self, phone: str) -> Optional[UserVar]:
         """ Locate a user with a (confirmed) phone number """
-        res = self.get_users_by_phone(phone=phone, raise_on_missing=raise_on_missing)
+        res = self.get_users_by_phone(phone=phone)
         if not res:
             return None
         if len(res) > 1:
             raise MultipleUsersReturned(f'Multiple matching users for phone {repr(phone)}')
         return res[0]
 
-    def get_users_by_phone(
-        self, phone: str, raise_on_missing: bool = True, include_unconfirmed: bool = False
-    ) -> List[UserVar]:
+    def get_users_by_phone(self, phone: str, include_unconfirmed: bool = False) -> List[UserVar]:
         """
         Return the user object in the central eduID UserDB having
         a phone number matching `phone'. Unless include_unconfirmed=True, the
         phone number has to be confirmed/verified.
 
         :param phone: The phone to look for
-        :param raise_on_missing: If True, raise exception if no matching user object can be found.
         :param include_unconfirmed: Require phone to be confirmed/verified.
 
         :return: List of User instances
@@ -210,21 +196,20 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
             newmatch = {'number': phone}
         new_filter = {'phone': {'$elemMatch': newmatch}}
         filter = {'$or': [old_filter, new_filter]}
-        return self._get_user_by_filter(filter, raise_on_missing=raise_on_missing)
+        return self._get_user_by_filter(filter)
 
-    def get_user_by_eppn(self, eppn: Optional[str], raise_on_missing: bool = True) -> Optional[UserVar]:
+    def get_user_by_eppn(self, eppn: Optional[str]) -> Optional[UserVar]:
         """
         Look for a user using the eduPersonPrincipalName.
 
         :param eppn: eduPersonPrincipalName to look for
-        :param raise_on_missing: If True, raise exception if no matching user object can be found.
         """
         # allow eppn=None as convenience, to not have to check it everywhere before calling this function
         if eppn is None:
             return None
-        return self._get_user_by_attr('eduPersonPrincipalName', eppn, raise_on_missing)
+        return self._get_user_by_attr('eduPersonPrincipalName', eppn)
 
-    def _get_user_by_attr(self, attr: str, value: Any, raise_on_missing: bool = True) -> Optional[UserVar]:
+    def _get_user_by_attr(self, attr: str, value: Any) -> Optional[UserVar]:
         """
         Locate a user in the userdb using any attribute and value.
 
@@ -232,7 +217,6 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
 
         :param attr: The attribute to match on
         :param value: The value to match on
-        :param raise_on_missing: If True, raise exception if no matching user object can be found.
 
         :raise self.UserDoesNotExist: No user match the search criteria
         :raise self.MultipleUsersReturned: More than one user matches the search criteria
@@ -240,7 +224,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         user = None
         logger.debug("{!s} Looking in {!r} for user with {!r} = {!r}".format(self, self._coll_name, attr, value))
         try:
-            doc = self._get_document_by_attr(attr, value, raise_on_missing)
+            doc = self._get_document_by_attr(attr, value)
             if doc is not None:
                 logger.debug("{!s} Found user with id {!s}".format(self, doc['_id']))
                 user = self.user_from_dict(data=doc)
@@ -329,9 +313,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         This update method should only be used in the eduid Attribute Manager when
         merging updates from applications into the central eduID userdb.
         """
-        logger.debug(
-            "{!s} updating user {!r} in {!r} with operations:\n{!s}".format(self, obj_id, self._coll_name, operations)
-        )
+        logger.debug(f'{self} updating user {obj_id} in {repr(self._coll_name)} with operations:\n{operations}')
 
         query_filter = {'_id': obj_id}
 

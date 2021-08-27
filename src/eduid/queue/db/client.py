@@ -71,12 +71,12 @@ class QueueDB(BaseDB):
         return payload_cls.from_dict(item.payload.to_dict())
 
     def get_item_by_id(
-        self, message_id: Union[str, ObjectId], raise_on_missing=True, parse_payload=True
+        self, message_id: Union[str, ObjectId], parse_payload=True
     ) -> Optional[QueueItem]:
         if isinstance(message_id, str):
             message_id = ObjectId(message_id)
 
-        docs = self._get_documents_by_filter({'_id': message_id}, raise_on_missing=raise_on_missing)
+        docs = self._get_documents_by_filter({'_id': message_id})
         if len(docs) == 0:
             return None
         if len(docs) > 1:

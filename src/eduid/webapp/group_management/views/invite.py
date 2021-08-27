@@ -153,7 +153,7 @@ def delete_invite(user: User, group_identifier: UUID, email_address: str, role: 
         return error_response(message=GroupManagementMsg.user_not_owner)
 
     invite_state = current_app.invite_state_db.get_state(
-        group_scim_id=str(group_identifier), email_address=email_address, role=role, raise_on_missing=False
+        group_scim_id=str(group_identifier), email_address=email_address, role=role
     )
 
     if not invite_state:
@@ -188,7 +188,7 @@ def accept_invite(user: User, group_identifier: UUID, email_address: str, role: 
         return error_response(message=GroupManagementMsg.mail_address_not_verified)
 
     invite_state = current_app.invite_state_db.get_state(
-        group_scim_id=str(group_identifier), email_address=email_address, role=role, raise_on_missing=False
+        group_scim_id=str(group_identifier), email_address=email_address, role=role
     )
     if not invite_state:
         current_app.logger.error(f'Invite for group {group_identifier} does not exist')
@@ -226,7 +226,7 @@ def decline_invite(user: User, group_identifier: UUID, email_address: str, role:
         return error_response(message=GroupManagementMsg.mail_address_not_verified)
 
     invite_state = current_app.invite_state_db.get_state(
-        group_scim_id=str(group_identifier), email_address=email_address, role=role, raise_on_missing=False
+        group_scim_id=str(group_identifier), email_address=email_address, role=role
     )
     if not invite_state:
         current_app.logger.error('Invite does not exist')

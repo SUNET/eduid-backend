@@ -25,9 +25,7 @@ def index(support_user):
 
         if len(lookup_users) == 0:
             # If no users where found in the central database look in signup database
-            lookup_users = current_app.support_signup_db.get_user_by_mail(
-                search_query, raise_on_missing=False, return_list=True, include_unconfirmed=True
-            )
+            lookup_users = current_app.support_signup_db.get_users_by_mail(search_query, include_unconfirmed=True)
             if len(lookup_users) == 0:
                 user = current_app.support_signup_db.get_user_by_pending_mail_address(search_query)
                 if user:

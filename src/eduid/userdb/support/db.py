@@ -34,10 +34,10 @@ class SupportUserDB(UserDB[SupportUser]):
         results = list()
         # We could do this with a custom filter (and one db call) but it is better to lean on existing methods
         # if the way we find users change in the future
-        results.append(self.get_user_by_eppn(query, raise_on_missing=False))
-        results.append(self.get_user_by_nin(query, raise_on_missing=False))
-        results.extend(self.get_users_by_mail(query, raise_on_missing=False))
-        results.extend(self.get_users_by_phone(query, raise_on_missing=False))
+        results.append(self.get_user_by_eppn(query))
+        results.append(self.get_user_by_nin(query))
+        results.extend(self.get_users_by_mail(query))
+        results.extend(self.get_users_by_phone(query))
         users = [user for user in results if user]
         return users
 
@@ -65,7 +65,7 @@ class SupportAuthnInfoDB(BaseDB):
         """
         if not isinstance(user_id, ObjectId):
             user_id = ObjectId(user_id)
-        docs = self._get_documents_by_filter({'_id': user_id}, raise_on_missing=False)
+        docs = self._get_documents_by_filter({'_id': user_id})
         if not docs:
             return dict()
         return self.model(dict(docs[0]))  # Cast to dict to allow mutability
@@ -75,7 +75,7 @@ class SupportAuthnInfoDB(BaseDB):
         :param credential_id: Credential id
         :return: A document dict
         """
-        doc = self._get_document_by_attr('_id', credential_id, raise_on_missing=False)
+        doc = self._get_document_by_attr('_id', credential_id)
         if not doc:
             return dict()
         return self.model(dict(doc))  # Cast to dict to allow mutability
@@ -99,7 +99,7 @@ class SupportActionsDB(BaseDB):
         """
         if not isinstance(user_id, ObjectId):
             user_id = ObjectId(user_id)
-        docs = self._get_documents_by_filter(spec={'user_oid': user_id}, raise_on_missing=False)
+        docs = self._get_documents_by_filter(spec={'user_oid': user_id})
         return [self.model(dict(doc)) for doc in docs]  # Cast to dict to allow mutability
 
 
@@ -115,7 +115,7 @@ class SupportProofingDB(BaseDB):
         :param eppn: User objects eduPersonPrincipalName property
         :return: A document dict
         """
-        doc = self._get_document_by_attr('eduPersonPrincipalName', eppn, raise_on_missing=False)
+        doc = self._get_document_by_attr('eduPersonPrincipalName', eppn)
         if not doc:
             return dict()
         return self.model(dict(doc))  # Cast to dict to allow mutability
@@ -125,7 +125,7 @@ class SupportProofingDB(BaseDB):
         :param eppn: User objects eduPersonPrincipalName property
         :return: A list of document dicts
         """
-        docs = self._get_documents_by_attr('eduPersonPrincipalName', eppn, raise_on_missing=False)
+        docs = self._get_documents_by_attr('eduPersonPrincipalName', eppn)
         return [self.model(dict(doc)) for doc in docs]  # Cast to dict to allow mutability
 
 
@@ -183,5 +183,5 @@ class SupportProofingLogDB(BaseDB):
         :param eppn: User objects eduPersonPrincipalName property
         :return: A list of dicts
         """
-        docs = self._get_documents_by_attr('eduPersonPrincipalName', eppn, raise_on_missing=False)
+        docs = self._get_documents_by_attr('eduPersonPrincipalName', eppn)
         return [self.model(doc) for doc in docs]

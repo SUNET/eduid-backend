@@ -206,7 +206,7 @@ def send_password_reset_mail(email_address: str) -> None:
     :rtype:
     """
     try:
-        user = current_app.central_userdb.get_user_by_mail(email_address, raise_on_missing=False)
+        user = current_app.central_userdb.get_user_by_mail(email_address)
     except UserHasNotCompletedSignup:
         # Old bug where incomplete signup users where written to the central db
         user = None
@@ -215,7 +215,7 @@ def send_password_reset_mail(email_address: str) -> None:
         return None
 
     # User found, check if a state already exists
-    state = current_app.password_reset_state_db.get_state_by_eppn(eppn=user.eppn, raise_on_missing=False)
+    state = current_app.password_reset_state_db.get_state_by_eppn(eppn=user.eppn)
     if state and not state.email_code.is_expired(timeout_seconds=current_app.conf.email_code_timeout):
         # If a state is found and not expired, just send another message with the same code
         # Update created_ts to give the user another email_code_timeout seconds to complete the password reset
@@ -251,7 +251,7 @@ def verify_email_address(state):
     :rtype: bool
     """
 
-    user = current_app.central_userdb.get_user_by_eppn(state.eppn, raise_on_missing=False)
+    user = current_app.central_userdb.get_user_by_eppn(state.eppn)
     if not user:
         current_app.logger.error('Could not find user {}'.format(state.eppn))
         return False
@@ -295,7 +295,7 @@ def verify_phone_number(state):
     :rtype: bool
     """
 
-    user = current_app.central_userdb.get_user_by_eppn(state.eppn, raise_on_missing=False)
+    user = current_app.central_userdb.get_user_by_eppn(state.eppn)
     if not user:
         current_app.logger.error('Could not find user {}'.format(state.eppn))
         return False
@@ -344,7 +344,11 @@ def reset_user_password(state, password):
     """
     vccs_url = current_app.conf.vccs_url
 
-    user = current_app.central_userdb.get_user_by_eppn(state.eppn, raise_on_missing=False)
+    user = current_app.central_userdb.get_user_by_eppn(state.eppn)
+    if not user:
+        current_app.logger.error(f'User {state.eppn} from {state} not found')
+        return None
+
     security_user = SecurityUser.from_user(user, private_userdb=current_app.private_userdb)
 
     # If no extra security is all verified information (except email addresses) is set to not verified
@@ -386,7 +390,7 @@ def get_extra_security_alternatives(eppn):
     :rtype: dict
     """
     alternatives = {}
-    user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
+    user = current_app.central_userdb.get_user_by_eppn(eppn)
 
     if len(user.phone_numbers.verified):
         verified_phone_numbers = [item.number for item in user.phone_numbers.verified]
@@ -423,7 +427,10 @@ def get_zxcvbn_terms(eppn):
 
     Combine known data that is bad for a password to a list for zxcvbn.
     """
-    user = current_app.central_userdb.get_user_by_eppn(eppn, raise_on_missing=True)
+    user = current_app.central_userdb.get_user_by_eppn(eppn)
+    if not user:
+        return []
+
     user_input = list()
 
     # Personal info

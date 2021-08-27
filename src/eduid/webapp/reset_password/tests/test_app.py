@@ -36,12 +36,13 @@ from typing import Any, Dict, Mapping, Optional
 from unittest.mock import Mock, patch
 from urllib.parse import quote_plus
 
+from flask import Response as FlaskResponse
 from flask import url_for
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User
 from eduid.userdb.credentials import Password, Webauthn
-from eduid.userdb.exceptions import DocumentDoesNotExist, UserHasNotCompletedSignup
+from eduid.userdb.exceptions import UserHasNotCompletedSignup
 from eduid.userdb.fixtures.fido_credentials import webauthn_credential
 from eduid.userdb.fixtures.fido_credentials import webauthn_credential as sample_credential
 from eduid.userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
@@ -139,7 +140,7 @@ class ResetPasswordTests(EduidAPITestCase):
             self.assertEqual(200, response.status_code)
             return response
 
-    def _post_reset_code(self, data1: Optional[dict] = None, data2: Optional[dict] = None):
+    def _post_reset_code(self, data1: Optional[dict] = None, data2: Optional[dict] = None) -> Optional[FlaskResponse]:
         """
         Create a password rest state for the test user, grab the created verification code from the db,
         and use it to get configuration for the reset form.
@@ -149,7 +150,8 @@ class ResetPasswordTests(EduidAPITestCase):
         """
         response = self._post_email_address(data1=data1)
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
-        assert isinstance(state, ResetPasswordEmailState)
+        if not state:
+            return None
 
         with self.app.test_request_context():
             url = url_for('reset_password.verify_email', _external=True)
@@ -669,8 +671,7 @@ class ResetPasswordTests(EduidAPITestCase):
 
     def test_post_reset_code_unknown_email(self):
         data1 = {'email': 'unknown@unknown.com'}
-        with self.assertRaises(DocumentDoesNotExist):
-            self._post_reset_code(data1=data1)
+        assert not self._post_reset_code(data1=data1)
 
     def test_post_reset_code_no_extra_sec(self):
         user: User = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)

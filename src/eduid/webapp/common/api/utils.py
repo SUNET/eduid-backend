@@ -12,7 +12,7 @@ from flask import Request, current_app
 
 from eduid.common.utils import urlappend
 from eduid.userdb import User, UserDB
-from eduid.userdb.exceptions import EduIDUserDBError, MultipleUsersReturned, UserDBValueError, UserDoesNotExist
+from eduid.userdb.exceptions import MultipleUsersReturned, UserDBValueError, UserDoesNotExist
 from eduid.webapp.common.api.exceptions import ApiException
 
 logger = logging.getLogger(__name__)
@@ -46,7 +46,7 @@ def update_modified_ts(user):
         user.modified_ts = None
         return
 
-    private_user = current_app.private_userdb.get_user_by_id(userid, raise_on_missing=False)
+    private_user = current_app.private_userdb.get_user_by_id(userid)
     if private_user is None:
         logger.debug(f'User {user} not found in {current_app.private_userdb}, setting modified_ts to None')
         user.modified_ts = None
@@ -77,14 +77,14 @@ def get_user() -> User:
         raise ApiException('Not authorized', status_code=401)
     try:
         # Get user from central database
-        return current_app.central_userdb.get_user_by_eppn(session.common.eppn, raise_on_missing=True)
-    except UserDoesNotExist as e:
-        logger.error('Could not find user in central database.')
-        logger.error(e)
+        user = current_app.central_userdb.get_user_by_eppn(session.common.eppn)
+        if user:
+            return user
+        logger.error(f'Could not find user {session.common.eppn} in central database.')
         raise ApiException('Not authorized', status_code=401)
-    except MultipleUsersReturned as e:
-        logger.error('Found multiple users in central database.')
-        logger.error(e)
+
+    except MultipleUsersReturned:
+        logger.exception(f'Found multiple users in central database for eppn {session.common.eppn}.')
         raise ApiException('Not authorized', status_code=401)
 
 

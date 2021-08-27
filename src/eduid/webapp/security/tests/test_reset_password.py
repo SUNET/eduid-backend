@@ -116,8 +116,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
             response = c.post('/reset-password/new-password/{}'.format(state.email_code.code), data=data)
             self.assertEqual(response.status_code, 200)
 
-        with self.assertRaises(DocumentDoesNotExist):
-            self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        assert not self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
 
     def choose_custom_password(self, state):
         with self.app.test_client() as c:
@@ -131,8 +130,7 @@ class SecurityResetPasswordTests(EduidAPITestCase):
             response = c.post('/reset-password/new-password/{}'.format(state.email_code.code), data=data)
             self.assertEqual(response.status_code, 200)
 
-        with self.assertRaises(DocumentDoesNotExist):
-            self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
+        assert not self.app.password_reset_state_db.get_state_by_eppn(self.test_user_eppn)
 
     def test_password_reset_start(self):
         response = self.browser.get('/reset-password/')

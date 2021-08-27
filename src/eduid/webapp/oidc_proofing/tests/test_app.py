@@ -23,7 +23,7 @@ class OidcProofingTests(EduidAPITestCase):
 
     app: OIDCProofingApp
 
-    def setUp(self):
+    def setUp(self, *args, **kwargs):
         self.test_user_eppn = 'hubba-baar'
         self.test_user_nin = '200001023456'
         self.test_user_wrong_nin = '190001021234'
@@ -68,7 +68,7 @@ class OidcProofingTests(EduidAPITestCase):
 
         self.oidc_provider_config_response = MockResponse(200, json.dumps(self.oidc_provider_config))
 
-        super(OidcProofingTests, self).setUp(users=['hubba-baar'])
+        super().setUp(users=['hubba-baar'], *args, **kwargs)
 
     def load_app(self, config) -> OIDCProofingApp:
         """
@@ -532,8 +532,7 @@ class OidcProofingTests(EduidAPITestCase):
         self.assertEqual(response['type'], 'GET_OIDC_PROOFING_FREJA_PROOFING_SUCCESS')
 
         # Check that the expired proofing state was removed
-        with self.assertRaises(DocumentDoesNotExist):
-            self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
+        assert not self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
 
     @patch('eduid.webapp.oidc_proofing.helpers.do_authn_request')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')

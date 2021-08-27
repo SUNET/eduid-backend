@@ -129,9 +129,7 @@ def delete_group(user: User, group_identifier: UUID) -> FluxData:
     group = current_app.scimapi_groupdb.get_group_by_scim_id(scim_id=str(group_identifier))
     if group and current_app.scimapi_groupdb.remove_group(group):
         # Remove outstanding invitations to the group
-        for state in current_app.invite_state_db.get_states_by_group_scim_id(
-            str(group_identifier), raise_on_missing=False
-        ):
+        for state in current_app.invite_state_db.get_states_by_group_scim_id(str(group_identifier)):
             current_app.invite_state_db.remove_state(state)
         current_app.logger.info(f'Deleted ScimApiGroup with scim_id: {group.scim_id}')
         current_app.stats.count(name='group_deleted')

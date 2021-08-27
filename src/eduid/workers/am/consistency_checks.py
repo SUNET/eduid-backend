@@ -182,7 +182,7 @@ def check_locked_identity(userdb: UserDB, user_id: ObjectId, attributes: Dict, a
     nin = verified_nins[0]
 
     # Get the users locked identities
-    user = userdb.get_user_by_id(user_id, raise_on_missing=False)
+    user = userdb.get_user_by_id(user_id)
     locked_identities = user.locked_identity if user else LockedIdentityList()
 
     locked_nin = locked_identities.find('nin')

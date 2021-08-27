@@ -98,7 +98,7 @@ class TestBaseWorker(QueueAsyncioTest):
         fetched: Optional[QueueItem] = None
         while utc_now() < end_time:
             await asyncio.sleep(0.5)  # Allow worker to run
-            fetched = self.db.get_item_by_id(queue_item.item_id, raise_on_missing=False)
+            fetched = self.db.get_item_by_id(queue_item.item_id)
             if not fetched:
                 logger.info(f'Queue item {queue_item.item_id} was processed')
                 break

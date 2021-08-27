@@ -4,6 +4,7 @@
 import base64
 import binascii
 from io import BytesIO
+from typing import Any, Dict, Mapping
 
 import qrcode
 import qrcode.image.svg
@@ -12,13 +13,14 @@ from flask import Blueprint, make_response, request, url_for
 from jose import jws as jose
 from oic.oic.message import AuthorizationResponse, Claims, ClaimsRequest
 
+from eduid.userdb import User
 from eduid.userdb.exceptions import DocumentDoesNotExist
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.util import UTC
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
 from eduid.webapp.common.api.exceptions import TaskFailed
 from eduid.webapp.common.api.helpers import add_nin_to_user
-from eduid.webapp.common.api.messages import CommonMsg, error_response
+from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response
 from eduid.webapp.oidc_proofing import helpers, schemas
 from eduid.webapp.oidc_proofing.app import current_oidcp_app as current_app
 from eduid.webapp.oidc_proofing.helpers import OIDCMsg
@@ -128,17 +130,16 @@ def authorization_response():
 @oidc_proofing_views.route('/proofing', methods=['GET'])
 @MarshalWith(schemas.NonceResponseSchema)
 @require_user
-def get_seleg_state(user):
-    current_app.logger.debug('Getting state for user {!s}.'.format(user))
-    try:
-        proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
-        expire_time = current_app.conf.seleg_expire_time_hours
-        if helpers.is_proofing_state_expired(proofing_state, expire_time):
-            current_app.proofing_statedb.remove_state(proofing_state)
-            current_app.stats.count(name='seleg.proofing_state_expired')
-            raise DocumentDoesNotExist(reason='seleg proofing state expired')
-    except DocumentDoesNotExist:
+def get_seleg_state(user: User) -> Dict[str, Any]:
+    current_app.logger.debug(f'Getting state for user {user}.')
+    proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
+    if not proofing_state:
         return {}
+    expire_time = current_app.conf.seleg_expire_time_hours
+    if helpers.is_proofing_state_expired(proofing_state, expire_time):
+        current_app.proofing_statedb.remove_state(proofing_state)
+        current_app.stats.count(name='seleg.proofing_state_expired')
+        raise DocumentDoesNotExist(reason='seleg proofing state expired')
     # Return nonce and nonce as qr code
     current_app.logger.debug('Returning nonce for user {!s}'.format(user))
     current_app.stats.count(name='seleg.proofing_state_returned')
@@ -158,7 +159,7 @@ def get_seleg_state(user):
 @can_verify_identity
 @require_user
 def seleg_proofing(user, nin):
-    proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
+    proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
     if not proofing_state:
         current_app.logger.debug('No proofing state found for user {!s}. Initializing new proofing flow.'.format(user))
         proofing_state = helpers.create_proofing_state(user, nin)
@@ -189,16 +190,15 @@ def seleg_proofing(user, nin):
 @oidc_proofing_views.route('/freja/proofing', methods=['GET'])
 @MarshalWith(schemas.FrejaResponseSchema)
 @require_user
-def get_freja_state(user):
+def get_freja_state(user: User) -> Mapping[str, Any]:
     current_app.logger.debug('Getting state for user {!s}.'.format(user))
-    try:
-        proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
-        expire_time = current_app.conf.freja_expire_time_hours
-        if helpers.is_proofing_state_expired(proofing_state, expire_time):
-            current_app.proofing_statedb.remove_state(proofing_state)
-            current_app.stats.count(name='freja.proofing_state_expired')
-            raise DocumentDoesNotExist(reason='freja proofing state expired')
-    except DocumentDoesNotExist:
+    proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
+    if not proofing_state:
+        return {}
+    expire_time = current_app.conf.freja_expire_time_hours
+    if helpers.is_proofing_state_expired(proofing_state, expire_time):
+        current_app.proofing_statedb.remove_state(proofing_state)
+        current_app.stats.count(name='freja.proofing_state_expired')
         return {}
     # Return request data
     current_app.logger.debug('Returning request data for user {!s}'.format(user))
@@ -227,7 +227,7 @@ def get_freja_state(user):
 @can_verify_identity
 @require_user
 def freja_proofing(user, nin):
-    proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
+    proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
     if not proofing_state:
         current_app.logger.debug('No proofing state found for user {!s}. Initializing new proofing flow.'.format(user))
         proofing_state = helpers.create_proofing_state(user, nin)

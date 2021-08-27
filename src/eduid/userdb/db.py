@@ -236,24 +236,22 @@ class BaseDB(object):
         logging.warning("{!s} Dropping collection {!r}".format(self, self._coll_name))
         return self._coll.drop()
 
-    def _get_all_docs(self):
+    def _get_all_docs(self) -> List[Dict[str, Any]]:
         """
         Return all the user documents in the database.
 
         Used in eduid-dashboard test cases.
 
         :return: User documents
-        :rtype:
         """
         return self._coll.find({})
 
-    def _get_document_by_attr(self, attr: str, value: str, raise_on_missing: bool = True) -> Optional[Mapping]:
+    def _get_document_by_attr(self, attr: str, value: str) -> Optional[Dict[str, Any]]:
         """
         Return the document in the MongoDB matching field=value
 
         :param attr: The name of a field
         :param value: The field value
-        :param raise_on_missing:  If True, raise exception if no matching user object can be found.
         :return: A document dict
         """
         if value is None:
@@ -262,28 +260,23 @@ class BaseDB(object):
         docs = list(self._coll.find({attr: value}))
         doc_count = len(docs)
         if doc_count == 0:
-            if raise_on_missing:
-                raise DocumentDoesNotExist(f'No document matching {attr}={repr(value)}')
             return None
         elif doc_count > 1:
             raise MultipleDocumentsReturned(f'Multiple matching documents for {attr}={repr(value)}')
         return docs[0]
 
-    def _get_documents_by_attr(self, attr: str, value: str, raise_on_missing: bool = True) -> List[Dict[str, Any]]:
+    def _get_documents_by_attr(self, attr: str, value: str) -> List[Dict[str, Any]]:
         """
         Return the document in the MongoDB matching field=value
 
         :param attr: The name of a field
         :param value: The field value
-        :param raise_on_missing:  If True, raise exception if no matching user object can be found.
         :return: A list of document dicts
         :raise DocumentDoesNotExist: No document matching the search criteria
         """
         docs = list(self._coll.find({attr: value}))
         doc_count = len(docs)
         if doc_count == 0:
-            if raise_on_missing:
-                raise DocumentDoesNotExist(f'No document matching {attr}={repr(value)}')
             return []
         return docs
 
@@ -293,7 +286,6 @@ class BaseDB(object):
         fields: Optional[dict] = None,
         skip: Optional[int] = None,
         limit: Optional[int] = None,
-        raise_on_missing: bool = True,
     ) -> List[Mapping]:
         """
         Locate documents in the db using a custom search filter.
@@ -302,9 +294,7 @@ class BaseDB(object):
         :param fields: the fields to return in the search result
         :param skip: Number of documents to skip before returning result
         :param limit: Limit documents returned to this number
-        :param raise_on_missing:  If True, raise exception if no matching user object can be found.
         :return: A list of documents
-        :raise DocumentDoesNotExist: No document matching the search criteria
         """
         if fields is not None:
             cursor = self._coll.find(spec, fields)
@@ -319,8 +309,6 @@ class BaseDB(object):
         docs = list(cursor)
         doc_count = len(docs)
         if doc_count == 0:
-            if raise_on_missing:
-                raise DocumentDoesNotExist(f'No document matching {spec}')
             return []
         return docs
 

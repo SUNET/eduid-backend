@@ -103,8 +103,7 @@ class MessageTest(AMTestCase):
         calling the plugin (above) which is registered with the am in the test setup below.
         """
         _id = ObjectId()
-        with self.assertRaises(eduid.userdb.exceptions.UserDoesNotExist):
-            self.amdb.get_user_by_id(_id)
+        assert not self.amdb.get_user_by_id(_id)
 
         userdoc = {
             '_id': _id,

@@ -54,48 +54,41 @@ class GroupManagementInviteStateDB(BaseDB):
         }
         self.setup_indexes(indexes)
 
-    def get_state(
-        self, group_scim_id: str, email_address: str, role: GroupRole, raise_on_missing: bool = True
-    ) -> Optional[GroupInviteState]:
+    def get_state(self, group_scim_id: str, email_address: str, role: GroupRole) -> Optional[GroupInviteState]:
         """
         :param group_scim_id: Groups unique identifier
         :param email_address: Invited email address
         :param role: Group role
-        :param raise_on_missing: Raise exception if True else return None
         """
         spec = {'group_scim_id': group_scim_id, 'email_address': email_address, 'role': role.value}
-        docs = list(self._get_documents_by_filter(spec, raise_on_missing=raise_on_missing))
+        docs = list(self._get_documents_by_filter(spec))
         if len(docs) == 1:
             return GroupInviteState.from_dict(docs[0])
         return None
 
-    def get_states_by_group_scim_id(self, group_scim_id: str, raise_on_missing: bool = True) -> List[GroupInviteState]:
+    def get_states_by_group_scim_id(self, group_scim_id: str) -> List[GroupInviteState]:
         """
         Locate a state in the db given the state's group identifier.
 
         :param group_scim_id: Groups unique identifier
-        :param raise_on_missing: Raise exception if True else return None
 
         :return: List of GroupInviteState instances
 
         :raise self.DocumentDoesNotExist: No document match the search criteria
         """
         spec = {'group_scim_id': group_scim_id}
-        states = list(self._get_documents_by_filter(spec, raise_on_missing=raise_on_missing))
+        states = list(self._get_documents_by_filter(spec))
 
         if len(states) == 0:
             return []
 
         return [GroupInviteState.from_dict(state) for state in states]
 
-    def get_states_by_email_addresses(
-        self, email_addresses: List[str], raise_on_missing: bool = True
-    ) -> List[GroupInviteState]:
+    def get_states_by_email_addresses(self, email_addresses: List[str]) -> List[GroupInviteState]:
         """
         Locate a state in the db given the state's group identifier.
 
         :param email_addresses: List of a users verified email addresses
-        :param raise_on_missing: Raise exception if True else return None
 
         :return: List of GroupInviteState instances
 
@@ -104,7 +97,7 @@ class GroupManagementInviteStateDB(BaseDB):
         states = []
         for email_address in email_addresses:
             spec = {'email_address': email_address}
-            states.extend(list(self._get_documents_by_filter(spec, raise_on_missing=raise_on_missing)))
+            states.extend(list(self._get_documents_by_filter(spec)))
 
         if len(states) == 0:
             return []

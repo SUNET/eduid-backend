@@ -164,9 +164,7 @@ def check_vccs() -> bool:
     if not current_app.conf.vccs_check_eppn:
         return True
     try:
-        user = current_app.central_userdb.get_user_by_eppn(
-            eppn=current_app.conf.vccs_check_eppn, raise_on_missing=False
-        )
+        user = current_app.central_userdb.get_user_by_eppn(eppn=current_app.conf.vccs_check_eppn)
         vccs_url = current_app.conf.vccs_url
         password = current_app.conf.vccs_check_password
         if user and check_password(password=password, user=user, vccs_url=vccs_url):

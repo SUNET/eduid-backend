@@ -30,14 +30,13 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-import datetime
 import logging
 from abc import ABC
 from operator import itemgetter
-from typing import Any, ClassVar, Dict, Generic, Mapping, Optional, Type, TypeVar
+from typing import Any, Dict, Generic, Mapping, Optional, TypeVar
 
 from eduid.userdb.db import BaseDB
-from eduid.userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
+from eduid.userdb.exceptions import DocumentOutOfSync
 from eduid.userdb.proofing.state import (
     EmailProofingState,
     LetterProofingState,
@@ -68,12 +67,11 @@ class ProofingStateDB(BaseDB, Generic[ProofingStateVar], ABC):
         # must be implemented by subclass to get correct type information
         raise NotImplementedError()
 
-    def get_state_by_eppn(self, eppn: str, raise_on_missing: bool = True) -> Optional[ProofingStateVar]:
+    def get_state_by_eppn(self, eppn: str) -> Optional[ProofingStateVar]:
         """
         Locate a state in the db given the state user's eppn.
 
         :param eppn: eduPersonPrincipalName
-        :param raise_on_missing: Raise exception if True else return None
 
         :return: ProofingStateClass instance | None
 
@@ -81,20 +79,19 @@ class ProofingStateDB(BaseDB, Generic[ProofingStateVar], ABC):
         :raise self.MultipleDocumentsReturned: More than one user matches the search criteria
         """
 
-        data = self._get_document_by_attr('eduPersonPrincipalName', eppn, raise_on_missing)
+        data = self._get_document_by_attr('eduPersonPrincipalName', eppn)
         if not data:
             return None
         return self.state_from_dict(data)
 
-    def get_latest_state_by_spec(self, spec: dict, raise_on_missing: bool = True) -> Optional[ProofingStateVar]:
+    def get_latest_state_by_spec(self, spec: Mapping[str, Any]) -> Optional[ProofingStateVar]:
         """
         Returns the latest inserted state and __removes any other state found__ defined by the spec .
 
         :param spec: the search filter
-        :param raise_on_missing: Raise exception if True else return None
         :return: Latest state found
         """
-        docs = self._get_documents_by_filter(spec, raise_on_missing=raise_on_missing)
+        docs = self._get_documents_by_filter(spec)
         if not docs:
             return None
 
@@ -168,19 +165,15 @@ class EmailProofingStateDB(ProofingStateDB[EmailProofingState]):
     def state_from_dict(cls, data: Mapping[str, Any]) -> EmailProofingState:
         return EmailProofingState.from_dict(data)
 
-    def get_state_by_eppn_and_email(
-        self, eppn: str, email: str, raise_on_missing: bool = True
-    ) -> Optional[EmailProofingState]:
+    def get_state_by_eppn_and_email(self, eppn: str, email: str) -> Optional[EmailProofingState]:
         """
         Locate a state in the db given the eppn of the user and the
         email to be verified.
 
-        :raise self.DocumentDoesNotExist: No user match the search criteria
-        :raise self.MultipleDocumentsReturned: More than one user
-                                               matches the search criteria
+        :raise self.MultipleDocumentsReturned: More than one user matches the search criteria
         """
         spec = {'eduPersonPrincipalName': eppn, 'verification.email': email}
-        return self.get_latest_state_by_spec(spec, raise_on_missing)
+        return self.get_latest_state_by_spec(spec)
 
     def remove_state(self, state: ProofingStateVar) -> None:
         """
@@ -202,24 +195,20 @@ class PhoneProofingStateDB(ProofingStateDB[PhoneProofingState]):
     def state_from_dict(cls, data: Mapping[str, Any]) -> PhoneProofingState:
         return PhoneProofingState.from_dict(data)
 
-    def get_state_by_eppn_and_mobile(
-        self, eppn: str, number: str, raise_on_missing: bool = True
-    ) -> Optional[PhoneProofingState]:
+    def get_state_by_eppn_and_mobile(self, eppn: str, number: str) -> Optional[PhoneProofingState]:
         """
         Locate a state in the db given the eppn of the user and the
         mobile to be verified.
 
         :param number: mobile to verify
-        :param raise_on_missing: Raise exception if True else return None
 
         :return: ProofingStateClass instance | None
 
-        :raise self.DocumentDoesNotExist: No user match the search criteria
         :raise self.MultipleDocumentsReturned: More than one user
                                                matches the search criteria
         """
         spec = {'eduPersonPrincipalName': eppn, 'verification.number': number}
-        return self.get_latest_state_by_spec(spec, raise_on_missing)
+        return self.get_latest_state_by_spec(spec)
 
     def remove_state(self, state: ProofingStateVar) -> None:
         """
@@ -234,20 +223,18 @@ class PhoneProofingStateDB(ProofingStateDB[PhoneProofingState]):
 
 
 class OidcStateDB(ProofingStateDB[ProofingStateVar], Generic[ProofingStateVar], ABC):
-    def get_state_by_oidc_state(self, oidc_state: str, raise_on_missing: bool = True) -> Optional[ProofingStateVar]:
+    def get_state_by_oidc_state(self, oidc_state: str) -> Optional[ProofingStateVar]:
         """
         Locate a state in the db given the user's OIDC state.
 
         :param oidc_state: OIDC state param
-        :param raise_on_missing: Raise exception if True else return None
 
         :return: ProofingStateClass instance | None
 
-        :raise self.DocumentDoesNotExist: No user match the search criteria
         :raise self.MultipleDocumentsReturned: More than one user matches the search criteria
         """
 
-        state = self._get_document_by_attr('state', oidc_state, raise_on_missing)
+        state = self._get_document_by_attr('state', oidc_state)
         if not state:
             return None
         return self.state_from_dict(state)

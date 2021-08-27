@@ -30,19 +30,19 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
+from typing import Optional
 
 from flask import Blueprint, abort, request
 from marshmallow import ValidationError
+from werkzeug.wrappers import Response as WerkzeugResponse
 
-from eduid.userdb.element import PrimaryElementViolation
 from eduid.userdb.exceptions import DocumentDoesNotExist, UserOutOfSync
 from eduid.userdb.mail import MailAddress
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.user import User
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid.webapp.common.api.helpers import check_magic_cookie
-from eduid.webapp.common.api.messages import CommonMsg, error_response, redirect_with_msg, success_response
+from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, redirect_with_msg, success_response
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.email.app import current_email_app as current_app
 from eduid.webapp.email.helpers import EmailMsg
@@ -74,7 +74,7 @@ def get_all_emails(user):
 @UnmarshalWith(AddEmailSchema)
 @MarshalWith(EmailResponseSchema)
 @require_user
-def post_email(user, email, verified, primary):
+def post_email(user: User, email: str, verified, primary) -> FluxData:
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug(f'Trying to save unconfirmed email {repr(email)} for user {proofing_user}')
 
@@ -82,7 +82,8 @@ def post_email(user, email, verified, primary):
 
     try:
         proofing_user.mail_addresses.add(new_mail)
-    except DuplicateElementViolation:
+    except ValidationError:
+        # TODO: maybe check the validation error a bit more to see if duplicity was the problem
         return error_response(message=EmailMsg.dupe)
 
     try:
@@ -109,13 +110,12 @@ def post_email(user, email, verified, primary):
 @UnmarshalWith(ChangeEmailSchema)
 @MarshalWith(EmailResponseSchema)
 @require_user
-def post_primary(user, email):
+def post_primary(user: User, email: str) -> FluxData:
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    current_app.logger.debug('Trying to save email address {!r} as primary for user {}'.format(email, proofing_user))
+    current_app.logger.debug('Trying to set email address {!r} as primary for user {}'.format(email, proofing_user))
 
-    try:
-        mail = proofing_user.mail_addresses.find(email)
-    except IndexError:
+    mail = proofing_user.mail_addresses.find(email)
+    if not mail:
         current_app.logger.debug(
             'Couldnt save email {!r} as primary for user {}, data out of sync'.format(email, proofing_user)
         )
@@ -127,7 +127,7 @@ def post_primary(user, email):
         )
         return error_response(message=EmailMsg.unconfirmed_not_primary)
 
-    proofing_user.mail_addresses.set_primary(mail.email)
+    proofing_user.mail_addresses.set_primary(mail.key)
     try:
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
@@ -186,7 +186,7 @@ def verify(user, code, email):
 
 @email_views.route('/verify', methods=['GET'])
 @require_user
-def verify_link(user):
+def verify_link(user) -> WerkzeugResponse:
     """
     Used for verifying an e-mail address when the user clicks the link in the verification mail.
     """
@@ -202,9 +202,7 @@ def verify_link(user):
     try:
         schema = NoCSRFVerificationCodeSchema().load({'code': code_in, 'email': email_in})
         code = schema['code']
-        state = current_app.proofing_statedb.get_state_by_eppn_and_email(
-            proofing_user.eppn, schema['email'], raise_on_missing=False
-        )
+        state = current_app.proofing_statedb.get_state_by_eppn_and_email(proofing_user.eppn, schema['email'])
         if not state:
             current_app.logger.info(f'Could not find proofing state for email {schema["email"]}')
             return redirect_with_msg(redirect_url, EmailMsg.unknown_email)
@@ -278,7 +276,7 @@ def post_remove(user, email):
 @UnmarshalWith(ChangeEmailSchema)
 @MarshalWith(EmailResponseSchema)
 @require_user
-def resend_code(user, email):
+def resend_code(user: User, email: str) -> FluxData:
     current_app.logger.debug(
         'Trying to send new verification code for email ' 'address {} for user {}'.format(email, user)
     )
@@ -300,7 +298,7 @@ def resend_code(user, email):
 
 @email_views.route('/get-code', methods=['GET'])
 @require_user
-def get_code(user: User):
+def get_code(user: User) -> Optional[str]:
     """
     Backdoor to get the verification code in the staging or dev environments
     """
