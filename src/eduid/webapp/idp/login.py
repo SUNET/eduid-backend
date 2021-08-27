@@ -11,21 +11,19 @@
 """
 Code handling Single Sign On logins.
 """
-import dataclasses
 import hmac
 import pprint
 import time
 from base64 import b64encode
 from dataclasses import dataclass
 from hashlib import sha256
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 from defusedxml import ElementTree as DefusedElementTree
 from flask import make_response, redirect, render_template, request, url_for
 from flask_babel import gettext as _
 from pydantic import BaseModel
-from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest, Forbidden, TooManyRequests
 from werkzeug.wrappers import Response as WerkzeugResponse
 
@@ -57,6 +55,7 @@ from eduid.webapp.idp.mischttp import HttpArgs, get_default_template_arguments
 from eduid.webapp.idp.service import SAMLQueryParams, Service
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.tou_action import add_tou_action, need_tou_acceptance
+from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 
 
 class MustAuthenticate(Exception):
