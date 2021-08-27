@@ -139,7 +139,7 @@ def get_seleg_state(user: User) -> Dict[str, Any]:
     if helpers.is_proofing_state_expired(proofing_state, expire_time):
         current_app.proofing_statedb.remove_state(proofing_state)
         current_app.stats.count(name='seleg.proofing_state_expired')
-        raise DocumentDoesNotExist(reason='seleg proofing state expired')
+        return {}
     # Return nonce and nonce as qr code
     current_app.logger.debug('Returning nonce for user {!s}'.format(user))
     current_app.stats.count(name='seleg.proofing_state_returned')
