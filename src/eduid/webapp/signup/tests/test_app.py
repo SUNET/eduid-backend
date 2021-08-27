@@ -37,6 +37,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, Mapping, Optional
 
+from flask import Response as FlaskResponse
 from mock import patch
 
 from eduid.userdb.exceptions import UserOutOfSync
@@ -46,7 +47,6 @@ from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.signup.app import SignupApp, signup_init_app
 from eduid.webapp.signup.helpers import SignupMsg
 from eduid.webapp.signup.verifications import ProofingLogFailure, send_verification_mail
-from flask import Response as FlaskResponse
 
 logger = logging.getLogger(__name__)
 

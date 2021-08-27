@@ -70,9 +70,7 @@ class QueueDB(BaseDB):
             raise PayloadNotRegistered(f'Payload type \'{item.payload_type}\' not registered with {self}')
         return payload_cls.from_dict(item.payload.to_dict())
 
-    def get_item_by_id(
-        self, message_id: Union[str, ObjectId], parse_payload=True
-    ) -> Optional[QueueItem]:
+    def get_item_by_id(self, message_id: Union[str, ObjectId], parse_payload=True) -> Optional[QueueItem]:
         if isinstance(message_id, str):
             message_id = ObjectId(message_id)
 
