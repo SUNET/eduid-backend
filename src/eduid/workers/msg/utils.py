@@ -96,6 +96,7 @@ def navet_get_person(navet_data: Optional[dict]) -> Optional[OrderedDict]:
         "PersonId": {
             "NationalIdentityNumber": "197609272393"
         },
+        "ReferenceNationalIdentityNumber": "",
         "PostalAddresses": {
             "OfficialAddress": {
                 "Address1": "\u00d6VER G\u00c5RDEN",
@@ -118,6 +119,40 @@ def navet_get_person(navet_data: Optional[dict]) -> Optional[OrderedDict]:
     if navet_data is not None:
         try:
             return OrderedDict(navet_data['PopulationItems'][0]['PersonItem'])
+        except KeyError:
+            pass
+    return None
+
+
+def navet_get_all_data(navet_data: Optional[dict]) -> Optional[OrderedDict]:
+    """
+    :param navet_data: Loaded JSON response from eduid-navet_service
+    :return: all available data from Navet
+
+    {
+        "CaseInformation": {"lastChanged": "20170904141659"},
+        "Person": {
+            "Name": {"GivenName": "Saskariot Teofil", "Surname": "Nor\u00e9n"},
+            "PersonId": {"NationalIdentityNumber": "197609272393"},
+            "ReferenceNationalIdentityNumber": "",
+            "PostalAddresses": {
+                "OfficialAddress": {
+                    "Address1": "\u00d6VER G\u00c5RDEN",
+                    "Address2": "MALMSKILLNADSGATAN 54 25 TR L\u00c4G 458",
+                    "CareOf": "MALMSTR\u00d6M",
+                    "City": "STOCKHOLM",
+                    "PostalCode": "11138",
+                }
+            },
+            "Relations": [{"RelationId": {"NationalIdentityNumber": "196910199287"}, "RelationType": "M"}],
+        },
+    }
+    """
+    person = navet_get_person(navet_data)
+    if navet_data is not None and person is not None:
+        try:
+            case_information = OrderedDict(navet_data['PopulationItems'][0]['CaseInformation'])
+            return OrderedDict({"CaseInformation": case_information, "Person": person})
         except KeyError:
             pass
     return None
