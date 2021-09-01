@@ -182,7 +182,3 @@ class eduid_tou(AttributeFetcher):
     whitelist_set_attrs = ['tou']
     whitelist_unset_attrs: List[str] = []
     get_user_db = lambda cls, uri: ToUUserDB(uri)
-
-
-## XXX remove after https://github.com/SUNET/eduid-am/pull/32 is merged
-tou = eduid_tou
