@@ -516,7 +516,7 @@ def update_user_official_name(security_user: SecurityUser, navet_data: NavetData
         # Ask am to sync user to central db
         current_app.logger.info('Request sync for user')
         result = current_app.am_relay.request_user_sync(security_user)
-        current_app.logger.info('Sync result for user {!s}: {!s}'.format(security_user, result))
+        current_app.logger.info(f'Sync result for user {security_user}: {result}')
         current_app.stats.count(name='security.update_user_official_name')
 
     return True
