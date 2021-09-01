@@ -48,3 +48,5 @@ class PDataMsg(TranslatableMsg):
     required = 'pdata.field_required'
     # validation error: illegal characters
     special_chars = 'only allow letters'
+    # disallow first_name and surname change for verified users
+    name_change_not_allowed = 'pdata.name-change-not-allowed'

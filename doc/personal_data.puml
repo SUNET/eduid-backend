@@ -1,0 +1,42 @@
+@startuml
+title personal_data
+
+legend
+    ALL_USER_DATA: {
+        display_name: str
+        emails: [{email: str, primary: bool, verified: bool}]
+        eppn: str
+        given_name: str
+        language: str
+        nins: [{number: str, primary: bool, verified: bool}]
+        phones: [{number: str, primary: bool, verified: bool}]
+        surname: str
+    }
+
+    USER_DATA: {
+        display_name: str
+        given_name: str
+        language: str
+        surname: str
+    }
+
+    NINS_DATA: {
+        nins: [{number: str, primary: bool, verified: bool}]
+    }
+end legend
+
+Client->"/all-user-data": GET
+"/all-user-data"->Client: {"payload":{ALL_USER_DATA}, "type":"GET_PERSONAL_DATA_ALL_USER_DATA_SUCCESS"}
+|||
+Client->"/user": GET
+"/user"->Client: {"payload":{USER_DATA}, "type":"GET_PERSONAL_DATA_USER_SUCCESS"}
+|||
+Client->"/user": POST {USER_DATA}
+alt user data updated successfully
+    "/user"->Client: {"payload": {USER_DATA, "message": "pd.save-success"}, "type": "POST_PERSONAL_DATA_USER_SUCCESS"}
+else user is verified and tries to set given_name or surname
+    "/user"->Client: {"payload": {"message": "pdata.name-change-not-allowed"}, "type": "POST_PERSONAL_DATA_USER_FAIL"}
+|||
+Client->"/nins": GET
+"/nins"->Client: {"payload": {NINS_DATA}, "type": "GET_PERSONAL_DATA_NINS_SUCCESS"}
+@enduml
