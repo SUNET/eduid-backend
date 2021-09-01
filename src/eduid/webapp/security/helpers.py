@@ -9,12 +9,14 @@ from flask_babel import gettext as _
 
 from eduid.common.decorators import deprecated
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.rpc.msg_relay import NavetData
 from eduid.userdb import Nin
 from eduid.userdb.credentials import FidoCredential
 from eduid.userdb.exceptions import UserHasNotCompletedSignup
 from eduid.userdb.logs import MailAddressProofing, PhoneNumberProofing
+from eduid.userdb.logs.element import NameUpdateProofing
 from eduid.userdb.security import PasswordResetEmailAndPhoneState, PasswordResetEmailState, SecurityUser
-from eduid.webapp.common.api.helpers import send_mail
+from eduid.webapp.common.api.helpers import send_mail, set_user_names_from_official_address
 from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response
 from eduid.webapp.common.api.schemas.u2f import U2FRegisteredKey
 from eduid.webapp.common.api.utils import get_short_hash, get_unique_hash, save_and_sync_user
@@ -81,6 +83,11 @@ class SecurityMsg(TranslatableMsg):
     change_password_success = 'security.change-password-success'
     # old change password
     chpass_password_changed2 = 'chpass.password-changed'
+    # throttled user update
+    user_update_throttled = 'security.user-update-throttled'
+    user_not_verified = 'security.user-not-verified'
+    navet_data_incomplete = 'security.navet-data-incomplete'
+    user_updated = 'security.user-updated'
 
 
 def credentials_to_registered_keys(user_u2f_tokens: List[FidoCredential]) -> List[U2FRegisteredKey]:
@@ -456,3 +463,47 @@ def check_reauthn(authn: Optional[SP_AuthnRequest], max_age: timedelta) -> Optio
         return error_response(message=SecurityMsg.stale_reauthn)
 
     return None
+
+
+def update_user_official_name(security_user: SecurityUser, navet_data: NavetData) -> bool:
+    # please mypy
+    if security_user.nins.primary is None:
+        return False
+
+    # Compare current names with what we got from Navet
+    if (
+        security_user.given_name != navet_data.person.name.given_name
+        or security_user.surname != navet_data.person.name.surname
+    ):
+        user_postal_address = {
+            'Name': navet_data.person.name.dict(by_alias=True),
+            'OfficialAddress': navet_data.person.official_address.dict(by_alias=True),
+        }
+        proofing_log_entry = NameUpdateProofing(
+            created_by='security',
+            eppn=security_user.eppn,
+            proofing_version='2021v1',
+            nin=security_user.nins.primary.number,
+            previous_given_name=security_user.given_name,
+            previous_surname=security_user.surname,
+            user_postal_address=user_postal_address,
+        )
+        # Update user names
+        security_user = set_user_names_from_official_address(security_user, proofing_log_entry)
+
+        # Do not save the user if proofing log write fails
+        if not current_app.proofing_log.save(proofing_log_entry):
+            current_app.logger.error('Proofing log write failed')
+            current_app.logger.debug(f'proofing_log_entry: {proofing_log_entry}')
+            return False
+
+        current_app.logger.info(f'Recorded verification in the proofing log')
+        # Save user to private db
+        current_app.private_userdb.save(security_user)
+        # Ask am to sync user to central db
+        current_app.logger.info('Request sync for user')
+        result = current_app.am_relay.request_user_sync(security_user)
+        current_app.logger.info('Sync result for user {!s}: {!s}'.format(security_user, result))
+        current_app.stats.count(name='security.update_user_official_name')
+
+    return True

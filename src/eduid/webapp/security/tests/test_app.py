@@ -33,12 +33,14 @@
 
 import json
 from datetime import timedelta
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional
 from uuid import uuid4
 
 from mock import patch
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.userdb import User
+from eduid.userdb.element import ElementKey
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
@@ -50,8 +52,8 @@ class SecurityTests(EduidAPITestCase):
 
     app: SecurityApp
 
-    def setUp(self):
-        super(SecurityTests, self).setUp(copy_user_to_private=True)
+    def setUp(self, *args, users: Optional[List[str]] = None, copy_user_to_private: bool = True, **kwargs):
+        super(SecurityTests, self).setUp(*args, **kwargs)
 
         self.test_user_eppn = 'hubba-bubba'
         self.test_user_nin = '197801011235'
@@ -192,7 +194,7 @@ class SecurityTests(EduidAPITestCase):
         assert len(user.nins.verified) == 2
 
         if remove:
-            user.nins.remove(self.test_user_nin)
+            user.nins.remove(ElementKey(self.test_user_nin))
             self.app.central_userdb.save(user, check_sync=False)
             self.assertEqual(len(user.nins.verified), 1)
 
@@ -204,6 +206,17 @@ class SecurityTests(EduidAPITestCase):
                     data.update(data1)
 
                 return client.post('/add-nin', data=json.dumps(data), content_type=self.content_type_json)
+
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
+    def _update_user_data(self, mock_request_user_sync: Any, mock_get_all_navet_data: Any, user: User):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_get_all_navet_data.return_value = self._get_all_navet_data()
+
+        with self.session_cookie(self.browser, user.eppn) as client:
+            with client.session_transaction() as sess:
+                data = {'csrf_token': sess.get_csrf_token()}
+            return client.post('/update-official-user-data', data=json.dumps(data), content_type=self.content_type_json)
 
     # actual tests
 
@@ -375,6 +388,56 @@ class SecurityTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.nins.count, 2)
         self.assertEqual(len(user.nins.verified), 2)
+
+    def test_update_user_official_name(self):
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert user.given_name == 'John'
+        assert user.surname == 'Smith'
+        assert user.display_name == 'John Smith'
+
+        response = self._update_user_data(user=user)
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert user.given_name == 'Testaren Test'
+        assert user.surname == 'Testsson'
+        # Do not overwrite display_name if it is set
+        assert user.display_name == 'John Smith'
+        self._check_success_response(
+            response, type_='POST_SECURITY_UPDATE_OFFICIAL_USER_DATA_SUCCESS', msg=SecurityMsg.user_updated,
+        )
+
+    def test_update_user_official_name_no_display_name(self):
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        user.display_name = None
+        self.app.central_userdb.save(user)
+
+        response = self._update_user_data(user=user)
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert user.given_name == 'Testaren Test'
+        assert user.surname == 'Testsson'
+        assert user.display_name == 'Test Testsson'
+        self._check_success_response(
+            response, type_='POST_SECURITY_UPDATE_OFFICIAL_USER_DATA_SUCCESS', msg=SecurityMsg.user_updated,
+        )
+
+    def test_update_user_official_name_throttle(self):
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        # Make two calls to update user endpoint
+        self._update_user_data(user=user)
+        response = self._update_user_data(user=user)
+        self._check_error_response(
+            response, type_='POST_SECURITY_UPDATE_OFFICIAL_USER_DATA_FAIL', msg=SecurityMsg.user_update_throttled
+        )
+
+    def test_update_user_official_name_not_verified(self):
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        # Remove all verified nins from the users
+        for verified_nin in user.nins.verified:
+            user.nins.remove_handling_primary(verified_nin.key)
+        self.app.central_userdb.save(user)
+        response = self._update_user_data(user=user)
+        self._check_error_response(
+            response, type_='POST_SECURITY_UPDATE_OFFICIAL_USER_DATA_FAIL', msg=SecurityMsg.user_not_verified
+        )
 
     # Tests below are for deprecated views (moved to the reset-password service),
     # to be removed whith the views

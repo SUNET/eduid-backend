@@ -5,7 +5,7 @@
 import logging
 from typing import Any, Dict, List, Type, TypeVar
 
-from eduid.userdb.element import Element
+from eduid.userdb.element import Element, ElementKey
 
 __author__ = 'lundberg'
 
@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 TLogElementSubclass = TypeVar('TLogElementSubclass', bound='LogElement')
+TNinProofingLogElementSubclass = TypeVar('TNinProofingLogElementSubclass', bound='NinProofingLogElement')
 
 
 class LogElement(Element):
@@ -301,3 +302,28 @@ class MFATokenProofing(SwedenConnectProofing):
     key_id: str
     # Proofing method name
     proofing_method: str = 'swedenconnect'
+
+
+class NameUpdateProofing(NinProofingLogElement):
+    """
+    Used when a user request an update of their name from Navet.
+
+    {
+        'eduPersonPrincipalName': eppn,
+        'created_ts': utc_now(),
+        'created_by': 'application',
+        'proofing_method': 'Navet name update',
+        'proofing_version': '2021v1',
+        'nin': national_identity_number,
+        'user_postal_address': {postal_address_from_navet}
+        'previous_given_name': 'given name'
+        'previous_surname': 'surname'
+    }
+    """
+
+    # Previous given name
+    previous_given_name: str
+    # Previous surname
+    previous_surname: str
+    # Proofing method name
+    proofing_method: str = 'Navet name update'

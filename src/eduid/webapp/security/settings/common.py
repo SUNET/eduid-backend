@@ -61,6 +61,7 @@ class SecurityConfig(
     dashboard_url: str
     token_service_url: str
     eduid_static_url: str
+    throttle_update_user_seconds: int = 300
 
     # timeout for phone verification token, in hours
     phone_verification_timeout: int = 24
