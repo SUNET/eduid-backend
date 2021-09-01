@@ -318,11 +318,9 @@ def refresh_user_data(user: User) -> FluxData:
     if security_user.nins.primary is None:
         return error_response(message=SecurityMsg.user_not_verified)
 
-    # only allow a user to request another update after throttle_update_user_seconds
+    # only allow a user to request another update after throttle_update_user_period
     if session.security.user_requested_update is not None:
-        retry_at = session.security.user_requested_update + timedelta(
-            seconds=current_app.conf.throttle_update_user_seconds
-        )
+        retry_at = session.security.user_requested_update + current_app.conf.throttle_update_user_period
         if utc_now() < retry_at:
             return error_response(message=SecurityMsg.user_update_throttled)
     session.security.user_requested_update = utc_now()

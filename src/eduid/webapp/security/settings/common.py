@@ -31,6 +31,10 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from datetime import timedelta
+
+from pydantic import Field
+
 from eduid.common.config.base import (
     AmConfigMixin,
     EduIDBaseAppConfig,
@@ -61,7 +65,7 @@ class SecurityConfig(
     dashboard_url: str
     token_service_url: str
     eduid_static_url: str
-    throttle_update_user_seconds: int = 300
+    throttle_update_user_period: timedelta = Field(default=timedelta(seconds=600))
 
     # timeout for phone verification token, in hours
     phone_verification_timeout: int = 24
