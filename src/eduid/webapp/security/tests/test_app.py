@@ -216,7 +216,9 @@ class SecurityTests(EduidAPITestCase):
         with self.session_cookie(self.browser, user.eppn) as client:
             with client.session_transaction() as sess:
                 data = {'csrf_token': sess.get_csrf_token()}
-            return client.post('/update-official-user-data', data=json.dumps(data), content_type=self.content_type_json)
+            return client.post(
+                '/refresh-official-user-data', data=json.dumps(data), content_type=self.content_type_json
+            )
 
     # actual tests
 
@@ -402,7 +404,7 @@ class SecurityTests(EduidAPITestCase):
         # Do not overwrite display_name if it is set
         assert user.display_name == 'John Smith'
         self._check_success_response(
-            response, type_='POST_SECURITY_UPDATE_OFFICIAL_USER_DATA_SUCCESS', msg=SecurityMsg.user_updated,
+            response, type_='POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS', msg=SecurityMsg.user_updated,
         )
 
     def test_update_user_official_name_no_display_name(self):
@@ -416,7 +418,7 @@ class SecurityTests(EduidAPITestCase):
         assert user.surname == 'Testsson'
         assert user.display_name == 'Test Testsson'
         self._check_success_response(
-            response, type_='POST_SECURITY_UPDATE_OFFICIAL_USER_DATA_SUCCESS', msg=SecurityMsg.user_updated,
+            response, type_='POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS', msg=SecurityMsg.user_updated,
         )
 
     def test_update_user_official_name_throttle(self):
@@ -425,7 +427,7 @@ class SecurityTests(EduidAPITestCase):
         self._update_user_data(user=user)
         response = self._update_user_data(user=user)
         self._check_error_response(
-            response, type_='POST_SECURITY_UPDATE_OFFICIAL_USER_DATA_FAIL', msg=SecurityMsg.user_update_throttled
+            response, type_='POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_FAIL', msg=SecurityMsg.user_update_throttled
         )
 
     def test_update_user_official_name_not_verified(self):
@@ -436,7 +438,7 @@ class SecurityTests(EduidAPITestCase):
         self.app.central_userdb.save(user)
         response = self._update_user_data(user=user)
         self._check_error_response(
-            response, type_='POST_SECURITY_UPDATE_OFFICIAL_USER_DATA_FAIL', msg=SecurityMsg.user_not_verified
+            response, type_='POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_FAIL', msg=SecurityMsg.user_not_verified
         )
 
     # Tests below are for deprecated views (moved to the reset-password service),

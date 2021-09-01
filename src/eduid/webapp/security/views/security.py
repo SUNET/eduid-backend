@@ -309,11 +309,11 @@ def remove_nin(user: User, nin: str) -> FluxData:
     return success_response(payload=dict(nins=security_user.nins.to_list_of_dicts()), message=SecurityMsg.rm_success)
 
 
-@security_views.route('/update-official-user-data', methods=['POST'])
+@security_views.route('/refresh-official-user-data', methods=['POST'])
 @UnmarshalWith(EmptyRequest)
 @MarshalWith(UserUpdateResponseSchema)
 @require_user
-def update_user(user: User) -> FluxData:
+def refresh_user_data(user: User) -> FluxData:
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
     if security_user.nins.primary is None:
         return error_response(message=SecurityMsg.user_not_verified)
