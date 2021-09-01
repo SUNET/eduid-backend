@@ -123,6 +123,9 @@ class eduid_security(AttributeFetcher):
         'terminated',
         'nins',  # For AL1 downgrade on password reset
         'phone',  # For AL1 downgrade on password reset
+        'givenName',  # For updating user from official source (Navet)
+        'surname',  # For updating user from official source (Navet)
+        'displayName',  # For updating user from official source (Navet)
     ]
     whitelist_unset_attrs = [
         'passwords',
