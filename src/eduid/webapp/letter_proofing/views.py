@@ -26,7 +26,7 @@ letter_proofing_views = Blueprint('letter_proofing', __name__, url_prefix='', te
 @require_user
 def get_state(user) -> FluxData:
     current_app.logger.info('Getting proofing state for user {}'.format(user))
-    proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
+    proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
 
     if proofing_state:
         current_app.logger.info('Found proofing state for user {}'.format(user))
@@ -47,7 +47,7 @@ def get_state(user) -> FluxData:
 @require_user
 def proofing(user: User, nin: str) -> FluxData:
     current_app.logger.info('Send letter for user {} initiated'.format(user))
-    proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
+    proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
 
     # No existing proofing state was found, create a new one
     if not proofing_state:
@@ -118,7 +118,7 @@ def proofing(user: User, nin: str) -> FluxData:
 @require_user
 def verify_code(user: User, code: str) -> FluxData:
     current_app.logger.info('Verifying code for user {}'.format(user))
-    proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
+    proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
 
     if not proofing_state:
         return error_response(message=LetterMsg.no_state)

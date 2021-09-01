@@ -158,7 +158,7 @@ def verify(user: User, code: str, number: str) -> FluxData:
     current_app.logger.debug(f'Phone number: {number}')
 
     db = current_app.proofing_statedb
-    state = db.get_state_by_eppn_and_mobile(proofing_user.eppn, number, raise_on_missing=False)
+    state = db.get_state_by_eppn_and_mobile(proofing_user.eppn, number)
     if not state:
         current_app.logger.error('Proofing state not found')
         return error_response(message=PhoneMsg.unknown_phone)

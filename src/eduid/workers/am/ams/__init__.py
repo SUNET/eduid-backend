@@ -8,6 +8,7 @@ __author__ = 'eperez'
 
 from typing import List
 
+from bson import ObjectId
 from celery.utils.log import get_task_logger
 
 from eduid.userdb.actions.tou import ToUUserDB
@@ -34,7 +35,7 @@ class eduid_signup(AttributeFetcher):
     whitelist_set_attrs = ['mail', 'mailAliases', 'eduPersonPrincipalName', 'eppn', 'passwords', 'tou']
     whitelist_unset_attrs: List[str] = []
 
-    def fetch_attrs(self, user_id):
+    def fetch_attrs(self, user_id: ObjectId):
         attributes = AttributeFetcher.fetch_attrs(self, user_id)
         if '$set' not in attributes or 'passwords' not in attributes['$set']:
             logger.info(f'Not syncing signup user with attrs: {attributes}')

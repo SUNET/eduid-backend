@@ -38,6 +38,7 @@ import bson
 from celery.utils.log import get_task_logger
 
 from eduid.common.config.workers import AmConfig
+from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.userdb import UserDB
 
 logger = get_task_logger(__name__)
@@ -77,7 +78,8 @@ class AttributeFetcher(ABC):
             raise RuntimeError('No database initialised')
         user = self.private_db.get_user_by_id(user_id)
         logger.debug(f'User: {user} found.')
-        assert user  # please mypy, raise_if_missing ensures we won't get here without a user being found
+        if not user:
+            raise UserDoesNotExist(f'No user found with id {user_id}')
 
         user_dict = user.to_dict()
 

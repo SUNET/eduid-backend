@@ -34,14 +34,15 @@
 from flask import current_app, render_template, url_for
 from flask_babel import gettext as _
 
+from eduid.userdb import User
 from eduid.userdb.logs import MailAddressProofing
 from eduid.userdb.mail import MailAddress
 from eduid.userdb.proofing import EmailProofingElement, EmailProofingState
 from eduid.webapp.common.api.utils import get_unique_hash, save_and_sync_user
 
 
-def new_proofing_state(email, user):
-    old_state = current_app.proofing_statedb.get_state_by_eppn_and_email(user.eppn, email, raise_on_missing=False)
+def new_proofing_state(email: str, user: User):
+    old_state = current_app.proofing_statedb.get_state_by_eppn_and_email(user.eppn, email)
 
     if old_state is not None:
         if old_state.is_throttled(current_app.conf.throttle_resend_seconds):
@@ -62,7 +63,7 @@ def new_proofing_state(email, user):
     return proofing_state
 
 
-def send_verification_code(email, user):
+def send_verification_code(email: str, user: User) -> bool:
     subject = _('eduID confirmation email')
     state = new_proofing_state(email, user)
     if state is None:

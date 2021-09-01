@@ -80,14 +80,12 @@ def generate_eppn() -> str:
     Unique is defined as 'at least it doesn't exist right now'.
 
     :return: eppn
-    :rtype: string or None
     """
     for _ in range(10):
         eppn_int = struct.unpack('I', os.urandom(4))[0]
         eppn = proquint.uint2quint(eppn_int)
-        try:
-            current_app.central_userdb.get_user_by_eppn(eppn)
-        except UserDoesNotExist:
+        user = current_app.central_userdb.get_user_by_eppn(eppn)
+        if not user:
             return eppn
     current_app.logger.critical('generate_eppn finished without finding a new unique eppn')
     abort(500)
@@ -106,11 +104,11 @@ def check_email_status(email: str) -> Optional[str]:
     :return: status
     """
     try:
-        am_user = current_app.central_userdb.get_user_by_mail(email, raise_on_missing=True)
-        current_app.logger.debug("Found user {} with email {}".format(am_user, email))
-        return 'address-used'
-    except UserDoesNotExist:
-        current_app.logger.debug("No user found with email {} in central userdb".format(email))
+        am_user = current_app.central_userdb.get_user_by_mail(email)
+        if am_user:
+            current_app.logger.debug(f'Found user {am_user} with email {email}')
+            return 'address-used'
+        current_app.logger.debug(f'No user found with email {email} in central userdb')
     except UserHasNotCompletedSignup:
         # TODO: What is the implication of getting here? Should we just let the user signup again?
         current_app.logger.warning("Incomplete user found with email {} in central userdb".format(email))
@@ -146,7 +144,7 @@ def remove_users_with_mail_address(email: str) -> None:
     # in signup_db with this (non-pending) e-mail address, it is probably left-overs from a
     # previous signup where the sync to userdb failed. Clean away all such users in signup_db
     # and continue like this was a completely new signup.
-    completed_users = signup_db.get_users_by_mail(email, raise_on_missing=False)
+    completed_users = signup_db.get_users_by_mail(email)
     for user in completed_users:
         current_app.logger.warning('Removing old user {} with e-mail {} from signup_db'.format(user, email))
         signup_db.remove_user_by_id(user.user_id)

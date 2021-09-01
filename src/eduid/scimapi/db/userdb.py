@@ -124,13 +124,13 @@ class ScimApiUserDB(ScimApiBaseDB):
         return self.remove_document(user.user_id)
 
     def get_user_by_scim_id(self, scim_id: str) -> Optional[ScimApiUser]:
-        doc = self._get_document_by_attr('scim_id', scim_id, raise_on_missing=False)
+        doc = self._get_document_by_attr('scim_id', scim_id)
         if doc:
             return ScimApiUser.from_dict(doc)
         return None
 
     def get_user_by_external_id(self, external_id: str) -> Optional[ScimApiUser]:
-        doc = self._get_document_by_attr('external_id', external_id, raise_on_missing=False)
+        doc = self._get_document_by_attr('external_id', external_id)
         if doc:
             return ScimApiUser.from_dict(doc)
         return None

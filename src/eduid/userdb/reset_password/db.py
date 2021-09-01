@@ -62,13 +62,12 @@ class ResetPasswordStateDB(BaseDB):
         super(ResetPasswordStateDB, self).__init__(db_uri, db_name, collection=collection)
 
     def get_state_by_email_code(
-        self, email_code: str, raise_on_missing: bool = True
+        self, email_code: str
     ) -> Optional[Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState]]:
         """
         Locate a state in the db given the state's email code.
 
         :param email_code: Code sent to the user
-        :param raise_on_missing: Raise exception if True else return None
 
         :return: ResetPasswordState subclass instance
 
@@ -77,7 +76,7 @@ class ResetPasswordStateDB(BaseDB):
                                                the search criteria
         """
         spec = {'email_code.code': email_code}
-        states = list(self._get_documents_by_filter(spec, raise_on_missing=raise_on_missing))
+        states = list(self._get_documents_by_filter(spec))
 
         if len(states) == 0:
             return None
@@ -87,22 +86,17 @@ class ResetPasswordStateDB(BaseDB):
 
         return self.init_state(states[0])
 
-    def get_state_by_eppn(
-        self, eppn: str, raise_on_missing: bool = True
-    ) -> Optional[Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState]]:
+    def get_state_by_eppn(self, eppn: str) -> Optional[Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState]]:
         """
         Locate a state in the db given the users eppn.
 
         :param eppn: Users unique eppn
-        :param raise_on_missing: Raise exception if True else return None
 
         :return: ResetPasswordState subclass instance
 
-        :raise self.DocumentDoesNotExist: No document match the search criteria
-        :raise self.MultipleDocumentsReturned: More than one document matches
-                                               the search criteria
+        :raise self.MultipleDocumentsReturned: More than one document matches the search criteria
         """
-        state = self._get_document_by_attr('eduPersonPrincipalName', eppn, raise_on_missing)
+        state = self._get_document_by_attr('eduPersonPrincipalName', eppn)
         if state:
             return self.init_state(state)
         return None
@@ -128,7 +122,7 @@ class ResetPasswordStateDB(BaseDB):
         if modified is None:
             # document has never been modified
             # Remove old reset password state
-            old_state = self.get_state_by_eppn(state.eppn, raise_on_missing=False)
+            old_state = self.get_state_by_eppn(state.eppn)
             if old_state:
                 self.remove_state(old_state)
 

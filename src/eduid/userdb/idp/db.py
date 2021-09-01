@@ -62,7 +62,7 @@ class IdPUserDb(UserDB[IdPUser]):
         _user = None
         if isinstance(username, str):
             if '@' in username:
-                _user = self.get_user_by_mail(username.lower(), raise_on_missing=False)
+                _user = self.get_user_by_mail(username.lower())
             if not _user:
-                _user = self.get_user_by_eppn(username.lower(), raise_on_missing=False)
+                _user = self.get_user_by_eppn(username.lower())
         return _user

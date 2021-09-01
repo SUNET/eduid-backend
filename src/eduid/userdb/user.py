@@ -241,7 +241,7 @@ class User(object):
         private_userdb = cast(UserDB, private_userdb)
 
         user_dict = user.to_dict()
-        private_user = private_userdb.get_user_by_eppn(user.eppn, raise_on_missing=False)
+        private_user = private_userdb.get_user_by_eppn(user.eppn)
         if private_user is None:
             user_dict.pop('modified_ts', None)
         else:

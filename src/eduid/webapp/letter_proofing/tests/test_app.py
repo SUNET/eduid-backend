@@ -257,9 +257,7 @@ class LetterProofingTests(EduidAPITestCase):
 
         # TODO: When LogElements have working from_dict/to_dict, implement a proofing_log.get_proofings_by_eppn()
         #       and work on the returned LetterProofing instance instead of with a mongo document
-        log_docs = self.app.proofing_log._get_documents_by_attr(
-            'eduPersonPrincipalName', self.test_user_eppn, raise_on_missing=False
-        )
+        log_docs = self.app.proofing_log._get_documents_by_attr('eduPersonPrincipalName', self.test_user_eppn)
         assert 1 == len(log_docs)
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -545,5 +543,5 @@ class LetterProofingTests(EduidAPITestCase):
             response, type_='POST_LETTER_PROOFING_PROOFING_FAIL', payload={'message': 'User is already verified'},
         )
 
-        proofing_state = self.app.proofing_statedb.get_state_by_eppn(user.eppn, raise_on_missing=False)
+        proofing_state = self.app.proofing_statedb.get_state_by_eppn(user.eppn)
         assert proofing_state is None

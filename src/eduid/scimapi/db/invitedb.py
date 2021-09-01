@@ -103,7 +103,7 @@ class ScimApiInviteDB(ScimApiBaseDB):
         return self.remove_document(invite.invite_id)
 
     def get_invite_by_scim_id(self, scim_id: str) -> Optional[ScimApiInvite]:
-        docs = self._get_document_by_attr('scim_id', scim_id, raise_on_missing=False)
+        docs = self._get_document_by_attr('scim_id', scim_id)
         if docs:
             return ScimApiInvite.from_dict(docs)
         return None

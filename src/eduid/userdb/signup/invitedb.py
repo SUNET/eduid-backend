@@ -52,7 +52,7 @@ class SignupInviteDB(BaseDB):
         self.setup_indexes(indexes)
 
     def get_invite_by_invite_code(self, code: str) -> Optional[Invite]:
-        doc = self._get_document_by_attr('invite_code', code, raise_on_missing=False)
+        doc = self._get_document_by_attr('invite_code', code)
         if doc:
             return Invite.from_dict(doc)
         return None
@@ -62,7 +62,7 @@ class SignupInviteDB(BaseDB):
             spec = {'invite_reference.scim_id': reference.scim_id, 'invite_reference.data_owner': reference.data_owner}
         else:
             raise NotImplementedError(f'Reference of type {type(reference)} not implemented.')
-        docs = self._get_documents_by_filter(spec=spec, raise_on_missing=False)
+        docs = self._get_documents_by_filter(spec=spec)
         if len(docs) > 1:
             raise MultipleDocumentsReturned(f'Multiple matching documents for {repr(spec)}')
         elif len(docs) == 1:

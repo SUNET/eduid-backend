@@ -129,10 +129,9 @@ class TestMessageDB(EduidQueueTestCase):
     @skip('It takes mongo a couple of seconds to actually remove the document, skip for now.')
     # TODO: Investigate if it is possible to force a expire check in mongodb
     def test_auto_discard(self):
+        self.discard_at = datetime.utcnow() - timedelta(seconds=-10)
         payload = TestPayload(message='this is a test payload')
         item = self._create_queue_item(payload)
-        item.discard_at = datetime.utcnow() - timedelta(seconds=-10)
         self.messagedb.save(item)
         assert 0 == self.messagedb.db_count()
-        with self.assertRaises(DocumentDoesNotExist):
-            self.messagedb.get_item_by_id(item.item_id)
+        assert not self.messagedb.get_item_by_id(item.item_id)

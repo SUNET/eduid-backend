@@ -124,13 +124,13 @@ class ScimApiEventDB(ScimApiBaseDB):
         if external_id is not None:
             filter['resource.external_id'] = external_id
 
-        docs = self._get_documents_by_filter(filter, raise_on_missing=False)
+        docs = self._get_documents_by_filter(filter)
         if docs:
             return [ScimApiEvent.from_dict(this) for this in docs]
         return []
 
     def get_event_by_scim_id(self, scim_id: str) -> Optional[ScimApiEvent]:
-        doc = self._get_document_by_attr('scim_id', scim_id, raise_on_missing=False)
+        doc = self._get_document_by_attr('scim_id', scim_id)
         if not doc:
             return None
         return ScimApiEvent.from_dict(doc)

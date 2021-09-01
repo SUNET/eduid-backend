@@ -36,7 +36,7 @@ def require_support_personnel(f):
         # If the logged in user is whitelisted then we
         # pass on the request to the decorated view
         # together with the eppn of the logged in user.
-        if user.eppn in current_app.conf.support_personnel:
+        if user and user.eppn in current_app.conf.support_personnel:
             kwargs['support_user'] = user
             return f(*args, **kwargs)
         current_app.logger.warning(f'{user} not in support personnel whitelist: {current_app.conf.support_personnel}')

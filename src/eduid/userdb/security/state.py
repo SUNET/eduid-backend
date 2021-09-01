@@ -58,7 +58,7 @@ class _PasswordResetEmailStateRequired:
     """
 
     email_address: str
-    email_code: Union[str, CodeElement]
+    email_code: CodeElement
 
 
 @dataclass

@@ -60,20 +60,18 @@ class PasswordResetStateDB(BaseDB):
     def __init__(self, db_uri, db_name='eduid_security', collection='password_reset_data'):
         super(PasswordResetStateDB, self).__init__(db_uri, db_name, collection=collection)
 
-    def get_state_by_email_code(self, email_code: str, raise_on_missing: bool = True) -> Optional[PasswordResetState]:
+    def get_state_by_email_code(self, email_code: str) -> Optional[PasswordResetState]:
         """
         Locate a state in the db given the state's email code.
 
         :param email_code: Code sent to the user
-        :param raise_on_missing: Raise exception if True else return None
 
         :return: state, if found
 
-        :raise self.DocumentDoesNotExist: No document match the search criteria
         :raise self.MultipleDocumentsReturned: More than one document matches the search criteria
         """
         spec = {'email_code.code': email_code}
-        states = list(self._get_documents_by_filter(spec, raise_on_missing=raise_on_missing))
+        states = list(self._get_documents_by_filter(spec))
 
         if len(states) == 0:
             return None
@@ -83,19 +81,17 @@ class PasswordResetStateDB(BaseDB):
 
         return self.init_state(states[0])
 
-    def get_state_by_eppn(self, eppn: str, raise_on_missing: bool = True) -> Optional[PasswordResetState]:
+    def get_state_by_eppn(self, eppn: str) -> Optional[PasswordResetState]:
         """
         Locate a state in the db given the users eppn.
 
         :param eppn: Users unique eppn
-        :param raise_on_missing: Raise exception if True else return None
 
         :return: state, if found
 
-        :raise self.DocumentDoesNotExist: No document match the search criteria
         :raise self.MultipleDocumentsReturned: More than one document matches the search criteria
         """
-        state = self._get_document_by_attr('eduPersonPrincipalName', eppn, raise_on_missing)
+        state = self._get_document_by_attr('eduPersonPrincipalName', eppn)
         if state:
             return self.init_state(state)
         return None
@@ -110,7 +106,7 @@ class PasswordResetStateDB(BaseDB):
             return PasswordResetEmailAndPhoneState.from_dict(state)
         return None
 
-    def save(self, state, check_sync=True):
+    def save(self, state, check_sync=True) -> None:
         """
 
         :param state: PasswordResetState object
@@ -127,7 +123,7 @@ class PasswordResetStateDB(BaseDB):
         if modified is None:
             # document has never been modified
             # Remove old reset password state
-            old_state = self.get_state_by_eppn(state.eppn, raise_on_missing=False)
+            old_state = self.get_state_by_eppn(state.eppn)
             if old_state:
                 self.remove_state(old_state)
 

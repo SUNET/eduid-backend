@@ -8,7 +8,28 @@ legend
         "clientDataJSON": base64_str,
         "signature": base64_str,
     }
+
+    LOGIN_PROBLEMS: {
+         "login.assurance_failure": "The backend failed to determine what to assert to the SP",
+         "login.assurance_not_possible": "A SAML prerequisite could not be met",
+         "login.bad_ref": "The 'ref' provided by the frontend could not be found",
+         "login.credential_expired": "The credential hasn't been used for 18 months and is disabled",
+         "login.general_failure": "Unspecified error in the backend, log reading is due",
+         "login.mfa_auth_failed": "MFA authentication failed somehow",
+         "login.no_sso_session": "The SSO session could not be found using the cookie provided by the browser",
+         "login.not_available": "Bundle URL not set - this is a configuration error in backend",
+         "login.not_implemented": "The backend failed to process the next-request, version mismatch?",
+         "login.swamid_mfa_required": "The SP requires a 'confirmed' MFA token",
+         "login.user_temporary_locked": "The user account is disabled until next month due to too many failed logins",
+         "login.user_terminated": "The user is terminated, but can be re-activated by a password change",
+         "login.wrong_credentials": "Some credential information in the request was obviously wrong, or missing",
+         "login.wrong_user": "The user logging in is not the same as the one who created the session. Re-login is advised.",
+         "eidas.authn_context_mismatch": "SAML error when using external MFA",
+         "eidas.reauthn_expired": "External MFA took too long",
+         "eidas.nin_not_matching": "External MFA was performed, but by another person than the one logging in",
+    }
 end legend
+
 
 Client->"/next": POST {"ref": reference}
 alt Not logged in
@@ -20,7 +41,7 @@ else MFA required
 else Finished
     "/next"->Client: {"payload":{"action": "FINISHED", "target": "https://..."}, "type":"POST_LOGIN_NEXT_SUCCESS"}
 else Login not possible
-    "/next"->Client: {"error": true, "payload": {"message": "login.some_error"},"type": "POST_LOGIN_NEXT_FAIL"}
+    "/next"->Client: {"error": true, "payload": {"message": LOGIN_PROBLEMS},"type": "POST_LOGIN_NEXT_FAIL"}
 end
 |||
 
@@ -28,7 +49,7 @@ Client->"/pw_auth": POST {"ref": reference, "username": username, "password", pa
 alt Correct
     "/pw_auth"->Client: {"payload": {"finished": true}, "type": "POST_LOGIN_USERNAMEPW_SUCCESS"}
 else Not correct
-    "/pw_auth"->Client: {"error": true, "payload": {"message": "login.pw_auth_incorrect}, "type": "POST_LOGIN_USERNAMEPW_FAIL"}
+    "/pw_auth"->Client: {"error": true, "payload": {"message": "login.pw_auth_incorrect"}, "type": "POST_LOGIN_USERNAMEPW_FAIL"}
 end
 |||
 
