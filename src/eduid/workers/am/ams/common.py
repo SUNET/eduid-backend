@@ -60,10 +60,10 @@ class AttributeFetcher(ABC):
     @classmethod
     @abstractmethod
     def get_user_db(cls, mongo_uri: str) -> UserDB:
-        '''
+        """
         return an instance of the subclass of eduid.userdb.userdb.UserDB
         corresponding to the database holding the data to be fetched.
-        '''
+        """
 
     def fetch_attrs(self, user_id: bson.ObjectId) -> dict:
         """

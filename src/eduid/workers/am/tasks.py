@@ -4,7 +4,7 @@ import bson
 from celery import Task
 from celery.utils.log import get_task_logger
 
-from eduid.userdb import UserDB
+from eduid.userdb import AmDB
 from eduid.userdb.exceptions import ConnectionError, LockedIdentityViolation, UserDoesNotExist
 from eduid.workers.am.common import AmCelerySingleton
 from eduid.workers.am.consistency_checks import check_locked_identity, unverify_duplicates
@@ -20,16 +20,16 @@ class AttributeManager(Task):
     abstract = True  # This means Celery won't register this as another task
 
     def __init__(self):
-        self._userdb: Optional[UserDB] = None
+        self._userdb: Optional[AmDB] = None
 
     @property
-    def userdb(self) -> Optional[UserDB]:
+    def userdb(self) -> Optional[AmDB]:
         if self._userdb:
             return self._userdb
         if AmCelerySingleton.worker_config.mongo_uri:
             # self.userdb is the UserDB to which AM will write the updated users. This setting will
             # be None when this class is instantiated on the 'client' side (e.g. in a microservice)
-            self._userdb = UserDB(AmCelerySingleton.worker_config.mongo_uri, 'eduid_am', 'attributes')
+            self._userdb = AmDB(AmCelerySingleton.worker_config.mongo_uri, 'eduid_am')
         return self._userdb
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):

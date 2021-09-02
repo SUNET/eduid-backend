@@ -8,7 +8,7 @@ from celery.utils.log import get_task_logger
 
 from eduid.userdb.exceptions import DocumentDoesNotExist, LockedIdentityViolation, UserDBValueError
 from eduid.userdb.locked_identity import LockedIdentityList, LockedIdentityNin
-from eduid.userdb.userdb import UserDB
+from eduid.userdb.userdb import AmDB
 
 __author__ = 'lundberg'
 
@@ -84,7 +84,7 @@ def unverify_mail_aliases(userdb, user_id, mail_aliases):
     return count
 
 
-def unverify_phones(userdb: UserDB, user_id: ObjectId, phones: List[Dict[str, Any]]) -> Optional[int]:
+def unverify_phones(userdb: AmDB, user_id: ObjectId, phones: List[Dict[str, Any]]) -> Optional[int]:
     """
     :param userdb: Central userdb
     :param user_id: User document _id
@@ -120,7 +120,7 @@ def unverify_phones(userdb: UserDB, user_id: ObjectId, phones: List[Dict[str, An
     return count
 
 
-def unverify_nins(userdb: UserDB, user_id: ObjectId, nins: List[Dict[str, Any]]) -> Optional[int]:
+def unverify_nins(userdb: AmDB, user_id: ObjectId, nins: List[Dict[str, Any]]) -> Optional[int]:
     """
     :param userdb: Central userdb
     :param user_id: User document _id
@@ -157,7 +157,7 @@ def unverify_nins(userdb: UserDB, user_id: ObjectId, nins: List[Dict[str, Any]])
     return count
 
 
-def check_locked_identity(userdb: UserDB, user_id: ObjectId, attributes: Dict, app_name: str) -> Dict:
+def check_locked_identity(userdb: AmDB, user_id: ObjectId, attributes: Dict, app_name: str) -> Dict:
     """
     :param userdb: Central userdb
     :param user_id: User document _id
