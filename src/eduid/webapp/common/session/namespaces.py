@@ -95,6 +95,8 @@ class ResetPasswordNS(SessionNSBase):
 class SecurityNS(SessionNSBase):
     # used for new change_password
     generated_password_hash: Optional[str] = None
+    # used for update user data from offical source
+    user_requested_update: Optional[datetime] = None
 
 
 class Signup(TimestampedNS):

@@ -276,3 +276,11 @@ class NINResponseSchema(FluxStandardAction):
         nins = fields.Nested(NinSchema, many=True)
 
     payload = fields.Nested(RemoveNINPayload)
+
+
+class UserUpdateResponseSchema(FluxStandardAction):
+    class UserUpdatePayload(EduidSchema, CSRFRequestMixin):
+        given_name = fields.String(attribute='givenName')
+        surname = fields.String()
+
+    payload = fields.Nested(UserUpdatePayload)

@@ -84,4 +84,13 @@ else new password is weak
 else old password is wrong
     "/change-password/set-password"->Client: {"error": true, "payload":{"message":"security.change_password_wrong_old_password"},"type":"POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_FAIL"}
 end
+|||
+Client -> "/refresh-official-user-data": POST {}
+alt user updated successfully
+    "/refresh-official-user-data"->Client: {"payload":{"message":"security.user-updated","type":"POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS"}
+else user requests another update to early
+    "/refresh-official-user-data"->Client: {"error": true, "payload":{"message":"security.user-update-throttled"},"type":"POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_FAIL"}
+else user is not verified
+    "/refresh-official-user-data"->Client: {"error": true, "payload":{"message":"security.user-not-verified"},"type":"POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_FAIL"}
+end
 @enduml

@@ -18,7 +18,12 @@ from eduid.workers.msg.cache import CacheMDB
 from eduid.workers.msg.common import MsgCelerySingleton
 from eduid.workers.msg.decorators import TransactionAudit
 from eduid.workers.msg.exceptions import NavetAPIException
-from eduid.workers.msg.utils import load_template, navet_get_name_and_official_address, navet_get_relations
+from eduid.workers.msg.utils import (
+    load_template,
+    navet_get_all_data,
+    navet_get_name_and_official_address,
+    navet_get_relations,
+)
 
 TRANSACTION_AUDIT_DB = 'eduid_msg'
 TRANSACTION_AUDIT_COLLECTION = 'transaction_audit'
@@ -232,6 +237,54 @@ class MessageSender(Task):
         )
         return result
 
+    def get_all_navet_data(self, identity_number: str) -> Optional[OrderedDict]:
+        # Only log the message if devel_mode is enabled
+        if MsgCelerySingleton.worker_config.devel_mode is True:
+            return self.get_devel_all_navet_data()
+
+        data = self._get_navet_data(identity_number)
+        return navet_get_all_data(data)
+
+    @staticmethod
+    def get_devel_all_navet_data() -> OrderedDict:
+        """
+        Return a dict with devel data
+        """
+        result = OrderedDict(
+            [
+                ('CaseInformation', {'lastChanged': '20170904141659'}),
+                (
+                    'Person',
+                    {
+                        'Name': {'GivenNameMarking': '20', 'GivenName': 'Testaren Test', 'Surname': 'Testsson'},
+                        "PersonId": {"NationalIdentityNumber": "197609272393"},
+                        "ReferenceNationalIdentityNumber": "",
+                        'OfficialAddress': {'Address2': 'ÖRGATAN 79 LGH 10', 'PostalCode': '12345', 'City': 'LANDET'},
+                        'Relations': {
+                            'Relation': [
+                                {
+                                    'RelationType': 'VF',
+                                    'RelationId': {'NationalIdentityNumber': '200202025678'},
+                                    'RelationStartDate': '20020202',
+                                },
+                                {
+                                    'RelationType': 'VF',
+                                    'RelationId': {'NationalIdentityNumber': '200101014567'},
+                                    'RelationStartDate': '20010101',
+                                },
+                                {'RelationType': 'FA', 'RelationId': {'NationalIdentityNumber': '194004048989'}},
+                                {'RelationType': 'MO', 'RelationId': {'NationalIdentityNumber': '195010106543'}},
+                                {'RelationType': 'B', 'RelationId': {'NationalIdentityNumber': '200202025678'}},
+                                {'RelationType': 'B', 'RelationId': {'NationalIdentityNumber': '200101014567'}},
+                                {'RelationType': 'M', 'RelationId': {'NationalIdentityNumber': '197512125432'}},
+                            ]
+                        },
+                    },
+                ),
+            ]
+        )
+        return result
+
     @TransactionAudit()
     def _get_navet_data(self, identity_number: str) -> Optional[dict]:
         """
@@ -359,6 +412,25 @@ def sendsms(self: MessageSender, recipient: str, message: str, reference: str) -
         return self.sendsms(recipient, message, reference)
     except Exception as e:
         logger.error(f'sendsms task error: {e}', exc_info=True)
+        # self.retry raises Retry exception, assert False will not be reached
+        self.retry(default_retry_delay=1, max_retries=3, exc=e)
+    assert False  # make mypy happy
+
+
+@app.task(bind=True, base=MessageSender, name='eduid_msg.tasks.get_all_navet_data')
+def get_all_navet_data(self: MessageSender, identity_number: str) -> Optional[OrderedDict]:
+    """
+    Retrieve all data about the person from the Swedish population register using a Swedish national
+    identity number.
+
+    :param self: base class
+    :param identity_number: Swedish national identity number
+    :return: Ordered dict
+    """
+    try:
+        return self.get_all_navet_data(identity_number)
+    except Exception as e:
+        logger.error(f'get_all_navet_data task error: {e}', exc_info=True)
         # self.retry raises Retry exception, assert False will not be reached
         self.retry(default_retry_delay=1, max_retries=3, exc=e)
     assert False  # make mypy happy

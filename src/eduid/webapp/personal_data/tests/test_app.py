@@ -39,6 +39,7 @@ from mock import patch
 from eduid.webapp.common.api.exceptions import ApiException
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.personal_data.app import PersonalDataApp, pd_init_app
+from eduid.webapp.personal_data.helpers import PDataMsg
 
 
 class PersonalDataTests(EduidAPITestCase):
@@ -93,14 +94,21 @@ class PersonalDataTests(EduidAPITestCase):
             return json.loads(response2.data)
 
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
-    def _post_user(self, mock_request_user_sync: Any, mod_data: Optional[dict] = None):
+    def _post_user(self, mock_request_user_sync: Any, mod_data: Optional[dict] = None, verified_user: bool = True):
         """
-        POST personal data for some user
-
-        :param eppn: the eppn of the user
+        POST personal data for the test user
         """
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data['eduPersonPrincipalName']
+
+        if not verified_user:
+            # Remove all verified nins from the users
+            user = self.app.central_userdb.get_user_by_eppn(eppn)
+            assert user is not None  # please mypy
+            for verified_nin in user.nins.verified:
+                user.nins.remove_handling_primary(verified_nin.key)
+            self.app.central_userdb.save(user)
+
         with self.session_cookie(self.browser, eppn) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
@@ -113,8 +121,7 @@ class PersonalDataTests(EduidAPITestCase):
                     }
                 if mod_data:
                     data.update(mod_data)
-            response = client.post('/user', data=json.dumps(data), content_type=self.content_type_json)
-            return json.loads(response.data)
+            return client.post('/user', data=json.dumps(data), content_type=self.content_type_json)
 
     def _get_user_nins(self, eppn: Optional[str] = None):
         """
@@ -128,8 +135,7 @@ class PersonalDataTests(EduidAPITestCase):
         eppn = eppn or self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
             response2 = client.get('/nins')
-
-            return json.loads(response2.data)
+            return response2
 
     # actual test methods
 
@@ -177,55 +183,79 @@ class PersonalDataTests(EduidAPITestCase):
             self._get_user_all_data(eppn='fooo-fooo')
 
     def test_post_user(self):
-        resp_data = self._post_user()
-        self.assertEqual(resp_data['type'], 'POST_PERSONAL_DATA_USER_SUCCESS')
-        self.assertEqual(resp_data['payload']['surname'], 'Johnson')
-        self.assertEqual(resp_data['payload']['given_name'], 'Peter')
-        self.assertEqual(resp_data['payload']['display_name'], 'Peter Johnson')
-        self.assertEqual(resp_data['payload']['language'], 'en')
+        response = self._post_user(verified_user=False)
+        expected_payload = {
+            'surname': 'Johnson',
+            'given_name': 'Peter',
+            'display_name': 'Peter Johnson',
+            'language': 'en',
+        }
+        self._check_success_response(response, type_='POST_PERSONAL_DATA_USER_SUCCESS', payload=expected_payload)
+
+    def test_set_display_name_and_language_verified_user(self):
+        expected_payload = {
+            'surname': 'Smith',
+            'given_name': 'John',
+            'display_name': 'New Display Name',
+            'language': 'sv',
+        }
+        response = self._post_user(mod_data=expected_payload)
+        self._check_success_response(response, type_='POST_PERSONAL_DATA_USER_SUCCESS', payload=expected_payload)
+
+    def test_set_given_name_and_surname_verified_user(self):
+        mod_data = {
+            'surname': 'Johnson',
+            'given_name': 'Peter',
+        }
+        response = self._post_user(mod_data=mod_data)
+        self._check_error_response(response, type_='POST_PERSONAL_DATA_USER_FAIL', msg=PDataMsg.name_change_not_allowed)
 
     def test_post_user_bad_csrf(self):
-        resp_data = self._post_user(mod_data={'csrf_token': 'wrong-token'})
-        self.assertEqual(resp_data['type'], 'POST_PERSONAL_DATA_USER_FAIL')
-        self.assertEqual(resp_data['payload']['error']['csrf_token'], ['CSRF failed to validate'])
+        response = self._post_user(mod_data={'csrf_token': 'wrong-token'})
+        expected_payload = {'error': {'csrf_token': ['CSRF failed to validate']}}
+        self._check_error_response(response, type_='POST_PERSONAL_DATA_USER_FAIL', payload=expected_payload)
 
     def test_post_user_no_given_name(self):
-        resp_data = self._post_user(mod_data={'given_name': ''})
-        self.assertEqual(resp_data['type'], 'POST_PERSONAL_DATA_USER_FAIL')
-        self.assertEqual(resp_data['payload']['error']['given_name'], ['pdata.field_required'])
+        response = self._post_user(mod_data={'given_name': ''})
+        expected_payload = {'error': {'given_name': ['pdata.field_required']}}
+        self._check_error_response(response, type_='POST_PERSONAL_DATA_USER_FAIL', payload=expected_payload)
 
     def test_post_user_blank_given_name(self):
-        resp_data = self._post_user(mod_data={'given_name': ' '})
-        self.assertEqual(resp_data['type'], 'POST_PERSONAL_DATA_USER_FAIL')
-        self.assertEqual(resp_data['payload']['error']['given_name'], ['pdata.field_required'])
+        response = self._post_user(mod_data={'given_name': ' '})
+        expected_payload = {'error': {'given_name': ['pdata.field_required']}}
+        self._check_error_response(response, type_='POST_PERSONAL_DATA_USER_FAIL', payload=expected_payload)
 
     def test_post_user_no_surname(self):
-        resp_data = self._post_user(mod_data={'surname': ''})
-        self.assertEqual(resp_data['type'], 'POST_PERSONAL_DATA_USER_FAIL')
-        self.assertEqual(resp_data['payload']['error']['surname'], ['pdata.field_required'])
+        response = self._post_user(mod_data={'surname': ''})
+        expected_payload = {'error': {'surname': ['pdata.field_required']}}
+        self._check_error_response(response, type_='POST_PERSONAL_DATA_USER_FAIL', payload=expected_payload)
 
     def test_post_user_blank_surname(self):
-        resp_data = self._post_user(mod_data={'surname': ' '})
-        self.assertEqual(resp_data['type'], 'POST_PERSONAL_DATA_USER_FAIL')
-        self.assertEqual(resp_data['payload']['error']['surname'], ['pdata.field_required'])
+        response = self._post_user(mod_data={'surname': ' '})
+        expected_payload = {'error': {'surname': ['pdata.field_required']}}
+        self._check_error_response(response, type_='POST_PERSONAL_DATA_USER_FAIL', payload=expected_payload)
 
     def test_post_user_no_display_name(self):
-        resp_data = self._post_user(mod_data={'display_name': ''})
-        self.assertEqual(resp_data['type'], 'POST_PERSONAL_DATA_USER_FAIL')
-        self.assertEqual(resp_data['payload']['error']['display_name'], ['pdata.field_required'])
+        response = self._post_user(mod_data={'display_name': ''})
+        expected_payload = {'error': {'display_name': ['pdata.field_required']}}
+        self._check_error_response(response, type_='POST_PERSONAL_DATA_USER_FAIL', payload=expected_payload)
 
     def test_post_user_no_language(self):
-        resp_data = self._post_user(mod_data={'language': ''})
-        self.assertEqual(resp_data['type'], 'POST_PERSONAL_DATA_USER_FAIL')
-        self.assertEqual(resp_data['payload']['error']['language'], ["Language '' is not available"])
+        response = self._post_user(mod_data={'language': ''})
+        expected_payload = {'error': {'language': ['Language \'\' is not available']}}
+        self._check_error_response(response, type_='POST_PERSONAL_DATA_USER_FAIL', payload=expected_payload)
 
     def test_post_user_unknown_language(self):
-        resp_data = self._post_user(mod_data={'language': 'es'})
-        self.assertEqual(resp_data['type'], 'POST_PERSONAL_DATA_USER_FAIL')
-        self.assertEqual(resp_data['payload']['error']['language'], ["Language 'es' is not available"])
+        response = self._post_user(mod_data={'language': 'es'})
+        expected_payload = {'error': {'language': ['Language \'es\' is not available']}}
+        self._check_error_response(response, type_='POST_PERSONAL_DATA_USER_FAIL', payload=expected_payload)
 
     def test_get_user_nins(self):
-        nin_data = self._get_user_nins()
-        self.assertEqual(nin_data['type'], 'GET_PERSONAL_DATA_NINS_SUCCESS')
-        self.assertEqual(nin_data['payload']['nins'][1]['number'], '197801011235')
-        self.assertEqual(len(nin_data['payload']['nins']), 2)
+        response = self._get_user_nins()
+        expected_payload = {
+            'nins': [
+                {'number': '197801011234', 'primary': True, 'verified': True},
+                {'number': '197801011235', 'primary': False, 'verified': True},
+            ]
+        }
+        self._check_success_response(response, type_='GET_PERSONAL_DATA_NINS_SUCCESS', payload=expected_payload)

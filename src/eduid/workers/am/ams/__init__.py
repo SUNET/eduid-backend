@@ -124,6 +124,9 @@ class eduid_security(AttributeFetcher):
         'terminated',
         'nins',  # For AL1 downgrade on password reset
         'phone',  # For AL1 downgrade on password reset
+        'givenName',  # For updating user from official source (Navet)
+        'surname',  # For updating user from official source (Navet)
+        'displayName',  # For updating user from official source (Navet)
     ]
     whitelist_unset_attrs = [
         'passwords',
@@ -180,7 +183,3 @@ class eduid_tou(AttributeFetcher):
     whitelist_set_attrs = ['tou']
     whitelist_unset_attrs: List[str] = []
     get_user_db = lambda cls, uri: ToUUserDB(uri)
-
-
-## XXX remove after https://github.com/SUNET/eduid-am/pull/32 is merged
-tou = eduid_tou

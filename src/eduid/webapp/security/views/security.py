@@ -64,6 +64,7 @@ from eduid.webapp.security.helpers import (
     get_zxcvbn_terms,
     remove_nin_from_user,
     send_termination_mail,
+    update_user_official_name,
 )
 from eduid.webapp.security.schemas import (
     AccountTerminatedSchema,
@@ -74,6 +75,7 @@ from eduid.webapp.security.schemas import (
     RedirectResponseSchema,
     SecurityResponseSchema,
     SuggestedPasswordResponseSchema,
+    UserUpdateResponseSchema,
 )
 
 security_views = Blueprint('security', __name__, url_prefix='', template_folder='templates')
@@ -305,3 +307,39 @@ def remove_nin(user: User, nin: str) -> FluxData:
         return error_response(message=CommonMsg.temp_problem)
 
     return success_response(payload=dict(nins=security_user.nins.to_list_of_dicts()), message=SecurityMsg.rm_success)
+
+
+@security_views.route('/refresh-official-user-data', methods=['POST'])
+@UnmarshalWith(EmptyRequest)
+@MarshalWith(UserUpdateResponseSchema)
+@require_user
+def refresh_user_data(user: User) -> FluxData:
+    security_user = SecurityUser.from_user(user, current_app.private_userdb)
+    if security_user.nins.primary is None:
+        return error_response(message=SecurityMsg.user_not_verified)
+
+    # only allow a user to request another update after throttle_update_user_period
+    if session.security.user_requested_update is not None:
+        retry_at = session.security.user_requested_update + current_app.conf.throttle_update_user_period
+        if utc_now() < retry_at:
+            return error_response(message=SecurityMsg.user_update_throttled)
+    session.security.user_requested_update = utc_now()
+
+    # Lookup person data via Navet
+    current_app.logger.info('Getting Navet data for user')
+    current_app.logger.debug(f'NIN: {security_user.nins.primary.number}')
+    navet_data = current_app.msg_relay.get_all_navet_data(security_user.nins.primary.number)
+    current_app.logger.debug(f'Navet data: {navet_data}')
+
+    if navet_data.person.name.given_name is None or navet_data.person.name.surname is None:
+        current_app.logger.info('Navet data incomplete for user')
+        current_app.logger.debug(
+            f'_given_name: {navet_data.person.name.given_name}, _surname: {navet_data.person.name.surname}'
+        )
+        return error_response(message=SecurityMsg.navet_data_incomplete)
+
+    # Update user offical names if they differ
+    if not update_user_official_name(security_user, navet_data):
+        return error_response(message=CommonMsg.temp_problem)
+
+    return success_response(message=SecurityMsg.user_updated)

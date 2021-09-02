@@ -35,6 +35,7 @@ import logging.config
 import pprint
 import sys
 import traceback
+from collections import OrderedDict
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime
@@ -44,6 +45,7 @@ from flask import Response
 from flask.testing import FlaskClient
 
 from eduid.common.config.base import RedisConfig
+from eduid.common.rpc.msg_relay import NavetData
 from eduid.common.testing_base import CommonTestCase
 from eduid.userdb import User
 from eduid.userdb.db import BaseDB
@@ -221,6 +223,48 @@ class EduidAPITestCase(CommonTestCase):
         user.modified_ts = modified_ts
         self.app.central_userdb.save(user)
         return True
+
+    @staticmethod
+    def _get_all_navet_data():
+        return NavetData.parse_obj(
+            OrderedDict(
+                [
+                    ('CaseInformation', {'lastChanged': '20170904141659'}),
+                    (
+                        'Person',
+                        {
+                            'Name': {'GivenNameMarking': '20', 'GivenName': 'Testaren Test', 'Surname': 'Testsson'},
+                            "PersonId": {"NationalIdentityNumber": "197609272393"},
+                            "ReferenceNationalIdentityNumber": "",
+                            'OfficialAddress': {
+                                'Address2': 'ÖRGATAN 79 LGH 10',
+                                'PostalCode': '12345',
+                                'City': 'LANDET',
+                            },
+                            'Relations': {
+                                'Relation': [
+                                    {
+                                        'RelationType': 'VF',
+                                        'RelationId': {'NationalIdentityNumber': '200202025678'},
+                                        'RelationStartDate': '20020202',
+                                    },
+                                    {
+                                        'RelationType': 'VF',
+                                        'RelationId': {'NationalIdentityNumber': '200101014567'},
+                                        'RelationStartDate': '20010101',
+                                    },
+                                    {'RelationType': 'FA', 'RelationId': {'NationalIdentityNumber': '194004048989'}},
+                                    {'RelationType': 'MO', 'RelationId': {'NationalIdentityNumber': '195010106543'}},
+                                    {'RelationType': 'B', 'RelationId': {'NationalIdentityNumber': '200202025678'}},
+                                    {'RelationType': 'B', 'RelationId': {'NationalIdentityNumber': '200101014567'}},
+                                    {'RelationType': 'M', 'RelationId': {'NationalIdentityNumber': '197512125432'}},
+                                ]
+                            },
+                        },
+                    ),
+                ]
+            )
+        )
 
     def _check_error_response(
         self,

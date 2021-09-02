@@ -263,6 +263,9 @@ class AttributeFetcherSecurityTests(ProofingTestCase):
 
         expected = {
             '$set': {
+                'givenName': 'Testaren',
+                'surname': 'Testsson',
+                'displayName': 'John',
                 'passwords': [
                     {
                         'credential_id': u'112345678901234567890123',
@@ -287,6 +290,9 @@ class AttributeFetcherSecurityTests(ProofingTestCase):
 
         expected = {
             '$set': {
+                'givenName': 'Testaren',
+                'surname': 'Testsson',
+                'displayName': 'John',
                 'passwords': [
                     {
                         'credential_id': u'112345678901234567890123',

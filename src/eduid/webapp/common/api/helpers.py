@@ -6,48 +6,48 @@ from typing import List, Optional, Type, Union
 from flask import current_app, render_template, request
 
 from eduid.common.config.base import MagicCookieMixin
-from eduid.userdb.logs.element import NinProofingLogElement, ProofingLogElement
+from eduid.userdb.logs.element import NinProofingLogElement, TNinProofingLogElementSubclass
 from eduid.userdb.nin import Nin
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.proofing.state import NinProofingState, OidcProofingState
-from eduid.userdb.user import User
+from eduid.userdb.user import TUserSubclass, User
 from eduid.webapp.common.api.app import EduIDBaseApp
 
 __author__ = 'lundberg'
 
-# TODO: type proofing_log_entry (NinProofingLogElement?)
+
 def set_user_names_from_official_address(
-    proofing_user: ProofingUser, proofing_log_entry: NinProofingLogElement
-) -> ProofingUser:
+    user: TUserSubclass, proofing_log_entry: TNinProofingLogElementSubclass
+) -> TUserSubclass:
     """
-    :param proofing_user: Proofing app private userdb user
+    :param user: Proofing app private userdb user
     :param proofing_log_entry: Proofing log entry element
 
     :returns: User object
     """
     navet_data = proofing_log_entry.user_postal_address
     name = navet_data['Name']
-    proofing_user.given_name = name['GivenName']
-    proofing_user.surname = name['Surname']
+    user.given_name = name['GivenName']
+    user.surname = name['Surname']
     given_name_marking = name.get('GivenNameMarking')
     # Only set display name if not already set
-    if not proofing_user.display_name:
-        proofing_user.display_name = f'{proofing_user.given_name} {proofing_user.surname}'
+    if not user.display_name:
+        user.display_name = f'{user.given_name} {user.surname}'
         if given_name_marking:
             _name_index = (int(given_name_marking) // 10) - 1  # ex. "20" -> 1 (second GivenName is real given name)
             try:
                 _given_name = name['GivenName'].split()[_name_index]
-                proofing_user.display_name = f'{_given_name} {proofing_user.surname}'
+                user.display_name = f'{_given_name} {user.surname}'
             except IndexError:
                 # At least occasionally, we've seen GivenName 'Jan-Erik Martin' with GivenNameMarking 30
                 pass
     current_app.logger.info(u'User names set from official address')
     current_app.logger.debug(
         u'{} resulted in given_name: {}, surname: {} and display_name: {}'.format(
-            name, proofing_user.given_name, proofing_user.surname, proofing_user.display_name
+            name, user.given_name, user.surname, user.display_name
         )
     )
-    return proofing_user
+    return user
 
 
 def number_match_proofing(user: User, proofing_state: OidcProofingState, number: str) -> bool:
