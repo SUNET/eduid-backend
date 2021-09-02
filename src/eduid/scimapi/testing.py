@@ -124,6 +124,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         config = super()._get_config()
         config['keystore_path'] = f'{self.datadir}/testing_jwks.json'
         config['signing_key_id'] = 'testing-scimapi-2106210000'
+        config['authorization_mandatory'] = False
         return config
 
     def add_user(

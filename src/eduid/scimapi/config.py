@@ -33,7 +33,7 @@ class ScimApiConfig(RootConfig, LoggingConfigMixin, AWSMixin):
     mongo_uri: str = ''
     neo4j_uri: str = ''
     neo4j_config: Dict = Field(default_factory=dict)
-    authorization_mandatory: bool = False
+    authorization_mandatory: bool = True
     authorization_token_expire: int = 5 * 60
     keystore_path: Path
     signing_key_id: str
