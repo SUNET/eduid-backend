@@ -209,7 +209,7 @@ class SecurityTests(EduidAPITestCase):
 
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
-    def _update_user_data(self, mock_request_user_sync: Any, mock_get_all_navet_data: Any, user: User):
+    def _refresh_user_data(self, mock_request_user_sync: Any, mock_get_all_navet_data: Any, user: User):
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
 
@@ -391,13 +391,17 @@ class SecurityTests(EduidAPITestCase):
         self.assertEqual(user.nins.count, 2)
         self.assertEqual(len(user.nins.verified), 2)
 
-    def test_update_user_official_name(self):
+    def test_refresh_user_official_name(self):
+        """
+        Refresh a verified users given name and surname from Navet data.
+        Make sure the users display name do not change.
+        """
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.given_name == 'John'
         assert user.surname == 'Smith'
         assert user.display_name == 'John Smith'
 
-        response = self._update_user_data(user=user)
+        response = self._refresh_user_data(user=user)
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.given_name == 'Testaren Test'
         assert user.surname == 'Testsson'
@@ -407,12 +411,17 @@ class SecurityTests(EduidAPITestCase):
             response, type_='POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS', msg=SecurityMsg.user_updated,
         )
 
-    def test_update_user_official_name_no_display_name(self):
+    def test_refresh_user_official_name_no_display_name(self):
+        """
+        Refresh a verified users given name and surname from Navet data.
+        Make sure the users display name is set, using given name marking, from first name and surname if
+        previously unset.
+        """
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         user.display_name = None
         self.app.central_userdb.save(user)
 
-        response = self._update_user_data(user=user)
+        response = self._refresh_user_data(user=user)
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.given_name == 'Testaren Test'
         assert user.surname == 'Testsson'
@@ -421,22 +430,28 @@ class SecurityTests(EduidAPITestCase):
             response, type_='POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS', msg=SecurityMsg.user_updated,
         )
 
-    def test_update_user_official_name_throttle(self):
+    def test_refresh_user_official_name_throttle(self):
+        """
+        Make two refreshes in succession before throttle_update_user_period has expired, make sure an error is returned.
+        """
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         # Make two calls to update user endpoint
-        self._update_user_data(user=user)
-        response = self._update_user_data(user=user)
+        self._refresh_user_data(user=user)
+        response = self._refresh_user_data(user=user)
         self._check_error_response(
             response, type_='POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_FAIL', msg=SecurityMsg.user_update_throttled
         )
 
-    def test_update_user_official_name_not_verified(self):
+    def test_refresh_user_official_name_user_not_verified(self):
+        """
+        Refresh an unverified users, make sure an error is returned.
+        """
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         # Remove all verified nins from the users
         for verified_nin in user.nins.verified:
             user.nins.remove_handling_primary(verified_nin.key)
         self.app.central_userdb.save(user)
-        response = self._update_user_data(user=user)
+        response = self._refresh_user_data(user=user)
         self._check_error_response(
             response, type_='POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_FAIL', msg=SecurityMsg.user_not_verified
         )
