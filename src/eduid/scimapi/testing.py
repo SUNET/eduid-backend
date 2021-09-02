@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Mapping, Optional, Union
 import pkg_resources
 from bson import ObjectId
 from requests import Response
+from simplejson import JSONDecodeError
 from starlette.testclient import TestClient
 
 from eduid.common.config.parsers import load_config
@@ -248,8 +249,11 @@ class ScimApiTestCase(MongoNeoTestCase):
     @staticmethod
     def _assertResponse(response: Response, status_code: int = 200):
         _detail = None
-        if response.json():
-            _detail = response.json().get('detail', 'No error detail in parsed_response')
+        try:
+            if response.json():
+                _detail = response.json().get('detail', 'No error detail in parsed_response')
+        except JSONDecodeError:
+            pass
         assert (
             response.status_code == status_code
         ), f'Response status was not {status_code} ({response.status_code}), {_detail}'

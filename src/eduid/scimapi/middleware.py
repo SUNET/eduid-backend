@@ -14,7 +14,7 @@ from eduid.scimapi.context import Context
 from eduid.scimapi.context_request import ContextRequestMixin
 
 
-# middleware needs to return a reponse
+# middleware needs to return a response
 # some background: https://github.com/tiangolo/fastapi/issues/458
 def return_error_response(status_code: int, detail: str):
     return PlainTextResponse(status_code=status_code, content=detail)
