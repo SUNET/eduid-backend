@@ -25,4 +25,4 @@ from eduid.userdb.phone import PhoneNumber
 from eduid.userdb.profile import Profile
 from eduid.userdb.tou import ToUEvent
 from eduid.userdb.user import User
-from eduid.userdb.userdb import UserDB
+from eduid.userdb.userdb import AmDB, UserDB
