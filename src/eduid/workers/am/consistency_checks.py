@@ -15,7 +15,7 @@ __author__ = 'lundberg'
 logger = get_task_logger(__name__)
 
 
-def unverify_duplicates(userdb, user_id, attributes):
+def unverify_duplicates(userdb: AmDB, user_id: ObjectId, attributes: Dict) -> Dict[str, int]:
     """
     Checks supplied attributes for keys that should have only one user with that
     element verified.
@@ -42,16 +42,11 @@ def unverify_duplicates(userdb, user_id, attributes):
     return {'mail_count': mail_count, 'phone_count': phone_count, 'nin_count': nin_count}
 
 
-def unverify_mail_aliases(userdb, user_id, mail_aliases):
+def unverify_mail_aliases(userdb: AmDB, user_id: ObjectId, mail_aliases: Optional[List[Dict[str, Any]]]) -> int:
     """
     :param userdb: Central userdb
     :param user_id: User document _id
     :param mail_aliases: sub dict of attributes
-
-
-    :type userdb: eduid.userdb.userdb.UserDB
-    :type user_id: bson.ObjectId
-    :type mail_aliases: dict
 
     :return: How many mailAliases that where unverified
     :rtype: int
@@ -59,7 +54,7 @@ def unverify_mail_aliases(userdb, user_id, mail_aliases):
     count = 0
     if mail_aliases is None:
         logger.debug('No mailAliases to check duplicates against for user {}.'.format(user_id))
-        return None
+        return count
     # Get the verified mail addresses from attributes
     verified_mail_aliases = [alias['email'] for alias in mail_aliases if alias.get('verified') is True]
     for email in verified_mail_aliases:
@@ -68,14 +63,16 @@ def unverify_mail_aliases(userdb, user_id, mail_aliases):
                 if user.user_id != user_id:
                     logger.debug('Removing mail address {} from user {}'.format(email, user))
                     logger.debug('Old user mail aliases BEFORE: {}'.format(user.mail_addresses.to_list()))
-                    if user.mail_addresses.primary.email == email:
+                    if user.mail_addresses.primary and user.mail_addresses.primary.email == email:
                         # Promote some other verified e-mail address to primary
                         for address in user.mail_addresses.to_list():
                             if address.is_verified and address.email != email:
-                                user.mail_addresses.set_primary(address.email)
+                                user.mail_addresses.set_primary(address.key)
                                 break
-                    user.mail_addresses.find(email).is_primary = False
-                    user.mail_addresses.find(email).is_verified = False
+                    old_user_mail_address = user.mail_addresses.find(email)
+                    if old_user_mail_address is not None:
+                        old_user_mail_address.is_primary = False
+                        old_user_mail_address.is_verified = False
                     count += 1
                     logger.debug('Old user mail aliases AFTER: {}'.format(user.mail_addresses.to_list()))
                     userdb.save(user)
@@ -84,7 +81,7 @@ def unverify_mail_aliases(userdb, user_id, mail_aliases):
     return count
 
 
-def unverify_phones(userdb: AmDB, user_id: ObjectId, phones: List[Dict[str, Any]]) -> Optional[int]:
+def unverify_phones(userdb: AmDB, user_id: ObjectId, phones: List[Dict[str, Any]]) -> int:
     """
     :param userdb: Central userdb
     :param user_id: User document _id
@@ -95,7 +92,7 @@ def unverify_phones(userdb: AmDB, user_id: ObjectId, phones: List[Dict[str, Any]
     count = 0
     if phones is None:
         logger.debug('No phones to check duplicates against for user {}.'.format(user_id))
-        return None
+        return count
     # Get the verified phone numbers from attributes
     verified_phone_numbers = [phone['number'] for phone in phones if phone.get('verified') is True]
     for number in verified_phone_numbers:
@@ -104,14 +101,16 @@ def unverify_phones(userdb: AmDB, user_id: ObjectId, phones: List[Dict[str, Any]
                 if user.user_id != user_id:
                     logger.debug('Removing phone number {} from user {}'.format(number, user))
                     logger.debug('Old user phone numbers BEFORE: {}.'.format(user.phone_numbers.to_list()))
-                    if user.phone_numbers.primary.number == number:
+                    if user.phone_numbers.primary and user.phone_numbers.primary.number == number:
                         # Promote some other verified phone number to primary
                         for phone in user.phone_numbers.verified:
                             if phone.number != number:
-                                user.phone_numbers.set_primary(phone.number)
+                                user.phone_numbers.set_primary(phone.key)
                                 break
-                    user.phone_numbers.find(number).is_primary = False
-                    user.phone_numbers.find(number).is_verified = False
+                    old_user_phone_number = user.phone_numbers.find(number)
+                    if old_user_phone_number is not None:
+                        old_user_phone_number.is_primary = False
+                        old_user_phone_number.is_verified = False
                     count += 1
                     logger.debug('Old user phone numbers AFTER: {}.'.format(user.phone_numbers.to_list()))
                     userdb.save(user)
@@ -120,7 +119,7 @@ def unverify_phones(userdb: AmDB, user_id: ObjectId, phones: List[Dict[str, Any]
     return count
 
 
-def unverify_nins(userdb: AmDB, user_id: ObjectId, nins: List[Dict[str, Any]]) -> Optional[int]:
+def unverify_nins(userdb: AmDB, user_id: ObjectId, nins: List[Dict[str, Any]]) -> int:
     """
     :param userdb: Central userdb
     :param user_id: User document _id
@@ -131,7 +130,7 @@ def unverify_nins(userdb: AmDB, user_id: ObjectId, nins: List[Dict[str, Any]]) -
     count = 0
     if nins is None:
         logger.debug('No nins to check duplicates against for user {!s}.'.format(user_id))
-        return None
+        return count
     # Get verified nins from attributes
     verified_nins = [nin['number'] for nin in nins if nin.get('verified') is True]
     for number in verified_nins:
@@ -140,15 +139,17 @@ def unverify_nins(userdb: AmDB, user_id: ObjectId, nins: List[Dict[str, Any]]) -
                 if user.user_id != user_id:
                     logger.debug('Removing nin {} from user {}'.format(number, user))
                     logger.debug('Old user NINs BEFORE: {}.'.format(user.nins.to_list()))
-                    if user.nins.primary.number == number:
+                    if user.nins.primary and user.nins.primary.number == number:
                         # Promote some other verified nin to primary (future proofing)
                         old_nins = user.nins.verified
                         for this in old_nins:
                             if this.number != number:
-                                user.nins.set_primary(this.number)
+                                user.nins.set_primary(this.key)
                                 break
-                    user.nins.find(number).is_primary = False
-                    user.nins.find(number).is_verified = False
+                    old_user_nin = user.nins.find(number)
+                    if old_user_nin is not None:
+                        old_user_nin.is_primary = False
+                        old_user_nin.is_verified = False
                     count += 1
                     logger.debug('Old user NINs AFTER: {}.'.format(user.nins.to_list()))
                     userdb.save(user)
@@ -194,9 +195,10 @@ def check_locked_identity(userdb: AmDB, user_id: ObjectId, attributes: Dict, app
         locked_identities.add(locked_nin)
 
     # Check nin to be set against locked nin
-    if nin['number'] != locked_nin.number:
-        logger.error(f'Verified nin does not match locked identity for user with id {user_id}')
-        raise LockedIdentityViolation(f'Verified nin does not match locked identity for user with id {user_id}')
+    if isinstance(locked_nin, LockedIdentityNin):
+        if nin['number'] != locked_nin.number:
+            logger.error(f'Verified nin does not match locked identity for user with id {user_id}')
+            raise LockedIdentityViolation(f'Verified nin does not match locked identity for user with id {user_id}')
 
     attributes['$set']['locked_identity'] = locked_identities.to_list_of_dicts()
     return attributes
