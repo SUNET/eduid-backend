@@ -1,17 +1,92 @@
 import json
+import logging
 import re
+from copy import copy
+from typing import List, Optional, Set
 
 from fastapi import Request, Response
 from jwcrypto import jwt
 from jwcrypto.common import JWException
+from pydantic import BaseModel, Field, StrictInt, constr, validator
 from starlette.datastructures import URL
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import PlainTextResponse
 from starlette.types import Message
 
 from eduid.common.utils import removeprefix
+from eduid.scimapi.config import ScimApiConfig
 from eduid.scimapi.context import Context
 from eduid.scimapi.context_request import ContextRequestMixin
+
+
+class SudoAccess(BaseModel):
+    type: str
+    scope: Optional[constr(to_lower=True, min_length=4)] = None
+
+
+class AuthnBearerToken(BaseModel):
+    """
+    Data we recognise from authentication bearer token JWT claims.
+    """
+
+    version: StrictInt
+    requested_access: List[SudoAccess] = Field(default=[])
+    scopes: Set[constr(to_lower=True, min_length=4)] = Field(default=[])
+
+    @validator('version')
+    def validate_version(cls, v: int) -> int:
+        if v != 1:
+            raise ValueError('Unknown version')
+        return v
+
+    def _requested_access_scopes(self, config: ScimApiConfig) -> List[str]:
+        """ Filter out the access parts meant for this API.
+
+        Can't (easily) be done in a validator since it depends on configuration.
+        """
+        # sort to be deterministic
+        return sorted([x.scope for x in self.requested_access if x.scope and x.type == config.requested_access_type])
+
+    def _get_allowed_scopes(self, config: ScimApiConfig, logger: logging.Logger) -> Set[str]:
+        _scopes = copy(self.scopes)
+        for this in self.scopes:
+            if this in config.scope_sudo:
+                _sudo_scopes = config.scope_sudo[this]
+                logger.debug(f'Request from scope {this}, allowing sudo to scopes {_sudo_scopes}')
+                _scopes.update(_sudo_scopes)
+        return _scopes
+
+    def _get_canonical_scope(self, scope: str, config: ScimApiConfig) -> str:
+        if scope in config.scope_mapping:
+            return config.scope_mapping[scope]
+        return scope
+
+    def get_data_owner(self, config: ScimApiConfig, logger: logging.Logger) -> Optional[str]:
+        """ Given a configuration, deduce the data_owner to use. """
+        allowed_scopes = self._get_allowed_scopes(config, logger)
+        logger.debug(f'Request {self}, allowed scopes: {allowed_scopes}')
+
+        for this in self._requested_access_scopes(config):
+            _scope = self._get_canonical_scope(this, config)
+            _allowed = _scope in allowed_scopes
+            _found = config.data_owners.get(_scope)
+            logger.debug(f'Requested access to scope {_scope}, allowed {_allowed}, found: {_found}')
+            if _allowed and _found:
+                return _scope
+
+        # sort to be deterministic
+        for this in sorted(list(self.scopes)):
+            _scope = self._get_canonical_scope(this, config)
+            # checking allowed_scopes here might seem superfluous, but some client with multiple
+            # scopes can request a specific one using the requested_access, and then only that one
+            # scope is in allowed_scopes
+            _allowed = _scope in allowed_scopes
+            _found = config.data_owners.get(_scope)
+            logger.debug(f'Trying scope {_scope}, allowed {_allowed}, found: {_found}')
+            if _allowed and _found:
+                return _scope
+
+        return None
 
 
 # middleware needs to return a response
@@ -125,8 +200,13 @@ class AuthenticationMiddleware(BaseMiddleware):
             self.context.logger.info(f'Bearer token error: {e}')
             return return_error_response(status_code=401, detail='Bearer token error')
 
-        data_owner = claims.get('data_owner')
-        if data_owner not in self.context.config.data_owners:
+        token = AuthnBearerToken(**claims)
+        self.context.logger.debug(f'Bearer token: {token}')
+
+        data_owner = token.get_data_owner(self.context.config, self.context.logger)
+        self.context.logger.debug(f'Bearer token data owner: {data_owner}')
+
+        if not data_owner or data_owner not in self.context.config.data_owners:
             self.context.logger.error(f'Data owner {repr(data_owner)} not configured')
             return return_error_response(status_code=401, detail='Unknown data_owner')
 
@@ -136,5 +216,4 @@ class AuthenticationMiddleware(BaseMiddleware):
         req.context.invitedb = self.context.get_invitedb(data_owner)
         req.context.eventdb = self.context.get_eventdb(data_owner)
 
-        self.context.logger.debug(f'Bearer token data owner: {data_owner}')
         return await call_next(req)

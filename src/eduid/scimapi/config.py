@@ -1,8 +1,8 @@
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, constr, validator
 
 from eduid.common.config.base import LoggingConfigMixin, RootConfig
 from eduid.common.utils import removesuffix
@@ -40,6 +40,12 @@ class ScimApiConfig(RootConfig, LoggingConfigMixin, AWSMixin):
     no_authn_urls: List[str] = Field(default=['^/login/?$', '^/status/healthy$', '^/docs/?$', '^/openapi.json'])
     status_cache_seconds: int = 10
     data_owners: Dict[str, DataOwner] = Field(default={})
+    # Map scope to data owner name
+    scope_mapping: Dict[constr(to_lower=True, min_length=4), constr(to_lower=True, min_length=4)] = Field(default={})
+    # Allow someone with scope x to sudo to scope y
+    scope_sudo: Dict[constr(to_lower=True, min_length=4), Set[constr(to_lower=True, min_length=4)]] = Field(default={})
+    # The expected value of the authn JWT claims['requested_access']['type']
+    requested_access_type: Optional[str] = 'scim-api'
     # Invite config
     invite_url: str = ''
     invite_expire: int = 180 * 86400  # 180 days
