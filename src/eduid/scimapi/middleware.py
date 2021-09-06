@@ -47,22 +47,21 @@ class AuthnBearerToken(BaseModel):
     def validate_scopes(cls, v: Set[ScopeName], values) -> Set[ScopeName]:
         config = values.get('scim_config')
         if not config:
-            # If the config itself failed validation, we don't do more here
-            return v
+            raise ValueError('Can\'t validate without scim_config')
         canonical_scopes = {config.scope_mapping.get(x, x) for x in v}
         return canonical_scopes
 
     @validator('requested_access')
     def validate_requested_access(cls, v: List[SudoAccess], values) -> List[SudoAccess]:
         config = values.get('scim_config')
+        if not config:
+            raise ValueError('Can\'t validate without scim_config')
         new_access: List[SudoAccess] = []
         for this in v:
             if this.type != config.requested_access_type:
                 # not meant for us
                 continue
-            if config:
-                # If the config itself failed validation, we don't do more here
-                this.scope = config.scope_mapping.get(this.scope, this.scope)
+            this.scope = config.scope_mapping.get(this.scope, this.scope)
             new_access += [this]
         return new_access
 
@@ -236,6 +235,10 @@ class AuthenticationMiddleware(BaseMiddleware):
             claims = json.loads(_jwt.claims)
         except (JWException, KeyError) as e:
             self.context.logger.info(f'Bearer token error: {e}')
+            return return_error_response(status_code=401, detail='Bearer token error')
+
+        if 'scim_config' in claims:
+            self.context.logger.warning(f'JWT has scim_config: {claims}')
             return return_error_response(status_code=401, detail='Bearer token error')
 
         token = AuthnBearerToken(scim_config=self.context.config, **claims)
