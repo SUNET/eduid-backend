@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
-from pydantic import BaseModel, Field, constr, validator
+from pydantic import BaseModel, Field, validator
 
 from eduid.common.config.base import LoggingConfigMixin, RootConfig
 from eduid.common.utils import removesuffix

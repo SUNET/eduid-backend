@@ -35,7 +35,7 @@ class AuthnBearerToken(BaseModel):
     Data we recognise from authentication bearer token JWT claims.
     """
 
-    scim_config: ScimApiConfig  # must be listed first
+    scim_config: ScimApiConfig  # must be listed first, used in validators
     version: StrictInt
     requested_access: List[SudoAccess] = Field(default=[])
     scopes: Set[str] = Field(default=set(), min_length=len('x.se'))
@@ -92,7 +92,26 @@ class AuthnBearerToken(BaseModel):
         return _scopes
 
     def get_data_owner(self, logger: logging.Logger) -> Optional[str]:
-        """ Given a configuration, deduce the data_owner to use. """
+        """
+        Get the data owner to use.
+
+        Primarily, this is done by searching for a data owner matching one of the 'scopes' in the
+        JWT (scopes are inserted into the JWT by the Sunet auth server).
+
+        Some requesters might be allowed (in configuration) to 'sudo' to certain data owners too,
+        by passing 'access' to the Sunet authn server, which will be found as 'requested_access' in the JWT.
+
+        A requester with more than one scope and more than one data owner can use the same mechanism
+        as used to 'sudo' in order to indicate which of their data owners they want to use now.
+
+        Example straight forward minimal JWT:
+
+          {'version': 1, 'scopes': 'example.org'}
+
+        Example 'sudo':
+
+          {'version': 1, 'scopes': 'sudoer.example.org', requested_access: {'type': 'scim-api', 'scope': 'example.edu'}}
+        """
 
         allowed_scopes = self._get_allowed_scopes(self.scim_config, logger)
         logger.debug(f'Request {self}, allowed scopes: {allowed_scopes}')
