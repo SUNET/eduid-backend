@@ -320,7 +320,7 @@ class TestAuthnUserResource(ScimApiTestUserResourceBase):
     def test_get_user_correct_token(self):
         db_user = self.add_user(identifier=str(uuid4()), external_id='test-id-1', profiles={'test': self.test_profile})
 
-        claims = {'data_owner': 'eduid.se'}
+        claims = {'scopes': ['eduid.se'], 'version': 1}
         token = self._make_bearer_token(claims=claims)
 
         response = self._get_user_from_api(user=db_user, bearer_token=token)

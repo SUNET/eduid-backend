@@ -21,8 +21,9 @@ async def get_token(req: ContextRequest, resp: Response, token_req: TokenRequest
     signing_key = req.app.context.jwks.get_key(req.app.context.config.signing_key_id)
     claims = {
         'kid': req.app.context.config.signing_key_id,
-        'data_owner': token_req.data_owner,
         'exp': expire.timestamp(),
+        'scopes': [token_req.data_owner],
+        'version': 1,
     }
     token = jwt.JWT(header={'alg': 'ES256'}, claims=claims)
     token.make_signed_token(signing_key)
