@@ -7,7 +7,7 @@ from typing import Any, Dict, List
 
 import boto3
 
-from eduid.scimapi.config import ScimApiConfig
+from eduid.scimapi.config import DataOwnerName, ScimApiConfig
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ class NotificationRelay:
             )
             self.sns_client = boto3.client('sns')
 
-    def _topics_for(self, data_owner: str) -> List[str]:
+    def _topics_for(self, data_owner: DataOwnerName) -> List[str]:
         if data_owner not in self.config.data_owners:
             return []
         return self.config.data_owners[data_owner].notify
@@ -34,7 +34,7 @@ class NotificationRelay:
             raise NotImplementedError(f'version {version} not implemented')
         return json.dumps({'v': version, 'location': data['location']})
 
-    def notify(self, data_owner: str, message: str) -> None:
+    def notify(self, data_owner: DataOwnerName, message: str) -> None:
         if self.sns_client is not None:
             logger.info(f'Notifying {data_owner}')
             logger.debug(f'message: {message}')

@@ -1,8 +1,8 @@
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, NewType, Optional, Set
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, ConstrainedStr, Field, validator
 
 from eduid.common.config.base import LoggingConfigMixin, RootConfig
 from eduid.common.utils import removesuffix
@@ -19,6 +19,14 @@ class AWSMixin(BaseModel):
     aws_access_key_id: Optional[str] = None
     aws_secret_access_key: Optional[str] = None
     aws_region: Optional[str] = None
+
+
+class ScopeName(ConstrainedStr):
+    min_length = len('x.se')
+    to_lower = True
+
+
+DataOwnerName = NewType('DataOwnerName', str)
 
 
 class ScimApiConfig(RootConfig, LoggingConfigMixin, AWSMixin):
@@ -39,11 +47,11 @@ class ScimApiConfig(RootConfig, LoggingConfigMixin, AWSMixin):
     signing_key_id: str
     no_authn_urls: List[str] = Field(default=['^/login/?$', '^/status/healthy$', '^/docs/?$', '^/openapi.json'])
     status_cache_seconds: int = 10
-    data_owners: Dict[str, DataOwner] = Field(default={})
+    data_owners: Dict[DataOwnerName, DataOwner] = Field(default={})
     # Map scope to data owner name
-    scope_mapping: Dict[str, str] = Field(default={})
+    scope_mapping: Dict[ScopeName, DataOwnerName] = Field(default={})
     # Allow someone with scope x to sudo to scope y
-    scope_sudo: Dict[str, Set[str]] = Field(default={})
+    scope_sudo: Dict[ScopeName, Set[ScopeName]] = Field(default={})
     # The expected value of the authn JWT claims['requested_access']['type']
     requested_access_type: Optional[str] = 'scim-api'
     # Invite config
@@ -56,36 +64,3 @@ class ScimApiConfig(RootConfig, LoggingConfigMixin, AWSMixin):
             logger.warning(f'application_root should not end with slash ({v})')
             v = removesuffix(v, '/')
         return v
-
-    @validator('scope_mapping')
-    def validate_scope_mapping(cls, data: Dict[str, str]):
-        """
-        Scope mapping is a way to alias more than one scope to a single domain name,
-        that can then map to a data owner. Turn all the keys and values into lowercase.
-        """
-        res = {}
-        for k, v in data.items():
-            if len(k) < len('x.se'):
-                raise ValueError(f'Invalid domain name in scope_mapping LHS: {k}')
-            if len(v) < len('x.se'):
-                raise ValueError(f'Invalid domain name in scope_mapping RHS: {v}')
-            res[k.lower()] = v.lower()
-        return res
-
-    @validator('scope_sudo')
-    def validate_scope_sudo(cls, data: Dict[str, Set[str]]):
-        """
-        Scope mapping is a way to alias more than one scope to a single domain name,
-        that can then map to a data owner. Turn all the keys and values into lowercase.
-        """
-        res = {}
-        for k, v in data.items():
-            if len(k) < len('x.se'):
-                raise ValueError(f'Invalid domain name in scope_sudo LHS: {k}')
-            new_v = set()
-            for x in v:
-                if len(x) < len('x.se'):
-                    raise ValueError(f'Invalid domain name in scope_sudo RHS: {x}')
-                new_v.add(x.lower())
-            res[k.lower()] = new_v
-        return res

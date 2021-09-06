@@ -14,20 +14,14 @@ from starlette.responses import PlainTextResponse
 from starlette.types import Message
 
 from eduid.common.utils import removeprefix
-from eduid.scimapi.config import ScimApiConfig
+from eduid.scimapi.config import DataOwnerName, ScimApiConfig, ScopeName
 from eduid.scimapi.context import Context
 from eduid.scimapi.context_request import ContextRequestMixin
 
 
 class SudoAccess(BaseModel):
     type: str
-    scope: str = Field(default=None, min_length=len('x.se'))
-
-    @validator('scope')
-    def validate_scope(cls, v: str):
-        if len(v) < len('x.se'):
-            raise ValueError(f'Invalid domain name: {v}')
-        return v.lower()
+    scope: ScopeName
 
 
 class AuthnBearerToken(BaseModel):
@@ -38,7 +32,7 @@ class AuthnBearerToken(BaseModel):
     scim_config: ScimApiConfig  # must be listed first, used in validators
     version: StrictInt
     requested_access: List[SudoAccess] = Field(default=[])
-    scopes: Set[str] = Field(default=set(), min_length=len('x.se'))
+    scopes: Set[ScopeName] = Field(default=set())
 
     def __str__(self):
         return f'<{self.__class__.__name__}: scopes={self.scopes}, requested_access={self.requested_access}>'
@@ -50,13 +44,12 @@ class AuthnBearerToken(BaseModel):
         return v
 
     @validator('scopes')
-    def validate_scopes(cls, v: Set[str], values) -> Set[str]:
-        lc_scopes = {x.lower() for x in v}
+    def validate_scopes(cls, v: Set[ScopeName], values) -> Set[ScopeName]:
         config = values.get('scim_config')
         if not config:
-            # If the config itself failed validation, we just lowercase
-            return lc_scopes
-        canonical_scopes = {config.scope_mapping.get(x, x) for x in lc_scopes}
+            # If the config itself failed validation, we don't do more here
+            return v
+        canonical_scopes = {config.scope_mapping.get(x, x) for x in v}
         return canonical_scopes
 
     @validator('requested_access')
@@ -67,11 +60,8 @@ class AuthnBearerToken(BaseModel):
             if this.type != config.requested_access_type:
                 # not meant for us
                 continue
-            if len(this.scope) < len('x.se'):
-                raise ValueError(f'Invalid scope in requested_access: {this.scope}')
-            this.scope = this.scope.lower()
             if config:
-                # If the config itself failed validation, we just lowercase
+                # If the config itself failed validation, we don't do more here
                 this.scope = config.scope_mapping.get(this.scope, this.scope)
             new_access += [this]
         return new_access
@@ -103,7 +93,7 @@ class AuthnBearerToken(BaseModel):
 
         for this in self.requested_access:
             _allowed = this.scope in allowed_scopes
-            _found = self.scim_config.data_owners.get(this.scope)
+            _found = self.scim_config.data_owners.get(DataOwnerName(this.scope))
             logger.debug(f'Requested access to scope {this.scope}, allowed {_allowed}, found: {_found}')
             if _allowed and _found:
                 return this.scope
@@ -114,14 +104,14 @@ class AuthnBearerToken(BaseModel):
             # scopes can request a specific one using the requested_access, and then only that one
             # scope is in allowed_scopes
             _allowed = scope in allowed_scopes
-            _found = self.scim_config.data_owners.get(scope)
+            _found = self.scim_config.data_owners.get(DataOwnerName(scope))
             logger.debug(f'Trying scope {scope}, allowed {_allowed}, found: {_found}')
             if _allowed and _found:
                 return scope
 
         return None
 
-    def _get_allowed_scopes(self, config: ScimApiConfig, logger: logging.Logger) -> Set[str]:
+    def _get_allowed_scopes(self, config: ScimApiConfig, logger: logging.Logger) -> Set[ScopeName]:
         """
         Make a set of all the allowed scopes for the requester.
 
@@ -229,7 +219,7 @@ class AuthenticationMiddleware(BaseMiddleware):
         if not req.app.context.config.authorization_mandatory and (not auth or not auth.startswith('Bearer ')):
             # Authorization is optional
             self.context.logger.info('No authorization header provided - proceeding anyway')
-            req.context.data_owner = 'eduid.se'
+            req.context.data_owner = DataOwnerName('eduid.se')
             req.context.userdb = self.context.get_userdb(req.context.data_owner)
             req.context.groupdb = self.context.get_groupdb(req.context.data_owner)
             req.context.invitedb = self.context.get_invitedb(req.context.data_owner)

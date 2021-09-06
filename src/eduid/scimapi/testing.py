@@ -16,7 +16,7 @@ from eduid.common.config.parsers import load_config
 from eduid.graphdb.testing import Neo4jTemporaryInstance
 from eduid.queue.db.message import MessageDB
 from eduid.scimapi.app import init_api
-from eduid.scimapi.config import ScimApiConfig
+from eduid.scimapi.config import DataOwnerName, ScimApiConfig
 from eduid.scimapi.context import Context
 from eduid.scimapi.db.common import ScimApiLinkedAccount, ScimApiName
 from eduid.scimapi.db.eventdb import ScimApiEvent
@@ -106,7 +106,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         self.context = Context(config=config)
 
         # TODO: more tests for scoped groups when that is implemented
-        self.data_owner = 'eduid.se'
+        self.data_owner = DataOwnerName('eduid.se')
         self.userdb = self.context.get_userdb(self.data_owner)
         self.invitedb = self.context.get_invitedb(self.data_owner)
         self.signup_invitedb = SignupInviteDB(db_uri=config.mongo_uri)

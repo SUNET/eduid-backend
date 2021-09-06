@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 
 from eduid.common.config.parsers import load_config
 from eduid.graphdb.groupdb import Group as GraphGroup
-from eduid.scimapi.config import ScimApiConfig
+from eduid.scimapi.config import DataOwnerName, ScimApiConfig
 from eduid.scimapi.context import Context
 from eduid.scimapi.db.groupdb import GroupExtensions, ScimApiGroup
 from eduid.scimapi.testing import ScimApiTestCase
@@ -18,7 +18,7 @@ class TestGroupDB(ScimApiTestCase):
         self.test_config = self._get_config()
         config = load_config(typ=ScimApiConfig, app_name='scimapi', ns='api', test_config=self.test_config)
         self.context = Context(config=config)
-        self.groupdb = self.context.get_groupdb('eduid.se')
+        self.groupdb = self.context.get_groupdb(DataOwnerName('eduid.se'))
 
         for i in range(9):
             self.add_group(uuid4(), f'Test Group-{i}')
