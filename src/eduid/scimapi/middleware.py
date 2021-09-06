@@ -1,20 +1,133 @@
 import json
+import logging
 import re
+from copy import copy
+from typing import List, Optional, Set
 
 from fastapi import Request, Response
 from jwcrypto import jwt
 from jwcrypto.common import JWException
+from marshmallow import ValidationError
+from pydantic import BaseModel, Field, StrictInt, validator
 from starlette.datastructures import URL
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import PlainTextResponse
 from starlette.types import Message
 
 from eduid.common.utils import removeprefix
+from eduid.scimapi.config import DataOwnerName, ScimApiConfig, ScopeName
 from eduid.scimapi.context import Context
 from eduid.scimapi.context_request import ContextRequestMixin
 
 
-# middleware needs to return a reponse
+class SudoAccess(BaseModel):
+    type: str
+    scope: ScopeName
+
+
+class AuthnBearerToken(BaseModel):
+    """
+    Data we recognise from authentication bearer token JWT claims.
+    """
+
+    scim_config: ScimApiConfig  # must be listed first, used in validators
+    version: StrictInt
+    requested_access: List[SudoAccess] = Field(default=[])
+    scopes: Set[ScopeName] = Field(default=set())
+
+    def __str__(self):
+        return f'<{self.__class__.__name__}: scopes={self.scopes}, requested_access={self.requested_access}>'
+
+    @validator('version')
+    def validate_version(cls, v: int) -> int:
+        if v != 1:
+            raise ValueError('Unknown version')
+        return v
+
+    @validator('scopes')
+    def validate_scopes(cls, v: Set[ScopeName], values) -> Set[ScopeName]:
+        config = values.get('scim_config')
+        if not config:
+            raise ValueError('Can\'t validate without scim_config')
+        canonical_scopes = {config.scope_mapping.get(x, x) for x in v}
+        return canonical_scopes
+
+    @validator('requested_access')
+    def validate_requested_access(cls, v: List[SudoAccess], values) -> List[SudoAccess]:
+        config = values.get('scim_config')
+        if not config:
+            raise ValueError('Can\'t validate without scim_config')
+        new_access: List[SudoAccess] = []
+        for this in v:
+            if this.type != config.requested_access_type:
+                # not meant for us
+                continue
+            this.scope = config.scope_mapping.get(this.scope, this.scope)
+            new_access += [this]
+        return new_access
+
+    def get_data_owner(self, logger: logging.Logger) -> Optional[str]:
+        """
+        Get the data owner to use.
+
+        Primarily, this is done by searching for a data owner matching one of the 'scopes' in the
+        JWT (scopes are inserted into the JWT by the Sunet auth server).
+
+        Some requesters might be allowed (in configuration) to 'sudo' to certain data owners too,
+        by passing 'access' to the Sunet authn server, which will be found as 'requested_access' in the JWT.
+
+        A requester with more than one scope and more than one data owner can use the same mechanism
+        as used to 'sudo' in order to indicate which of their data owners they want to use now.
+
+        Example straight forward minimal JWT:
+
+          {'version': 1, 'scopes': 'example.org'}
+
+        Example 'sudo':
+
+          {'version': 1, 'scopes': 'sudoer.example.org', requested_access: {'type': 'scim-api', 'scope': 'example.edu'}}
+        """
+
+        allowed_scopes = self._get_allowed_scopes(self.scim_config, logger)
+        logger.debug(f'Request {self}, allowed scopes: {allowed_scopes}')
+
+        for this in self.requested_access:
+            _allowed = this.scope in allowed_scopes
+            _found = self.scim_config.data_owners.get(DataOwnerName(this.scope))
+            logger.debug(f'Requested access to scope {this.scope}, allowed {_allowed}, found: {_found}')
+            if _allowed and _found:
+                return this.scope
+
+        # sort to be deterministic
+        for scope in sorted(list(self.scopes)):
+            # checking allowed_scopes here might seem superfluous, but some client with multiple
+            # scopes can request a specific one using the requested_access, and then only that one
+            # scope is in allowed_scopes
+            _allowed = scope in allowed_scopes
+            _found = self.scim_config.data_owners.get(DataOwnerName(scope))
+            logger.debug(f'Trying scope {scope}, allowed {_allowed}, found: {_found}')
+            if _allowed and _found:
+                return scope
+
+        return None
+
+    def _get_allowed_scopes(self, config: ScimApiConfig, logger: logging.Logger) -> Set[ScopeName]:
+        """
+        Make a set of all the allowed scopes for the requester.
+
+        The allowed scopes are always the scopes the requester has (the scopes come from federation metadata,
+        the Sunet authn server inserts them in the JWT), and possibly others as found in configuration.
+        """
+        _scopes = copy(self.scopes)
+        for this in self.scopes:
+            if this in config.scope_sudo:
+                _sudo_scopes = config.scope_sudo[this]
+                logger.debug(f'Request from scope {this}, allowing sudo to scopes {_sudo_scopes}')
+                _scopes.update(_sudo_scopes)
+        return _scopes
+
+
+# middleware needs to return a response
 # some background: https://github.com/tiangolo/fastapi/issues/458
 def return_error_response(status_code: int, detail: str):
     return PlainTextResponse(status_code=status_code, content=detail)
@@ -106,7 +219,7 @@ class AuthenticationMiddleware(BaseMiddleware):
         if not req.app.context.config.authorization_mandatory and (not auth or not auth.startswith('Bearer ')):
             # Authorization is optional
             self.context.logger.info('No authorization header provided - proceeding anyway')
-            req.context.data_owner = 'eduid.se'
+            req.context.data_owner = DataOwnerName('eduid.se')
             req.context.userdb = self.context.get_userdb(req.context.data_owner)
             req.context.groupdb = self.context.get_groupdb(req.context.data_owner)
             req.context.invitedb = self.context.get_invitedb(req.context.data_owner)
@@ -125,8 +238,21 @@ class AuthenticationMiddleware(BaseMiddleware):
             self.context.logger.info(f'Bearer token error: {e}')
             return return_error_response(status_code=401, detail='Bearer token error')
 
-        data_owner = claims.get('data_owner')
-        if data_owner not in self.context.config.data_owners:
+        if 'scim_config' in claims:
+            self.context.logger.warning(f'JWT has scim_config: {claims}')
+            return return_error_response(status_code=401, detail='Bearer token error')
+
+        try:
+            token = AuthnBearerToken(scim_config=self.context.config, **claims)
+            self.context.logger.debug(f'Bearer token: {token}')
+        except ValidationError:
+            self.context.logger.exception('Authorization Bearer Token error')
+            return return_error_response(status_code=401, detail='Bearer token error')
+
+        data_owner = token.get_data_owner(self.context.logger)
+        self.context.logger.info(f'Bearer token {token}, data owner: {data_owner}')
+
+        if not data_owner or data_owner not in self.context.config.data_owners:
             self.context.logger.error(f'Data owner {repr(data_owner)} not configured')
             return return_error_response(status_code=401, detail='Unknown data_owner')
 
@@ -136,5 +262,4 @@ class AuthenticationMiddleware(BaseMiddleware):
         req.context.invitedb = self.context.get_invitedb(data_owner)
         req.context.eventdb = self.context.get_eventdb(data_owner)
 
-        self.context.logger.debug(f'Bearer token data owner: {data_owner}')
         return await call_next(req)

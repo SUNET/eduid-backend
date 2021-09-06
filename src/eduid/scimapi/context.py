@@ -5,7 +5,7 @@ from uuid import UUID
 
 from eduid.common.utils import urlappend
 from eduid.queue.db.message import MessageDB
-from eduid.scimapi.config import ScimApiConfig
+from eduid.scimapi.config import DataOwnerName, ScimApiConfig
 from eduid.scimapi.context_request import ContextRequest
 from eduid.scimapi.db.eventdb import ScimApiEventDB
 from eduid.scimapi.db.groupdb import ScimApiGroup, ScimApiGroupDB
@@ -70,16 +70,16 @@ class Context(object):
             return urlappend(base_url, self.config.application_root)
         return base_url
 
-    def get_userdb(self, data_owner: str) -> Optional[ScimApiUserDB]:
+    def get_userdb(self, data_owner: DataOwnerName) -> Optional[ScimApiUserDB]:
         return self._userdbs.get(data_owner)
 
-    def get_groupdb(self, data_owner: str) -> Optional[ScimApiGroupDB]:
+    def get_groupdb(self, data_owner: DataOwnerName) -> Optional[ScimApiGroupDB]:
         return self._groupdbs.get(data_owner)
 
-    def get_invitedb(self, data_owner: str) -> Optional[ScimApiInviteDB]:
+    def get_invitedb(self, data_owner: DataOwnerName) -> Optional[ScimApiInviteDB]:
         return self._invitedbs.get(data_owner)
 
-    def get_eventdb(self, data_owner: str) -> Optional[ScimApiEventDB]:
+    def get_eventdb(self, data_owner: DataOwnerName) -> Optional[ScimApiEventDB]:
         return self._eventdbs.get(data_owner)
 
     def url_for(self, *args) -> str:

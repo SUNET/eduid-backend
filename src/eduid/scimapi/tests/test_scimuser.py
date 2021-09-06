@@ -178,7 +178,7 @@ class UserApiResult:
     parsed_response: UserResponse
 
 
-class TestUserResource(ScimApiTestCase):
+class ScimApiTestUserResourceBase(ScimApiTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.test_profile = ScimApiProfile(attributes={'displayName': 'Test User 1'}, data={'test_key': 'test_value'})
@@ -268,6 +268,8 @@ class TestUserResource(ScimApiTestCase):
                 raise
         return UserApiResult(request=req, nutid_user=nutid_user, response=response, parsed_response=user_response)
 
+
+class TestUserResource(ScimApiTestUserResourceBase):
     def test_get_user(self):
         db_user = self.add_user(identifier=str(uuid4()), external_id='test-id-1', profiles={'test': self.test_profile})
         response = self.client.get(url=f'/Users/{db_user.scim_id}', headers=self.headers)

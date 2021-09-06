@@ -9,13 +9,14 @@ from typing import Any, Dict, List, Mapping, Optional, Union
 import pkg_resources
 from bson import ObjectId
 from requests import Response
+from simplejson import JSONDecodeError
 from starlette.testclient import TestClient
 
 from eduid.common.config.parsers import load_config
 from eduid.graphdb.testing import Neo4jTemporaryInstance
 from eduid.queue.db.message import MessageDB
 from eduid.scimapi.app import init_api
-from eduid.scimapi.config import ScimApiConfig
+from eduid.scimapi.config import DataOwnerName, ScimApiConfig
 from eduid.scimapi.context import Context
 from eduid.scimapi.db.common import ScimApiLinkedAccount, ScimApiName
 from eduid.scimapi.db.eventdb import ScimApiEvent
@@ -105,7 +106,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         self.context = Context(config=config)
 
         # TODO: more tests for scoped groups when that is implemented
-        self.data_owner = 'eduid.se'
+        self.data_owner = DataOwnerName('eduid.se')
         self.userdb = self.context.get_userdb(self.data_owner)
         self.invitedb = self.context.get_invitedb(self.data_owner)
         self.signup_invitedb = SignupInviteDB(db_uri=config.mongo_uri)
@@ -123,6 +124,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         config = super()._get_config()
         config['keystore_path'] = f'{self.datadir}/testing_jwks.json'
         config['signing_key_id'] = 'testing-scimapi-2106210000'
+        config['authorization_mandatory'] = False
         return config
 
     def add_user(
@@ -248,8 +250,11 @@ class ScimApiTestCase(MongoNeoTestCase):
     @staticmethod
     def _assertResponse(response: Response, status_code: int = 200):
         _detail = None
-        if response.json():
-            _detail = response.json().get('detail', 'No error detail in parsed_response')
+        try:
+            if response.json():
+                _detail = response.json().get('detail', 'No error detail in parsed_response')
+        except JSONDecodeError:
+            pass
         assert (
             response.status_code == status_code
         ), f'Response status was not {status_code} ({response.status_code}), {_detail}'

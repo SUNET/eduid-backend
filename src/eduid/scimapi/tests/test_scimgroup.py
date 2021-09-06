@@ -11,6 +11,7 @@ from bson import ObjectId
 
 from eduid.graphdb.groupdb import Group as GraphGroup
 from eduid.graphdb.groupdb import User as GraphUser
+from eduid.scimapi.config import DataOwnerName
 from eduid.scimapi.db.eventdb import EventStatus
 from eduid.scimapi.db.groupdb import GroupExtensions, ScimApiGroup
 from eduid.scimapi.db.userdb import ScimApiUser
@@ -54,7 +55,7 @@ class TestSCIMGroup(TestScimBase):
 class TestGroupResource(ScimApiTestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.groupdb = self.context.get_groupdb('eduid.se')
+        self.groupdb = self.context.get_groupdb(DataOwnerName('eduid.se'))
 
     def tearDown(self):
         super().tearDown()

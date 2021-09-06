@@ -10,6 +10,7 @@ from uuid import UUID, uuid4
 from bson import ObjectId
 
 from eduid.common.utils import urlappend
+from eduid.scimapi.config import DataOwnerName
 from eduid.scimapi.db.basedb import ScimApiBaseDB
 from eduid.scimapi.db.common import ScimApiResourceBase
 from eduid.scimapi.models.scimbase import SCIMResourceType
@@ -137,7 +138,7 @@ class ScimApiEventDB(ScimApiBaseDB):
 
 
 def add_api_event(
-    data_owner: str,
+    data_owner: DataOwnerName,
     context: 'Context',
     db_obj: ScimApiResourceBase,
     resource_type: SCIMResourceType,

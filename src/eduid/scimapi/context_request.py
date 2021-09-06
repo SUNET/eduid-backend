@@ -7,6 +7,7 @@ from typing import Callable, Optional, Union
 from fastapi import Request, Response
 from fastapi.routing import APIRoute
 
+from eduid.scimapi.config import DataOwnerName
 from eduid.scimapi.db.eventdb import ScimApiEventDB
 from eduid.scimapi.db.groupdb import ScimApiGroupDB
 from eduid.scimapi.db.invitedb import ScimApiInviteDB
@@ -15,7 +16,7 @@ from eduid.scimapi.db.userdb import ScimApiUserDB
 
 @dataclass
 class Context:
-    data_owner: Optional[str] = None
+    data_owner: Optional[DataOwnerName] = None
     userdb: Optional[ScimApiUserDB] = None
     groupdb: Optional[ScimApiGroupDB] = None
     invitedb: Optional[ScimApiInviteDB] = None
