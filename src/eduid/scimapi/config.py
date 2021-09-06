@@ -21,12 +21,17 @@ class AWSMixin(BaseModel):
     aws_region: Optional[str] = None
 
 
-class ScopeName(ConstrainedStr):
+class ReasonableDomainName(ConstrainedStr):
     min_length = len('x.se')
     to_lower = True
 
 
-DataOwnerName = NewType('DataOwnerName', str)
+class ScopeName(ReasonableDomainName):
+    pass
+
+
+class DataOwnerName(ReasonableDomainName):
+    pass
 
 
 class ScimApiConfig(RootConfig, LoggingConfigMixin, AWSMixin):
