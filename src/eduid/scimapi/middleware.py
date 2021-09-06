@@ -7,6 +7,7 @@ from typing import List, Optional, Set
 from fastapi import Request, Response
 from jwcrypto import jwt
 from jwcrypto.common import JWException
+from marshmallow import ValidationError
 from pydantic import BaseModel, Field, StrictInt, validator
 from starlette.datastructures import URL
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -241,11 +242,15 @@ class AuthenticationMiddleware(BaseMiddleware):
             self.context.logger.warning(f'JWT has scim_config: {claims}')
             return return_error_response(status_code=401, detail='Bearer token error')
 
-        token = AuthnBearerToken(scim_config=self.context.config, **claims)
-        self.context.logger.debug(f'Bearer token: {token}')
+        try:
+            token = AuthnBearerToken(scim_config=self.context.config, **claims)
+            self.context.logger.debug(f'Bearer token: {token}')
+        except ValidationError:
+            self.context.logger.exception('Authorization Bearer Token error')
+            return return_error_response(status_code=401, detail='Bearer token error')
 
         data_owner = token.get_data_owner(self.context.logger)
-        self.context.logger.debug(f'Bearer token data owner: {data_owner}')
+        self.context.logger.info(f'Bearer token {token}, data owner: {data_owner}')
 
         if not data_owner or data_owner not in self.context.config.data_owners:
             self.context.logger.error(f'Data owner {repr(data_owner)} not configured')
