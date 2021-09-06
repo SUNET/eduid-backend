@@ -76,21 +76,6 @@ class AuthnBearerToken(BaseModel):
             new_access += [this]
         return new_access
 
-    def _get_allowed_scopes(self, config: ScimApiConfig, logger: logging.Logger) -> Set[str]:
-        """
-        Make a set of all the allowed scopes for the requester.
-
-        The allowed scopes are always the scopes the requester has (the scopes come from federation metadata,
-        the Sunet authn server inserts them in the JWT), and possibly others as found in configuration.
-        """
-        _scopes = copy(self.scopes)
-        for this in self.scopes:
-            if this in config.scope_sudo:
-                _sudo_scopes = config.scope_sudo[this]
-                logger.debug(f'Request from scope {this}, allowing sudo to scopes {_sudo_scopes}')
-                _scopes.update(_sudo_scopes)
-        return _scopes
-
     def get_data_owner(self, logger: logging.Logger) -> Optional[str]:
         """
         Get the data owner to use.
@@ -135,6 +120,21 @@ class AuthnBearerToken(BaseModel):
                 return scope
 
         return None
+
+    def _get_allowed_scopes(self, config: ScimApiConfig, logger: logging.Logger) -> Set[str]:
+        """
+        Make a set of all the allowed scopes for the requester.
+
+        The allowed scopes are always the scopes the requester has (the scopes come from federation metadata,
+        the Sunet authn server inserts them in the JWT), and possibly others as found in configuration.
+        """
+        _scopes = copy(self.scopes)
+        for this in self.scopes:
+            if this in config.scope_sudo:
+                _sudo_scopes = config.scope_sudo[this]
+                logger.debug(f'Request from scope {this}, allowing sudo to scopes {_sudo_scopes}')
+                _scopes.update(_sudo_scopes)
+        return _scopes
 
 
 # middleware needs to return a response
