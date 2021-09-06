@@ -7,7 +7,7 @@ from typing import List, Optional, Set
 from fastapi import Request, Response
 from jwcrypto import jwt
 from jwcrypto.common import JWException
-from pydantic import BaseModel, Field, StrictInt, constr, validator
+from pydantic import BaseModel, Field, StrictInt, validator
 from starlette.datastructures import URL
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import PlainTextResponse
@@ -21,7 +21,13 @@ from eduid.scimapi.context_request import ContextRequestMixin
 
 class SudoAccess(BaseModel):
     type: str
-    scope: Optional[constr(to_lower=True, min_length=4)] = None
+    scope: str = Field(default=None, min_length=len('x.se'))
+
+    @validator('scope')
+    def validate_scope(cls, v: str):
+        if len(v) < len('x.se'):
+            raise ValueError(f'Invalid domain name: {v}')
+        return v.lower()
 
 
 class AuthnBearerToken(BaseModel):
@@ -29,9 +35,13 @@ class AuthnBearerToken(BaseModel):
     Data we recognise from authentication bearer token JWT claims.
     """
 
+    scim_config: ScimApiConfig  # must be listed first
     version: StrictInt
     requested_access: List[SudoAccess] = Field(default=[])
-    scopes: Set[constr(to_lower=True, min_length=4)] = Field(default=[])
+    scopes: Set[str] = Field(default=set(), min_length=len('x.se'))
+
+    def __str__(self):
+        return f'<{self.__class__.__name__}: scopes={self.scopes}, requested_access={self.requested_access}>'
 
     @validator('version')
     def validate_version(cls, v: int) -> int:
@@ -39,15 +49,40 @@ class AuthnBearerToken(BaseModel):
             raise ValueError('Unknown version')
         return v
 
-    def _requested_access_scopes(self, config: ScimApiConfig) -> List[str]:
-        """ Filter out the access parts meant for this API.
+    @validator('scopes')
+    def validate_scopes(cls, v: Set[str], values) -> Set[str]:
+        lc_scopes = {x.lower() for x in v}
+        config = values.get('scim_config')
+        if not config:
+            # If the config itself failed validation, we just lowercase
+            return lc_scopes
+        canonical_scopes = {config.scope_mapping.get(x, x) for x in lc_scopes}
+        return canonical_scopes
 
-        Can't (easily) be done in a validator since it depends on configuration.
-        """
-        # sort to be deterministic
-        return sorted([x.scope for x in self.requested_access if x.scope and x.type == config.requested_access_type])
+    @validator('requested_access')
+    def validate_requested_access(cls, v: List[SudoAccess], values) -> List[SudoAccess]:
+        config = values.get('scim_config')
+        new_access: List[SudoAccess] = []
+        for this in v:
+            if this.type != config.requested_access_type:
+                # not meant for us
+                continue
+            if len(this.scope) < len('x.se'):
+                raise ValueError(f'Invalid scope in requested_access: {this.scope}')
+            this.scope = this.scope.lower()
+            if config:
+                # If the config itself failed validation, we just lowercase
+                this.scope = config.scope_mapping.get(this.scope, this.scope)
+            new_access += [this]
+        return new_access
 
     def _get_allowed_scopes(self, config: ScimApiConfig, logger: logging.Logger) -> Set[str]:
+        """
+        Make a set of all the allowed scopes for the requester.
+
+        The allowed scopes are always the scopes the requester has (the scopes come from federation metadata,
+        the Sunet authn server inserts them in the JWT), and possibly others as found in configuration.
+        """
         _scopes = copy(self.scopes)
         for this in self.scopes:
             if this in config.scope_sudo:
@@ -56,35 +91,29 @@ class AuthnBearerToken(BaseModel):
                 _scopes.update(_sudo_scopes)
         return _scopes
 
-    def _get_canonical_scope(self, scope: str, config: ScimApiConfig) -> str:
-        if scope in config.scope_mapping:
-            return config.scope_mapping[scope]
-        return scope
-
-    def get_data_owner(self, config: ScimApiConfig, logger: logging.Logger) -> Optional[str]:
+    def get_data_owner(self, logger: logging.Logger) -> Optional[str]:
         """ Given a configuration, deduce the data_owner to use. """
-        allowed_scopes = self._get_allowed_scopes(config, logger)
+
+        allowed_scopes = self._get_allowed_scopes(self.scim_config, logger)
         logger.debug(f'Request {self}, allowed scopes: {allowed_scopes}')
 
-        for this in self._requested_access_scopes(config):
-            _scope = self._get_canonical_scope(this, config)
-            _allowed = _scope in allowed_scopes
-            _found = config.data_owners.get(_scope)
-            logger.debug(f'Requested access to scope {_scope}, allowed {_allowed}, found: {_found}')
+        for this in self.requested_access:
+            _allowed = this.scope in allowed_scopes
+            _found = self.scim_config.data_owners.get(this.scope)
+            logger.debug(f'Requested access to scope {this.scope}, allowed {_allowed}, found: {_found}')
             if _allowed and _found:
-                return _scope
+                return this.scope
 
         # sort to be deterministic
-        for this in sorted(list(self.scopes)):
-            _scope = self._get_canonical_scope(this, config)
+        for scope in sorted(list(self.scopes)):
             # checking allowed_scopes here might seem superfluous, but some client with multiple
             # scopes can request a specific one using the requested_access, and then only that one
             # scope is in allowed_scopes
-            _allowed = _scope in allowed_scopes
-            _found = config.data_owners.get(_scope)
-            logger.debug(f'Trying scope {_scope}, allowed {_allowed}, found: {_found}')
+            _allowed = scope in allowed_scopes
+            _found = self.scim_config.data_owners.get(scope)
+            logger.debug(f'Trying scope {scope}, allowed {_allowed}, found: {_found}')
             if _allowed and _found:
-                return _scope
+                return scope
 
         return None
 
@@ -200,10 +229,10 @@ class AuthenticationMiddleware(BaseMiddleware):
             self.context.logger.info(f'Bearer token error: {e}')
             return return_error_response(status_code=401, detail='Bearer token error')
 
-        token = AuthnBearerToken(**claims)
+        token = AuthnBearerToken(scim_config=self.context.config, **claims)
         self.context.logger.debug(f'Bearer token: {token}')
 
-        data_owner = token.get_data_owner(self.context.config, self.context.logger)
+        data_owner = token.get_data_owner(self.context.logger)
         self.context.logger.debug(f'Bearer token data owner: {data_owner}')
 
         if not data_owner or data_owner not in self.context.config.data_owners:
