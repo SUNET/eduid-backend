@@ -498,15 +498,19 @@ def set_new_pw_extra_security_external_mfa(
 
 
 @reset_password_views.route('/get-email-code', methods=['GET'])
-def get_email_code():
+def get_email_code() -> str:
     """
     Backdoor to get the email verification code in the staging or dev environments
     """
     try:
         if check_magic_cookie(current_app.conf):
             eppn = request.args.get('eppn')
+            if not eppn:
+                current_app.logger.info('Missing eppn argument to get_email_code')
+                abort(400)
             state = current_app.password_reset_state_db.get_state_by_eppn(eppn)
-            return state.email_code.code
+            if state and state.email_code:
+                return state.email_code.code
     except Exception:
         current_app.logger.exception(
             'Someone tried to use the backdoor to get the email verification code for a password reset'
@@ -516,15 +520,19 @@ def get_email_code():
 
 
 @reset_password_views.route('/get-phone-code', methods=['GET'])
-def get_phone_code():
+def get_phone_code() -> str:
     """
     Backdoor to get the phone verification code in the staging or dev environments
     """
     try:
         if check_magic_cookie(current_app.conf):
             eppn = request.args.get('eppn')
+            if not eppn:
+                current_app.logger.info('Missing eppn argument to get_phone_code')
+                abort(400)
             state = current_app.password_reset_state_db.get_state_by_eppn(eppn)
-            return state.phone_code.code
+            if isinstance(state, ResetPasswordEmailAndPhoneState) and state.phone_code:
+                return state.phone_code.code
     except Exception:
         current_app.logger.exception(
             'Someone tried to use the backdoor to get the SMS verification code for a password reset'

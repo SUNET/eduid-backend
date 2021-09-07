@@ -62,7 +62,7 @@ USER_DATA = {
     'displayName': 'John',
     'preferredLanguage': 'sv',
     'eduPersonPrincipalName': 'test-test',
-    'mailAliases': [{'email': 'john@example.com', 'verified': True,}],
+    'mailAliases': [{'email': 'john@example.com', 'verified': True}],
     'mobile': [{'verified': True, 'mobile': '+46700011336', 'primary': True}],
     'passwords': [
         {
@@ -147,7 +147,8 @@ class AMTestCase(WorkerTestCase):
 
     def tearDown(self):
         for fetcher in AmCelerySingleton.af_registry.all_fetchers():
-            fetcher.private_db._drop_whole_collection()
+            if fetcher.private_db:
+                fetcher.private_db._drop_whole_collection()
         super().tearDown()
 
 
@@ -169,6 +170,7 @@ class ProofingTestCase(AMTestCase):
         for userdoc in self.amdb._get_all_docs():
             proofing_user = ProofingUser.from_dict(userdoc)
             for fetcher in AmCelerySingleton.af_registry.all_fetchers():
+                assert fetcher.private_db
                 fetcher.private_db.save(proofing_user, check_sync=False)
 
     def test_invalid_user(self):
@@ -185,6 +187,7 @@ class ProofingTestCase(AMTestCase):
         self.user_data.update({'malicious': 'hacker'})
 
         # Write bad entry into database
+        assert self.fetcher.private_db
         result = self.fetcher.private_db._coll.insert_one(self.user_data)
         user_id = result.inserted_id
 

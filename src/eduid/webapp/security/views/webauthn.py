@@ -10,13 +10,12 @@ from fido2.server import Fido2Server, PublicKeyCredentialRpEntity
 from fido2.webauthn import UserVerificationRequirement
 from flask import Blueprint
 
+from eduid.userdb import User
 from eduid.userdb.credentials import Webauthn
-
-# TODO: Import FidoCredential in eduid.userdb.credentials so we can import it from there
 from eduid.userdb.credentials.fido import U2F, FidoCredential
 from eduid.userdb.security import SecurityUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid.webapp.common.api.messages import error_response, success_response
+from eduid.webapp.common.api.messages import FluxData, error_response, success_response
 from eduid.webapp.common.api.schemas.base import FluxStandardAction
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.session import session
@@ -35,7 +34,7 @@ def get_webauthn_server(rp_id, name='eduID security API'):
     return Fido2Server(rp)
 
 
-def make_credentials(creds: Sequence[Union[Webauthn, U2F]]) -> List[AttestedCredentialData]:
+def make_credentials(creds: Sequence[FidoCredential]) -> List[AttestedCredentialData]:
     credentials = []
     for cred in creds:
         if isinstance(cred, Webauthn):
@@ -61,7 +60,7 @@ webauthn_views = Blueprint('webauthn', __name__, url_prefix='/webauthn', templat
 @UnmarshalWith(WebauthnRegisterBeginSchema)
 @MarshalWith(FluxStandardAction)
 @require_user
-def registration_begin(user, authenticator):
+def registration_begin(user: User, authenticator) -> FluxData:
     user_webauthn_tokens = user.credentials.filter(FidoCredential)
     if len(user_webauthn_tokens) >= current_app.conf.webauthn_max_allowed_tokens:
         current_app.logger.error(
@@ -92,10 +91,10 @@ def registration_begin(user, authenticator):
 
     encoded_data = base64.urlsafe_b64encode(cbor.encode(registration_data)).decode('ascii')
     encoded_data = encoded_data.rstrip('=')
-    return {'csrf_token': session.new_csrf_token(), 'registration_data': encoded_data}
+    return success_response({'csrf_token': session.new_csrf_token(), 'registration_data': encoded_data})
 
 
-def urlsafe_b64decode(data):
+def urlsafe_b64decode(data: str) -> bytes:
     data += '=' * (len(data) % 4)
     return base64.urlsafe_b64decode(data)
 
@@ -104,7 +103,7 @@ def urlsafe_b64decode(data):
 @UnmarshalWith(WebauthnRegisterRequestSchema)
 @MarshalWith(SecurityResponseSchema)
 @require_user
-def registration_complete(user, credential_id, attestation_object, client_data, description):
+def registration_complete(user: User, credential_id, attestation_object, client_data, description) -> FluxData:
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
     server = get_webauthn_server(current_app.conf.fido2_rp_id)
     att_obj = AttestationObject(urlsafe_b64decode(attestation_object))
@@ -113,7 +112,7 @@ def registration_complete(user, credential_id, attestation_object, client_data, 
     auth_data = server.register_complete(state, cdata_obj, att_obj)
 
     cred_data = auth_data.credential_data
-    current_app.logger.debug('Proccessed Webauthn credential data: {}.'.format(cred_data))
+    current_app.logger.debug(f'Processed Webauthn credential data: {cred_data}')
 
     credential = Webauthn(
         keyhandle=credential_id,
@@ -136,22 +135,23 @@ def registration_complete(user, credential_id, attestation_object, client_data, 
 @UnmarshalWith(RemoveWebauthnTokenRequestSchema)
 @MarshalWith(SecurityResponseSchema)
 @require_user
-def remove(user, credential_key):
+def remove(user: User, credential_key: str) -> FluxData:
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
     tokens = security_user.credentials.filter(FidoCredential)
     if len(tokens) <= 1:
-        return {'_error': True, 'message': SecurityMsg.no_last.value}
+        current_app.logger.info(f'User {security_user} has tried to remove the last security token')
+        return error_response(message=SecurityMsg.no_last)
 
     token_to_remove = security_user.credentials.find(credential_key)
     if token_to_remove:
-        security_user.credentials.remove(credential_key)
+        security_user.credentials.remove(token_to_remove.key)
         save_and_sync_user(security_user)
         current_app.stats.count(name='webauthn_token_remove')
         current_app.logger.info(f'User {security_user} has removed a security token: {credential_key}')
         message = SecurityMsg.rm_webauthn
     else:
         current_app.logger.info(f'User {security_user} has tried to remove a missing security token: {credential_key}')
-        message = SecurityMsg.no_webauthn
+        return error_response(message=SecurityMsg.no_webauthn)
 
     credentials = compile_credential_list(security_user)
-    return {'message': message, 'credentials': credentials}
+    return success_response(message=message, payload={'credentials': credentials})

@@ -42,6 +42,7 @@ from saml2.saml import NameID
 from werkzeug.exceptions import Forbidden
 from werkzeug.wrappers import Response as WerkzeugResponse
 
+from eduid.userdb.exceptions import MultipleUsersReturned
 from eduid.webapp.authn import acs_actions  # acs_action needs to be imported to be loaded
 from eduid.webapp.authn.app import current_authn_app as current_app
 from eduid.webapp.common.api.utils import sanitise_redirect_url
@@ -166,7 +167,7 @@ def _get_authn_name_id(session: EduidSession) -> Optional[NameID]:
 
 
 @authn_views.route('/logout', methods=['GET'])
-def logout():
+def logout() -> WerkzeugResponse:
     """
     SAML Logout Request initiator.
     This view initiates the SAML2 Logout request
@@ -174,14 +175,16 @@ def logout():
     """
     eppn = session.common.eppn
 
-    next = request.args.get('next', '')
-    location = next or current_app.conf.saml2_logout_redirect_url
+    location = request.args.get('next', current_app.conf.saml2_logout_redirect_url)
 
     if eppn is None:
         current_app.logger.info('Session cookie has expired, no logout action needed')
         return redirect(location)
 
     user = current_app.central_userdb.get_user_by_eppn(eppn)
+    if not user:
+        current_app.logger.error(f'User {eppn} not found, no logout action needed')
+        return redirect(location)
 
     current_app.logger.debug('Logout process started for user {}'.format(user))
 
@@ -189,7 +192,7 @@ def logout():
 
 
 @authn_views.route('/saml2-ls', methods=['POST'])
-def logout_service():
+def logout_service() -> WerkzeugResponse:
     """SAML Logout Response endpoint
     The IdP will send the logout response to this view,
     which will process it with pysaml2 help and log the user
@@ -248,41 +251,42 @@ def logout_service():
 
 
 @authn_views.route('/signup-authn', methods=['GET', 'POST'])
-def signup_authn():
+def signup_authn() -> WerkzeugResponse:
     current_app.logger.debug('Authenticating signing up user')
     location_on_fail = current_app.conf.signup_authn_failure_redirect_url
     location_on_success = current_app.conf.signup_authn_success_redirect_url
 
     eppn = check_previous_identification(session.signup)
     if eppn is not None:
-        current_app.logger.info("Starting authentication for user from signup with eppn: {})".format(eppn))
+        current_app.logger.info(f'Starting authentication for user from signup with eppn: {eppn})')
         try:
             user = current_app.central_userdb.get_user_by_eppn(eppn)
-        except current_app.central_userdb.exceptions.UserDoesNotExist:
-            current_app.logger.error('No user with eduPersonPrincipalName = {} found'.format(eppn))
-        except current_app.central_userdb.exceptions.MultipleUsersReturned:
-            current_app.logger.error("There are more than one user with eduPersonPrincipalName = {}".format(eppn))
-        else:
-            if user.locked_identity.count > 0:
-                # This user has previously verified their account and is not new, this should not happen.
-                current_app.logger.error('Not new user {} tried to log in using signup authn'.format(user))
-                return redirect(location_on_fail)
-            session.common.eppn = user.eppn
-            session.common.is_logged_in = True
-            session.common.login_source = LoginApplication.signup
+        except MultipleUsersReturned:
+            current_app.logger.error(f'There are more than one user with eduPersonPrincipalName = {eppn}')
+            return redirect(location_on_fail)
 
-            response = redirect(location_on_success)
-            current_app.logger.info(
-                'Successful authentication, redirecting user {} to {}'.format(user, location_on_success)
-            )
-            return response
+        if not user:
+            current_app.logger.error(f'No user with eduPersonPrincipalName = {eppn} found')
+            return redirect(location_on_fail)
 
-    current_app.logger.info('Signup authn failed, redirecting user to {}'.format(location_on_fail))
+        if user.locked_identity.count > 0:
+            # This user has previously verified their account and is not new, this should not happen.
+            current_app.logger.error(f'Not new user {user} tried to log in using signup authn')
+            return redirect(location_on_fail)
+        session.common.eppn = user.eppn
+        session.common.is_logged_in = True
+        session.common.login_source = LoginApplication.signup
+
+        response = redirect(location_on_success)
+        current_app.logger.info(f'Successful authentication, redirecting user {user} to {location_on_success}')
+        return response
+
+    current_app.logger.info(f'Signup authn failed, redirecting user to {location_on_fail}')
     return redirect(location_on_fail)
 
 
 @authn_views.route('/saml2-metadata')
-def metadata():
+def metadata() -> WerkzeugResponse:
     """
     Returns an XML with the SAML 2.0 metadata for this
     SP as configured in the saml2_settings.py file.

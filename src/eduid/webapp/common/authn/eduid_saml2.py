@@ -43,11 +43,9 @@ from saml2.client import Saml2Client
 from saml2.ident import decode
 from saml2.response import AuthnResponse, LogoutResponse, StatusError, UnsolicitedResponse
 from werkzeug.exceptions import Forbidden
-from werkzeug.wrappers import Response
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.userdb import UserDB
-from eduid.userdb.element import ElementKey
 from eduid.userdb.exceptions import MultipleUsersReturned, UserDoesNotExist
 from eduid.userdb.user import User
 from eduid.webapp.authn.app import current_authn_app as current_app
@@ -225,7 +223,7 @@ def authenticate(session_info: SessionInfo, strip_suffix: Optional[str], userdb:
     return None
 
 
-def saml_logout(sp_config: SPConfig, user: User, location: str) -> Response:
+def saml_logout(sp_config: SPConfig, user: User, location: str) -> WerkzeugResponse:
     """
     SAML Logout Request initiator.
     This function initiates the SAML2 Logout request

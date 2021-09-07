@@ -8,7 +8,7 @@ from eduid.userdb.logs import OrcidProofing
 from eduid.userdb.orcid import OidcAuthorization, OidcIdToken, Orcid
 from eduid.userdb.proofing import OrcidProofingState, ProofingUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid.webapp.common.api.messages import CommonMsg, redirect_with_msg
+from eduid.webapp.common.api.messages import CommonMsg, TranslatableMsg, redirect_with_msg
 from eduid.webapp.common.api.schemas.csrf import EmptyRequest
 from eduid.webapp.common.api.utils import get_unique_hash, save_and_sync_user
 from eduid.webapp.orcid.app import current_orcid_app as current_app
@@ -151,20 +151,23 @@ def authorization_response(user):
         proofing_version='2018v1',
     )
 
+    _error = True
+    _msg: TranslatableMsg = CommonMsg.temp_problem
+
     if current_app.proofing_log.save(orcid_proofing):
         current_app.logger.info('ORCID proofing data saved to log')
         proofing_user.orcid = orcid_element
         save_and_sync_user(proofing_user)
         current_app.logger.info('ORCID proofing data saved to user')
-        message_args = dict(msg=OrcidMsg.authz_success, error=False)
+        _error = False
+        _msg = OrcidMsg.authz_success
     else:
         current_app.logger.info('ORCID proofing data NOT saved, failed to save proofing log')
-        message_args = dict(msg=CommonMsg.temp_problem)
 
     # Clean up
     current_app.logger.info('Removing proofing state')
     current_app.proofing_statedb.remove_state(proofing_state)
-    return redirect_with_msg(redirect_url, **message_args)
+    return redirect_with_msg(redirect_url, msg=_msg, error=_error)
 
 
 @orcid_views.route('/', methods=['GET'])

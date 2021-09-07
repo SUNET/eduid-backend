@@ -34,10 +34,11 @@
 
 from flask import Blueprint
 
+from eduid.userdb import User
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.personal_data import PersonalDataUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid.webapp.common.api.messages import CommonMsg, error_response, success_response
+from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.personal_data.app import current_pdata_app as current_app
 from eduid.webapp.personal_data.helpers import PDataMsg
@@ -54,22 +55,22 @@ pd_views = Blueprint('personal_data', __name__, url_prefix='')
 @pd_views.route('/all-user-data', methods=['GET'])
 @MarshalWith(AllDataResponseSchema)
 @require_user
-def get_all_data(user):
-    return user.to_dict()
+def get_all_data(user: User) -> FluxData:
+    return success_response(payload=user.to_dict())
 
 
 @pd_views.route('/user', methods=['GET'])
 @MarshalWith(PersonalDataResponseSchema)
 @require_user
-def get_user(user):
-    return user.to_dict()
+def get_user(user: User) -> FluxData:
+    return success_response(payload=user.to_dict())
 
 
 @pd_views.route('/user', methods=['POST'])
 @UnmarshalWith(PersonalDataRequestSchema)
 @MarshalWith(PersonalDataResponseSchema)
 @require_user
-def post_user(user, given_name, surname, display_name, language):
+def post_user(user: User, given_name: str, surname: str, display_name: str, language: str) -> FluxData:
     personal_data_user = PersonalDataUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug('Trying to save user {}'.format(user))
 
@@ -95,8 +96,8 @@ def post_user(user, given_name, surname, display_name, language):
 @pd_views.route('/nins', methods=['GET'])
 @MarshalWith(NinsResponseSchema)
 @require_user
-def get_nins(user):
+def get_nins(user) -> FluxData:
 
     data = {'nins': user.nins.to_list_of_dicts()}
 
-    return data
+    return success_response(payload=data)

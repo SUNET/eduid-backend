@@ -14,13 +14,12 @@ from jose import jws as jose
 from oic.oic.message import AuthorizationResponse, Claims, ClaimsRequest
 
 from eduid.userdb import User
-from eduid.userdb.exceptions import DocumentDoesNotExist
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.util import UTC
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
 from eduid.webapp.common.api.exceptions import TaskFailed
 from eduid.webapp.common.api.helpers import add_nin_to_user
-from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response
+from eduid.webapp.common.api.messages import CommonMsg, error_response
 from eduid.webapp.oidc_proofing import helpers, schemas
 from eduid.webapp.oidc_proofing.app import current_oidcp_app as current_app
 from eduid.webapp.oidc_proofing.helpers import OIDCMsg
@@ -103,23 +102,28 @@ def authorization_response():
     current_app.stats.count(name='authn_response_userinfo_request_success')
 
     # TODO: Break out in parts to be able to continue the proofing process after a successful authorization response
-    # TODO: even if the token request, userinfo request or something internal fails
+    #       even if the token request, userinfo request or something internal fails
+    user = None
     am_user = current_app.central_userdb.get_user_by_eppn(proofing_state.eppn)
-    user = ProofingUser.from_user(am_user, current_app.private_userdb)
+    if am_user:
+        user = ProofingUser.from_user(am_user, current_app.private_userdb)
 
     try:
-        # Handle userinfo differently depending on data in userinfo
-        if userinfo.get('identity'):
-            current_app.logger.info('Handling userinfo as generic seleg vetting for user {}'.format(user))
-            current_app.stats.count(name='seleg.authn_response_received')
-            helpers.handle_seleg_userinfo(user, proofing_state, userinfo)
-        elif userinfo.get('results'):
-            current_app.logger.info('Handling userinfo as freja vetting for user {}'.format(user))
-            current_app.stats.count(name='freja.authn_response_received')
-            helpers.handle_freja_eid_userinfo(user, proofing_state, userinfo)
-    except (TaskFailed, KeyError) as e:
-        current_app.logger.error('Failed to handle userinfo for user {}'.format(user))
-        current_app.logger.error('Exception: {}'.format(e))
+        if user:
+            # Handle userinfo differently depending on data in userinfo
+            if userinfo.get('identity'):
+                current_app.logger.info('Handling userinfo as generic seleg vetting for user {}'.format(user))
+                current_app.stats.count(name='seleg.authn_response_received')
+                helpers.handle_seleg_userinfo(user, proofing_state, userinfo)
+            elif userinfo.get('results'):
+                current_app.logger.info('Handling userinfo as freja vetting for user {}'.format(user))
+                current_app.stats.count(name='freja.authn_response_received')
+                helpers.handle_freja_eid_userinfo(user, proofing_state, userinfo)
+        else:
+            current_app.logger.error(f'Failed to handle userinfo for unknown user {proofing_state.eppn}')
+            current_app.stats.count(name='authn_response_unknown_user')
+    except (TaskFailed, KeyError):
+        current_app.logger.exception(f'Failed to handle userinfo for user {user}')
         current_app.stats.count(name='authn_response_handling_failure')
     finally:
         # Remove users proofing state

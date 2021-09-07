@@ -36,7 +36,7 @@ from flask import Blueprint, abort, request
 from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 
-from eduid.userdb.exceptions import DocumentDoesNotExist, UserOutOfSync
+from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.mail import MailAddress
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.user import User
@@ -62,7 +62,7 @@ email_views = Blueprint('email', __name__, url_prefix='', template_folder='templ
 @email_views.route('/all', methods=['GET'])
 @MarshalWith(EmailResponseSchema)
 @require_user
-def get_all_emails(user):
+def get_all_emails(user: User) -> FluxData:
     emails = {'emails': user.mail_addresses.to_list_of_dicts()}
 
     email_list = EmailListPayload().dump(emails)
@@ -147,23 +147,21 @@ def post_primary(user: User, email: str) -> FluxData:
 @UnmarshalWith(VerificationCodeSchema)
 @MarshalWith(EmailResponseSchema)
 @require_user
-def verify(user, code, email):
+def verify(user: User, code: str, email: str) -> FluxData:
     """"""
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug('Trying to save email address {} as verified'.format(email))
 
     db = current_app.proofing_statedb
-    try:
-        state = db.get_state_by_eppn_and_email(proofing_user.eppn, email)
-        timeout = current_app.conf.email_verification_timeout
-        if state.is_expired(timeout):
-            current_app.logger.info("Verification code is expired. Removing the state")
-            current_app.logger.debug("Proofing state: {}".format(state))
-            current_app.proofing_statedb.remove_state(state)
-            return error_response(message=EmailMsg.invalid_code)
-    except DocumentDoesNotExist:
-        current_app.logger.info('Could not find proofing state for email {}'.format(email))
+    state = db.get_state_by_eppn_and_email(proofing_user.eppn, email)
+    if not state:
+        current_app.logger.info(f'Could not find proofing state for email {email}')
         return error_response(message=EmailMsg.unknown_email)
+    if state.is_expired(current_app.conf.email_verification_timeout):
+        current_app.logger.info('Verification code is expired. Removing the state')
+        current_app.logger.debug(f'Proofing state: {state}')
+        current_app.proofing_statedb.remove_state(state)
+        return error_response(message=EmailMsg.invalid_code)
 
     if code == state.verification.verification_code:
         try:
@@ -186,7 +184,7 @@ def verify(user, code, email):
 
 @email_views.route('/verify', methods=['GET'])
 @require_user
-def verify_link(user) -> WerkzeugResponse:
+def verify_link(user: User) -> WerkzeugResponse:
     """
     Used for verifying an e-mail address when the user clicks the link in the verification mail.
     """
@@ -243,15 +241,13 @@ def post_remove(user, email):
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug('Trying to remove email address {!r} ' 'from user {}'.format(email, proofing_user))
 
-    emails = proofing_user.mail_addresses.to_list()
-    verified_emails = proofing_user.mail_addresses.verified
-
     # Do not let the user remove all mail addresses
-    if len(emails) == 1:
+    if proofing_user.mail_addresses.count == 1:
         current_app.logger.debug('Cannot remove the last address: {}'.format(email))
         return error_response(message=EmailMsg.cannot_remove_last)
 
     # Do not let the user remove all verified mail addresses
+    verified_emails = proofing_user.mail_addresses.verified
     if len(verified_emails) == 1 and verified_emails[0].email == email:
         current_app.logger.debug('Cannot remove last verified address: {}'.format(email))
         return error_response(message=EmailMsg.cannot_remove_last_verified)
@@ -267,8 +263,8 @@ def post_remove(user, email):
     current_app.logger.info('Email address {} removed'.format(email))
     current_app.stats.count(name='email_remove_success', value=1)
 
-    emails = {'emails': proofing_user.mail_addresses.to_list_of_dicts()}
-    email_list = EmailListPayload().dump(emails)
+    _emails = {'emails': proofing_user.mail_addresses.to_list_of_dicts()}
+    email_list = EmailListPayload().dump(_emails)
     return success_response(payload=email_list, message=EmailMsg.removal_success)
 
 

@@ -94,6 +94,7 @@ class SecurityMsg(TranslatableMsg):
     user_not_verified = 'security.user-not-verified'
     navet_data_incomplete = 'security.navet-data-incomplete'
     user_updated = 'security.user-updated'
+    no_webauthn = 'security.webauthn-token-notfound'
 
 
 def credentials_to_registered_keys(user_u2f_tokens: List[FidoCredential]) -> List[U2FRegisteredKey]:

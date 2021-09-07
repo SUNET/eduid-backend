@@ -86,23 +86,23 @@ def trycaptcha(email: str, recaptcha_response: str, tou_accepted: bool) -> FluxD
             current_app.logger.info('Missing configuration for reCaptcha!')
 
     if recaptcha_verified:
-        next = check_email_status(email)
-        current_app.logger.info(f'recaptcha verified, next is {next}')
-        if next == 'new':
+        _next = check_email_status(email)
+        current_app.logger.info(f'recaptcha verified, next is {_next}')
+        if _next == 'new':
             # Workaround for failed earlier sync of user to userdb: Remove any signup_user with this e-mail address.
             remove_users_with_mail_address(email)
             send_verification_mail(email)
-            return success_response(payload=dict(next=next), message=SignupMsg.reg_new)
+            return success_response(payload=dict(next=_next), message=SignupMsg.reg_new)
 
-        elif next == 'resend-code':
+        elif _next == 'resend-code':
             send_verification_mail(email)
             current_app.stats.count(name='resend_code')
             # Show the same end screen for resending a mail and a new registration
             return success_response(payload=dict(next='new'), message=SignupMsg.reg_new)
 
-        elif next == 'address-used':
+        elif _next == 'address-used':
             current_app.stats.count(name='address_used_error')
-            return error_response(payload=dict(next=next), message=SignupMsg.email_used)
+            return error_response(payload=dict(next=_next), message=SignupMsg.email_used)
 
     return error_response(message=SignupMsg.no_recaptcha)
 
@@ -128,16 +128,20 @@ def verify_link(code: str) -> FluxData:
 
 
 @signup_views.route('/get-code', methods=['GET'])
-def get_email_code():
+def get_email_code() -> str:
     """
     Backdoor to get the email verification code in the staging or dev environments
     """
     try:
         if check_magic_cookie(current_app.conf):
             email = request.args.get('email')
+            if not email:
+                current_app.logger.error('Missing email')
+                abort(400)
             signup_user = current_app.private_userdb.get_user_by_pending_mail_address(email)
-            code = signup_user.pending_mail_address.verification_code
-            return code
+            if signup_user and signup_user.pending_mail_address and signup_user.pending_mail_address.verification_code:
+                code = signup_user.pending_mail_address.verification_code
+                return code
     except Exception:
         current_app.logger.exception("Someone tried to use the backdoor to get the email verification code for signup")
 

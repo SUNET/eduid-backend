@@ -32,13 +32,10 @@
 #
 
 
-from typing import Optional
-
 from flask import Blueprint, abort, request
 
 from eduid.userdb import User
-from eduid.userdb.element import ElementKey, PrimaryElementViolation, UserDBValueError
-from eduid.userdb.exceptions import DocumentDoesNotExist, UserOutOfSync
+from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.phone import PhoneNumber
 from eduid.userdb.proofing import ProofingUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
@@ -254,7 +251,7 @@ def resend_code(user: User, number: str) -> FluxData:
 
 
 @phone_views.route('/get-code', methods=['GET'])
-def get_code():
+def get_code() -> str:
     """
     Backdoor to get the verification code in the staging or dev environments
     """
@@ -262,8 +259,13 @@ def get_code():
         if check_magic_cookie(current_app.conf):
             eppn = request.args.get('eppn')
             phone = request.args.get('phone')
+            if not eppn or not phone:
+                # TODO: Return something better when the ENUMs have landed in master
+                current_app.logger.error('Missing eppn or phone')
+                abort(400)
             state = current_app.proofing_statedb.get_state_by_eppn_and_mobile(eppn, phone)
-            return state.verification.verification_code
+            if state and state.verification and state.verification.verification_code:
+                return state.verification.verification_code
     except Exception:
         current_app.logger.exception("Someone tried to use the backdoor to get the verification code for a phone")
 
