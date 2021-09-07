@@ -79,7 +79,7 @@ class ResetPasswordConfig(
     # throttle resend of mail and sms
     throttle_resend_seconds: int = 300
     # URL to get the js app that can drive the process to reset the password
-    password_reset_link: str = 'https://login.eduid.se/reset-password/email-code'
+    password_reset_link: str = 'https://www.eduid.se/reset-password/email-code'
     password_service_url: str = '/services/reset-password/'
     # Throttle sending SMSs for extra security resetting passwords
     throttle_sms_seconds: int = 300
