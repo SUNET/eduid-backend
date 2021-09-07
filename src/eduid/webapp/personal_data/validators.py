@@ -30,7 +30,6 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-import re
 
 from marshmallow import ValidationError
 
@@ -38,12 +37,12 @@ from eduid.webapp.personal_data.app import current_pdata_app as current_app
 from eduid.webapp.personal_data.helpers import PDataMsg
 
 
-def validate_language(lang):
+def validate_language(lang: str):
     available_langs = current_app.conf.available_languages
     if lang not in available_langs:
         raise ValidationError('Language {!r} is not available'.format(lang))
 
 
-def validate_nonempty(value):
+def validate_nonempty(value: str):
     if not value.strip():  # Remove whitespace
         raise ValidationError(PDataMsg.required.value)

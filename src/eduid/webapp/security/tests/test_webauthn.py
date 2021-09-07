@@ -13,6 +13,7 @@ from mock import patch
 from eduid.userdb.credentials import U2F, Webauthn
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.security.app import SecurityApp, security_init_app
+from eduid.webapp.security.helpers import SecurityMsg
 from eduid.webapp.security.views.webauthn import get_webauthn_server
 
 __author__ = 'eperez'
@@ -216,10 +217,6 @@ class SecurityWebauthnTests(EduidAPITestCase):
         self.assertTrue(len(data['payload']['credentials']) > 0)
         self.assertEqual(data['payload']['message'], 'security.webauthn_register_success')
 
-    def _check_last(self, data):
-        self.assertEqual(data['type'], 'POST_WEBAUTHN_WEBAUTHN_REMOVE_SUCCESS')
-        self.assertEqual(data['payload']['message'], 'security.webauthn-noremove-last')
-
     def _check_removal(self, data, user_token):
         self.assertEqual(data['type'], 'POST_WEBAUTHN_WEBAUTHN_REMOVE_SUCCESS')
         self.assertIsNotNone(data['payload']['credentials'])
@@ -361,7 +358,17 @@ class SecurityWebauthnTests(EduidAPITestCase):
                 'credential_key': user_token.key,
             }
             response2 = client.post('/webauthn/remove', data=json.dumps(data), content_type=self.content_type_json)
-            return json.loads(response2.data)
+
+        if csrf is not None:
+            self._check_error_response(
+                response2,
+                type_='POST_WEBAUTHN_WEBAUTHN_REMOVE_FAIL',
+                error={'csrf_token': ['CSRF failed to validate']},
+            )
+        else:
+            self._check_api_response(
+                response2, status=200, type_='POST_WEBAUTHN_WEBAUTHN_REMOVE_FAIL', message=SecurityMsg.no_last
+            )
 
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def _remove(
@@ -503,25 +510,19 @@ class SecurityWebauthnTests(EduidAPITestCase):
         self.assertEqual(data['payload']['error']['csrf_token'], ['CSRF failed to validate'])
 
     def test_dont_remove_last_ctap1(self):
-        data = self._dont_remove_last(reg_data=REGISTERING_DATA, state=STATE)
-        self._check_last(data)
+        self._dont_remove_last(reg_data=REGISTERING_DATA, state=STATE)
 
     def test_dont_remove_last_ctap1_with_legacy_token(self):
-        data = self._dont_remove_last(reg_data=REGISTERING_DATA, state=STATE, existing_legacy_token=True)
-        self._check_last(data)
+        self._dont_remove_last(reg_data=REGISTERING_DATA, state=STATE, existing_legacy_token=True)
 
     def test_dont_remove_last_ctap2(self):
-        data = self._dont_remove_last(reg_data=REGISTERING_DATA_2, state=STATE_2)
-        self._check_last(data)
+        self._dont_remove_last(reg_data=REGISTERING_DATA_2, state=STATE_2)
 
     def test_dont_remove_last_ctap2_with_legacy_token(self):
-        data = self._dont_remove_last(reg_data=REGISTERING_DATA_2, state=STATE_2, existing_legacy_token=True)
-        self._check_last(data)
+        self._dont_remove_last(reg_data=REGISTERING_DATA_2, state=STATE_2, existing_legacy_token=True)
 
     def test_dont_remove_last_wrong_csrf(self):
-        data = self._dont_remove_last(reg_data=REGISTERING_DATA, state=STATE, csrf='wrong-token')
-        self.assertEqual(data['type'], 'POST_WEBAUTHN_WEBAUTHN_REMOVE_FAIL')
-        self.assertEqual(data['payload']['error']['csrf_token'], ['CSRF failed to validate'])
+        self._dont_remove_last(reg_data=REGISTERING_DATA, state=STATE, csrf='wrong-token')
 
     def test_remove_ctap1(self):
         user_token, data = self._remove(

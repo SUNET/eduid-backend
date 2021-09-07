@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Dict, List, NewType, Optional, Set
+from typing import Dict, List, Optional, Set
 
 from pydantic import BaseModel, ConstrainedStr, Field, validator
 

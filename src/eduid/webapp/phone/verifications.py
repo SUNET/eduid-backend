@@ -34,7 +34,6 @@
 from flask import render_template
 
 from eduid.userdb import User
-from eduid.userdb.element import ElementKey
 from eduid.userdb.logs import PhoneNumberProofing
 from eduid.userdb.phone import PhoneNumber
 from eduid.userdb.proofing import PhoneProofingElement, PhoneProofingState, ProofingUser

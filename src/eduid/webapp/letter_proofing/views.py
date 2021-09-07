@@ -176,14 +176,15 @@ def verify_code(user: User, code: str) -> FluxData:
 
 @letter_proofing_views.route('/get-code', methods=['GET'])
 @require_user
-def get_code(user):
+def get_code(user: User) -> str:
     """
     Backdoor to get the verification code in the staging or dev environments
     """
     try:
         if check_magic_cookie(current_app.conf):
             state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
-            return state.nin.verification_code
+            if state and state.nin and state.nin.verification_code:
+                return state.nin.verification_code
     except Exception:
         current_app.logger.exception(f"{user} tried to use the backdoor to get the letter verification code for a NIN")
     abort(400)

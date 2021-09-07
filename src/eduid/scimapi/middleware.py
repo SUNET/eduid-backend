@@ -66,7 +66,7 @@ class AuthnBearerToken(BaseModel):
             new_access += [this]
         return new_access
 
-    def get_data_owner(self, logger: logging.Logger) -> Optional[str]:
+    def get_data_owner(self, logger: logging.Logger) -> Optional[DataOwnerName]:
         """
         Get the data owner to use.
 
@@ -96,7 +96,7 @@ class AuthnBearerToken(BaseModel):
             _found = self.scim_config.data_owners.get(DataOwnerName(this.scope))
             logger.debug(f'Requested access to scope {this.scope}, allowed {_allowed}, found: {_found}')
             if _allowed and _found:
-                return this.scope
+                return DataOwnerName(this.scope)
 
         # sort to be deterministic
         for scope in sorted(list(self.scopes)):
@@ -107,7 +107,7 @@ class AuthnBearerToken(BaseModel):
             _found = self.scim_config.data_owners.get(DataOwnerName(scope))
             logger.debug(f'Trying scope {scope}, allowed {_allowed}, found: {_found}')
             if _allowed and _found:
-                return scope
+                return DataOwnerName(scope)
 
         return None
 

@@ -61,9 +61,9 @@ class Credential(VerifiedElement):
     def __str__(self):
         if len(self.key) == 24:
             # probably an object id in string format, don't cut it
-            shortkey = self.key
+            shortkey = str(self.key)
         else:
-            shortkey = self.key[:12] + '...'
+            shortkey = str(self.key[:12]) + '...'
         if self.is_verified:
             return (
                 f'<eduID {self.__class__.__name__}(key={repr(shortkey)}): verified=True, '

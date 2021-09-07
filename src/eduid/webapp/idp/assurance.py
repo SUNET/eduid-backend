@@ -106,8 +106,8 @@ class UsedCredential:
     ts: datetime
     source: UsedWhere  # only used for debugging purposes
 
-    def __str__(self):
-        key = self.credential.key
+    def __str__(self) -> str:
+        key = str(self.credential.key)
         if len(key) > 24:
             # 24 is length of object-id, webauthn credentials are much longer
             key = key[:21] + '...'
