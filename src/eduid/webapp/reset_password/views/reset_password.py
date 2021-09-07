@@ -380,7 +380,8 @@ def set_new_pw_extra_security_phone(email_code: str, password: str, phone_code: 
         return error_response(message=e.msg)
 
     if not isinstance(context.state, ResetPasswordEmailAndPhoneState):
-        raise TypeError(f'State is not ResetPasswordEmailAndPhoneState ({type(context.state)})')
+        # if the state is not an EmailAndPhoneState the phone code has expired
+        return error_response(message=ResetPwMsg.expired_phone_code)
 
     if phone_code == context.state.phone_code.code:
         if not verify_phone_number(context.state):
