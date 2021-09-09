@@ -10,6 +10,3 @@ __copyright__ = 'SUNET'
 __organization__ = 'SUNET'
 __license__ = 'BSD'
 __authors__ = ['Fredrik Thulin']
-
-# convenience imports (order matters)
-from eduid.userdb.dashboard.user import DashboardLegacyUser, DashboardUser
