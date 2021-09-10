@@ -176,6 +176,7 @@ class ProofingTestCase(AMTestCase):
     def test_invalid_user(self):
         if self.fetcher is None:
             pytest.skip('Fetcher not initialised')
+        assert self.fetcher  # mypy doesn't understand pytest.skip it seems
 
         with self.assertRaises(UserDoesNotExist):
             self.fetcher.fetch_attrs(bson.ObjectId('0' * 24))
@@ -183,6 +184,7 @@ class ProofingTestCase(AMTestCase):
     def test_malicious_attributes(self):
         if self.fetcher is None:
             pytest.skip('Fetcher not initialised')
+        assert self.fetcher  # mypy doesn't understand pytest.skip it seems
 
         self.user_data.update({'malicious': 'hacker'})
 

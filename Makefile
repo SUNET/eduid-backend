@@ -12,6 +12,8 @@ reformat:
 
 typecheck:
 	MYPYPATH=$(SRCDIR) mypy --ignore-missing-imports --namespace-packages -p eduid
+        # a second pass with --check-untyped-defs, excluding test files
+	MYPYPATH=$(SRCDIR) mypy --ignore-missing-imports --namespace-packages -p eduid --check-untyped-defs --exclude '/test_.*\.py$$'
 
 update_translations:
 	pybabel extract -k _ -k gettext -k ngettext --mapping=babel.cfg --width=120 --output=$(SOURCE)/webapp/translations/messages.pot $(SOURCE)/webapp/

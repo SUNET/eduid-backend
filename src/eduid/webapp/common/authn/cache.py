@@ -16,6 +16,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Any, Dict
 
 from saml2.cache import Cache
 
@@ -25,20 +26,20 @@ class SessionCacheAdapter(dict):
 
     key_prefix = '_saml2'
 
-    def __init__(self, backend, key_suffix):
+    def __init__(self, backend: Dict[str, Any], key_suffix: str):
         self.session = backend
         self.key = self.key_prefix + key_suffix
 
-        super(SessionCacheAdapter, self).__init__(self._get_objects())
+        super().__init__(self._get_objects())
 
-    def _get_objects(self):
+    def _get_objects(self) -> Any:
         return self.session.get(self.key, {})
 
-    def _set_objects(self, objects):
+    def _set_objects(self, objects: Any):
         self.session[self.key] = objects
 
     def sync(self):
-        objs = {}
+        objs: Dict[str, Any] = {}
         objs.update(self)
         self._set_objects(objs)
 

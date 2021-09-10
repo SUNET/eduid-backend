@@ -116,7 +116,7 @@ class EduidAPITestCase(CommonTestCase):
 
         super().setUp(*args, am_users=am_users, **kwargs)
 
-        self.user = None  # type: ignore
+        self.user: Optional[User] = None  # type: ignore
         # Initialize some convenience variables on self based on the first user in `users'
         self.test_user_data = _standard_test_users[users[0]].to_dict()
         self.test_user = User.from_dict(self.test_user_data)

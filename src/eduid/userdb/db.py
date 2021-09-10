@@ -8,12 +8,7 @@ from bson import ObjectId
 from pymongo.errors import PyMongoError
 from pymongo.uri_parser import parse_uri
 
-from eduid.userdb.exceptions import (
-    DocumentDoesNotExist,
-    EduIDUserDBError,
-    MongoConnectionError,
-    MultipleDocumentsReturned,
-)
+from eduid.userdb.exceptions import EduIDUserDBError, MongoConnectionError, MultipleDocumentsReturned
 
 
 class MongoDB(object):

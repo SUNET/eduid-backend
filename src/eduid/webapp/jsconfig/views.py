@@ -36,6 +36,7 @@ from flask import Blueprint
 
 from eduid.common.misc.tous import get_tous
 from eduid.webapp.common.api.decorators import MarshalWith
+from eduid.webapp.common.api.messages import FluxData, success_response
 from eduid.webapp.common.api.schemas.base import FluxStandardAction
 from eduid.webapp.common.session import session
 from eduid.webapp.jsconfig.app import current_jsconfig_app as current_app
@@ -62,13 +63,13 @@ def _fix_uppercase_config(config: Dict[str, Any]):
 # TODO: remove when /dashboard/config is used
 @jsconfig_views.route('/config', methods=['GET'])
 @MarshalWith(FluxStandardAction)
-def get_dashboard_config_old() -> dict:
+def get_dashboard_config_old() -> FluxData:
     return get_dashboard_config()
 
 
 @jsconfig_views.route('/dashboard/config', methods=['GET'])
 @MarshalWith(FluxStandardAction)
-def get_dashboard_config() -> dict:
+def get_dashboard_config() -> FluxData:
     """
     Configuration for the dashboard front app
     """
@@ -81,12 +82,12 @@ def get_dashboard_config() -> dict:
     if current_app.conf.fix_dashboard_uppercase_config:
         config_dict = _fix_uppercase_config(config_dict)
 
-    return config_dict
+    return success_response(payload=config_dict)
 
 
 @jsconfig_views.route('/signup/config', methods=['GET'])
 @MarshalWith(FluxStandardAction)
-def get_signup_config() -> dict:
+def get_signup_config() -> FluxData:
     """
     Configuration for the signup front app
     """
@@ -102,16 +103,16 @@ def get_signup_config() -> dict:
     if current_app.conf.fix_signup_uppercase_config:
         config_dict = _fix_uppercase_config(config_dict)
 
-    return config_dict
+    return success_response(payload=config_dict)
 
 
 @jsconfig_views.route('/login/config', methods=['GET'])
 @MarshalWith(FluxStandardAction)
-def get_login_config() -> dict:
+def get_login_config() -> FluxData:
     """
     Configuration for the login front app
     """
-    return {
+    payload = {
         'csrf_token': session.get_csrf_token(),
         'next_url': current_app.conf.jsapps.login_next_url,
         'password_service_url': current_app.conf.jsapps.password_service_url,
@@ -126,3 +127,4 @@ def get_login_config() -> dict:
         'sentry_dsn': current_app.conf.jsapps.sentry_dsn,
         'environment': current_app.conf.jsapps.environment.value,
     }
+    return success_response(payload=payload)

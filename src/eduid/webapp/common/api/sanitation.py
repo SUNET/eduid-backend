@@ -36,6 +36,8 @@ from urllib.parse import quote, unquote
 from bleach import clean
 from flask import request
 
+module_logger = logging.getLogger(__name__)
+
 
 class SanitationProblem(Exception):
     pass
@@ -49,9 +51,9 @@ class Sanitizer(object):
     def sanitize_input(
         self,
         untrusted_text: str,
-        logger: logging.Logger,
         content_type: Optional[str] = None,
         strip_characters: bool = False,
+        logger: Optional[logging.Logger] = None,
     ) -> str:
         """
         Sanitize user input by escaping or removing potentially
@@ -65,9 +67,11 @@ class Sanitizer(object):
 
         :return: Sanitized user input
         """
+        if logger is None:
+            logger = module_logger
         try:
             # Test if the untrusted text is percent encoded
-            # before running bleech.
+            # before running bleach.
             if isinstance(untrusted_text, bytes):
                 untrusted_text = untrusted_text.decode('utf-8')
             if unquote(untrusted_text) != untrusted_text:
@@ -85,11 +89,18 @@ class Sanitizer(object):
 
         except UnicodeDecodeError:
             logger.warning(
-                'A malicious user tried to crash the application ' 'by sending non-unicode input in a GET request'
+                'A malicious user tried to crash the application by sending non-unicode input in a GET request'
             )
             raise SanitationProblem('Non-unicode input')
 
-    def _sanitize_input(self, untrusted_text, logger, strip_characters=False, content_type=None, percent_encoded=False):
+    def _sanitize_input(
+        self,
+        untrusted_text: str,
+        logger: logging.Logger,
+        strip_characters: bool = False,
+        content_type: Optional[str] = None,
+        percent_encoded: bool = False,
+    ):
         """
         :param untrusted_text: User input to sanitize
         :param strip_characters: Set to True to remove instead of escaping

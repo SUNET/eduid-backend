@@ -44,6 +44,8 @@ of the Flask application::
     >>> app = Flask('name')
     >>> app.request_class =  Request
 """
+import logging
+from typing import Optional
 
 from flask import Request as BaseRequest
 from flask import abort, current_app
@@ -60,11 +62,18 @@ class SanitationMixin(Sanitizer):
     sanitize user inputs.
     """
 
-    def sanitize_input(self, untrusted_text, strip_characters=False):
-        logger = current_app.logger
+    def sanitize_input(
+        self,
+        untrusted_text: str,
+        content_type: Optional[str] = None,
+        strip_characters: bool = False,
+        logger: Optional[logging.Logger] = None,
+    ):
+        if logger is None:
+            logger = current_app.logger
         try:
-            return super(SanitationMixin, self).sanitize_input(
-                untrusted_text, logger, strip_characters=strip_characters
+            return super().sanitize_input(
+                untrusted_text, content_type=content_type, strip_characters=strip_characters, logger=logger
             )
         except SanitationProblem:
             abort(400)
@@ -215,33 +224,32 @@ class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
         """
         return [(v[0], self.sanitize_input(v[1])) for v in ImmutableTypeConversionDict.items(self)]
 
-    def pop(self, key):
+    def pop(self, key: str, default=None):
         """
         Sanitized pop
 
         :param key: the key for the value
-        :type key: str
+
+        TODO: Remove? An ImmutableDictMixin is immutable, and has no pop - right?
         """
-        val = ImmutableTypeConversionDict.pop(key)
+        val = super().pop(key, default=default)
         return self.sanitize_input(val)
 
 
 class SanitizedEnvironHeaders(EnvironHeaders, SanitationMixin):
     """
-    Sanitized and read only version of the headersfrom a WSGI environment.
+    Sanitized and read only version of the headers from a WSGI environment.
     """
 
-    def __getitem__(self, key, _get_mode=False):
+    def __getitem__(self, key: str, _get_mode: bool = False) -> str:
         """
         Sanitized __getitem__
 
         :param key: the key for the value
-        :type key: str
         :param _get_mode: is a no-op for this class as there is no index but
                           used because get() calls it.
-        :type _get_mode: bool
         """
-        val = EnvironHeaders.__getitem__(self, key, _get_mode=_get_mode)
+        val = EnvironHeaders.__getitem__(self, key)
         return self.sanitize_input(val)
 
     def __iter__(self):

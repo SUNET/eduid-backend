@@ -20,7 +20,7 @@ from eduid.common.config.base import StatsConfigMixin
 
 class AppStats(ABC):
     @abstractmethod
-    def count(self, name, value=1):
+    def count(self, name: str, value: int = 1) -> None:
         pass
 
 
@@ -36,7 +36,7 @@ class NoOpStats(AppStats):
         self.logger = logger
         self.prefix = prefix
 
-    def count(self, name, value=1):
+    def count(self, name: str, value: int = 1) -> None:
         if self.logger:
             if self.prefix:
                 name = '{!s}.{!s}'.format(self.prefix, name)
@@ -49,7 +49,7 @@ class Statsd(AppStats):
 
         self.client = statsd.StatsClient(host, port, prefix=prefix)
 
-    def count(self, name, value=1):
+    def count(self, name: str, value: int = 1) -> None:
         self.client.incr('{}.average'.format(name), count=value)
         # You need to set up a storage aggregation that uses sum instead of the default average
         # for .count

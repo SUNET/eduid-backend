@@ -161,7 +161,7 @@ def remove_nin_from_user(security_user: SecurityUser, nin: Nin) -> None:
 
 
 @deprecated("Remove once the password reset views are served from their own webapp")
-def generate_suggested_password():
+def generate_suggested_password() -> str:
     """
     The suggested password is saved in session to avoid form hijacking
     """
