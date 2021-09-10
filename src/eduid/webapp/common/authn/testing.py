@@ -33,19 +33,15 @@
 import json
 import logging
 
-from bson import ObjectId
-
 from eduid.common.decorators import deprecated
-from eduid.userdb.credentials import Password
-from eduid.userdb.dashboard import DashboardLegacyUser, DashboardUser
-from eduid.vccs.client import VCCSClient, VCCSPasswordFactor
-from eduid.webapp.common.authn import get_vccs_client
+from eduid.vccs.client import VCCSClient
 
 logger = logging.getLogger()
 
 
 class FakeVCCSClient(VCCSClient):
     def __init__(self, fake_response=None):
+        super().__init__()
         self.fake_response = fake_response
 
     def _execute_request_response(self, _service, _values):
@@ -55,15 +51,15 @@ class FakeVCCSClient(VCCSClient):
         fake_response = {}
         if _service == 'add_creds':
             fake_response = {
-                'add_creds_response': {'version': 1, 'success': True,},
+                'add_creds_response': {'version': 1, 'success': True},
             }
         elif _service == 'authenticate':
             fake_response = {
-                'auth_response': {'version': 1, 'authenticated': True,},
+                'auth_response': {'version': 1, 'authenticated': True},
             }
         elif _service == 'revoke_creds':
             fake_response = {
-                'revoke_creds_response': {'version': 1, 'success': True,},
+                'revoke_creds_response': {'version': 1, 'success': True},
             }
         return json.dumps(fake_response)
 
@@ -133,34 +129,3 @@ class TestVCCSClient(object):
 
 # new name to import from dependent packages, so we can remove the deprecated TestVCCSClient
 MockVCCSClient = TestVCCSClient
-
-
-def provision_credentials(vccs_url, new_password, user, vccs=None, source='dashboard'):
-    """
-    This function should be used by tests only
-    Provision new password to a user.
-    Returns True on success.
-
-    :param vccs_url: URL to VCCS authentication backend
-    :param new_password: plaintext new password
-    :param user: user object
-    :type vccs_url: str
-    :type user: User
-    :rtype: bool
-    """
-    password_id = ObjectId()
-    if vccs is None:
-        vccs = get_vccs_client(vccs_url)
-    # upgrade DashboardLegacyUser to DashboardUser
-    if isinstance(user, DashboardLegacyUser):
-        user = DashboardUser.from_dict(data=user._mongo_doc)
-
-    new_factor = VCCSPasswordFactor(new_password, credential_id=str(password_id))
-
-    if not vccs.add_credentials(str(user.user_id), [new_factor]):
-        return False  # something failed
-
-    new_password = Password(credential_id=str(password_id), salt=new_factor.salt, created_by=source)
-    user.credentials.add(new_password)
-
-    return user

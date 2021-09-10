@@ -164,6 +164,9 @@ class IdP_SAMLRequest(object):
         """
         try:
             _subject = self._req_info.subject_id()
+            if not isinstance(_subject.text, str):
+                logger.debug(f'Invalid Subject ID in AuthnRequest (not a string): {_subject.text}')
+                return None
             return _subject.text.strip()
         except AttributeError:
             # pysaml trips over itself here if there is no Subject ID: 'NoneType' object has no attribute 'keys'

@@ -38,7 +38,7 @@ import stat
 from abc import ABC
 from binascii import unhexlify
 from hashlib import sha1
-from typing import Any, Dict, Mapping
+from typing import Any, Dict, Mapping, Optional
 
 import pyhsm
 import yaml
@@ -129,10 +129,11 @@ class VCCSSoftHasher(VCCSHasher):
     """
 
     def __init__(self, keys: Mapping[int, str], lock, debug=False):
-        VCCSHasher.__init__(self, lock)
+        super().__init__(lock)
         self.debug = debug
         # Covert keys from strings to bytes when loading
         self.keys: Dict[int, bytes] = {}
+        self._temp_key: Optional[bytes] = None
         for k, v in keys.items():
             self.keys[k] = unhexlify(v)
 
@@ -142,7 +143,7 @@ class VCCSSoftHasher(VCCSHasher):
     def info(self) -> Any:
         return f'key handles loaded: {list(self.keys.keys())}'
 
-    async def hmac_sha1(self, key_handle, data):
+    async def hmac_sha1(self, key_handle: Optional[int], data: bytes) -> bytes:
         """
         Perform HMAC-SHA-1 operation using YubiHSM.
 
@@ -154,18 +155,21 @@ class VCCSSoftHasher(VCCSHasher):
         finally:
             await self.lock_release()
 
-    def unsafe_hmac_sha1(self, key_handle, data):
+    def unsafe_hmac_sha1(self, key_handle: Optional[int], data: bytes) -> bytes:
         if key_handle is None:
-            key_handle = 'TEMP_KEY'
-        hmac_key = self.keys[key_handle]
+            if not self._temp_key:
+                raise RuntimeError('No key handle provided, and no temp key loaded')
+            hmac_key = self._temp_key
+        else:
+            hmac_key = self.keys[key_handle]
         return hmac.new(hmac_key, msg=data, digestmod=sha1).digest()
 
-    def load_temp_key(self, nonce, key_handle, aead):
+    def load_temp_key(self, nonce: str, key_handle: int, aead: bytes) -> bool:
         pt = pyhsm.soft_hsm.aesCCM(self.keys[key_handle], key_handle, nonce, aead, decrypt=True)
-        self.keys['TEMP_KEY'] = pt[:-4]  # skip the last four bytes which are permission bits
+        self._temp_key = pt[:-4]  # skip the last four bytes which are permission bits
         return True
 
-    async def safe_random(self, byte_count):
+    async def safe_random(self, byte_count: int) -> bytes:
         """
         Generate random bytes from urandom.
         """

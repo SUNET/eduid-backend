@@ -58,7 +58,7 @@ async def startup_event():
 
     for k, v in logging.Logger.manager.loggerDict.items():
         app.logger.debug(f'See logger {k}: {v}')
-        if k == 'uvicorn.error':
+        if k == 'uvicorn.error' and isinstance(v, logging.Logger):
             app.logger.debug(f'  {v.level} {v.propagate}')
 
     for _name in ['uvicorn', 'uvicorn.access', 'uvicorn.error']:

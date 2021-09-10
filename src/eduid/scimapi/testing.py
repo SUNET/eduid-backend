@@ -150,8 +150,10 @@ class ScimApiTestCase(MongoNeoTestCase):
 
     def tearDown(self):
         super().tearDown()
-        self.userdb._drop_whole_collection()
-        self.eventdb._drop_whole_collection()
+        if self.userdb:
+            self.userdb._drop_whole_collection()
+        if self.eventdb:
+            self.eventdb._drop_whole_collection()
 
     def _assertScimError(
         self,

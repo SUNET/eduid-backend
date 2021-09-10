@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from typing import Optional
 
 import pkg_resources
 from flask import request
@@ -23,7 +24,8 @@ def init_babel(app: EduIDBaseApp) -> None:
     app.logger.info('Available translations: {}'.format(app.babel.list_translations()))
 
     @app.babel.localeselector
-    def get_locale():
+    def get_locale() -> Optional[str]:
+        lang: Optional[str]  # mypy 0.910 needs this
         # if a user is logged in, use the locale from the user settings
         if session.common.preferred_language is not None:
             lang = session.common.preferred_language

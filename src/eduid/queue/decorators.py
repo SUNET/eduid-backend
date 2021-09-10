@@ -3,8 +3,10 @@ from inspect import isclass
 
 from eduid.userdb.db import MongoDB
 
-
 # TODO: Refactor but keep transaction audit document structure
+from eduid.userdb.util import utc_now
+
+
 class TransactionAudit(object):
     enabled = False
 
@@ -21,8 +23,8 @@ class TransactionAudit(object):
 
         def audit(*args, **kwargs):
             ret = f(*args, **kwargs)
-            if not isclass(ret):  # we can't save class objects in mongodb
-                date = datetime.utcnow()
+            if not isclass(ret) and self.collection:  # we can't save class objects in mongodb
+                date = utc_now()
                 doc = {
                     'function': f.__name__,
                     'data': self._filter(f.__name__, ret, *args, **kwargs),

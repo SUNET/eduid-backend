@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, Type, Union
+from typing import Any, Dict
+
+from pydantic import Field
 
 from pydantic import Field
 

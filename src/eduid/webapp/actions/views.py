@@ -104,6 +104,9 @@ def get_actions():
         )
     plugin_obj = current_app.plugins[session.actions.current_plugin]()
     action = session.actions.current_action
+    if not action:
+        # please mypy
+        abort(500)
     current_app.logger.info(f'Starting pre-login action {action.action_type} for user {user}')
     try:
         url = plugin_obj.get_url_for_bundle(action)

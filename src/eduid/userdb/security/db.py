@@ -32,7 +32,7 @@
 #
 import copy
 import logging
-from typing import Any, Mapping, Optional, Union
+from typing import Any, Dict, Mapping, Optional, Union
 
 from eduid.userdb.db import BaseDB
 from eduid.userdb.deprecation import deprecated
@@ -40,6 +40,7 @@ from eduid.userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
 from eduid.userdb.security.state import PasswordResetEmailAndPhoneState, PasswordResetEmailState, PasswordResetState
 from eduid.userdb.security.user import SecurityUser
 from eduid.userdb.userdb import UserDB
+from eduid.userdb.util import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -117,7 +118,7 @@ class PasswordResetStateDB(BaseDB):
         """
 
         modified = state.modified_ts
-        state.modified_ts = True  # update to current time
+        state.modified_ts = utc_now()  # update to current time
 
         data = state.to_dict()
         # Remember what type of state this is, used when loading state above in init_state()
@@ -135,7 +136,7 @@ class PasswordResetStateDB(BaseDB):
             result = self._coll.insert_one(data)
             logging.debug(f"{self} Inserted new state {state} into {self._coll_name}): {result.inserted_id})")
         else:
-            test_doc = {'eduPersonPrincipalName': state.eppn}
+            test_doc: Dict[str, Any] = {'eduPersonPrincipalName': state.eppn}
             if check_sync:
                 test_doc['modified_ts'] = modified
             result = self._coll.replace_one(test_doc, data, upsert=(not check_sync))

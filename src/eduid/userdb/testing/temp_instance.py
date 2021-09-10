@@ -137,7 +137,6 @@ class EduidTemporaryInstance(ABC):
         if self._process:
             self._process.terminate()
             self._process.wait()
-            self._process = None
         self._logfile.close()
         if 'tmp' in self._tmpdir:
             shutil.rmtree(self._tmpdir, ignore_errors=True)
