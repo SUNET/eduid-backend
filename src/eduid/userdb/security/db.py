@@ -141,7 +141,7 @@ class PasswordResetStateDB(BaseDB):
             result = self._coll.replace_one(test_doc, data, upsert=(not check_sync))
             if check_sync and result.matched_count == 0:
                 db_ts = None
-                db_state = self._coll.find_one({'eppn': state.eppn})
+                db_state = self._coll.find_one({'eduPersonPrincipalName': state.eppn})
                 if db_state:
                     db_ts = db_state['modified_ts']
                 logging.debug(
