@@ -38,15 +38,15 @@ class PasswordResetState(object):
 
     def to_dict(self) -> dict:
         res = asdict(self)
-        res['eduPersonPrincipalName'] = res.pop('eppn')
-        res['_id'] = res.pop('id')
+        res['eduPersonPrincipalName'] = res.pop('eppn',)
+        res['_id'] = res.pop('id',)
         return res
 
     @classmethod
     def from_dict(cls: Type[TPasswordResetStateSubclass], data: Mapping[str, Any]) -> TPasswordResetStateSubclass:
         _data = dict(data)  # do not modify callers data
         _data['eppn'] = _data.pop('eduPersonPrincipalName')
-        _data['id'] = _data.pop('_id')
+        _data['id'] = _data.pop('_id',)
         if 'reference' in _data:
             _data.pop('reference')
         return cls(**_data)

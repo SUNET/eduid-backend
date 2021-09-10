@@ -355,7 +355,7 @@ class BaseDB(object):
                 self._coll.drop_index(name)
         for name, params in indexes.items():
             if name not in current_indexes:
-                key = params.pop('key')
+                key = params.pop('key',)
                 params['name'] = name
                 self._coll.ensure_index(key, **params)
 

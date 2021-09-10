@@ -98,7 +98,7 @@ class Invite(_InviteRequired):
 
     def to_dict(self) -> Dict[str, Any]:
         data = asdict(self)
-        data['_id'] = data.pop('invite_id')
+        data['_id'] = data.pop('invite_id',)
         data['invite_type'] = InviteType(data['invite_type']).value
         return data
 

@@ -72,7 +72,7 @@ class SignupUser(User):
 
         return data
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         res = User.to_dict(self)
         if self.pending_mail_address is not None:
             res['pending_mail_address'] = self.pending_mail_address.to_dict()

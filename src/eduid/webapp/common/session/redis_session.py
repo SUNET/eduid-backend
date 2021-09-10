@@ -245,7 +245,7 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         self.whitelist = whitelist
         self.raise_on_unknown = raise_on_unknown
         # encrypted data loaded from redis, used to avoid clobbering concurrent updates to the session
-        self._raw_data: Optional[str] = None
+        self._raw_data: Optional[bytes] = None
 
         self.secret_box = nacl.secret.SecretBox(encryption_key)
 
@@ -301,7 +301,7 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         logger.debug(f'Loaded data from Redis[{self.short_id}]:\n{repr(self._data)}')
         return True
 
-    def commit(self):
+    def commit(self) -> None:
         """
         Persist the currently held data into the redis db.
         """

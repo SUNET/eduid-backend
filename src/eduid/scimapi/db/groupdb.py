@@ -83,7 +83,7 @@ class ScimApiGroup(ScimApiResourceBase, _ScimApiGroupRequired):
     def to_dict(self) -> Dict[str, Any]:
         res = asdict(self)
         res['scim_id'] = str(res['scim_id'])
-        res['_id'] = res.pop('group_id')
+        res['_id'] = res.pop('group_id',)
         del res['graph']
         return res
 

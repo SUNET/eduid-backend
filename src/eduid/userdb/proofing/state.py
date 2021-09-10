@@ -98,8 +98,8 @@ class ProofingState(object):
 
     def to_dict(self) -> MutableMapping:
         res = asdict(self)
-        res['_id'] = res.pop('id')
-        res['eduPersonPrincipalName'] = res.pop('eppn')
+        res['_id'] = res.pop('id',)
+        res['eduPersonPrincipalName'] = res.pop('eppn',)
         if res['modified_ts'] is True:
             res['modified_ts'] = datetime.datetime.utcnow()
         return res

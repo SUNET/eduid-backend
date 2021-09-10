@@ -57,7 +57,7 @@ class Credential:
         if '_id' in _data:
             # Not supported with pydantic dataclasses:
             #   RuntimeWarning: fields may not start with an underscore, ignoring "_id"
-            _data['obj_id'] = _data.pop('_id')
+            _data['obj_id'] = _data.pop('_id',)
         return cls(**_data)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -89,8 +89,8 @@ class Credential:
             if isinstance(data[k], Enum):
                 data[k] = data[k].value
         # Extract the _id and revision
-        obj_id = data.pop('obj_id')
-        revision = data.pop('revision')
+        obj_id = data.pop('obj_id',)
+        revision = data.pop('revision',)
         return {
             '_id': obj_id,
             'revision': revision,
@@ -158,7 +158,7 @@ class RevokedCredential(Credential, _RevokedCredentialRequired):
         if '_id' in _data:
             # Not supported with pydantic dataclasses:
             #   RuntimeWarning: fields may not start with an underscore, ignoring "_id"
-            _data['obj_id'] = _data.pop('_id')
+            _data['obj_id'] = _data.pop('_id',)
 
         _new_data = {
             'credential_id': _data['credential_id'],

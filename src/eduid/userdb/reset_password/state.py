@@ -69,8 +69,8 @@ class ResetPasswordState(object):
 
     def to_dict(self) -> dict:
         res = asdict(self)
-        res['eduPersonPrincipalName'] = res.pop('eppn')
-        res['_id'] = res.pop('id')
+        res['eduPersonPrincipalName'] = res.pop('eppn',)
+        res['_id'] = res.pop('id',)
         return res
 
     @classmethod

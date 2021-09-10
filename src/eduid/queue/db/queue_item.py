@@ -74,7 +74,7 @@ class QueueItem:
 
     def to_dict(self) -> Dict:
         res = asdict(self)
-        res['_id'] = res.pop('item_id')
+        res['_id'] = res.pop('item_id',)
         res['payload'] = self.payload.to_dict()
         return res
 

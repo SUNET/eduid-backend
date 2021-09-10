@@ -178,18 +178,18 @@ class User(object):
         :return: User as dict
         """
         res = asdict(self)  # avoid caller messing up our private _data
-        res['eduPersonPrincipalName'] = res.pop('eppn')  # mandatory
-        res['_id'] = res.pop('user_id')
-        res['preferredLanguage'] = res.pop('language', None)
-        res['givenName'] = res.pop('given_name', None)
-        res['displayName'] = res.pop('display_name', None)
-        res['eduPersonEntitlement'] = res.pop('entitlements', [])
+        res['eduPersonPrincipalName'] = res.pop('eppn',)  # mandatory
+        res['_id'] = res.pop('user_id',)
+        res['preferredLanguage'] = res.pop('language',)
+        res['givenName'] = res.pop('given_name',)
+        res['displayName'] = res.pop('display_name',)
+        res['eduPersonEntitlement'] = res.pop('entitlements',)
         res['mailAliases'] = self.mail_addresses.to_list_of_dicts()
-        res.pop('mail_addresses')
+        res.pop('mail_addresses',)
         res['phone'] = self.phone_numbers.to_list_of_dicts()
-        res.pop('phone_numbers')
+        res.pop('phone_numbers',)
         res['passwords'] = self.credentials.to_list_of_dicts()
-        res.pop('credentials')
+        res.pop('credentials',)
         res['nins'] = self.nins.to_list_of_dicts()
         if self.tou is not None:
             res['tou'] = self.tou.to_list_of_dicts()
@@ -199,7 +199,7 @@ class User(object):
         if self.orcid is not None:
             res['orcid'] = self.orcid.to_dict()
         if 'eduPersonEntitlement' not in res:
-            res['eduPersonEntitlement'] = res.pop('entitlements', [])
+            res['eduPersonEntitlement'] = res.pop('entitlements',)
         if self.subject is not None:
             res['subject'] = self.subject.value
         # Remove these values if they have a value that evaluates to False

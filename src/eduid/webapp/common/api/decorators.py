@@ -10,8 +10,14 @@ from flask import abort, jsonify, request
 from marshmallow.exceptions import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 
+from eduid.userdb import LockedIdentityNin
 from eduid.webapp.common.api.messages import FluxData, error_response
-from eduid.webapp.common.api.schemas.models import FluxFailResponse, FluxResponseStatus, FluxSuccessResponse
+from eduid.webapp.common.api.schemas.models import (
+    FluxFailResponse,
+    FluxResponse,
+    FluxResponseStatus,
+    FluxSuccessResponse,
+)
 from eduid.webapp.common.api.utils import get_user
 from eduid.webapp.common.session import session
 
@@ -55,7 +61,7 @@ def can_verify_identity(f):
             return error_response(message='User is already verified')
         # A user can not verify a nin if another previously was verified
         locked_nin = user.locked_identity.find('nin')
-        if locked_nin and locked_nin.number != kwargs['nin']:
+        if isinstance(locked_nin, LockedIdentityNin) and locked_nin.number != kwargs['nin']:
             # TODO: Make this a CommonMsg I guess
             return error_response(message='Another nin is already registered for this user')
 
@@ -97,6 +103,7 @@ class MarshalWith(object):
             if not isinstance(ret, FluxData):
                 raise TypeError('Data returned from Flask view was not a FluxData (or WerkzeugResponse) instance')
 
+            _flux_response: FluxResponse
             if ret.status != FluxResponseStatus.OK:
                 _flux_response = FluxFailResponse(request, payload=ret.payload)
             else:

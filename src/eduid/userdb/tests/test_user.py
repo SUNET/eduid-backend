@@ -857,7 +857,7 @@ class TestNewUser(unittest.TestCase):
 
         # adjust for expected changes
         first['created_by'] = first.pop('source')
-        first['credential_id'] = str(first.pop('id'))
+        first['credential_id'] = str(first.pop('id',))
         second['description'] = ''
 
         expected = [first, second]

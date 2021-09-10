@@ -36,7 +36,7 @@ class ScimApiInvite(ScimApiResourceBase):
         res = asdict(self)
         res = filter_none(res)
         res['scim_id'] = str(res['scim_id'])
-        res['_id'] = res.pop('invite_id')
+        res['_id'] = res.pop('invite_id',)
         res['emails'] = [email.to_dict() for email in self.emails]
         res['phone_numbers'] = [phone_number.to_dict() for phone_number in self.phone_numbers]
         res['groups'] = [str(group_id) for group_id in self.groups]

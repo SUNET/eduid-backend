@@ -61,7 +61,7 @@ def bind_view(user: User, version: str, registration_data: str, client_data: str
 
 def bind(user: User, version: str, registration_data: str, client_data: str, description='') -> FluxData:
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
-    enrollment_data = session.pop('_u2f_enroll_', None)
+    enrollment_data = session.pop('_u2f_enroll_',)
     if not enrollment_data:
         current_app.logger.error('Found no U2F enrollment data in session.')
         return error_response(message=SecurityMsg.missing_data)
@@ -113,7 +113,7 @@ def sign(user: User):
 @MarshalWith(VerifyWithU2FTokenResponseSchema)
 @require_user
 def verify(user: User, key_handle: str, signature_data: str, client_data: str):
-    challenge = session.pop('_u2f_challenge_')
+    challenge = session.pop('_u2f_challenge_',)
     if not challenge:
         current_app.logger.error('Found no U2F challenge data in session.')
         return error_response(message=SecurityMsg.no_challenge)

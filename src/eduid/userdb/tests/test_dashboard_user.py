@@ -14,8 +14,8 @@ class TestDashboardUser(TestCase):
 
     def test_proper_new_user(self):
         userdata = new_user_example.to_dict()
-        userid = userdata.pop('_id')
-        eppn = userdata.pop('eduPersonPrincipalName')
+        userid = userdata.pop('_id',)
+        eppn = userdata.pop('eduPersonPrincipalName',)
         passwords = CredentialList.from_list_of_dicts(userdata['passwords'])
         user = DashboardUser(user_id=userid, eppn=eppn, credentials=passwords)
         self.assertEqual(user.user_id, userid)
@@ -23,14 +23,14 @@ class TestDashboardUser(TestCase):
 
     def test_missing_id(self):
         userdata = new_user_example.to_dict()
-        userid = userdata.pop('_id')
-        eppn = userdata.pop('eduPersonPrincipalName')
+        userid = userdata.pop('_id',)
+        eppn = userdata.pop('eduPersonPrincipalName',)
         passwords = CredentialList.from_list_of_dicts(userdata['passwords'])
         user = DashboardUser(eppn=eppn, credentials=passwords)
         self.assertNotEqual(user.user_id, userid)
 
     def test_missing_eppn(self):
         userdata = new_user_example.to_dict()
-        userdata.pop('eduPersonPrincipalName')
+        userdata.pop('eduPersonPrincipalName',)
         with self.assertRaises(TypeError):
             DashboardUser.from_dict(userdata)
