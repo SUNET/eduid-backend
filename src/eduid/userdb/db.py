@@ -9,7 +9,6 @@ from pymongo.errors import PyMongoError
 from pymongo.uri_parser import parse_uri
 
 from eduid.userdb.exceptions import (
-    DocumentDoesNotExist,
     EduIDUserDBError,
     MongoConnectionError,
     MultipleDocumentsReturned,

@@ -21,7 +21,6 @@ TPasswordResetStateSubclass = TypeVar('TPasswordResetStateSubclass', bound='Pass
 class PasswordResetState(BaseModel):
     eppn: str = Field(alias='eduPersonPrincipalName')
     state_id: bson.ObjectId = Field(default_factory=lambda: bson.ObjectId(), alias='_id')
-    reference: str
     created_ts: datetime.datetime = Field(default_factory=lambda: utc_now())
     modified_ts: Optional[datetime.datetime] = None
     extra_security: Optional[Dict[str, Any]] = None

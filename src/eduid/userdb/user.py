@@ -387,11 +387,3 @@ class User(object):
         if isinstance(profiles, list):
             return ProfileList.from_list_of_dicts(profiles)
         return profiles
-
-    @property
-    def passwords(self):
-        """
-        For backwards compatibility
-        """
-        warnings.warn("Use User.credentials rather than User.passwords", DeprecationWarning)
-        return self.credentials
