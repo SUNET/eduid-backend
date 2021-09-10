@@ -6,8 +6,6 @@ from typing import Any, Dict
 
 from pydantic import Field
 
-from pydantic import Field
-
 from eduid.userdb.element import Element, ElementKey
 
 
