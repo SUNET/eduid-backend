@@ -73,7 +73,7 @@ class ScimApiEvent(ScimApiResourceBase, _ScimApiEventRequired):
 
     def to_dict(self) -> Dict[str, Any]:
         data = asdict(self)
-        data['_id'] = data.pop('db_id',)
+        data['_id'] = data.pop('db_id')
         data['level'] = self.level.value
         data['scim_id'] = str(self.scim_id)
         data['resource'] = self.resource.to_dict()
