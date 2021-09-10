@@ -28,7 +28,7 @@ class AttributeFetcherTests(AMTestCase):
     def test_existing_user_from_db(self):
         fetched = self.fetcher.fetch_attrs(mocked_user_standard.user_id)
 
-        expected_passwords = mocked_user_standard.passwords.to_list_of_dicts()
+        expected_passwords = mocked_user_standard.credentials.to_list_of_dicts()
         expected_emails = mocked_user_standard.mail_addresses.to_list_of_dicts()
 
         expected = {
