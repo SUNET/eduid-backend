@@ -9,7 +9,6 @@ from mock import patch
 
 from eduid.userdb import User
 from eduid.userdb.credentials import Password
-from eduid.userdb.exceptions import DocumentDoesNotExist
 from eduid.userdb.security import PasswordResetEmailState
 from eduid.webapp.common.api.exceptions import MailTaskFailed, MsgTaskFailed
 from eduid.webapp.common.api.testing import EduidAPITestCase
@@ -23,10 +22,10 @@ class SecurityResetPasswordTests(EduidAPITestCase):
 
     app: SecurityApp
 
-    def setUp(self):
+    def setUp(self, *args, **kwargs):
         self.test_user_eppn = 'hubba-bubba'
         self.test_user_email = 'johnsmith@example.com'
-        super(SecurityResetPasswordTests, self).setUp()
+        super().setUp(*args, **kwargs)
 
     def load_app(self, config: Mapping[str, Any]) -> SecurityApp:
         """

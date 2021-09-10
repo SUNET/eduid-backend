@@ -30,6 +30,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+import copy
 import logging
 from typing import Any, Mapping, Optional, Union
 
@@ -98,51 +99,55 @@ class PasswordResetStateDB(BaseDB):
 
     @staticmethod
     def init_state(
-        state: Mapping[str, Any]
+        data: Mapping[str, Any]
     ) -> Optional[Union[PasswordResetEmailState, PasswordResetEmailAndPhoneState]]:
-        if state.get('method') == 'email':
-            return PasswordResetEmailState.from_dict(state)
-        if state.get('method') == 'email_and_phone':
-            return PasswordResetEmailAndPhoneState.from_dict(state)
+        _data = dict(copy.deepcopy(data))  # to not modify callers data
+        method = _data.pop('method', None)
+        if method == 'email':
+            return PasswordResetEmailState.from_dict(_data)
+        if method == 'email_and_phone':
+            return PasswordResetEmailAndPhoneState.from_dict(_data)
         return None
 
-    def save(self, state, check_sync=True) -> None:
+    def save(self, state: PasswordResetState, check_sync: bool = True) -> None:
         """
 
         :param state: PasswordResetState object
         :param check_sync: Ensure the document hasn't been updated in the database since it was loaded
-
-        :type state: PasswordResetState
-        :type check_sync: bool
-
-        :return:
         """
 
         modified = state.modified_ts
         state.modified_ts = True  # update to current time
+
+        data = state.to_dict()
+        # Remember what type of state this is, used when loading state above in init_state()
+        if isinstance(state, PasswordResetEmailAndPhoneState):
+            data['method'] = 'email_and_phone'
+        elif isinstance(state, PasswordResetEmailState):
+            data['method'] = 'email'
+
         if modified is None:
             # document has never been modified
             # Remove old reset password state
             old_state = self.get_state_by_eppn(state.eppn)
             if old_state:
                 self.remove_state(old_state)
-
-            result = self._coll.insert_one(state.to_dict())
+            result = self._coll.insert_one(data)
             logging.debug(f"{self} Inserted new state {state} into {self._coll_name}): {result.inserted_id})")
-
         else:
             test_doc = {'eduPersonPrincipalName': state.eppn}
             if check_sync:
                 test_doc['modified_ts'] = modified
-            result = self._coll.replace_one(test_doc, state.to_dict(), upsert=(not check_sync))
+            result = self._coll.replace_one(test_doc, data, upsert=(not check_sync))
             if check_sync and result.matched_count == 0:
                 db_ts = None
                 db_state = self._coll.find_one({'eppn': state.eppn})
                 if db_state:
                     db_ts = db_state['modified_ts']
                 logging.debug(
-                    "{!s} FAILED Updating state {!r} (ts {!s}) in {!r}). "
-                    "ts in db = {!s}".format(self, state, modified, self._coll_name, db_ts)
+                    "{!s} FAILED Updating state {!r} (ts {!s}) in {!r}). ts in db = {!s}".format(
+                        self, state, modified, self._coll_name, db_ts
+                    )
                 )
                 raise DocumentOutOfSync('Stale state object can\'t be saved')
 
