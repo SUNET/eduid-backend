@@ -23,13 +23,14 @@ class MobileLookupClient(object):
     @property
     def client(self) -> Client:
         if not self._client:
-            # TODO: remove self.conf.devel_mode, use environment instead
-            # if self.conf.devel_mode is True or \
-            #    self.conf.testing or self.conf.environment == EduidEnvironment.dev:
-            #    raise RuntimeError('No suds-client in LookupMobile for testing/dev environments')
-
             self._client = Client(self.conf.teleadress_client_url, port=self.conf.teleadress_client_port)
         return self._client
+
+    def _get_find_person(self):
+        find_person = self.client.factory.create('ns7:FindPersonClass')
+        find_person.QueryParams = self.client.factory.create('ns7:QueryParamsClass')
+        find_person.QueryColumns = self.client.factory.create('ns7:QueryColumnsClass')
+        return find_person
 
     @TransactionAudit()
     @deprecated('This task seems unused')
@@ -59,7 +60,7 @@ class MobileLookupClient(object):
     def _search(self, param):
         # Start the search
         # TODO: remove self.conf.devel_mode, use environment instead
-        if self.conf.devel_mode is True or self.conf.testing or self.conf.environment == EduidEnvironment.dev:
+        if self.conf.testing or self.conf.environment == EduidEnvironment.dev:
             result = _get_devel_search_result(param)
         else:
             result = self.client.service.Find(param)
@@ -80,7 +81,7 @@ class MobileLookupClient(object):
 
     @deprecated('This function seems unused')
     def _search_by_SSNo(self, national_identity_number: str) -> List[str]:
-        person_search = self.client.factory.create(self.conf.teleadress_client_person_class)
+        person_search = self._get_find_person()
 
         # Set the eduid user id and password
         person_search._Password = self.conf.teleadress_client_password
@@ -103,7 +104,7 @@ class MobileLookupClient(object):
         return mobile_numbers
 
     def _search_by_mobile(self, mobile_number: str) -> Optional[str]:
-        person_search = self.client.factory.create(self.conf.teleadress_client_person_class)
+        person_search = self._get_find_person()
 
         # Set the eduid user id and password
         person_search._Password = self.conf.teleadress_client_password

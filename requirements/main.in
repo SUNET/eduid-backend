@@ -39,7 +39,7 @@ python-u2flib-server>=5.0.0
 qrcode
 redis>=3.2.0,==3.*
 statsd==3.2.1
-suds-jurko
+suds-community
 xhtml2pdf
 zxcvbn>=4.4.27,<5.0
 jwcrypto
