@@ -435,9 +435,9 @@ statsd==3.2.1 \
     --hash=sha256:3fa92bf0192af926f7a0d9be031fe3fd0fbaa1992d42cf2f07e68f76ac18288e \
     --hash=sha256:7aff40c6cdda703193fac6231410c6c0ad5939ce053a168016501e982c755c84
     # via -r main.in
-suds-jurko==0.6 \
-    --hash=sha256:1cb7252cb13018fc32887c3a834ed7c6648a5b5c4c159be5806da2e1785399e8 \
-    --hash=sha256:29edb72fd21e3044093d86f33c66cf847c5aaab26d64cb90e69e528ef014e57f
+suds-community==0.8.5 \
+    --hash=sha256:6412d45027bc8e85f96749470598eafaecf368093467d2f2d5afa2e6dd953140 \
+    --hash=sha256:cdb89667c4532d104586bf77fb5fc3659ad3fe3307b08b43c8388d8d363ae8c9
     # via -r main.in
 typing-extensions==3.10.0.2 \
     --hash=sha256:49f75d16ff11f1cd258e1b988ccff82a3ca5570217d7ad8c5f48205dd99a677e \

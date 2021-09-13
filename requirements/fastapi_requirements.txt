@@ -780,9 +780,9 @@ statsd==3.2.1 \
     # via
     #   -c main.txt
     #   -r main.in
-suds-jurko==0.6 \
-    --hash=sha256:1cb7252cb13018fc32887c3a834ed7c6648a5b5c4c159be5806da2e1785399e8 \
-    --hash=sha256:29edb72fd21e3044093d86f33c66cf847c5aaab26d64cb90e69e528ef014e57f
+suds-community==0.8.5 \
+    --hash=sha256:6412d45027bc8e85f96749470598eafaecf368093467d2f2d5afa2e6dd953140 \
+    --hash=sha256:cdb89667c4532d104586bf77fb5fc3659ad3fe3307b08b43c8388d8d363ae8c9
     # via
     #   -c main.txt
     #   -r main.in
@@ -841,10 +841,10 @@ webencodings==0.5.1 \
     #   -c main.txt
     #   bleach
     #   html5lib
-websockets==9.1 \
-    --hash=sha256:230a3506df6b5f446fed2398e58dcaafdff12d67fe1397dff196411a9e820d02 \
-    --hash=sha256:276d2339ebf0df4f45df453923ebd2270b87900eda5dfd4a6b0cfa15f82111c3 \
-    --hash=sha256:826ccf85d4514609219725ba4a7abd569228c2c9f1968e8be05be366f68291ec
+websockets==10.0 \
+    --hash=sha256:7f79f02c7f9a8320aff7d3321cd1c7e3a7dbc15d922ac996cca827301ee75238 \
+    --hash=sha256:b4ade7569b6fd17912452f9c3757d96f8e4044016b6d22b3b8391e641ca50456 \
+    --hash=sha256:c4fc9a1d242317892590abe5b61a9127f1a61740477bfb121743f290b8054002
     # via uvicorn
 wrapt==1.12.1 \
     --hash=sha256:b62ffa81fb85f4332a4f609cab4ac40709470da05643a082ec1eb88e6d9b97d7

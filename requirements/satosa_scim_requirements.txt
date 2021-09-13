@@ -598,9 +598,8 @@ pynacl==1.4.0 \
     # via
     #   -c main.txt
     #   -r main.in
-pyop==3.2.0 \
-    --hash=sha256:04742cc9f923db123ade88ce368e867f6c135427f0d98bc5390eeb62b333778b \
-    --hash=sha256:bef9af25f3aecb9c4c783e033df797f60aeaa03ff51fe7addba8ca1b9d4d0ea1
+pyop==3.3.0 \
+    --hash=sha256:aa31d5c62bf44519a1b1cc9ed8adee6e69e2d3b40de4b85d6f849419807b1862
     # via satosa
 pyopenssl==20.0.1 \
     --hash=sha256:4c231c759543ba02560fcd2480c48dcec4dae34c9da7d3747c508227e0624b51 \
@@ -765,9 +764,9 @@ statsd==3.2.1 \
     # via
     #   -c main.txt
     #   -r main.in
-suds-jurko==0.6 \
-    --hash=sha256:1cb7252cb13018fc32887c3a834ed7c6648a5b5c4c159be5806da2e1785399e8 \
-    --hash=sha256:29edb72fd21e3044093d86f33c66cf847c5aaab26d64cb90e69e528ef014e57f
+suds-community==0.8.5 \
+    --hash=sha256:6412d45027bc8e85f96749470598eafaecf368093467d2f2d5afa2e6dd953140 \
+    --hash=sha256:cdb89667c4532d104586bf77fb5fc3659ad3fe3307b08b43c8388d8d363ae8c9
     # via
     #   -c main.txt
     #   -r main.in

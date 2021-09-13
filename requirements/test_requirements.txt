@@ -722,9 +722,8 @@ pynacl==1.4.0 \
     # via
     #   -c main.txt
     #   -r main.in
-pyop==3.2.0 \
-    --hash=sha256:04742cc9f923db123ade88ce368e867f6c135427f0d98bc5390eeb62b333778b \
-    --hash=sha256:bef9af25f3aecb9c4c783e033df797f60aeaa03ff51fe7addba8ca1b9d4d0ea1
+pyop==3.3.0 \
+    --hash=sha256:aa31d5c62bf44519a1b1cc9ed8adee6e69e2d3b40de4b85d6f849419807b1862
     # via satosa
 pyopenssl==20.0.1 \
     --hash=sha256:4c231c759543ba02560fcd2480c48dcec4dae34c9da7d3747c508227e0624b51 \
@@ -879,9 +878,9 @@ requests==2.26.0 \
     #   pyxmlsecurity
     #   responses
     #   satosa
-responses==0.13.4 \
-    --hash=sha256:9476775d856d3c24ae660bbebe29fb6d789d4ad16acd723efbfb6ee20990b899 \
-    --hash=sha256:d8d0f655710c46fd3513b9202a7f0dcedd02ca0f8cf4976f27fa8ab5b81e656d
+responses==0.14.0 \
+    --hash=sha256:57bab4e9d4d65f31ea5caf9de62095032c4d81f591a8fac2f5858f7777b8567b \
+    --hash=sha256:93f774a762ee0e27c0d9d7e06227aeda9ff9f5f69392f72bb6c6b73f8763563e
     # via moto
 rsa==4.7.2 \
     --hash=sha256:78f9a9bf4e7be0c5ded4583326e7461e3a3c5aae24073648b4bdfa797d78c9d2 \
@@ -940,9 +939,9 @@ statsd==3.2.1 \
     # via
     #   -c main.txt
     #   -r main.in
-suds-jurko==0.6 \
-    --hash=sha256:1cb7252cb13018fc32887c3a834ed7c6648a5b5c4c159be5806da2e1785399e8 \
-    --hash=sha256:29edb72fd21e3044093d86f33c66cf847c5aaab26d64cb90e69e528ef014e57f
+suds-community==0.8.5 \
+    --hash=sha256:6412d45027bc8e85f96749470598eafaecf368093467d2f2d5afa2e6dd953140 \
+    --hash=sha256:cdb89667c4532d104586bf77fb5fc3659ad3fe3307b08b43c8388d8d363ae8c9
     # via
     #   -c main.txt
     #   -r main.in
@@ -1026,9 +1025,9 @@ types-pyyaml==5.4.10 \
     --hash=sha256:1d9e431e9f1f78a65ea957c558535a3b15ad67ea4912bce48a6c1b613dcf81ad \
     --hash=sha256:f1d1357168988e45fa20c65aecb3911462246a84809015dd889ebf8b1db74124
     # via -r typecheck_requirements.in
-types-redis==3.5.7 \
-    --hash=sha256:40b0b4b6ddb107a5c5fcf1d7bdfc7ebd6832b9ea644f8e32c1ab007575377951 \
-    --hash=sha256:da4d966e9fd6b1d80af82fadfbf1f7843119742dc24039663b896c0c574e4b34
+types-redis==3.5.8 \
+    --hash=sha256:85814769071721044857c34841e46064b867ccdd58fc81221c43462bd07e4892 \
+    --hash=sha256:be26f50259d1a7e74cbc1e83b377dbf6b534fdb037ff55ae31501e87ac2b5b5a
     # via -r typecheck_requirements.in
 types-requests==2.25.6 \
     --hash=sha256:a5a305b43ea57bf64d6731f89816946a405b591eff6de28d4c0fd58422cee779 \
@@ -1113,10 +1112,10 @@ webencodings==0.5.1 \
     #   -c main.txt
     #   bleach
     #   html5lib
-websockets==9.1 \
-    --hash=sha256:230a3506df6b5f446fed2398e58dcaafdff12d67fe1397dff196411a9e820d02 \
-    --hash=sha256:276d2339ebf0df4f45df453923ebd2270b87900eda5dfd4a6b0cfa15f82111c3 \
-    --hash=sha256:826ccf85d4514609219725ba4a7abd569228c2c9f1968e8be05be366f68291ec
+websockets==10.0 \
+    --hash=sha256:7f79f02c7f9a8320aff7d3321cd1c7e3a7dbc15d922ac996cca827301ee75238 \
+    --hash=sha256:b4ade7569b6fd17912452f9c3757d96f8e4044016b6d22b3b8391e641ca50456 \
+    --hash=sha256:c4fc9a1d242317892590abe5b61a9127f1a61740477bfb121743f290b8054002
     # via uvicorn
 werkzeug==1.0.1 \
     --hash=sha256:2de2a5db0baeae7b2d2664949077c2ac63fbd16d98da0ff71837f7d1dea3fd43 \
