@@ -3,6 +3,7 @@
 import logging
 from datetime import datetime, timedelta
 from io import BytesIO, StringIO
+from pathlib import Path
 from typing import Mapping, OrderedDict
 
 from xhtml2pdf import pisa
@@ -74,9 +75,11 @@ def create_pdf(
     # code that is to be shown in the letter.
     max_wait = timedelta(hours=letter_wait_time_hours)
     validity_period = (created_timestamp + max_wait).strftime('%Y-%m-%d')
+    templates_path = Path(__file__).with_name('templates')
 
     letter_template = render_template(
         'letter.jinja2',
+        sunet_logo=f'file://{templates_path}/sunet_logo.eps',
         recipient_name=name,
         recipient_care_of=care_of,
         recipient_address=address,
