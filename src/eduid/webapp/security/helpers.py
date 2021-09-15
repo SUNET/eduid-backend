@@ -491,7 +491,7 @@ def update_user_official_name(security_user: SecurityUser, navet_data: NavetData
     ):
         user_postal_address = {
             'Name': navet_data.person.name.dict(by_alias=True),
-            'OfficialAddress': navet_data.person.official_address.dict(by_alias=True),
+            'OfficialAddress': navet_data.person.postal_addresses.official_address.dict(by_alias=True),
         }
         proofing_log_entry = NameUpdateProofing(
             created_by='security',
