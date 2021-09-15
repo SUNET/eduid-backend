@@ -72,16 +72,16 @@ class Relation(NavetModelConfig):
     status: Optional[str] = Field(default=None, alias='Status')
 
 
-class Relations(NavetModelConfig):
-    relation: List[Relation] = Field(default_factory=list, alias='Relation')
+class PostalAddresses(NavetModelConfig):
+    official_address: OfficialAddress = Field(alias='OfficialAddress')
 
 
 class Person(NavetModelConfig):
     name: Name = Field(default_factory=Name, alias='Name')
     person_id: PersonId = Field(alias='PersonId')
     reference_national_identity_number: Optional[str] = Field(default=None, alias='ReferenceNationalIdentityNumber')
-    official_address: OfficialAddress = Field(alias='OfficialAddress')
-    relations: Relations = Field(alias='Relations')
+    postal_addresses: PostalAddresses = Field(alias='PostalAddresses')
+    relations: List[Relation] = Field(default_factory=list)
 
 
 class NavetData(NavetModelConfig):
