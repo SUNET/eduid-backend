@@ -329,7 +329,8 @@ class AttributeFetcherResetPasswordTests(ProofingTestCase):
                 ],
                 'nins': [{'number': '123456781235', 'primary': True, 'verified': True}],
                 'phone': [{'number': '+46700011336', 'primary': True, 'verified': True}],
-            }
+            },
+            '$unset': {'terminated': None},
         }
 
         assert normalised_data(fetched) == expected, 'Wrong data fetched by reset password fetcher'
@@ -352,7 +353,8 @@ class AttributeFetcherResetPasswordTests(ProofingTestCase):
                 ],
                 'nins': [{'number': '123456781235', 'primary': True, 'verified': True}],
                 'phone': [{'number': '+46700011336', 'primary': True, 'verified': True}],
-            }
+            },
+            '$unset': {'terminated': None},
         }
 
         assert normalised_data(fetched) == expected, 'Wrong data fetched by reset password fetcher'

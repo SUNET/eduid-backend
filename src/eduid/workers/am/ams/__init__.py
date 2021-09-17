@@ -142,11 +142,13 @@ class eduid_reset_password(AttributeFetcher):
 
     whitelist_set_attrs = [
         'passwords',
+        'terminated',  # For revoking termination status
         'nins',  # For AL1 downgrade on password reset
         'phone',  # For AL1 downgrade on password reset
     ]
     whitelist_unset_attrs = [
         'passwords',
+        'terminated',  # For revoking termination status
         'norEduPersonNIN',  # For AL1 downgrade on password reset
         'nins',  # For AL1 downgrade on password reset
         'phone',  # For AL1 downgrade on password reset
