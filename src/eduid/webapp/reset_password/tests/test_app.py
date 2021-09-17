@@ -1069,6 +1069,21 @@ class ResetPasswordTests(EduidAPITestCase):
         user = self.app.private_userdb.get_user_by_eppn(self.test_user.eppn)
         self.assertFalse(user.credentials.to_list()[0].is_generated)
 
+    def test_revoke_termination_on_password_reset(self):
+        # mark user as terminated
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+        user.terminated = utc_now()
+        self.app.central_userdb.save(user)
+
+        response = self._post_reset_password()
+        self._check_success_response(
+            response, type_='POST_RESET_PASSWORD_NEW_PASSWORD_SUCCESS', msg=ResetPwMsg.pw_reset_success
+        )
+
+        # check that the user no longer has verified data
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+        assert user.terminated is None
+
     def test_get_code_backdoor(self):
         self.app.conf.magic_cookie = 'magic-cookie'
         self.app.conf.magic_cookie_name = 'magic'
