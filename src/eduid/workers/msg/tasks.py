@@ -259,7 +259,13 @@ class MessageSender(Task):
                         'Name': {'GivenNameMarking': '20', 'GivenName': 'Testaren Test', 'Surname': 'Testsson'},
                         "PersonId": {"NationalIdentityNumber": "197609272393"},
                         "ReferenceNationalIdentityNumber": "",
-                        'OfficialAddress': {'Address2': 'ÖRGATAN 79 LGH 10', 'PostalCode': '12345', 'City': 'LANDET'},
+                        "PostalAddresses": {
+                            'OfficialAddress': {
+                                'Address2': 'ÖRGATAN 79 LGH 10',
+                                'PostalCode': '12345',
+                                'City': 'LANDET',
+                            },
+                        },
                         'Relations': {
                             'Relation': [
                                 {
