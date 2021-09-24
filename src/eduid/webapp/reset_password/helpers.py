@@ -155,12 +155,14 @@ def get_pwreset_state(email_code: str) -> Union[ResetPasswordEmailState, ResetPa
     state = current_app.password_reset_state_db.get_state_by_email_code(email_code)
     if not state:
         current_app.logger.info(f'State not found: {email_code}')
+        current_app.stats.count(name='state_not_found', value=1)
         raise StateException(msg=ResetPwMsg.state_not_found)
 
     current_app.logger.debug(f'Found state using email_code {email_code}: {state}')
 
     if state.email_code.is_expired(mail_expiration_time):
         current_app.logger.info(f'State expired: {email_code}')
+        current_app.stats.count(name='email_code_expired', value=1)
         raise StateException(msg=ResetPwMsg.expired_email_code)
 
     if isinstance(state, ResetPasswordEmailAndPhoneState) and state.phone_code.is_expired(sms_expiration_time):
@@ -169,6 +171,7 @@ def get_pwreset_state(email_code: str) -> Union[ResetPasswordEmailState, ResetPa
         current_app.password_reset_state_db.remove_state(state)
         state = ResetPasswordEmailState(eppn=state.eppn, email_address=state.email_address, email_code=state.email_code)
         current_app.password_reset_state_db.save(state)
+        current_app.stats.count(name='phone_code_expired', value=1)
         raise StateException(msg=ResetPwMsg.expired_phone_code)
     return state
 
