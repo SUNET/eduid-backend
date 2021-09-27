@@ -11,8 +11,10 @@ from eduid.userdb.event import Event, EventList
 from eduid.userdb.exceptions import UserMissingData
 from eduid.userdb.fixtures.users import new_user_example
 from eduid.userdb.tou import ToUEvent, ToUList
+from eduid.userdb.util import utc_now
 
 __author__ = 'ft'
+
 
 _one_dict = {
     'event_id': str(bson.ObjectId()),
@@ -75,9 +77,14 @@ class TestToUEvent(TestCase):
 
     def test_reaccept_tou(self):
         three_years = timedelta(days=3 * 365)
-        self.assertGreater(_two_dict['modified_ts'] - _two_dict['created_ts'], three_years)
-        self.assertLess(_three_dict['modified_ts'] - _three_dict['created_ts'], three_years)
+        one_day = timedelta(days=1)
+        # set modified_ts to both sides of three years ago
+        _two_dict['modified_ts'] = utc_now() - three_years + one_day
+        _three_dict['modified_ts'] = utc_now() - three_years - one_day
+        assert _two_dict['modified_ts'] + three_years > utc_now()
+        assert _three_dict['modified_ts'] + three_years < utc_now()
 
+        # check if the TOU needs to be accepted with an interval of three years
         tl = ToUList.from_list_of_dicts([_two_dict, _three_dict])
         self.assertTrue(tl.has_accepted(version='2', reaccept_interval=int(three_years.total_seconds())))
         self.assertFalse(tl.has_accepted(version='3', reaccept_interval=int(three_years.total_seconds())))
