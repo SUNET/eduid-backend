@@ -394,6 +394,10 @@ def mfa_auth(ref: RequestRef, webauthn_response: Optional[Dict[str, str]] = None
 
     authn = AuthnData(cred_id=result.credential_key, timestamp=_utc_now)
     sso_session.add_authn_credential(authn)
+    current_app.logger.debug(f'AuthnData to save: {authn}')
+
+    current_app.logger.debug(f'Saving SSO session {sso_session}')
+    current_app.sso_sessions.save(sso_session)
 
     current_app.authn.log_authn(user, success=[result.credential_key], failure=[])
 
