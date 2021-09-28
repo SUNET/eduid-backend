@@ -318,6 +318,7 @@ def refresh_user_data(user: User) -> FluxData:
     if security_user.nins.primary is None:
         return error_response(message=SecurityMsg.user_not_verified)
 
+    current_app.stats.count(name='refresh_user_data_called')
     # only allow a user to request another update after throttle_update_user_period
     if session.security.user_requested_update is not None:
         retry_at = session.security.user_requested_update + current_app.conf.throttle_update_user_period
@@ -336,6 +337,7 @@ def refresh_user_data(user: User) -> FluxData:
         current_app.logger.debug(
             f'_given_name: {navet_data.person.name.given_name}, _surname: {navet_data.person.name.surname}'
         )
+        current_app.stats.count(name='refresh_user_data_navet_data_incomplete')
         return error_response(message=SecurityMsg.navet_data_incomplete)
 
     # Update user offical names if they differ

@@ -166,6 +166,7 @@ def start_reset_pw(email: str) -> FluxData:
         current_app.logger.exception(f'Sending password reset email failed')
         return error_response(message=ResetPwMsg.email_send_failure)
 
+    current_app.stats.count(name='email_sent', value=1)
     return success_response(message=ResetPwMsg.reset_pw_initialized)
 
 
@@ -227,7 +228,7 @@ def verify_email(email_code: str) -> FluxData:
     alternatives = get_extra_security_alternatives(context.user)
     context.state.extra_security = alternatives
     current_app.password_reset_state_db.save(context.state)
-
+    current_app.stats.count(name='email_verified', value=1)
     return success_response(
         payload={
             'suggested_password': new_password,
@@ -446,8 +447,10 @@ def set_new_pw_extra_security_token(
             'authenticatorData': authenticator_data,
             'signature': signature,
         }
+        current_app.stats.count(name='extra_security_security_key_webauthn_data_received')
         if not session.mfa_action.webauthn_state:
             current_app.logger.error(f'No webauthn state in session')
+            current_app.stats.count(name='extra_security_security_key_webauthn_missing_session_data')
             return error_response(message=ResetPwMsg.missing_data)
 
         try:
@@ -469,6 +472,7 @@ def set_new_pw_extra_security_token(
         current_app.logger.error(f'No webauthn data in request for {context.user}')
 
     if not success:
+        current_app.stats.count(name='extra_security_security_key_webauthn_fail')
         return error_response(message=ResetPwMsg.fido_token_fail)
 
     return reset_user_password(user=context.user, state=context.state, password=password, mfa_used=success)
@@ -486,6 +490,7 @@ def set_new_pw_extra_security_external_mfa(
         return error_response(message=e.msg)
 
     if session.mfa_action.success is not True:  # Explicit check that success is the boolean True
+        current_app.stats.count(name='extra_security_external_mfa_fail')
         return error_response(message=ResetPwMsg.external_mfa_fail)
 
     current_app.logger.info(f'User used external MFA service {session.mfa_action.issuer} as extra security')
@@ -494,7 +499,7 @@ def set_new_pw_extra_security_external_mfa(
     )
     # Clear mfa_action from session
     del session.mfa_action
-
+    current_app.stats.count(name='extra_security_external_mfa_success')
     return reset_user_password(user=context.user, state=context.state, password=password, mfa_used=True)
 
 
