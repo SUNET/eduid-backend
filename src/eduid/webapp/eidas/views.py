@@ -9,7 +9,7 @@ from eduid.common.config.base import EduidEnvironment
 from eduid.userdb import User
 from eduid.userdb.credentials.fido import FidoCredential
 from eduid.userdb.element import ElementKey
-from eduid.webapp.authn.helpers import credential_used_to_log_in
+from eduid.webapp.authn.helpers import credential_used_to_authenticate
 from eduid.webapp.common.api.decorators import MarshalWith, require_user
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import FluxData, redirect_with_msg, success_response
@@ -49,8 +49,8 @@ def verify_token(user: User, credential_id: ElementKey) -> Union[FluxData, Werkz
         current_app.logger.error(f'Credential {token_to_verify} is not a FidoCredential')
         return redirect_with_msg(redirect_url, EidasMsg.token_not_found)
 
-    # Check if the credential was just now used to log in
-    credential_already_used = credential_used_to_log_in(token_to_verify)
+    # Check if the credential was just now (within 60s) used to log in
+    credential_already_used = credential_used_to_authenticate(token_to_verify, max_age=60)
 
     current_app.logger.debug(f'Credential {credential_id} recently used for login: {credential_already_used}')
 

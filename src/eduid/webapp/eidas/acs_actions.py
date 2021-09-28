@@ -11,7 +11,7 @@ from eduid.userdb.credentials.fido import FidoCredential
 from eduid.userdb.logs import MFATokenProofing, SwedenConnectProofing
 from eduid.userdb.proofing.state import NinProofingElement, NinProofingState
 from eduid.userdb.proofing.user import ProofingUser
-from eduid.webapp.authn.helpers import credential_used_to_log_in
+from eduid.webapp.authn.helpers import credential_used_to_authenticate
 from eduid.webapp.common.api.decorators import require_user
 from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid.webapp.common.api.helpers import verify_nin_for_user
@@ -61,7 +61,7 @@ def token_verify_action(
     # Check (again) if token was used to authenticate this session. The first time we checked,
     # we verified that the token was used very recently, but we have to allow for more time
     # here since the user might have spent a couple of minutes authenticating with the external IdP.
-    if not credential_used_to_log_in(token_to_verify, max_age=300):
+    if not credential_used_to_authenticate(token_to_verify, max_age=300):
         return redirect_with_msg(redirect_url, EidasMsg.token_not_in_creds)
 
     # Verify asserted NIN for user if there are no verified NIN
