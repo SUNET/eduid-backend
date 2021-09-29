@@ -6,7 +6,7 @@ from typing import Optional
 from flask import request
 from werkzeug.wrappers import Response as WerkzeugResponse
 
-from eduid.userdb import User
+from eduid.userdb import User, LockedIdentityNin
 from eduid.userdb.credentials.fido import FidoCredential
 from eduid.userdb.logs import MFATokenProofing, SwedenConnectProofing
 from eduid.userdb.proofing.state import NinProofingElement, NinProofingState
@@ -25,7 +25,7 @@ from eduid.webapp.common.authn.utils import get_saml_attribute
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import MfaActionError, SP_AuthnRequest
 from eduid.webapp.eidas.app import current_eidas_app as current_app
-from eduid.webapp.eidas.helpers import EidasMsg, is_required_loa, is_valid_reauthn
+from eduid.webapp.eidas.helpers import EidasMsg, is_required_loa, is_valid_reauthn, verify_nin_from_external_mfa
 
 __author__ = 'lundberg'
 
@@ -41,6 +41,7 @@ def token_verify_action(
 
     :param session_info: the SAML session info
     :param user: Central db user
+    :param authndata: authentication data
 
     :return: redirect response
     """
@@ -66,9 +67,11 @@ def token_verify_action(
 
     # Verify asserted NIN for user if there are no verified NIN
     if len(proofing_user.nins.verified) == 0:
-        nin_verify_action(session_info, authndata)
-        # nin_verify_action modifies the user in the database, so we have to load it again.
-        # TODO: refactor nin_verify_action into one action, and one worker function. Call the worker function
+        error_message = verify_nin_from_external_mfa(proofing_user=proofing_user, session_info=session_info)
+        if error_message is not None:
+            return redirect_with_msg(redirect_url, error_message)
+        # verify_nin_from_external_mfa modifies the user in the database, so we have to load it again.
+        # TODO: refactor verify_nin_from_external_mfa into one action, and one worker function. Call the worker function
         #       with both user and proofing_user as arguments, and have them modified in-place to avoid a bunch
         #       of database operations.
         updated_user = current_app.central_userdb.get_user_by_eppn(user.eppn)
@@ -179,41 +182,9 @@ def nin_verify_action(session_info: SessionInfo, authndata: Optional[SP_AuthnReq
             current_app.logger.debug(f'Primary NIN: {proofing_user.nins.primary}. Asserted NIN: {asserted_nin}')
         return redirect_with_msg(redirect_url, EidasMsg.nin_already_verified)
 
-    # Create a proofing log
-    issuer = session_info['issuer']
-    authn_context = get_authn_ctx(session_info)
-    if not authn_context:
-        current_app.logger.error('No authn context in session_info')
-        return redirect_with_msg(redirect_url, EidasMsg.authn_context_mismatch)
-
-    try:
-        user_address = current_app.msg_relay.get_postal_address(asserted_nin)
-    except MsgTaskFailed as e:
-        current_app.logger.error('Navet lookup failed: {}'.format(e))
-        current_app.stats.count('navet_error')
-        return redirect_with_msg(redirect_url, CommonMsg.navet_error)
-
-    proofing_log_entry = SwedenConnectProofing(
-        eppn=proofing_user.eppn,
-        created_by='eduid-eidas',
-        nin=asserted_nin,
-        issuer=issuer,
-        authn_context_class=authn_context,
-        user_postal_address=user_address,
-        proofing_version='2018v1',
-    )
-
-    # Verify NIN for user
-    try:
-        nin_element = NinProofingElement(number=asserted_nin, created_by='eduid-eidas', is_verified=False)
-        proofing_state = NinProofingState(id=None, modified_ts=None, eppn=user.eppn, nin=nin_element)
-        if not verify_nin_for_user(user, proofing_state, proofing_log_entry):
-            current_app.logger.error(f'Failed verifying NIN for user {user}')
-            return redirect_with_msg(redirect_url, CommonMsg.temp_problem)
-    except AmTaskFailed:
-        current_app.logger.exception('Verifying NIN for user failed')
-        return redirect_with_msg(redirect_url, CommonMsg.temp_problem)
-    current_app.stats.count(name='nin_verified')
+    message = verify_nin_from_external_mfa(proofing_user=proofing_user, session_info=session_info)
+    if message is not None:
+        return redirect_with_msg(redirect_url, message)
 
     return redirect_with_msg(redirect_url, EidasMsg.nin_verify_success, error=False)
 
@@ -312,14 +283,33 @@ def mfa_authentication_action(session_info: SessionInfo, authndata: SP_AuthnRequ
     # Check that a verified NIN is equal to the asserted attribute personalIdentityNumber
     asserted_nin = _personal_idns[0]
     user_nin = user.nins.find(asserted_nin)
-    if not user_nin or not user_nin.is_verified:
+    locked_nin = user.locked_identity.find('nin')
+
+    mfa_success = False
+    if user_nin is None and locked_nin is None:
+        # no nin to match anything to
+        mfa_success = False
+    elif user_nin is not None and user_nin.is_verified is True:
+        # nin matched asserted nin and is verified
+        mfa_success = True
+    elif isinstance(locked_nin, LockedIdentityNin) and locked_nin.number == asserted_nin:
+        # previously verified nin that the user just showed possession of
+        mfa_success = True
+        # and we can verify it again
+        proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
+        message = verify_nin_from_external_mfa(proofing_user=proofing_user, session_info=session_info)
+        if message is not None:
+            return redirect_with_msg(redirect_url, message)
+
+    if not mfa_success:
+        # No nin to match external mfa authentication with, bail
         current_app.logger.error('Asserted NIN not matching user verified nins')
         current_app.logger.debug('Asserted NIN: {}'.format(asserted_nin))
         current_app.stats.count(name='mfa_auth_nin_not_matching')
         session.mfa_action.error = MfaActionError.nin_not_matching
         return redirect_with_msg(redirect_url, EidasMsg.nin_not_matching)
 
-    session.mfa_action.success = True
+    session.mfa_action.success = mfa_success
     session.mfa_action.issuer = session_info['issuer']
     session.mfa_action.authn_instant = session_info['authn_info'][0][2]
     session.mfa_action.authn_context = get_authn_ctx(session_info)
