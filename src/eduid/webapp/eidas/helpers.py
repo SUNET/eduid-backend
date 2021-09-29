@@ -2,6 +2,7 @@
 
 import logging
 from enum import unique
+from typing import Optional
 
 from dateutil.parser import parse as dt_parse
 from saml2 import BINDING_HTTP_REDIRECT
@@ -12,10 +13,16 @@ from saml2.saml import AuthnContextClassRef
 from saml2.samlp import RequestedAuthnContext
 
 from eduid.common.misc.timeutil import utc_now
-from eduid.webapp.common.api.messages import TranslatableMsg
+from eduid.userdb.logs import SwedenConnectProofing
+from eduid.userdb.proofing import NinProofingElement, ProofingUser
+from eduid.userdb.proofing.state import NinProofingState
+from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed
+from eduid.webapp.common.api.helpers import verify_nin_for_user
+from eduid.webapp.common.api.messages import CommonMsg, TranslatableMsg
 from eduid.webapp.common.authn.cache import OutstandingQueriesCache
 from eduid.webapp.common.authn.eduid_saml2 import get_authn_ctx
 from eduid.webapp.common.authn.session_info import SessionInfo
+from eduid.webapp.common.authn.utils import get_saml_attribute
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import AuthnRequestRef
 from eduid.webapp.eidas.app import current_eidas_app as current_app
@@ -115,6 +122,52 @@ def is_valid_reauthn(session_info: SessionInfo, max_age: int = 60) -> bool:
         return True
     logger.error(f'Authn instant {authn_instant} too old (age {age}, max_age {max_age} seconds)')
     return False
+
+
+def verify_nin_from_external_mfa(proofing_user: ProofingUser, session_info: SessionInfo) -> Optional[TranslatableMsg]:
+
+    _nin_list = get_saml_attribute(session_info, 'personalIdentityNumber')
+    if _nin_list is None:
+        raise ValueError("Missing NIN in SAML session info")
+    asserted_nin = _nin_list[0]
+
+    # Create a proofing log
+    issuer = session_info['issuer']
+    authn_context = get_authn_ctx(session_info)
+    if not authn_context:
+        current_app.logger.error('No authn context in session_info')
+        return EidasMsg.authn_context_mismatch
+
+    try:
+        user_address = current_app.msg_relay.get_postal_address(asserted_nin)
+    except MsgTaskFailed as e:
+        current_app.logger.error('Navet lookup failed: {}'.format(e))
+        current_app.stats.count('navet_error')
+        return CommonMsg.navet_error
+
+    proofing_log_entry = SwedenConnectProofing(
+        eppn=proofing_user.eppn,
+        created_by='eduid-eidas',
+        nin=asserted_nin,
+        issuer=issuer,
+        authn_context_class=authn_context,
+        user_postal_address=user_address,
+        proofing_version='2018v1',
+    )
+
+    # Verify NIN for user
+    try:
+        nin_element = NinProofingElement(number=asserted_nin, created_by='eduid-eidas', is_verified=False)
+        proofing_state = NinProofingState(id=None, modified_ts=None, eppn=proofing_user.eppn, nin=nin_element)
+        if not verify_nin_for_user(proofing_user, proofing_state, proofing_log_entry):
+            current_app.logger.error(f'Failed verifying NIN for user {proofing_user}')
+            return CommonMsg.temp_problem
+    except AmTaskFailed:
+        current_app.logger.exception('Verifying NIN for user failed')
+        return CommonMsg.temp_problem
+
+    current_app.stats.count(name='nin_verified')
+    return None
 
 
 def create_metadata(config):
