@@ -11,7 +11,10 @@ from fido2.ctap2 import AttestationObject
 from mock import patch
 
 from eduid.userdb.credentials import U2F, Webauthn
+from eduid.userdb.credentials.fido import WebauthnAuthenticator
 from eduid.webapp.common.api.testing import EduidAPITestCase
+from eduid.webapp.common.session import EduidSession
+from eduid.webapp.common.session.namespaces import WebauthnRegistration, WebauthnState
 from eduid.webapp.security.app import SecurityApp, security_init_app
 from eduid.webapp.security.helpers import SecurityMsg
 from eduid.webapp.security.views.webauthn import get_webauthn_server
@@ -26,7 +29,7 @@ REGISTRATION_DATA = {
     'publicKey': {
         'attestation': 'none',
         'authenticatorSelection': {'requireResidentKey': False, 'userVerification': 'discouraged'},
-        'challenge': b')\x03\x00S\x8b\xe1X\xbb^R\x88\x9e\xe7\x8a\x03}' b's\x8d\\\x80@\xfa\x18(\xa2O\xbfN\x84\x19R\\',
+        'challenge': b')\x03\x00S\x8b\xe1X\xbb^R\x88\x9e\xe7\x8a\x03}s\x8d\\\x80@\xfa\x18(\xa2O\xbfN\x84\x19R\\',
         'excludeCredentials': [],
         'pubKeyCredParams': [{'alg': -7, 'type': 'public-key'}],
         'rp': {'id': 'localhost', 'name': 'Demo server'},
@@ -79,7 +82,7 @@ REGISTRATION_DATA_2 = {
     'publicKey': {
         'attestation': 'none',
         'authenticatorSelection': {'requireResidentKey': False, 'userVerification': 'discouraged'},
-        'challenge': b"y\xe2*'\x8c\xea\xabF\xf0\xb8'k\x8c\x9ec\xd1" b'ia\x1c\x9a\xd8\xfc5\xed\x0b@Q0\x9b\xe1u\r',
+        'challenge': b"y\xe2*'\x8c\xea\xabF\xf0\xb8'k\x8c\x9ec\xd1ia\x1c\x9a\xd8\xfc5\xed\x0b@Q0\x9b\xe1u\r",
         'excludeCredentials': [
             {
                 'id': b'1\xf8\x97Cy\xe6Xi'
@@ -161,10 +164,9 @@ class SecurityWebauthnTests(EduidAPITestCase):
         )
         return config
 
-    def _add_token_to_user(self, registration_data, state):
-        data = registration_data + (b'=' * (len(registration_data) % 4))
-        data = base64.urlsafe_b64decode(data)
-        data = cbor.decode(data)
+    def _add_token_to_user(self, registration_data: bytes, state: Mapping[str, Any]) -> Webauthn:
+        _registration_data = registration_data + (b'=' * (len(registration_data) % 4))
+        data = cbor.decode(base64.urlsafe_b64decode(_registration_data))
         client_data = ClientData(data['clientDataJSON'])
         attestation = data['attestationObject']
         att_obj = AttestationObject(attestation)
@@ -180,13 +182,15 @@ class SecurityWebauthnTests(EduidAPITestCase):
             attest_obj=base64.b64encode(attestation).decode('ascii'),
             description='ctap1 token',
             created_by='test_security',
+            authenticator=WebauthnAuthenticator.cross_platform,
         )
         self.test_user.credentials.add(credential)
         self.app.central_userdb.save(self.test_user, check_sync=False)
         return credential
 
-    def _add_u2f_token_to_user(self, eppn):
+    def _add_u2f_token_to_user(self, eppn: str) -> U2F:
         user = self.app.central_userdb.get_user_by_eppn(eppn)
+        assert user is not None
         u2f_token = U2F(
             version='version',
             keyhandle='keyHandle',
@@ -202,10 +206,11 @@ class SecurityWebauthnTests(EduidAPITestCase):
 
     def _check_session_state(self, client):
         with client.session_transaction() as sess:
-            self.assertIsNotNone(sess['_webauthn_state_'])
-            webauthn_state = sess['_webauthn_state_']
-        self.assertEqual(webauthn_state['user_verification'], 'discouraged')
-        self.assertIn('challenge', webauthn_state)
+            assert isinstance(sess, EduidSession)
+            assert sess.security.webauthn_registration is not None
+            webauthn_state = sess.security.webauthn_registration.webauthn_state
+        assert webauthn_state['user_verification'] == 'discouraged'
+        assert 'challenge' in webauthn_state
 
     def _check_registration_begun(self, data):
         self.assertEqual(data['type'], 'POST_WEBAUTHN_WEBAUTHN_REGISTER_BEGIN_SUCCESS')
@@ -277,7 +282,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
     def _finish_register_key(
         self,
         mock_request_user_sync: Any,
-        state: dict,
+        state: WebauthnState,
         att: bytes,
         cdata: bytes,
         cred_id: bytes,
@@ -302,7 +307,10 @@ class SecurityWebauthnTests(EduidAPITestCase):
         with self.session_cookie(self.browser, eppn) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
-                    sess['_webauthn_state_'] = state
+                    assert isinstance(sess, EduidSession)
+                    sess.security.webauthn_registration = WebauthnRegistration(
+                        webauthn_state=state, authenticator=WebauthnAuthenticator.cross_platform
+                    )
                     if csrf is not None:
                         csrf_token = csrf
                     else:

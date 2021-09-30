@@ -16,7 +16,7 @@ from mock import patch
 from eduid.common.config.base import EduidEnvironment
 from eduid.userdb import LockedIdentityNin, Nin
 from eduid.userdb.credentials import U2F, Webauthn
-from eduid.userdb.credentials.fido import FidoCredential
+from eduid.userdb.credentials.fido import FidoCredential, WebauthnAuthenticator
 from eduid.userdb.element import ElementKey
 from eduid.webapp.common.api.messages import TranslatableMsg, redirect_with_msg
 from eduid.webapp.common.api.testing import EduidAPITestCase
@@ -190,6 +190,7 @@ class EidasTests(EduidAPITestCase):
                 attest_obj='test',
                 description='test',
                 created_by='test',
+                authenticator=WebauthnAuthenticator.cross_platform,
             )
         user.credentials.add(mfa_token)
         self.request_user_sync(user)

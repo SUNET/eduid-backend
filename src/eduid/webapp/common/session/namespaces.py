@@ -17,6 +17,8 @@ from eduid.userdb.credentials import Credential
 
 __author__ = 'ft'
 
+from eduid.userdb.credentials.fido import WebauthnAuthenticator
+
 from eduid.userdb.element import ElementKey
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
 
@@ -92,11 +94,18 @@ class ResetPasswordNS(SessionNSBase):
     extrasec_webauthn_state: Optional[str] = None
 
 
+class WebauthnRegistration(SessionNSBase):
+    # Data stored between webauthn register "begin" and "complete"
+    webauthn_state: WebauthnState
+    authenticator: WebauthnAuthenticator
+
+
 class SecurityNS(SessionNSBase):
     # used for new change_password
     generated_password_hash: Optional[str] = None
-    # used for update user data from offical source
+    # used for update user data from official source
     user_requested_update: Optional[datetime] = None
+    webauthn_registration: Optional[WebauthnRegistration] = None
 
 
 class Signup(TimestampedNS):

@@ -19,6 +19,7 @@ from eduid.webapp.common.api.messages import FluxData, error_response, success_r
 from eduid.webapp.common.api.schemas.base import FluxStandardAction
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.session import session
+from eduid.webapp.common.session.namespaces import WebauthnAuthenticator, WebauthnRegistration
 from eduid.webapp.security.app import current_security_app as current_app
 from eduid.webapp.security.helpers import SecurityMsg, compile_credential_list
 from eduid.webapp.security.schemas import (
@@ -60,7 +61,11 @@ webauthn_views = Blueprint('webauthn', __name__, url_prefix='/webauthn', templat
 @UnmarshalWith(WebauthnRegisterBeginSchema)
 @MarshalWith(FluxStandardAction)
 @require_user
-def registration_begin(user: User, authenticator) -> FluxData:
+def registration_begin(user: User, authenticator: str) -> FluxData:
+    try:
+        _auth_enum = WebauthnAuthenticator(authenticator)
+    except ValueError:
+        return error_response(message=SecurityMsg.invalid_authenticator)
     user_webauthn_tokens = user.credentials.filter(FidoCredential)
     if len(user_webauthn_tokens) >= current_app.conf.webauthn_max_allowed_tokens:
         current_app.logger.error(
@@ -81,9 +86,9 @@ def registration_begin(user: User, authenticator) -> FluxData:
         },
         credentials=creds,
         user_verification=UserVerificationRequirement.DISCOURAGED,
-        authenticator_attachment=authenticator,
+        authenticator_attachment=_auth_enum.value,
     )
-    session['_webauthn_state_'] = state
+    session.security.webauthn_registration = WebauthnRegistration(webauthn_state=state, authenticator=_auth_enum)
 
     current_app.logger.info('User {} has started registration of a webauthn token'.format(user))
     current_app.logger.debug('Webauthn Registration data: {}.'.format(registration_data))
@@ -108,8 +113,13 @@ def registration_complete(user: User, credential_id, attestation_object, client_
     server = get_webauthn_server(current_app.conf.fido2_rp_id)
     att_obj = AttestationObject(urlsafe_b64decode(attestation_object))
     cdata_obj = ClientData(urlsafe_b64decode(client_data))
-    state = session['_webauthn_state_']
-    auth_data = server.register_complete(state, cdata_obj, att_obj)
+    if not session.security.webauthn_registration:
+        current_app.logger.info('Found no webauthn registration state in the session')
+        return error_response(message=SecurityMsg.missing_registration_state)
+    # Move registration state from session to local variable to let users restart if something fails
+    reg_state = session.security.webauthn_registration
+    session.security.webauthn_registration = None
+    auth_data = server.register_complete(reg_state.webauthn_state, cdata_obj, att_obj)
 
     cred_data = auth_data.credential_data
     current_app.logger.debug(f'Processed Webauthn credential data: {cred_data}')
@@ -121,6 +131,7 @@ def registration_complete(user: User, credential_id, attestation_object, client_
         attest_obj=base64.b64encode(attestation_object.encode('utf-8')).decode('ascii'),
         description=description,
         created_by='security',
+        authenticator=reg_state.authenticator,
     )
 
     security_user.credentials.add(credential)
