@@ -35,7 +35,9 @@
 from __future__ import annotations
 
 from hashlib import sha256
-from typing import Optional
+from typing import Any, Dict, Optional, Type
+
+from enum import Enum, unique
 
 from eduid.userdb.credentials import Credential
 
@@ -72,13 +74,20 @@ class U2F(FidoCredential):
         return ElementKey('sha256:' + _digest)
 
 
+@unique
+class WebauthnAuthenticator(str, Enum):
+    cross_platform = 'cross-platform'
+    platform = 'platform'
+
+
 class Webauthn(FidoCredential):
     """
     Webauthn token authentication credential
     """
 
-    attest_obj: str = ''
-    credential_data: str = ''
+    attest_obj: str
+    credential_data: str
+    authenticator: WebauthnAuthenticator
 
     @property
     def key(self) -> ElementKey:
@@ -87,3 +96,16 @@ class Webauthn(FidoCredential):
         """
         _digest = sha256(self.keyhandle.encode('utf-8') + self.credential_data.encode('utf-8')).hexdigest()
         return ElementKey('sha256:' + _digest)
+
+    @classmethod
+    def _from_dict_transform(cls: Type[Webauthn], data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Transform data from eduid database format into pythonic format.
+        """
+        data = super()._from_dict_transform(data)
+
+        # Add authenticator if not present.
+        if 'authenticator' not in data:
+            data['authenticator'] = 'cross-platform'
+
+        return data

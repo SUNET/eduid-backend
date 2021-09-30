@@ -43,6 +43,7 @@ from mock import patch
 
 from eduid.userdb.actions.action import ActionResultMFA
 from eduid.userdb.credentials import U2F, Webauthn
+from eduid.userdb.credentials.fido import WebauthnAuthenticator
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.tou import ToUEvent
 from eduid.vccs.client import VCCSClient
@@ -86,6 +87,7 @@ class TestActions(SSOIdPTests):
             app_id='https://dev.eduid.se/u2f-app-id.json',
             attest_obj='test_attest_obj',
             description='test_description',
+            authenticator=WebauthnAuthenticator.cross_platform,
         )
 
     def update_config(self, config):
@@ -201,6 +203,7 @@ class TestActions(SSOIdPTests):
             app_id='https://dev.eduid.se/u2f-app-id.json',
             attest_obj='test_attest_obj',
             description='test_description',
+            authenticator=WebauthnAuthenticator.cross_platform,
         )
         self.test_user.credentials.add(webauthn)
         self.amdb.save(self.test_user, check_sync=False)
@@ -381,6 +384,7 @@ class TestActions(SSOIdPTests):
             app_id='https://dev.eduid.se/u2f-app-id.json',
             attest_obj='test_attest_obj',
             description='test_description',
+            authenticator=WebauthnAuthenticator.cross_platform,
         )
         self.test_user.credentials.add(webauthn)
         self.amdb.save(self.test_user, check_sync=False)
