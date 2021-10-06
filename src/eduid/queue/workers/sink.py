@@ -65,6 +65,7 @@ class SinkQueueWorker(QueueWorker):
                 delta=str(delta),
                 per_second=int(per_second),
             )
+            self._first_ts = None
             self._last_ts = None
             self._counter = 0
 
