@@ -28,7 +28,8 @@ class SinkQueueWorker(QueueWorker):
         self._counter = 0
         self._first_ts: Optional[datetime] = None
         self._last_ts: Optional[datetime] = None
-        self._sender_info = SenderInfo(hostname=os.environ.get('HOSTNAME'), node_id='sink_worker')
+        hostname = os.environ.get('HOSTNAME') or 'localhost'
+        self._sender_info = SenderInfo(hostname=hostname, node_id='sink_worker')
 
     async def handle_new_item(self, queue_item: QueueItem) -> None:
         if queue_item.payload_type == EduidTestPayload.get_type():
@@ -51,8 +52,8 @@ class SinkQueueWorker(QueueWorker):
         tasks += [asyncio.create_task(self.periodic_stats_publishing(), name='periodic_stats_publishing')]
         return tasks
 
-    async def periodic_stats_publishing(self):
-        if not self._receiving and self._counter:
+    async def periodic_stats_publishing(self) -> None:
+        if not self._receiving and (self._counter and self._first_ts and self._last_ts):
             # publish statistics when no longer receiving new items for a whole period
 
             delta = self._last_ts - self._first_ts
