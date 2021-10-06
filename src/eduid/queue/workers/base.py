@@ -143,8 +143,7 @@ class QueueWorker(ABC):
         try:
             while True:
                 logger.debug(f'Running periodic collection check')
-                tasks += await self.process_forgotten_items()
-                tasks += await self.process_expired_items()
+                tasks = await self.collect_periodic_tasks()
 
                 # TODO: Implement some kind of retry of failed events here
 
@@ -159,7 +158,12 @@ class QueueWorker(ABC):
             logger.info('Cleaning up periodic_collection_check task...')
             await asyncio.gather(*tasks)
 
-    async def process_forgotten_items(self) -> List[Task]:
+    async def collect_periodic_tasks(self) -> List[Task]:
+        tasks = await self.collect_forgotten_items()
+        tasks += await self.collect_expired_items()
+        return tasks
+
+    async def collect_forgotten_items(self) -> List[Task]:
         tasks = []
         # Check for forgotten untouched queue items
         items = await self.db.find_items(
@@ -174,7 +178,7 @@ class QueueWorker(ABC):
             )
         return tasks
 
-    async def process_expired_items(self) -> List[Task]:
+    async def collect_expired_items(self) -> List[Task]:
         tasks = []
         # Check for expired untouched queue items
         items = await self.db.find_items(
