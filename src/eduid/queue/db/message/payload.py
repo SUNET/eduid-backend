@@ -29,11 +29,36 @@
 #
 
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from typing import Mapping
 
 from eduid.queue.db import Payload
 
 __author__ = 'lundberg'
+
+
+@dataclass
+class EduidTestPayload(Payload):
+    counter: int
+
+    @classmethod
+    def from_dict(cls, data: Mapping):
+        return cls(**data)
+
+
+@dataclass
+class EduidTestResultPayload(Payload):
+    """ Some statistics for source/sink test runs """
+
+    counter: int
+    first_ts: datetime
+    last_ts: datetime
+    delta: str  # bson can't encode timedelta
+    per_second: int
+
+    @classmethod
+    def from_dict(cls, data: Mapping):
+        return cls(**data)
 
 
 @dataclass

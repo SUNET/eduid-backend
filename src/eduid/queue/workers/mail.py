@@ -126,3 +126,7 @@ def init_mail_worker(name: str = 'mail_worker', test_config: Optional[Mapping[st
 def start_worker():
     worker = init_mail_worker()
     exit(asyncio.run(worker.run()))
+
+
+if __name__ == '__main__':
+    start_worker()

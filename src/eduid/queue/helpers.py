@@ -2,9 +2,9 @@
 
 import logging
 from contextlib import contextmanager
+from pathlib import Path
 
 import babel
-import pkg_resources
 from babel.support import Translations
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
@@ -19,8 +19,8 @@ class Jinja2Env:
     """
 
     def __init__(self):
-        templates_dir = pkg_resources.resource_filename('eduid_queue', 'templates')
-        translations_dir = pkg_resources.resource_filename('eduid_queue', 'translations')
+        templates_dir = Path(__file__).with_name('templates')
+        translations_dir = Path(__file__).with_name('translations')
         # Templates
         template_loader = FileSystemLoader(searchpath=templates_dir)
         logger.info(f'Loaded templates from {templates_dir}: {template_loader.list_templates()}')
