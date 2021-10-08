@@ -79,19 +79,17 @@ from __future__ import annotations
 import collections.abc
 import json
 import logging
-from datetime import datetime
 from typing import Any, Dict, List, Mapping, Optional
 
 import nacl.encoding
 import nacl.secret
 import nacl.utils
 import redis
-from bson import ObjectId
 
 # error: Module "redis" has no attribute "sentinel" according to mypy
 from redis import sentinel  # type: ignore
-from saml2.saml import NameID
 
+from eduid.common.misc.encoders import EduidJSONEncoder
 from eduid.common.config.base import RedisConfig
 from eduid.webapp.common.session.meta import SessionMeta
 
@@ -179,20 +177,6 @@ def get_redis_pool(cfg: RedisConfig):
             raise RuntimeError('Redis configuration incorrect')
         pool = redis.ConnectionPool(host=cfg.host, port=cfg.port, db=cfg.db)
     return pool
-
-
-class EduidJSONEncoder(json.JSONEncoder):
-    # TODO: This enables us to serialise NameIDs into the stored sessions,
-    #       but we don't seem to de-serialise them on load
-    def default(self, obj):
-        if isinstance(obj, NameID):
-            return str(obj)
-        if isinstance(obj, datetime):
-            return obj.isoformat()
-        if isinstance(obj, ObjectId):
-            return str(obj)
-
-        return super().default(obj)
 
 
 class NoSessionDataFoundException(Exception):
