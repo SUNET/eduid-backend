@@ -88,42 +88,28 @@ class MongoDB(object):
         """
         return self._connection
 
-    def get_database(
-        self, database_name: Optional[str] = None, username: Optional[str] = None, password: Optional[str] = None
-    ):
+    def get_database(self, database_name: Optional[str] = None):
         """
-        Get a pymongo database handle, after authenticating.
-
-        Authenticates using the username/password in the DB URI given to
-        __init__() unless username/password is supplied as arguments.
+        Get a pymongo database handle.
 
         :param database_name: (optional) Name of database
-        :param username: (optional) Username to login with
-        :param password: (optional) Password to login with
         :return: Pymongo database object
         """
         if database_name is None:
             database_name = self._database_name
         if database_name is None:
             raise ValueError('No database_name supplied, and no default provided to __init__')
-        db = self._connection[database_name]
-        if username and password:
-            db.authenticate(username, password)
-        elif self._parsed_uri.get("username", None):
-            db.authenticate(self._parsed_uri.get("username", None), self._parsed_uri.get("password", None))
-        return db
+        return self._connection[database_name]
 
-    def get_collection(self, collection, database_name=None, username=None, password=None):
+    def get_collection(self, collection, database_name=None):
         """
         Get a pymongo collection handle.
 
         :param collection: Name of collection
         :param database_name: (optional) Name of database
-        :param username: (optional) Username to login with
-        :param password: (optional) Password to login with
         :return: Pymongo collection object
         """
-        _db = self.get_database(database_name, username, password)
+        _db = self.get_database(database_name)
         return _db[collection]
 
     def is_healthy(self):

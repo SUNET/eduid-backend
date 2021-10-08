@@ -34,7 +34,7 @@ class SinkQueueWorker(QueueWorker):
     async def handle_new_item(self, queue_item: QueueItem) -> None:
         if queue_item.payload_type == EduidTestPayload.get_type():
             self._receiving = True
-            logger.info(f'Received queue item: {queue_item.item_id}')
+            logger.debug(f'Received queue item: {queue_item.item_id}')
             logger.debug(queue_item)
             now = utc_now()
             if not self._first_ts:
@@ -95,4 +95,5 @@ def start_worker():
 
 
 if __name__ == '__main__':
+    logger = logging.getLogger('sink-queue-worker')
     start_worker()

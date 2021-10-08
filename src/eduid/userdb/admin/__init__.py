@@ -1,4 +1,5 @@
 # Helper code for tools accessing the raw userdb - things like database fixup scripts.
+from __future__ import annotations
 
 import argparse
 import datetime
@@ -7,6 +8,7 @@ import pprint
 import sys
 import time
 from copy import deepcopy
+from typing import Any, Generator
 
 import bson
 import bson.json_util
@@ -41,7 +43,7 @@ class RawDb(object):
         self._backupbase = backupbase
         self._file_num = 0
 
-    def find(self, db, collection, search_filter):
+    def find(self, db: str, collection: str, search_filter: Any) -> Generator[RawData, None, None]:
         """
         Look for documents matching search_filter in the specified database and collection.
 
@@ -51,11 +53,6 @@ class RawDb(object):
         :param db: Database name
         :param collection: Collection name
         :param search_filter: PyMongo search filter
-
-        :type db: string_types
-        :type collection: string_types
-
-        :rtype: Generator[RawData]
         """
         try:
             for doc in self._client[db][collection].find(search_filter):
@@ -67,7 +64,7 @@ class RawDb(object):
             )
             sys.exit(1)
 
-    def save_with_backup(self, raw, dry_run=True):
+    def save_with_backup(self, raw: RawData, dry_run: bool = True) -> Any:
         """
         Save a mongodb document while trying to carefully make a backup of the document before, after and what changed.
 
@@ -319,6 +316,6 @@ def get_argparser(description=None, eppn=False):
     )
 
     if eppn is True:
-        parser.add_argument('eppn', metavar='STR', type=str, help='eduPersonPrincipalName to operate on')
+        parser.add_argument('eppn', metavar='EPPN', type=str, help='eduPersonPrincipalName to operate on')
 
     return parser

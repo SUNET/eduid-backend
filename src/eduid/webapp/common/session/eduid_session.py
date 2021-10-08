@@ -30,11 +30,11 @@ from eduid.webapp.common.session.namespaces import (
     TimestampedNS,
 )
 from eduid.webapp.common.session.redis_session import (
-    EduidJSONEncoder,
     RedisEncryptedSession,
     SessionManager,
     SessionOutOfSync,
 )
+from eduid.common.misc.encoders import EduidJSONEncoder
 
 if TYPE_CHECKING:
     # From https://stackoverflow.com/a/39757388
