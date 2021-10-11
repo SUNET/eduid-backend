@@ -89,8 +89,8 @@ import redis
 # error: Module "redis" has no attribute "sentinel" according to mypy
 from redis import sentinel  # type: ignore
 
-from eduid.common.misc.encoders import EduidJSONEncoder
 from eduid.common.config.base import RedisConfig
+from eduid.common.misc.encoders import EduidJSONEncoder
 from eduid.webapp.common.session.meta import SessionMeta
 
 logger = logging.getLogger(__name__)

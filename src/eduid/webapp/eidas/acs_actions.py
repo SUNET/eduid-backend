@@ -6,7 +6,7 @@ from typing import Optional
 from flask import request
 from werkzeug.wrappers import Response as WerkzeugResponse
 
-from eduid.userdb import User, LockedIdentityNin
+from eduid.userdb import LockedIdentityNin, User
 from eduid.userdb.credentials.fido import FidoCredential
 from eduid.userdb.logs import MFATokenProofing, SwedenConnectProofing
 from eduid.userdb.proofing.state import NinProofingElement, NinProofingState

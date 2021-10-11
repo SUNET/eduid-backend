@@ -18,7 +18,6 @@ from eduid.userdb.credentials import Credential
 __author__ = 'ft'
 
 from eduid.userdb.credentials.fido import WebauthnAuthenticator
-
 from eduid.userdb.element import ElementKey
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
 
