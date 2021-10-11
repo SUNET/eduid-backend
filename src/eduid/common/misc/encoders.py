@@ -2,7 +2,6 @@ import json
 from datetime import datetime
 
 from bson import ObjectId
-
 from saml2.saml import NameID
 
 

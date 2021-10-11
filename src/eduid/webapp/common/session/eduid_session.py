@@ -15,6 +15,7 @@ from pydantic import BaseModel
 
 from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.common.config.exceptions import BadConfiguration
+from eduid.common.misc.encoders import EduidJSONEncoder
 from eduid.common.misc.timeutil import utc_now
 from eduid.webapp.common.session.meta import SessionMeta
 from eduid.webapp.common.session.namespaces import (
@@ -29,12 +30,7 @@ from eduid.webapp.common.session.namespaces import (
     Signup,
     TimestampedNS,
 )
-from eduid.webapp.common.session.redis_session import (
-    RedisEncryptedSession,
-    SessionManager,
-    SessionOutOfSync,
-)
-from eduid.common.misc.encoders import EduidJSONEncoder
+from eduid.webapp.common.session.redis_session import RedisEncryptedSession, SessionManager, SessionOutOfSync
 
 if TYPE_CHECKING:
     # From https://stackoverflow.com/a/39757388

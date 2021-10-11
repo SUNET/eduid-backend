@@ -234,7 +234,7 @@ class AuthenticationMiddleware(BaseMiddleware):
         try:
             _jwt.deserialize(token, req.app.context.jwks)
             claims = json.loads(_jwt.claims)
-        except (JWException, KeyError) as e:
+        except (JWException, KeyError, ValueError) as e:
             self.context.logger.info(f'Bearer token error: {e}')
             return return_error_response(status_code=401, detail='Bearer token error')
 

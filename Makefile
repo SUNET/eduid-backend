@@ -39,3 +39,7 @@ compile_queue_translations:
 
 update_deps:
 	cd requirements && make update_deps
+
+dev_sync_deps:
+	cd requirements && make dev_sync_deps
+

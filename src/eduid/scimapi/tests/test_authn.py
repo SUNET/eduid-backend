@@ -294,11 +294,9 @@ class TestAuthnUserResource(ScimApiTestUserResourceBase):
 
     def test_get_user_bogus_token(self):
         db_user = self.add_user(identifier=str(uuid4()), external_id='test-id-1', profiles={'test': self.test_profile})
-        with pytest.raises(ValueError):
-            response = self._get_user_from_api(db_user, bearer_token='not a jws token')
-        # TODO: Return a proper error to the user?
-        # self._assertResponse(response, 401)
-        # assert response.text == 'Token format unrecognized'
+        response = self._get_user_from_api(db_user, bearer_token='not a jws token')
+        self._assertResponse(response, 401)
+        assert response.text == 'Bearer token error'
 
     def test_get_user_untrusted_token(self):
         db_user = self.add_user(identifier=str(uuid4()), external_id='test-id-1', profiles={'test': self.test_profile})

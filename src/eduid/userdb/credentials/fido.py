@@ -34,10 +34,9 @@
 #
 from __future__ import annotations
 
+from enum import Enum, unique
 from hashlib import sha256
 from typing import Any, Dict, Optional, Type
-
-from enum import Enum, unique
 
 from eduid.userdb.credentials import Credential
 
