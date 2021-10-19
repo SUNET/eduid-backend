@@ -32,6 +32,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from datetime import timedelta
+from enum import Enum
+from typing import Optional
 
 from pydantic import Field
 
@@ -44,6 +46,19 @@ from eduid.common.config.base import (
     PasswordConfigMixin,
     WebauthnConfigMixin2,
 )
+
+
+class WebauthnAttestation(str, Enum):
+    """
+    Type of attestation to ask from authenticators on registration.
+
+    https://w3c.github.io/webauthn/#attestation-conveyance
+    """
+
+    none = 'none'
+    indirect = 'indirect'
+    direct = 'direct'
+    enterprise = 'enterprise'
 
 
 class SecurityConfig(
@@ -76,6 +91,8 @@ class SecurityConfig(
     u2f_max_description_length: int = 64  # Do not allow longer descriptions than this number
     # webauthn
     webauthn_max_allowed_tokens: int = 10
+    webauthn_attestation: Optional[WebauthnAttestation] = None
+
     # password reset settings
     email_code_timeout: int = 7200  # seconds
     phone_code_timeout: int = 600  # seconds

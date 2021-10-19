@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import base64
-from typing import List, Sequence, Union
+from typing import List, Optional, Sequence, Union
 
 from fido2 import cbor
 from fido2.client import ClientData
@@ -28,11 +28,17 @@ from eduid.webapp.security.schemas import (
     WebauthnRegisterBeginSchema,
     WebauthnRegisterRequestSchema,
 )
+from eduid.webapp.security.settings.common import WebauthnAttestation
 
 
-def get_webauthn_server(rp_id, name='eduID security API'):
+def get_webauthn_server(
+    rp_id: str, name='eduID security API', attestation: Optional[WebauthnAttestation] = None
+) -> Fido2Server:
     rp = PublicKeyCredentialRpEntity(rp_id, name)
-    return Fido2Server(rp)
+    _att = None
+    if attestation:
+        _att = attestation.value
+    return Fido2Server(rp, attestation=_att)
 
 
 def make_credentials(creds: Sequence[FidoCredential]) -> List[AttestedCredentialData]:
@@ -74,7 +80,7 @@ def registration_begin(user: User, authenticator: str) -> FluxData:
         return error_response(message=SecurityMsg.max_webauthn)
 
     creds = make_credentials(user_webauthn_tokens)
-    server = get_webauthn_server(current_app.conf.fido2_rp_id)
+    server = get_webauthn_server(current_app.conf.fido2_rp_id, attestation=current_app.conf.webauthn_attestation)
     if user.given_name is None or user.surname is None or user.display_name is None:
         return error_response(message=SecurityMsg.no_pdata)
 
@@ -108,7 +114,9 @@ def urlsafe_b64decode(data: str) -> bytes:
 @UnmarshalWith(WebauthnRegisterRequestSchema)
 @MarshalWith(SecurityResponseSchema)
 @require_user
-def registration_complete(user: User, credential_id, attestation_object, client_data, description) -> FluxData:
+def registration_complete(
+    user: User, credential_id: str, attestation_object: str, client_data: str, description: str
+) -> FluxData:
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
     server = get_webauthn_server(current_app.conf.fido2_rp_id)
     att_obj = AttestationObject(urlsafe_b64decode(attestation_object))
