@@ -37,7 +37,7 @@ def get_webauthn_server(
     rp = PublicKeyCredentialRpEntity(rp_id, name)
     _att = None
     if attestation:
-        _att = attestation.value()
+        _att = attestation.value
     return Fido2Server(rp, attestation=_att)
 
 
