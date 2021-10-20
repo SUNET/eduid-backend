@@ -5,14 +5,23 @@ from jwcrypto import jwt
 
 from eduid.scimapi.api_router import APIRouter
 from eduid.scimapi.context_request import ContextRequest
-from eduid.scimapi.exceptions import Unauthorized
+from eduid.scimapi.exceptions import ErrorDetail, NotFound, Unauthorized
 from eduid.scimapi.models.login import TokenRequest
 
-login_router = APIRouter(prefix='/login')
+login_router = APIRouter(
+    prefix='/login',
+    responses={
+        400: {'description': 'Bad request', 'model': ErrorDetail},
+        404: {'description': 'Not found', 'model': ErrorDetail},
+        500: {'description': 'Internal server error', 'model': ErrorDetail},
+    },
+)
 
 
 @login_router.post('')
 async def get_token(req: ContextRequest, resp: Response, token_req: TokenRequest) -> None:
+    if not req.app.config.login_enabled:
+        raise NotFound()
     req.app.context.logger.info(f'Logging in')
     if token_req.data_owner not in req.app.context.config.data_owners:
         raise Unauthorized()

@@ -3,7 +3,7 @@ from fastapi import Response
 from eduid.scimapi.api_router import APIRouter
 from eduid.scimapi.context_request import ContextRequest, ContextRequestRoute
 from eduid.scimapi.db.eventdb import EventLevel, EventStatus, add_api_event
-from eduid.scimapi.exceptions import BadRequest, NotFound
+from eduid.scimapi.exceptions import BadRequest, ErrorDetail, NotFound, SCIMErrorResponse
 from eduid.scimapi.models.group import GroupCreateRequest, GroupResponse, GroupUpdateRequest
 from eduid.scimapi.models.scimbase import ListResponse, SCIMResourceType, SearchRequest
 from eduid.scimapi.routers.utils.groups import (
@@ -14,7 +14,15 @@ from eduid.scimapi.routers.utils.groups import (
 )
 from eduid.scimapi.search import parse_search_filter
 
-groups_router = APIRouter(route_class=ContextRequestRoute, prefix='/Groups')
+groups_router = APIRouter(
+    route_class=ContextRequestRoute,
+    prefix='/Groups',
+    responses={
+        400: {'description': 'Bad request', 'model': ErrorDetail},
+        404: {'description': 'Not found', 'model': ErrorDetail},
+        500: {'description': 'Internal server error', 'model': ErrorDetail},
+    },
+)
 
 
 @groups_router.get('/', response_model=ListResponse)
@@ -222,8 +230,10 @@ async def on_post(req: ContextRequest, resp: Response, create_request: GroupCrea
     return group_response
 
 
-@groups_router.delete('/{scim_id}')
-async def on_delete(req: ContextRequest, resp: Response, scim_id: str) -> None:
+@groups_router.delete(
+    '/{scim_id}', status_code=204, responses={204: {'description': 'No Content'}},
+)
+async def on_delete(req: ContextRequest, scim_id: str) -> None:
     req.app.context.logger.info(f'Deleting group {scim_id}')
     db_group = req.context.groupdb.get_group_by_scim_id(scim_id=scim_id)
     req.app.context.logger.debug(f'Found group: {db_group}')
@@ -247,7 +257,6 @@ async def on_delete(req: ContextRequest, resp: Response, scim_id: str) -> None:
     )
 
     req.app.context.logger.debug(f'Remove group result: {res}')
-    resp.status_code = 204
 
 
 @groups_router.post('/.search', response_model=ListResponse, response_model_exclude_none=True)

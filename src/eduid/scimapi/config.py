@@ -50,6 +50,7 @@ class ScimApiConfig(RootConfig, LoggingConfigMixin, AWSMixin):
     authorization_token_expire: int = 5 * 60
     keystore_path: Path
     signing_key_id: str
+    login_enabled: bool = False
     no_authn_urls: List[str] = Field(default=['^/login/?$', '^/status/healthy$', '^/docs/?$', '^/openapi.json'])
     status_cache_seconds: int = 10
     data_owners: Dict[DataOwnerName, DataOwner] = Field(default={})

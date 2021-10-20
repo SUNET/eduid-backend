@@ -8,7 +8,7 @@ from eduid.scimapi.context_request import ContextRequest, ContextRequestRoute
 from eduid.scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
 from eduid.scimapi.db.eventdb import EventLevel, EventStatus, add_api_event
 from eduid.scimapi.db.invitedb import ScimApiInvite
-from eduid.scimapi.exceptions import BadRequest, NotFound
+from eduid.scimapi.exceptions import BadRequest, ErrorDetail, NotFound
 from eduid.scimapi.models.invite import InviteCreateRequest, InviteResponse
 from eduid.scimapi.models.scimbase import ListResponse, SCIMResourceType, SearchRequest
 from eduid.scimapi.routers.utils.invites import (
@@ -23,7 +23,15 @@ from eduid.scimapi.search import parse_search_filter
 
 __author__ = 'lundberg'
 
-invites_router = APIRouter(route_class=ContextRequestRoute, prefix='/Invites')
+invites_router = APIRouter(
+    route_class=ContextRequestRoute,
+    prefix='/Invites',
+    responses={
+        400: {'description': 'Bad request', 'model': ErrorDetail},
+        404: {'description': 'Not found', 'model': ErrorDetail},
+        500: {'description': 'Internal server error', 'model': ErrorDetail},
+    },
+)
 
 
 @invites_router.get('/{scim_id}', response_model=InviteResponse, response_model_exclude_none=True)
@@ -122,14 +130,15 @@ async def on_post(req: ContextRequest, resp: Response, create_request: InviteCre
     return db_invite_to_response(req, resp, db_invite, signup_invite)
 
 
-@invites_router.delete('/{scim_id}')
-async def on_delete(req: ContextRequest, resp: Response, scim_id: str) -> None:
+@invites_router.delete('/{scim_id}', status_code=204, responses={204: {'description': 'No Content'}})
+async def on_delete(req: ContextRequest, scim_id: str) -> None:
     req.app.context.logger.info(f'Deleting invite {scim_id}')
     db_invite = req.context.invitedb.get_invite_by_scim_id(scim_id=scim_id)
     req.app.context.logger.debug(f'Found invite: {db_invite}')
 
     if not db_invite:
         raise NotFound(detail="Invite not found")
+
     # Check version
     if not req.app.context.check_version(req, db_invite):
         raise BadRequest(detail="Version mismatch")
@@ -154,7 +163,6 @@ async def on_delete(req: ContextRequest, resp: Response, scim_id: str) -> None:
     )
 
     req.app.context.logger.debug(f'Remove invite result: {res}')
-    resp.status_code = 204
 
 
 @invites_router.post('/.search', response_model=ListResponse, response_model_exclude_none=True)
