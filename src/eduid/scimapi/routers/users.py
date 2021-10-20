@@ -9,7 +9,7 @@ from eduid.scimapi.context_request import ContextRequest, ContextRequestRoute
 from eduid.scimapi.db.common import ScimApiEmail, ScimApiLinkedAccount, ScimApiName, ScimApiPhoneNumber
 from eduid.scimapi.db.eventdb import EventLevel, EventStatus, add_api_event
 from eduid.scimapi.db.userdb import ScimApiProfile, ScimApiUser
-from eduid.scimapi.exceptions import BadRequest, NotFound
+from eduid.scimapi.exceptions import BadRequest, ErrorDetail, NotFound
 from eduid.scimapi.models.scimbase import ListResponse, SCIMResourceType, SCIMSchema, SearchRequest
 from eduid.scimapi.models.user import UserCreateRequest, UserResponse, UserUpdateRequest
 from eduid.scimapi.routers.utils.users import (
@@ -22,7 +22,15 @@ from eduid.scimapi.routers.utils.users import (
 )
 from eduid.scimapi.search import parse_search_filter
 
-users_router = APIRouter(route_class=ContextRequestRoute, prefix='/Users')
+users_router = APIRouter(
+    route_class=ContextRequestRoute,
+    prefix='/Users',
+    responses={
+        400: {'description': 'Bad request', 'model': ErrorDetail},
+        404: {'description': 'Not found', 'model': ErrorDetail},
+        500: {'description': 'Internal server error', 'model': ErrorDetail},
+    },
+)
 
 
 @users_router.get('/{scim_id}', response_model=UserResponse, response_model_exclude_none=True)
