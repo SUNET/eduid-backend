@@ -36,7 +36,7 @@ def init_api(name: str = 'scimapi', test_config: Optional[Dict] = None) -> ScimA
 
     # Routers
     # TODO: Move bearer token generation to a separate API
-    app.include_router(login_router)
+    app.include_router(login_router, include_in_schema=app.config.login_enabled)
     app.include_router(users_router)
     app.include_router(groups_router)
     app.include_router(invites_router)
