@@ -4,7 +4,7 @@ import json
 import smtplib
 from collections import OrderedDict
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from celery import Task
 from celery.utils.log import get_task_logger
@@ -30,7 +30,7 @@ TRANSACTION_AUDIT_COLLECTION = 'transaction_audit'
 
 
 logger = get_task_logger(__name__)
-_CACHE: dict = {}
+_CACHE: Dict[str, CacheMDB] = {}
 _CACHE_EXPIRE_TS: Optional[datetime] = None
 
 app = MsgCelerySingleton.celery
@@ -75,7 +75,7 @@ class MessageSender(Task):
             self._navet_api = Hammock(config.navet_api_uri, auth=auth, verify=config.navet_api_verify_ssl)
         return self._navet_api
 
-    def cache(self, cache_name, ttl=7200):
+    def cache(self, cache_name: str, ttl: int = 7200) -> CacheMDB:
         global _CACHE
         if cache_name not in _CACHE:
             _CACHE[cache_name] = CacheMDB(
