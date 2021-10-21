@@ -28,10 +28,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from collections import Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict, Mapping, Optional
 
 from bson import ObjectId
 
