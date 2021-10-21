@@ -62,13 +62,6 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     fticks_format_string: str = 'F-TICKS/SWAMID/2.0#TS={ts}#RP={rp}#AP={ap}#PN={pn}#AM={am}#'
     # URL to static resources that can be used in templates
     static_link: str = '#'
-    #  UserDB database name. eduid.workers.am for old userdb, eduid.userdb for new
-    userdb_mongo_database: str = 'eduid_am'
-    # MongoDB connection URI (string). See MongoDB documentation for details.
-    userdb_mongo_uri: Optional[str] = None
-    authn_info_mongo_uri: Optional[str] = None
-    # MongoDB connection URI (string) for PySAML2 SSO sessions.
-    sso_session_mongo_uri: Optional[str] = None
     # Lifetime of SSO sessions
     sso_session_lifetime: timedelta = Field(default=timedelta(minutes=600))
     # Verify request signatures, if they exist.
