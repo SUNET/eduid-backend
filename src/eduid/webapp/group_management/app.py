@@ -57,7 +57,7 @@ class GroupManagementApp(AuthnBaseApp):
         _owner = config.scim_data_owner.replace(
             '.', '_'
         )  # dot is a name separator in mongodb, so replace dots with underscores
-        self.scimapi_userdb = ScimApiUserDB(db_uri=config.mongo_uri, collection=f'{_owner}__users')
+        self.scimapi_userdb = ScimApiUserDB(db_uri=config.mongo_uri, collection=f'{_owner}__users', setup_indexes=False)
         self.scimapi_groupdb = ScimApiGroupDB(
             neo4j_uri=config.neo4j_uri,
             neo4j_config=config.neo4j_config,
@@ -65,6 +65,7 @@ class GroupManagementApp(AuthnBaseApp):
             mongo_uri=config.mongo_uri,
             mongo_dbname='eduid_scimapi',
             mongo_collection=f'{_owner}__groups',
+            setup_indexes=False,
         )
 
         # Init celery

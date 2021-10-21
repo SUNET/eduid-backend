@@ -105,6 +105,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
         mongo_dbname: str,
         mongo_collection: str,
         neo4j_config: Optional[Dict[str, Any]] = None,
+        setup_indexes: bool = True,
     ):
         super().__init__(mongo_uri, mongo_dbname, collection=mongo_collection)
         self.graphdb = GroupDB(db_uri=neo4j_uri, scope=scope, config=neo4j_config)
@@ -114,7 +115,8 @@ class ScimApiGroupDB(ScimApiBaseDB):
         indexes = {
             'unique-scimid': {'key': [('scim_id', 1)], 'unique': True},
         }
-        self.setup_indexes(indexes)
+        if setup_indexes:
+            self.setup_indexes(indexes)
 
     def _get_graph_group(self, scim_id: str) -> GraphGroup:
         graph_group = self.graphdb.get_group(scim_id)
