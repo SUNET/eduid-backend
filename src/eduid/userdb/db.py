@@ -52,6 +52,12 @@ class MongoDB(object):
             if 'connectTimeoutMS' not in kwargs:
                 kwargs['connectTimeoutMS'] = 5000
 
+        # default authSource is the db supplied in the uri (which sometimes differs from db_name supplied to MongoDB)
+        # this results in authorization problems when for example the eduid_scimapi user tries to access
+        # eduid_signup database with an uri ending in /eduid_scimapi because the user is located in eduid_signup db
+        if 'authSource' not in _options:
+            kwargs['authSource'] = self._database_name
+
         self._db_uri = _format_mongodb_uri(self._parsed_uri)
 
         try:
