@@ -1,5 +1,6 @@
 from datetime import datetime
 from time import time
+from typing import Optional
 
 from eduid.userdb.db import MongoDB
 
@@ -9,12 +10,14 @@ class CacheMDB(object):
 
     _init_collections: dict = {}
 
-    def __init__(self, mongo_dburi: str, mongo_dbname: str, mongo_collection: str, ttl: int, expiration_freq=60):
+    def __init__(
+        self, mongo_dburi: Optional[str], mongo_dbname: str, mongo_collection: str, ttl: int, expiration_freq: int = 60
+    ):
         self.conn = MongoDB(mongo_dburi, db_name=mongo_dbname)
         self.db = self.conn.get_database(mongo_dbname)
         self.collection = self.db[mongo_collection]
         self._expiration_freq = expiration_freq
-        self._last_expire_at = None
+        self._last_expire_at: Optional[int] = None
         self._ttl = ttl
         self.ensure_indices(mongo_collection)
 
@@ -46,7 +49,7 @@ class CacheMDB(object):
         return self.collection.delete_one({'identifier': identifier})
 
     def expire_cache_items(self, force=False):
-        ts = time() - self._ttl
+        ts = int(time()) - self._ttl
         if not force and (self._last_expire_at is not None) and (self._last_expire_at > ts - self._expiration_freq):
             return False
         self._last_expire_at = ts
