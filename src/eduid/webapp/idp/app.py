@@ -70,9 +70,6 @@ class IdPApp(EduIDBaseApp):
         self.logger.debug(f'Loading PySAML2 server using cfgfile {config.pysaml2_config}')
         self.IDP = init_pysaml2(config.pysaml2_config)
 
-        if config.sso_session_mongo_uri:
-            self.logger.info('Config parameter sso_session_mongo_uri ignored. Used mongo_uri instead.')
-
         if config.mongo_uri is None:
             raise RuntimeError('Mongo URI is not optional for the IdP')
         self.sso_sessions = SSOSessionCache(config.mongo_uri)

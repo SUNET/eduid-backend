@@ -3,8 +3,7 @@
 import json
 import smtplib
 from collections import OrderedDict
-from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from celery import Task
 from celery.utils.log import get_task_logger
@@ -30,8 +29,7 @@ TRANSACTION_AUDIT_COLLECTION = 'transaction_audit'
 
 
 logger = get_task_logger(__name__)
-_CACHE: dict = {}
-_CACHE_EXPIRE_TS: Optional[datetime] = None
+_CACHE: Dict[str, CacheMDB] = {}
 
 app = MsgCelerySingleton.celery
 
@@ -75,16 +73,16 @@ class MessageSender(Task):
             self._navet_api = Hammock(config.navet_api_uri, auth=auth, verify=config.navet_api_verify_ssl)
         return self._navet_api
 
-    def cache(self, cache_name, ttl=7200):
+    @staticmethod
+    def cache(cache_name: str, ttl: int = 7200) -> CacheMDB:
+        db_uri = MsgCelerySingleton.worker_config.mongo_uri
+        db_name = MsgCelerySingleton.worker_config.mongo_dbname
+        if db_uri is None:
+            raise ValueError('db_uri not supplied')
+
         global _CACHE
         if cache_name not in _CACHE:
-            _CACHE[cache_name] = CacheMDB(
-                MsgCelerySingleton.worker_config.mongo_uri,
-                MsgCelerySingleton.worker_config.mongo_dbname,
-                cache_name,
-                ttl=ttl,
-                expiration_freq=120,
-            )
+            _CACHE[cache_name] = CacheMDB(db_uri=db_uri, db_name=db_name, collection=cache_name, ttl=ttl)
         return _CACHE[cache_name]
 
     @staticmethod
@@ -380,7 +378,7 @@ class MessageSender(Task):
 
     def pong(self, app_name: Optional[str]) -> str:
         # Leverage cache to test mongo db health
-        if self.cache('pong', 0).conn.is_healthy():
+        if self.cache('pong', 0).is_healthy():
             if app_name:
                 return f'pong for {app_name}'
             # Old clients don't send app_name, and text-match the response to be exactly 'pong' in the health checks
@@ -524,16 +522,6 @@ def set_audit_log_postal_address(self: MessageSender, audit_reference: str) -> b
         raise e
 
 
-def cache_expire() -> None:
-    """
-    Periodic function executed every 5 minutes to expire cached items.
-    """
-    global _CACHE
-    for cache in _CACHE.keys():
-        logger.info(f'Invoking expire_cache at {datetime.utcnow()} for {cache}')
-        _CACHE[cache].expire_cache_items()
-
-
 @app.task(bind=True, base=MessageSender, name='eduid_msg.tasks.pong')
 def pong(self: MessageSender, app_name: Optional[str] = None) -> str:
     """
@@ -541,14 +529,4 @@ def pong(self: MessageSender, app_name: Optional[str] = None) -> str:
 
     TODO: Make app_name non-optional when all clients are updated.
     """
-    # Periodic tasks require celery beat with celery 5. This whole expiration thing
-    # should be replaced with mongodb built in data expiration, so just use this hack for now.
-    global _CACHE_EXPIRE_TS
-    if _CACHE_EXPIRE_TS is None:
-        _CACHE_EXPIRE_TS = datetime.utcnow() + timedelta(minutes=5)
-
-    if datetime.now() > _CACHE_EXPIRE_TS:
-        cache_expire()
-        _CACHE_EXPIRE_TS = datetime.utcnow() + timedelta(minutes=10)
-
     return self.pong(app_name)
