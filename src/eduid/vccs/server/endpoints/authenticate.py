@@ -49,7 +49,7 @@ async def authenticate_legacy(req: Request, request: str = Form(...)) -> Authent
     return response
 
 
-@authenticate_router.post("/v2/authenticate", response_model=AuthenticateFormResponse)
+@authenticate_router.post("/v2/authenticate", response_model=AuthenticateResponseV1)
 async def authenticate(req: Request, request: AuthenticateRequestV1) -> AuthenticateResponseV1:
     """
     Handle a password authentication request, along the following pseudo-code :
