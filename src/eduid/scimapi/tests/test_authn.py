@@ -13,7 +13,7 @@ from eduid.common.config.parsers import load_config
 from eduid.scimapi.config import DataOwner, ScimApiConfig
 from eduid.scimapi.db.common import ScimApiProfile
 from eduid.scimapi.db.userdb import ScimApiUser
-from eduid.scimapi.middleware import AuthnBearerToken, SudoAccess
+from eduid.scimapi.middleware import AuthnBearerToken, RequestedAccessDenied, SudoAccess
 from eduid.scimapi.models.scimbase import SCIMSchema
 from eduid.scimapi.testing import BaseDBTestCase
 from eduid.scimapi.tests.test_scimuser import ScimApiTestUserResourceBase
@@ -218,7 +218,12 @@ class TestAuthnBearerToken(BaseDBTestCase):
             'requested_access': [{'type': config.requested_access_type, 'scope': domain}],
         }
         token = AuthnBearerToken(scim_config=config, **claims)
-        assert token.get_data_owner(logger=loguru.logger) == None
+
+        with pytest.raises(RequestedAccessDenied) as exc_info:
+            assert token.get_data_owner(logger=loguru.logger) == None
+        assert str(exc_info.value) == (
+            'Requested access to scope eduid.se not in allow-list: other-domain.example.org, sudoer.example.org'
+        )
 
     def test_sudo_takes_precedence(self):
         """
