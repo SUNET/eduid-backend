@@ -102,9 +102,8 @@ class AuthnBearerToken(BaseModel):
             _found = self.scim_config.data_owners.get(DataOwnerName(this.scope))
             logger.debug(f'Requested access to scope {this.scope}, allowed {_allowed}, found: {_found}')
             if not _allowed:
-                raise RequestedAccessDenied(
-                    f'Requested access to scope {this.scope} not in allow-list: {", ".join(list(allowed_scopes))}'
-                )
+                _sorted = ', '.join(sorted(list(allowed_scopes)))
+                raise RequestedAccessDenied(f'Requested access to scope {this.scope} not in allow-list: {_sorted}')
             if _allowed and _found:
                 return DataOwnerName(this.scope)
 
