@@ -25,6 +25,12 @@ class SudoAccess(BaseModel):
     scope: ScopeName
 
 
+class RequestedAccessDenied(Exception):
+    """ Break out of get_data_owner when requested access (in the token) is not allowed """
+
+    pass
+
+
 class AuthnBearerToken(BaseModel):
     """
     Data we recognise from authentication bearer token JWT claims.
@@ -95,6 +101,10 @@ class AuthnBearerToken(BaseModel):
             _allowed = this.scope in allowed_scopes
             _found = self.scim_config.data_owners.get(DataOwnerName(this.scope))
             logger.debug(f'Requested access to scope {this.scope}, allowed {_allowed}, found: {_found}')
+            if not _allowed:
+                raise RequestedAccessDenied(
+                    f'Requested access to scope {this.scope} not in allow-list: {", ".join(list(allowed_scopes))}'
+                )
             if _allowed and _found:
                 return DataOwnerName(this.scope)
 
@@ -249,7 +259,11 @@ class AuthenticationMiddleware(BaseMiddleware):
             self.context.logger.exception('Authorization Bearer Token error')
             return return_error_response(status_code=401, detail='Bearer token error')
 
-        data_owner = token.get_data_owner(self.context.logger)
+        try:
+            data_owner = token.get_data_owner(self.context.logger)
+        except RequestedAccessDenied as exc:
+            self.context.logger.error(f'Access denied: {exc}')
+            return return_error_response(status_code=401, detail='Data owner in requested_access denied')
         self.context.logger.info(f'Bearer token {token}, data owner: {data_owner}')
 
         if not data_owner or data_owner not in self.context.config.data_owners:
