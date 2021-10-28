@@ -263,7 +263,7 @@ class AuthenticationMiddleware(BaseMiddleware):
             data_owner = token.get_data_owner(self.context.logger)
         except RequestedAccessDenied as exc:
             self.context.logger.error(f'Access denied: {exc}')
-            return return_error_response(status_code=401, detail='Data owner in requested_access denied')
+            return return_error_response(status_code=401, detail='Data owner requested in access token denied')
         self.context.logger.info(f'Bearer token {token}, data owner: {data_owner}')
 
         if not data_owner or data_owner not in self.context.config.data_owners:
