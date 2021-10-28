@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 import warnings
-from datetime import datetime
 from typing import List, Optional, Type, Union
 
 from flask import current_app, render_template, request
 
 from eduid.common.config.base import MagicCookieMixin
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.logs.element import NinProofingLogElement, TNinProofingLogElementSubclass
 from eduid.userdb.nin import Nin
 from eduid.userdb.proofing import ProofingUser
@@ -43,9 +43,8 @@ def set_user_names_from_official_address(
                 pass
     current_app.logger.info(u'User names set from official address')
     current_app.logger.debug(
-        u'{} resulted in given_name: {}, surname: {} and display_name: {}'.format(
-            name, user.given_name, user.surname, user.display_name
-        )
+        f'{name} resulted in given_name: {user.given_name}, surname: {user.surname} '
+        f'and display_name: {user.display_name}'
     )
     return user
 
@@ -60,10 +59,8 @@ def number_match_proofing(user: User, proofing_state: OidcProofingState, number:
     """
     if proofing_state.nin.number == number:
         return True
-    current_app.logger.error('Self asserted NIN does not match for user {}'.format(user))
-    current_app.logger.debug(
-        'Self asserted NIN: {}. NIN from vetting provider {}'.format(proofing_state.nin.number, number)
-    )
+    current_app.logger.error(f'Self asserted NIN does not match for user {user}')
+    current_app.logger.debug(f'Self asserted NIN: {proofing_state.nin.number}. NIN from vetting provider {number}')
     return False
 
 
@@ -72,25 +69,23 @@ def add_nin_to_user(user: User, proofing_state: NinProofingState, user_class: Ty
     proofing_user = user_class.from_user(user, current_app.private_userdb)
     # Add nin to user if not already there
     if not proofing_user.nins.find(proofing_state.nin.number):
-        current_app.logger.info('Adding NIN for user {}'.format(user))
-        current_app.logger.debug('Self asserted NIN: {}'.format(proofing_state.nin.number))
-        nin_element = Nin.from_dict(
-            dict(
-                number=proofing_state.nin.number,
-                created_by=proofing_state.nin.created_by,
-                verified=proofing_state.nin.is_verified,
-                created_ts=proofing_state.nin.created_ts,
-                primary=False,
-            )
+        current_app.logger.info(f'Adding NIN for user {user}')
+        current_app.logger.debug(f'Self asserted NIN: {proofing_state.nin.number}')
+        nin_element = Nin(
+            created_by=proofing_state.nin.created_by,
+            created_ts=proofing_state.nin.created_ts,
+            is_primary=False,
+            is_verified=proofing_state.nin.is_verified,
+            number=proofing_state.nin.number,
         )
         proofing_user.nins.add(nin_element)
-        proofing_user.modified_ts = datetime.utcnow()
+        proofing_user.modified_ts = utc_now()
         # Save user to private db
         current_app.private_userdb.save(proofing_user, check_sync=False)
         # Ask am to sync user to central db
-        current_app.logger.info('Request sync for user {!s}'.format(proofing_user))
+        current_app.logger.info(f'Request sync for user {proofing_user}')
         result = current_app.am_relay.request_user_sync(proofing_user)
-        current_app.logger.info('Sync result for user {!s}: {!s}'.format(proofing_user, result))
+        current_app.logger.info(f'Sync result for user {proofing_user}: {result}')
 
 
 def verify_nin_for_user(
@@ -134,8 +129,8 @@ def verify_nin_for_user(
 
     # Check if the NIN is already verified
     if nin_element and nin_element.is_verified:
-        current_app.logger.info('NIN is already verified for user {}'.format(proofing_user))
-        current_app.logger.debug('NIN: {}'.format(proofing_state.nin.number))
+        current_app.logger.info(f'NIN is already verified for user {proofing_user}')
+        current_app.logger.debug(f'NIN: {proofing_state.nin.number}')
         return True
 
     # Update users nin element
@@ -155,15 +150,15 @@ def verify_nin_for_user(
     if not current_app.proofing_log.save(proofing_log_entry):
         return False
 
-    current_app.logger.info('Recorded verification for {} in the proofing log'.format(proofing_user))
+    current_app.logger.info(f'Recorded verification for {proofing_user} in the proofing log')
 
     # Save user to private db
     current_app.private_userdb.save(proofing_user)
 
     # Ask am to sync user to central db
-    current_app.logger.info('Request sync for user {!s}'.format(user))
+    current_app.logger.info(f'Request sync for user {user}')
     result = current_app.am_relay.request_user_sync(proofing_user)
-    current_app.logger.info('Sync result for user {!s}: {!s}'.format(proofing_user, result))
+    current_app.logger.info(f'Sync result for user {proofing_user}: {result}')
 
     return True
 
