@@ -251,7 +251,6 @@ class StepUp(ResponseMicroService):
         )
 
         if is_stepup_skipped:
-            data.auth_info.auth_class_ref = next(iter(requester_loas), issuer_loa)
             return super().process(context, data)
 
         name_id = NameID(format=NAMEID_FORMAT_UNSPECIFIED, text=nameid_value)
