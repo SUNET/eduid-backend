@@ -3,8 +3,11 @@
 import functools
 import json
 import logging
+from typing import Callable
 from typing import Iterable
+from typing import List
 from typing import Mapping
+from typing import Tuple
 from urllib.parse import urlparse
 
 from saml2.authn_context import requested_authn_context
@@ -200,8 +203,8 @@ class StepUp(ResponseMicroService):
         # LoA that the StepUp-provider understands
         required_loa = self.mfa.get(requester, {}).get("required")
 
-        mfa_stepup_accounts = getattr(data, "mfa_stepup_accounts", [{}])
-        linked_account = next(iter(mfa_stepup_accounts), {})
+        mfa_stepup_accounts = getattr(data, "mfa_stepup_accounts", [])
+        linked_account: Mapping[str, str] = next(iter(mfa_stepup_accounts), {})
         stepup_provider = linked_account.get("entity_id")
         nameid_value = linked_account.get("identifier")
 
@@ -333,7 +336,7 @@ class StepUp(ResponseMicroService):
         required_loa = self.mfa.get(requester, {}).get("required")
 
         mfa_stepup_accounts = getattr(data, "mfa_stepup_accounts", [])
-        linked_account = next(iter(mfa_stepup_accounts), {})
+        linked_account: Mapping[str, str] = next(iter(mfa_stepup_accounts), {})
         stepup_provider = linked_account["entity_id"]
         user_identifier = linked_account["identifier"]
         user_identifier_attribute = linked_account["attribute"]
@@ -450,7 +453,7 @@ class StepUp(ResponseMicroService):
         return Response(metadata_string, content="text/xml")
 
     def register_endpoints(self):
-        url_map = []
+        url_map: List[Tuple[str, Callable]] = []
 
         # acs endpoints
         sp_endpoints = self.sp.config.getattr("endpoints", "sp")
