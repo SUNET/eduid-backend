@@ -3,32 +3,22 @@
 import functools
 import json
 import logging
-from typing import Callable
-from typing import Iterable
-from typing import List
-from typing import Mapping
-from typing import Tuple
+from typing import Callable, Iterable, List, Mapping, Tuple
 from urllib.parse import urlparse
 
+import satosa.util as util
 from saml2.authn_context import requested_authn_context
 from saml2.client import Saml2Client
 from saml2.config import SPConfig
 from saml2.metadata import create_metadata_string
-from saml2.saml import NAMEID_FORMAT_UNSPECIFIED
-from saml2.saml import NameID
-from saml2.saml import Subject
-
-import satosa.util as util
+from saml2.saml import NAMEID_FORMAT_UNSPECIFIED, NameID, Subject
 from satosa.attribute_mapping import AttributeMapper
 from satosa.context import Context
-from satosa.exception import SATOSAAuthenticationError
-from satosa.exception import SATOSAError
+from satosa.exception import SATOSAAuthenticationError, SATOSAError
 from satosa.internal import InternalData
-from satosa.micro_services.base import RequestMicroService
-from satosa.micro_services.base import ResponseMicroService
+from satosa.micro_services.base import RequestMicroService, ResponseMicroService
 from satosa.response import Response
 from satosa.saml_util import make_saml_response
-
 
 logger = logging.getLogger(__name__)
 KEY_REQ_AUTHNCLASSREF = "requester-authn-class-ref"
@@ -47,9 +37,7 @@ class AuthnContext(RequestMicroService):
     def process(self, context, data):
         context.state[self.name] = {
             **context.state.get(self.name, {}),
-            KEY_REQ_AUTHNCLASSREF: context.get_decoration(
-                Context.KEY_AUTHN_CONTEXT_CLASS_REF
-            ),
+            KEY_REQ_AUTHNCLASSREF: context.get_decoration(Context.KEY_AUTHN_CONTEXT_CLASS_REF),
         }
         return super().process(context, data)
 
@@ -128,9 +116,7 @@ class StepUp(ResponseMicroService):
 
         mfa_is_a_mapping = isinstance(mfa, Mapping)
         mfa_has_at_least_one_entry = mfa_is_a_mapping and len(mfa)
-        mfa_entityid_is_string = mfa_is_a_mapping and all(
-            type(entityid) is str for entityid in mfa.keys()
-        )
+        mfa_entityid_is_string = mfa_is_a_mapping and all(type(entityid) is str for entityid in mfa.keys())
         mfa_loa_settings_is_a_mapping = mfa_is_a_mapping and all(
             isinstance(loa_settings, Mapping) for entityid, loa_settings in mfa.items()
         )
@@ -147,10 +133,7 @@ class StepUp(ResponseMicroService):
         mfa_loa_required_is_included_in_accepted = (
             mfa_loa_settings_has_accepted_field
             and mfa_loa_settings_has_required_field
-            and all(
-                loa_settings["required"] in loa_settings["accepted"]
-                for entityid, loa_settings in mfa.items()
-            )
+            and all(loa_settings["required"] in loa_settings["accepted"] for entityid, loa_settings in mfa.items())
         )
         sign_alg_is_a_string = type(config.get("sign_alg", "")) is str
         digest_alg_is_a_string = type(config.get("digest_alg", "")) is str
@@ -271,9 +254,7 @@ class StepUp(ResponseMicroService):
 
         try:
             binding, destination = self.sp.pick_binding(
-                service="single_sign_on_service",
-                descr_type="idpsso",
-                entity_id=stepup_provider,
+                service="single_sign_on_service", descr_type="idpsso", entity_id=stepup_provider,
             )
         except Exception as e:
             error_context = {
@@ -343,9 +324,7 @@ class StepUp(ResponseMicroService):
 
         try:
             authn_response = self.sp.parse_authn_request_response(
-                context.request["SAMLResponse"],
-                binding,
-                outstanding=self.outstanding_queries,
+                context.request["SAMLResponse"], binding, outstanding=self.outstanding_queries,
             )
         except Exception as e:
             error_context = {
@@ -379,12 +358,7 @@ class StepUp(ResponseMicroService):
         is_stepup_loa_exact = stepup_loa == required_loa
         is_mfa_satisfied = is_loa_requirements_satisfied(accepted_loas, stepup_loa)
 
-        is_stepup_successful = (
-            is_stepup_provider
-            and is_subject_identified
-            and is_stepup_loa_exact
-            and is_mfa_satisfied
-        )
+        is_stepup_successful = is_stepup_provider and is_subject_identified and is_stepup_loa_exact and is_mfa_satisfied
 
         logger.info(
             {
@@ -406,10 +380,7 @@ class StepUp(ResponseMicroService):
         )
 
         logger.debug(
-            {
-                "user_identifier": user_identifier,
-                "stepup_user_identifier": stepup_user_identifier,
-            }
+            {"user_identifier": user_identifier, "stepup_user_identifier": stepup_user_identifier,}
         )
 
         if not is_stepup_successful:
@@ -447,9 +418,7 @@ class StepUp(ResponseMicroService):
         return super().process(context, data)
 
     def _metadata_endpoint(self, context):
-        metadata_string = create_metadata_string(
-            None, self.sp.config, 4, None, None, None, None, None
-        ).decode("utf-8")
+        metadata_string = create_metadata_string(None, self.sp.config, 4, None, None, None, None, None).decode("utf-8")
         return Response(metadata_string, content="text/xml")
 
     def register_endpoints(self):
@@ -468,11 +437,6 @@ class StepUp(ResponseMicroService):
 
         # metadata endpoint
         parsed_entity_id = urlparse(self.sp.config.entityid)
-        url_map.append(
-            (
-                "^{endpoint}".format(endpoint=parsed_entity_id.path[1:]),
-                self._metadata_endpoint,
-            )
-        )
+        url_map.append(("^{endpoint}".format(endpoint=parsed_entity_id.path[1:]), self._metadata_endpoint,))
 
         return url_map
