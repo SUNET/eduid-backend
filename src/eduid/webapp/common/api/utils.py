@@ -3,7 +3,7 @@
 import logging
 import re
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 from urllib.parse import urlparse
 from uuid import uuid4
 
@@ -238,3 +238,28 @@ def check_password_hash(password: str, hashed: Optional[str]) -> bool:
         return False
     password = ''.join(password.split())
     return bcrypt.checkpw(password, hashed)
+
+
+def get_zxcvbn_terms(user: User) -> List[str]:
+    """
+    Combine known data that is bad for a password to a list for zxcvbn.
+
+    :param user: User
+    :return: List of user info
+    """
+    user_input = []
+    # Personal info
+    if user.display_name:
+        for part in user.display_name.split():
+            user_input.append(''.join(part.split()))
+    if user.given_name:
+        user_input.append(user.given_name)
+    if user.surname:
+        user_input.append(user.surname)
+
+    # Mail addresses
+    if user.mail_addresses.count:
+        for item in user.mail_addresses.to_list():
+            user_input.append(item.email.split('@')[0])
+
+    return user_input

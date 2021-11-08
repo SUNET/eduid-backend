@@ -49,7 +49,13 @@ from eduid.userdb.user import User
 from eduid.webapp.common.api.exceptions import MailTaskFailed, ThrottledException
 from eduid.webapp.common.api.helpers import send_mail
 from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response, success_response
-from eduid.webapp.common.api.utils import check_password_hash, get_short_hash, get_unique_hash, save_and_sync_user
+from eduid.webapp.common.api.utils import (
+    check_password_hash,
+    get_short_hash,
+    get_unique_hash,
+    get_zxcvbn_terms,
+    save_and_sync_user,
+)
 from eduid.webapp.common.api.validation import is_valid_password
 from eduid.webapp.common.authn import fido_tokens
 from eduid.webapp.common.authn.utils import generate_password
@@ -479,28 +485,3 @@ def verify_phone_number(state: ResetPasswordEmailAndPhoneState) -> bool:
         return True
 
     return False
-
-
-def get_zxcvbn_terms(user: User) -> List[str]:
-    """
-    Combine known data that is bad for a password to a list for zxcvbn.
-
-    :param user: User
-    :return: List of user info
-    """
-    user_input = []
-    # Personal info
-    if user.display_name:
-        for part in user.display_name.split():
-            user_input.append(''.join(part.split()))
-    if user.given_name:
-        user_input.append(user.given_name)
-    if user.surname:
-        user_input.append(user.surname)
-
-    # Mail addresses
-    if user.mail_addresses.count:
-        for item in user.mail_addresses.to_list():
-            user_input.append(item.email.split('@')[0])
-
-    return user_input

@@ -74,8 +74,6 @@ class SecurityTests(EduidAPITestCase):
                 'chpass_timeout': 600,
                 'eduid_site_name': 'eduID',
                 'eduid_site_url': 'https://www.eduid.se/',
-                'u2f_app_id': 'foo',
-                'u2f_valid_facets': [],
                 'fido2_rp_id': 'https://test.example.edu',
                 'vccs_url': 'https://vccs',
                 'dashboard_url': 'https://dashboard/',
@@ -476,8 +474,6 @@ class SecurityTests(EduidAPITestCase):
             response, type_='POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS', msg=SecurityMsg.user_updated
         )
 
-    # Tests below are for deprecated views (moved to the reset-password service),
-    # to be removed whith the views
 
     def _get_credentials(self):
         response = self.browser.get('/credentials')

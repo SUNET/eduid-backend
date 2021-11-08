@@ -51,7 +51,7 @@ from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid.webapp.common.api.helpers import add_nin_to_user
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.schemas.csrf import EmptyRequest
-from eduid.webapp.common.api.utils import save_and_sync_user
+from eduid.webapp.common.api.utils import get_zxcvbn_terms, save_and_sync_user
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.authn.vccs import add_credentials, revoke_all_credentials
 from eduid.webapp.common.session import session
@@ -61,7 +61,6 @@ from eduid.webapp.security.helpers import (
     check_reauthn,
     compile_credential_list,
     generate_suggested_password,
-    get_zxcvbn_terms,
     remove_nin_from_user,
     send_termination_mail,
     update_user_official_name,
@@ -121,7 +120,7 @@ def change_password(user):
     current_app.logger.debug(f'change_password called for user {user}')
 
     schema = ChangePasswordSchema(
-        zxcvbn_terms=get_zxcvbn_terms(security_user.eppn),
+        zxcvbn_terms=get_zxcvbn_terms(security_user),
         min_entropy=current_app.conf.password_entropy,
         min_score=current_app.conf.min_zxcvbn_score,
     )

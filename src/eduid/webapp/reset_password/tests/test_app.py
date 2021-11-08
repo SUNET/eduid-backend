@@ -48,7 +48,7 @@ from eduid.userdb.fixtures.fido_credentials import webauthn_credential as sample
 from eduid.userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState
 from eduid.webapp.common.api.testing import EduidAPITestCase
-from eduid.webapp.common.api.utils import hash_password
+from eduid.webapp.common.api.utils import get_zxcvbn_terms, hash_password
 from eduid.webapp.common.authn.testing import TestVCCSClient
 from eduid.webapp.common.authn.tests.test_fido_tokens import (
     SAMPLE_WEBAUTHN_APP_CONFIG,
@@ -61,7 +61,6 @@ from eduid.webapp.reset_password.helpers import (
     ResetPwMsg,
     generate_suggested_password,
     get_extra_security_alternatives,
-    get_zxcvbn_terms,
     send_verify_phone_code,
 )
 

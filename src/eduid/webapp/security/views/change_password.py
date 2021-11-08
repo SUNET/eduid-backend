@@ -38,17 +38,12 @@ from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.security import SecurityUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
-from eduid.webapp.common.api.utils import check_password_hash, hash_password, save_and_sync_user
+from eduid.webapp.common.api.utils import check_password_hash, get_zxcvbn_terms, hash_password, save_and_sync_user
 from eduid.webapp.common.api.validation import is_valid_password
 from eduid.webapp.common.authn.vccs import change_password
 from eduid.webapp.common.session import session
 from eduid.webapp.security.app import current_security_app as current_app
-from eduid.webapp.security.helpers import (
-    SecurityMsg,
-    compile_credential_list,
-    generate_suggested_password,
-    get_zxcvbn_terms,
-)
+from eduid.webapp.security.helpers import SecurityMsg, compile_credential_list, generate_suggested_password
 from eduid.webapp.security.schemas import (
     ChangePasswordRequestSchema,
     SecurityResponseSchema,
@@ -87,7 +82,7 @@ def change_password_view(user: User, old_password: str, new_password: str) -> Fl
     try:
         is_valid_password(
             new_password,
-            user_info=get_zxcvbn_terms(user.eppn),
+            user_info=get_zxcvbn_terms(user),
             min_entropy=current_app.conf.password_entropy,
             min_score=current_app.conf.min_zxcvbn_score,
         )
