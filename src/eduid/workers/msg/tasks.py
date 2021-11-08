@@ -380,7 +380,7 @@ class MessageSender(Task):
         #  0701740605-0701740699 is a unused range from PTS
         #  https://www.pts.se/sv/bransch/telefoni/nummer-och-adressering/
         #  telefonnummer-for-anvandning-i-bocker-och-filmer-etc/
-        if recipient.startswith('07017406') and int(recipient.lstrip('07017406')) in range(5, 100):
+        if recipient.startswith('+467017406') and int(recipient.lstrip('+467017406')) in range(5, 100):
             logger.debug('sendsms task:')
             logger.debug(f"\nType: sms\nReference: {reference}\nRecipient: {recipient}\nMessage:\n{message}")
             return 'no_op_number'
