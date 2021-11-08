@@ -45,7 +45,6 @@ from eduid.userdb.logs import ProofingLog
 from eduid.userdb.security import PasswordResetStateDB, SecurityUserDB
 from eduid.webapp.common.api import translation
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
-from eduid.webapp.common.authn.utils import no_authn_views
 from eduid.webapp.security.settings.common import SecurityConfig
 
 
@@ -82,23 +81,12 @@ def security_init_app(name: str = 'security', test_config: Optional[Mapping[str,
     app.logger.info(f'Init {app}...')
 
     from eduid.webapp.security.views.change_password import change_password_views
-    from eduid.webapp.security.views.reset_password import reset_password_views
     from eduid.webapp.security.views.security import security_views
-
-    # from eduid.webapp.security.views.u2f import u2f_views
     from eduid.webapp.security.views.webauthn import webauthn_views
 
     app.register_blueprint(security_views)
-    # The U2F views should be unused now, only the webauthn views should be needed.
-    # TODO: Remove the whole U2F module unless this has to be reverted.
-    # app.register_blueprint(u2f_views)
     app.register_blueprint(webauthn_views)
-    # TODO: new change password views, those in security_views should be removed when this is used
     app.register_blueprint(change_password_views)
-    app.register_blueprint(reset_password_views)
-
-    # Register view path that should not be authorized
-    no_authn_views(config, ['/reset-password.*'])
 
     translation.init_babel(app)
 

@@ -81,21 +81,12 @@ class SecurityConfig(
     token_service_url: str
     eduid_static_url: str
     throttle_update_user_period: timedelta = Field(default=timedelta(seconds=600))
-
-    # timeout for phone verification token, in hours
-    phone_verification_timeout: int = 24
     chpass_timeout: int = 600
 
-    # uf2 settings
-    u2f_max_allowed_tokens: int = 50  # Do not let a user register more than this amount of tokens
-    u2f_max_description_length: int = 64  # Do not allow longer descriptions than this number
     # webauthn
     webauthn_max_allowed_tokens: int = 10
     webauthn_attestation: Optional[WebauthnAttestation] = None
 
-    # password reset settings
-    email_code_timeout: int = 7200  # seconds
-    phone_code_timeout: int = 600  # seconds
     # for logging out when terminating an account
     logout_endpoint: str = '/services/authn/logout'
     # URL to send the user to after terminating the account

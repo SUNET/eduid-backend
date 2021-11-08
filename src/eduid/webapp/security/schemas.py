@@ -32,21 +32,13 @@
 #
 
 
-from flask_babel import gettext as _
-from marshmallow import Schema, ValidationError, fields, validate, validates, validates_schema
+from marshmallow import ValidationError, fields, validates
 
 from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 from eduid.webapp.common.api.schemas.nin import NinSchema
 from eduid.webapp.common.api.schemas.password import PasswordSchema
-from eduid.webapp.common.api.schemas.u2f import (
-    U2FBindRequestSchema,
-    U2FEnrollResponseSchema,
-    U2FSignResponseSchema,
-    U2FVerifyRequestSchema,
-    U2FVerifyResponseSchema,
-)
-from eduid.webapp.common.api.schemas.validators import validate_email, validate_nin
+from eduid.webapp.common.api.schemas.validators import validate_nin
 
 
 class CredentialSchema(EduidSchema):
@@ -67,8 +59,6 @@ class SecurityResponseSchema(FluxStandardAction):
     payload = fields.Nested(CredentialList)
 
 
-# TODO: Replace ChpassResponseSchema with SecurityResponseSchema in views when
-#   new change_password is done
 class ChpassResponseSchema(SecurityResponseSchema):
     class ChpassResponsePayload(CredentialList):
         next_url = fields.String(required=True)
@@ -96,7 +86,6 @@ class SuggestedPasswordResponseSchema(FluxStandardAction):
     payload = fields.Nested(SuggestedPasswordPayload, many=False)
 
 
-# TODO: used for old change password, remove later
 class ChangePasswordSchema(PasswordSchema):
 
     csrf_token = fields.String(required=True)
@@ -116,61 +105,7 @@ class AccountTerminatedSchema(FluxStandardAction):
     pass
 
 
-# U2F schemas
-class ConvertRegisteredKeys(EduidSchema):
-    class U2FRegisteredKey(EduidSchema):
-        version = fields.String(required=True)
-        keyhandle = fields.String(required=True, data_key='keyHandle')
-        app_id = fields.String(required=True, data_key='appId')
-        transports = fields.String()
-
-    registered_keys = fields.Nested(U2FRegisteredKey, required=True, default=list(), many=True)
-
-
-class EnrollU2FTokenResponseSchema(FluxStandardAction):
-    class EnrollU2FTokenResponsePayload(U2FEnrollResponseSchema, CSRFResponseMixin):
-        pass
-
-    payload = fields.Nested(EnrollU2FTokenResponsePayload)
-
-
-class BindU2FRequestSchema(U2FBindRequestSchema, CSRFRequestMixin):
-
-    description = fields.String(required=False)
-
-
-class SignWithU2FTokenResponseSchema(FluxStandardAction):
-    class SignWithU2FTokenPayload(U2FSignResponseSchema, CSRFResponseMixin):
-        pass
-
-    payload = fields.Nested(SignWithU2FTokenPayload)
-
-
-class VerifyWithU2FTokenRequestSchema(U2FVerifyRequestSchema, CSRFRequestMixin):
-    pass
-
-
-class VerifyWithU2FTokenResponseSchema(FluxStandardAction):
-    class Payload(U2FVerifyResponseSchema, CSRFResponseMixin):
-        pass
-
-    payload = fields.Nested(Payload)
-
-
-class ModifyU2FTokenRequestSchema(EduidSchema, CSRFRequestMixin):
-
-    credential_key = fields.String(required=True)
-    description = fields.String(required=True)
-
-
-class RemoveU2FTokenRequestSchema(EduidSchema, CSRFRequestMixin):
-
-    credential_key = fields.String(required=True)
-
-
 # webauthn schemas
-
-
 class WebauthnOptionsResponseSchema(FluxStandardAction):
     class WebauthnOptionsResponsePayload(EduidSchema, CSRFResponseMixin):
         options = fields.String(required=True)
@@ -196,71 +131,19 @@ class RemoveWebauthnTokenRequestSchema(EduidSchema, CSRFRequestMixin):
     credential_key = fields.String(required=True)
 
 
-class VerifyWithWebauthnTokenRequestSchema(U2FVerifyRequestSchema):
-    pass
+class VerifyWithWebauthnTokenRequestSchema(EduidSchema):
+    key_handle = fields.String(required=True, data_key='keyHandle')
+    signature_data = fields.String(required=True, data_key='signatureData')
+    client_data = fields.String(required=True, data_key='clientData')
 
 
 class VerifyWithWebauthnTokenResponseSchema(FluxStandardAction):
-    class Payload(U2FVerifyResponseSchema, CSRFResponseMixin):
-        pass
+    class Payload(CSRFResponseMixin):
+        key_handle = fields.String(required=True, data_key='keyHandle')
+        signature_data = fields.String(required=True, data_key='signatureData')
+        client_data = fields.String(required=True, data_key='clientData')
 
     payload = fields.Nested(Payload)
-
-
-# Reset password schemas
-class ResetPasswordEmailSchema(Schema):
-
-    csrf = fields.String(required=True)
-    email = fields.String(required=True)
-
-    @validates('email')
-    def validate_email_field(self, value, **kwargs):
-        # Set a new error message
-        try:
-            validate_email(value)
-        except ValidationError:
-            raise ValidationError(_('Invalid email address'))
-
-
-class ResetPasswordExtraSecuritySchema(Schema):
-
-    csrf = fields.String(required=True)
-    phone_number_index = fields.String(required=False)
-    no_extra_security = fields.Boolean(required=False, default=False)
-
-
-class ResetPasswordVerifyPhoneNumberSchema(Schema):
-
-    csrf = fields.String(required=True)
-    phone_code = fields.String(required=True, validate=validate.Length(min=1, error=_('Please enter a code')))
-
-
-class ResetPasswordNewPasswordSchema(PasswordSchema):
-
-    csrf = fields.String(required=True)
-    use_generated_password = fields.Boolean(required=False, default=False)
-    custom_password = fields.String(required=False)
-    repeat_password = fields.String(required=False)
-
-    @validates_schema
-    def new_password_validation(self, data, **kwargs):
-        if not data.get('use_generated_password', False):
-            custom_password = data.get('custom_password', None)
-            repeat_password = data.get('repeat_password', None)
-            if not custom_password:
-                raise ValidationError(_('Please enter a password'), 'custom_password')
-            if not repeat_password:
-                raise ValidationError(_('Please repeat the password'), 'repeat_password')
-            if custom_password != repeat_password:
-                raise ValidationError(_('Passwords does not match'), 'repeat_password')
-
-    @validates('custom_password')
-    def validate_custom_password(self, value, **kwargs):
-        # Set a new error message
-        try:
-            self.validate_password(value)
-        except ValidationError:
-            raise ValidationError(_('Please use a stronger password'))
 
 
 # NIN schemas
