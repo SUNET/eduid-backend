@@ -81,6 +81,10 @@ class TestTasks(MsgMongoTestCase):
         expected = [call('foo', 'Test sender', '+466666', prio=2)]
         assert sms_mock.mock_calls == expected
 
+    def test_send_message_sms_unused_range(self):
+        # only tests that the number does not reach smscom
+        self.msg_relay.sendsms(recipient='+46701740699', message='foo', reference='ref')
+
     def test_send_message_invalid_phone_number(self):
         with pytest.raises(Retry) as exc_info:
             self.msg_relay.sendsms(recipient='+466666a', message='foo', reference='ref')
