@@ -458,7 +458,7 @@ class SecurityTests(EduidAPITestCase):
 
     def test_refresh_user_official_name_user_no_names_set(self):
         """
-        Refresh an unverified users, make sure an error is returned.
+        Refresh a verified user with no names set (this can be true for old user objects).
         """
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         # Unset names from the users
