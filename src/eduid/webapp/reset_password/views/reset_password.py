@@ -86,7 +86,7 @@ from eduid.webapp.common.api.exceptions import MailTaskFailed, MsgTaskFailed, Th
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
 from eduid.webapp.common.api.schemas.csrf import EmptyResponse
-from eduid.webapp.common.api.utils import hash_password
+from eduid.webapp.common.api.utils import get_zxcvbn_terms, hash_password
 from eduid.webapp.common.authn import fido_tokens
 from eduid.webapp.common.session import session
 from eduid.webapp.reset_password.app import current_reset_password_app as current_app
@@ -96,7 +96,6 @@ from eduid.webapp.reset_password.helpers import (
     generate_suggested_password,
     get_context,
     get_extra_security_alternatives,
-    get_zxcvbn_terms,
     mask_alternatives,
     reset_user_password,
     send_password_reset_mail,
