@@ -3,7 +3,7 @@
 # Helper functions to log proofing events.
 #
 import logging
-from typing import Any, Dict, List, Type, TypeVar
+from typing import Any, Dict, List, Type, TypeVar, Optional
 
 from eduid.userdb.element import Element, ElementKey
 
@@ -322,8 +322,8 @@ class NameUpdateProofing(NinProofingLogElement):
     """
 
     # Previous given name
-    previous_given_name: str
+    previous_given_name: Optional[str]
     # Previous surname
-    previous_surname: str
+    previous_surname: Optional[str]
     # Proofing method name
     proofing_method: str = 'Navet name update'

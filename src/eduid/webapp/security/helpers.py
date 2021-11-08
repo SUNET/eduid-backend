@@ -182,8 +182,8 @@ def update_user_official_name(security_user: SecurityUser, navet_data: NavetData
             eppn=security_user.eppn,
             proofing_version='2021v1',
             nin=security_user.nins.primary.number,
-            previous_given_name=security_user.given_name,
-            previous_surname=security_user.surname,
+            previous_given_name=security_user.given_name or None,  # default to None for empty string
+            previous_surname=security_user.surname or None,  # default to None for empty string
             user_postal_address=user_postal_address,
         )
         # Update user names

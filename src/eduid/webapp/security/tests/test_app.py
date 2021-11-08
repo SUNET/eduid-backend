@@ -454,6 +454,27 @@ class SecurityTests(EduidAPITestCase):
             response, type_='POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_FAIL', msg=SecurityMsg.user_not_verified
         )
 
+    def test_refresh_user_official_name_user_no_names_set(self):
+        """
+        Refresh a verified user with no names set (this can be true for old user objects).
+        """
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        # Unset names from the users
+        user.given_name = ''
+        user.surname = ''
+        user.display_name = ''
+        self.app.central_userdb.save(user)
+
+        response = self._refresh_user_data(user=user)
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert user.given_name == 'Testaren Test'
+        assert user.surname == 'Testsson'
+        assert user.display_name == 'Test Testsson'
+        self._check_success_response(
+            response, type_='POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS', msg=SecurityMsg.user_updated
+        )
+
+
     def _get_credentials(self):
         response = self.browser.get('/credentials')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
