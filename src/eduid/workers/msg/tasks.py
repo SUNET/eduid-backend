@@ -369,10 +369,21 @@ class MessageSender(Task):
         """
 
         # Just log the sms if in development mode
-        if MsgCelerySingleton.worker_config.devel_mode is True:
+        if (
+            MsgCelerySingleton.worker_config.environment is EduidEnvironment.dev
+            or MsgCelerySingleton.worker_config.devel_mode is True
+        ):
             logger.debug('sendsms task:')
             logger.debug(f"\nType: sms\nReference: {reference}\nRecipient: {recipient}\nMessage:\n{message}")
             return 'devel_mode'
+
+        #  0701740605-0701740699 is a unused range from PTS
+        #  https://www.pts.se/sv/bransch/telefoni/nummer-och-adressering/
+        #  telefonnummer-for-anvandning-i-bocker-och-filmer-etc/
+        if recipient.startswith('+467017406') and int(recipient.lstrip('+467017406')) in range(5, 100):
+            logger.debug('sendsms task:')
+            logger.debug(f"\nType: sms\nReference: {reference}\nRecipient: {recipient}\nMessage:\n{message}")
+            return 'no_op_number'
 
         return self.sms.send(message, MsgCelerySingleton.worker_config.sms_sender, recipient, prio=2)
 
