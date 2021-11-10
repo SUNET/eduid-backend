@@ -83,7 +83,7 @@ class TestTasks(MsgMongoTestCase):
 
     def test_send_message_sms_unused_range(self):
         # only tests that the number does not reach smscom
-        self.msg_relay.sendsms(recipient='+46701740699', message='foo', reference='ref')
+        self.msg_relay.sendsms(recipient='+46701740606', message='foo', reference='ref')
 
     def test_send_message_invalid_phone_number(self):
         with pytest.raises(Retry) as exc_info:
