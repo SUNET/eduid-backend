@@ -71,7 +71,7 @@ class SecurityTests(EduidAPITestCase):
                 'available_languages': {'en': 'English', 'sv': 'Svenska'},
                 'password_length': 12,
                 'password_entropy': 25,
-                'chpass_timeout': 600,
+                'chpass_reauthn_timeout': 600,
                 'eduid_site_name': 'eduID',
                 'eduid_site_url': 'https://www.eduid.se/',
                 'fido2_rp_id': 'https://test.example.edu',

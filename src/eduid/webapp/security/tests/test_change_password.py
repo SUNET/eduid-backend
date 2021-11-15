@@ -43,7 +43,7 @@ class ChangePasswordTests(EduidAPITestCase):
                 'phone_code_timeout': 600,
                 'password_length': 12,
                 'password_entropy': 25,
-                'chpass_timeout': 600,
+                'chpass_reauthn_timeout': 600,
                 'fido2_rp_id': 'example.org',
                 'dashboard_url': 'https://dashboard.dev.eduid.se',
             }

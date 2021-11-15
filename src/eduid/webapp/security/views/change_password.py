@@ -70,7 +70,7 @@ def get_suggested(user) -> FluxData:
     """
     authn = session.authn.sp.get_authn_for_action(AuthnAcsAction.change_password)
     current_app.logger.debug(f'change_password called with authn {authn}')
-    _need_reauthn = check_reauthn(authn, current_app.conf.chpass_timeout)
+    _need_reauthn = check_reauthn(authn, current_app.conf.chpass_reauthn_timeout)
     if _need_reauthn:
         return _need_reauthn
 
@@ -90,11 +90,11 @@ def change_password_view(user: User, old_password: str, new_password: str) -> Fl
     """
     authn = session.authn.sp.get_authn_for_action(AuthnAcsAction.change_password)
     current_app.logger.debug(f'change_password called with authn {authn}')
-    _need_reauthn = check_reauthn(authn, current_app.conf.chpass_timeout)
+    _need_reauthn = check_reauthn(authn, current_app.conf.chpass_reauthn_timeout)
     if _need_reauthn:
         return _need_reauthn
 
-    if not new_password and (current_app.conf.chpass_old_password_needed and not old_password):
+    if not new_password or (current_app.conf.chpass_old_password_needed and not old_password):
         return error_response(message=SecurityMsg.chpass_no_data)
 
     old_password_id = None

@@ -83,7 +83,7 @@ class SecurityConfig(
     throttle_update_user_period: timedelta = Field(default=timedelta(seconds=600))
 
     # change password
-    chpass_timeout: timedelta = Field(default=timedelta(seconds=120))
+    chpass_reauthn_timeout: timedelta = Field(default=timedelta(seconds=120))
     chpass_old_password_needed: bool = True
 
     # webauthn
