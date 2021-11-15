@@ -81,7 +81,10 @@ class SecurityConfig(
     token_service_url: str
     eduid_static_url: str
     throttle_update_user_period: timedelta = Field(default=timedelta(seconds=600))
-    chpass_timeout: int = 600
+
+    # change password
+    chpass_timeout: timedelta = Field(default=timedelta(seconds=120))
+    chpass_old_password_needed: bool = True
 
     # webauthn
     webauthn_max_allowed_tokens: int = 10

@@ -144,7 +144,7 @@ def change_password(user):
     authn = session.authn.sp.get_authn_for_action(AuthnAcsAction.change_password)
     current_app.logger.debug(f'change_password called for user {user}, authn {authn}')
 
-    _need_reauthn = check_reauthn(authn, timedelta(seconds=current_app.conf.chpass_timeout))
+    _need_reauthn = check_reauthn(authn, current_app.conf.chpass_timeout)
     if _need_reauthn:
         return _need_reauthn
 
