@@ -474,7 +474,6 @@ class SecurityTests(EduidAPITestCase):
             response, type_='POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS', msg=SecurityMsg.user_updated
         )
 
-
     def _get_credentials(self):
         response = self.browser.get('/credentials')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
