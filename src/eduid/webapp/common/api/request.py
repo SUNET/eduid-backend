@@ -47,11 +47,9 @@ of the Flask application::
 import logging
 from typing import Optional
 
-from flask import Request as BaseRequest
+from flask import Request as FlaskRequest
 from flask import abort, current_app
-from werkzeug._compat import iteritems, itervalues
 from werkzeug.datastructures import EnvironHeaders, ImmutableMultiDict, ImmutableTypeConversionDict
-from werkzeug.utils import cached_property
 
 from eduid.webapp.common.api.sanitation import SanitationProblem, Sanitizer
 
@@ -121,7 +119,8 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):  # type:
                       for each value of each key.  Otherwise it will only
                       contain pairs for the first value of each key.
         """
-        for key, values in iteritems(dict, self):
+
+        for key, values in dict.items(self):
             values = [self.sanitize_input(v) for v in values]
             if multi:
                 for value in values:
@@ -133,7 +132,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):  # type:
         """Return a list of ``(key, values)`` pairs, where values is the list
         of all values associated with the key."""
 
-        for key, values in iteritems(dict, self):
+        for key, values in dict.items(self):
             values = [self.sanitize_input(v) for v in values]
             yield key, values
 
@@ -141,7 +140,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):  # type:
         """
         Returns an iterator of the first value on every key's value list.
         """
-        for values in itervalues(dict, self):
+        for values in dict.values(self):
             yield self.sanitize_input(values[0])
 
     def listvalues(self):
@@ -153,7 +152,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):  # type:
         >>> zip(d.keys(), d.listvalues()) == d.lists()
         True
         """
-        for values in itervalues(dict, self):
+        for values in dict.values(self):
             yield (self.sanitize_input(v) for v in values)
 
     def to_dict(self, flat=True):
@@ -168,7 +167,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):  # type:
         """
         if flat:
             d = {}
-            for k, v in iteritems(self):
+            for k, v in dict.items(self):
                 v = self.sanitize_input(v)
                 d[k] = v
             return d
@@ -241,6 +240,12 @@ class SanitizedEnvironHeaders(EnvironHeaders, SanitationMixin):
     Sanitized and read only version of the headers from a WSGI environment.
     """
 
+    def __init__(self, environ):
+        # set content type from environ at init so we don't get in to an infinite recursion
+        # when sanitize_input tries to look it up later
+        self.content_type = environ.get('CONTENT_TYPE')
+        super().__init__(environ=environ)
+
     def __getitem__(self, key: str, _get_mode: bool = False) -> str:
         """
         Sanitized __getitem__
@@ -250,17 +255,17 @@ class SanitizedEnvironHeaders(EnvironHeaders, SanitationMixin):
                           used because get() calls it.
         """
         val = EnvironHeaders.__getitem__(self, key)
-        return self.sanitize_input(val)
+        return self.sanitize_input(val, content_type=self.content_type)
 
     def __iter__(self):
         """
         Sanitized __iter__
         """
-        for val in EnvironHeaders.__iter__(self):
-            yield self.sanitize_input(val)
+        for key, value in EnvironHeaders.__iter__(self):
+            yield key, self.sanitize_input(value, self.content_type)
 
 
-class Request(BaseRequest, SanitationMixin):
+class Request(FlaskRequest, SanitationMixin):
     """
     Request objects with sanitized inputs
     """
@@ -268,16 +273,12 @@ class Request(BaseRequest, SanitationMixin):
     parameter_storage_class = SanitizedImmutableMultiDict
     dict_storage_class = SanitizedTypeConversionDict
 
-    @cached_property
-    def headers(self):
-        """
-        The headers from the WSGI environ as immutable and sanitized
-        :class:`~eduid.webapp.common.api.request.SanitizedEnvironHeaders`.
-        """
-        return SanitizedEnvironHeaders(self.environ)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.headers = SanitizedEnvironHeaders(environ=self.environ)
 
     def get_data(self, *args, **kwargs):
-        text = super(Request, self).get_data(*args, **kwargs)
+        text = super().get_data(*args, **kwargs)
         if text:
             text = self.sanitize_input(text)
         if text is None:
