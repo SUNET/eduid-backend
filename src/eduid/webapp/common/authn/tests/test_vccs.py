@@ -167,7 +167,7 @@ class VCCSTestCase(MongoTestCase):
             )
             self.assertFalse(added)
             result1 = self._check_credentials('abcd')
-            self.assertTrue(result1)
+            self.assertFalse(result1)
             result2 = self._check_credentials('fghi')
             self.assertFalse(result2)
             result3 = self._check_credentials('wxyz')
