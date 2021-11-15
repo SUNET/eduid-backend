@@ -207,6 +207,8 @@ def change_password(
             reference=application,
             old_password=checked_password,
             old_password_id=old_password_id,
+            vccs_url=vccs_url,
+            vccs=vccs,
         )
     else:
         # We don't know which password was used to reauthn, revoke all current passwords.
