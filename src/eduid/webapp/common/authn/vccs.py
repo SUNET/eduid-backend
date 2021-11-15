@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import logging
-from typing import Optional
+from typing import List, Optional, cast
 
 from bson import ObjectId
 
@@ -190,8 +190,7 @@ def change_password(
     new_factor = VCCSPasswordFactor(new_password, credential_id=str(ObjectId()))
     del new_password  # don't need it anymore, try to forget it
 
-    # Check the old password and turn it in to a RevokeFactor or if no old password used
-    # revoke all users password credentials
+    # Check that the old password is correct, if supplied
     checked_password = None
     if old_password is not None:
         checked_password = check_password(old_password, user, vccs_url=vccs_url, vccs=vccs)
@@ -199,41 +198,25 @@ def change_password(
         if not checked_password:
             logger.error('Old password did not match for user')
             return False
-        revoke_factors = [
-            VCCSRevokeFactor(str(checked_password.credential_id), 'changing password', reference=application)
-        ]
+
+    # Revoke the old password or all current passwords as a fallback if old password or old password id is missing.
+    if checked_password is not None or old_password_id is not None:
+        revoke_password(
+            user=user,
+            reason='changing password',
+            reference=application,
+            old_password=checked_password,
+            old_password_id=old_password_id,
+        )
     else:
-        if old_password_id is not None:
-            revoke_factors = [VCCSRevokeFactor(old_password_id, 'changing password', reference=application)]
-        else:
-            # We don't know which password was used to reauthn, revoke all old passwords.
-            old_passwords = user.credentials.filter(Password)
-            if len(old_passwords) > 1:
-                logger.warning('user has more than one old password credentials, revoking all')
-            revoke_factors = [
-                VCCSRevokeFactor(str(item.credential_id), 'changing password', reference=application)
-                for item in old_passwords
-            ]
+        # We don't know which password was used to reauthn, revoke all current passwords.
+        revoke_passwords(user=user, reason='changing password', application=application, vccs_url=vccs_url, vccs=vccs)
 
     # Add the new password
     if not vccs.add_credentials(str(user.user_id), [new_factor]):
         logger.error(f'Failed adding password credential {new_factor.credential_id}')
         return False  # something failed
     logger.info(f'Added password credential {new_factor.credential_id}')
-
-    # Revoke the old checked password, the password id used for reauthn or all old passwords
-    vccs.revoke_credentials(str(user.user_id), revoke_factors)
-    if checked_password is not None:
-        user.credentials.remove(checked_password.key)
-        logger.info(f'Revoked credential {checked_password.credential_id}')
-    else:
-        if old_password_id is not None:
-            user.credentials.remove(ElementKey(old_password_id))
-            logger.info(f'Revoked credential {old_password_id}')
-        else:
-            for item in user.credentials.filter(Password):
-                user.credentials.remove(item.key)
-                logger.info(f'Revoked credential {item.credential_id}')
 
     # Add new password to user
     _password = Password(
@@ -311,6 +294,42 @@ def add_credentials(
 
     _new_cred = Password(credential_id=new_factor.credential_id, salt=new_factor.salt, created_by=source)
     user.credentials.add(_new_cred)
+    return True
+
+
+def revoke_password(
+    user: User,
+    reason: str,
+    reference: str,
+    old_password: Optional[Password] = None,
+    old_password_id: Optional[str] = None,
+    vccs_url: Optional[str] = None,
+    vccs: Optional[VCCSClient] = None,
+) -> bool:
+    if vccs is None:
+        vccs = get_vccs_client(vccs_url)
+
+    credential_id = None
+    credential_key = None
+    if old_password is not None:
+        credential_id = str(old_password.credential_id)
+        credential_key = old_password.key
+    elif old_password_id is not None:
+        password = cast(Password, user.credentials.find(ElementKey(old_password_id)))
+        if password:
+            credential_id = str(password.credential_id)
+            credential_key = password.key
+
+    if credential_id is None or credential_key is None:
+        return False
+
+    # Revoke password
+    vccs.revoke_credentials(
+        str(user.user_id), [VCCSRevokeFactor(credential_id=credential_id, reason=reason, reference=reference)]
+    )
+    # Remove password from user
+    user.credentials.remove(credential_key)
+    logger.info(f'Revoked credential {credential_id}')
     return True
 
 
