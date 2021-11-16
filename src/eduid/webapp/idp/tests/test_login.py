@@ -115,7 +115,7 @@ class IdPTestLogin(IdPTests):
         assert result.reached_state == LoginState.S3_REDIRECT_LOGGED_IN
         cookie = result.response.headers['Set-Cookie']
         assert f'{self.app.conf.sso_cookie.key}=;' in cookie
-        assert 'expires=Thu, 01-Jan-1970 00:00:00 GMT' in cookie
+        assert 'expires=Thu, 01 Jan 1970 00:00:00 GMT' in cookie
 
     def test_with_unknown_sp(self):
         sp_config = get_saml2_config(self.app.conf.pysaml2_config, name='UNKNOWN_SP_CONFIG')

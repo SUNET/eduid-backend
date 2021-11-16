@@ -79,7 +79,7 @@ from __future__ import annotations
 import collections.abc
 import json
 import logging
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional, Union
 
 import nacl.encoding
 import nacl.secret
@@ -165,18 +165,17 @@ class SessionManager(object):
         return res
 
 
-def get_redis_pool(cfg: RedisConfig):
+def get_redis_pool(cfg: RedisConfig) -> Union[sentinel.SentinelConnectionPool, redis.ConnectionPool]:
     logger.debug(f'Redis configuration: {cfg}')
     if cfg.sentinel_hosts and cfg.sentinel_service_name:
         host_port = [(x, cfg.port) for x in cfg.sentinel_hosts]
         manager = sentinel.Sentinel(host_port, socket_timeout=0.1)
-        pool = sentinel.SentinelConnectionPool(cfg.sentinel_service_name, manager)
+        return sentinel.SentinelConnectionPool(cfg.sentinel_service_name, manager)
     else:
         if not cfg.host:
             logger.error(f'Redis configuration without sentinel parameters does not have host')
             raise RuntimeError('Redis configuration incorrect')
-        pool = redis.ConnectionPool(host=cfg.host, port=cfg.port, db=cfg.db)
-    return pool
+        return redis.ConnectionPool(host=cfg.host, port=cfg.port, db=cfg.db)
 
 
 class NoSessionDataFoundException(Exception):
