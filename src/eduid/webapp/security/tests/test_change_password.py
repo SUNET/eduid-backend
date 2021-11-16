@@ -1,10 +1,17 @@
 # -*- coding: utf-8 -*-
 import json
+from datetime import timedelta
 from typing import Any, Dict, List, Mapping, Optional
 from unittest.mock import patch
+from uuid import uuid4
 
+from eduid.userdb.credentials import Password
+from eduid.userdb.element import ElementKey
+from eduid.userdb.util import utc_now
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.api.utils import hash_password
+from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
+from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
 from eduid.webapp.security.app import SecurityApp, security_init_app
 from eduid.webapp.security.helpers import SecurityMsg
 
@@ -36,7 +43,7 @@ class ChangePasswordTests(EduidAPITestCase):
                 'phone_code_timeout': 600,
                 'password_length': 12,
                 'password_entropy': 25,
-                'chpass_timeout': 600,
+                'chpass_reauthn_timeout': 600,
                 'fido2_rp_id': 'example.org',
                 'dashboard_url': 'https://dashboard.dev.eduid.se',
             }
@@ -50,7 +57,7 @@ class ChangePasswordTests(EduidAPITestCase):
 
     # parameterized test methods
 
-    def _get_suggested(self):
+    def _get_suggested(self, reauthn: Optional[int] = 60):
         """
         GET a suggested password.
         """
@@ -59,12 +66,20 @@ class ChangePasswordTests(EduidAPITestCase):
 
         eppn = self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
-
+            with client.session_transaction() as sess:
+                if reauthn is not None:
+                    # Add authn data faking a reauthn event has taken place for this action
+                    _authn_id = AuthnRequestRef(str(uuid4()))
+                    sess.authn.sp.authns[_authn_id] = SP_AuthnRequest(
+                        post_authn_action=AuthnAcsAction.change_password,
+                        redirect_url='/test',
+                        authn_instant=utc_now() - timedelta(seconds=reauthn),
+                    )
             return client.get('/change-password/suggested-password')
 
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def _change_password(
-        self, mock_request_user_sync: Any, data1: Optional[dict] = None,
+        self, mock_request_user_sync: Any, data1: Optional[dict] = None, reauthn: Optional[int] = 60,
     ):
         """
         To change the password of the test user, POST old and new passwords,
@@ -77,6 +92,14 @@ class ChangePasswordTests(EduidAPITestCase):
         with self.app.test_request_context():
             with self.session_cookie(self.browser, eppn) as client:
                 with client.session_transaction() as sess:
+                    if reauthn is not None:
+                        # Add authn data faking a reauthn event has taken place for this action
+                        _authn_id = AuthnRequestRef(str(uuid4()))
+                        sess.authn.sp.authns[_authn_id] = SP_AuthnRequest(
+                            post_authn_action=AuthnAcsAction.change_password,
+                            redirect_url='/test',
+                            authn_instant=utc_now() - timedelta(seconds=reauthn),
+                        )
                     data = {'new_password': '0ieT/(.edW76', 'old_password': '5678', 'csrf_token': sess.get_csrf_token()}
                     if data1 == {}:
                         data = {'csrf_token': sess.get_csrf_token()}
@@ -89,7 +112,11 @@ class ChangePasswordTests(EduidAPITestCase):
 
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def _get_suggested_and_change(
-        self, mock_request_user_sync: Any, data1: Optional[dict] = None, correct_old_password: bool = True,
+        self,
+        mock_request_user_sync: Any,
+        data1: Optional[dict] = None,
+        correct_old_password: bool = True,
+        reauthn: Optional[int] = 60,
     ):
         """
         To change the password of the test user using a suggested password,
@@ -108,6 +135,16 @@ class ChangePasswordTests(EduidAPITestCase):
                         with patch(
                             'eduid.webapp.common.authn.vccs.VCCSClient.authenticate', return_value=correct_old_password
                         ):
+                            if reauthn is not None:
+                                # Add authn data faking a reauthn event has taken place for this action
+                                with client.session_transaction() as sess:
+                                    _authn_id = AuthnRequestRef(str(uuid4()))
+                                    sess.authn.sp.authns[_authn_id] = SP_AuthnRequest(
+                                        post_authn_action=AuthnAcsAction.change_password,
+                                        redirect_url='/test',
+                                        authn_instant=utc_now() - timedelta(seconds=reauthn),
+                                        credentials_used=[ElementKey('112345678901234567890123')],
+                                    )
                             response2 = client.get('/change-password/suggested-password')
                             passwd = json.loads(response2.data)
                             self.assertEqual(
@@ -164,10 +201,7 @@ class ChangePasswordTests(EduidAPITestCase):
         self._check_error_response(
             response,
             type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_FAIL',
-            error={
-                'new_password': ['Missing data for required field.'],
-                'old_password': ['Missing data for required field.'],
-            },
+            error={'new_password': ['Missing data for required field.']},
         )
 
     def test_change_passwd_empty_data(self):
@@ -209,6 +243,12 @@ class ChangePasswordTests(EduidAPITestCase):
         response = self._change_password(data1=data1)
         self._check_error_response(
             response, type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_FAIL', msg=SecurityMsg.chpass_weak,
+        )
+
+    def test_change_passwd_no_reauthn(self):
+        response = self._change_password(reauthn=None)
+        self._check_error_response(
+            response, type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_FAIL', msg=SecurityMsg.no_reauthn,
         )
 
     def test_get_suggested_and_change(self):
@@ -266,3 +306,21 @@ class ChangePasswordTests(EduidAPITestCase):
         # check that the password is not marked as generated, in this case changed
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertFalse(user.credentials.to_list()[-1].is_generated)
+
+    def test_get_suggested_and_change_no_old_password(self):
+        self.app.conf.chpass_old_password_needed = (
+            False  # allow password change without the old password, rely on force authn
+        )
+        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert len(user.credentials.filter(Password)) == 1
+        self.request_user_sync(user)
+
+        response = self._get_suggested_and_change(data1={'old_password': None}, correct_old_password=False)
+        self._check_success_response(
+            response=response, type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_SUCCESS'
+        )
+
+        # check that the password is marked as generated
+        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert user.credentials.filter(Password)[-1].is_generated is True
+        assert len(user.credentials.filter(Password)) == 1

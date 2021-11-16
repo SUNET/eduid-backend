@@ -30,20 +30,28 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from datetime import timedelta
 
 from flask import Blueprint
 
 from eduid.userdb import User
+from eduid.userdb.credentials import Password
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.security import SecurityUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.utils import check_password_hash, get_zxcvbn_terms, hash_password, save_and_sync_user
 from eduid.webapp.common.api.validation import is_valid_password
+from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.authn.vccs import change_password
 from eduid.webapp.common.session import session
 from eduid.webapp.security.app import current_security_app as current_app
-from eduid.webapp.security.helpers import SecurityMsg, compile_credential_list, generate_suggested_password
+from eduid.webapp.security.helpers import (
+    SecurityMsg,
+    check_reauthn,
+    compile_credential_list,
+    generate_suggested_password,
+)
 from eduid.webapp.security.schemas import (
     ChangePasswordRequestSchema,
     SecurityResponseSchema,
@@ -51,8 +59,6 @@ from eduid.webapp.security.schemas import (
 )
 
 change_password_views = Blueprint('change_password', __name__, url_prefix='/change-password')
-
-# TODO: This is the new change password backend we should move to
 
 
 @change_password_views.route('/suggested-password', methods=['GET'])
@@ -62,6 +68,12 @@ def get_suggested(user) -> FluxData:
     """
     View to get a suggested password for the logged user.
     """
+    authn = session.authn.sp.get_authn_for_action(AuthnAcsAction.change_password)
+    current_app.logger.debug(f'change_password called with authn {authn}')
+    _need_reauthn = check_reauthn(authn, current_app.conf.chpass_reauthn_timeout)
+    if _need_reauthn:
+        return _need_reauthn
+
     current_app.logger.debug(f'Sending new generated password for {user}')
     password = generate_suggested_password()
     session.security.generated_password_hash = hash_password(password)
@@ -76,9 +88,24 @@ def change_password_view(user: User, old_password: str, new_password: str) -> Fl
     """
     View to change the password
     """
-    if not old_password or not new_password:
+    authn = session.authn.sp.get_authn_for_action(AuthnAcsAction.change_password)
+    current_app.logger.debug(f'change_password called with authn {authn}')
+    _need_reauthn = check_reauthn(authn, current_app.conf.chpass_reauthn_timeout)
+    if _need_reauthn:
+        return _need_reauthn
+
+    if not new_password or (current_app.conf.chpass_old_password_needed and not old_password):
         return error_response(message=SecurityMsg.chpass_no_data)
 
+    old_password_id = None
+    if old_password is None:
+        # Try to find the password credential that the user used for reauthn. That one should be revoked.
+        # If we do not find it we will revoke all of the users passwords.
+        for cred_id in authn.credentials_used:
+            credential = user.credentials.find(cred_id)
+            if isinstance(credential, Password):
+                old_password_id = cred_id
+                break
     try:
         is_valid_password(
             new_password,
@@ -102,6 +129,7 @@ def change_password_view(user: User, old_password: str, new_password: str) -> Fl
         user=security_user,
         new_password=new_password,
         old_password=old_password,
+        old_password_id=old_password_id,
         application='security',
         is_generated=is_generated,
         vccs_url=current_app.conf.vccs_url,

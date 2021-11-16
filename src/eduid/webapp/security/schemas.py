@@ -68,7 +68,7 @@ class ChpassResponseSchema(SecurityResponseSchema):
 
 class ChangePasswordRequestSchema(EduidSchema, CSRFRequestMixin):
 
-    old_password = fields.String(required=True)
+    old_password = fields.String(default=None, required=False, allow_none=True)
     new_password = fields.String(required=True)
 
 
@@ -86,6 +86,7 @@ class SuggestedPasswordResponseSchema(FluxStandardAction):
     payload = fields.Nested(SuggestedPasswordPayload, many=False)
 
 
+# TODO: Remove this when frontend for new change password view exist
 class ChangePasswordSchema(PasswordSchema):
 
     csrf_token = fields.String(required=True)

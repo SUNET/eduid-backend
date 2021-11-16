@@ -3,7 +3,7 @@
 # Helper functions to log proofing events.
 #
 import logging
-from typing import Any, Dict, List, Type, TypeVar, Optional
+from typing import Any, Dict, List, Optional, Type, TypeVar
 
 from eduid.userdb.element import Element, ElementKey
 
