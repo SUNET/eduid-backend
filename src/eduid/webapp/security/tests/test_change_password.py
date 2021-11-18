@@ -161,6 +161,8 @@ class ChangePasswordTests(EduidAPITestCase):
                                 }
                             if data1 is not None:
                                 data.update(data1)
+                            if data['old_password'] is None:
+                                del data['old_password']
                             return client.post(
                                 '/change-password/set-password',
                                 data=json.dumps(data),

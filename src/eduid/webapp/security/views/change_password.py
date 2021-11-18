@@ -31,6 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from datetime import timedelta
+from typing import Optional
 
 from flask import Blueprint
 
@@ -84,7 +85,7 @@ def get_suggested(user) -> FluxData:
 @MarshalWith(SecurityResponseSchema)
 @UnmarshalWith(ChangePasswordRequestSchema)
 @require_user
-def change_password_view(user: User, old_password: str, new_password: str) -> FluxData:
+def change_password_view(user: User, new_password: str, old_password: Optional[str] = None) -> FluxData:
     """
     View to change the password
     """
@@ -101,6 +102,7 @@ def change_password_view(user: User, old_password: str, new_password: str) -> Fl
     if old_password is None:
         # Try to find the password credential that the user used for reauthn. That one should be revoked.
         # If we do not find it we will revoke all of the users passwords.
+        assert authn is not None  # please mypy (if authn was None we would have returned with _need_reauthn above)
         for cred_id in authn.credentials_used:
             credential = user.credentials.find(cred_id)
             if isinstance(credential, Password):
