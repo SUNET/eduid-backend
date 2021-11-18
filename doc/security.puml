@@ -74,7 +74,7 @@ end
 Client->"/change-password/suggested-password": GET
 "/change-password/suggested-password"->Client: {"payload":{"suggested_password": str},"type":"'GET_CHANGE_PASSWORD_CHANGE_PASSWORD_SUGGESTED_PASSWORD_SUCCESS'"}
 |||
-Client -> "/change-password/set-password": POST {old_password: str, new_password: str}
+Client -> "/change-password/set-password": POST {new_password: str, old_password: Optional[str]}
 alt password changed successfully
     "/change-password/set-password"->Client: {"payload":{"message":"security.change-password-success","credentials": [CREDENTIAL]},"type":"POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_SUCCESS"}
 else old_password or new_password is missing
