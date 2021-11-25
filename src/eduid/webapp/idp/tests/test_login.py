@@ -3,7 +3,6 @@ import os
 
 from mock import patch
 from saml2 import BINDING_HTTP_REDIRECT
-from saml2.authn_context import requested_authn_context
 from saml2.client import Saml2Client
 
 from eduid.vccs.client import VCCSClient
@@ -157,7 +156,7 @@ class IdPTestLogin(IdPTests):
         with patch.object(VCCSClient, 'authenticate'):
             VCCSClient.authenticate.return_value = True
             # request MFA, but the test user does not have any MFA credentials
-            req_authn_context = requested_authn_context('https://refeds.org/profile/mfa', comparison='exact')
+            req_authn_context = {'authn_context_class_ref': ['https://refeds.org/profile/mfa'], 'comparison': 'exact'}
             result = self._try_login(authn_context=req_authn_context)
 
         assert result.reached_state == LoginState.S3_REDIRECT_LOGGED_IN

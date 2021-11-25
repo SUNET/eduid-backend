@@ -2,15 +2,13 @@
 
 import logging
 from enum import unique
-from typing import Optional
+from typing import Optional, Any, Dict
 
 from dateutil.parser import parse as dt_parse
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.metadata import entity_descriptor
 from saml2.request import AuthnRequest
-from saml2.saml import AuthnContextClassRef
-from saml2.samlp import RequestedAuthnContext
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.logs import SwedenConnectProofing
@@ -66,16 +64,14 @@ def create_authn_request(
     authn_ref: AuthnRequestRef, selected_idp: str, required_loa: str, force_authn: bool = False
 ) -> AuthnRequest:
 
-    kwargs = {
+    kwargs: Dict[str, Any] = {
         "force_authn": str(force_authn).lower(),
     }
 
     # LOA
     logger.debug('Requesting AuthnContext {}'.format(required_loa))
     loa_uri = current_app.conf.authentication_context_map[required_loa]
-    requested_authn_context = RequestedAuthnContext(
-        authn_context_class_ref=AuthnContextClassRef(text=loa_uri), comparison='exact'
-    )
+    requested_authn_context = {'authn_context_class_ref': [loa_uri], 'comparison': 'exact'}
     kwargs['requested_authn_context'] = requested_authn_context
 
     client = Saml2Client(current_app.saml2_config)

@@ -241,7 +241,7 @@ class StepUp(ResponseMicroService):
 
         name_id = NameID(format=NAMEID_FORMAT_UNSPECIFIED, text=nameid_value)
         subject = Subject(name_id=name_id)
-        authn_context = requested_authn_context(required_loa, comparison="exact")
+        authn_context = {'authn_context_class_ref': [required_loa], 'comparison': 'exact'}
         relay_state = util.rndstr()
 
         logger.debug(
