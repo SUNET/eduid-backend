@@ -248,6 +248,12 @@ importlib-metadata==4.8.2 \
     # via
     #   -c main.txt
     #   -r sub_main.in
+importlib-resources==5.4.0 \
+    --hash=sha256:33a95faed5fc19b4bc16b29a6eeae248a3fe69dd55d4d229d2b480e23eeaad45 \
+    --hash=sha256:d756e2f85dd4de2ba89be0b21dba2a3bbec2e871a42a3a16719258a11f87506b
+    # via
+    #   -c main.txt
+    #   -r sub_main.in
 itsdangerous==2.0.1 \
     --hash=sha256:5174094b9637652bdb841a3029700391451bd092ba3db90600dea710ba28e97c \
     --hash=sha256:9e724d68fc22902a1435351f84c3fb8623f303fffcc566a4cb952df8c572cff0
@@ -865,6 +871,7 @@ zipp==3.6.0 \
     # via
     #   -c main.txt
     #   importlib-metadata
+    #   importlib-resources
 zxcvbn==4.4.28 \
     --hash=sha256:151bd816817e645e9064c354b13544f85137ea3320ca3be1fb6873ea75ef7dc1
     # via
