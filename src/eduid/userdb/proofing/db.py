@@ -305,3 +305,8 @@ class OrcidProofingUserDB(ProofingUserDB):
 class EidasProofingUserDB(ProofingUserDB):
     def __init__(self, db_uri: str, db_name: str = 'eduid_eidas'):
         super().__init__(db_uri, db_name)
+
+
+class LadokProofingUserDB(ProofingUserDB):
+    def __init__(self, db_uri: str, db_name: str = 'eduid_ladok'):
+        super().__init__(db_uri, db_name)
