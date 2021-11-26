@@ -17,6 +17,11 @@ class LadokClientException(Exception):
     pass
 
 
+class Error(BaseModel):
+    id: Optional[str]
+    detail: Optional[str]
+
+
 class UniversityName(BaseModel):
     long_name_sv: Optional[str]
     long_name_en: Optional[str]
@@ -28,11 +33,11 @@ class UniversityInfoData(BaseModel):
 
 class UniversityInfoResponse(BaseModel):
     data: UniversityInfoData
-    error: Optional[bool]
+    error: Optional[Error]
 
 
 class StudentInfoData(BaseModel):
-    external_student_uid: Optional[str]
+    external_student_uid: Optional[str] = Field(alias='ladok_externt_uid')
     esi: Optional[str]
     is_student: Optional[bool]
     student_until: Optional[datetime] = Field(alias='expire_student')
@@ -40,7 +45,7 @@ class StudentInfoData(BaseModel):
 
 class StudentInfoResponse(BaseModel):
     data: StudentInfoData
-    error: Optional[bool]
+    error: Optional[Error]
 
 
 class LadokClientConfig(BaseModel):
@@ -55,38 +60,6 @@ class LadokClient:
         self.universities = self.load_universities()
 
     def load_universities(self) -> UniversityInfoData:
-        """
-         path: /api/v1/kf/ladokinfo
-         Request body:
-         {
-            “data”: {
-              “nin”: “string”
-            }
-         }
-         Reply:
-         {
-           “data”: {
-             “esi”: “urn:schac:personalUniqueCode:int:esi:ladok.se:externtstudentuid-857c0573-...",
-             “is_student”: false,
-             “expire_student”: “0001-01-01T00:00:00Z”
-           },
-           “error”: null
-         }
-        """
-        endpoint = urlappend(self.base_endpoint, 'schoolinfo')
-
-        response = requests.get(endpoint)
-        if response.status_code != 200:
-            logger.error(f'endpoint {endpoint} returned status code: {response.status_code}')
-            raise LadokClientException('could not load universities')
-
-        universities_response = UniversityInfoResponse(**response.json())
-        if universities_response.error is not None:
-            logger.error(f'endpoint {endpoint} returned error: {universities_response.error}')
-            raise LadokClientException('could not load universities')
-        return universities_response.data
-
-    def student_info(self, university_abbr: str, nin: str) -> Optional[StudentInfoData]:
         """
          path: /api/v1/schoolinfo
          reply:
@@ -106,6 +79,38 @@ class LadokClient:
            “error”: null
          }
         """
+        endpoint = urlappend(self.base_endpoint, 'schoolinfo')
+
+        response = requests.get(endpoint)
+        if response.status_code != 200:
+            logger.error(f'endpoint {endpoint} returned status code: {response.status_code}')
+            raise LadokClientException('could not load universities')
+
+        universities_response = UniversityInfoResponse(**response.json())
+        if universities_response.error is not None:
+            logger.error(f'endpoint {endpoint} returned error: {universities_response.error}')
+            raise LadokClientException('could not load universities')
+        return universities_response.data
+
+    def student_info(self, university_abbr: str, nin: str) -> Optional[StudentInfoData]:
+        """
+         path: /api/v1/kf/ladokinfo
+         Request body:
+         {
+            “data”: {
+              “nin”: “string”
+            }
+         }
+         Reply:
+         {
+           “data”: {
+             “esi”: “urn:schac:personalUniqueCode:int:esi:ladok.se:externtstudentuid-857c0573-...",
+             “is_student”: false,
+             “expire_student”: “0001-01-01T00:00:00Z”
+           },
+           “error”: null
+         }
+        """
         if university_abbr not in self.universities.names:
             raise LadokClientException(f'university with abbreviation {university_abbr} not found')
 
@@ -114,12 +119,13 @@ class LadokClient:
 
         response = requests.post(endpoint, json={'nin': nin})
         if response.status_code != 200:
-            logger.debug(f'no student found with nin {nin} at {university_abbr}')
+            logger.error(f'endpoint {endpoint} returned status code: {response.status_code}')
             return None
 
         student_response = StudentInfoResponse(**response.json())
         if student_response.error is not None:
-            logger.error(f'endpoint {endpoint} returned error: {student_response.error}')
+            logger.error(f'endpoint {endpoint} returned error: {student_response.error.id}')
+            logger.debug(f'error detail: {student_response.error.detail}')
             return None
 
         return student_response.data
