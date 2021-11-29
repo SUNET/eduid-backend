@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import warnings
-from typing import List, Optional, Type, TypeVar, Union
+from typing import List, Optional, Type, TypeVar, Union, overload
 
 from flask import current_app, render_template, request
 
@@ -64,10 +64,22 @@ def number_match_proofing(user: User, proofing_state: OidcProofingState, number:
     return False
 
 
+# Explain to mypy that if you call add_nin_to_user without a user_type, the return type will be ProofingUser
+# but if you call it with a user_type the return type will be that type
 TProofingUser = TypeVar('TProofingUser')
 
 
-def add_nin_to_user(user: User, proofing_state: NinProofingState, user_class: Type[TProofingUser]) -> TProofingUser:
+@overload
+def add_nin_to_user(user: User, proofing_state: NinProofingState) -> ProofingUser:
+    ...
+
+
+@overload
+def add_nin_to_user(user: User, proofing_state: NinProofingState, user_type: Type[TProofingUser]) -> TProofingUser:
+    ...
+
+
+def add_nin_to_user(user, proofing_state, user_class=ProofingUser):
 
     proofing_user = user_class.from_user(user, current_app.private_userdb)
     # Add nin to user if not already there
