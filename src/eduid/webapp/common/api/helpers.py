@@ -66,7 +66,7 @@ def number_match_proofing(user: User, proofing_state: OidcProofingState, number:
 
 # Explain to mypy that if you call add_nin_to_user without a user_type, the return type will be ProofingUser
 # but if you call it with a user_type the return type will be that type
-TProofingUser = TypeVar('TProofingUser')
+TProofingUser = TypeVar('TProofingUser', bound=User)
 
 
 @overload
