@@ -472,9 +472,9 @@ packaging==21.3 \
 pbkdf2==1.3 \
     --hash=sha256:ac6397369f128212c43064a2b4878038dab78dab41875364554aaf2a684e6979
     # via ndnkdf
-phonenumbers==8.12.37 \
-    --hash=sha256:355956697047bc89efd89909373a0bdc50ac725c5613b2684a478d6b408a4010 \
-    --hash=sha256:dbc560992844a059f56c7c0c6a587904e65d956740bbfb7e39589980bc9055b8
+phonenumbers==8.12.38 \
+    --hash=sha256:3cda1d1cea9a6801babf825e6c0f6a9776ea6d8a68b81b256178f8e5aa813344 \
+    --hash=sha256:95c8a30157323a73a4f9207792e3ed69b626b4c74d8fc44064f25e7fb56cfc94
     # via
     #   -c main.txt
     #   -r main.in
@@ -486,9 +486,9 @@ pillow==8.4.0 \
     #   -r main.in
     #   reportlab
     #   xhtml2pdf
-prompt-toolkit==3.0.22 \
-    --hash=sha256:449f333dd120bd01f5d296a8ce1452114ba3a71fae7288d2f0ae2c918764fa72 \
-    --hash=sha256:48d85cdca8b6c4f16480c7ce03fd193666b62b0a21667ca56b4bb5ad679d1170
+prompt-toolkit==3.0.23 \
+    --hash=sha256:5f29d62cb7a0ecacfa3d8ceea05a63cd22500543472d64298fc06ddda906b25d \
+    --hash=sha256:7053aba00895473cb357819358ef33f11aa97e4ac83d38efb123e5649ceeecaf
     # via
     #   -c main.txt
     #   click-repl
@@ -644,8 +644,8 @@ pypdf2==1.26.0 \
     #   -c main.txt
     #   xhtml2pdf
 pysaml2==7.1.0+sunet \
-    --hash=sha256:3d58d68cdbf39616f98fd278d4e853da54e1e350c9a8af82073bb703c5ae1fc3 \
-    --hash=sha256:4af8e2097c3ff5577ef0116cfbbdbbb8a4f5b33b4227b8e4e598c6ab72500ad4
+    --hash=sha256:17d7b15614e5686cdd8f235963c4f5188a4a04f4a746b035ed2ea93bf7500b94 \
+    --hash=sha256:8b44938aa0e19eb423298dab4707baa21ddf60a2e72267fbb2e780745c97c13a
     # via
     #   -c main.txt
     #   -r main.in
@@ -730,9 +730,9 @@ redis==3.5.3 \
     #   -c main.txt
     #   -r main.in
     #   celery
-reportlab==3.6.2 \
-    --hash=sha256:4e88c22b40d18d62d6984f250c9feeedb7112dd3622d1439d2fc311c8dd1e447 \
-    --hash=sha256:f0c4b47b012d893b0b9f5703cf6f01b5593714a3fc1e7dc73efbbfe26bb7e16a
+reportlab==3.6.3 \
+    --hash=sha256:2efdb2999e1b19a16d5535aa70b5ec5f3ad003e1d366da566f23231ff81400aa \
+    --hash=sha256:be4f05230eb17b9c9c61a180ab0c89c30112da2823c77807a2a5ddba19365865
     # via
     #   -c main.txt
     #   xhtml2pdf
