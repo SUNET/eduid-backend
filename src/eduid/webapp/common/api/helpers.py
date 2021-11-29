@@ -79,9 +79,9 @@ def add_nin_to_user(user: User, proofing_state: NinProofingState, user_type: Typ
     ...
 
 
-def add_nin_to_user(user, proofing_state, user_class=ProofingUser):
+def add_nin_to_user(user, proofing_state, user_type=ProofingUser):
 
-    proofing_user = user_class.from_user(user, current_app.private_userdb)
+    proofing_user = user_type.from_user(user, current_app.private_userdb)
     # Add nin to user if not already there
     if not proofing_user.nins.find(proofing_state.nin.number):
         current_app.logger.info(f'Adding NIN for user {user}')
