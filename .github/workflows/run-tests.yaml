@@ -59,4 +59,5 @@ jobs:
 
       - name: Run mypy to check types
         run: |
+          mypy --version
           make typecheck
