@@ -8,7 +8,7 @@ from eduid.common.rpc.am_relay import AmRelay
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.proofing.db import LadokProofingUserDB
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
-from eduid.webapp.ladok.eduid_ladok_client import LadokClient
+from eduid.webapp.ladok.client import LadokClient
 from eduid.webapp.ladok.settings.common import LadokConfig
 
 __author__ = 'lundberg'

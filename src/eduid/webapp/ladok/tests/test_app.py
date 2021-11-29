@@ -9,7 +9,7 @@ from eduid.webapp.common.api.testing import EduidAPITestCase
 __author__ = 'lundberg'
 
 from eduid.webapp.ladok.app import LadokApp, init_ladok_app
-from eduid.webapp.ladok.eduid_ladok_client import StudentInfoData, StudentInfoResponse
+from eduid.webapp.ladok.client import LadokUserInfo, LadokUserInfoResponse
 
 
 class MockResponse(object):

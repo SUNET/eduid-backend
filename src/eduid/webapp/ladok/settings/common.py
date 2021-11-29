@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig
-from eduid.webapp.ladok.eduid_ladok_client import LadokClientConfig
+from eduid.webapp.ladok.client import LadokClientConfig
 
 __author__ = 'lundberg'
 
