@@ -179,7 +179,7 @@ class SecurityTests(EduidAPITestCase):
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def _add_nin(self, mock_request_user_sync: Any, data1: Optional[dict] = None, remove: bool = True):
         """
-        Send a POST request to add a NIN to the test user, possibly removing his primary, verified NIN.
+        Send a POST request to add a NIN to the test user, possibly removing it's primary, verified NIN.
 
         :param data1: to control the data that is POSTed
         :param remove: whether to actually remove the NIN from the test user before sending the request.
@@ -339,7 +339,12 @@ class SecurityTests(EduidAPITestCase):
             response,
             type_='POST_SECURITY_ADD_NIN_SUCCESS',
             msg=SecurityMsg.add_success,
-            payload={'nins': [{'number': '197801011234', 'primary': True, 'verified': True}]},
+            payload={
+                'nins': [
+                    {'number': '197801011234', 'primary': True, 'verified': True},
+                    {'number': '197801011235', 'primary': False, 'verified': False},
+                ]
+            },
         )
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)

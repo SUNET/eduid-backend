@@ -9,7 +9,6 @@ from eduid.userdb import User
 from eduid.userdb.logs import TeleAdressProofing, TeleAdressProofingRelation
 from eduid.userdb.proofing.element import NinProofingElement
 from eduid.userdb.proofing.state import NinProofingState
-from eduid.userdb.proofing.user import ProofingUser
 from eduid.userdb.util import utc_now
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import TranslatableMsg
@@ -56,9 +55,8 @@ def create_proofing_state(user: User, nin: str) -> NinProofingState:
     :param user: Central userdb user
     :param nin: National Identity Number
     """
-    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     nin_element = NinProofingElement(number=nin, created_by='lookup_mobile_proofing', is_verified=False)
-    return NinProofingState(id=None, modified_ts=None, eppn=proofing_user.eppn, nin=nin_element)
+    return NinProofingState(id=None, modified_ts=None, eppn=user.eppn, nin=nin_element)
 
 
 def match_mobile_to_user(
@@ -71,8 +69,6 @@ def match_mobile_to_user(
 
     :return: A proofing log entry on success
     """
-    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-
     # This code is to use the backdoor that allows selenium integration tests
     # to verify a NIN by sending a magic cookie
     if check_magic_cookie(current_app.conf):
@@ -82,7 +78,7 @@ def match_mobile_to_user(
             'OfficialAddress': {'Address2': 'Dummy address', 'City': 'LANDET', 'PostalCode': '12345'},
         }
         proofing_log_entry = TeleAdressProofing(
-            eppn=proofing_user.eppn,
+            eppn=user.eppn,
             created_by='lookup_mobile_proofing',
             reason='magic_cookie',
             nin=self_asserted_nin,
@@ -112,7 +108,7 @@ def match_mobile_to_user(
             user_postal_address = current_app.msg_relay.get_postal_address(self_asserted_nin)
             current_app.logger.info('Creating proofing log entry for user')
             proofing_log_entry = TeleAdressProofing(
-                eppn=proofing_user.eppn,
+                eppn=user.eppn,
                 created_by='lookup_mobile_proofing',
                 reason='matched',
                 nin=self_asserted_nin,
@@ -140,7 +136,7 @@ def match_mobile_to_user(
                 registered_postal_address = current_app.msg_relay.get_postal_address(registered_to_nin)
                 current_app.logger.info('Creating proofing log entry for user')
                 proofing_log_entry = TeleAdressProofingRelation(
-                    eppn=proofing_user.eppn,
+                    eppn=user.eppn,
                     created_by='lookup_mobile_proofing',
                     reason='match_by_navet',
                     nin=self_asserted_nin,

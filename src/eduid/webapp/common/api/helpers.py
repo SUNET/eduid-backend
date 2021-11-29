@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import warnings
-from typing import List, Optional, Type, Union
+from typing import List, Optional, Type, TypeVar, Union, overload
 
 from flask import current_app, render_template, request
 
@@ -64,9 +64,24 @@ def number_match_proofing(user: User, proofing_state: OidcProofingState, number:
     return False
 
 
-def add_nin_to_user(user: User, proofing_state: NinProofingState, user_class: Type[User] = ProofingUser) -> None:
+# Explain to mypy that if you call add_nin_to_user without a user_type, the return type will be ProofingUser
+# but if you call it with a user_type the return type will be that type
+TProofingUser = TypeVar('TProofingUser', bound=User)
 
-    proofing_user = user_class.from_user(user, current_app.private_userdb)
+
+@overload
+def add_nin_to_user(user: User, proofing_state: NinProofingState) -> ProofingUser:
+    ...
+
+
+@overload
+def add_nin_to_user(user: User, proofing_state: NinProofingState, user_type: Type[TProofingUser]) -> TProofingUser:
+    ...
+
+
+def add_nin_to_user(user, proofing_state, user_type=ProofingUser):
+
+    proofing_user = user_type.from_user(user, current_app.private_userdb)
     # Add nin to user if not already there
     if not proofing_user.nins.find(proofing_state.nin.number):
         current_app.logger.info(f'Adding NIN for user {user}')
@@ -86,6 +101,7 @@ def add_nin_to_user(user: User, proofing_state: NinProofingState, user_class: Ty
         current_app.logger.info(f'Request sync for user {proofing_user}')
         result = current_app.am_relay.request_user_sync(proofing_user)
         current_app.logger.info(f'Sync result for user {proofing_user}: {result}')
+    return proofing_user
 
 
 def verify_nin_for_user(

@@ -259,25 +259,23 @@ def account_terminated(user: User):
 @UnmarshalWith(NINRequestSchema)
 @MarshalWith(NINResponseSchema)
 @require_user
-def add_nin(user, nin):
-    security_user = SecurityUser.from_user(user, current_app.private_userdb)
+def add_nin(user: User, nin: str) -> FluxData:
     current_app.logger.info('Adding NIN to user')
     current_app.logger.debug('NIN: {}'.format(nin))
 
-    nin_obj = security_user.nins.find(nin)
+    nin_obj = user.nins.find(nin)
     if nin_obj:
         current_app.logger.info('NIN already added.')
         return error_response(message=SecurityMsg.already_exists)
 
     nin_element = NinProofingElement(number=nin, created_by='security', is_verified=False)
-    proofing_state = NinProofingState(id=None, eppn=security_user.eppn, nin=nin_element, modified_ts=None)
+    proofing_state = NinProofingState(id=None, eppn=user.eppn, nin=nin_element, modified_ts=None)
 
     try:
-        add_nin_to_user(user, proofing_state, user_class=SecurityUser)
-    except AmTaskFailed as e:
-        current_app.logger.error('Adding nin to user failed')
+        security_user = add_nin_to_user(user, proofing_state, user_type=SecurityUser)
+    except AmTaskFailed:
+        current_app.logger.exception('Adding nin to user failed')
         current_app.logger.debug(f'NIN: {nin}')
-        current_app.logger.error('{}'.format(e))
         return error_response(message=CommonMsg.temp_problem)
 
     return success_response(payload=dict(nins=security_user.nins.to_list_of_dicts()), message=SecurityMsg.add_success)
