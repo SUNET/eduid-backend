@@ -29,7 +29,7 @@ class LadokTests(EduidAPITestCase):
     def setUp(self, *args, users: Optional[List[str]] = None, copy_user_to_private: bool = False, **kwargs):
         self.test_user_eppn = 'hubba-bubba'
         self.test_unverified_user_eppn = 'hubba-baar'
-        self.student_external_uid = str(uuid4())
+        self.ladok_user_external_uid = str(uuid4())
 
         self.university_data = {
             'data': {
@@ -79,12 +79,12 @@ class LadokTests(EduidAPITestCase):
     @patch('requests.post')
     def test_link_user(self, mock_response):
 
-        student_info = StudentInfoData(
-            ladok_externt_uid=self.student_external_uid,
-            esi=f'urn:schac:personalUniqueCode:int:esi:ladok.se:externtstudentuid-{self.student_external_uid}',
+        user_info = LadokUserInfo(
+            external_uid=self.ladok_user_external_uid,
+            esi=f'urn:schac:personalUniqueCode:int:esi:ladok.se:externtstudentuid-{self.ladok_user_external_uid}',
         )
         mock_response.return_value = MockResponse(
-            status_code=200, data=StudentInfoResponse(error=None, data=student_info).dict(by_alias=True)
+            status_code=200, data=LadokUserInfoResponse(error=None, data=user_info).dict(by_alias=True)
         )
 
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)

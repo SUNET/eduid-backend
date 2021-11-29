@@ -46,11 +46,13 @@ def link_user(user: User, university_abbr: str):
         return error_response(message=LadokMsg.no_verified_nin)
 
     assert user.nins.primary is not None  # please mypy
-    ladok_info = current_app.ladok_client.student_info(university_abbr=university_abbr, nin=user.nins.primary.number)
+    ladok_info = current_app.ladok_client.get_user_info(university_abbr=university_abbr, nin=user.nins.primary.number)
     if ladok_info is None:
         return error_response(message=LadokMsg.no_ladok_data)
 
     # TODO: Save ladok data for user
+    # user.ladok.external_uuid
+    # user.ladok.university
 
     return success_response(message=LadokMsg.user_linked)
 

@@ -22,33 +22,38 @@ class Error(BaseModel):
     detail: Optional[str]
 
 
-class UniversityName(BaseModel):
+class LadokBaseModel(BaseModel):
+    class Config:
+        allow_population_by_field_name = True
+
+
+class UniversityName(LadokBaseModel):
     name_sv: Optional[str] = Field(alias='long_name_sv')
     name_en: Optional[str] = Field(alias='long_name_en')
 
 
-class UniversityInfoData(BaseModel):
+class UniversitiesData(LadokBaseModel):
     names: Dict[str, UniversityName] = Field(alias='school_names')
 
 
-class UniversityInfoResponse(BaseModel):
-    data: UniversityInfoData
+class UniversitiesInfoResponse(LadokBaseModel):
+    data: UniversitiesData
     error: Optional[Error]
 
 
-class StudentInfoData(BaseModel):
-    external_student_uid: str = Field(alias='ladok_externt_uid')
+class LadokUserInfo(LadokBaseModel):
+    external_uid: str = Field(alias='ladok_externt_uid')
     esi: Optional[str]
     is_student: Optional[bool]
     student_until: Optional[datetime] = Field(default=None, alias='expire_student')
 
 
-class StudentInfoResponse(BaseModel):
-    data: StudentInfoData
+class LadokUserInfoResponse(LadokBaseModel):
+    data: LadokUserInfo
     error: Optional[Error]
 
 
-class LadokClientConfig(BaseModel):
+class LadokClientConfig(LadokBaseModel):
     url: AnyHttpUrl
     version: int = 1
 
@@ -59,7 +64,7 @@ class LadokClient:
         self.base_endpoint = urlappend(self.config.url, '/api/v{self.config.version}')
         self.universities = self.load_universities()
 
-    def load_universities(self) -> UniversityInfoData:
+    def load_universities(self) -> UniversitiesData:
         """
          path: /api/v1/schoolinfo
          reply:
@@ -86,13 +91,13 @@ class LadokClient:
             logger.error(f'endpoint {endpoint} returned status code: {response.status_code}')
             raise LadokClientException('could not load universities')
 
-        universities_response = UniversityInfoResponse(**response.json())
+        universities_response = UniversitiesInfoResponse(**response.json())
         if universities_response.error is not None:
             logger.error(f'endpoint {endpoint} returned error: {universities_response.error}')
             raise LadokClientException('could not load universities')
         return universities_response.data
 
-    def student_info(self, university_abbr: str, nin: str) -> Optional[StudentInfoData]:
+    def get_user_info(self, university_abbr: str, nin: str) -> Optional[LadokUserInfo]:
         """
          path: /api/v1/kf/ladokinfo
          Request body:
@@ -124,16 +129,16 @@ class LadokClient:
             return None
 
         try:
-            student_response = StudentInfoResponse(**response.json())
+            user_response = LadokUserInfoResponse(**response.json())
         except ValidationError as e:
             logger.error(f'could not validate response from {endpoint}: {e}')
             logger.debug(f'university_abbr: {university_abbr}, nin: {nin}')
             logger.debug(f'response.json: {response.json()}')
             return None
 
-        if student_response.error is not None:
-            logger.error(f'endpoint {endpoint} returned error: {student_response.error.id}')
-            logger.debug(f'error detail: {student_response.error.detail}')
+        if user_response.error is not None:
+            logger.error(f'endpoint {endpoint} returned error: {user_response.error.id}')
+            logger.debug(f'error detail: {user_response.error.detail}')
             return None
 
-        return student_response.data
+        return user_response.data
