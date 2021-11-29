@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Dict, Optional
 
 import requests
-from pydantic import AnyHttpUrl, BaseModel, Field
+from pydantic import AnyHttpUrl, BaseModel, Field, ValidationError
 
 __author__ = 'lundberg'
 
@@ -23,8 +23,8 @@ class Error(BaseModel):
 
 
 class UniversityName(BaseModel):
-    long_name_sv: Optional[str]
-    long_name_en: Optional[str]
+    name_sv: Optional[str] = Field(alias='long_name_sv')
+    name_en: Optional[str] = Field(alias='long_name_en')
 
 
 class UniversityInfoData(BaseModel):
@@ -37,10 +37,10 @@ class UniversityInfoResponse(BaseModel):
 
 
 class StudentInfoData(BaseModel):
-    external_student_uid: Optional[str] = Field(alias='ladok_externt_uid')
+    external_student_uid: str = Field(alias='ladok_externt_uid')
     esi: Optional[str]
     is_student: Optional[bool]
-    student_until: Optional[datetime] = Field(alias='expire_student')
+    student_until: Optional[datetime] = Field(default=None, alias='expire_student')
 
 
 class StudentInfoResponse(BaseModel):
@@ -64,19 +64,19 @@ class LadokClient:
          path: /api/v1/schoolinfo
          reply:
          {
-           “data”: {
-             “school_names”: {
-               “ab”: {
-                 “long_name_sv”: “University Name”,
-                 “long_name_en”: “”
+           "data": {
+             "school_names": {
+               "ab": {
+                 "long_name_sv": "University Name",
+                 "long_name_en": ""
                },
-               “cd”: {
-                 “long_name_sv”: “Another University Name”,
-                 “long_name_en”: “”
+               "cd": {
+                 "long_name_sv": "Another University Name",
+                 "long_name_en": ""
                }
              }
            },
-           “error”: null
+           "error": null
          }
         """
         endpoint = urlappend(self.base_endpoint, 'schoolinfo')
@@ -97,18 +97,19 @@ class LadokClient:
          path: /api/v1/kf/ladokinfo
          Request body:
          {
-            “data”: {
-              “nin”: “string”
+            "data": {
+              "nin": "string"
             }
          }
          Reply:
          {
-           “data”: {
-             “esi”: “urn:schac:personalUniqueCode:int:esi:ladok.se:externtstudentuid-857c0573-...",
-             “is_student”: false,
-             “expire_student”: “0001-01-01T00:00:00Z”
+           "data": {
+             "ladok_externt_uid" : "857c0573-..."
+             "esi": "urn:schac:personalUniqueCode:int:esi:ladok.se:externtstudentuid-857c0573-...",
+             "is_student": false,
+             "expire_student": "0001-01-01T00:00:00Z"
            },
-           “error”: null
+           "error": null
          }
         """
         if university_abbr not in self.universities.names:
@@ -122,7 +123,14 @@ class LadokClient:
             logger.error(f'endpoint {endpoint} returned status code: {response.status_code}')
             return None
 
-        student_response = StudentInfoResponse(**response.json())
+        try:
+            student_response = StudentInfoResponse(**response.json())
+        except ValidationError as e:
+            logger.error(f'could not validate response from {endpoint}: {e}')
+            logger.debug(f'university_abbr: {university_abbr}, nin: {nin}')
+            logger.debug(f'response.json: {response.json()}')
+            return None
+
         if student_response.error is not None:
             logger.error(f'endpoint {endpoint} returned error: {student_response.error.id}')
             logger.debug(f'error detail: {student_response.error.detail}')

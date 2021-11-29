@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, cast
+
+from flask import current_app
 
 from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
@@ -27,6 +29,9 @@ class LadokApp(AuthnBaseApp):
 
         # Init Ladok client
         self.ladok_client = LadokClient(self.conf.ladok_client)
+
+
+current_ladok_app: LadokApp = cast(LadokApp, current_app)
 
 
 def init_ladok_app(name: str = 'ladok', test_config: Optional[Mapping[str, Any]] = None) -> LadokApp:
