@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import warnings
-from typing import List, Optional, Type, Union
+from typing import List, Optional, Type, TypeVar, Union
 
 from flask import current_app, render_template, request
 
@@ -64,7 +64,10 @@ def number_match_proofing(user: User, proofing_state: OidcProofingState, number:
     return False
 
 
-def add_nin_to_user(user: User, proofing_state: NinProofingState, user_class: Type[User] = ProofingUser) -> None:
+TProofingUser = TypeVar('TProofingUser')
+
+
+def add_nin_to_user(user: User, proofing_state: NinProofingState, user_class: Type[TProofingUser]) -> TProofingUser:
 
     proofing_user = user_class.from_user(user, current_app.private_userdb)
     # Add nin to user if not already there
@@ -86,6 +89,7 @@ def add_nin_to_user(user: User, proofing_state: NinProofingState, user_class: Ty
         current_app.logger.info(f'Request sync for user {proofing_user}')
         result = current_app.am_relay.request_user_sync(proofing_user)
         current_app.logger.info(f'Sync result for user {proofing_user}: {result}')
+    return proofing_user
 
 
 def verify_nin_for_user(
