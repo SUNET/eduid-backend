@@ -51,6 +51,11 @@ class LadokTests(EduidAPITestCase):
 
         super().setUp(users=['hubba-bubba', 'hubba-baar'])
 
+        # remove Ladok data from test user
+        user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
+        user.ladok = None
+        self.app.central_userdb.save(user)
+
     def load_app(self, config: Mapping[str, Any]) -> LadokApp:
         """
         Called from the parent class, so we can provide the appropriate flask
