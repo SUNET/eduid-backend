@@ -8,15 +8,14 @@ from eduid.webapp.common.api.schemas.validators import validate_nin
 __author__ = 'lundberg'
 
 
-class University(EduidSchema):
-    abbr = fields.String(required=True)
-    name_sv = fields.String(allow_none=True)
+class UniversityNames(EduidSchema):
+    name_sv = fields.String()
     name_en = fields.String(allow_none=True)
 
 
 class UniversityInfoResponseSchema(FluxStandardAction):
     class UniversityInfoPayload(EduidSchema, CSRFResponseMixin):
-        universities = fields.Nested(University, many=True)
+        universities = fields.Dict(keys=fields.String(), values=fields.Nested(UniversityNames()))
 
     payload = fields.Nested(UniversityInfoPayload)
 

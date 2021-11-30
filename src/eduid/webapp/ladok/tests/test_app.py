@@ -71,10 +71,10 @@ class LadokTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_user.eppn) as browser:
             response = browser.get('/universities')
         expected_payload = {
-            'universities': [
-                {'abbr': 'ab', 'name_en': 'University Name', 'name_sv': 'Lärosätesnamn'},
-                {'abbr': 'cd', 'name_en': 'Another University Name', 'name_sv': 'Annat Lärosätesnamn'},
-            ]
+            'universities': {
+                'ab': {'name_en': 'University Name', 'name_sv': 'Lärosätesnamn'},
+                'cd': {'name_en': 'Another University Name', 'name_sv': 'Annat Lärosätesnamn'},
+            }
         }
         self._check_success_response(response, type_='GET_LADOK_UNIVERSITIES_SUCCESS', payload=expected_payload)
 

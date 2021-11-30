@@ -337,12 +337,15 @@ class LadokProofing(ProofingLogElement):
         'created_by': 'application',
         'proofing_method': 'eduid_ladok',
         'proofing_version': '2021v1',
-        'nin': 'nin'
-        'external_id': 'external Ladok user id'
+        'nin': 'nin',
+        'external_id': 'external Ladok user id',
+        'university_abbr': 'university abbreviation'
     }
     """
 
     nin: str
     # Ladok persistent external user id
     external_id: str
+    # University name abbreviation
+    university_abbr: str
     proofing_method: str = 'eduid_ladok'

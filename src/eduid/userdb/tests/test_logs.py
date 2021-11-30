@@ -257,6 +257,7 @@ class TestProofingLog(TestCase):
             'created_by': 'test',
             'nin': '190102031234',
             'external_id': 'acf31a30-991a-438b-96ec-a5a4f57bb8c9',
+            'university_abbr': 'AB',
             'proofing_version': 'test',
         }
         proofing_element = LadokProofing(**data)
@@ -276,6 +277,7 @@ class TestProofingLog(TestCase):
         self.assertEqual(hit['proofing_method'], 'eduid_ladok')
         self.assertEqual(hit['nin'], '190102031234')
         self.assertEqual(hit['external_id'], 'acf31a30-991a-438b-96ec-a5a4f57bb8c9')
+        self.assertEqual(hit['university_abbr'], 'AB')
         self.assertEqual(hit['proofing_version'], 'test')
 
     def test_blank_string_proofing_data(self):

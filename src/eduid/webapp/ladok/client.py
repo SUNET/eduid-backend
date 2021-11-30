@@ -55,13 +55,13 @@ class LadokUserInfoResponse(LadokBaseModel):
 
 class LadokClientConfig(LadokBaseModel):
     url: AnyHttpUrl
-    version: int = 1
+    version: str = 'v1'
 
 
 class LadokClient:
     def __init__(self, config: LadokClientConfig):
         self.config = config
-        self.base_endpoint = urlappend(self.config.url, '/api/v{self.config.version}')
+        self.base_endpoint = urlappend(self.config.url, '/api/{self.config.version}')
         self.universities = self.load_universities()
 
     def load_universities(self) -> UniversitiesData:

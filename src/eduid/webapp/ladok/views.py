@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-from flask import Blueprint
 from typing import Dict, List
+
+from flask import Blueprint
 
 from eduid.userdb import User
 from eduid.userdb.ladok import Ladok, University
@@ -31,20 +32,15 @@ def get_csrf(user: User) -> FluxData:
 @ladok_views.route('/universities', methods=['GET'])
 @MarshalWith(UniversityInfoResponseSchema)
 @require_user
-def get_university_info(user: User):
-    res: List[Dict[str, str]] = []
-    for abbr, names in current_app.ladok_client.universities.names.items():
-        uni = names.dict()
-        uni['abbr'] = abbr
-        res.append(uni)
-    return success_response(payload={'universities': res})
+def get_university_info(user: User) -> FluxData:
+    return success_response(payload={'universities': current_app.ladok_client.universities.names})
 
 
 @ladok_views.route('/link-user', methods=['POST'])
 @MarshalWith(EmptyResponse)
 @UnmarshalWith(LinkUserRequest)
 @require_user
-def link_user(user: User, university_abbr: str):
+def link_user(user: User, university_abbr: str) -> FluxData:
     if not user.nins.verified:
         current_app.logger.error('User has no verified nin')
         return error_response(message=LadokMsg.no_verified_nin)
@@ -66,6 +62,7 @@ def link_user(user: User, university_abbr: str):
         eppn=proofing_user.eppn,
         nin=proofing_user.nins.primary.number,
         external_id=str(ladok_data.external_id),
+        university_abbr=university_abbr,
         proofing_version='2021v1',
         created_by='eduid-ladok',
     )
@@ -88,13 +85,13 @@ def link_user(user: User, university_abbr: str):
 @ladok_views.route('/unlink-user', methods=['POST'])
 @MarshalWith(EmptyResponse)
 @require_user
-def unlink_user(user: User):
+def unlink_user(user: User) -> FluxData:
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     proofing_user.ladok = None
     try:
         save_and_sync_user(proofing_user)
     except AmTaskFailed as e:
-        current_app.logger.error('Unlinking to Ladok failed')
+        current_app.logger.error('Unlinking from Ladok failed')
         current_app.logger.error('{}'.format(e))
         return error_response(message=CommonMsg.temp_problem)
     current_app.stats.count(name='ladok_unlinked')
