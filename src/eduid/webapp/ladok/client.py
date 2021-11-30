@@ -8,6 +8,7 @@ from pydantic import AnyHttpUrl, BaseModel, Field, ValidationError
 
 __author__ = 'lundberg'
 
+from eduid.common.config.base import EduidEnvironment
 from eduid.common.utils import urlappend
 
 logger = logging.getLogger(__name__)
@@ -56,13 +57,17 @@ class LadokUserInfoResponse(LadokBaseModel):
 class LadokClientConfig(LadokBaseModel):
     url: AnyHttpUrl
     version: str = 'v1'
+    dev_universities: Optional[Dict[str, UniversityName]] = None  # used for local development
 
 
 class LadokClient:
-    def __init__(self, config: LadokClientConfig):
+    def __init__(self, config: LadokClientConfig, env: EduidEnvironment):
         self.config = config
         self.base_endpoint = urlappend(self.config.url, '/api/{self.config.version}')
-        self.universities = self.load_universities()
+        if env is EduidEnvironment.dev and self.config.dev_universities is not None:
+            self.universities = UniversitiesData(names=self.config.dev_universities)
+        else:
+            self.universities = self.load_universities()
 
     def load_universities(self) -> UniversitiesData:
         """

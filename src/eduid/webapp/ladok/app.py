@@ -3,6 +3,7 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
+from eduid.common.config.base import EduidEnvironment
 from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.userdb.logs import ProofingLog
@@ -28,7 +29,7 @@ class LadokApp(AuthnBaseApp):
         self.am_relay = AmRelay(config)
 
         # Init Ladok client
-        self.ladok_client = LadokClient(self.conf.ladok_client)
+        self.ladok_client = LadokClient(config=self.conf.ladok_client, env=self.conf.environment)
 
 
 current_ladok_app: LadokApp = cast(LadokApp, current_app)

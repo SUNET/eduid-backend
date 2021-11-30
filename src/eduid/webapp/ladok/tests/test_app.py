@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 import json
-from typing import Any, List, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional
 from unittest.mock import patch
-from uuid import uuid4
+from uuid import UUID, uuid4
 
+from flask import Response
+
+from eduid.common.config.base import EduidEnvironment
 from eduid.userdb.ladok import Ladok, University
 from eduid.webapp.common.api.testing import EduidAPITestCase
 
@@ -12,6 +15,7 @@ __author__ = 'lundberg'
 from eduid.webapp.ladok.app import LadokApp, init_ladok_app
 from eduid.webapp.ladok.client import Error, LadokUserInfo, LadokUserInfoResponse
 from eduid.webapp.ladok.helpers import LadokMsg
+from eduid.webapp.ladok.settings.common import LadokConfig
 
 
 class MockResponse(object):
@@ -56,9 +60,25 @@ class LadokTests(EduidAPITestCase):
             mock_response.return_value = self.universities_response
             return init_ladok_app('testing', config)
 
-    def update_config(self, app_config):
-        app_config['ladok_client'] = {'url': 'http://localhost'}
-        return app_config
+    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        config = super().update_config(config=config)
+        config['ladok_client'] = {
+            'url': 'http://localhost',
+            'dev_universities': {'DEV': {'name_sv': 'Testlärosäte', 'name_en': 'Test University'}},
+        }
+        return config
+
+    def _link_user(self, eppn: str, university_abbr: str) -> Response:
+        with self.session_cookie(self.browser, eppn) as browser:
+            with browser.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            return browser.post('/link-user', json={'csrf_token': csrf_token, 'university_abbr': university_abbr})
+
+    def _unlink_user(self, eppn: str) -> Response:
+        with self.session_cookie(self.browser, eppn) as browser:
+            with browser.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            return browser.post('/unlink-user', json={'csrf_token': csrf_token})
 
     def test_authenticate(self):
         response = self.browser.get('/')
@@ -96,10 +116,7 @@ class LadokTests(EduidAPITestCase):
         assert len(user.nins.verified) == 2
 
         university_abbr = 'ab'
-        with self.session_cookie(self.browser, self.test_user.eppn) as browser:
-            with browser.session_transaction() as sess:
-                csrf_token = sess.get_csrf_token()
-            response = browser.post('/link-user', json={'csrf_token': csrf_token, 'university_abbr': university_abbr})
+        response = self._link_user(eppn=self.test_user_eppn, university_abbr=university_abbr)
         self._check_success_response(response, type_='POST_LADOK_LINK_USER_SUCCESS', msg=LadokMsg.user_linked)
 
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
@@ -119,10 +136,7 @@ class LadokTests(EduidAPITestCase):
         )
 
         university_abbr = 'ab'
-        with self.session_cookie(self.browser, self.test_user.eppn) as browser:
-            with browser.session_transaction() as sess:
-                csrf_token = sess.get_csrf_token()
-            response = browser.post('/link-user', json={'csrf_token': csrf_token, 'university_abbr': university_abbr})
+        response = self._link_user(eppn=self.test_user_eppn, university_abbr=university_abbr)
         self._check_success_response(response, type_='POST_LADOK_LINK_USER_FAIL', msg=LadokMsg.no_ladok_data)
 
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
@@ -136,10 +150,7 @@ class LadokTests(EduidAPITestCase):
         assert len(user.nins.verified) == 0
 
         university_abbr = 'ab'
-        with self.session_cookie(self.browser, self.test_unverified_user_eppn) as browser:
-            with browser.session_transaction() as sess:
-                csrf_token = sess.get_csrf_token()
-            response = browser.post('/link-user', json={'csrf_token': csrf_token, 'university_abbr': university_abbr})
+        response = self._link_user(eppn=self.test_unverified_user_eppn, university_abbr=university_abbr)
         self._check_success_response(response, type_='POST_LADOK_LINK_USER_FAIL', msg=LadokMsg.no_verified_nin)
 
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_unverified_user_eppn)
@@ -165,27 +176,70 @@ class LadokTests(EduidAPITestCase):
         assert user.ladok.external_id == self.ladok_user_external_id
         assert user.ladok.university.abbr == university.abbr
 
-        with self.session_cookie(self.browser, self.test_user.eppn) as browser:
-            with browser.session_transaction() as sess:
-                csrf_token = sess.get_csrf_token()
-            response = browser.post('/unlink-user', json={'csrf_token': csrf_token})
+        response = self._unlink_user(eppn=self.test_user_eppn)
         self._check_success_response(response, type_='POST_LADOK_UNLINK_USER_SUCCESS', msg=LadokMsg.user_unlinked)
 
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
         assert user.ladok is None
+
+    def test_unlink_user_no_op(self):
+
+        user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
+        assert user.ladok is None
+
+        response = self._unlink_user(eppn=self.test_user_eppn)
+        self._check_success_response(response, type_='POST_LADOK_UNLINK_USER_SUCCESS', msg=LadokMsg.user_unlinked)
+
+        user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
+        assert user.ladok is None
+
+
+class LadokDevTests(EduidAPITestCase):
+
+    app: LadokApp
+
+    def setUp(self, *args, users: Optional[List[str]] = None, copy_user_to_private: bool = False, **kwargs):
+        self.test_user_eppn = 'hubba-bubba'
+        self.test_unverified_user_eppn = 'hubba-baar'
+        self.ladok_user_external_id = uuid4()
+
+        super().setUp(users=['hubba-bubba', 'hubba-baar'])
+
+    def load_app(self, config: Mapping[str, Any]) -> LadokApp:
+        """
+        Called from the parent class, so we can provide the appropriate flask
+        app for this test case.
+        """
+        return init_ladok_app('testing', config)
+
+    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        config = super().update_config(config=config)
+        config['environment'] = EduidEnvironment.dev.value
+        config['ladok_client'] = {
+            'url': 'http://localhost',
+            'dev_universities': {'DEV': {'name_sv': 'Testlärosäte', 'name_en': 'Test University'}},
+        }
+        config['magic_cookie_name'] = 'magic-cookie'
+        config['magic_cookie'] = 'magic-cookie'
+        return config
 
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
-    def test_unlink_user_no_op(self, mock_request_user_sync):
+    def test_link_user_backdoor(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
 
-        user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
-        assert user.ladok is None
-
+        university_abbr = 'DEV'
         with self.session_cookie(self.browser, self.test_user.eppn) as browser:
+            browser.set_cookie('localhost', key='magic-cookie', value=self.app.conf.magic_cookie)
             with browser.session_transaction() as sess:
                 csrf_token = sess.get_csrf_token()
-            response = browser.post('/unlink-user', json={'csrf_token': csrf_token})
-        self._check_success_response(response, type_='POST_LADOK_UNLINK_USER_SUCCESS', msg=LadokMsg.user_unlinked)
+            response = browser.post('/link-user', json={'csrf_token': csrf_token, 'university_abbr': university_abbr})
+        self._check_success_response(response, type_='POST_LADOK_LINK_USER_SUCCESS', msg=LadokMsg.user_linked)
 
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
-        assert user.ladok is None
+        assert user.ladok.external_id == UUID('00000000-1111-2222-3333-444444444444')
+        assert user.ladok.university.abbr == university_abbr
+        assert user.ladok.university.name_sv == self.app.ladok_client.universities.names[university_abbr].name_sv
+        assert user.ladok.university.name_en == self.app.ladok_client.universities.names[university_abbr].name_en
+
+        log_docs = self.app.proofing_log._get_documents_by_attr('eduPersonPrincipalName', self.test_user_eppn)
+        assert 1 == len(log_docs)

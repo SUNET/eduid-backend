@@ -3,12 +3,14 @@ from typing import Dict, List
 
 from flask import Blueprint
 
+from eduid.common.config.base import EduidEnvironment
 from eduid.userdb import User
 from eduid.userdb.ladok import Ladok, University
 from eduid.userdb.logs.element import LadokProofing
 from eduid.userdb.proofing import ProofingUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid.webapp.common.api.exceptions import AmTaskFailed
+from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.schemas.csrf import EmptyResponse
 from eduid.webapp.common.api.utils import save_and_sync_user
@@ -16,7 +18,8 @@ from eduid.webapp.ladok.app import current_ladok_app as current_app
 
 __author__ = 'lundberg'
 
-from eduid.webapp.ladok.helpers import LadokMsg
+from eduid.webapp.ladok.client import LadokClientException
+from eduid.webapp.ladok.helpers import LadokMsg, link_user_BACKDOOR
 from eduid.webapp.ladok.schemas import LinkUserRequest, UniversityInfoResponseSchema
 
 ladok_views = Blueprint('ladok', __name__, url_prefix='')
@@ -45,8 +48,19 @@ def link_user(user: User, university_abbr: str) -> FluxData:
         current_app.logger.error('User has no verified nin')
         return error_response(message=LadokMsg.no_verified_nin)
 
+    # Backdoor for the selenium integration tests or local dev environment
+    if current_app.conf.environment is EduidEnvironment.dev or check_magic_cookie(current_app.conf):
+        return link_user_BACKDOOR(user=user, university_abbr=university_abbr)
+
     assert user.nins.primary is not None  # please mypy
-    ladok_info = current_app.ladok_client.get_user_info(university_abbr=university_abbr, nin=user.nins.primary.number)
+    try:
+        ladok_info = current_app.ladok_client.get_user_info(
+            university_abbr=university_abbr, nin=user.nins.primary.number
+        )
+    except LadokClientException:
+        current_app.logger.error(f'{university_abbr} not found')
+        return error_response(message=LadokMsg.missing_university)
+
     if ladok_info is None:
         return error_response(message=LadokMsg.no_ladok_data)
 
@@ -86,6 +100,9 @@ def link_user(user: User, university_abbr: str) -> FluxData:
 @MarshalWith(EmptyResponse)
 @require_user
 def unlink_user(user: User) -> FluxData:
+    if user.ladok is None:
+        return success_response(message=LadokMsg.user_unlinked)
+
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     proofing_user.ladok = None
     try:
@@ -95,6 +112,6 @@ def unlink_user(user: User) -> FluxData:
         current_app.logger.error('{}'.format(e))
         return error_response(message=CommonMsg.temp_problem)
     current_app.stats.count(name='ladok_unlinked')
-
     current_app.logger.info('Ladok unlinked successfully')
+
     return success_response(message=LadokMsg.user_unlinked)
