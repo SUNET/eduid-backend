@@ -35,6 +35,7 @@ from marshmallow import fields
 
 from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
+from eduid.webapp.common.api.schemas.ladok import LadokSchema
 from eduid.webapp.common.api.schemas.nin import NinSchema
 from eduid.webapp.common.api.schemas.orcid import OrcidSchema
 from eduid.webapp.email.schemas import EmailSchema
@@ -84,6 +85,7 @@ class AllDataSchema(EduidSchema):
     emails = fields.Nested(EmailSchema, many=True, attribute='mailAliases')
     phones = fields.Nested(PhoneSchema, many=True, attribute='phone')
     orcid = fields.Nested(OrcidSchema, attribute='orcid')
+    ladok = fields.Nested(LadokSchema, attribute='ladok')
 
 
 class AllDataResponseSchema(FluxStandardAction):

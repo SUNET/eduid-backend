@@ -212,6 +212,7 @@ class User(object):
             'displayName',
             'eduPersonEntitlement',
             'givenName',
+            'ladok',
             'letter_proofing_data',
             'locked_identity',
             'modified_ts',
