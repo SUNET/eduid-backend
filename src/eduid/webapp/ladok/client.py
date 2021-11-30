@@ -19,7 +19,7 @@ class LadokClientException(Exception):
 
 class Error(BaseModel):
     id: Optional[str]
-    detail: Optional[str]
+    detail: Optional[str] = Field(default=None, alias='details')
 
 
 class LadokBaseModel(BaseModel):
@@ -28,8 +28,8 @@ class LadokBaseModel(BaseModel):
 
 
 class UniversityName(LadokBaseModel):
-    name_sv: Optional[str] = Field(alias='long_name_sv')
-    name_en: Optional[str] = Field(alias='long_name_en')
+    name_sv: Optional[str] = Field(default=None, alias='long_name_sv')
+    name_en: Optional[str] = Field(default=None, alias='long_name_en')
 
 
 class UniversitiesData(LadokBaseModel):
@@ -37,19 +37,19 @@ class UniversitiesData(LadokBaseModel):
 
 
 class UniversitiesInfoResponse(LadokBaseModel):
-    data: UniversitiesData
+    data: Optional[UniversitiesData]
     error: Optional[Error]
 
 
 class LadokUserInfo(LadokBaseModel):
-    external_uid: str = Field(alias='ladok_externt_uid')
+    external_id: str = Field(alias='ladok_externt_uid')
     esi: Optional[str]
     is_student: Optional[bool]
     student_until: Optional[datetime] = Field(default=None, alias='expire_student')
 
 
 class LadokUserInfoResponse(LadokBaseModel):
-    data: LadokUserInfo
+    data: Optional[LadokUserInfo]
     error: Optional[Error]
 
 
@@ -95,6 +95,7 @@ class LadokClient:
         if universities_response.error is not None:
             logger.error(f'endpoint {endpoint} returned error: {universities_response.error}')
             raise LadokClientException('could not load universities')
+        assert universities_response.data is not None  # please mypy
         return universities_response.data
 
     def get_user_info(self, university_abbr: str, nin: str) -> Optional[LadokUserInfo]:

@@ -11,5 +11,5 @@ class LadokConfig(EduIDBaseAppConfig, AmConfigMixin):
     Configuration for the ladok app
     """
 
-    app_name: str = 'ladok'
+    app_name: str = 'eduid_ladok'
     ladok_client: LadokClientConfig

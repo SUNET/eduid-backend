@@ -46,6 +46,7 @@ from eduid.userdb.credentials import CredentialList
 from eduid.userdb.db import BaseDB
 from eduid.userdb.element import UserDBValueError
 from eduid.userdb.exceptions import UserHasNotCompletedSignup, UserIsRevoked
+from eduid.userdb.ladok import Ladok
 from eduid.userdb.locked_identity import LockedIdentityList
 from eduid.userdb.mail import MailAddressList
 from eduid.userdb.nin import NinList
@@ -85,6 +86,7 @@ class User(object):
     terminated: Optional[datetime] = None
     locked_identity: LockedIdentityList = field(default_factory=LockedIdentityList)
     orcid: Optional[Orcid] = None
+    ladok: Optional[Ladok] = None
     profiles: ProfileList = field(default_factory=ProfileList)
     letter_proofing_data: Optional[dict] = None
     revoked_ts: Optional[datetime] = None
@@ -148,6 +150,7 @@ class User(object):
         data_in['tou'] = cls._parse_tous(data_in)
         data_in['locked_identity'] = cls._parse_locked_identity(data_in)
         data_in['orcid'] = cls._parse_orcid(data_in)
+        data_in['ladok'] = cls._parse_ladok(data_in)
         data_in['profiles'] = cls._parse_profiles(data_in)
 
         data_in['credentials'] = CredentialList.from_list_of_dicts(data_in.pop('passwords', []))
@@ -198,6 +201,8 @@ class User(object):
         res['orcid'] = None
         if self.orcid is not None:
             res['orcid'] = self.orcid.to_dict()
+        if self.ladok is not None:
+            res['ladok'] = self.ladok.to_dict()
         if 'eduPersonEntitlement' not in res:
             res['eduPersonEntitlement'] = res.pop('entitlements', [])
         if self.subject is not None:
@@ -376,6 +381,16 @@ class User(object):
         orcid = data.pop('orcid', None)
         if orcid is not None:
             return Orcid.from_dict(orcid)
+        return None
+
+    @classmethod
+    def _parse_ladok(cls, data: Dict[str, Any]) -> Optional[Ladok]:
+        """
+        Parse the Orcid element.
+        """
+        ladok = data.pop('ladok', None)
+        if ladok is not None:
+            return Ladok.from_dict(ladok)
         return None
 
     @classmethod

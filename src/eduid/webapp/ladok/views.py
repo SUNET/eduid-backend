@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
+from flask import Blueprint
 from typing import Dict, List
 
-from flask import Blueprint
-
 from eduid.userdb import User
+from eduid.userdb.ladok import Ladok, University
+from eduid.userdb.logs.element import LadokProofing
+from eduid.userdb.proofing import ProofingUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
+from eduid.webapp.common.api.exceptions import AmTaskFailed
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.schemas.csrf import EmptyResponse
+from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.ladok.app import current_ladok_app as current_app
 
 __author__ = 'lundberg'
@@ -50,10 +54,34 @@ def link_user(user: User, university_abbr: str):
     if ladok_info is None:
         return error_response(message=LadokMsg.no_ladok_data)
 
-    # TODO: Save ladok data for user
-    # user.ladok.external_uuid
-    # user.ladok.university
+    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
+    university = current_app.ladok_client.universities.names[university_abbr]
+    ladok_data = Ladok(
+        external_id=ladok_info.external_id,
+        university=University(abbr=university_abbr, name_sv=university.name_sv, name_en=university.name_en),
+    )
+    proofing_user.ladok = ladok_data
+    assert proofing_user.nins.primary is not None  # please mypy
+    proofing_log_entry = LadokProofing(
+        eppn=proofing_user.eppn,
+        nin=proofing_user.nins.primary.number,
+        external_id=str(ladok_data.external_id),
+        proofing_version='2021v1',
+        created_by='eduid-ladok',
+    )
 
+    # Save proofing log entry and save user
+    if current_app.proofing_log.save(proofing_log_entry):
+        current_app.logger.info('Recorded Ladok linking in the proofing log')
+        try:
+            save_and_sync_user(proofing_user)
+        except AmTaskFailed as e:
+            current_app.logger.error('Linking to Ladok failed')
+            current_app.logger.error('{}'.format(e))
+            return error_response(message=CommonMsg.temp_problem)
+        current_app.stats.count(name='ladok_linked')
+
+    current_app.logger.info('Ladok linked successfully')
     return success_response(message=LadokMsg.user_linked)
 
 
@@ -61,5 +89,15 @@ def link_user(user: User, university_abbr: str):
 @MarshalWith(EmptyResponse)
 @require_user
 def unlink_user(user: User):
-    # TODO: remove ladok data from user
+    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
+    proofing_user.ladok = None
+    try:
+        save_and_sync_user(proofing_user)
+    except AmTaskFailed as e:
+        current_app.logger.error('Unlinking to Ladok failed')
+        current_app.logger.error('{}'.format(e))
+        return error_response(message=CommonMsg.temp_problem)
+    current_app.stats.count(name='ladok_unlinked')
+
+    current_app.logger.info('Ladok unlinked successfully')
     return success_response(message=LadokMsg.user_unlinked)

@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from eduid.userdb.fixtures.users import mocked_user_standard
 from eduid.userdb.logs.db import ProofingLog
 from eduid.userdb.logs.element import (
+    LadokProofing,
     LetterProofing,
     MailAddressProofing,
     PhoneNumberProofing,
@@ -248,6 +249,33 @@ class TestProofingLog(TestCase):
         self.assertEqual(hit['transaction_id'], 'transaction_id')
         self.assertEqual(hit['opaque_data'], 'some data')
         self.assertEqual(hit['proofing_method'], 'se-leg')
+        self.assertEqual(hit['proofing_version'], 'test')
+
+    def test_ladok_proofing(self):
+        data = {
+            'eppn': self.user.eppn,
+            'created_by': 'test',
+            'nin': '190102031234',
+            'external_id': 'acf31a30-991a-438b-96ec-a5a4f57bb8c9',
+            'proofing_version': 'test',
+        }
+        proofing_element = LadokProofing(**data)
+        for key, value in data.items():
+            if key == 'eppn':
+                continue
+            self.assertIn(key, proofing_element.to_dict())
+            self.assertEqual(value, proofing_element.to_dict().get(key))
+
+        self.proofing_log_db.save(proofing_element)
+        result = list(self.proofing_log_db._coll.find({}))
+        self.assertEqual(len(result), 1)
+        hit = result[0]
+        self.assertEqual(hit['eduPersonPrincipalName'], self.user.eppn)
+        self.assertEqual(hit['created_by'], 'test')
+        self.assertIsNotNone(hit['created_ts'])
+        self.assertEqual(hit['proofing_method'], 'eduid_ladok')
+        self.assertEqual(hit['nin'], '190102031234')
+        self.assertEqual(hit['external_id'], 'acf31a30-991a-438b-96ec-a5a4f57bb8c9')
         self.assertEqual(hit['proofing_version'], 'test')
 
     def test_blank_string_proofing_data(self):
