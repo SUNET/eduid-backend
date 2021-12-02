@@ -3,14 +3,14 @@ title ladok
 
 legend
     UNIVERSITIES: {
-        [university_abbr]: {name_en: str, name_sv: str},
+        [ladok_name]: {name_en: str, name_sv: str},
     }
 end legend
 
 Client->"/universities": GET
 "/universities"->Client: {"payload":{"universities": UNIVERSITIES}, "type":"GET_LADOK_UNIVERSITIES_SUCCESS"}
 |||
-Client->"/link-user": POST {university_abbr: str}
+Client->"/link-user": POST {ladok_name: str}
 alt user linked successfully
 "/link-user"->Client: {"payload":{"message": "ladok.user-linked-successfully"}, "type":"POST_LADOK_LINK_USER_SUCCESS"}
 else user has no verified nin
