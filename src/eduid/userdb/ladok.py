@@ -11,7 +11,7 @@ __author__ = 'lundberg'
 
 class University(Element):
 
-    abbr: str  # university name abbreviation
+    ladok_name: str  # university name abbreviation
     name_sv: str
     name_en: Optional[str]
 
@@ -20,7 +20,7 @@ class University(Element):
         """
         :return: Unique identifier
         """
-        return ElementKey(self.abbr)
+        return ElementKey(self.ladok_name)
 
 
 class Ladok(VerifiedElement):

@@ -21,4 +21,4 @@ class UniversityInfoResponseSchema(FluxStandardAction):
 
 
 class LinkUserRequest(EduidSchema, CSRFRequestMixin):
-    university_abbr = fields.String(required=True)
+    ladok_name = fields.String(required=True)

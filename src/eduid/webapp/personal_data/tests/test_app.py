@@ -165,7 +165,7 @@ class PersonalDataTests(EduidAPITestCase):
             'given_name': 'John',
             'ladok': {
                 'external_id': '00000000-1111-2222-3333-444444444444',
-                'university': {'abbr': 'DEV', 'name_en': 'Test University', 'name_sv': 'Testlärosäte'},
+                'university': {'ladok_name': 'DEV', 'name_en': 'Test University', 'name_sv': 'Testlärosäte'},
             },
             'language': 'en',
             'nins': [

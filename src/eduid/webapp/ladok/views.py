@@ -43,32 +43,30 @@ def get_university_info(user: User) -> FluxData:
 @MarshalWith(EmptyResponse)
 @UnmarshalWith(LinkUserRequest)
 @require_user
-def link_user(user: User, university_abbr: str) -> FluxData:
+def link_user(user: User, ladok_name: str) -> FluxData:
     if not user.nins.verified:
         current_app.logger.error('User has no verified nin')
         return error_response(message=LadokMsg.no_verified_nin)
 
     # Backdoor for the selenium integration tests or local dev environment
     if current_app.conf.environment is EduidEnvironment.dev or check_magic_cookie(current_app.conf):
-        return link_user_BACKDOOR(user=user, university_abbr=university_abbr)
+        return link_user_BACKDOOR(user=user, ladok_name=ladok_name)
 
     assert user.nins.primary is not None  # please mypy
     try:
-        ladok_info = current_app.ladok_client.get_user_info(
-            university_abbr=university_abbr, nin=user.nins.primary.number
-        )
+        ladok_info = current_app.ladok_client.get_user_info(ladok_name=ladok_name, nin=user.nins.primary.number)
     except LadokClientException:
-        current_app.logger.error(f'{university_abbr} not found')
+        current_app.logger.error(f'{ladok_name} not found')
         return error_response(message=LadokMsg.missing_university)
 
     if ladok_info is None:
         return error_response(message=LadokMsg.no_ladok_data)
 
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    university = current_app.ladok_client.universities.names[university_abbr]
+    university = current_app.ladok_client.universities.names[ladok_name]
     ladok_data = Ladok(
         external_id=ladok_info.external_id,
-        university=University(abbr=university_abbr, name_sv=university.name_sv, name_en=university.name_en),
+        university=University(ladok_name=ladok_name, name_sv=university.name_sv, name_en=university.name_en),
     )
     proofing_user.ladok = ladok_data
     assert proofing_user.nins.primary is not None  # please mypy
@@ -76,7 +74,7 @@ def link_user(user: User, university_abbr: str) -> FluxData:
         eppn=proofing_user.eppn,
         nin=proofing_user.nins.primary.number,
         external_id=str(ladok_data.external_id),
-        university_abbr=university_abbr,
+        ladok_name=ladok_name,
         proofing_version='2021v1',
         created_by='eduid-ladok',
     )

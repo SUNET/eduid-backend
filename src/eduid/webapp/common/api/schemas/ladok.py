@@ -8,7 +8,7 @@ __author__ = 'lundberg'
 
 
 class UniversitySchema(EduidSchema):
-    abbr = fields.String()
+    ladok_name = fields.String()
     name_sv = fields.String()
     name_en = fields.String()
 

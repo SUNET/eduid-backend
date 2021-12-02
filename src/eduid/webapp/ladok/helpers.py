@@ -29,15 +29,15 @@ class LadokMsg(TranslatableMsg):
     user_unlinked = 'ladok.user-unlinked-successfully'
 
 
-def link_user_BACKDOOR(user: User, university_abbr: str) -> FluxData:
+def link_user_BACKDOOR(user: User, ladok_name: str) -> FluxData:
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    university = current_app.ladok_client.universities.names.get(university_abbr)
+    university = current_app.ladok_client.universities.names.get(ladok_name)
     if university is None:
         return error_response(message=LadokMsg.missing_university)
 
     ladok_data = Ladok(
         external_id=UUID('00000000-1111-2222-3333-444444444444'),
-        university=University(abbr='DEV', name_sv='Testlärosäte', name_en='Test University'),
+        university=University(ladok_name='DEV', name_sv='Testlärosäte', name_en='Test University'),
     )
     proofing_user.ladok = ladok_data
     assert proofing_user.nins.primary is not None  # please mypy
@@ -45,7 +45,7 @@ def link_user_BACKDOOR(user: User, university_abbr: str) -> FluxData:
         eppn=proofing_user.eppn,
         nin=proofing_user.nins.primary.number,
         external_id=str(ladok_data.external_id),
-        university_abbr=university_abbr,
+        ladok_name=ladok_name,
         proofing_method='eduid_ladok_dev',
         proofing_version='2021v1',
         created_by='eduid-ladok',

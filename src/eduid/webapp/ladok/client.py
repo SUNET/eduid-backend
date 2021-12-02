@@ -103,7 +103,7 @@ class LadokClient:
         assert universities_response.data is not None  # please mypy
         return universities_response.data
 
-    def get_user_info(self, university_abbr: str, nin: str) -> Optional[LadokUserInfo]:
+    def get_user_info(self, ladok_name: str, nin: str) -> Optional[LadokUserInfo]:
         """
          path: /api/v1/kf/ladokinfo
          Request body:
@@ -123,10 +123,10 @@ class LadokClient:
            "error": null
          }
         """
-        if university_abbr not in self.universities.names:
-            raise LadokClientException(f'university with abbreviation {university_abbr} not found')
+        if ladok_name not in self.universities.names:
+            raise LadokClientException(f'university with Ladok name {ladok_name} not found')
 
-        service_path = f'{university_abbr}/ladokinfo'
+        service_path = f'{ladok_name}/ladokinfo'
         endpoint = urlappend(self.base_endpoint, service_path)
 
         response = requests.post(endpoint, json={'nin': nin})
@@ -138,7 +138,7 @@ class LadokClient:
             user_response = LadokUserInfoResponse(**response.json())
         except ValidationError as e:
             logger.error(f'could not validate response from {endpoint}: {e}')
-            logger.debug(f'university_abbr: {university_abbr}, nin: {nin}')
+            logger.debug(f'ladok_name: {ladok_name}, nin: {nin}')
             logger.debug(f'response.json: {response.json()}')
             return None
 

@@ -74,11 +74,11 @@ class LadokTests(EduidAPITestCase):
         }
         return config
 
-    def _link_user(self, eppn: str, university_abbr: str) -> Response:
+    def _link_user(self, eppn: str, ladok_name: str) -> Response:
         with self.session_cookie(self.browser, eppn) as browser:
             with browser.session_transaction() as sess:
                 csrf_token = sess.get_csrf_token()
-            return browser.post('/link-user', json={'csrf_token': csrf_token, 'university_abbr': university_abbr})
+            return browser.post('/link-user', json={'csrf_token': csrf_token, 'ladok_name': ladok_name})
 
     def _unlink_user(self, eppn: str) -> Response:
         with self.session_cookie(self.browser, eppn) as browser:
@@ -121,15 +121,15 @@ class LadokTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
         assert len(user.nins.verified) == 2
 
-        university_abbr = 'ab'
-        response = self._link_user(eppn=self.test_user_eppn, university_abbr=university_abbr)
+        ladok_name = 'ab'
+        response = self._link_user(eppn=self.test_user_eppn, ladok_name=ladok_name)
         self._check_success_response(response, type_='POST_LADOK_LINK_USER_SUCCESS', msg=LadokMsg.user_linked)
 
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
         assert user.ladok.external_id == self.ladok_user_external_id
-        assert user.ladok.university.abbr == university_abbr
-        assert user.ladok.university.name_sv == self.app.ladok_client.universities.names[university_abbr].name_sv
-        assert user.ladok.university.name_en == self.app.ladok_client.universities.names[university_abbr].name_en
+        assert user.ladok.university.ladok_name == ladok_name
+        assert user.ladok.university.name_sv == self.app.ladok_client.universities.names[ladok_name].name_sv
+        assert user.ladok.university.name_en == self.app.ladok_client.universities.names[ladok_name].name_en
 
         log_docs = self.app.proofing_log._get_documents_by_attr('eduPersonPrincipalName', self.test_user_eppn)
         assert 1 == len(log_docs)
@@ -141,8 +141,8 @@ class LadokTests(EduidAPITestCase):
             status_code=200, data=LadokUserInfoResponse(error=error, data=None).dict(by_alias=True)
         )
 
-        university_abbr = 'ab'
-        response = self._link_user(eppn=self.test_user_eppn, university_abbr=university_abbr)
+        ladok_name = 'ab'
+        response = self._link_user(eppn=self.test_user_eppn, ladok_name=ladok_name)
         self._check_success_response(response, type_='POST_LADOK_LINK_USER_FAIL', msg=LadokMsg.no_ladok_data)
 
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
@@ -155,8 +155,8 @@ class LadokTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_unverified_user_eppn)
         assert len(user.nins.verified) == 0
 
-        university_abbr = 'ab'
-        response = self._link_user(eppn=self.test_unverified_user_eppn, university_abbr=university_abbr)
+        ladok_name = 'ab'
+        response = self._link_user(eppn=self.test_unverified_user_eppn, ladok_name=ladok_name)
         self._check_success_response(response, type_='POST_LADOK_LINK_USER_FAIL', msg=LadokMsg.no_verified_nin)
 
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_unverified_user_eppn)
@@ -172,7 +172,7 @@ class LadokTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         # set ladok data for user
-        university = University(abbr='ab', name_sv='namn')
+        university = University(ladok_name='ab', name_sv='namn')
         ladok = Ladok(external_id=self.ladok_user_external_id, university=university)
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
         user.ladok = ladok
@@ -180,7 +180,7 @@ class LadokTests(EduidAPITestCase):
 
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
         assert user.ladok.external_id == self.ladok_user_external_id
-        assert user.ladok.university.abbr == university.abbr
+        assert user.ladok.university.ladok_name == university.ladok_name
 
         response = self._unlink_user(eppn=self.test_user_eppn)
         self._check_success_response(response, type_='POST_LADOK_UNLINK_USER_SUCCESS', msg=LadokMsg.user_unlinked)
@@ -233,19 +233,19 @@ class LadokDevTests(EduidAPITestCase):
     def test_link_user_backdoor(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
 
-        university_abbr = 'DEV'
+        ladok_name = 'DEV'
         with self.session_cookie(self.browser, self.test_user.eppn) as browser:
             browser.set_cookie('localhost', key='magic-cookie', value=self.app.conf.magic_cookie)
             with browser.session_transaction() as sess:
                 csrf_token = sess.get_csrf_token()
-            response = browser.post('/link-user', json={'csrf_token': csrf_token, 'university_abbr': university_abbr})
+            response = browser.post('/link-user', json={'csrf_token': csrf_token, 'ladok_name': ladok_name})
         self._check_success_response(response, type_='POST_LADOK_LINK_USER_SUCCESS', msg=LadokMsg.user_linked)
 
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
         assert user.ladok.external_id == UUID('00000000-1111-2222-3333-444444444444')
-        assert user.ladok.university.abbr == university_abbr
-        assert user.ladok.university.name_sv == self.app.ladok_client.universities.names[university_abbr].name_sv
-        assert user.ladok.university.name_en == self.app.ladok_client.universities.names[university_abbr].name_en
+        assert user.ladok.university.ladok_name == ladok_name
+        assert user.ladok.university.name_sv == self.app.ladok_client.universities.names[ladok_name].name_sv
+        assert user.ladok.university.name_en == self.app.ladok_client.universities.names[ladok_name].name_en
 
         log_docs = self.app.proofing_log._get_documents_by_attr('eduPersonPrincipalName', self.test_user_eppn)
         assert 1 == len(log_docs)

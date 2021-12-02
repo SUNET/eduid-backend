@@ -17,7 +17,7 @@ class LadokTest(TestCase):
 
     def test_create_ladok(self):
         university = University(
-            abbr='AB', name_sv='Lärosätesnamn', name_en='University Name', created_by='test created_by'
+            ladok_name='AB', name_sv='Lärosätesnamn', name_en='University Name', created_by='test created_by'
         )
         ladok = Ladok(external_id=self.external_uuid, university=university, created_by='test created_by')
 
@@ -25,7 +25,7 @@ class LadokTest(TestCase):
         self.assertEqual(ladok.created_by, 'test created_by')
         self.assertIsNotNone(ladok.created_ts)
 
-        self.assertEqual(ladok.university.abbr, 'AB')
+        self.assertEqual(ladok.university.ladok_name, 'AB')
         self.assertEqual(ladok.university.name_sv, 'Lärosätesnamn')
         self.assertEqual(ladok.university.name_en, 'University Name')
         self.assertEqual(ladok.university.created_by, 'test created_by')
