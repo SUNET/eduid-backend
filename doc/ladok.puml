@@ -1,0 +1,26 @@
+@startuml
+title ladok
+
+legend
+    UNIVERSITIES: {
+        [ladok_name]: {name_en: str, name_sv: str},
+    }
+end legend
+
+Client->"/universities": GET
+"/universities"->Client: {"payload":{"universities": UNIVERSITIES}, "type":"GET_LADOK_UNIVERSITIES_SUCCESS"}
+|||
+Client->"/link-user": POST {ladok_name: str}
+alt user linked successfully
+"/link-user"->Client: {"payload":{"message": "ladok.user-linked-successfully"}, "type":"POST_LADOK_LINK_USER_SUCCESS"}
+else user has no verified nin
+"/link-user"->Client: {"payload":{"message": "ladok.no-verified-nin"}, "type":"POST_LADOK_LINK_USER_FAIL"}
+else university not found
+"/link-user"->Client: {"payload":{"message": "ladok.missing-university"}, "type":"POST_LADOK_LINK_USER_FAIL"}
+else user not found in Ladok
+"/link-user"->Client: {"payload":{"message": "ladok.no-data-for-user"}, "type":"POST_LADOK_LINK_USER_FAIL"}
+end
+|||
+Client->"/unlink-user": POST {}
+"/link-user"->Client: {"payload":{"message": "ladok.user-unlinked-successfully"}, "type":"POST_LADOK_UNLINK_USER_SUCCESS"}
+@enduml

@@ -34,6 +34,7 @@
 import json
 from typing import Any, Dict, Mapping, Optional
 
+from flask import Response
 from mock import patch
 
 from eduid.webapp.common.api.exceptions import ApiException
@@ -78,7 +79,7 @@ class PersonalDataTests(EduidAPITestCase):
 
             return json.loads(response2.data)
 
-    def _get_user_all_data(self, eppn: Optional[str] = None):
+    def _get_user_all_data(self, eppn: str) -> Response:
         """
         Send a GET request to get all the data of a user
 
@@ -87,11 +88,8 @@ class PersonalDataTests(EduidAPITestCase):
         response = self.browser.get('/all-user-data')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
-        eppn = eppn or self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
-            response2 = client.get('/all-user-data')
-
-            return json.loads(response2.data)
+            return client.get('/all-user-data')
 
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def _post_user(self, mock_request_user_sync: Any, mod_data: Optional[dict] = None, verified_user: bool = True):
@@ -155,28 +153,40 @@ class PersonalDataTests(EduidAPITestCase):
             self._get_user(eppn='fooo-fooo')
 
     def test_get_user_all_data(self):
-        user_data = self._get_user_all_data()
-        self.assertEqual(user_data['type'], 'GET_PERSONAL_DATA_ALL_USER_DATA_SUCCESS')
-        self.assertEqual(user_data['payload']['given_name'], 'John')
-        self.assertEqual(user_data['payload']['surname'], 'Smith')
-        self.assertEqual(user_data['payload']['display_name'], 'John Smith')
-        self.assertEqual(user_data['payload']['language'], 'en')
-        phones = user_data['payload']['phones']
-        self.assertEqual(len(phones), 2)
-        self.assertEqual(phones[0]['number'], u'+34609609609')
-        self.assertTrue(phones[0]['verified'])
-        nins = user_data['payload']['nins']
-        self.assertEqual(len(nins), 2)
-        self.assertEqual(nins[0]['number'], u'197801011234')
-        self.assertTrue(nins[0]['verified'])
-        emails = user_data['payload']['emails']
-        self.assertEqual(len(emails), 2)
-        self.assertEqual(emails[0]['email'], u'johnsmith@example.com')
-        self.assertTrue(emails[0]['verified'])
+        response = self._get_user_all_data(eppn='hubba-bubba')
+
+        expected_payload = {
+            'display_name': 'John Smith',
+            'emails': [
+                {'email': 'johnsmith@example.com', 'primary': True, 'verified': True},
+                {'email': 'johnsmith2@example.com', 'primary': False, 'verified': False},
+            ],
+            'eppn': 'hubba-bubba',
+            'given_name': 'John',
+            'ladok': {
+                'external_id': '00000000-1111-2222-3333-444444444444',
+                'university': {'ladok_name': 'DEV', 'name_en': 'Test University', 'name_sv': 'Testlärosäte'},
+            },
+            'language': 'en',
+            'nins': [
+                {'number': '197801011234', 'primary': True, 'verified': True},
+                {'number': '197801011235', 'primary': False, 'verified': True},
+            ],
+            'phones': [
+                {'number': '+34609609609', 'primary': True, 'verified': True},
+                {'number': '+34 6096096096', 'primary': False, 'verified': False},
+            ],
+            'surname': 'Smith',
+        }
+
+        self._check_success_response(
+            response=response, type_='GET_PERSONAL_DATA_ALL_USER_DATA_SUCCESS', payload=expected_payload
+        )
 
         # Check that unwanted data is not serialized
-        self.assertIsNotNone(self.test_user.to_dict().get('passwords'))
-        self.assertIsNone(user_data['payload'].get('passwords'))
+        user_data = json.loads(response.data)
+        assert self.test_user.to_dict().get('passwords') is not None
+        assert user_data['payload'].get('passwords') is None
 
     def test_get_unknown_user_all_data(self):
         with self.assertRaises(ApiException):

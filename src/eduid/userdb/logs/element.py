@@ -327,3 +327,25 @@ class NameUpdateProofing(NinProofingLogElement):
     previous_surname: Optional[str]
     # Proofing method name
     proofing_method: str = 'Navet name update'
+
+
+class LadokProofing(ProofingLogElement):
+    """
+    {
+        'eduPersonPrincipalName': eppn,
+        'created_ts': utc_now(),
+        'created_by': 'application',
+        'proofing_method': 'eduid_ladok',
+        'proofing_version': '2021v1',
+        'nin': 'nin',
+        'external_id': 'external Ladok user id',
+        'ladok_name': 'university abbreviation'
+    }
+    """
+
+    nin: str
+    # Ladok persistent external user id
+    external_id: str
+    # University name short name in Ladok
+    ladok_name: str
+    proofing_method: str = 'eduid_ladok'

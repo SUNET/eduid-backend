@@ -31,6 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from datetime import datetime
+from uuid import UUID
 
 from bson import ObjectId
 
@@ -60,6 +61,7 @@ from eduid.userdb.fixtures.phones import (
 )
 from eduid.userdb.fixtures.postal_addresses import old_postal_addresses
 from eduid.userdb.fixtures.tous import signup_2016_v1
+from eduid.userdb.ladok import Ladok, University
 from eduid.userdb.locked_identity import LockedIdentityList
 from eduid.userdb.mail import MailAddressList
 from eduid.userdb.nin import NinList
@@ -179,6 +181,10 @@ new_user_example = User(
     credentials=CredentialList(elements=[signup_password]),
     entitlements=['urn:mace:eduid.se:role:admin', 'urn:mace:eduid.se:role:student',],
     locked_identity=LockedIdentityList(elements=[dashboard_locked_nin]),
+    ladok=Ladok(
+        external_id=UUID('00000000-1111-2222-3333-444444444444'),
+        university=University(ladok_name='DEV', name_sv='Testlärosäte', name_en='Test University'),
+    ),
 )
 
 

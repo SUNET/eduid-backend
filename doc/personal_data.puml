@@ -11,6 +11,8 @@ legend
         nins: [{number: str, primary: bool, verified: bool}]
         phones: [{number: str, primary: bool, verified: bool}]
         surname: str
+        orcid: {id: str, name: str, given_name: str, family_name: str}
+        ladok: {external_id: str, university: {abbr: str, name_sv: str, name_en: str}}
     }
 
     USER_DATA: {
