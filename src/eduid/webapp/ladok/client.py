@@ -63,7 +63,7 @@ class LadokClientConfig(LadokBaseModel):
 class LadokClient:
     def __init__(self, config: LadokClientConfig, env: EduidEnvironment):
         self.config = config
-        self.base_endpoint = urlappend(self.config.url, '/api/{self.config.version}')
+        self.base_endpoint = urlappend(self.config.url, f'/api/{self.config.version}')
         if env is EduidEnvironment.dev and self.config.dev_universities is not None:
             self.universities = UniversitiesData(names=self.config.dev_universities)
         else:

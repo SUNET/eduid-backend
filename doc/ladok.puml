@@ -5,6 +5,10 @@ legend
     UNIVERSITIES: {
         [ladok_name]: {name_en: str, name_sv: str},
     }
+
+    LADOKDATA: {
+            external_id: str, university: {ladok_name: str, name_sv: str, name_en: str}
+    }
 end legend
 
 Client->"/universities": GET
@@ -12,7 +16,7 @@ Client->"/universities": GET
 |||
 Client->"/link-user": POST {ladok_name: str}
 alt user linked successfully
-"/link-user"->Client: {"payload":{"message": "ladok.user-linked-successfully"}, "type":"POST_LADOK_LINK_USER_SUCCESS"}
+"/link-user"->Client: {"payload":{ladok: LADOKDATA}, "type":"POST_LADOK_LINK_USER_SUCCESS"}
 else user has no verified nin
 "/link-user"->Client: {"payload":{"message": "ladok.no-verified-nin"}, "type":"POST_LADOK_LINK_USER_FAIL"}
 else university not found

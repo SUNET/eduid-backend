@@ -33,7 +33,7 @@
 
 from typing import Dict, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from eduid.common.config.base import EduidEnvironment, PasswordConfigMixin
 
@@ -61,6 +61,7 @@ class JsAppsConfig(PasswordConfigMixin):
     eidas_url: str
     emails_url: str
     group_mgmt_url: str
+    ladok_url: str
     letter_proofing_url: str
     login_next_url: str
     lookup_mobile_proofing_url: str
