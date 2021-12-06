@@ -91,7 +91,7 @@ def link_user(user: User, ladok_name: str) -> FluxData:
         current_app.stats.count(name='ladok_linked')
 
     current_app.logger.info('Ladok linked successfully')
-    return success_response(message=LadokMsg.user_linked)
+    return success_response(payload={'ladok': ladok_data})
 
 
 @ladok_views.route('/unlink-user', methods=['POST'])
