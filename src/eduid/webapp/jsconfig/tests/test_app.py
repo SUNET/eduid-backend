@@ -75,6 +75,7 @@ class JSConfigTests(EduidAPITestCase):
                     'eidas_url': 'eidas_url',
                     'emails_url': 'emails_url',
                     'group_mgmt_url': 'group_mgmt_url',
+                    'ladok_url': 'ladok_url',
                     'letter_proofing_url': 'letter_proofing_url',
                     'login_next_url': 'login_next_url',
                     'lookup_mobile_proofing_url': 'lookup_mobile_proofing_url',

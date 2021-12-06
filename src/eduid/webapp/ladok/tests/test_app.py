@@ -123,7 +123,7 @@ class LadokTests(EduidAPITestCase):
 
         ladok_name = 'ab'
         response = self._link_user(eppn=self.test_user_eppn, ladok_name=ladok_name)
-        self._check_success_response(response, type_='POST_LADOK_LINK_USER_SUCCESS', msg=LadokMsg.user_linked)
+        self._check_success_response(response, type_='POST_LADOK_LINK_USER_SUCCESS')
 
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
         assert user.ladok.external_id == self.ladok_user_external_id
@@ -239,7 +239,7 @@ class LadokDevTests(EduidAPITestCase):
             with browser.session_transaction() as sess:
                 csrf_token = sess.get_csrf_token()
             response = browser.post('/link-user', json={'csrf_token': csrf_token, 'ladok_name': ladok_name})
-        self._check_success_response(response, type_='POST_LADOK_LINK_USER_SUCCESS', msg=LadokMsg.user_linked)
+        self._check_success_response(response, type_='POST_LADOK_LINK_USER_SUCCESS')
 
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
         assert user.ladok.external_id == UUID('00000000-1111-2222-3333-444444444444')
