@@ -227,6 +227,7 @@ class LadokDevTests(EduidAPITestCase):
         }
         config['magic_cookie_name'] = 'magic-cookie'
         config['magic_cookie'] = 'magic-cookie'
+        config['dev_fake_users_in'] = ['DEV']
         return config
 
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
