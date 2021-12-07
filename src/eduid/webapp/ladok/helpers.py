@@ -31,14 +31,16 @@ class LadokMsg(TranslatableMsg):
 
 def link_user_BACKDOOR(user: User, ladok_name: str) -> FluxData:
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    university = current_app.ladok_client.universities.names.get(ladok_name)
-    if university is None:
+    names = current_app.ladok_client.universities.names.get(ladok_name)
+    if not names:
         return error_response(message=LadokMsg.missing_university)
+    university = University(ladok_name=ladok_name, name_sv=names.name_sv, name_en=names.name_en)
 
-    ladok_data = Ladok(
-        external_id=UUID('00000000-1111-2222-3333-444444444444'),
-        university=University(ladok_name='DEV', name_sv='Testlärosäte', name_en='Test University'),
-    )
+    if ladok_name not in current_app.conf.dev_fake_users_in:
+        current_app.logger.info(f'BACKDOOR: University {ladok_name} does not allow linking (not in dev_fake_users_in)')
+        return error_response(message=LadokMsg.no_ladok_data)
+
+    ladok_data = Ladok(external_id=UUID('00000000-1111-2222-3333-444444444444'), university=university)
     proofing_user.ladok = ladok_data
     assert proofing_user.nins.primary is not None  # please mypy
     proofing_log_entry = LadokProofing(
@@ -63,4 +65,5 @@ def link_user_BACKDOOR(user: User, ladok_name: str) -> FluxData:
         current_app.stats.count(name='ladok_linked')
 
     current_app.logger.info('BACKDOOR: Ladok linked successfully')
-    return success_response(message=LadokMsg.user_linked)
+    current_app.logger.debug(f'Ladok data in response: {ladok_data}')
+    return success_response(payload={'ladok': ladok_data})
