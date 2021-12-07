@@ -20,7 +20,7 @@ __author__ = 'lundberg'
 
 from eduid.webapp.ladok.client import LadokClientException
 from eduid.webapp.ladok.helpers import LadokMsg, link_user_BACKDOOR
-from eduid.webapp.ladok.schemas import LinkUserRequest, UniversityInfoResponseSchema
+from eduid.webapp.ladok.schemas import LinkUserRequest, LinkUserResponse, UniversityInfoResponseSchema
 
 ladok_views = Blueprint('ladok', __name__, url_prefix='')
 
@@ -40,7 +40,7 @@ def get_university_info(user: User) -> FluxData:
 
 
 @ladok_views.route('/link-user', methods=['POST'])
-@MarshalWith(EmptyResponse)
+@MarshalWith(LinkUserResponse)
 @UnmarshalWith(LinkUserRequest)
 @require_user
 def link_user(user: User, ladok_name: str) -> FluxData:
