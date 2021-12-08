@@ -228,10 +228,9 @@ def make_schac_date_of_birth(attributes: dict, user: IdPUser) -> dict:
             try:
                 parsed_date = datetime.strptime(user.nins.primary.number[:8], '%Y%m%d')
                 attributes['schacDateOfBirth'] = parsed_date.strftime('%Y%m%d')
-            except ValueError as e:
-                logger.error('Unable to parse user nin to date of birth')
+            except ValueError:
+                logger.exception('Unable to parse user nin to date of birth')
                 logger.debug(f'User nins: {user.nins}')
-                logger.exception(e)
     return attributes
 
 
