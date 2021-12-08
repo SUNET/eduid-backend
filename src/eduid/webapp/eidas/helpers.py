@@ -2,7 +2,7 @@
 
 import logging
 from enum import unique
-from typing import Optional, Any, Dict
+from typing import Any, Dict, Optional
 
 from dateutil.parser import parse as dt_parse
 from saml2 import BINDING_HTTP_REDIRECT
