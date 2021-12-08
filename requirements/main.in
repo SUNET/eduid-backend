@@ -29,7 +29,7 @@ pyOpenSSL
 pyXMLSecurity[PKCS11]==0.21
 pydantic
 email-validator  # for pydantic
-pymongo
+pymongo<4.0.0
 pynacl
 pysaml2>=7.1.0,==7.*
 pysmscom
