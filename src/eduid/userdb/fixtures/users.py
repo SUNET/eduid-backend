@@ -31,11 +31,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from datetime import datetime
-from uuid import UUID
 
 from bson import ObjectId
 
-from eduid.userdb import Orcid
 from eduid.userdb.credentials import CredentialList
 from eduid.userdb.fixtures.email_addresses import (
     johnsmith2_example_com,
@@ -47,6 +45,7 @@ from eduid.userdb.fixtures.email_addresses import (
     johnsmith_example_com_old,
     johnsmith_example_org,
 )
+from eduid.userdb.fixtures.ladok import dashboard_ladok
 from eduid.userdb.fixtures.locked_identities import dashboard_locked_nin
 from eduid.userdb.fixtures.nins import dashboard_primary_nin, dashboard_verified_nin
 from eduid.userdb.fixtures.orcid import dashboard_orcid
@@ -61,7 +60,6 @@ from eduid.userdb.fixtures.phones import (
 )
 from eduid.userdb.fixtures.postal_addresses import old_postal_addresses
 from eduid.userdb.fixtures.tous import signup_2016_v1
-from eduid.userdb.ladok import Ladok, University
 from eduid.userdb.locked_identity import LockedIdentityList
 from eduid.userdb.mail import MailAddressList
 from eduid.userdb.nin import NinList
@@ -87,6 +85,7 @@ mocked_user_standard = User(
     ),
     credentials=CredentialList(elements=[signup_password]),
     orcid=dashboard_orcid,
+    ladok=dashboard_ladok,
 )
 
 
@@ -181,10 +180,7 @@ new_user_example = User(
     credentials=CredentialList(elements=[signup_password]),
     entitlements=['urn:mace:eduid.se:role:admin', 'urn:mace:eduid.se:role:student',],
     locked_identity=LockedIdentityList(elements=[dashboard_locked_nin]),
-    ladok=Ladok(
-        external_id=UUID('00000000-1111-2222-3333-444444444444'),
-        university=University(ladok_name='DEV', name_sv='Testlärosäte', name_en='Test University'),
-    ),
+    ladok=dashboard_ladok,
 )
 
 
