@@ -319,12 +319,15 @@ class SSO(Service):
 
         :return: SAML response (string)
         """
+        sp_entity_categories = ticket.saml_req.sp_entity_attributes.get('http://macedir.org/entity-category', [])
         saml_attribute_settings = SAMLAttributeSettings(
             default_eppn_scope=current_app.conf.default_eppn_scope,
             default_country=current_app.conf.default_country,
             default_country_code=current_app.conf.default_country_code,
+            sp_entity_categories=sp_entity_categories,
+            esi_ladok_prefix=current_app.conf.esi_ladok_prefix,
         )
-        attributes = user.to_saml_attributes(saml_attribute_settings, current_app.logger)
+        attributes = user.to_saml_attributes(settings=saml_attribute_settings)
         # Generate eduPersonTargetedID
         if current_app.conf.eduperson_targeted_id_secret_key:
             sp_identifier = resp_args.get('sp_entity_id', resp_args['destination'])

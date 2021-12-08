@@ -119,6 +119,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     eduperson_targeted_id_secret_key: str = ''
     eduid_site_url: str
     login_bundle_url: Optional[str] = None
+    esi_ladok_prefix: str = Field(default='urn:schac:personalUniqueCode:int:esi:ladok.se:externtstudentuid-')
 
     @validator('sso_cookie')
     def make_sso_cookie(cls, v, values) -> CookieConfig:

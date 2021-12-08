@@ -40,12 +40,11 @@ import logging
 import warnings
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 from eduid.userdb import User
 
-# TODO: Rename to logger after removing logger argument from to_saml_attributes method
-module_logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 # default list of SAML attributes to release
 _SAML_ATTRIBUTES = [
@@ -64,6 +63,7 @@ _SAML_ATTRIBUTES = [
     'personalIdentityNumber',
     'preferredLanguage',
     'schacDateOfBirth',
+    'schacPersonalUniqueCode',
     'sn',
 ]
 
@@ -74,6 +74,8 @@ class SAMLAttributeSettings:
     default_eppn_scope: Optional[str]
     default_country: str
     default_country_code: str
+    sp_entity_categories: List[str]
+    esi_ladok_prefix: str
 
 
 class IdPUser(User):
@@ -82,10 +84,7 @@ class IdPUser(User):
     """
 
     def to_saml_attributes(
-        self,
-        settings: SAMLAttributeSettings,
-        logger: Optional[logging.Logger] = None,
-        filter_attributes: List[str] = _SAML_ATTRIBUTES,
+        self, settings: SAMLAttributeSettings, filter_attributes: List[str] = _SAML_ATTRIBUTES,
     ) -> dict:
         """
         Return a dict of SAML attributes for a user.
@@ -94,16 +93,10 @@ class IdPUser(User):
         SAML attributes. It is not necessarily the attributes that will actually be released.
 
         :param settings: Settings for attribute creation from IdP config
-        :param logger: logging logger
         :param filter_attributes: Filter to apply
 
         :return: SAML attributes
         """
-        if logger is not None:
-            warnings.warn('Use module_logger instead of the supplied logger', DeprecationWarning)
-        else:
-            logger = module_logger
-
         attributes_in = self.to_dict()
         attributes = {}
         for approved in filter_attributes:
@@ -115,6 +108,7 @@ class IdPUser(User):
         attributes = make_scoped_eppn(attributes, settings)
         attributes = add_country_attributes(attributes, settings)
         attributes = make_eduperson_unique_id(attributes, self, settings)
+        attributes = make_schac_personal_unique_code(attributes, self, settings)
         attributes = add_eduperson_assurance(attributes, self)
         attributes = make_name_attributes(attributes, self)
         attributes = make_nor_eduperson_nin(attributes, self)
@@ -235,9 +229,9 @@ def make_schac_date_of_birth(attributes: dict, user: IdPUser) -> dict:
                 parsed_date = datetime.strptime(user.nins.primary.number[:8], '%Y%m%d')
                 attributes['schacDateOfBirth'] = parsed_date.strftime('%Y%m%d')
             except ValueError as e:
-                module_logger.error('Unable to parse user nin to date of birth')
-                module_logger.debug(f'User nins: {user.nins}')
-                module_logger.exception(e)
+                logger.error('Unable to parse user nin to date of birth')
+                logger.debug(f'User nins: {user.nins}')
+                logger.exception(e)
     return attributes
 
 
@@ -249,7 +243,21 @@ def make_mail(attributes: dict, user: IdPUser) -> dict:
 
 
 def make_eduperson_orcid(attributes: dict, user: IdPUser) -> dict:
+    # TODO: Should the user be AL2 for us to release this?
+    #   Should we disallow there to be more than one eduID user with the same orcid?
     if attributes.get('eduPersonOrcid') is None and user.orcid is not None:
         if user.orcid.is_verified:
             attributes['eduPersonOrcid'] = user.orcid.id
+    return attributes
+
+
+def make_schac_personal_unique_code(attributes: dict, user: IdPUser, settings: SAMLAttributeSettings) -> dict:
+    if attributes.get('schacPersonalUniqueCode') is None:
+        # if SP has entity category https://myacademicid.org/entity-categories/esi we should release ESI as
+        # personal unique code
+        if 'https://myacademicid.org/entity-categories/esi' in settings.sp_entity_categories:
+            # do not release ESI for an unverified user
+            if user.nins.primary is not None and user.nins.primary.is_verified:
+                if user.ladok is not None and user.ladok.is_verified:
+                    attributes['schacPersonalUniqueCode'] = f'{settings.esi_ladok_prefix}{user.ladok.external_id}'
     return attributes
