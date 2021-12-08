@@ -1,10 +1,12 @@
 import logging
 import os
+from uuid import uuid4
 
 from mock import patch
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 
+from eduid.userdb.ladok import Ladok
 from eduid.vccs.client import VCCSClient
 from eduid.webapp.common.authn.utils import get_saml2_config
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
@@ -179,6 +181,25 @@ class IdPTestLogin(IdPTests):
         attributes = session_info['ava']
         assert 'eduPersonTargetedID' in attributes
         assert attributes['eduPersonTargetedID'] == ['71a13b105e83aa69c31f41b08ea83694e0fae5f368d17ef18ba59e0f9e407ec9']
+
+    def test_schac_personal_unique_code_esi(self):
+        sp_config = get_saml2_config(self.app.conf.pysaml2_config, name='ESI_COCO_SP_CONFIG')
+        saml2_client = Saml2Client(config=sp_config)
+
+        # Patch the VCCSClient so we do not need a vccs server
+        with patch.object(VCCSClient, 'authenticate'):
+            VCCSClient.authenticate.return_value = True
+            result = self._try_login(saml2_client=saml2_client)
+
+        assert result.reached_state == LoginState.S5_LOGGED_IN
+
+        authn_response = self.parse_saml_authn_response(result.response, saml2_client=saml2_client)
+        session_info = authn_response.session_info()
+        attributes = session_info['ava']
+        assert 'schacPersonalUniqueCode' in attributes
+        assert attributes['schacPersonalUniqueCode'] == [
+            f'{self.app.conf.esi_ladok_prefix}{self.test_user.ladok.external_id}'
+        ]
 
     def test_successful_authentication_alternative_acs(self):
         # Patch the VCCSClient so we do not need a vccs server
