@@ -250,13 +250,18 @@ def make_eduperson_orcid(attributes: dict, user: IdPUser) -> dict:
     return attributes
 
 
+def _schac_personal_unique_code_esi(attributes: dict, user: IdPUser, settings: SAMLAttributeSettings) -> dict:
+    # do not release ESI for an unverified user
+    if user.nins.primary is not None and user.nins.primary.is_verified:
+        if user.ladok is not None and user.ladok.is_verified:
+            attributes['schacPersonalUniqueCode'] = f'{settings.esi_ladok_prefix}{user.ladok.external_id}'
+    return attributes
+
+
 def make_schac_personal_unique_code(attributes: dict, user: IdPUser, settings: SAMLAttributeSettings) -> dict:
     if attributes.get('schacPersonalUniqueCode') is None:
         # if SP has entity category https://myacademicid.org/entity-categories/esi we should release ESI as
         # personal unique code
         if 'https://myacademicid.org/entity-categories/esi' in settings.sp_entity_categories:
-            # do not release ESI for an unverified user
-            if user.nins.primary is not None and user.nins.primary.is_verified:
-                if user.ladok is not None and user.ladok.is_verified:
-                    attributes['schacPersonalUniqueCode'] = f'{settings.esi_ladok_prefix}{user.ladok.external_id}'
+            return _schac_personal_unique_code_esi(attributes=attributes, user=user, settings=settings)
     return attributes
