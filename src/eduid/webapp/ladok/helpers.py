@@ -40,7 +40,13 @@ def link_user_BACKDOOR(user: User, ladok_name: str) -> FluxData:
         current_app.logger.info(f'BACKDOOR: University {ladok_name} does not allow linking (not in dev_fake_users_in)')
         return error_response(message=LadokMsg.no_ladok_data)
 
-    ladok_data = Ladok(external_id=UUID('00000000-1111-2222-3333-444444444444'), university=university)
+    ladok_data = Ladok(
+        external_id=UUID('00000000-1111-2222-3333-444444444444'),
+        university=university,
+        is_verified=True,
+        verified_by='eduid-ladok',
+    )
+
     proofing_user.ladok = ladok_data
     assert proofing_user.nins.primary is not None  # please mypy
     proofing_log_entry = LadokProofing(
