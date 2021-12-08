@@ -103,17 +103,17 @@ types-pyyaml==6.0.1 \
     --hash=sha256:2e27b0118ca4248a646101c5c318dc02e4ca2866d6bc42e84045dbb851555a76 \
     --hash=sha256:d5b318269652e809b5c30a5fe666c50159ab80bfd41cd6bafe655bf20b29fcba
     # via -r typecheck_requirements.in
-types-redis==4.0.1 \
-    --hash=sha256:583e371eae99d47913629cce9ecf06c0cf3c72885f5fc4d22de6f8b9260a82db \
-    --hash=sha256:5978fbd61fb512c5c7c4faea94e5af4ef34e5b3a82c2928d5949bf05272cd767
+types-redis==4.0.3 \
+    --hash=sha256:0c980f5df48610b0933cfe914c75e7c7eed8cf10025c47391a016b844145233a \
+    --hash=sha256:c7a99bdfea2e4fdf57952159614d85f0d08991007f0666dfa3c4220c3baa8fba
     # via -r typecheck_requirements.in
 types-requests==2.26.1 \
     --hash=sha256:0893e112e1510bbb67f537941c92192de7472e51bf7f236e0e583866f0ed933e \
     --hash=sha256:853571b3accc188976c0f4feffcaebf6cdfc170082b5e43f3358aa78de61f531
     # via -r typecheck_requirements.in
-types-simplejson==3.17.1 \
-    --hash=sha256:310ef5addfe97c20b9f2cac85079cbab95fd123c2c9a5c6b99856075d6b48211 \
-    --hash=sha256:7b5ac5549f5269f25e5e932d6f4e96ea8397369d6031300161cd1fda484e2534
+types-simplejson==3.17.2 \
+    --hash=sha256:37ee5a1e30c69196ab52672664509dc40b9c2fed7dacdb5587701e0b768b6bfb \
+    --hash=sha256:a1ea755d518bb87038c7a2aaefc77d3ad43976dee5566dfd6ca5aa5758ec7a0f
     # via -r typecheck_requirements.in
 types-six==1.16.3 \
     --hash=sha256:8dda49da00f9610f2442b6bd0566088a83127f8fc8093c52e1d175eb2111fec4 \
@@ -133,9 +133,9 @@ types-werkzeug==1.0.9 \
     # via
     #   -r typecheck_requirements.in
     #   types-flask
-typing-extensions==4.0.0 \
-    --hash=sha256:2cdf80e4e04866a9b3689a51869016d36db0814d84b8d8a568d22781d45d27ed \
-    --hash=sha256:829704698b22e13ec9eaf959122315eabb370b0884400e9818334d8b677023d9
+typing-extensions==4.0.1 \
+    --hash=sha256:4ca091dea149f945ec56afb48dae714f21e8692ef22a395223bcd328961b6a0e \
+    --hash=sha256:7f001e5ac290a0c0401508864c7ec868be4e701886d5b573a9528ed3973d9d3b
     # via
     #   mypy
     #   pydantic
