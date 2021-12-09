@@ -24,6 +24,7 @@ cert_path = os.path.join(here, 'idp-public-snakeoil.pem')
 idp_metadata_path = os.path.join(here, 'idp_metadata.xml')
 swamid_sp_metadata_path = os.path.join(here, 'swamid_sp_metadata.xml')
 coco_sp_metadata_path = os.path.join(here, 'coco_sp_metadata.xml')
+esi_coco_sp_metadata_path = os.path.join(here, 'esi_coco_sp_metadata.xml')
 
 # IdP config
 CONFIG = {
@@ -62,6 +63,7 @@ CONFIG = {
                         'mail': None,
                         'preferredLanguage': None,
                         'schacDateOfBirth': None,
+                        'schacPersonalUniqueCode': None,
                         'sn': None,
                     },
                     "name_form": NAME_FORMAT_URI,
@@ -83,7 +85,7 @@ CONFIG = {
         },
     },
     "debug": True,
-    "metadata": {"local": [swamid_sp_metadata_path, coco_sp_metadata_path]},
+    "metadata": {"local": [swamid_sp_metadata_path, coco_sp_metadata_path, esi_coco_sp_metadata_path]},
     # "attribute_map_dir": attrmaps_path,
     "key_file": key_path,
     "cert_file": cert_path,
@@ -146,3 +148,4 @@ def get_sp_config(sp_base: str) -> dict:
 SP_CONFIG = get_sp_config('https://sp.example.edu/saml2')
 UNKNOWN_SP_CONFIG = get_sp_config('https://unknown-sp.example.org/foo')
 COCO_SP_CONFIG = get_sp_config('https://coco.example.edu/saml2')
+ESI_COCO_SP_CONFIG = get_sp_config('https://esi-coco.example.edu/saml2')

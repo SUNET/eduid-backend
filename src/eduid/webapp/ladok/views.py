@@ -67,6 +67,8 @@ def link_user(user: User, ladok_name: str) -> FluxData:
     ladok_data = Ladok(
         external_id=ladok_info.external_id,
         university=University(ladok_name=ladok_name, name_sv=university.name_sv, name_en=university.name_en),
+        is_verified=True,
+        verified_by='eduid-ladok',
     )
     proofing_user.ladok = ladok_data
     assert proofing_user.nins.primary is not None  # please mypy

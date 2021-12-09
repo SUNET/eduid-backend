@@ -184,7 +184,7 @@ class IdP_SAMLRequest(object):
             for k, v in _attrs.items():
                 if not isinstance(k, str):
                     raise ValueError(f'Unknown entity attribute type ({type(k)})')
-                _attrs[k] = v
+                res[k] = v
         except KeyError:
             return {}
         return res

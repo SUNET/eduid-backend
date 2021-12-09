@@ -40,12 +40,11 @@ import logging
 import warnings
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 from eduid.userdb import User
 
-# TODO: Rename to logger after removing logger argument from to_saml_attributes method
-module_logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 # default list of SAML attributes to release
 _SAML_ATTRIBUTES = [
@@ -64,6 +63,7 @@ _SAML_ATTRIBUTES = [
     'personalIdentityNumber',
     'preferredLanguage',
     'schacDateOfBirth',
+    'schacPersonalUniqueCode',
     'sn',
 ]
 
@@ -74,6 +74,8 @@ class SAMLAttributeSettings:
     default_eppn_scope: Optional[str]
     default_country: str
     default_country_code: str
+    sp_entity_categories: List[str]
+    esi_ladok_prefix: str
 
 
 class IdPUser(User):
@@ -82,10 +84,7 @@ class IdPUser(User):
     """
 
     def to_saml_attributes(
-        self,
-        settings: SAMLAttributeSettings,
-        logger: Optional[logging.Logger] = None,
-        filter_attributes: List[str] = _SAML_ATTRIBUTES,
+        self, settings: SAMLAttributeSettings, filter_attributes: List[str] = _SAML_ATTRIBUTES,
     ) -> dict:
         """
         Return a dict of SAML attributes for a user.
@@ -94,16 +93,10 @@ class IdPUser(User):
         SAML attributes. It is not necessarily the attributes that will actually be released.
 
         :param settings: Settings for attribute creation from IdP config
-        :param logger: logging logger
         :param filter_attributes: Filter to apply
 
         :return: SAML attributes
         """
-        if logger is not None:
-            warnings.warn('Use module_logger instead of the supplied logger', DeprecationWarning)
-        else:
-            logger = module_logger
-
         attributes_in = self.to_dict()
         attributes = {}
         for approved in filter_attributes:
@@ -115,6 +108,7 @@ class IdPUser(User):
         attributes = make_scoped_eppn(attributes, settings)
         attributes = add_country_attributes(attributes, settings)
         attributes = make_eduperson_unique_id(attributes, self, settings)
+        attributes = make_schac_personal_unique_code(attributes, self, settings)
         attributes = add_eduperson_assurance(attributes, self)
         attributes = make_name_attributes(attributes, self)
         attributes = make_nor_eduperson_nin(attributes, self)
@@ -163,6 +157,7 @@ def make_eduperson_unique_id(attributes: dict, user: IdPUser, settings: SAMLAttr
     scope = settings.default_eppn_scope
     if not eppn or not scope:
         return attributes
+
     if attributes.get('eduPersonUniqueID') is None:
         unique_id = eppn.replace('-', '')  # hyphen (-) not allowed in eduPersonUniqueID
         attributes['eduPersonUniqueID'] = f'{unique_id}@{scope}'
@@ -207,9 +202,12 @@ def make_nor_eduperson_nin(attributes: dict, user: IdPUser) -> dict:
     """
     # TODO: If we ever allow NIN to be something else than personnummer or samordningsnummer
     # TODO: we need to update this function
-    if attributes.get('norEduPersonNIN') is None and user.nins.primary is not None:
-        if user.nins.primary.is_verified:  # A primary element have to be verified but better be defensive
-            attributes['norEduPersonNIN'] = user.nins.primary.number
+    if attributes.get('norEduPersonNIN') is not None:
+        return attributes
+
+    # A primary element have to be verified but better be defensive
+    if user.nins.primary is not None and user.nins.primary.is_verified:
+        attributes['norEduPersonNIN'] = user.nins.primary.number
     return attributes
 
 
@@ -219,9 +217,12 @@ def make_personal_identity_number(attributes: dict, user: IdPUser) -> dict:
     """
     # TODO: If we ever allow NIN to be something else than personnummer or samordningsnummer
     # TODO: we need to update this function
-    if attributes.get('personalIdentityNumber') is None and user.nins.primary is not None:
-        if user.nins.primary.is_verified:  # A primary element have to be verified but better be defensive
-            attributes['personalIdentityNumber'] = user.nins.primary.number
+    if attributes.get('personalIdentityNumber') is not None:
+        return attributes
+
+    # A primary element have to be verified but better be defensive
+    if user.nins.primary is not None and user.nins.primary.is_verified:
+        attributes['personalIdentityNumber'] = user.nins.primary.number
     return attributes
 
 
@@ -229,27 +230,63 @@ def make_schac_date_of_birth(attributes: dict, user: IdPUser) -> dict:
     """
     Format: YYYYMMDD, only numeric
     """
-    if attributes.get('schacDateOfBirth') is None and user.nins.primary is not None:
-        if user.nins.primary.is_verified:  # A primary element have to be verified but better be defensive
-            try:
-                parsed_date = datetime.strptime(user.nins.primary.number[:8], '%Y%m%d')
-                attributes['schacDateOfBirth'] = parsed_date.strftime('%Y%m%d')
-            except ValueError as e:
-                module_logger.error('Unable to parse user nin to date of birth')
-                module_logger.debug(f'User nins: {user.nins}')
-                module_logger.exception(e)
+    if attributes.get('schacDateOfBirth') is not None:
+        return attributes
+
+    # A primary element have to be verified but better be defensive
+    if user.nins.primary is not None and user.nins.primary.is_verified:
+        try:
+            parsed_date = datetime.strptime(user.nins.primary.number[:8], '%Y%m%d')
+            attributes['schacDateOfBirth'] = parsed_date.strftime('%Y%m%d')
+        except ValueError:
+            logger.exception('Unable to parse user nin to date of birth')
+            logger.debug(f'User nins: {user.nins}')
     return attributes
 
 
 def make_mail(attributes: dict, user: IdPUser) -> dict:
-    if attributes.get('mail') is None and user.mail_addresses.primary is not None:
-        if user.mail_addresses.primary.is_verified:  # A primary element have to be verified but better be defensive
-            attributes['mail'] = user.mail_addresses.primary.email
+    if attributes.get('mail') is not None:
+        return attributes
+
+    # A primary element have to be verified but better be defensive
+    if user.mail_addresses.primary is not None and user.mail_addresses.primary.is_verified:
+        attributes['mail'] = user.mail_addresses.primary.email
     return attributes
 
 
 def make_eduperson_orcid(attributes: dict, user: IdPUser) -> dict:
-    if attributes.get('eduPersonOrcid') is None and user.orcid is not None:
-        if user.orcid.is_verified:
-            attributes['eduPersonOrcid'] = user.orcid.id
+    # TODO: Should the user be AL2 for us to release this?
+    #   Should we disallow there to be more than one eduID user with the same orcid?
+    if attributes.get('eduPersonOrcid') is not None:
+        return attributes
+
+    if user.orcid is not None and user.orcid.is_verified:
+        attributes['eduPersonOrcid'] = user.orcid.id
+    return attributes
+
+
+def _make_user_esi(user: IdPUser, settings: SAMLAttributeSettings) -> Optional[str]:
+    # do not release Ladok ESI for an unverified user as you need to be verified to connect to Ladok
+    if user.nins.primary is not None and user.nins.primary.is_verified:
+        if user.ladok is not None and user.ladok.is_verified:
+            return f'{settings.esi_ladok_prefix}{user.ladok.external_id}'
+    return None
+
+
+def make_schac_personal_unique_code(attributes: dict, user: IdPUser, settings: SAMLAttributeSettings) -> dict:
+    """
+    schacPersonalUniqueCode could be something other than ESI, but we have no usecase for anything else
+    at the moment
+    """
+    if attributes.get('schacPersonalUniqueCode') is not None:
+        return attributes
+
+    unique_code = None
+    # if SP has entity category https://myacademicid.org/entity-categories/esi we should release ESI as
+    # personal unique code
+    if 'https://myacademicid.org/entity-categories/esi' in settings.sp_entity_categories:
+        unique_code = _make_user_esi(user=user, settings=settings)
+
+    if unique_code is not None:
+        attributes['schacPersonalUniqueCode'] = unique_code
     return attributes

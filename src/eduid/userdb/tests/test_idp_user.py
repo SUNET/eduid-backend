@@ -11,12 +11,13 @@ __author__ = 'lundberg'
 class TestIdpUser(TestCase):
     def setUp(self):
         super().setUp()
-        self.idp_config = {
-            'default_eppn_scope': 'example.com',
-            'default_country_code': 'se',
-            'default_country': 'Sweden',
-        }
-        self.saml_attribute_settings = SAMLAttributeSettings(**self.idp_config)
+        self.saml_attribute_settings = SAMLAttributeSettings(
+            default_eppn_scope='example.com',
+            default_country_code='se',
+            default_country='Sweden',
+            sp_entity_categories=['https://myacademicid.org/entity-categories/esi'],
+            esi_ladok_prefix='test-prefix',
+        )
 
     def test_idp_user_to_attributes_all(self):
         idp_user = IdPUser.from_dict(mocked_user_standard.to_dict())
@@ -45,5 +46,6 @@ class TestIdpUser(TestCase):
             'schacDateOfBirth': '19780101',
             'mail': 'johnsmith@example.com',
             'eduPersonOrcid': 'https://op.example.org/user_orcid',
+            'schacPersonalUniqueCode': f'{self.saml_attribute_settings.esi_ladok_prefix}{idp_user.ladok.external_id}',
         }
         assert normalised_data(expected) == normalised_data(attributes)
