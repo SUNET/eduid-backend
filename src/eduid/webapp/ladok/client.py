@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 import logging
-from datetime import datetime
-from typing import Dict, Optional
-
 import requests
+from datetime import datetime
 from pydantic import AnyHttpUrl, BaseModel, Field, ValidationError
+from typing import Dict, Optional, Mapping
 
 __author__ = 'lundberg'
 
@@ -29,8 +28,8 @@ class LadokBaseModel(BaseModel):
 
 
 class UniversityName(LadokBaseModel):
-    name_sv: Optional[str] = Field(default=None, alias='long_name_sv')
-    name_en: Optional[str] = Field(default=None, alias='long_name_en')
+    sv: Optional[str] = Field(default=None, alias='long_name_sv')
+    en: Optional[str] = Field(default=None, alias='long_name_en')
 
 
 class UniversitiesData(LadokBaseModel):
@@ -60,16 +59,30 @@ class LadokClientConfig(LadokBaseModel):
     dev_universities: Optional[Dict[str, UniversityName]] = None  # used for local development
 
 
+class University(BaseModel):
+    ladok_name: str
+    name: UniversityName
+
+
 class LadokClient:
     def __init__(self, config: LadokClientConfig, env: EduidEnvironment):
         self.config = config
+        self.env = env
         self.base_endpoint = urlappend(self.config.url, f'/api/{self.config.version}')
-        if env is EduidEnvironment.dev and self.config.dev_universities is not None:
-            self.universities = UniversitiesData(names=self.config.dev_universities)
-        else:
-            self.universities = self.load_universities()
+        self.universities = self.load_universities()
 
-    def load_universities(self) -> UniversitiesData:
+    def load_universities(self) -> Mapping[str, University]:
+        if self.env is EduidEnvironment.dev and self.config.dev_universities is not None:
+            universities_data = self.config.dev_universities
+        else:
+            universities_data = self.get_universities().names
+
+        universities = {}
+        for key, value in universities_data.items():
+            universities[key] = University(ladok_name=key, name=value)
+        return universities
+
+    def get_universities(self) -> UniversitiesData:
         """
          path: /api/v1/schoolinfo
          reply:
@@ -123,7 +136,7 @@ class LadokClient:
            "error": null
          }
         """
-        if ladok_name not in self.universities.names:
+        if ladok_name not in self.universities:
             raise LadokClientException(f'university with Ladok name {ladok_name} not found')
 
         service_path = f'{ladok_name}/ladokinfo'

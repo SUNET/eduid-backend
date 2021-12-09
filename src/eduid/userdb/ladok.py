@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+from pydantic import BaseModel
 from typing import Optional
 from uuid import UUID
 
@@ -9,11 +10,15 @@ from eduid.userdb.element import Element, ElementKey, VerifiedElement
 __author__ = 'lundberg'
 
 
+class UniversityName(BaseModel):
+    sv: str
+    en: str
+
+
 class University(Element):
 
-    ladok_name: str  # university name abbreviation
-    name_sv: str
-    name_en: Optional[str]
+    ladok_name: str
+    name: UniversityName
 
     @property
     def key(self) -> ElementKey:

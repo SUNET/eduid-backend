@@ -12,7 +12,7 @@ legend
         phones: [{number: str, primary: bool, verified: bool}]
         surname: str
         orcid: {id: str, name: str, given_name: str, family_name: str}
-        ladok: {external_id: str, university: {ladok_name: str, name_sv: str, name_en: str}}
+        ladok: {external_id: str, university: {ladok_name: str, name: {sv: str, en: str}}}
     }
 
     USER_DATA: {

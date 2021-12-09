@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 import pytest
 from pydantic import ValidationError
 
-from eduid.userdb.ladok import Ladok, University
+from eduid.userdb.ladok import Ladok, University, UniversityName
 
 __author__ = 'lundberg'
 
@@ -17,7 +17,7 @@ class LadokTest(TestCase):
 
     def test_create_ladok(self):
         university = University(
-            ladok_name='AB', name_sv='Lärosätesnamn', name_en='University Name', created_by='test created_by'
+            ladok_name='AB', name=UniversityName(sv='Lärosätesnamn', en='University Name'), created_by='test created_by'
         )
         ladok = Ladok(external_id=self.external_uuid, university=university, created_by='test created_by')
 
@@ -26,7 +26,7 @@ class LadokTest(TestCase):
         self.assertIsNotNone(ladok.created_ts)
 
         self.assertEqual(ladok.university.ladok_name, 'AB')
-        self.assertEqual(ladok.university.name_sv, 'Lärosätesnamn')
-        self.assertEqual(ladok.university.name_en, 'University Name')
+        self.assertEqual(ladok.university.name.sv, 'Lärosätesnamn')
+        self.assertEqual(ladok.university.name.en, 'University Name')
         self.assertEqual(ladok.university.created_by, 'test created_by')
         self.assertIsNotNone(ladok.university.created_ts)

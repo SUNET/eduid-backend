@@ -5,7 +5,7 @@ from flask import Blueprint
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.userdb import User
-from eduid.userdb.ladok import Ladok, University
+from eduid.userdb.ladok import Ladok, University, UniversityName
 from eduid.userdb.logs.element import LadokProofing
 from eduid.userdb.proofing import ProofingUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
@@ -36,7 +36,7 @@ def get_csrf(user: User) -> FluxData:
 @MarshalWith(UniversityInfoResponseSchema)
 @require_user
 def get_university_info(user: User) -> FluxData:
-    return success_response(payload={'universities': current_app.ladok_client.universities.names})
+    return success_response(payload={'universities': current_app.ladok_client.universities})
 
 
 @ladok_views.route('/link-user', methods=['POST'])
@@ -63,10 +63,12 @@ def link_user(user: User, ladok_name: str) -> FluxData:
         return error_response(message=LadokMsg.no_ladok_data)
 
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    university = current_app.ladok_client.universities.names[ladok_name]
+    university = current_app.ladok_client.universities[ladok_name]
     ladok_data = Ladok(
         external_id=ladok_info.external_id,
-        university=University(ladok_name=ladok_name, name_sv=university.name_sv, name_en=university.name_en),
+        university=University(
+            ladok_name=university.ladok_name, name=UniversityName(sv=university.name.sv, en=university.name.en)
+        ),
         is_verified=True,
         verified_by='eduid-ladok',
     )

@@ -7,12 +7,16 @@ from eduid.webapp.common.api.schemas.base import EduidSchema
 __author__ = 'lundberg'
 
 
-class UniversitySchema(EduidSchema):
+class UniversityName(EduidSchema):
+    sv = fields.String()
+    en = fields.String()
+
+
+class University(EduidSchema):
     ladok_name = fields.String()
-    name_sv = fields.String()
-    name_en = fields.String()
+    name = fields.Nested(UniversityName())
 
 
 class LadokSchema(EduidSchema):
     external_id = fields.String()
-    university = fields.Nested(UniversitySchema())
+    university = fields.Nested(University())
