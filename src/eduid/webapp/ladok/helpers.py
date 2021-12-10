@@ -4,7 +4,7 @@ from enum import unique
 from uuid import UUID, uuid4
 
 from eduid.userdb import User
-from eduid.userdb.ladok import Ladok, University
+from eduid.userdb.ladok import Ladok, University, UniversityName
 from eduid.userdb.logs.element import LadokProofing
 from eduid.userdb.proofing import ProofingUser
 from eduid.webapp.common.api.exceptions import AmTaskFailed
@@ -31,10 +31,9 @@ class LadokMsg(TranslatableMsg):
 
 def link_user_BACKDOOR(user: User, ladok_name: str) -> FluxData:
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    names = current_app.ladok_client.universities.names.get(ladok_name)
-    if not names:
+    university = current_app.ladok_client.universities.get(ladok_name)
+    if not university:
         return error_response(message=LadokMsg.missing_university)
-    university = University(ladok_name=ladok_name, name_sv=names.name_sv, name_en=names.name_en)
 
     if ladok_name not in current_app.conf.dev_fake_users_in:
         current_app.logger.info(f'BACKDOOR: University {ladok_name} does not allow linking (not in dev_fake_users_in)')
@@ -42,7 +41,7 @@ def link_user_BACKDOOR(user: User, ladok_name: str) -> FluxData:
 
     ladok_data = Ladok(
         external_id=UUID('00000000-1111-2222-3333-444444444444'),
-        university=university,
+        university=University(ladok_name=ladok_name, name=UniversityName(sv=university.name.sv, en=university.name.en)),
         is_verified=True,
         verified_by='eduid-ladok',
     )

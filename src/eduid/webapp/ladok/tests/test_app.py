@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 import json
+from flask import Response
 from typing import Any, Dict, List, Mapping, Optional
 from unittest.mock import patch
 from uuid import UUID, uuid4
 
-from flask import Response
-
 from eduid.common.config.base import EduidEnvironment
-from eduid.userdb.ladok import Ladok, University
+from eduid.userdb.ladok import Ladok, University, UniversityName
 from eduid.webapp.common.api.testing import EduidAPITestCase
 
 __author__ = 'lundberg'
@@ -15,7 +14,6 @@ __author__ = 'lundberg'
 from eduid.webapp.ladok.app import LadokApp, init_ladok_app
 from eduid.webapp.ladok.client import Error, LadokUserInfo, LadokUserInfoResponse
 from eduid.webapp.ladok.helpers import LadokMsg
-from eduid.webapp.ladok.settings.common import LadokConfig
 
 
 class MockResponse(object):
@@ -98,8 +96,8 @@ class LadokTests(EduidAPITestCase):
             response = browser.get('/universities')
         expected_payload = {
             'universities': {
-                'ab': {'name_en': 'University Name', 'name_sv': 'Lärosätesnamn'},
-                'cd': {'name_en': 'Another University Name', 'name_sv': 'Annat Lärosätesnamn'},
+                'ab': {'ladok_name': 'ab', 'name': {'en': 'University Name', 'sv': 'Lärosätesnamn'}},
+                'cd': {'ladok_name': 'cd', 'name': {'en': 'Another University Name', 'sv': 'Annat Lärosätesnamn'}},
             }
         }
         self._check_success_response(response, type_='GET_LADOK_UNIVERSITIES_SUCCESS', payload=expected_payload)
@@ -128,8 +126,8 @@ class LadokTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
         assert user.ladok.external_id == self.ladok_user_external_id
         assert user.ladok.university.ladok_name == ladok_name
-        assert user.ladok.university.name_sv == self.app.ladok_client.universities.names[ladok_name].name_sv
-        assert user.ladok.university.name_en == self.app.ladok_client.universities.names[ladok_name].name_en
+        assert user.ladok.university.name.sv == self.app.ladok_client.universities[ladok_name].name.sv
+        assert user.ladok.university.name.en == self.app.ladok_client.universities[ladok_name].name.en
 
         log_docs = self.app.proofing_log._get_documents_by_attr('eduPersonPrincipalName', self.test_user_eppn)
         assert 1 == len(log_docs)
@@ -172,7 +170,7 @@ class LadokTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         # set ladok data for user
-        university = University(ladok_name='ab', name_sv='namn')
+        university = University(ladok_name='ab', name=UniversityName(sv='namn', en='name'))
         ladok = Ladok(external_id=self.ladok_user_external_id, university=university)
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
         user.ladok = ladok
@@ -223,7 +221,7 @@ class LadokDevTests(EduidAPITestCase):
         config['environment'] = EduidEnvironment.dev.value
         config['ladok_client'] = {
             'url': 'http://localhost',
-            'dev_universities': {'DEV': {'name_sv': 'Testlärosäte', 'name_en': 'Test University'}},
+            'dev_universities': {'DEV': {'sv': 'Testlärosäte', 'en': 'Test University'}},
         }
         config['magic_cookie_name'] = 'magic-cookie'
         config['magic_cookie'] = 'magic-cookie'
@@ -245,8 +243,8 @@ class LadokDevTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
         assert user.ladok.external_id == UUID('00000000-1111-2222-3333-444444444444')
         assert user.ladok.university.ladok_name == ladok_name
-        assert user.ladok.university.name_sv == self.app.ladok_client.universities.names[ladok_name].name_sv
-        assert user.ladok.university.name_en == self.app.ladok_client.universities.names[ladok_name].name_en
+        assert user.ladok.university.name.sv == self.app.ladok_client.universities[ladok_name].name.sv
+        assert user.ladok.university.name.en == self.app.ladok_client.universities[ladok_name].name.en
 
         log_docs = self.app.proofing_log._get_documents_by_attr('eduPersonPrincipalName', self.test_user_eppn)
         assert 1 == len(log_docs)

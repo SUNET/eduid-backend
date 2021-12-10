@@ -3,11 +3,11 @@ title ladok
 
 legend
     UNIVERSITIES: {
-        [ladok_name]: {name_en: str, name_sv: str},
+        [ladok_name]: {ladok_name: str, name: {en: str, sv: str}},
     }
 
     LADOKDATA: {
-            external_id: str, university: {ladok_name: str, name_sv: str, name_en: str}
+            external_id: str, university: {ladok_name: str, name: {sv: str, en: str}}
     }
 end legend
 
@@ -26,5 +26,5 @@ else user not found in Ladok
 end
 |||
 Client->"/unlink-user": POST {}
-"/link-user"->Client: {"payload":{"message": "ladok.user-unlinked-successfully"}, "type":"POST_LADOK_UNLINK_USER_SUCCESS"}
+"/unlink-user"->Client: {"payload":{"message": "ladok.user-unlinked-successfully"}, "type":"POST_LADOK_UNLINK_USER_SUCCESS"}
 @enduml
