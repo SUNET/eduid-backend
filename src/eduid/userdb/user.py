@@ -172,6 +172,9 @@ class User(object):
         if 'csrf' in data_in:
             del data_in['csrf']
 
+        if 'mfa_opt_in' in data_in:
+            del data_in['mfa_opt_in']
+
         return cls(**data_in)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -225,6 +228,7 @@ class User(object):
             'subject',
             'surname',
             'terminated',
+            'mfa_opt_in',
         ]:
             if _remove in res and not res[_remove]:
                 del res[_remove]
@@ -391,7 +395,11 @@ class User(object):
         """
         ladok = data.pop('ladok', None)
         if ladok is not None:
-            return Ladok.from_dict(ladok)
+            # TODO: This try/except is to flush out old format of ladok data from development, remove soon!
+            try:
+                return Ladok.from_dict(ladok)
+            except:
+                return None
         return None
 
     @classmethod
