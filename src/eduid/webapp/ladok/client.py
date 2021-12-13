@@ -142,7 +142,7 @@ class LadokClient:
         service_path = f'{ladok_name}/ladokinfo'
         endpoint = urlappend(self.base_endpoint, service_path)
 
-        response = requests.post(endpoint, json={'nin': nin})
+        response = requests.post(endpoint, json={'data': {'nin': nin}})
         if response.status_code != 200:
             logger.error(f'endpoint {endpoint} returned status code: {response.status_code}')
             return None
