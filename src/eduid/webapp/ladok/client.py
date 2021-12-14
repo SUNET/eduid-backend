@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 import logging
-import requests
 from datetime import datetime
+from typing import Dict, Mapping, Optional
+
+import requests
 from pydantic import AnyHttpUrl, BaseModel, Field, ValidationError
-from typing import Dict, Optional, Mapping
 
 __author__ = 'lundberg'
 

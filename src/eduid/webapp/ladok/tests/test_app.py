@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 import json
-from flask import Response
 from typing import Any, Dict, List, Mapping, Optional
 from unittest.mock import patch
 from uuid import UUID, uuid4
+
+from flask import Response
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.userdb.ladok import Ladok, University, UniversityName
