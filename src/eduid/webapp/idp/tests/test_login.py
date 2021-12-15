@@ -196,7 +196,10 @@ class IdPTestLogin(IdPTests):
         authn_response = self.parse_saml_authn_response(result.response, saml2_client=saml2_client)
         session_info = authn_response.session_info()
         attributes = session_info['ava']
-        assert 'schacPersonalUniqueCode' in attributes
+        requested_attributes = ['schacPersonalUniqueCode', 'eduPersonTargetedID']
+        # make sure we only release the two requested attributes
+        assert [attr for attr in attributes if attr not in requested_attributes] == []
+        assert attributes['eduPersonTargetedID'] == ['75fae1234b2e3304bfd069c1296ccd7af97f2cc95855e2e0ce3577d1f70a0088']
         assert attributes['schacPersonalUniqueCode'] == [
             f'{self.app.conf.esi_ladok_prefix}{self.test_user.ladok.external_id}'
         ]
