@@ -2,6 +2,7 @@
 
 
 from flask import Blueprint, abort
+from requests.exceptions import ConnectionError
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User
@@ -100,6 +101,9 @@ def proofing(user: User, nin: str) -> FluxData:
     except EkopostException:
         current_app.logger.exception('Ekopost returned an error')
         current_app.stats.count('ekopost_error')
+        return error_response(message=CommonMsg.temp_problem)
+    except ConnectionError as e:
+        current_app.logger.error(f'Error connecting to Ekopost: {e}')
         return error_response(message=CommonMsg.temp_problem)
 
     # Save the users proofing state
