@@ -263,7 +263,7 @@ langcodes==2.2.0 \
     # via
     #   -c main.txt
     #   -r main.in
-lxml==4.6.4 \
+lxml==4.6.5 \
     --hash=sha256:08eb9200d88b376a8ed5e50f1dc1d1a45b49305169674002a3b5929943390591 \
     --hash=sha256:0b12c95542f04d10cba46b3ff28ea52ea56995b78cf918f0b11b05e75812bb79 \
     --hash=sha256:0c15e1cd55055956e77b0732270f1c6005850696bc3ef3e03d01e78af84eaa42 \
