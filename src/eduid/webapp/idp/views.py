@@ -30,18 +30,23 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+import base64
 from copy import deepcopy
+from io import BytesIO
 from typing import Any, Dict, List, Optional, Sequence, Union
 
+import qrcode
 from bson import ObjectId
 from flask import Blueprint, jsonify, redirect, request, url_for
+from pydantic import UUID4
 from werkzeug.exceptions import BadRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.misc.timeutil import utc_now
-from eduid.userdb import ToUEvent
+from eduid.common.utils import urlappend
+from eduid.userdb import LockedIdentityNin, ToUEvent
 from eduid.userdb.actions.tou import ToUUser
-from eduid.userdb.credentials import FidoCredential
+from eduid.userdb.credentials import FidoCredential, Password
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.exceptions import EduidForbidden, EduidTooManyRequests
@@ -61,10 +66,14 @@ from eduid.webapp.idp.logout import SLO
 
 __author__ = 'ft'
 
+from eduid.webapp.idp.other_device import OtherDevice
+
 from saml2 import BINDING_HTTP_POST
 
 from eduid.webapp.idp.mischttp import parse_query_string, set_sso_cookie
 from eduid.webapp.idp.schemas import (
+    AuthnOptionsRequestSchema,
+    AuthnOptionsResponseSchema,
     MfaAuthRequestSchema,
     MfaAuthResponseSchema,
     NextRequestSchema,
@@ -73,6 +82,8 @@ from eduid.webapp.idp.schemas import (
     PwAuthResponseSchema,
     TouRequestSchema,
     TouResponseSchema,
+    RequestOtherRequestSchema,
+    RequestOtherResponseSchema,
 )
 from eduid.webapp.idp.service import SAMLQueryParams
 from eduid.webapp.idp.sso_session import SSOSession
@@ -146,6 +157,55 @@ def verify() -> WerkzeugResponse:
     raise BadRequest()
 
 
+@idp_views.route('/authn_options', methods=['POST'])
+@UnmarshalWith(AuthnOptionsRequestSchema)
+@MarshalWith(AuthnOptionsResponseSchema)
+def authn_options(ref: RequestRef) -> FluxData:
+    current_app.logger.debug('\n\n')
+    current_app.logger.debug(f'--- Authn options ---')
+
+    _info = SAMLQueryParams(request_ref=ref)
+    ticket = get_ticket(_info, None)
+    if not ticket:
+        return error_response(message=IdPMsg.bad_ref)
+
+    payload = {
+        'password': False,
+        'other_device': current_app.conf.allow_other_device_logins,
+        'webauthn': False,
+        'freja_eidplus': False,
+    }
+
+    sso_session = current_app._lookup_sso_session()
+    if not sso_session:
+        current_app.logger.debug(f'No SSO session, responding {payload}')
+        return success_response(payload=payload)
+
+    user = current_app.userdb.lookup_user(sso_session.eppn)
+    if user:
+        if user.credentials.filter(Password):
+            current_app.logger.debug(f'User in SSO session has a Password credential')
+            _password = True
+
+        if user.credentials.filter(FidoCredential):
+            current_app.logger.debug(f'User in SSO session has a FIDO/Webauthn credential')
+            _webauthn = True
+
+        if user.locked_identity.filter(LockedIdentityNin):
+            current_app.logger.debug(f'User in SSO session has a locked NIN -> Freja is possible')
+            _freja = True
+
+        if user.mail_addresses.primary:
+            # Provide e-mail from (potentially expired) SSO session to frontend, so it can populate
+            # the username field for the user
+            _mail = user.mail_addresses.primary
+            current_app.logger.debug(f'User in SSO session has a primary e-mail -> username {_mail}')
+            payload['username'] = _mail
+
+    current_app.logger.debug(f'Responding with authn options: {payload}')
+    return success_response(payload=payload)
+
+
 @idp_views.route('/next', methods=['POST'])
 @UnmarshalWith(NextRequestSchema)
 @MarshalWith(NextResponseSchema)
@@ -167,15 +227,17 @@ def next(ref: RequestRef) -> FluxData:
     current_app.logger.debug(f'Login Next: {_next}')
 
     if _next.message == IdPMsg.must_authenticate:
-        return success_response(
-            message=IdPMsg.must_authenticate,
-            payload={'action': IdPAction.PWAUTH.value, 'target': url_for('idp.pw_auth', _external=True)},
-        )
+        _payload = {
+            'action': IdPAction.PWAUTH.value,
+            'target': url_for('idp.pw_auth', _external=True),
+        }
+
+        return success_response(message=IdPMsg.must_authenticate, payload=_payload,)
 
     if _next.message == IdPMsg.mfa_required:
         return success_response(
             message=IdPMsg.mfa_required,
-            payload={'action': IdPAction.MFA.value, 'target': url_for('idp.mfa_auth', _external=True)},
+            payload={'action': IdPAction.MFA.value, 'target': url_for('idp.mfa_auth', _external=True),},
         )
 
     if _next.message == IdPMsg.tou_required:
@@ -465,3 +527,74 @@ def tou(ref: RequestRef, versions: Optional[Sequence[str]] = None, user_accepts:
         f'Available versions in frontend: {versions}, current version {current_app.conf.tou_version} is not there'
     )
     return error_response(message=IdPMsg.tou_not_acceptable)
+
+
+@idp_views.route('/request_other', methods=['POST'])
+@UnmarshalWith(RequestOtherRequestSchema)
+@MarshalWith(RequestOtherResponseSchema)
+def request_other(ref: RequestRef, username: Optional[str] = None) -> FluxData:
+    current_app.logger.debug('\n\n')
+    current_app.logger.debug(f'--- Request Other Device ({ref}, username {username}) ---')
+
+    if not current_app.conf.allow_other_device_logins or not current_app.conf.other_device_url:
+        return error_response(message=IdPMsg.not_available)
+
+    _info = SAMLQueryParams(request_ref=ref)
+    ticket = get_ticket(_info, None)
+    if not ticket:
+        return error_response(message=IdPMsg.bad_ref)
+
+    if username:
+        current_app.logger.debug(f'Frontend provided username {username} but this is ignored for now')
+
+    eppn = None
+    sso_session = current_app._lookup_sso_session()
+    if sso_session:
+        eppn = sso_session.eppn
+
+    authn_ref = get_requested_authn_context(ticket)
+
+    other_device = OtherDevice.from_parameters(eppn=eppn, authn_context=authn_ref)
+    res = current_app.other_device_db.save(other_device)
+    current_app.logger.debug(f'Save {other_device} result: {res}')
+
+    current_app.logger.info(f'Created other-device state: {other_device.login_id}')
+    current_app.logger.debug(f'   Full other-device state: {other_device}')
+
+    # passing expires_at to the frontend would require clock sync to be usable,
+    # while passing number of seconds left is pretty unambiguous
+    now = utc_now()
+    expires_in = (other_device.expires_at - now).total_seconds()
+
+    buf = BytesIO()
+    use_other_url = urlappend(current_app.conf.other_device_url, str(other_device.login_id))
+    qrcode.make(use_other_url).save(buf)
+    qr_b64 = base64.b64encode(buf.getvalue())
+
+    current_app.logger.debug(f'   Use-other URL: {use_other_url} (QR: {len(qr_b64)} bytes)')
+
+    if username:
+        current_app.stats.count('login_using_other_device_with_username')
+    else:
+        current_app.stats.count('login_using_other_device_anonymous')
+
+    return success_response(
+        payload={
+            'login_id': other_device.login_id,
+            'short_code': other_device.short_code,
+            'expires_in': expires_in,
+            'qr_img': f'data:image/png;base64, {qr_b64.decode("ascii")}',
+            'other_url': use_other_url,
+        }
+    )
+
+
+@idp_views.route('/use_other', methods=['POST'])
+def use_other(login_id: UUID4) -> FluxData:
+    current_app.logger.debug('\n\n')
+    current_app.logger.debug(f'--- Use Other Device ({login_id}) ---')
+
+    if not current_app.conf.allow_other_device_logins:
+        return error_response(message=IdPMsg.not_available)
+
+    return error_response(message=IdPMsg.not_implemented)

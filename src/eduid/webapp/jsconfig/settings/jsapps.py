@@ -33,7 +33,7 @@
 
 from typing import Dict, Optional
 
-from pydantic import Field
+from pydantic import AnyUrl, Field, HttpUrl
 
 from eduid.common.config.base import EduidEnvironment, PasswordConfigMixin
 
@@ -63,7 +63,11 @@ class JsAppsConfig(PasswordConfigMixin):
     group_mgmt_url: str
     ladok_url: str
     letter_proofing_url: str
-    login_next_url: str
+    login_base_url: AnyUrl
+    login_next_url: HttpUrl  # Needs to be a full URL since the backend is on the idp, not on https://eduid.se
+    request_other_url: Optional[
+        HttpUrl
+    ] = None  # Needs to be a full URL since the backend is on the idp, not on https://eduid.se
     lookup_mobile_proofing_url: str
     mobile_url: Optional[str] = None  # should be replaced by phone_url
     oidc_proofing_freja_url: str

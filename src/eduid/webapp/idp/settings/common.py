@@ -36,7 +36,7 @@ Configuration (file) handling for the eduID idp app.
 from datetime import timedelta
 from typing import List, Optional
 
-from pydantic import Field, validator
+from pydantic import Field, HttpUrl, validator
 
 from eduid.common.config.base import (
     AmConfigMixin,
@@ -118,8 +118,10 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     supported_signing_algorithms: List[str] = Field(default=['http://www.w3.org/2001/04/xmldsig-more#rsa-sha256'])
     eduperson_targeted_id_secret_key: str = ''
     eduid_site_url: str
-    login_bundle_url: Optional[str] = None
+    login_bundle_url: Optional[HttpUrl] = None
+    other_device_url: Optional[HttpUrl] = None
     esi_ladok_prefix: str = Field(default='urn:schac:personalUniqueCode:int:esi:ladok.se:externtstudentuid-')
+    allow_other_device_logins: bool = False
 
     @validator('sso_cookie')
     def make_sso_cookie(cls, v, values) -> CookieConfig:

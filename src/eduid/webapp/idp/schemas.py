@@ -27,7 +27,6 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from typing import List
 
 from marshmallow import fields
 
@@ -66,6 +65,21 @@ class PwAuthResponseSchema(FluxStandardAction):
     payload = fields.Nested(PwAuthResponsePayload)
 
 
+class AuthnOptionsRequestSchema(IdPRequest):
+    pass
+
+
+class AuthnOptionsResponseSchema(FluxStandardAction):
+    class AuthnOptionsResponsePayload(EduidSchema, CSRFResponseMixin):
+        password = fields.Bool(required=True)
+        webauthn = fields.Bool(required=True)
+        freja_eidplus = fields.Bool(required=True)
+        other_device = fields.Bool(required=True)
+        username: fields.Str(required=False)
+
+    payload = fields.Nested(AuthnOptionsResponsePayload)
+
+
 class MfaAuthRequestSchema(IdPRequest):
     webauthn_response = fields.Dict(keys=fields.Str(), values=fields.Str(), default=None, required=False)
 
@@ -89,3 +103,18 @@ class TouResponseSchema(FluxStandardAction):
         version = fields.Str(required=False)
 
     payload = fields.Nested(TouResponsePayload)
+
+
+class RequestOtherRequestSchema(IdPRequest):
+    username = fields.Str(required=False)  # optional username, if the user supplies an e-mail address
+
+
+class RequestOtherResponseSchema(FluxStandardAction):
+    class UseOtherResponsePayload(EduidSchema, CSRFResponseMixin):
+        login_id = fields.UUID(required=True)
+        short_code = fields.Str(required=True)
+        expires_in = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
+        qr_img = fields.Str(required=True)
+        other_url = fields.Str(required=True)  # the link to where the user can manually enter short_code to proceed
+
+    payload = fields.Nested(UseOtherResponsePayload)
