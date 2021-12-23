@@ -391,7 +391,7 @@ class User(object):
     @classmethod
     def _parse_ladok(cls, data: Dict[str, Any]) -> Optional[Ladok]:
         """
-        Parse the Orcid element.
+        Parse the Ladok element.
         """
         ladok = data.pop('ladok', None)
         if ladok is not None:
