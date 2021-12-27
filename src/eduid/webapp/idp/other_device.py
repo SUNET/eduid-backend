@@ -4,10 +4,9 @@ import logging
 import os
 import uuid
 from datetime import datetime, timedelta
-from typing import Any, List, Mapping, Optional
+from typing import Any, List, Mapping, Optional, Type
 
 from bson import ObjectId
-from proquint import uint2quint
 from pydantic import BaseModel, Field, UUID4
 
 from eduid.common.misc.timeutil import utc_now
@@ -58,6 +57,10 @@ class OtherDevice(BaseModel):
     def to_dict(self) -> Mapping[str, Any]:
         return self.dict()
 
+    @classmethod
+    def from_dict(cls: Type[OtherDevice], data: Mapping[str, Any]) -> OtherDevice:
+        return cls(**data)
+
 
 def _make_short_code() -> str:
     digits = int.from_bytes(os.urandom(4), byteorder='big') % 1000000
@@ -84,3 +87,7 @@ class OtherDeviceDB(BaseDB):
             f'matched={result.matched_count}, modified={result.modified_count}, upserted_id={result.upserted_id}'
         )
         return None
+
+    def get_state_by_login_id(self, login_id: UUID4) -> Optional[OtherDevice]:
+        state = self._get_document_by_attr('login_id', str(login_id))
+        return OtherDevice.from_dict(state)

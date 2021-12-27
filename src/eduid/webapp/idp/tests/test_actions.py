@@ -153,7 +153,7 @@ class TestActions(SSOIdPTests):
     def test_add_mfa_action_no_key(self):
         self.actions.remove_action_by_id(self.test_action.action_id)
 
-        with self.app.app_context():
+        with self.app.test_request_context():
             mock_ticket = self._make_login_ticket(
                 req_class_ref=SWAMID_AL2, request_ref=RequestRef(self.mock_session_key)
             )

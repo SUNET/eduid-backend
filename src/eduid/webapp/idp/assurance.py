@@ -160,9 +160,9 @@ class AuthnState(object):
         _used_credentials: Dict[ElementKey, UsedCredential] = {}
 
         # Add all credentials used while the IdP processed this very request
-        for key, ts in ticket.saml_data.credentials_used.items():
-            if key in ticket.saml_data.onetime_credentials:
-                onetime_cred = ticket.saml_data.onetime_credentials[key]
+        for key, ts in ticket.pending_request.credentials_used.items():
+            if key in ticket.pending_request.onetime_credentials:
+                onetime_cred = ticket.pending_request.onetime_credentials[key]
                 cred = UsedCredential(credential=onetime_cred, ts=ts, source=UsedWhere.REQUEST)
             else:
                 credential = user.credentials.find(key)

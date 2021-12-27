@@ -9,7 +9,8 @@ from enum import Enum, unique
 from typing import Any, Dict, List, NewType, Optional, Type, TypeVar, Union
 from uuid import uuid4
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, UUID4
+from pydantic import validator
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.actions import Action
@@ -153,6 +154,10 @@ class IdP_SAMLPendingRequest(IdP_PendingRequest):
     relay_state: Optional[str]
 
 
+class IdP_OtherDevicePendingRequest(IdP_PendingRequest):
+    login_id: UUID4
+
+
 class IdP_Namespace(TimestampedNS):
     # The SSO cookie value last set by the IdP. Used to debug issues with browsers not
     # honoring Set-Cookie in redirects, or something.
@@ -167,6 +172,8 @@ class IdP_Namespace(TimestampedNS):
         for this in v.keys():
             if 'binding' in v[this]:
                 v[this] = IdP_SAMLPendingRequest(**v[this])
+            elif 'login_id' in v[this]:
+                v[this] = IdP_OtherDevicePendingRequest(**v[this])
             else:
                 raise TypeError('Unknown kind of IdP_PendingRequest')
         return v

@@ -110,11 +110,23 @@ class RequestOtherRequestSchema(IdPRequest):
 
 
 class RequestOtherResponseSchema(FluxStandardAction):
-    class UseOtherResponsePayload(EduidSchema, CSRFResponseMixin):
+    class RequestOtherResponsePayload(EduidSchema, CSRFResponseMixin):
         login_id = fields.UUID(required=True)
         short_code = fields.Str(required=True)
         expires_in = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
         qr_img = fields.Str(required=True)
         other_url = fields.Str(required=True)  # the link to where the user can manually enter short_code to proceed
+
+    payload = fields.Nested(RequestOtherResponsePayload)
+
+
+class UseOtherRequestSchema(IdPRequest):
+    login_id = fields.UUID(required=False)  # optional username, if the user supplies an e-mail address
+
+
+class UseOtherResponseSchema(FluxStandardAction):
+    class UseOtherResponsePayload(EduidSchema, CSRFResponseMixin):
+        expires_in = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
+        ref = fields.Str(required=True)  # newly minted login_ref
 
     payload = fields.Nested(UseOtherResponsePayload)

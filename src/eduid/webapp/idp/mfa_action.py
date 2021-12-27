@@ -58,10 +58,10 @@ def need_security_key(user: IdPUser, ticket: LoginContext) -> bool:
         logger.debug('User has no FIDO credentials, no extra requirement for MFA this session imposed')
         return False
 
-    for cred_key in ticket.saml_data.credentials_used:
+    for cred_key in ticket.pending_request.credentials_used:
         credential: Optional[Credential]
-        if cred_key in ticket.saml_data.onetime_credentials:
-            credential = ticket.saml_data.onetime_credentials[cred_key]
+        if cred_key in ticket.pending_request.onetime_credentials:
+            credential = ticket.pending_request.onetime_credentials[cred_key]
         else:
             credential = user.credentials.find(cred_key)
         if isinstance(credential, OnetimeCredential):
@@ -114,7 +114,7 @@ def add_actions(user: IdPUser, ticket: LoginContext, sso_session: SSOSession) ->
 
     current_app.logger.debug('Checking for previous MFA authentication for this request')
 
-    for cred_key in ticket.saml_data.credentials_used:
+    for cred_key in ticket.pending_request.credentials_used:
         cred = user.credentials.find(cred_key)
         if isinstance(cred, FidoCredential):
             current_app.logger.debug(f'User has authenticated for this request with FIDO token {cred_key}')

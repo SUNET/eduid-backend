@@ -24,7 +24,6 @@ from defusedxml import ElementTree as DefusedElementTree
 from flask import make_response, redirect, render_template, request, url_for
 from flask_babel import gettext as _
 from pydantic import BaseModel
-from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest, Forbidden, TooManyRequests
 from werkzeug.wrappers import Response as WerkzeugResponse
 
@@ -56,6 +55,7 @@ from eduid.webapp.idp.mischttp import HttpArgs, get_default_template_arguments
 from eduid.webapp.idp.service import SAMLQueryParams, Service
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.tou_action import add_tou_action, need_tou_acceptance
+from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 
 
 class MustAuthenticate(Exception):
@@ -516,9 +516,9 @@ def show_login_page(ticket: LoginContext) -> WerkzeugResponse:
     )
 
     # Set alert msg if found in the session
-    if ticket.saml_data.template_show_msg:
-        argv['alert_msg'] = ticket.saml_data.template_show_msg
-        ticket.saml_data.template_show_msg = None
+    if ticket.pending_request.template_show_msg:
+        argv['alert_msg'] = ticket.pending_request.template_show_msg
+        ticket.pending_request.template_show_msg = None
 
     current_app.logger.debug(f'Login page HTML substitution arguments :\n{pprint.pformat(argv)}')
 
@@ -579,7 +579,7 @@ def do_verify() -> WerkzeugResponse:
 
     if not pwauth:
         current_app.logger.info(f'{_ticket.request_ref}: Password authentication failed')
-        _ticket.saml_data.template_show_msg = _('Incorrect username or password')
+        _ticket.pending_request.template_show_msg = _('Incorrect username or password')
         current_app.logger.debug(f'Unknown user or wrong password. Redirect => {next_endpoint}')
         return redirect(next_endpoint)
 
@@ -648,13 +648,13 @@ def get_ticket(info: SAMLQueryParams, binding: Optional[str]) -> Optional[LoginC
         raise BadRequest('Bad request, please re-initiate login')
 
     ticket = LoginContext(request_ref=info.request_ref)
-    try:
-        ticket.saml_req = IdP_SAMLRequest(
-            ticket.SAMLRequest, ticket.binding, current_app.IDP, debug=current_app.conf.debug
-        )
-    except RuntimeError:
-        # Request not found in session, redirect user to main landing page
-        logger.debug(f'SAML request not found in session: {info}')
-        return None
+    # try:
+    #    ticket.saml_req = IdP_SAMLRequest(
+    #        ticket.SAMLRequest, ticket.binding, current_app.IDP, debug=current_app.conf.debug
+    #    )
+    # except RuntimeError:
+    #    # Request not found in session, redirect user to main landing page
+    #    logger.debug(f'SAML request not found in session: {info}')
+    #    return None
 
     return ticket

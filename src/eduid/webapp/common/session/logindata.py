@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional
+from typing import Optional, TYPE_CHECKING
 from urllib.parse import urlencode
 
 from pydantic import BaseModel
@@ -42,8 +42,7 @@ class LoginContext:
     Instances of this class is used more or less like a context being passed around.
     None of this data is persisted anywhere.
 
-    The 'key' represents the SAML request and associated information, and can be used
-    to fetch that data from the EduidSession.
+    The 'request_ref' can be used to fetch information about this pending request from the EduidSession.
     """
 
     request_ref: RequestRef
@@ -58,7 +57,7 @@ class LoginContext:
         return f'<{self.__class__.__name__}: key={self.request_ref}>'
 
     @property
-    def saml_data(self) -> IdP_SAMLPendingRequest:
+    def pending_request(self) -> IdP_SAMLPendingRequest:
         if self._saml_data is None:
             from eduid.webapp.common.session import session
 
@@ -71,21 +70,24 @@ class LoginContext:
 
     @property
     def SAMLRequest(self) -> str:
-        if not isinstance(self.saml_data.request, str):
+        pending = self.pending_request
+        if not isinstance(pending, IdP_SAMLPendingRequest):
+            raise ValueError('Pending request not initialised')
+        if not isinstance(self.pending_request.request, str):
             raise ValueError('saml_data.request not initialised')
-        return self.saml_data.request
+        return self.pending_request.request
 
     @property
     def RelayState(self) -> str:
-        if not self.saml_data.relay_state:
+        if not self.pending_request.relay_state:
             return ''
-        return self.saml_data.relay_state
+        return self.pending_request.relay_state
 
     @property
     def binding(self) -> str:
-        if not isinstance(self.saml_data.binding, str):
+        if not isinstance(self.pending_request.binding, str):
             raise ValueError('saml_data.binding not initialised')
-        return self.saml_data.binding
+        return self.pending_request.binding
 
     @property
     def query_string(self) -> str:
@@ -94,10 +96,19 @@ class LoginContext:
 
     @property
     def saml_req(self) -> 'IdP_SAMLRequest':
-        if self._saml_req is None:
-            raise ValueError('SSOLoginData.saml_req accessed uninitialised')
-        return self._saml_req
+        # TODO: saml_req is a sort of layering violation. It is basically the same as SAMLRequest (from this object)
+        #       plus a reference to the pysaml2 IDP instance. Replace with LoginContext.SAMLRequest.
+
+        # avoid circular import
+        from eduid.webapp.idp.app import current_idp_app as current_app
+        from eduid.webapp.idp.idp_saml import IdP_SAMLRequest
+
+        return IdP_SAMLRequest(self.SAMLRequest, self.binding, current_app.IDP, debug=current_app.conf.debug)
+        # if self._saml_req is None:
+        #    raise ValueError('SSOLoginData.saml_req accessed uninitialised')
+        # return self._saml_req
 
     @saml_req.setter
     def saml_req(self, value: Optional['IdP_SAMLRequest']):
-        self._saml_req = value
+        # self._saml_req = value
+        pass
