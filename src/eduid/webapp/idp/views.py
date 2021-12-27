@@ -179,7 +179,7 @@ def authn_options(ref: RequestRef) -> FluxData:
     if not ticket:
         return error_response(message=IdPMsg.bad_ref)
 
-    payload = {
+    payload: Dict[str, Any] = {
         'password': False,
         'other_device': current_app.conf.allow_other_device_logins,
         'webauthn': False,
@@ -213,7 +213,7 @@ def authn_options(ref: RequestRef) -> FluxData:
         if user.mail_addresses.primary:
             # Provide e-mail from (potentially expired) SSO session to frontend, so it can populate
             # the username field for the user
-            _mail = user.mail_addresses.primary
+            _mail = user.mail_addresses.primary.email
             current_app.logger.debug(f'User in SSO session has a primary e-mail -> username {_mail}')
             payload['username'] = _mail
 

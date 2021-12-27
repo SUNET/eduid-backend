@@ -2,16 +2,21 @@ from __future__ import annotations
 
 import logging
 import os
+import typing
 import uuid
 from datetime import datetime, timedelta
 from typing import Any, List, Mapping, Optional, Type
 
 from bson import ObjectId
-from pydantic import BaseModel, Field, UUID4
+from pydantic import BaseModel, Field
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.db import BaseDB
 from eduid.userdb.element import ElementKey
+
+if typing.TYPE_CHECKING:
+    # avoid circular import
+    from eduid.webapp.idp.assurance import EduidAuthnContextClass
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +25,7 @@ class OtherDevice(BaseModel):
     login_id: str
     short_code: str
     eppn: Optional[str]
-    authn_context: Optional[str]
+    authn_context: Optional['EduidAuthnContextClass']
     reauthn_required: bool
     created_at: datetime
     expires_at: datetime
@@ -35,9 +40,9 @@ class OtherDevice(BaseModel):
 
     @classmethod
     def from_parameters(
-        cls: OtherDevice,
-        eppn: str,
-        authn_context: str,
+        cls: Type[OtherDevice],
+        eppn: Optional[str],
+        authn_context: Optional[EduidAuthnContextClass],
         reauthn_required: bool = False,
         ttl: timedelta = timedelta(minutes=20),
     ) -> OtherDevice:
@@ -77,7 +82,7 @@ class OtherDeviceDB(BaseDB):
         }
         self.setup_indexes(indexes)
 
-    def save(self, other: OtherDevice) -> None:
+    def save(self, other: OtherDevice) -> bool:
         """
         Add a new OtherDevice to the database, or update an existing one.
         """
@@ -86,9 +91,9 @@ class OtherDeviceDB(BaseDB):
             f'Saved OtherDevice {other} in the db: '
             f'matched={result.matched_count}, modified={result.modified_count}, upserted_id={result.upserted_id}'
         )
-        return None
+        return result.acknowledged
 
-    def get_state_by_login_id(self, login_id: UUID4) -> Optional[OtherDevice]:
+    def get_state_by_login_id(self, login_id: str) -> Optional[OtherDevice]:
         state = self._get_document_by_attr('login_id', str(login_id))
         if not state:
             logger.debug(f'Other-device state with login_id {login_id} not found in the database')

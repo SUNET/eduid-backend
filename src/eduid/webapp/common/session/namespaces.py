@@ -6,11 +6,10 @@ from abc import ABC
 from copy import deepcopy
 from datetime import datetime
 from enum import Enum, unique
-from typing import Any, Dict, List, NewType, Optional, Type, TypeVar, Union
+from typing import Any, Dict, List, Mapping, NewType, Optional, Type, TypeVar, Union
 from uuid import uuid4
 
 from pydantic import BaseModel, Field, ValidationError
-from pydantic import validator
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.actions import Action
@@ -31,13 +30,19 @@ class SessionNSBase(BaseModel, ABC):
 
     @classmethod
     def from_dict(cls: Type[SessionNSBase], data) -> TSessionNSSubclass:
-        _data = deepcopy(data)  # do not modify callers data
+        _data = cls._from_dict_transform(data)
+
         # Avoid error: Incompatible return value type (got "SessionNSBase", expected "TSessionNSSubclass")
         try:
             return cls(**_data)  # type: ignore
         except ValidationError:
-            logger.warning(f'Could not parse session namespace:\n{data}')
+            logger.warning(f'Could not parse session namespace:\n{_data}')
             raise
+
+    @classmethod
+    def _from_dict_transform(cls: Type[SessionNSBase], data: Mapping[str, Any]) -> Dict[str, Any]:
+        _data = deepcopy(data)  # do not modify callers data
+        return dict(_data)
 
 
 TSessionNSSubclass = TypeVar('TSessionNSSubclass', bound=SessionNSBase)
@@ -169,8 +174,8 @@ class IdP_Namespace(TimestampedNS):
     pending_requests: Dict[RequestRef, IdP_PendingRequest] = Field(default={})
 
     @classmethod
-    def from_dict(cls: Type[SessionNSBase], data) -> TSessionNSSubclass:
-        _data = deepcopy(data)  # do not modify callers data
+    def _from_dict_transform(cls: Type[IdP_Namespace], data: Mapping[str, Any]) -> Dict[str, Any]:
+        _data = super()._from_dict_transform(data)
         if 'pending_requests' in _data:
             # pre-parse values into the right subclass if IdP_PendingRequest
             for k, v in _data['pending_requests'].items():
@@ -178,7 +183,7 @@ class IdP_Namespace(TimestampedNS):
                     _data['pending_requests'][k] = IdP_SAMLPendingRequest(**v)
                 elif 'login_id' in v:
                     _data['pending_requests'][k] = IdP_OtherDevicePendingRequest(**v)
-        return super().from_dict(_data)
+        return _data
 
     def log_credential_used(
         self, request_ref: RequestRef, credential: Union[Credential, OnetimeCredential], timestamp: datetime

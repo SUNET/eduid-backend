@@ -75,7 +75,7 @@ class AuthnOptionsResponseSchema(FluxStandardAction):
         webauthn = fields.Bool(required=True)
         freja_eidplus = fields.Bool(required=True)
         other_device = fields.Bool(required=True)
-        username: fields.Str(required=False)
+        username = fields.Str(required=False)
 
     payload = fields.Nested(AuthnOptionsResponsePayload)
 

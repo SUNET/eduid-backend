@@ -49,7 +49,7 @@ class LoginContext:
 
     # SAML request, loaded lazily from the session using `key'
     # eduid.webapp.common can't import from eduid-webapp
-    _saml_data: Optional[IdP_SAMLPendingRequest] = field(default=None, init=False, repr=False)
+    _pending_request: Optional[IdP_PendingRequest] = field(default=None, init=False, repr=False)
     _saml_req: Optional['IdP_SAMLRequest'] = field(default=None, init=False, repr=False)
     _request_ref: Optional[RequestRef] = field(default=None, init=False, repr=False)
 
@@ -58,36 +58,42 @@ class LoginContext:
 
     @property
     def pending_request(self) -> IdP_PendingRequest:
-        if self._saml_data is None:
+        if self._pending_request is None:
             from eduid.webapp.common.session import session
 
-            saml_data = session.idp.pending_requests.get(self.request_ref)
-            if not saml_data:
+            pending_request = session.idp.pending_requests.get(self.request_ref)
+            if not pending_request:
                 raise RuntimeError(f'SAML data with ref {self.request_ref} not found in session')
-            self._saml_data = saml_data
+            self._pending_request = pending_request
 
-        return self._saml_data
+        return self._pending_request
 
     @property
     def SAMLRequest(self) -> str:
         pending = self.pending_request
         if not isinstance(pending, IdP_SAMLPendingRequest):
-            raise ValueError('Pending request not initialised')
+            raise ValueError('Pending request not initialised (or not a SAML request)')
         if not isinstance(pending.request, str):
             raise ValueError('saml_data.request not initialised')
         return pending.request
 
     @property
     def RelayState(self) -> str:
-        if not self.pending_request.relay_state:
+        pending = self.pending_request
+        if not isinstance(pending, IdP_SAMLPendingRequest):
             return ''
-        return self.pending_request.relay_state
+        if not pending.relay_state:
+            return ''
+        return pending.relay_state
 
     @property
     def binding(self) -> str:
-        if not isinstance(self.pending_request.binding, str):
+        pending = self.pending_request
+        if not isinstance(pending, IdP_SAMLPendingRequest):
+            raise ValueError('Pending request not initialised (or not a SAML request)')
+        if not isinstance(pending.binding, str):
             raise ValueError('saml_data.binding not initialised')
-        return self.pending_request.binding
+        return pending.binding
 
     @property
     def query_string(self) -> str:
