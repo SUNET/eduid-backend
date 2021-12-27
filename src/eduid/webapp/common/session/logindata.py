@@ -7,7 +7,7 @@ from urllib.parse import urlencode
 
 from pydantic import BaseModel
 
-from eduid.webapp.common.session.namespaces import IdP_SAMLPendingRequest, RequestRef
+from eduid.webapp.common.session.namespaces import IdP_PendingRequest, IdP_SAMLPendingRequest, RequestRef
 
 if TYPE_CHECKING:
     from eduid.webapp.idp.idp_saml import IdP_SAMLRequest
@@ -57,7 +57,7 @@ class LoginContext:
         return f'<{self.__class__.__name__}: key={self.request_ref}>'
 
     @property
-    def pending_request(self) -> IdP_SAMLPendingRequest:
+    def pending_request(self) -> IdP_PendingRequest:
         if self._saml_data is None:
             from eduid.webapp.common.session import session
 
@@ -73,9 +73,9 @@ class LoginContext:
         pending = self.pending_request
         if not isinstance(pending, IdP_SAMLPendingRequest):
             raise ValueError('Pending request not initialised')
-        if not isinstance(self.pending_request.request, str):
+        if not isinstance(pending.request, str):
             raise ValueError('saml_data.request not initialised')
-        return self.pending_request.request
+        return pending.request
 
     @property
     def RelayState(self) -> str:
