@@ -172,7 +172,7 @@ def verify() -> WerkzeugResponse:
 @MarshalWith(AuthnOptionsResponseSchema)
 def authn_options(ref: RequestRef) -> FluxData:
     current_app.logger.debug('\n\n')
-    current_app.logger.debug(f'--- Authn options ---')
+    current_app.logger.debug(f'--- Authn options {ref} ---')
 
     _info = SAMLQueryParams(request_ref=ref)
     ticket = get_ticket(_info, None)
@@ -185,6 +185,11 @@ def authn_options(ref: RequestRef) -> FluxData:
         'webauthn': False,
         'freja_eidplus': False,
     }
+
+    if ref in session.idp.pending_requests:
+        if isinstance(session.idp.pending_requests[ref], IdP_OtherDevicePendingRequest):
+            current_app.logger.debug(f'This is a request to log in to another device, not allowing other_device')
+            payload['other_device'] = False
 
     sso_session = current_app._lookup_sso_session()
     if not sso_session:
@@ -221,7 +226,7 @@ def authn_options(ref: RequestRef) -> FluxData:
 @MarshalWith(NextResponseSchema)
 def next(ref: RequestRef) -> FluxData:
     current_app.logger.debug('\n\n')
-    current_app.logger.debug(f'--- Next ---')
+    current_app.logger.debug(f'--- Next ({ref}) ---')
 
     if not current_app.conf.login_bundle_url:
         return error_response(message=IdPMsg.not_available)
@@ -556,6 +561,10 @@ def request_other(ref: RequestRef, username: Optional[str] = None) -> FluxData:
     current_app.logger.debug(f'LoginContext: {asdict(ticket)}')
     current_app.logger.debug(f'Pending request: {ticket.pending_request}')
     current_app.logger.debug(f'ALL pending request: {session.idp.pending_requests}')
+
+    if isinstance(ticket.pending_request, IdP_OtherDevicePendingRequest):
+        current_app.logger.info(f'Not allowing recursive login using another device')
+        return error_response(message=IdPMsg.not_available)
 
     if username:
         current_app.logger.debug(f'Frontend provided username {username} but this is ignored for now')
