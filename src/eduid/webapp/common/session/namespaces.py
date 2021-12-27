@@ -140,7 +140,7 @@ class OnetimeCredential(Credential):
         return ElementKey(self.credential_id)
 
 
-class IdP_PendingRequest(BaseModel):
+class IdP_SAMLPendingRequest(BaseModel):
     request: str
     binding: str
     relay_state: Optional[str]
@@ -154,7 +154,7 @@ class IdP_Namespace(TimestampedNS):
     # The SSO cookie value last set by the IdP. Used to debug issues with browsers not
     # honoring Set-Cookie in redirects, or something.
     sso_cookie_val: Optional[str] = None
-    pending_requests: Dict[RequestRef, IdP_PendingRequest] = Field(default={})
+    pending_requests: Dict[RequestRef, IdP_SAMLPendingRequest] = Field(default={})
 
     def log_credential_used(
         self, request_ref: RequestRef, credential: Union[Credential, OnetimeCredential], timestamp: datetime

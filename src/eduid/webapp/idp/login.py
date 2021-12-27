@@ -35,7 +35,7 @@ from eduid.userdb.idp.user import SAMLAttributeSettings
 from eduid.webapp.common.api import exceptions
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import LoginContext
-from eduid.webapp.common.session.namespaces import IdP_PendingRequest, RequestRef
+from eduid.webapp.common.session.namespaces import IdP_SAMLPendingRequest, RequestRef
 from eduid.webapp.idp import assurance, mischttp
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import (
@@ -626,7 +626,7 @@ def _add_saml_request_to_session(info: SAMLQueryParams, binding: str) -> Request
     if not info.SAMLRequest or binding is None:
         raise ValueError(f"Can't add incomplete query params to session: {info}, binding {binding}")
     request_ref = RequestRef(str(uuid4()))
-    session.idp.pending_requests[request_ref] = IdP_PendingRequest(
+    session.idp.pending_requests[request_ref] = IdP_SAMLPendingRequest(
         request=info.SAMLRequest, binding=binding, relay_state=info.RelayState
     )
     return request_ref

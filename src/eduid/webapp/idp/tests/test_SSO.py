@@ -51,7 +51,7 @@ from eduid.userdb.idp import IdPUser
 from eduid.userdb.nin import Nin, NinList
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData, LoginContext
-from eduid.webapp.common.session.namespaces import IdP_PendingRequest, RequestRef
+from eduid.webapp.common.session.namespaces import IdP_SAMLPendingRequest, RequestRef
 from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.idp_saml import IdP_SAMLRequest
@@ -145,7 +145,7 @@ class SSOIdPTests(IdPTests):
         from eduid.webapp.common.session import session
 
         try:
-            saml_data = IdP_PendingRequest(request=xmlstr, binding=binding, relay_state=None)
+            saml_data = IdP_SAMLPendingRequest(request=xmlstr, binding=binding, relay_state=None)
             session.idp.pending_requests[request_ref] = saml_data
         except RuntimeError:
             # Ignore RuntimeError: Working outside of request context when not running
