@@ -9,7 +9,7 @@ from enum import Enum, unique
 from typing import Any, Dict, List, NewType, Optional, Type, TypeVar, Union
 from uuid import uuid4
 
-from pydantic import BaseModel, Field, UUID4
+from pydantic import BaseModel, Field, ValidationError
 from pydantic import validator
 
 from eduid.common.misc.timeutil import utc_now
@@ -33,7 +33,11 @@ class SessionNSBase(BaseModel, ABC):
     def from_dict(cls: Type[SessionNSBase], data) -> TSessionNSSubclass:
         _data = deepcopy(data)  # do not modify callers data
         # Avoid error: Incompatible return value type (got "SessionNSBase", expected "TSessionNSSubclass")
-        return cls(**_data)  # type: ignore
+        try:
+            return cls(**_data)  # type: ignore
+        except ValidationError:
+            logger.warning(f'Could not parse session namespace:\n{data}')
+            raise
 
 
 TSessionNSSubclass = TypeVar('TSessionNSSubclass', bound=SessionNSBase)
@@ -155,28 +159,26 @@ class IdP_SAMLPendingRequest(IdP_PendingRequest):
 
 
 class IdP_OtherDevicePendingRequest(IdP_PendingRequest):
-    login_id: UUID4
+    login_id: str  # an UUID4, but those can't be serialised to put in the session
 
 
 class IdP_Namespace(TimestampedNS):
     # The SSO cookie value last set by the IdP. Used to debug issues with browsers not
     # honoring Set-Cookie in redirects, or something.
     sso_cookie_val: Optional[str] = None
-    pending_requests: Dict[RequestRef, IdP_SAMLPendingRequest] = Field(default={})
+    pending_requests: Dict[RequestRef, IdP_PendingRequest] = Field(default={})
 
-    @validator('pending_requests', pre=True)
-    def validate_pending_requests(cls, v):
-        """ Make the right kind of IdP_PendingRequest serialised form """
-        if not isinstance(v, dict):
-            raise TypeError('must be a dict')
-        for this in v.keys():
-            if 'binding' in v[this]:
-                v[this] = IdP_SAMLPendingRequest(**v[this])
-            elif 'login_id' in v[this]:
-                v[this] = IdP_OtherDevicePendingRequest(**v[this])
-            else:
-                raise TypeError('Unknown kind of IdP_PendingRequest')
-        return v
+    @classmethod
+    def from_dict(cls: Type[SessionNSBase], data) -> TSessionNSSubclass:
+        _data = deepcopy(data)  # do not modify callers data
+        if 'pending_requests' in _data:
+            # pre-parse values into the right subclass if IdP_PendingRequest
+            for k, v in _data['pending_requests'].items():
+                if 'binding' in v:
+                    _data['pending_requests'][k] = IdP_SAMLPendingRequest(**v)
+                elif 'login_id' in v:
+                    _data['pending_requests'][k] = IdP_OtherDevicePendingRequest(**v)
+        return super().from_dict(_data)
 
     def log_credential_used(
         self, request_ref: RequestRef, credential: Union[Credential, OnetimeCredential], timestamp: datetime

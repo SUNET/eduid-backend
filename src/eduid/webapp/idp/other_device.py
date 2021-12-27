@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class OtherDevice(BaseModel):
-    login_id: UUID4
+    login_id: str
     short_code: str
     eppn: Optional[str]
     authn_context: Optional[str]
@@ -39,13 +39,13 @@ class OtherDevice(BaseModel):
         eppn: str,
         authn_context: str,
         reauthn_required: bool = False,
-        ttl: timedelta = timedelta(minutes=2),
+        ttl: timedelta = timedelta(minutes=20),
     ) -> OtherDevice:
         _uuid = uuid.uuid4()
         short_code = _make_short_code()
         now = utc_now()
         return cls(
-            login_id=_uuid,
+            login_id=str(_uuid),
             short_code=short_code,
             eppn=eppn,
             authn_context=authn_context,
@@ -90,4 +90,7 @@ class OtherDeviceDB(BaseDB):
 
     def get_state_by_login_id(self, login_id: UUID4) -> Optional[OtherDevice]:
         state = self._get_document_by_attr('login_id', str(login_id))
+        if not state:
+            logger.debug(f'Other-device state with login_id {login_id} not found in the database')
+            return None
         return OtherDevice.from_dict(state)

@@ -120,8 +120,8 @@ class RequestOtherResponseSchema(FluxStandardAction):
     payload = fields.Nested(RequestOtherResponsePayload)
 
 
-class UseOtherRequestSchema(IdPRequest):
-    login_id = fields.UUID(required=False)  # optional username, if the user supplies an e-mail address
+class UseOtherRequestSchema(EduidSchema, CSRFRequestMixin):
+    login_id = fields.Str(required=True)
 
 
 class UseOtherResponseSchema(FluxStandardAction):

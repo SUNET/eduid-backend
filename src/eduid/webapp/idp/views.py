@@ -32,8 +32,10 @@
 #
 import base64
 from copy import deepcopy
+from dataclasses import asdict
 from io import BytesIO
 from typing import Any, Dict, List, Optional, Sequence, Union
+from uuid import uuid4
 
 import qrcode
 from bson import ObjectId
@@ -56,7 +58,13 @@ from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.authn import fido_tokens
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData
-from eduid.webapp.common.session.namespaces import MfaActionError, OnetimeCredential, OnetimeCredType, RequestRef
+from eduid.webapp.common.session.namespaces import (
+    IdP_OtherDevicePendingRequest,
+    MfaActionError,
+    OnetimeCredType,
+    OnetimeCredential,
+    RequestRef,
+)
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import get_requested_authn_context
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
@@ -84,6 +92,8 @@ from eduid.webapp.idp.schemas import (
     TouResponseSchema,
     RequestOtherRequestSchema,
     RequestOtherResponseSchema,
+    UseOtherRequestSchema,
+    UseOtherResponseSchema,
 )
 from eduid.webapp.idp.service import SAMLQueryParams
 from eduid.webapp.idp.sso_session import SSOSession
@@ -543,6 +553,9 @@ def request_other(ref: RequestRef, username: Optional[str] = None) -> FluxData:
     ticket = get_ticket(_info, None)
     if not ticket:
         return error_response(message=IdPMsg.bad_ref)
+    current_app.logger.debug(f'LoginContext: {asdict(ticket)}')
+    current_app.logger.debug(f'Pending request: {ticket.pending_request}')
+    current_app.logger.debug(f'ALL pending request: {session.idp.pending_requests}')
 
     if username:
         current_app.logger.debug(f'Frontend provided username {username} but this is ignored for now')
@@ -554,6 +567,7 @@ def request_other(ref: RequestRef, username: Optional[str] = None) -> FluxData:
 
     authn_ref = get_requested_authn_context(ticket)
 
+    # TODO: Add IP address, User-Agent etc. to OtherDevice and show it to user. Also add current login_ref for auditing.
     other_device = OtherDevice.from_parameters(eppn=eppn, authn_context=authn_ref)
     res = current_app.other_device_db.save(other_device)
     current_app.logger.debug(f'Save {other_device} result: {res}')
@@ -590,11 +604,39 @@ def request_other(ref: RequestRef, username: Optional[str] = None) -> FluxData:
 
 
 @idp_views.route('/use_other', methods=['POST'])
-def use_other(login_id: UUID4) -> FluxData:
+@UnmarshalWith(UseOtherRequestSchema)
+@MarshalWith(UseOtherResponseSchema)
+def use_other(login_id: str) -> FluxData:
     current_app.logger.debug('\n\n')
     current_app.logger.debug(f'--- Use Other Device ({login_id}) ---')
 
     if not current_app.conf.allow_other_device_logins:
         return error_response(message=IdPMsg.not_available)
 
-    return error_response(message=IdPMsg.not_implemented)
+    # Check if the request is already pending (user reloaded page)
+    request_ref = None
+    for k, v in session.idp.pending_requests.items():
+        if isinstance(v, IdP_OtherDevicePendingRequest):
+            if v.login_id == login_id:
+                request_ref = k
+                break
+
+    state = current_app.other_device_db.get_state_by_login_id(login_id)
+    if not state:
+        current_app.logger.debug(f'Other device: Login id {login_id} not found')
+        return error_response(message=IdPMsg.not_available)
+
+    if not request_ref:
+        # Create a new pending request.
+        request_ref = RequestRef(str(uuid4()))
+        session.idp.pending_requests[request_ref] = IdP_OtherDevicePendingRequest(login_id=login_id)
+
+    # passing expires_at to the frontend would require clock sync to be usable,
+    # while passing number of seconds left is pretty unambiguous
+    now = utc_now()
+    expires_in = (state.expires_at - now).total_seconds()
+
+    # The frontend will present the user with the option to proceed with this login on the second device
+    # (the one scanning the QR code). If the user proceeds, the frontend can now call the /next endpoint
+    # with the ref returned in this response.
+    return success_response(payload={'expires_in': expires_in, 'ref': request_ref})
