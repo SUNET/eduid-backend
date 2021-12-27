@@ -109,7 +109,9 @@ class MarshalWith(object):
             else:
                 _flux_response = FluxSuccessResponse(request, payload=ret.payload)
             try:
+                logger.debug(f"Encoding response: {_flux_response.to_dict()} using schema {self.schema()}")
                 res = jsonify(self.schema().dump(_flux_response.to_dict()))
+                logger.debug(f"Encoded response: {self.schema().dump(_flux_response.to_dict())}")
             except:
                 logger.exception(f'Could not serialise Flux payload:\n{_flux_response.to_dict()}')
                 raise
