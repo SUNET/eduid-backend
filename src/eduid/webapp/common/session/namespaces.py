@@ -9,7 +9,7 @@ from enum import Enum, unique
 from typing import Any, Dict, List, NewType, Optional, Type, TypeVar, Union
 from uuid import uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.actions import Action
@@ -140,14 +140,17 @@ class OnetimeCredential(Credential):
         return ElementKey(self.credential_id)
 
 
-class IdP_SAMLPendingRequest(BaseModel):
-    request: str
-    binding: str
-    relay_state: Optional[str]
+class IdP_PendingRequest(BaseModel):
     template_show_msg: Optional[str]  # set when the template version of the idp should show a message to the user
     # Credentials used while authenticating _this SAML request_. Not ones inherited from SSO.
     credentials_used: Dict[ElementKey, datetime] = Field(default={})
     onetime_credentials: Dict[ElementKey, OnetimeCredential] = Field(default={})
+
+
+class IdP_SAMLPendingRequest(IdP_PendingRequest):
+    request: str
+    binding: str
+    relay_state: Optional[str]
 
 
 class IdP_Namespace(TimestampedNS):
@@ -155,6 +158,18 @@ class IdP_Namespace(TimestampedNS):
     # honoring Set-Cookie in redirects, or something.
     sso_cookie_val: Optional[str] = None
     pending_requests: Dict[RequestRef, IdP_SAMLPendingRequest] = Field(default={})
+
+    @validator('pending_requests', pre=True)
+    def validate_pending_requests(cls, v):
+        """ Make the right kind of IdP_PendingRequest serialised form """
+        if not isinstance(v, dict):
+            raise TypeError('must be a dict')
+        for this in v.keys():
+            if 'binding' in v[this]:
+                v[this] = IdP_SAMLPendingRequest(**v[this])
+            else:
+                raise TypeError('Unknown kind of IdP_PendingRequest')
+        return v
 
     def log_credential_used(
         self, request_ref: RequestRef, credential: Union[Credential, OnetimeCredential], timestamp: datetime
