@@ -130,7 +130,7 @@ class IdPAPITests(EduidAPITestCase):
                 'u2f_app_id': 'https://example.com',
                 'u2f_valid_facets': ['https://dashboard.dev.eduid.se', 'https://idp.dev.eduid.se'],
                 'fido2_rp_id': 'idp.example.com',
-                'login_bundle_url': '/test-bundle',
+                'login_bundle_url': 'https://idp.eduid.docker/test-bundle',
                 'tou_version': '2016-v1',
             }
         )
