@@ -164,7 +164,7 @@ class IdP_SAMLPendingRequest(IdP_PendingRequest):
 
 
 class IdP_OtherDevicePendingRequest(IdP_PendingRequest):
-    login_id: str  # an UUID4, but those can't be serialised to put in the session
+    state_id: str  # an UUID4, but those can't be serialised to put in the session
 
 
 class IdP_Namespace(TimestampedNS):
@@ -181,7 +181,7 @@ class IdP_Namespace(TimestampedNS):
             for k, v in _data['pending_requests'].items():
                 if 'binding' in v:
                     _data['pending_requests'][k] = IdP_SAMLPendingRequest(**v)
-                elif 'login_id' in v:
+                elif 'state_id' in v:
                     _data['pending_requests'][k] = IdP_OtherDevicePendingRequest(**v)
         return _data
 

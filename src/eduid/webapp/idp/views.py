@@ -40,7 +40,6 @@ from uuid import uuid4
 import qrcode
 from bson import ObjectId
 from flask import Blueprint, jsonify, redirect, request, url_for
-from pydantic import UUID4
 from werkzeug.exceptions import BadRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
 
@@ -57,7 +56,7 @@ from eduid.webapp.common.api.schemas.models import FluxSuccessResponse
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.authn import fido_tokens
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.logindata import ExternalMfaData
+from eduid.webapp.common.session.logindata import ExternalMfaData, LoginContextOtherDevice, LoginContextSAML
 from eduid.webapp.common.session.namespaces import (
     IdP_OtherDevicePendingRequest,
     MfaActionError,
@@ -74,7 +73,7 @@ from eduid.webapp.idp.logout import SLO
 
 __author__ = 'ft'
 
-from eduid.webapp.idp.other_device import OtherDevice
+from eduid.webapp.idp.other_device import OtherDevice, make_short_code
 
 from saml2 import BINDING_HTTP_POST
 
@@ -159,6 +158,14 @@ def verify() -> WerkzeugResponse:
         ticket = get_ticket(_info, None)
         if not ticket:
             raise BadRequest(f'Missing parameter - please re-initiate login')
+
+        # TODO: Remove all this code, we don't use the template IdP anymore.
+        if not current_app.conf.enable_legacy_template_mode:
+            raise BadRequest('Template IdP not enabled')
+
+        # please mypy with this legacy code
+        assert isinstance(ticket, LoginContextSAML)
+
         return show_login_page(ticket)
 
     if request.method == 'POST':
@@ -234,6 +241,8 @@ def next(ref: RequestRef) -> FluxData:
     _info = SAMLQueryParams(request_ref=ref)
     ticket = get_ticket(_info, None)
     if not ticket:
+        _pending = session.idp.pending_requests
+        current_app.logger.debug(f'Login ref {ref} not found in pending_requests: {_pending.keys()}')
         return error_response(message=IdPMsg.bad_ref)
 
     sso_session = current_app._lookup_sso_session()
@@ -278,18 +287,49 @@ def next(ref: RequestRef) -> FluxData:
 
         sso = SSO(sso_session=sso_session)
         assert _next.authn_info  # please mypy
-        saml_params = sso.get_response_params(_next.authn_info, ticket, user)
-        if saml_params.binding != BINDING_HTTP_POST:
-            current_app.logger.error(f'SAML response does not have binding HTTP_POST')
+
+        if isinstance(ticket, LoginContextSAML):
+            saml_params = sso.get_response_params(_next.authn_info, ticket, user)
+            if saml_params.binding != BINDING_HTTP_POST:
+                current_app.logger.error(f'SAML response does not have binding HTTP_POST')
+                return error_response(message=IdPMsg.general_failure)
+            return success_response(
+                message=IdPMsg.finished,
+                payload={
+                    'action': IdPAction.FINISHED.value,
+                    'target': saml_params.url,
+                    'parameters': saml_params.post_params,
+                },
+            )
+        elif isinstance(ticket, LoginContextOtherDevice):
+            if not current_app.conf.other_device_url:
+                current_app.logger.error(f'other_device_url not configured')
+                return error_response(message=IdPMsg.general_failure)
+
+            state = ticket.other_device_req
+
+            if state.expires_at < utc_now():
+                current_app.stats.count('login_using_other_device_finish_too_late')
+                current_app.logger.error(f'Request to login using another device was expired: {state}')
+                # TODO: better response code
+                return error_response(message=IdPMsg.general_failure)
+
+            current_app.stats.count('login_using_other_device_finish')
+
+            if not state.response_code:
+                state.response_code = make_short_code()
+                state.credentials_used = ticket.pending_request.credentials_used
+
+                current_app.other_device_db.save(state)
+
+            target = state.state_id
+
+            return success_response(
+                message=IdPMsg.finished, payload={'action': IdPAction.FINISHED.value, 'target': target,},
+            )
+        else:
+            current_app.logger.error(f'Don\'t know how to finish login request {ticket}')
             return error_response(message=IdPMsg.general_failure)
-        return success_response(
-            message=IdPMsg.finished,
-            payload={
-                'action': IdPAction.FINISHED.value,
-                'target': saml_params.url,
-                'parameters': saml_params.post_params,
-            },
-        )
 
     return error_response(message=IdPMsg.not_implemented)
 
@@ -329,12 +369,12 @@ def pw_auth(ref: RequestRef, username: str, password: str) -> Union[FluxData, We
         return error_response(message=IdPMsg.wrong_credentials)
 
     # Create SSO session
-    current_app.logger.debug(f'User {pwauth.user} authenticated OK (SAML id {repr(ticket.saml_req.request_id)})')
+    current_app.logger.debug(f'User {pwauth.user} authenticated OK ({type(ticket)} request id {ticket.request_id})')
     _authn_credentials: List[AuthnData] = []
     if pwauth.authndata:
         _authn_credentials = [pwauth.authndata]
     _sso_session = SSOSession(
-        authn_request_id=ticket.saml_req.request_id,
+        authn_request_id=ticket.request_id,
         authn_credentials=_authn_credentials,
         eppn=pwauth.user.eppn,
         expires_at=utc_now() + current_app.conf.sso_session_lifetime,
@@ -576,12 +616,18 @@ def request_other(ref: RequestRef, username: Optional[str] = None) -> FluxData:
 
     authn_ref = get_requested_authn_context(ticket)
 
-    # TODO: Add IP address, User-Agent etc. to OtherDevice and show it to user. Also add current login_ref for auditing.
-    other_device = OtherDevice.from_parameters(eppn=eppn, authn_context=authn_ref)
+    other_device = OtherDevice.from_parameters(
+        eppn=eppn,
+        login_ref=ticket.request_ref,
+        authn_context=authn_ref,
+        request_id=ticket.request_id,
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('user-agent'),
+    )
     res = current_app.other_device_db.save(other_device)
     current_app.logger.debug(f'Save {other_device} result: {res}')
 
-    current_app.logger.info(f'Created other-device state: {other_device.login_id}')
+    current_app.logger.info(f'Created other-device state: {other_device.state_id}')
     current_app.logger.debug(f'   Full other-device state: {other_device}')
 
     # passing expires_at to the frontend would require clock sync to be usable,
@@ -590,20 +636,20 @@ def request_other(ref: RequestRef, username: Optional[str] = None) -> FluxData:
     expires_in = (other_device.expires_at - now).total_seconds()
 
     buf = BytesIO()
-    use_other_url = urlappend(current_app.conf.other_device_url, str(other_device.login_id))
+    use_other_url = urlappend(current_app.conf.other_device_url, str(other_device.state_id))
     qrcode.make(use_other_url).save(buf)
     qr_b64 = base64.b64encode(buf.getvalue())
 
     current_app.logger.debug(f'   Use-other URL: {use_other_url} (QR: {len(qr_b64)} bytes)')
 
     if username:
-        current_app.stats.count('login_using_other_device_with_username')
+        current_app.stats.count('login_using_other_device_with_username_start')
     else:
-        current_app.stats.count('login_using_other_device_anonymous')
+        current_app.stats.count('login_using_other_device_anonymous_start')
 
     return success_response(
         payload={
-            'login_id': other_device.login_id,
+            'state_id': other_device.state_id,
             'short_code': other_device.short_code,
             'expires_in': expires_in,
             'qr_img': f'data:image/png;base64, {qr_b64.decode("ascii")}',
@@ -615,9 +661,9 @@ def request_other(ref: RequestRef, username: Optional[str] = None) -> FluxData:
 @idp_views.route('/use_other', methods=['POST'])
 @UnmarshalWith(UseOtherRequestSchema)
 @MarshalWith(UseOtherResponseSchema)
-def use_other(login_id: str) -> FluxData:
+def use_other(state_id: str) -> FluxData:
     current_app.logger.debug('\n\n')
-    current_app.logger.debug(f'--- Use Other Device ({login_id}) ---')
+    current_app.logger.debug(f'--- Use Other Device ({state_id}) ---')
 
     if not current_app.conf.allow_other_device_logins:
         return error_response(message=IdPMsg.not_available)
@@ -626,19 +672,25 @@ def use_other(login_id: str) -> FluxData:
     request_ref = None
     for k, v in session.idp.pending_requests.items():
         if isinstance(v, IdP_OtherDevicePendingRequest):
-            if v.login_id == login_id:
+            if v.state_id == state_id:
+                current_app.logger.debug(f'Found pending request {k} already with state_id {state_id}. Using it.')
+                current_app.logger.debug(f'Full pending request: {v}')
                 request_ref = k
                 break
 
-    state = current_app.other_device_db.get_state_by_login_id(login_id)
+    state = current_app.other_device_db.get_state_by_id(state_id)
     if not state:
-        current_app.logger.debug(f'Other device: Login id {login_id} not found')
+        current_app.logger.debug(f'Other device: State {state_id} not found')
         return error_response(message=IdPMsg.not_available)
+    current_app.logger.info(f'Loaded other device state: {state_id}')
+    current_app.logger.debug(f'  Full other device state: {state}')
 
     if not request_ref:
         # Create a new pending request.
         request_ref = RequestRef(str(uuid4()))
-        session.idp.pending_requests[request_ref] = IdP_OtherDevicePendingRequest(login_id=login_id)
+        pending = IdP_OtherDevicePendingRequest(state_id=state_id)
+        session.idp.pending_requests[request_ref] = pending
+        current_app.logger.debug(f'Created new pending request with ref {request_ref}: {pending}')
 
     # passing expires_at to the frontend would require clock sync to be usable,
     # while passing number of seconds left is pretty unambiguous
@@ -648,4 +700,4 @@ def use_other(login_id: str) -> FluxData:
     # The frontend will present the user with the option to proceed with this login on the second device
     # (the one scanning the QR code). If the user proceeds, the frontend can now call the /next endpoint
     # with the ref returned in this response.
-    return success_response(payload={'expires_in': expires_in, 'ref': request_ref})
+    return success_response(payload={'expires_in': expires_in, 'login_ref': request_ref})

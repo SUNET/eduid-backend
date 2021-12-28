@@ -1,16 +1,22 @@
 from __future__ import annotations
 
+from abc import ABC
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional, TYPE_CHECKING
+from enum import Enum
+from typing import List, Optional, TypeVar
 from urllib.parse import urlencode
 
 from pydantic import BaseModel
 
-from eduid.webapp.common.session.namespaces import IdP_PendingRequest, IdP_SAMLPendingRequest, RequestRef
-
-if TYPE_CHECKING:
-    from eduid.webapp.idp.idp_saml import IdP_SAMLRequest
+from eduid.webapp.common.session.namespaces import (
+    IdP_OtherDevicePendingRequest,
+    IdP_PendingRequest,
+    IdP_SAMLPendingRequest,
+    RequestRef,
+)
+from eduid.webapp.idp.idp_saml import IdP_SAMLRequest
+from eduid.webapp.idp.other_device import OtherDevice
 
 
 #
@@ -35,23 +41,21 @@ class ExternalMfaData(BaseModel):
 
 
 @dataclass
-class LoginContext:
+class LoginContext(ABC):
     """
     Class to hold data about an ongoing login process in memory only.
 
     Instances of this class is used more or less like a context being passed around.
     None of this data is persisted anywhere.
 
-    The 'request_ref' can be used to fetch information about this pending request from the EduidSession.
+    This is more or less an interface to the current 'pending_request' in the session,
+    identified by the request_ref.
     """
 
     request_ref: RequestRef
 
     # SAML request, loaded lazily from the session using `key'
-    # eduid.webapp.common can't import from eduid-webapp
     _pending_request: Optional[IdP_PendingRequest] = field(default=None, init=False, repr=False)
-    _saml_req: Optional['IdP_SAMLRequest'] = field(default=None, init=False, repr=False)
-    _request_ref: Optional[RequestRef] = field(default=None, init=False, repr=False)
 
     def __str__(self) -> str:
         return f'<{self.__class__.__name__}: key={self.request_ref}>'
@@ -69,6 +73,27 @@ class LoginContext:
         return self._pending_request
 
     @property
+    def request_id(self) -> Optional[str]:
+        raise NotImplementedError('Subclass must implement request_id')
+
+    @property
+    def authn_contexts(self) -> List[str]:
+        raise NotImplementedError('Subclass must implement authn_contexts')
+
+    @property
+    def reauthn_required(self) -> bool:
+        raise NotImplementedError('Subclass must implement force_authn')
+
+
+TLoginContextSubclass = TypeVar('TLoginContextSubclass', bound='LoginContext')
+
+
+@dataclass
+class LoginContextSAML(LoginContext):
+
+    _saml_req: Optional['IdP_SAMLRequest'] = field(default=None, init=False, repr=False)
+
+    @property
     def SAMLRequest(self) -> str:
         pending = self.pending_request
         if not isinstance(pending, IdP_SAMLPendingRequest):
@@ -81,10 +106,8 @@ class LoginContext:
     def RelayState(self) -> str:
         pending = self.pending_request
         if not isinstance(pending, IdP_SAMLPendingRequest):
-            return ''
-        if not pending.relay_state:
-            return ''
-        return pending.relay_state
+            raise ValueError('Pending request not initialised (or not a SAML request)')
+        return pending.relay_state or ''
 
     @property
     def binding(self) -> str:
@@ -101,20 +124,44 @@ class LoginContext:
         return urlencode(qs)
 
     @property
-    def saml_req(self) -> 'IdP_SAMLRequest':
-        # TODO: saml_req is a sort of layering violation. It is basically the same as SAMLRequest (from this object)
-        #       plus a reference to the pysaml2 IDP instance. Replace with LoginContext.SAMLRequest.
+    def saml_req(self) -> IdP_SAMLRequest:
+        if self._saml_req is None:
+            # avoid circular import
+            from eduid.webapp.idp.app import current_idp_app as current_app
 
-        # avoid circular import
-        from eduid.webapp.idp.app import current_idp_app as current_app
-        from eduid.webapp.idp.idp_saml import IdP_SAMLRequest
+            self._saml_req = IdP_SAMLRequest(
+                self.SAMLRequest, self.binding, current_app.IDP, debug=current_app.conf.debug
+            )
+        return self._saml_req
 
-        return IdP_SAMLRequest(self.SAMLRequest, self.binding, current_app.IDP, debug=current_app.conf.debug)
-        # if self._saml_req is None:
-        #    raise ValueError('SSOLoginData.saml_req accessed uninitialised')
-        # return self._saml_req
+    @property
+    def request_id(self) -> Optional[str]:
+        return self.saml_req.request_id
 
-    @saml_req.setter
-    def saml_req(self, value: Optional['IdP_SAMLRequest']):
-        # self._saml_req = value
-        pass
+    @property
+    def authn_contexts(self) -> List[str]:
+        return self.saml_req.get_requested_authn_contexts()
+
+    @property
+    def reauthn_required(self) -> bool:
+        return self.saml_req.force_authn
+
+
+@dataclass
+class LoginContextOtherDevice(LoginContext):
+
+    other_device_req: OtherDevice = field(default=None, repr=False)
+
+    @property
+    def request_id(self) -> Optional[str]:
+        return self.other_device_req.request_id
+
+    @property
+    def authn_contexts(self) -> List[str]:
+        if not self.other_device_req.authn_context:
+            return []
+        return [str(self.other_device_req.authn_context)]
+
+    @property
+    def reauthn_required(self) -> bool:
+        return self.other_device_req.reauthn_required

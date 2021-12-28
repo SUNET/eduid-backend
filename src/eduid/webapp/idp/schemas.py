@@ -111,7 +111,7 @@ class RequestOtherRequestSchema(IdPRequest):
 
 class RequestOtherResponseSchema(FluxStandardAction):
     class RequestOtherResponsePayload(EduidSchema, CSRFResponseMixin):
-        login_id = fields.UUID(required=True)
+        state_id = fields.UUID(required=True)
         short_code = fields.Str(required=True)
         expires_in = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
         qr_img = fields.Str(required=True)
@@ -121,12 +121,12 @@ class RequestOtherResponseSchema(FluxStandardAction):
 
 
 class UseOtherRequestSchema(EduidSchema, CSRFRequestMixin):
-    login_id = fields.Str(required=True)
+    state_id = fields.Str(required=True)
 
 
 class UseOtherResponseSchema(FluxStandardAction):
     class UseOtherResponsePayload(EduidSchema, CSRFResponseMixin):
         expires_in = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
-        ref = fields.Str(required=True)  # newly minted login_ref
+        login_ref = fields.Str(required=True)  # newly minted login_ref
 
     payload = fields.Nested(UseOtherResponsePayload)

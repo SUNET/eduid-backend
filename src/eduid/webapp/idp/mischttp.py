@@ -14,18 +14,20 @@ Miscellaneous HTTP related functions.
 """
 from __future__ import annotations
 
+import logging
 import pprint
 from dataclasses import dataclass
 from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, Type
 
 from flask import make_response, redirect, request
-from saml2 import BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest, InternalServerError
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.webapp.common.api.sanitation import SanitationProblem, Sanitizer
-from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.settings.common import IdPConfig
+from saml2 import BINDING_HTTP_REDIRECT
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -41,7 +43,7 @@ class HttpArgs:
     def from_pysaml2_dict(cls: Type[HttpArgs], http_args: Dict[str, Any]) -> HttpArgs:
         # Parse the parts of http_args we know how to parse, and then warn about any remains.
         if 'status' in http_args and http_args["status"] != 200:
-            current_app.logger.warning(f'Ignoring status in http_args: {http_args["status"]}')
+            logger.warning(f'Ignoring status in http_args: {http_args["status"]}')
         method = http_args.pop('method')
         url = http_args.pop('url')
         message = http_args.pop('data')
@@ -53,9 +55,7 @@ class HttpArgs:
             headers.append(('Content-Type', _content_type))
 
         if http_args != {}:
-            current_app.logger.debug(
-                f'Unknown HTTP args when creating {repr(status)} response :\n{pprint.pformat(http_args)}'
-            )
+            logger.debug(f'Unknown HTTP args when creating {repr(status)} response :\n{pprint.pformat(http_args)}')
 
         return cls(method=method, url=url, headers=headers, body=message)
 
@@ -83,14 +83,14 @@ def create_html_response(binding: str, http_args: HttpArgs) -> WerkzeugResponse:
     """
     if binding == BINDING_HTTP_REDIRECT:
         if http_args.method != 'GET':
-            current_app.logger.warning(f'BINDING_HTTP_REDIRECT method is not GET ({http_args.method})')
+            logger.warning(f'BINDING_HTTP_REDIRECT method is not GET ({http_args.method})')
         location = http_args.redirect_url
-        current_app.logger.debug(f'Binding {binding} redirecting to {repr(location)}')
+        logger.debug(f'Binding {binding} redirecting to {repr(location)}')
         if not location:
             raise InternalServerError('No redirect destination')
         if http_args.url:
             if not location.startswith(http_args.url):
-                current_app.logger.warning(f'There is another "url" in args: {http_args.url} (location: {location})')
+                logger.warning(f'There is another "url" in args: {http_args.url} (location: {location})')
         return redirect(location)
 
     message = b''
@@ -103,7 +103,7 @@ def create_html_response(binding: str, http_args: HttpArgs) -> WerkzeugResponse:
     for k, v in http_args.headers:
         _old_v = response.headers.get(k)
         if v != _old_v:
-            current_app.logger.debug(f'Changing response header {repr(k)} from {repr(_old_v)} -> {repr(v)}')
+            logger.debug(f'Changing response header {repr(k)} from {repr(_old_v)} -> {repr(v)}')
             response.headers[k] = v
     return response
 
@@ -124,12 +124,12 @@ def _sanitise_items(data: Mapping[str, Any]) -> Dict[str, str]:
     san = Sanitizer()
     for k, v in data.items():
         try:
-            safe_k = san.sanitize_input(k, content_type='text/plain', logger=current_app.logger)
+            safe_k = san.sanitize_input(k, content_type='text/plain', logger=logger)
             if safe_k != k:
                 raise BadRequest()
-            safe_v = san.sanitize_input(v, content_type='text/plain', logger=current_app.logger)
+            safe_v = san.sanitize_input(v, content_type='text/plain', logger=logger)
         except SanitationProblem:
-            current_app.logger.exception(f'There was a problem sanitizing inputs')
+            logger.exception(f'There was a problem sanitizing inputs')
             raise BadRequest()
         res[str(safe_k)] = str(safe_v)
     return res
@@ -145,10 +145,10 @@ def read_cookie(name: str) -> Optional[str]:
     :returns: string with cookie content, or None
     """
     cookies = request.cookies
-    current_app.logger.debug(f'Reading cookie(s): {cookies}')
+    logger.debug(f'Reading cookie(s): {cookies}')
     cookie = cookies.get(name)
     if not cookie:
-        current_app.logger.debug(f'No IdP SSO cookie ({name}) found')
+        logger.debug(f'No IdP SSO cookie ({name}) found')
         return None
     return cookie
 
@@ -160,6 +160,9 @@ def set_sso_cookie(value: str, response: WerkzeugResponse) -> WerkzeugResponse:
     :param value: The value to assign to the cookie
     :param response: Flask response object
     """
+    # local import to avoid import loop
+    from eduid.webapp.idp.app import current_idp_app as current_app
+
     response.set_cookie(
         key=current_app.conf.sso_cookie.key,
         value=value,
@@ -171,7 +174,7 @@ def set_sso_cookie(value: str, response: WerkzeugResponse) -> WerkzeugResponse:
         max_age=current_app.conf.sso_cookie.max_age_seconds,
     )
     _cookie = response.headers.get('Set-Cookie')
-    current_app.logger.debug(f'Set SSO cookie {_cookie}')
+    logger.debug(f'Set SSO cookie {_cookie}')
     return response
 
 

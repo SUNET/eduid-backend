@@ -122,6 +122,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     other_device_url: Optional[HttpUrl] = None
     esi_ladok_prefix: str = Field(default='urn:schac:personalUniqueCode:int:esi:ladok.se:externtstudentuid-')
     allow_other_device_logins: bool = False
+    enable_legacy_template_mode: bool = False
 
     @validator('sso_cookie')
     def make_sso_cookie(cls, v, values) -> CookieConfig:

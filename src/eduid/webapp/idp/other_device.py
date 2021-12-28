@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import logging
 import os
-import typing
 import uuid
 from datetime import datetime, timedelta
-from typing import Any, List, Mapping, Optional, Type
+from typing import Any, Dict, Mapping, Optional, Type
 
 from bson import ObjectId
 from pydantic import BaseModel, Field
@@ -13,26 +12,28 @@ from pydantic import BaseModel, Field
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.db import BaseDB
 from eduid.userdb.element import ElementKey
-
-if typing.TYPE_CHECKING:
-    # avoid circular import
-    from eduid.webapp.idp.assurance import EduidAuthnContextClass
+from eduid.webapp.idp.assurance_data import EduidAuthnContextClass
 
 logger = logging.getLogger(__name__)
 
 
 class OtherDevice(BaseModel):
-    login_id: str
-    short_code: str
-    eppn: Optional[str]
-    authn_context: Optional['EduidAuthnContextClass']
-    reauthn_required: bool
+    state_id: str  # unique reference for this state
+    short_code: str  # short code perhaps shown to user on device 1
+    eppn: Optional[str]  # the eppn of the user on device 1, either from the SSO session or entered e-mail address
+    login_ref: str  # the login 'ref' on device 1 (where login using another device was initiated)
+    authn_context: Optional[EduidAuthnContextClass]  # the level of authentication required on device 1
+    request_id: Optional[str]  # the request ID on device 1 (SAML authnRequest request id for example)
+    reauthn_required: bool  # if reauthn is required for the login on device 1
+    ip_address: str  # the IP address of device 1, to be used by the user on device 2 to assess the request
+    user_agent: Optional[str]  # the user agent of device 1, to be used by the user on device 2 to assess the request
     created_at: datetime
     expires_at: datetime
     obj_id: ObjectId = Field(default_factory=ObjectId, alias='_id')
-    response_code: Optional[str] = None
+    response_code: Optional[str] = None  # code from login event (using device 2) that has to be entered on device 1
     bad_attempts: int = 0  # number of failed attempts to produce the right response_code
-    credentials_used: List[ElementKey] = Field(default=[])  # TODO: doesn't work with onetime_credentials
+    # TODO: doesn't work with onetime_credentials
+    credentials_used: Dict[ElementKey, datetime] = Field(default={})
 
     class Config:
         # Don't reject ObjectId
@@ -42,18 +43,26 @@ class OtherDevice(BaseModel):
     def from_parameters(
         cls: Type[OtherDevice],
         eppn: Optional[str],
+        login_ref: str,
         authn_context: Optional[EduidAuthnContextClass],
+        request_id: Optional[str],
+        ip_address: str,
+        user_agent: Optional[str],
         reauthn_required: bool = False,
         ttl: timedelta = timedelta(minutes=20),
     ) -> OtherDevice:
         _uuid = uuid.uuid4()
-        short_code = _make_short_code()
+        short_code = make_short_code()
         now = utc_now()
         return cls(
-            login_id=str(_uuid),
+            state_id=str(_uuid),
             short_code=short_code,
             eppn=eppn,
+            login_ref=login_ref,
             authn_context=authn_context,
+            request_id=request_id,
+            ip_address=ip_address,
+            user_agent=user_agent,
             reauthn_required=reauthn_required,
             created_at=now,
             expires_at=now + ttl,
@@ -67,7 +76,7 @@ class OtherDevice(BaseModel):
         return cls(**data)
 
 
-def _make_short_code() -> str:
+def make_short_code() -> str:
     digits = int.from_bytes(os.urandom(4), byteorder='big') % 1000000
     return '{:06d}'.format(digits)
 
@@ -78,7 +87,7 @@ class OtherDeviceDB(BaseDB):
 
         indexes = {
             'auto-discard': {'key': [('expires_at', 1)], 'expireAfterSeconds': 0},
-            'unique-session-id': {'key': [('login_id', 1)], 'unique': True},
+            'unique-state-id': {'key': [('state_id', 1)], 'unique': True},
         }
         self.setup_indexes(indexes)
 
@@ -93,9 +102,9 @@ class OtherDeviceDB(BaseDB):
         )
         return result.acknowledged
 
-    def get_state_by_login_id(self, login_id: str) -> Optional[OtherDevice]:
-        state = self._get_document_by_attr('login_id', str(login_id))
+    def get_state_by_id(self, state_id: str) -> Optional[OtherDevice]:
+        state = self._get_document_by_attr('state_id', str(state_id))
         if not state:
-            logger.debug(f'Other-device state with login_id {login_id} not found in the database')
+            logger.debug(f'Other-device state with state_id {state_id} not found in the database')
             return None
         return OtherDevice.from_dict(state)

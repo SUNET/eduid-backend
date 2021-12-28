@@ -35,24 +35,23 @@
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum, unique
-from typing import Any, Dict, List, Optional, Sequence, Union
-
-from pydantic import BaseModel
+from enum import Enum
+from typing import Dict, List, Optional, Sequence, Union
 
 from eduid.userdb.credentials import (
-    METHOD_SWAMID_AL2_MFA,
-    METHOD_SWAMID_AL2_MFA_HI,
     Credential,
     FidoCredential,
+    METHOD_SWAMID_AL2_MFA,
+    METHOD_SWAMID_AL2_MFA_HI,
     Password,
 )
 from eduid.userdb.element import ElementKey
 from eduid.userdb.idp import IdPUser
-from eduid.webapp.common.session.logindata import LoginContext
-from eduid.webapp.common.session.namespaces import OnetimeCredential, OnetimeCredType
+from eduid.webapp.common.session.logindata import LoginContext, LoginContextSAML
+from eduid.webapp.common.session.namespaces import OnetimeCredType, OnetimeCredential
 from eduid.webapp.idp.app import current_idp_app
 from eduid.webapp.idp.app import current_idp_app as current_app
+from eduid.webapp.idp.assurance_data import AuthnInfo, EduidAuthnContextClass
 from eduid.webapp.idp.sso_session import SSOSession
 
 logger = logging.getLogger(__name__)
@@ -60,15 +59,6 @@ logger = logging.getLogger(__name__)
 """
 Assurance Level functionality.
 """
-
-
-@unique
-class EduidAuthnContextClass(str, Enum):
-    REFEDS_MFA = 'https://refeds.org/profile/mfa'
-    REFEDS_SFA = 'https://refeds.org/profile/sfa'
-    FIDO_U2F = 'https://www.swamid.se/specs/id-fido-u2f-ce-transports'
-    EDUID_MFA = 'https://eduid.se/specs/mfa'
-    PASSWORD_PT = 'urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport'
 
 
 class AssuranceException(Exception):
@@ -176,8 +166,8 @@ class AuthnState(object):
         _used_request = [x for x in _used_credentials.values() if x.source == UsedWhere.REQUEST]
         logger.debug(f'Number of credentials used with this very request: {len(_used_request)}')
 
-        if ticket.saml_req.force_authn:
-            logger.debug('Request has forceAuthn set, not even considering credentials from the SSO session')
+        if ticket.reauthn_required:
+            logger.debug('Request requires authentication, not even considering credentials from the SSO session')
             return list(_used_credentials.values())
 
         # Request does not have forceAuthn set, so gather credentials from the SSO session
@@ -230,20 +220,6 @@ class AuthnState(object):
     @property
     def is_swamid_al2_mfa(self) -> bool:
         return self.swamid_al2_used or self.swamid_al2_hi_used
-
-
-class AuthnInfo(BaseModel):
-    """ Information about what AuthnContextClass etc. to put in SAML Authn responses."""
-
-    class_ref: EduidAuthnContextClass
-    authn_attributes: Dict[str, Any]  # these are added to the user attributes
-    instant: datetime
-
-    def __str__(self):
-        return (
-            f'<{self.__class__.__name__}: accr={self.class_ref.name}, attributes={self.authn_attributes}, '
-            f'instant={self.instant.isoformat()}>'
-        )
 
 
 def response_authn(ticket: LoginContext, user: IdPUser, sso_session: SSOSession) -> AuthnInfo:
@@ -331,9 +307,12 @@ def get_requested_authn_context(ticket: LoginContext) -> Optional[EduidAuthnCont
 
     TODO: Don't just return the first one, but the most relevant somehow.
     """
-    _accrs = ticket.saml_req.get_requested_authn_contexts()
+    _accrs = ticket.authn_contexts
 
     res = _pick_authn_context(_accrs, ticket.request_ref)
+
+    if not isinstance(ticket, LoginContextSAML):
+        return res
 
     attributes = ticket.saml_req.sp_entity_attributes
     if 'http://www.swamid.se/assurance-requirement' in attributes:
