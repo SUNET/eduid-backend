@@ -28,7 +28,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from marshmallow import fields
+from marshmallow import Schema, fields
 
 from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
@@ -126,7 +126,13 @@ class UseOtherRequestSchema(EduidSchema, CSRFRequestMixin):
 
 class UseOtherResponseSchema(FluxStandardAction):
     class UseOtherResponsePayload(EduidSchema, CSRFResponseMixin):
+        class DeviceInfo(Schema):
+            addr = fields.Str(required=True)
+            description = fields.Str(required=False)
+            proximity = fields.Str(required=False)
+
         expires_in = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
         login_ref = fields.Str(required=True)  # newly minted login_ref
+        device1_info = fields.Nested(DeviceInfo)
 
     payload = fields.Nested(UseOtherResponsePayload)

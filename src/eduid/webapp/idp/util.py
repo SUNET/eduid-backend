@@ -33,10 +33,10 @@
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
 import base64
+import ipaddress
 import logging
+from enum import Enum
 from typing import Union
-
-from eduid.webapp.idp.app import current_idp_app as current_app
 
 logger = logging.getLogger(__name__)
 
@@ -74,5 +74,23 @@ def maybe_xml_to_string(message: Union[str, bytes]) -> str:
             raise ValueError('DefusedElementTree.tostring() did not return bytes')
         return _xml.decode('utf-8')
     except Exception:
-        current_app.logger.exception(f'Could not parse message of type {type(message)!r} as XML')
+        logger.exception(f'Could not parse message of type {type(message)!r} as XML')
         return message
+
+
+class IPProximity(str, Enum):
+    SAME = 'SAME'
+    CLOSE = 'CLOSE'
+    FAR = 'FAR'
+
+
+def get_ip_proximity(a: str, b: str) -> IPProximity:
+    """ Tell how far apart IP A and B are. """
+    ip_a = ipaddress.ip_address(a)
+    ip_b = ipaddress.ip_address(b)
+    logger.debug(f'Checking proximity of IP {ip_a} and {ip_b}')
+    logger.debug(f'Checking proximity of IP {ip_a!r} and {ip_b!r}')
+    if ip_a == ip_b:
+        return IPProximity.SAME
+    # TODO: Check IPv4 /16 and IPv6 /56
+    return IPProximity.FAR

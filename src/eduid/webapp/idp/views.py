@@ -38,6 +38,7 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 from uuid import uuid4
 
 import qrcode
+import user_agents
 from bson import ObjectId
 from flask import Blueprint, jsonify, redirect, request, url_for
 from werkzeug.exceptions import BadRequest
@@ -74,6 +75,7 @@ from eduid.webapp.idp.logout import SLO
 __author__ = 'ft'
 
 from eduid.webapp.idp.other_device import OtherDevice, OtherDeviceState, make_short_code
+from eduid.webapp.idp.util import get_ip_proximity
 
 from saml2 import BINDING_HTTP_POST
 
@@ -726,4 +728,9 @@ def use_other(state_id: str) -> FluxData:
     # The frontend will present the user with the option to proceed with this login on the second device
     # (the one scanning the QR code). If the user proceeds, the frontend can now call the /next endpoint
     # with the ref returned in this response.
-    return success_response(payload={'expires_in': expires_in, 'login_ref': request_ref})
+    device_info = {
+        'addr': state.ip_address,
+        'description': str(user_agents.parse(state.user_agent)),
+        'proximity': get_ip_proximity(state.ip_address, request.remote_addr).value,
+    }
+    return success_response(payload={'expires_in': expires_in, 'login_ref': request_ref, 'device1_info': device_info})
