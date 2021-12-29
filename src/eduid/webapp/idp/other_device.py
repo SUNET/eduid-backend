@@ -4,6 +4,7 @@ import logging
 import os
 import uuid
 from datetime import datetime, timedelta
+from enum import Enum
 from typing import Any, Dict, Mapping, Optional, Type
 
 from bson import ObjectId
@@ -17,9 +18,17 @@ from eduid.webapp.idp.assurance_data import EduidAuthnContextClass
 logger = logging.getLogger(__name__)
 
 
+class OtherDeviceState(str, Enum):
+    NEW = 'NEW'
+    IN_PROGRESS = 'IN_PROGRESS'
+    FINISHED = 'FINISHED'
+    ABORTED = 'ABORTED'
+
+
 class OtherDevice(BaseModel):
     state_id: str  # unique reference for this state
-    short_code: str  # short code perhaps shown to user on device 1
+    state: OtherDeviceState  # the state this request is in
+    short_code: str = Field(repr=False)  # short code perhaps shown to user on device 1, this is a secret value
     eppn: Optional[str]  # the eppn of the user on device 1, either from the SSO session or entered e-mail address
     login_ref: str  # the login 'ref' on device 1 (where login using another device was initiated)
     authn_context: Optional[EduidAuthnContextClass]  # the level of authentication required on device 1
@@ -56,6 +65,7 @@ class OtherDevice(BaseModel):
         now = utc_now()
         return cls(
             state_id=str(_uuid),
+            state=OtherDeviceState.NEW,
             short_code=short_code,
             eppn=eppn,
             login_ref=login_ref,
@@ -91,13 +101,13 @@ class OtherDeviceDB(BaseDB):
         }
         self.setup_indexes(indexes)
 
-    def save(self, other: OtherDevice) -> bool:
+    def save(self, state: OtherDevice) -> bool:
         """
         Add a new OtherDevice to the database, or update an existing one.
         """
-        result = self._coll.replace_one({'_id': other.obj_id}, other.to_dict(), upsert=True)
+        result = self._coll.replace_one({'_id': state.obj_id}, state.to_dict(), upsert=True)
         logger.debug(
-            f'Saved OtherDevice {other} in the db: '
+            f'Saved OtherDevice {state} in the db: '
             f'matched={result.matched_count}, modified={result.modified_count}, upserted_id={result.upserted_id}'
         )
         return result.acknowledged

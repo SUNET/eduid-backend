@@ -73,7 +73,7 @@ from eduid.webapp.idp.logout import SLO
 
 __author__ = 'ft'
 
-from eduid.webapp.idp.other_device import OtherDevice, make_short_code
+from eduid.webapp.idp.other_device import OtherDevice, OtherDeviceState, make_short_code
 
 from saml2 import BINDING_HTTP_POST
 
@@ -187,6 +187,7 @@ def authn_options(ref: RequestRef) -> FluxData:
         return error_response(message=IdPMsg.bad_ref)
 
     payload: Dict[str, Any] = {
+        'usernamepassword': True,
         'password': False,
         'other_device': current_app.conf.allow_other_device_logins,
         'webauthn': False,
@@ -588,6 +589,15 @@ def tou(ref: RequestRef, versions: Optional[Sequence[str]] = None, user_accepts:
 @UnmarshalWith(RequestOtherRequestSchema)
 @MarshalWith(RequestOtherResponseSchema)
 def request_other(ref: RequestRef, username: Optional[str] = None) -> FluxData:
+    """
+    The user requests to start a "Login using another device" flow.
+
+    This function sets up a new state for that in the database, and returns a QR code with a reference to that state.
+
+    The QR code is the transferred (by the user) to another device (device #2), where the actual use of credentials
+    will take place. The state will then be updated with the authentication information, and the user can
+    retrieve them again on this device (device #1).
+    """
     current_app.logger.debug('\n\n')
     current_app.logger.debug(f'--- Request Other Device ({ref}, username {username}) ---')
 
@@ -600,10 +610,9 @@ def request_other(ref: RequestRef, username: Optional[str] = None) -> FluxData:
         return error_response(message=IdPMsg.bad_ref)
     current_app.logger.debug(f'LoginContext: {asdict(ticket)}')
     current_app.logger.debug(f'Pending request: {ticket.pending_request}')
-    current_app.logger.debug(f'ALL pending request: {session.idp.pending_requests}')
 
     if isinstance(ticket.pending_request, IdP_OtherDevicePendingRequest):
-        current_app.logger.info(f'Not allowing recursive login using another device')
+        current_app.logger.warning(f'Not allowing recursive login using another device')
         return error_response(message=IdPMsg.not_available)
 
     if username:
@@ -649,7 +658,7 @@ def request_other(ref: RequestRef, username: Optional[str] = None) -> FluxData:
 
     return success_response(
         payload={
-            'state_id': other_device.state_id,
+            'state_id': other_device.state_id,  # TODO: Make a secretbox with the state_id in it here
             'short_code': other_device.short_code,
             'expires_in': expires_in,
             'qr_img': f'data:image/png;base64, {qr_b64.decode("ascii")}',
@@ -662,6 +671,11 @@ def request_other(ref: RequestRef, username: Optional[str] = None) -> FluxData:
 @UnmarshalWith(UseOtherRequestSchema)
 @MarshalWith(UseOtherResponseSchema)
 def use_other(state_id: str) -> FluxData:
+    """ "Login using another device" flow.
+
+    This is the first step on device #2. When the user has scanned the QR code, the frontend will fetch state
+    using this endpoint.
+    """
     current_app.logger.debug('\n\n')
     current_app.logger.debug(f'--- Use Other Device ({state_id}) ---')
 
@@ -685,12 +699,24 @@ def use_other(state_id: str) -> FluxData:
     current_app.logger.info(f'Loaded other device state: {state_id}')
     current_app.logger.debug(f'  Full other device state: {state}')
 
-    if not request_ref:
-        # Create a new pending request.
+    if state.state == OtherDeviceState.NEW:
+        # Grab this state and associate it with the current browser session. This is important so that
+        # it's not possible for an attacker to initiate other device, send QR code to victim, have them
+        # use it and log in and then use the QR code to retrieve the response code.
+        state.state = OtherDeviceState.IN_PROGRESS
+        # TODO: Guess there is a small race here if the attacker reaches this point at the exact same
+        #       time as the victim. Solve with versioning mechanism on the db objects?
+        if not current_app.other_device_db.save(state):
+            current_app.logger.warning(f'Failed to save IN_PROGRESS state: {state}')
+            return error_response(message=IdPMsg.general_failure)
         request_ref = RequestRef(str(uuid4()))
         pending = IdP_OtherDevicePendingRequest(state_id=state_id)
         session.idp.pending_requests[request_ref] = pending
         current_app.logger.debug(f'Created new pending request with ref {request_ref}: {pending}')
+
+    if not request_ref:
+        current_app.logger.warning(f'Tried to use OtherDevice state that is not new: {state}')
+        return error_response(message=IdPMsg.general_failure)  # TODO: make a real error code for this
 
     # passing expires_at to the frontend would require clock sync to be usable,
     # while passing number of seconds left is pretty unambiguous
