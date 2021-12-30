@@ -57,8 +57,8 @@ class OtherDevice(BaseModel):
         request_id: Optional[str],
         ip_address: str,
         user_agent: Optional[str],
+        ttl: timedelta,
         reauthn_required: bool = False,
-        ttl: timedelta = timedelta(minutes=20),
     ) -> OtherDevice:
         _uuid = uuid.uuid4()
         short_code = make_short_code()

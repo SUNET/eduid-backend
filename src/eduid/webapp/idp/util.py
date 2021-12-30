@@ -80,7 +80,7 @@ def maybe_xml_to_string(message: Union[str, bytes]) -> str:
 
 class IPProximity(str, Enum):
     SAME = 'SAME'
-    CLOSE = 'CLOSE'
+    NEAR = 'NEAR'
     FAR = 'FAR'
 
 

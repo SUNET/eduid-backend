@@ -111,11 +111,12 @@ class RequestOtherRequestSchema(IdPRequest):
 
 class RequestOtherResponseSchema(FluxStandardAction):
     class RequestOtherResponsePayload(EduidSchema, CSRFResponseMixin):
-        state_id = fields.UUID(required=True)
-        short_code = fields.Str(required=True)
         expires_in = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
-        qr_img = fields.Str(required=True)
+        expires_max = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
         other_url = fields.Str(required=True)  # the link to where the user can manually enter short_code to proceed
+        qr_img = fields.Str(required=True)
+        short_code = fields.Str(required=True)
+        state_id = fields.UUID(required=True)
 
     payload = fields.Nested(RequestOtherResponsePayload)
 
@@ -131,8 +132,10 @@ class UseOtherResponseSchema(FluxStandardAction):
             description = fields.Str(required=False)
             proximity = fields.Str(required=False)
 
-        expires_in = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
-        login_ref = fields.Str(required=True)  # newly minted login_ref
         device1_info = fields.Nested(DeviceInfo)
+        expires_in = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
+        expires_max = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
+        short_code = fields.Str(required=True)
+        login_ref = fields.Str(required=True)  # newly minted login_ref
 
     payload = fields.Nested(UseOtherResponsePayload)

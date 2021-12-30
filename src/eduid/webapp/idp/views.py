@@ -634,6 +634,7 @@ def request_other(ref: RequestRef, username: Optional[str] = None) -> FluxData:
         request_id=ticket.request_id,
         ip_address=request.remote_addr,
         user_agent=request.headers.get('user-agent'),
+        ttl=current_app.conf.other_device_logins_ttl,
     )
     res = current_app.other_device_db.save(other_device)
     current_app.logger.debug(f'Save {other_device} result: {res}')
@@ -660,11 +661,12 @@ def request_other(ref: RequestRef, username: Optional[str] = None) -> FluxData:
 
     return success_response(
         payload={
-            'state_id': other_device.state_id,  # TODO: Make a secretbox with the state_id in it here
-            'short_code': other_device.short_code,
             'expires_in': expires_in,
-            'qr_img': f'data:image/png;base64, {qr_b64.decode("ascii")}',
+            'expires_max': current_app.conf.other_device_logins_ttl.total_seconds(),
             'other_url': use_other_url,
+            'qr_img': f'data:image/png;base64, {qr_b64.decode("ascii")}',
+            'short_code': other_device.short_code,
+            'state_id': other_device.state_id,  # TODO: Make a secretbox with the state_id in it here
         }
     )
 
@@ -733,4 +735,12 @@ def use_other(state_id: str) -> FluxData:
         'description': str(user_agents.parse(state.user_agent)),
         'proximity': get_ip_proximity(state.ip_address, request.remote_addr).value,
     }
-    return success_response(payload={'expires_in': expires_in, 'login_ref': request_ref, 'device1_info': device_info})
+    return success_response(
+        payload={
+            'device1_info': device_info,
+            'expires_in': expires_in,
+            'expires_max': current_app.conf.other_device_logins_ttl.total_seconds(),
+            'short_code': state.short_code,
+            'login_ref': request_ref,
+        }
+    )
