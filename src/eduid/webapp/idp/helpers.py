@@ -20,6 +20,7 @@ class IdPMsg(str, TranslatableMsg):
     not_implemented = 'login.not_implemented'
     other_device = 'login.use_another_device'
     proceed = 'login.proceed'  # Shouldn't actually be returned to the frontend
+    state_not_found = 'login.state_not_found'
     swamid_mfa_required = 'login.swamid_mfa_required'
     tou_not_acceptable = 'login.tou_not_acceptable'
     tou_required = 'login.tou_required'

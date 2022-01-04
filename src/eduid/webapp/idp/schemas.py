@@ -107,6 +107,8 @@ class TouResponseSchema(FluxStandardAction):
 
 class RequestOtherRequestSchema(IdPRequest):
     username = fields.Str(required=False)  # optional username, if the user supplies an e-mail address
+    action = fields.Str(required=False)  # optional action, 'ABORT' or 'SUBMIT_CODE'
+    response_code = fields.Str(required=False)  # optional response code, if action == 'SUBMIT_CODE'
 
 
 class RequestOtherResponseSchema(FluxStandardAction):

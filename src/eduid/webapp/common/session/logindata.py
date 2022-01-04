@@ -148,18 +148,18 @@ class LoginContextSAML(LoginContext):
 @dataclass
 class LoginContextOtherDevice(LoginContext):
 
-    other_device_req: 'OtherDevice' = field(default=None, repr=False)
+    other_device_req: OtherDevice = field(repr=False)
 
     @property
     def request_id(self) -> Optional[str]:
-        return self.other_device_req.request_id
+        return self.other_device_req.device1.request_id
 
     @property
     def authn_contexts(self) -> List[str]:
-        if not self.other_device_req.authn_context:
+        if not self.other_device_req.device1.authn_context:
             return []
-        return [str(self.other_device_req.authn_context)]
+        return [str(self.other_device_req.device1.authn_context)]
 
     @property
     def reauthn_required(self) -> bool:
-        return self.other_device_req.reauthn_required
+        return self.other_device_req.device1.reauthn_required

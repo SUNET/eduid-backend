@@ -24,24 +24,33 @@ if typing.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class OtherDevice(BaseModel):
-    state_id: OtherDeviceId  # unique reference for this state
-    state: OtherDeviceState  # the state this request is in
-    short_code: str = Field(repr=False)  # short code perhaps shown to user on device 1, this is a secret value
-    eppn: Optional[str]  # the eppn of the user on device 1, either from the SSO session or entered e-mail address
-    login_ref: str  # the login 'ref' on device 1 (where login using another device was initiated)
+class Device1Data(BaseModel):
+    ref: str  # the login 'ref' on device 1 (where login using another device was initiated)
     authn_context: Optional[EduidAuthnContextClass]  # the level of authentication required on device 1
     request_id: Optional[str]  # the request ID on device 1 (SAML authnRequest request id for example)
     reauthn_required: bool  # if reauthn is required for the login on device 1
     ip_address: str  # the IP address of device 1, to be used by the user on device 2 to assess the request
     user_agent: Optional[str]  # the user agent of device 1, to be used by the user on device 2 to assess the request
+
+
+class Device2Data(BaseModel):
+    ref: Optional[str] = None  # the pending_request 'ref' on device 2
+    response_code: Optional[str] = None  # code from login event (using device 2) that has to be entered on device 1
+    # TODO: doesn't work with onetime_credentials
+    credentials_used: Mapping[ElementKey, datetime] = Field(default={})
+
+
+class OtherDevice(BaseModel):
+    bad_attempts: int = 0  # number of failed attempts to produce the right response_code
     created_at: datetime
+    device1: Device1Data
+    device2: Device2Data
+    eppn: Optional[str]  # the eppn of the user on device 1, either from the SSO session or entered e-mail address
     expires_at: datetime
     obj_id: ObjectId = Field(default_factory=ObjectId, alias='_id')
-    response_code: Optional[str] = None  # code from login event (using device 2) that has to be entered on device 1
-    bad_attempts: int = 0  # number of failed attempts to produce the right response_code
-    # TODO: doesn't work with onetime_credentials
-    credentials_used: Dict[ElementKey, datetime] = Field(default={})
+    short_code: str = Field(repr=False)  # short code shown to the user on both devices, to match up screens
+    state: OtherDeviceState  # the state this request is in
+    state_id: OtherDeviceId  # unique reference for this state
 
     class Config:
         # Don't reject ObjectId
@@ -51,7 +60,7 @@ class OtherDevice(BaseModel):
     def from_parameters(
         cls: Type[OtherDevice],
         eppn: Optional[str],
-        login_ref: str,
+        device1_ref: str,
         authn_context: Optional[EduidAuthnContextClass],
         request_id: Optional[str],
         ip_address: str,
@@ -67,12 +76,15 @@ class OtherDevice(BaseModel):
             state=OtherDeviceState.NEW,
             short_code=short_code,
             eppn=eppn,
-            login_ref=login_ref,
-            authn_context=authn_context,
-            request_id=request_id,
-            ip_address=ip_address,
-            user_agent=user_agent,
-            reauthn_required=reauthn_required,
+            device1=Device1Data(
+                ref=device1_ref,
+                authn_context=authn_context,
+                request_id=request_id,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                reauthn_required=reauthn_required,
+            ),
+            device2=Device2Data(),
             created_at=now,
             expires_at=now + ttl,
         )
@@ -124,7 +136,7 @@ class OtherDeviceDB(BaseDB):
         authn_ref = get_requested_authn_context(ticket)
         state = OtherDevice.from_parameters(
             eppn=None if not user else user.eppn,
-            login_ref=ticket.request_ref,
+            device1_ref=ticket.request_ref,
             authn_context=authn_ref,
             request_id=ticket.request_id,
             ip_address=request.remote_addr,
@@ -135,4 +147,71 @@ class OtherDeviceDB(BaseDB):
         logger.debug(f'Save {state} result: {res}')
         logger.info(f'Created other-device state: {state.state_id}')
         logger.debug(f'   Full other-device state: {state}')
+        return state
+
+    def abort(self, state: OtherDevice) -> Optional[OtherDevice]:
+        """
+        Abort a state.
+        """
+        if state.state not in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS]:
+            return None
+        _state_val = state.state.value
+        state.state.value = OtherDeviceState.ABORTED
+
+        result = self._coll.replace_one({'_id': state.obj_id, 'state': _state_val}, state.to_dict(), upsert=True)
+        logger.debug(
+            f'Aborted OtherDevice {state} in the db: '
+            f'matched={result.matched_count}, modified={result.modified_count}, upserted_id={result.upserted_id}'
+        )
+        if not result.acknowledged:
+            return None
+        return state
+
+    def grab(self, state: OtherDevice, device2_ref: str) -> Optional[OtherDevice]:
+        """
+        Grab a state, on device 2. This has to be an atomic operation to ensure two devices (one attacker and one
+        victim) can't have pending_requests pointing at this very same OtherDevice state. Otherwise, the attacker
+        can retrieve the response_code after the victim logs in.
+        """
+        if state.state != OtherDeviceState.NEW:
+            return None
+
+        if state.device2.ref is not None:
+            return None
+
+        _state_val = state.state.value
+        state.state.value = OtherDeviceState.IN_PROGRESS
+        state.device2.ref = device2_ref
+
+        result = self._coll.replace_one({'_id': state.obj_id, 'state': _state_val}, state.to_dict(), upsert=True)
+        logger.debug(
+            f'Grabbed OtherDevice {state} in the db: '
+            f'matched={result.matched_count}, modified={result.modified_count}, upserted_id={result.upserted_id}'
+        )
+        if not result.acknowledged:
+            return None
+        return state
+
+    def finish(self, state: OtherDevice, credentials_used: Mapping[ElementKey, datetime]) -> Optional[OtherDevice]:
+        """
+        Finish a state, on device 2.
+        """
+        if state.state != OtherDeviceState.IN_PROGRESS:
+            return None
+
+        if not state.device2.ref:
+            return None
+
+        _state_val = state.state.value
+        state.state.value = OtherDeviceState.FINISHED
+        state.device2.credentials_used = credentials_used
+        state.device2.response_code = make_short_code()
+
+        result = self._coll.replace_one({'_id': state.obj_id, 'state': _state_val}, state.to_dict(), upsert=True)
+        logger.debug(
+            f'Grabbed OtherDevice {state} in the db: '
+            f'matched={result.matched_count}, modified={result.modified_count}, upserted_id={result.upserted_id}'
+        )
+        if not result.acknowledged:
+            return None
         return state

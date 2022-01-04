@@ -167,7 +167,7 @@ class IdP_SAMLPendingRequest(IdP_PendingRequest):
 
 
 class IdP_OtherDevicePendingRequest(IdP_PendingRequest):
-    state_id: str  # an UUID4, but those can't be serialised to put in the session
+    state_id: OtherDeviceId
 
 
 class IdP_Namespace(TimestampedNS):
