@@ -85,12 +85,28 @@ class IPProximity(str, Enum):
 
 
 def get_ip_proximity(a: str, b: str) -> IPProximity:
-    """ Tell how far apart IP A and B are. """
+    """ Tell how far apart IP A and B are.
+
+     The addresses are either deemed to be 'SAME', 'NEAR' or 'FAR' apart.
+
+     The definition of NEAR is /16 for IPv4 and /48 for IPv6.
+     """
     ip_a = ipaddress.ip_address(a)
     ip_b = ipaddress.ip_address(b)
     logger.debug(f'Checking proximity of IP {ip_a} and {ip_b}')
     logger.debug(f'Checking proximity of IP {ip_a!r} and {ip_b!r}')
     if ip_a == ip_b:
+        logger.debug(f'IP addresses {ip_a} and {ip_b} deemed to be SAME')
         return IPProximity.SAME
-    # TODO: Check IPv4 /16 and IPv6 /56
+    if isinstance(ip_a, ipaddress.IPv4Address) and isinstance(ip_a, ipaddress.IPv4Address):
+        net_a = ipaddress.ip_network(str(ip_a) + "/16", strict=False)
+        if ip_b in net_a:
+            logger.debug(f'IP addresses {ip_a} and {ip_b} deemed to be NEAR')
+            return IPProximity.NEAR
+    if isinstance(ip_a, ipaddress.IPv6Address) and isinstance(ip_a, ipaddress.IPv6Address):
+        net_a = ipaddress.ip_network(str(ip_a) + "/48", strict=False)
+        if ip_b in net_a:
+            logger.debug(f'IP addresses {ip_a} and {ip_b} deemed to be NEAR')
+            return IPProximity.NEAR
+    logger.debug(f'IP addresses {ip_a} and {ip_b} deemed to be FAR')
     return IPProximity.FAR

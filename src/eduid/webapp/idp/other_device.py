@@ -2,31 +2,30 @@ from __future__ import annotations
 
 import logging
 import os
+import typing
 import uuid
 from datetime import datetime, timedelta
-from enum import Enum
 from typing import Any, Dict, Mapping, Optional, Type
 
 from bson import ObjectId
+from flask import request
 from pydantic import BaseModel, Field
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.userdb import User
 from eduid.userdb.db import BaseDB
 from eduid.userdb.element import ElementKey
 from eduid.webapp.idp.assurance_data import EduidAuthnContextClass
+from eduid.webapp.idp.other_device_data import OtherDeviceId, OtherDeviceState
+
+if typing.TYPE_CHECKING:
+    from eduid.webapp.common.session.logindata import LoginContext
 
 logger = logging.getLogger(__name__)
 
 
-class OtherDeviceState(str, Enum):
-    NEW = 'NEW'
-    IN_PROGRESS = 'IN_PROGRESS'
-    FINISHED = 'FINISHED'
-    ABORTED = 'ABORTED'
-
-
 class OtherDevice(BaseModel):
-    state_id: str  # unique reference for this state
+    state_id: OtherDeviceId  # unique reference for this state
     state: OtherDeviceState  # the state this request is in
     short_code: str = Field(repr=False)  # short code perhaps shown to user on device 1, this is a secret value
     eppn: Optional[str]  # the eppn of the user on device 1, either from the SSO session or entered e-mail address
@@ -64,7 +63,7 @@ class OtherDevice(BaseModel):
         short_code = make_short_code()
         now = utc_now()
         return cls(
-            state_id=str(_uuid),
+            state_id=OtherDeviceId(str(_uuid)),
             state=OtherDeviceState.NEW,
             short_code=short_code,
             eppn=eppn,
@@ -112,9 +111,28 @@ class OtherDeviceDB(BaseDB):
         )
         return result.acknowledged
 
-    def get_state_by_id(self, state_id: str) -> Optional[OtherDevice]:
+    def get_state_by_id(self, state_id: OtherDeviceId) -> Optional[OtherDevice]:
         state = self._get_document_by_attr('state_id', str(state_id))
         if not state:
             logger.debug(f'Other-device state with state_id {state_id} not found in the database')
             return None
         return OtherDevice.from_dict(state)
+
+    def add_new_state(self, ticket: 'LoginContext', user: Optional[User], ttl: timedelta) -> OtherDevice:
+        from eduid.webapp.idp.assurance import get_requested_authn_context
+
+        authn_ref = get_requested_authn_context(ticket)
+        state = OtherDevice.from_parameters(
+            eppn=None if not user else user.eppn,
+            login_ref=ticket.request_ref,
+            authn_context=authn_ref,
+            request_id=ticket.request_id,
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('user-agent'),
+            ttl=ttl,
+        )
+        res = self.save(state)
+        logger.debug(f'Save {state} result: {res}')
+        logger.info(f'Created other-device state: {state.state_id}')
+        logger.debug(f'   Full other-device state: {state}')
+        return state

@@ -3,14 +3,12 @@ from __future__ import annotations
 from abc import ABC
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
 from typing import List, Optional, TypeVar
 from urllib.parse import urlencode
 
 from pydantic import BaseModel
 
 from eduid.webapp.common.session.namespaces import (
-    IdP_OtherDevicePendingRequest,
     IdP_PendingRequest,
     IdP_SAMLPendingRequest,
     RequestRef,
@@ -67,7 +65,7 @@ class LoginContext(ABC):
 
             pending_request = session.idp.pending_requests.get(self.request_ref)
             if not pending_request:
-                raise RuntimeError(f'SAML data with ref {self.request_ref} not found in session')
+                raise RuntimeError(f'No pending request with ref {self.request_ref} found in session')
             self._pending_request = pending_request
 
         return self._pending_request
@@ -150,7 +148,7 @@ class LoginContextSAML(LoginContext):
 @dataclass
 class LoginContextOtherDevice(LoginContext):
 
-    other_device_req: OtherDevice = field(default=None, repr=False)
+    other_device_req: 'OtherDevice' = field(default=None, repr=False)
 
     @property
     def request_id(self) -> Optional[str]:

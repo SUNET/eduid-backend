@@ -92,6 +92,15 @@ class NextResult(BaseModel):
 
 def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], template_mode: bool = False) -> NextResult:
     """ The main state machine for the login flow(s). """
+    if current_app.conf.allow_other_device_logins:
+        if ticket.pending_request.other_device_state_id:
+            state = current_app.other_device_db.get_state_by_id(ticket.pending_request.other_device_state_id)
+            if state and state.expires_at > utc_now():
+                current_app.logger.debug(
+                    f'Logging in using another device, {ticket.pending_request.other_device_state_id}'
+                )
+                return NextResult(message=IdPMsg.other_device)
+
     if not isinstance(sso_session, SSOSession):
         current_app.logger.debug('No SSO session found - initiating authentication')
         return NextResult(message=IdPMsg.must_authenticate)
@@ -105,7 +114,7 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
         current_app.logger.info(f'User {user} is terminated')
         return NextResult(message=IdPMsg.user_terminated, error=True)
 
-    if template_mode:
+    if template_mode and current_app.conf.enable_legacy_template_mode:
         process_mfa_action_results(user, ticket, sso_session)
 
     res = NextResult(message=IdPMsg.assurance_failure, error=True)
@@ -660,6 +669,12 @@ def get_ticket(info: SAMLQueryParams, binding: Optional[str]) -> Optional[LoginC
 
     if not info.request_ref:
         raise BadRequest('Bad request, please re-initiate login')
+
+    if info.request_ref not in session.idp.pending_requests:
+        logger.debug(f'Ref {info.request_ref} not found in pending requests: {session.idp.pending_requests.keys()}')
+        logger.debug(f'Extra debug, full pending requests: {session.idp.pending_requests}')
+        # raise RuntimeError(f'No pending request with ref {info.request_ref} found in session')
+        return None
 
     pending = session.idp.pending_requests[info.request_ref]
     if isinstance(pending, IdP_SAMLPendingRequest):

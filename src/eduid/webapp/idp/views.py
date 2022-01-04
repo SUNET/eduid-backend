@@ -44,6 +44,7 @@ from flask import Blueprint, jsonify, redirect, request, url_for
 from werkzeug.exceptions import BadRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
 
+from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.utils import urlappend
 from eduid.userdb import LockedIdentityNin, ToUEvent
@@ -74,7 +75,8 @@ from eduid.webapp.idp.logout import SLO
 
 __author__ = 'ft'
 
-from eduid.webapp.idp.other_device import OtherDevice, OtherDeviceState, make_short_code
+from eduid.webapp.idp.other_device import make_short_code
+from eduid.webapp.idp.other_device_data import OtherDeviceState
 from eduid.webapp.idp.util import get_ip_proximity
 
 from saml2 import BINDING_HTTP_POST
@@ -253,6 +255,14 @@ def next(ref: RequestRef) -> FluxData:
     _next = login_next_step(ticket, sso_session)
     current_app.logger.debug(f'Login Next: {_next}')
 
+    if _next.message == IdPMsg.other_device:
+        _payload = {
+            'action': IdPAction.OTHER_DEVICE.value,
+            'target': url_for('idp.use_other_1', _external=True),
+        }
+
+        return success_response(message=IdPMsg.must_authenticate, payload=_payload,)
+
     if _next.message == IdPMsg.must_authenticate:
         _payload = {
             'action': IdPAction.PWAUTH.value,
@@ -317,7 +327,11 @@ def next(ref: RequestRef) -> FluxData:
                 # TODO: better response code
                 return error_response(message=IdPMsg.general_failure)
 
-            current_app.stats.count('login_using_other_device_finish')
+            if state.state == OtherDeviceState.IN_PROGRESS:
+                current_app.logger.debug(f'Recording login using another device {state.state_id} as finished')
+                current_app.stats.count('login_using_other_device_finish')
+                state.state = OtherDeviceState.FINISHED
+                current_app.other_device_db.save(state)
 
             if not state.response_code:
                 state.response_code = make_short_code()
@@ -560,6 +574,14 @@ def tou(ref: RequestRef, versions: Optional[Sequence[str]] = None, user_accepts:
 
         tou_user = ToUUser.from_user(user, current_app.tou_db)
 
+        if current_app.conf.environment == EduidEnvironment.dev:
+            # Filter out old events for the same version, to not get too much log spam with hundreds
+            # of ToUEvent on users in development logs
+            keys_with_version = [x.key for x in tou_user.tou.elements if x.version == user_accepts]
+            for remove_key in keys_with_version[:-2]:
+                # remove all but the last two of this version
+                tou_user.tou.remove(remove_key)
+
         # TODO: change event_id to an UUID? ObjectId is only 'likely unique'
         tou_user.tou.add(ToUEvent(version=user_accepts, created_by='eduid_login', event_id=str(ObjectId())))
 
@@ -587,10 +609,10 @@ def tou(ref: RequestRef, versions: Optional[Sequence[str]] = None, user_accepts:
     return error_response(message=IdPMsg.tou_not_acceptable)
 
 
-@idp_views.route('/request_other', methods=['POST'])
+@idp_views.route('/use_other_1', methods=['POST'])
 @UnmarshalWith(RequestOtherRequestSchema)
 @MarshalWith(RequestOtherResponseSchema)
-def request_other(ref: RequestRef, username: Optional[str] = None) -> FluxData:
+def use_other_1(ref: RequestRef, username: Optional[str] = None) -> FluxData:
     """
     The user requests to start a "Login using another device" flow.
 
@@ -601,7 +623,7 @@ def request_other(ref: RequestRef, username: Optional[str] = None) -> FluxData:
     retrieve them again on this device (device #1).
     """
     current_app.logger.debug('\n\n')
-    current_app.logger.debug(f'--- Request Other Device ({ref}, username {username}) ---')
+    current_app.logger.debug(f'--- Fetch Use Other Device #1 ({ref}, username {username}) ---')
 
     if not current_app.conf.allow_other_device_logins or not current_app.conf.other_device_url:
         return error_response(message=IdPMsg.not_available)
@@ -617,71 +639,64 @@ def request_other(ref: RequestRef, username: Optional[str] = None) -> FluxData:
         current_app.logger.warning(f'Not allowing recursive login using another device')
         return error_response(message=IdPMsg.not_available)
 
-    if username:
-        current_app.logger.debug(f'Frontend provided username {username} but this is ignored for now')
-
-    eppn = None
     sso_session = current_app._lookup_sso_session()
     if sso_session:
-        eppn = sso_session.eppn
+        username = sso_session.eppn
+    user = None
+    if username:
+        user = current_app.authn.userdb.lookup_user(username)
 
-    authn_ref = get_requested_authn_context(ticket)
+    if not ticket.pending_request.other_device_state_id:
+        state = current_app.other_device_db.add_new_state(ticket, user, ttl=current_app.conf.other_device_logins_ttl)
+        ticket.pending_request.other_device_state_id = state.state_id
+        if state.eppn:
+            current_app.stats.count('login_using_other_device_with_eppn_start')
+        else:
+            current_app.stats.count('login_using_other_device_anonymous_start')
+    else:
+        state = current_app.other_device_db.get_state_by_id(ticket.pending_request.other_device_state_id)
 
-    other_device = OtherDevice.from_parameters(
-        eppn=eppn,
-        login_ref=ticket.request_ref,
-        authn_context=authn_ref,
-        request_id=ticket.request_id,
-        ip_address=request.remote_addr,
-        user_agent=request.headers.get('user-agent'),
-        ttl=current_app.conf.other_device_logins_ttl,
-    )
-    res = current_app.other_device_db.save(other_device)
-    current_app.logger.debug(f'Save {other_device} result: {res}')
-
-    current_app.logger.info(f'Created other-device state: {other_device.state_id}')
-    current_app.logger.debug(f'   Full other-device state: {other_device}')
+    if not state:
+        current_app.logger.info(f'Login using other device: State not found, or not added')
+        return error_response(message=IdPMsg.general_failure)
 
     # passing expires_at to the frontend would require clock sync to be usable,
     # while passing number of seconds left is pretty unambiguous
     now = utc_now()
-    expires_in = (other_device.expires_at - now).total_seconds()
+    expires_in = (state.expires_at - now).total_seconds()
 
     buf = BytesIO()
-    use_other_url = urlappend(current_app.conf.other_device_url, str(other_device.state_id))
-    qrcode.make(use_other_url).save(buf)
+    qr_url = urlappend(current_app.conf.other_device_url, str(state.state_id))
+    qrcode.make(qr_url).save(buf)
     qr_b64 = base64.b64encode(buf.getvalue())
 
-    current_app.logger.debug(f'   Use-other URL: {use_other_url} (QR: {len(qr_b64)} bytes)')
+    current_app.logger.debug(f'   Use-other URL: {qr_url} (QR: {len(qr_b64)} bytes)')
 
-    if username:
-        current_app.stats.count('login_using_other_device_with_username_start')
-    else:
-        current_app.stats.count('login_using_other_device_anonymous_start')
-
+    # NOTE: It is CRITICAL to never return the response code to Device #1
     return success_response(
         payload={
             'expires_in': expires_in,
             'expires_max': current_app.conf.other_device_logins_ttl.total_seconds(),
-            'other_url': use_other_url,
+            'qr_url': qr_url,  # shown in non-production environments
             'qr_img': f'data:image/png;base64, {qr_b64.decode("ascii")}',
-            'short_code': other_device.short_code,
-            'state_id': other_device.state_id,  # TODO: Make a secretbox with the state_id in it here
+            'short_code': state.short_code,
+            'state_id': state.state_id,  # TODO: Make a secretbox with the state_id in it here
+            'state': state.state.value,
         }
     )
 
 
-@idp_views.route('/use_other', methods=['POST'])
+@idp_views.route('/use_other_2', methods=['POST'])
 @UnmarshalWith(UseOtherRequestSchema)
 @MarshalWith(UseOtherResponseSchema)
-def use_other(state_id: str) -> FluxData:
+def use_other_2(state_id: str) -> FluxData:
     """ "Login using another device" flow.
 
     This is the first step on device #2. When the user has scanned the QR code, the frontend will fetch state
     using this endpoint.
     """
     current_app.logger.debug('\n\n')
-    current_app.logger.debug(f'--- Use Other Device ({state_id}) ---')
+    current_app.logger.debug(f'--- Fetch Use Other Device #2 ({state_id}) ---')
 
     if not current_app.conf.allow_other_device_logins:
         return error_response(message=IdPMsg.not_available)
@@ -740,7 +755,8 @@ def use_other(state_id: str) -> FluxData:
             'device1_info': device_info,
             'expires_in': expires_in,
             'expires_max': current_app.conf.other_device_logins_ttl.total_seconds(),
-            'short_code': state.short_code,
             'login_ref': request_ref,
+            'short_code': state.short_code,
+            'state': state.state.value,
         }
     )

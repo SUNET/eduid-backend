@@ -18,6 +18,7 @@ class IdPMsg(str, TranslatableMsg):
     no_sso_session = 'login.no_sso_session'
     not_available = 'login.not_available'
     not_implemented = 'login.not_implemented'
+    other_device = 'login.use_another_device'
     proceed = 'login.proceed'  # Shouldn't actually be returned to the frontend
     swamid_mfa_required = 'login.swamid_mfa_required'
     tou_not_acceptable = 'login.tou_not_acceptable'
@@ -37,4 +38,5 @@ class IdPAction(str, Enum):
     PWAUTH = 'USERNAMEPASSWORD'
     MFA = 'MFA'
     TOU = 'TOU'
+    OTHER_DEVICE = 'OTHER_DEVICE'
     FINISHED = 'FINISHED'

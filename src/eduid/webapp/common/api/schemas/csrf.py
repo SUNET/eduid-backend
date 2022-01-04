@@ -23,7 +23,7 @@ class CSRFRequestMixin(Schema):
     @validates('csrf_token')
     def validate_csrf_token(self, value, **kwargs):
         custom_header = request.headers.get('X-Requested-With')
-        if custom_header != 'XMLHttpRequest':
+        if custom_header != 'XMLHttpRequest':  # TODO: move value to config
             current_app.logger.error('CSRF check: missing custom X-Requested-With header')
             raise ValidationError('CSRF missing custom X-Requested-With header')
         origin = request.headers.get('Origin', None)

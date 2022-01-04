@@ -113,29 +113,31 @@ class RequestOtherResponseSchema(FluxStandardAction):
     class RequestOtherResponsePayload(EduidSchema, CSRFResponseMixin):
         expires_in = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
         expires_max = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
-        other_url = fields.Str(required=True)  # the link to where the user can manually enter short_code to proceed
-        qr_img = fields.Str(required=True)
-        short_code = fields.Str(required=True)
-        state_id = fields.UUID(required=True)
+        qr_img = fields.Str(required=True)  # qr_url as an inline img
+        qr_url = fields.Str(required=True)  # the link to where the user can manually enter short_code to proceed
+        short_code = fields.Str(required=True)  # six digit code for this request
+        state = fields.Str(required=True)  # current state of request, an OtherDeviceState (NEW, PENDING etc.)
+        state_id = fields.Str(required=True)  # database id for this state
 
     payload = fields.Nested(RequestOtherResponsePayload)
 
 
 class UseOtherRequestSchema(EduidSchema, CSRFRequestMixin):
-    state_id = fields.Str(required=True)
+    state_id = fields.Str(required=True)  # database id for this state
 
 
 class UseOtherResponseSchema(FluxStandardAction):
     class UseOtherResponsePayload(EduidSchema, CSRFResponseMixin):
         class DeviceInfo(Schema):
-            addr = fields.Str(required=True)
-            description = fields.Str(required=False)
-            proximity = fields.Str(required=False)
+            addr = fields.Str(required=True)  # remote address of device1
+            description = fields.Str(required=False)  # description of device1, based on User-Agent header
+            proximity = fields.Str(required=False)  # how close the address of device1 is to the address of device2
 
         device1_info = fields.Nested(DeviceInfo)
         expires_in = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
         expires_max = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
-        short_code = fields.Str(required=True)
         login_ref = fields.Str(required=True)  # newly minted login_ref
+        short_code = fields.Str(required=True)  # six digit code for this request
+        state = fields.Str(required=True)  # current state of request, an OtherDeviceState (NEW, PENDING etc.)
 
     payload = fields.Nested(UseOtherResponsePayload)

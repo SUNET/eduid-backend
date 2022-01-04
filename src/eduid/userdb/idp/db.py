@@ -36,12 +36,14 @@
 """
 User and user database module.
 """
-from typing import Any, Mapping, Optional, Union
-
-from bson import ObjectId
+import logging
+from typing import Any, Mapping, Optional
 
 from eduid.userdb import UserDB
+from eduid.userdb.exceptions import EduIDDBError
 from eduid.userdb.idp.user import IdPUser
+
+logger = logging.getLogger(__name__)
 
 
 class IdPUserDb(UserDB[IdPUser]):
@@ -52,17 +54,26 @@ class IdPUserDb(UserDB[IdPUser]):
     def user_from_dict(cls, data: Mapping[str, Any]) -> IdPUser:
         return IdPUser.from_dict(data)
 
-    def lookup_user(self, username: Union[str, ObjectId]) -> Optional[IdPUser]:
+    def lookup_user(self, username: str) -> Optional[IdPUser]:
         """
         Load IdPUser from userdb.
 
-        :param username: Either an e-mail address, an eppn or a user_id.
+        :param username: Either an e-mail address or an eppn.
         :return: user found in database
         """
-        _user = None
-        if isinstance(username, str):
+        user = None
+        try:
             if '@' in username:
-                _user = self.get_user_by_mail(username.lower())
-            if not _user:
-                _user = self.get_user_by_eppn(username.lower())
-        return _user
+                user = self.get_user_by_mail(username.lower())
+            if not user:
+                user = self.get_user_by_eppn(username.lower())
+        except EduIDDBError as exc:
+            logger.warning(f'User lookup using {repr(username)} did not return a valid user: {str(exc)}')
+            return None
+
+        if not user:
+            logger.info(f'Unknown user: {repr(username)}')
+            return None
+
+        logger.debug(f'Found user {user} using {repr(username)}')
+        return user

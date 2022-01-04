@@ -20,6 +20,7 @@ __author__ = 'ft'
 from eduid.userdb.credentials.fido import WebauthnAuthenticator
 from eduid.userdb.element import ElementKey
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
+from eduid.webapp.idp.other_device_data import OtherDeviceId
 
 logger = logging.getLogger(__name__)
 
@@ -155,6 +156,8 @@ class IdP_PendingRequest(BaseModel):
     # Credentials used while authenticating _this SAML request_. Not ones inherited from SSO.
     credentials_used: Dict[ElementKey, datetime] = Field(default={})
     onetime_credentials: Dict[ElementKey, OnetimeCredential] = Field(default={})
+    # a pointer to an ongoing request to login using another device
+    other_device_state_id: Optional[OtherDeviceId] = None
 
 
 class IdP_SAMLPendingRequest(IdP_PendingRequest):
