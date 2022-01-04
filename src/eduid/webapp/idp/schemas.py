@@ -105,14 +105,14 @@ class TouResponseSchema(FluxStandardAction):
     payload = fields.Nested(TouResponsePayload)
 
 
-class RequestOtherRequestSchema(IdPRequest):
+class UseOther1RequestSchema(IdPRequest):
     username = fields.Str(required=False)  # optional username, if the user supplies an e-mail address
     action = fields.Str(required=False)  # optional action, 'ABORT' or 'SUBMIT_CODE'
     response_code = fields.Str(required=False)  # optional response code, if action == 'SUBMIT_CODE'
 
 
-class RequestOtherResponseSchema(FluxStandardAction):
-    class RequestOtherResponsePayload(EduidSchema, CSRFResponseMixin):
+class UseOther1ResponseSchema(FluxStandardAction):
+    class UseOther1ResponsePayload(EduidSchema, CSRFResponseMixin):
         expires_in = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
         expires_max = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
         qr_img = fields.Str(required=True)  # qr_url as an inline img
@@ -121,15 +121,17 @@ class RequestOtherResponseSchema(FluxStandardAction):
         state = fields.Str(required=True)  # current state of request, an OtherDeviceState (NEW, PENDING etc.)
         state_id = fields.Str(required=True)  # database id for this state
 
-    payload = fields.Nested(RequestOtherResponsePayload)
+    payload = fields.Nested(UseOther1ResponsePayload)
 
 
-class UseOtherRequestSchema(EduidSchema, CSRFRequestMixin):
-    state_id = fields.Str(required=True)  # database id for this state
+class UseOther2RequestSchema(EduidSchema, CSRFRequestMixin):
+    ref = fields.Str(missing=None, required=False)  # use login_ref on page reloads, when there is a pending_request
+    # use state_id on first load from QR URL, before a pending_request is set up
+    state_id = fields.Str(missing=None, required=False)
 
 
-class UseOtherResponseSchema(FluxStandardAction):
-    class UseOtherResponsePayload(EduidSchema, CSRFResponseMixin):
+class UseOther2ResponseSchema(FluxStandardAction):
+    class UseOther2ResponsePayload(EduidSchema, CSRFResponseMixin):
         class DeviceInfo(Schema):
             addr = fields.Str(required=True)  # remote address of device1
             description = fields.Str(required=False)  # description of device1, based on User-Agent header
@@ -142,4 +144,4 @@ class UseOtherResponseSchema(FluxStandardAction):
         short_code = fields.Str(required=True)  # six digit code for this request
         state = fields.Str(required=True)  # current state of request, an OtherDeviceState (NEW, PENDING etc.)
 
-    payload = fields.Nested(UseOtherResponsePayload)
+    payload = fields.Nested(UseOther2ResponsePayload)

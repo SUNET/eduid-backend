@@ -3,15 +3,16 @@ from __future__ import annotations
 from abc import ABC
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List, Optional, TypeVar
+from typing import Generic, List, Optional, TypeVar
 from urllib.parse import urlencode
 
 from pydantic import BaseModel
 
 from eduid.webapp.common.session.namespaces import (
-    IdP_PendingRequest,
+    IdP_OtherDevicePendingRequest,
     IdP_SAMLPendingRequest,
     RequestRef,
+    IdP_PendingRequest,
 )
 from eduid.webapp.idp.idp_saml import IdP_SAMLRequest
 from eduid.webapp.idp.other_device import OtherDevice
@@ -26,6 +27,7 @@ from eduid.webapp.idp.other_device import OtherDevice
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #          Roland Hedberg
 #
+from eduid.webapp.idp.other_device_data import OtherDeviceId
 
 
 class ExternalMfaData(BaseModel):
@@ -51,8 +53,6 @@ class LoginContext(ABC):
     """
 
     request_ref: RequestRef
-
-    # SAML request, loaded lazily from the session using `key'
     _pending_request: Optional[IdP_PendingRequest] = field(default=None, init=False, repr=False)
 
     def __str__(self) -> str:
@@ -81,6 +81,14 @@ class LoginContext(ABC):
     @property
     def reauthn_required(self) -> bool:
         raise NotImplementedError('Subclass must implement force_authn')
+
+    @property
+    def other_device_state_id(self) -> Optional[OtherDeviceId]:
+        raise NotImplementedError('Subclass must implement other_device_state_id')
+
+    @property
+    def is_other_device(self) -> Optional[int]:
+        raise NotImplementedError('Subclass must implement is_other_device')
 
 
 TLoginContextSubclass = TypeVar('TLoginContextSubclass', bound='LoginContext')
@@ -144,6 +152,20 @@ class LoginContextSAML(LoginContext):
     def reauthn_required(self) -> bool:
         return self.saml_req.force_authn
 
+    @property
+    def other_device_state_id(self) -> Optional[OtherDeviceId]:
+        # On device #1, the pending_request has a pointer to the other-device-state
+        _pending = self.pending_request
+        if isinstance(_pending, IdP_SAMLPendingRequest):
+            return _pending.other_device_state_id
+        return None
+
+    @property
+    def is_other_device(self) -> Optional[int]:
+        if self.other_device_state_id:
+            return 1
+        return None
+
 
 @dataclass
 class LoginContextOtherDevice(LoginContext):
@@ -163,3 +185,17 @@ class LoginContextOtherDevice(LoginContext):
     @property
     def reauthn_required(self) -> bool:
         return self.other_device_req.device1.reauthn_required
+
+    @property
+    def other_device_state_id(self) -> Optional[OtherDeviceId]:
+        # On device #2, the pending request is the other-device-state
+        _pending = self.pending_request
+        if isinstance(_pending, IdP_OtherDevicePendingRequest):
+            return _pending.state_id
+        return None
+
+    @property
+    def is_other_device(self) -> Optional[int]:
+        if self.other_device_state_id:
+            return 2
+        return None

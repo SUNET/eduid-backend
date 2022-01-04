@@ -151,19 +151,19 @@ class OnetimeCredential(Credential):
         return ElementKey(self.credential_id)
 
 
-class IdP_PendingRequest(BaseModel):
+class IdP_PendingRequest(BaseModel, ABC):
     template_show_msg: Optional[str]  # set when the template version of the idp should show a message to the user
     # Credentials used while authenticating _this SAML request_. Not ones inherited from SSO.
     credentials_used: Dict[ElementKey, datetime] = Field(default={})
     onetime_credentials: Dict[ElementKey, OnetimeCredential] = Field(default={})
-    # a pointer to an ongoing request to login using another device
-    other_device_state_id: Optional[OtherDeviceId] = None
 
 
 class IdP_SAMLPendingRequest(IdP_PendingRequest):
     request: str
     binding: str
     relay_state: Optional[str]
+    # a pointer to an ongoing request to login using another device
+    other_device_state_id: Optional[OtherDeviceId] = None
 
 
 class IdP_OtherDevicePendingRequest(IdP_PendingRequest):

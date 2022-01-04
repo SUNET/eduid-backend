@@ -31,8 +31,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import base64
+import json
 from copy import deepcopy
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from io import BytesIO
 from typing import Any, Dict, List, Optional, Sequence, Union
 from uuid import uuid4
@@ -45,6 +46,7 @@ from werkzeug.exceptions import BadRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.config.base import EduidEnvironment
+from eduid.common.misc.encoders import EduidJSONEncoder
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.utils import urlappend
 from eduid.userdb import LockedIdentityNin, ToUEvent
@@ -58,9 +60,15 @@ from eduid.webapp.common.api.schemas.models import FluxSuccessResponse
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.authn import fido_tokens
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.logindata import ExternalMfaData, LoginContextOtherDevice, LoginContextSAML
+from eduid.webapp.common.session.logindata import (
+    ExternalMfaData,
+    LoginContext,
+    LoginContextOtherDevice,
+    LoginContextSAML,
+)
 from eduid.webapp.common.session.namespaces import (
     IdP_OtherDevicePendingRequest,
+    IdP_SAMLPendingRequest,
     MfaActionError,
     OnetimeCredType,
     OnetimeCredential,
@@ -93,10 +101,10 @@ from eduid.webapp.idp.schemas import (
     PwAuthResponseSchema,
     TouRequestSchema,
     TouResponseSchema,
-    RequestOtherRequestSchema,
-    RequestOtherResponseSchema,
-    UseOtherRequestSchema,
-    UseOtherResponseSchema,
+    UseOther1RequestSchema,
+    UseOther1ResponseSchema,
+    UseOther2RequestSchema,
+    UseOther2ResponseSchema,
 )
 from eduid.webapp.idp.service import SAMLQueryParams
 from eduid.webapp.idp.sso_session import SSOSession
@@ -198,10 +206,9 @@ def authn_options(ref: RequestRef) -> FluxData:
         'freja_eidplus': False,
     }
 
-    if ref in session.idp.pending_requests:
-        if isinstance(session.idp.pending_requests[ref], IdP_OtherDevicePendingRequest):
-            current_app.logger.debug(f'This is a request to log in to another device, not allowing other_device')
-            payload['other_device'] = False
+    if ticket.is_other_device:
+        current_app.logger.debug(f'This is a request to log in to another device, not allowing other_device')
+        payload['other_device'] = False
 
     sso_session = current_app._lookup_sso_session()
     if not sso_session:
@@ -334,15 +341,14 @@ def next(ref: RequestRef) -> FluxData:
                 current_app.logger.debug(f'Recording login using another device {state.state_id} as finished')
                 _state = current_app.other_device_db.finish(state, ticket.pending_request.credentials_used)
                 if not _state:
-                    current_app.logger.warning(f'Failed to grab state: {state}')
+                    current_app.logger.warning(f'Failed to finish state: {state.state_id}')
                     return error_response(message=IdPMsg.general_failure)
-                state = _state
+                current_app.logger.info(f'Finished login with other device state {state.state_id}')
                 current_app.stats.count('login_using_other_device_finish')
 
-            target = state.state_id
-
             return success_response(
-                message=IdPMsg.finished, payload={'action': IdPAction.FINISHED.value, 'target': target,},
+                message=IdPMsg.finished,
+                payload={'action': IdPAction.FINISHED.value, 'target': url_for('idp.use_other_2', _external=True)},
             )
         else:
             current_app.logger.error(f'Don\'t know how to finish login request {ticket}')
@@ -610,8 +616,8 @@ def tou(ref: RequestRef, versions: Optional[Sequence[str]] = None, user_accepts:
 
 
 @idp_views.route('/use_other_1', methods=['POST'])
-@UnmarshalWith(RequestOtherRequestSchema)
-@MarshalWith(RequestOtherResponseSchema)
+@UnmarshalWith(UseOther1RequestSchema)
+@MarshalWith(UseOther1ResponseSchema)
 def use_other_1(
     ref: RequestRef, username: Optional[str] = None, action: Optional[str] = None, response_code: Optional[str] = None
 ) -> FluxData:
@@ -630,24 +636,14 @@ def use_other_1(
     if not current_app.conf.allow_other_device_logins or not current_app.conf.other_device_url:
         return error_response(message=IdPMsg.not_available)
 
-    _info = SAMLQueryParams(request_ref=ref)
-    ticket = get_ticket(_info, None)
-    if not ticket:
-        return error_response(message=IdPMsg.bad_ref)
-    current_app.logger.debug(f'LoginContext: {asdict(ticket)}')
-    current_app.logger.debug(f'Pending request: {ticket.pending_request}')
+    _lookup_result = _get_other_device_state_using_ref(ref, device=1)
+    if _lookup_result.response:
+        return _lookup_result.response
 
-    if isinstance(ticket.pending_request, IdP_OtherDevicePendingRequest):
-        current_app.logger.warning(f'Not allowing recursive login using another device')
-        return error_response(message=IdPMsg.not_available)
-
-    state = None
-    if ticket.pending_request.other_device_state_id:
-        # Retrieve OtherDevice state. It might be expired though, in case we just create a new one.
-        state = current_app.other_device_db.get_state_by_id(ticket.pending_request.other_device_state_id)
-        if not state:
-            current_app.logger.info('OtherDevice state not found, clearing it and generating new')
-            ticket.pending_request.other_device_state_id = None
+    ticket = _lookup_result.ticket
+    state = _lookup_result.state
+    # ensure mypy
+    assert ticket
 
     if not state:
         sso_session = current_app._lookup_sso_session()
@@ -657,12 +653,20 @@ def use_other_1(
         if username:
             user = current_app.authn.userdb.lookup_user(username)
 
+        current_app.logger.debug(f'Adding new use other device state')
         state = current_app.other_device_db.add_new_state(ticket, user, ttl=current_app.conf.other_device_logins_ttl)
-        ticket.pending_request.other_device_state_id = state.state_id
+        # TODO: This is a sad abstraction, since we have to add all new kinds of pending requests allowing
+        #       other_device_state_id
+        if isinstance(ticket.pending_request, IdP_SAMLPendingRequest):
+            ticket.pending_request.other_device_state_id = state.state_id
+        else:
+            current_app.logger.error(f'Unknown type of ticket.pending_request, can\'t set state_id')
+            return error_response(message=IdPMsg.general_failure)
         if state.eppn:
             current_app.stats.count('login_using_other_device_with_eppn_start')
         else:
             current_app.stats.count('login_using_other_device_anonymous_start')
+        current_app.logger.info(f'Added new use other device state: {state.state_id}')
 
     if not state:
         current_app.logger.info(f'Login using other device: State not found, or not added')
@@ -694,7 +698,7 @@ def use_other_1(
     qrcode.make(qr_url).save(buf)
     qr_b64 = base64.b64encode(buf.getvalue())
 
-    current_app.logger.debug(f'   Use-other URL: {qr_url} (QR: {len(qr_b64)} bytes)')
+    current_app.logger.debug(f'Use-other URL: {qr_url} (QR: {len(qr_b64)} bytes)')
 
     # NOTE: It is CRITICAL to never return the response code to Device #1
     return success_response(
@@ -711,37 +715,41 @@ def use_other_1(
 
 
 @idp_views.route('/use_other_2', methods=['POST'])
-@UnmarshalWith(UseOtherRequestSchema)
-@MarshalWith(UseOtherResponseSchema)
-def use_other_2(state_id: OtherDeviceId) -> FluxData:
+@UnmarshalWith(UseOther2RequestSchema)
+@MarshalWith(UseOther2ResponseSchema)
+def use_other_2(ref: Optional[RequestRef], state_id: Optional[OtherDeviceId]) -> FluxData:
     """ "Login using another device" flow.
 
     This is the first step on device #2. When the user has scanned the QR code, the frontend will fetch state
     using this endpoint.
     """
     current_app.logger.debug('\n\n')
-    current_app.logger.debug(f'--- Fetch Use Other Device #2 ({state_id}) ---')
+    current_app.logger.debug(f'--- Fetch Use Other Device #2 (ref {ref}, state_id {state_id}) ---')
 
     if not current_app.conf.allow_other_device_logins:
         return error_response(message=IdPMsg.not_available)
 
-    # Check if the request is already pending (user reloaded page)
-    request_ref = None
-    for k, v in session.idp.pending_requests.items():
-        if isinstance(v, IdP_OtherDevicePendingRequest):
-            if v.state_id == state_id:
-                current_app.logger.debug(f'Found pending request {k} already with state_id {state_id}. Using it.')
-                current_app.logger.debug(f'Full pending request: {v}')
-                request_ref = k
-                break
+    state = None
 
-    state = current_app.other_device_db.get_state_by_id(state_id)
+    if ref:
+        _lookup_result = _get_other_device_state_using_ref(ref, device=2)
+        if _lookup_result.response:
+            return _lookup_result.response
+
+        state = _lookup_result.state
+    elif state_id:
+        # Load state using state_id from QR URL
+        current_app.logger.debug(f'Other device: Loading state using state_id: {state_id} (from QR code)')
+        state = current_app.other_device_db.get_state_by_id(state_id)
+        if not state:
+            current_app.logger.debug(f'Other device: State with state_id {state_id} (from QR code) not found')
+
     if not state:
-        current_app.logger.debug(f'Other device: State {state_id} not found')
+        current_app.logger.debug(f'Other device: No state found, bailing out')
         return error_response(message=IdPMsg.state_not_found)
 
-    current_app.logger.info(f'Loaded other device state: {state_id}')
-    current_app.logger.debug(f'  Full other device state: {state}')
+    current_app.logger.info(f'Loaded other device state: {state.state_id}')
+    current_app.logger.debug(f'Extra debug: Full other device state:\n{state.to_json()}')
 
     if state.state == OtherDeviceState.NEW:
         # Grab this state and associate it with the current browser session. This is important so that
@@ -750,15 +758,19 @@ def use_other_2(state_id: OtherDeviceId) -> FluxData:
         request_ref = RequestRef(str(uuid4()))
         _state = current_app.other_device_db.grab(state, request_ref)
         if not _state:
-            current_app.logger.warning(f'Failed to grab state: {state}')
+            current_app.logger.warning(f'Failed to grab state: {state.state_id}')
             return error_response(message=IdPMsg.general_failure)
+        current_app.logger.info(f'Grabbed login with other device state {state.state_id}')
         state = _state
-        pending = IdP_OtherDevicePendingRequest(state_id=state_id)
+        pending = IdP_OtherDevicePendingRequest(state_id=state.state_id)
         session.idp.pending_requests[request_ref] = pending
         current_app.logger.debug(f'Created new pending request with ref {request_ref}: {pending}')
 
-    if state.device2.ref != request_ref:
-        current_app.logger.warning(f'Tried to use OtherDevice state that is not ours: {state}')
+    if ref and state.device2.ref != ref:
+        current_app.logger.warning(
+            f'Tried to use OtherDevice state that is not ours: {state.device2.ref} != {ref} (ours)'
+        )
+        current_app.logger.debug(f'Extra debug: Full other device state:\n{state.to_json()}')
         return error_response(message=IdPMsg.general_failure)  # TODO: make a real error code for this
 
     # passing expires_at to the frontend would require clock sync to be usable,
@@ -778,8 +790,57 @@ def use_other_2(state_id: OtherDeviceId) -> FluxData:
             'device1_info': device_info,
             'expires_in': expires_in,
             'expires_max': current_app.conf.other_device_logins_ttl.total_seconds(),
-            'login_ref': request_ref,
+            'login_ref': state.device2.ref,
             'short_code': state.short_code,
             'state': state.state.value,
         }
     )
+
+
+@dataclass
+class OtherDeviceRefResult:
+    response: Optional[FluxData] = None
+    ticket: Optional[LoginContext] = None
+    state: Optional[OtherDevice] = None
+
+
+def _get_other_device_state_using_ref(ref: RequestRef, device: int) -> OtherDeviceRefResult:
+    """ Look for existing OtherDevice state using a login ref """
+    _info = SAMLQueryParams(request_ref=ref)
+    ticket = get_ticket(_info, None)
+    if not ticket:
+        return OtherDeviceRefResult(response=error_response(message=IdPMsg.bad_ref))
+    current_app.logger.debug(f'Extra debug: LoginContext: {asdict(ticket)}')
+    current_app.logger.debug(f'Extra debug: Pending request: {ticket.pending_request}')
+
+    # Check both callers opinion of what device this is, and the states. Belts and bracers.
+    if device == 1 or ticket.is_other_device == 1:
+        if isinstance(ticket.pending_request, IdP_OtherDevicePendingRequest):
+            current_app.logger.warning(f'Not allowing recursive login using another device')
+            return OtherDeviceRefResult(response=error_response(message=IdPMsg.not_available))
+    elif device == 2 or ticket.is_other_device == 2:
+        if not isinstance(ticket.pending_request, IdP_OtherDevicePendingRequest):
+            current_app.logger.warning(f'The pending request is not an IdP_OtherDevicePendingRequest')
+            return OtherDeviceRefResult(response=error_response(message=IdPMsg.not_available))
+
+    state = None
+    if ticket.other_device_state_id:
+        current_app.logger.debug(f'Looking for other device state using id from ticket: {ticket.other_device_state_id}')
+        # Retrieve OtherDevice state. It might be expired though, in case we just create a new one.
+        state = current_app.other_device_db.get_state_by_id(ticket.other_device_state_id)
+        if not state:
+            current_app.logger.info('OtherDevice state not found, clearing it and generating new')
+            # TODO: This is a sad abstraction, since we have to add all new kinds of pending requests allowing
+            #       other_device_state_id
+            if isinstance(ticket.pending_request, IdP_SAMLPendingRequest):
+                ticket.pending_request.other_device_state_id = None
+            elif isinstance(ticket.pending_request, IdP_OtherDevicePendingRequest):
+                ticket.pending_request.state_id = None
+            else:
+                current_app.logger.error(f'Unknown type of ticket.pending_request, can\'t set state_id')
+                return OtherDeviceRefResult(response=error_response(message=IdPMsg.general_failure))
+
+        current_app.logger.info(f'Loaded other device state: {state.state_id}')
+        current_app.logger.debug(f'Extra debug: Full other device state:\n{state.to_json()}')
+
+    return OtherDeviceRefResult(ticket=ticket, state=state)

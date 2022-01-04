@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import os
 import typing
@@ -11,6 +12,7 @@ from bson import ObjectId
 from flask import request
 from pydantic import BaseModel, Field
 
+from eduid.common.misc.encoders import EduidJSONEncoder
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User
 from eduid.userdb.db import BaseDB
@@ -92,6 +94,13 @@ class OtherDevice(BaseModel):
     def to_dict(self) -> Mapping[str, Any]:
         return self.dict()
 
+    def to_json(self):
+        """ For debug logging ONLY. Redacts the response code if set. """
+        data = self.to_dict()
+        if data['device2']['response_code']:
+            data['device2']['response_code'] = 'REDACTED'
+        return json.dumps(data, indent=4, cls=EduidJSONEncoder)
+
     @classmethod
     def from_dict(cls: Type[OtherDevice], data: Mapping[str, Any]) -> OtherDevice:
         return cls(**data)
@@ -146,7 +155,7 @@ class OtherDeviceDB(BaseDB):
         res = self.save(state)
         logger.debug(f'Save {state} result: {res}')
         logger.info(f'Created other-device state: {state.state_id}')
-        logger.debug(f'   Full other-device state: {state}')
+        logger.debug(f'   Full other-device state: {state.to_json()}')
         return state
 
     def abort(self, state: OtherDevice) -> Optional[OtherDevice]:
@@ -180,7 +189,7 @@ class OtherDeviceDB(BaseDB):
             return None
 
         _state_val = state.state.value
-        state.state.value = OtherDeviceState.IN_PROGRESS
+        state.state = OtherDeviceState.IN_PROGRESS
         state.device2.ref = device2_ref
 
         result = self._coll.replace_one({'_id': state.obj_id, 'state': _state_val}, state.to_dict(), upsert=True)
@@ -203,13 +212,13 @@ class OtherDeviceDB(BaseDB):
             return None
 
         _state_val = state.state.value
-        state.state.value = OtherDeviceState.FINISHED
+        state.state = OtherDeviceState.FINISHED
         state.device2.credentials_used = credentials_used
         state.device2.response_code = make_short_code()
 
         result = self._coll.replace_one({'_id': state.obj_id, 'state': _state_val}, state.to_dict(), upsert=True)
         logger.debug(
-            f'Grabbed OtherDevice {state} in the db: '
+            f'Finished OtherDevice {state} in the db: '
             f'matched={result.matched_count}, modified={result.modified_count}, upserted_id={result.upserted_id}'
         )
         if not result.acknowledged:
