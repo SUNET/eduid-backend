@@ -165,7 +165,7 @@ class OtherDeviceDB(BaseDB):
         if state.state not in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS]:
             return None
         _state_val = state.state.value
-        state.state.value = OtherDeviceState.ABORTED
+        state.state = OtherDeviceState.ABORTED
 
         result = self._coll.replace_one({'_id': state.obj_id, 'state': _state_val}, state.to_dict(), upsert=True)
         logger.debug(

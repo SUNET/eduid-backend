@@ -197,6 +197,8 @@ def authn_options(ref: RequestRef) -> FluxData:
     ticket = get_ticket(_info, None)
     if not ticket:
         return error_response(message=IdPMsg.bad_ref)
+    current_app.logger.debug(f'Extra debug: LoginContext: {asdict(ticket)}')
+    current_app.logger.debug(f'Extra debug: Pending request: {ticket.pending_request}')
 
     payload: Dict[str, Any] = {
         'usernamepassword': True,
@@ -206,7 +208,7 @@ def authn_options(ref: RequestRef) -> FluxData:
         'freja_eidplus': False,
     }
 
-    if ticket.is_other_device:
+    if ticket.is_other_device == 2:
         current_app.logger.debug(f'This is a request to log in to another device, not allowing other_device')
         payload['other_device'] = False
 
@@ -645,7 +647,7 @@ def use_other_1(
     # ensure mypy
     assert ticket
 
-    if not state:
+    if not state and not action:
         sso_session = current_app._lookup_sso_session()
         if sso_session:
             username = sso_session.eppn
@@ -655,17 +657,11 @@ def use_other_1(
 
         current_app.logger.debug(f'Adding new use other device state')
         state = current_app.other_device_db.add_new_state(ticket, user, ttl=current_app.conf.other_device_logins_ttl)
-        # TODO: This is a sad abstraction, since we have to add all new kinds of pending requests allowing
-        #       other_device_state_id
-        if isinstance(ticket.pending_request, IdP_SAMLPendingRequest):
-            ticket.pending_request.other_device_state_id = state.state_id
-        else:
-            current_app.logger.error(f'Unknown type of ticket.pending_request, can\'t set state_id')
-            return error_response(message=IdPMsg.general_failure)
+        ticket.set_other_device_state(state.state_id)
         if state.eppn:
-            current_app.stats.count('login_using_other_device_with_eppn_start')
+            current_app.stats.count('login_using_other_device_start_with_eppn')
         else:
-            current_app.stats.count('login_using_other_device_anonymous_start')
+            current_app.stats.count('login_using_other_device_start_anonymous')
         current_app.logger.info(f'Added new use other device state: {state.state_id}')
 
     if not state:
@@ -673,9 +669,15 @@ def use_other_1(
         return error_response(message=IdPMsg.state_not_found)
 
     now = utc_now()
+    # passing expires_at to the frontend would require clock sync to be usable,
+    # while passing number of seconds left is pretty unambiguous
+    expires_in = (state.expires_at - now).total_seconds()
+
+    payload = {}
+
     if state.expires_at > now:
         if action == 'ABORT':
-            if state.state == OtherDeviceState.IN_PROGRESS:
+            if state.state in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS]:
                 current_app.logger.info('Aborting login using another device')
                 _state = current_app.other_device_db.abort(state)
                 if not _state:
@@ -683,35 +685,46 @@ def use_other_1(
                     return error_response(message=IdPMsg.general_failure)
                 state = _state
                 current_app.stats.count('login_using_other_device_abort')
+                ticket.set_other_device_state(None)
+                expires_in = 0
+            else:
+                current_app.logger.info(f'Not aborting use other device in state {state.state}')
         elif action == 'SUBMIT_CODE':
             pass
         elif action is not None:
             current_app.logger.error(f'Login using other device: Unknown action: {action}')
             return error_response(message=IdPMsg.general_failure)
+    else:
+        age = int((now - state.expires_at).total_seconds())
+        current_app.logger.info(f'Use other device state is expired ({age} seconds)')
 
-    # passing expires_at to the frontend would require clock sync to be usable,
-    # while passing number of seconds left is pretty unambiguous
-    expires_in = (state.expires_at - now).total_seconds()
+    if state.state in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS]:
+        # Only add QR code when it will actually be displayed
+        buf = BytesIO()
+        qr_url = urlappend(current_app.conf.other_device_url, str(state.state_id))
+        qrcode.make(qr_url).save(buf)
+        qr_b64 = base64.b64encode(buf.getvalue())
 
-    buf = BytesIO()
-    qr_url = urlappend(current_app.conf.other_device_url, str(state.state_id))
-    qrcode.make(qr_url).save(buf)
-    qr_b64 = base64.b64encode(buf.getvalue())
+        current_app.logger.debug(f'Use-other URL: {qr_url} (QR: {len(qr_b64)} bytes)')
+        payload.update(
+            {
+                'qr_url': qr_url,  # shown in non-production environments
+                'qr_img': f'data:image/png;base64, {qr_b64.decode("ascii")}',
+            }
+        )
 
-    current_app.logger.debug(f'Use-other URL: {qr_url} (QR: {len(qr_b64)} bytes)')
-
-    # NOTE: It is CRITICAL to never return the response code to Device #1
-    return success_response(
-        payload={
-            'expires_in': expires_in,
+    payload.update(
+        {
             'expires_max': current_app.conf.other_device_logins_ttl.total_seconds(),
-            'qr_url': qr_url,  # shown in non-production environments
-            'qr_img': f'data:image/png;base64, {qr_b64.decode("ascii")}',
-            'short_code': state.short_code,
             'state_id': state.state_id,  # TODO: Make a secretbox with the state_id in it here
             'state': state.state.value,
+            'short_code': state.short_code,
+            'expires_in': expires_in,
         }
     )
+
+    # NOTE: It is CRITICAL to never return the response code to Device #1
+    return success_response(payload=payload)
 
 
 @idp_views.route('/use_other_2', methods=['POST'])
@@ -829,7 +842,7 @@ def _get_other_device_state_using_ref(ref: RequestRef, device: int) -> OtherDevi
         # Retrieve OtherDevice state. It might be expired though, in case we just create a new one.
         state = current_app.other_device_db.get_state_by_id(ticket.other_device_state_id)
         if not state:
-            current_app.logger.info('OtherDevice state not found, clearing it and generating new')
+            current_app.logger.info('OtherDevice state not found, clearing it')
             # TODO: This is a sad abstraction, since we have to add all new kinds of pending requests allowing
             #       other_device_state_id
             if isinstance(ticket.pending_request, IdP_SAMLPendingRequest):
@@ -840,6 +853,7 @@ def _get_other_device_state_using_ref(ref: RequestRef, device: int) -> OtherDevi
                 current_app.logger.error(f'Unknown type of ticket.pending_request, can\'t set state_id')
                 return OtherDeviceRefResult(response=error_response(message=IdPMsg.general_failure))
 
+    if state:
         current_app.logger.info(f'Loaded other device state: {state.state_id}')
         current_app.logger.debug(f'Extra debug: Full other device state:\n{state.to_json()}')
 

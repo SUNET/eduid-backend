@@ -54,6 +54,7 @@ from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.idp_saml import IdP_SAMLRequest, ResponseArgs, SamlResponse
 from eduid.webapp.idp.mfa_action import add_mfa_action, need_security_key, process_mfa_action_results
 from eduid.webapp.idp.mischttp import HttpArgs, get_default_template_arguments
+from eduid.webapp.idp.other_device_data import OtherDeviceState
 from eduid.webapp.idp.service import SAMLQueryParams, Service
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.tou_action import add_tou_action, need_tou_acceptance
@@ -97,7 +98,11 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
     if current_app.conf.allow_other_device_logins:
         if ticket.is_other_device == 1:
             state = current_app.other_device_db.get_state_by_id(ticket.other_device_state_id)
-            if state and state.expires_at > utc_now():
+            if (
+                state
+                and state.expires_at > utc_now()
+                and state.state in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS]
+            ):
                 current_app.logger.debug(f'Logging in using another device, {ticket.other_device_state_id}')
                 return NextResult(message=IdPMsg.other_device)
 

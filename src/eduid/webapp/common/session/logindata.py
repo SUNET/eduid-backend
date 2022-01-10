@@ -3,20 +3,19 @@ from __future__ import annotations
 from abc import ABC
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Generic, List, Optional, TypeVar
+from typing import List, Optional, TypeVar
 from urllib.parse import urlencode
 
 from pydantic import BaseModel
 
 from eduid.webapp.common.session.namespaces import (
     IdP_OtherDevicePendingRequest,
+    IdP_PendingRequest,
     IdP_SAMLPendingRequest,
     RequestRef,
-    IdP_PendingRequest,
 )
 from eduid.webapp.idp.idp_saml import IdP_SAMLRequest
 from eduid.webapp.idp.other_device import OtherDevice
-
 
 #
 # Copyright (c) 2013, 2014, 2016 NORDUnet A/S. All rights reserved.
@@ -89,6 +88,12 @@ class LoginContext(ABC):
     @property
     def is_other_device(self) -> Optional[int]:
         raise NotImplementedError('Subclass must implement is_other_device')
+
+    def set_other_device_state(self, state_id: Optional[OtherDeviceId]) -> None:
+        if isinstance(self.pending_request, IdP_SAMLPendingRequest):
+            self.pending_request.other_device_state_id = state_id
+        else:
+            raise TypeError(f'Can\'t set other_device on pending request of type {type(self.pending_request)}')
 
 
 TLoginContextSubclass = TypeVar('TLoginContextSubclass', bound='LoginContext')

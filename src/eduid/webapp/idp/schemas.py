@@ -120,6 +120,7 @@ class UseOther1ResponseSchema(FluxStandardAction):
         short_code = fields.Str(required=True)  # six digit code for this request
         state = fields.Str(required=True)  # current state of request, an OtherDeviceState (NEW, PENDING etc.)
         state_id = fields.Str(required=True)  # database id for this state
+        # NOTE: It is CRITICAL to never return the response code to Device #1
 
     payload = fields.Nested(UseOther1ResponsePayload)
 
