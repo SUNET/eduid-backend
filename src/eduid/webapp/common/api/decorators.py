@@ -24,6 +24,7 @@ from eduid.webapp.common.session import session
 __author__ = 'lundberg'
 
 logger = logging.getLogger(__name__)
+flux_logger = logger.getChild('flux')
 
 
 def require_eppn(f):
@@ -109,9 +110,10 @@ class MarshalWith(object):
             else:
                 _flux_response = FluxSuccessResponse(request, payload=ret.payload)
             try:
-                logger.debug(f"Encoding response: {_flux_response.to_dict()} using schema {self.schema()}")
-                res = jsonify(self.schema().dump(_flux_response.to_dict()))
-                logger.debug(f"Encoded response: {self.schema().dump(_flux_response.to_dict())}")
+                flux_logger.debug(f'Encoding response: {_flux_response.to_dict()} using schema {self.schema()}')
+                _encoded = self.schema().dump(_flux_response.to_dict())
+                res = jsonify(_encoded)
+                flux_logger.debug(f'Encoded response: {_encoded}')
             except:
                 logger.exception(f'Could not serialise Flux payload:\n{_flux_response.to_dict()}')
                 raise
@@ -127,9 +129,12 @@ class UnmarshalWith(object):
     def __call__(self, f):
         @wraps(f)
         def unmarshal_decorator(*args, **kwargs):
+            flux_logger.debug('')
+            flux_logger.debug(f'--- New request ({request.path})')
             json_data = request.get_json()
             if json_data is None:
                 json_data = {}
+            flux_logger.debug(f'Decoding request: {json_data} using schema {self.schema()}')
             try:
                 unmarshal_result = self.schema().load(json_data)
             except ValidationError as e:
@@ -139,6 +144,7 @@ class UnmarshalWith(object):
                 logger.warning(f'Error unmarshalling request using {self.schema}: {e.normalized_messages()}')
                 logger.debug(f'Failing request JSON data:\n{json.dumps(json_data, indent=4)}')
                 return jsonify(response_data.to_dict())
+            flux_logger.debug(f'Decoded request: {unmarshal_result}')
             kwargs.update(unmarshal_result)
             return f(*args, **kwargs)
 
