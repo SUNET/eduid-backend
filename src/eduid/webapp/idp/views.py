@@ -673,7 +673,7 @@ def use_other_1(
     # while passing number of seconds left is pretty unambiguous
     expires_in = (state.expires_at - now).total_seconds()
 
-    payload = {}
+    payload: Dict[str, Any] = {}
 
     if state.expires_at > now:
         if action == 'ABORT':
@@ -843,15 +843,7 @@ def _get_other_device_state_using_ref(ref: RequestRef, device: int) -> OtherDevi
         state = current_app.other_device_db.get_state_by_id(ticket.other_device_state_id)
         if not state:
             current_app.logger.info('OtherDevice state not found, clearing it')
-            # TODO: This is a sad abstraction, since we have to add all new kinds of pending requests allowing
-            #       other_device_state_id
-            if isinstance(ticket.pending_request, IdP_SAMLPendingRequest):
-                ticket.pending_request.other_device_state_id = None
-            elif isinstance(ticket.pending_request, IdP_OtherDevicePendingRequest):
-                ticket.pending_request.state_id = None
-            else:
-                current_app.logger.error(f'Unknown type of ticket.pending_request, can\'t set state_id')
-                return OtherDeviceRefResult(response=error_response(message=IdPMsg.general_failure))
+            ticket.set_other_device_state(None)
 
     if state:
         current_app.logger.info(f'Loaded other device state: {state.state_id}')

@@ -167,7 +167,7 @@ class IdP_SAMLPendingRequest(IdP_PendingRequest):
 
 
 class IdP_OtherDevicePendingRequest(IdP_PendingRequest):
-    state_id: OtherDeviceId
+    state_id: Optional[OtherDeviceId]  # can be None on aborted/expired requests
 
 
 class IdP_Namespace(TimestampedNS):

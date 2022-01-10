@@ -92,6 +92,8 @@ class LoginContext(ABC):
     def set_other_device_state(self, state_id: Optional[OtherDeviceId]) -> None:
         if isinstance(self.pending_request, IdP_SAMLPendingRequest):
             self.pending_request.other_device_state_id = state_id
+        elif isinstance(self.pending_request, IdP_OtherDevicePendingRequest):
+            self.pending_request.state_id = None
         else:
             raise TypeError(f'Can\'t set other_device on pending request of type {type(self.pending_request)}')
 

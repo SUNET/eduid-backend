@@ -97,7 +97,9 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
     """ The main state machine for the login flow(s). """
     if current_app.conf.allow_other_device_logins:
         if ticket.is_other_device == 1:
-            state = current_app.other_device_db.get_state_by_id(ticket.other_device_state_id)
+            state = None
+            if ticket.other_device_state_id:
+                state = current_app.other_device_db.get_state_by_id(ticket.other_device_state_id)
             if (
                 state
                 and state.expires_at > utc_now()
@@ -686,7 +688,9 @@ def get_ticket(info: SAMLQueryParams, binding: Optional[str]) -> Optional[LoginC
         return LoginContextSAML(info.request_ref)
     elif isinstance(pending, IdP_OtherDevicePendingRequest):
         logger.debug(f'get_ticket: Loading IdP_OtherDevicePendingRequest (state_id {pending.state_id})')
-        state = current_app.other_device_db.get_state_by_id(pending.state_id)
+        state = None
+        if pending.state_id:
+            state = current_app.other_device_db.get_state_by_id(pending.state_id)
         if not state:
             current_app.logger.debug(f'Other device: Login id {pending.state_id} not found')
             return None
