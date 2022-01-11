@@ -144,7 +144,13 @@ class UnmarshalWith(object):
                 logger.warning(f'Error unmarshalling request using {self.schema}: {e.normalized_messages()}')
                 logger.debug(f'Failing request JSON data:\n{json.dumps(json_data, indent=4)}')
                 return jsonify(response_data.to_dict())
-            flux_logger.debug(f'Decoded request: {unmarshal_result}')
+            if 'password' in unmarshal_result:
+                # A simple safeguard for if debug logging is ever activated in production
+                _without_pw = dict(unmarshal_result)
+                _without_pw['password'] = 'REDACTED'
+                flux_logger.debug(f'Decoded request: {_without_pw}')
+            else:
+                flux_logger.debug(f'Decoded request: {unmarshal_result}')
             kwargs.update(unmarshal_result)
             return f(*args, **kwargs)
 
