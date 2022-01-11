@@ -124,6 +124,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     allow_other_device_logins: bool = False
     enable_legacy_template_mode: bool = False
     other_device_logins_ttl: timedelta = Field(default=timedelta(minutes=2))
+    other_device_max_code_attempts: int = 3
 
     @validator('sso_cookie')
     def make_sso_cookie(cls, v, values) -> CookieConfig:

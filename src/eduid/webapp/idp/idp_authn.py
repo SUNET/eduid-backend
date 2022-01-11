@@ -50,7 +50,6 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import MongoDB
 from eduid.userdb.credentials import Password
 from eduid.userdb.element import ElementKey
-from eduid.userdb.exceptions import UserHasNotCompletedSignup
 from eduid.userdb.idp import IdPUser, IdPUserDb
 from eduid.vccs.client import VCCSClientHTTPError, VCCSPasswordFactor
 from eduid.webapp.common.api import exceptions

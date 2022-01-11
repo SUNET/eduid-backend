@@ -42,7 +42,8 @@ from pydantic import BaseModel, Field
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.element import ElementKey
-from eduid.webapp.common.session.logindata import ExternalMfaData
+from eduid.userdb.idp import IdPUser
+from eduid.webapp.common.session.logindata import ExternalMfaData, LoginContext
 from eduid.webapp.idp.idp_authn import AuthnData
 
 # A distinct type for session ids
@@ -145,3 +146,26 @@ class SSOSession(BaseModel):
         # sort on cred_id to have deterministic order in tests
         _list = list(_creds.values())
         self.authn_credentials = sorted(_list, key=lambda x: x.cred_id)
+
+
+def record_authentication(
+    ticket: LoginContext,
+    eppn: str,
+    sso_session: Optional[SSOSession],
+    credentials: List[AuthnData],
+    sso_session_lifetime: timedelta,
+) -> SSOSession:
+    if not sso_session:
+        # Create new SSO session
+        sso_session = SSOSession(authn_request_id=ticket.request_id, eppn=eppn, authn_credentials=[])
+
+    if sso_session.eppn != eppn:
+        raise RuntimeError(f'Not storing authn for user {eppn} in SSO session for user {sso_session.eppn}')
+
+    for this in credentials:
+        sso_session.add_authn_credential(this)
+
+    # Advance the expiration of the session on each authentication
+    sso_session.expires_at = utc_now() + sso_session_lifetime
+
+    return sso_session

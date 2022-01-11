@@ -144,5 +144,8 @@ class UseOther2ResponseSchema(FluxStandardAction):
         login_ref = fields.Str(required=True)  # newly minted login_ref
         short_code = fields.Str(required=True)  # six digit code for this request
         state = fields.Str(required=True)  # current state of request, an OtherDeviceState (NEW, PENDING etc.)
+        response_code = fields.Str(
+            required=False
+        )  # the secret response code the user should enter on device 1 to get logged in
 
     payload = fields.Nested(UseOther2ResponsePayload)

@@ -153,7 +153,7 @@ class OtherDeviceDB(BaseDB):
             ttl=ttl,
         )
         res = self.save(state)
-        logger.debug(f'Save {state} result: {res}')
+        logger.debug(f'Save {state.state_id} result: {res}')
         logger.info(f'Created other-device state: {state.state_id}')
         logger.debug(f'   Full other-device state: {state.to_json()}')
         return state
@@ -201,7 +201,9 @@ class OtherDeviceDB(BaseDB):
             return None
         return state
 
-    def finish(self, state: OtherDevice, credentials_used: Mapping[ElementKey, datetime]) -> Optional[OtherDevice]:
+    def logged_in(
+        self, state: OtherDevice, eppn: str, credentials_used: Mapping[ElementKey, datetime]
+    ) -> Optional[OtherDevice]:
         """
         Finish a state, on device 2.
         """
@@ -211,8 +213,12 @@ class OtherDeviceDB(BaseDB):
         if not state.device2.ref:
             return None
 
+        if (state.eppn and state.eppn != eppn) or not eppn:
+            logger.error(f'Can\'t record use other device as finished for eppn {eppn} (state has eppn {state.eppn})')
+
         _state_val = state.state.value
-        state.state = OtherDeviceState.FINISHED
+        state.state = OtherDeviceState.LOGGED_IN
+        state.eppn = eppn
         state.device2.credentials_used = credentials_used
         state.device2.response_code = make_short_code()
 

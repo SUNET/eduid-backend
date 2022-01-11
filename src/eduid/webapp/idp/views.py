@@ -107,7 +107,7 @@ from eduid.webapp.idp.schemas import (
     UseOther2ResponseSchema,
 )
 from eduid.webapp.idp.service import SAMLQueryParams
-from eduid.webapp.idp.sso_session import SSOSession
+from eduid.webapp.idp.sso_session import SSOSession, record_authentication
 
 idp_views = Blueprint('idp', __name__, url_prefix='', template_folder='templates')
 
@@ -328,33 +328,38 @@ def next(ref: RequestRef) -> FluxData:
                 return error_response(message=IdPMsg.not_available)
 
             state = ticket.other_device_req
+            if ticket.is_other_device == 1:
+                # We shouldn't be able to get here, but this clearly shows where this code runs
+                current_app.logger.warning(f'Ticket is LoginContextOtherDevice, but this is use other device #1')
+            elif ticket.is_other_device == 2:
+                if state.device2.ref != ticket.request_ref:
+                    current_app.logger.warning(f'Tried to use OtherDevice state that is not ours: {state}')
+                    return error_response(message=IdPMsg.general_failure)  # TODO: make a real error code for this
 
-            if state.device2.ref != ticket.request_ref:
-                current_app.logger.warning(f'Tried to use OtherDevice state that is not ours: {state}')
-                return error_response(message=IdPMsg.general_failure)  # TODO: make a real error code for this
-
-            if state.expires_at < utc_now():
-                current_app.stats.count('login_using_other_device_finish_too_late')
-                current_app.logger.error(f'Request to login using another device was expired: {state}')
-                # TODO: better response code
-                return error_response(message=IdPMsg.general_failure)
-
-            if state.state == OtherDeviceState.IN_PROGRESS:
-                current_app.logger.debug(f'Recording login using another device {state.state_id} as finished')
-                _state = current_app.other_device_db.finish(state, ticket.pending_request.credentials_used)
-                if not _state:
-                    current_app.logger.warning(f'Failed to finish state: {state.state_id}')
+                if state.expires_at < utc_now():
+                    current_app.stats.count('login_using_other_device_finish_too_late')
+                    current_app.logger.error(f'Request to login using another device was expired: {state}')
+                    # TODO: better response code
                     return error_response(message=IdPMsg.general_failure)
-                current_app.logger.info(f'Finished login with other device state {state.state_id}')
-                current_app.stats.count('login_using_other_device_finish')
 
-            return success_response(
-                message=IdPMsg.finished,
-                payload={'action': IdPAction.FINISHED.value, 'target': url_for('idp.use_other_2', _external=True)},
-            )
-        else:
-            current_app.logger.error(f'Don\'t know how to finish login request {ticket}')
-            return error_response(message=IdPMsg.general_failure)
+                if state.state == OtherDeviceState.IN_PROGRESS:
+                    current_app.logger.debug(f'Recording login using another device {state.state_id} as finished')
+                    current_app.logger.debug(f'Extra debug: SSO eppn {sso_session.eppn}')
+                    _state = current_app.other_device_db.logged_in(
+                        state, sso_session.eppn, ticket.pending_request.credentials_used
+                    )
+                    if not _state:
+                        current_app.logger.warning(f'Failed to finish state: {state.state_id}')
+                        return error_response(message=IdPMsg.general_failure)
+                    current_app.logger.info(f'Finished login with other device state {state.state_id}')
+                    current_app.stats.count('login_using_other_device_finish')
+
+                return success_response(
+                    message=IdPMsg.finished,
+                    payload={'action': IdPAction.FINISHED.value, 'target': url_for('idp.use_other_2', _external=True)},
+                )
+        current_app.logger.error(f'Don\'t know how to finish login request {ticket}')
+        return error_response(message=IdPMsg.general_failure)
 
     return error_response(message=IdPMsg.not_implemented)
 
@@ -393,16 +398,14 @@ def pw_auth(ref: RequestRef, username: str, password: str) -> Union[FluxData, We
         current_app.logger.info(f'{ticket.request_ref}: Password authentication failed')
         return error_response(message=IdPMsg.wrong_credentials)
 
-    # Create SSO session
+    # Create/update SSO session
     current_app.logger.debug(f'User {pwauth.user} authenticated OK ({type(ticket)} request id {ticket.request_id})')
+    _sso_session = current_app._lookup_sso_session()
     _authn_credentials: List[AuthnData] = []
     if pwauth.authndata:
         _authn_credentials = [pwauth.authndata]
-    _sso_session = SSOSession(
-        authn_request_id=ticket.request_id,
-        authn_credentials=_authn_credentials,
-        eppn=pwauth.user.eppn,
-        expires_at=utc_now() + current_app.conf.sso_session_lifetime,
+    _sso_session = record_authentication(
+        ticket, pwauth.user.eppn, _sso_session, _authn_credentials, current_app.conf.sso_session_lifetime
     )
 
     # This session contains information about the fact that the user was authenticated. It is
@@ -622,7 +625,7 @@ def tou(ref: RequestRef, versions: Optional[Sequence[str]] = None, user_accepts:
 @MarshalWith(UseOther1ResponseSchema)
 def use_other_1(
     ref: RequestRef, username: Optional[str] = None, action: Optional[str] = None, response_code: Optional[str] = None
-) -> FluxData:
+) -> Union[FluxData, WerkzeugResponse]:
     """
     The user requests to start a "Login using another device" flow.
 
@@ -633,7 +636,7 @@ def use_other_1(
     retrieve them again on this device (device #1).
     """
     current_app.logger.debug('\n\n')
-    current_app.logger.debug(f'--- Fetch Use Other Device #1 ({ref}, username {username}, action {action}) ---')
+    current_app.logger.debug(f'--- Use Other Device #1 ({ref}, username {username}, action {action}) ---')
 
     if not current_app.conf.allow_other_device_logins or not current_app.conf.other_device_url:
         return error_response(message=IdPMsg.not_available)
@@ -647,8 +650,9 @@ def use_other_1(
     # ensure mypy
     assert ticket
 
-    if not state and not action:
-        sso_session = current_app._lookup_sso_session()
+    sso_session = current_app._lookup_sso_session()
+
+    if not state and (not action or action == 'FETCH'):
         if sso_session:
             username = sso_session.eppn
         user = None
@@ -676,7 +680,9 @@ def use_other_1(
     payload: Dict[str, Any] = {}
 
     if state.expires_at > now:
-        if action == 'ABORT':
+        if action == 'FETCH':
+            pass
+        elif action == 'ABORT':
             if state.state in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS]:
                 current_app.logger.info('Aborting login using another device')
                 _state = current_app.other_device_db.abort(state)
@@ -690,7 +696,51 @@ def use_other_1(
             else:
                 current_app.logger.info(f'Not aborting use other device in state {state.state}')
         elif action == 'SUBMIT_CODE':
-            pass
+            if state.state in [OtherDeviceState.LOGGED_IN]:
+                if response_code == state.device2.response_code:
+                    if not state.eppn:
+                        current_app.logger.warning(f'Login using other device: No eppn in state {state.state_id}')
+                        current_app.logger.debug(f'Extra debug: Full other device state:\n{state.to_json()}')
+                        return error_response(message=IdPMsg.general_failure)
+
+                    current_app.logger.info(
+                        f'Use other device: Transferring {len(state.device2.credentials_used)} credentials used to '
+                        f'login ref {ticket.request_ref}'
+                    )
+                    state.state = OtherDeviceState.FINISHED
+                    ticket.pending_request.credentials_used = state.device2.credentials_used
+                    ticket.set_other_device_state(None)
+
+                    # Create/update SSO session
+                    _authn_credentials: List[AuthnData] = []
+                    for key, ts in state.device2.credentials_used.items():
+                        authn = AuthnData(cred_id=key, timestamp=ts)
+                        _authn_credentials += [authn]
+                    sso_session = record_authentication(
+                        ticket, state.eppn, sso_session, _authn_credentials, current_app.conf.sso_session_lifetime
+                    )
+
+                    current_app.logger.debug(f'Saving SSO session {sso_session}')
+                    current_app.sso_sessions.save(sso_session)
+
+                    current_app.stats.count('login_using_other_device_finished')
+                else:
+                    current_app.logger.info(f'Use other device: Incorrect response_code')
+                    current_app.stats.count('login_using_other_device_incorrect_code')
+                    state.bad_attempts += 1
+            else:
+                current_app.logger.info(f'Not validating response code for use other device in state {state.state}')
+                state.bad_attempts += 1
+
+            if state.state != OtherDeviceState.DENIED:
+                if state.bad_attempts >= current_app.conf.other_device_max_code_attempts:
+                    current_app.logger.info(f'Use other device: too many response code attempts')
+                    current_app.stats.count('login_using_other_device_denied')
+                    state.state = OtherDeviceState.DENIED
+
+            if not current_app.other_device_db.save(state):
+                current_app.logger.warning(f'Login using other device: Failed saving state {state}')
+                return error_response(message=IdPMsg.general_failure)
         elif action is not None:
             current_app.logger.error(f'Login using other device: Unknown action: {action}')
             return error_response(message=IdPMsg.general_failure)
@@ -724,6 +774,13 @@ def use_other_1(
     )
 
     # NOTE: It is CRITICAL to never return the response code to Device #1
+    if sso_session:
+        # In case we created the SSO session above, we need to return it's ID to the user in a cookie
+        _flux_response = FluxSuccessResponse(request, payload=payload)
+        resp = jsonify(UseOther1ResponseSchema().dump(_flux_response.to_dict()))
+
+        return set_sso_cookie(sso_session.session_id, resp)
+
     return success_response(payload=payload)
 
 
@@ -737,7 +794,7 @@ def use_other_2(ref: Optional[RequestRef], state_id: Optional[OtherDeviceId]) ->
     using this endpoint.
     """
     current_app.logger.debug('\n\n')
-    current_app.logger.debug(f'--- Fetch Use Other Device #2 (ref {ref}, state_id {state_id}) ---')
+    current_app.logger.debug(f'--- Use Other Device #2 (ref {ref}, state_id {state_id}) ---')
 
     if not current_app.conf.allow_other_device_logins:
         return error_response(message=IdPMsg.not_available)
@@ -756,13 +813,13 @@ def use_other_2(ref: Optional[RequestRef], state_id: Optional[OtherDeviceId]) ->
         state = current_app.other_device_db.get_state_by_id(state_id)
         if not state:
             current_app.logger.debug(f'Other device: State with state_id {state_id} (from QR code) not found')
+        else:
+            current_app.logger.info(f'Loaded other device state: {state.state_id}')
+            current_app.logger.debug(f'Extra debug: Full other device state:\n{state.to_json()}')
 
     if not state:
         current_app.logger.debug(f'Other device: No state found, bailing out')
         return error_response(message=IdPMsg.state_not_found)
-
-    current_app.logger.info(f'Loaded other device state: {state.state_id}')
-    current_app.logger.debug(f'Extra debug: Full other device state:\n{state.to_json()}')
 
     if state.state == OtherDeviceState.NEW:
         # Grab this state and associate it with the current browser session. This is important so that
@@ -798,16 +855,26 @@ def use_other_2(ref: Optional[RequestRef], state_id: Optional[OtherDeviceId]) ->
         'description': str(user_agents.parse(state.device1.user_agent)),
         'proximity': get_ip_proximity(state.device1.ip_address, request.remote_addr).value,
     }
-    return success_response(
-        payload={
-            'device1_info': device_info,
-            'expires_in': expires_in,
-            'expires_max': current_app.conf.other_device_logins_ttl.total_seconds(),
-            'login_ref': state.device2.ref,
-            'short_code': state.short_code,
-            'state': state.state.value,
-        }
-    )
+
+    payload: Dict[str, Any] = {
+        'device1_info': device_info,
+        'expires_in': expires_in,
+        'expires_max': current_app.conf.other_device_logins_ttl.total_seconds(),
+        'login_ref': state.device2.ref,
+        'short_code': state.short_code,
+        'state': state.state.value,
+    }
+
+    if state.state == OtherDeviceState.LOGGED_IN:
+        # Be very explicit about when response_code is returned.
+        payload['response_code'] = state.device2.response_code
+    else:
+        # This really shouldn't happen, but better ensure it like this.
+        if 'response_code' in payload:
+            current_app.logger.error(f'Response code found in use other device state {state.state} payload - removing')
+            del payload['response_code']
+
+    return success_response(payload=payload)
 
 
 @dataclass
