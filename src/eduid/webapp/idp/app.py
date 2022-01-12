@@ -177,8 +177,10 @@ def init_idp_app(name: str = 'idp', test_config: Optional[Mapping[str, Any]] = N
 
     # Register views
     from eduid.webapp.idp.views import idp_views
+    from eduid.webapp.idp.views2.other_device import other_device_views
 
     app.register_blueprint(idp_views)
+    app.register_blueprint(other_device_views)
 
     from eduid.webapp.idp.exceptions import init_exception_handlers
 
