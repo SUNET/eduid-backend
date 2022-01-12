@@ -251,7 +251,7 @@ phonenumbers==8.12.39 \
     --hash=sha256:0f7745e1f108654db347d885e814cbb5f225b8c5f5ce336024b193c79291ddaa \
     --hash=sha256:d088a5c85adcd29cd9ff66ec43c4b08dccae3a4e7b046bb43f651e75d4c51165
     # via -r main.in
-pillow==8.4.0 \
+pillow==9.0.0 \
     --hash=sha256:b8831cb7332eda5dc89b21a7bce7ef6ad305548820595033a4b03cf3091235ed \
     --hash=sha256:b8e2f83c56e141920c39464b852de3719dfbfb6e3c99a2d8da0edf4fb33176ed
     # via
