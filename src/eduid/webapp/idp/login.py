@@ -41,6 +41,7 @@ from eduid.webapp.idp import assurance, mischttp
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import (
     AssuranceException,
+    AuthnState,
     MissingAuthentication,
     MissingMultiFactor,
     MissingPasswordFactor,
@@ -78,6 +79,7 @@ class NextResult(BaseModel):
     message: IdPMsg
     error: bool = False
     authn_info: Optional[AuthnInfo] = None
+    authn_state: Optional[AuthnState] = None
     # kludge for the template processing, pydantic doesn't embed dataclasses very well:
     #  TypeError: non-default argument 'mail_addresses' follows default argument
     user: Optional[Any] = None
@@ -127,8 +129,9 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
     res = NextResult(message=IdPMsg.assurance_failure, error=True)
 
     try:
-        authn_info = assurance.response_authn(ticket, user, sso_session)
-        res = NextResult(message=IdPMsg.proceed, authn_info=authn_info)
+        authn_state = AuthnState(user, sso_session, ticket)
+        authn_info = assurance.response_authn(authn_state, ticket, user, sso_session)
+        res = NextResult(message=IdPMsg.proceed, authn_info=authn_info, authn_state=authn_state)
     except MissingPasswordFactor:
         res = NextResult(message=IdPMsg.must_authenticate)
     except MissingMultiFactor:

@@ -291,7 +291,9 @@ def next(ref: RequestRef) -> FluxData:
             return error_response(message=IdPMsg.general_failure)
 
         sso = SSO(sso_session=sso_session)
-        assert _next.authn_info  # please mypy
+        # please mypy
+        if not _next.authn_info or not _next.authn_state:
+            raise RuntimeError(f'Missing expected data in next result: {_next}')
 
         if isinstance(ticket, LoginContextSAML):
             saml_params = sso.get_response_params(_next.authn_info, ticket, user)
@@ -329,7 +331,7 @@ def next(ref: RequestRef) -> FluxData:
                     current_app.logger.debug(f'Recording login using another device {state.state_id} as finished')
                     current_app.logger.debug(f'Extra debug: SSO eppn {sso_session.eppn}')
                     _state = current_app.other_device_db.logged_in(
-                        state, sso_session.eppn, ticket.pending_request.credentials_used
+                        state, sso_session.eppn, _next.authn_state.credentials
                     )
                     if not _state:
                         current_app.logger.warning(f'Failed to finish state: {state.state_id}')

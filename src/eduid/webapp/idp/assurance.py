@@ -33,13 +33,9 @@
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
 import logging
-from dataclasses import dataclass
-from datetime import datetime
-from enum import Enum
-from typing import Dict, List, Optional, Sequence, Union
+from typing import Dict, List, Optional, Sequence
 
 from eduid.userdb.credentials import (
-    Credential,
     FidoCredential,
     METHOD_SWAMID_AL2_MFA,
     METHOD_SWAMID_AL2_MFA_HI,
@@ -51,7 +47,7 @@ from eduid.webapp.common.session.logindata import LoginContext, LoginContextSAML
 from eduid.webapp.common.session.namespaces import OnetimeCredType, OnetimeCredential
 from eduid.webapp.idp.app import current_idp_app
 from eduid.webapp.idp.app import current_idp_app as current_app
-from eduid.webapp.idp.assurance_data import AuthnInfo, EduidAuthnContextClass
+from eduid.webapp.idp.assurance_data import AuthnInfo, EduidAuthnContextClass, UsedCredential, UsedWhere
 from eduid.webapp.idp.sso_session import SSOSession
 
 logger = logging.getLogger(__name__)
@@ -85,28 +81,6 @@ class MissingAuthentication(AssuranceException):
     pass
 
 
-class UsedWhere(Enum):
-    REQUEST = 'request'
-    SSO = 'SSO session'
-
-
-@dataclass
-class UsedCredential:
-    credential: Union[Credential, OnetimeCredential]
-    ts: datetime
-    source: UsedWhere  # only used for debugging purposes
-
-    def __str__(self) -> str:
-        key = str(self.credential.key)
-        if len(key) > 24:
-            # 24 is length of object-id, webauthn credentials are much longer
-            key = key[:21] + '...'
-        return (
-            f'<{self.__class__.__name__}: credential={self.credential.__class__.__name__}({key}), '
-            f'ts={self.ts.isoformat()}, source={self.source.value}>'
-        )
-
-
 class AuthnState(object):
     def __init__(self, user: IdPUser, sso_session: SSOSession, ticket: LoginContext):
         self.password_used = False
@@ -115,10 +89,10 @@ class AuthnState(object):
         self.external_mfa_used = False
         self.swamid_al2_used = False
         self.swamid_al2_hi_used = False
-        self._creds = self._gather_credentials(sso_session, ticket, user)
+        self._credentials = self._gather_credentials(sso_session, ticket, user)
 
-        for this in self._creds:
-            cred = this.credential
+        for this in self._credentials:
+            cred = user.credentials.find(this.credential_id)
             if isinstance(cred, Password):
                 self.password_used = True
             elif isinstance(cred, FidoCredential):
@@ -153,15 +127,15 @@ class AuthnState(object):
         for key, ts in ticket.pending_request.credentials_used.items():
             if key in ticket.pending_request.onetime_credentials:
                 onetime_cred = ticket.pending_request.onetime_credentials[key]
-                cred = UsedCredential(credential=onetime_cred, ts=ts, source=UsedWhere.REQUEST)
+                cred = UsedCredential(credential_id=onetime_cred.key, ts=ts, source=UsedWhere.REQUEST)
             else:
                 credential = user.credentials.find(key)
                 if not credential:
                     logger.warning(f'Could not find credential {key} on user {user}')
                     continue
-                cred = UsedCredential(credential=credential, ts=ts, source=UsedWhere.REQUEST)
+                cred = UsedCredential(credential_id=credential.key, ts=ts, source=UsedWhere.REQUEST)
             logger.debug(f'Adding credential used with this request: {cred}')
-            _used_credentials[cred.credential.key] = cred
+            _used_credentials[cred.credential_id] = cred
 
         _used_request = [x for x in _used_credentials.values() if x.source == UsedWhere.REQUEST]
         logger.debug(f'Number of credentials used with this very request: {len(_used_request)}')
@@ -177,8 +151,8 @@ class AuthnState(object):
                 logger.warning(f'Could not find credential {this.cred_id} on user {user}')
                 continue
             # TODO: The authn_timestamp in the SSO session is not necessarily right for all credentials there
-            cred = UsedCredential(credential=credential, ts=sso_session.authn_timestamp, source=UsedWhere.SSO)
-            _key = cred.credential.key
+            cred = UsedCredential(credential_id=credential.key, ts=sso_session.authn_timestamp, source=UsedWhere.SSO)
+            _key = cred.credential_id
             if _key in _used_credentials:
                 # If the credential is in _used_credentials, it is because it was used with this very request.
                 continue
@@ -194,7 +168,7 @@ class AuthnState(object):
                 timestamp=sso_session.external_mfa.timestamp,
                 type=OnetimeCredType.external_mfa,
             )
-            cred = UsedCredential(credential=_otc, ts=sso_session.authn_timestamp, source=UsedWhere.SSO)
+            cred = UsedCredential(credential_id=_otc.key, ts=sso_session.authn_timestamp, source=UsedWhere.SSO)
             _used_credentials[ElementKey('SSO_external_MFA')] = cred
 
         _used_sso = [x for x in _used_credentials.values() if x.source == UsedWhere.SSO]
@@ -204,7 +178,7 @@ class AuthnState(object):
 
     def __str__(self) -> str:
         return (
-            f'<AuthnState: creds={len(self._creds)}, pw={self.password_used}, fido={self.fido_used}, '
+            f'<AuthnState: creds={len(self._credentials)}, pw={self.password_used}, fido={self.fido_used}, '
             f'external_mfa={self.external_mfa_used}, nin is al2={self.is_swamid_al2}, '
             f'mfa is {self.is_multifactor} (al2={self.swamid_al2_used}, al2_hi={self.swamid_al2_hi_used})>'
         )
@@ -221,15 +195,18 @@ class AuthnState(object):
     def is_swamid_al2_mfa(self) -> bool:
         return self.swamid_al2_used or self.swamid_al2_hi_used
 
+    @property
+    def credentials(self) -> List[UsedCredential]:
+        # property to make the credentials read-only
+        return self._credentials
 
-def response_authn(ticket: LoginContext, user: IdPUser, sso_session: SSOSession) -> AuthnInfo:
+
+def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser, sso_session: SSOSession) -> AuthnInfo:
     """
     Figure out what AuthnContext to assert in a SAML response,
     given the RequestedAuthnContext from the SAML request.
     """
     req_authn_ctx = get_requested_authn_context(ticket)
-
-    authn = AuthnState(user, sso_session, ticket)
     logger.info(f'Authn for {user} will be evaluated based on: {authn}')
 
     SWAMID_AL1 = 'http://www.swamid.se/policy/assurance/al1'

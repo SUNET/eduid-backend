@@ -18,6 +18,8 @@ from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import LoginContext
 from eduid.webapp.common.session.namespaces import IdP_OtherDevicePendingRequest, RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
+from eduid.webapp.idp.assurance import AuthnState
+from eduid.webapp.idp.assurance_data import UsedWhere
 from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.login import get_ticket
@@ -120,21 +122,31 @@ def use_other_1(
                         current_app.logger.debug(f'Extra debug: Full other device state:\n{state.to_json()}')
                         return error_response(message=IdPMsg.general_failure)
 
-                    current_app.logger.info(
-                        f'Use other device: Transferring {len(state.device2.credentials_used)} credentials used to '
-                        f'login ref {ticket.request_ref}'
-                    )
+                    # Clear this first, so that if something fail below the user can always reset
                     state.state = OtherDeviceState.FINISHED
-                    ticket.pending_request.credentials_used = state.device2.credentials_used
                     ticket.set_other_device_state(None)
 
+                    # Process list of used credentials. Credentials inherited from an SSO session on device #2 get
+                    # added to the SSO session updated/created below, and request credentials (meaning ones actually
+                    # used during this authn, albeit on the other device, device #2) should also get added to the
+                    # pending request here on device #1.
+                    _sso_credentials_used: List[AuthnData] = []
+                    _request_count = 0
+                    for this in state.device2.credentials_used:
+                        authn = AuthnData(cred_id=this.credential_id, timestamp=this.ts)
+                        _sso_credentials_used += [authn]
+                        if this.source == UsedWhere.REQUEST:
+                            ticket.pending_request.credentials_used[this.credential_id] = this.ts
+                            _request_count += 1
+
                     # Create/update SSO session
-                    _authn_credentials: List[AuthnData] = []
-                    for key, ts in state.device2.credentials_used.items():
-                        authn = AuthnData(cred_id=key, timestamp=ts)
-                        _authn_credentials += [authn]
                     sso_session = record_authentication(
-                        ticket, state.eppn, sso_session, _authn_credentials, current_app.conf.sso_session_lifetime
+                        ticket, state.eppn, sso_session, _sso_credentials_used, current_app.conf.sso_session_lifetime
+                    )
+
+                    current_app.logger.info(
+                        f'Transferred {_request_count} request credentials used to login ref {ticket.request_ref}, '
+                        f'and {len(_sso_credentials_used)} to SSO session {sso_session.session_id}'
                     )
 
                     current_app.logger.debug(f'Saving SSO session {sso_session}')
@@ -165,7 +177,7 @@ def use_other_1(
         age = int((now - state.expires_at).total_seconds())
         current_app.logger.info(f'Use other device state is expired ({age} seconds)')
 
-    if state.state in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS]:
+    if state.state in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS, OtherDeviceState.LOGGED_IN]:
         # Only add QR code when it will actually be displayed
         buf = BytesIO()
         qr_url = urlappend(current_app.conf.other_device_url, str(state.state_id))

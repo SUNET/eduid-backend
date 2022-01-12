@@ -7,6 +7,8 @@ from typing import Any, Dict
 
 from pydantic import BaseModel
 
+from eduid.userdb.element import ElementKey
+
 
 @unique
 class EduidAuthnContextClass(str, Enum):
@@ -28,4 +30,24 @@ class AuthnInfo(BaseModel):
         return (
             f'<{self.__class__.__name__}: accr={self.class_ref.name}, attributes={self.authn_attributes}, '
             f'instant={self.instant.isoformat()}>'
+        )
+
+
+class UsedWhere(str, Enum):
+    REQUEST = 'request'
+    SSO = 'SSO session'
+
+
+class UsedCredential(BaseModel):
+    credential_id: ElementKey
+    ts: datetime
+    source: UsedWhere  # only used for debugging purposes
+
+    def __str__(self) -> str:
+        key = str(self.credential_id)
+        if len(key) > 24:
+            # 24 is length of object-id, webauthn credentials are much longer
+            key = key[:21] + '...'
+        return (
+            f'<{self.__class__.__name__}: credential_id={key}), ts={self.ts.isoformat()}, source={self.source.value}>'
         )

@@ -6,7 +6,7 @@ import os
 import typing
 import uuid
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, Optional, Type
+from typing import Any, List, Mapping, Optional, Type
 
 from bson import ObjectId
 from flask import request
@@ -16,8 +16,7 @@ from eduid.common.misc.encoders import EduidJSONEncoder
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User
 from eduid.userdb.db import BaseDB
-from eduid.userdb.element import ElementKey
-from eduid.webapp.idp.assurance_data import EduidAuthnContextClass
+from eduid.webapp.idp.assurance_data import EduidAuthnContextClass, UsedCredential
 from eduid.webapp.idp.other_device_data import OtherDeviceId, OtherDeviceState
 
 if typing.TYPE_CHECKING:
@@ -39,7 +38,7 @@ class Device2Data(BaseModel):
     ref: Optional[str] = None  # the pending_request 'ref' on device 2
     response_code: Optional[str] = None  # code from login event (using device 2) that has to be entered on device 1
     # TODO: doesn't work with onetime_credentials
-    credentials_used: Mapping[ElementKey, datetime] = Field(default={})
+    credentials_used: List[UsedCredential] = Field(default=[])
 
 
 class OtherDevice(BaseModel):
@@ -201,9 +200,7 @@ class OtherDeviceDB(BaseDB):
             return None
         return state
 
-    def logged_in(
-        self, state: OtherDevice, eppn: str, credentials_used: Mapping[ElementKey, datetime]
-    ) -> Optional[OtherDevice]:
+    def logged_in(self, state: OtherDevice, eppn: str, credentials_used: List[UsedCredential]) -> Optional[OtherDevice]:
         """
         Finish a state, on device 2.
         """
