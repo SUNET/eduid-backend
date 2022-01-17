@@ -204,15 +204,15 @@ def authn_options(ref: RequestRef) -> FluxData:
     if user:
         if user.credentials.filter(Password):
             current_app.logger.debug(f'User in SSO session has a Password credential')
-            _password = True
+            payload['password'] = True
 
         if user.credentials.filter(FidoCredential):
             current_app.logger.debug(f'User in SSO session has a FIDO/Webauthn credential')
-            _webauthn = True
+            payload['webauthn'] = True
 
         if user.locked_identity.filter(LockedIdentityNin):
             current_app.logger.debug(f'User in SSO session has a locked NIN -> Freja is possible')
-            _freja = True
+            payload['freja_eidplus'] = True
 
         if user.mail_addresses.primary:
             # Provide e-mail from (potentially expired) SSO session to frontend, so it can populate
