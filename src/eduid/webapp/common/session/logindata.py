@@ -80,7 +80,7 @@ class LoginContext(ABC):
 
     @property
     def reauthn_required(self) -> bool:
-        raise NotImplementedError('Subclass must implement force_authn')
+        raise NotImplementedError('Subclass must implement reauthn_required')
 
     @property
     def other_device_state_id(self) -> Optional[OtherDeviceId]:
