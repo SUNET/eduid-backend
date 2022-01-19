@@ -47,7 +47,7 @@ from eduid.userdb.credentials import Credential, METHOD_SWAMID_AL2_MFA, METHOD_S
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.nin import Nin, NinList
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.logindata import ExternalMfaData, LoginContext
+from eduid.webapp.common.session.logindata import ExternalMfaData, LoginContext, LoginContextSAML
 from eduid.webapp.common.session.namespaces import IdP_SAMLPendingRequest, RequestRef
 from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.idp_authn import AuthnData
@@ -133,15 +133,6 @@ class SSOIdPTests(IdPTests):
         binding = 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST'
         if request_ref is None:
             request_ref = RequestRef(str(uuid4()))
-        saml_req = self._parse_SAMLRequest(
-            info,
-            binding,
-            self.app.logger,
-            self.app.IDP,
-            BadRequest,
-            self.app.conf.debug,
-            self.app.conf.verify_request_signatures,
-        )
         from eduid.webapp.common.session import session
 
         try:
@@ -151,7 +142,7 @@ class SSOIdPTests(IdPTests):
             # Ignore RuntimeError: Working outside of request context when not running
             # inside self.app.test_request_context.
             pass
-        ticket = LoginContext(request_ref=request_ref)
+        ticket = LoginContextSAML(request_ref=request_ref)
         return ticket
 
     def _parse_SAMLRequest(

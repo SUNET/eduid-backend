@@ -97,6 +97,7 @@ class TestActions(SSOIdPTests):
                 'tou_version': 'mock-version',
                 'base_url': 'https://unittest-idp.example.edu/',
                 'action_plugins': ['tou', 'mfa'],
+                'enable_legacy_template_mode': True,
             }
         )
         return config
