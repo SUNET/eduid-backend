@@ -89,10 +89,14 @@ class AuthnState(object):
         self.external_mfa_used = False
         self.swamid_al2_used = False
         self.swamid_al2_hi_used = False
+        self._onetime_credentials: Dict[ElementKey, OnetimeCredential] = {}
         self._credentials = self._gather_credentials(sso_session, ticket, user)
 
         for this in self._credentials:
             cred = user.credentials.find(this.credential_id)
+            if not cred:
+                # check if it was a one-time credential
+                cred = self._onetime_credentials.get(this.credential_id)
             if isinstance(cred, Password):
                 self.password_used = True
             elif isinstance(cred, FidoCredential):
@@ -109,6 +113,10 @@ class AuthnState(object):
                 if cred.authn_context == 'http://id.elegnamnden.se/loa/1.0/loa3':
                     self.swamid_al2_hi_used = True
             else:
+                logger.error(f'Credential with id {this.credential_id} not found on user')
+                _creds = user.credentials.to_list()
+                logger.debug(f'User credentials:\n{_creds}')
+                logger.debug(f'Session one-time credentials:\n{ticket.pending_request.onetime_credentials}')
                 raise ValueError(f'Unrecognised used credential: {this}')
 
         if user.nins.verified:
@@ -168,6 +176,7 @@ class AuthnState(object):
                 timestamp=sso_session.external_mfa.timestamp,
                 type=OnetimeCredType.external_mfa,
             )
+            self._onetime_credentials[_otc.key] = _otc
             cred = UsedCredential(credential_id=_otc.key, ts=sso_session.authn_timestamp, source=UsedWhere.SSO)
             _used_credentials[ElementKey('SSO_external_MFA')] = cred
 
