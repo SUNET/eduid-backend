@@ -19,7 +19,7 @@ from eduid.webapp.idp.sso_session import SSOSession, record_authentication
 
 def _device1_check_response_code(
     response_code: Optional[str], sso_session: Optional[SSOSession], state: OtherDevice, ticket: LoginContext
-) -> Union[SSOSession, FluxData]:
+) -> Union[Optional[SSOSession], FluxData]:
     if state.state != OtherDeviceState.LOGGED_IN:
         current_app.logger.info(f'Not validating response code for use other device in state {state.state}')
         state.bad_attempts += 1
@@ -83,6 +83,10 @@ def _device1_check_response_code(
 
 
 def _device1_state_to_flux_payload(state: OtherDevice, now: datetime) -> Mapping[str, Any]:
+    if not current_app.conf.other_device_url:
+        # TODO: make this config non-optional once we've finished developing this functionality
+        raise RuntimeError('Missing configuration other_device_url')
+
     payload: Dict[str, Any] = {}
     if state.state in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS, OtherDeviceState.LOGGED_IN]:
         # Only add QR code when it will actually be displayed
