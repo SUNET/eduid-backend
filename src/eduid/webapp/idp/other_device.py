@@ -212,6 +212,7 @@ class OtherDeviceDB(BaseDB):
 
         if (state.eppn and state.eppn != eppn) or not eppn:
             logger.error(f'Can\'t record use other device as finished for eppn {eppn} (state has eppn {state.eppn})')
+            return None
 
         _state_val = state.state.value
         state.state = OtherDeviceState.LOGGED_IN

@@ -152,7 +152,6 @@ class SSOIdPTests(IdPTests):
             # inside self.app.test_request_context.
             pass
         ticket = LoginContext(request_ref=request_ref)
-        # ticket.saml_req = saml_req
         return ticket
 
     def _parse_SAMLRequest(

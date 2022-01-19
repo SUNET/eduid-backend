@@ -112,7 +112,7 @@ class LoginContextSAML(LoginContext):
         if not isinstance(pending, IdP_SAMLPendingRequest):
             raise ValueError('Pending request not initialised (or not a SAML request)')
         if not isinstance(pending.request, str):
-            raise ValueError('saml_data.request not initialised')
+            raise ValueError('pending_request.request not initialised')
         return pending.request
 
     @property
@@ -128,7 +128,7 @@ class LoginContextSAML(LoginContext):
         if not isinstance(pending, IdP_SAMLPendingRequest):
             raise ValueError('Pending request not initialised (or not a SAML request)')
         if not isinstance(pending.binding, str):
-            raise ValueError('saml_data.binding not initialised')
+            raise ValueError('pending_request.binding not initialised')
         return pending.binding
 
     @property
@@ -162,6 +162,8 @@ class LoginContextSAML(LoginContext):
     @property
     def other_device_state_id(self) -> Optional[OtherDeviceId]:
         # On device #1, the pending_request has a pointer to the other-device-state
+        # Use temporary variable to avoid pycharm warning
+        #   Unresolved attribute reference 'other_device_state_id' for class 'IdP_PendingRequest'
         _pending = self.pending_request
         if isinstance(_pending, IdP_SAMLPendingRequest):
             return _pending.other_device_state_id
@@ -169,6 +171,16 @@ class LoginContextSAML(LoginContext):
 
     @property
     def is_other_device(self) -> Optional[int]:
+        """ Check if we are logging in using another device.
+
+        If the result is used as a boolean, it says if this LoginContext is involved in logging in
+        using another device, but if used as an integer it lets you identify if it is on device 1 or 2.
+
+        This combines what would have been three functions into one:
+          is_other_device1
+          is_other_device2
+          is_either_other_device
+        """
         if self.other_device_state_id:
             return 1
         return None
