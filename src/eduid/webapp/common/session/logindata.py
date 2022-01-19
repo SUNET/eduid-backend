@@ -4,7 +4,7 @@ import logging
 from abc import ABC
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List, Optional, TypeVar
+from typing import List, Optional, Sequence, TypeVar
 from urllib.parse import urlencode
 
 from pydantic import BaseModel

@@ -1,7 +1,6 @@
-from typing import Any, Dict, Optional, Union
+from typing import Optional, Union
 from uuid import uuid4
 
-import user_agents
 from flask import Blueprint, jsonify, request
 from werkzeug.wrappers import Response as WerkzeugResponse
 
@@ -15,14 +14,14 @@ from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.mischttp import set_sso_cookie
 from eduid.webapp.idp.other_device.data import OtherDeviceId, OtherDeviceState
+from eduid.webapp.idp.other_device.device2 import device2_state_to_flux_payload
 from eduid.webapp.idp.schemas import (
     UseOther1RequestSchema,
     UseOther1ResponseSchema,
     UseOther2RequestSchema,
     UseOther2ResponseSchema,
 )
-from eduid.webapp.idp.util import get_ip_proximity
-from eduid.webapp.idp.other_device.device1 import _device1_check_response_code, _device1_state_to_flux_payload
+from eduid.webapp.idp.other_device.device1 import device1_check_response_code, device1_state_to_flux_payload
 from eduid.webapp.idp.other_device.helpers import _get_other_device_state_using_ref
 
 other_device_views = Blueprint('other_device', __name__, url_prefix='', template_folder='templates')
@@ -79,7 +78,7 @@ def use_other_1(
             current_app.stats.count('login_using_other_device_start_anonymous')
         current_app.logger.info(f'Added new use other device state: {state.state_id}')
 
-        payload = _device1_state_to_flux_payload(state, now)
+        payload = device1_state_to_flux_payload(state, now)
         return success_response(payload=payload)
 
     if not state:
@@ -89,7 +88,7 @@ def use_other_1(
     if state.expires_at <= now:
         age = int((now - state.expires_at).total_seconds())
         current_app.logger.info(f'Login using other device: State is expired ({age} seconds ago)')
-        payload = _device1_state_to_flux_payload(state, now)
+        payload = device1_state_to_flux_payload(state, now)
         return success_response(payload=payload)
 
     #
@@ -110,7 +109,7 @@ def use_other_1(
             current_app.logger.info(f'Not aborting use other device in state {state.state}')
 
     elif action == 'SUBMIT_CODE':
-        _submit_res = _device1_check_response_code(response_code, sso_session, state, ticket)
+        _submit_res = device1_check_response_code(response_code, sso_session, state, ticket)
         if isinstance(_submit_res, FluxData):
             return _submit_res
         sso_session = _submit_res
@@ -119,7 +118,7 @@ def use_other_1(
         current_app.logger.error(f'Login using other device: Unknown action: {action}')
         return error_response(message=IdPMsg.general_failure)
 
-    payload = _device1_state_to_flux_payload(state, now)
+    payload = device1_state_to_flux_payload(state, now)
 
     if sso_session:
         # In case we created the SSO session above, we need to return it's ID to the user in a cookie
@@ -168,6 +167,13 @@ def use_other_2(ref: Optional[RequestRef], state_id: Optional[OtherDeviceId]) ->
         current_app.logger.debug(f'Other device: No state found, bailing out')
         return error_response(message=IdPMsg.state_not_found)
 
+    now = utc_now()  # ensure coherent results of 'is this expired?' checks
+    if state.expires_at <= now:
+        age = int((now - state.expires_at).total_seconds())
+        current_app.logger.info(f'Login using other device: State is expired ({age} seconds ago)')
+        payload = device2_state_to_flux_payload(state, now)
+        return success_response(payload=payload)
+
     if state.state == OtherDeviceState.NEW:
         # Grab this state and associate it with the current browser session. This is important so that
         # it's not possible for an attacker to initiate other device, send QR code to victim, have them
@@ -190,35 +196,6 @@ def use_other_2(ref: Optional[RequestRef], state_id: Optional[OtherDeviceId]) ->
         current_app.logger.debug(f'Extra debug: Full other device state:\n{state.to_json()}')
         return error_response(message=IdPMsg.general_failure)  # TODO: make a real error code for this
 
-    # passing expires_at to the frontend would require clock sync to be usable,
-    # while passing number of seconds left is pretty unambiguous
-    now = utc_now()
-    expires_in = (state.expires_at - now).total_seconds()
-
-    # The frontend will present the user with the option to proceed with this login on this device #2.
-    # If the user proceeds, the frontend can now call the /next endpoint with the ref returned in this response.
-    device_info = {
-        'addr': state.device1.ip_address,
-        'description': str(user_agents.parse(state.device1.user_agent)),
-        'proximity': get_ip_proximity(state.device1.ip_address, request.remote_addr).value,
-    }
-
-    payload: Dict[str, Any] = {
-        'device1_info': device_info,
-        'expires_in': expires_in,
-        'expires_max': current_app.conf.other_device_logins_ttl.total_seconds(),
-        'login_ref': state.device2.ref,
-        'short_code': state.short_code,
-        'state': state.state.value,
-    }
-
-    if state.state == OtherDeviceState.LOGGED_IN:
-        # Be very explicit about when response_code is returned.
-        payload['response_code'] = state.device2.response_code
-    else:
-        # This really shouldn't happen, but better ensure it like this.
-        if 'response_code' in payload:
-            current_app.logger.error(f'Response code found in use other device state {state.state} payload - removing')
-            del payload['response_code']
+    payload = device2_state_to_flux_payload(state, now)
 
     return success_response(payload=payload)

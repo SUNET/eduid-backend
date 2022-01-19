@@ -71,7 +71,7 @@ from eduid.webapp.idp.logout import SLO
 
 __author__ = 'ft'
 
-from eduid.webapp.idp.other_device.data import OtherDeviceState
+from eduid.webapp.idp.other_device.device2 import device2_finish
 
 from saml2 import BINDING_HTTP_POST
 
@@ -184,6 +184,7 @@ def authn_options(ref: RequestRef) -> FluxData:
 
     payload: Dict[str, Any] = {
         'usernamepassword': True,
+        'username': True,
         'password': False,
         'other_device': current_app.conf.allow_other_device_logins,
         'webauthn': False,
@@ -308,43 +309,12 @@ def next(ref: RequestRef) -> FluxData:
                 },
             )
         elif isinstance(ticket, LoginContextOtherDevice):
-            if not current_app.conf.allow_other_device_logins:
-                return error_response(message=IdPMsg.not_available)
-
-            state = ticket.other_device_req
-            if ticket.is_other_device == 1:
+            if ticket.is_other_device != 2:
                 # We shouldn't be able to get here, but this clearly shows where this code runs
-                current_app.logger.warning(f'Ticket is LoginContextOtherDevice, but this is use other device #1')
-            elif ticket.is_other_device == 2:
-                if state.device2.ref != ticket.request_ref:
-                    current_app.logger.warning(f'Tried to use OtherDevice state that is not ours: {state}')
-                    return error_response(message=IdPMsg.general_failure)  # TODO: make a real error code for this
+                current_app.logger.warning(f'Ticket is LoginContextOtherDevice, but this is not device #2')
+                return error_response(message=IdPMsg.general_failure)
 
-                if state.expires_at < utc_now():
-                    current_app.stats.count('login_using_other_device_finish_too_late')
-                    current_app.logger.error(f'Request to login using another device was expired: {state}')
-                    # TODO: better response code
-                    return error_response(message=IdPMsg.general_failure)
-
-                if state.state == OtherDeviceState.IN_PROGRESS:
-                    current_app.logger.debug(f'Recording login using another device {state.state_id} as finished')
-                    current_app.logger.debug(f'Extra debug: SSO eppn {sso_session.eppn}')
-                    _state = current_app.other_device_db.logged_in(
-                        state, sso_session.eppn, _next.authn_state.credentials
-                    )
-                    if not _state:
-                        current_app.logger.warning(f'Failed to finish state: {state.state_id}')
-                        return error_response(message=IdPMsg.general_failure)
-                    current_app.logger.info(f'Finished login with other device state {state.state_id}')
-                    current_app.stats.count('login_using_other_device_finish')
-
-                return success_response(
-                    message=IdPMsg.finished,
-                    payload={
-                        'action': IdPAction.FINISHED.value,
-                        'target': url_for('other_device.use_other_2', _external=True),
-                    },
-                )
+            return device2_finish(ticket, sso_session, _next.authn_state)
         current_app.logger.error(f'Don\'t know how to finish login request {ticket}')
         return error_response(message=IdPMsg.general_failure)
 
