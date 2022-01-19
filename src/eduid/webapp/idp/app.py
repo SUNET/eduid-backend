@@ -45,7 +45,7 @@ from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.authn.utils import init_pysaml2
 from eduid.webapp.common.session import session
 from eduid.webapp.idp import idp_authn
-from eduid.webapp.idp.other_device import OtherDeviceDB
+from eduid.webapp.idp.other_device.db import OtherDeviceDB
 from eduid.webapp.idp.settings.common import IdPConfig
 from eduid.webapp.idp.sso_cache import SSOSessionCache
 from eduid.webapp.idp.sso_session import SSOSession, SSOSessionId
@@ -177,7 +177,7 @@ def init_idp_app(name: str = 'idp', test_config: Optional[Mapping[str, Any]] = N
 
     # Register views
     from eduid.webapp.idp.views import idp_views
-    from eduid.webapp.idp.views2.other_device import other_device_views
+    from eduid.webapp.idp.views2.use_other import other_device_views
 
     app.register_blueprint(idp_views)
     app.register_blueprint(other_device_views)

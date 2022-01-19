@@ -12,7 +12,6 @@
 Code handling Single Sign On logins.
 """
 import hmac
-import json
 import pprint
 import time
 from base64 import b64encode
@@ -28,7 +27,6 @@ from pydantic import BaseModel
 from werkzeug.exceptions import BadRequest, Forbidden, TooManyRequests
 from werkzeug.wrappers import Response as WerkzeugResponse
 
-from eduid.common.misc.encoders import EduidJSONEncoder
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.utils import urlappend
 from eduid.userdb.idp import IdPUser
@@ -52,10 +50,10 @@ from eduid.webapp.idp.assurance_data import AuthnInfo
 from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.idp_actions import redirect_to_actions
 from eduid.webapp.idp.idp_authn import AuthnData
-from eduid.webapp.idp.idp_saml import IdP_SAMLRequest, ResponseArgs, SamlResponse
+from eduid.webapp.idp.idp_saml import ResponseArgs, SamlResponse
 from eduid.webapp.idp.mfa_action import add_mfa_action, need_security_key, process_mfa_action_results
 from eduid.webapp.idp.mischttp import HttpArgs, get_default_template_arguments
-from eduid.webapp.idp.other_device_data import OtherDeviceState
+from eduid.webapp.idp.other_device.data import OtherDeviceState
 from eduid.webapp.idp.service import SAMLQueryParams, Service
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.tou_action import add_tou_action, need_tou_acceptance

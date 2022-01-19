@@ -14,8 +14,9 @@ from eduid.webapp.common.session.namespaces import (
     IdP_SAMLPendingRequest,
     RequestRef,
 )
+
 from eduid.webapp.idp.idp_saml import IdP_SAMLRequest
-from eduid.webapp.idp.other_device import OtherDevice
+from eduid.webapp.idp.other_device.db import OtherDevice
 
 #
 # Copyright (c) 2013, 2014, 2016 NORDUnet A/S. All rights reserved.
@@ -26,7 +27,7 @@ from eduid.webapp.idp.other_device import OtherDevice
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #          Roland Hedberg
 #
-from eduid.webapp.idp.other_device_data import OtherDeviceId
+from eduid.webapp.idp.other_device.data import OtherDeviceId
 
 
 class ExternalMfaData(BaseModel):

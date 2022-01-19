@@ -20,7 +20,7 @@ __author__ = 'ft'
 from eduid.userdb.credentials.fido import WebauthnAuthenticator
 from eduid.userdb.element import ElementKey
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
-from eduid.webapp.idp.other_device_data import OtherDeviceId
+from eduid.webapp.idp.other_device.data import OtherDeviceId
 
 logger = logging.getLogger(__name__)
 

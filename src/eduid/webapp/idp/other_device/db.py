@@ -17,7 +17,7 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User
 from eduid.userdb.db import BaseDB
 from eduid.webapp.idp.assurance_data import EduidAuthnContextClass, UsedCredential
-from eduid.webapp.idp.other_device_data import OtherDeviceId, OtherDeviceState
+from eduid.webapp.idp.other_device.data import OtherDeviceId, OtherDeviceState
 
 if typing.TYPE_CHECKING:
     from eduid.webapp.common.session.logindata import LoginContext

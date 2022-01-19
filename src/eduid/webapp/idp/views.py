@@ -72,7 +72,7 @@ from eduid.webapp.idp.logout import SLO
 
 __author__ = 'ft'
 
-from eduid.webapp.idp.other_device_data import OtherDeviceState
+from eduid.webapp.idp.other_device.data import OtherDeviceState
 
 from saml2 import BINDING_HTTP_POST
 
