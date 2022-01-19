@@ -44,7 +44,6 @@ from eduid.webapp.idp.assurance import (
     MissingMultiFactor,
     MissingPasswordFactor,
     WrongMultiFactor,
-    get_requested_authn_context,
 )
 from eduid.webapp.idp.assurance_data import AuthnInfo
 from eduid.webapp.idp.helpers import IdPMsg
@@ -300,7 +299,7 @@ class SSO(Service):
         resp_args = self._validate_login_request(ticket)
 
         try:
-            req_authn_context = get_requested_authn_context(ticket)
+            req_authn_context = ticket.get_requested_authn_context()
             current_app.logger.debug(f'Asserting AuthnContext {authn_info} (requested: {req_authn_context})')
         except AttributeError:
             current_app.logger.debug(f'Asserting AuthnContext {authn_info} (none requested)')
@@ -586,7 +585,7 @@ def do_verify() -> WerkzeugResponse:
     # please mypy with this legacy code
     assert isinstance(_ticket, LoginContextSAML)
 
-    authn_ref = get_requested_authn_context(_ticket)
+    authn_ref = _ticket.get_requested_authn_context()
     current_app.logger.debug(f'Authenticating with {repr(authn_ref)}')
 
     # Create an URL for redirecting the user back to the SSO redirect endpoint after this

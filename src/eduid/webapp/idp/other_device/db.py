@@ -139,9 +139,7 @@ class OtherDeviceDB(BaseDB):
         return OtherDevice.from_dict(state)
 
     def add_new_state(self, ticket: 'LoginContext', user: Optional[User], ttl: timedelta) -> OtherDevice:
-        from eduid.webapp.idp.assurance import get_requested_authn_context
-
-        authn_ref = get_requested_authn_context(ticket)
+        authn_ref = ticket.get_requested_authn_context()
         state = OtherDevice.from_parameters(
             eppn=None if not user else user.eppn,
             device1_ref=ticket.request_ref,

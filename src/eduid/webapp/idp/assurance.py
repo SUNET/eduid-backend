@@ -215,7 +215,7 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser, sso_s
     Figure out what AuthnContext to assert in a SAML response,
     given the RequestedAuthnContext from the SAML request.
     """
-    req_authn_ctx = get_requested_authn_context(ticket)
+    req_authn_ctx = ticket.get_requested_authn_context()
     logger.info(f'Authn for {user} will be evaluated based on: {authn}')
 
     SWAMID_AL1 = 'http://www.swamid.se/policy/assurance/al1'
@@ -285,47 +285,3 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser, sso_s
 
     return AuthnInfo(class_ref=response_authn, authn_attributes=attributes, instant=sso_session.authn_timestamp)
 
-
-def get_requested_authn_context(ticket: LoginContext) -> Optional[EduidAuthnContextClass]:
-    """
-    Check if the SP has explicit Authn preferences in the metadata (some SPs are not
-    capable of conveying this preference in the RequestedAuthnContext)
-
-    TODO: Don't just return the first one, but the most relevant somehow.
-    """
-    _accrs = ticket.authn_contexts
-
-    res = _pick_authn_context(_accrs, ticket.request_ref)
-
-    if not isinstance(ticket, LoginContextSAML):
-        return res
-
-    attributes = ticket.saml_req.sp_entity_attributes
-    if 'http://www.swamid.se/assurance-requirement' in attributes:
-        # TODO: This is probably obsolete and not present anywhere in SWAMID metadata anymore
-        new_authn = _pick_authn_context(attributes['http://www.swamid.se/assurance-requirement'], ticket.request_ref)
-        current_app.logger.debug(
-            f'Entity {ticket.saml_req.sp_entity_id} has AuthnCtx preferences in metadata. '
-            f'Overriding {res} -> {new_authn}'
-        )
-        try:
-            res = EduidAuthnContextClass(new_authn)
-        except ValueError:
-            logger.debug(f'Ignoring unknown authnContextClassRef found in metadata: {new_authn}')
-    return res
-
-
-def _pick_authn_context(accrs: Sequence[str], log_tag: str) -> Optional[EduidAuthnContextClass]:
-    if len(accrs) > 1:
-        logger.warning(f'{log_tag}: More than one authnContextClassRef, using the first recognised: {accrs}')
-    # first, select the ones recognised by this IdP
-    known = []
-    for x in accrs:
-        try:
-            known += [EduidAuthnContextClass(x)]
-        except ValueError:
-            logger.debug(f'Ignoring unknown authnContextClassRef: {x}')
-    if not known:
-        return None
-    # TODO: Pick the most applicable somehow, not just the first one in the list
-    return known[0]

@@ -64,7 +64,6 @@ from eduid.webapp.common.session.namespaces import (
     RequestRef,
 )
 from eduid.webapp.idp.app import current_idp_app as current_app
-from eduid.webapp.idp.assurance import get_requested_authn_context
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.login import SSO, do_verify, get_ticket, login_next_step, show_login_page
@@ -402,7 +401,7 @@ def pw_auth(ref: RequestRef, username: str, password: str) -> Union[FluxData, We
     current_app.sso_sessions.save(_sso_session)
 
     # INFO-Log the request id and the sso_session
-    authn_ref = get_requested_authn_context(ticket)
+    authn_ref = ticket.get_requested_authn_context()
     current_app.logger.debug(f'Authenticating with {repr(authn_ref)}')
 
     current_app.logger.info(

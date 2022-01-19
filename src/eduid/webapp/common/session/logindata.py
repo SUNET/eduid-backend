@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from abc import ABC
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -14,9 +15,8 @@ from eduid.webapp.common.session.namespaces import (
     IdP_SAMLPendingRequest,
     RequestRef,
 )
-
+from eduid.webapp.idp.assurance_data import EduidAuthnContextClass
 from eduid.webapp.idp.idp_saml import IdP_SAMLRequest
-from eduid.webapp.idp.other_device.db import OtherDevice
 
 #
 # Copyright (c) 2013, 2014, 2016 NORDUnet A/S. All rights reserved.
@@ -28,6 +28,9 @@ from eduid.webapp.idp.other_device.db import OtherDevice
 #          Roland Hedberg
 #
 from eduid.webapp.idp.other_device.data import OtherDeviceId
+from eduid.webapp.idp.other_device.db import OtherDevice
+
+logger = logging.getLogger(__name__)
 
 
 class ExternalMfaData(BaseModel):
@@ -97,6 +100,9 @@ class LoginContext(ABC):
             self.pending_request.state_id = None
         else:
             raise TypeError(f'Can\'t set other_device on pending request of type {type(self.pending_request)}')
+
+    def get_requested_authn_context(self) -> Optional[EduidAuthnContextClass]:
+        raise NotImplementedError('Subclass must implement get_requested_authn_context')
 
 
 TLoginContextSubclass = TypeVar('TLoginContextSubclass', bound='LoginContext')
@@ -186,6 +192,29 @@ class LoginContextSAML(LoginContext):
             return 1
         return None
 
+    def get_requested_authn_context(self) -> Optional[EduidAuthnContextClass]:
+        """
+        Check if the SP has explicit Authn preferences in the metadata (some SPs are not
+        capable of conveying this preference in the RequestedAuthnContext)
+
+        TODO: Don't just return the first one, but the most relevant somehow.
+        """
+        res = _pick_authn_context(self.authn_contexts, self.request_ref)
+
+        attributes = self.saml_req.sp_entity_attributes
+        if 'http://www.swamid.se/assurance-requirement' in attributes:
+            # TODO: This is probably obsolete and not present anywhere in SWAMID metadata anymore
+            new_authn = _pick_authn_context(attributes['http://www.swamid.se/assurance-requirement'], self.request_ref)
+            logger.debug(
+                f'Entity {self.saml_req.sp_entity_id} has AuthnCtx preferences in metadata. '
+                f'Overriding {res} -> {new_authn}'
+            )
+            try:
+                res = EduidAuthnContextClass(new_authn)
+            except ValueError:
+                logger.debug(f'Ignoring unknown authnContextClassRef found in metadata: {new_authn}')
+        return res
+
 
 @dataclass
 class LoginContextOtherDevice(LoginContext):
@@ -219,3 +248,27 @@ class LoginContextOtherDevice(LoginContext):
         if self.other_device_state_id:
             return 2
         return None
+
+    def get_requested_authn_context(self) -> Optional[EduidAuthnContextClass]:
+        """
+        Return the authn context (if any) that was originally requested on the first device.
+
+        TODO: Don't just return the first one, but the most relevant somehow.
+        """
+        return _pick_authn_context(self.authn_contexts, self.request_ref)
+
+
+def _pick_authn_context(accrs: Sequence[str], log_tag: str) -> Optional[EduidAuthnContextClass]:
+    if len(accrs) > 1:
+        logger.warning(f'{log_tag}: More than one authnContextClassRef, using the first recognised: {accrs}')
+    # first, select the ones recognised by this IdP
+    known = []
+    for x in accrs:
+        try:
+            known += [EduidAuthnContextClass(x)]
+        except ValueError:
+            logger.debug(f'Ignoring unknown authnContextClassRef: {x}')
+    if not known:
+        return None
+    # TODO: Pick the most applicable somehow, not just the first one in the list
+    return known[0]

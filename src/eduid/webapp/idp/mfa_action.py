@@ -35,14 +35,12 @@ from typing import List, Optional
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.actions import Action
 from eduid.userdb.actions.action import ActionResultMFA, ActionResultThirdPartyMFA
-from eduid.userdb.credentials import U2F, Credential, FidoCredential, Webauthn
-from eduid.userdb.element import ElementKey
+from eduid.userdb.credentials import Credential, FidoCredential, U2F, Webauthn
 from eduid.userdb.idp.user import IdPUser
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData, LoginContext
-from eduid.webapp.common.session.namespaces import OnetimeCredential, OnetimeCredType, RequestRef
+from eduid.webapp.common.session.namespaces import OnetimeCredType, OnetimeCredential, RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
-from eduid.webapp.idp.assurance import get_requested_authn_context
 from eduid.webapp.idp.assurance_data import EduidAuthnContextClass
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.sso_session import SSOSession
@@ -90,7 +88,7 @@ def add_actions(user: IdPUser, ticket: LoginContext, sso_session: SSOSession) ->
     :param sso_session: The SSO data persisted in mongodb
     """
     require_mfa = False
-    requested_authn_context = get_requested_authn_context(ticket)
+    requested_authn_context = ticket.get_requested_authn_context()
     if requested_authn_context in [
         EduidAuthnContextClass.REFEDS_MFA,
         EduidAuthnContextClass.FIDO_U2F,
