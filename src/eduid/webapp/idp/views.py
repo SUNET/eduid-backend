@@ -184,7 +184,6 @@ def authn_options(ref: RequestRef) -> FluxData:
 
     payload: Dict[str, Any] = {
         'usernamepassword': True,
-        'username': True,
         'password': False,
         'other_device': current_app.conf.allow_other_device_logins,
         'webauthn': False,
