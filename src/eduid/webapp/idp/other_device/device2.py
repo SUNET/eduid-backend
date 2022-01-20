@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import Any, Dict, Mapping
 
@@ -15,6 +16,8 @@ from eduid.webapp.idp.other_device.db import OtherDevice
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.util import get_ip_proximity
 
+logger = logging.getLogger(__name__)
+
 
 def device2_finish(ticket: LoginContextOtherDevice, sso_session: SSOSession, authn_state: AuthnState) -> FluxData:
     if not current_app.conf.allow_other_device_logins:
@@ -22,23 +25,23 @@ def device2_finish(ticket: LoginContextOtherDevice, sso_session: SSOSession, aut
 
     state = ticket.other_device_req
     if state.device2.ref != ticket.request_ref:
-        current_app.logger.warning(f'Tried to use OtherDevice state that is not ours: {state}')
+        logger.warning(f'Tried to use OtherDevice state that is not ours: {state}')
         return error_response(message=IdPMsg.general_failure)  # TODO: make a real error code for this
 
     if state.expires_at < utc_now():
         current_app.stats.count('login_using_other_device_finish_too_late')
-        current_app.logger.error(f'Request to login using another device was expired: {state}')
+        logger.error(f'Request to login using another device was expired: {state}')
         # TODO: better response code
         return error_response(message=IdPMsg.general_failure)
 
     if state.state == OtherDeviceState.IN_PROGRESS:
-        current_app.logger.debug(f'Recording login using another device {state.state_id} as finished')
-        current_app.logger.debug(f'Extra debug: SSO eppn {sso_session.eppn}')
+        logger.debug(f'Recording login using another device {state.state_id} as finished')
+        logger.debug(f'Extra debug: SSO eppn {sso_session.eppn}')
         _state = current_app.other_device_db.logged_in(state, sso_session.eppn, authn_state.credentials)
         if not _state:
-            current_app.logger.warning(f'Failed to finish state: {state.state_id}')
+            logger.warning(f'Failed to finish state: {state.state_id}')
             return error_response(message=IdPMsg.general_failure)
-        current_app.logger.info(f'Finished login with other device state {state.state_id}')
+        logger.info(f'Finished login with other device state {state.state_id}')
         current_app.stats.count('login_using_other_device_finish')
 
     return success_response(
@@ -72,6 +75,6 @@ def device2_state_to_flux_payload(state: OtherDevice, now: datetime) -> Mapping[
     else:
         # This really shouldn't happen, but better ensure it like this.
         if 'response_code' in payload:
-            current_app.logger.error(f'Response code found in use other device state {state.state} payload - removing')
+            logger.error(f'Response code found in use other device state {state.state} payload - removing')
             del payload['response_code']
     return payload
