@@ -95,7 +95,7 @@ class NextResult(BaseModel):
 def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], template_mode: bool = False) -> NextResult:
     """ The main state machine for the login flow(s). """
     if current_app.conf.allow_other_device_logins:
-        if ticket.is_other_device == 1:
+        if ticket.is_other_device_1:
             state = None
             if ticket.other_device_state_id:
                 state = current_app.other_device_db.get_state_by_id(ticket.other_device_state_id)

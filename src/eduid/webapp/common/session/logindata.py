@@ -87,11 +87,18 @@ class LoginContext(ABC):
 
     @property
     def other_device_state_id(self) -> Optional[OtherDeviceId]:
+        """ Get the state_id for the OtherDevice state, if the user wants to log in using another device. """
         raise NotImplementedError('Subclass must implement other_device_state_id')
 
     @property
-    def is_other_device(self) -> Optional[int]:
-        raise NotImplementedError('Subclass must implement is_other_device')
+    def is_other_device_1(self) -> bool:
+        """ Check if this is a request to log in on another device (specifically device #1). """
+        raise NotImplementedError('Subclass must implement is_other_device_1')
+
+    @property
+    def is_other_device_2(self) -> bool:
+        """ Check if this is a request to log in on another device (specifically device #2). """
+        raise NotImplementedError('Subclass must implement is_other_device_2')
 
     def set_other_device_state(self, state_id: Optional[OtherDeviceId]) -> None:
         if isinstance(self.pending_request, IdP_SAMLPendingRequest):
@@ -176,21 +183,22 @@ class LoginContextSAML(LoginContext):
             return _pending.other_device_state_id
         return None
 
+
     @property
-    def is_other_device(self) -> Optional[int]:
-        """ Check if we are logging in using another device.
+    def is_other_device_1(self) -> bool:
+        """ Check if this is a request to log in on another device (specifically device #1).
 
-        If the result is used as a boolean, it says if this LoginContext is involved in logging in
-        using another device, but if used as an integer it lets you identify if it is on device 1 or 2.
-
-        This combines what would have been three functions into one:
-          is_other_device1
-          is_other_device2
-          is_either_other_device
+        If so, since this is an instance of IdP_SAMLPendingRequest (checked in self.other_device_state_id)
+        this is a request being processed on the FIRST device. This is the INITIATING device, where the user
+        arrived at the Login app with a SAML authentication request, and chose to log in using another device.
         """
-        if self.other_device_state_id:
-            return 1
-        return None
+        return self.other_device_state_id is not None
+
+    @property
+    def is_other_device_2(self) -> bool:
+        """ Check if this is a request to log in on another device (specifically device #2).
+
+        return False
 
     def get_requested_authn_context(self) -> Optional[EduidAuthnContextClass]:
         """
@@ -244,10 +252,18 @@ class LoginContextOtherDevice(LoginContext):
         return None
 
     @property
-    def is_other_device(self) -> Optional[int]:
-        if self.other_device_state_id:
-            return 2
-        return None
+    def is_other_device_1(self) -> bool:
+        """ Check if this is a request to log in on another device (specifically device #1). """
+        return False
+
+    @property
+    def is_other_device_2(self) -> bool:
+        """ Check if this is a request to log in on another device (specifically device #2).
+
+        If so, since this is an instance of IdP_OtherDevicePendingRequest (checked in self.other_device_state_id)
+        this is a request being processed on the SECOND device. This is the AUTHENTICATING device, where the user
+        has used a camera to scan the QR code shown on the OTHER device (first, initiating)."""
+        return self.other_device_state_id is not None
 
     def get_requested_authn_context(self) -> Optional[EduidAuthnContextClass]:
         """
