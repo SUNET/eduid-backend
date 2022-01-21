@@ -105,9 +105,10 @@ class OtherDevice(BaseModel):
         return cls(**data)
 
 
-def make_short_code() -> str:
-    digits = int.from_bytes(os.urandom(4), byteorder='big') % 1000000
-    return '{:06d}'.format(digits)
+def make_short_code(digits: int = 6) -> str:
+    """ Make a short decimal code, left-padded with zeros to the width specified by `digits'. """
+    code = int.from_bytes(os.urandom(4), byteorder='big') % 1000000
+    return str(code).zfill(digits)
 
 
 class OtherDeviceDB(BaseDB):
