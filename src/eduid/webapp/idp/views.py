@@ -190,8 +190,8 @@ def authn_options(ref: RequestRef) -> FluxData:
         'freja_eidplus': False,
     }
 
-    if ticket.is_other_device == 2:
-        current_app.logger.debug(f'This is a request to log in to another device, not allowing other_device')
+    if ticket.is_other_device_2:
+        current_app.logger.debug(f'This is already a request to log in to another device, not allowing other_device')
         payload['other_device'] = False
 
     sso_session = current_app._lookup_sso_session()
@@ -308,7 +308,7 @@ def next(ref: RequestRef) -> FluxData:
                 },
             )
         elif isinstance(ticket, LoginContextOtherDevice):
-            if ticket.is_other_device != 2:
+            if not ticket.is_other_device_2:
                 # We shouldn't be able to get here, but this clearly shows where this code runs
                 current_app.logger.warning(f'Ticket is LoginContextOtherDevice, but this is not device #2')
                 return error_response(message=IdPMsg.general_failure)
