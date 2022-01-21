@@ -116,7 +116,7 @@ def device1_state_to_flux_payload(state: OtherDevice, now: datetime) -> Mapping[
             'expires_max': current_app.conf.other_device_logins_ttl.total_seconds(),
             'state_id': state.state_id,  # TODO: Make a secretbox with the state_id in it here
             'state': state.state.value,
-            'short_code': state.short_code,
+            'short_code': state.display_id,
             'expires_in': expires_in,
         }
     )

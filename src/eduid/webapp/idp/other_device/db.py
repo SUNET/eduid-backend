@@ -46,10 +46,10 @@ class OtherDevice(BaseModel):
     created_at: datetime
     device1: Device1Data
     device2: Device2Data
-    eppn: Optional[str]  # the eppn of the user on device 1, either from the SSO session or entered e-mail address
+    eppn: Optional[str]  # the eppn of the user on device 1, either from the SSO session or derived from e-mail address
     expires_at: datetime
     obj_id: ObjectId = Field(default_factory=ObjectId, alias='_id')
-    short_code: str = Field(repr=False)  # short code shown to the user on both devices, to match up screens
+    display_id: str = Field(repr=False)  # id number shown to the user on both devices, to match up screens
     state: OtherDeviceState  # the state this request is in
     state_id: OtherDeviceId  # unique reference for this state
 
@@ -75,7 +75,7 @@ class OtherDevice(BaseModel):
         return cls(
             state_id=OtherDeviceId(str(_uuid)),
             state=OtherDeviceState.NEW,
-            short_code=short_code,
+            display_id=short_code,
             eppn=eppn,
             device1=Device1Data(
                 ref=device1_ref,

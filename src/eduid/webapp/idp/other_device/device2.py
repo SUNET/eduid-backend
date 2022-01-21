@@ -66,7 +66,7 @@ def device2_state_to_flux_payload(state: OtherDevice, now: datetime) -> Mapping[
         'expires_in': expires_in,
         'expires_max': current_app.conf.other_device_logins_ttl.total_seconds(),
         'login_ref': state.device2.ref,
-        'short_code': state.short_code,
+        'short_code': state.display_id,
         'state': state.state.value,
     }
     if state.state == OtherDeviceState.LOGGED_IN:
