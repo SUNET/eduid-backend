@@ -387,7 +387,7 @@ def pw_auth(ref: RequestRef, username: str, password: str) -> Union[FluxData, We
     _flux_response = FluxSuccessResponse(request, payload={'finished': True})
     resp = jsonify(PwAuthResponseSchema().dump(_flux_response.to_dict()))
 
-    return set_sso_cookie(_sso_session.session_id, resp)
+    return set_sso_cookie(current_app.conf.sso_cookie, _sso_session.session_id, resp)
 
 
 @idp_views.route('/mfa_auth', methods=['POST'])

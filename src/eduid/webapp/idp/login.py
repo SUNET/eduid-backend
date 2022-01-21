@@ -645,7 +645,7 @@ def do_verify() -> WerkzeugResponse:
     # For debugging purposes, save the IdP SSO cookie value in the common session as well.
     # This is because we think we might have issues overwriting cookies in redirect responses.
     session.idp.sso_cookie_val = _sso_session.session_id
-    return mischttp.set_sso_cookie(_sso_session.session_id, resp)
+    return mischttp.set_sso_cookie(current_app.conf.sso_cookie, _sso_session.session_id, resp)
 
 
 # ----------------------------------------------------------------------------

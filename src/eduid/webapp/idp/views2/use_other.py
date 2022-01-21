@@ -125,7 +125,7 @@ def use_other_1(
         _flux_response = FluxSuccessResponse(request, payload=payload)
         resp = jsonify(UseOther1ResponseSchema().dump(_flux_response.to_dict()))
 
-        return set_sso_cookie(sso_session.session_id, resp)
+        return set_sso_cookie(current_app.conf.sso_cookie, sso_session.session_id, resp)
 
     return success_response(payload=payload)
 

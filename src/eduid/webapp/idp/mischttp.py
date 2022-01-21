@@ -23,6 +23,7 @@ from flask import make_response, redirect, request
 from werkzeug.exceptions import BadRequest, InternalServerError
 from werkzeug.wrappers import Response as WerkzeugResponse
 
+from eduid.common.config.base import CookieConfig
 from eduid.webapp.common.api.sanitation import SanitationProblem, Sanitizer
 from eduid.webapp.idp.settings.common import IdPConfig
 from saml2 import BINDING_HTTP_REDIRECT
@@ -153,25 +154,22 @@ def read_cookie(name: str) -> Optional[str]:
     return cookie
 
 
-def set_sso_cookie(value: str, response: WerkzeugResponse) -> WerkzeugResponse:
+def set_sso_cookie(sso_cookie: CookieConfig, value: str, response: WerkzeugResponse) -> WerkzeugResponse:
     """
     Ask the browser to store an SSO cookie.
 
     :param value: The value to assign to the cookie
     :param response: Flask response object
     """
-    # local import to avoid import loop
-    from eduid.webapp.idp.app import current_idp_app as current_app
-
     response.set_cookie(
-        key=current_app.conf.sso_cookie.key,
+        key=sso_cookie.key,
         value=value,
-        domain=current_app.conf.sso_cookie.domain,
-        path=current_app.conf.sso_cookie.path,
-        secure=current_app.conf.sso_cookie.secure,
-        httponly=current_app.conf.sso_cookie.httponly,
-        samesite=current_app.conf.sso_cookie.samesite,
-        max_age=current_app.conf.sso_cookie.max_age_seconds,
+        domain=sso_cookie.domain,
+        path=sso_cookie.path,
+        secure=sso_cookie.secure,
+        httponly=sso_cookie.httponly,
+        samesite=sso_cookie.samesite,
+        max_age=sso_cookie.max_age_seconds,
     )
     _cookie = response.headers.get('Set-Cookie')
     logger.debug(f'Set SSO cookie {_cookie}')
