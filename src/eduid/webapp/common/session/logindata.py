@@ -183,7 +183,6 @@ class LoginContextSAML(LoginContext):
             return _pending.other_device_state_id
         return None
 
-
     @property
     def is_other_device_1(self) -> bool:
         """ Check if this is a request to log in on another device (specifically device #1).
@@ -196,8 +195,7 @@ class LoginContextSAML(LoginContext):
 
     @property
     def is_other_device_2(self) -> bool:
-        """ Check if this is a request to log in on another device (specifically device #2).
-
+        """ Check if this is a request to log in on another device (specifically device #2). """
         return False
 
     def get_requested_authn_context(self) -> Optional[EduidAuthnContextClass]:
