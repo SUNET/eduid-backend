@@ -114,7 +114,9 @@ def get_login_config() -> FluxData:
     """
     payload = {
         'csrf_token': session.get_csrf_token(),
+        'base_url': current_app.conf.jsapps.login_base_url,
         'next_url': current_app.conf.jsapps.login_next_url,
+        'request_other_url': current_app.conf.jsapps.request_other_url,
         'password_service_url': current_app.conf.jsapps.password_service_url,
         'password_entropy': current_app.conf.jsapps.password_entropy,
         'password_length': current_app.conf.jsapps.password_length,

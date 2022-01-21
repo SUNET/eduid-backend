@@ -27,9 +27,8 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from typing import List
 
-from marshmallow import fields
+from marshmallow import Schema, fields
 
 from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
@@ -66,6 +65,21 @@ class PwAuthResponseSchema(FluxStandardAction):
     payload = fields.Nested(PwAuthResponsePayload)
 
 
+class AuthnOptionsRequestSchema(IdPRequest):
+    pass
+
+
+class AuthnOptionsResponseSchema(FluxStandardAction):
+    class AuthnOptionsResponsePayload(EduidSchema, CSRFResponseMixin):
+        password = fields.Bool(required=True)
+        webauthn = fields.Bool(required=True)
+        freja_eidplus = fields.Bool(required=True)
+        other_device = fields.Bool(required=True)
+        username = fields.Str(required=False)
+
+    payload = fields.Nested(AuthnOptionsResponsePayload)
+
+
 class MfaAuthRequestSchema(IdPRequest):
     webauthn_response = fields.Dict(keys=fields.Str(), values=fields.Str(), default=None, required=False)
 
@@ -89,3 +103,49 @@ class TouResponseSchema(FluxStandardAction):
         version = fields.Str(required=False)
 
     payload = fields.Nested(TouResponsePayload)
+
+
+class UseOther1RequestSchema(IdPRequest):
+    username = fields.Str(required=False)  # optional username, if the user supplies an e-mail address
+    action = fields.Str(required=False)  # optional action, 'ABORT' or 'SUBMIT_CODE'
+    response_code = fields.Str(required=False)  # optional response code, if action == 'SUBMIT_CODE'
+
+
+class UseOther1ResponseSchema(FluxStandardAction):
+    class UseOther1ResponsePayload(EduidSchema, CSRFResponseMixin):
+        expires_in = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
+        expires_max = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
+        qr_img = fields.Str(required=True)  # qr_url as an inline img
+        qr_url = fields.Str(required=True)  # the link to where the user can manually enter short_code to proceed
+        short_code = fields.Str(required=True)  # six digit code for this request
+        state = fields.Str(required=True)  # current state of request, an OtherDeviceState (NEW, PENDING etc.)
+        state_id = fields.Str(required=True)  # database id for this state
+        # NOTE: It is CRITICAL to never return the response code to Device #1
+
+    payload = fields.Nested(UseOther1ResponsePayload)
+
+
+class UseOther2RequestSchema(EduidSchema, CSRFRequestMixin):
+    ref = fields.Str(missing=None, required=False)  # use login_ref on page reloads, when there is a pending_request
+    # use state_id on first load from QR URL, before a pending_request is set up
+    state_id = fields.Str(missing=None, required=False)
+
+
+class UseOther2ResponseSchema(FluxStandardAction):
+    class UseOther2ResponsePayload(EduidSchema, CSRFResponseMixin):
+        class DeviceInfo(Schema):
+            addr = fields.Str(required=True)  # remote address of device1
+            description = fields.Str(required=False)  # description of device1, based on User-Agent header
+            proximity = fields.Str(required=False)  # how close the address of device1 is to the address of device2
+
+        device1_info = fields.Nested(DeviceInfo)
+        expires_in = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
+        expires_max = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
+        login_ref = fields.Str(required=True)  # newly minted login_ref
+        short_code = fields.Str(required=True)  # six digit code for this request
+        state = fields.Str(required=True)  # current state of request, an OtherDeviceState (NEW, PENDING etc.)
+        response_code = fields.Str(
+            required=False
+        )  # the secret response code the user should enter on device 1 to get logged in
+
+    payload = fields.Nested(UseOther2ResponsePayload)

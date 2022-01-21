@@ -6,10 +6,10 @@ from abc import ABC
 from copy import deepcopy
 from datetime import datetime
 from enum import Enum, unique
-from typing import Any, Dict, List, NewType, Optional, Type, TypeVar, Union
+from typing import Any, Dict, List, Mapping, NewType, Optional, Type, TypeVar, Union
 from uuid import uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.actions import Action
@@ -20,6 +20,7 @@ __author__ = 'ft'
 from eduid.userdb.credentials.fido import WebauthnAuthenticator
 from eduid.userdb.element import ElementKey
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
+from eduid.webapp.idp.other_device.data import OtherDeviceId
 
 logger = logging.getLogger(__name__)
 
@@ -30,9 +31,19 @@ class SessionNSBase(BaseModel, ABC):
 
     @classmethod
     def from_dict(cls: Type[SessionNSBase], data) -> TSessionNSSubclass:
-        _data = deepcopy(data)  # do not modify callers data
+        _data = cls._from_dict_transform(data)
+
         # Avoid error: Incompatible return value type (got "SessionNSBase", expected "TSessionNSSubclass")
-        return cls(**_data)  # type: ignore
+        try:
+            return cls(**_data)  # type: ignore
+        except ValidationError:
+            logger.warning(f'Could not parse session namespace:\n{_data}')
+            raise
+
+    @classmethod
+    def _from_dict_transform(cls: Type[SessionNSBase], data: Mapping[str, Any]) -> Dict[str, Any]:
+        _data = deepcopy(data)  # do not modify callers data
+        return dict(_data)
 
 
 TSessionNSSubclass = TypeVar('TSessionNSSubclass', bound=SessionNSBase)
@@ -140,14 +151,23 @@ class OnetimeCredential(Credential):
         return ElementKey(self.credential_id)
 
 
-class IdP_PendingRequest(BaseModel):
-    request: str
-    binding: str
-    relay_state: Optional[str]
+class IdP_PendingRequest(BaseModel, ABC):
     template_show_msg: Optional[str]  # set when the template version of the idp should show a message to the user
     # Credentials used while authenticating _this SAML request_. Not ones inherited from SSO.
     credentials_used: Dict[ElementKey, datetime] = Field(default={})
     onetime_credentials: Dict[ElementKey, OnetimeCredential] = Field(default={})
+
+
+class IdP_SAMLPendingRequest(IdP_PendingRequest):
+    request: str
+    binding: str
+    relay_state: Optional[str]
+    # a pointer to an ongoing request to login using another device
+    other_device_state_id: Optional[OtherDeviceId] = None
+
+
+class IdP_OtherDevicePendingRequest(IdP_PendingRequest):
+    state_id: Optional[OtherDeviceId]  # can be None on aborted/expired requests
 
 
 class IdP_Namespace(TimestampedNS):
@@ -155,6 +175,18 @@ class IdP_Namespace(TimestampedNS):
     # honoring Set-Cookie in redirects, or something.
     sso_cookie_val: Optional[str] = None
     pending_requests: Dict[RequestRef, IdP_PendingRequest] = Field(default={})
+
+    @classmethod
+    def _from_dict_transform(cls: Type[IdP_Namespace], data: Mapping[str, Any]) -> Dict[str, Any]:
+        _data = super()._from_dict_transform(data)
+        if 'pending_requests' in _data:
+            # pre-parse values into the right subclass if IdP_PendingRequest
+            for k, v in _data['pending_requests'].items():
+                if 'binding' in v:
+                    _data['pending_requests'][k] = IdP_SAMLPendingRequest(**v)
+                elif 'state_id' in v:
+                    _data['pending_requests'][k] = IdP_OtherDevicePendingRequest(**v)
+        return _data
 
     def log_credential_used(
         self, request_ref: RequestRef, credential: Union[Credential, OnetimeCredential], timestamp: datetime

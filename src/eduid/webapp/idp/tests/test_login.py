@@ -22,7 +22,9 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 class IdPTestLogin(IdPTests):
     def update_config(self, config):
         config = super().update_config(config)
-        config.update({'signup_link': 'TEST-SIGNUP-LINK', 'log_level': 'DEBUG'})
+        config.update(
+            {'signup_link': 'TEST-SIGNUP-LINK', 'log_level': 'DEBUG', 'enable_legacy_template_mode': True,}
+        )
         return config
 
     def test_display_of_login_page(self):

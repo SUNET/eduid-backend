@@ -31,6 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from copy import deepcopy
+from dataclasses import asdict
 from typing import Any, Dict, List, Optional, Sequence, Union
 
 from bson import ObjectId
@@ -38,10 +39,11 @@ from flask import Blueprint, jsonify, redirect, request, url_for
 from werkzeug.exceptions import BadRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
 
+from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
-from eduid.userdb import ToUEvent
+from eduid.userdb import LockedIdentityNin, ToUEvent
 from eduid.userdb.actions.tou import ToUUser
-from eduid.userdb.credentials import FidoCredential
+from eduid.userdb.credentials import FidoCredential, Password
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.exceptions import EduidForbidden, EduidTooManyRequests
@@ -50,10 +52,18 @@ from eduid.webapp.common.api.schemas.models import FluxSuccessResponse
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.authn import fido_tokens
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.logindata import ExternalMfaData
-from eduid.webapp.common.session.namespaces import MfaActionError, OnetimeCredential, OnetimeCredType, RequestRef
+from eduid.webapp.common.session.logindata import (
+    ExternalMfaData,
+    LoginContextOtherDevice,
+    LoginContextSAML,
+)
+from eduid.webapp.common.session.namespaces import (
+    MfaActionError,
+    OnetimeCredType,
+    OnetimeCredential,
+    RequestRef,
+)
 from eduid.webapp.idp.app import current_idp_app as current_app
-from eduid.webapp.idp.assurance import get_requested_authn_context
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.login import SSO, do_verify, get_ticket, login_next_step, show_login_page
@@ -61,10 +71,14 @@ from eduid.webapp.idp.logout import SLO
 
 __author__ = 'ft'
 
+from eduid.webapp.idp.other_device.device2 import device2_finish
+
 from saml2 import BINDING_HTTP_POST
 
 from eduid.webapp.idp.mischttp import parse_query_string, set_sso_cookie
 from eduid.webapp.idp.schemas import (
+    AuthnOptionsRequestSchema,
+    AuthnOptionsResponseSchema,
     MfaAuthRequestSchema,
     MfaAuthResponseSchema,
     NextRequestSchema,
@@ -75,7 +89,7 @@ from eduid.webapp.idp.schemas import (
     TouResponseSchema,
 )
 from eduid.webapp.idp.service import SAMLQueryParams
-from eduid.webapp.idp.sso_session import SSOSession
+from eduid.webapp.idp.sso_session import record_authentication
 
 idp_views = Blueprint('idp', __name__, url_prefix='', template_folder='templates')
 
@@ -138,6 +152,14 @@ def verify() -> WerkzeugResponse:
         ticket = get_ticket(_info, None)
         if not ticket:
             raise BadRequest(f'Missing parameter - please re-initiate login')
+
+        # TODO: Remove all this code, we don't use the template IdP anymore.
+        if not current_app.conf.enable_legacy_template_mode:
+            raise BadRequest('Template IdP not enabled')
+
+        # please mypy with this legacy code
+        assert isinstance(ticket, LoginContextSAML)
+
         return show_login_page(ticket)
 
     if request.method == 'POST':
@@ -146,12 +168,68 @@ def verify() -> WerkzeugResponse:
     raise BadRequest()
 
 
+@idp_views.route('/authn_options', methods=['POST'])
+@UnmarshalWith(AuthnOptionsRequestSchema)
+@MarshalWith(AuthnOptionsResponseSchema)
+def authn_options(ref: RequestRef) -> FluxData:
+    current_app.logger.debug('\n\n')
+    current_app.logger.debug(f'--- Authn options {ref} ---')
+
+    _info = SAMLQueryParams(request_ref=ref)
+    ticket = get_ticket(_info, None)
+    if not ticket:
+        return error_response(message=IdPMsg.bad_ref)
+    current_app.logger.debug(f'Extra debug: LoginContext: {asdict(ticket)}')
+    current_app.logger.debug(f'Extra debug: Pending request: {ticket.pending_request}')
+
+    payload: Dict[str, Any] = {
+        'usernamepassword': True,
+        'password': False,
+        'other_device': current_app.conf.allow_other_device_logins,
+        'webauthn': False,
+        'freja_eidplus': False,
+    }
+
+    if ticket.is_other_device_2:
+        current_app.logger.debug(f'This is already a request to log in to another device, not allowing other_device')
+        payload['other_device'] = False
+
+    sso_session = current_app._lookup_sso_session()
+    if not sso_session:
+        current_app.logger.debug(f'No SSO session, responding {payload}')
+        return success_response(payload=payload)
+
+    user = current_app.userdb.lookup_user(sso_session.eppn)
+    if user:
+        if user.credentials.filter(Password):
+            current_app.logger.debug(f'User in SSO session has a Password credential')
+            payload['password'] = True
+
+        if user.credentials.filter(FidoCredential):
+            current_app.logger.debug(f'User in SSO session has a FIDO/Webauthn credential')
+            payload['webauthn'] = True
+
+        if user.locked_identity.filter(LockedIdentityNin):
+            current_app.logger.debug(f'User in SSO session has a locked NIN -> Freja is possible')
+            payload['freja_eidplus'] = True
+
+        if user.mail_addresses.primary:
+            # Provide e-mail from (potentially expired) SSO session to frontend, so it can populate
+            # the username field for the user
+            _mail = user.mail_addresses.primary.email
+            current_app.logger.debug(f'User in SSO session has a primary e-mail -> username {_mail}')
+            payload['username'] = _mail
+
+    current_app.logger.debug(f'Responding with authn options: {payload}')
+    return success_response(payload=payload)
+
+
 @idp_views.route('/next', methods=['POST'])
 @UnmarshalWith(NextRequestSchema)
 @MarshalWith(NextResponseSchema)
 def next(ref: RequestRef) -> FluxData:
     current_app.logger.debug('\n\n')
-    current_app.logger.debug(f'--- Next ---')
+    current_app.logger.debug(f'--- Next ({ref}) ---')
 
     if not current_app.conf.login_bundle_url:
         return error_response(message=IdPMsg.not_available)
@@ -159,6 +237,8 @@ def next(ref: RequestRef) -> FluxData:
     _info = SAMLQueryParams(request_ref=ref)
     ticket = get_ticket(_info, None)
     if not ticket:
+        _pending = session.idp.pending_requests
+        current_app.logger.debug(f'Login ref {ref} not found in pending_requests: {_pending.keys()}')
         return error_response(message=IdPMsg.bad_ref)
 
     sso_session = current_app._lookup_sso_session()
@@ -166,16 +246,26 @@ def next(ref: RequestRef) -> FluxData:
     _next = login_next_step(ticket, sso_session)
     current_app.logger.debug(f'Login Next: {_next}')
 
+    if _next.message == IdPMsg.other_device:
+        _payload = {
+            'action': IdPAction.OTHER_DEVICE.value,
+            'target': url_for('other_device.use_other_1', _external=True),
+        }
+
+        return success_response(message=IdPMsg.must_authenticate, payload=_payload,)
+
     if _next.message == IdPMsg.must_authenticate:
-        return success_response(
-            message=IdPMsg.must_authenticate,
-            payload={'action': IdPAction.PWAUTH.value, 'target': url_for('idp.pw_auth', _external=True)},
-        )
+        _payload = {
+            'action': IdPAction.PWAUTH.value,
+            'target': url_for('idp.pw_auth', _external=True),
+        }
+
+        return success_response(message=IdPMsg.must_authenticate, payload=_payload,)
 
     if _next.message == IdPMsg.mfa_required:
         return success_response(
             message=IdPMsg.mfa_required,
-            payload={'action': IdPAction.MFA.value, 'target': url_for('idp.mfa_auth', _external=True)},
+            payload={'action': IdPAction.MFA.value, 'target': url_for('idp.mfa_auth', _external=True),},
         )
 
     if _next.message == IdPMsg.tou_required:
@@ -200,19 +290,32 @@ def next(ref: RequestRef) -> FluxData:
             return error_response(message=IdPMsg.general_failure)
 
         sso = SSO(sso_session=sso_session)
-        assert _next.authn_info  # please mypy
-        saml_params = sso.get_response_params(_next.authn_info, ticket, user)
-        if saml_params.binding != BINDING_HTTP_POST:
-            current_app.logger.error(f'SAML response does not have binding HTTP_POST')
-            return error_response(message=IdPMsg.general_failure)
-        return success_response(
-            message=IdPMsg.finished,
-            payload={
-                'action': IdPAction.FINISHED.value,
-                'target': saml_params.url,
-                'parameters': saml_params.post_params,
-            },
-        )
+        # please mypy
+        if not _next.authn_info or not _next.authn_state:
+            raise RuntimeError(f'Missing expected data in next result: {_next}')
+
+        if isinstance(ticket, LoginContextSAML):
+            saml_params = sso.get_response_params(_next.authn_info, ticket, user)
+            if saml_params.binding != BINDING_HTTP_POST:
+                current_app.logger.error(f'SAML response does not have binding HTTP_POST')
+                return error_response(message=IdPMsg.general_failure)
+            return success_response(
+                message=IdPMsg.finished,
+                payload={
+                    'action': IdPAction.FINISHED.value,
+                    'target': saml_params.url,
+                    'parameters': saml_params.post_params,
+                },
+            )
+        elif isinstance(ticket, LoginContextOtherDevice):
+            if not ticket.is_other_device_2:
+                # We shouldn't be able to get here, but this clearly shows where this code runs
+                current_app.logger.warning(f'Ticket is LoginContextOtherDevice, but this is not device #2')
+                return error_response(message=IdPMsg.general_failure)
+
+            return device2_finish(ticket, sso_session, _next.authn_state)
+        current_app.logger.error(f'Don\'t know how to finish login request {ticket}')
+        return error_response(message=IdPMsg.general_failure)
 
     return error_response(message=IdPMsg.not_implemented)
 
@@ -251,16 +354,14 @@ def pw_auth(ref: RequestRef, username: str, password: str) -> Union[FluxData, We
         current_app.logger.info(f'{ticket.request_ref}: Password authentication failed')
         return error_response(message=IdPMsg.wrong_credentials)
 
-    # Create SSO session
-    current_app.logger.debug(f'User {pwauth.user} authenticated OK (SAML id {repr(ticket.saml_req.request_id)})')
+    # Create/update SSO session
+    current_app.logger.debug(f'User {pwauth.user} authenticated OK ({type(ticket)} request id {ticket.request_id})')
+    _sso_session = current_app._lookup_sso_session()
     _authn_credentials: List[AuthnData] = []
     if pwauth.authndata:
         _authn_credentials = [pwauth.authndata]
-    _sso_session = SSOSession(
-        authn_request_id=ticket.saml_req.request_id,
-        authn_credentials=_authn_credentials,
-        eppn=pwauth.user.eppn,
-        expires_at=utc_now() + current_app.conf.sso_session_lifetime,
+    _sso_session = record_authentication(
+        ticket, pwauth.user.eppn, _sso_session, _authn_credentials, current_app.conf.sso_session_lifetime
     )
 
     # This session contains information about the fact that the user was authenticated. It is
@@ -269,7 +370,7 @@ def pw_auth(ref: RequestRef, username: str, password: str) -> Union[FluxData, We
     current_app.sso_sessions.save(_sso_session)
 
     # INFO-Log the request id and the sso_session
-    authn_ref = get_requested_authn_context(ticket)
+    authn_ref = ticket.get_requested_authn_context()
     current_app.logger.debug(f'Authenticating with {repr(authn_ref)}')
 
     current_app.logger.info(
@@ -286,7 +387,7 @@ def pw_auth(ref: RequestRef, username: str, password: str) -> Union[FluxData, We
     _flux_response = FluxSuccessResponse(request, payload={'finished': True})
     resp = jsonify(PwAuthResponseSchema().dump(_flux_response.to_dict()))
 
-    return set_sso_cookie(_sso_session.session_id, resp)
+    return set_sso_cookie(current_app.conf.sso_cookie, _sso_session.session_id, resp)
 
 
 @idp_views.route('/mfa_auth', methods=['POST'])
@@ -439,6 +540,14 @@ def tou(ref: RequestRef, versions: Optional[Sequence[str]] = None, user_accepts:
         current_app.logger.info(f'ToU version {user_accepts} accepted by user {user}')
 
         tou_user = ToUUser.from_user(user, current_app.tou_db)
+
+        if current_app.conf.environment == EduidEnvironment.dev:
+            # Filter out old events for the same version, to not get too much log spam with hundreds
+            # of ToUEvent on users in development logs
+            keys_with_version = [x.key for x in tou_user.tou.to_list() if x.version == user_accepts]
+            for remove_key in keys_with_version[:-2]:
+                # remove all but the last two of this version
+                tou_user.tou.remove(remove_key)
 
         # TODO: change event_id to an UUID? ObjectId is only 'likely unique'
         tou_user.tou.add(ToUEvent(version=user_accepts, created_by='eduid_login', event_id=str(ObjectId())))

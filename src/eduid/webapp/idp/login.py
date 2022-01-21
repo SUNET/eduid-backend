@@ -24,7 +24,6 @@ from defusedxml import ElementTree as DefusedElementTree
 from flask import make_response, redirect, render_template, request, url_for
 from flask_babel import gettext as _
 from pydantic import BaseModel
-from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest, Forbidden, TooManyRequests
 from werkzeug.wrappers import Response as WerkzeugResponse
 
@@ -34,28 +33,30 @@ from eduid.userdb.idp import IdPUser
 from eduid.userdb.idp.user import SAMLAttributeSettings
 from eduid.webapp.common.api import exceptions
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.logindata import LoginContext
-from eduid.webapp.common.session.namespaces import IdP_PendingRequest, RequestRef
+from eduid.webapp.common.session.logindata import LoginContext, LoginContextOtherDevice, LoginContextSAML
+from eduid.webapp.common.session.namespaces import IdP_OtherDevicePendingRequest, IdP_SAMLPendingRequest, RequestRef
 from eduid.webapp.idp import assurance, mischttp
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import (
     AssuranceException,
-    AuthnInfo,
+    AuthnState,
     MissingAuthentication,
     MissingMultiFactor,
     MissingPasswordFactor,
     WrongMultiFactor,
-    get_requested_authn_context,
 )
+from eduid.webapp.idp.assurance_data import AuthnInfo
 from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.idp_actions import redirect_to_actions
 from eduid.webapp.idp.idp_authn import AuthnData
-from eduid.webapp.idp.idp_saml import IdP_SAMLRequest, ResponseArgs, SamlResponse
+from eduid.webapp.idp.idp_saml import ResponseArgs, SamlResponse
 from eduid.webapp.idp.mfa_action import add_mfa_action, need_security_key, process_mfa_action_results
 from eduid.webapp.idp.mischttp import HttpArgs, get_default_template_arguments
+from eduid.webapp.idp.other_device.data import OtherDeviceState
 from eduid.webapp.idp.service import SAMLQueryParams, Service
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.tou_action import add_tou_action, need_tou_acceptance
+from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 
 
 class MustAuthenticate(Exception):
@@ -75,6 +76,7 @@ class NextResult(BaseModel):
     message: IdPMsg
     error: bool = False
     authn_info: Optional[AuthnInfo] = None
+    authn_state: Optional[AuthnState] = None
     # kludge for the template processing, pydantic doesn't embed dataclasses very well:
     #  TypeError: non-default argument 'mail_addresses' follows default argument
     user: Optional[Any] = None
@@ -92,6 +94,19 @@ class NextResult(BaseModel):
 
 def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], template_mode: bool = False) -> NextResult:
     """ The main state machine for the login flow(s). """
+    if current_app.conf.allow_other_device_logins:
+        if ticket.is_other_device_1:
+            state = None
+            if ticket.other_device_state_id:
+                state = current_app.other_device_db.get_state_by_id(ticket.other_device_state_id)
+            if (
+                state
+                and state.expires_at > utc_now()
+                and state.state in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS]
+            ):
+                current_app.logger.debug(f'Logging in using another device, {ticket.other_device_state_id}')
+                return NextResult(message=IdPMsg.other_device)
+
     if not isinstance(sso_session, SSOSession):
         current_app.logger.debug('No SSO session found - initiating authentication')
         return NextResult(message=IdPMsg.must_authenticate)
@@ -105,14 +120,15 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
         current_app.logger.info(f'User {user} is terminated')
         return NextResult(message=IdPMsg.user_terminated, error=True)
 
-    if template_mode:
+    if template_mode and current_app.conf.enable_legacy_template_mode:
         process_mfa_action_results(user, ticket, sso_session)
 
     res = NextResult(message=IdPMsg.assurance_failure, error=True)
 
     try:
-        authn_info = assurance.response_authn(ticket, user, sso_session)
-        res = NextResult(message=IdPMsg.proceed, authn_info=authn_info)
+        authn_state = AuthnState(user, sso_session, ticket)
+        authn_info = assurance.response_authn(authn_state, ticket, user, sso_session)
+        res = NextResult(message=IdPMsg.proceed, authn_info=authn_info, authn_state=authn_state)
     except MissingPasswordFactor:
         res = NextResult(message=IdPMsg.must_authenticate)
     except MissingMultiFactor:
@@ -202,6 +218,13 @@ class SSO(Service):
             else:
                 raise BadRequest('No SAMLRequest, and login_bundle_url is set')
 
+        # TODO: Remove all this code, we don't use the template IdP anymore.
+        if not current_app.conf.enable_legacy_template_mode:
+            raise BadRequest('Template IdP not enabled')
+
+        # please mypy with this legacy code
+        assert isinstance(ticket, LoginContextSAML)
+
         _next = login_next_step(ticket, self.sso_session, template_mode=True)
         current_app.logger.debug(f'Login Next: {_next}')
 
@@ -241,7 +264,7 @@ class SSO(Service):
 
         raise RuntimeError(f'Don\'t know what to do with {ticket}')
 
-    def perform_login(self, ticket: LoginContext, authn_info: AuthnInfo) -> WerkzeugResponse:
+    def perform_login(self, ticket: LoginContextSAML, authn_info: AuthnInfo) -> WerkzeugResponse:
         """
         Validate request, and then proceed with creating an AuthnResponse and
         invoking the 'outgoing' SAML2 binding.
@@ -272,11 +295,11 @@ class SSO(Service):
 
         return mischttp.create_html_response(params.binding, params.http_args)
 
-    def get_response_params(self, authn_info: AuthnInfo, ticket: LoginContext, user: IdPUser) -> SAMLResponseParams:
+    def get_response_params(self, authn_info: AuthnInfo, ticket: LoginContextSAML, user: IdPUser) -> SAMLResponseParams:
         resp_args = self._validate_login_request(ticket)
 
         try:
-            req_authn_context = get_requested_authn_context(ticket)
+            req_authn_context = ticket.get_requested_authn_context()
             current_app.logger.debug(f'Asserting AuthnContext {authn_info} (requested: {req_authn_context})')
         except AttributeError:
             current_app.logger.debug(f'Asserting AuthnContext {authn_info} (none requested)')
@@ -307,7 +330,7 @@ class SSO(Service):
         response_authn: AuthnInfo,
         resp_args: ResponseArgs,
         user: IdPUser,
-        ticket: LoginContext,
+        ticket: LoginContextSAML,
         sso_session: SSOSession,
     ) -> SamlResponse:
         """
@@ -459,7 +482,7 @@ class SSO(Service):
             }
         ]
 
-    def _validate_login_request(self, ticket: LoginContext) -> ResponseArgs:
+    def _validate_login_request(self, ticket: LoginContextSAML) -> ResponseArgs:
         """
         Validate the validity of the SAML request we are going to answer with
         an assertion.
@@ -492,7 +515,7 @@ class SSO(Service):
 # -----------------------------------------------------------------------------
 
 
-def show_login_page(ticket: LoginContext) -> WerkzeugResponse:
+def show_login_page(ticket: LoginContextSAML) -> WerkzeugResponse:
     _username = ''
     _login_subject = ticket.saml_req.login_subject
     if _login_subject is not None:
@@ -516,9 +539,9 @@ def show_login_page(ticket: LoginContext) -> WerkzeugResponse:
     )
 
     # Set alert msg if found in the session
-    if ticket.saml_data.template_show_msg:
-        argv['alert_msg'] = ticket.saml_data.template_show_msg
-        ticket.saml_data.template_show_msg = None
+    if ticket.pending_request.template_show_msg:
+        argv['alert_msg'] = ticket.pending_request.template_show_msg
+        ticket.pending_request.template_show_msg = None
 
     current_app.logger.debug(f'Login page HTML substitution arguments :\n{pprint.pformat(argv)}')
 
@@ -555,7 +578,14 @@ def do_verify() -> WerkzeugResponse:
     if not _ticket:
         raise BadRequest(f'Missing parameter - please re-initiate login')
 
-    authn_ref = get_requested_authn_context(_ticket)
+    # TODO: Remove all this code, we don't use the template IdP anymore.
+    if not current_app.conf.enable_legacy_template_mode:
+        raise BadRequest('Template IdP not enabled')
+
+    # please mypy with this legacy code
+    assert isinstance(_ticket, LoginContextSAML)
+
+    authn_ref = _ticket.get_requested_authn_context()
     current_app.logger.debug(f'Authenticating with {repr(authn_ref)}')
 
     # Create an URL for redirecting the user back to the SSO redirect endpoint after this
@@ -579,7 +609,7 @@ def do_verify() -> WerkzeugResponse:
 
     if not pwauth:
         current_app.logger.info(f'{_ticket.request_ref}: Password authentication failed')
-        _ticket.saml_data.template_show_msg = _('Incorrect username or password')
+        _ticket.pending_request.template_show_msg = _('Incorrect username or password')
         current_app.logger.debug(f'Unknown user or wrong password. Redirect => {next_endpoint}')
         return redirect(next_endpoint)
 
@@ -615,7 +645,7 @@ def do_verify() -> WerkzeugResponse:
     # For debugging purposes, save the IdP SSO cookie value in the common session as well.
     # This is because we think we might have issues overwriting cookies in redirect responses.
     session.idp.sso_cookie_val = _sso_session.session_id
-    return mischttp.set_sso_cookie(_sso_session.session_id, resp)
+    return mischttp.set_sso_cookie(current_app.conf.sso_cookie, _sso_session.session_id, resp)
 
 
 # ----------------------------------------------------------------------------
@@ -626,7 +656,7 @@ def _add_saml_request_to_session(info: SAMLQueryParams, binding: str) -> Request
     if not info.SAMLRequest or binding is None:
         raise ValueError(f"Can't add incomplete query params to session: {info}, binding {binding}")
     request_ref = RequestRef(str(uuid4()))
-    session.idp.pending_requests[request_ref] = IdP_PendingRequest(
+    session.idp.pending_requests[request_ref] = IdP_SAMLPendingRequest(
         request=info.SAMLRequest, binding=binding, relay_state=info.RelayState
     )
     return request_ref
@@ -647,14 +677,28 @@ def get_ticket(info: SAMLQueryParams, binding: Optional[str]) -> Optional[LoginC
     if not info.request_ref:
         raise BadRequest('Bad request, please re-initiate login')
 
-    ticket = LoginContext(request_ref=info.request_ref)
-    try:
-        ticket.saml_req = IdP_SAMLRequest(
-            ticket.SAMLRequest, ticket.binding, current_app.IDP, debug=current_app.conf.debug
-        )
-    except RuntimeError:
-        # Request not found in session, redirect user to main landing page
-        logger.debug(f'SAML request not found in session: {info}')
+    if info.request_ref not in session.idp.pending_requests:
+        logger.debug(f'Ref {info.request_ref} not found in pending requests: {session.idp.pending_requests.keys()}')
+        logger.debug(f'Extra debug, full pending requests: {session.idp.pending_requests}')
+        # raise RuntimeError(f'No pending request with ref {info.request_ref} found in session')
         return None
 
-    return ticket
+    pending = session.idp.pending_requests[info.request_ref]
+    if isinstance(pending, IdP_SAMLPendingRequest):
+        return LoginContextSAML(info.request_ref)
+    elif isinstance(pending, IdP_OtherDevicePendingRequest):
+        logger.debug(f'get_ticket: Loading IdP_OtherDevicePendingRequest (state_id {pending.state_id})')
+        state = None
+        if pending.state_id:
+            state = current_app.other_device_db.get_state_by_id(pending.state_id)
+        if not state:
+            current_app.logger.debug(f'Other device: Login id {pending.state_id} not found')
+            return None
+        current_app.logger.debug(f'Loaded other device state: {pending.state_id}')
+        current_app.logger.debug(f'Extra debug: Full other device state:\n{state.to_json()}')
+
+        return LoginContextOtherDevice(request_ref=info.request_ref, other_device_req=state)
+    else:
+        current_app.logger.warning(f'Can\'t parse pending request {info.request_ref}: {pending}')
+
+    return None

@@ -25,6 +25,13 @@ class LogoutState(Enum):
 
 
 class IdPTestLogout(IdPTests):
+    def update_config(self, config):
+        config = super().update_config(config)
+        config.update(
+            {'enable_legacy_template_mode': True,}
+        )
+        return config
+
     def test_basic_logout(self):
         """ This logs in, then out - but it calls the SOAP binding with the SSO cookie present """
         with self.browser.session_transaction() as sess:

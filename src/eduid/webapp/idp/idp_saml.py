@@ -2,15 +2,15 @@ import logging
 from hashlib import sha1
 from typing import Any, Dict, List, Mapping, NewType, Optional, Type, Union
 
+from werkzeug.exceptions import HTTPException
+
 import saml2.server
+from eduid.webapp.idp.assurance_data import AuthnInfo
+from eduid.webapp.idp.mischttp import HttpArgs
 from saml2.s_utils import UnknownPrincipal, UnknownSystemEntity, UnravelError, UnsupportedBinding
 from saml2.saml import Issuer
 from saml2.samlp import RequestedAuthnContext
 from saml2.sigver import verify_redirect_signature
-from werkzeug.exceptions import HTTPException
-
-from eduid.webapp.idp.assurance import AuthnInfo
-from eduid.webapp.idp.mischttp import HttpArgs
 
 ResponseArgs = NewType('ResponseArgs', Dict[str, Any])
 

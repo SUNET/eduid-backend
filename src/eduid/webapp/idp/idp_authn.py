@@ -50,7 +50,6 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import MongoDB
 from eduid.userdb.credentials import Password
 from eduid.userdb.element import ElementKey
-from eduid.userdb.exceptions import UserHasNotCompletedSignup
 from eduid.userdb.idp import IdPUser, IdPUserDb
 from eduid.vccs.client import VCCSClientHTTPError, VCCSPasswordFactor
 from eduid.webapp.common.api import exceptions
@@ -117,17 +116,9 @@ class IdPAuthn(object):
 
         :returns: The IdPUser found, and AuthnData on success
         """
-        try:
-            user = self.userdb.lookup_user(username)
-        except UserHasNotCompletedSignup:
-            # XXX Redirect user to some kind of info page
-            return None
+        user = self.userdb.lookup_user(username)
         if not user:
-            logger.info(f'Unknown user : {repr(username)}')
-            # XXX we effectively disclose there was no such user by the quick
-            # response in this case. Maybe send bogus auth request to backends?
             return None
-        logger.debug(f'Found user {user}')
 
         cred = self._verify_username_and_password2(user, password)
         if not cred:

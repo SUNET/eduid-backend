@@ -38,20 +38,17 @@ import logging
 from typing import List, Mapping, Optional, Sequence, Union
 from uuid import uuid4
 
-import saml2.server
-import saml2.time_util
-from saml2 import BINDING_HTTP_POST
-from saml2.authn_context import PASSWORDPROTECTEDTRANSPORT
-from saml2.s_utils import UnravelError
 from werkzeug.exceptions import BadRequest
 
+import saml2.server
+import saml2.time_util
 from eduid.common.misc.timeutil import utc_now
-from eduid.userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, U2F, Credential, Password
+from eduid.userdb.credentials import Credential, METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, Password, U2F
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.nin import Nin, NinList
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.logindata import ExternalMfaData, LoginContext
-from eduid.webapp.common.session.namespaces import IdP_PendingRequest, RequestRef
+from eduid.webapp.common.session.logindata import ExternalMfaData, LoginContext, LoginContextSAML
+from eduid.webapp.common.session.namespaces import IdP_SAMLPendingRequest, RequestRef
 from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.idp_saml import IdP_SAMLRequest
@@ -59,6 +56,9 @@ from eduid.webapp.idp.login import NextResult, login_next_step
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.tests.test_app import IdPTests
 from eduid.webapp.idp.util import b64encode
+from saml2 import BINDING_HTTP_POST
+from saml2.authn_context import PASSWORDPROTECTEDTRANSPORT
+from saml2.s_utils import UnravelError
 
 SWAMID_AL1 = 'http://www.swamid.se/policy/assurance/al1'
 SWAMID_AL2 = 'http://www.swamid.se/policy/assurance/al2'
@@ -133,26 +133,16 @@ class SSOIdPTests(IdPTests):
         binding = 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST'
         if request_ref is None:
             request_ref = RequestRef(str(uuid4()))
-        saml_req = self._parse_SAMLRequest(
-            info,
-            binding,
-            self.app.logger,
-            self.app.IDP,
-            BadRequest,
-            self.app.conf.debug,
-            self.app.conf.verify_request_signatures,
-        )
         from eduid.webapp.common.session import session
 
         try:
-            saml_data = IdP_PendingRequest(request=xmlstr, binding=binding, relay_state=None)
+            saml_data = IdP_SAMLPendingRequest(request=xmlstr, binding=binding, relay_state=None)
             session.idp.pending_requests[request_ref] = saml_data
         except RuntimeError:
             # Ignore RuntimeError: Working outside of request context when not running
             # inside self.app.test_request_context.
             pass
-        ticket = LoginContext(request_ref=request_ref)
-        ticket.saml_req = saml_req
+        ticket = LoginContextSAML(request_ref=request_ref)
         return ticket
 
     def _parse_SAMLRequest(
