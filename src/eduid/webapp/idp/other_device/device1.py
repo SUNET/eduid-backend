@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 def device1_check_response_code(
     response_code: Optional[str], sso_session: Optional[SSOSession], state: OtherDevice, ticket: LoginContext
 ) -> Union[Optional[SSOSession], FluxData]:
-    if state.state != OtherDeviceState.LOGGED_IN:
+    if state.state != OtherDeviceState.AUTHENTICATED:
         logger.info(f'Not validating response code for use other device in state {state.state}')
         state.bad_attempts += 1
         if not current_app.other_device_db.save(state):
@@ -92,7 +92,7 @@ def device1_state_to_flux_payload(state: OtherDevice, now: datetime) -> Mapping[
         raise RuntimeError('Missing configuration other_device_url')
 
     payload: Dict[str, Any] = {}
-    if state.state in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS, OtherDeviceState.LOGGED_IN]:
+    if state.state in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS, OtherDeviceState.AUTHENTICATED]:
         # Only add QR code when it will actually be displayed
         buf = BytesIO()
         qr_url = urlappend(current_app.conf.other_device_url, str(state.state_id))

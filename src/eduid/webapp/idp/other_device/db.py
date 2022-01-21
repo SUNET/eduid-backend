@@ -214,7 +214,7 @@ class OtherDeviceDB(BaseDB):
             return None
 
         _state_val = state.state.value
-        state.state = OtherDeviceState.LOGGED_IN
+        state.state = OtherDeviceState.AUTHENTICATED
         state.eppn = eppn
         state.device2.credentials_used = credentials_used
         state.device2.response_code = make_short_code()

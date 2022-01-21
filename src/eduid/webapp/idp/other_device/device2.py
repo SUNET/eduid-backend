@@ -69,7 +69,7 @@ def device2_state_to_flux_payload(state: OtherDevice, now: datetime) -> Mapping[
         'short_code': state.display_id,
         'state': state.state.value,
     }
-    if state.state == OtherDeviceState.LOGGED_IN:
+    if state.state == OtherDeviceState.AUTHENTICATED:
         # Be very explicit about when response_code is returned.
         payload['response_code'] = state.device2.response_code
     else:
