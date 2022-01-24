@@ -1,5 +1,4 @@
 # -*- encoding: utf-8 -*-
-import eduid.webapp.idp.views.next
 from eduid.workers.msg.decorators import TransactionAudit
 from eduid.workers.msg.testing import MsgMongoTestCase
 
@@ -23,7 +22,7 @@ class TestTransactionAudit(MsgMongoTestCase):
         # Check that an audit entry was created
         assert c.count_documents({}) == 1
         # Check the contents
-        assert eduid.webapp.idp.views2.next.next()['data']['baka'] == 'kaka'
+        assert result.next()['data']['baka'] == 'kaka'
 
         @TransactionAudit()
         def _get_navet_data(arg1, arg2):
