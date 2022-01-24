@@ -1,5 +1,5 @@
 PYTHON=$(shell which python)
-PIPCOMPILE=pip-compile -v --upgrade --generate-hashes --index-url https://pypi.sunet.se/simple
+PIPCOMPILE=pip-compile -v --upgrade --generate-hashes --allow-unsafe --index-url https://pypi.sunet.se/simple
 PIPSYNC=pip-sync --index-url https://pypi.sunet.se/simple --python-executable $(PYTHON)
 
 update_deps: main.txt sub_main.txt $(patsubst %_requirements.in,%_requirements.txt,$(wildcard *_requirements.in))
