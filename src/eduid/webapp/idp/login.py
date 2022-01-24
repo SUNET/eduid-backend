@@ -234,7 +234,7 @@ class SSO(Service):
             elif ticket.saml_req.force_authn:
                 current_app.logger.info(f'{ticket.request_ref}: force_authn sso_session={self.sso_session.public_id}')
 
-            return redirect(url_for('idp.verify') + '?ref=' + ticket.request_ref)
+            return redirect(url_for('misc.verify') + '?ref=' + ticket.request_ref)
 
         if _next.message == IdPMsg.user_terminated:
             raise Forbidden('USER_TERMINATED')
@@ -530,7 +530,7 @@ def show_login_page(ticket: LoginContextSAML) -> WerkzeugResponse:
     argv = get_default_template_arguments(current_app.conf)
     argv.update(
         {
-            'action': url_for('idp.verify'),
+            'action': url_for('misc.verify'),
             'alert_msg': '',
             'ref': ticket.request_ref,
             'password': '',
@@ -592,7 +592,7 @@ def do_verify() -> WerkzeugResponse:
     # function - regardless of if authentication was successful or not. The only difference
     # when authentication is successful is that a SSO session is created, and a reference
     # to it set in a cookie in the redirect response.
-    next_endpoint = url_for('idp.sso_redirect') + '?ref=' + _ticket.request_ref
+    next_endpoint = url_for('saml.sso_redirect') + '?ref=' + _ticket.request_ref
 
     if not password or 'username' not in query:
         current_app.logger.debug(f'Credentials not supplied. Redirect => {next_endpoint}')
