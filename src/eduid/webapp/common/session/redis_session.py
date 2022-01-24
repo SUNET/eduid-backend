@@ -238,11 +238,9 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         # Include hex(id(self)) for now to troubleshoot clobbered sessions
         return f'<{self.__class__.__name__} at {hex(id(self))}: db_key={self.short_id}>'
 
-    def __getitem__(self, key, default=None):
+    def __getitem__(self, key):
         if key in self._data:
             return self._data[key]
-        elif default is not None:
-            return default
         raise KeyError(f'Key {repr(key)} not present in session')
 
     def __setitem__(self, key, value):

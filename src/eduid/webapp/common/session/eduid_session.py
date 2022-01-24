@@ -119,8 +119,8 @@ class EduidSession(SessionMixin, MutableMapping):
             f'modified={self.modified}, cookie={self.short_id}>'
         )
 
-    def __getitem__(self, key, default=None):
-        return self._session.__getitem__(key, default=None)
+    def __getitem__(self, key):
+        return self._session.__getitem__(key)
 
     def __setitem__(self, key: str, value: Any):
         if key not in self._session or self._session[key] != value:
