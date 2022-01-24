@@ -24,7 +24,7 @@ from eduid.webapp.idp.schemas import (
 from eduid.webapp.idp.other_device.device1 import device1_check_response_code, device1_state_to_flux_payload
 from eduid.webapp.idp.other_device.helpers import _get_other_device_state_using_ref
 
-other_device_views = Blueprint('other_device', __name__, url_prefix='', template_folder='templates')
+other_device_views = Blueprint('other_device', __name__, url_prefix='')
 
 
 @other_device_views.route('/use_other_1', methods=['POST'])

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 __author__ = 'lundberg'
 
+import eduid.webapp.idp.views.next
 from eduid.common.config.workers import MsgConfig
 from eduid.workers.lookup_mobile.decorators import TransactionAudit
 from eduid.workers.lookup_mobile.testing import LookupMobileMongoTestCase
@@ -24,7 +25,7 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         c = self.db['transaction_audit']
         result = c.find()
         self.assertEqual(c.count_documents({}), 1)
-        hit = result.next()
+        hit = eduid.webapp.idp.views2.next.next()
         self.assertEqual(hit['data']['national_identity_number'], '200202025678')
         self.assertTrue(hit['data']['data_returned'])
         c.delete_many({})  # Clear database
@@ -37,7 +38,7 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         c = self.db['transaction_audit']
         result = c.find()
         self.assertEqual(c.count_documents({}), 1)
-        hit = result.next()
+        hit = eduid.webapp.idp.views2.next.next()
         self.assertEqual(hit['data']['mobile_number'], '+46701740699')
         self.assertTrue(hit['data']['data_returned'])
         c.delete_many({})  # Clear database
@@ -51,7 +52,7 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         c = self.db['transaction_audit']
         result = c.find()
         self.assertEqual(c.count_documents({}), 1)
-        self.assertFalse(result.next()['data']['data_returned'])
+        self.assertFalse(eduid.webapp.idp.views2.next.next()['data']['data_returned'])
         c.delete_many({})  # Clear database
 
         @TransactionAudit()
@@ -62,7 +63,7 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         c = self.db['transaction_audit']
         result = c.find()
         self.assertEqual(c.count_documents({}), 1)
-        self.assertFalse(result.next()['data']['data_returned'])
+        self.assertFalse(eduid.webapp.idp.views2.next.next()['data']['data_returned'])
         c.delete_many({})  # Clear database
 
     def test_transaction_audit_toggle(self):
