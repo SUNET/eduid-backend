@@ -29,7 +29,7 @@ def read_secret_key(key_name: str) -> bytes:
     """
     sanitized_key_name = "".join([c for c in key_name if c.isalpha() or c.isdigit() or c == '_'])
     fp = '/run/secrets/{}'.format(sanitized_key_name)
-    with open(fp) as f:
+    with open(fp, 'rb') as f:
         return encoding.URLSafeBase64Encoder.decode(f.readline())
 
 

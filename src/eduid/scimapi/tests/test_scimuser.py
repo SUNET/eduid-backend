@@ -175,7 +175,7 @@ class UserApiResult:
     request: Mapping[str, Any]
     response: Response
     nutid_user: Optional[NutidUserExtensionV1]
-    parsed_response: UserResponse
+    parsed_response: Optional[UserResponse]
 
 
 class ScimApiTestUserResourceBase(ScimApiTestCase):
