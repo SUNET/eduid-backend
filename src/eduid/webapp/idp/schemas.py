@@ -46,9 +46,19 @@ class NextRequestSchema(IdPRequest):
 
 class NextResponseSchema(FluxStandardAction):
     class NextResponsePayload(EduidSchema, CSRFResponseMixin):
+        class AuthnOptionsResponsePayload(EduidSchema):
+            forced_username = fields.Str(required=False)
+            freja_eidplus = fields.Bool(required=True)
+            other_device = fields.Bool(required=True)
+            password = fields.Bool(required=True)
+            username = fields.Bool(required=False)
+            usernamepassword = fields.Bool(required=False)
+            webauthn = fields.Bool(required=True)
+
         action = fields.Str(required=True)
         target = fields.Str(required=True)
         parameters = fields.Dict(keys=fields.Str(), values=fields.Str(), required=False)
+        authn_options = fields.Nested(AuthnOptionsResponsePayload)
 
     payload = fields.Nested(NextResponsePayload)
 
@@ -63,21 +73,6 @@ class PwAuthResponseSchema(FluxStandardAction):
         finished = fields.Bool(required=True)
 
     payload = fields.Nested(PwAuthResponsePayload)
-
-
-class AuthnOptionsRequestSchema(IdPRequest):
-    pass
-
-
-class AuthnOptionsResponseSchema(FluxStandardAction):
-    class AuthnOptionsResponsePayload(EduidSchema, CSRFResponseMixin):
-        password = fields.Bool(required=True)
-        webauthn = fields.Bool(required=True)
-        freja_eidplus = fields.Bool(required=True)
-        other_device = fields.Bool(required=True)
-        username = fields.Str(required=False)
-
-    payload = fields.Nested(AuthnOptionsResponsePayload)
 
 
 class MfaAuthRequestSchema(IdPRequest):
