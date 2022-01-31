@@ -278,7 +278,7 @@ langcodes==2.2.0 \
     # via
     #   -c main.txt
     #   -r main.in
-loguru==0.5.3 \
+loguru==0.6.0 \
     --hash=sha256:b28e72ac7a98be3d28ad28570299a393dfcd32e5e3f6a353dec94675767b6319 \
     --hash=sha256:f8087ac396b5ee5f67c963b495d615ebbceac2796379599820e324419d53667c
     # via -r fastapi_requirements.in
