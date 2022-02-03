@@ -78,8 +78,9 @@ def verify_token(user: User, credential_id: ElementKey) -> Union[FluxData, Werkz
     # Store the id of the credential that is supposed to be proofed in the session
     session.eidas.verify_token_action_credential_id = credential_id
 
-    # Request a authentication from idp
-    return _authn(EidasAcsAction.token_verify, force_authn=True, redirect_url=redirect_url)
+    # Request an authentication from the idp
+    required_loa = current_app.conf.required_loa
+    return _authn(EidasAcsAction.token_verify, required_loa, force_authn=True, redirect_url=redirect_url,)
 
 
 @eidas_views.route('/verify-nin', methods=['GET'])
@@ -92,7 +93,10 @@ def verify_nin(user: User) -> WerkzeugResponse:
     if check_magic_cookie(current_app.conf):
         return nin_verify_BACKDOOR()
 
-    return _authn(EidasAcsAction.nin_verify, force_authn=True, redirect_url=current_app.conf.nin_verify_redirect_url)
+    required_loa = current_app.conf.required_loa
+    return _authn(
+        EidasAcsAction.nin_verify, required_loa, force_authn=True, redirect_url=current_app.conf.nin_verify_redirect_url
+    )
 
 
 @eidas_views.route('/mfa-authentication', methods=['GET'])
@@ -103,12 +107,14 @@ def mfa_authentication() -> WerkzeugResponse:
 
     # Clear session keys used for external mfa
     del session.mfa_action
-    return _authn(EidasAcsAction.mfa_authn, force_authn=True, redirect_url=redirect_url)
+    required_loa = current_app.conf.required_loa
+    return _authn(EidasAcsAction.mfa_authn, required_loa, force_authn=True, redirect_url=redirect_url)
 
 
-def _authn(action: EidasAcsAction, force_authn: bool, redirect_url: str) -> WerkzeugResponse:
+def _authn(action: EidasAcsAction, required_loa: str, force_authn: bool, redirect_url: str) -> WerkzeugResponse:
     """
     :param action: name of action
+    :param required_loa: friendly loa name
     :param force_authn: should a new authentication be forced
     :param redirect_url: redirect url after successful authentication
 
@@ -125,7 +131,7 @@ def _authn(action: EidasAcsAction, force_authn: bool, redirect_url: str) -> Werk
 
     if idp is not None and idp in idps:
         authn_request = create_authn_request(
-            authn_ref=_authn_id, selected_idp=idp, required_loa=current_app.conf.required_loa, force_authn=force_authn,
+            authn_ref=_authn_id, selected_idp=idp, required_loa=required_loa, force_authn=force_authn,
         )
         current_app.logger.info(f'Redirecting the user to {idp} for {action}')
         return redirect(get_location(authn_request))
