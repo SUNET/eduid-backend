@@ -45,6 +45,10 @@ def token_verify_action(
 
     :return: redirect response
     """
+    if not authndata:
+        # please mypy
+        raise RuntimeError(f'No authndata for SAML response')
+
     redirect_url = authndata.redirect_url
 
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
@@ -148,6 +152,10 @@ def nin_verify_action(session_info: SessionInfo, authndata: Optional[SP_AuthnReq
 
     :return: redirect response
     """
+    if not authndata:
+        # please mypy
+        raise RuntimeError(f'No authndata for SAML response')
+
     redirect_url = authndata.redirect_url
 
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
