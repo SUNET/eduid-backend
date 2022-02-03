@@ -111,7 +111,7 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
         current_app.logger.debug('No SSO session found - initiating authentication')
         return NextResult(message=IdPMsg.must_authenticate)
 
-    user = current_app.central_userdb.lookup_user(sso_session.eppn)
+    user = current_app.userdb.lookup_user(sso_session.eppn)
     if not user:
         current_app.logger.error(f'User with eppn {sso_session.eppn} (from SSO session) not found')
         return NextResult(message=IdPMsg.general_failure, error=True)
@@ -278,7 +278,7 @@ class SSO(Service):
         if not isinstance(self.sso_session, SSOSession):
             raise RuntimeError(f'self.sso_session is not of type {SSOSession} ({type(self.sso_session)})')
 
-        user = current_app.central_userdb.lookup_user(self.sso_session.eppn)
+        user = current_app.userdb.lookup_user(self.sso_session.eppn)
         if not user:
             current_app.logger.error(f'User with eppn {self.sso_session.eppn} (from SSO session) not found')
             raise Forbidden('User in SSO session not found')

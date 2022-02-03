@@ -203,7 +203,7 @@ class TestSSO(SSOIdPTests):
 
         :return: IdPUser instance
         """
-        user = self.app.central_userdb.lookup_user(eppn)
+        user = self.app.userdb.lookup_user(eppn)
         user.nins = NinList()
         for number in nins:
             this_nin = Nin(

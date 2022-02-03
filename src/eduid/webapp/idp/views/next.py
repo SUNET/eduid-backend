@@ -91,7 +91,7 @@ def next(ref: RequestRef) -> FluxData:
         if not sso_session:
             return error_response(message=IdPMsg.no_sso_session)
 
-        user = current_app.central_userdb.lookup_user(sso_session.eppn)
+        user = current_app.userdb.lookup_user(sso_session.eppn)
         if not user:
             current_app.logger.error(f'User with eppn {sso_session.eppn} (from SSO session) not found')
             return error_response(message=IdPMsg.general_failure)
@@ -167,7 +167,7 @@ def _get_authn_options(ticket: LoginContext, sso_session: Optional[SSOSession]) 
         current_app.logger.debug(f'No SSO session, responding {res}')
         return res
 
-    user = current_app.central_userdb.lookup_user(sso_session.eppn)
+    user = current_app.userdb.lookup_user(sso_session.eppn)
     if user:
         if user.credentials.filter(Password):
             current_app.logger.debug(f'User in SSO session has a Password credential')

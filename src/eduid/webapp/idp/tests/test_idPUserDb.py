@@ -53,11 +53,11 @@ eduid.webapp.common.authn.TESTING = True
 
 class TestIdPUserDb(IdPTests):
     def test_lookup_user_by_email(self):
-        _this = self.app.central_userdb.lookup_user(self.test_user.mail_addresses.primary.email)
+        _this = self.app.userdb.lookup_user(self.test_user.mail_addresses.primary.email)
         assert _this.eppn == self.test_user.eppn
 
     def test_lookup_user_by_eppn(self):
-        _this = self.app.central_userdb.lookup_user(self.test_user.eppn)
+        _this = self.app.userdb.lookup_user(self.test_user.eppn)
         assert _this.eppn == self.test_user.eppn
 
     def test_password_authn(self):
