@@ -32,9 +32,7 @@ __author__ = 'lundberg'
 
 @acs_action(EidasAcsAction.token_verify)
 @require_user
-def token_verify_action(
-    session_info: SessionInfo, user: User, authndata: Optional[SP_AuthnRequest]
-) -> WerkzeugResponse:
+def token_verify_action(session_info: SessionInfo, user: User, authndata: SP_AuthnRequest) -> WerkzeugResponse:
     """
     Use a Sweden Connect federation IdP assertion to verify a users MFA token and, if necessary,
     the users identity.
@@ -45,10 +43,6 @@ def token_verify_action(
 
     :return: redirect response
     """
-    if not authndata:
-        # please mypy
-        raise RuntimeError(f'No authndata for SAML response')
-
     redirect_url = authndata.redirect_url
 
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
@@ -143,7 +137,7 @@ def token_verify_action(
 
 @acs_action(EidasAcsAction.nin_verify)
 @require_user
-def nin_verify_action(session_info: SessionInfo, authndata: Optional[SP_AuthnRequest], user: User) -> WerkzeugResponse:
+def nin_verify_action(session_info: SessionInfo, authndata: SP_AuthnRequest, user: User) -> WerkzeugResponse:
     """
     Use a Sweden Connect federation IdP assertion to verify a users identity.
 
@@ -152,10 +146,6 @@ def nin_verify_action(session_info: SessionInfo, authndata: Optional[SP_AuthnReq
 
     :return: redirect response
     """
-    if not authndata:
-        # please mypy
-        raise RuntimeError(f'No authndata for SAML response')
-
     redirect_url = authndata.redirect_url
 
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)

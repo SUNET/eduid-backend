@@ -80,7 +80,7 @@ def verify_token(user: User, credential_id: ElementKey) -> Union[FluxData, Werkz
 
     # Request an authentication from the idp
     required_loa = current_app.conf.required_loa
-    return _authn(EidasAcsAction.token_verify, required_loa, force_authn=True, redirect_url=redirect_url,)
+    return _authn(EidasAcsAction.token_verify, required_loa, force_authn=True, redirect_url=redirect_url)
 
 
 @eidas_views.route('/verify-nin', methods=['GET'])
