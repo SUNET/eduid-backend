@@ -267,6 +267,8 @@ def mfa_authentication_action(session_info: SessionInfo, authndata: SP_AuthnRequ
     mfa_success = False
     if user_nin is None and locked_nin is None:
         # no nin to match anything to
+        # TODO: we _could_ allow the user to give consent to just adding this NIN to the user here,
+        #       with a request parameter passed from frontend to /mfa-authentication for example.
         mfa_success = False
     elif user_nin is not None and user_nin.is_verified is True:
         # nin matched asserted nin and is verified
