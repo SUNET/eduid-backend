@@ -45,13 +45,7 @@ def token_verify_action(
 
     :return: redirect response
     """
-    redirect_url = current_app.conf.token_verify_redirect_url
-
-    if not is_required_loa(session_info, 'loa3'):
-        return redirect_with_msg(redirect_url, EidasMsg.authn_context_mismatch)
-
-    if not is_valid_reauthn(session_info):
-        return redirect_with_msg(redirect_url, EidasMsg.reauthn_expired)
+    redirect_url = authndata.redirect_url
 
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     token_to_verify = proofing_user.credentials.find(session.eidas.verify_token_action_credential_id)
@@ -154,14 +148,7 @@ def nin_verify_action(session_info: SessionInfo, authndata: Optional[SP_AuthnReq
 
     :return: redirect response
     """
-
-    redirect_url = current_app.conf.nin_verify_redirect_url
-
-    if not is_required_loa(session_info, 'loa3'):
-        return redirect_with_msg(redirect_url, EidasMsg.authn_context_mismatch)
-
-    if not is_valid_reauthn(session_info):
-        return redirect_with_msg(redirect_url, EidasMsg.reauthn_expired)
+    redirect_url = authndata.redirect_url
 
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     _nin_list = get_saml_attribute(session_info, 'personalIdentityNumber')
@@ -255,15 +242,7 @@ def mfa_authentication_action(session_info: SessionInfo, authndata: SP_AuthnRequ
     #
     # TODO: Stop redirecting with message after we stop using actions
     #
-    redirect_url = sanitise_redirect_url(authndata.redirect_url)
-
-    if not is_required_loa(session_info, 'loa3'):
-        session.mfa_action.error = MfaActionError.authn_context_mismatch
-        return redirect_with_msg(redirect_url, EidasMsg.authn_context_mismatch)
-
-    if not is_valid_reauthn(session_info):
-        session.mfa_action.error = MfaActionError.authn_too_old
-        return redirect_with_msg(redirect_url, EidasMsg.reauthn_expired)
+    redirect_url = authndata.redirect_url
 
     # Check that third party service returned a NIN
     _personal_idns = get_saml_attribute(session_info, 'personalIdentityNumber')
@@ -299,6 +278,7 @@ def mfa_authentication_action(session_info: SessionInfo, authndata: SP_AuthnRequ
         proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
         message = verify_nin_from_external_mfa(proofing_user=proofing_user, session_info=session_info)
         if message is not None:
+            # If a message was returned, verifying the NIN failed and we abort
             return redirect_with_msg(redirect_url, message)
 
     if not mfa_success:

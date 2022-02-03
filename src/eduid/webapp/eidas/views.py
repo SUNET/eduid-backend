@@ -14,16 +14,23 @@ from eduid.webapp.common.api.decorators import MarshalWith, require_user
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import FluxData, redirect_with_msg, success_response
 from eduid.webapp.common.api.schemas.csrf import EmptyResponse
-from eduid.webapp.common.api.utils import urlappend
+from eduid.webapp.common.api.utils import sanitise_redirect_url, urlappend
 from eduid.webapp.common.authn.acs_enums import EidasAcsAction
 from eduid.webapp.common.authn.acs_registry import get_action
 from eduid.webapp.common.authn.eduid_saml2 import process_assertion
 from eduid.webapp.common.authn.utils import get_location
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
+from eduid.webapp.common.session.namespaces import AuthnRequestRef, MfaActionError, SP_AuthnRequest
 from eduid.webapp.eidas.acs_actions import nin_verify_BACKDOOR
 from eduid.webapp.eidas.app import current_eidas_app as current_app
-from eduid.webapp.eidas.helpers import EidasMsg, create_authn_request, create_metadata, staging_nin_remap
+from eduid.webapp.eidas.helpers import (
+    EidasMsg,
+    create_authn_request,
+    create_metadata,
+    is_required_loa,
+    is_valid_reauthn,
+    staging_nin_remap,
+)
 
 __author__ = 'lundberg'
 
@@ -33,7 +40,7 @@ eidas_views = Blueprint('eidas', __name__, url_prefix='', template_folder='templ
 @eidas_views.route('/', methods=['GET'])
 @MarshalWith(EmptyResponse)
 @require_user
-def index(user) -> FluxData:
+def index(user: User) -> FluxData:
     return success_response(payload=None, message=None)
 
 
@@ -72,8 +79,7 @@ def verify_token(user: User, credential_id: ElementKey) -> Union[FluxData, Werkz
     session.eidas.verify_token_action_credential_id = credential_id
 
     # Request a authentication from idp
-    required_loa = 'loa3'
-    return _authn(EidasAcsAction.token_verify, required_loa, force_authn=True)
+    return _authn(EidasAcsAction.token_verify, force_authn=True, redirect_url=redirect_url)
 
 
 @eidas_views.route('/verify-nin', methods=['GET'])
@@ -86,31 +92,28 @@ def verify_nin(user: User) -> WerkzeugResponse:
     if check_magic_cookie(current_app.conf):
         return nin_verify_BACKDOOR()
 
-    required_loa = 'loa3'
-    return _authn(EidasAcsAction.nin_verify, required_loa, force_authn=True)
+    return _authn(EidasAcsAction.nin_verify, force_authn=True, redirect_url=current_app.conf.nin_verify_redirect_url)
 
 
 @eidas_views.route('/mfa-authentication', methods=['GET'])
 def mfa_authentication() -> WerkzeugResponse:
     current_app.logger.debug('mfa-authentication called')
-    required_loa = 'loa3'
+
+    redirect_url = sanitise_redirect_url(request.args.get('next', '/'))
+
     # Clear session keys used for external mfa
     del session.mfa_action
-    return _authn(EidasAcsAction.mfa_authn, required_loa, force_authn=True)
+    return _authn(EidasAcsAction.mfa_authn, force_authn=True, redirect_url=redirect_url)
 
 
-def _authn(
-    action: EidasAcsAction, required_loa: str, force_authn: bool = False, redirect_url: str = '/'
-) -> WerkzeugResponse:
+def _authn(action: EidasAcsAction, force_authn: bool, redirect_url: str) -> WerkzeugResponse:
     """
     :param action: name of action
-    :param required_loa: friendly loa name
     :param force_authn: should a new authentication be forced
     :param redirect_url: redirect url after successful authentication
 
     :return: redirect response
     """
-    redirect_url = request.args.get('next', redirect_url)
     _authn_id = AuthnRequestRef(str(uuid4()))
     session.eidas.sp.authns[_authn_id] = SP_AuthnRequest(post_authn_action=action, redirect_url=redirect_url)
     current_app.logger.debug(f'Stored SP_AuthnRequest[{_authn_id}]: {session.eidas.sp.authns[_authn_id]}')
@@ -122,7 +125,7 @@ def _authn(
 
     if idp is not None and idp in idps:
         authn_request = create_authn_request(
-            authn_ref=_authn_id, selected_idp=idp, required_loa=required_loa, force_authn=force_authn,
+            authn_ref=_authn_id, selected_idp=idp, required_loa=current_app.conf.required_loa, force_authn=force_authn,
         )
         current_app.logger.info(f'Redirecting the user to {idp} for {action}')
         return redirect(get_location(authn_request))
@@ -143,6 +146,14 @@ def assertion_consumer_service() -> WerkzeugResponse:
     if isinstance(assertion, WerkzeugResponse):
         return assertion
     current_app.logger.debug(f'Auth response:\n{assertion}\n\n')
+
+    if not is_required_loa(assertion.session_info, current_app.conf.required_loa):
+        session.mfa_action.error = MfaActionError.authn_context_mismatch
+        return redirect_with_msg(assertion.authndata.redirect_url, EidasMsg.authn_context_mismatch)
+
+    if not is_valid_reauthn(assertion.session_info):
+        session.mfa_action.error = MfaActionError.authn_too_old
+        return redirect_with_msg(assertion.authndata.redirect_url, EidasMsg.reauthn_expired)
 
     # Remap nin in staging environment
     if current_app.conf.environment == EduidEnvironment.staging:
