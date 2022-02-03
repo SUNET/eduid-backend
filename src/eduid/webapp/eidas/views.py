@@ -105,8 +105,6 @@ def mfa_authentication() -> WerkzeugResponse:
 
     redirect_url = sanitise_redirect_url(request.args.get('next', '/'))
 
-    # Clear session keys used for external mfa
-    del session.mfa_action
     required_loa = current_app.conf.required_loa
     return _authn(EidasAcsAction.mfa_authn, required_loa, force_authn=True, redirect_url=redirect_url)
 
@@ -120,6 +118,7 @@ def _authn(action: EidasAcsAction, required_loa: str, force_authn: bool, redirec
 
     :return: redirect response
     """
+    login_ref = request.args.get('ref')
     _authn_id = AuthnRequestRef(str(uuid4()))
     session.eidas.sp.authns[_authn_id] = SP_AuthnRequest(post_authn_action=action, redirect_url=redirect_url)
     current_app.logger.debug(f'Stored SP_AuthnRequest[{_authn_id}]: {session.eidas.sp.authns[_authn_id]}')
@@ -133,6 +132,15 @@ def _authn(action: EidasAcsAction, required_loa: str, force_authn: bool, redirec
         authn_request = create_authn_request(
             authn_ref=_authn_id, selected_idp=idp, required_loa=required_loa, force_authn=force_authn,
         )
+        # Clear session keys used for external mfa
+        del session.mfa_action
+        # Ideally, we should be able to support multiple ongoing external MFA requests at the same time,
+        # but for now at least remember the SAML request id and the login_ref (when the frontend has been
+        # updated to supply it to /mfa-authentication) so that the IdP can verify the login_ref matches
+        # when processing a successful response in session.mfa_action.
+        session.mfa_action.authn_req_ref = _authn_id
+        session.mfa_action.login_ref = login_ref
+
         current_app.logger.info(f'Redirecting the user to {idp} for {action}')
         return redirect(get_location(authn_request))
     abort(make_response('Requested IdP not found in metadata', 404))
@@ -152,6 +160,17 @@ def assertion_consumer_service() -> WerkzeugResponse:
     if isinstance(assertion, WerkzeugResponse):
         return assertion
     current_app.logger.debug(f'Auth response:\n{assertion}\n\n')
+
+    if assertion.authn_req_ref != session.mfa_action.authn_req_ref:
+        # Perhaps a SAML authn response received out of order - abort without destroying state
+        # (User makes two requests, A and B. Response B arrives, user is happy and proceeds with their work.
+        #  Response A arrives late, but the user has already moved on using response A. Just silently abort.)
+        error_url = current_app.conf.unsolicited_response_redirect_url
+        current_app.logger.info(
+            f'Response {assertion.authn_req_ref} does not match current one in session, '
+            f'{session.mfa_action.authn_req_ref}. Redirecting user to {error_url}'
+        )
+        return redirect(error_url)
 
     if not is_required_loa(assertion.session_info, current_app.conf.required_loa):
         session.mfa_action.error = MfaActionError.authn_context_mismatch

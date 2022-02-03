@@ -272,6 +272,7 @@ class AssertionData:
     session_info: SessionInfo
     user: Optional[User]
     authndata: SP_AuthnRequest
+    authn_req_ref: AuthnRequestRef
 
     def __str__(self) -> str:
         return (
@@ -331,4 +332,4 @@ def process_assertion(
                     continue
                 authn_data.credentials_used += [this.key]
 
-    return AssertionData(session_info=session_info, user=user, authndata=authn_data)
+    return AssertionData(session_info=session_info, user=user, authndata=authn_data, authn_req_ref=authn_ref)
