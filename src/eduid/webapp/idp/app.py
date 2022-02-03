@@ -79,8 +79,8 @@ class IdPApp(EduIDBaseApp):
 
         self.actions_db = ActionDB(config.mongo_uri)
 
-        self.userdb = IdPUserDb(db_uri=config.mongo_uri, db_name='eduid_am', collection='attributes')
-        self.authn = idp_authn.IdPAuthn(config=config, userdb=self.userdb)
+        self.central_userdb = IdPUserDb(db_uri=config.mongo_uri, db_name='eduid_am', collection='attributes')
+        self.authn = idp_authn.IdPAuthn(config=config, userdb=self.central_userdb)
         self.tou_db = ToUUserDB(config.mongo_uri)
         self.other_device_db = OtherDeviceDB(config.mongo_uri)
 

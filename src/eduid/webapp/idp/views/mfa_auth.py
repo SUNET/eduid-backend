@@ -41,7 +41,7 @@ def mfa_auth(ref: RequestRef, webauthn_response: Optional[Dict[str, str]] = None
         current_app.logger.error(f'MFA auth called without an SSO session')
         return error_response(message=IdPMsg.no_sso_session)
 
-    user = current_app.userdb.lookup_user(sso_session.eppn)
+    user = current_app.central_userdb.lookup_user(sso_session.eppn)
     if not user:
         current_app.logger.error(f'User with eppn {sso_session.eppn} (from SSO session) not found')
         return error_response(message=IdPMsg.general_failure)
