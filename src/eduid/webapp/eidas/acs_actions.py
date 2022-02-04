@@ -1,22 +1,19 @@
 # -*- coding: utf-8 -*-
 
 
-from typing import Optional
-
 from flask import request
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.userdb import LockedIdentityNin, User
 from eduid.userdb.credentials.fido import FidoCredential
-from eduid.userdb.logs import MFATokenProofing, SwedenConnectProofing
-from eduid.userdb.proofing.state import NinProofingElement, NinProofingState
+from eduid.userdb.logs import MFATokenProofing
 from eduid.userdb.proofing.user import ProofingUser
 from eduid.webapp.authn.helpers import credential_used_to_authenticate
 from eduid.webapp.common.api.decorators import require_user
 from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed
-from eduid.webapp.common.api.helpers import verify_nin_for_user
+from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import CommonMsg, redirect_with_msg
-from eduid.webapp.common.api.utils import sanitise_redirect_url, save_and_sync_user
+from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.authn.acs_enums import EidasAcsAction
 from eduid.webapp.common.authn.acs_registry import acs_action
 from eduid.webapp.common.authn.eduid_saml2 import get_authn_ctx
@@ -25,7 +22,7 @@ from eduid.webapp.common.authn.utils import get_saml_attribute
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import MfaActionError, SP_AuthnRequest
 from eduid.webapp.eidas.app import current_eidas_app as current_app
-from eduid.webapp.eidas.helpers import EidasMsg, is_required_loa, is_valid_reauthn, verify_nin_from_external_mfa
+from eduid.webapp.eidas.helpers import EidasMsg, token_verify_BACKDOOR, verify_nin_from_external_mfa
 
 __author__ = 'lundberg'
 
@@ -84,11 +81,27 @@ def token_verify_action(session_info: SessionInfo, user: User, authndata: SP_Aut
         raise ValueError("Missing NIN in SAML session info")
 
     asserted_nin = _nin_list[0]
+    if check_magic_cookie(current_app.conf):
+        # change asserted nin to nin from the integration test cookie
+        magic_cookie_nin = request.cookies.get('nin')
+        if magic_cookie_nin is None:
+            current_app.logger.error("Bad nin cookie")
+            return redirect_with_msg(redirect_url, EidasMsg.nin_not_matching)
+        asserted_nin = magic_cookie_nin
+
     user_nin = proofing_user.nins.find(asserted_nin)
     if not user_nin or not user_nin.is_verified:
         current_app.logger.error('Asserted NIN not matching user verified nins')
         current_app.logger.debug('Asserted NIN: {}'.format(asserted_nin))
         return redirect_with_msg(redirect_url, EidasMsg.nin_not_matching)
+
+    if check_magic_cookie(current_app.conf):
+        return token_verify_BACKDOOR(
+            proofing_user=proofing_user,
+            asserted_nin=asserted_nin,
+            token_to_verify=token_to_verify,
+            redirect_url=redirect_url,
+        )
 
     # Create a proofing log
     issuer = session_info['issuer']
@@ -156,6 +169,14 @@ def nin_verify_action(session_info: SessionInfo, authndata: SP_AuthnRequest, use
 
     asserted_nin = _nin_list[0]
 
+    if check_magic_cookie(current_app.conf):
+        # change asserted nin to nin from the integration test cookie
+        magic_cookie_nin = request.cookies.get('nin')
+        if magic_cookie_nin is None:
+            current_app.logger.error("Bad nin cookie")
+            return redirect_with_msg(redirect_url, CommonMsg.nin_invalid)
+        asserted_nin = magic_cookie_nin
+
     if not asserted_nin:
         raise ValueError(f'Missing NIN in SAML session info: {_nin_list}')
 
@@ -172,67 +193,6 @@ def nin_verify_action(session_info: SessionInfo, authndata: SP_AuthnRequest, use
         return redirect_with_msg(redirect_url, message)
 
     return redirect_with_msg(redirect_url, EidasMsg.nin_verify_success, error=False)
-
-
-@require_user
-def nin_verify_BACKDOOR(user: User) -> WerkzeugResponse:
-    """
-    Mock using a Sweden Connect federation IdP assertion to verify a users identity
-    when the request carries a magic cookie.
-
-    :param user: Central db user
-
-    :return: redirect response
-    """
-
-    redirect_url = current_app.conf.nin_verify_redirect_url
-
-    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    asserted_nin = request.cookies.get('nin')
-
-    if asserted_nin is None:
-        raise RuntimeError("No backdoor without a NIN in a cookie")
-
-    if len(proofing_user.nins.verified) != 0:
-        current_app.logger.error('User already has a verified NIN')
-        if proofing_user.nins.primary:
-            current_app.logger.debug(f'Primary NIN: {proofing_user.nins.primary.number}. Asserted NIN: {asserted_nin}')
-        else:
-            current_app.logger.debug(f'Primary NIN: {proofing_user.nins.primary}. Asserted NIN: {asserted_nin}')
-        return redirect_with_msg(redirect_url, ':ERROR:eidas.nin_already_verified')
-
-    # Create a proofing log
-    issuer = 'https://idp.example.com/simplesaml/saml2/idp/metadata.php'
-    authn_context = 'http://id.elegnamnden.se/loa/1.0/loa3'
-
-    user_address = {
-        'Name': {'GivenNameMarking': '20', 'GivenName': 'Magic Cookie', 'Surname': 'Testsson'},
-        'OfficialAddress': {'Address2': 'MAGIC COOKIE', 'PostalCode': '12345', 'City': 'LANDET'},
-    }
-
-    proofing_log_entry = SwedenConnectProofing(
-        eppn=proofing_user.eppn,
-        created_by='eduid-eidas',
-        nin=asserted_nin,
-        issuer=issuer,
-        authn_context_class=authn_context,
-        user_postal_address=user_address,
-        proofing_version='2018v1',
-    )
-
-    # Verify NIN for user
-    try:
-        nin_element = NinProofingElement(number=asserted_nin, created_by='eduid-eidas', is_verified=False)
-        proofing_state = NinProofingState(id=None, modified_ts=None, eppn=user.eppn, nin=nin_element)
-        if not verify_nin_for_user(user, proofing_state, proofing_log_entry):
-            current_app.logger.error(f'Failed verifying NIN for user {user}')
-            return redirect_with_msg(redirect_url, ':ERROR:Temporary technical problems')
-    except AmTaskFailed:
-        current_app.logger.exception('Verifying NIN for user failed')
-        return redirect_with_msg(redirect_url, ':ERROR:Temporary technical problems')
-    current_app.stats.count(name='nin_verified')
-
-    return redirect_with_msg(redirect_url, 'eidas.nin_verify_success')
 
 
 @acs_action(EidasAcsAction.mfa_authn)
@@ -259,6 +219,14 @@ def mfa_authentication_action(session_info: SessionInfo, authndata: SP_AuthnRequ
 
     # Check that a verified NIN is equal to the asserted attribute personalIdentityNumber
     asserted_nin = _personal_idns[0]
+    if check_magic_cookie(current_app.conf):
+        # change asserted nin to nin from the integration test cookie
+        magic_cookie_nin = request.cookies.get('nin')
+        if magic_cookie_nin is None:
+            current_app.logger.error("Bad nin cookie")
+            return redirect_with_msg(redirect_url, CommonMsg.nin_invalid)
+        asserted_nin = magic_cookie_nin
+
     user_nin = user.nins.find(asserted_nin)
     locked_nin = user.locked_identity.find('nin')
 

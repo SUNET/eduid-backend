@@ -21,7 +21,6 @@ from eduid.webapp.common.authn.eduid_saml2 import process_assertion
 from eduid.webapp.common.authn.utils import get_location
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import AuthnRequestRef, MfaActionError, SP_AuthnRequest
-from eduid.webapp.eidas.acs_actions import nin_verify_BACKDOOR
 from eduid.webapp.eidas.app import current_eidas_app as current_app
 from eduid.webapp.eidas.helpers import (
     EidasMsg,
@@ -87,12 +86,6 @@ def verify_token(user: User, credential_id: ElementKey) -> Union[FluxData, Werkz
 @require_user
 def verify_nin(user: User) -> WerkzeugResponse:
     current_app.logger.debug('verify-nin called')
-
-    # Backdoor for the selenium integration tests to verify NINs
-    # without sending the user to an eidas idp
-    if check_magic_cookie(current_app.conf):
-        return nin_verify_BACKDOOR()
-
     required_loa = current_app.conf.required_loa
     return _authn(
         EidasAcsAction.nin_verify, required_loa, force_authn=True, redirect_url=current_app.conf.nin_verify_redirect_url
@@ -102,9 +95,7 @@ def verify_nin(user: User) -> WerkzeugResponse:
 @eidas_views.route('/mfa-authentication', methods=['GET'])
 def mfa_authentication() -> WerkzeugResponse:
     current_app.logger.debug('mfa-authentication called')
-
     redirect_url = sanitise_redirect_url(request.args.get('next', '/'))
-
     required_loa = current_app.conf.required_loa
     return _authn(EidasAcsAction.mfa_authn, required_loa, force_authn=True, redirect_url=redirect_url)
 
@@ -125,6 +116,12 @@ def _authn(action: EidasAcsAction, required_loa: str, force_authn: bool, redirec
 
     idp = request.args.get('idp')
     current_app.logger.debug(f'Requested IdP: {idp}')
+
+    if check_magic_cookie(current_app.conf):
+        # set a test IdP with minimal interaction for the integration tests
+        idp = current_app.conf.magic_cookie_idp
+        current_app.logger.debug(f'Changed requested IdP due to magic cookie: {idp}')
+
     idps = current_app.saml2_config.metadata.identity_providers()
     current_app.logger.debug(f'IdPs from metadata: {idps}')
 
