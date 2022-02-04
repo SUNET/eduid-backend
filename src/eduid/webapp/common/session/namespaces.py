@@ -25,6 +25,9 @@ from eduid.webapp.idp.other_device.data import OtherDeviceId
 logger = logging.getLogger(__name__)
 
 
+AuthnRequestRef = NewType('AuthnRequestRef', str)
+
+
 class SessionNSBase(BaseModel, ABC):
     def to_dict(self) -> Dict[str, Any]:
         return self.dict()
@@ -76,6 +79,8 @@ WebauthnState = NewType('WebauthnState', Dict[str, Any])
 class MfaAction(SessionNSBase):
     success: bool = False
     error: Optional[MfaActionError] = None
+    login_ref: Optional[str] = None
+    authn_req_ref: Optional[AuthnRequestRef] = None
     # Third-party MFA parameters
     issuer: Optional[str] = None
     authn_instant: Optional[str] = None
@@ -203,9 +208,6 @@ class SP_AuthnRequest(BaseModel):
     credentials_used: List[ElementKey] = Field(default=[])
     created_ts: datetime = Field(default_factory=utc_now)
     authn_instant: Optional[datetime] = None
-
-
-AuthnRequestRef = NewType('AuthnRequestRef', str)
 
 
 class SPAuthnData(BaseModel):

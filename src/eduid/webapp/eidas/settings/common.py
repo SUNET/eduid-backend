@@ -55,6 +55,8 @@ class EidasConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MsgConfig
     token_verify_redirect_url: str
     nin_verify_redirect_url: str
 
+    required_loa: str = 'loa3'  # one of authentication_context_map below
+
     # Federation config
     authentication_context_map: Dict[str, str] = Field(
         default={

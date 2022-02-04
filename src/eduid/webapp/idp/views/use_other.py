@@ -67,7 +67,7 @@ def use_other_1(
             username = sso_session.eppn
         user = None
         if username:
-            user = current_app.authn.userdb.lookup_user(username)
+            user = current_app.userdb.lookup_user(username)
 
         current_app.logger.debug(f'Adding new use other device state')
         state = current_app.other_device_db.add_new_state(ticket, user, ttl=current_app.conf.other_device_logins_ttl)
