@@ -826,7 +826,7 @@ class EidasTests(EduidAPITestCase):
 
         eppn = self.test_unverified_user_eppn
         nin = self.test_backdoor_nin
-        self._verify_user_parameters(eppn, nin=nin, num_mfa_tokens=0, num_verified_nins=0)
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, num_verified_nins=0)
 
         self.app.conf.magic_cookie = 'magic-cookie'
 
