@@ -5,18 +5,22 @@ from enum import unique
 from typing import Any, Dict, Optional
 
 from dateutil.parser import parse as dt_parse
+from flask import request
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.metadata import entity_descriptor
 from saml2.request import AuthnRequest
+from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.misc.timeutil import utc_now
-from eduid.userdb.logs import SwedenConnectProofing
+from eduid.userdb.credentials import Credential
+from eduid.userdb.logs import MFATokenProofing, SwedenConnectProofing
 from eduid.userdb.proofing import NinProofingElement, ProofingUser
 from eduid.userdb.proofing.state import NinProofingState
 from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed
-from eduid.webapp.common.api.helpers import verify_nin_for_user
-from eduid.webapp.common.api.messages import CommonMsg, TranslatableMsg
+from eduid.webapp.common.api.helpers import check_magic_cookie, verify_nin_for_user
+from eduid.webapp.common.api.messages import CommonMsg, TranslatableMsg, redirect_with_msg
+from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.authn.cache import OutstandingQueriesCache
 from eduid.webapp.common.authn.eduid_saml2 import get_authn_ctx
 from eduid.webapp.common.authn.session_info import SessionInfo
@@ -127,6 +131,15 @@ def verify_nin_from_external_mfa(proofing_user: ProofingUser, session_info: Sess
         raise ValueError("Missing NIN in SAML session info")
     asserted_nin = _nin_list[0]
 
+    if check_magic_cookie(current_app.conf):
+        # change asserted nin to nin from the integration test cookie
+        magic_cookie_nin = request.cookies.get('nin')
+        if magic_cookie_nin is None:
+            current_app.logger.error("Bad nin cookie")
+            return CommonMsg.nin_invalid
+        # verify nin with bogus data and without Navet interaction for integration test
+        return nin_verify_BACKDOOR(proofing_user=proofing_user, asserted_nin=magic_cookie_nin)
+
     # Create a proofing log
     issuer = session_info['issuer']
     authn_context = get_authn_ctx(session_info)
@@ -183,3 +196,91 @@ def staging_nin_remap(session_info: SessionInfo) -> SessionInfo:
     if user_nin:
         attributes['personalIdentityNumber'] = [user_nin]
     return session_info
+
+
+def nin_verify_BACKDOOR(proofing_user: ProofingUser, asserted_nin: str) -> Optional[TranslatableMsg]:
+    """
+    Mock using a Sweden Connect federation IdP assertion to verify a users identity
+    when the request carries a magic cookie.
+
+    :param proofing_user: Proofing user
+    :param asserted_nin: nin to verify
+    :return: redirect response
+    """
+    # Create a proofing log
+    issuer = 'https://idp.example.com/simplesaml/saml2/idp/metadata.php'
+    authn_context = 'http://id.elegnamnden.se/loa/1.0/loa3'
+
+    user_address = {
+        'Name': {'GivenNameMarking': '20', 'GivenName': 'Magic Cookie', 'Surname': 'Testsson'},
+        'OfficialAddress': {'Address2': 'MAGIC COOKIE', 'PostalCode': '12345', 'City': 'LANDET'},
+    }
+
+    proofing_log_entry = SwedenConnectProofing(
+        eppn=proofing_user.eppn,
+        created_by='eduid-eidas',
+        nin=asserted_nin,
+        issuer=issuer,
+        authn_context_class=authn_context,
+        user_postal_address=user_address,
+        proofing_version='2018v1',
+    )
+
+    # Verify NIN for user
+    try:
+        nin_element = NinProofingElement(number=asserted_nin, created_by='eduid-eidas', is_verified=False)
+        proofing_state = NinProofingState(id=None, modified_ts=None, eppn=proofing_user.eppn, nin=nin_element)
+        if not verify_nin_for_user(proofing_user, proofing_state, proofing_log_entry):
+            current_app.logger.error(f'Failed verifying NIN for user {proofing_user}')
+            return CommonMsg.temp_problem
+    except AmTaskFailed:
+        current_app.logger.exception('Verifying NIN for user failed')
+        return CommonMsg.temp_problem
+    current_app.stats.count(name='nin_verified')
+
+    return None
+
+
+def token_verify_BACKDOOR(
+    proofing_user: ProofingUser, asserted_nin: str, token_to_verify: Credential, redirect_url: str
+) -> WerkzeugResponse:
+    """
+    Backdoor for verifying a token using the magic cookie. Used for integration tests.
+    """
+    # Create a proofing log
+    issuer = 'MAGIC COOKIE'
+    authn_context = 'MAGIC COOKIE'
+
+    user_address = {
+        'Name': {'GivenNameMarking': '20', 'GivenName': 'Magic Cookie', 'Surname': 'Testsson'},
+        'OfficialAddress': {'Address2': 'MAGIC COOKIE', 'PostalCode': '12345', 'City': 'LANDET'},
+    }
+
+    proofing_log_entry = MFATokenProofing(
+        eppn=proofing_user.eppn,
+        created_by='eduid-eidas',
+        nin=asserted_nin,
+        issuer=issuer,
+        authn_context_class=authn_context,
+        key_id=token_to_verify.key,
+        user_postal_address=user_address,
+        proofing_version='2018v1',
+    )
+
+    # Set token as verified
+    token_to_verify.is_verified = True
+    token_to_verify.proofing_method = 'SWAMID_AL2_MFA_HI'
+    token_to_verify.proofing_version = '2018v1'
+
+    # Save proofing log entry and save user
+    if current_app.proofing_log.save(proofing_log_entry):
+        current_app.logger.info('Recorded MFA token verification in the proofing log')
+        try:
+            save_and_sync_user(proofing_user)
+        except AmTaskFailed as e:
+            current_app.logger.error('Verifying token for user failed')
+            current_app.logger.error('{}'.format(e))
+            return redirect_with_msg(redirect_url, CommonMsg.temp_problem)
+        current_app.stats.count(name='fido_token_verified')
+
+    return redirect_with_msg(redirect_url, EidasMsg.verify_success, error=False)

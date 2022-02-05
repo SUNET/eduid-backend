@@ -35,7 +35,7 @@
 Configuration (file) handling for the eduID eidas app.
 """
 
-from typing import Dict, Mapping
+from typing import Dict, Mapping, Optional
 
 from pydantic import Field
 
@@ -84,6 +84,8 @@ class EidasConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MsgConfig
             #  'test nin': 'user nin'
         }
     )
+    # magic cookie IdP is used for integration tests when magic cookie is set
+    magic_cookie_idp: Optional[str] = None
 
     saml2_settings_module: str
     safe_relay_domain: str = 'eduid.se'
