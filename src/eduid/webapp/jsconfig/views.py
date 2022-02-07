@@ -30,7 +30,6 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-import time
 from typing import Any, Dict, List
 
 from flask import Blueprint
@@ -83,8 +82,6 @@ def get_dashboard_config() -> FluxData:
     if current_app.conf.fix_dashboard_uppercase_config:
         config_dict = _fix_uppercase_config(config_dict)
 
-    time.sleep(3)
-
     return success_response(payload=config_dict)
 
 
@@ -132,5 +129,4 @@ def get_login_config() -> FluxData:
         'sentry_dsn': current_app.conf.jsapps.sentry_dsn,
         'environment': current_app.conf.jsapps.environment.value,
     }
-    time.sleep(3)
     return success_response(payload=payload)
