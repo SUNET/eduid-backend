@@ -280,6 +280,11 @@ def _find_or_add_credential(
         current_app.logger.info(f'Not recording credential used for unknown trust framework: {framework}')
         return None
 
+    if not required_loa:
+        # mainly keep mypy calm
+        current_app.logger.debug(f'Not recording credential used without required_loa')
+        return None
+
     for this in user.credentials.filter(SwedenConnectCredential):
         if this.level == required_loa:
             current_app.logger.debug(f'Found suitable credential on user: {this}')
@@ -292,12 +297,12 @@ def _find_or_add_credential(
         pass
 
     # Reload the user from the central database, to not overwrite any earlier NIN proofings
-    user = current_app.central_userdb.get_user_by_eppn(session.common.eppn)
-    if user is None:
+    _user = current_app.central_userdb.get_user_by_eppn(user.eppn)
+    if _user is None:
         # Please mypy
-        raise RuntimeError(f'No user with eppn {session.common.eppn} found')
+        raise RuntimeError(f'Could not reload user {user}')
 
-    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
+    proofing_user = ProofingUser.from_user(_user, current_app.private_userdb)
 
     proofing_user.credentials.add(cred)
 

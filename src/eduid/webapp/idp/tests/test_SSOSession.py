@@ -20,6 +20,7 @@ class test_SSOSession(IdPTests):
             'authn_credentials': [
                 {
                     'cred_id': '5fc8b78cbdaa0bf337490db1',
+                    'external': None,
                     'timestamp': datetime.fromisoformat('2020-09-13T12:26:40+00:00'),
                 }
             ],

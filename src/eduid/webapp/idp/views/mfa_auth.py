@@ -1,4 +1,5 @@
 from copy import deepcopy
+from dataclasses import dataclass
 from typing import Any, Dict, Mapping, Optional, Union
 
 from flask import Blueprint, request
@@ -20,7 +21,7 @@ from eduid.webapp.common.session.namespaces import (
 )
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.helpers import IdPMsg
-from eduid.webapp.idp.idp_authn import AuthnData
+from eduid.webapp.idp.idp_authn import AuthnData, ExternalAuthnData
 from eduid.webapp.idp.login import get_ticket
 from eduid.webapp.idp.schemas import MfaAuthRequestSchema, MfaAuthResponseSchema
 from eduid.webapp.idp.service import SAMLQueryParams
@@ -60,36 +61,57 @@ def mfa_auth(ref: RequestRef, webauthn_response: Optional[Mapping[str, str]] = N
     saved_mfa_action = deepcopy(session.mfa_action)
     del session.mfa_action
 
-    credential = _check_external_mfa(saved_mfa_action, session, user, ref, sso_session)
-    if isinstance(credential, FluxData):
-        return credential
+    result = _check_external_mfa(saved_mfa_action, session, user, ref, sso_session)
+    if result and result.response:
+        return result.response
 
-    if not credential:
+    if not result:
         # No external MFA
-        credential = _check_webauthn(webauthn_response, saved_mfa_action, user)
-        if isinstance(credential, FluxData):
-            return credential
+        result = _check_webauthn(webauthn_response, saved_mfa_action, user)
+        if result and result.response:
+            return result.response
 
-    _utc_now = utc_now()
+    if not result:
+        # If no external MFA was used, and no webauthn credential either, we respond with a not-finished
+        # response containing a webauthn challenge if applicable.
+        payload: Dict[str, Any] = {'finished': False}
 
-    authn = AuthnData(cred_id=credential.key, timestamp=_utc_now)
-    sso_session.add_authn_credential(authn)
-    current_app.logger.debug(f'AuthnData to save: {authn}')
+        candidates = user.credentials.filter(FidoCredential)
+        if candidates:
+            current_app.logger.debug('User has one or more FIDO tokens, adding webauthn challenge to response')
+            options = fido_tokens.start_token_verification(user, current_app.conf.fido2_rp_id, session.mfa_action)
+            payload.update(options)
 
+        current_app.logger.debug('No MFA submitted. Sending not-finished response.')
+        return success_response(payload=payload)
+
+    if not result.authn_data or not result.credential:
+        current_app.logger.error(f'No authn_data or credential in result: {result}')
+        return error_response(message=IdPMsg.general_failure)
+
+    current_app.logger.debug(f'AuthnData to save: {result.authn_data}')
+    sso_session.add_authn_credential(result.authn_data)
     current_app.logger.debug(f'Saving SSO session {sso_session}')
     current_app.sso_sessions.save(sso_session)
 
-    current_app.authn.log_authn(user, success=[credential.key], failure=[])
+    current_app.authn.log_authn(user, success=[result.credential.key], failure=[])
 
     # Remember the MFA credential used for this particular request
-    session.idp.log_credential_used(ref, credential, _utc_now)
+    session.idp.log_credential_used(ref, result.credential, result.authn_data.timestamp)
 
     return success_response(payload={'finished': True})
 
 
+@dataclass
+class CheckResult:
+    response: Optional[FluxData] = None
+    credential: Optional[Credential] = None
+    authn_data: Optional[AuthnData] = None
+
+
 def _check_external_mfa(
-    mfa_action: MfaAction, session: EduidSession, user: User, ref: RequestRef, sso_session: Optional[SSOSession]
-) -> Optional[Union[Credential, FluxData]]:
+    mfa_action: MfaAction, session: EduidSession, user: User, ref: RequestRef, sso_session: SSOSession
+) -> Optional[CheckResult]:
 
     # Third party service MFA
     if mfa_action.success is True:  # Explicit check that success is the boolean True
@@ -98,12 +120,13 @@ def _check_external_mfa(
             #       the eidas /mfa-authenticate endpoint
             if mfa_action.login_ref != ref:
                 current_app.logger.info(f'MFA data in session does not match this request, rejecting')
-                return error_response(message=IdPMsg.general_failure)
+                return CheckResult(response=error_response(message=IdPMsg.general_failure))
 
         current_app.logger.info(f'User {user} logged in using external MFA service {mfa_action.issuer}')
 
         _utc_now = utc_now()
 
+        # OLD: Use AuthnData.external instead of this - remove once consumers have been updated
         # External MFA authentication
         sso_session.external_mfa = ExternalMfaData(
             issuer=mfa_action.issuer,
@@ -122,68 +145,71 @@ def _check_external_mfa(
                 timestamp=_utc_now,
             )
             session.idp.log_credential_used(ref, otc, _utc_now)
-            return otc
+            return CheckResult(credential=otc)
 
         # NEW way
         cred = user.credentials.find(mfa_action.credential_used)
-        if cred:
-            current_app.logger.debug(f'Logging credential used in session: {cred}')
-            session.idp.log_credential_used(ref, cred, _utc_now)
-        else:
+        if not cred:
             current_app.logger.info(f'MFA action credential used not found on user: {mfa_action.credential_used}')
+            return None
 
-        return cred
+        current_app.logger.debug(f'Logging credential used in session: {cred}')
+        session.idp.log_credential_used(ref, cred, _utc_now)
+
+        authn = AuthnData(
+            cred_id=cred.key,
+            timestamp=_utc_now,
+            external=ExternalAuthnData(issuer=mfa_action.issuer, authn_context=mfa_action.authn_context),
+        )
+
+        return CheckResult(credential=cred, authn_data=authn)
 
     # External MFA was tried and failed, mfa_action.error is set in the eidas app
     if mfa_action.error is not None:
         if mfa_action.error is MfaActionError.authn_context_mismatch:
-            return error_response(message=IdPMsg.eidas_authn_context_mismatch)
+            return CheckResult(response=error_response(message=IdPMsg.eidas_authn_context_mismatch))
         elif mfa_action.error is MfaActionError.authn_too_old:
-            return error_response(message=IdPMsg.eidas_reauthn_expired)
+            return CheckResult(response=error_response(message=IdPMsg.eidas_reauthn_expired))
         elif mfa_action.error is MfaActionError.nin_not_matching:
-            return error_response(message=IdPMsg.eidas_nin_not_matching)
+            return CheckResult(response=error_response(message=IdPMsg.eidas_nin_not_matching))
         else:
             current_app.logger.warning(f'eidas returned {mfa_action.error} that did not match an error message')
-            return error_response(message=IdPMsg.general_failure)
+            return CheckResult(response=error_response(message=IdPMsg.general_failure))
 
     return None
 
 
 def _check_webauthn(
     webauthn_response: Optional[Mapping[str, str]], mfa_action: MfaAction, user: User
-) -> Optional[Union[Credential, FluxData]]:
+) -> Optional[CheckResult]:
     if webauthn_response is None:
-        payload: Dict[str, Any] = {'finished': False}
-
-        candidates = user.credentials.filter(FidoCredential)
-        if candidates:
-            options = fido_tokens.start_token_verification(user, current_app.conf.fido2_rp_id, session.mfa_action)
-            payload.update(options)
-
-        return success_response(payload=payload)
+        return None
 
     #
     # Process webauthn_response
     #
     if not mfa_action.webauthn_state:
         current_app.logger.error(f'No active webauthn challenge found in the session, can\'t do verification')
-        return error_response(message=IdPMsg.general_failure)
+        return CheckResult(response=error_response(message=IdPMsg.general_failure))
 
     try:
         result = fido_tokens.verify_webauthn(user, webauthn_response, current_app.conf.fido2_rp_id, mfa_action)
     except fido_tokens.VerificationProblem:
         current_app.logger.exception('Webauthn verification failed')
         current_app.logger.debug(f'webauthn_response: {repr(webauthn_response)}')
-        return error_response(message=IdPMsg.mfa_auth_failed)
+        return CheckResult(response=error_response(message=IdPMsg.mfa_auth_failed))
 
     current_app.logger.debug(f'verify_webauthn result: {result}')
 
     if not result.success:
-        return error_response(message=IdPMsg.mfa_auth_failed)
+        return CheckResult(response=error_response(message=IdPMsg.mfa_auth_failed))
 
     cred = user.credentials.find(result.credential_key)
     if not cred:
         current_app.logger.error(f'Could not find credential {result.credential_key} on user {user}')
-        return error_response(message=IdPMsg.general_failure)
+        return CheckResult(response=error_response(message=IdPMsg.general_failure))
 
-    return cred
+    _utc_now = utc_now()
+
+    authn = AuthnData(cred_id=cred.key, timestamp=_utc_now)
+    return CheckResult(credential=cred, authn_data=authn)

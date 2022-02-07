@@ -105,14 +105,21 @@ def create_authn_request(
     return info
 
 
-def is_required_loa(session_info: SessionInfo, required_loa: str) -> bool:
+def is_required_loa(session_info: SessionInfo, required_loa: Optional[str]) -> bool:
     authn_context = get_authn_ctx(session_info)
-    loa_uri = current_app.conf.authentication_context_map[required_loa]
+    if not required_loa:
+        logger.debug(f'No LOA required, allowing {authn_context}')
+        return True
+    loa_uri = current_app.conf.authentication_context_map.get(required_loa)
+    if not loa_uri:
+        logger.error(f'LOA {required_loa} not found in configuration (authentication_context_map), disallowing')
+        return False
     if authn_context == loa_uri:
+        logger.debug(f'Asserted authn context {authn_context} matches required {required_loa}')
         return True
     logger.error('Asserted authn context class does not match required class')
     logger.error(f'Asserted: {authn_context}')
-    logger.error(f'Required: {loa_uri}')
+    logger.error(f'Required: {loa_uri} ({required_loa})')
     return False
 
 
