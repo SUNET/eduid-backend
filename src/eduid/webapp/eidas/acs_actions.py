@@ -123,7 +123,7 @@ def token_verify_action(session_info: SessionInfo, user: User, authndata: SP_Aut
         return redirect_with_msg(redirect_url, CommonMsg.navet_error)
     proofing_log_entry = MFATokenProofing(
         eppn=proofing_user.eppn,
-        created_by=current_app.conf.app_name,
+        created_by='eduid-eidas',
         nin=user_nin.number,
         issuer=issuer,
         authn_context_class=authn_context,
@@ -291,7 +291,7 @@ def _find_or_add_credential(
             return this.key
 
     cred = SwedenConnectCredential.new(level=required_loa)
-    cred.created_by = current_app.conf.app_name
+    cred.created_by = 'eduid-eidas'
     if required_loa == "loa3":
         # TODO: proof token as SWAMID_AL2_MFA_HI?
         pass
