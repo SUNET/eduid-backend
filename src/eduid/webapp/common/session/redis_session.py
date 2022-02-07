@@ -315,10 +315,10 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         :param data_dict: Data to be stored
         :return: serialized data
         """
-        logger.debug(f'Storing data in Redis[{self.short_id}]:\n{repr(data_dict)}')
+        data_json = json.dumps(data_dict, cls=EduidJSONEncoder)
+        logger.debug(f'Storing data in Redis[{self.short_id}]:\n{data_json}')
         nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
         # Version data to make it easier to know how to decode it on reading
-        data_json = json.dumps(data_dict, cls=EduidJSONEncoder)
         versioned = {
             'v2': bytes(
                 self.secret_box.encrypt(data_json.encode('ascii'), nonce, encoder=nacl.encoding.Base64Encoder)
