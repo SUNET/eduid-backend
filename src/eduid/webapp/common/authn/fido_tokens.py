@@ -33,7 +33,7 @@ import base64
 import json
 import logging
 import pprint
-from typing import Any, Dict
+from typing import Any, Dict, Mapping
 
 from fido2 import cbor
 from fido2.client import ClientData
@@ -160,7 +160,7 @@ class WebauthnResult(BaseModel):
     credential_key: ElementKey
 
 
-def verify_webauthn(user: User, request_dict: Dict[str, Any], rp_id: str, state: MfaAction) -> WebauthnResult:
+def verify_webauthn(user: User, request_dict: Mapping[str, Any], rp_id: str, state: MfaAction) -> WebauthnResult:
     """
     Verify received Webauthn data against the user's credentials.
 
