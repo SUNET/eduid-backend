@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Type
+from typing import Any, Dict, List, Optional, Type
 
 from eduid.userdb.credentials.base import Credential
+from eduid.userdb.credentials.external import external_credential_from_dict
 from eduid.userdb.credentials.fido import U2F, Webauthn
 from eduid.userdb.credentials.password import Password
 from eduid.userdb.element import ElementList
@@ -21,16 +22,22 @@ class CredentialList(ElementList[Credential]):
     def from_list_of_dicts(cls: Type[CredentialList], items: List[Dict[str, Any]]) -> CredentialList:
         elements = []
         for this in items:
-            credential: Credential
-            if isinstance(this, dict) and 'salt' in this:
+            if not isinstance(this, dict):
+                raise UserHasUnknownData(f'Unknown credential data (type {type(this)}): {repr(this)}')
+
+            credential: Optional[Credential] = None
+
+            if 'salt' in this:
                 credential = Password.from_dict(this)
-            elif isinstance(this, dict) and 'keyhandle' in this:
+            elif 'keyhandle' in this:
                 if 'public_key' in this:
                     credential = U2F.from_dict(this)
                 else:
                     credential = Webauthn.from_dict(this)
-            else:
-                raise UserHasUnknownData(f'Unknown credential data (type {type(this)}): {repr(this)}')
-            elements.append(credential)
+            elif 'framework' in this:
+                credential = external_credential_from_dict(this)
+
+            if credential:
+                elements.append(credential)
 
         return cls(elements=elements)

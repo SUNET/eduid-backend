@@ -9,6 +9,7 @@ from urllib.parse import urlencode
 
 from pydantic import BaseModel
 
+from eduid.userdb.element import ElementKey
 from eduid.webapp.common.session.namespaces import (
     IdP_OtherDevicePendingRequest,
     IdP_PendingRequest,
@@ -41,6 +42,7 @@ class ExternalMfaData(BaseModel):
     issuer: str
     authn_context: str
     timestamp: datetime
+    credential_id: Optional[ElementKey]
 
 
 @dataclass

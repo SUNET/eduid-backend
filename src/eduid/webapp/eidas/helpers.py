@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional
 
 from dateutil.parser import parse as dt_parse
 from flask import request
+from eduid.userdb.credentials.external import TrustFramework
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.metadata import entity_descriptor
@@ -65,8 +66,15 @@ class EidasMsg(TranslatableMsg):
 
 
 def create_authn_request(
-    authn_ref: AuthnRequestRef, selected_idp: str, required_loa: str, force_authn: bool = False
+    authn_ref: AuthnRequestRef,
+    framework: TrustFramework,
+    selected_idp: str,
+    required_loa: str,
+    force_authn: bool = False,
 ) -> AuthnRequest:
+
+    if framework != TrustFramework.SWECONN:
+        raise ValueError(f'Unrecognised trust framework: {framework}')
 
     kwargs: Dict[str, Any] = {
         "force_authn": str(force_authn).lower(),

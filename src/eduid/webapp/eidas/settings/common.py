@@ -40,6 +40,7 @@ from typing import Dict, Mapping, Optional
 from pydantic import Field
 
 from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig, MagicCookieMixin, MsgConfigMixin
+from eduid.userdb.credentials.external import TrustFramework
 
 
 class EidasConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MsgConfigMixin):
@@ -55,6 +56,7 @@ class EidasConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MsgConfig
     token_verify_redirect_url: str
     nin_verify_redirect_url: str
 
+    trust_framework: TrustFramework = TrustFramework.SWECONN
     required_loa: str = 'loa3'  # one of authentication_context_map below
 
     # Federation config

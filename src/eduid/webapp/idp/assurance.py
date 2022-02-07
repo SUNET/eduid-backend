@@ -41,6 +41,7 @@ from eduid.userdb.credentials import (
     METHOD_SWAMID_AL2_MFA_HI,
     Password,
 )
+from eduid.userdb.credentials.external import ExternalCredential, TrustFramework, SwedenConnectCredential
 from eduid.userdb.element import ElementKey
 from eduid.userdb.idp import IdPUser
 from eduid.webapp.common.session.logindata import LoginContext, LoginContextSAML
@@ -107,17 +108,26 @@ class AuthnState(object):
                     elif cred.proofing_method == METHOD_SWAMID_AL2_MFA_HI:
                         self.swamid_al2_hi_used = True
             elif isinstance(cred, OnetimeCredential):
+                # OLD way
                 logger.debug(f'External MFA used for this request: {cred}')
                 self.external_mfa_used = True
                 # TODO: Support more SwedenConnect authn contexts?
                 if cred.authn_context == 'http://id.elegnamnden.se/loa/1.0/loa3':
                     self.swamid_al2_hi_used = True
+            elif isinstance(cred, SwedenConnectCredential):
+                # NEW way
+                logger.debug(f'SwedenConnect MFA used for this request: {cred}')
+                self.external_mfa_used = True
+                if cred.level == 'loa3':
+                    self.swamid_al2_hi_used = True
             else:
-                logger.error(f'Credential with id {this.credential_id} not found on user')
+                # Warn, but do not fail when the credential isn't found on the user. This can't be a hard failure,
+                # because when a user changes password they will get a new credential and the old is removed from
+                # the user but the old one might still be referenced in the SSO session, or the session.
+                logger.warning(f'Credential with id {this.credential_id} not found on user')
                 _creds = user.credentials.to_list()
                 logger.debug(f'User credentials:\n{_creds}')
                 logger.debug(f'Session one-time credentials:\n{ticket.pending_request.onetime_credentials}')
-                raise ValueError(f'Unrecognised used credential: {this}')
 
         if user.nins.verified:
             self.is_swamid_al2 = True
@@ -170,15 +180,21 @@ class AuthnState(object):
         # External mfa check
         if sso_session.external_mfa is not None:
             logger.debug(f'External MFA (in SSO session) issuer: {sso_session.external_mfa.issuer}')
-            _otc = OnetimeCredential(
-                authn_context=sso_session.external_mfa.authn_context,
-                issuer=sso_session.external_mfa.issuer,
-                timestamp=sso_session.external_mfa.timestamp,
-                type=OnetimeCredType.external_mfa,
-            )
-            self._onetime_credentials[_otc.key] = _otc
-            cred = UsedCredential(credential_id=_otc.key, ts=sso_session.authn_timestamp, source=UsedWhere.SSO)
-            _used_credentials[ElementKey('SSO_external_MFA')] = cred
+            logger.debug(f'External MFA (in SSO session) credential_id: {sso_session.external_mfa.credential_id}')
+
+            # Check if there is an ExternalCredential on the user (the new way), or if we need to mint
+            # a temporary OnetimeCredential.
+            if not sso_session.external_mfa.credential_id:
+                logger.debug('Creating temporary OnetimeCredential')
+                _otc = OnetimeCredential(
+                    authn_context=sso_session.external_mfa.authn_context,
+                    issuer=sso_session.external_mfa.issuer,
+                    timestamp=sso_session.external_mfa.timestamp,
+                    type=OnetimeCredType.external_mfa,
+                )
+                self._onetime_credentials[_otc.key] = _otc
+                cred = UsedCredential(credential_id=_otc.key, ts=sso_session.authn_timestamp, source=UsedWhere.SSO)
+                _used_credentials[ElementKey('SSO_external_MFA')] = cred
 
         _used_sso = [x for x in _used_credentials.values() if x.source == UsedWhere.SSO]
         logger.debug(f'Number of credentials inherited from the SSO session: {len(_used_sso)}')
@@ -284,4 +300,3 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser, sso_s
     logger.info(f'Assurances for {user} was evaluated to: {response_authn.name} with attributes {attributes}')
 
     return AuthnInfo(class_ref=response_authn, authn_attributes=attributes, instant=sso_session.authn_timestamp)
-

@@ -17,6 +17,8 @@ from eduid.userdb.credentials import Credential
 
 __author__ = 'ft'
 
+from eduid.userdb.credentials.external import TrustFramework
+
 from eduid.userdb.credentials.fido import WebauthnAuthenticator
 from eduid.userdb.element import ElementKey
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
@@ -81,7 +83,10 @@ class MfaAction(SessionNSBase):
     error: Optional[MfaActionError] = None
     login_ref: Optional[str] = None
     authn_req_ref: Optional[AuthnRequestRef] = None
+    credential_used: Optional[ElementKey] = None
     # Third-party MFA parameters
+    framework: Optional[TrustFramework] = None
+    required_loa: Optional[str] = None
     issuer: Optional[str] = None
     authn_instant: Optional[str] = None
     authn_context: Optional[str] = None
