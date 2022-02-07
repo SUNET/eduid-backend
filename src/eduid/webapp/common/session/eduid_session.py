@@ -171,7 +171,13 @@ class EduidSession(SessionMixin, MutableMapping):
 
     @mfa_action.deleter
     def mfa_action(self):
-        """ When an MFA action is completed, it is removed entirely from the session """
+        """
+        This can be thought of as the scratch area where the eidas SP communicates information back to the IdP.
+
+        Today, it is global state. We ought to make it either a (finite size) mapping or a list of MfaAction
+        to be able to correctly handle more than one authentication at a time.
+
+        When an MFA action is completed, it is removed entirely from the session """
         self._namespaces.mfa_action = None
         del self['mfa_action']
 

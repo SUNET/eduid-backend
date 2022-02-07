@@ -89,6 +89,8 @@ class SSOSession(BaseModel):
     authn_timestamp: datetime = Field(default_factory=utc_now)
     created_ts: datetime = Field(default_factory=utc_now)
     expires_at: datetime = Field(default_factory=lambda: utc_now() + timedelta(minutes=5))
+    # TODO: should be obsolete now, everything in here should also be available in authn_credentials
+    #       (AuthnData.external), stored per credential instead of once per session.
     external_mfa: Optional[ExternalMfaData] = None
     obj_id: ObjectId = Field(default_factory=ObjectId, alias='_id')
     session_id: SSOSessionId = Field(default_factory=create_session_id)
