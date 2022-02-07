@@ -17,6 +17,7 @@ from mock import patch
 from eduid.common.config.base import EduidEnvironment
 from eduid.userdb import LockedIdentityNin, Nin
 from eduid.userdb.credentials import U2F, Webauthn
+from eduid.userdb.credentials.external import SwedenConnectCredential
 from eduid.userdb.credentials.fido import FidoCredential, WebauthnAuthenticator
 from eduid.userdb.element import ElementKey
 from eduid.webapp.common.api.messages import TranslatableMsg, redirect_with_msg
@@ -738,7 +739,10 @@ class EidasTests(EduidAPITestCase):
 
         self._verify_user_parameters(eppn, num_mfa_tokens=0, num_verified_nins=1, num_proofings=1)
 
-    def test_mfa_login(self):
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
+    def test_mfa_login(self, mock_request_user_sync):
+        mock_request_user_sync.side_effect = self.request_user_sync
+
         eppn = self.test_user.eppn
         self._verify_user_parameters(eppn, num_mfa_tokens=0, num_verified_nins=2)
 
@@ -795,7 +799,10 @@ class EidasTests(EduidAPITestCase):
 
         self._verify_user_parameters(eppn, num_mfa_tokens=0, num_verified_nins=1, num_proofings=1)
 
-    def test_mfa_login_backdoor(self):
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
+    def test_mfa_login_backdoor(self, mock_request_user_sync):
+        mock_request_user_sync.side_effect = self.request_user_sync
+
         eppn = self.test_unverified_user_eppn
         nin = self.test_backdoor_nin
 
@@ -921,15 +928,30 @@ class EidasTests(EduidAPITestCase):
             nin=nin,
         )
 
-    def test_mfa_authentication_verified_user(self):
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
+    def test_mfa_authentication_verified_user(self, mock_request_user_sync):
+        mock_request_user_sync.side_effect = self.request_user_sync
+
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         assert len(user.nins.verified) != 0, 'User was expected to have a verified NIN'
+
+        assert user.credentials.filter(SwedenConnectCredential) == []
+        credentials_before = user.credentials.to_list()
 
         self.reauthn(
             endpoint='/mfa-authentication',
             expect_msg=EidasMsg.action_completed,
             expect_redirect_url=self.app.conf.action_url,
         )
+
+        # Verify that an ExternalCredential was added
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+        assert len(user.credentials.to_list()) == len(credentials_before) + 1
+
+        sweconn_creds = user.credentials.filter(SwedenConnectCredential)
+        assert len(sweconn_creds) == 1
+        cred = sweconn_creds[0]
+        assert cred.level == self.app.conf.required_loa
 
     def test_mfa_authentication_too_old_authn_instant(self):
         self.reauthn(

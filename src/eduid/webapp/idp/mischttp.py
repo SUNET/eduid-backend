@@ -20,13 +20,13 @@ from dataclasses import dataclass
 from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, Type
 
 from flask import make_response, redirect, request
+from saml2 import BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest, InternalServerError
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.config.base import CookieConfig
 from eduid.webapp.common.api.sanitation import SanitationProblem, Sanitizer
 from eduid.webapp.idp.settings.common import IdPConfig
-from saml2 import BINDING_HTTP_REDIRECT
 
 logger = logging.getLogger(__name__)
 

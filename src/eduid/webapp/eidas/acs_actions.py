@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
-
+from typing import Optional
 
 from flask import request
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.userdb import LockedIdentityNin, User
+from eduid.userdb.credentials.external import SwedenConnectCredential, TrustFramework
 from eduid.userdb.credentials.fido import FidoCredential
+from eduid.userdb.element import ElementKey
 from eduid.userdb.logs import MFATokenProofing
 from eduid.userdb.proofing.user import ProofingUser
 from eduid.webapp.authn.helpers import credential_used_to_authenticate
@@ -261,7 +263,56 @@ def mfa_authentication_action(session_info: SessionInfo, authndata: SP_AuthnRequ
     session.mfa_action.issuer = session_info['issuer']
     session.mfa_action.authn_instant = session_info['authn_info'][0][2]
     session.mfa_action.authn_context = get_authn_ctx(session_info)
+    session.mfa_action.credential_used = _find_or_add_credential(
+        user, session.mfa_action.framework, session.mfa_action.required_loa
+    )
     current_app.stats.count(name='mfa_auth_success')
     current_app.stats.count(name=f'mfa_auth_{session_info["issuer"]}_success')
     current_app.logger.info(f'Redirecting to: {redirect_url}')
     return redirect_with_msg(redirect_url, EidasMsg.action_completed, error=False)
+
+
+def _find_or_add_credential(
+    user: User, framework: Optional[TrustFramework], required_loa: Optional[str]
+) -> Optional[ElementKey]:
+    if framework != TrustFramework.SWECONN:
+        current_app.logger.info(f'Not recording credential used for unknown trust framework: {framework}')
+        return None
+
+    if not required_loa:
+        # mainly keep mypy calm
+        current_app.logger.debug(f'Not recording credential used without required_loa')
+        return None
+
+    for this in user.credentials.filter(SwedenConnectCredential):
+        if this.level == required_loa:
+            current_app.logger.debug(f'Found suitable credential on user: {this}')
+            return this.key
+
+    cred = SwedenConnectCredential.new(level=required_loa)
+    cred.created_by = 'eduid-eidas'
+    if required_loa == "loa3":
+        # TODO: proof token as SWAMID_AL2_MFA_HI?
+        pass
+
+    # Reload the user from the central database, to not overwrite any earlier NIN proofings
+    _user = current_app.central_userdb.get_user_by_eppn(user.eppn)
+    if _user is None:
+        # Please mypy
+        raise RuntimeError(f'Could not reload user {user}')
+
+    proofing_user = ProofingUser.from_user(_user, current_app.private_userdb)
+
+    proofing_user.credentials.add(cred)
+
+    current_app.logger.info(f'Adding new credential to proofing_user: {cred}')
+
+    # Save proofing_user to private db
+    current_app.private_userdb.save(proofing_user)
+
+    # Ask am to sync proofing_user to central db
+    current_app.logger.info(f'Request sync for proofing_user {proofing_user}')
+    result = current_app.am_relay.request_user_sync(proofing_user)
+    current_app.logger.info(f'Sync result for proofing_user {proofing_user}: {result}')
+
+    return cred.key

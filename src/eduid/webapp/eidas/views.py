@@ -7,6 +7,7 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.userdb import User
+from eduid.userdb.credentials.external import TrustFramework
 from eduid.userdb.credentials.fido import FidoCredential
 from eduid.userdb.element import ElementKey
 from eduid.webapp.authn.helpers import credential_used_to_authenticate
@@ -79,7 +80,8 @@ def verify_token(user: User, credential_id: ElementKey) -> Union[FluxData, Werkz
 
     # Request an authentication from the idp
     required_loa = current_app.conf.required_loa
-    return _authn(EidasAcsAction.token_verify, required_loa, force_authn=True, redirect_url=redirect_url)
+    framework = current_app.conf.trust_framework
+    return _authn(EidasAcsAction.token_verify, framework, required_loa, force_authn=True, redirect_url=redirect_url)
 
 
 @eidas_views.route('/verify-nin', methods=['GET'])
@@ -87,8 +89,13 @@ def verify_token(user: User, credential_id: ElementKey) -> Union[FluxData, Werkz
 def verify_nin(user: User) -> WerkzeugResponse:
     current_app.logger.debug('verify-nin called')
     required_loa = current_app.conf.required_loa
+    framework = current_app.conf.trust_framework
     return _authn(
-        EidasAcsAction.nin_verify, required_loa, force_authn=True, redirect_url=current_app.conf.nin_verify_redirect_url
+        EidasAcsAction.nin_verify,
+        framework,
+        required_loa,
+        force_authn=True,
+        redirect_url=current_app.conf.nin_verify_redirect_url,
     )
 
 
@@ -97,10 +104,13 @@ def mfa_authentication() -> WerkzeugResponse:
     current_app.logger.debug('mfa-authentication called')
     redirect_url = sanitise_redirect_url(request.args.get('next', '/'))
     required_loa = current_app.conf.required_loa
-    return _authn(EidasAcsAction.mfa_authn, required_loa, force_authn=True, redirect_url=redirect_url)
+    framework = current_app.conf.trust_framework
+    return _authn(EidasAcsAction.mfa_authn, framework, required_loa, force_authn=True, redirect_url=redirect_url)
 
 
-def _authn(action: EidasAcsAction, required_loa: str, force_authn: bool, redirect_url: str) -> WerkzeugResponse:
+def _authn(
+    action: EidasAcsAction, framework: TrustFramework, required_loa: str, force_authn: bool, redirect_url: str
+) -> WerkzeugResponse:
     """
     :param action: name of action
     :param required_loa: friendly loa name
@@ -127,7 +137,11 @@ def _authn(action: EidasAcsAction, required_loa: str, force_authn: bool, redirec
 
     if idp is not None and idp in idps:
         authn_request = create_authn_request(
-            authn_ref=_authn_id, selected_idp=idp, required_loa=required_loa, force_authn=force_authn,
+            authn_ref=_authn_id,
+            selected_idp=idp,
+            framework=framework,
+            required_loa=required_loa,
+            force_authn=force_authn,
         )
         # Clear session keys used for external mfa
         del session.mfa_action
@@ -137,6 +151,8 @@ def _authn(action: EidasAcsAction, required_loa: str, force_authn: bool, redirec
         # when processing a successful response in session.mfa_action.
         session.mfa_action.authn_req_ref = _authn_id
         session.mfa_action.login_ref = login_ref
+        session.mfa_action.framework = framework
+        session.mfa_action.required_loa = required_loa
 
         current_app.logger.info(f'Redirecting the user to {idp} for {action}')
         return redirect(get_location(authn_request))
@@ -161,7 +177,7 @@ def assertion_consumer_service() -> WerkzeugResponse:
     if assertion.authn_req_ref != session.mfa_action.authn_req_ref:
         # Perhaps a SAML authn response received out of order - abort without destroying state
         # (User makes two requests, A and B. Response B arrives, user is happy and proceeds with their work.
-        #  Response A arrives late, but the user has already moved on using response A. Just silently abort.)
+        #  Then response A arrives late. Just silently abort, no need to mess up the users session.)
         error_url = current_app.conf.unsolicited_response_redirect_url
         current_app.logger.info(
             f'Response {assertion.authn_req_ref} does not match current one in session, '
@@ -169,7 +185,7 @@ def assertion_consumer_service() -> WerkzeugResponse:
         )
         return redirect(error_url)
 
-    if not is_required_loa(assertion.session_info, current_app.conf.required_loa):
+    if not is_required_loa(assertion.session_info, session.mfa_action.required_loa):
         session.mfa_action.error = MfaActionError.authn_context_mismatch
         return redirect_with_msg(assertion.authndata.redirect_url, EidasMsg.authn_context_mismatch)
 
@@ -188,8 +204,7 @@ def assertion_consumer_service() -> WerkzeugResponse:
 @eidas_views.route('/saml2-metadata')
 def metadata() -> WerkzeugResponse:
     """
-    Returns an XML with the SAML 2.0 metadata for this
-    SP as configured in the saml2_settings.py file.
+    Returns an XML with the SAML 2.0 metadata for this SP as configured in the saml2_settings.py file.
     """
     data = create_metadata(current_app.saml2_config)
     response = make_response(data.to_string(), 200)

@@ -38,12 +38,15 @@ import logging
 from typing import List, Mapping, Optional, Sequence, Union
 from uuid import uuid4
 
-from werkzeug.exceptions import BadRequest
-
 import saml2.server
 import saml2.time_util
+from saml2 import BINDING_HTTP_POST
+from saml2.authn_context import PASSWORDPROTECTEDTRANSPORT
+from saml2.s_utils import UnravelError
+from werkzeug.exceptions import BadRequest
+
 from eduid.common.misc.timeutil import utc_now
-from eduid.userdb.credentials import Credential, METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, Password, U2F
+from eduid.userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, U2F, Credential, Password
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.nin import Nin, NinList
 from eduid.webapp.common.session import session
@@ -56,9 +59,6 @@ from eduid.webapp.idp.login import NextResult, login_next_step
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.tests.test_app import IdPTests
 from eduid.webapp.idp.util import b64encode
-from saml2 import BINDING_HTTP_POST
-from saml2.authn_context import PASSWORDPROTECTEDTRANSPORT
-from saml2.s_utils import UnravelError
 
 SWAMID_AL1 = 'http://www.swamid.se/policy/assurance/al1'
 SWAMID_AL2 = 'http://www.swamid.se/policy/assurance/al2'

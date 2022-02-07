@@ -59,6 +59,13 @@ from eduid.webapp.idp.settings.common import IdPConfig
 logger = logging.getLogger(__name__)
 
 
+class ExternalAuthnData(BaseModel):
+    """ Per-authentication remembered data about a used ExternalCredential """
+
+    issuer: str
+    authn_context: str
+
+
 class AuthnData(BaseModel):
     """
     Data about a successful authentication.
@@ -68,6 +75,7 @@ class AuthnData(BaseModel):
 
     cred_id: ElementKey
     timestamp: datetime = Field(default_factory=utc_now, alias='authn_ts')  # authn_ts was the old name in the db
+    external: Optional[ExternalAuthnData] = None
 
     class Config:
         allow_population_by_field_name = True  # allow setting timestamp using it's name, not just the alias

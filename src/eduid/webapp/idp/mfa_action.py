@@ -35,11 +35,12 @@ from typing import List, Optional
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.actions import Action
 from eduid.userdb.actions.action import ActionResultMFA, ActionResultThirdPartyMFA
-from eduid.userdb.credentials import Credential, FidoCredential, U2F, Webauthn
+from eduid.userdb.credentials import U2F, Credential, FidoCredential, Webauthn
+from eduid.userdb.credentials.external import SwedenConnectCredential
 from eduid.userdb.idp.user import IdPUser
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData, LoginContext
-from eduid.webapp.common.session.namespaces import OnetimeCredType, OnetimeCredential, RequestRef
+from eduid.webapp.common.session.namespaces import OnetimeCredential, OnetimeCredType, RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance_data import EduidAuthnContextClass
 from eduid.webapp.idp.idp_authn import AuthnData
@@ -64,7 +65,13 @@ def need_security_key(user: IdPUser, ticket: LoginContext) -> bool:
         else:
             credential = user.credentials.find(cred_key)
         if isinstance(credential, OnetimeCredential):
+            # OLD way
             if credential.type == OnetimeCredType.external_mfa:
+                logger.debug(f'User has authenticated using external MFA for this request: {credential}')
+                return False
+        elif isinstance(credential, SwedenConnectCredential):
+            # NEW way
+            if credential.level == 'loa3':
                 logger.debug(f'User has authenticated using external MFA for this request: {credential}')
                 return False
         elif isinstance(credential, FidoCredential):

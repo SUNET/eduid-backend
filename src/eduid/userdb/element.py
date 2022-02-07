@@ -81,7 +81,7 @@ from __future__ import annotations
 import copy
 from abc import ABC
 from datetime import datetime
-from typing import Any, Dict, Generic, List, NewType, Optional, Type, TypeVar, Union
+from typing import Any, Dict, Generic, List, Mapping, NewType, Optional, Type, TypeVar, Union
 
 from pydantic import BaseModel, Extra, Field, validator
 from pydantic.generics import GenericModel
@@ -152,18 +152,18 @@ class Element(BaseModel):
         return f'<eduID {self.__class__.__name__}: {self.dict()}>'
 
     @classmethod
-    def from_dict(cls: Type[TElementSubclass], data: Dict[str, Any]) -> TElementSubclass:
+    def from_dict(cls: Type[TElementSubclass], data: Mapping[str, Any]) -> TElementSubclass:
         """
         Construct element from a data dict in eduid format.
         """
         if not isinstance(data, dict):
             raise UserDBValueError(f"Invalid data: {data}")
 
-        data = copy.deepcopy(data)  # to not modify callers data
+        _data = copy.deepcopy(data)  # to not modify callers data
 
-        data = cls._from_dict_transform(data)
+        _data = cls._from_dict_transform(_data)
 
-        return cls(**data)
+        return cls(**_data)
 
     def to_dict(self) -> Dict[str, Any]:
         """

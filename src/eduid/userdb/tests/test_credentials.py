@@ -8,6 +8,8 @@ from pydantic import ValidationError
 import eduid.userdb.element
 import eduid.userdb.exceptions
 from eduid.userdb.credentials import U2F, CredentialList
+from eduid.userdb.credentials.external import SwedenConnectCredential
+from eduid.userdb.element import ElementKey
 
 __author__ = 'lundberg'
 
@@ -112,7 +114,7 @@ class TestCredentialList(unittest.TestCase):
         assert obtained == expected, 'List of credentials with added password different than expected'
 
     def test_remove(self):
-        self.three.remove(str(ObjectId('333333333333333333333333')))
+        self.three.remove(ElementKey(str(ObjectId('333333333333333333333333'))))
         now_two = self.three
 
         expected = self.two.to_list_of_dicts()
@@ -122,7 +124,7 @@ class TestCredentialList(unittest.TestCase):
 
     def test_remove_unknown(self):
         with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
-            self.one.remove(str(ObjectId('55002741d00690878ae9b603')))
+            self.one.remove(ElementKey(str(ObjectId('55002741d00690878ae9b603'))))
 
     def test_generated(self):
         match = self.three.find('222222222222222222222222')
@@ -131,3 +133,17 @@ class TestCredentialList(unittest.TestCase):
         match = self.three.find('333333333333333333333333')
         assert isinstance(match, Password)
         assert match.is_generated is True
+
+    def test_external_credential(self):
+        _id = ElementKey(str(ObjectId()))
+        # A SwedenConnectCredential as stored in the database
+        data = {'framework': 'SWECONN', 'level': 'loa3', 'credential_id': _id}
+        this = CredentialList.from_list_of_dicts([data])
+        assert this.elements != []
+        assert this.to_list_of_dicts() == [data]
+
+        # check object access
+        cred = this.elements[0]
+        assert isinstance(cred, SwedenConnectCredential)
+        assert cred.level == 'loa3'
+        assert cred.key == _id
