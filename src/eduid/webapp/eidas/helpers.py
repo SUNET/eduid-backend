@@ -6,7 +6,6 @@ from typing import Any, Dict, Optional
 
 from dateutil.parser import parse as dt_parse
 from flask import request
-from eduid.userdb.credentials.external import TrustFramework
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.metadata import entity_descriptor
@@ -15,6 +14,7 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import Credential
+from eduid.userdb.credentials.external import TrustFramework
 from eduid.userdb.logs import MFATokenProofing, SwedenConnectProofing
 from eduid.userdb.proofing import NinProofingElement, ProofingUser
 from eduid.userdb.proofing.state import NinProofingState

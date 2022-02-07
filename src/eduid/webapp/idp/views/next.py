@@ -2,6 +2,7 @@ from dataclasses import asdict, dataclass
 from typing import Any, Dict, List, Optional
 
 from flask import Blueprint, url_for
+from saml2 import BINDING_HTTP_POST
 
 from eduid.userdb import LockedIdentityNin
 from eduid.userdb.credentials import FidoCredential, Password
@@ -14,13 +15,9 @@ from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
 from eduid.webapp.idp.login import SSO, get_ticket, login_next_step
 from eduid.webapp.idp.other_device.device2 import device2_finish
-from eduid.webapp.idp.schemas import (
-    NextRequestSchema,
-    NextResponseSchema,
-)
+from eduid.webapp.idp.schemas import NextRequestSchema, NextResponseSchema
 from eduid.webapp.idp.service import SAMLQueryParams
 from eduid.webapp.idp.sso_session import SSOSession
-from saml2 import BINDING_HTTP_POST
 
 next_views = Blueprint('next', __name__, url_prefix='')
 

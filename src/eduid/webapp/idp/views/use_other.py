@@ -14,15 +14,15 @@ from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.mischttp import set_sso_cookie
 from eduid.webapp.idp.other_device.data import OtherDeviceId, OtherDeviceState
+from eduid.webapp.idp.other_device.device1 import device1_check_response_code, device1_state_to_flux_payload
 from eduid.webapp.idp.other_device.device2 import device2_state_to_flux_payload
+from eduid.webapp.idp.other_device.helpers import _get_other_device_state_using_ref
 from eduid.webapp.idp.schemas import (
     UseOther1RequestSchema,
     UseOther1ResponseSchema,
     UseOther2RequestSchema,
     UseOther2ResponseSchema,
 )
-from eduid.webapp.idp.other_device.device1 import device1_check_response_code, device1_state_to_flux_payload
-from eduid.webapp.idp.other_device.helpers import _get_other_device_state_using_ref
 
 other_device_views = Blueprint('other_device', __name__, url_prefix='')
 

@@ -24,8 +24,7 @@ from eduid.webapp.common.authn.utils import get_saml_attribute
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import MfaActionError, SP_AuthnRequest
 from eduid.webapp.eidas.app import current_eidas_app as current_app
-from eduid.webapp.eidas.helpers import EidasMsg, verify_nin_from_external_mfa
-from eduid.webapp.eidas.helpers import token_verify_BACKDOOR
+from eduid.webapp.eidas.helpers import EidasMsg, token_verify_BACKDOOR, verify_nin_from_external_mfa
 
 __author__ = 'lundberg'
 

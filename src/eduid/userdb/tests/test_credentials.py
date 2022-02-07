@@ -7,7 +7,7 @@ from pydantic import ValidationError
 
 import eduid.userdb.element
 import eduid.userdb.exceptions
-from eduid.userdb.credentials import CredentialList, U2F
+from eduid.userdb.credentials import U2F, CredentialList
 from eduid.userdb.credentials.external import SwedenConnectCredential
 from eduid.userdb.element import ElementKey
 

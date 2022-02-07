@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from enum import Enum
+from enum import Enum, unique
 from typing import Any, Dict, Mapping, Optional, Type
 
 from bson import ObjectId

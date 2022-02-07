@@ -1,4 +1,4 @@
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from flask import render_template, request
 from werkzeug.exceptions import HTTPException

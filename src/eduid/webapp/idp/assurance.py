@@ -35,17 +35,12 @@
 import logging
 from typing import Dict, List, Optional, Sequence
 
-from eduid.userdb.credentials import (
-    FidoCredential,
-    METHOD_SWAMID_AL2_MFA,
-    METHOD_SWAMID_AL2_MFA_HI,
-    Password,
-)
-from eduid.userdb.credentials.external import ExternalCredential, TrustFramework, SwedenConnectCredential
+from eduid.userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, FidoCredential, Password
+from eduid.userdb.credentials.external import ExternalCredential, SwedenConnectCredential, TrustFramework
 from eduid.userdb.element import ElementKey
 from eduid.userdb.idp import IdPUser
 from eduid.webapp.common.session.logindata import LoginContext, LoginContextSAML
-from eduid.webapp.common.session.namespaces import OnetimeCredType, OnetimeCredential
+from eduid.webapp.common.session.namespaces import OnetimeCredential, OnetimeCredType
 from eduid.webapp.idp.app import current_idp_app
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance_data import AuthnInfo, EduidAuthnContextClass, UsedCredential, UsedWhere
