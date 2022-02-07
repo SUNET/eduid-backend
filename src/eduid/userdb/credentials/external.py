@@ -1,15 +1,12 @@
 from __future__ import annotations
 
-from enum import Enum, unique
+from enum import Enum
 from typing import Any, Dict, Mapping, Optional, Type
 
 from bson import ObjectId
 from pydantic import Field, validator
 
 from eduid.userdb.credentials import Credential
-
-__author__ = 'ft'
-
 from eduid.userdb.element import ElementKey
 
 
