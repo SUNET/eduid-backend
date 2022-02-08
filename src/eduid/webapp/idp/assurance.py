@@ -33,8 +33,10 @@
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
 import logging
+from datetime import datetime
 from typing import Dict, List, Optional, Sequence
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, FidoCredential, Password
 from eduid.userdb.credentials.external import ExternalCredential, SwedenConnectCredential, TrustFramework
 from eduid.userdb.element import ElementKey
@@ -294,4 +296,12 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser, sso_s
 
     logger.info(f'Assurances for {user} was evaluated to: {response_authn.name} with attributes {attributes}')
 
-    return AuthnInfo(class_ref=response_authn, authn_attributes=attributes, instant=sso_session.authn_timestamp)
+    # From all the credentials we're basing this authentication on, use the earliest one as authn instant.
+    _instant = utc_now()
+    for this in authn.credentials:
+        logger.debug(f'Credential {this.credential_id} ({this.source.value}) was used {this.ts.isoformat()}')
+        if not _instant or this.ts < _instant:
+            _instant = this.ts
+
+    logger.debug(f'Authn instant: {_instant.isoformat()}')
+    return AuthnInfo(class_ref=response_authn, authn_attributes=attributes, instant=_instant)

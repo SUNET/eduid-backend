@@ -86,7 +86,7 @@ class SSOSession(BaseModel):
     eppn: str
     authn_credentials: List[AuthnData]
     authn_request_id: str = ''  # This should be obsolete now - used to be used to 'break' forceAuthn looping
-    authn_timestamp: datetime = Field(default_factory=utc_now)
+    authn_timestamp: datetime = Field(default_factory=utc_now)  # TODO: probably obsolete
     created_ts: datetime = Field(default_factory=utc_now)
     expires_at: datetime = Field(default_factory=lambda: utc_now() + timedelta(minutes=5))
     # TODO: should be obsolete now, everything in here should also be available in authn_credentials
