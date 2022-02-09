@@ -50,9 +50,8 @@ def proofing(user: User, nin: str) -> FluxData:
     current_app.logger.info('Send letter for user {} initiated'.format(user))
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
 
-    # No existing proofing state was found, create a new one
     if not proofing_state:
-        # Create a LetterNinProofingUser in proofingdb
+        # No existing proofing state was found, create a new one
         proofing_state = create_proofing_state(user.eppn, nin)
         current_app.logger.info('Created proofing state for user {}'.format(user))
 
@@ -106,7 +105,7 @@ def proofing(user: User, nin: str) -> FluxData:
         current_app.logger.error(f'Error connecting to Ekopost: {e}')
         return error_response(message=CommonMsg.temp_problem)
 
-    # Save the users proofing state
+    # Save the users updated proofing state
     proofing_state.proofing_letter.transaction_id = campaign_id
     proofing_state.proofing_letter.is_sent = True
     proofing_state.proofing_letter.sent_ts = utc_now()
