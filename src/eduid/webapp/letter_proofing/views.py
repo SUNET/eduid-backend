@@ -37,6 +37,12 @@ def get_state(user) -> FluxData:
             current_app.proofing_statedb.remove_state(proofing_state)
             current_app.stats.count('letter_expired')
             return success_response(message=LetterMsg.no_state)
+        if result.message == LetterMsg.not_sent:
+            # "Not sent" (which is really Unfinished state) is an error for other views, such as verify_code below,
+            # but it is not an error for this simple state fetching view. The frontend currently fetches this state on
+            # login and we don't want an error notification to be shown to all users that requested a letter without
+            # a registered address (folkbokföringsadress) for example.
+            result.error = False
         return result.to_response()
     return success_response(message=LetterMsg.no_state)
 
@@ -50,9 +56,8 @@ def proofing(user: User, nin: str) -> FluxData:
     current_app.logger.info('Send letter for user {} initiated'.format(user))
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
 
-    # No existing proofing state was found, create a new one
     if not proofing_state:
-        # Create a LetterNinProofingUser in proofingdb
+        # No existing proofing state was found, create a new one
         proofing_state = create_proofing_state(user.eppn, nin)
         current_app.logger.info('Created proofing state for user {}'.format(user))
 
@@ -79,7 +84,7 @@ def proofing(user: User, nin: str) -> FluxData:
 
     try:
         address = get_address(user, proofing_state)
-        if not address:
+        if not address or not address.get('OfficialAddress'):
             current_app.logger.error('No address found for user {}'.format(user))
             return error_response(message=LetterMsg.address_not_found)
     except MsgTaskFailed:
@@ -97,16 +102,19 @@ def proofing(user: User, nin: str) -> FluxData:
     except pdf.AddressFormatException:
         current_app.logger.exception('Failed formatting address')
         current_app.stats.count('address_format_error')
+        current_app.proofing_statedb.remove_state(proofing_state)
         return error_response(message=LetterMsg.bad_address)
     except EkopostException:
         current_app.logger.exception('Ekopost returned an error')
         current_app.stats.count('ekopost_error')
+        current_app.proofing_statedb.remove_state(proofing_state)
         return error_response(message=CommonMsg.temp_problem)
     except ConnectionError as e:
         current_app.logger.error(f'Error connecting to Ekopost: {e}')
+        current_app.proofing_statedb.remove_state(proofing_state)
         return error_response(message=CommonMsg.temp_problem)
 
-    # Save the users proofing state
+    # Save the users updated proofing state
     proofing_state.proofing_letter.transaction_id = campaign_id
     proofing_state.proofing_letter.is_sent = True
     proofing_state.proofing_letter.sent_ts = utc_now()

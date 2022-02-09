@@ -4,7 +4,7 @@ import logging
 from datetime import datetime, timedelta
 from io import BytesIO, StringIO
 from pathlib import Path
-from typing import Mapping, OrderedDict
+from typing import Any, Mapping, OrderedDict
 
 from xhtml2pdf import pisa
 
@@ -43,7 +43,7 @@ def format_address(recipient: Mapping):
 
 
 def create_pdf(
-    recipient: Mapping,
+    recipient: Mapping[str, Any],
     verification_code: str,
     created_timestamp: datetime,
     primary_mail_address: str,

@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import unique
+from typing import Any, Dict
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User
@@ -77,9 +78,6 @@ def check_state(state: LetterProofingState) -> StateExpireInfo:
     """
     Checks if the state is expired.
 
-    NOTE: If the state is found to be expired, it is REMOVED from the database, so
-          a user will only get information about the expired letter once.
-
     :param state: Users proofing state
     :return: Information about the users current letter proofing state,
              such as when it was created, when it expires etc.
@@ -87,6 +85,7 @@ def check_state(state: LetterProofingState) -> StateExpireInfo:
     current_app.logger.info('Checking state for user with eppn {!s}'.format(state.eppn))
     if not state.proofing_letter.is_sent:
         current_app.logger.info('Unfinished state for user with eppn {!s}'.format(state.eppn))
+        current_app.logger.debug('Proofing state: {}'.format(state.to_dict()))
         # need a datetime for typing, but sent/expires/is_expired are not included in error responses
         _fake_dt = datetime.fromtimestamp(0)
         return StateExpireInfo(sent=_fake_dt, expires=_fake_dt, is_expired=True, error=True, message=LetterMsg.not_sent)
@@ -128,10 +127,16 @@ def create_proofing_state(eppn: str, nin: str) -> LetterProofingState:
     return proofing_state
 
 
-def get_address(user: User, proofing_state: LetterProofingState) -> dict:
+def get_address(user: User, proofing_state: LetterProofingState) -> Dict[str, Any]:
     """
     :param user: User object
     :param proofing_state: Users proofing state
+
+    Example result:
+
+      {'Name': {'GivenName': 'First', 'Surname': 'Last'}, 'OfficialAddress': { ... }}
+
+    If the individual doesn't have a registered address, the OfficialAddress dict is (might be?) empty.
 
     :return: Users official postal address
     """
