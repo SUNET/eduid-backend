@@ -102,13 +102,16 @@ def proofing(user: User, nin: str) -> FluxData:
     except pdf.AddressFormatException:
         current_app.logger.exception('Failed formatting address')
         current_app.stats.count('address_format_error')
+        current_app.proofing_statedb.remove_state(proofing_state)
         return error_response(message=LetterMsg.bad_address)
     except EkopostException:
         current_app.logger.exception('Ekopost returned an error')
         current_app.stats.count('ekopost_error')
+        current_app.proofing_statedb.remove_state(proofing_state)
         return error_response(message=CommonMsg.temp_problem)
     except ConnectionError as e:
         current_app.logger.error(f'Error connecting to Ekopost: {e}')
+        current_app.proofing_statedb.remove_state(proofing_state)
         return error_response(message=CommonMsg.temp_problem)
 
     # Save the users updated proofing state
