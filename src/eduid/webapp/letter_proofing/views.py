@@ -42,7 +42,7 @@ def get_state(user) -> FluxData:
             # but it is not an error for this simple state fetching view. The frontend currently fetches this state on
             # login and we don't want an error notification to be shown to all users that requested a letter without
             # a registered address (folkbokföringsadress) for example.
-            result.error = False
+            return success_response(message=LetterMsg.not_sent)
         return result.to_response()
     return success_response(message=LetterMsg.no_state)
 
