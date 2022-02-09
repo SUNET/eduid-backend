@@ -37,6 +37,12 @@ def get_state(user) -> FluxData:
             current_app.proofing_statedb.remove_state(proofing_state)
             current_app.stats.count('letter_expired')
             return success_response(message=LetterMsg.no_state)
+        if result.message == LetterMsg.not_sent:
+            # "Not sent" (which is really Unfinished state) is an error for other views, such as verify_code below,
+            # but it is not an error for this simple state fetching view. The frontend currently fetches this state on
+            # login and we don't want an error notification to be shown to all users that requested a letter without
+            # a registered address (folkbokföringsadress) for example.
+            result.error = False
         return result.to_response()
     return success_response(message=LetterMsg.no_state)
 
