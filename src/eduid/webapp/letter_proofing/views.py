@@ -84,7 +84,7 @@ def proofing(user: User, nin: str) -> FluxData:
 
     try:
         address = get_address(user, proofing_state)
-        if not address:
+        if not address or not address.get('OfficialAddress'):
             current_app.logger.error('No address found for user {}'.format(user))
             return error_response(message=LetterMsg.address_not_found)
     except MsgTaskFailed:
