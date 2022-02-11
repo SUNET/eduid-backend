@@ -450,7 +450,7 @@ phonenumbers==8.12.41 \
     # via
     #   -c main.txt
     #   -r main.in
-pillow==9.0.0 \
+pillow==9.0.1 \
     --hash=sha256:3586e12d874ce2f1bc875a3ffba98732ebb12e18fb6d97be482bd62b56803281 \
     --hash=sha256:ee6e2963e92762923956fe5d3479b1fdc3b76c83f290aad131a2f98c3df0593e
     # via
