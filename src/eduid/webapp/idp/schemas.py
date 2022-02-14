@@ -47,18 +47,24 @@ class NextRequestSchema(IdPRequest):
 class NextResponseSchema(FluxStandardAction):
     class NextResponsePayload(EduidSchema, CSRFResponseMixin):
         class AuthnOptionsResponsePayload(EduidSchema):
+            display_name = fields.Str(required=False)
             forced_username = fields.Str(required=False)
             freja_eidplus = fields.Bool(required=True)
+            has_session = fields.Bool(required=True)
             other_device = fields.Bool(required=True)
             password = fields.Bool(required=True)
             username = fields.Bool(required=False)
             usernamepassword = fields.Bool(required=False)
             webauthn = fields.Bool(required=True)
 
+        class ServiceInfoResponsePayload(EduidSchema):
+            display_name = fields.Dict(keys=fields.Str(), values=fields.Str(), required=False)
+
         action = fields.Str(required=True)
         target = fields.Str(required=True)
         parameters = fields.Dict(keys=fields.Str(), values=fields.Str(), required=False)
-        authn_options = fields.Nested(AuthnOptionsResponsePayload)
+        authn_options = fields.Nested(AuthnOptionsResponsePayload, required=False)
+        service_info = fields.Nested(ServiceInfoResponsePayload, required=False)
 
     payload = fields.Nested(NextResponsePayload)
 

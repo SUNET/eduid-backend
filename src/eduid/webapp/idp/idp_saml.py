@@ -52,6 +52,7 @@ class IdP_SAMLRequest(object):
         self._binding = binding
         self._idp = idp
         self._debug = debug
+        self._service_info: Optional[Dict[str, Any]] = None
 
         try:
             self._req_info = idp.parse_authn_request(request, binding)
@@ -188,6 +189,37 @@ class IdP_SAMLRequest(object):
         except KeyError:
             return {}
         return res
+
+    @property
+    def service_info(self) -> Optional[Dict[str, Any]]:
+        """ Information about the service where the user is logging in """
+        if self._service_info is None:
+            _ext = f'{UI_NAMESPACE}&UIInfo'
+            extensions = self._idp.metadata.extension(self.sp_entity_id, 'spsso_descriptor', _ext)
+            if not extensions:
+                logger.debug(f'No MDUI ({_ext}) metadata extension found for {self.sp_entity_id}')
+                self._service_info = None
+            else:
+                try:
+                    info = extensions[0]
+                    # logger.debug(f'Entity {self.sp_entity_id} service info: {info}')
+                    res: Dict[str, Any] = {}
+                    if 'display_name' in info:
+                        # Info is a list of dicts like this:
+                        #   [{'__class__': 'urn:oasis:names:tc:SAML:metadata:ui&DisplayName',
+                        #     'text': 'eduID Developer Sweden', 'lang': 'en'}, ... ]
+                        res['display_name'] = {}
+                        for this in info['display_name']:
+                            lang = this.get('lang')
+                            text = this.get('text')
+                            if lang and text:
+                                res['display_name'][lang] = text
+
+                    self._service_info = res
+                except (IndexError, KeyError):
+                    pass
+
+        return self._service_info
 
     @property
     def sp_digest_algs(self) -> List[str]:

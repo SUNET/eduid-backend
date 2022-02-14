@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import logging
+import typing
 from abc import ABC
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import List, Optional, Sequence, TypeVar
+from typing import Dict, List, Optional, Sequence, TypeVar
 from urllib.parse import urlencode
 
 from pydantic import BaseModel
@@ -17,7 +18,9 @@ from eduid.webapp.common.session.namespaces import (
     RequestRef,
 )
 from eduid.webapp.idp.assurance_data import EduidAuthnContextClass
-from eduid.webapp.idp.idp_saml import IdP_SAMLRequest
+
+if typing.TYPE_CHECKING:
+    from eduid.webapp.idp.idp_saml import IdP_SAMLRequest
 
 #
 # Copyright (c) 2013, 2014, 2016 NORDUnet A/S. All rights reserved.
@@ -43,6 +46,16 @@ class ExternalMfaData(BaseModel):
     authn_context: str
     timestamp: datetime
     credential_id: Optional[ElementKey]
+
+
+@dataclass
+class ServiceInfo:
+    """ Info about the service (SAML SP) where the user is logging in """
+
+    display_name: Dict[str, str]  # locale ('sv', 'en', ...) to display_name
+
+    def to_dict(self):
+        return asdict(self)
 
 
 @dataclass
@@ -90,6 +103,11 @@ class LoginContext(ABC):
     @property
     def service_requested_eppn(self) -> Optional[str]:
         """ The eppn of the user the service (e.g. SAML SP) requests logs in """
+        raise NotImplementedError('Subclass must implement service_requested_eppn')
+
+    @property
+    def service_info(self) -> Optional[ServiceInfo]:
+        """ Information about the service where the user is logging in """
         raise NotImplementedError('Subclass must implement service_requested_eppn')
 
     @property
@@ -162,6 +180,7 @@ class LoginContextSAML(LoginContext):
         if self._saml_req is None:
             # avoid circular import
             from eduid.webapp.idp.app import current_idp_app as current_app
+            from eduid.webapp.idp.idp_saml import IdP_SAMLRequest
 
             self._saml_req = IdP_SAMLRequest(
                 self.SAMLRequest, self.binding, current_app.IDP, debug=current_app.conf.debug
@@ -201,6 +220,14 @@ class LoginContextSAML(LoginContext):
                 # remove the @scope
                 res = res[: -(len(current_app.conf.default_eppn_scope) + 1)]
         return res
+
+    @property
+    def service_info(self) -> Optional[ServiceInfo]:
+        """ Information about the service where the user is logging in """
+        _info = self.saml_req.service_info
+        if not _info:
+            return None
+        return ServiceInfo(display_name=_info.get('display_name', {}))
 
     @property
     def other_device_state_id(self) -> Optional[OtherDeviceId]:
@@ -303,6 +330,11 @@ class LoginContextOtherDevice(LoginContext):
     @property
     def service_requested_eppn(self) -> Optional[str]:
         return self.other_device_req.eppn
+
+    @property
+    def service_info(self) -> Optional[ServiceInfo]:
+        """ Information about the service where the user is logging in """
+        return None
 
 
 def _pick_authn_context(accrs: Sequence[str], log_tag: str) -> Optional[EduidAuthnContextClass]:

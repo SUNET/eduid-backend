@@ -48,7 +48,8 @@ def next(ref: RequestRef) -> FluxData:
         _payload = {
             'action': IdPAction.OTHER_DEVICE.value,
             'target': url_for('other_device.use_other_1', _external=True),
-            'authn_options': _get_authn_options(ticket, sso_session).to_dict(),
+            'authn_options': _get_authn_options(ticket, sso_session),
+            'service_info': _get_service_info(ticket),
         }
 
         return success_response(message=IdPMsg.must_authenticate, payload=_payload,)
@@ -57,7 +58,8 @@ def next(ref: RequestRef) -> FluxData:
         _payload = {
             'action': IdPAction.PWAUTH.value,
             'target': url_for('pw_auth.pw_auth', _external=True),
-            'authn_options': _get_authn_options(ticket, sso_session).to_dict(),
+            'authn_options': _get_authn_options(ticket, sso_session),
+            'service_info': _get_service_info(ticket),
         }
 
         return success_response(message=IdPMsg.must_authenticate, payload=_payload,)
@@ -68,7 +70,8 @@ def next(ref: RequestRef) -> FluxData:
             payload={
                 'action': IdPAction.MFA.value,
                 'target': url_for('mfa_auth.mfa_auth', _external=True),
-                'authn_options': _get_authn_options(ticket, sso_session).to_dict(),
+                'authn_options': _get_authn_options(ticket, sso_session),
+                'service_info': _get_service_info(ticket),
             },
         )
 
@@ -165,6 +168,13 @@ def _get_authn_options(ticket: LoginContext, sso_session: Optional[SSOSession]) 
         return res
 
     user = current_app.userdb.lookup_user(sso_session.eppn)
+
+def _get_service_info(ticket: LoginContext) -> Dict[str, Any]:
+    if ticket.service_info is not None:
+        return ticket.service_info.to_dict()
+    return {}
+
+
     if user:
         if user.credentials.filter(Password):
             current_app.logger.debug(f'User in SSO session has a Password credential')
