@@ -5,6 +5,7 @@ from eduid.webapp.common.api.messages import TranslatableMsg
 
 @unique
 class IdPMsg(str, TranslatableMsg):
+    aborted = 'login.aborted'
     action_required = 'login.action_required'  # Shouldn't actually be returned to the frontend
     assurance_failure = 'login.assurance_failure'
     assurance_not_possible = 'login.assurance_not_possible'

@@ -150,3 +150,14 @@ class UseOther2ResponseSchema(FluxStandardAction):
         )  # the secret response code the user should enter on device 1 to get logged in
 
     payload = fields.Nested(UseOther2ResponsePayload)
+
+
+class AbortRequestSchema(IdPRequest):
+    pass
+
+
+class AbortResponseSchema(FluxStandardAction):
+    class AbortResponsePayload(EduidSchema, CSRFResponseMixin):
+        finished = fields.Bool(required=True)
+
+    payload = fields.Nested(AbortResponsePayload)

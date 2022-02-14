@@ -35,14 +35,18 @@ from flask import Blueprint, redirect, request
 from werkzeug.exceptions import BadRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
 
+from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
+from eduid.webapp.common.api.messages import FluxData, error_response, success_response
 from eduid.webapp.common.session.logindata import LoginContextSAML
 from eduid.webapp.common.session.namespaces import RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
+from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.login import do_verify, get_ticket, show_login_page
 
 __author__ = 'ft'
 
 from eduid.webapp.idp.mischttp import parse_query_string
+from eduid.webapp.idp.schemas import AbortRequestSchema, AbortResponseSchema
 from eduid.webapp.idp.service import SAMLQueryParams
 
 misc_views = Blueprint('misc', __name__, url_prefix='', template_folder='../templates')
@@ -51,6 +55,24 @@ misc_views = Blueprint('misc', __name__, url_prefix='', template_folder='../temp
 @misc_views.route('/', methods=['GET'])
 def index() -> WerkzeugResponse:
     return redirect(current_app.conf.eduid_site_url)
+
+
+@misc_views.route('/abort', methods=['POST'])
+@UnmarshalWith(AbortRequestSchema)
+@MarshalWith(AbortResponseSchema)
+def abort(ref: RequestRef) -> FluxData:
+    """ Abort the current request """
+    current_app.logger.debug('\n\n')
+    current_app.logger.debug(f'--- Abort ({ref}) ---')
+
+    _info = SAMLQueryParams(request_ref=ref)
+    ticket = get_ticket(_info, None)
+    if not ticket:
+        return error_response(message=IdPMsg.bad_ref)
+
+    ticket.pending_request.aborted = True
+
+    return success_response(payload={'finished': True})
 
 
 @misc_views.route('/verify', methods=['GET', 'POST'])
