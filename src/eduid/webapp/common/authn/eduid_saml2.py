@@ -55,6 +55,7 @@ from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.authn.utils import SPConfig, get_saml_attribute
 from eduid.webapp.common.session import EduidSession, session
 from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest, SPAuthnData
+from saml2.saml import Subject
 
 logger = logging.getLogger(__name__)
 
@@ -92,6 +93,7 @@ def get_authn_request(
     force_authn: bool = False,
     sign_alg: Optional[str] = None,
     digest_alg: Optional[str] = None,
+    subject: Optional[Subject] = None,
 ):
     kwargs = {
         'force_authn': str(force_authn).lower(),
@@ -107,6 +109,7 @@ def get_authn_request(
             binding=BINDING_HTTP_REDIRECT,
             sigalg=sign_alg,
             digest_alg=digest_alg,
+            subject=subject,
             **kwargs,
         )
     except TypeError:

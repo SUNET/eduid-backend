@@ -88,6 +88,11 @@ class LoginContext(ABC):
         raise NotImplementedError('Subclass must implement reauthn_required')
 
     @property
+    def service_requested_eppn(self) -> Optional[str]:
+        """ The eppn of the user the service (e.g. SAML SP) requests logs in """
+        raise NotImplementedError('Subclass must implement service_requested_eppn')
+
+    @property
     def other_device_state_id(self) -> Optional[OtherDeviceId]:
         """ Get the state_id for the OtherDevice state, if the user wants to log in using another device. """
         raise NotImplementedError('Subclass must implement other_device_state_id')
@@ -174,6 +179,28 @@ class LoginContextSAML(LoginContext):
     @property
     def reauthn_required(self) -> bool:
         return self.saml_req.force_authn
+
+    @property
+    def service_requested_eppn(self) -> Optional[str]:
+        res = None
+        _login_subject = self.saml_req.login_subject
+        if _login_subject is not None:
+            # avoid circular import
+            from eduid.webapp.idp.app import current_idp_app as current_app
+
+            logger.debug(f'Login subject: {_login_subject}')
+
+            if self.saml_req.sp_entity_id not in current_app.conf.request_subject_allowed_entity_ids:
+                logger.info(f'SP {self.saml_req.sp_entity_id} not allowed to request login subject')
+                return None
+
+            res = _login_subject
+
+            # Login subject might be set by the idpproxy when requesting the user to do MFA step up
+            if current_app.conf.default_eppn_scope is not None and res.endswith(current_app.conf.default_eppn_scope):
+                # remove the @scope
+                res = res[: -(len(current_app.conf.default_eppn_scope) + 1)]
+        return res
 
     @property
     def other_device_state_id(self) -> Optional[OtherDeviceId]:
@@ -272,6 +299,10 @@ class LoginContextOtherDevice(LoginContext):
         TODO: Don't just return the first one, but the most relevant somehow.
         """
         return _pick_authn_context(self.authn_contexts, self.request_ref)
+
+    @property
+    def service_requested_eppn(self) -> Optional[str]:
+        return self.other_device_req.eppn
 
 
 def _pick_authn_context(accrs: Sequence[str], log_tag: str) -> Optional[EduidAuthnContextClass]:
