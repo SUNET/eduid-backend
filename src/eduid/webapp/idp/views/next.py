@@ -2,8 +2,6 @@ from dataclasses import asdict, dataclass
 from typing import Any, Dict, List, Optional
 
 from flask import Blueprint, url_for
-
-from eduid.webapp.idp.idp_saml import cancel_saml_request
 from saml2 import BINDING_HTTP_POST
 
 from eduid.userdb import LockedIdentityNin
@@ -15,6 +13,7 @@ from eduid.webapp.common.session.logindata import LoginContext, LoginContextOthe
 from eduid.webapp.common.session.namespaces import RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
+from eduid.webapp.idp.idp_saml import cancel_saml_request
 from eduid.webapp.idp.login import SSO, get_ticket, login_next_step
 from eduid.webapp.idp.other_device.device2 import device2_finish
 from eduid.webapp.idp.schemas import NextRequestSchema, NextResponseSchema

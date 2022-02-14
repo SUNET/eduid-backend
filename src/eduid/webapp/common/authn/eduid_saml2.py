@@ -42,6 +42,7 @@ from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.ident import decode
 from saml2.response import AuthnResponse, LogoutResponse, StatusError, UnsolicitedResponse
+from saml2.saml import Subject
 from werkzeug.exceptions import Forbidden
 from werkzeug.wrappers import Response as WerkzeugResponse
 
@@ -55,7 +56,6 @@ from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.authn.utils import SPConfig, get_saml_attribute
 from eduid.webapp.common.session import EduidSession, session
 from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest, SPAuthnData
-from saml2.saml import Subject
 
 logger = logging.getLogger(__name__)
 

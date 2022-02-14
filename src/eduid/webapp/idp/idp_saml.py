@@ -4,22 +4,22 @@ from base64 import b64encode
 from hashlib import sha1
 from typing import Any, Dict, List, Mapping, NewType, Optional, Union
 
-from werkzeug.exceptions import BadRequest
-
 import saml2.server
-from eduid.webapp.idp.assurance_data import AuthnInfo
-from eduid.webapp.idp.mischttp import HttpArgs
-from eduid.webapp.idp.settings.common import IdPConfig
 from saml2 import samlp
 from saml2.extension.mdui import NAMESPACE as UI_NAMESPACE
 from saml2.s_utils import UnknownPrincipal, UnknownSystemEntity, UnravelError, UnsupportedBinding, error_status_factory
 from saml2.saml import Issuer
 from saml2.samlp import RequestedAuthnContext
 from saml2.sigver import verify_redirect_signature
+from werkzeug.exceptions import BadRequest
+
+from eduid.webapp.idp.assurance_data import AuthnInfo
+from eduid.webapp.idp.mischttp import HttpArgs
+from eduid.webapp.idp.settings.common import IdPConfig
 
 if typing.TYPE_CHECKING:
-    from eduid.webapp.idp.login import SAMLResponseParams
     from eduid.webapp.common.session.logindata import LoginContextSAML
+    from eduid.webapp.idp.login import SAMLResponseParams
 
 ResponseArgs = NewType('ResponseArgs', Dict[str, Any])
 
