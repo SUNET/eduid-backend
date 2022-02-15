@@ -73,10 +73,6 @@ def reauthn() -> WerkzeugResponse:
     login view with force authn, redirects to SAML2 IdP
     """
     session.common.is_logged_in = False
-
-    name_id = NameID(format=NAMEID_FORMAT_UNSPECIFIED, text=session.common.eppn)
-    subject = Subject(name_id=name_id)
-    current_app.logger.debug(f'Requesting re-login by the same user with {subject}')
     return _authn(AuthnAcsAction.reauthn, force_authn=True)
 
 
