@@ -48,8 +48,8 @@ from eduid.webapp.common.session import session
 
 __author__ = 'ft'
 
-from eduid.webapp.common.session.logindata import LoginContext
 from eduid.webapp.common.session.namespaces import RequestRef
+from eduid.webapp.idp.login_context import LoginContext
 
 MFA_ACTION = {
     '_id': ObjectId('234567890123456789012301'),

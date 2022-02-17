@@ -8,11 +8,11 @@ import qrcode
 
 from eduid.common.utils import urlappend
 from eduid.webapp.common.api.messages import FluxData, error_response
-from eduid.webapp.common.session.logindata import LoginContext
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance_data import UsedWhere
 from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.idp_authn import AuthnData
+from eduid.webapp.idp.login_context import LoginContext
 from eduid.webapp.idp.other_device.data import OtherDeviceState
 from eduid.webapp.idp.other_device.db import OtherDevice
 from eduid.webapp.idp.sso_session import SSOSession, record_authentication

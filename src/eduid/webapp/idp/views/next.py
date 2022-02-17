@@ -9,12 +9,12 @@ from eduid.userdb.credentials import FidoCredential, Password
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.logindata import LoginContext, LoginContextOtherDevice, LoginContextSAML
 from eduid.webapp.common.session.namespaces import RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
 from eduid.webapp.idp.idp_saml import cancel_saml_request
 from eduid.webapp.idp.login import SSO, get_ticket, login_next_step
+from eduid.webapp.idp.login_context import LoginContext, LoginContextOtherDevice, LoginContextSAML
 from eduid.webapp.idp.other_device.device2 import device2_finish
 from eduid.webapp.idp.schemas import NextRequestSchema, NextResponseSchema
 from eduid.webapp.idp.service import SAMLQueryParams

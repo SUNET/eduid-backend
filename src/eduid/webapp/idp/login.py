@@ -34,7 +34,6 @@ from eduid.userdb.idp import IdPUser
 from eduid.userdb.idp.user import SAMLAttributeSettings
 from eduid.webapp.common.api import exceptions
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.logindata import LoginContext, LoginContextOtherDevice, LoginContextSAML
 from eduid.webapp.common.session.namespaces import IdP_OtherDevicePendingRequest, IdP_SAMLPendingRequest, RequestRef
 from eduid.webapp.idp import assurance, mischttp
 from eduid.webapp.idp.app import current_idp_app as current_app
@@ -51,6 +50,7 @@ from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.idp_actions import redirect_to_actions
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.idp_saml import ResponseArgs, SamlResponse
+from eduid.webapp.idp.login_context import LoginContext, LoginContextOtherDevice, LoginContextSAML
 from eduid.webapp.idp.mfa_action import add_mfa_action, need_security_key, process_mfa_action_results
 from eduid.webapp.idp.mischttp import HttpArgs, get_default_template_arguments
 from eduid.webapp.idp.other_device.data import OtherDeviceState

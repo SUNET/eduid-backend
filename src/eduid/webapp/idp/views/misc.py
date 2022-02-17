@@ -37,11 +37,11 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
-from eduid.webapp.common.session.logindata import LoginContextSAML
 from eduid.webapp.common.session.namespaces import RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.login import do_verify, get_ticket, show_login_page
+from eduid.webapp.idp.login_context import LoginContextSAML
 
 __author__ = 'ft'
 

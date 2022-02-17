@@ -20,7 +20,7 @@ from eduid.webapp.idp.assurance_data import EduidAuthnContextClass, UsedCredenti
 from eduid.webapp.idp.other_device.data import OtherDeviceId, OtherDeviceState
 
 if typing.TYPE_CHECKING:
-    from eduid.webapp.common.session.logindata import LoginContext
+    from eduid.webapp.idp.login_context import LoginContext
 
 logger = logging.getLogger(__name__)
 

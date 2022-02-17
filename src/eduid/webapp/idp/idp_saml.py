@@ -18,8 +18,8 @@ from eduid.webapp.idp.mischttp import HttpArgs
 from eduid.webapp.idp.settings.common import IdPConfig
 
 if typing.TYPE_CHECKING:
-    from eduid.webapp.common.session.logindata import LoginContextSAML
     from eduid.webapp.idp.login import SAMLResponseParams
+    from eduid.webapp.idp.login_context import LoginContextSAML
 
 ResponseArgs = NewType('ResponseArgs', Dict[str, Any])
 
