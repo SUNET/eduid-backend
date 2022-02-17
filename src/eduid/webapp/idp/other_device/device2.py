@@ -60,6 +60,7 @@ def device2_state_to_flux_payload(state: OtherDevice, now: datetime) -> Mapping[
         'addr': state.device1.ip_address,
         'description': str(user_agents.parse(state.device1.user_agent)),
         'proximity': get_ip_proximity(state.device1.ip_address, request.remote_addr).value,
+        'service_info': state.device1.service_info,
     }
     payload: Dict[str, Any] = {
         'device1_info': device_info,

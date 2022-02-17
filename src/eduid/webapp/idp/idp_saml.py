@@ -1,13 +1,14 @@
 import logging
 import typing
 from base64 import b64encode
+from dataclasses import asdict, dataclass
 from hashlib import sha1
 from typing import Any, Dict, List, Mapping, NewType, Optional, Union
 
 import saml2.server
+from pydantic import BaseModel
 from saml2 import samlp
-from saml2.extension.mdui import NAMESPACE as UI_NAMESPACE
-from saml2.s_utils import UnknownPrincipal, UnknownSystemEntity, UnravelError, UnsupportedBinding, error_status_factory
+from saml2.s_utils import UnknownPrincipal, UnknownSystemEntity, UnravelError, UnsupportedBinding
 from saml2.saml import Issuer
 from saml2.samlp import RequestedAuthnContext
 from saml2.sigver import verify_redirect_signature
@@ -51,6 +52,15 @@ def gen_key(something: Union[str, bytes]) -> ReqSHA1:
 
 
 SamlResponse = NewType('SamlResponse', str)
+
+
+class ServiceInfo(BaseModel):
+    """ Info about the service (SAML SP) where the user is logging in """
+
+    display_name: Dict[str, str]  # locale ('sv', 'en', ...) to display_name
+
+    def to_dict(self) -> Dict[str, Any]:
+        return self.dict()
 
 
 class IdP_SAMLRequest(object):

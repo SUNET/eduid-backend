@@ -135,9 +135,13 @@ class UseOther2RequestSchema(EduidSchema, CSRFRequestMixin):
 class UseOther2ResponseSchema(FluxStandardAction):
     class UseOther2ResponsePayload(EduidSchema, CSRFResponseMixin):
         class DeviceInfo(Schema):
+            class ServiceInfo(Schema):
+                display_name = fields.Dict(keys=fields.Str())
+
             addr = fields.Str(required=True)  # remote address of device1
             description = fields.Str(required=False)  # description of device1, based on User-Agent header
             proximity = fields.Str(required=False)  # how close the address of device1 is to the address of device2
+            service_info = fields.Nested(ServiceInfo, required=False)
 
         device1_info = fields.Nested(DeviceInfo)
         expires_in = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
