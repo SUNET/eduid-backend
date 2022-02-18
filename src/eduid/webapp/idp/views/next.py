@@ -1,7 +1,10 @@
+import re
 from dataclasses import asdict, dataclass
 from typing import Any, Dict, List, Optional
 
-from flask import Blueprint, url_for
+import user_agents
+from bleach import clean
+from flask import Blueprint, request, url_for
 from saml2 import BINDING_HTTP_POST
 
 from eduid.userdb import LockedIdentityNin
@@ -123,6 +126,12 @@ def next_view(ref: RequestRef) -> FluxData:
         if not _next.authn_info or not _next.authn_state:
             raise RuntimeError(f'Missing expected data in next result: {_next}')
 
+        try:
+            # Logging stats is optional, make sure we never fail a login because of it
+            _log_user_agent()
+        except:
+            current_app.logger.exception('Producing User-Agent stats failed')
+
         if isinstance(ticket, LoginContextSAML):
             saml_params = sso.get_response_params(_next.authn_info, ticket, user)
             if saml_params.binding != BINDING_HTTP_POST:
@@ -229,6 +238,7 @@ def _get_service_info(ticket: LoginContext) -> Dict[str, Any]:
 
 
 def _set_user_options(res: AuthnOptions, eppn: str) -> None:
+    """ Augment the AuthnOptions instance with information about the current user """
     user = current_app.userdb.lookup_user(eppn)
     if user:
         current_app.logger.debug(f'User logging in (from either SSO session, or SP request): {user}')
@@ -253,3 +263,41 @@ def _set_user_options(res: AuthnOptions, eppn: str) -> None:
             res.username = False
 
         res.display_name = user.display_name or user.given_name or res.forced_username
+
+        current_app.logger.debug(f'Valid authn options at this time: {res.valid_options}')
+
+    return None
+
+
+def _log_user_agent() -> None:
+    """ Log some statistics from the User-Agent header """
+    user_agent = request.headers.get('user-agent')
+
+    # TODO: change to debug logging later
+    current_app.logger.info(f'Logging in user with User-Agent {repr(user_agent)}')
+
+    if not user_agent:
+        current_app.stats.count('login_finished_ua_is_none')
+        return
+
+    parsed = user_agents.parse(user_agent)
+
+    if parsed.is_mobile:
+        current_app.stats.count('login_finished_ua_is_mobile')
+    elif parsed.is_pc:
+        current_app.stats.count('login_finished_ua_is_pc')
+    elif parsed.is_tablet:
+        current_app.stats.count('login_finished_ua_is_tablet')
+    else:
+        current_app.stats.count('login_finished_ua_is_unknown')
+        return
+
+    def _safe_stat(prefix: str, value: str) -> None:
+        safe_value = re.sub('[^a-zA-Z0-9.]', '_', value[:20])
+        current_app.stats.count(f'{prefix}_{safe_value}')
+
+    _safe_stat('login_finished_ua_device', parsed.get_device())
+    _safe_stat('login_finished_ua_os', parsed.get_os())
+    _safe_stat('login_finished_ua_browser', parsed.browser.family)
+
+    return None
