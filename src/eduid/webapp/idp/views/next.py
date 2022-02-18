@@ -232,8 +232,11 @@ def _get_authn_options(ticket: LoginContext, sso_session: Optional[SSOSession]) 
 
 
 def _get_service_info(ticket: LoginContext) -> Dict[str, Any]:
-    if ticket.service_info is not None:
-        return ticket.service_info.to_dict()
+    try:
+        if ticket.service_info is not None:
+            return ticket.service_info.to_dict()
+    except:
+        current_app.logger.exception('Failed getting service info for SP')
     return {}
 
 
