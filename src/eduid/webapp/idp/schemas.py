@@ -47,18 +47,24 @@ class NextRequestSchema(IdPRequest):
 class NextResponseSchema(FluxStandardAction):
     class NextResponsePayload(EduidSchema, CSRFResponseMixin):
         class AuthnOptionsResponsePayload(EduidSchema):
+            display_name = fields.Str(required=False)
             forced_username = fields.Str(required=False)
             freja_eidplus = fields.Bool(required=True)
+            has_session = fields.Bool(required=True)
             other_device = fields.Bool(required=True)
             password = fields.Bool(required=True)
             username = fields.Bool(required=False)
             usernamepassword = fields.Bool(required=False)
             webauthn = fields.Bool(required=True)
 
+        class ServiceInfoResponsePayload(EduidSchema):
+            display_name = fields.Dict(keys=fields.Str(), values=fields.Str(), required=False)
+
         action = fields.Str(required=True)
         target = fields.Str(required=True)
         parameters = fields.Dict(keys=fields.Str(), values=fields.Str(), required=False)
-        authn_options = fields.Nested(AuthnOptionsResponsePayload)
+        authn_options = fields.Nested(AuthnOptionsResponsePayload, required=False)
+        service_info = fields.Nested(ServiceInfoResponsePayload, required=False)
 
     payload = fields.Nested(NextResponsePayload)
 
@@ -129,9 +135,13 @@ class UseOther2RequestSchema(EduidSchema, CSRFRequestMixin):
 class UseOther2ResponseSchema(FluxStandardAction):
     class UseOther2ResponsePayload(EduidSchema, CSRFResponseMixin):
         class DeviceInfo(Schema):
+            class ServiceInfo(Schema):
+                display_name = fields.Dict(keys=fields.Str())
+
             addr = fields.Str(required=True)  # remote address of device1
             description = fields.Str(required=False)  # description of device1, based on User-Agent header
             proximity = fields.Str(required=False)  # how close the address of device1 is to the address of device2
+            service_info = fields.Nested(ServiceInfo, required=False)
 
         device1_info = fields.Nested(DeviceInfo)
         expires_in = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
@@ -144,3 +154,14 @@ class UseOther2ResponseSchema(FluxStandardAction):
         )  # the secret response code the user should enter on device 1 to get logged in
 
     payload = fields.Nested(UseOther2ResponsePayload)
+
+
+class AbortRequestSchema(IdPRequest):
+    pass
+
+
+class AbortResponseSchema(FluxStandardAction):
+    class AbortResponsePayload(EduidSchema, CSRFResponseMixin):
+        finished = fields.Bool(required=True)
+
+    payload = fields.Nested(AbortResponsePayload)

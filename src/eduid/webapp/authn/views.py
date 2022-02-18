@@ -38,7 +38,7 @@ from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.ident import decode
 from saml2.metadata import entity_descriptor
-from saml2.saml import NameID
+from saml2.saml import NAMEID_FORMAT_UNSPECIFIED, NameID, Subject
 from werkzeug.exceptions import Forbidden
 from werkzeug.wrappers import Response as WerkzeugResponse
 
@@ -64,7 +64,7 @@ def login() -> WerkzeugResponse:
     """
     login view, redirects to SAML2 IdP
     """
-    return _authn(AuthnAcsAction.login)
+    return _authn(AuthnAcsAction.login, same_user=False)
 
 
 @authn_views.route('/reauthn')
@@ -92,7 +92,7 @@ def terminate() -> WerkzeugResponse:
     return _authn(AuthnAcsAction.terminate_account, force_authn=True)
 
 
-def _authn(action: AuthnAcsAction, force_authn=False) -> WerkzeugResponse:
+def _authn(action: AuthnAcsAction, force_authn=False, same_user: bool = True) -> WerkzeugResponse:
     redirect_url = sanitise_redirect_url(request.args.get('next'), current_app.conf.saml2_login_redirect_url)
 
     # In the future, we might want to support choosing the IdP somehow but for now
@@ -116,6 +116,12 @@ def _authn(action: AuthnAcsAction, force_authn=False) -> WerkzeugResponse:
     session.authn.sp.authns = {k: v for k, v in session.authn.sp.authns.items() if v.post_authn_action != action}
     session.authn.sp.authns[_authn_id] = SP_AuthnRequest(post_authn_action=action, redirect_url=redirect_url)
 
+    subject = None
+    if same_user:
+        name_id = NameID(format=NAMEID_FORMAT_UNSPECIFIED, text=session.common.eppn)
+        subject = Subject(name_id=name_id)
+        current_app.logger.debug(f'Requesting re-login by the same user with {subject}')
+
     authn_request = get_authn_request(
         saml2_config=current_app.saml2_config,
         session=session,
@@ -125,6 +131,7 @@ def _authn(action: AuthnAcsAction, force_authn=False) -> WerkzeugResponse:
         force_authn=force_authn,
         sign_alg=current_app.conf.authn_sign_alg,
         digest_alg=current_app.conf.authn_digest_alg,
+        subject=subject,
     )
     current_app.logger.info(f'Redirecting the user to the IdP for {action} (redirect_url {redirect_url})')
     current_app.logger.debug(f'Stored SP_AuthnRequest[{_authn_id}]: {session.authn.sp.authns[_authn_id]}')

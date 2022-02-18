@@ -7,10 +7,10 @@ from flask import request, url_for
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
-from eduid.webapp.common.session.logindata import LoginContextOtherDevice
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import AuthnState
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
+from eduid.webapp.idp.login_context import LoginContextOtherDevice
 from eduid.webapp.idp.other_device.data import OtherDeviceState
 from eduid.webapp.idp.other_device.db import OtherDevice
 from eduid.webapp.idp.sso_session import SSOSession
@@ -60,6 +60,7 @@ def device2_state_to_flux_payload(state: OtherDevice, now: datetime) -> Mapping[
         'addr': state.device1.ip_address,
         'description': str(user_agents.parse(state.device1.user_agent)),
         'proximity': get_ip_proximity(state.device1.ip_address, request.remote_addr).value,
+        'service_info': state.device1.service_info,
     }
     payload: Dict[str, Any] = {
         'device1_info': device_info,

@@ -1,16 +1,26 @@
 import logging
+import typing
+from base64 import b64encode
+from dataclasses import asdict, dataclass
 from hashlib import sha1
-from typing import Any, Dict, List, Mapping, NewType, Optional, Type, Union
+from typing import Any, Dict, List, Mapping, NewType, Optional, Union
 
 import saml2.server
+from pydantic import BaseModel
+from saml2 import samlp
 from saml2.s_utils import UnknownPrincipal, UnknownSystemEntity, UnravelError, UnsupportedBinding
 from saml2.saml import Issuer
 from saml2.samlp import RequestedAuthnContext
 from saml2.sigver import verify_redirect_signature
-from werkzeug.exceptions import HTTPException
+from werkzeug.exceptions import BadRequest
 
 from eduid.webapp.idp.assurance_data import AuthnInfo
 from eduid.webapp.idp.mischttp import HttpArgs
+from eduid.webapp.idp.settings.common import IdPConfig
+
+if typing.TYPE_CHECKING:
+    from eduid.webapp.idp.login import SAMLResponseParams
+    from eduid.webapp.idp.login_context import LoginContextSAML
 
 ResponseArgs = NewType('ResponseArgs', Dict[str, Any])
 
@@ -44,6 +54,15 @@ def gen_key(something: Union[str, bytes]) -> ReqSHA1:
 SamlResponse = NewType('SamlResponse', str)
 
 
+class ServiceInfo(BaseModel):
+    """ Info about the service (SAML SP) where the user is logging in """
+
+    display_name: Dict[str, str]  # locale ('sv', 'en', ...) to display_name
+
+    def to_dict(self) -> Dict[str, Any]:
+        return self.dict()
+
+
 class IdP_SAMLRequest(object):
     def __init__(
         self, request: str, binding: str, idp: saml2.server.Server, debug: bool = False,
@@ -52,6 +71,7 @@ class IdP_SAMLRequest(object):
         self._binding = binding
         self._idp = idp
         self._debug = debug
+        self._service_info: Optional[Dict[str, Any]] = None
 
         try:
             self._req_info = idp.parse_authn_request(request, binding)
@@ -190,6 +210,23 @@ class IdP_SAMLRequest(object):
         return res
 
     @property
+    def service_info(self) -> Optional[Dict[str, Any]]:
+        """ Information about the service where the user is logging in """
+        if self._service_info is None:
+            res: Dict[str, Any] = {}
+            logger.debug(f'Looking up MDUI info in metadata for entity id {self.sp_entity_id}')
+            for uiinfo in self._idp.metadata.mdui_uiinfo(self.sp_entity_id):
+                if 'display_name' in uiinfo:
+                    res['display_name'] = {}
+                    for item in uiinfo['display_name']:
+                        if 'lang' in item and 'text' in item:
+                            res['display_name'][item['lang']] = item['text']
+                        self._service_info = res
+            if not res:
+                logger.debug(f'No MDUI display_name found for entity id {self.sp_entity_id}')
+        return self._service_info
+
+    @property
     def sp_digest_algs(self) -> List[str]:
         """Return the best signing algorithm that both the IdP and SP supports"""
         res: List[str] = []
@@ -217,20 +254,37 @@ class IdP_SAMLRequest(object):
             return []
         return res
 
-    def get_response_args(self, bad_request: Type[HTTPException], key: str) -> ResponseArgs:
+    def get_response_args(self, log_prefix: str, conf: IdPConfig) -> ResponseArgs:
         try:
             resp_args = self._idp.response_args(self._req_info.message)
         except UnknownPrincipal as excp:
-            logger.info(f'{key}: Unknown service provider: {excp}')
-            raise bad_request('Don\'t know the SP that referred you here')
+            logger.info(f'{log_prefix}: Unknown service provider: {excp}')
+            raise BadRequest('Don\'t know the SP that referred you here')
         except UnsupportedBinding as excp:
-            logger.info(f'{key}: Unsupported SAML binding: {excp}')
-            raise bad_request('Don\'t know how to reply to the SP that referred you here')
+            logger.info(f'{log_prefix}: Unsupported SAML binding: {excp}')
+            raise BadRequest('Don\'t know how to reply to the SP that referred you here')
         except UnknownSystemEntity as exc:
             # TODO: Validate refactoring didn't move this exception handling to the wrong place.
             #       Used to be in an exception handler in _redirect_or_post around perform_login().
-            logger.info(f'{key}: Service provider not known: {exc}')
-            raise bad_request('SAML_UNKNOWN_SP')
+            logger.info(f'{log_prefix}: Service provider not known: {exc}')
+            raise BadRequest('SAML_UNKNOWN_SP')
+
+        # Set digest_alg and sign_alg to a good default value
+        if conf.supported_digest_algorithms:
+            resp_args['digest_alg'] = conf.supported_digest_algorithms[0]
+            # Try to pick best signing and digest algorithms from what the SP supports
+            for digest_alg in conf.supported_digest_algorithms:
+                if digest_alg in self.sp_digest_algs:
+                    resp_args['digest_alg'] = digest_alg
+                    break
+
+        if conf.supported_signing_algorithms:
+            resp_args['sign_alg'] = conf.supported_signing_algorithms[0]
+
+            for sign_alg in conf.supported_signing_algorithms:
+                if sign_alg in self.sp_sign_algs:
+                    resp_args['sign_alg'] = sign_alg
+                    break
 
         return ResponseArgs(resp_args)
 
@@ -242,6 +296,14 @@ class IdP_SAMLRequest(object):
         saml_response = self._idp.create_authn_response(
             identity=attributes, userid=userid, authn=authn, sign_response=True, **resp_args
         )
+        if not isinstance(saml_response, str):
+            raise ValueError(f'Unknown saml_response type ({type(saml_response)})')
+        return SamlResponse(saml_response)
+
+    def make_cancel_response(self, resp_args: ResponseArgs) -> SamlResponse:
+        info = (samlp.STATUS_AUTHN_FAILED, 'Request cancelled by user')
+        saml_response = self._idp.create_error_response(info=info, sign=True, **resp_args)
+        logger.debug(f'Cancel SAML response:\n{saml_response}')
         if not isinstance(saml_response, str):
             raise ValueError(f'Unknown saml_response type ({type(saml_response)})')
         return SamlResponse(saml_response)
@@ -266,3 +328,18 @@ class IdP_SAMLRequest(object):
         #   'method': 'POST'
         #  }
         return HttpArgs.from_pysaml2_dict(_args)
+
+
+def cancel_saml_request(ticket: 'LoginContextSAML', conf: IdPConfig) -> 'SAMLResponseParams':
+    from eduid.webapp.idp.login import SAMLResponseParams
+
+    resp_args = ticket.saml_req.get_response_args(ticket.request_ref, conf)
+    saml_response = ticket.saml_req.make_cancel_response(resp_args=resp_args)
+    http_args = ticket.saml_req.apply_binding(resp_args, ticket.RelayState, saml_response)
+    params = {
+        'SAMLResponse': b64encode(str(saml_response).encode('utf-8')).decode('ascii'),
+        'RelayState': ticket.RelayState,
+    }
+    binding = resp_args['binding']
+    saml_params = SAMLResponseParams(url=http_args.url, post_params=params, binding=binding, http_args=http_args)
+    return saml_params

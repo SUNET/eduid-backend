@@ -42,6 +42,7 @@ from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.ident import decode
 from saml2.response import AuthnResponse, LogoutResponse, StatusError, UnsolicitedResponse
+from saml2.saml import Subject
 from werkzeug.exceptions import Forbidden
 from werkzeug.wrappers import Response as WerkzeugResponse
 
@@ -92,6 +93,7 @@ def get_authn_request(
     force_authn: bool = False,
     sign_alg: Optional[str] = None,
     digest_alg: Optional[str] = None,
+    subject: Optional[Subject] = None,
 ):
     kwargs = {
         'force_authn': str(force_authn).lower(),
@@ -107,6 +109,7 @@ def get_authn_request(
             binding=BINDING_HTTP_REDIRECT,
             sigalg=sign_alg,
             digest_alg=digest_alg,
+            subject=subject,
             **kwargs,
         )
     except TypeError:

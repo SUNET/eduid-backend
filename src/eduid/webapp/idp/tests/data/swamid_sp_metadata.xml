@@ -1,10 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ns0:EntityDescriptor xmlns:ns0="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:ns1="http://www.w3.org/2000/09/xmldsig#" xmlns:mdrpi="urn:oasis:names:tc:SAML:metadata:rpi" entityID="https://sp.example.edu/saml2/metadata/">
+<ns0:EntityDescriptor xmlns:ns0="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:ns1="http://www.w3.org/2000/09/xmldsig#" xmlns:mdrpi="urn:oasis:names:tc:SAML:metadata:rpi" entityID="https://sp.example.edu/saml2/metadata/" xmlns:mdui="urn:oasis:names:tc:SAML:metadata:ui">
   <ns0:Extensions>
     <mdrpi:RegistrationInfo registrationAuthority="http://www.swamid.se/"><mdrpi:RegistrationPolicy xml:lang="en">http://swamid.se/policy/mdrps</mdrpi:RegistrationPolicy></mdrpi:RegistrationInfo>
     <mdattr:EntityAttributes xmlns:mdattr="urn:oasis:names:tc:SAML:metadata:attribute"><samla:Attribute xmlns:samla="urn:oasis:names:tc:SAML:2.0:assertion" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri" Name="http://macedir.org/entity-category"><samla:AttributeValue>http://www.swamid.se/category/hei-service</samla:AttributeValue><samla:AttributeValue>http://www.swamid.se/category/research-and-education</samla:AttributeValue><samla:AttributeValue>http://www.swamid.se/category/sfs-1993-1153</samla:AttributeValue></samla:Attribute></mdattr:EntityAttributes>
   </ns0:Extensions>
   <ns0:SPSSODescriptor AuthnRequestsSigned="false" WantAssertionsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
+      <ns0:Extensions>
+          <mdui:UIInfo>
+            <mdui:DisplayName xml:lang="sv">eduID Sverige (Utveckling)</mdui:DisplayName>
+            <mdui:DisplayName xml:lang="en">eduID Sweden (Developer)</mdui:DisplayName>
+            <mdui:Description xml:lang="sv">eduID Developer är en gemensam inloggning för din utbildning</mdui:Description>
+            <mdui:Description xml:lang="en">eduID Developer gives you a common login for your education</mdui:Description>
+            <mdui:InformationURL xml:lang="sv">https://html.eduid.docker</mdui:InformationURL>
+            <mdui:InformationURL xml:lang="en">https://html.eduid.docker</mdui:InformationURL>
+            <mdui:Logo xml:lang="sv" height="120" width="350">
+              https://html.eduid.docker/static/img/ds-eduID-logo-black350x120px.png
+            </mdui:Logo>
+            <mdui:Logo xml:lang="en" height="120" width="350">
+              https://html.eduid.docker/static/img/ds-eduID-logo-black350x120px.png
+            </mdui:Logo>
+            <mdui:PrivacyStatementURL xml:lang="sv">https://html.eduid.docker/privacy.html</mdui:PrivacyStatementURL>
+            <mdui:PrivacyStatementURL xml:lang="en">https://html.eduid.docker/privacy.html</mdui:PrivacyStatementURL>
+            <mdui:Keywords xml:lang="sv">eduID+studentIdP</mdui:Keywords>
+            <mdui:Keywords xml:lang="en">eduID+studentIdP</mdui:Keywords>
+          </mdui:UIInfo>
+      </ns0:Extensions>
+
     <ns0:KeyDescriptor use="encryption">
       <ns1:KeyInfo>
         <ns1:X509Data>

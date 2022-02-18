@@ -9,11 +9,12 @@ from eduid.userdb.credentials import FidoCredential, Password
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.logindata import LoginContext, LoginContextOtherDevice, LoginContextSAML
 from eduid.webapp.common.session.namespaces import RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
+from eduid.webapp.idp.idp_saml import cancel_saml_request
 from eduid.webapp.idp.login import SSO, get_ticket, login_next_step
+from eduid.webapp.idp.login_context import LoginContext, LoginContextOtherDevice, LoginContextSAML
 from eduid.webapp.idp.other_device.device2 import device2_finish
 from eduid.webapp.idp.schemas import NextRequestSchema, NextResponseSchema
 from eduid.webapp.idp.service import SAMLQueryParams
@@ -25,7 +26,8 @@ next_views = Blueprint('next', __name__, url_prefix='')
 @next_views.route('/next', methods=['POST'])
 @UnmarshalWith(NextRequestSchema)
 @MarshalWith(NextResponseSchema)
-def next(ref: RequestRef) -> FluxData:
+def next_view(ref: RequestRef) -> FluxData:
+    """ Main state machine for frontend """
     current_app.logger.debug('\n\n')
     current_app.logger.debug(f'--- Next ({ref}) ---')
 
@@ -44,11 +46,32 @@ def next(ref: RequestRef) -> FluxData:
     _next = login_next_step(ticket, sso_session)
     current_app.logger.debug(f'Login Next: {_next}')
 
+    if _next.message == IdPMsg.aborted:
+        if isinstance(ticket, LoginContextSAML):
+            saml_params = cancel_saml_request(ticket, current_app.conf)
+
+            if saml_params.binding != BINDING_HTTP_POST:
+                current_app.logger.error(f'SAML response does not have binding HTTP_POST')
+                return error_response(message=IdPMsg.general_failure)
+
+            return success_response(
+                message=IdPMsg.finished,
+                payload={
+                    'action': IdPAction.FINISHED.value,
+                    'target': saml_params.url,
+                    'parameters': saml_params.post_params,
+                },
+            )
+
+        current_app.logger.error(f'Don\'t know how to abort login request {ticket}')
+        return error_response(message=IdPMsg.general_failure)
+
     if _next.message == IdPMsg.other_device:
         _payload = {
             'action': IdPAction.OTHER_DEVICE.value,
             'target': url_for('other_device.use_other_1', _external=True),
-            'authn_options': _get_authn_options(ticket, sso_session).to_dict(),
+            'authn_options': _get_authn_options(ticket, sso_session),
+            'service_info': _get_service_info(ticket),
         }
 
         return success_response(message=IdPMsg.must_authenticate, payload=_payload,)
@@ -57,7 +80,8 @@ def next(ref: RequestRef) -> FluxData:
         _payload = {
             'action': IdPAction.PWAUTH.value,
             'target': url_for('pw_auth.pw_auth', _external=True),
-            'authn_options': _get_authn_options(ticket, sso_session).to_dict(),
+            'authn_options': _get_authn_options(ticket, sso_session),
+            'service_info': _get_service_info(ticket),
         }
 
         return success_response(message=IdPMsg.must_authenticate, payload=_payload,)
@@ -68,7 +92,8 @@ def next(ref: RequestRef) -> FluxData:
             payload={
                 'action': IdPAction.MFA.value,
                 'target': url_for('mfa_auth.mfa_auth', _external=True),
-                'authn_options': _get_authn_options(ticket, sso_session).to_dict(),
+                'authn_options': _get_authn_options(ticket, sso_session),
+                'service_info': _get_service_info(ticket),
             },
         )
 
@@ -126,10 +151,20 @@ def next(ref: RequestRef) -> FluxData:
 
 @dataclass
 class AuthnOptions:
+    """
+    Different options regarding authentication. These might change during the course of the authentication.
+
+    For example: after providing a username, password authentication becomes available if the user has such
+    credentials.
+    """
+
+    display_name: Optional[str] = None
     # Is this login locked to being performed by a particular user? (Identified by the email/phone/...)
     forced_username: Optional[str] = None
     # Can an unknown user log in using just a Freja eID+? Yes, if there is an eduID user with the users (verified) NIN.
     freja_eidplus: bool = True
+    # If the user has a session, 'logout' should be shown (to allow switch of users).
+    has_session: bool = False
     # Can the user log (an unknown user) log in using another device? Sure.
     other_device: bool = True
     # Can the frontend start with just asking for a password? No, not unless we know who the user is.
@@ -150,8 +185,12 @@ class AuthnOptions:
         return [x for x in _data.keys() if _data[x]]
 
 
-def _get_authn_options(ticket: LoginContext, sso_session: Optional[SSOSession]) -> AuthnOptions:
+def _get_authn_options(ticket: LoginContext, sso_session: Optional[SSOSession]) -> Dict[str, Any]:
     res = AuthnOptions()
+
+    sp_request_eppn = None
+    if isinstance(ticket, LoginContextSAML):
+        sp_request_eppn = ticket.service_requested_eppn
 
     # Availability of "login using another device" is controlled by configuration for now.
     res.other_device = current_app.conf.allow_other_device_logins
@@ -161,30 +200,56 @@ def _get_authn_options(ticket: LoginContext, sso_session: Optional[SSOSession]) 
         res.other_device = False
 
     if not sso_session:
+        if sp_request_eppn:
+            current_app.logger.info(f'SP requests login by user {sp_request_eppn}')
+            _set_user_options(res, sp_request_eppn)
         current_app.logger.debug(f'No SSO session, responding {res}')
-        return res
+        return res.to_dict()
 
-    user = current_app.userdb.lookup_user(sso_session.eppn)
+    # Since the user has a session, logout should be shown (to allow change of user)
+    res.has_session = True
+
+    if sp_request_eppn and sp_request_eppn != sso_session.eppn:
+        current_app.logger.warning(
+            f'SP requests login by user {sp_request_eppn}, but session belongs to {sso_session.eppn}'
+        )
+        # TODO: what's the real course of action here?
+    else:
+        _set_user_options(res, sso_session.eppn)
+
+    current_app.logger.debug(f'Valid authn options at this time: {res.valid_options}')
+
+    return res.to_dict()
+
+
+def _get_service_info(ticket: LoginContext) -> Dict[str, Any]:
+    if ticket.service_info is not None:
+        return ticket.service_info.to_dict()
+    return {}
+
+
+def _set_user_options(res: AuthnOptions, eppn: str) -> None:
+    user = current_app.userdb.lookup_user(eppn)
     if user:
+        current_app.logger.debug(f'User logging in (from either SSO session, or SP request): {user}')
         if user.credentials.filter(Password):
-            current_app.logger.debug(f'User in SSO session has a Password credential')
+            current_app.logger.debug(f'User has a Password credential')
             res.password = True
 
         if user.credentials.filter(FidoCredential):
-            current_app.logger.debug(f'User in SSO session has a FIDO/Webauthn credential')
+            current_app.logger.debug(f'User has a FIDO/Webauthn credential')
             res.webauthn = True
 
         if user.locked_identity.filter(LockedIdentityNin):
-            current_app.logger.debug(f'User in SSO session has a locked NIN -> Freja is possible')
+            current_app.logger.debug(f'User has a locked NIN -> Freja is possible')
             res.freja_eidplus = True
 
         if user.mail_addresses.primary:
             # Provide e-mail from (potentially expired) SSO session to frontend, so it can populate
             # the username field for the user
             _mail = user.mail_addresses.primary.email
-            current_app.logger.debug(f'User in SSO session has a primary e-mail -> forced_username {_mail}')
+            current_app.logger.debug(f'User has a primary e-mail -> forced_username {_mail}')
             res.forced_username = _mail
+            res.username = False
 
-    current_app.logger.debug(f'Valid authn options at this time: {res.valid_options}')
-
-    return res
+        res.display_name = user.display_name or user.given_name or res.forced_username

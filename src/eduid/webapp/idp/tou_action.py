@@ -37,8 +37,8 @@ from typing import Optional
 
 from eduid.userdb.actions import Action
 from eduid.userdb.idp import IdPUser
-from eduid.webapp.common.session.logindata import LoginContext
 from eduid.webapp.idp.app import current_idp_app as current_app
+from eduid.webapp.idp.login_context import LoginContext
 
 logger = logging.getLogger(__name__)
 

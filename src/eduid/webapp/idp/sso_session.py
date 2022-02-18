@@ -43,8 +43,9 @@ from pydantic import BaseModel, Field
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.element import ElementKey
 from eduid.userdb.idp import IdPUser
-from eduid.webapp.common.session.logindata import ExternalMfaData, LoginContext
+from eduid.webapp.common.session.logindata import ExternalMfaData
 from eduid.webapp.idp.idp_authn import AuthnData
+from eduid.webapp.idp.login_context import LoginContext
 
 # A distinct type for session ids
 SSOSessionId = NewType('SSOSessionId', str)
