@@ -54,7 +54,7 @@ from eduid.webapp.common.session.logindata import ExternalMfaData
 from eduid.webapp.common.session.namespaces import IdP_SAMLPendingRequest, RequestRef
 from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.idp_authn import AuthnData
-from eduid.webapp.idp.idp_saml import IdP_SAMLRequest
+from eduid.webapp.idp.idp_saml import IdP_SAMLRequest, ServiceInfo
 from eduid.webapp.idp.login import NextResult, login_next_step
 from eduid.webapp.idp.login_context import LoginContext, LoginContextSAML
 from eduid.webapp.idp.sso_session import SSOSession
@@ -586,3 +586,11 @@ class TestSSO(SSOIdPTests):
             )
 
             assert x.force_authn == expected
+
+    def test__service_info(self):
+        with self.app.test_request_context():
+            ticket = self._make_login_ticket(cc['PASSWORD_PT'])
+
+            assert ticket.service_info == ServiceInfo(
+                display_name={'sv': 'eduID Sverige (Utveckling)', 'en': 'eduID Sweden (Developer)'}
+            )
