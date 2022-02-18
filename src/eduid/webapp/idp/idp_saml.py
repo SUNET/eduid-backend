@@ -221,7 +221,6 @@ class IdP_SAMLRequest(object):
                         if 'lang' in item and 'text' in item:
                             res['display_name'][item['lang']] = item['text']
                         self._service_info = res
-            return self._service_info
         return self._service_info
 
     @property
