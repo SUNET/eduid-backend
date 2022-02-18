@@ -37,8 +37,8 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.userdb.idp import IdPUser
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.logindata import LoginContext
 from eduid.webapp.idp.app import current_idp_app as current_app
+from eduid.webapp.idp.login_context import LoginContext
 
 
 def redirect_to_actions(user: IdPUser, ticket: LoginContext) -> WerkzeugResponse:

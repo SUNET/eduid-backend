@@ -6,7 +6,7 @@ import os
 import typing
 import uuid
 from datetime import datetime, timedelta
-from typing import Any, List, Mapping, Optional, Type
+from typing import Any, Dict, List, Mapping, Optional, Type
 
 from bson import ObjectId
 from flask import request
@@ -17,10 +17,11 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User
 from eduid.userdb.db import BaseDB
 from eduid.webapp.idp.assurance_data import EduidAuthnContextClass, UsedCredential
+from eduid.webapp.idp.idp_saml import ServiceInfo
 from eduid.webapp.idp.other_device.data import OtherDeviceId, OtherDeviceState
 
 if typing.TYPE_CHECKING:
-    from eduid.webapp.common.session.logindata import LoginContext
+    from eduid.webapp.idp.login_context import LoginContext
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,7 @@ class Device1Data(BaseModel):
     reauthn_required: bool  # if reauthn is required for the login on device 1
     ip_address: str  # the IP address of device 1, to be used by the user on device 2 to assess the request
     user_agent: Optional[str]  # the user agent of device 1, to be used by the user on device 2 to assess the request
+    service_info: Optional['ServiceInfo']  # information about the service (SP) where the user is logging in
 
 
 class Device2Data(BaseModel):
@@ -68,6 +70,7 @@ class OtherDevice(BaseModel):
         user_agent: Optional[str],
         ttl: timedelta,
         reauthn_required: bool = False,
+        service_info: Optional[ServiceInfo] = None,
     ) -> OtherDevice:
         _uuid = uuid.uuid4()
         short_code = make_short_code()
@@ -84,13 +87,14 @@ class OtherDevice(BaseModel):
                 ip_address=ip_address,
                 user_agent=user_agent,
                 reauthn_required=reauthn_required,
+                service_info=service_info,
             ),
             device2=Device2Data(),
             created_at=now,
             expires_at=now + ttl,
         )
 
-    def to_dict(self) -> Mapping[str, Any]:
+    def to_dict(self) -> Dict[str, Any]:
         return self.dict()
 
     def to_json(self):
@@ -142,13 +146,14 @@ class OtherDeviceDB(BaseDB):
     def add_new_state(self, ticket: 'LoginContext', user: Optional[User], ttl: timedelta) -> OtherDevice:
         authn_ref = ticket.get_requested_authn_context()
         state = OtherDevice.from_parameters(
-            eppn=None if not user else user.eppn,
-            device1_ref=ticket.request_ref,
             authn_context=authn_ref,
-            request_id=ticket.request_id,
+            device1_ref=ticket.request_ref,
+            eppn=None if not user else user.eppn,
             ip_address=request.remote_addr,
-            user_agent=request.headers.get('user-agent'),
+            request_id=ticket.request_id,
+            service_info=ticket.service_info,
             ttl=ttl,
+            user_agent=request.headers.get('user-agent'),
         )
         res = self.save(state)
         logger.debug(f'Save {state.state_id} result: {res}')

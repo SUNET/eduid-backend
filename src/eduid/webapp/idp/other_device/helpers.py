@@ -2,11 +2,11 @@ from dataclasses import asdict, dataclass
 from typing import Optional
 
 from eduid.webapp.common.api.messages import FluxData, error_response
-from eduid.webapp.common.session.logindata import LoginContext
 from eduid.webapp.common.session.namespaces import IdP_OtherDevicePendingRequest, RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.login import get_ticket
+from eduid.webapp.idp.login_context import LoginContext
 from eduid.webapp.idp.other_device.db import OtherDevice
 from eduid.webapp.idp.service import SAMLQueryParams
 

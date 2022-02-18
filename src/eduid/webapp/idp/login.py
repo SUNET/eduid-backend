@@ -34,7 +34,6 @@ from eduid.userdb.idp import IdPUser
 from eduid.userdb.idp.user import SAMLAttributeSettings
 from eduid.webapp.common.api import exceptions
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.logindata import LoginContext, LoginContextOtherDevice, LoginContextSAML
 from eduid.webapp.common.session.namespaces import IdP_OtherDevicePendingRequest, IdP_SAMLPendingRequest, RequestRef
 from eduid.webapp.idp import assurance, mischttp
 from eduid.webapp.idp.app import current_idp_app as current_app
@@ -51,6 +50,7 @@ from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.idp_actions import redirect_to_actions
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.idp_saml import ResponseArgs, SamlResponse
+from eduid.webapp.idp.login_context import LoginContext, LoginContextOtherDevice, LoginContextSAML
 from eduid.webapp.idp.mfa_action import add_mfa_action, need_security_key, process_mfa_action_results
 from eduid.webapp.idp.mischttp import HttpArgs, get_default_template_arguments
 from eduid.webapp.idp.other_device.data import OtherDeviceState
@@ -94,6 +94,10 @@ class NextResult(BaseModel):
 
 def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], template_mode: bool = False) -> NextResult:
     """ The main state machine for the login flow(s). """
+    if ticket.pending_request.aborted:
+        current_app.logger.debug('Login request is aborted')
+        return NextResult(message=IdPMsg.aborted)
+
     if current_app.conf.allow_other_device_logins:
         if ticket.is_other_device_1:
             state = None
@@ -367,24 +371,6 @@ class SSO(Service):
             else:
                 current_app.logger.debug(f'Adding attribute {k} with value from authn process: {v}')
             attributes[k] = v
-        # Set digest_alg and sign_alg to a sane default value
-        try:
-            resp_args['digest_alg'] = current_app.conf.supported_digest_algorithms[0]
-        except IndexError:
-            pass
-        try:
-            resp_args['sign_alg'] = current_app.conf.supported_signing_algorithms[0]
-        except IndexError:
-            pass
-        # Try to pick best signing and digest algorithms from what the SP supports
-        for digest_alg in current_app.conf.supported_digest_algorithms:
-            if digest_alg in ticket.saml_req.sp_digest_algs:
-                resp_args['digest_alg'] = digest_alg
-                break
-        for sign_alg in current_app.conf.supported_signing_algorithms:
-            if sign_alg in ticket.saml_req.sp_sign_algs:
-                resp_args['sign_alg'] = sign_alg
-                break
         if current_app.conf.debug:
             # Only perform expensive parse/pretty-print if debugging
             pp = pprint.PrettyPrinter()
@@ -507,7 +493,7 @@ class SSO(Service):
         assert isinstance(ticket, LoginContext)
         current_app.logger.debug(f"Validate login request :\n{ticket}")
         current_app.logger.debug(f"AuthnRequest from ticket: {ticket.saml_req!r}")
-        return ticket.saml_req.get_response_args(BadRequest, ticket.request_ref)
+        return ticket.saml_req.get_response_args(ticket.request_ref, current_app.conf)
 
 
 # -----------------------------------------------------------------------------
