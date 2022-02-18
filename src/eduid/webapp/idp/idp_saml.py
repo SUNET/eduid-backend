@@ -214,6 +214,7 @@ class IdP_SAMLRequest(object):
         """ Information about the service where the user is logging in """
         if self._service_info is None:
             res: Dict[str, Any] = {}
+            logger.debug(f'Looking up MDUI info in metadata for entity id {self.sp_entity_id}')
             for uiinfo in self._idp.metadata.mdui_uiinfo(self.sp_entity_id):
                 if 'display_name' in uiinfo:
                     res['display_name'] = {}
@@ -221,6 +222,8 @@ class IdP_SAMLRequest(object):
                         if 'lang' in item and 'text' in item:
                             res['display_name'][item['lang']] = item['text']
                         self._service_info = res
+            if not res:
+                logger.debug(f'No MDUI display_name found for entity id {self.sp_entity_id}')
         return self._service_info
 
     @property
