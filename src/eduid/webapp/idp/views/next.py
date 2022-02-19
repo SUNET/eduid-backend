@@ -283,7 +283,7 @@ def _log_user_agent() -> None:
         current_app.stats.count('login_finished_ua_is_none')
         return
 
-    parsed = user_agents.parse(user_agent)
+    parsed = user_agents.parse(clean(user_agent[:200]))
 
     if parsed.is_mobile:
         current_app.stats.count('login_finished_ua_is_mobile')
