@@ -285,6 +285,11 @@ def _log_user_agent() -> None:
 
     parsed = user_agents.parse(clean(user_agent[:200]))
 
+    if parsed.browser.family == 'Python Requests':
+        # Don't want to log further details about the monitoring of the IdPs and apps
+        current_app.stats.count('login_finished_ua_is_monitoring')
+        return
+
     if parsed.is_mobile:
         current_app.stats.count('login_finished_ua_is_mobile')
     elif parsed.is_pc:
