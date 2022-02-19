@@ -304,8 +304,8 @@ def _log_user_agent() -> None:
         safe_value = re.sub('[^a-zA-Z0-9.]', '_', value[:20])
         current_app.stats.count(f'{prefix}_{safe_value}')
 
-    _safe_stat('login_finished_ua_device', parsed.get_device())
-    _safe_stat('login_finished_ua_os', parsed.get_os())
+    _safe_stat('login_finished_ua_device', parsed.device.family)
+    _safe_stat('login_finished_ua_os_family', parsed.os.family)
     _safe_stat('login_finished_ua_browser', parsed.browser.family)
 
     return None
