@@ -1,6 +1,7 @@
 from copy import deepcopy
 
 import bson
+from pydantic import ValidationError
 
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.fixtures.users import mocked_user_standard
@@ -93,5 +94,5 @@ class AttributeFetcherTests(AMTestCase):
         user_data['mail'] = 'john@example.com'
         user_data['mailAliases'] = [{'email': 'john@example.com', 'verified': True,}]
         user_data['passwords'] = [{'id': '123', 'salt': '456',}]
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValidationError):
             SignupUser.from_dict(user_data)

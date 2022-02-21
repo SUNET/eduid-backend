@@ -1,6 +1,7 @@
 from unittest import TestCase
 
-from eduid.userdb.exceptions import UserMissingData
+from pydantic import ValidationError
+
 from eduid.userdb.fixtures.users import new_signup_user_example
 from eduid.userdb.signup.user import SignupUser
 
@@ -30,5 +31,5 @@ class TestSignupUser(TestCase):
     def test_missing_eppn(self):
         userdata = new_signup_user_example.to_dict()
         userid = userdata.pop('_id')
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValidationError):
             SignupUser(user_id=userid)

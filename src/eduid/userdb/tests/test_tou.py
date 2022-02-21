@@ -4,6 +4,7 @@ from unittest import TestCase
 from uuid import uuid4
 
 import bson
+from pydantic import ValidationError
 
 from eduid.userdb.actions.tou import ToUUser
 from eduid.userdb.credentials import CredentialList
@@ -116,7 +117,7 @@ class TestTouUser(TestCase):
         tou = ToUList(elements=[ToUEvent.from_dict(one)])
         userdata = new_user_example.to_dict()
         passwords = CredentialList.from_list_of_dicts(userdata['passwords'])
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValidationError):
             ToUUser(tou=tou, credentials=passwords)
 
     def test_proper_new_user_no_eppn(self):
@@ -125,7 +126,7 @@ class TestTouUser(TestCase):
         userdata = new_user_example.to_dict()
         userid = userdata.pop('_id')
         passwords = CredentialList.from_list_of_dicts(userdata['passwords'])
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValidationError):
             ToUUser(user_id=userid, tou=tou, credentials=passwords)
 
     def test_missing_eppn(self):

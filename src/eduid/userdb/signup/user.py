@@ -32,27 +32,26 @@
 
 __author__ = 'ft'
 
-from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 
 import bson
+from pydantic import Field
 
 from eduid.userdb.proofing import EmailProofingElement
 from eduid.userdb.user import User
 
 
-@dataclass
 class SignupUser(User):
     """
     Subclass of eduid.userdb.User with eduid Signup application specific data.
     """
 
-    social_network: str = ''
-    social_network_id: str = ''
+    social_network: Optional[str] = None
+    social_network_id: Optional[str] = None
     # The user's pending (unconfirmed) mail address.
     pending_mail_address: Optional[EmailProofingElement] = None
     # Holds a reference id that is used for connecting msg tasks with proofing log statements.
-    proofing_reference: str = field(default_factory=lambda: str(bson.ObjectId()))
+    proofing_reference: str = Field(default_factory=lambda: str(bson.ObjectId()))
 
     @classmethod
     def check_or_use_data(cls, data: Dict[str, Any]) -> Dict[str, Any]:

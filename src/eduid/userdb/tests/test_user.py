@@ -3,6 +3,7 @@ from datetime import datetime
 from hashlib import sha256
 
 from bson import ObjectId
+from pydantic import ValidationError
 
 from eduid.userdb import LockedIdentityNin, OidcAuthorization, OidcIdToken, Orcid
 from eduid.userdb.credentials import METHOD_SWAMID_AL2_MFA, U2F, CredentialList, Password
@@ -279,7 +280,7 @@ class TestNewUser(unittest.TestCase):
         data = self.data1
         data['unknown_attribute'] = 'something'
 
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValidationError):
             User.from_dict(data)
 
     def test_incomplete_signup_user(self):

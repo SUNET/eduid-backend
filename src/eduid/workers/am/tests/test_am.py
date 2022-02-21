@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from dataclasses import dataclass
 from typing import Any, Mapping
 
 from bson import ObjectId
@@ -15,7 +14,6 @@ from eduid.workers.am.testing import AMTestCase
 __author__ = 'leifj'
 
 
-@dataclass
 class AmTestUser(eduid.userdb.User):
     """
     User class for the 'test' plugin below.
