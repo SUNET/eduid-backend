@@ -7,11 +7,10 @@ from typing import Any, Dict, Mapping, Optional, Type
 import yaml
 
 from eduid.common.config.base import FlaskConfig, TRootConfigSubclass
-
-__author__ = 'ft'
-
 from eduid.common.config.parsers.base import BaseConfigParser
 from eduid.common.config.parsers.exceptions import ParserException
+
+__author__ = 'ft'
 
 
 def load_config(
@@ -34,8 +33,19 @@ def load_config(
         common_config = parser.read_configuration(common_path)
         app_config = parser.read_configuration(app_path)
 
+        local_config = None
+        local_file = os.environ.get('LOCAL_CFG_FILE')
+        if local_file is not None:
+            from eduid.common.config.parsers.yaml_parser import YamlConfigParser
+
+            local_path = os.environ.get('EDUID_CONFIG_LOCAL_NS', '')
+            local_parser = YamlConfigParser(path=Path(local_file))
+            local_config = local_parser.read_configuration(local_path)
+
         config = dict(common_config)
         config.update(app_config)
+        if local_config:
+            config.update(local_config)
 
     if 'secret_key' in config:
         # Looks like there could be a FlaskConfig mixed into the config
