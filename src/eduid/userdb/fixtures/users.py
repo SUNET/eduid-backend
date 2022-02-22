@@ -197,7 +197,6 @@ old_user_example = User.from_dict(
             elements=[johnsmith_example_com_old, johnsmith2_example_com_old, johnsmith3_example_com_unverified,]
         ).to_list_of_dicts(),
         norEduPersonNIN=['197801011234'],
-        postalAddress=old_postal_addresses,
         phone=PhoneNumberList(elements=[old_primary_phone, old_unverified_phone,]).to_list_of_dicts(),
         passwords=CredentialList(elements=[old_password]).to_list_of_dicts(),
         eduPersonEntitlement=['urn:mace:eduid.se:role:admin', 'urn:mace:eduid.se:role:student',],

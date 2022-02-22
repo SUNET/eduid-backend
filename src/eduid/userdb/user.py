@@ -172,16 +172,6 @@ class User(BaseModel):
         if data.get('subject') is not None:
             data['subject'] = SubjectType(data['subject'])
 
-        # obsolete attributes
-        if 'postalAddress' in data:
-            del data['postalAddress']
-        if 'date' in data:
-            del data['date']
-        if 'csrf' in data:
-            del data['csrf']
-        if 'mfa_opt_in' in data:
-            del data['mfa_opt_in']
-
         return data
 
     def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:

@@ -248,31 +248,6 @@ class TestNewUser(unittest.TestCase):
 
         assert obtained == expected
 
-    def test_obsolete_attributes(self):
-        """
-        Test that some obsolete attributes don't cause parse failures.
-        """
-        data = self.user1.to_dict()
-        data['postalAddress'] = {'foo': 'bar'}
-        data['date'] = 'anything'
-        data['csrf'] = 'long and secret string'
-        data['mailAliases'][0]['verification_code'] = '123456789'
-        user = User.from_dict(data)
-
-        expected = self.user1.to_dict()
-        obtained = user.to_dict()
-
-        assert obtained == expected
-
-        data = self.user2.to_dict()
-        data['phone'][0]['verification_code'] = '123456789'
-        user = User.from_dict(data)
-
-        expected = self.user2.to_dict()
-        obtained = user.to_dict()
-
-        assert obtained == expected
-
     def test_unknown_attributes(self):
         """
         Test parsing a document with unknown data in it.
