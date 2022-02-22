@@ -41,6 +41,7 @@ from typing import Any, Dict, List, Mapping, Optional, Type, TypeVar, cast
 import bson
 from pydantic import BaseModel, Extra, Field, root_validator, validator
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import CredentialList
 from eduid.userdb.db import BaseDB
 from eduid.userdb.element import UserDBValueError
@@ -62,11 +63,20 @@ class SubjectType(str, Enum):
     PERSON = 'physical person'
 
 
+class UserMeta(BaseModel):
+    version: bson.ObjectId = Field(default_factory=bson.ObjectId)
+    modified_ts: datetime = Field(default_factory=utc_now)
+
+    class Config:
+        arbitrary_types_allowed = True  # allow ObjectId as type
+
+
 class User(BaseModel):
     """
     Generic eduID user object.
     """
 
+    meta: UserMeta = Field(default_factory=UserMeta)
     eppn: str = Field(alias='eduPersonPrincipalName')
     user_id: bson.ObjectId = Field(default_factory=bson.ObjectId, alias='_id')
     given_name: str = Field(default='', alias='givenName')
@@ -112,6 +122,14 @@ class User(BaseModel):
             raise UserIsRevoked(
                 f'User {values.get("user_id")}/{values.get("eppn")} was revoked at {values.get("revoked_ts")}'
             )
+        return values
+
+    @root_validator()
+    def update_meta_modified_ts(cls, values: Dict[str, Any]):
+        # TODO: remove this after meta.modified_ts is used
+        # as we validate on assignment this will run everytime the User is changed
+        if values.get('modified_ts'):
+            values['meta'].modified_ts = values['modified_ts']
         return values
 
     def __str__(self):
