@@ -42,6 +42,7 @@ from typing import Any, Dict, Optional
 
 import bson
 import pytest
+from pydantic import ValidationError
 
 from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig
 from eduid.common.config.workers import AmConfig
@@ -193,5 +194,5 @@ class ProofingTestCase(AMTestCase):
         result = self.fetcher.private_db._coll.insert_one(self.user_data)
         user_id = result.inserted_id
 
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValidationError):
             self.fetcher.fetch_attrs(user_id)

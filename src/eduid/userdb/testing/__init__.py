@@ -46,8 +46,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Type, Union, ca
 
 import pymongo
 
-from eduid.userdb import User, UserDB
-from eduid.userdb.dashboard.user import DashboardUser
+from eduid.userdb import User
 from eduid.userdb.testing.temp_instance import EduidTemporaryInstance
 from eduid.userdb.userdb import AmDB
 
@@ -204,7 +203,7 @@ class MongoTestCase(unittest.TestCase):
 
     def tearDown(self):
         for userdoc in self.amdb._get_all_docs():
-            assert DashboardUser.from_dict(data=userdoc)
+            assert User.from_dict(data=userdoc)
         # Reset databases for the next test class, but do not shut down the temporary
         # mongodb instance, for efficiency reasons.
         for db_name in self.tmp_db.conn.list_database_names():

@@ -34,13 +34,12 @@
 from __future__ import annotations
 
 import copy
-import warnings
-from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum, unique
 from typing import Any, Dict, List, Mapping, Optional, Type, TypeVar, cast
 
 import bson
+from pydantic import BaseModel, Extra, Field, root_validator, validator
 
 from eduid.userdb.credentials import CredentialList
 from eduid.userdb.db import BaseDB
@@ -59,55 +58,61 @@ TUserSubclass = TypeVar('TUserSubclass', bound='User')
 
 
 @unique
-class SubjectType(Enum):
+class SubjectType(str, Enum):
     PERSON = 'physical person'
 
 
-@dataclass
-class User(object):
+class User(BaseModel):
     """
     Generic eduID user object.
     """
 
-    eppn: str
-    user_id: Optional[bson.ObjectId] = None
-    given_name: str = ''
-    display_name: str = ''
+    eppn: str = Field(alias='eduPersonPrincipalName')
+    user_id: bson.ObjectId = Field(default_factory=bson.ObjectId, alias='_id')
+    given_name: str = Field(default='', alias='givenName')
+    display_name: Optional[str] = Field(default=None, alias='displayName')
     surname: str = ''
     subject: Optional[SubjectType] = None
-    language: str = 'sv'
-    mail_addresses: MailAddressList = field(default_factory=MailAddressList)
-    phone_numbers: PhoneNumberList = field(default_factory=PhoneNumberList)
-    credentials: CredentialList = field(default_factory=CredentialList)
-    nins: NinList = field(default_factory=NinList)
+    language: str = Field(default='sv', alias='preferredLanguage')
+    mail_addresses: MailAddressList = Field(default_factory=MailAddressList, alias='mailAliases')
+    phone_numbers: PhoneNumberList = Field(default_factory=PhoneNumberList, alias='phone')
+    credentials: CredentialList = Field(default_factory=CredentialList, alias='passwords')
+    nins: NinList = Field(default_factory=NinList)
     modified_ts: Optional[datetime] = None
-    entitlements: List[str] = field(default_factory=list)
-    tou: ToUList = field(default_factory=ToUList)
+    entitlements: List[str] = Field(default_factory=list, alias='eduPersonEntitlement')
+    tou: ToUList = Field(default_factory=ToUList)
     terminated: Optional[datetime] = None
-    locked_identity: LockedIdentityList = field(default_factory=LockedIdentityList)
+    locked_identity: LockedIdentityList = Field(default_factory=LockedIdentityList)
     orcid: Optional[Orcid] = None
     ladok: Optional[Ladok] = None
-    profiles: ProfileList = field(default_factory=ProfileList)
-    letter_proofing_data: Optional[dict] = None
+    profiles: ProfileList = Field(default_factory=ProfileList)
+    letter_proofing_data: Optional[list] = None
     revoked_ts: Optional[datetime] = None
 
-    def __post_init__(self):
-        """
-        Check users that can't be loaded for some known reason.
-        """
-        # safe-guard against User being instantiated with a dict, instead of the dict
-        # being passed to User.from_dict().
-        if not isinstance(self.eppn, str):
-            raise UserDBValueError('User instantiated with non-string eppn')
-        if len(self.eppn) != 11 or '-' not in self.eppn:
-            # the exception to the rule - an old proquint implementation once generated a short eppn
-            if self.eppn != 'holih':
-                # have to provide an exception for test cases for now ;)
-                if not self.eppn.startswith('hubba-') and 'test' not in self.eppn:
-                    raise UserDBValueError(f'Malformed eppn ({self.eppn})')
+    class Config:
+        allow_population_by_field_name = True  # allow setting created_ts by name, not just it's alias
+        validate_assignment = True  # validate data when updated, not just when initialised
+        extra = Extra.forbid  # reject unknown data
+        arbitrary_types_allowed = True  # allow ObjectId as type in Event
 
-        if self.revoked_ts is not None:
-            raise UserIsRevoked(f'User {self.user_id}/{self.eppn} was revoked at {self.revoked_ts}')
+    @validator('eppn', pre=True)
+    def check_eppn(cls, v: str) -> str:
+        if len(v) != 11 or '-' not in v:
+            # the exception to the rule - an old proquint implementation once generated a short eppn
+            if v != 'holih':
+                # have to provide an exception for test cases for now ;)
+                if not v.startswith('hubba-') and 'test' not in v:
+                    raise UserDBValueError(f'Malformed eppn ({v})')
+        return v
+
+    @root_validator(pre=True)
+    def check_revoked(cls, values: Dict[str, Any]):
+        # raise exception if the user is revoked
+        if values.get('revoked_ts') is not None:
+            raise UserIsRevoked(
+                f'User {values.get("user_id")}/{values.get("eppn")} was revoked at {values.get("revoked_ts")}'
+            )
+        return values
 
     def __str__(self):
         return f'<eduID {self.__class__.__name__}: {self.eppn}/{self.user_id}>'
@@ -125,56 +130,7 @@ class User(object):
         data_in = dict(copy.deepcopy(data))  # to not modify callers data
 
         data_in = cls.check_or_use_data(data_in)
-
-        # things without setters
-        _id = data_in.pop('_id', None)
-        if _id is None:
-            _id = bson.ObjectId()
-        if not isinstance(_id, bson.ObjectId):
-            _id = bson.ObjectId(_id)
-        data_in['user_id'] = _id
-
-        if 'sn' in data_in:
-            _sn = data_in.pop('sn')
-            # Some users have both 'sn' and 'surname'. In that case, assume sn was
-            # once converted to surname but also left behind, and discard 'sn'.
-            if 'surname' not in data_in:
-                data_in['surname'] = _sn
-
-        if 'eduPersonEntitlement' in data_in:
-            data_in['entitlements'] = data_in.pop('eduPersonEntitlement')
-
-        data_in['mail_addresses'] = cls._parse_mail_addresses(data_in)
-        data_in['phone_numbers'] = cls._parse_phone_numbers(data_in)
-        data_in['nins'] = cls._parse_nins(data_in)
-        data_in['tou'] = cls._parse_tous(data_in)
-        data_in['locked_identity'] = cls._parse_locked_identity(data_in)
-        data_in['orcid'] = cls._parse_orcid(data_in)
-        data_in['ladok'] = cls._parse_ladok(data_in)
-        data_in['profiles'] = cls._parse_profiles(data_in)
-
-        data_in['credentials'] = CredentialList.from_list_of_dicts(data_in.pop('passwords', []))
-        # generic (known) attributes
-        if 'eduPersonPrincipalName' in data_in:
-            # Mandatory, let it raise a TypeError if missing
-            data_in['eppn'] = data_in.pop('eduPersonPrincipalName')
-        if data_in.get('subject') is not None:
-            data_in['subject'] = SubjectType(data_in['subject'])
-        data_in['subject'] = data_in.pop('subject', None)
-        data_in['display_name'] = data_in.pop('displayName', None)
-        data_in['given_name'] = data_in.pop('givenName', None)
-        data_in['language'] = data_in.pop('preferredLanguage', None)
-        # obsolete attributes
-        if 'postalAddress' in data_in:
-            del data_in['postalAddress']
-        if 'date' in data_in:
-            del data_in['date']
-        if 'csrf' in data_in:
-            del data_in['csrf']
-
-        if 'mfa_opt_in' in data_in:
-            del data_in['mfa_opt_in']
-
+        data_in = cls._from_dict_transform(data_in)
         return cls(**data_in)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -183,57 +139,51 @@ class User(object):
 
         :return: User as dict
         """
-        res = asdict(self)  # avoid caller messing up our private _data
-        res['eduPersonPrincipalName'] = res.pop('eppn')  # mandatory
-        res['_id'] = res.pop('user_id')
-        res['preferredLanguage'] = res.pop('language', None)
-        res['givenName'] = res.pop('given_name', None)
-        res['displayName'] = res.pop('display_name', None)
-        res['eduPersonEntitlement'] = res.pop('entitlements', [])
-        res['mailAliases'] = self.mail_addresses.to_list_of_dicts()
-        res.pop('mail_addresses')
-        res['phone'] = self.phone_numbers.to_list_of_dicts()
-        res.pop('phone_numbers')
-        res['passwords'] = self.credentials.to_list_of_dicts()
-        res.pop('credentials')
-        res['nins'] = self.nins.to_list_of_dicts()
-        if self.tou is not None:
-            res['tou'] = self.tou.to_list_of_dicts()
-        res['locked_identity'] = self.locked_identity.to_list_of_dicts()
-        res['profiles'] = self.profiles.to_list_of_dicts()
-        res['orcid'] = None
-        if self.orcid is not None:
-            res['orcid'] = self.orcid.to_dict()
-        if self.ladok is not None:
-            res['ladok'] = self.ladok.to_dict()
-        if 'eduPersonEntitlement' not in res:
-            res['eduPersonEntitlement'] = res.pop('entitlements', [])
-        if self.subject is not None:
-            res['subject'] = self.subject.value
-        # Remove these values if they have a value that evaluates to False
-        for _remove in [
-            'displayName',
-            'eduPersonEntitlement',
-            'givenName',
-            'ladok',
-            'letter_proofing_data',
-            'locked_identity',
-            'modified_ts',
-            'nins',
-            'orcid',
-            'phone',
-            'preferredLanguage',
-            'profiles',
-            'revoked_ts',
-            'subject',
-            'surname',
-            'terminated',
-            'mfa_opt_in',
-        ]:
-            if _remove in res and not res[_remove]:
-                del res[_remove]
-
+        res = self.dict(by_alias=True, exclude_none=True)  # avoid caller messing up our private _data
+        res = self._to_dict_transform(res)
         return res
+
+    @classmethod
+    def _from_dict_transform(cls: Type[TUserSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
+        # clean up sn
+        if 'sn' in data:
+            _sn = data.pop('sn')
+            # Some users have both 'sn' and 'surname'. In that case, assume sn was
+            # once converted to surname but also left behind, and discard 'sn'.
+            if 'surname' not in data:
+                data['surname'] = _sn
+
+        # parse complex data
+        data['mail_addresses'] = cls._parse_mail_addresses(data)
+        data['phone_numbers'] = cls._parse_phone_numbers(data)
+        data['nins'] = cls._parse_nins(data)
+        data['tou'] = cls._parse_tous(data)
+        data['locked_identity'] = cls._parse_locked_identity(data)
+        data['orcid'] = cls._parse_orcid(data)
+        data['ladok'] = cls._parse_ladok(data)
+        data['profiles'] = cls._parse_profiles(data)
+        data['credentials'] = CredentialList.from_list_of_dicts(data.pop('passwords', []))
+        if data.get('subject') is not None:
+            data['subject'] = SubjectType(data['subject'])
+
+        return data
+
+    def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        # serialize complex data
+        data['mailAliases'] = self.mail_addresses.to_list_of_dicts()
+        data['phone'] = self.phone_numbers.to_list_of_dicts()
+        data['passwords'] = self.credentials.to_list_of_dicts()
+        data['nins'] = self.nins.to_list_of_dicts()
+        if self.tou is not None:
+            data['tou'] = self.tou.to_list_of_dicts()
+        data['locked_identity'] = self.locked_identity.to_list_of_dicts()
+        data['profiles'] = self.profiles.to_list_of_dicts()
+        data['orcid'] = None
+        if self.orcid is not None:
+            data['orcid'] = self.orcid.to_dict()
+        if self.ladok is not None:
+            data['ladok'] = self.ladok.to_dict()
+        return data
 
     @classmethod
     def from_user(cls: Type[TUserSubclass], user: User, private_userdb: BaseDB) -> TUserSubclass:
@@ -296,7 +246,11 @@ class User(object):
                         _mail_addresses[idx]['primary'] = True
             data.pop('mail')
 
-        if len(_mail_addresses) == 1 and _mail_addresses[0].get('verified', False):
+        if (
+            isinstance(_mail_addresses, list)
+            and len(_mail_addresses) == 1
+            and _mail_addresses[0].get('verified', False)
+        ):
             if not _mail_addresses[0].get('primary', False):
                 # A single mail address was not set as Primary until it was verified
                 _mail_addresses[0]['primary'] = True
