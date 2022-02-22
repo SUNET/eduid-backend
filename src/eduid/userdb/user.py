@@ -88,7 +88,7 @@ class User(BaseModel):
     phone_numbers: PhoneNumberList = Field(default_factory=PhoneNumberList, alias='phone')
     credentials: CredentialList = Field(default_factory=CredentialList, alias='passwords')
     nins: NinList = Field(default_factory=NinList)
-    modified_ts: Optional[datetime] = None
+    modified_ts: Optional[datetime] = None  # TODO: remove after meta.modified_ts is used
     entitlements: List[str] = Field(default_factory=list, alias='eduPersonEntitlement')
     tou: ToUList = Field(default_factory=ToUList)
     terminated: Optional[datetime] = None
@@ -100,10 +100,10 @@ class User(BaseModel):
     revoked_ts: Optional[datetime] = None
 
     class Config:
-        allow_population_by_field_name = True  # allow setting created_ts by name, not just it's alias
+        allow_population_by_field_name = True  # allow setting fields ex. given_name by name, not just it's alias
         validate_assignment = True  # validate data when updated, not just when initialised
         extra = Extra.forbid  # reject unknown data
-        arbitrary_types_allowed = True  # allow ObjectId as type in Event
+        arbitrary_types_allowed = True  # allow ObjectId as type
 
     @validator('eppn', pre=True)
     def check_eppn(cls, v: str) -> str:
