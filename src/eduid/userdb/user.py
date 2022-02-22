@@ -97,12 +97,6 @@ class User(BaseModel):
 
     @validator('eppn', pre=True)
     def check_eppn(cls, v: str) -> str:
-        # TODO: what about the comment below?
-        # safe-guard against User being instantiated with a dict, instead of the dict
-        # being passed to User.from_dict().
-        if not isinstance(v, str):
-            raise UserDBValueError('User instantiated with non-string eppn')
-
         if len(v) != 11 or '-' not in v:
             # the exception to the rule - an old proquint implementation once generated a short eppn
             if v != 'holih':
