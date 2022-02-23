@@ -49,6 +49,7 @@ from eduid.userdb.exceptions import UserHasNotCompletedSignup, UserIsRevoked
 from eduid.userdb.ladok import Ladok
 from eduid.userdb.locked_identity import LockedIdentityList
 from eduid.userdb.mail import MailAddressList
+from eduid.userdb.meta import Meta
 from eduid.userdb.nin import NinList
 from eduid.userdb.orcid import Orcid
 from eduid.userdb.phone import PhoneNumberList
@@ -63,20 +64,12 @@ class SubjectType(str, Enum):
     PERSON = 'physical person'
 
 
-class UserMeta(BaseModel):
-    version: bson.ObjectId = Field(default_factory=bson.ObjectId)
-    modified_ts: datetime = Field(default_factory=utc_now)
-
-    class Config:
-        arbitrary_types_allowed = True  # allow ObjectId as type
-
-
 class User(BaseModel):
     """
     Generic eduID user object.
     """
 
-    meta: UserMeta = Field(default_factory=UserMeta)
+    meta: Meta = Field(default_factory=Meta)
     eppn: str = Field(alias='eduPersonPrincipalName')
     user_id: bson.ObjectId = Field(default_factory=bson.ObjectId, alias='_id')
     given_name: str = Field(default='', alias='givenName')
