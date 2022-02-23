@@ -178,7 +178,6 @@ class User(BaseModel):
             data['tou'] = self.tou.to_list_of_dicts()
         data['locked_identity'] = self.locked_identity.to_list_of_dicts()
         data['profiles'] = self.profiles.to_list_of_dicts()
-        data['orcid'] = None
         if self.orcid is not None:
             data['orcid'] = self.orcid.to_dict()
         if self.ladok is not None:
