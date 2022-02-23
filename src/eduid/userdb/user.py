@@ -108,15 +108,6 @@ class User(BaseModel):
                     raise UserDBValueError(f'Malformed eppn ({v})')
         return v
 
-    @root_validator(pre=True)
-    def check_revoked(cls, values: Dict[str, Any]):
-        # raise exception if the user is revoked
-        if values.get('revoked_ts') is not None:
-            raise UserIsRevoked(
-                f'User {values.get("user_id")}/{values.get("eppn")} was revoked at {values.get("revoked_ts")}'
-            )
-        return values
-
     @root_validator()
     def update_meta_modified_ts(cls, values: Dict[str, Any]):
         # TODO: remove this after meta.modified_ts is used
@@ -156,6 +147,12 @@ class User(BaseModel):
 
     @classmethod
     def _from_dict_transform(cls: Type[TUserSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
+        # raise exception if the user is revoked
+        if data.get('revoked_ts') is not None:
+            raise UserIsRevoked(
+                f'User {data.get("user_id")}/{data.get("eppn")} was revoked at {data.get("revoked_ts")}'
+            )
+
         # clean up sn
         if 'sn' in data:
             _sn = data.pop('sn')
