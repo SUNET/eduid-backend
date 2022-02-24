@@ -2,9 +2,7 @@ import re
 from dataclasses import asdict, dataclass
 from typing import Any, Dict, List, Optional
 
-import user_agents
-from bleach import clean
-from flask import Blueprint, request, url_for
+from flask import Blueprint, url_for
 from saml2 import BINDING_HTTP_POST
 
 from eduid.userdb import LockedIdentityNin
@@ -18,6 +16,7 @@ from eduid.webapp.idp.helpers import IdPAction, IdPMsg
 from eduid.webapp.idp.idp_saml import cancel_saml_request
 from eduid.webapp.idp.login import SSO, get_ticket, login_next_step
 from eduid.webapp.idp.login_context import LoginContext, LoginContextOtherDevice, LoginContextSAML
+from eduid.webapp.idp.mischttp import get_user_agent
 from eduid.webapp.idp.other_device.device2 import device2_finish
 from eduid.webapp.idp.schemas import NextRequestSchema, NextResponseSchema
 from eduid.webapp.idp.service import SAMLQueryParams
@@ -274,27 +273,25 @@ def _set_user_options(res: AuthnOptions, eppn: str) -> None:
 
 def _log_user_agent() -> None:
     """ Log some statistics from the User-Agent header """
-    user_agent = request.headers.get('user-agent')
+    ua = get_user_agent()
 
     # TODO: change to debug logging later
-    current_app.logger.info(f'Logging in user with User-Agent {repr(user_agent)}')
+    current_app.logger.info(f'Logging in user with User-Agent {repr(ua.safe_str)}')
 
-    if not user_agent:
+    if not ua:
         current_app.stats.count('login_finished_ua_is_none')
         return
 
-    parsed = user_agents.parse(clean(user_agent[:200]))
-
-    if parsed.browser.family == 'Python Requests':
+    if ua.parsed.browser.family == 'Python Requests':
         # Don't want to log further details about the monitoring of the IdPs and apps
         current_app.stats.count('login_finished_ua_is_monitoring')
         return
 
-    if parsed.is_mobile:
+    if ua.parsed.is_mobile:
         current_app.stats.count('login_finished_ua_is_mobile')
-    elif parsed.is_pc:
+    elif ua.parsed.is_pc:
         current_app.stats.count('login_finished_ua_is_pc')
-    elif parsed.is_tablet:
+    elif ua.parsed.is_tablet:
         current_app.stats.count('login_finished_ua_is_tablet')
     else:
         current_app.stats.count('login_finished_ua_is_unknown')
@@ -304,8 +301,8 @@ def _log_user_agent() -> None:
         safe_value = re.sub('[^a-zA-Z0-9.]', '_', value[:20])
         current_app.stats.count(f'{prefix}_{safe_value}')
 
-    _safe_stat('login_finished_ua_device', parsed.device.family)
-    _safe_stat('login_finished_ua_os_family', parsed.os.family)
-    _safe_stat('login_finished_ua_browser', parsed.browser.family)
+    _safe_stat('login_finished_ua_device', ua.parsed.device.family)
+    _safe_stat('login_finished_ua_os_family', ua.parsed.os.family)
+    _safe_stat('login_finished_ua_browser', ua.parsed.browser.family)
 
     return None
