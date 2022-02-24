@@ -132,6 +132,7 @@ class IdPAPITests(EduidAPITestCase):
                 'fido2_rp_id': 'idp.example.com',
                 'login_bundle_url': 'https://idp.eduid.docker/test-bundle',
                 'tou_version': '2016-v1',
+                'known_devices_secret_key': 'WwemHQgPm1hpx41NYaVBQpRV7BAq0OMtfF3k4H72J7c=',
             }
         )
         return config

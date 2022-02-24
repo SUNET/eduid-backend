@@ -127,6 +127,9 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     other_device_max_code_attempts: int = 3
     # SPs that are allowed to request a login for a particular user (idpproxy for stepup, dashboard for chpass, ...)
     request_subject_allowed_entity_ids: List[str] = Field(default=[])
+    known_devices_secret_key: str  # secretbox key for decrypting the data stored in the browser local storage
+    known_devices_new_ttl: timedelta = Field(default=timedelta(minutes=30))
+    known_devices_ttl: timedelta = Field(default=timedelta(days=90))
 
     @validator('sso_cookie')
     def make_sso_cookie(cls, v, values) -> CookieConfig:

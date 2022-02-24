@@ -45,6 +45,7 @@ from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.authn.utils import init_pysaml2
 from eduid.webapp.common.session import session
 from eduid.webapp.idp import idp_authn
+from eduid.webapp.idp.known_device import KnownDeviceDB
 from eduid.webapp.idp.other_device.db import OtherDeviceDB
 from eduid.webapp.idp.settings.common import IdPConfig
 from eduid.webapp.idp.sso_cache import SSOSessionCache
@@ -83,6 +84,12 @@ class IdPApp(EduIDBaseApp):
         self.authn = idp_authn.IdPAuthn(config=config, userdb=self.userdb)
         self.tou_db = ToUUserDB(config.mongo_uri)
         self.other_device_db = OtherDeviceDB(config.mongo_uri)
+        self.known_device_db = KnownDeviceDB(
+            config.mongo_uri,
+            app_secretbox_key=config.known_devices_secret_key,
+            new_ttl=config.known_devices_new_ttl,
+            ttl=config.known_devices_ttl,
+        )
 
         # Init celery
         self.am_relay = AmRelay(config)
