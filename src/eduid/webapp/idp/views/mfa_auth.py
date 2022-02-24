@@ -1,6 +1,6 @@
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Dict, Mapping, Optional
 
 from flask import Blueprint, request
 
@@ -20,11 +20,11 @@ from eduid.webapp.common.session.namespaces import (
     RequestRef,
 )
 from eduid.webapp.idp.app import current_idp_app as current_app
+from eduid.webapp.idp.decorators import require_ticket
 from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.idp_authn import AuthnData, ExternalAuthnData
-from eduid.webapp.idp.login import get_ticket
+from eduid.webapp.idp.login_context import LoginContext
 from eduid.webapp.idp.schemas import MfaAuthRequestSchema, MfaAuthResponseSchema
-from eduid.webapp.idp.service import SAMLQueryParams
 from eduid.webapp.idp.sso_session import SSOSession
 
 mfa_auth_views = Blueprint('mfa_auth', __name__, url_prefix='')
@@ -33,17 +33,13 @@ mfa_auth_views = Blueprint('mfa_auth', __name__, url_prefix='')
 @mfa_auth_views.route('/mfa_auth', methods=['POST'])
 @UnmarshalWith(MfaAuthRequestSchema)
 @MarshalWith(MfaAuthResponseSchema)
-def mfa_auth(ref: RequestRef, webauthn_response: Optional[Mapping[str, str]] = None) -> FluxData:
+@require_ticket
+def mfa_auth(ticket: LoginContext, webauthn_response: Optional[Mapping[str, str]] = None) -> FluxData:
     current_app.logger.debug('\n\n')
-    current_app.logger.debug(f'--- MFA authentication ({request.method}) ---')
+    current_app.logger.debug(f'--- MFA authentication ({ticket.request_ref}) ---')
 
     if not current_app.conf.login_bundle_url:
         return error_response(message=IdPMsg.not_available)
-
-    _info = SAMLQueryParams(request_ref=ref)
-    ticket = get_ticket(_info, None)
-    if not ticket:
-        return error_response(message=IdPMsg.bad_ref)
 
     sso_session = current_app._lookup_sso_session()
     if not sso_session:
@@ -61,7 +57,7 @@ def mfa_auth(ref: RequestRef, webauthn_response: Optional[Mapping[str, str]] = N
     saved_mfa_action = deepcopy(session.mfa_action)
     del session.mfa_action
 
-    result = _check_external_mfa(saved_mfa_action, session, user, ref, sso_session)
+    result = _check_external_mfa(saved_mfa_action, session, user, ticket.request_ref, sso_session)
     if result and result.response:
         return result.response
 
@@ -97,7 +93,7 @@ def mfa_auth(ref: RequestRef, webauthn_response: Optional[Mapping[str, str]] = N
     current_app.authn.log_authn(user, success=[result.credential.key], failure=[])
 
     # Remember the MFA credential used for this particular request
-    session.idp.log_credential_used(ref, result.credential, result.authn_data.timestamp)
+    session.idp.log_credential_used(ticket.request_ref, result.credential, result.authn_data.timestamp)
 
     return success_response(payload={'finished': True})
 

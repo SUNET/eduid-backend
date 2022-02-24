@@ -12,8 +12,10 @@ from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.session.namespaces import RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
+from eduid.webapp.idp.decorators import require_ticket
 from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.login import get_ticket
+from eduid.webapp.idp.login_context import LoginContext
 from eduid.webapp.idp.schemas import TouRequestSchema, TouResponseSchema
 from eduid.webapp.idp.service import SAMLQueryParams
 
@@ -23,17 +25,13 @@ tou_views = Blueprint('tou', __name__, url_prefix='')
 @tou_views.route('/tou', methods=['POST'])
 @UnmarshalWith(TouRequestSchema)
 @MarshalWith(TouResponseSchema)
-def tou(ref: RequestRef, versions: Optional[Sequence[str]] = None, user_accepts: Optional[str] = None) -> FluxData:
+@require_ticket
+def tou(ticket: LoginContext, versions: Optional[Sequence[str]] = None, user_accepts: Optional[str] = None) -> FluxData:
     current_app.logger.debug('\n\n')
-    current_app.logger.debug(f'--- Terms of Use ({request.method}) ---')
+    current_app.logger.debug(f'--- Terms of Use ({ticket.request_ref}) ---')
 
     if not current_app.conf.login_bundle_url:
         return error_response(message=IdPMsg.not_available)
-
-    _info = SAMLQueryParams(request_ref=ref)
-    ticket = get_ticket(_info, None)
-    if not ticket:
-        return error_response(message=IdPMsg.bad_ref)
 
     if user_accepts:
         if user_accepts != current_app.conf.tou_version:

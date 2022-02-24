@@ -9,17 +9,15 @@ from eduid.userdb import LockedIdentityNin
 from eduid.userdb.credentials import FidoCredential, Password
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
-from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
+from eduid.webapp.idp.decorators import require_ticket
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
 from eduid.webapp.idp.idp_saml import cancel_saml_request
-from eduid.webapp.idp.login import SSO, get_ticket, login_next_step
+from eduid.webapp.idp.login import SSO, login_next_step
 from eduid.webapp.idp.login_context import LoginContext, LoginContextOtherDevice, LoginContextSAML
 from eduid.webapp.idp.mischttp import get_user_agent
 from eduid.webapp.idp.other_device.device2 import device2_finish
 from eduid.webapp.idp.schemas import NextRequestSchema, NextResponseSchema
-from eduid.webapp.idp.service import SAMLQueryParams
 from eduid.webapp.idp.sso_session import SSOSession
 
 next_views = Blueprint('next', __name__, url_prefix='')
@@ -28,20 +26,14 @@ next_views = Blueprint('next', __name__, url_prefix='')
 @next_views.route('/next', methods=['POST'])
 @UnmarshalWith(NextRequestSchema)
 @MarshalWith(NextResponseSchema)
-def next_view(ref: RequestRef) -> FluxData:
+@require_ticket
+def next_view(ticket: LoginContext) -> FluxData:
     """ Main state machine for frontend """
     current_app.logger.debug('\n\n')
-    current_app.logger.debug(f'--- Next ({ref}) ---')
+    current_app.logger.debug(f'--- Next ({ticket.request_ref}) ---')
 
     if not current_app.conf.login_bundle_url:
         return error_response(message=IdPMsg.not_available)
-
-    _info = SAMLQueryParams(request_ref=ref)
-    ticket = get_ticket(_info, None)
-    if not ticket:
-        _pending = session.idp.pending_requests
-        current_app.logger.debug(f'Login ref {ref} not found in pending_requests: {_pending.keys()}')
-        return error_response(message=IdPMsg.bad_ref)
 
     sso_session = current_app._lookup_sso_session()
 

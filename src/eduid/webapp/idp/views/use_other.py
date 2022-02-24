@@ -11,7 +11,9 @@ from eduid.webapp.common.api.schemas.models import FluxSuccessResponse
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import IdP_OtherDevicePendingRequest, RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
+from eduid.webapp.idp.decorators import require_ticket
 from eduid.webapp.idp.helpers import IdPMsg
+from eduid.webapp.idp.login_context import LoginContext
 from eduid.webapp.idp.mischttp import set_sso_cookie
 from eduid.webapp.idp.other_device.data import OtherDeviceId, OtherDeviceState
 from eduid.webapp.idp.other_device.device1 import device1_check_response_code, device1_state_to_flux_payload
@@ -30,8 +32,12 @@ other_device_views = Blueprint('other_device', __name__, url_prefix='')
 @other_device_views.route('/use_other_1', methods=['POST'])
 @UnmarshalWith(UseOther1RequestSchema)
 @MarshalWith(UseOther1ResponseSchema)
+@require_ticket
 def use_other_1(
-    ref: RequestRef, username: Optional[str] = None, action: Optional[str] = None, response_code: Optional[str] = None
+    ticket: LoginContext,
+    username: Optional[str] = None,
+    action: Optional[str] = None,
+    response_code: Optional[str] = None,
 ) -> Union[FluxData, WerkzeugResponse]:
     """
     The user requests to start a "Login using another device" flow.
@@ -43,21 +49,18 @@ def use_other_1(
     retrieve them again on this device (device #1).
     """
     current_app.logger.debug('\n\n')
-    current_app.logger.debug(f'--- Use Other Device #1 ({ref}, username {username}, action {action}) ---')
+    current_app.logger.debug(
+        f'--- Use Other Device #1 ({ticket.request_ref}, username {username}, action {action}) ---'
+    )
 
     if not current_app.conf.allow_other_device_logins or not current_app.conf.other_device_url:
         return error_response(message=IdPMsg.not_available)
 
-    _lookup_result = _get_other_device_state_using_ref(ref, device=1)
+    _lookup_result = _get_other_device_state_using_ref(ticket.request_ref, device=1)
     if _lookup_result.response:
         return _lookup_result.response
 
-    ticket = _lookup_result.ticket
     state = _lookup_result.state
-    # assure mypy
-    if not ticket:
-        current_app.logger.warning(f'Login using other device: Ticket not found: {_lookup_result}')
-        return error_response(message=IdPMsg.general_failure)
 
     sso_session = current_app._lookup_sso_session()
     now = utc_now()  # ensure coherent results of 'is this expired?' checks
