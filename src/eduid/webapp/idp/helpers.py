@@ -6,6 +6,7 @@ from eduid.webapp.common.api.messages import TranslatableMsg
 @unique
 class IdPMsg(str, TranslatableMsg):
     aborted = 'login.aborted'
+    unknown_device = 'login.unknown_device'
     action_required = 'login.action_required'  # Shouldn't actually be returned to the frontend
     assurance_failure = 'login.assurance_failure'
     assurance_not_possible = 'login.assurance_not_possible'
@@ -37,8 +38,9 @@ class IdPMsg(str, TranslatableMsg):
 
 @unique
 class IdPAction(str, Enum):
+    NEW_DEVICE = 'NEW_DEVICE'
+    OTHER_DEVICE = 'OTHER_DEVICE'
     PWAUTH = 'USERNAMEPASSWORD'
     MFA = 'MFA'
     TOU = 'TOU'
-    OTHER_DEVICE = 'OTHER_DEVICE'
     FINISHED = 'FINISHED'

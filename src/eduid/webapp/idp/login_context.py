@@ -1,8 +1,9 @@
 import logging
 from abc import ABC
-from dataclasses import dataclass, field
 from typing import List, Optional, Sequence, TypeVar
 from urllib.parse import urlencode
+
+from pydantic import BaseModel
 
 from eduid.webapp.common.session.namespaces import (
     IdP_OtherDevicePendingRequest,
@@ -12,14 +13,14 @@ from eduid.webapp.common.session.namespaces import (
 )
 from eduid.webapp.idp.assurance_data import EduidAuthnContextClass
 from eduid.webapp.idp.idp_saml import IdP_SAMLRequest, ServiceInfo
+from eduid.webapp.idp.known_device import BrowserDeviceInfo, KnownDevice
 from eduid.webapp.idp.other_device.data import OtherDeviceId
 from eduid.webapp.idp.other_device.db import OtherDevice
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class LoginContext(ABC):
+class LoginContext(ABC, BaseModel):
     """
     Class to hold data about an ongoing login process in memory only.
 
@@ -31,7 +32,12 @@ class LoginContext(ABC):
     """
 
     request_ref: RequestRef
-    _pending_request: Optional[IdP_PendingRequest] = field(default=None, init=False, repr=False)
+    known_device_info: Optional[BrowserDeviceInfo] = None
+    _known_device: Optional[KnownDevice] = None
+    _pending_request: Optional[IdP_PendingRequest] = None
+
+    class Config:
+        underscore_attrs_are_private = True  # needed for the underscore attributes to be inherited to subclasses
 
     def __str__(self) -> str:
         return f'<{self.__class__.__name__}: key={self.request_ref}>'
@@ -96,14 +102,22 @@ class LoginContext(ABC):
     def get_requested_authn_context(self) -> Optional[EduidAuthnContextClass]:
         raise NotImplementedError('Subclass must implement get_requested_authn_context')
 
+    @property
+    def known_device(self) -> Optional[KnownDevice]:
+        if not self._known_device:
+            if self.known_device_info:
+                from eduid.webapp.idp.app import current_idp_app as current_app
+
+                self._known_device = current_app.known_device_db.get_state_by_browser_info(self.known_device_info)
+        return self._known_device
+
 
 TLoginContextSubclass = TypeVar('TLoginContextSubclass', bound='LoginContext')
 
 
-@dataclass
 class LoginContextSAML(LoginContext):
 
-    _saml_req: Optional['IdP_SAMLRequest'] = field(default=None, init=False, repr=False)
+    _saml_req: Optional['IdP_SAMLRequest'] = None
 
     @property
     def SAMLRequest(self) -> str:
@@ -238,10 +252,9 @@ class LoginContextSAML(LoginContext):
         return res
 
 
-@dataclass
 class LoginContextOtherDevice(LoginContext):
 
-    other_device_req: OtherDevice = field(repr=False)
+    other_device_req: OtherDevice = None
 
     @property
     def request_id(self) -> Optional[str]:

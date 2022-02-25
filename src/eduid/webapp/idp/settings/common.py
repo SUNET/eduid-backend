@@ -130,6 +130,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     known_devices_secret_key: str  # secretbox key for decrypting the data stored in the browser local storage
     known_devices_new_ttl: timedelta = Field(default=timedelta(minutes=30))
     known_devices_ttl: timedelta = Field(default=timedelta(days=90))
+    known_devices_feature_enabled: bool = False
 
     @validator('sso_cookie')
     def make_sso_cookie(cls, v, values) -> CookieConfig:

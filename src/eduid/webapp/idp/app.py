@@ -183,6 +183,7 @@ def init_idp_app(name: str = 'idp', test_config: Optional[Mapping[str, Any]] = N
     app = IdPApp(config, handle_exceptions=False)
 
     # Register views
+    from eduid.webapp.idp.views.known_device import known_device_views
     from eduid.webapp.idp.views.mfa_auth import mfa_auth_views
     from eduid.webapp.idp.views.misc import misc_views
     from eduid.webapp.idp.views.next import next_views
@@ -191,6 +192,7 @@ def init_idp_app(name: str = 'idp', test_config: Optional[Mapping[str, Any]] = N
     from eduid.webapp.idp.views.tou import tou_views
     from eduid.webapp.idp.views.use_other import other_device_views
 
+    app.register_blueprint(known_device_views)
     app.register_blueprint(mfa_auth_views)
     app.register_blueprint(misc_views)
     app.register_blueprint(next_views)

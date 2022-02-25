@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import json
 import logging
-import typing
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, Optional, Type
+from typing import Any, Dict, Mapping, NewType, Optional, Type
 from uuid import uuid4
 
 import nacl
@@ -20,7 +19,7 @@ from eduid.userdb.util import utc_now
 
 logger = logging.getLogger(__name__)
 
-KnownDeviceId = typing.NewType('KnownDeviceId', str)
+KnownDeviceId = NewType('KnownDeviceId', str)
 
 
 class BrowserDeviceInfo(BaseModel):
@@ -105,7 +104,7 @@ class KnownDeviceDB(BaseDB):
 
         self._new_ttl = new_ttl
         self._ttl = ttl
-        self._app_secret_box = SecretBox(nacl.encoding.URLSafeBase64Encoder.decode(app_secretbox_key))
+        self.app_secret_box = SecretBox(nacl.encoding.URLSafeBase64Encoder.decode(app_secretbox_key))
 
         indexes = {
             'auto-discard': {'key': [('expires_at', 1)], 'expireAfterSeconds': 0},
@@ -135,7 +134,7 @@ class KnownDeviceDB(BaseDB):
         return KnownDevice.from_dict(state, from_browser=from_browser)
 
     def create_new_state(self) -> BrowserDeviceInfo:
-        browser_info = BrowserDeviceInfo.new(app_secret_box=self._app_secret_box)
+        browser_info = BrowserDeviceInfo.new(app_secret_box=self.app_secret_box)
         state = KnownDevice(state_id=browser_info.state_id)
         if not self.save(state, from_browser=browser_info, ttl=self._new_ttl):
             raise RuntimeError('Failed saving known device to database')
