@@ -130,7 +130,7 @@ def next_view(ticket: LoginContext) -> FluxData:
             current_app.logger.exception('Producing User-Agent stats failed')
 
         if current_app.conf.known_devices_feature_enabled:
-            if ticket.known_device:
+            if ticket.known_device and ticket.known_device_info:
                 _update_known_device_data(ticket, user, _next.authn_info)
                 current_app.known_device_db.save(
                     ticket.known_device, from_browser=ticket.known_device_info, ttl=current_app.conf.known_devices_ttl
@@ -280,8 +280,9 @@ def _log_user_agent() -> None:
     """ Log some statistics from the User-Agent header """
     ua = get_user_agent()
 
-    # TODO: change to debug logging later
-    current_app.logger.info(f'Logging in user with User-Agent {repr(ua.safe_str)}')
+    if ua:
+        # TODO: change to debug logging later
+        current_app.logger.info(f'Logging in user with User-Agent {repr(ua.safe_str)}')
 
     if not ua:
         current_app.stats.count('login_finished_ua_is_none')
@@ -322,6 +323,21 @@ def _log_user_agent() -> None:
 
 
 def _update_known_device_data(ticket: LoginContext, user: IdPUser, authn_info: AuthnInfo) -> None:
+    """
+    Update things we know about this device:
+      - whom it belongs to (eppn)
+      - current User-Agent
+      - current IP address
+      - time of last login
+
+    For privacy reasons, this data is stored encrypted in the database and the encryption key
+    is only given to the device. This means we can't access it again until the device returns
+    and provides the ticket.known_device_info.shared (encryption key and state id) to us again.
+    """
+    if not ticket.known_device:
+        # please mypy
+        return
+
     if not ticket.known_device.data.eppn:
         ticket.known_device.data.eppn = user.eppn
         current_app.stats.count('login_new_device_first_login_finished')

@@ -254,7 +254,7 @@ class LoginContextSAML(LoginContext):
 
 class LoginContextOtherDevice(LoginContext):
 
-    other_device_req: OtherDevice = None
+    other_device_req: OtherDevice
 
     @property
     def request_id(self) -> Optional[str]:
