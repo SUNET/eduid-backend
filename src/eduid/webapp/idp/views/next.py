@@ -287,10 +287,18 @@ def _log_user_agent() -> None:
         current_app.stats.count('login_finished_ua_is_none')
         return
 
-    if ua.parsed.browser.family == 'Python Requests':
+    if ua.parsed.browser.family in ['Python Requests', 'PingdomBot']:
         # Don't want to log further details about the monitoring of the IdPs and apps
         current_app.stats.count('login_finished_ua_is_monitoring')
         return
+
+    if ua.parsed.is_bot:
+        # Don't want bots to affect e.g. OS count
+        current_app.stats.count('login_finished_ua_is_bot')
+        return
+
+    # log a 'total count' of users to avoid having to sum up potential unknowns, such as browser families
+    current_app.stats.count('login_finished_ua_is_user')
 
     if ua.parsed.is_mobile:
         current_app.stats.count('login_finished_ua_is_mobile')
