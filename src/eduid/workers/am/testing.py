@@ -38,7 +38,9 @@ __author__ = 'leifj'
 
 import logging
 from copy import deepcopy
+from datetime import timezone, datetime
 from typing import Any, Dict, Optional
+from uuid import UUID
 
 import bson
 import pytest
@@ -96,6 +98,19 @@ USER_DATA = {
         'id': 'orcid_unique_id',
         'verified': True,
         'created_by': 'orcid',
+    },
+    'ladok': {
+        'created_ts': datetime(2022, 2, 23, 17, 39, 32, 303000, tzinfo=timezone.utc),
+        'modified_ts': datetime(2022, 2, 23, 17, 39, 32, 303000, tzinfo=timezone.utc),
+        'verified_by': 'eduid-ladok',
+        'external_id': UUID('9555f3de-dd32-4bed-8e36-72ef00fb4df2'),
+        'university': {
+            'created_ts': datetime(2022, 2, 23, 17, 39, 32, 303000, tzinfo=timezone.utc),
+            'modified_ts': datetime(2022, 2, 23, 17, 39, 32, 303000, tzinfo=timezone.utc),
+            'ladok_name': 'ab',
+            'name': {'sv': 'Lärosätesnamn', 'en': 'University Name'},
+        },
+        'verified': True,
     },
 }
 

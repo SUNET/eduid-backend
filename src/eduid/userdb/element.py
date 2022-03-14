@@ -139,8 +139,8 @@ class Element(BaseModel):
     modified_ts: datetime = Field(default_factory=utc_now)
     # This is a short-term hack to deploy new dataclass based elements without
     # any changes to data in the production database. Remove after a burn-in period.
-    no_created_ts_in_db: bool = False
-    no_modified_ts_in_db: bool = False
+    no_created_ts_in_db: bool = Field(default=False, exclude=True)
+    no_modified_ts_in_db: bool = Field(default=False, exclude=True)
 
     class Config:
         allow_population_by_field_name = True  # allow setting created_ts by name, not just it's alias
@@ -205,15 +205,13 @@ class Element(BaseModel):
         """
         # If there was no modified_ts in the data that was loaded from the database,
         # don't write one back if it matches the implied one of created_ts
-        if 'no_modified_ts_in_db' in data:
-            if data.pop('no_modified_ts_in_db') is True:
-                if data.get('modified_ts') == data.get('created_ts'):
-                    del data['modified_ts']
+        if self.no_modified_ts_in_db is True:
+            if data.get('modified_ts') == data.get('created_ts'):
+                del data['modified_ts']
 
-        if 'no_created_ts_in_db' in data:
-            if data.pop('no_created_ts_in_db') is True:
-                if 'created_ts' in data:
-                    del data['created_ts']
+        if self.no_created_ts_in_db is True:
+            if 'created_ts' in data:
+                del data['created_ts']
 
         return data
 
@@ -234,7 +232,7 @@ class VerifiedElement(Element, ABC):
     Elements that can be verified or not.
     """
 
-    is_verified: bool = False
+    is_verified: bool = Field(default=False, alias='verified')
     verified_by: Optional[str] = None
     verified_ts: Optional[datetime] = None
 

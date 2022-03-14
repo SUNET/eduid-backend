@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from datetime import datetime, timezone
+from uuid import UUID
 
 import bson
 
@@ -406,3 +408,40 @@ class AttributeFetcherOrcidTests(ProofingTestCase):
         self.fetcher.private_db.save(proofing_user)
 
         self.assertDictEqual(self.fetcher.fetch_attrs(proofing_user.user_id), {'$unset': {'orcid': None}})
+
+
+class AttributeFetcherLadokTests(ProofingTestCase):
+
+    fetcher_name = 'eduid_ladok'
+
+    def test_existing_user(self):
+        proofing_user = ProofingUser.from_dict(self.user_data)
+        self.fetcher.private_db.save(proofing_user)
+        fetched = self.fetcher.fetch_attrs(proofing_user.user_id)
+
+        expected = {
+            '$set': {
+                'ladok': {
+                    'created_ts': datetime(2022, 2, 23, 17, 39, 32, tzinfo=timezone.utc),
+                    'modified_ts': datetime(2022, 2, 23, 17, 39, 32, tzinfo=timezone.utc),
+                    'verified_by': 'eduid-ladok',
+                    'external_id': UUID('9555f3de-dd32-4bed-8e36-72ef00fb4df2'),
+                    'university': {
+                        'created_ts': datetime(2022, 2, 23, 17, 39, 32, tzinfo=timezone.utc),
+                        'modified_ts': datetime(2022, 2, 23, 17, 39, 32, tzinfo=timezone.utc),
+                        'ladok_name': 'ab',
+                        'name': {'sv': 'Lärosätesnamn', 'en': 'University Name'},
+                    },
+                    'verified': True,
+                }
+            }
+        }
+
+        assert normalised_data(fetched) == expected
+
+    def test_remove_ladok(self):
+        proofing_user = ProofingUser.from_dict(self.user_data)
+        proofing_user.ladok = None
+        self.fetcher.private_db.save(proofing_user)
+
+        self.assertDictEqual(self.fetcher.fetch_attrs(proofing_user.user_id), {'$unset': {'ladok': None}})
