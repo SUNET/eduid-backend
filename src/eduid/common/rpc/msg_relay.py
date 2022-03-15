@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
+import logging
 from ast import alias
 from datetime import datetime
 from email.policy import default
-import logging
 from typing import List, Optional
 
 from pydantic import BaseModel, Extra, Field
@@ -78,14 +78,16 @@ class Relation(NavetModelConfig):
 class PostalAddresses(NavetModelConfig):
     official_address: OfficialAddress = Field(alias='OfficialAddress')
 
+
 class DeregistrationInformation(NavetModelConfig):
     date: Optional[str] = None
     cause_code: Optional[str] = Field(default=None, alias='causeCode')
 
+
 class Person(NavetModelConfig):
     name: Name = Field(default_factory=Name, alias='Name')
     person_id: PersonId = Field(alias='PersonId')
-    deregistration_information: DeregistrationInformation = Field(alias='DeregistrationInformation') 
+    deregistration_information: DeregistrationInformation = Field(alias='DeregistrationInformation')
     reference_national_identity_number: Optional[str] = Field(default=None, alias='ReferenceNationalIdentityNumber')
     postal_addresses: PostalAddresses = Field(alias='PostalAddresses')
     relations: List[Relation] = Field(default_factory=list)
@@ -94,7 +96,8 @@ class Person(NavetModelConfig):
         if not self.deregistration_information.cause_code or not self.deregistration_information.date:
             return False
         return True
-        
+
+
 class NavetData(NavetModelConfig):
     case_information: CaseInformation = Field(alias='CaseInformation')
     person: Person = Field(alias='Person')
