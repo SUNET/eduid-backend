@@ -8,6 +8,16 @@ from collections import OrderedDict
 from typing import Optional
 
 
+def is_deregistered(person: Optional[dict]) -> bool:
+    if person is None:
+        return False
+    deregistration_information = person['DeregistrationInformation']
+    if deregistration_information.get('date') or deregistration_information.get('causeCode'):
+        return True
+
+    return False
+
+
 def load_template(template_dir: str, filename: str, message_dict: dict, lang: str) -> str:
     """
     This function loads a template file by provided language.
@@ -26,44 +36,19 @@ def load_template(template_dir: str, filename: str, message_dict: dict, lang: st
     raise RuntimeError("template not found")
 
 
-def navet_get_name(navet_data: dict) -> Optional[OrderedDict]:
-    """
-    :param navet_data: Loaded JSON response from eduid-navet_service
-    :return: Name data object
-    """
-    person = navet_get_person(navet_data)
-    if person is not None:
-        try:
-            return OrderedDict([(u'Name', person['Name']),])
-        except KeyError:
-            pass
-    return None
-
-
-def navet_get_official_address(navet_data: dict) -> Optional[OrderedDict]:
-    """
-    :param navet_data:  Loaded JSON response from eduid-navet_service
-    :return: Official address data object
-    """
-    person = navet_get_person(navet_data)
-    if person is not None:
-        try:
-            return OrderedDict([(u'OfficialAddress', person['PostalAddresses']['OfficialAddress']),])
-        except KeyError:
-            pass
-    return None
-
-
 def navet_get_name_and_official_address(navet_data: Optional[dict]) -> Optional[OrderedDict]:
     """
     :param navet_data:  Loaded JSON response from eduid-navet_service
     :return: Name and official address data objects
     """
     person = navet_get_person(navet_data)
+    if is_deregistered(person):
+        return None
+
     if person is not None:
         try:
             return OrderedDict(
-                [(u'Name', person['Name']), (u'OfficialAddress', person['PostalAddresses']['OfficialAddress']),]
+                [(u'Name', person['Name']), (u'OfficialAddress', person['PostalAddresses']['OfficialAddress'])]
             )
         except KeyError:
             pass
@@ -76,9 +61,12 @@ def navet_get_relations(navet_data: Optional[dict]) -> Optional[OrderedDict]:
     :return: Relations data object
     """
     person = navet_get_person(navet_data)
+    if is_deregistered(person):
+        return None
+
     if person is not None:
         try:
-            return OrderedDict([('Relations', {'Relation': person['Relations']}),])
+            return OrderedDict([('Relations', {'Relation': person['Relations']})])
         except KeyError:
             pass
     return None
@@ -135,6 +123,7 @@ def navet_get_all_data(navet_data: Optional[dict]) -> Optional[OrderedDict]:
             "Name": {"GivenName": "Saskariot Teofil", "Surname": "Nor\u00e9n"},
             "PersonId": {"NationalIdentityNumber": "197609272393"},
             "ReferenceNationalIdentityNumber": "",
+            "DeregistrationInformation": {},
             "PostalAddresses": {
                 "OfficialAddress": {
                     "Address1": "\u00d6VER G\u00c5RDEN",
