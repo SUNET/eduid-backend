@@ -36,13 +36,14 @@ class BrowserDeviceInfo(BaseModel):
 
     @classmethod
     def from_public(cls: Type[BrowserDeviceInfo], shared: str, app_secret_box: SecretBox) -> BrowserDeviceInfo:
-        _data: bytes = app_secret_box.decrypt(shared, encoder=nacl.encoding.URLSafeBase64Encoder)
+        _data: bytes = app_secret_box.decrypt(shared.encode(), encoder=nacl.encoding.URLSafeBase64Encoder)
         if not _data.startswith(b'1|'):
             raise ValueError('Unhandled browser device info')
 
         # version 1 format is 1|state_id_str|private_key_b64
         _v, state_id, private_key_str = _data.decode().split('|')
-        secret_box = SecretBox(nacl.encoding.Base64Encoder.decode(private_key_str))
+        private_key = private_key_str.encode()
+        secret_box = SecretBox(nacl.encoding.Base64Encoder.decode(private_key))
         return cls(shared=shared, state_id=state_id, secret_box=secret_box)
 
     @classmethod
@@ -53,7 +54,7 @@ class BrowserDeviceInfo(BaseModel):
         # version 1 format is 1|state_id_str|private_key_b64
         versioned = '|'.join(['1', state_id, nacl.encoding.Base64Encoder.encode(private_key_bytes).decode()])
         shared = app_secret_box.encrypt(versioned.encode(), encoder=nacl.encoding.URLSafeBase64Encoder)
-        return cls(shared=shared, state_id=KnownDeviceId(state_id), secret_box=secret_box)
+        return cls(shared=shared.decode(), state_id=KnownDeviceId(state_id), secret_box=secret_box)
 
 
 class KnownDeviceData(BaseModel):
@@ -104,7 +105,8 @@ class KnownDeviceDB(BaseDB):
 
         self._new_ttl = new_ttl
         self._ttl = ttl
-        self.app_secret_box = SecretBox(nacl.encoding.URLSafeBase64Encoder.decode(app_secretbox_key))
+        _key = app_secretbox_key.encode()
+        self.app_secret_box = SecretBox(nacl.encoding.URLSafeBase64Encoder.decode(_key))
 
         indexes = {
             'auto-discard': {'key': [('expires_at', 1)], 'expireAfterSeconds': 0},
