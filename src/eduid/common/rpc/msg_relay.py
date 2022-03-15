@@ -90,7 +90,7 @@ class Person(NavetModelConfig):
     relations: List[Relation] = Field(default_factory=list)
 
     def is_deregistered(self) -> bool:
-        if not self.deregistration_information.cause_code or not self.deregistration_information.date:
+        if self.deregistration_information.cause_code or self.deregistration_information.date:
             return False
         return True
 
