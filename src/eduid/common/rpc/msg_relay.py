@@ -91,8 +91,8 @@ class Person(NavetModelConfig):
 
     def is_deregistered(self) -> bool:
         if self.deregistration_information.cause_code or self.deregistration_information.date:
-            return False
-        return True
+            return True
+        return False
 
 
 class NavetData(NavetModelConfig):
