@@ -150,6 +150,16 @@ class MessageSender(Task):
         logger.debug(f'send_message result: {status}')
         return status
 
+    @staticmethod
+    def _is_deregistered(navet_data: Optional[dict]) -> bool:
+        if navet_data is None:
+            return False
+        deregistration_information = navet_data.get('Person',{}).get('DeregistrationInformation',{})
+        if deregistration_information.get('date') or deregistration_information.get('causeCode'):
+            return True
+
+        return False
+
     def get_postal_address(self, identity_number: str) -> Optional[OrderedDict]:
         """
         Fetch name and postal address from NAVET
@@ -162,6 +172,8 @@ class MessageSender(Task):
             return self.get_devel_postal_address()
 
         data = self._get_navet_data(identity_number)
+        if self._is_deregistered(data):
+            return None
         # Filter name and address from the Navet lookup results
         return navet_get_name_and_official_address(data)
 
@@ -200,6 +212,8 @@ class MessageSender(Task):
             return self.get_devel_relations()
 
         data = self._get_navet_data(identity_number)
+        if self._is_deregistered(data):
+            return None
         # Filter relations from the Navet lookup results
         return navet_get_relations(data)
 
@@ -257,6 +271,7 @@ class MessageSender(Task):
                     {
                         'Name': {'GivenNameMarking': '20', 'GivenName': 'Testaren Test', 'Surname': 'Testsson'},
                         "PersonId": {"NationalIdentityNumber": "197609272393"},
+                        "DeregistrationInformation": {},
                         "ReferenceNationalIdentityNumber": "",
                         "PostalAddresses": {
                             'OfficialAddress': {
