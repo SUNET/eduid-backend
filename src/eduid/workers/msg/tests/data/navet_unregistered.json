@@ -12,7 +12,7 @@
                 "PersonId": {
                     "NationalIdentityNumber": "197609272393"
                 },
-                "DeregistrationInformation": {},
+                "DeregistrationInformation": {"date":"20220315", "causeCode":"AV"},
                 "PostalAddresses": {
                     "OfficialAddress": {
                         "Address1": "\u00d6VER G\u00c5RDEN",

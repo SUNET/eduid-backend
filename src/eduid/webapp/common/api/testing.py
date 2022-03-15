@@ -229,9 +229,10 @@ class EduidAPITestCase(CommonTestCase):
         rpc_return_value = {
             'CaseInformation': {'lastChanged': '20170904141659'},
             'Person': {
-                'Name': {'GivenNameMarking': '20', 'GivenName': 'Testaren Test', 'Surname': 'Testsson'},
                 'PersonId': {'NationalIdentityNumber': '197609272393'},
                 'ReferenceNationalIdentityNumber': '',
+                "DeregistrationInformation": {},
+                'Name': {'GivenNameMarking': '20', 'GivenName': 'Testaren Test', 'Surname': 'Testsson'},
                 'PostalAddresses': {
                     'OfficialAddress': {'Address2': 'ÖRGATAN 79 LGH 10', 'PostalCode': '12345', 'City': 'LANDET'}
                 },
