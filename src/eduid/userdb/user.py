@@ -69,11 +69,11 @@ class User(BaseModel):
 
     eppn: str = Field(alias='eduPersonPrincipalName')
     user_id: bson.ObjectId = Field(default_factory=bson.ObjectId, alias='_id')
-    given_name: str = Field(default='', alias='givenName')
+    given_name: Optional[str] = Field(default=None, alias='givenName')
     display_name: Optional[str] = Field(default=None, alias='displayName')
-    surname: str = ''
+    surname: Optional[str] = None
     subject: Optional[SubjectType] = None
-    language: str = Field(default='sv', alias='preferredLanguage')
+    language: Optional[str] = Field(default=None, alias='preferredLanguage')
     mail_addresses: MailAddressList = Field(default_factory=MailAddressList, alias='mailAliases')
     phone_numbers: PhoneNumberList = Field(default_factory=PhoneNumberList, alias='phone')
     credentials: CredentialList = Field(default_factory=CredentialList, alias='passwords')
@@ -182,6 +182,12 @@ class User(BaseModel):
             data['orcid'] = self.orcid.to_dict()
         if self.ladok is not None:
             data['ladok'] = self.ladok.to_dict()
+
+        # remove empty strings and empty lists
+        for key in list(data.keys()):
+            if data[key] in [[], '']:
+                del data[key]
+
         return data
 
     @classmethod
