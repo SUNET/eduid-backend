@@ -38,6 +38,7 @@ __author__ = 'ft'
 
 class IdPRequest(EduidSchema, CSRFRequestMixin):
     ref = fields.Str(required=True)
+    this_device = fields.Str(required=False)
 
 
 class NextRequestSchema(IdPRequest):
@@ -163,5 +164,16 @@ class AbortRequestSchema(IdPRequest):
 class AbortResponseSchema(FluxStandardAction):
     class AbortResponsePayload(EduidSchema, CSRFResponseMixin):
         finished = fields.Bool(required=True)
+
+    payload = fields.Nested(AbortResponsePayload)
+
+
+class NewDeviceRequestSchema(IdPRequest):
+    pass
+
+
+class NewDeviceResponseSchema(FluxStandardAction):
+    class AbortResponsePayload(EduidSchema, CSRFResponseMixin):
+        new_device = fields.Str(required=True)
 
     payload = fields.Nested(AbortResponsePayload)

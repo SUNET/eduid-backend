@@ -98,6 +98,11 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
         current_app.logger.debug('Login request is aborted')
         return NextResult(message=IdPMsg.aborted)
 
+    if current_app.conf.known_devices_feature_enabled:
+        if not ticket.known_device:
+            current_app.logger.debug('Login request from unknown device')
+            return NextResult(message=IdPMsg.unknown_device)
+
     if current_app.conf.allow_other_device_logins:
         if ticket.is_other_device_1:
             state = None
@@ -671,7 +676,7 @@ def get_ticket(info: SAMLQueryParams, binding: Optional[str]) -> Optional[LoginC
 
     pending = session.idp.pending_requests[info.request_ref]
     if isinstance(pending, IdP_SAMLPendingRequest):
-        return LoginContextSAML(info.request_ref)
+        return LoginContextSAML(request_ref=info.request_ref)
     elif isinstance(pending, IdP_OtherDevicePendingRequest):
         logger.debug(f'get_ticket: Loading IdP_OtherDevicePendingRequest (state_id {pending.state_id})')
         state = None

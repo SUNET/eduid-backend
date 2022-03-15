@@ -10,9 +10,11 @@ from eduid.webapp.common.api.schemas.models import FluxSuccessResponse
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
+from eduid.webapp.idp.decorators import require_ticket
 from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.login import get_ticket
+from eduid.webapp.idp.login_context import LoginContext
 from eduid.webapp.idp.mischttp import set_sso_cookie
 from eduid.webapp.idp.schemas import PwAuthRequestSchema, PwAuthResponseSchema
 from eduid.webapp.idp.service import SAMLQueryParams
@@ -24,17 +26,13 @@ pw_auth_views = Blueprint('pw_auth', __name__, url_prefix='')
 @pw_auth_views.route('/pw_auth', methods=['POST'])
 @UnmarshalWith(PwAuthRequestSchema)
 @MarshalWith(PwAuthResponseSchema)
-def pw_auth(ref: RequestRef, username: str, password: str) -> Union[FluxData, WerkzeugResponse]:
+@require_ticket
+def pw_auth(ticket: LoginContext, username: str, password: str) -> Union[FluxData, WerkzeugResponse]:
     current_app.logger.debug('\n\n')
-    current_app.logger.debug(f'--- Password authentication ({request.method}) ---')
+    current_app.logger.debug(f'--- Password authentication ({ticket.request_ref}) ---')
 
     if not current_app.conf.login_bundle_url:
         return error_response(message=IdPMsg.not_available)
-
-    _info = SAMLQueryParams(request_ref=ref)
-    ticket = get_ticket(_info, None)
-    if not ticket:
-        return error_response(message=IdPMsg.bad_ref)
 
     if not username or not password:
         current_app.logger.debug(f'Credentials not supplied')

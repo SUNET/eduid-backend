@@ -2,7 +2,6 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, Mapping
 
-import user_agents
 from flask import request, url_for
 
 from eduid.common.misc.timeutil import utc_now
@@ -11,6 +10,7 @@ from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import AuthnState
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
 from eduid.webapp.idp.login_context import LoginContextOtherDevice
+from eduid.webapp.idp.mischttp import get_user_agent
 from eduid.webapp.idp.other_device.data import OtherDeviceState
 from eduid.webapp.idp.other_device.db import OtherDevice
 from eduid.webapp.idp.sso_session import SSOSession
@@ -51,14 +51,19 @@ def device2_finish(ticket: LoginContextOtherDevice, sso_session: SSOSession, aut
 
 
 def device2_state_to_flux_payload(state: OtherDevice, now: datetime) -> Mapping[str, Any]:
+    description = ''
+    ua = get_user_agent()
+    if ua:
+        description = str(ua.parsed)
     # passing expires_at to the frontend would require clock sync to be usable,
     # while passing number of seconds left is pretty unambiguous
     expires_in = (state.expires_at - now).total_seconds()
     # The frontend will present the user with the option to proceed with this login on this device #2.
     # If the user proceeds, the frontend can now call the /next endpoint with the ref returned in this response.
+
     device_info = {
         'addr': state.device1.ip_address,
-        'description': str(user_agents.parse(state.device1.user_agent)),
+        'description': description,
         'proximity': get_ip_proximity(state.device1.ip_address, request.remote_addr).value,
         'service_info': state.device1.service_info,
     }

@@ -19,8 +19,11 @@ import pprint
 from dataclasses import dataclass
 from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, Type
 
+import user_agents
+from bleach import clean
 from flask import make_response, redirect, request
 from saml2 import BINDING_HTTP_REDIRECT
+from user_agents.parsers import UserAgent
 from werkzeug.exceptions import BadRequest, InternalServerError
 from werkzeug.wrappers import Response as WerkzeugResponse
 
@@ -212,3 +215,21 @@ def get_default_template_arguments(config: IdPConfig) -> Dict[str, str]:
         'password_reset_link': config.password_reset_link,
         'static_link': config.static_link,
     }
+
+
+@dataclass
+class IdPUserAgent:
+    parsed: UserAgent
+    safe_str: str
+
+
+def get_user_agent() -> Optional[IdPUserAgent]:
+    """ Get the request User-Agent and parse it in a safe and controlled way """
+    user_agent = request.headers.get('user-agent')
+    if not user_agent:
+        return None
+
+    safe_str = clean(user_agent[:200])
+    parsed = user_agents.parse(safe_str)
+
+    return IdPUserAgent(parsed=parsed, safe_str=safe_str)

@@ -2,26 +2,26 @@ import re
 from dataclasses import asdict, dataclass
 from typing import Any, Dict, List, Optional
 
-import user_agents
-from bleach import clean
 from flask import Blueprint, request, url_for
-from saml2 import BINDING_HTTP_POST
 
 from eduid.userdb import LockedIdentityNin
 from eduid.userdb.credentials import FidoCredential, Password
+from eduid.userdb.idp import IdPUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
-from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
+from eduid.webapp.idp.assurance import AuthnState
+from eduid.webapp.idp.assurance_data import AuthnInfo
+from eduid.webapp.idp.decorators import require_ticket
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
 from eduid.webapp.idp.idp_saml import cancel_saml_request
-from eduid.webapp.idp.login import SSO, get_ticket, login_next_step
+from eduid.webapp.idp.login import SSO, login_next_step
 from eduid.webapp.idp.login_context import LoginContext, LoginContextOtherDevice, LoginContextSAML
+from eduid.webapp.idp.mischttp import get_user_agent
 from eduid.webapp.idp.other_device.device2 import device2_finish
 from eduid.webapp.idp.schemas import NextRequestSchema, NextResponseSchema
-from eduid.webapp.idp.service import SAMLQueryParams
 from eduid.webapp.idp.sso_session import SSOSession
+from saml2 import BINDING_HTTP_POST
 
 next_views = Blueprint('next', __name__, url_prefix='')
 
@@ -29,25 +29,22 @@ next_views = Blueprint('next', __name__, url_prefix='')
 @next_views.route('/next', methods=['POST'])
 @UnmarshalWith(NextRequestSchema)
 @MarshalWith(NextResponseSchema)
-def next_view(ref: RequestRef) -> FluxData:
+@require_ticket
+def next_view(ticket: LoginContext) -> FluxData:
     """ Main state machine for frontend """
     current_app.logger.debug('\n\n')
-    current_app.logger.debug(f'--- Next ({ref}) ---')
+    current_app.logger.debug(f'--- Next ({ticket.request_ref}) ---')
 
     if not current_app.conf.login_bundle_url:
         return error_response(message=IdPMsg.not_available)
-
-    _info = SAMLQueryParams(request_ref=ref)
-    ticket = get_ticket(_info, None)
-    if not ticket:
-        _pending = session.idp.pending_requests
-        current_app.logger.debug(f'Login ref {ref} not found in pending_requests: {_pending.keys()}')
-        return error_response(message=IdPMsg.bad_ref)
 
     sso_session = current_app._lookup_sso_session()
 
     _next = login_next_step(ticket, sso_session)
     current_app.logger.debug(f'Login Next: {_next}')
+
+    if _next.message == IdPMsg.unknown_device:
+        return success_response(payload={'action': IdPAction.NEW_DEVICE.value})
 
     if _next.message == IdPMsg.aborted:
         if isinstance(ticket, LoginContextSAML):
@@ -131,6 +128,13 @@ def next_view(ref: RequestRef) -> FluxData:
             _log_user_agent()
         except:
             current_app.logger.exception('Producing User-Agent stats failed')
+
+        if current_app.conf.known_devices_feature_enabled:
+            if ticket.known_device and ticket.known_device_info:
+                _update_known_device_data(ticket, user, _next.authn_info)
+                current_app.known_device_db.save(
+                    ticket.known_device, from_browser=ticket.known_device_info, ttl=current_app.conf.known_devices_ttl
+                )
 
         if isinstance(ticket, LoginContextSAML):
             saml_params = sso.get_response_params(_next.authn_info, ticket, user)
@@ -274,27 +278,34 @@ def _set_user_options(res: AuthnOptions, eppn: str) -> None:
 
 def _log_user_agent() -> None:
     """ Log some statistics from the User-Agent header """
-    user_agent = request.headers.get('user-agent')
+    ua = get_user_agent()
 
-    # TODO: change to debug logging later
-    current_app.logger.info(f'Logging in user with User-Agent {repr(user_agent)}')
+    if ua:
+        # TODO: change to debug logging later
+        current_app.logger.info(f'Logging in user with User-Agent {repr(ua.safe_str)}')
 
-    if not user_agent:
+    if not ua:
         current_app.stats.count('login_finished_ua_is_none')
         return
 
-    parsed = user_agents.parse(clean(user_agent[:200]))
-
-    if parsed.browser.family == 'Python Requests':
+    if ua.parsed.browser.family in ['Python Requests', 'PingdomBot']:
         # Don't want to log further details about the monitoring of the IdPs and apps
         current_app.stats.count('login_finished_ua_is_monitoring')
         return
 
-    if parsed.is_mobile:
+    if ua.parsed.is_bot:
+        # Don't want bots to affect e.g. OS count
+        current_app.stats.count('login_finished_ua_is_bot')
+        return
+
+    # log a 'total count' of users to avoid having to sum up potential unknowns, such as browser families
+    current_app.stats.count('login_finished_ua_is_user')
+
+    if ua.parsed.is_mobile:
         current_app.stats.count('login_finished_ua_is_mobile')
-    elif parsed.is_pc:
+    elif ua.parsed.is_pc:
         current_app.stats.count('login_finished_ua_is_pc')
-    elif parsed.is_tablet:
+    elif ua.parsed.is_tablet:
         current_app.stats.count('login_finished_ua_is_tablet')
     else:
         current_app.stats.count('login_finished_ua_is_unknown')
@@ -304,8 +315,61 @@ def _log_user_agent() -> None:
         safe_value = re.sub('[^a-zA-Z0-9.]', '_', value[:20])
         current_app.stats.count(f'{prefix}_{safe_value}')
 
-    _safe_stat('login_finished_ua_device', parsed.device.family)
-    _safe_stat('login_finished_ua_os_family', parsed.os.family)
-    _safe_stat('login_finished_ua_browser', parsed.browser.family)
+    _safe_stat('login_finished_ua_device', ua.parsed.device.family)
+    _safe_stat('login_finished_ua_os_family', ua.parsed.os.family)
+    _safe_stat('login_finished_ua_browser', ua.parsed.browser.family)
 
     return None
+
+
+def _update_known_device_data(ticket: LoginContext, user: IdPUser, authn_info: AuthnInfo) -> None:
+    """
+    Update things we know about this device:
+      - whom it belongs to (eppn)
+      - current User-Agent
+      - current IP address
+      - time of last login
+
+    For privacy reasons, this data is stored encrypted in the database and the encryption key
+    is only given to the device. This means we can't access it again until the device returns
+    and provides the ticket.known_device_info.shared (encryption key and state id) to us again.
+    """
+    if not ticket.known_device:
+        # please mypy
+        return
+
+    if not ticket.known_device.data.eppn:
+        ticket.known_device.data.eppn = user.eppn
+        current_app.stats.count('login_new_device_first_login_finished')
+    elif ticket.known_device.data.eppn != user.eppn:
+        # We quite possibly want to block this in production, after verifying it "shouldn't happen"
+        current_app.logger.warning('Known device eppn changed from {ticket.known_device.data.eppn} to {user.eppn}')
+        ticket.known_device.data.eppn = user.eppn
+        current_app.stats.count('login_new_device_changed_eppn')
+
+    if ticket.known_device.data.ip_address != request.remote_addr:
+        if ticket.known_device.data.ip_address:
+            current_app.stats.count('login_known_device_ip_changed')
+        current_app.logger.debug('Known device: Recording new IP address')
+        current_app.logger.debug(f'Known device:   old {ticket.known_device.data.ip_address}')
+        current_app.logger.debug(f'Known device:   new {request.remote_addr}')
+        ticket.known_device.data.ip_address = request.remote_addr
+
+    _ua = get_user_agent()
+    _ua_str = None
+    if _ua:
+        _ua_str = str(_ua.parsed)
+    if ticket.known_device.data.user_agent != _ua_str:
+        if ticket.known_device.data.user_agent:
+            current_app.stats.count('login_known_device_ua_changed')
+        current_app.logger.debug('Known device: Recording new User-Agent')
+        current_app.logger.debug(f'Known device:   old {ticket.known_device.data.user_agent}')
+        current_app.logger.debug(f'Known device:   new {_ua_str}')
+        ticket.known_device.data.user_agent = _ua_str
+
+    if ticket.known_device.data.last_login:
+        age = authn_info.instant - ticket.known_device.data.last_login
+        current_app.logger.debug(f'Known device: Last login from this device was {age} before this one')
+        current_app.logger.debug(f'Known device:   old {ticket.known_device.data.last_login.isoformat()}')
+        current_app.logger.debug(f'Known device:   new {authn_info.instant.isoformat()}')
+    ticket.known_device.data.last_login = authn_info.instant
