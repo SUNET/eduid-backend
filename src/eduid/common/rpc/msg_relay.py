@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
-from ast import alias
-from datetime import datetime
-from email.policy import default
 from typing import List, Optional
 
-from pydantic import BaseModel, Extra, Field
+from pydantic import BaseModel, Field
 
 import eduid.workers.msg
 from eduid.common.config.base import MsgConfigMixin
