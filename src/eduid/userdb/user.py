@@ -36,7 +36,7 @@ from __future__ import annotations
 import copy
 from datetime import datetime
 from enum import Enum, unique
-from typing import Any, Dict, List, Mapping, Optional, Type, TypeVar, cast
+from typing import Any, Dict, List, Mapping, Optional, Type, TypeVar, cast, Union
 
 import bson
 from pydantic import BaseModel, Extra, Field, root_validator, validator
@@ -86,7 +86,7 @@ class User(BaseModel):
     orcid: Optional[Orcid] = None
     ladok: Optional[Ladok] = None
     profiles: ProfileList = Field(default_factory=ProfileList)
-    letter_proofing_data: Optional[list] = None
+    letter_proofing_data: Optional[Union[list, dict]] = None  # remove dict after a full load-save-users
     revoked_ts: Optional[datetime] = None
 
     class Config:
@@ -185,8 +185,12 @@ class User(BaseModel):
 
         # remove empty strings and empty lists
         for key in list(data.keys()):
-            if data[key] in [[], '']:
+            if data[key] in ['', []]:
                 del data[key]
+
+        # make sure letter_proofing_data is a list as some old users has a dict instead
+        if 'letter_proofing_data' in data and isinstance(data['letter_proofing_data'], dict):
+            data['letter_proofing_data'] = [data['letter_proofing_data']]
 
         return data
 
