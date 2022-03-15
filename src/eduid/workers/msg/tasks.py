@@ -257,6 +257,7 @@ class MessageSender(Task):
                     {
                         'Name': {'GivenNameMarking': '20', 'GivenName': 'Testaren Test', 'Surname': 'Testsson'},
                         "PersonId": {"NationalIdentityNumber": "197609272393"},
+                        "DeregistrationInformation": {},
                         "ReferenceNationalIdentityNumber": "",
                         "PostalAddresses": {
                             'OfficialAddress': {

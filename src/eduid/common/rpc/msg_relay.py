@@ -2,7 +2,7 @@
 import logging
 from typing import List, Optional
 
-from pydantic import BaseModel, Extra, Field
+from pydantic import BaseModel, Field
 
 import eduid.workers.msg
 from eduid.common.config.base import MsgConfigMixin
@@ -76,12 +76,23 @@ class PostalAddresses(NavetModelConfig):
     official_address: OfficialAddress = Field(alias='OfficialAddress')
 
 
+class DeregistrationInformation(NavetModelConfig):
+    date: Optional[str] = None
+    cause_code: Optional[str] = Field(default=None, alias='causeCode')
+
+
 class Person(NavetModelConfig):
     name: Name = Field(default_factory=Name, alias='Name')
     person_id: PersonId = Field(alias='PersonId')
+    deregistration_information: DeregistrationInformation = Field(alias='DeregistrationInformation')
     reference_national_identity_number: Optional[str] = Field(default=None, alias='ReferenceNationalIdentityNumber')
     postal_addresses: PostalAddresses = Field(alias='PostalAddresses')
     relations: List[Relation] = Field(default_factory=list)
+
+    def is_deregistered(self) -> bool:
+        if self.deregistration_information.cause_code or self.deregistration_information.date:
+            return True
+        return False
 
 
 class NavetData(NavetModelConfig):
@@ -111,7 +122,7 @@ class MsgRelay(object):
     def get_language(lang: str) -> str:
         return LANGUAGE_MAPPING.get(lang, 'en_US')
 
-    def get_all_navet_data(self, nin: str, timeout: int = 25) -> NavetData:
+    def get_all_navet_data(self, nin: str, timeout: int = 25, allow_deregistered: bool = False) -> NavetData:
         """
         :param nin: Swedish national identity number
         :param timeout: Max wait time for task to finish
@@ -121,7 +132,9 @@ class MsgRelay(object):
         try:
             ret = rtask.get(timeout=timeout)
             if ret is not None:
-                return NavetData.parse_obj(ret)
+                data = NavetData.parse_obj(ret)
+                if not data.person.is_deregistered() or allow_deregistered:
+                    return data
             raise MsgTaskFailed('No data returned from Navet')
         except Exception as e:
             rtask.forget()
