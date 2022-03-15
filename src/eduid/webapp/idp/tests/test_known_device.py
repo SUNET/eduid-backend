@@ -17,7 +17,7 @@ from eduid.webapp.idp.tests.test_app import IdPTests
 class TestBrowserDeviceInfo(unittest.TestCase):
 
     app_secret_box = SecretBox(
-        nacl.encoding.URLSafeBase64Encoder.decode('TfRW-RFFk-8MFAXkOpBEfa1p9aObAavTiEGGX1P96og=')
+        nacl.encoding.URLSafeBase64Encoder.decode(b'TfRW-RFFk-8MFAXkOpBEfa1p9aObAavTiEGGX1P96og=')
     )
 
     nonce = nacl.encoding.Base64Encoder.decode(b'Z/37ehIJx2HfvxzhSctc5qTm0ZO66u4+')
@@ -80,7 +80,7 @@ class TestBrowserDeviceInfo(unittest.TestCase):
 class TestKnownDevice(unittest.TestCase):
 
     app_secret_box = SecretBox(
-        nacl.encoding.URLSafeBase64Encoder.decode('TfRW-RFFk-8MFAXkOpBEfa1p9aObAavTiEGGX1P96og=')
+        nacl.encoding.URLSafeBase64Encoder.decode(b'TfRW-RFFk-8MFAXkOpBEfa1p9aObAavTiEGGX1P96og=')
     )
 
     from_browser = (
