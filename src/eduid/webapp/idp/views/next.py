@@ -1,3 +1,4 @@
+from ctypes import Union
 import re
 from dataclasses import asdict, dataclass
 from typing import Any, Dict, List, Optional
@@ -309,7 +310,7 @@ def _geo_statistics(ticket: LoginContext, sso_session: Optional[SSOSession]) -> 
         device_id_hash.update(bytes(ticket.known_device.state_id, 'uft-8'))
         device_id = device_id_hash.finalize().hex()
 
-    d = {
+    d: Dict[str, Any] = {
         'data': {
             'user_id': user_hash.finalize().hex(),
             'client_ip': request.headers.get('x-forwarded-for'),
