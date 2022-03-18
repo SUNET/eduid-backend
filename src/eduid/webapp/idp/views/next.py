@@ -3,9 +3,10 @@ import re
 from dataclasses import asdict, dataclass
 from typing import Any, Dict, List, Optional
 
-from flask import Blueprint, request,  session, url_for
 import requests
-from matplotlib import use
+from cryptography.hazmat.primitives import hashes, hmac
+from flask import Blueprint, request, session, url_for
+from saml2 import BINDING_HTTP_POST
 
 from eduid.userdb import LockedIdentityNin, user
 from eduid.userdb.credentials import FidoCredential, Password
@@ -24,8 +25,6 @@ from eduid.webapp.idp.mischttp import get_user_agent
 from eduid.webapp.idp.other_device.device2 import device2_finish
 from eduid.webapp.idp.schemas import NextRequestSchema, NextResponseSchema
 from eduid.webapp.idp.sso_session import SSOSession
-from cryptography.hazmat.primitives import hashes, hmac
-from saml2 import BINDING_HTTP_POST
 
 next_views = Blueprint('next', __name__, url_prefix='')
 
@@ -282,13 +281,14 @@ def _set_user_options(res: AuthnOptions, eppn: str) -> None:
 
     return None
 
+
 def _geo_statistics(ticket: LoginContext, sso_session: Optional[SSOSession]) -> None:
     """ Log user statistics from login event """
 
     if not sso_session:
         return None
 
-    if not current_app.conf.geo_statistics_url:
+    if not current_app.conf.geo_statistics_secret_key or not current_app.conf.geo_statistics_url:
         return None
 
     ua = get_user_agent()
@@ -297,7 +297,6 @@ def _geo_statistics(ticket: LoginContext, sso_session: Optional[SSOSession]) -> 
 
     if ua.parsed.browser.family in ['Python Requests', 'PingdomBot'] or ua.parsed.is_bot:
         return None
-
 
     secret = bytes(current_app.conf.geo_statistics_secret_key, 'utf-8')
 
@@ -315,13 +314,9 @@ def _geo_statistics(ticket: LoginContext, sso_session: Optional[SSOSession]) -> 
             'user_id': user_hash.finalize().hex(),
             'client_ip': request.headers.get('x-forwarded-for'),
             'device_id': device_id,
-            'user_agent': {
-                'browser': {},
-                'os': {},
-                'device': {},
-                'sophisticated': {}
-            }
-        }}
+            'user_agent': {'browser': {}, 'os': {}, 'device': {}, 'sophisticated': {}},
+        }
+    }
 
     data = d['data']
     data['user_agent']['browser']['family'] = ua.parsed.browser.family
@@ -329,7 +324,7 @@ def _geo_statistics(ticket: LoginContext, sso_session: Optional[SSOSession]) -> 
     data['user_agent']['device']['family'] = ua.parsed.device.family
     data['user_agent']['sophisticated']['is_mobile'] = ua.parsed.is_mobile
     data['user_agent']['sophisticated']['is_pc'] = ua.parsed.is_pc
-    data['user_agent']['sophisticated']['is_tablet'] = ua.parsed.is_tablet 
+    data['user_agent']['sophisticated']['is_tablet'] = ua.parsed.is_tablet
     data['user_agent']['sophisticated']['is_touch_capable'] = ua.parsed.is_touch_capable
 
     try:
@@ -337,7 +332,7 @@ def _geo_statistics(ticket: LoginContext, sso_session: Optional[SSOSession]) -> 
         current_app.logger.debug(f'response from geo-statistics app: {resp.json}')
     except requests.RequestException:
         current_app.logger.exception('Failed to contact geo-statistics app')
-    
+
 
 def _log_user_agent() -> None:
     """ Log some statistics from the User-Agent header """

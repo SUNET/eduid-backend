@@ -132,7 +132,8 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     known_devices_new_ttl: timedelta = Field(default=timedelta(minutes=30))
     known_devices_ttl: timedelta = Field(default=timedelta(days=90))
     known_devices_feature_enabled: bool = False
-    geo_statistics_secret_key: str = '' # secret key for encrypting personal information for geo-location service
+    # secret key for encrypting personal information for geo-location service
+    geo_statistics_secret_key: Optional[str] = None
     geo_statistics_feature_enabled: bool = False
     geo_statistics_url: Optional[HttpUrl] = None
 
