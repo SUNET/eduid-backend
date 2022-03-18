@@ -2,9 +2,11 @@ import re
 from dataclasses import asdict, dataclass
 from typing import Any, Dict, List, Optional
 
-from flask import Blueprint, request, url_for
+from flask import Blueprint, request,  session, url_for
+import requests
+from matplotlib import use
 
-from eduid.userdb import LockedIdentityNin
+from eduid.userdb import LockedIdentityNin, user
 from eduid.userdb.credentials import FidoCredential, Password
 from eduid.userdb.idp import IdPUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
@@ -21,6 +23,7 @@ from eduid.webapp.idp.mischttp import get_user_agent
 from eduid.webapp.idp.other_device.device2 import device2_finish
 from eduid.webapp.idp.schemas import NextRequestSchema, NextResponseSchema
 from eduid.webapp.idp.sso_session import SSOSession
+from cryptography.hazmat.primitives import hashes, hmac
 from saml2 import BINDING_HTTP_POST
 
 next_views = Blueprint('next', __name__, url_prefix='')
@@ -135,6 +138,9 @@ def next_view(ticket: LoginContext) -> FluxData:
                 current_app.known_device_db.save(
                     ticket.known_device, from_browser=ticket.known_device_info, ttl=current_app.conf.known_devices_ttl
                 )
+
+        if current_app.conf.geo_statistics_feature_enabled:
+            _geo_statistics(ticket=ticket, sso_session=sso_session)
 
         if isinstance(ticket, LoginContextSAML):
             saml_params = sso.get_response_params(_next.authn_info, ticket, user)
@@ -275,6 +281,62 @@ def _set_user_options(res: AuthnOptions, eppn: str) -> None:
 
     return None
 
+def _geo_statistics(ticket: LoginContext, sso_session: Optional[SSOSession]) -> None:
+    """ Log user statistics from login event """
+
+    if not sso_session:
+        return None
+
+    if not current_app.conf.geo_statistics_url:
+        return None
+
+    ua = get_user_agent()
+    if not ua:
+        return None
+
+    if ua.parsed.browser.family in ['Python Requests', 'PingdomBot'] or ua.parsed.is_bot:
+        return None
+
+
+    secret = bytes(current_app.conf.geo_statistics_secret_key, 'utf-8')
+
+    user_hash = hmac.HMAC(secret, hashes.SHA256())
+    user_hash.update(bytes(sso_session.eppn, 'utf-8'))
+
+    device_id = None
+    if ticket.known_device:
+        device_id_hash = hmac.HMAC(secret, hashes.SHA256())
+        device_id_hash.update(bytes(ticket.known_device.state_id, 'uft-8'))
+        device_id = device_id_hash.finalize().hex()
+
+    d = {
+        'data': {
+            'user_id': user_hash.finalize().hex(),
+            'client_ip': request.headers.get('x-forwarded-for'),
+            'device_id': device_id,
+            'user_agent': {
+                'browser': {},
+                'os': {},
+                'device': {},
+                'sophisticated': {}
+            }
+        }}
+
+    data = d['data']
+    data['user_agent']['browser']['family'] = ua.parsed.browser.family
+    data['user_agent']['os']['family'] = ua.parsed.os.family
+    data['user_agent']['device']['family'] = ua.parsed.device.family
+    data['user_agent']['sophisticated']['is_mobile'] = ua.parsed.is_mobile
+    data['user_agent']['sophisticated']['is_pc'] = ua.parsed.is_pc
+    data['user_agent']['sophisticated']['is_tablet'] = ua.parsed.is_tablet 
+    data['user_agent']['sophisticated']['is_touch_capable'] = ua.parsed.is_touch_capable
+
+    try:
+        resp = requests.post(current_app.conf.geo_statistics_url, json=d, timeout=1)
+        current_app.logger.debug(f'response from geo-statistics app: {resp.json}')
+    except requests.RequestException:
+        current_app.logger.exception('Failed to contact geo-statistics app')
+    
 
 def _log_user_agent() -> None:
     """ Log some statistics from the User-Agent header """
