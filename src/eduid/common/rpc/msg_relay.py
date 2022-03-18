@@ -92,6 +92,7 @@ class Person(NavetModelConfig):
     def is_deregistered(self) -> bool:
         return bool(self.deregistration_information.cause_code or self.deregistration_information.date)
 
+
 class NavetData(NavetModelConfig):
     case_information: CaseInformation = Field(alias='CaseInformation')
     person: Person = Field(alias='Person')
