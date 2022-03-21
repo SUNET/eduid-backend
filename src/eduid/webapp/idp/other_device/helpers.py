@@ -1,4 +1,4 @@
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from typing import Optional
 
 from eduid.webapp.common.api.messages import FluxData, error_response
@@ -24,7 +24,7 @@ def _get_other_device_state_using_ref(ref: RequestRef, device: int) -> OtherDevi
     ticket = get_ticket(_info, None)
     if not ticket:
         return OtherDeviceRefResult(response=error_response(message=IdPMsg.bad_ref))
-    current_app.logger.debug(f'Extra debug: LoginContext: {asdict(ticket)}')
+    current_app.logger.debug(f'Extra debug: LoginContext: {ticket.json()}')
     current_app.logger.debug(f'Extra debug: Pending request: {ticket.pending_request}')
 
     # Check both callers opinion of what device this is, and the states. Belts and bracers.
