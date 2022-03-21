@@ -47,7 +47,7 @@ class SupportUserFilter(GenericFilterDict):
 
         self['mailAliases'] = [MailAlias(alias) for alias in self['mailAliases']]
         self['passwords'] = [Credential(password) for password in self['passwords']]
-        self['tou'] = [ToU(tou) for tou in self['tou']]
+        self['tou'] = [ToU(tou) for tou in self.get('tou', [])]
 
 
 class SupportSignupUserFilter(GenericFilterDict):
@@ -60,7 +60,7 @@ class SupportSignupUserFilter(GenericFilterDict):
 
         self['mailAliases'] = [MailAlias(alias) for alias in self['mailAliases']]
         self['passwords'] = [Credential(password) for password in self['passwords']]
-        self['tou'] = [ToU(tou) for tou in self['tou']]
+        self['tou'] = [ToU(tou) for tou in self.get('tou', [])]
         self['pending_mail_address'] = PendingMailAddress(self.get('pending_mail_address'))
 
 

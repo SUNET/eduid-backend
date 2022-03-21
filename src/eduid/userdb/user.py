@@ -36,7 +36,7 @@ from __future__ import annotations
 import copy
 from datetime import datetime
 from enum import Enum, unique
-from typing import Any, Dict, List, Mapping, Optional, Type, TypeVar, cast
+from typing import Any, Dict, List, Mapping, Optional, Type, TypeVar, cast, Union
 
 import bson
 from pydantic import BaseModel, Extra, Field, root_validator, validator
@@ -69,11 +69,11 @@ class User(BaseModel):
 
     eppn: str = Field(alias='eduPersonPrincipalName')
     user_id: bson.ObjectId = Field(default_factory=bson.ObjectId, alias='_id')
-    given_name: str = Field(default='', alias='givenName')
+    given_name: Optional[str] = Field(default=None, alias='givenName')
     display_name: Optional[str] = Field(default=None, alias='displayName')
-    surname: str = ''
+    surname: Optional[str] = None
     subject: Optional[SubjectType] = None
-    language: str = Field(default='sv', alias='preferredLanguage')
+    language: Optional[str] = Field(default=None, alias='preferredLanguage')
     mail_addresses: MailAddressList = Field(default_factory=MailAddressList, alias='mailAliases')
     phone_numbers: PhoneNumberList = Field(default_factory=PhoneNumberList, alias='phone')
     credentials: CredentialList = Field(default_factory=CredentialList, alias='passwords')
@@ -86,7 +86,7 @@ class User(BaseModel):
     orcid: Optional[Orcid] = None
     ladok: Optional[Ladok] = None
     profiles: ProfileList = Field(default_factory=ProfileList)
-    letter_proofing_data: Optional[list] = None
+    letter_proofing_data: Optional[Union[list, dict]] = None  # remove dict after a full load-save-users
     revoked_ts: Optional[datetime] = None
 
     class Config:
@@ -182,6 +182,16 @@ class User(BaseModel):
             data['orcid'] = self.orcid.to_dict()
         if self.ladok is not None:
             data['ladok'] = self.ladok.to_dict()
+
+        # remove empty strings and empty lists
+        for key in list(data.keys()):
+            if data[key] in ['', []]:
+                del data[key]
+
+        # make sure letter_proofing_data is a list as some old users has a dict instead
+        if 'letter_proofing_data' in data and isinstance(data['letter_proofing_data'], dict):
+            data['letter_proofing_data'] = [data['letter_proofing_data']]
+
         return data
 
     @classmethod

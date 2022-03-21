@@ -34,6 +34,7 @@ import bson
 
 import eduid.userdb
 from eduid.userdb import User
+from eduid.userdb.fixtures.passwords import signup_password
 from eduid.userdb.fixtures.users import mocked_user_standard
 from eduid.userdb.testing import MongoTestCase
 
@@ -96,7 +97,7 @@ class TestUserDB_mail(MongoTestCase):
             u'eduPersonPrincipalName': u'mail-test1',
             u'mail': u'test@gmail.com',
             u'mailAliases': [{u'email': u'test@gmail.com', u'verified': True}],
-            u'passwords': [],
+            u'passwords': [signup_password.to_dict()],
         }
 
         data2 = {
@@ -106,7 +107,7 @@ class TestUserDB_mail(MongoTestCase):
                 {u'email': u'test2@gmail.com', u'primary': True, u'verified': True},
                 {u'email': u'test@gmail.com', u'verified': False},
             ],
-            u'passwords': [],
+            u'passwords': [signup_password.to_dict()],
         }
 
         self.user1 = User.from_dict(data1)
@@ -145,7 +146,7 @@ class TestUserDB_phone(MongoTestCase):
                 {u'number': u'+11111111111', u'primary': True, u'verified': True},
                 {u'number': u'+22222222222', u'primary': False, u'verified': True},
             ],
-            u'passwords': [],
+            u'passwords': [signup_password.to_dict()],
         }
         data2 = {
             u'_id': bson.ObjectId(),
@@ -156,7 +157,7 @@ class TestUserDB_phone(MongoTestCase):
                 {u'number': u'+22222222222', u'primary': False, u'verified': False},
                 {u'number': u'+33333333333', u'primary': False, u'verified': False},
             ],
-            u'passwords': [],
+            u'passwords': [signup_password.to_dict()],
         }
 
         self.user1 = User.from_dict(data1)
@@ -202,7 +203,7 @@ class TestUserDB_nin(MongoTestCase):
                 {u'number': u'11111111111', u'primary': True, u'verified': True},
                 {u'number': u'22222222222', u'primary': False, u'verified': False},
             ],
-            u'passwords': [],
+            u'passwords': [signup_password.to_dict()],
         }
         data2 = {
             u'_id': bson.ObjectId(),
@@ -213,7 +214,7 @@ class TestUserDB_nin(MongoTestCase):
                 {u'number': u'22222222222', u'primary': True, u'verified': True},
                 {u'number': u'33333333333', u'primary': False, u'verified': False},
             ],
-            u'passwords': [],
+            u'passwords': [signup_password.to_dict()],
         }
 
         self.user1 = User.from_dict(data1)

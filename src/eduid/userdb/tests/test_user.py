@@ -8,6 +8,7 @@ from pydantic import ValidationError
 from eduid.userdb import LockedIdentityNin, OidcAuthorization, OidcIdToken, Orcid
 from eduid.userdb.credentials import METHOD_SWAMID_AL2_MFA, U2F, CredentialList, Password
 from eduid.userdb.exceptions import EduIDUserDBError, UserHasNotCompletedSignup, UserIsRevoked
+from eduid.userdb.fixtures.users import mocked_user_standard
 from eduid.userdb.mail import MailAddress, MailAddressList
 from eduid.userdb.nin import Nin, NinList
 from eduid.userdb.phone import PhoneNumber, PhoneNumberList
@@ -855,3 +856,28 @@ class TestNewUser(unittest.TestCase):
         assert (now - modified_ts).total_seconds() < 2
 
         assert obtained == expected
+
+    def test_letter_proofing_data_to_list(self):
+        letter_proofing = {
+            'created_by': 'eduid-idproofing-letter',
+            'created_ts': datetime(2015, 12, 18, 12, 0, 46),
+            'number': '198311220134',
+            'official_address': {
+                'Name': {
+                    'GivenName': 'Test Testaren',
+                    'GivenNameMarking': '10',
+                    'MiddleName': 'Testare',
+                    'Surname': 'Testsson',
+                },
+                'OfficialAddress': {'Address2': 'VÄGEN 16', 'City': 'STADEN', 'PostalCode': '12345',},
+            },
+            'transaction_id': '0000000-0000-0000-0000-00000000',
+            'verification_code': 'xxxxxxxxxx',
+            'verified': True,
+            'verified_by': 'eduid-idproofing-letter',
+            'verified_ts': datetime(2015, 12, 18, 12, 3, 20),
+        }
+        user_dict = mocked_user_standard.to_dict()
+        user_dict['letter_proofing_data'] = letter_proofing
+        user = User.from_dict(user_dict)
+        assert user.to_dict()['letter_proofing_data'] == [letter_proofing]
