@@ -41,6 +41,12 @@ class SignupUserDB(UserDB[SignupUser]):
     def __init__(self, db_uri: str, db_name: str = 'eduid_signup', collection: str = 'registered'):
         super().__init__(db_uri, db_name, collection=collection)
 
+        # Remove register data older than created_ts and modified_ts two months
+        indexes = {
+            'auto-discard-modified-ts': {'key': [('modified_ts', 1)], 'expireAfterSeconds': 5260000},  # 2 months
+        }
+        self.setup_indexes(indexes)
+
     @classmethod
     def user_from_dict(cls, data: Mapping[str, Any]) -> SignupUser:
         return SignupUser.from_dict(data)
