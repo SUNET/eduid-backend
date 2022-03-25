@@ -29,6 +29,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from datetime import timedelta
 from typing import Any, Mapping, Optional
 
 from eduid.userdb.signup import SignupUser
@@ -38,14 +39,24 @@ __author__ = 'ft'
 
 
 class SignupUserDB(UserDB[SignupUser]):
-    def __init__(self, db_uri: str, db_name: str = 'eduid_signup', collection: str = 'registered'):
+    def __init__(
+        self,
+        db_uri: str,
+        db_name: str = 'eduid_signup',
+        collection: str = 'registered',
+        auto_expire: Optional[timedelta] = None,
+    ):
         super().__init__(db_uri, db_name, collection=collection)
 
-        # Remove register data older than created_ts and modified_ts two months
-        indexes = {
-            'auto-discard-modified-ts': {'key': [('modified_ts', 1)], 'expireAfterSeconds': 5260000},  # 2 months
-        }
-        self.setup_indexes(indexes)
+        if auto_expire is not None:
+            # auto expire register data
+            indexes = {
+                'auto-discard-modified-ts': {
+                    'key': [('modified_ts', 1)],
+                    'expireAfterSeconds': auto_expire.total_seconds(),
+                },
+            }
+            self.setup_indexes(indexes)
 
     @classmethod
     def user_from_dict(cls, data: Mapping[str, Any]) -> SignupUser:
