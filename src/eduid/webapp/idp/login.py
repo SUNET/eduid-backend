@@ -52,7 +52,7 @@ from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.idp_saml import ResponseArgs, SamlResponse
 from eduid.webapp.idp.login_context import LoginContext, LoginContextOtherDevice, LoginContextSAML
 from eduid.webapp.idp.mfa_action import add_mfa_action, need_security_key, process_mfa_action_results
-from eduid.webapp.idp.mischttp import HttpArgs, get_default_template_arguments
+from eduid.webapp.idp.mischttp import HttpArgs, get_default_template_arguments, get_user_agent
 from eduid.webapp.idp.other_device.data import OtherDeviceState
 from eduid.webapp.idp.service import SAMLQueryParams, Service
 from eduid.webapp.idp.sso_session import SSOSession
@@ -100,8 +100,13 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
 
     if current_app.conf.known_devices_feature_enabled:
         if not ticket.known_device:
-            current_app.logger.debug('Login request from unknown device')
-            return NextResult(message=IdPMsg.unknown_device)
+            # Except monitoring and bots from the known device requirement (for now at least)
+            ua = get_user_agent()
+            if ua and (ua.parsed.is_bot or ua.parsed.browser.family in ['Python Requests', 'PingdomBot']):
+                current_app.logger.debug(f'Not requiring known_device from UA {str(ua)}')
+            else:
+                current_app.logger.debug('Login request from unknown device')
+                return NextResult(message=IdPMsg.unknown_device)
 
     if current_app.conf.allow_other_device_logins:
         if ticket.is_other_device_1:
