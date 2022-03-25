@@ -53,7 +53,7 @@ class SignupUserDB(UserDB[SignupUser]):
             indexes = {
                 'auto-discard-modified-ts': {
                     'key': [('modified_ts', 1)],
-                    'expireAfterSeconds': auto_expire.total_seconds(),
+                    'expireAfterSeconds': int(auto_expire.total_seconds()),
                 },
             }
             self.setup_indexes(indexes)
