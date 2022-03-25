@@ -31,6 +31,11 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from datetime import timedelta
+from typing import Optional
+
+from pydantic import Field
+
 from eduid.common.config.base import (
     AmConfigMixin,
     EduIDBaseAppConfig,
@@ -60,3 +65,4 @@ class SignupConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MailConf
     eduid_site_name: str = 'eduID'
     recaptcha_public_key: str = ''
     recaptcha_private_key: str = ''
+    private_userdb_auto_expire: Optional[timedelta] = Field(default=timedelta(days=7))
