@@ -339,18 +339,19 @@ def _update_known_device_data(ticket: LoginContext, user: IdPUser, authn_info: A
         return
 
     if not ticket.known_device.data.eppn:
+        current_app.logger.info('Known device: Recording new eppn')  # TODO: change to debug after burn-in
         ticket.known_device.data.eppn = user.eppn
         current_app.stats.count('login_new_device_first_login_finished')
     elif ticket.known_device.data.eppn != user.eppn:
         # We quite possibly want to block this in production, after verifying it "shouldn't happen"
-        current_app.logger.warning('Known device eppn changed from {ticket.known_device.data.eppn} to {user.eppn}')
+        current_app.logger.warning(f'Known device eppn changed from {ticket.known_device.data.eppn} to {user.eppn}')
         ticket.known_device.data.eppn = user.eppn
         current_app.stats.count('login_new_device_changed_eppn')
 
     if ticket.known_device.data.ip_address != request.remote_addr:
         if ticket.known_device.data.ip_address:
             current_app.stats.count('login_known_device_ip_changed')
-        current_app.logger.debug('Known device: Recording new IP address')
+        current_app.logger.info('Known device: Recording new IP address')  # TODO: change to debug after burn-in
         current_app.logger.debug(f'Known device:   old {ticket.known_device.data.ip_address}')
         current_app.logger.debug(f'Known device:   new {request.remote_addr}')
         ticket.known_device.data.ip_address = request.remote_addr
@@ -362,14 +363,15 @@ def _update_known_device_data(ticket: LoginContext, user: IdPUser, authn_info: A
     if ticket.known_device.data.user_agent != _ua_str:
         if ticket.known_device.data.user_agent:
             current_app.stats.count('login_known_device_ua_changed')
-        current_app.logger.debug('Known device: Recording new User-Agent')
+        current_app.logger.info('Known device: Recording new User-Agent')  # TODO: change to debug after burn-in
         current_app.logger.debug(f'Known device:   old {ticket.known_device.data.user_agent}')
         current_app.logger.debug(f'Known device:   new {_ua_str}')
         ticket.known_device.data.user_agent = _ua_str
 
     if ticket.known_device.data.last_login:
         age = authn_info.instant - ticket.known_device.data.last_login
-        current_app.logger.debug(f'Known device: Last login from this device was {age} before this one')
+        # TODO: change to debug after burn-in
+        current_app.logger.info(f'Known device: Last login from this device was {age} before this one')
         current_app.logger.debug(f'Known device:   old {ticket.known_device.data.last_login.isoformat()}')
         current_app.logger.debug(f'Known device:   new {authn_info.instant.isoformat()}')
     ticket.known_device.data.last_login = authn_info.instant
