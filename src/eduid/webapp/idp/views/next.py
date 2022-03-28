@@ -140,7 +140,11 @@ def next_view(ticket: LoginContext) -> FluxData:
                 )
 
         if current_app.conf.geo_statistics_feature_enabled:
-            _geo_statistics(ticket=ticket, sso_session=sso_session)
+            try:
+                # Logging stats is optional, make sure we never fail a login because of it
+                _geo_statistics(ticket=ticket, sso_session=sso_session)
+            except:
+                current_app.logger.exception('Producing Geo stats failed')
 
         if isinstance(ticket, LoginContextSAML):
             saml_params = sso.get_response_params(_next.authn_info, ticket, user)

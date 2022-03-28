@@ -1,12 +1,11 @@
 import logging
 import os
-from uuid import uuid4
+from unittest.mock import MagicMock, patch
 
-from mock import patch
+from requests import RequestException
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 
-from eduid.userdb.ladok import Ladok
 from eduid.vccs.client import VCCSClient
 from eduid.webapp.common.authn.utils import get_saml2_config
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
@@ -259,3 +258,56 @@ class IdPTestLoginAPI(IdPAPITests):
         assert result.finished_result.payload['target'] == 'https://sp.example.edu/saml2/acs/'
         assert result.finished_result.payload['parameters']['RelayState'] == self.relay_state
         # TODO: test parsing the SAML response
+
+    def test_geo_statistics_success(self):
+        # pre-accept ToU for this test
+        self.add_test_user_tou(self.app.conf.tou_version)
+
+        # enable geo statistics
+        self.app.conf.geo_statistics_feature_enabled = True
+        self.app.conf.geo_statistics_url = 'http://localhost'
+
+        # Patch the VCCSClient so we do not need a vccs server
+        with patch.object(VCCSClient, 'authenticate'):
+            VCCSClient.authenticate.return_value = True
+            with patch('requests.post', new_callable=MagicMock) as mock_post:
+                result = self._try_login(username=self.test_user.eppn, password='bar')
+                assert mock_post.call_count == 1
+                assert mock_post.call_args.kwargs.get('json') == {
+                    'data': {
+                        'user_id': '08829f767526361c9377675984851b7b29d05bfc53c1e0bff3a88adfcdac27e2',
+                        'client_ip': None,
+                        'device_id': None,
+                        'user_agent': {
+                            'browser': {'family': 'Other'},
+                            'os': {'family': 'Other'},
+                            'device': {'family': 'Other'},
+                            'sophisticated': {
+                                'is_mobile': False,
+                                'is_pc': False,
+                                'is_tablet': False,
+                                'is_touch_capable': False,
+                            },
+                        },
+                    }
+                }
+
+        assert result.finished_result.payload['message'] == IdPMsg.finished.value
+
+    def test_geo_statistics_fail(self):
+        # pre-accept ToU for this test
+        self.add_test_user_tou(self.app.conf.tou_version)
+
+        # enable geo statistics
+        self.app.conf.geo_statistics_feature_enabled = True
+        self.app.conf.geo_statistics_url = 'http://localhost'
+
+        # Patch the VCCSClient so we do not need a vccs server
+        with patch.object(VCCSClient, 'authenticate'):
+            VCCSClient.authenticate.return_value = True
+            with patch('requests.post', new_callable=MagicMock) as mock_post:
+                mock_post.side_effect = RequestException('Test Exception')
+                result = self._try_login(username=self.test_user.eppn, password='bar')
+                assert mock_post.call_count == 1
+
+        assert result.finished_result.payload['message'] == IdPMsg.finished.value
