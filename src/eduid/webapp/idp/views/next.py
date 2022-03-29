@@ -307,9 +307,7 @@ def _geo_statistics(ticket: LoginContext, sso_session: Optional[SSOSession]) -> 
 
     device_id = None
     if ticket.known_device:
-        device_id_hash = hmac.HMAC(secret, hashes.SHA256())
-        device_id_hash.update(bytes(ticket.known_device.state_id, 'uft-8'))
-        device_id = device_id_hash.finalize().hex()
+        device_id = ticket.known_device.state_id
 
     d: Dict[str, Any] = {
         'data': {
