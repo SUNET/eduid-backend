@@ -1,20 +1,17 @@
-from ctypes import Union
 import re
 from dataclasses import asdict, dataclass
 from typing import Any, Dict, List, Optional
 
 import requests
 from cryptography.hazmat.primitives import hashes, hmac
-from flask import Blueprint, request, session, url_for
-from saml2 import BINDING_HTTP_POST
+from flask import Blueprint, request, url_for
 
-from eduid.userdb import LockedIdentityNin, user
+from eduid.userdb import LockedIdentityNin
 from eduid.userdb.credentials import FidoCredential, Password
 from eduid.userdb.idp import IdPUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
 from eduid.webapp.idp.app import current_idp_app as current_app
-from eduid.webapp.idp.assurance import AuthnState
 from eduid.webapp.idp.assurance_data import AuthnInfo
 from eduid.webapp.idp.decorators import require_ticket
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
@@ -25,6 +22,7 @@ from eduid.webapp.idp.mischttp import get_user_agent
 from eduid.webapp.idp.other_device.device2 import device2_finish
 from eduid.webapp.idp.schemas import NextRequestSchema, NextResponseSchema
 from eduid.webapp.idp.sso_session import SSOSession
+from saml2 import BINDING_HTTP_POST
 
 next_views = Blueprint('next', __name__, url_prefix='')
 
