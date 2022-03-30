@@ -12,7 +12,7 @@ from eduid.webapp.common.api.messages import FluxData, error_response, success_r
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import AuthnState
 from eduid.webapp.idp.assurance_data import AuthnInfo
-from eduid.webapp.idp.decorators import require_ticket
+from eduid.webapp.idp.decorators import require_ticket, uses_sso_session
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
 from eduid.webapp.idp.idp_saml import cancel_saml_request
 from eduid.webapp.idp.login import SSO, login_next_step
@@ -30,15 +30,14 @@ next_views = Blueprint('next', __name__, url_prefix='')
 @UnmarshalWith(NextRequestSchema)
 @MarshalWith(NextResponseSchema)
 @require_ticket
-def next_view(ticket: LoginContext) -> FluxData:
+@uses_sso_session
+def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxData:
     """ Main state machine for frontend """
     current_app.logger.debug('\n\n')
     current_app.logger.debug(f'--- Next ({ticket.request_ref}) ---')
 
     if not current_app.conf.login_bundle_url:
         return error_response(message=IdPMsg.not_available)
-
-    sso_session = current_app._lookup_sso_session()
 
     _next = login_next_step(ticket, sso_session)
     current_app.logger.debug(f'Login Next: {_next}')
@@ -344,9 +343,12 @@ def _update_known_device_data(ticket: LoginContext, user: IdPUser, authn_info: A
         current_app.stats.count('login_new_device_first_login_finished')
     elif ticket.known_device.data.eppn != user.eppn:
         # We quite possibly want to block this in production, after verifying it "shouldn't happen"
-        current_app.logger.warning(f'Known device eppn changed from {ticket.known_device.data.eppn} to {user.eppn}')
+        current_app.logger.warning(f'Known device: eppn changed from {ticket.known_device.data.eppn} to {user.eppn}')
         ticket.known_device.data.eppn = user.eppn
-        current_app.stats.count('login_new_device_changed_eppn')
+        current_app.stats.count('login_known_device_changed_eppn')
+    else:
+        current_app.logger.info('Known device: Same user logging in')  # TODO: change to debug after burn-in
+        current_app.stats.count('login_known_device_login_finished')
 
     if ticket.known_device.data.ip_address != request.remote_addr:
         if ticket.known_device.data.ip_address:

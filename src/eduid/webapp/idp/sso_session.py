@@ -33,6 +33,8 @@
 #
 from __future__ import annotations
 
+import logging
+import typing
 import uuid
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Mapping, NewType, Optional, Type
@@ -42,10 +44,15 @@ from pydantic import BaseModel, Field
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.element import ElementKey
-from eduid.userdb.idp import IdPUser
+from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.login_context import LoginContext
+
+if typing.TYPE_CHECKING:
+    from eduid.webapp.idp.sso_cache import SSOSessionCache
+
+logger = logging.getLogger(__name__)
 
 # A distinct type for session ids
 SSOSessionId = NewType('SSOSessionId', str)
@@ -172,3 +179,80 @@ def record_authentication(
     sso_session.expires_at = utc_now() + sso_session_lifetime
 
     return sso_session
+
+
+def get_sso_session() -> Optional[SSOSession]:
+    """
+    Locate any existing SSO session for this request.
+
+    :returns: SSO session if found (and valid)
+    """
+    # local import to avoid import-loop
+    from eduid.webapp.idp.app import current_idp_app as current_app
+
+    sso_session_lifetime = current_app.conf.sso_session_lifetime
+    sso_sessions = current_app.sso_sessions
+
+    session = _lookup_sso_session(sso_sessions)
+    if session:
+        logger.debug(f'SSO session found in the database: {session}')
+        _age = session.age
+        if _age > sso_session_lifetime:
+            logger.debug(f'SSO session expired (age {_age} > {sso_session_lifetime})')
+            return None
+        logger.debug(f'SSO session is still valid (age {_age} <= {sso_session_lifetime})')
+    return session
+
+
+def _lookup_sso_session(sso_sessions: 'SSOSessionCache') -> Optional[SSOSession]:
+    """
+    See if a SSO session exists for this request, and return the data about
+    the currently logged in user from the session store.
+
+    :return: Data about currently logged in user
+    """
+    _sso = None
+
+    _session_id = get_sso_session_id()
+    if _session_id:
+        _sso = sso_sessions.get_session(_session_id)
+        logger.debug(f'Looked up SSO session using session ID {repr(_session_id)}: {_sso}')
+
+    if not _sso:
+        logger.debug('SSO session not found using IdP SSO cookie')
+
+        if session.idp.sso_cookie_val is not None:
+            # Debug issues with browsers not returning updated SSO cookie values.
+            # Only log partial cookie value since it allows impersonation if leaked.
+            _other_session_id = SSOSessionId(session.idp.sso_cookie_val)
+            logger.debug(
+                'Found potential sso_cookie_val in the eduID session: ' f'({session.idp.sso_cookie_val[:8]}...)'
+            )
+            _other_sso = sso_sessions.get_session(_other_session_id)
+            if _other_sso is not None:
+                logger.info(f'Found no SSO session, but found one from session.idp.sso_cookie_val: {_other_sso}')
+
+        if session.common.eppn:
+            for this in sso_sessions.get_sessions_for_user(session.common.eppn):
+                logger.info(f'Found no SSO session, but found SSO session for user {session.common.eppn}: {this}')
+
+        return None
+    logger.debug(f'Loaded SSO session {_sso}')
+    return _sso
+
+
+def get_sso_session_id() -> Optional[SSOSessionId]:
+    """
+    Get the SSO session id from the IdP SSO cookie.
+
+    :return: SSO session id
+    """
+    # local import to avoid import-loop
+    from eduid.webapp.idp.mischttp import read_cookie
+    from eduid.webapp.idp.app import current_idp_app as current_app
+
+    _session_id = read_cookie(current_app.conf.sso_cookie.key)
+    if not _session_id:
+        return None
+    logger.debug(f'Got SSO session ID from IdP SSO cookie {repr(_session_id)}')
+    return SSOSessionId(_session_id)

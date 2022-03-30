@@ -11,7 +11,7 @@ from eduid.webapp.common.api.schemas.models import FluxSuccessResponse
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import IdP_OtherDevicePendingRequest, RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
-from eduid.webapp.idp.decorators import require_ticket
+from eduid.webapp.idp.decorators import require_ticket, uses_sso_session
 from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.login_context import LoginContext
 from eduid.webapp.idp.mischttp import set_sso_cookie
@@ -25,6 +25,7 @@ from eduid.webapp.idp.schemas import (
     UseOther2RequestSchema,
     UseOther2ResponseSchema,
 )
+from eduid.webapp.idp.sso_session import SSOSession
 
 other_device_views = Blueprint('other_device', __name__, url_prefix='')
 
@@ -66,8 +67,15 @@ def use_other_1(
     now = utc_now()  # ensure coherent results of 'is this expired?' checks
 
     if not state or action in [None, 'FETCH']:
-        if sso_session:
+        # TODO: Instead of this precedence list, maybe we should verify that username == known device == sso session?
+        if ticket.known_device:
+            username = ticket.known_device.data.eppn
+            current_app.logger.debug(f'Using eppn from known_device: {username}')
+        elif sso_session:
             username = sso_session.eppn
+            current_app.logger.debug(f'Using eppn from SSO session: {username}')
+        else:
+            current_app.logger.debug(f'Using frontend-supplied username: {username}')
         user = None
         if username:
             user = current_app.userdb.lookup_user(username)
@@ -136,7 +144,10 @@ def use_other_1(
 @other_device_views.route('/use_other_2', methods=['POST'])
 @UnmarshalWith(UseOther2RequestSchema)
 @MarshalWith(UseOther2ResponseSchema)
-def use_other_2(ref: Optional[RequestRef], state_id: Optional[OtherDeviceId]) -> FluxData:
+@uses_sso_session
+def use_other_2(
+    ref: Optional[RequestRef], state_id: Optional[OtherDeviceId], sso_session: Optional[SSOSession]
+) -> FluxData:
     """ "Login using another device" flow.
 
     This is the first step on device #2. When the user has scanned the QR code, the frontend will fetch state
@@ -182,6 +193,15 @@ def use_other_2(ref: Optional[RequestRef], state_id: Optional[OtherDeviceId]) ->
         # it's not possible for an attacker to initiate other device, send QR code to victim, have them
         # use it and log in and then use the QR code to retrieve the response code.
         request_ref = RequestRef(str(uuid4()))
+
+        if sso_session:
+            if sso_session.eppn != state.eppn:
+                current_app.logger.warning(
+                    f'Can\'t login as eppn {state.eppn} on this device, '
+                    'SSO session has another eppn: {sso_session.eppn}'
+                )
+                return error_response(message=IdPMsg.wrong_user)
+
         _state = current_app.other_device_db.grab(state, request_ref)
         if not _state:
             current_app.logger.warning(f'Failed to grab state: {state.state_id}')
@@ -191,8 +211,9 @@ def use_other_2(ref: Optional[RequestRef], state_id: Optional[OtherDeviceId]) ->
         pending = IdP_OtherDevicePendingRequest(state_id=state.state_id)
         session.idp.pending_requests[request_ref] = pending
         current_app.logger.debug(f'Created new pending request with ref {request_ref}: {pending}')
+        ref = request_ref
 
-    if ref and state.device2.ref != ref:
+    if ref != state.device2.ref:
         current_app.logger.warning(
             f'Tried to use OtherDevice state that is not ours: {state.device2.ref} != {ref} (ours)'
         )

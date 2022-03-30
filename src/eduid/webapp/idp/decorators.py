@@ -10,6 +10,7 @@ from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.known_device import BrowserDeviceInfo
 from eduid.webapp.idp.login import get_ticket
 from eduid.webapp.idp.service import SAMLQueryParams
+from eduid.webapp.idp.sso_session import get_sso_session
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,17 @@ def require_ticket(f):
         return f(*args, **kwargs)
 
     return require_ticket_decorator
+
+
+def uses_sso_session(f):
+    @wraps(f)
+    def uses_sso_session_decorator(*args, **kwargs):
+        """ Decorator to supply the current SSO session, if one is found and still valid """
+
+        kwargs['sso_session'] = get_sso_session()
+        return f(*args, **kwargs)
+
+    return uses_sso_session_decorator
 
 
 def _flux_error(msg: IdPMsg):

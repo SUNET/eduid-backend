@@ -134,7 +134,11 @@ class UnmarshalWith(object):
             json_data = request.get_json()
             if json_data is None:
                 json_data = {}
-            flux_logger.debug(f'Decoding request: {json_data} using schema {self.schema()}')
+            _data_str = str(json_data)
+            if 'password' in _data_str:
+                flux_logger.debug(f'Decoding request with a password in it using schema {self.schema()}')
+            else:
+                flux_logger.debug(f'Decoding request: {repr(json_data)} using schema {self.schema()}')
             try:
                 unmarshal_result = self.schema().load(json_data)
             except ValidationError as e:
@@ -142,7 +146,10 @@ class UnmarshalWith(object):
                     request, payload={'error': e.normalized_messages(), 'csrf_token': session.get_csrf_token()}
                 )
                 logger.warning(f'Error unmarshalling request using {self.schema}: {e.normalized_messages()}')
-                logger.debug(f'Failing request JSON data:\n{json.dumps(json_data, indent=4)}')
+                if 'password' in _data_str:
+                    logger.debug(f'Failing request has a password in it, not logging JSON data')
+                else:
+                    logger.debug(f'Failing request JSON data:\n{json.dumps(json_data, indent=4, sort_keys=True)}')
                 return jsonify(response_data.to_dict())
             if 'password' in unmarshal_result:
                 # A simple safeguard for if debug logging is ever activated in production
