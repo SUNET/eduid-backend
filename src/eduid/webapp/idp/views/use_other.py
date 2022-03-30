@@ -203,8 +203,9 @@ def use_other_2(
         pending = IdP_OtherDevicePendingRequest(state_id=state.state_id)
         session.idp.pending_requests[request_ref] = pending
         current_app.logger.debug(f'Created new pending request with ref {request_ref}: {pending}')
+        ref = request_ref
 
-    if ref and state.device2.ref != ref:
+    if ref != state.device2.ref:
         current_app.logger.warning(
             f'Tried to use OtherDevice state that is not ours: {state.device2.ref} != {ref} (ours)'
         )
