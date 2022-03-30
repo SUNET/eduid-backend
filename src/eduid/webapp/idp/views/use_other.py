@@ -11,7 +11,7 @@ from eduid.webapp.common.api.schemas.models import FluxSuccessResponse
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import IdP_OtherDevicePendingRequest, RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
-from eduid.webapp.idp.decorators import require_ticket
+from eduid.webapp.idp.decorators import require_ticket, uses_sso_session
 from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.login_context import LoginContext
 from eduid.webapp.idp.mischttp import set_sso_cookie
@@ -25,6 +25,7 @@ from eduid.webapp.idp.schemas import (
     UseOther2RequestSchema,
     UseOther2ResponseSchema,
 )
+from eduid.webapp.idp.sso_session import SSOSession
 
 other_device_views = Blueprint('other_device', __name__, url_prefix='')
 
@@ -66,8 +67,15 @@ def use_other_1(
     now = utc_now()  # ensure coherent results of 'is this expired?' checks
 
     if not state or action in [None, 'FETCH']:
-        if sso_session:
+        # TODO: Instead of this precedence list, maybe we should verify that username == known device == sso session?
+        if ticket.known_device:
+            username = ticket.known_device.data.eppn
+            current_app.logger.debug(f'Using eppn from known_device: {username}')
+        elif sso_session:
             username = sso_session.eppn
+            current_app.logger.debug(f'Using eppn from SSO session: {username}')
+        else:
+            current_app.logger.debug(f'Using frontend-supplied username: {username}')
         user = None
         if username:
             user = current_app.userdb.lookup_user(username)
