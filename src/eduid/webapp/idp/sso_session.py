@@ -193,7 +193,7 @@ def get_sso_session() -> Optional[SSOSession]:
     sso_session_lifetime = current_app.conf.sso_session_lifetime
     sso_sessions = current_app.sso_sessions
 
-    session = _lookup_sso_session2(sso_sessions)
+    session = _lookup_sso_session(sso_sessions)
     if session:
         logger.debug(f'SSO session found in the database: {session}')
         _age = session.age
@@ -204,7 +204,7 @@ def get_sso_session() -> Optional[SSOSession]:
     return session
 
 
-def _lookup_sso_session2(sso_sessions: 'SSOSessionCache') -> Optional[SSOSession]:
+def _lookup_sso_session(sso_sessions: 'SSOSessionCache') -> Optional[SSOSession]:
     """
     See if a SSO session exists for this request, and return the data about
     the currently logged in user from the session store.
