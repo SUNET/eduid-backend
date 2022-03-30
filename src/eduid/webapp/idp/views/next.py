@@ -343,9 +343,12 @@ def _update_known_device_data(ticket: LoginContext, user: IdPUser, authn_info: A
         current_app.stats.count('login_new_device_first_login_finished')
     elif ticket.known_device.data.eppn != user.eppn:
         # We quite possibly want to block this in production, after verifying it "shouldn't happen"
-        current_app.logger.warning(f'Known device eppn changed from {ticket.known_device.data.eppn} to {user.eppn}')
+        current_app.logger.warning(f'Known device: eppn changed from {ticket.known_device.data.eppn} to {user.eppn}')
         ticket.known_device.data.eppn = user.eppn
-        current_app.stats.count('login_new_device_changed_eppn')
+        current_app.stats.count('login_known_device_changed_eppn')
+    else:
+        current_app.logger.info('Known device: Same user logging in')  # TODO: change to debug after burn-in
+        current_app.stats.count('login_known_device_login_finished')
 
     if ticket.known_device.data.ip_address != request.remote_addr:
         if ticket.known_device.data.ip_address:
