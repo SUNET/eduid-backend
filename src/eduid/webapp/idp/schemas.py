@@ -39,6 +39,7 @@ __author__ = 'ft'
 class IdPRequest(EduidSchema, CSRFRequestMixin):
     ref = fields.Str(required=True)
     this_device = fields.Str(required=False)
+    remember_me = fields.Bool(required=False)  # set to false when user requests we forget this_device
 
 
 class NextRequestSchema(IdPRequest):
