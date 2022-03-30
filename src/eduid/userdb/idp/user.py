@@ -37,10 +37,9 @@
 User and user database module.
 """
 import logging
-import warnings
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, List, Optional
 
 from eduid.userdb import User
 
@@ -84,7 +83,7 @@ class IdPUser(User):
     """
 
     def to_saml_attributes(
-        self, settings: SAMLAttributeSettings, filter_attributes: List[str] = _SAML_ATTRIBUTES,
+        self, settings: SAMLAttributeSettings, filter_attributes: Optional[List[str]] = None,
     ) -> dict:
         """
         Return a dict of SAML attributes for a user.
@@ -97,6 +96,8 @@ class IdPUser(User):
 
         :return: SAML attributes
         """
+        if filter_attributes is None:
+            filter_attributes = _SAML_ATTRIBUTES
         attributes_in = self.to_dict()
         attributes = {}
         for approved in filter_attributes:
