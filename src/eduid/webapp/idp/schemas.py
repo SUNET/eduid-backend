@@ -143,6 +143,7 @@ class UseOther2ResponseSchema(FluxStandardAction):
             description = fields.Str(required=False)  # description of device1, based on User-Agent header
             proximity = fields.Str(required=False)  # how close the address of device1 is to the address of device2
             service_info = fields.Nested(ServiceInfo, required=False)
+            is_known_device = fields.Boolean(required=True)
 
         device1_info = fields.Nested(DeviceInfo)
         expires_in = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend

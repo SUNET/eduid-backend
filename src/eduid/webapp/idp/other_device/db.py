@@ -34,6 +34,7 @@ class Device1Data(BaseModel):
     ip_address: str  # the IP address of device 1, to be used by the user on device 2 to assess the request
     user_agent: Optional[str]  # the user agent of device 1, to be used by the user on device 2 to assess the request
     service_info: Optional['ServiceInfo']  # information about the service (SP) where the user is logging in
+    is_known_device: bool
 
 
 class Device2Data(BaseModel):
@@ -69,6 +70,7 @@ class OtherDevice(BaseModel):
         ip_address: str,
         user_agent: Optional[str],
         ttl: timedelta,
+        is_known_device: bool,
         reauthn_required: bool = False,
         service_info: Optional[ServiceInfo] = None,
     ) -> OtherDevice:
@@ -88,6 +90,7 @@ class OtherDevice(BaseModel):
                 user_agent=user_agent,
                 reauthn_required=reauthn_required,
                 service_info=service_info,
+                is_known_device=is_known_device,
             ),
             device2=Device2Data(),
             created_at=now,
@@ -154,6 +157,7 @@ class OtherDeviceDB(BaseDB):
             service_info=ticket.service_info,
             ttl=ttl,
             user_agent=request.headers.get('user-agent'),
+            is_known_device=ticket.known_device is not None,
         )
         res = self.save(state)
         logger.debug(f'Save {state.state_id} result: {res}')
