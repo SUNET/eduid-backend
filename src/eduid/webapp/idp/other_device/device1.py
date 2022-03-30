@@ -23,14 +23,11 @@ logger = logging.getLogger(__name__)
 def device1_check_response_code(
     response_code: Optional[str], sso_session: Optional[SSOSession], state: OtherDevice, ticket: LoginContext
 ) -> Union[Optional[SSOSession], FluxData]:
-    if state.state != OtherDeviceState.AUTHENTICATED:
-        logger.info(f'Not validating response code for use other device in state {state.state}')
-        state.bad_attempts += 1
-        if not current_app.other_device_db.save(state):
-            logger.warning(f'Login using other device: Failed saving state {state}')
-        return error_response(message=IdPMsg.general_failure)
-
-    if state.device2.response_code and response_code == state.device2.response_code:
+    if (
+        state.state == OtherDeviceState.AUTHENTICATED
+        and state.device2.response_code
+        and response_code == state.device2.response_code
+    ):
         if not state.eppn:
             logger.warning(f'Login using other device: No eppn in state {state.state_id}')
             logger.debug(f'Extra debug: Full other device state:\n{state.to_json()}')
@@ -68,7 +65,10 @@ def device1_check_response_code(
 
         current_app.stats.count('login_using_other_device_finished')
     else:
-        logger.info(f'Use other device: Incorrect response_code')
+        if state.state != OtherDeviceState.AUTHENTICATED:
+            logger.info(f'Not validating response code for use other device in state {state.state}')
+        else:
+            logger.info(f'Use other device: Incorrect response_code')
         current_app.stats.count('login_using_other_device_incorrect_code')
         state.bad_attempts += 1
 
