@@ -211,14 +211,16 @@ def use_other_2(
         pending = IdP_OtherDevicePendingRequest(state_id=state.state_id)
         session.idp.pending_requests[request_ref] = pending
         current_app.logger.debug(f'Created new pending request with ref {request_ref}: {pending}')
-        ref = request_ref
-
-    if ref != state.device2.ref:
-        current_app.logger.warning(
-            f'Tried to use OtherDevice state that is not ours: {state.device2.ref} != {ref} (ours)'
-        )
-        current_app.logger.debug(f'Extra debug: Full other device state:\n{state.to_json()}')
-        return error_response(message=IdPMsg.general_failure)  # TODO: make a real error code for this
+    else:
+        # Could be a reload of the page on device #2, or it could be an attacker opening the QR code on one
+        # device, and wanting the user to open it again on their device and log them (the attacker) in.
+        # If it is a reload, the state.ref should be present in the session as a pending_request.
+        if state.device2.ref not in session.idp.pending_requests:
+            current_app.logger.warning(
+                f'Tried to use OtherDevice state that is already in use: {state.device2.ref} (not found in session)'
+            )
+            current_app.logger.debug(f'Extra debug: Full other device state:\n{state.to_json()}')
+            return error_response(message=IdPMsg.state_already_used)
 
     payload = device2_state_to_flux_payload(state, now)
 
