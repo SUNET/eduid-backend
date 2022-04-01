@@ -18,6 +18,7 @@ from eduid.userdb import User
 from eduid.userdb.db import BaseDB
 from eduid.webapp.idp.assurance_data import EduidAuthnContextClass, UsedCredential
 from eduid.webapp.idp.idp_saml import ServiceInfo
+from eduid.webapp.idp.mischttp import get_user_agent
 from eduid.webapp.idp.other_device.data import OtherDeviceId, OtherDeviceState
 
 if typing.TYPE_CHECKING:
@@ -147,6 +148,11 @@ class OtherDeviceDB(BaseDB):
         return OtherDevice.from_dict(state)
 
     def add_new_state(self, ticket: 'LoginContext', user: Optional[User], ttl: timedelta) -> OtherDevice:
+        user_agent = None
+        ua = get_user_agent()
+        if ua:
+            user_agent = str(ua.parsed)
+
         authn_ref = ticket.get_requested_authn_context()
         state = OtherDevice.from_parameters(
             authn_context=authn_ref,
@@ -156,7 +162,7 @@ class OtherDeviceDB(BaseDB):
             request_id=ticket.request_id,
             service_info=ticket.service_info,
             ttl=ttl,
-            user_agent=request.headers.get('user-agent'),
+            user_agent=user_agent,
             is_known_device=ticket.known_device is not None,
         )
         res = self.save(state)
