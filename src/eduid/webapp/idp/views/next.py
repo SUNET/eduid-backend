@@ -3,6 +3,7 @@ from dataclasses import asdict, dataclass
 from typing import Any, Dict, List, Optional
 
 from flask import Blueprint, request, url_for
+from saml2 import BINDING_HTTP_POST
 
 from eduid.userdb import LockedIdentityNin
 from eduid.userdb.credentials import FidoCredential, Password
@@ -21,7 +22,6 @@ from eduid.webapp.idp.mischttp import get_user_agent
 from eduid.webapp.idp.other_device.device2 import device2_finish
 from eduid.webapp.idp.schemas import NextRequestSchema, NextResponseSchema
 from eduid.webapp.idp.sso_session import SSOSession
-from saml2 import BINDING_HTTP_POST
 
 next_views = Blueprint('next', __name__, url_prefix='')
 

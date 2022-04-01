@@ -248,8 +248,8 @@ def get_sso_session_id() -> Optional[SSOSessionId]:
     :return: SSO session id
     """
     # local import to avoid import-loop
-    from eduid.webapp.idp.mischttp import read_cookie
     from eduid.webapp.idp.app import current_idp_app as current_app
+    from eduid.webapp.idp.mischttp import read_cookie
 
     _session_id = read_cookie(current_app.conf.sso_cookie.key)
     if not _session_id:

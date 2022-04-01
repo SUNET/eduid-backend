@@ -36,7 +36,7 @@ from __future__ import annotations
 import copy
 from datetime import datetime
 from enum import Enum, unique
-from typing import Any, Dict, List, Mapping, Optional, Type, TypeVar, cast, Union
+from typing import Any, Dict, List, Mapping, Optional, Type, TypeVar, Union, cast
 
 import bson
 from pydantic import BaseModel, Extra, Field, root_validator, validator
