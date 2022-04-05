@@ -62,6 +62,7 @@ class KnownDeviceData(BaseModel):
     last_login: Optional[datetime] = None
     ip_address: Optional[str] = None
     user_agent: Optional[str] = None
+    login_counter: Optional[int] = 0
 
     def to_json(self):
         return self.json(exclude_none=True)

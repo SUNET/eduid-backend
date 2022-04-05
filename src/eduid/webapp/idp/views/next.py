@@ -136,6 +136,10 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
 
         if current_app.conf.known_devices_feature_enabled:
             if ticket.known_device and ticket.known_device_info:
+                if ticket.known_device.data.login_counter is None:
+                    ticket.known_device.data.login_counter = 0  # for mypy
+                ticket.known_device.data.login_counter += 1
+                current_app.stats.gauge('login_known_device_login_counter', ticket.known_device.data.login_counter)
                 _update_known_device_data(ticket, user, _next.authn_info)
                 current_app.known_device_db.save(
                     ticket.known_device, from_browser=ticket.known_device_info, ttl=current_app.conf.known_devices_ttl
