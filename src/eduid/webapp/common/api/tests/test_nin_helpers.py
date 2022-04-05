@@ -62,7 +62,12 @@ class NinHelpersTest(EduidAPITestCase):
         del userdata['nins']
         user = User.from_dict(data=userdata)
         nin_element = Nin.from_dict(
-            dict(number=self.test_user_nin, created_by='AlreadyVerifiedNinHelpersTest', verified=True, primary=True,)
+            dict(
+                number=self.test_user_nin,
+                created_by='AlreadyVerifiedNinHelpersTest',
+                verified=True,
+                primary=True,
+            )
         )
         user.nins.add(nin_element)
         self.app.central_userdb.save(user, check_sync=False)
@@ -73,7 +78,12 @@ class NinHelpersTest(EduidAPITestCase):
         del userdata['nins']
         user = User.from_dict(data=userdata)
         nin_element = Nin.from_dict(
-            dict(number=self.test_user_nin, created_by='AlreadyAddedNinHelpersTest', verified=False, primary=False,)
+            dict(
+                number=self.test_user_nin,
+                created_by='AlreadyAddedNinHelpersTest',
+                verified=False,
+                primary=False,
+            )
         )
         user.nins.add(nin_element)
         self.app.central_userdb.save(user, check_sync=False)
@@ -130,7 +140,7 @@ class NinHelpersTest(EduidAPITestCase):
 
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_verify_nin_for_user(self, mock_user_sync):
-        """ Test happy-case when calling verify_nin_for_user with a User instance (deprecated) """
+        """Test happy-case when calling verify_nin_for_user with a User instance (deprecated)"""
         mock_user_sync.return_value = True
         eppn = self.insert_no_nins_user()
         user = self.app.central_userdb.get_user_by_eppn(eppn)
@@ -165,7 +175,7 @@ class NinHelpersTest(EduidAPITestCase):
 
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_verify_nin_for_user_with_proofinguser(self, mock_user_sync):
-        """ Test happy-case when calling verify_nin_for_user with a ProofingUser instance """
+        """Test happy-case when calling verify_nin_for_user with a ProofingUser instance"""
         mock_user_sync.return_value = True
         eppn = self.insert_no_nins_user()
         user = self.app.central_userdb.get_user_by_eppn(eppn)

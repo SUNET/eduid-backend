@@ -51,7 +51,13 @@ class LookupMobileProofingTests(EduidAPITestCase):
         return init_lookup_mobile_proofing_app('testing', config)
 
     def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
-        config.update({'environment': 'dev', 'magic_cookie': '', 'magic_cookie_name': '',},)
+        config.update(
+            {
+                'environment': 'dev',
+                'magic_cookie': '',
+                'magic_cookie_name': '',
+            },
+        )
         return config
 
     def test_authenticate(self):

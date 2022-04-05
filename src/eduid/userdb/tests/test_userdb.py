@@ -45,7 +45,7 @@ class TestUserDB(MongoTestCase):
         super().setUp(am_users=[self.user], **kwargs)
 
     def test_get_user_by_id(self):
-        """ Test get_user_by_id """
+        """Test get_user_by_id"""
         res = self.amdb.get_user_by_id(self.user.user_id)
         self.assertEqual(self.user.user_id, res.user_id)
 
@@ -59,7 +59,7 @@ class TestUserDB(MongoTestCase):
         self.assertEqual(None, res)
 
     def test_get_user_by_nin(self):
-        """ Test get_user_by_nin """
+        """Test get_user_by_nin"""
         test_user = self.amdb.get_user_by_id(self.user.user_id)
         test_user.given_name = 'Kalle Anka'
         self.amdb.save(test_user)
@@ -67,9 +67,9 @@ class TestUserDB(MongoTestCase):
         self.assertEqual(test_user.given_name, res.given_name)
 
     def test_remove_user_by_id(self):
-        """ Test removing a user from the database
+        """Test removing a user from the database
 
-            NOTE: remove_user_by_id() should be moved to SignupUserDb
+        NOTE: remove_user_by_id() should be moved to SignupUserDb
         """
         test_user = self.amdb.get_user_by_id(self.user.user_id)
         res = self.amdb.get_users_by_nin(test_user.nins.primary.number)
@@ -79,13 +79,13 @@ class TestUserDB(MongoTestCase):
         self.assertEqual(res, [])
 
     def test_get_user_by_eppn(self):
-        """ Test user lookup using eppn """
+        """Test user lookup using eppn"""
         test_user = self.amdb.get_user_by_id(self.user.user_id)
         res = self.amdb.get_user_by_eppn(test_user.eppn)
         self.assertEqual(test_user.user_id, res.user_id)
 
     def test_get_user_by_eppn_not_found(self):
-        """ Test user lookup using unknown """
+        """Test user lookup using unknown"""
         assert self.amdb.get_user_by_eppn('abc123') is None
 
 
@@ -122,7 +122,7 @@ class TestUserDB_mail(MongoTestCase):
         self.assertEqual(test_user.user_id, res.user_id)
 
     def test_get_user_by_mail_unknown(self):
-        """ Test searching for unknown e-mail address """
+        """Test searching for unknown e-mail address"""
         assert self.amdb.get_user_by_mail('abc123@example.edu') is None
 
     def test_get_user_by_mail_multiple(self):
@@ -179,7 +179,7 @@ class TestUserDB_phone(MongoTestCase):
         assert [x.user_id for x in res] == [self.user2.user_id]
 
     def test_get_user_by_phone_unknown(self):
-        """ Test searching for unknown e-phone address """
+        """Test searching for unknown e-phone address"""
         assert self.amdb.get_user_by_phone('abc123@example.edu') is None
 
     def test_get_user_by_phone_multiple(self):
@@ -239,7 +239,7 @@ class TestUserDB_nin(MongoTestCase):
         assert [x.user_id for x in res] == [self.user2.user_id]
 
     def test_get_user_by_nin_unknown(self):
-        """ Test searching for unknown e-nin address """
+        """Test searching for unknown e-nin address"""
         assert self.amdb.get_user_by_nin('77777777777') is None
 
     def test_get_user_by_nin_multiple(self):

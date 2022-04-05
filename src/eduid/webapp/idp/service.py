@@ -95,9 +95,9 @@ class Service(ABC):
         return _data
 
     def redirect(self) -> WerkzeugResponse:
-        """ Expects a HTTP-redirect request """
+        """Expects a HTTP-redirect request"""
         raise NotImplementedError('Subclass should implement function "redirect"')
 
     def post(self) -> WerkzeugResponse:
-        """ Expects a HTTP-POST request """
+        """Expects a HTTP-POST request"""
         raise NotImplementedError('Subclass should implement function "post"')

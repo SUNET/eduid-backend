@@ -117,15 +117,14 @@ class SSOSession(BaseModel):
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """ Return the object in dict format (serialized for storing in MongoDB).
-        """
+        """Return the object in dict format (serialized for storing in MongoDB)."""
         res = self.dict()
         res['_id'] = res.pop('obj_id')
         return res
 
     @classmethod
     def from_dict(cls: Type[SSOSession], data: Mapping[str, Any]) -> SSOSession:
-        """ Construct element from a data dict in database format. """
+        """Construct element from a data dict in database format."""
         return cls(**data)
 
     @property
@@ -138,11 +137,11 @@ class SSOSession(BaseModel):
 
     @property
     def age(self) -> timedelta:
-        """ Return the age of this SSO session, in minutes. """
+        """Return the age of this SSO session, in minutes."""
         return utc_now() - self.authn_timestamp
 
     def add_authn_credential(self, authn: AuthnData) -> None:
-        """ Add information about a credential successfully used in this session. """
+        """Add information about a credential successfully used in this session."""
         if not isinstance(authn, AuthnData):
             raise ValueError(f'data should be AuthnData (not {type(authn)})')
 

@@ -77,7 +77,9 @@ class TestActions(SSOIdPTests):
         self.test_action = self.actions.add_action(self.test_user.eppn, action_type='dummy', preference=100, params={})
 
         self.sso_session = SSOSession(
-            authn_request_id='some-unique-id-1', authn_credentials=[], eppn=self.test_user.eppn,
+            authn_request_id='some-unique-id-1',
+            authn_credentials=[],
+            eppn=self.test_user.eppn,
         )
         self.app.sso_sessions.save(self.sso_session)
 
@@ -104,7 +106,7 @@ class TestActions(SSOIdPTests):
 
     @property
     def num_actions(self):
-        """ Return the current number of actions for the test user in the test session """
+        """Return the current number of actions for the test user in the test session"""
         return len(self.actions.get_actions(self.test_user.eppn, self.mock_session_key))
 
     def _test_no_actions(self, tou: ToUEvent):
@@ -140,7 +142,7 @@ class TestActions(SSOIdPTests):
         self._test_no_actions(tou)
 
     def test_add_action(self):
-        """ Test that we are redirected to the actions app when there is an action for the user (self.test_action) """
+        """Test that we are redirected to the actions app when there is an action for the user (self.test_action)"""
 
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, 'authenticate'):
@@ -364,7 +366,7 @@ class TestActions(SSOIdPTests):
             assert self.num_actions == 1
 
     def test_mfa_action_fake_completion(self):
-        """ Test returning from actions after completing an MFA actions """
+        """Test returning from actions after completing an MFA actions"""
 
         # Only bother with MFA actions in this test, so mark the ToU as registered already
         event_id = bson.ObjectId()

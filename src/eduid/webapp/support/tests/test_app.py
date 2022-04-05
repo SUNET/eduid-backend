@@ -58,7 +58,10 @@ class SupportAppTests(EduidAPITestCase):
 
     def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         config.update(
-            {'support_personnel': ['hubba-bubba'], 'token_service_url_logout': 'https://localhost/logout',}
+            {
+                'support_personnel': ['hubba-bubba'],
+                'token_service_url_logout': 'https://localhost/logout',
+            }
         )
         return config
 

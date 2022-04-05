@@ -214,7 +214,7 @@ def record_tou(signup_user: SignupUser, source: str) -> None:
 
 
 def _generate_password() -> str:
-    """ Generate a random password readable to humans (groups of four characters). """
+    """Generate a random password readable to humans (groups of four characters)."""
     password = pwgen(current_app.conf.password_length, no_capitalize=True, no_symbols=True)
     parts = findall('.{,4}', password)
     return ' '.join(parts).rstrip()

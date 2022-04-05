@@ -159,7 +159,7 @@ class WorkerTestCase(CommonTestCase):
 
 
 class AMTestCase(WorkerTestCase):
-    """ TestCase with an embedded Attribute Manager. """
+    """TestCase with an embedded Attribute Manager."""
 
     def tearDown(self):
         for fetcher in AmCelerySingleton.af_registry.all_fetchers():

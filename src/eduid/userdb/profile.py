@@ -16,7 +16,7 @@ class Profile(Element):
 
     @property
     def key(self) -> ElementKey:
-        """ Return the element that is used as key in a ElementList """
+        """Return the element that is used as key in a ElementList"""
         return ElementKey(self.owner)
 
 

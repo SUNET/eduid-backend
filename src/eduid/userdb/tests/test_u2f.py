@@ -55,7 +55,15 @@ class TestU2F(TestCase):
         Test that the 'key' property (used by CredentialList) works for the credential.
         """
         this = self.one.find(_keyid(_one_dict))
-        self.assertEqual(this.key, _keyid({'keyhandle': this.keyhandle, 'public_key': this.public_key,}))
+        self.assertEqual(
+            this.key,
+            _keyid(
+                {
+                    'keyhandle': this.keyhandle,
+                    'public_key': this.public_key,
+                }
+            ),
+        )
 
     def test_parse_cycle(self):
         """

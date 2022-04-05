@@ -102,7 +102,7 @@ class ScimApiEventDB(ScimApiBaseDB):
         self.setup_indexes(indexes)
 
     def save(self, event: ScimApiEvent) -> bool:
-        """ Save a new event to the database. Events are never expected to be modified. """
+        """Save a new event to the database. Events are never expected to be modified."""
         event_dict = event.to_dict()
 
         result = self._coll.insert_one(event_dict)
@@ -146,7 +146,7 @@ def add_api_event(
     status: EventStatus,
     message: str,
 ) -> None:
-    """ Add an event with source=this-API. """
+    """Add an event with source=this-API."""
     _now = utc_now()
     _expires_at = _now + timedelta(days=1)
     _event = ScimApiEvent(

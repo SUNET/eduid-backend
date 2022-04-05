@@ -78,8 +78,7 @@ class OidcAuthorization(Element):
 
     @classmethod
     def _from_dict_transform(cls: Type[OidcAuthorization], data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        """
+        """ """
         data = super()._from_dict_transform(data)
 
         # these keys appear in the data sample in the eduid.userdb.tests.test_orcid module
@@ -97,8 +96,7 @@ class OidcAuthorization(Element):
         return data
 
     def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        """
+        """ """
         data = super()._to_dict_transform(data)
 
         data['id_token'] = self.id_token.to_dict()
@@ -122,8 +120,7 @@ class Orcid(VerifiedElement):
 
     @classmethod
     def _from_dict_transform(cls: Type[Orcid], data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        """
+        """ """
         data = super()._from_dict_transform(data)
 
         # Parse ID token
@@ -136,8 +133,7 @@ class Orcid(VerifiedElement):
         return data
 
     def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        """
+        """ """
         data['oidc_authz'] = self.oidc_authz.to_dict()
 
         _has_empty_name = 'name' in data and data['name'] is None

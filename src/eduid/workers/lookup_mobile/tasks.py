@@ -13,7 +13,7 @@ app = MobCelerySingleton.celery
 
 
 class MobWorker(Task):
-    """ Singleton that stores reusable objects like the MobileLookupClient """
+    """Singleton that stores reusable objects like the MobileLookupClient"""
 
     abstract = True  # This means Celery won't register this as another task
 

@@ -16,7 +16,10 @@ OPAQUE_DATA = {'a_string': 'I am a string', 'an_int': 3, 'a_list': ['eins', 2, '
 class ProfileTest(TestCase):
     def test_create_profile(self):
         profile = Profile(
-            owner='test owner', profile_schema='test schema', profile_data=OPAQUE_DATA, created_by='test created_by',
+            owner='test owner',
+            profile_schema='test schema',
+            profile_data=OPAQUE_DATA,
+            created_by='test created_by',
         )
         self.assertEqual(profile.owner, 'test owner')
         self.assertEqual(profile.profile_schema, 'test schema')
@@ -28,10 +31,16 @@ class ProfileTest(TestCase):
 
     def test_profile_list(self):
         profile = Profile(
-            owner='test owner 1', profile_schema='test schema', profile_data=OPAQUE_DATA, created_by='test created_by',
+            owner='test owner 1',
+            profile_schema='test schema',
+            profile_data=OPAQUE_DATA,
+            created_by='test created_by',
         )
         profile2 = Profile(
-            owner='test owner 2', created_by='test created_by', profile_schema='test schema', profile_data=OPAQUE_DATA,
+            owner='test owner 2',
+            created_by='test created_by',
+            profile_schema='test schema',
+            profile_data=OPAQUE_DATA,
         )
 
         profile_list = ProfileList(elements=[profile, profile2])
@@ -47,7 +56,10 @@ class ProfileTest(TestCase):
 
     def test_profile_list_owner_conflict(self):
         profile = Profile(
-            owner='test owner 1', profile_schema='test schema', profile_data=OPAQUE_DATA, created_by='test created_by',
+            owner='test owner 1',
+            profile_schema='test schema',
+            profile_data=OPAQUE_DATA,
+            created_by='test created_by',
         )
         profile_dict = profile.to_dict()
         profile2 = Profile.from_dict(profile_dict)

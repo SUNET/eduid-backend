@@ -609,7 +609,10 @@ class TestNewUser(unittest.TestCase):
         locked_identity = {'created_by': 'test', 'identity_type': 'nin', 'number': '197801012345'}
         user = User.from_dict(self.data1)
         locked_nin = LockedIdentityNin.from_dict(
-            dict(number=locked_identity['number'], created_by=locked_identity['created_by'],)
+            dict(
+                number=locked_identity['number'],
+                created_by=locked_identity['created_by'],
+            )
         )
         user.locked_identity.add(locked_nin)
         self.assertEqual(user.locked_identity.count, 1)
@@ -624,7 +627,10 @@ class TestNewUser(unittest.TestCase):
         locked_identity = {'created_by': 'test', 'identity_type': 'nin', 'number': '197801012345'}
         user = User.from_dict(self.data1)
         locked_nin = LockedIdentityNin.from_dict(
-            dict(number=locked_identity['number'], created_by=locked_identity['created_by'],)
+            dict(
+                number=locked_identity['number'],
+                created_by=locked_identity['created_by'],
+            )
         )
         user.locked_identity.add(locked_nin)
 
@@ -646,7 +652,10 @@ class TestNewUser(unittest.TestCase):
         locked_identity = {'created_by': 'test', 'identity_type': 'nin', 'number': '197801012345'}
         user = User.from_dict(self.data1)
         locked_nin = LockedIdentityNin.from_dict(
-            dict(number=locked_identity['number'], created_by=locked_identity['created_by'],)
+            dict(
+                number=locked_identity['number'],
+                created_by=locked_identity['created_by'],
+            )
         )
         user.locked_identity.add(locked_nin)
         with self.assertRaises(EduIDUserDBError):
@@ -720,7 +729,7 @@ class TestNewUser(unittest.TestCase):
         self.assertFalse('proofing_version' in _dict2)
 
     def test_both_mobile_and_phone(self):
-        """ Test user that has both 'mobile' and 'phone' """
+        """Test user that has both 'mobile' and 'phone'"""
         phone = [
             {'number': '+4673123', 'primary': True, 'verified': True},
             {'created_by': 'phone', 'number': '+4670999', 'primary': False, 'verified': False},
@@ -739,7 +748,7 @@ class TestNewUser(unittest.TestCase):
         assert phone == out, 'The phone objects differ when using both phone and mobile'
 
     def test_both_sn_and_surname(self):
-        """ Test user that has both 'sn' and 'surname' """
+        """Test user that has both 'sn' and 'surname'"""
         user = User.from_dict(
             data={
                 '_id': ObjectId(),
@@ -869,7 +878,11 @@ class TestNewUser(unittest.TestCase):
                     'MiddleName': 'Testare',
                     'Surname': 'Testsson',
                 },
-                'OfficialAddress': {'Address2': 'VÄGEN 16', 'City': 'STADEN', 'PostalCode': '12345',},
+                'OfficialAddress': {
+                    'Address2': 'VÄGEN 16',
+                    'City': 'STADEN',
+                    'PostalCode': '12345',
+                },
             },
             'transaction_id': '0000000-0000-0000-0000-00000000',
             'verification_code': 'xxxxxxxxxx',

@@ -24,10 +24,14 @@ SAML_CONFIG = {
             'endpoints': {
                 # url and binding to the assetion consumer service view
                 # do not change the binding or service name
-                'assertion_consumer_service': [('%ssaml2-acs' % BASE_URL, saml2.BINDING_HTTP_POST),],
+                'assertion_consumer_service': [
+                    ('%ssaml2-acs' % BASE_URL, saml2.BINDING_HTTP_POST),
+                ],
                 # url and binding to the single logout service view
                 # do not change the binding or service name
-                'single_logout_service': [('%ssaml2-ls' % BASE_URL, saml2.BINDING_HTTP_REDIRECT),],
+                'single_logout_service': [
+                    ('%ssaml2-ls' % BASE_URL, saml2.BINDING_HTTP_REDIRECT),
+                ],
             },
             # Do not check for signature during tests
             'want_response_signed': False,
@@ -55,7 +59,9 @@ SAML_CONFIG = {
         },
     },
     # where the remote metadata is stored
-    'metadata': {'local': [path.join(SAML2DIR, 'remote_metadata.xml')],},
+    'metadata': {
+        'local': [path.join(SAML2DIR, 'remote_metadata.xml')],
+    },
     # set to 1 to output debugging information
     'debug': 1,
     # certificate

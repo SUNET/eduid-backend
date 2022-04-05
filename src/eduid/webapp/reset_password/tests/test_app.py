@@ -652,7 +652,9 @@ class ResetPasswordTests(EduidAPITestCase):
         data = {'email': 'invalid-address'}
         response = self._post_email_address(data1=data)
         self._check_error_response(
-            response, type_='POST_RESET_PASSWORD_FAIL', payload={'error': {'email': ['Not a valid email address.']}},
+            response,
+            type_='POST_RESET_PASSWORD_FAIL',
+            payload={'error': {'email': ['Not a valid email address.']}},
         )
 
     def test_post_reset_code(self):
@@ -723,7 +725,9 @@ class ResetPasswordTests(EduidAPITestCase):
         data2 = {'csrf_token': 'wrong-code'}
         response = self._post_reset_code(data2=data2)
         self._check_error_response(
-            response, type_='POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL', error={'csrf_token': ['CSRF failed to validate']},
+            response,
+            type_='POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL',
+            error={'csrf_token': ['CSRF failed to validate']},
         )
 
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
@@ -795,7 +799,11 @@ class ResetPasswordTests(EduidAPITestCase):
         data2 = {'csrf_token': ''}
         response = self._post_reset_password(data2=data2)
         self._check_error_response(
-            response, type_='POST_RESET_PASSWORD_NEW_PASSWORD_FAIL', error={'csrf_token': ['CSRF failed to validate'],},
+            response,
+            type_='POST_RESET_PASSWORD_NEW_PASSWORD_FAIL',
+            error={
+                'csrf_token': ['CSRF failed to validate'],
+            },
         )
 
     def test_post_reset_password_wrong_code(self):

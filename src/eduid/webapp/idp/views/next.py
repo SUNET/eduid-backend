@@ -32,7 +32,7 @@ next_views = Blueprint('next', __name__, url_prefix='')
 @require_ticket
 @uses_sso_session
 def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxData:
-    """ Main state machine for frontend """
+    """Main state machine for frontend"""
     current_app.logger.debug('\n\n')
     current_app.logger.debug(f'--- Next ({ticket.request_ref}) ---')
 
@@ -73,7 +73,10 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
             'service_info': _get_service_info(ticket),
         }
 
-        return success_response(message=IdPMsg.must_authenticate, payload=_payload,)
+        return success_response(
+            message=IdPMsg.must_authenticate,
+            payload=_payload,
+        )
 
     if _next.message == IdPMsg.must_authenticate:
         _payload = {
@@ -83,7 +86,10 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
             'service_info': _get_service_info(ticket),
         }
 
-        return success_response(message=IdPMsg.must_authenticate, payload=_payload,)
+        return success_response(
+            message=IdPMsg.must_authenticate,
+            payload=_payload,
+        )
 
     if _next.message == IdPMsg.mfa_required:
         return success_response(
@@ -244,7 +250,7 @@ def _get_service_info(ticket: LoginContext) -> Dict[str, Any]:
 
 
 def _set_user_options(res: AuthnOptions, eppn: str) -> None:
-    """ Augment the AuthnOptions instance with information about the current user """
+    """Augment the AuthnOptions instance with information about the current user"""
     user = current_app.userdb.lookup_user(eppn)
     if user:
         current_app.logger.debug(f'User logging in (from either SSO session, or SP request): {user}')
@@ -276,7 +282,7 @@ def _set_user_options(res: AuthnOptions, eppn: str) -> None:
 
 
 def _log_user_agent() -> None:
-    """ Log some statistics from the User-Agent header """
+    """Log some statistics from the User-Agent header"""
     ua = get_user_agent()
 
     if ua:

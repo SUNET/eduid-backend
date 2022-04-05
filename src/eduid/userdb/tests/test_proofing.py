@@ -64,7 +64,8 @@ class ProofingStateTest(TestCase):
         assert sorted(state_dict.keys()) == sorted(_state_expected_keys)
 
         self.assertEqual(
-            sorted([k for k, v in state_dict['nin'].items() if v is not None]), sorted(nin_expected_keys),
+            sorted([k for k, v in state_dict['nin'].items() if v is not None]),
+            sorted(nin_expected_keys),
         )
         _proofing_letter_expected_keys = ['address', 'created_ts', 'is_sent', 'modified_ts']
         self.assertEqual(
@@ -73,8 +74,7 @@ class ProofingStateTest(TestCase):
         )
 
     def test_create_letterproofingstate_with_ninproofingelement_from_dict(self):
-        """
-        """
+        """ """
         state = LetterProofingState(
             eppn=EPPN,
             nin=NinProofingElement.from_dict(
@@ -103,8 +103,7 @@ class ProofingStateTest(TestCase):
         self._test_create_letterproofingstate(state, _nin_expected_keys)
 
     def test_create_letterproofingstate_with_ninproofingelement_from_dict_with_created_ts(self):
-        """
-        """
+        """ """
         state = LetterProofingState(
             eppn=EPPN,
             nin=NinProofingElement.from_dict(
@@ -132,8 +131,7 @@ class ProofingStateTest(TestCase):
         self._test_create_letterproofingstate(state, _nin_expected_keys)
 
     def test_create_letterproofingstate(self):
-        """
-        """
+        """ """
         state = LetterProofingState(
             eppn=EPPN,
             nin=NinProofingElement(

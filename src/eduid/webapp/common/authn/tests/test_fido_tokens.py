@@ -128,7 +128,10 @@ class FidoTokensTestCase(EduidAPITestCase):
 
     def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         config.update(
-            {'app_name': 'testing', 'available_languages': {'en': 'English', 'sv': 'Svenska'},}
+            {
+                'app_name': 'testing',
+                'available_languages': {'en': 'English', 'sv': 'Svenska'},
+            }
         )
         config.update(SAMPLE_WEBAUTHN_APP_CONFIG)
         return config

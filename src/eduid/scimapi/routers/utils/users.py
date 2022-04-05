@@ -15,7 +15,7 @@ from eduid.scimapi.utils import make_etag
 
 
 def get_user_groups(req: ContextRequest, db_user: ScimApiUser) -> List[Group]:
-    """ Return the groups for a user formatted as SCIM search sub-resources """
+    """Return the groups for a user formatted as SCIM search sub-resources"""
     user_groups = req.context.groupdb.get_groups_for_user_identifer(db_user.scim_id)
     groups = []
     for group in user_groups:

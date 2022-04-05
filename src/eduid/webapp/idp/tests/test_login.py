@@ -23,7 +23,11 @@ class IdPTestLogin(IdPTests):
     def update_config(self, config):
         config = super().update_config(config)
         config.update(
-            {'signup_link': 'TEST-SIGNUP-LINK', 'log_level': 'DEBUG', 'enable_legacy_template_mode': True,}
+            {
+                'signup_link': 'TEST-SIGNUP-LINK',
+                'log_level': 'DEBUG',
+                'enable_legacy_template_mode': True,
+            }
         )
         return config
 
@@ -31,7 +35,9 @@ class IdPTestLogin(IdPTests):
         next_url = '/back-to-test-marker'
 
         (session_id, info) = self.saml2_client.prepare_for_authenticate(
-            entityid=self.idp_entity_id, relay_state=next_url, binding=BINDING_HTTP_REDIRECT,
+            entityid=self.idp_entity_id,
+            relay_state=next_url,
+            binding=BINDING_HTTP_REDIRECT,
         )
 
         path = self._extract_path_from_info(info)
@@ -155,7 +161,7 @@ class IdPTestLogin(IdPTests):
     def test_with_authncontext(self):
         """
         Request REFEDS_MFA, but the test user does not have any MFA credentials.
-        The user can still login using external MFA though, so this test expects to be redirected to actions. """
+        The user can still login using external MFA though, so this test expects to be redirected to actions."""
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, 'authenticate'):
             VCCSClient.authenticate.return_value = True

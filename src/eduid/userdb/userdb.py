@@ -113,7 +113,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         return [self.user_from_dict(data=user) for user in users]
 
     def get_user_by_mail(self, email: str) -> Optional[UserVar]:
-        """ Locate a user with a (confirmed) e-mail address """
+        """Locate a user with a (confirmed) e-mail address"""
         res = self.get_users_by_mail(email=email)
         if not res:
             return None
@@ -140,7 +140,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         return self._get_user_by_filter(filter)
 
     def get_user_by_nin(self, nin: str) -> Optional[UserVar]:
-        """ Locate a user with a (confirmed) NIN """
+        """Locate a user with a (confirmed) NIN"""
         res = self.get_users_by_nin(nin=nin)
         if not res:
             return None
@@ -168,7 +168,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         return self._get_user_by_filter(filter)
 
     def get_user_by_phone(self, phone: str) -> Optional[UserVar]:
-        """ Locate a user with a (confirmed) phone number """
+        """Locate a user with a (confirmed) phone number"""
         res = self.get_users_by_phone(phone=phone)
         if not res:
             return None
@@ -333,7 +333,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
 
 
 class AmDB(UserDB[User]):
-    """ Central userdb, aka. AM DB """
+    """Central userdb, aka. AM DB"""
 
     def __init__(self, db_uri: str, db_name: str = 'eduid_am'):
         super().__init__(db_uri, db_name)

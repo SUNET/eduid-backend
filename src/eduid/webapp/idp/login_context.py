@@ -68,27 +68,27 @@ class LoginContext(ABC, BaseModel):
 
     @property
     def service_requested_eppn(self) -> Optional[str]:
-        """ The eppn of the user the service (e.g. SAML SP) requests logs in """
+        """The eppn of the user the service (e.g. SAML SP) requests logs in"""
         raise NotImplementedError('Subclass must implement service_requested_eppn')
 
     @property
     def service_info(self) -> Optional[ServiceInfo]:
-        """ Information about the service where the user is logging in """
+        """Information about the service where the user is logging in"""
         raise NotImplementedError('Subclass must implement service_requested_eppn')
 
     @property
     def other_device_state_id(self) -> Optional[OtherDeviceId]:
-        """ Get the state_id for the OtherDevice state, if the user wants to log in using another device. """
+        """Get the state_id for the OtherDevice state, if the user wants to log in using another device."""
         raise NotImplementedError('Subclass must implement other_device_state_id')
 
     @property
     def is_other_device_1(self) -> bool:
-        """ Check if this is a request to log in on another device (specifically device #1). """
+        """Check if this is a request to log in on another device (specifically device #1)."""
         raise NotImplementedError('Subclass must implement is_other_device_1')
 
     @property
     def is_other_device_2(self) -> bool:
-        """ Check if this is a request to log in on another device (specifically device #2). """
+        """Check if this is a request to log in on another device (specifically device #2)."""
         raise NotImplementedError('Subclass must implement is_other_device_2')
 
     def set_other_device_state(self, state_id: Optional[OtherDeviceId]) -> None:
@@ -197,7 +197,7 @@ class LoginContextSAML(LoginContext):
 
     @property
     def service_info(self) -> Optional[ServiceInfo]:
-        """ Information about the service where the user is logging in """
+        """Information about the service where the user is logging in"""
         _info = self.saml_req.service_info
         if not _info:
             return None
@@ -215,7 +215,7 @@ class LoginContextSAML(LoginContext):
 
     @property
     def is_other_device_1(self) -> bool:
-        """ Check if this is a request to log in on another device (specifically device #1).
+        """Check if this is a request to log in on another device (specifically device #1).
 
         If so, since this is an instance of IdP_SAMLPendingRequest (checked in self.other_device_state_id)
         this is a request being processed on the FIRST device. This is the INITIATING device, where the user
@@ -225,7 +225,7 @@ class LoginContextSAML(LoginContext):
 
     @property
     def is_other_device_2(self) -> bool:
-        """ Check if this is a request to log in on another device (specifically device #2). """
+        """Check if this is a request to log in on another device (specifically device #2)."""
         return False
 
     def get_requested_authn_context(self) -> Optional[EduidAuthnContextClass]:
@@ -280,12 +280,12 @@ class LoginContextOtherDevice(LoginContext):
 
     @property
     def is_other_device_1(self) -> bool:
-        """ Check if this is a request to log in on another device (specifically device #1). """
+        """Check if this is a request to log in on another device (specifically device #1)."""
         return False
 
     @property
     def is_other_device_2(self) -> bool:
-        """ Check if this is a request to log in on another device (specifically device #2).
+        """Check if this is a request to log in on another device (specifically device #2).
 
         If so, since this is an instance of IdP_OtherDevicePendingRequest (checked in self.other_device_state_id)
         this is a request being processed on the SECOND device. This is the AUTHENTICATING device, where the user
@@ -306,7 +306,7 @@ class LoginContextOtherDevice(LoginContext):
 
     @property
     def service_info(self) -> Optional[ServiceInfo]:
-        """ Information about the service where the user is logging in """
+        """Information about the service where the user is logging in"""
         return None
 
 

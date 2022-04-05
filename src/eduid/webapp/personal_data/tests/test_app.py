@@ -58,7 +58,9 @@ class PersonalDataTests(EduidAPITestCase):
 
     def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         config.update(
-            {'available_languages': {'en': 'English', 'sv': 'Svenska'},}
+            {
+                'available_languages': {'en': 'English', 'sv': 'Svenska'},
+            }
         )
         return config
 

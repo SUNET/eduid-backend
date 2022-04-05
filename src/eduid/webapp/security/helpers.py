@@ -149,7 +149,7 @@ def send_termination_mail(user):
 
 
 def check_reauthn(authn: Optional[SP_AuthnRequest], max_age: timedelta) -> Optional[FluxData]:
-    """ Check if a re-authentication has been performed recently enough for this action """
+    """Check if a re-authentication has been performed recently enough for this action"""
     if not authn or not authn.authn_instant:
         current_app.logger.info(f'Action requires re-authentication')
         return error_response(message=SecurityMsg.no_reauthn)

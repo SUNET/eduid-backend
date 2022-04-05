@@ -17,8 +17,7 @@ TNinProofingLogElementSubclass = TypeVar('TNinProofingLogElementSubclass', bound
 
 
 class LogElement(Element):
-    """
-    """
+    """ """
 
     # Application creating the log element
     created_by: str
@@ -51,8 +50,7 @@ class LogElement(Element):
 
 
 class ProofingLogElement(LogElement):
-    """
-    """
+    """ """
 
     # eduPersonPrincipalName
     eppn: str
@@ -63,8 +61,7 @@ class ProofingLogElement(LogElement):
 
 
 class NinProofingLogElement(ProofingLogElement):
-    """
-    """
+    """ """
 
     # National identity number
     nin: str

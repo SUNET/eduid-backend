@@ -19,7 +19,7 @@ class OtherDeviceRefResult:
 
 
 def _get_other_device_state_using_ref(ref: RequestRef, device: int) -> OtherDeviceRefResult:
-    """ Look for existing OtherDevice state using a login ref """
+    """Look for existing OtherDevice state using a login ref"""
     _info = SAMLQueryParams(request_ref=ref)
     ticket = get_ticket(_info, None)
     if not ticket:

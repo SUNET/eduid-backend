@@ -252,7 +252,9 @@ class LetterProofingTests(EduidAPITestCase):
         self._check_success_response(
             response2,
             type_='POST_LETTER_PROOFING_VERIFY_CODE_SUCCESS',
-            payload={'nins': [{'number': self.test_user_nin, 'primary': True, 'verified': True}],},
+            payload={
+                'nins': [{'number': self.test_user_nin, 'primary': True, 'verified': True}],
+            },
         )
 
         # TODO: When LogElements have working from_dict/to_dict, implement a proofing_log.get_proofings_by_eppn()
@@ -479,7 +481,7 @@ class LetterProofingTests(EduidAPITestCase):
         self.assertEqual(response.status_code, 400)
 
     def test_state_days_info(self):
-        """ Validate calculation of days information in state retrieval """
+        """Validate calculation of days information in state retrieval"""
         self.send_letter(self.test_user_nin)
         json_data = self.get_state()
 
@@ -530,7 +532,7 @@ class LetterProofingTests(EduidAPITestCase):
         assert json_data['payload']['message'] == LetterMsg.letter_expired.value
 
     def test_proofing_with_a_verified_nin(self):
-        """ Test that no letter is sent when the user already has a verified NIN """
+        """Test that no letter is sent when the user already has a verified NIN"""
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         verified_nin = Nin(
             number=self.test_user_nin, created_by='test', is_verified=True, verified_by='test', is_primary=True
@@ -540,7 +542,9 @@ class LetterProofingTests(EduidAPITestCase):
 
         response = self.send_letter(self.test_user_nin, validate_response=False)
         self._check_error_response(
-            response, type_='POST_LETTER_PROOFING_PROOFING_FAIL', payload={'message': 'User is already verified'},
+            response,
+            type_='POST_LETTER_PROOFING_PROOFING_FAIL',
+            payload={'message': 'User is already verified'},
         )
 
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(user.eppn)

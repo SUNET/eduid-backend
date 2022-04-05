@@ -101,7 +101,10 @@ class Plugin(ActionPlugin):
             authn_context = session.mfa_action.authn_context
             current_app.logger.info(f'User {user} logged in using external MFA service {issuer}')
             action.result = ActionResultThirdPartyMFA(
-                success=True, issuer=issuer, authn_instant=authn_instant, authn_context=authn_context,
+                success=True,
+                issuer=issuer,
+                authn_instant=authn_instant,
+                authn_context=authn_context,
             )
             current_app.actions_db.update_action(action)
             # Clear mfa_action from session

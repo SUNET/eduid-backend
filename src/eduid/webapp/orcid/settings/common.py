@@ -49,7 +49,9 @@ class OrcidConfig(EduIDBaseAppConfig, AmConfigMixin):
     # OIDC
     client_registration_info: Dict[str, str] = Field(default={'client_id': '', 'client_secret': ''})
     provider_configuration_info: Dict[str, str] = Field(
-        default={'issuer': '',}
+        default={
+            'issuer': '',
+        }
     )
     userinfo_endpoint_method: str = 'GET'
     orcid_verify_redirect_url: str = '/profile/accountlinking'

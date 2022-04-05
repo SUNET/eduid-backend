@@ -84,7 +84,12 @@ class TestVCCSClient(unittest.TestCase):
         # XXX need to find test vectors created with another implementation!
         f = VCCSPasswordFactor('plaintext', '4711', '$NDNv1H1$aaaaaaaaaaaaaaaa$12$32$')
         self.assertEqual(
-            f.to_dict('auth'), {'type': 'password', 'credential_id': '4711', 'H1': '0b9ba6497c08106032a3337b',}
+            f.to_dict('auth'),
+            {
+                'type': 'password',
+                'credential_id': '4711',
+                'H1': '0b9ba6497c08106032a3337b',
+            },
         )
 
     def test_utf8_password_factor(self):
@@ -94,7 +99,12 @@ class TestVCCSClient(unittest.TestCase):
         # XXX need to find test vectors created with another implementation!
         f = VCCSPasswordFactor('plaintextåäöхэж', '4711', '$NDNv1H1$aaaaaaaaaaaaaaaa$12$32$')
         self.assertEqual(
-            f.to_dict('auth'), {'type': 'password', 'credential_id': '4711', 'H1': 'bbcebc158aa37039e0fa3294',}
+            f.to_dict('auth'),
+            {
+                'type': 'password',
+                'credential_id': '4711',
+                'H1': 'bbcebc158aa37039e0fa3294',
+            },
         )
 
     def test_OATH_factor_auth(self):
@@ -103,7 +113,14 @@ class TestVCCSClient(unittest.TestCase):
         """
         aead = 'aa' * 20
         o = VCCSOathFactor('oath-hotp', 4712, nonce='010203040506', aead=aead, user_code='123456')
-        self.assertEqual(o.to_dict('auth'), {'type': 'oath-hotp', 'credential_id': 4712, 'user_code': '123456',})
+        self.assertEqual(
+            o.to_dict('auth'),
+            {
+                'type': 'oath-hotp',
+                'credential_id': 4712,
+                'user_code': '123456',
+            },
+        )
 
     def test_OATH_factor_add(self):
         """
@@ -146,7 +163,10 @@ class TestVCCSClient(unittest.TestCase):
         Test parsing of successful authentication response.
         """
         resp = {
-            'auth_response': {'version': 1, 'authenticated': True,},
+            'auth_response': {
+                'version': 1,
+                'authenticated': True,
+            },
         }
         c = FakeVCCSClient(json.dumps(resp))
         f = VCCSPasswordFactor('password', '4711', '$NDNv1H1$aaaaaaaaaaaaaaaa$12$32$')
@@ -157,7 +177,10 @@ class TestVCCSClient(unittest.TestCase):
         Test parsing of successful authentication response with a password in UTF-8.
         """
         resp = {
-            'auth_response': {'version': 1, 'authenticated': True,},
+            'auth_response': {
+                'version': 1,
+                'authenticated': True,
+            },
         }
         c = FakeVCCSClient(json.dumps(resp))
         f = VCCSPasswordFactor('passwordåäöхэж', '4711', '$NDNv1H1$aaaaaaaaaaaaaaaa$12$32$')
@@ -168,7 +191,9 @@ class TestVCCSClient(unittest.TestCase):
         Test unknown response version
         """
         resp = {
-            'auth_response': {'version': 999,},
+            'auth_response': {
+                'version': 999,
+            },
         }
         c = FakeVCCSClient(json.dumps(resp))
         f = VCCSPasswordFactor('password', '4711', '$NDNv1H1$aaaaaaaaaaaaaaaa$12$32$')
@@ -180,7 +205,9 @@ class TestVCCSClient(unittest.TestCase):
         Test unknown response version with a password in UTF-8.
         """
         resp = {
-            'auth_response': {'version': 999,},
+            'auth_response': {
+                'version': 999,
+            },
         }
         c = FakeVCCSClient(json.dumps(resp))
         f = VCCSPasswordFactor('passwordåäöхэж', '4711', '$NDNv1H1$aaaaaaaaaaaaaaaa$12$32$')
@@ -195,7 +222,10 @@ class TestVCCSClient(unittest.TestCase):
         userid = 'ft@example.net'
         password = 'secret'
         resp = {
-            'add_creds_response': {'version': 1, 'success': True,},
+            'add_creds_response': {
+                'version': 1,
+                'success': True,
+            },
         }
         c = FakeVCCSClient(json.dumps(resp))
         f = VCCSPasswordFactor(password, credential_id, '$NDNv1H1$aaaaaaaaaaaaaaaa$12$32$')
@@ -220,7 +250,10 @@ class TestVCCSClient(unittest.TestCase):
         userid = 'ft@example.net'
         password = 'passwordåäöхэж'
         resp = {
-            'add_creds_response': {'version': 1, 'success': True,},
+            'add_creds_response': {
+                'version': 1,
+                'success': True,
+            },
         }
         c = FakeVCCSClient(json.dumps(resp))
         f = VCCSPasswordFactor(password, credential_id, '$NDNv1H1$aaaaaaaaaaaaaaaa$12$32$')
@@ -242,7 +275,10 @@ class TestVCCSClient(unittest.TestCase):
         Test parsing of unsuccessful add_creds response.
         """
         resp = {
-            'add_creds_response': {'version': 1, 'success': False,},
+            'add_creds_response': {
+                'version': 1,
+                'success': False,
+            },
         }
         c = FakeVCCSClient(json.dumps(resp))
         f = VCCSPasswordFactor('password', '4711', '$NDNv1H1$aaaaaaaaaaaaaaaa$12$32$')
@@ -253,7 +289,10 @@ class TestVCCSClient(unittest.TestCase):
         Test parsing of unsuccessful add_creds response with a password in UTF-8.
         """
         resp = {
-            'add_creds_response': {'version': 1, 'success': False,},
+            'add_creds_response': {
+                'version': 1,
+                'success': False,
+            },
         }
         c = FakeVCCSClient(json.dumps(resp))
         f = VCCSPasswordFactor('passwordåäöхэж', '4711', '$NDNv1H1$aaaaaaaaaaaaaaaa$12$32$')
@@ -264,7 +303,10 @@ class TestVCCSClient(unittest.TestCase):
         Test parsing of unsuccessful revoke_creds response.
         """
         resp = {
-            'revoke_creds_response': {'version': 1, 'success': False,},
+            'revoke_creds_response': {
+                'version': 1,
+                'success': False,
+            },
         }
         c = FakeVCCSClient(json.dumps(resp))
         r = VCCSRevokeFactor('4712', 'testing revoke', 'foobar')
@@ -283,12 +325,12 @@ class TestVCCSClient(unittest.TestCase):
             VCCSRevokeFactor(4712, 'foobar', 2345)
 
     def test_unknown_salt_version(self):
-        """ Test unknown salt version """
+        """Test unknown salt version"""
         with self.assertRaises(ValueError):
             VCCSPasswordFactor('anything', '4711', '$NDNvFOO$aaaaaaaaaaaaaaaa$12$32$')
 
     def test_generate_salt1(self):
-        """ Test salt generation. """
+        """Test salt generation."""
         f = VCCSPasswordFactor('anything', '4711')
         self.assertEqual(len(f.salt), 80)
         random, length, rounds = f._decode_parameters(f.salt)
@@ -297,7 +339,7 @@ class TestVCCSClient(unittest.TestCase):
         self.assertEqual(len(random), length)
 
     def test_generate_salt2(self):
-        """ Test salt generation with fake RNG. """
+        """Test salt generation with fake RNG."""
 
         f = FakeVCCSPasswordFactor('anything', '4711')
         self.assertEqual(len(f.salt), 80)

@@ -265,7 +265,7 @@ class EduidAPITestCase(CommonTestCase):
         error: Optional[Mapping[str, Any]] = None,
         payload: Optional[Mapping[str, Any]] = None,
     ):
-        """ Check that a call to the API failed in the data validation stage. """
+        """Check that a call to the API failed in the data validation stage."""
         return self._check_api_response(response, 200, type_=type_, message=msg, error=error, payload=payload)
 
     def _check_success_response(
@@ -395,7 +395,7 @@ class CSRFTestClient(FlaskClient):
 def normalised_data(
     data: Union[Mapping[str, Any], Sequence[Mapping[str, Any]]]
 ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
-    """ Utility function for normalising dicts (or list of dicts) before comparisons in test cases. """
+    """Utility function for normalising dicts (or list of dicts) before comparisons in test cases."""
     if isinstance(data, list):
         # Recurse into lists of dicts. mypy (correctly) says this recursion can in fact happen
         # more than once, so the result can be a list of list of dicts or whatever, but the return
@@ -417,7 +417,7 @@ class SortEncoder(json.JSONEncoder):
 
 
 def _any_key(value: Any):
-    """ Helper function to be able to use sorted with key argument for everything """
+    """Helper function to be able to use sorted with key argument for everything"""
     if isinstance(value, dict):
         return json.dumps(value, sort_keys=True, cls=SortEncoder)  # Turn dict in to a string for sorting
     return value

@@ -276,7 +276,7 @@ class EidasTests(EduidAPITestCase):
         )
 
     def _get_request_id_from_session(self, session: EduidSession) -> Tuple[str, AuthnRequestRef]:
-        """ extract the (probable) SAML request ID from the session """
+        """extract the (probable) SAML request ID from the session"""
         oq_cache = OutstandingQueriesCache(session.eidas.sp.pysaml2_dicts)
         ids = oq_cache.outstanding_queries().keys()
         logger.debug(f'Outstanding queries for eidas in session {session}: {ids}')
@@ -318,9 +318,9 @@ class EidasTests(EduidAPITestCase):
         num_verified_nins: Optional[int] = None,
         at_least_one_verified_nin: Optional[bool] = None,
     ):
-        """ This function is used to verify a user's parameters at the start of a test case,
+        """This function is used to verify a user's parameters at the start of a test case,
         and then again at the end to ensure the right set of changes occurred to the user in the database.
-         """
+        """
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         assert user is not None
         user_mfa_tokens = user.credentials.filter(FidoCredential)

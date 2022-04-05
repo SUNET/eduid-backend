@@ -26,7 +26,9 @@ class NutidInviteExtensionV1(EduidBaseModel):
     emails: List[Email] = Field(default_factory=list)
     phone_numbers: List[PhoneNumber] = Field(default_factory=list, alias='phoneNumbers')
     national_identity_number: Optional[str] = Field(
-        default=None, alias='nationalIdentityNumber', regex=nin_re_str,
+        default=None,
+        alias='nationalIdentityNumber',
+        regex=nin_re_str,
     )
     preferred_language: Optional[LanguageTag] = Field(default=None, alias='preferredLanguage')
     groups: List[UUID] = Field(default_factory=list)
@@ -40,7 +42,8 @@ class NutidInviteExtensionV1(EduidBaseModel):
 
 class NutidInviteV1(EduidBaseModel):
     nutid_invite_v1: NutidInviteExtensionV1 = Field(
-        default_factory=NutidInviteExtensionV1, alias=SCIMSchema.NUTID_INVITE_V1.value,
+        default_factory=NutidInviteExtensionV1,
+        alias=SCIMSchema.NUTID_INVITE_V1.value,
     )
     nutid_user_v1: NutidUserExtensionV1 = Field(
         default_factory=NutidUserExtensionV1, alias=SCIMSchema.NUTID_USER_V1.value

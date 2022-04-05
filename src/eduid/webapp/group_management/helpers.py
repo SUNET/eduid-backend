@@ -89,7 +89,9 @@ def merge_group_lists(owner_groups: List[ScimApiGroup], member_groups: List[Scim
             # member groups (that don't show all members)
             continue
         combined_groups[group.scim_id] = UserGroup.from_scimapigroup(
-            group, is_owner=group in owner_groups, is_member=group in member_groups,
+            group,
+            is_owner=group in owner_groups,
+            is_member=group in member_groups,
         )
     return list(combined_groups.values())
 

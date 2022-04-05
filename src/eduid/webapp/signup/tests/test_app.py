@@ -562,7 +562,11 @@ class SignupTests(EduidAPITestCase):
 
     def test_verify_code_after_captcha_wrong_csrf(self):
         data1 = {'csrf_token': 'wrong-token'}
-        res = self._verify_code_after_captcha(data1=data1, captcha_expect_success=False, captcha_expected_message=None,)
+        res = self._verify_code_after_captcha(
+            data1=data1,
+            captcha_expect_success=False,
+            captcha_expected_message=None,
+        )
         assert res.response.json['payload']['error'] == {'csrf_token': ['CSRF failed to validate']}
 
     def test_verify_code_after_captcha_dont_accept_tou(self):

@@ -107,7 +107,12 @@ class MessageTest(AMTestCase):
             '_id': _id,
             'eduPersonPrincipalName': 'foooo-baaar',
             'uid': 'teste',
-            'passwords': [{'id': ObjectId('112345678901234567890123'), 'salt': '$NDNv1H1$9c81...545$32$32$',}],
+            'passwords': [
+                {
+                    'id': ObjectId('112345678901234567890123'),
+                    'salt': '$NDNv1H1$9c81...545$32$32$',
+                }
+            ],
         }
         test_user = AmTestUser.from_dict(userdoc)
         # Save the user in the eduid.workers.am_test database
@@ -131,7 +136,12 @@ class MessageTest(AMTestCase):
             '_id': _id,
             'eduPersonPrincipalName': 'foooo-baaar',
             'uid': 'teste',
-            'passwords': [{'id': ObjectId('112345678901234567890123'), 'salt': '$NDNv1H1$9c81...545$32$32$',}],
+            'passwords': [
+                {
+                    'id': ObjectId('112345678901234567890123'),
+                    'salt': '$NDNv1H1$9c81...545$32$32$',
+                }
+            ],
         }
         test_user = AmTestUser.from_dict(userdoc)
         # Save the user in the private database
@@ -158,7 +168,12 @@ class MessageTest(AMTestCase):
             '_id': _id,
             'eduPersonPrincipalName': 'foooo-baaar',
             'uid': 'teste',
-            'passwords': [{'id': ObjectId('112345678901234567890123'), 'salt': '$NDNv1H1$9c81...545$32$32$',}],
+            'passwords': [
+                {
+                    'id': ObjectId('112345678901234567890123'),
+                    'salt': '$NDNv1H1$9c81...545$32$32$',
+                }
+            ],
         }
         test_user = AmTestUser.from_dict(userdoc)
         # Save the user in the private database

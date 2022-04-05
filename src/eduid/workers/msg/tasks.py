@@ -400,7 +400,13 @@ class MessageSender(Task):
 
 
 @app.task(bind=True, base=MessageSender, name='eduid_msg.tasks.sendmail')
-def sendmail(self: MessageSender, sender: str, recipients: list, message: str, reference: str,) -> dict:
+def sendmail(
+    self: MessageSender,
+    sender: str,
+    recipients: list,
+    message: str,
+    reference: str,
+) -> dict:
     """
     :param self: base class
     :param sender: the From of the email

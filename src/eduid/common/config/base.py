@@ -110,7 +110,7 @@ class EduidEnvironment(str, Enum):
 
 
 class LoggingFilters(str, Enum):
-    """ Identifiers to coherently map elements in LocalContext.filters to filter classes in logging dictConfig. """
+    """Identifiers to coherently map elements in LocalContext.filters to filter classes in logging dictConfig."""
 
     DEBUG_TRUE: str = 'require_debug_true'
     DEBUG_FALSE: str = 'require_debug_false'
@@ -289,19 +289,19 @@ class VCCSConfigMixin(BaseModel):
 
 
 class AmConfigMixin(CeleryConfigMixin):
-    """ Config used by AmRelay """
+    """Config used by AmRelay"""
 
     am_relay_for_override: Optional[str]  # only set this if f'eduid_{app_name}' is not right
 
 
 class MailConfigMixin(CeleryConfigMixin):
-    """ Config used by MailRelay """
+    """Config used by MailRelay"""
 
     mail_default_from: str = 'no-reply@eduid.se'
 
 
 class MsgConfigMixin(CeleryConfigMixin):
-    """ Config used by MsgRelay """
+    """Config used by MsgRelay"""
 
     eduid_site_name: str = 'eduID'
 

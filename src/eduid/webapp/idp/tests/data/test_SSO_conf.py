@@ -90,7 +90,11 @@ CONFIG = {
     "key_file": key_path,
     "cert_file": cert_path,
     "xmlsec_binary": xmlsec_path,
-    "organization": {"display_name": "eduID UNITTEST", "name": "eduID UNITTEST", "url": "http://www.eduid.se/",},
+    "organization": {
+        "display_name": "eduID UNITTEST",
+        "name": "eduID UNITTEST",
+        "url": "http://www.eduid.se/",
+    },
 }
 
 

@@ -137,7 +137,10 @@ new_signup_user_example = SignupUser(
     nins=NinList(elements=[dashboard_primary_nin, dashboard_verified_nin]),
     phone_numbers=PhoneNumberList(elements=[dashboard_primary_phone, dashboard_unverified_phone]),
     credentials=CredentialList(elements=[signup_password]),
-    entitlements=['urn:mace:eduid.se:role:admin', 'urn:mace:eduid.se:role:student',],
+    entitlements=[
+        'urn:mace:eduid.se:role:admin',
+        'urn:mace:eduid.se:role:student',
+    ],
     locked_identity=LockedIdentityList(elements=[dashboard_locked_nin]),
     social_network='facebook',
     social_network_id='hubba-1234',
@@ -159,7 +162,10 @@ new_unverified_user_example = User(
     nins=NinList(),
     phone_numbers=PhoneNumberList(elements=[dashboard_primary_phone, dashboard_unverified_phone]),
     credentials=CredentialList(elements=[signup_password]),
-    entitlements=['urn:mace:eduid.se:role:admin', 'urn:mace:eduid.se:role:student',],
+    entitlements=[
+        'urn:mace:eduid.se:role:admin',
+        'urn:mace:eduid.se:role:student',
+    ],
     locked_identity=LockedIdentityList(),
 )
 
@@ -178,7 +184,10 @@ new_user_example = User(
     nins=NinList(elements=[dashboard_primary_nin, dashboard_verified_nin]),
     phone_numbers=PhoneNumberList(elements=[dashboard_primary_phone, dashboard_unverified_phone]),
     credentials=CredentialList(elements=[signup_password]),
-    entitlements=['urn:mace:eduid.se:role:admin', 'urn:mace:eduid.se:role:student',],
+    entitlements=[
+        'urn:mace:eduid.se:role:admin',
+        'urn:mace:eduid.se:role:student',
+    ],
     locked_identity=LockedIdentityList(elements=[dashboard_locked_nin]),
     ladok=dashboard_ladok,
 )
@@ -194,12 +203,24 @@ old_user_example = User.from_dict(
         preferredLanguage='en',
         modified_ts=datetime.fromisoformat("2013-09-02T10:23:25"),
         mailAliases=MailAddressList(
-            elements=[johnsmith_example_com_old, johnsmith2_example_com_old, johnsmith3_example_com_unverified,]
+            elements=[
+                johnsmith_example_com_old,
+                johnsmith2_example_com_old,
+                johnsmith3_example_com_unverified,
+            ]
         ).to_list_of_dicts(),
         norEduPersonNIN=['197801011234'],
-        phone=PhoneNumberList(elements=[old_primary_phone, old_unverified_phone,]).to_list_of_dicts(),
+        phone=PhoneNumberList(
+            elements=[
+                old_primary_phone,
+                old_unverified_phone,
+            ]
+        ).to_list_of_dicts(),
         passwords=CredentialList(elements=[old_password]).to_list_of_dicts(),
-        eduPersonEntitlement=['urn:mace:eduid.se:role:admin', 'urn:mace:eduid.se:role:student',],
+        eduPersonEntitlement=[
+            'urn:mace:eduid.se:role:admin',
+            'urn:mace:eduid.se:role:student',
+        ],
         terminated=None,
     )
 )

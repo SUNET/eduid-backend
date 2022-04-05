@@ -129,7 +129,9 @@ class MFAActionPluginTests(ActionsTestCase):
             return json.loads(response.data)
 
     def _action(
-        self, data1: Optional[dict] = None, fido2_state: Optional[Dict[str, Any]] = None,
+        self,
+        data1: Optional[dict] = None,
+        fido2_state: Optional[Dict[str, Any]] = None,
     ):
         """
         POST data reflecting the user's response to the mfa request.
@@ -216,7 +218,11 @@ class MFAActionPluginTests(ActionsTestCase):
         }
         response = self._action(data1=data1)
         self._check_error_response(
-            response, type_='POST_ACTIONS_POST_ACTION_FAIL', error={'csrf_token': ['CSRF failed to validate'],},
+            response,
+            type_='POST_ACTIONS_POST_ACTION_FAIL',
+            error={
+                'csrf_token': ['CSRF failed to validate'],
+            },
         )
 
     def test_action_webauthn_legacy_token(self):

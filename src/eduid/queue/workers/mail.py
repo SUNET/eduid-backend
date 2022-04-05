@@ -76,7 +76,12 @@ class MailQueueWorker(QueueWorker):
     async def handle_new_item(self, queue_item: QueueItem) -> None:
         status = None
         if queue_item.payload_type == EduidInviteEmail.get_type():
-            status = await self.send_eduid_invite_mail(cast(EduidInviteEmail, queue_item.payload,))
+            status = await self.send_eduid_invite_mail(
+                cast(
+                    EduidInviteEmail,
+                    queue_item.payload,
+                )
+            )
             logger.debug(f'send_eduid_invite_mail returned status: {status}')
 
         if status and status.retry:

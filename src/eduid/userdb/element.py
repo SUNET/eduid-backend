@@ -568,7 +568,7 @@ class PrimaryElementList(ElementList[ListElement], Generic[ListElement], ABC):
         return None
 
     def remove_handling_primary(self, key: ElementKey) -> None:
-        """ Remove an element from the list. If the element is primary, first promote
+        """Remove an element from the list. If the element is primary, first promote
         any other present verified element to primary in order to not get a PrimaryElementViolation.
 
         TODO: This should perhaps be done in the regular `remove' method of PrimaryElementList,

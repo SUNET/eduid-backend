@@ -15,9 +15,12 @@ from eduid.common.config.parsers.exceptions import ParserException
 
 
 def load_config(
-    typ: Type[TRootConfigSubclass], ns: str, app_name: str, test_config: Optional[Mapping[str, Any]] = None,
+    typ: Type[TRootConfigSubclass],
+    ns: str,
+    app_name: str,
+    test_config: Optional[Mapping[str, Any]] = None,
 ) -> TRootConfigSubclass:
-    """ Figure out where to load configuration from, and do it. """
+    """Figure out where to load configuration from, and do it."""
     app_path = os.environ.get('EDUID_CONFIG_NS', f'/eduid/{ns}/{app_name}/')
     common_path = os.environ.get('EDUID_CONFIG_COMMON_NS', f'/eduid/{ns}/common/')
 

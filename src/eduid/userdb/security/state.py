@@ -44,7 +44,7 @@ class PasswordResetState(BaseModel):
         return str(self.state_id)
 
     def to_dict(self) -> Dict[str, Any]:
-        """ Convert state to a dict in eduid format, that can be used to reconstruct the state later. """
+        """Convert state to a dict in eduid format, that can be used to reconstruct the state later."""
         data = self.dict(exclude_none=True)
         data = self._to_dict_transform(data)
         return data

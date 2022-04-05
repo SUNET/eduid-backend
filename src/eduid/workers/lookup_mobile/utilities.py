@@ -26,5 +26,5 @@ def format_mobile_number(numbers: Sequence[str], region: Optional[str]) -> List[
 
 
 def _format_number(number: str, region: Optional[str]):
-    """ Parse a number and reconstruct it to the canonical E.164 format """
+    """Parse a number and reconstruct it to the canonical E.164 format"""
     return phonenumbers.format_number(phonenumbers.parse(number, region), phonenumbers.PhoneNumberFormat.E164)

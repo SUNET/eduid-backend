@@ -37,7 +37,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
         return config
 
     def test_scopes_canonicalization(self):
-        """ Test input data normalisation of the 'scopes' field. """
+        """Test input data normalisation of the 'scopes' field."""
         config: ScimApiConfig = self.config.copy()
         domain = 'eduid.se'
         config.scope_mapping['example.com'] = domain
@@ -78,7 +78,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
         assert exc_info.value.errors() == [{'loc': ('version',), 'msg': 'Unknown version', 'type': 'value_error'}]
 
     def test_requested_access_canonicalization(self):
-        """ Test input data normalisation of the 'requested_access' field. """
+        """Test input data normalisation of the 'requested_access' field."""
         config: ScimApiConfig = self.config.copy()
         domain = 'eduid.se'
         config.scope_mapping['example.com'] = domain
@@ -130,7 +130,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
         ]
 
     def test_requested_access_not_for_us(self):
-        """ Test with a 'requested_access' field with the wrong 'type' value. """
+        """Test with a 'requested_access' field with the wrong 'type' value."""
         domain = 'eduid.se'
         # test no canonization
         token = AuthnBearerToken(
@@ -143,7 +143,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
         assert token.requested_access == []
 
     def test_regular_token(self):
-        """ Test the normal case. Login with access granted based on the single scope in the request. """
+        """Test the normal case. Login with access granted based on the single scope in the request."""
         domain = 'eduid.se'
         claims = {'version': 1, 'scopes': [domain]}
         token = AuthnBearerToken(scim_config=self.config, **claims)
@@ -152,7 +152,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
         assert token.get_data_owner(logger=loguru.logger) == domain
 
     def test_regular_token_with_canonisation(self):
-        """ Test the normal case. Login with access granted based on the single scope in the request. """
+        """Test the normal case. Login with access granted based on the single scope in the request."""
         domain = 'eduid.se'
         domain_alias = 'eduid.example.edu'
         config = self.config.copy()
@@ -174,23 +174,23 @@ class TestAuthnBearerToken(BaseDBTestCase):
         assert token.get_data_owner(logger=loguru.logger) == domain
 
     def test_unknown_scope(self):
-        """ Test login with a scope that has no data owner in the configuration. """
+        """Test login with a scope that has no data owner in the configuration."""
         domain = 'example.org'
         claims = {'version': 1, 'scopes': [domain]}
         token = AuthnBearerToken(scim_config=self.config, **claims)
         assert token.get_data_owner(logger=loguru.logger) is None
 
     def test_regular_token_multiple_scopes(self):
-        """ Test the normal case. Login with access granted based on the scope in the request that has a data owner
+        """Test the normal case. Login with access granted based on the scope in the request that has a data owner
         in configuration (one extra scope provided in the request, named 'aaa' so it is checked first - and skipped).
-         """
+        """
         domain = 'eduid.se'
         claims = {'version': 1, 'scopes': ['aaa.example.com', domain]}
         token = AuthnBearerToken(scim_config=self.config, **claims)
         assert token.get_data_owner(logger=loguru.logger) == domain
 
     def test_sudo_allowed(self):
-        """ Test the normal case when sudo:ing. """
+        """Test the normal case when sudo:ing."""
         domain = 'eduid.se'
         sudoer = 'sudoer.example.org'
         config: ScimApiConfig = self.config.copy()
@@ -205,8 +205,8 @@ class TestAuthnBearerToken(BaseDBTestCase):
         assert token.get_data_owner(logger=loguru.logger) == domain
 
     def test_sudo_not_allowed(self):
-        """ Test attempting to sudo, but the target scope (other-domain.example.org) is not in the list of
-        allowed scopes for the requester. """
+        """Test attempting to sudo, but the target scope (other-domain.example.org) is not in the list of
+        allowed scopes for the requester."""
         domain = 'eduid.se'
         sudoer = 'sudoer.example.org'
         config: ScimApiConfig = self.config.copy()

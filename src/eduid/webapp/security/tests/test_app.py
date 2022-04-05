@@ -411,7 +411,9 @@ class SecurityTests(EduidAPITestCase):
         # Do not overwrite display_name if it is set
         assert user.display_name == 'John Smith'
         self._check_success_response(
-            response, type_='POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS', msg=SecurityMsg.user_updated,
+            response,
+            type_='POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS',
+            msg=SecurityMsg.user_updated,
         )
 
     def test_refresh_user_official_name_no_display_name(self):
@@ -430,7 +432,9 @@ class SecurityTests(EduidAPITestCase):
         assert user.surname == 'Testsson'
         assert user.display_name == 'Test Testsson'
         self._check_success_response(
-            response, type_='POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS', msg=SecurityMsg.user_updated,
+            response,
+            type_='POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS',
+            msg=SecurityMsg.user_updated,
         )
 
     def test_refresh_user_official_name_throttle(self):

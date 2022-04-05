@@ -25,7 +25,7 @@ class AuthenticateResponseV1(BaseModel):
 
 
 class AuthenticateFormResponse(BaseModel):
-    """ Extra wrapping class to handle legacy requests sent as form data """
+    """Extra wrapping class to handle legacy requests sent as form data"""
 
     auth_response: AuthenticateResponseV1
 
@@ -35,7 +35,7 @@ async def authenticate_legacy(req: Request, request: str = Form(...)) -> Authent
     req.app.logger.debug(f'Authenticate (using form): {request}')
 
     class AuthenticateInnerRequest(BaseModel):
-        """ Requests all the way down. """
+        """Requests all the way down."""
 
         auth: AuthenticateRequestV1
 

@@ -83,7 +83,9 @@ class IdPUser(User):
     """
 
     def to_saml_attributes(
-        self, settings: SAMLAttributeSettings, filter_attributes: Optional[List[str]] = None,
+        self,
+        settings: SAMLAttributeSettings,
+        filter_attributes: Optional[List[str]] = None,
     ) -> dict:
         """
         Return a dict of SAML attributes for a user.

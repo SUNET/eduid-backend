@@ -109,7 +109,10 @@ class VCCSClientHTTPError(VCCSClientException):
 
     def __str__(self):
         return '<{cl} instance at {addr}: {code!r} {reason!r}>'.format(
-            cl=self.__class__.__name__, addr=hex(id(self)), code=self.http_code, reason=self.reason,
+            cl=self.__class__.__name__,
+            addr=hex(id(self)),
+            code=self.http_code,
+            reason=self.reason,
         )
 
 
@@ -154,7 +157,11 @@ class VCCSPasswordFactor(VCCSFactor):
         if not isinstance(credential_id, str):
             raise ValueError('Non-string credential id: {!r}'.format(credential_id))
         self.credential_id = credential_id
-        salt_bytes, key_length, rounds, = self._decode_parameters(salt)
+        (
+            salt_bytes,
+            key_length,
+            rounds,
+        ) = self._decode_parameters(salt)
 
         cid_str = str(self.credential_id)
         if strip_whitespace:
@@ -170,7 +177,7 @@ class VCCSPasswordFactor(VCCSFactor):
         self.hash = res
         VCCSFactor.__init__(self)
 
-    def generate_salt(self, salt_length: int = 32, desired_key_length: int = 32, rounds: int = 2 ** 5) -> str:
+    def generate_salt(self, salt_length: int = 32, desired_key_length: int = 32, rounds: int = 2**5) -> str:
         """
         Generate a NDNv1H1 salt.
 

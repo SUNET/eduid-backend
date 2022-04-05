@@ -17,7 +17,7 @@ __author__ = 'lundberg'
 
 @dataclass
 class ScimApiResourceBase(ABC):
-    """ The elements common to all SCIM resource database objects """
+    """The elements common to all SCIM resource database objects"""
 
     scim_id: UUID = field(default_factory=lambda: uuid.uuid4())
     external_id: Optional[str] = None

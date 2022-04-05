@@ -149,5 +149,6 @@ def change_password_view(user: User, new_password: str, old_password: Optional[s
     current_app.logger.info(f'Changed password for user')
 
     return success_response(
-        payload={'credentials': compile_credential_list(security_user)}, message=SecurityMsg.change_password_success,
+        payload={'credentials': compile_credential_list(security_user)},
+        message=SecurityMsg.change_password_success,
     )

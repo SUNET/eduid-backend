@@ -63,7 +63,7 @@ def index() -> WerkzeugResponse:
 @MarshalWith(AbortResponseSchema)
 @require_ticket
 def abort(ticket: LoginContext) -> FluxData:
-    """ Abort the current request """
+    """Abort the current request"""
     current_app.logger.debug('\n\n')
     current_app.logger.debug(f'--- Abort ({ticket.request_ref}) ---')
 

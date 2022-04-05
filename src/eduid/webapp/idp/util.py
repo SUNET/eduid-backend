@@ -85,12 +85,12 @@ class IPProximity(str, Enum):
 
 
 def get_ip_proximity(a: str, b: str) -> IPProximity:
-    """ Tell how far apart IP A and B are.
+    """Tell how far apart IP A and B are.
 
-     The addresses are either deemed to be 'SAME', 'NEAR' or 'FAR' apart.
+    The addresses are either deemed to be 'SAME', 'NEAR' or 'FAR' apart.
 
-     The definition of NEAR is /16 for IPv4 and /48 for IPv6.
-     """
+    The definition of NEAR is /16 for IPv4 and /48 for IPv6.
+    """
     ip_a = ipaddress.ip_address(a)
     ip_b = ipaddress.ip_address(b)
     logger.debug(f'Checking proximity of IP {ip_a} and {ip_b}')

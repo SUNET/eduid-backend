@@ -193,7 +193,7 @@ def _format_mongodb_uri(parsed_uri: Mapping[str, Any]) -> str:
 
 
 class BaseDB(object):
-    """ Base class for common db operations """
+    """Base class for common db operations"""
 
     def __init__(self, db_uri: str, db_name: str, collection: str, safe_writes: bool = False):
 

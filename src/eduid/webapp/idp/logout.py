@@ -42,13 +42,13 @@ class SLO(Service):
     """
 
     def redirect(self) -> WerkzeugResponse:
-        """ Expects a HTTP-redirect request """
+        """Expects a HTTP-redirect request"""
 
         _data = self.unpack_redirect()
         return self.perform_logout(_data, BINDING_HTTP_REDIRECT)
 
     def post(self) -> WerkzeugResponse:
-        """ Expects a HTTP-POST request """
+        """Expects a HTTP-POST request"""
 
         _data = self.unpack_post()
         return self.perform_logout(_data, BINDING_HTTP_POST)

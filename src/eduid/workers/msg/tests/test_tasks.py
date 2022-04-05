@@ -94,9 +94,11 @@ class TestTasks(MsgMongoTestCase):
 
         assert exc_info.value.excs == 'ValueError("\'to\' is not a valid phone number")'
 
-    @patch('smscom.SMSClient.send',)
+    @patch(
+        'smscom.SMSClient.send',
+    )
     def test_send_message_sms_exception(self, sms_mock):
-        """ Test creating an artificial exception in the SMSClient.send """
+        """Test creating an artificial exception in the SMSClient.send"""
         sms_mock.side_effect = MockException('Unrecoverable error')
         with pytest.raises(Retry) as exc_info:
             self.msg_relay.sendsms(recipient='+466666', message='foo', reference='ref')

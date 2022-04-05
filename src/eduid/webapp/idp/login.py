@@ -93,7 +93,7 @@ class NextResult(BaseModel):
 
 
 def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], template_mode: bool = False) -> NextResult:
-    """ The main state machine for the login flow(s). """
+    """The main state machine for the login flow(s)."""
     if ticket.pending_request.aborted:
         current_app.logger.debug('Login request is aborted')
         return NextResult(message=IdPMsg.aborted)
@@ -215,7 +215,7 @@ class SSO(Service):
         return self._redirect_or_post(_info, BINDING_HTTP_POST)
 
     def _redirect_or_post(self, info: SAMLQueryParams, binding: str) -> WerkzeugResponse:
-        """ Common code for redirect() and post() endpoints. """
+        """Common code for redirect() and post() endpoints."""
 
         ticket = get_ticket(info, binding)
         if not ticket:
@@ -445,7 +445,11 @@ class SSO(Service):
             bytes(current_app.conf.fticks_secret_key, 'ascii'), msg=bytes(user_id, 'ascii'), digestmod=sha256
         ).hexdigest()
         msg = current_app.conf.fticks_format_string.format(
-            ts=_timestamp, rp=relying_party, ap=current_app.IDP.config.entityid, pn=_anon_userid, am=authn_method,
+            ts=_timestamp,
+            rp=relying_party,
+            ap=current_app.IDP.config.entityid,
+            pn=_anon_userid,
+            am=authn_method,
         )
         current_app.logger.info(msg)
 

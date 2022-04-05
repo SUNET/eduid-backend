@@ -59,7 +59,9 @@ class SessionCacheAdapterTests(unittest.TestCase):
         psca = SessionCacheAdapter(fake_session_dict, 'saml2')
 
         psca._set_objects(
-            {'onekey': 'onevalue',}
+            {
+                'onekey': 'onevalue',
+            }
         )
 
         self.assertEqual(psca._get_objects(), {'onekey': 'onevalue'})

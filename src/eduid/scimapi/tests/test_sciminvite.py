@@ -248,7 +248,7 @@ class TestInviteResource(ScimApiTestCase):
         return db_invite
 
     def _assertUpdateSuccess(self, req: Mapping, response, invite: ScimApiInvite, signup_invite: SignupInvite):
-        """ Function to validate successful responses to SCIM calls that update an invite according to a request. """
+        """Function to validate successful responses to SCIM calls that update an invite according to a request."""
         if response.json().get('schemas') == [SCIMSchema.ERROR.value]:
             self.fail(f'Got SCIM error parsed_response ({response.status}):\n{response.json}')
 
@@ -417,7 +417,10 @@ class TestInviteResource(ScimApiTestCase):
                 SCIMSchema.NUTID_INVITE_V1.value,
                 SCIMSchema.NUTID_USER_V1.value,
             ],
-            SCIMSchema.NUTID_INVITE_V1.value: {'inviterName': 'Test Inviter Name', 'sendEmail': False,},
+            SCIMSchema.NUTID_INVITE_V1.value: {
+                'inviterName': 'Test Inviter Name',
+                'sendEmail': False,
+            },
         }
 
         req1 = copy(req)

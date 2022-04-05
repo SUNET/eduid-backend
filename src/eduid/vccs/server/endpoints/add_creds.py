@@ -24,7 +24,7 @@ class AddCredsResponseV1(BaseModel):
 
 
 class AddCredsFormResponse(BaseModel):
-    """ Extra wrapping class to handle legacy requests sent as form data """
+    """Extra wrapping class to handle legacy requests sent as form data"""
 
     add_creds_response: AddCredsResponseV1
 
@@ -34,7 +34,7 @@ async def add_creds_legacy(req: Request, request: str = Form(...)) -> AddCredsFo
     req.app.logger.debug(f'Add credentials (using form): {request}')
 
     class AddCredsInnerRequest(BaseModel):
-        """ Requests all the way down. """
+        """Requests all the way down."""
 
         add_creds: AddCredsRequestV1
 

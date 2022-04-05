@@ -152,7 +152,7 @@ class ScimApiUserDB(ScimApiBaseDB):
 
 
 class ScimEduidUserDB(UserDB[User]):
-    """ EduID userdb """
+    """EduID userdb"""
 
     def __init__(self, db_uri: str, db_name: str = 'eduid_scimapi'):
         super().__init__(db_uri, db_name)

@@ -46,7 +46,10 @@ def device2_finish(ticket: LoginContextOtherDevice, sso_session: SSOSession, aut
 
     return success_response(
         message=IdPMsg.finished,
-        payload={'action': IdPAction.FINISHED.value, 'target': url_for('other_device.use_other_2', _external=True),},
+        payload={
+            'action': IdPAction.FINISHED.value,
+            'target': url_for('other_device.use_other_2', _external=True),
+        },
     )
 
 

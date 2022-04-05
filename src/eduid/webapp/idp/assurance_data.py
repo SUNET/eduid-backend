@@ -20,7 +20,7 @@ class EduidAuthnContextClass(str, Enum):
 
 
 class AuthnInfo(BaseModel):
-    """ Information about what AuthnContextClass etc. to put in SAML Authn responses."""
+    """Information about what AuthnContextClass etc. to put in SAML Authn responses."""
 
     class_ref: EduidAuthnContextClass
     authn_attributes: Dict[str, Any]  # these are added to the user attributes

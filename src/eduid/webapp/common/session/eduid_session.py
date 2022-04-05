@@ -145,7 +145,7 @@ class EduidSession(SessionMixin, MutableMapping):
 
     @property
     def short_id(self) -> str:
-        """ Short version of the cookie value for use in logging """
+        """Short version of the cookie value for use in logging"""
         return self.meta.cookie_val[:9] + '...'
 
     @property
@@ -177,7 +177,7 @@ class EduidSession(SessionMixin, MutableMapping):
         Today, it is global state. We ought to make it either a (finite size) mapping or a list of MfaAction
         to be able to correctly handle more than one authentication at a time.
 
-        When an MFA action is completed, it is removed entirely from the session """
+        When an MFA action is completed, it is removed entirely from the session"""
         self._namespaces.mfa_action = None
         del self['mfa_action']
 
@@ -290,7 +290,7 @@ class EduidSession(SessionMixin, MutableMapping):
         return token
 
     def _serialize_namespaces(self) -> None:
-        """ Serialise all the namespace instances in self._namespaces.
+        """Serialise all the namespace instances in self._namespaces.
 
         The __setitem__ function on `self' will essentially write the data into the backend session (self._session).
         """

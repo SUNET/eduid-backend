@@ -201,7 +201,7 @@ class IdP_Namespace(TimestampedNS):
     def log_credential_used(
         self, request_ref: RequestRef, credential: Union[Credential, OnetimeCredential], timestamp: datetime
     ) -> None:
-        """ Log the credential used in the session, under this particular SAML request """
+        """Log the credential used in the session, under this particular SAML request"""
         if isinstance(credential, OnetimeCredential):
             self.pending_requests[request_ref].onetime_credentials[credential.key] = credential
         self.pending_requests[request_ref].credentials_used[credential.key] = timestamp

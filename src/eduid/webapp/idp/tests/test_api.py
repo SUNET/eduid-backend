@@ -97,7 +97,9 @@ class IdPAPITests(EduidAPITestCase):
     """Base TestCase for those tests that need a full environment setup"""
 
     def setUp(
-        self, *args, **kwargs,
+        self,
+        *args,
+        **kwargs,
     ):
         super().setUp(*args, **kwargs)
         self.idp_entity_id = 'https://unittest-idp.example.edu/idp.xml'
@@ -310,7 +312,7 @@ class IdPAPITests(EduidAPITestCase):
         return self.app.sso_sessions.get_session(sso_cookie_val)
 
     def add_test_user_tou(self, version: Optional[str] = None) -> ToUEvent:
-        """ Utility function to add a valid ToU to the default test user """
+        """Utility function to add a valid ToU to the default test user"""
         if version is None:
             version = self.app.conf.tou_version
         tou = ToUEvent(

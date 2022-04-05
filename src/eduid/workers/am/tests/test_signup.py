@@ -67,14 +67,30 @@ class AttributeFetcherTests(AMTestCase):
     def test_user_finished_and_removed(self):
         user_data = deepcopy(USER_DATA)
         user_data['mail'] = 'john@example.com'
-        user_data['mailAliases'] = [{'email': 'john@example.com', 'verified': True,}]
-        user_data['passwords'] = [{'id': '123', 'salt': '456',}]
+        user_data['mailAliases'] = [
+            {
+                'email': 'john@example.com',
+                'verified': True,
+            }
+        ]
+        user_data['passwords'] = [
+            {
+                'id': '123',
+                'salt': '456',
+            }
+        ]
         user = SignupUser.from_dict(user_data)
         self.fetcher.private_db.save(user)
 
         fetched = self.fetcher.fetch_attrs(user.user_id)
 
-        expected_passwords = [{'credential_id': u'123', 'is_generated': False, 'salt': u'456',}]
+        expected_passwords = [
+            {
+                'credential_id': u'123',
+                'is_generated': False,
+                'salt': u'456',
+            }
+        ]
 
         expected_emails = [{'verified': True, 'primary': True, 'email': 'john@example.com'}]
 
@@ -92,7 +108,17 @@ class AttributeFetcherTests(AMTestCase):
         user_data = deepcopy(USER_DATA)
         user_data['foo'] = 'bar'
         user_data['mail'] = 'john@example.com'
-        user_data['mailAliases'] = [{'email': 'john@example.com', 'verified': True,}]
-        user_data['passwords'] = [{'id': '123', 'salt': '456',}]
+        user_data['mailAliases'] = [
+            {
+                'email': 'john@example.com',
+                'verified': True,
+            }
+        ]
+        user_data['passwords'] = [
+            {
+                'id': '123',
+                'salt': '456',
+            }
+        ]
         with self.assertRaises(ValidationError):
             SignupUser.from_dict(user_data)

@@ -142,7 +142,9 @@ class CreatePDFTest(EduidAPITestCase):
 
     def update_config(self, app_config):
         app_config.update(
-            {'letter_wait_time_hours': 336,}
+            {
+                'letter_wait_time_hours': 336,
+            }
         )
         return app_config
 

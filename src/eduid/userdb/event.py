@@ -48,8 +48,7 @@ TEventSubclass = TypeVar('TEventSubclass', bound='Event')
 
 
 class Event(Element):
-    """
-    """
+    """ """
 
     data: Optional[Dict[str, Any]] = None
     event_type: Optional[str] = None
@@ -60,7 +59,7 @@ class Event(Element):
 
     @property
     def key(self) -> ElementKey:
-        """ Return the element that is used as key for events in an ElementList. """
+        """Return the element that is used as key for events in an ElementList."""
         return ElementKey(self.event_id)
 
     @classmethod

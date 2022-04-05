@@ -71,7 +71,10 @@ class MongoNeoTestCase(BaseDBTestCase):
     def _get_config(self) -> dict:
         config = super()._get_config()
         config.update(
-            {'neo4j_uri': self.neo4j_uri, 'neo4j_config': {'encrypted': False},}
+            {
+                'neo4j_uri': self.neo4j_uri,
+                'neo4j_config': {'encrypted': False},
+            }
         )
         return config
 
@@ -90,7 +93,7 @@ class MongoNeoTestCase(BaseDBTestCase):
 
 
 class ScimApiTestCase(MongoNeoTestCase):
-    """ Base test case providing the real API """
+    """Base test case providing the real API"""
 
     @classmethod
     def setUpClass(cls) -> None:

@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 def require_ticket(f):
     @wraps(f)
     def require_ticket_decorator(*args, **kwargs):
-        """ Decorator to turn the 'ref' parameter sent by the frontend into a ticket (LoginContext) """
+        """Decorator to turn the 'ref' parameter sent by the frontend into a ticket (LoginContext)"""
         if 'ref' not in kwargs:
             logger.debug(f'Login ref not supplied')
             return _flux_error(IdPMsg.bad_ref)
@@ -53,7 +53,7 @@ def require_ticket(f):
 def uses_sso_session(f):
     @wraps(f)
     def uses_sso_session_decorator(*args, **kwargs):
-        """ Decorator to supply the current SSO session, if one is found and still valid """
+        """Decorator to supply the current SSO session, if one is found and still valid"""
 
         kwargs['sso_session'] = get_sso_session()
         return f(*args, **kwargs)

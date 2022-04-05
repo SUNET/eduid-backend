@@ -48,7 +48,7 @@ class EduidTestPayload(Payload):
 
 @dataclass
 class EduidTestResultPayload(Payload):
-    """ Some statistics for source/sink test runs """
+    """Some statistics for source/sink test runs"""
 
     counter: int
     first_ts: datetime

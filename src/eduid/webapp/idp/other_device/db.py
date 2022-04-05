@@ -102,7 +102,7 @@ class OtherDevice(BaseModel):
         return self.dict()
 
     def to_json(self):
-        """ For debug logging ONLY. Redacts the response code if set. """
+        """For debug logging ONLY. Redacts the response code if set."""
         data = self.to_dict()
         if data['device2']['response_code']:
             data['device2']['response_code'] = 'REDACTED'
@@ -114,7 +114,7 @@ class OtherDevice(BaseModel):
 
 
 def make_short_code(digits: int = 6) -> str:
-    """ Make a short decimal code, left-padded with zeros to the width specified by `digits'. """
+    """Make a short decimal code, left-padded with zeros to the width specified by `digits'."""
     code = int.from_bytes(os.urandom(4), byteorder='big') % 1000000
     return str(code).zfill(digits)
 

@@ -86,7 +86,7 @@ def device1_check_response_code(
 
 
 def device1_state_to_flux_payload(state: OtherDevice, now: datetime) -> Mapping[str, Any]:
-    """ Used at the end of use_other_1 to update the state in the frontend to match that of the backend. """
+    """Used at the end of use_other_1 to update the state in the frontend to match that of the backend."""
     if not current_app.conf.other_device_url:
         # TODO: make this config non-optional once we've finished developing this functionality
         raise RuntimeError('Missing configuration other_device_url')

@@ -41,7 +41,9 @@ def init_exception_handlers(app: 'IdPApp') -> 'IdPApp':
             app.logger.debug(f'Deleting SSO cookie on error {error.description}')
             # Delete the SSO session cookie in the browser
             response.delete_cookie(
-                key=app.conf.sso_cookie.key, path=app.conf.sso_cookie.path, domain=app.conf.sso_cookie.domain,
+                key=app.conf.sso_cookie.key,
+                path=app.conf.sso_cookie.path,
+                domain=app.conf.sso_cookie.domain,
             )
 
         return response

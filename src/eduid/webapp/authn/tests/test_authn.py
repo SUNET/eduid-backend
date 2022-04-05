@@ -71,7 +71,7 @@ class AcsResult:
 
 
 class AuthnAPITestBase(EduidAPITestCase):
-    """ Test cases for the real eduid-authn app """
+    """Test cases for the real eduid-authn app"""
 
     app: AuthnApp
 
@@ -188,7 +188,7 @@ class AuthnAPITestBase(EduidAPITestCase):
             assert authn.redirect_url == '/'
 
     def _get_request_id_from_session(self, session: EduidSession) -> Tuple[str, AuthnRequestRef]:
-        """ extract the (probable) SAML request ID from the session """
+        """extract the (probable) SAML request ID from the session"""
         oq_cache = OutstandingQueriesCache(session.authn.sp.pysaml2_dicts)
         ids = oq_cache.outstanding_queries().keys()
         if len(ids) != 1:
@@ -335,7 +335,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
         self.assertTrue(resp.location.startswith(self.app.conf.signup_authn_success_redirect_url))
 
     def test_signup_authn_old_user(self):
-        """ A user that has verified their account should not try to use token login """
+        """A user that has verified their account should not try to use token login"""
         eppn = 'hubba-bubba'
         resp = self._signup_authn_user(eppn)
         self.assertEqual(resp.status_code, 302)
@@ -349,7 +349,7 @@ class AuthnTestApp(AuthnBaseApp):
 
 
 class UnAuthnAPITestCase(EduidAPITestCase):
-    """ Tests for a fictitious app based on AuthnBaseApp """
+    """Tests for a fictitious app based on AuthnBaseApp"""
 
     app: AuthnTestApp
 
@@ -393,7 +393,7 @@ class UnAuthnAPITestCase(EduidAPITestCase):
 
 
 class NoAuthnAPITestCase(EduidAPITestCase):
-    """ Tests for a fictitious app based on AuthnBaseApp """
+    """Tests for a fictitious app based on AuthnBaseApp"""
 
     app: AuthnTestApp
 
@@ -563,7 +563,10 @@ class LogoutRequestTests(AuthnAPITestBase):
             '/saml2-acs',
             method='POST',
             headers={'Cookie': cookie},
-            data={'SAMLResponse': base64.b64encode(saml_response), 'RelayState': '/testing-relay-state',},
+            data={
+                'SAMLResponse': base64.b64encode(saml_response),
+                'RelayState': '/testing-relay-state',
+            },
         ):
             self.app.dispatch_request()
             session.persist()  # Explicit session.persist is needed when working within a test_request_context

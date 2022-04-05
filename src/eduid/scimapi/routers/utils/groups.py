@@ -65,7 +65,10 @@ def db_group_to_response(req: ContextRequest, resp: Response, db_group: ScimApiG
 
 
 def filter_display_name(
-    req: ContextRequest, filter: SearchFilter, skip: Optional[int] = None, limit: Optional[int] = None,
+    req: ContextRequest,
+    filter: SearchFilter,
+    skip: Optional[int] = None,
+    limit: Optional[int] = None,
 ) -> Tuple[List[ScimApiGroup], int]:
     if filter.op != 'eq':
         raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
@@ -98,7 +101,10 @@ def filter_lastmodified(
 
 
 def filter_extensions_data(
-    req: ContextRequest, filter: SearchFilter, skip: Optional[int] = None, limit: Optional[int] = None,
+    req: ContextRequest,
+    filter: SearchFilter,
+    skip: Optional[int] = None,
+    limit: Optional[int] = None,
 ) -> Tuple[List[ScimApiGroup], int]:
     if filter.op != 'eq':
         raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')

@@ -29,7 +29,9 @@ CONFIG = {
             "endpoints": {"attribute_service": [("%s/attr" % BASE, BINDING_SOAP)]},
             "name_id_format": [NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT],
         },
-        "aq": {"endpoints": {"authn_query_service": [("%s/aqs" % BASE, BINDING_SOAP)]},},
+        "aq": {
+            "endpoints": {"authn_query_service": [("%s/aqs" % BASE, BINDING_SOAP)]},
+        },
         "idp": {
             "name": "Rolands IdP",
             "endpoints": {
@@ -58,7 +60,9 @@ CONFIG = {
     "debug": 1,
     "key_file": "pki/mykey.pem",
     "cert_file": "pki/mycert.pem",
-    "metadata": {"local": ["/home/ft/work/NORDUnet/eduid-IdP/metadata.xml"],},
+    "metadata": {
+        "local": ["/home/ft/work/NORDUnet/eduid-IdP/metadata.xml"],
+    },
     "organization": {
         "display_name": "Rolands Identiteter",
         "name": "Rolands Identiteter",
@@ -77,5 +81,12 @@ CONFIG = {
     # the identifier returned to a SP
     "xmlsec_binary": xmlsec_path,
     "attribute_map_dir": "../attributemaps",
-    "logger": {"rotating": {"filename": "idp.log", "maxBytes": 500000, "backupCount": 5,}, "loglevel": "debug",},
+    "logger": {
+        "rotating": {
+            "filename": "idp.log",
+            "maxBytes": 500000,
+            "backupCount": 5,
+        },
+        "loglevel": "debug",
+    },
 }

@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class HttpArgs:
-    """ Dataclass to remove the ambiguities of pysaml2:s apply_binding() return value """
+    """Dataclass to remove the ambiguities of pysaml2:s apply_binding() return value"""
 
     method: str
     url: str
@@ -224,7 +224,7 @@ class IdPUserAgent:
 
 
 def get_user_agent() -> Optional[IdPUserAgent]:
-    """ Get the request User-Agent and parse it in a safe and controlled way """
+    """Get the request User-Agent and parse it in a safe and controlled way"""
     user_agent = request.headers.get('user-agent')
     if not user_agent:
         return None

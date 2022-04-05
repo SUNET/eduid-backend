@@ -37,13 +37,13 @@ class TestBrowserDeviceInfo(unittest.TestCase):
         assert first.shared != second.shared
 
     def test_parse(self):
-        """ Parse the string we would have gotten from the browser local storage """
+        """Parse the string we would have gotten from the browser local storage"""
         first = BrowserDeviceInfo.from_public(self.from_browser, app_secret_box=self.app_secret_box)
         assert first.state_id == 'bac35b64-955a-4fed-b96d-f076e6dd5cd5'
         assert first.shared == self.from_browser
 
     def test_secretbox(self):
-        """ Test the secretbox that will be used to encrypt the database contents """
+        """Test the secretbox that will be used to encrypt the database contents"""
 
         # Initialise a BrowserDeviceInfo from the data that could have been stored in the browsers local storage.
         first = BrowserDeviceInfo.from_public(self.from_browser, app_secret_box=self.app_secret_box)
@@ -56,7 +56,7 @@ class TestBrowserDeviceInfo(unittest.TestCase):
         assert first.secret_box.decrypt(test_encrypt, encoder=nacl.encoding.URLSafeBase64Encoder) == plain
 
     def test_plaintext_v1(self):
-        """ Validate that the encrypted data is formatted correctly for v1 """
+        """Validate that the encrypted data is formatted correctly for v1"""
         decrypted = self.app_secret_box.decrypt(self.from_browser, encoder=nacl.encoding.URLSafeBase64Encoder)
 
         # check if the version matches the one we know how to parse
@@ -72,7 +72,7 @@ class TestBrowserDeviceInfo(unittest.TestCase):
         assert len(nacl.encoding.Base64Encoder.decode(private_key)) == nacl.secret.SecretBox.KEY_SIZE
 
     def test_str(self):
-        """ Ensure string representation doesn't disclose the secret key """
+        """Ensure string representation doesn't disclose the secret key"""
         first = BrowserDeviceInfo.from_public(self.from_browser, app_secret_box=self.app_secret_box)
         assert str(first) == "<BrowserDeviceInfo: public[8]='8MOF0Zln', state_id[8]='bac35b64'>"
 

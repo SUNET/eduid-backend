@@ -49,8 +49,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ResetPasswordState(object):
-    """
-    """
+    """ """
 
     eppn: str
     id: bson.ObjectId = field(default_factory=lambda: bson.ObjectId())
@@ -95,8 +94,7 @@ class ResetPasswordState(object):
 
 @dataclass
 class _ResetPasswordEmailStateRequired:
-    """
-    """
+    """ """
 
     email_address: str
     email_code: CodeElement
@@ -104,8 +102,7 @@ class _ResetPasswordEmailStateRequired:
 
 @dataclass
 class ResetPasswordEmailState(ResetPasswordState, _ResetPasswordEmailStateRequired):
-    """
-    """
+    """ """
 
     def __post_init__(self):
         super().__post_init__()
@@ -120,8 +117,7 @@ class ResetPasswordEmailState(ResetPasswordState, _ResetPasswordEmailStateRequir
 
 @dataclass
 class _ResetPasswordEmailAndPhoneStateRequired:
-    """
-    """
+    """ """
 
     phone_number: str
     phone_code: CodeElement
@@ -129,8 +125,7 @@ class _ResetPasswordEmailAndPhoneStateRequired:
 
 @dataclass
 class ResetPasswordEmailAndPhoneState(ResetPasswordEmailState, _ResetPasswordEmailAndPhoneStateRequired):
-    """
-    """
+    """ """
 
     def __post_init__(self):
         super().__post_init__()

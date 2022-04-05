@@ -481,7 +481,8 @@ def set_new_pw_extra_security_token(
 @UnmarshalWith(NewPasswordSecureTokenRequestSchema)
 @MarshalWith(ResetPasswordResponseSchema)
 def set_new_pw_extra_security_external_mfa(
-    email_code: str, password: str,
+    email_code: str,
+    password: str,
 ):
     try:
         context = get_context(email_code=email_code)

@@ -73,7 +73,7 @@ class ResetPasswordConfig(
     # bcrypt pbkdf number of rounds.
     # For number of rounds, it is recommended that a measurement is made to achieve
     # a cost of at least 100 ms on current hardware.
-    password_generation_rounds: int = 2 ** 5
+    password_generation_rounds: int = 2**5
     # timeout for phone verification token, in hours
     phone_verification_timeout: int = 24
     # throttle resend of mail and sms

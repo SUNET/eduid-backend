@@ -52,7 +52,7 @@ class StateExpireInfo(object):
     message: TranslatableMsg
 
     def to_response(self):
-        """ Create a response with information about the users current proofing state (or an error)."""
+        """Create a response with information about the users current proofing state (or an error)."""
         if self.error:
             return error_response(message=self.message)
         res = {
@@ -117,7 +117,10 @@ def check_state(state: LetterProofingState) -> StateExpireInfo:
 
 def create_proofing_state(eppn: str, nin: str) -> LetterProofingState:
     _nin = NinProofingElement(
-        number=nin, created_by='eduid-idproofing-letter', is_verified=False, verification_code=get_short_hash(),
+        number=nin,
+        created_by='eduid-idproofing-letter',
+        is_verified=False,
+        verification_code=get_short_hash(),
     )
     proofing_letter = SentLetterElement()
     proofing_state = LetterProofingState(
