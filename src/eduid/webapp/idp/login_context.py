@@ -111,6 +111,11 @@ class LoginContext(ABC, BaseModel):
                 self._known_device = current_app.known_device_db.get_state_by_browser_info(self.known_device_info)
         return self._known_device
 
+    def forget_known_device(self) -> None:
+        """User has requested to not be remembered on this device"""
+        self._known_device = None
+        self.known_device_info = None
+
 
 TLoginContextSubclass = TypeVar('TLoginContextSubclass', bound='LoginContext')
 

@@ -38,7 +38,7 @@ class TestBrowserDeviceInfo(unittest.TestCase):
 
     def test_parse(self):
         """Parse the string we would have gotten from the browser local storage"""
-        first = BrowserDeviceInfo.from_public(self.from_browser, app_secret_box=self.app_secret_box)
+        first = BrowserDeviceInfo.from_public(self.from_browser, app_secret_box=self.app_secret_box, remember_me=True)
         assert first.state_id == 'bac35b64-955a-4fed-b96d-f076e6dd5cd5'
         assert first.shared == self.from_browser
 
@@ -46,7 +46,7 @@ class TestBrowserDeviceInfo(unittest.TestCase):
         """Test the secretbox that will be used to encrypt the database contents"""
 
         # Initialise a BrowserDeviceInfo from the data that could have been stored in the browsers local storage.
-        first = BrowserDeviceInfo.from_public(self.from_browser, app_secret_box=self.app_secret_box)
+        first = BrowserDeviceInfo.from_public(self.from_browser, app_secret_box=self.app_secret_box, remember_me=True)
 
         # Validate that the secret box was set up using the expected secret key. Use it to encrypt/decrypt something.
 
@@ -73,7 +73,7 @@ class TestBrowserDeviceInfo(unittest.TestCase):
 
     def test_str(self):
         """Ensure string representation doesn't disclose the secret key"""
-        first = BrowserDeviceInfo.from_public(self.from_browser, app_secret_box=self.app_secret_box)
+        first = BrowserDeviceInfo.from_public(self.from_browser, app_secret_box=self.app_secret_box, remember_me=True)
         assert str(first) == "<BrowserDeviceInfo: public[8]='8MOF0Zln', state_id[8]='bac35b64'>"
 
 
@@ -93,7 +93,9 @@ class TestKnownDevice(unittest.TestCase):
         now = utc_now()
         obj_id = ObjectId('6216608c39402aa8abf74a9d')
         first = KnownDevice(data=data, expires_at=now, last_used=now, state_id=KnownDeviceId('test-id'), _id=obj_id)
-        browser_info = BrowserDeviceInfo.from_public(self.from_browser, app_secret_box=self.app_secret_box)
+        browser_info = BrowserDeviceInfo.from_public(
+            self.from_browser, app_secret_box=self.app_secret_box, remember_me=True
+        )
         first_dict = first.to_dict(from_browser=browser_info)
 
         encrypted_data = first_dict.pop('data')
@@ -105,7 +107,7 @@ class TestKnownDevice(unittest.TestCase):
         }
         # we can only test the type and length - the nonce will be different each time so the data changes
         assert isinstance(encrypted_data, bytes)
-        assert len(encrypted_data) == 156
+        assert len(encrypted_data) == 180
 
         # restore first_dict and try parsing it
         first_dict['data'] = encrypted_data

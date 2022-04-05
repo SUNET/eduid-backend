@@ -16,6 +16,7 @@ import pprint
 import time
 from base64 import b64encode
 from dataclasses import dataclass
+from datetime import timedelta
 from hashlib import sha256
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
@@ -30,6 +31,7 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.utils import urlappend
+from eduid.userdb import User
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.idp.user import SAMLAttributeSettings
 from eduid.webapp.common.api import exceptions
@@ -77,9 +79,7 @@ class NextResult(BaseModel):
     error: bool = False
     authn_info: Optional[AuthnInfo] = None
     authn_state: Optional[AuthnState] = None
-    # kludge for the template processing, pydantic doesn't embed dataclasses very well:
-    #  TypeError: non-default argument 'mail_addresses' follows default argument
-    user: Optional[Any] = None
+    user: Optional[User] = None
 
     class Config:
         # don't reject WerkzeugResponse
@@ -99,12 +99,34 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
         return NextResult(message=IdPMsg.aborted)
 
     if current_app.conf.known_devices_feature_enabled:
+        # cache this to remember it even if we forget the known device here
+        _remember_me = ticket.known_device_info.remember_me if ticket.known_device_info else True
+        if ticket.known_device_info and _remember_me is False:
+            current_app.logger.debug('Forgetting user device upon request by user')
+            # User has requested that eduID do not remember them on this device. Forgetting a device is done
+            # using ttl to give the user a grace period in which they can revert the decision.
+            if ticket.known_device:
+                current_app.known_device_db.save(
+                    ticket.known_device,
+                    from_browser=ticket.known_device_info,
+                    ttl=current_app.conf.known_devices_new_ttl,
+                )
+            ticket.forget_known_device()
+            current_app.stats.count('login_known_device_forgotten')
+
         if not ticket.known_device:
-            # Except monitoring and bots from the known device requirement (for now at least)
+            _require_known_device = True
+
             ua = get_user_agent()
             if ua and (ua.parsed.is_bot or ua.parsed.browser.family in ['Python Requests', 'PingdomBot']):
+                # Except monitoring and bots from the known device requirement (for now at least)
                 current_app.logger.debug(f'Not requiring known_device from UA {str(ua)}')
-            else:
+
+            if _remember_me is False:
+                current_app.logger.info('User asks to not be remember')
+                _require_known_device = False
+
+            if _require_known_device:
                 current_app.logger.debug('Login request from unknown device')
                 return NextResult(message=IdPMsg.unknown_device)
 
