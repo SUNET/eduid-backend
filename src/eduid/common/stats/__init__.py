@@ -23,6 +23,9 @@ class AppStats(ABC):
     def count(self, name: str, value: int = 1) -> None:
         pass
 
+    def gauge(self, name: str, value: int, rate=1, delta=False):
+        pass
+
 
 class NoOpStats(AppStats):
     """
@@ -42,6 +45,12 @@ class NoOpStats(AppStats):
                 name = '{!s}.{!s}'.format(self.prefix, name)
             self.logger.info('No-op stats count: {!r} {!r}'.format(name, value))
 
+    def gauge(self, name: str, value: int, rate=1, delta=False):
+        if self.logger:
+            if self.prefix:
+                name = '{!s}.{!s}'.format(self.prefix, name)
+            self.logger.info(f'No-op stats gauge: {name} {value}')
+
 
 class Statsd(AppStats):
     def __init__(self, host, port, prefix=None):
@@ -50,10 +59,13 @@ class Statsd(AppStats):
         self.client = statsd.StatsClient(host, port, prefix=prefix)
 
     def count(self, name: str, value: int = 1) -> None:
-        self.client.incr('{}.average'.format(name), count=value)
+        self.client.incr(f'{name}.average', count=value)
         # You need to set up a storage aggregation that uses sum instead of the default average
         # for .count
-        self.client.incr('{}.count'.format(name), count=value)
+        self.client.incr(f'{name}.count', count=value)
+
+    def gauge(self, name: str, value: int, rate=1, delta=False):
+        self.client.gauge(f'{name}.gauge', value=value, rate=rate, delta=delta)
 
 
 def init_app_stats(config: StatsConfigMixin) -> AppStats:
