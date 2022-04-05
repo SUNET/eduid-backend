@@ -24,10 +24,6 @@ anyio==3.5.0 \
     # via
     #   starlette
     #   watchgod
-appdirs==1.4.4 \
-    --hash=sha256:7d5d0167b2b1ba821647616af46a749d1c653740dd0d2415100fe26e27afdf41 \
-    --hash=sha256:a841dacd6b99318a741b166adb07e19ee71a274450e68237b4650ca1055ab128
-    # via black
 arabic-reshaper==2.1.3 \
     --hash=sha256:15078431d8f45eaca0a1710100aabc87abba13759c67eeb4538cca22fe167da1 \
     --hash=sha256:a236fc6e9dde2a61cc6a5ca962b522e42694e1bb2a2d86894ed7a4eba4ce1890
@@ -49,9 +45,7 @@ asn1crypto==1.5.1 \
 attrs==21.4.0 \
     --hash=sha256:2d27e3784d7a565d36ab851fe94887c5eccd6a463168875832a1be79c82828b4 \
     --hash=sha256:626ba8234211db98e869df76230a137c4c40a12d72445c45d5f5b716f076e2fd
-    # via
-    #   black
-    #   pytest
+    # via pytest
 babel==2.9.1 \
     --hash=sha256:ab49e12b91d937cd11f0b67cb259a57ab4ad2b59ac7a3b41d6c06c0ac5b0def9 \
     --hash=sha256:bc0c176f9f6a994582230df350aa6e05ba2ebe4b3ac317eab29d9be5d2768da0
@@ -70,9 +64,10 @@ billiard==3.6.4.0 \
     # via
     #   -c main.txt
     #   celery
-black==19.10b0 \
-    --hash=sha256:1b30e59be925fafc1ee4565e5e08abef6b03fe455102883820fe5ee2e4734e0b \
-    --hash=sha256:c2edb73a08e9e0e6f65a0e6af18b059b8b1cdd5bef997d7a0b181df93dc81539
+black==22.3.0 \
+    --hash=sha256:35020b8886c022ced9282b51b5a875b6d1ab0c387b31a065b84db7c33085ca79 \
+    --hash=sha256:6ee227b696ca60dd1c507be80a6bc849a5a6ab57ac7352aad1ffec9e8b805f21 \
+    --hash=sha256:bc58025940a896d7e5356952228b68f793cf5fcb342be703c3a2669a1488cb72
     # via -r test_requirements.in
 bleach==4.1.0 \
     --hash=sha256:0900d8b37eba61a802ee40ac0061f8c2b5dee29c1927dd1d233e075ebf5a71da \
@@ -333,9 +328,9 @@ iniconfig==1.1.1 \
     --hash=sha256:011e24c64b7f47f6ebd835bb12a743f2fbe9a26d4cecaa7f53bc4f35ee9da8b3 \
     --hash=sha256:bc3af051d7d14b2ee5ef9969666def0cd1a000e121eaea580d4a313df4b37f32
     # via pytest
-isort==5.6.4 \
-    --hash=sha256:dcab1d98b469a12a1a624ead220584391648790275560e1a43e54c5dceae65e7 \
-    --hash=sha256:dcaeec1b5f0eca77faea2a35ab790b4f3680ff75590bfcb7145986905aab2f58
+isort==5.10.1 \
+    --hash=sha256:6f62d78e2f89b4500b080fe3a81690850cd254227f27f75c3a0c491a1f351ba7 \
+    --hash=sha256:e8443a5e7a020e9d7f97f1d7d9cd17c88bcb3bc7e218bf9cf5095fe550be2951
     # via -r test_requirements.in
 itsdangerous==2.1.2 \
     --hash=sha256:2c2349112351b88699d8d4b6b075022c0808887cb7ad10069318a8b0bc88db44 \
@@ -559,6 +554,7 @@ mypy-extensions==0.4.3 \
     --hash=sha256:2d82818f5bb3e369420cb3c4060a7970edba416647068eb4c5343488a6c604a8
     # via
     #   -c main.txt
+    #   black
     #   mypy
     #   typing-inspect
 ndnkdf==0.3 \
@@ -612,6 +608,10 @@ pillow==9.1.0 \
     #   -r main.in
     #   reportlab
     #   xhtml2pdf
+platformdirs==2.5.1 \
+    --hash=sha256:7535e70dfa32e84d4b34996ea99c5e432fa29a708d0f4e394bbcb2a8faa4f16d \
+    --hash=sha256:bcae7cab893c2d310a711b70b24efb93334febe65f8de776ee320b517471e227
+    # via black
 pluggy==1.0.0 \
     --hash=sha256:4224373bacce55f955a878bf9cfa763c1e360858e330072059e10bad68531159 \
     --hash=sha256:74134bbf457f031a36d68416e1509f34bd5ccc019f0bcc952c7b909d06b37bd3
@@ -904,11 +904,6 @@ redis==3.5.3 \
     #   -c main.txt
     #   -r main.in
     #   celery
-regex==2022.3.15 \
-    --hash=sha256:0317eb6331146c524751354ebef76a7a531853d7207a4d760dfb5f553137a2a4 \
-    --hash=sha256:0a7b75cc7bb4cc0334380053e4671c560e31272c9d2d5a6c4b8e9ae2c9bd0f82 \
-    --hash=sha256:7b7494df3fdcc95a1f76cf134d00b54962dd83189520fd35b8fcd474c0aa616d
-    # via black
 reportlab==3.6.9 \
     --hash=sha256:5d0cc3682456ad213150f6dbffe7d47eab737d809e517c316103376be548fb84 \
     --hash=sha256:e9b5e9115363545a727d8ebe7e4b94f7cf6f26113261a269d50d88b8db4eb726
@@ -1010,14 +1005,11 @@ tinycss2==1.1.1 \
     #   -c main.txt
     #   cssselect2
     #   svglib
-toml==0.10.2 \
-    --hash=sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b \
-    --hash=sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f
-    # via black
 tomli==2.0.1 \
     --hash=sha256:939de3e7a6161af0c887ef91b7d41a53e7c5a1ca976325f429cb46ea9bc30ecc \
     --hash=sha256:de526c12914f0c550d15924c62d72abc48d6fe7364aa87328337a31007fe8a4f
     # via
+    #   black
     #   coverage
     #   mypy
     #   pytest
@@ -1027,10 +1019,6 @@ tqdm==4.64.0 \
     # via
     #   -c main.txt
     #   pypdf3
-typed-ast==1.5.2 \
-    --hash=sha256:525a2d4088e70a9f75b08b3f87a51acc9cde640e19cc523c7e41aa355564ae27 \
-    --hash=sha256:f290617f74a610849bd8f5514e34ae3d09eafd521dceaa6cf68b3f4414266d4e
-    # via black
 types-aiofiles==0.8.6 \
     --hash=sha256:40990251efa28ba60cac411221eb35ebb4b34cfef2b56f4d5f01054b06fbbbe8 \
     --hash=sha256:ebf8b9a17f4128d095cbb7c523379b0764bd2dc0b3b4c79ec9dbb753561e07fb
@@ -1045,9 +1033,9 @@ types-click==7.1.8 \
     # via
     #   -r typecheck_requirements.in
     #   types-flask
-types-cryptography==3.3.18 \
-    --hash=sha256:448feaf9ae31226149bc6bce1cf8fff54da661ef04837f7c0c316829885c3628 \
-    --hash=sha256:d745cba4b1d0ec0a141b8b7693f887a02c332d8f6036c100db3cac98443e2ddb
+types-cryptography==3.3.19 \
+    --hash=sha256:66b4b816d353c7706b775bfc40c541a9d8f5de9651f0253688beaf96e285e8c5 \
+    --hash=sha256:f957138f073332b9c07eadb0831efaa578fdb604e553ac38d72c467aeb4b7c23
     # via
     #   -r typecheck_requirements.in
     #   types-pyopenssl
@@ -1130,6 +1118,7 @@ typing-extensions==4.1.1 \
     --hash=sha256:21c85e0fe4b9a155d0799430b0ad741cdce7e359660ccbd8b530613e8df88ce2
     # via
     #   -c main.txt
+    #   black
     #   mypy
     #   oic
     #   pydantic
