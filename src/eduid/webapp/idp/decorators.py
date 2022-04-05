@@ -35,9 +35,13 @@ def require_ticket(f):
         this_device = kwargs.get('this_device')
         if this_device:
             kwargs.pop('this_device')
+            remember_me = None
+            if 'remember_me' in kwargs:
+                # schema should have decoded this into a proper boolean already, this is just for the type checking
+                remember_me = bool(kwargs.pop('remember_me'))
             try:
                 ticket.known_device_info = BrowserDeviceInfo.from_public(
-                    this_device, current_app.known_device_db.app_secret_box
+                    this_device, current_app.known_device_db.app_secret_box, remember_me
                 )
             except:
                 logger.exception("Couldn't parse the this_device supplied")

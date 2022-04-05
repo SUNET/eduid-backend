@@ -11,7 +11,6 @@ from eduid.userdb.idp import IdPUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
 from eduid.webapp.idp.app import current_idp_app as current_app
-from eduid.webapp.idp.assurance import AuthnState
 from eduid.webapp.idp.assurance_data import AuthnInfo
 from eduid.webapp.idp.decorators import require_ticket, uses_sso_session
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
@@ -221,23 +220,30 @@ def _get_authn_options(ticket: LoginContext, sso_session: Optional[SSOSession]) 
         current_app.logger.debug(f'This is already a request to log in to another device, not allowing other_device')
         res.other_device = False
 
-    if not sso_session:
-        if sp_request_eppn:
-            current_app.logger.info(f'SP requests login by user {sp_request_eppn}')
-            _set_user_options(res, sp_request_eppn)
-        current_app.logger.debug(f'No SSO session, responding {res}')
-        return res.to_dict()
+    _eppn = None
+    if ticket.known_device and ticket.known_device.data.eppn:
+        _eppn = ticket.known_device.data.eppn
+        current_app.logger.info(f'Device belongs to {_eppn}')
+    elif sso_session:
+        _eppn = sso_session.eppn
+        current_app.logger.info(f'SSO session belongs to {_eppn}')
+    elif sp_request_eppn:
+        _eppn = sp_request_eppn
+        current_app.logger.info(f'SP requests login by {_eppn}')
 
-    # Since the user has a session, logout should be shown (to allow change of user)
-    res.has_session = True
-
-    if sp_request_eppn and sp_request_eppn != sso_session.eppn:
+    if sp_request_eppn and sp_request_eppn != _eppn:
         current_app.logger.warning(
-            f'SP requests login by user {sp_request_eppn}, but session belongs to {sso_session.eppn}'
+            f'SP requests login by user {sp_request_eppn}, but session/device belongs to {_eppn}'
         )
         # TODO: what's the real course of action here?
-    else:
-        _set_user_options(res, sso_session.eppn)
+        return res.to_dict()
+
+    if _eppn:
+        _set_user_options(res, _eppn)
+
+    if sso_session:
+        # Since the user has a session, logout should be shown (to allow change of user)
+        res.has_session = True
 
     current_app.logger.debug(f'Valid authn options at this time: {res.valid_options}')
 
@@ -257,7 +263,7 @@ def _set_user_options(res: AuthnOptions, eppn: str) -> None:
     """Augment the AuthnOptions instance with information about the current user"""
     user = current_app.userdb.lookup_user(eppn)
     if user:
-        current_app.logger.debug(f'User logging in (from either SSO session, or SP request): {user}')
+        current_app.logger.debug(f'User logging in (from either known device, SSO session, or SP request): {user}')
         if user.credentials.filter(Password):
             current_app.logger.debug(f'User has a Password credential')
             res.password = True
@@ -279,8 +285,6 @@ def _set_user_options(res: AuthnOptions, eppn: str) -> None:
             res.username = False
 
         res.display_name = user.display_name or user.given_name or res.forced_username
-
-        current_app.logger.debug(f'Valid authn options at this time: {res.valid_options}')
 
     return None
 
