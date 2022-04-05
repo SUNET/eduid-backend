@@ -131,7 +131,9 @@ class UnmarshalWith(object):
         def unmarshal_decorator(*args, **kwargs):
             flux_logger.debug('')
             flux_logger.debug(f'--- New request ({request.path})')
-            json_data = request.get_json()
+            json_data = request.get_json(
+                silent=True
+            )  # silent=True lets get_json return None even if mime-type is not application/json
             if json_data is None:
                 json_data = {}
             _data_str = str(json_data)

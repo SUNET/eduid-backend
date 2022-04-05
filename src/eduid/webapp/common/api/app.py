@@ -102,6 +102,9 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         # App setup
         self.wsgi_app = ProxyFix(self.wsgi_app)  # type: ignore
         self.request_class = Request
+        # autocorrect location header means that redirects defaults to an absolute path
+        # werkzeug 2.1.0 changed default value to False
+        self.response_class.autocorrect_location_header = True  # type: ignore
         self.url_map.strict_slashes = False
 
         # Set app url prefix to APPLICATION_ROOT

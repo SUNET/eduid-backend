@@ -108,7 +108,9 @@ class Plugin(ActionPlugin):
             del session.mfa_action
             return action.result
 
-        req_json = request.get_json()
+        req_json = request.get_json(
+            silent=True
+        )  # silent=True lets get_json return None even if mime-type is not application/json
         if not req_json:
             current_app.logger.error(f'No data in request to authn {user}')
             raise self.ActionError(ActionsMsg.no_data)
