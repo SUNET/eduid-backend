@@ -298,7 +298,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
         res = self.acs('/chpass', self.test_user.eppn)
         assert 'reauthn-for-chpass' not in res.session  # this was the old method
         assert res.session.common.eppn == self.test_user.eppn
-        assert res.session.common.is_logged_in == True
+        assert res.session.common.is_logged_in is True
         authn = res.session.authn.sp.authns[res.authn_ref]
         assert authn.post_authn_action == AuthnAcsAction.change_password
         assert authn.authn_instant is not None

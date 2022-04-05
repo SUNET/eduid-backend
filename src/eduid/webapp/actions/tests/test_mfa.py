@@ -261,7 +261,7 @@ class MFAActionPluginTests(ActionsTestCase):
         db_actions = self._third_party_mfa_action_success()
         this = db_actions[0]
         assert isinstance(this.result, ActionResultThirdPartyMFA)
-        assert this.result.success == True
+        assert this.result.success is True
         assert this.result.issuer == 'https://issuer-entity-id.example.com'
         assert this.result.authn_instant.isoformat() == '2019-03-21T16:26:17+00:00'
         assert this.result.authn_context == 'http://id.elegnamnden.se/loa/1.0/loa3'
