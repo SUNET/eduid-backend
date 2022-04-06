@@ -69,27 +69,12 @@ class AppFilter(logging.Filter):
         name = record.__getattribute__('name')
         if isinstance(name, str):
             shorten = [
-                (
-                    'eduid.webapp.common.',
-                    'e.w.c.',
-                ),
-                (
-                    'eduid.webapp.',
-                    'e.w.',
-                ),
-                (
-                    'eduid.common.',
-                    'e.c.',
-                ),
-                (
-                    'eduid.userdb.',
-                    'e.u.',
-                ),
+                ('eduid.webapp.common.', 'e.w.c.'),
+                ('eduid.webapp.', 'e.w.'),
+                ('eduid.common.', 'e.c.'),
+                ('eduid.userdb.', 'e.u.'),
             ]
-            for (
-                k,
-                v,
-            ) in shorten:
+            for (k, v) in shorten:
                 if name.startswith(k):
                     record.__setattr__('name', v + name[len(k) :])
                     break
