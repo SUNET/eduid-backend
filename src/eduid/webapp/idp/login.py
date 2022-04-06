@@ -465,7 +465,11 @@ class SSO(Service):
             bytes(current_app.conf.fticks_secret_key, 'ascii'), msg=bytes(user_id, 'ascii'), digestmod=sha256
         ).hexdigest()
         msg = current_app.conf.fticks_format_string.format(
-            ts=_timestamp, rp=relying_party, ap=current_app.IDP.config.entityid, pn=_anon_userid, am=authn_method,
+            ts=_timestamp,
+            rp=relying_party,
+            ap=current_app.IDP.config.entityid,
+            pn=_anon_userid,
+            am=authn_method,
         )
         current_app.logger.info(msg)
 
