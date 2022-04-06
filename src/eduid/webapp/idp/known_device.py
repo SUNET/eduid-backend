@@ -26,7 +26,6 @@ class BrowserDeviceInfo(BaseModel):
     shared: str  # encrypted and formatted for sharing with the eduID frontend (will be stored in browser local storage)
     state_id: KnownDeviceId  # database id for this device
     secret_box: SecretBox  # nacl secretbox to encrypt/decrypt database contents for this device
-    remember_me: Optional[bool]  # False if the user wants this information forgotten
 
     class Config:
         arbitrary_types_allowed = True  # don't reject SecretBox
@@ -36,9 +35,7 @@ class BrowserDeviceInfo(BaseModel):
         return f'<{self.__class__.__name__}: public[8]={repr(self.shared[:8])}, state_id[8]={repr(self.state_id[:8])}>'
 
     @classmethod
-    def from_public(
-        cls: Type[BrowserDeviceInfo], shared: str, app_secret_box: SecretBox, remember_me: Optional[bool]
-    ) -> BrowserDeviceInfo:
+    def from_public(cls: Type[BrowserDeviceInfo], shared: str, app_secret_box: SecretBox) -> BrowserDeviceInfo:
         _data: bytes = app_secret_box.decrypt(shared.encode(), encoder=nacl.encoding.URLSafeBase64Encoder)
         if not _data.startswith(b'1|'):
             raise ValueError('Unhandled browser device info')
@@ -47,7 +44,7 @@ class BrowserDeviceInfo(BaseModel):
         _v, state_id, private_key_str = _data.decode().split('|')
         private_key = private_key_str.encode()
         secret_box = SecretBox(nacl.encoding.Base64Encoder.decode(private_key))
-        return cls(shared=shared, state_id=state_id, secret_box=secret_box, remember_me=remember_me)
+        return cls(shared=shared, state_id=state_id, secret_box=secret_box)
 
     @classmethod
     def new(cls: Type[BrowserDeviceInfo], app_secret_box: SecretBox) -> BrowserDeviceInfo:
