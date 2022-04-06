@@ -33,6 +33,7 @@ class LoginContext(ABC, BaseModel):
 
     request_ref: RequestRef
     known_device_info: Optional[BrowserDeviceInfo] = None
+    remember_me: Optional[bool] = None  # if the user wants to be remembered or not (on this device)
     _known_device: Optional[KnownDevice] = None
     _pending_request: Optional[IdP_PendingRequest] = None
 

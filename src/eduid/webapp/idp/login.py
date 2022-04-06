@@ -99,9 +99,7 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
         return NextResult(message=IdPMsg.aborted)
 
     if current_app.conf.known_devices_feature_enabled:
-        # cache this to remember it even if we forget the known device here
-        _remember_me = ticket.known_device_info.remember_me if ticket.known_device_info else True
-        if ticket.known_device_info and _remember_me is False:
+        if ticket.known_device_info and ticket.remember_me is False:
             current_app.logger.debug('Forgetting user device upon request by user')
             # User has requested that eduID do not remember them on this device. Forgetting a device is done
             # using ttl to give the user a grace period in which they can revert the decision.
@@ -122,7 +120,7 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
                 # Except monitoring and bots from the known device requirement (for now at least)
                 current_app.logger.debug(f'Not requiring known_device from UA {str(ua)}')
 
-            if _remember_me is False:
+            if ticket.remember_me is False:
                 current_app.logger.info('User asks to not be remember')
                 _require_known_device = False
 
@@ -467,11 +465,7 @@ class SSO(Service):
             bytes(current_app.conf.fticks_secret_key, 'ascii'), msg=bytes(user_id, 'ascii'), digestmod=sha256
         ).hexdigest()
         msg = current_app.conf.fticks_format_string.format(
-            ts=_timestamp,
-            rp=relying_party,
-            ap=current_app.IDP.config.entityid,
-            pn=_anon_userid,
-            am=authn_method,
+            ts=_timestamp, rp=relying_party, ap=current_app.IDP.config.entityid, pn=_anon_userid, am=authn_method,
         )
         current_app.logger.info(msg)
 
