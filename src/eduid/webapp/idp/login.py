@@ -121,7 +121,7 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
                 current_app.logger.debug(f'Not requiring known_device from UA {str(ua)}')
 
             if ticket.remember_me is False:
-                current_app.logger.info('User asks to not be remember')
+                current_app.logger.info('User asks to not be remembered')
                 _require_known_device = False
 
             if _require_known_device:
