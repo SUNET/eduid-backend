@@ -4,7 +4,13 @@ from datetime import datetime
 from io import BytesIO
 from typing import Any, Dict, List, Mapping, Optional, Union
 
+import nacl
+import nacl.encoding
+import nacl.secret
+import nacl.utils
+
 import qrcode
+from nacl.secret import SecretBox
 
 from eduid.common.utils import urlappend
 from eduid.webapp.common.api.messages import FluxData, error_response
@@ -29,11 +35,15 @@ def device1_check_response_code(
     The response code is given to the user on device 2 after successful authentication, in case
     device 1 was not a known device.
     """
-    if (
-        state.state == OtherDeviceState.AUTHENTICATED
-        and state.device2.response_code
-        and response_code == state.device2.response_code
-    ):
+    _accept_login = False
+    if ticket.known_device and ticket.known_device.data.eppn == state.eppn:
+        logger.debug('The OtherDevice state eppn matches this known devices eppn, not requiring response code')
+        _accept_login = True
+    elif state.device2.response_code and response_code == state.device2.response_code:
+        logger.debug('The correct response code was provided')
+        _accept_login = True
+
+    if state.state == OtherDeviceState.AUTHENTICATED and _accept_login:
         if not state.eppn:
             logger.warning(f'Login using other device: No eppn in state {state.state_id}')
             logger.debug(f'Extra debug: Full other device state:\n{state.to_json()}')
@@ -125,10 +135,12 @@ def device1_state_to_flux_payload(state: OtherDevice, now: datetime) -> Mapping[
     # while passing number of seconds left is pretty unambiguous
     expires_in = int((state.expires_at - now).total_seconds())
 
+    secret_box = SecretBox(nacl.encoding.Base64Encoder.decode(current_app.conf.other_device_secret_key))
+
     payload.update(
         {
             'expires_max': current_app.conf.other_device_logins_ttl.total_seconds(),
-            'state_id': state.state_id,  # TODO: Make a secretbox with the state_id in it here
+            'state_id': secret_box.encrypt(state.state_id, encoder=nacl.encoding.URLSafeBase64Encoder),
             'state': state.state.value,
             'short_code': state.display_id,
             'expires_in': expires_in,

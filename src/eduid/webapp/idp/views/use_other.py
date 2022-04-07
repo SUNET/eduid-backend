@@ -81,6 +81,11 @@ def use_other_1(
         if username:
             user = current_app.userdb.lookup_user(username)
 
+        if ticket.known_device and ticket.known_device.data.eppn != user.eppn:
+            # Not sure if this will actually work? Will it perhaps fail when the login on device 2 is complete?
+            # Should stop it here and now in that case.
+            current_app.logger.warning(f'Login as user {user}, but device belongs to {ticket.known_device.data.eppn}')
+
         current_app.logger.debug(f'Adding new use other device state')
         state = current_app.other_device_db.add_new_state(ticket, user, ttl=current_app.conf.other_device_logins_ttl)
         ticket.set_other_device_state(state.state_id)
