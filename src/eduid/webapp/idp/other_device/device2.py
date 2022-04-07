@@ -10,7 +10,6 @@ from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import AuthnState
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
 from eduid.webapp.idp.login_context import LoginContextOtherDevice
-from eduid.webapp.idp.mischttp import get_user_agent
 from eduid.webapp.idp.other_device.data import OtherDeviceState
 from eduid.webapp.idp.other_device.db import OtherDevice
 from eduid.webapp.idp.sso_session import SSOSession
@@ -31,8 +30,7 @@ def device2_finish(ticket: LoginContextOtherDevice, sso_session: SSOSession, aut
     if state.expires_at < utc_now():
         current_app.stats.count('login_using_other_device_finish_too_late')
         logger.error(f'Request to login using another device was expired: {state}')
-        # TODO: better response code
-        return error_response(message=IdPMsg.general_failure)
+        return error_response(message=IdPMsg.other_device_expired)
 
     if state.state == OtherDeviceState.IN_PROGRESS:
         logger.debug(f'Recording login using another device {state.state_id} as finished')

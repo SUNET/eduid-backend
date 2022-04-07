@@ -21,6 +21,7 @@ class IdPMsg(str, TranslatableMsg):
     not_available = 'login.not_available'
     not_implemented = 'login.not_implemented'
     other_device = 'login.use_another_device'
+    other_device_expired = 'login.other_device_expired'
     proceed = 'login.proceed'  # Shouldn't actually be returned to the frontend
     state_not_found = 'login.state_not_found'
     state_already_used = 'login.state_already_used'
