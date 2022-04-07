@@ -34,8 +34,10 @@ other_device_views = Blueprint('other_device', __name__, url_prefix='')
 @UnmarshalWith(UseOther1RequestSchema)
 @MarshalWith(UseOther1ResponseSchema)
 @require_ticket
+@uses_sso_session
 def use_other_1(
     ticket: LoginContext,
+    sso_session: Optional[SSOSession],
     username: Optional[str] = None,
     action: Optional[str] = None,
     response_code: Optional[str] = None,
@@ -63,7 +65,6 @@ def use_other_1(
 
     state = _lookup_result.state
 
-    sso_session = current_app._lookup_sso_session()
     now = utc_now()  # ensure coherent results of 'is this expired?' checks
 
     if not state or action in [None, 'FETCH']:

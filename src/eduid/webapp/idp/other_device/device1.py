@@ -23,6 +23,12 @@ logger = logging.getLogger(__name__)
 def device1_check_response_code(
     response_code: Optional[str], sso_session: Optional[SSOSession], state: OtherDevice, ticket: LoginContext
 ) -> Union[Optional[SSOSession], FluxData]:
+    """
+    Validate the response code supplied by the user on device 1.
+
+    The response code is given to the user on device 2 after successful authentication, in case
+    device 1 was not a known device.
+    """
     if (
         state.state == OtherDeviceState.AUTHENTICATED
         and state.device2.response_code
@@ -37,31 +43,7 @@ def device1_check_response_code(
         ticket.set_other_device_state(None)
         state.state = OtherDeviceState.FINISHED
 
-        # Process list of used credentials. Credentials inherited from an SSO session on device #2 get
-        # added to the SSO session updated/created below, and request credentials (meaning ones actually
-        # used during this authn, albeit on the other device, device #2) should also get added to the
-        # pending request here on device #1.
-        _sso_credentials_used: List[AuthnData] = []
-        _request_count = 0
-        for this in state.device2.credentials_used:
-            authn = AuthnData(cred_id=this.credential_id, timestamp=this.ts)
-            _sso_credentials_used += [authn]
-            if this.source == UsedWhere.REQUEST:
-                ticket.pending_request.credentials_used[this.credential_id] = this.ts
-                _request_count += 1
-
-        # Create/update SSO session
-        sso_session = record_authentication(
-            ticket, state.eppn, sso_session, _sso_credentials_used, current_app.conf.sso_session_lifetime
-        )
-
-        logger.info(
-            f'Transferred {_request_count} request credentials used to login ref {ticket.request_ref}, '
-            f'and {len(_sso_credentials_used)} to SSO session {sso_session.session_id}'
-        )
-
-        logger.debug(f'Saving SSO session {sso_session}')
-        current_app.sso_sessions.save(sso_session)
+        sso_session = device1_login_user_from_device2(state, ticket, sso_session)
 
         current_app.stats.count('login_using_other_device_finished')
     else:
@@ -82,6 +64,38 @@ def device1_check_response_code(
         logger.warning(f'Login using other device: Failed saving state {state}')
         return error_response(message=IdPMsg.general_failure)
 
+    return sso_session
+
+
+def device1_login_user_from_device2(
+    state: OtherDevice, ticket: LoginContext, sso_session: Optional[SSOSession]
+) -> SSOSession:
+    """
+    Copy the credentials used for authentication on device 2 into the SSO session
+    on this device (1). If there was no SSO session on device 1, it is created.
+    """
+    # Process list of used credentials. Credentials inherited from an SSO session on device #2 get
+    # added to the SSO session updated/created below, and request credentials (meaning ones actually
+    # used during this authn, albeit on the other device, device #2) should also get added to the
+    # pending request here on device #1.
+    _sso_credentials_used: List[AuthnData] = []
+    _request_count = 0
+    for this in state.device2.credentials_used:
+        authn = AuthnData(cred_id=this.credential_id, timestamp=this.ts)
+        _sso_credentials_used += [authn]
+        if this.source == UsedWhere.REQUEST:
+            ticket.pending_request.credentials_used[this.credential_id] = this.ts
+            _request_count += 1
+    # Create/update SSO session
+    sso_session = record_authentication(
+        ticket, state.eppn, sso_session, _sso_credentials_used, current_app.conf.sso_session_lifetime
+    )
+    logger.info(
+        f'Transferred {_request_count} request credentials used to login ref {ticket.request_ref}, '
+        f'and {len(_sso_credentials_used)} to SSO session {sso_session.session_id}'
+    )
+    logger.debug(f'Saving SSO session {sso_session}')
+    current_app.sso_sessions.save(sso_session)
     return sso_session
 
 
