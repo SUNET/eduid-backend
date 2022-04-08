@@ -4,6 +4,13 @@ from uuid import uuid4
 from flask import Blueprint, jsonify, request
 from werkzeug.wrappers import Response as WerkzeugResponse
 
+import nacl
+import nacl.encoding
+import nacl.secret
+import nacl.utils
+
+from nacl.secret import SecretBox
+
 from eduid.common.misc.timeutil import utc_now
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
@@ -138,7 +145,7 @@ def use_other_1(
     payload = device1_state_to_flux_payload(state, now)
 
     if sso_session:
-        # In case we created the SSO session above, we need to return it's ID to the user in a cookie
+        # In case we created the SSO session above, we need to return its ID to the user in a cookie
         _flux_response = FluxSuccessResponse(request, payload=payload)
         resp = jsonify(UseOther1ResponseSchema().dump(_flux_response.to_dict()))
 
@@ -174,11 +181,14 @@ def use_other_2(
 
         state = _lookup_result.state
     elif state_id:
+        secret_box = SecretBox(nacl.encoding.URLSafeBase64Encoder.decode(current_app.conf.other_device_secret_key))
+        decrypted = secret_box.decrypt(state_id.encode(), encoder=nacl.encoding.URLSafeBase64Encoder).decode()
+
         # Load state using state_id from QR URL
-        current_app.logger.debug(f'Other device: Loading state using state_id: {state_id} (from QR code)')
-        state = current_app.other_device_db.get_state_by_id(state_id)
+        current_app.logger.debug(f'Other device: Loading state using state_id: {decrypted} (from QR code)')
+        state = current_app.other_device_db.get_state_by_id(decrypted)
         if not state:
-            current_app.logger.debug(f'Other device: State with state_id {state_id} (from QR code) not found')
+            current_app.logger.debug(f'Other device: State with state_id {decrypted} (from QR code) not found')
         else:
             current_app.logger.info(f'Loaded other device state: {state.state_id}')
             current_app.logger.debug(f'Extra debug: Full other device state:\n{state.to_json()}')

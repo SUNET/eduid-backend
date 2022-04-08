@@ -43,7 +43,7 @@ class BrowserDeviceInfo(BaseModel):
         # version 1 format is 1|state_id_str|private_key_b64
         _v, state_id, private_key_str = _data.decode().split('|')
         private_key = private_key_str.encode()
-        secret_box = SecretBox(nacl.encoding.Base64Encoder.decode(private_key))
+        secret_box = SecretBox(nacl.encoding.URLSafeBase64Encoder.decode(private_key))
         return cls(shared=shared, state_id=state_id, secret_box=secret_box)
 
     @classmethod

@@ -115,11 +115,16 @@ def device1_state_to_flux_payload(state: OtherDevice, now: datetime) -> Mapping[
         # TODO: make this config non-optional once we've finished developing this functionality
         raise RuntimeError('Missing configuration other_device_url')
 
+    secret_box = SecretBox(nacl.encoding.URLSafeBase64Encoder.decode(current_app.conf.other_device_secret_key))
+    encrypted_state_id = secret_box.encrypt(
+        state.state_id.encode(), encoder=nacl.encoding.URLSafeBase64Encoder
+    ).decode()
+
     payload: Dict[str, Any] = {}
     if state.state in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS, OtherDeviceState.AUTHENTICATED]:
         # Only add QR code when it will actually be displayed
         buf = BytesIO()
-        qr_url = urlappend(current_app.conf.other_device_url, str(state.state_id))
+        qr_url = urlappend(current_app.conf.other_device_url, encrypted_state_id)
         qrcode.make(qr_url).save(buf)
         qr_b64 = base64.b64encode(buf.getvalue())
 
@@ -135,12 +140,10 @@ def device1_state_to_flux_payload(state: OtherDevice, now: datetime) -> Mapping[
     # while passing number of seconds left is pretty unambiguous
     expires_in = int((state.expires_at - now).total_seconds())
 
-    secret_box = SecretBox(nacl.encoding.Base64Encoder.decode(current_app.conf.other_device_secret_key))
-
     payload.update(
         {
             'expires_max': current_app.conf.other_device_logins_ttl.total_seconds(),
-            'state_id': secret_box.encrypt(state.state_id, encoder=nacl.encoding.URLSafeBase64Encoder),
+            'state_id': encrypted_state_id,
             'state': state.state.value,
             'short_code': state.display_id,
             'expires_in': expires_in,
