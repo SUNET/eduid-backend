@@ -1,6 +1,6 @@
 import re
 from dataclasses import asdict, dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 from flask import Blueprint, request, url_for
 from saml2 import BINDING_HTTP_POST
@@ -64,11 +64,15 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
         current_app.logger.error(f'Don\'t know how to abort login request {ticket}')
         return error_response(message=IdPMsg.general_failure)
 
+    required_user = _get_required_user(ticket, sso_session)
+    if required_user.response:
+        return required_user.response
+
     if _next.message == IdPMsg.other_device:
         _payload = {
             'action': IdPAction.OTHER_DEVICE.value,
             'target': url_for('other_device.use_other_1', _external=True),
-            'authn_options': _get_authn_options(ticket, sso_session),
+            'authn_options': _get_authn_options(ticket, sso_session, required_user.eppn),
             'service_info': _get_service_info(ticket),
         }
 
@@ -81,7 +85,7 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
         _payload = {
             'action': IdPAction.PWAUTH.value,
             'target': url_for('pw_auth.pw_auth', _external=True),
-            'authn_options': _get_authn_options(ticket, sso_session),
+            'authn_options': _get_authn_options(ticket, sso_session, required_user.eppn),
             'service_info': _get_service_info(ticket),
         }
 
@@ -96,7 +100,7 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
             payload={
                 'action': IdPAction.MFA.value,
                 'target': url_for('mfa_auth.mfa_auth', _external=True),
-                'authn_options': _get_authn_options(ticket, sso_session),
+                'authn_options': _get_authn_options(ticket, sso_session, required_user.eppn),
                 'service_info': _get_service_info(ticket),
             },
         )
@@ -206,12 +210,8 @@ class AuthnOptions:
         return [x for x in _data.keys() if _data[x]]
 
 
-def _get_authn_options(ticket: LoginContext, sso_session: Optional[SSOSession]) -> Dict[str, Any]:
+def _get_authn_options(ticket: LoginContext, sso_session: Optional[SSOSession], eppn: Optional[str]) -> Dict[str, Any]:
     res = AuthnOptions()
-
-    sp_request_eppn = None
-    if isinstance(ticket, LoginContextSAML):
-        sp_request_eppn = ticket.service_requested_eppn
 
     # Availability of "login using another device" is controlled by configuration for now.
     res.other_device = current_app.conf.allow_other_device_logins
@@ -220,26 +220,8 @@ def _get_authn_options(ticket: LoginContext, sso_session: Optional[SSOSession]) 
         current_app.logger.debug(f'This is already a request to log in to another device, not allowing other_device')
         res.other_device = False
 
-    _eppn = None
-    if ticket.known_device and ticket.known_device.data.eppn:
-        _eppn = ticket.known_device.data.eppn
-        current_app.logger.info(f'Device belongs to {_eppn}')
-    elif sso_session:
-        _eppn = sso_session.eppn
-        current_app.logger.info(f'SSO session belongs to {_eppn}')
-    elif sp_request_eppn:
-        _eppn = sp_request_eppn
-        current_app.logger.info(f'SP requests login by {_eppn}')
-
-    if sp_request_eppn and sp_request_eppn != _eppn:
-        current_app.logger.warning(
-            f'SP requests login by user {sp_request_eppn}, but session/device belongs to {_eppn}'
-        )
-        # TODO: what's the real course of action here?
-        return res.to_dict()
-
-    if _eppn:
-        _set_user_options(res, _eppn)
+    if eppn:
+        _set_user_options(res, eppn)
 
     if sso_session:
         # Since the user has a session, logout should be shown (to allow change of user)
@@ -248,6 +230,55 @@ def _get_authn_options(ticket: LoginContext, sso_session: Optional[SSOSession]) 
     current_app.logger.debug(f'Valid authn options at this time: {res.valid_options}')
 
     return res.to_dict()
+
+
+@dataclass
+class RequiredUserResult:
+    response: Optional[FluxData] = None
+    eppn: Optional[str] = None
+
+
+def _get_required_user(ticket: LoginContext, sso_session: Optional[SSOSession]) -> RequiredUserResult:
+    """
+    Figure out if something dictates a user that _must_ be used to log in at this time.
+
+    The requirement can come from quite a few places, so try to check it using a uniform and extendable method.
+    """
+    eppn_set: Set[str] = set()
+
+    if isinstance(ticket, LoginContextSAML) and ticket.service_requested_eppn:
+        _eppn = ticket.service_requested_eppn
+        current_app.logger.info(f'SP requests login as {_eppn}')  # TODO: change to debug logging later
+        eppn_set.add(_eppn)
+
+    if isinstance(ticket, LoginContextOtherDevice) and ticket.is_other_device_2 and ticket.service_requested_eppn:
+        _eppn = ticket.service_requested_eppn
+        current_app.logger.info(f'Other device SP requests login as {_eppn}')  # TODO: change to debug logging later
+        eppn_set.add(_eppn)
+
+    if isinstance(ticket, LoginContextOtherDevice) and ticket.is_other_device_2 and ticket.other_device_req.eppn:
+        _eppn = ticket.other_device_req.eppn
+        current_app.logger.info(f'Other device requests login as {_eppn}')  # TODO: change to debug logging later
+        eppn_set.add(_eppn)
+
+    if ticket.known_device and ticket.known_device.data.eppn:
+        _eppn = ticket.known_device.data.eppn
+        current_app.logger.info(f'Device belongs to {_eppn}')  # TODO: change to debug logging later
+        eppn_set.add(_eppn)
+
+    if sso_session and sso_session.eppn:
+        _eppn = sso_session.eppn
+        current_app.logger.info(f'SSO session belongs to {_eppn}')  # TODO: change to debug logging later
+        eppn_set.add(_eppn)
+
+    if len(eppn_set) > 1:
+        current_app.logger.warning(f'Contradicting information about who needs to log in: {eppn_set}')
+        return RequiredUserResult(response=error_response(message=IdPMsg.wrong_user))
+
+    if eppn_set:
+        return RequiredUserResult(eppn=eppn_set.pop())
+
+    return RequiredUserResult(eppn=None)
 
 
 def _get_service_info(ticket: LoginContext) -> Dict[str, Any]:
@@ -263,7 +294,9 @@ def _set_user_options(res: AuthnOptions, eppn: str) -> None:
     """Augment the AuthnOptions instance with information about the current user"""
     user = current_app.userdb.lookup_user(eppn)
     if user:
-        current_app.logger.debug(f'User logging in (from either known device, SSO session, or SP request): {user}')
+        current_app.logger.debug(
+            f'User logging in (from either known device, other device, SSO session, or SP request): {user}'
+        )
         if user.credentials.filter(Password):
             current_app.logger.debug(f'User has a Password credential')
             res.password = True
