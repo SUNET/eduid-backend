@@ -39,7 +39,6 @@ def require_ticket(f):
         this_device = kwargs.get('this_device')
         if this_device:
             kwargs.pop('this_device')
-            remember_me = None
             try:
                 ticket.known_device_info = BrowserDeviceInfo.from_public(
                     this_device, current_app.known_device_db.app_secret_box
