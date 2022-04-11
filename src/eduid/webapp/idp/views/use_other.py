@@ -179,12 +179,14 @@ def use_other_2(
 
         state = _lookup_result.state
     elif state_id:
-        secret_box = SecretBox(nacl.encoding.URLSafeBase64Encoder.decode(current_app.conf.other_device_secret_key))
+        secret_box = SecretBox(
+            nacl.encoding.URLSafeBase64Encoder.decode(current_app.conf.other_device_secret_key.encode())
+        )
         decrypted = secret_box.decrypt(state_id.encode(), encoder=nacl.encoding.URLSafeBase64Encoder).decode()
 
         # Load state using state_id from QR URL
         current_app.logger.debug(f'Other device: Loading state using state_id: {decrypted} (from QR code)')
-        state = current_app.other_device_db.get_state_by_id(decrypted)
+        state = current_app.other_device_db.get_state_by_id(OtherDeviceId(decrypted))
         if not state:
             current_app.logger.debug(f'Other device: State with state_id {decrypted} (from QR code) not found')
         else:
