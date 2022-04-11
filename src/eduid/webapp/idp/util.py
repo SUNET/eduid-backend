@@ -116,7 +116,7 @@ def get_ip_proximity(a: str, b: str) -> IPProximity:
 
 
 def get_login_username(user: IdPUser) -> str:
-    """From a user, get the username that would map back to this user"""
+    """From a user, get the username that would map back to this user if someone enters it in the login process."""
     if user.mail_addresses.primary:
         # Provide e-mail from (potentially expired) SSO session to frontend, so it can populate
         # the username field for the user
@@ -124,7 +124,6 @@ def get_login_username(user: IdPUser) -> str:
         return _mail
     elif user.phone_numbers.primary:
         _phone = user.phone_numbers.primary.number
-        current_app.logger.debug(f'User has a primary phone number -> forced_username {_phone}')
         return _phone
 
     # TODO: Also support NIN and other 'external identifiers' as username?
