@@ -66,5 +66,7 @@ def uses_sso_session(f):
 
 
 def _flux_error(msg: IdPMsg):
-    response_data = FluxFailResponse(request, payload={'error': msg, 'csrf_token': session.get_csrf_token()})
+    response_data = FluxFailResponse(
+        request, payload={'error': True, 'message': msg, 'csrf_token': session.get_csrf_token()}
+    )
     return jsonify(response_data.to_dict())
