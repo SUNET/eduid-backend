@@ -8,7 +8,6 @@ import nacl
 import nacl.encoding
 import nacl.secret
 import nacl.utils
-
 import qrcode
 from nacl.secret import SecretBox
 

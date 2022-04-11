@@ -3,8 +3,6 @@ from dataclasses import asdict, dataclass
 from typing import Any, Dict, List, Optional, Set
 
 from flask import Blueprint, request, url_for
-
-from eduid.webapp.idp.util import get_login_username
 from saml2 import BINDING_HTTP_POST
 
 from eduid.userdb import LockedIdentityNin
@@ -23,6 +21,7 @@ from eduid.webapp.idp.mischttp import get_user_agent
 from eduid.webapp.idp.other_device.device2 import device2_finish
 from eduid.webapp.idp.schemas import NextRequestSchema, NextResponseSchema
 from eduid.webapp.idp.sso_session import SSOSession
+from eduid.webapp.idp.util import get_login_username
 
 next_views = Blueprint('next', __name__, url_prefix='')
 

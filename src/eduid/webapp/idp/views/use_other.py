@@ -1,15 +1,13 @@
 from typing import Optional, Union
 from uuid import uuid4
 
-from flask import Blueprint, jsonify, request
-from werkzeug.wrappers import Response as WerkzeugResponse
-
 import nacl
 import nacl.encoding
 import nacl.secret
 import nacl.utils
-
+from flask import Blueprint, jsonify, request
 from nacl.secret import SecretBox
+from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
