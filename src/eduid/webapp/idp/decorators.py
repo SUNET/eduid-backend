@@ -39,7 +39,6 @@ def require_ticket(f):
         this_device = kwargs.get('this_device')
         if this_device:
             kwargs.pop('this_device')
-            remember_me = None
             try:
                 ticket.known_device_info = BrowserDeviceInfo.from_public(
                     this_device, current_app.known_device_db.app_secret_box
@@ -67,5 +66,7 @@ def uses_sso_session(f):
 
 
 def _flux_error(msg: IdPMsg):
-    response_data = FluxFailResponse(request, payload={'error': msg, 'csrf_token': session.get_csrf_token()})
+    response_data = FluxFailResponse(
+        request, payload={'error': True, 'message': msg, 'csrf_token': session.get_csrf_token()}
+    )
     return jsonify(response_data.to_dict())

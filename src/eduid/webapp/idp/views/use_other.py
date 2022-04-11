@@ -1,7 +1,12 @@
 from typing import Optional, Union
 from uuid import uuid4
 
+import nacl
+import nacl.encoding
+import nacl.secret
+import nacl.utils
 from flask import Blueprint, jsonify, request
+from nacl.secret import SecretBox
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.misc.timeutil import utc_now
@@ -26,6 +31,7 @@ from eduid.webapp.idp.schemas import (
     UseOther2ResponseSchema,
 )
 from eduid.webapp.idp.sso_session import SSOSession
+from eduid.webapp.idp.views.next import get_required_user
 
 other_device_views = Blueprint('other_device', __name__, url_prefix='')
 
@@ -34,8 +40,10 @@ other_device_views = Blueprint('other_device', __name__, url_prefix='')
 @UnmarshalWith(UseOther1RequestSchema)
 @MarshalWith(UseOther1ResponseSchema)
 @require_ticket
+@uses_sso_session
 def use_other_1(
     ticket: LoginContext,
+    sso_session: Optional[SSOSession],
     username: Optional[str] = None,
     action: Optional[str] = None,
     response_code: Optional[str] = None,
@@ -63,24 +71,22 @@ def use_other_1(
 
     state = _lookup_result.state
 
-    sso_session = current_app._lookup_sso_session()
     now = utc_now()  # ensure coherent results of 'is this expired?' checks
 
     if not state or action in [None, 'FETCH']:
-        # TODO: Instead of this precedence list, maybe we should verify that username == known device == sso session?
-        if ticket.known_device:
-            username = ticket.known_device.data.eppn
-            current_app.logger.debug(f'Using eppn from known_device: {username}')
-        elif sso_session:
-            username = sso_session.eppn
-            current_app.logger.debug(f'Using eppn from SSO session: {username}')
-        else:
-            current_app.logger.debug(f'Using frontend-supplied username: {username}')
+        # If the user is using a known device, or has an SSO session, or the SP requests a certain user,
+        # that requirement is passed into the OtherDevice state (by setting state.eppn).
+        required_user = get_required_user(ticket, sso_session)
+        if required_user.response:
+            return required_user.response
+
         user = None
-        if username:
+        if required_user.eppn:
+            user = current_app.userdb.get_user_by_eppn(required_user.eppn)
+        elif username:
             user = current_app.userdb.lookup_user(username)
 
-        current_app.logger.debug(f'Adding new use other device state')
+        current_app.logger.debug(f'Adding new use other device state (user: {user})')
         state = current_app.other_device_db.add_new_state(ticket, user, ttl=current_app.conf.other_device_logins_ttl)
         ticket.set_other_device_state(state.state_id)
         if state.eppn:
@@ -114,7 +120,7 @@ def use_other_1(
                 current_app.logger.warning(f'Login using other device: Failed aborting state {state}')
                 return error_response(message=IdPMsg.general_failure)
             state = _abort_res
-            current_app.stats.count('login_using_other_device_abort')
+            current_app.stats.count('login_using_other_device_abort_device1')
             ticket.set_other_device_state(None)
         else:
             current_app.logger.info(f'Not aborting use other device in state {state.state}')
@@ -132,7 +138,7 @@ def use_other_1(
     payload = device1_state_to_flux_payload(state, now)
 
     if sso_session:
-        # In case we created the SSO session above, we need to return it's ID to the user in a cookie
+        # In case we created the SSO session above, we need to return its ID to the user in a cookie
         _flux_response = FluxSuccessResponse(request, payload=payload)
         resp = jsonify(UseOther1ResponseSchema().dump(_flux_response.to_dict()))
 
@@ -146,7 +152,10 @@ def use_other_1(
 @MarshalWith(UseOther2ResponseSchema)
 @uses_sso_session
 def use_other_2(
-    ref: Optional[RequestRef], state_id: Optional[OtherDeviceId], sso_session: Optional[SSOSession]
+    ref: Optional[RequestRef],
+    state_id: Optional[OtherDeviceId],
+    sso_session: Optional[SSOSession],
+    action: Optional[str] = None,
 ) -> FluxData:
     """ "Login using another device" flow.
 
@@ -168,11 +177,16 @@ def use_other_2(
 
         state = _lookup_result.state
     elif state_id:
+        secret_box = SecretBox(
+            nacl.encoding.URLSafeBase64Encoder.decode(current_app.conf.other_device_secret_key.encode())
+        )
+        decrypted = secret_box.decrypt(state_id.encode(), encoder=nacl.encoding.URLSafeBase64Encoder).decode()
+
         # Load state using state_id from QR URL
-        current_app.logger.debug(f'Other device: Loading state using state_id: {state_id} (from QR code)')
-        state = current_app.other_device_db.get_state_by_id(state_id)
+        current_app.logger.debug(f'Other device: Loading state using state_id: {decrypted} (from QR code)')
+        state = current_app.other_device_db.get_state_by_id(OtherDeviceId(decrypted))
         if not state:
-            current_app.logger.debug(f'Other device: State with state_id {state_id} (from QR code) not found')
+            current_app.logger.debug(f'Other device: State with state_id {decrypted} (from QR code) not found')
         else:
             current_app.logger.info(f'Loaded other device state: {state.state_id}')
             current_app.logger.debug(f'Extra debug: Full other device state:\n{state.to_json()}')
@@ -221,6 +235,18 @@ def use_other_2(
             )
             current_app.logger.debug(f'Extra debug: Full other device state:\n{state.to_json()}')
             return error_response(message=IdPMsg.state_already_used)
+
+    if action == 'ABORT':
+        if state.state in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS, OtherDeviceState.AUTHENTICATED]:
+            current_app.logger.info('Aborting login using another device')
+            _abort_res = current_app.other_device_db.abort(state)
+            if not _abort_res:
+                current_app.logger.warning(f'Login using other device: Failed aborting state {state}')
+                return error_response(message=IdPMsg.general_failure)
+            state = _abort_res
+            current_app.stats.count('login_using_other_device_abort_device2')
+        else:
+            current_app.logger.info(f'Not aborting use other device in state {state.state}')
 
     payload = device2_state_to_flux_payload(state, now)
 

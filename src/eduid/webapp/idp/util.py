@@ -38,6 +38,9 @@ import logging
 from enum import Enum
 from typing import Union
 
+from eduid.userdb.idp import IdPUser
+from eduid.webapp.idp.app import current_idp_app as current_app
+
 logger = logging.getLogger(__name__)
 
 
@@ -110,3 +113,18 @@ def get_ip_proximity(a: str, b: str) -> IPProximity:
             return IPProximity.NEAR
     logger.debug(f'IP addresses {ip_a} and {ip_b} deemed to be FAR')
     return IPProximity.FAR
+
+
+def get_login_username(user: IdPUser) -> str:
+    """From a user, get the username that would map back to this user if someone enters it in the login process."""
+    if user.mail_addresses.primary:
+        # Provide e-mail from (potentially expired) SSO session to frontend, so it can populate
+        # the username field for the user
+        _mail = user.mail_addresses.primary.email
+        return _mail
+    elif user.phone_numbers.primary:
+        _phone = user.phone_numbers.primary.number
+        return _phone
+
+    # TODO: Also support NIN and other 'external identifiers' as username?
+    return user.eppn

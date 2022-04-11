@@ -120,15 +120,17 @@ class UseOther1ResponseSchema(FluxStandardAction):
         expires_max = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
         qr_img = fields.Str(required=True)  # qr_url as an inline img
         qr_url = fields.Str(required=True)  # the link to where the user can manually enter short_code to proceed
-        short_code = fields.Str(required=True)  # six digit code for this request
+        short_code = fields.Str(required=True)  # six-digit code for this request
         state = fields.Str(required=True)  # current state of request, an OtherDeviceState (NEW, PENDING etc.)
         state_id = fields.Str(required=True)  # database id for this state
+        response_code_required = fields.Bool(required=True)  # True if a response code is required for this login
         # NOTE: It is CRITICAL to never return the response code to Device #1
 
     payload = fields.Nested(UseOther1ResponsePayload)
 
 
 class UseOther2RequestSchema(EduidSchema, CSRFRequestMixin):
+    action = fields.Str(required=False)  # optional action ('ABORT' is the only one on device 2)
     ref = fields.Str(missing=None, required=False)  # use login_ref on page reloads, when there is a pending_request
     # use state_id on first load from QR URL, before a pending_request is set up
     state_id = fields.Str(missing=None, required=False)
@@ -142,7 +144,7 @@ class UseOther2ResponseSchema(FluxStandardAction):
 
             addr = fields.Str(required=True)  # remote address of device1
             description = fields.Str(required=False)  # description of device1, based on User-Agent header
-            proximity = fields.Str(required=False)  # how close the address of device1 is to the address of device2
+            proximity = fields.Str(required=True)  # how close the address of device1 is to the address of device2
             service_info = fields.Nested(ServiceInfo, required=False)
             is_known_device = fields.Boolean(required=True)
 
@@ -150,11 +152,14 @@ class UseOther2ResponseSchema(FluxStandardAction):
         expires_in = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
         expires_max = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
         login_ref = fields.Str(required=True)  # newly minted login_ref
-        short_code = fields.Str(required=True)  # six digit code for this request
+        short_code = fields.Str(required=True)  # six-digit code for this request
         state = fields.Str(required=True)  # current state of request, an OtherDeviceState (NEW, PENDING etc.)
         response_code = fields.Str(
             required=False
         )  # the secret response code the user should enter on device 1 to get logged in
+        response_code_required = fields.Bool(required=True)  # True if a response code is required for this login
+        username = fields.Str(required=False)  # the username (e.g. e-mail address) of the user logging in
+        display_name = fields.Str(required=False)  # the display_name of the user logging in
 
     payload = fields.Nested(UseOther2ResponsePayload)
 

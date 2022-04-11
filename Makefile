@@ -8,7 +8,7 @@ test:
 
 reformat:
 	isort --line-width 120 --atomic --project eduid $(SOURCE)
-	black --line-length 120 --target-version py38 --skip-string-normalization $(SOURCE)
+	black --line-length 120 --target-version py39 --skip-string-normalization $(SOURCE)
 
 typecheck:
 	MYPYPATH=$(SRCDIR) mypy --ignore-missing-imports --namespace-packages -p eduid
