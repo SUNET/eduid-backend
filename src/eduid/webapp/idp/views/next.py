@@ -3,6 +3,8 @@ from dataclasses import asdict, dataclass
 from typing import Any, Dict, List, Optional, Set
 
 from flask import Blueprint, request, url_for
+
+from eduid.webapp.idp.util import get_login_username
 from saml2 import BINDING_HTTP_POST
 
 from eduid.userdb import LockedIdentityNin
@@ -64,7 +66,7 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
         current_app.logger.error(f'Don\'t know how to abort login request {ticket}')
         return error_response(message=IdPMsg.general_failure)
 
-    required_user = _get_required_user(ticket, sso_session)
+    required_user = get_required_user(ticket, sso_session)
     if required_user.response:
         return required_user.response
 
@@ -238,7 +240,7 @@ class RequiredUserResult:
     eppn: Optional[str] = None
 
 
-def _get_required_user(ticket: LoginContext, sso_session: Optional[SSOSession]) -> RequiredUserResult:
+def get_required_user(ticket: LoginContext, sso_session: Optional[SSOSession]) -> RequiredUserResult:
     """
     Figure out if something dictates a user that _must_ be used to log in at this time.
 
@@ -253,11 +255,6 @@ def _get_required_user(ticket: LoginContext, sso_session: Optional[SSOSession]) 
 
     if isinstance(ticket, LoginContextOtherDevice) and ticket.is_other_device_2 and ticket.service_requested_eppn:
         _eppn = ticket.service_requested_eppn
-        current_app.logger.info(f'Other device SP requests login as {_eppn}')  # TODO: change to debug logging later
-        eppn_set.add(_eppn)
-
-    if isinstance(ticket, LoginContextOtherDevice) and ticket.is_other_device_2 and ticket.other_device_req.eppn:
-        _eppn = ticket.other_device_req.eppn
         current_app.logger.info(f'Other device requests login as {_eppn}')  # TODO: change to debug logging later
         eppn_set.add(_eppn)
 
@@ -309,12 +306,13 @@ def _set_user_options(res: AuthnOptions, eppn: str) -> None:
             current_app.logger.debug(f'User has a locked NIN -> Freja is possible')
             res.freja_eidplus = True
 
-        if user.mail_addresses.primary:
-            # Provide e-mail from (potentially expired) SSO session to frontend, so it can populate
-            # the username field for the user
-            _mail = user.mail_addresses.primary.email
-            current_app.logger.debug(f'User has a primary e-mail -> forced_username {_mail}')
-            res.forced_username = _mail
+        res.forced_username = get_login_username(user)
+        current_app.logger.debug(f'User forced_username: {res.forced_username}')
+
+        # TODO: Should ideally distinguish between a _real_ forced username, such as the SP requiring a
+        #       specific user to log in, and e.g. a known device where the user might choose to reset
+        #       the known device, and thus avoid the requirement.
+        if res.forced_username:
             res.username = False
 
         res.display_name = user.display_name or user.given_name or res.forced_username

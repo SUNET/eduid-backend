@@ -84,6 +84,10 @@ def device1_login_user_from_device2(
     Copy the credentials used for authentication on device 2 into the SSO session
     on this device (1). If there was no SSO session on device 1, it is created.
     """
+    if not state.eppn:
+        # this is really checked before this function is called, but mypy doesn't trust that
+        raise RuntimeError('No eppn in OtherDevice state')
+
     # Process list of used credentials. Credentials inherited from an SSO session on device #2 get
     # added to the SSO session updated/created below, and request credentials (meaning ones actually
     # used during this authn, albeit on the other device, device #2) should also get added to the
@@ -115,7 +119,7 @@ def device1_state_to_flux_payload(state: OtherDevice, now: datetime) -> Mapping[
         # TODO: make this config non-optional once we've finished developing this functionality
         raise RuntimeError('Missing configuration other_device_url')
 
-    secret_box = SecretBox(nacl.encoding.URLSafeBase64Encoder.decode(current_app.conf.other_device_secret_key))
+    secret_box = SecretBox(nacl.encoding.URLSafeBase64Encoder.decode(current_app.conf.other_device_secret_key.encode()))
     encrypted_state_id = secret_box.encrypt(
         state.state_id.encode(), encoder=nacl.encoding.URLSafeBase64Encoder
     ).decode()
@@ -147,6 +151,7 @@ def device1_state_to_flux_payload(state: OtherDevice, now: datetime) -> Mapping[
             'state': state.state.value,
             'short_code': state.display_id,
             'expires_in': expires_in,
+            'response_code_required': not state.device1.is_known_device,
         }
     )
     # NOTE: It is CRITICAL to never return the response code to Device #1

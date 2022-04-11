@@ -78,7 +78,7 @@ class OtherDevice(BaseModel):
         if not eppn and ticket.known_device:
             eppn = ticket.known_device.data.eppn
         _is_known_device = False
-        if  ticket.known_device and ticket.known_device.data.eppn == eppn:
+        if ticket.known_device and ticket.known_device.data.eppn == eppn:
             # If is_known_device is true, the user won't have to enter the response code from device 2 on device 1
             _is_known_device = True
         return cls(
@@ -174,8 +174,11 @@ class OtherDeviceDB(BaseDB):
     def abort(self, state: OtherDevice) -> Optional[OtherDevice]:
         """
         Abort a state.
+
+        It may be aborted in the states NEW and IN_PROGRESS from device #1,
+        and in the state AUTHENTICATED on device #2.
         """
-        if state.state not in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS]:
+        if state.state not in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS, OtherDeviceState.AUTHENTICATED]:
             return None
         _state_val = state.state.value
         state.state = OtherDeviceState.ABORTED

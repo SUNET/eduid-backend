@@ -13,7 +13,7 @@ from eduid.webapp.idp.login_context import LoginContextOtherDevice
 from eduid.webapp.idp.other_device.data import OtherDeviceState
 from eduid.webapp.idp.other_device.db import OtherDevice
 from eduid.webapp.idp.sso_session import SSOSession
-from eduid.webapp.idp.util import get_ip_proximity
+from eduid.webapp.idp.util import get_ip_proximity, get_login_username
 
 logger = logging.getLogger(__name__)
 
@@ -58,20 +58,32 @@ def device2_state_to_flux_payload(state: OtherDevice, now: datetime) -> Mapping[
     # The frontend will present the user with the option to proceed with this login on this device #2.
     # If the user proceeds, the frontend can now call the /next endpoint with the ref returned in this response.
 
+    username = None
+    display_name = None
+
+    if state.eppn:
+        user = current_app.userdb.lookup_user(state.eppn)
+        if user:
+            display_name = user.display_name or user.given_name or state.eppn
+            username = get_login_username(user)
+
     device_info = {
         'addr': state.device1.ip_address,
         'description': state.device1.user_agent,
+        'is_known_device': state.device1.is_known_device,
         'proximity': get_ip_proximity(state.device1.ip_address, request.remote_addr).value,
         'service_info': state.device1.service_info,
-        'is_known_device': state.device1.is_known_device,
     }
     payload: Dict[str, Any] = {
         'device1_info': device_info,
+        'display_name': display_name,
         'expires_in': expires_in,
         'expires_max': current_app.conf.other_device_logins_ttl.total_seconds(),
         'login_ref': state.device2.ref,
+        'response_code_required': not state.device1.is_known_device,
         'short_code': state.display_id,
         'state': state.state.value,
+        'username': username,
     }
     if state.state == OtherDeviceState.AUTHENTICATED:
         # Be very explicit about when response_code is returned.
