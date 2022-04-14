@@ -1,4 +1,5 @@
 import re
+from base64 import urlsafe_b64decode
 from dataclasses import asdict, dataclass
 from typing import Any, Dict, List, Optional
 
@@ -300,7 +301,7 @@ def _geo_statistics(ticket: LoginContext, sso_session: Optional[SSOSession]) -> 
     if ua.parsed.browser.family in ['Python Requests', 'PingdomBot'] or ua.parsed.is_bot:
         return None
 
-    secret = current_app.conf.geo_statistics_secret_key.encode()
+    secret = urlsafe_b64decode(bytes(current_app.conf.geo_statistics_secret_key, 'ascii'))
 
     user_hash = hmac.HMAC(secret, hashes.SHA256())
     user_hash.update(bytes(sso_session.eppn, 'utf-8'))

@@ -275,7 +275,7 @@ class IdPTestLoginAPI(IdPAPITests):
                 assert mock_post.call_count == 1
                 assert mock_post.call_args.kwargs.get('json') == {
                     'data': {
-                        'user_id': '08829f767526361c9377675984851b7b29d05bfc53c1e0bff3a88adfcdac27e2',
+                        'user_id': 'f58a28aad6b221e6827b8ba4481bb5b6da3833acab5eab43d0f3371b218f6cdc',
                         'client_ip': None,
                         'device_id': None,
                         'user_agent': {
