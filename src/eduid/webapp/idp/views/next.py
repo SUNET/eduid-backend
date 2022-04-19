@@ -306,15 +306,11 @@ def _geo_statistics(ticket: LoginContext, sso_session: Optional[SSOSession]) -> 
     user_hash = hmac.HMAC(secret, hashes.SHA256())
     user_hash.update(bytes(sso_session.eppn, 'utf-8'))
 
-    device_id = None
-    if ticket.known_device:
-        device_id = ticket.known_device.state_id
-
     d: Dict[str, Any] = {
         'data': {
             'user_id': user_hash.finalize().hex(),
-            'client_ip': request.headers.get('x-forwarded-for'),
-            'device_id': device_id,
+            'client_ip': request.remote_addr,
+            'known_device': bool(ticket.known_device),
             'user_agent': {'browser': {}, 'os': {}, 'device': {}, 'sophisticated': {}},
         }
     }
