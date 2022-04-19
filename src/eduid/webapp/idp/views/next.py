@@ -1,7 +1,10 @@
 import re
+from base64 import urlsafe_b64decode
 from dataclasses import asdict, dataclass
 from typing import Any, Dict, List, Optional, Set
 
+import requests
+from cryptography.hazmat.primitives import hashes, hmac
 from flask import Blueprint, request, url_for
 from saml2 import BINDING_HTTP_POST
 
@@ -148,6 +151,13 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
                 current_app.known_device_db.save(
                     ticket.known_device, from_browser=ticket.known_device_info, ttl=current_app.conf.known_devices_ttl
                 )
+
+        if current_app.conf.geo_statistics_feature_enabled:
+            try:
+                # Logging stats is optional, make sure we never fail a login because of it
+                _geo_statistics(ticket=ticket, sso_session=sso_session)
+            except:
+                current_app.logger.exception('Producing Geo stats failed')
 
         if isinstance(ticket, LoginContextSAML):
             saml_params = sso.get_response_params(_next.authn_info, ticket, user)
@@ -317,6 +327,52 @@ def _set_user_options(res: AuthnOptions, eppn: str) -> None:
         res.display_name = user.display_name or user.given_name or res.forced_username
 
     return None
+
+
+def _geo_statistics(ticket: LoginContext, sso_session: Optional[SSOSession]) -> None:
+    """ Log user statistics from login event """
+
+    if not sso_session:
+        return None
+
+    if not current_app.conf.geo_statistics_secret_key or not current_app.conf.geo_statistics_url:
+        return None
+
+    ua = get_user_agent()
+    if not ua:
+        return None
+
+    if ua.parsed.browser.family in ['Python Requests', 'PingdomBot'] or ua.parsed.is_bot:
+        return None
+
+    secret = urlsafe_b64decode(bytes(current_app.conf.geo_statistics_secret_key, 'ascii'))
+
+    user_hash = hmac.HMAC(secret, hashes.SHA256())
+    user_hash.update(bytes(sso_session.eppn, 'utf-8'))
+
+    d: Dict[str, Any] = {
+        'data': {
+            'user_id': user_hash.finalize().hex(),
+            'client_ip': request.remote_addr,
+            'known_device': bool(ticket.known_device),
+            'user_agent': {'browser': {}, 'os': {}, 'device': {}, 'sophisticated': {}},
+        }
+    }
+
+    data = d['data']
+    data['user_agent']['browser']['family'] = ua.parsed.browser.family
+    data['user_agent']['os']['family'] = ua.parsed.os.family
+    data['user_agent']['device']['family'] = ua.parsed.device.family
+    data['user_agent']['sophisticated']['is_mobile'] = ua.parsed.is_mobile
+    data['user_agent']['sophisticated']['is_pc'] = ua.parsed.is_pc
+    data['user_agent']['sophisticated']['is_tablet'] = ua.parsed.is_tablet
+    data['user_agent']['sophisticated']['is_touch_capable'] = ua.parsed.is_touch_capable
+
+    try:
+        resp = requests.post(current_app.conf.geo_statistics_url, json=d, timeout=1)
+        current_app.logger.debug(f'response from geo-statistics app: {resp.json}')
+    except requests.RequestException:
+        current_app.logger.exception('Failed to contact geo-statistics app')
 
 
 def _log_user_agent() -> None:
