@@ -276,8 +276,8 @@ class IdPTestLoginAPI(IdPAPITests):
                 assert mock_post.call_args.kwargs.get('json') == {
                     'data': {
                         'user_id': 'f58a28aad6b221e6827b8ba4481bb5b6da3833acab5eab43d0f3371b218f6cdc',
-                        'client_ip': None,
-                        'device_id': None,
+                        'client_ip': '127.0.0.1',
+                        'known_device': False,
                         'user_agent': {
                             'browser': {'family': 'Other'},
                             'os': {'family': 'Other'},
