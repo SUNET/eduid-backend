@@ -50,7 +50,7 @@ class JsAppsConfig(PasswordConfigMixin):
     csrf_token: Optional[str] = None
     available_languages: Dict[str, str] = Field(default={'en': 'English', 'sv': 'Svenska'})
     eduid_site_name: str = 'eduID'
-    eduid_site_url: HttpUrl = 'https://eduid.se'
+    eduid_site_url: str = 'https://eduid.se'
     dashboard_url: str
     signup_url: str
     reset_password_link: str  # used for directing a user to the reset password app
