@@ -330,7 +330,7 @@ def _set_user_options(res: AuthnOptions, eppn: str) -> None:
 
 
 def _geo_statistics(ticket: LoginContext, sso_session: Optional[SSOSession]) -> None:
-    """ Log user statistics from login event """
+    """Log user statistics from login event"""
 
     if not sso_session:
         return None
