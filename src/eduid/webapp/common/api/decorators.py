@@ -33,7 +33,7 @@ def require_eppn(f):
         eppn = session.common.eppn
         # If the user is logged in and has a session
         # pass on the request to the decorated view
-        # together with the eppn of the logged in user.
+        # together with the eppn of the logged-in user.
         if eppn:
             kwargs['eppn'] = eppn
             return f(*args, **kwargs)

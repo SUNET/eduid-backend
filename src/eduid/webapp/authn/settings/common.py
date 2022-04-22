@@ -65,3 +65,5 @@ class AuthnConfig(EduIDBaseAppConfig):
 
     token_service_url: str
     safe_relay_domain: str = 'eduid.se'
+
+    errors_url_template: Optional[str] = None

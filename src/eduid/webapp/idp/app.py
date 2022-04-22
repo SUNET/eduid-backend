@@ -129,6 +129,7 @@ def init_idp_app(name: str = 'idp', test_config: Optional[Mapping[str, Any]] = N
     from eduid.webapp.idp.views.saml import saml_views
     from eduid.webapp.idp.views.tou import tou_views
     from eduid.webapp.idp.views.use_other import other_device_views
+    from eduid.webapp.idp.views.error_info import error_info_views
 
     app.register_blueprint(known_device_views)
     app.register_blueprint(mfa_auth_views)
@@ -138,6 +139,7 @@ def init_idp_app(name: str = 'idp', test_config: Optional[Mapping[str, Any]] = N
     app.register_blueprint(pw_auth_views)
     app.register_blueprint(saml_views)
     app.register_blueprint(tou_views)
+    app.register_blueprint(error_info_views)
 
     from eduid.webapp.idp.exceptions import init_exception_handlers
 

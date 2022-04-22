@@ -65,7 +65,7 @@ def update_modified_ts(user):
 
 def get_user() -> User:
     """
-    Get the currently logged in user from the common eduid session.
+    Get the currently logged-in user from the common eduid session.
 
     If no user has been identified, or the user is known but not currently logged in, require authentication.
 

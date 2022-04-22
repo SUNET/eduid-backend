@@ -180,7 +180,18 @@ class NewDeviceRequestSchema(IdPRequest):
 
 
 class NewDeviceResponseSchema(FluxStandardAction):
-    class AbortResponsePayload(EduidSchema, CSRFResponseMixin):
+    class NewDeviceResponsePayload(EduidSchema, CSRFResponseMixin):
         new_device = fields.Str(required=True)
 
-    payload = fields.Nested(AbortResponsePayload)
+    payload = fields.Nested(NewDeviceResponsePayload)
+
+
+class ErrorInfoResponseSchema(FluxStandardAction):
+    class ErrorInfoResponsePayload(EduidSchema, CSRFResponseMixin):
+        eppn = fields.Str(required=False)
+        has_locked_nin = fields.Bool(required=False)
+        has_verified_nin = fields.Bool(required=False)
+        has_mfa = fields.Bool(required=False)
+        logged_in = fields.Bool(required=True)
+
+    payload = fields.Nested(ErrorInfoResponsePayload)
