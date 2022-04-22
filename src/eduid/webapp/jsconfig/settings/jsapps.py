@@ -50,7 +50,7 @@ class JsAppsConfig(PasswordConfigMixin):
     csrf_token: Optional[str] = None
     available_languages: Dict[str, str] = Field(default={'en': 'English', 'sv': 'Svenska'})
     eduid_site_name: str = 'eduID'
-    eduid_site_url: str = 'https://eduid.se'
+    eduid_site_url: HttpUrl = 'https://eduid.se'
     dashboard_url: str
     signup_url: str
     reset_password_link: str  # used for directing a user to the reset password app
@@ -66,6 +66,9 @@ class JsAppsConfig(PasswordConfigMixin):
     login_base_url: AnyUrl
     login_next_url: HttpUrl  # Needs to be a full URL since the backend is on the idp, not on https://eduid.se
     request_other_url: Optional[
+        HttpUrl
+    ] = None  # Needs to be a full URL since the backend is on the idp, not on https://eduid.se
+    error_info_url: Optional[
         HttpUrl
     ] = None  # Needs to be a full URL since the backend is on the idp, not on https://eduid.se
     lookup_mobile_proofing_url: str
