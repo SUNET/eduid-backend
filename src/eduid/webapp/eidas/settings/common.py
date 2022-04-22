@@ -39,11 +39,17 @@ from typing import Dict, Mapping, Optional
 
 from pydantic import Field
 
-from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig, MagicCookieMixin, MsgConfigMixin
+from eduid.common.config.base import (
+    AmConfigMixin,
+    EduIDBaseAppConfig,
+    ErrorsConfigMixin,
+    MagicCookieMixin,
+    MsgConfigMixin,
+)
 from eduid.userdb.credentials.external import TrustFramework
 
 
-class EidasConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MsgConfigMixin):
+class EidasConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MsgConfigMixin, ErrorsConfigMixin):
     """
     Configuration for the eidas app
     """

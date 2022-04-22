@@ -50,6 +50,7 @@ from eduid.userdb import UserDB
 from eduid.userdb.exceptions import MultipleUsersReturned, UserDoesNotExist
 from eduid.userdb.user import User
 from eduid.webapp.authn.app import current_authn_app as current_app
+from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
 from eduid.webapp.common.api.utils import sanitise_redirect_url
 from eduid.webapp.common.authn.cache import IdentityCache, OutstandingQueriesCache, StateCache
 from eduid.webapp.common.authn.session_info import SessionInfo
@@ -125,7 +126,7 @@ def get_authn_response(
     saml2_config: SPConfig, sp_data: SPAuthnData, session: EduidSession, raw_response: str
 ) -> Tuple[AuthnResponse, AuthnRequestRef]:
     """
-    Check a SAML response and return the the response.
+    Check a SAML response and return the response.
 
     The response can be used to retrieve a session_info dict.
 
@@ -305,6 +306,12 @@ def process_assertion(
     try:
         response, authn_ref = get_authn_response(current_app.saml2_config, sp_data, session, saml_response)
     except BadSAMLResponse as e:
+        if current_app.conf.errors_url_template:
+            return goto_errors_response(
+                current_app.conf.errors_url_template,
+                ctx=EduidErrorsContext.saml_response_fail,
+                rp=current_app.conf.app_name,
+            )
         current_app.logger.error(f'BadSAMLResponse: {e}')
         return make_response(str(e), 400)
 

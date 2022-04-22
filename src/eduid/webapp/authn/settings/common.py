@@ -35,10 +35,10 @@ from typing import Mapping, Optional
 
 from pydantic import Field
 
-from eduid.common.config.base import EduIDBaseAppConfig
+from eduid.common.config.base import EduIDBaseAppConfig, ErrorsConfigMixin
 
 
-class AuthnConfig(EduIDBaseAppConfig):
+class AuthnConfig(EduIDBaseAppConfig, ErrorsConfigMixin):
     """
     Configuration for the authn app
     """

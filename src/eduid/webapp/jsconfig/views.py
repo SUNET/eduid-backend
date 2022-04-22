@@ -130,3 +130,20 @@ def get_login_config() -> FluxData:
         'environment': current_app.conf.jsapps.environment.value,
     }
     return success_response(payload=payload)
+
+
+@jsconfig_views.route('/errors/config', methods=['GET'])
+@MarshalWith(FluxStandardAction)
+def get_errors_config() -> FluxData:
+    """
+    Configuration for the errors front app
+    """
+    payload = {
+        'csrf_token': session.get_csrf_token(),
+        'dashboard_url': current_app.conf.jsapps.dashboard_url,
+        'eduid_site_name': current_app.conf.jsapps.eduid_site_name,
+        'eduid_site_url': current_app.conf.jsapps.eduid_site_url,
+        'environment': current_app.conf.jsapps.environment.value,
+        'error_info_url': current_app.conf.jsapps.error_info_url,
+    }
+    return success_response(payload=payload)
