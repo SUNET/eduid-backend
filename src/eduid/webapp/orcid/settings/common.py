@@ -34,10 +34,10 @@ from typing import Dict
 
 from pydantic import Field
 
-from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig
+from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig, ErrorsConfigMixin
 
 
-class OrcidConfig(EduIDBaseAppConfig, AmConfigMixin):
+class OrcidConfig(EduIDBaseAppConfig, AmConfigMixin, ErrorsConfigMixin):
     """
     Configuration for the orcid app
     """

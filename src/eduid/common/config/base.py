@@ -316,6 +316,10 @@ class PasswordConfigMixin(BaseModel):
     min_zxcvbn_score: int = 3  # SWAMID
 
 
+class ErrorsConfigMixin(BaseModel):
+    errors_url_template: Optional[str] = None
+
+
 class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, RedisConfigMixin):
     available_languages: Mapping[str, str] = Field(default={'en': 'English', 'sv': 'Svenska'})
     environment: EduidEnvironment = EduidEnvironment.production
