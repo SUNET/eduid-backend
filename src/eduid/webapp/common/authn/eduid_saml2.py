@@ -38,6 +38,8 @@ from xml.etree.ElementTree import ParseError
 
 from dateutil.parser import parse as dt_parse
 from flask import abort, make_response, redirect, request
+
+from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.ident import decode
@@ -125,7 +127,7 @@ def get_authn_response(
     saml2_config: SPConfig, sp_data: SPAuthnData, session: EduidSession, raw_response: str
 ) -> Tuple[AuthnResponse, AuthnRequestRef]:
     """
-    Check a SAML response and return the the response.
+    Check a SAML response and return the response.
 
     The response can be used to retrieve a session_info dict.
 
@@ -305,6 +307,12 @@ def process_assertion(
     try:
         response, authn_ref = get_authn_response(current_app.saml2_config, sp_data, session, saml_response)
     except BadSAMLResponse as e:
+        if current_app.conf.errors_url_template:
+            return goto_errors_response(
+                current_app.conf.errors_url_template,
+                ctx=EduidErrorsContext.saml_response_fail,
+                rp=current_app.conf.app_name,
+            )
         current_app.logger.error(f'BadSAMLResponse: {e}')
         return make_response(str(e), 400)
 
