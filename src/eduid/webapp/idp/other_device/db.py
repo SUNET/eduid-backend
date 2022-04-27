@@ -78,7 +78,7 @@ class OtherDevice(BaseModel):
         if not eppn and ticket.known_device:
             eppn = ticket.known_device.data.eppn
         _is_known_device = False
-        if ticket.known_device and ticket.known_device.data.eppn == eppn:
+        if ticket.known_device and ticket.known_device.data.eppn == eppn and eppn:
             # If is_known_device is true, the user won't have to enter the response code from device 2 on device 1
             _is_known_device = True
         return cls(
