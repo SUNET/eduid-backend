@@ -57,6 +57,10 @@ class MsgTaskFailed(TaskFailed):
     pass
 
 
+class NoNavetData(MsgTaskFailed):
+    pass
+
+
 class MailTaskFailed(TaskFailed):
     pass
 
