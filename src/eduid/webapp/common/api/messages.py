@@ -65,8 +65,10 @@ class CommonMsg(TranslatableMsg):
     temp_problem = 'Temporary technical problems'
     # The user has changed in the db since it was retrieved
     out_of_sync = 'user-out-of-sync'
-    # error in the communications with navet
+    # error in the communications with Navet
     navet_error = 'error_navet_task'
+    # no official address returned from Navet
+    no_navet_data = 'no_navet_data'
     # NIN validation error
     nin_invalid = 'nin needs to be formatted as 18|19|20yymmddxxxx'
     # Email address validation error

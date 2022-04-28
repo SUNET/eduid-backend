@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 import eduid.workers.msg
 from eduid.common.config.base import MsgConfigMixin
-from eduid.webapp.common.api.exceptions import MsgTaskFailed
+from eduid.webapp.common.api.exceptions import MsgTaskFailed, NoNavetData
 
 __author__ = 'lundberg'
 
@@ -133,7 +133,7 @@ class MsgRelay(object):
                 data = NavetData.parse_obj(ret)
                 if not data.person.is_deregistered() or allow_deregistered:
                     return data
-            raise MsgTaskFailed('No data returned from Navet')
+            raise NoNavetData('No data returned from Navet')
         except Exception as e:
             rtask.forget()
             raise MsgTaskFailed(f'get_all_navet_data task failed: {e}')

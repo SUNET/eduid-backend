@@ -12,7 +12,7 @@ from eduid.userdb.logs import MFATokenProofing
 from eduid.userdb.proofing.user import ProofingUser
 from eduid.webapp.authn.helpers import credential_used_to_authenticate
 from eduid.webapp.common.api.decorators import require_user
-from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed
+from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed, NoNavetData
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import CommonMsg, redirect_with_msg
 from eduid.webapp.common.api.utils import save_and_sync_user
@@ -116,10 +116,14 @@ def token_verify_action(session_info: SessionInfo, user: User, authndata: SP_Aut
     current_app.logger.debug('Authn context: {}'.format(authn_context))
     try:
         user_address = current_app.msg_relay.get_postal_address(user_nin.number)
-    except MsgTaskFailed as e:
-        current_app.logger.error('Navet lookup failed: {}'.format(e))
+    except NoNavetData:
+        current_app.logger.exception('No data returned from Navet')
+        return redirect_with_msg(redirect_url, CommonMsg.no_navet_data)
+    except MsgTaskFailed:
+        current_app.logger.exception('Navet lookup failed')
         current_app.stats.count('navet_error')
         return redirect_with_msg(redirect_url, CommonMsg.navet_error)
+
     proofing_log_entry = MFATokenProofing(
         eppn=proofing_user.eppn,
         created_by='eduid-eidas',
