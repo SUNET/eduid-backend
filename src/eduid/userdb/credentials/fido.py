@@ -36,11 +36,14 @@ from __future__ import annotations
 
 from enum import Enum, unique
 from hashlib import sha256
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, Optional, Type, Union
+from uuid import UUID
 
 from eduid.userdb.credentials import Credential
 
 __author__ = 'ft'
+
+from fido_mds.models.webauthn import AttestationFormat
 
 from eduid.userdb.element import ElementKey
 
@@ -84,9 +87,12 @@ class Webauthn(FidoCredential):
     Webauthn token authentication credential
     """
 
-    attest_obj: str
+    authenticator_id: Optional[Union[UUID, str]] = None
     credential_data: str
     authenticator: WebauthnAuthenticator
+    webauthn_proofing_version: Optional[str] = None
+    attestation_format: Optional[AttestationFormat] = None
+    mfa_capable: bool = False
 
     @property
     def key(self) -> ElementKey:
@@ -106,5 +112,9 @@ class Webauthn(FidoCredential):
         # Add authenticator if not present.
         if 'authenticator' not in data:
             data['authenticator'] = 'cross-platform'
+
+        # remove previously set attestation object data
+        if 'attest_obj' in data:
+            del data['attest_obj']
 
         return data
