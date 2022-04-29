@@ -18,7 +18,7 @@ from eduid.webapp.security.app import current_security_app as current_app
 __author__ = 'lundberg'
 
 
-class AppleAuthenticatorStatus(str, Enum):
+class OtherAuthenticatorStatus(str, Enum):
     APPLE = 'APPLE'
 
 
@@ -26,7 +26,7 @@ class AppleAuthenticatorStatus(str, Enum):
 class AuthenticatorInformation:
     attestation_format: AttestationFormat
     authenticator_id: Union[UUID, str]
-    status: Union[AuthenticatorStatus, AppleAuthenticatorStatus]
+    status: Union[AuthenticatorStatus, OtherAuthenticatorStatus]
     last_status_change: datetime
     user_verification_methods: List[str]
     key_protection: List[str]
@@ -61,7 +61,7 @@ def get_authenticator_information(attestation: str, client_data: str) -> Authent
         return AuthenticatorInformation(
             attestation_format=att.fmt,
             authenticator_id=authenticator_id,
-            status=AppleAuthenticatorStatus.APPLE,
+            status=OtherAuthenticatorStatus.APPLE,
             last_status_change=datetime.combine(date(year=2022, month=4, day=25), time.min),
             user_verification_methods=['apple'],
             key_protection=['apple'],
@@ -111,7 +111,7 @@ def is_authenticator_mfa_approved(authenticator_info: AuthenticatorInformation) 
     This is our current policy for determine if a FIDO2 authenticator can do multi-factor authentications.
     """
     # Our current policy is that Apple is capable of mfa
-    if authenticator_info.status is AppleAuthenticatorStatus.APPLE:
+    if authenticator_info.status is OtherAuthenticatorStatus.APPLE:
         current_app.logger.debug('apple device is mfa capable')
         return True
 
@@ -121,25 +121,25 @@ def is_authenticator_mfa_approved(authenticator_info: AuthenticatorInformation) 
         return False
 
     # true if the authenticator supports any of the user verification methods we allow
-    supported_user_verification = any(
+    is_accepted_user_verification = any(
         [
             method
             for method in authenticator_info.user_verification_methods
             if method in current_app.conf.webauthn_allowed_user_verification_methods
         ]
     )
-    # a typical token has key protection hardware or hardware, tee but some also support software, so
+    # a typical token has key protection ["hardware"] or ["hardware", "tee"] but some also support software, so
     # we have to check that all key protections supported is in our allow list
-    supported_key_protection = all(
+    is_accepted_key_protection = all(
         [
             protection
             for protection in authenticator_info.key_protection
             if protection in current_app.conf.webauthn_allowed_key_protection
         ]
     )
-    current_app.logger.debug(f'supported_user_verification: {supported_user_verification}')
-    current_app.logger.debug(f'supported_key_protection: {supported_key_protection}')
-    if supported_user_verification and supported_key_protection:
+    current_app.logger.debug(f'is_accepted_user_verification: {is_accepted_user_verification}')
+    current_app.logger.debug(f'is_accepted_key_protection: {is_accepted_key_protection}')
+    if is_accepted_user_verification and is_accepted_key_protection:
         return True
     return False
 
@@ -155,7 +155,7 @@ def save_webauthn_proofing_log(eppn: str, authenticator_info: AuthenticatorInfor
     current_app.logger.debug(f'user verifications methods that match config: {user_verification_methods_match}')
 
     proofing_element = WebauthnMfaCapabilityProofingLog(
-        created_by='security',
+        created_by=current_app.conf.app_name,
         eppn=eppn,
         proofing_version=current_app.conf.webauthn_proofing_version,
         proofing_method=current_app.conf.webauthn_proofing_method,

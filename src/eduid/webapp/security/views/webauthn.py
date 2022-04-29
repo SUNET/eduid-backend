@@ -135,7 +135,6 @@ def registration_complete(
     # verify attestation and gather authenticator information from metadata
     try:
         authenticator_info = get_authenticator_information(attestation=attestation_object, client_data=client_data)
-        current_app.stats.count(name=f'webauthn_attestation_format_{authenticator_info.attestation_format.value}')
     except (AttestationVerificationError, NotImplementedError, ValueError):
         current_app.logger.exception(f'attestation verification failed')
         current_app.logger.info(f'attestation_object: {attestation_object}')
@@ -146,6 +145,8 @@ def registration_complete(
         current_app.logger.info(f'attestation_object: {attestation_object}')
         current_app.logger.info(f'client_data: {client_data}')
         return error_response(message=SecurityMsg.webauthn_metadata_fail)
+
+    current_app.stats.count(name=f'webauthn_attestation_format_{authenticator_info.attestation_format.value}')
 
     # Move registration state from session to local variable to let users restart if something fails
     reg_state = session.security.webauthn_registration
@@ -159,6 +160,8 @@ def registration_complete(
     if mfa_approved:
         current_app.logger.info('authenticator is mfa capable')
         current_app.stats.count(name='webauthn_mfa_approved')
+    else:
+        current_app.stats.count(name='webauthn_not_mfa_approved')
 
     credential = Webauthn(
         keyhandle=credential_id,
@@ -182,9 +185,8 @@ def registration_complete(
 
     try:
         save_and_sync_user(security_user)
-    except AmTaskFailed as e:
-        current_app.logger.error('User sync failed')
-        current_app.logger.error('{}'.format(e))
+    except AmTaskFailed:
+        current_app.logger.exception('User sync failed')
         return error_response(message=CommonMsg.temp_problem)
 
     current_app.stats.count(name='webauthn_register_complete')

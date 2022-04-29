@@ -124,11 +124,11 @@ class SecurityWebauthnTests(EduidAPITestCase):
 
     def _add_token_to_user(self, client_data: bytes, attestation: bytes, state: Mapping[str, Any]) -> Webauthn:
         _client_data = client_data + (b'=' * (len(client_data) % 4))
-        cdata = ClientData(base64.urlsafe_b64decode(_client_data))
+        client_data_obj = ClientData(base64.urlsafe_b64decode(_client_data))
         _attestation = attestation + (b'=' * (len(attestation) % 4))
         att_obj = AttestationObject(base64.urlsafe_b64decode(_attestation))
         server = get_webauthn_server(self.app.conf.fido2_rp_id)
-        auth_data = server.register_complete(state, cdata, att_obj)
+        auth_data = server.register_complete(state, client_data_obj, att_obj)
         cred_data = auth_data.credential_data
         cred_id = cred_data.credential_id
 
