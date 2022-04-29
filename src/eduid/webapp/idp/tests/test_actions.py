@@ -203,7 +203,6 @@ class TestActions(SSOIdPTests):
             keyhandle='test_key_handle',
             credential_data='test_credential_data',
             app_id='https://dev.eduid.se/u2f-app-id.json',
-            attest_obj='test_attest_obj',
             description='test_description',
             authenticator=WebauthnAuthenticator.cross_platform,
         )
