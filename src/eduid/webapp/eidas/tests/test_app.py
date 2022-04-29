@@ -179,7 +179,6 @@ class EidasTests(EduidAPITestCase):
                 keyhandle=credential_id,
                 credential_data='test',
                 app_id='test',
-                attest_obj='test',
                 description='test',
                 created_by='test',
                 authenticator=WebauthnAuthenticator.cross_platform,

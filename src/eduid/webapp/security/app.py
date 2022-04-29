@@ -42,10 +42,12 @@ from eduid.common.rpc.mail_relay import MailRelay
 from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.userdb.authninfo import AuthnInfoDB
 from eduid.userdb.logs import ProofingLog
+from eduid.userdb.logs.db import FidoMetadataLog
 from eduid.userdb.security import PasswordResetStateDB, SecurityUserDB
 from eduid.webapp.common.api import translation
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.security.settings.common import SecurityConfig
+from fido_mds import FidoMetadataStore
 
 
 class SecurityApp(AuthnBaseApp):
@@ -58,10 +60,13 @@ class SecurityApp(AuthnBaseApp):
         self.msg_relay = MsgRelay(config)
         self.mail_relay = MailRelay(config)
 
+        self.fido_mds = FidoMetadataStore()
+
         self.private_userdb = SecurityUserDB(config.mongo_uri)
         self.authninfo_db = AuthnInfoDB(config.mongo_uri)
         self.password_reset_state_db = PasswordResetStateDB(config.mongo_uri)
         self.proofing_log = ProofingLog(config.mongo_uri)
+        self.fido_metadata_log = FidoMetadataLog(config.mongo_uri)
 
 
 current_security_app: SecurityApp = cast(SecurityApp, current_app)

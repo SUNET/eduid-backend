@@ -52,9 +52,9 @@ from eduid.webapp.common.session.namespaces import IdP_Namespace, RequestRef
 from eduid.webapp.idp.login_context import LoginContext
 from eduid.webapp.idp.mfa_action import add_actions as mfa_add_actions
 from eduid.webapp.idp.sso_session import SSOSession
-from eduid.webapp.idp.tests.test_app import LoginState
 from eduid.webapp.idp.tests.test_SSO import SWAMID_AL2, SSOIdPTests
 from eduid.webapp.idp.tests.test_SSO import cc as CONTEXTCLASSREFS
+from eduid.webapp.idp.tests.test_app import LoginState
 from eduid.webapp.idp.tou_action import add_tou_action as tou_add_actions
 
 logger = logging.getLogger(__name__)
@@ -87,7 +87,6 @@ class TestActions(SSOIdPTests):
             keyhandle='test_key_handle',
             credential_data='test_credential_data',
             app_id='https://dev.eduid.se/u2f-app-id.json',
-            attest_obj='test_attest_obj',
             description='test_description',
             authenticator=WebauthnAuthenticator.cross_platform,
         )
@@ -204,7 +203,6 @@ class TestActions(SSOIdPTests):
             keyhandle='test_key_handle',
             credential_data='test_credential_data',
             app_id='https://dev.eduid.se/u2f-app-id.json',
-            attest_obj='test_attest_obj',
             description='test_description',
             authenticator=WebauthnAuthenticator.cross_platform,
         )
@@ -385,7 +383,6 @@ class TestActions(SSOIdPTests):
             keyhandle='test_key_handle',
             credential_data='test_credential_data',
             app_id='https://dev.eduid.se/u2f-app-id.json',
-            attest_obj='test_attest_obj',
             description='test_description',
             authenticator=WebauthnAuthenticator.cross_platform,
         )

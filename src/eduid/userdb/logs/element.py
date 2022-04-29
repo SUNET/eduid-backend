@@ -3,11 +3,16 @@
 # Helper functions to log proofing events.
 #
 import logging
-from typing import Any, Dict, List, Optional, Type, TypeVar
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Type, TypeVar, Union
+from uuid import UUID
 
-from eduid.userdb.element import Element, ElementKey
+from eduid.userdb.element import Element
+from fido_mds.models.fido_mds import Entry as FidoMetadataEntry
 
 __author__ = 'lundberg'
+
+from fido_mds.models.webauthn import AttestationFormat
 
 logger = logging.getLogger(__name__)
 
@@ -346,3 +351,30 @@ class LadokProofing(ProofingLogElement):
     # University name short name in Ladok
     ladok_name: str
     proofing_method: str = 'eduid_ladok'
+
+
+class WebauthnMfaCapabilityProofingLog(ProofingLogElement):
+    """
+    {
+        'eduPersonPrincipalName': eppn,
+        'created_ts': utc_now(),
+        'created_by': 'application',
+        'proofing_method': 'webauthn metadata',
+        'proofing_version': '2022v1',
+        'authenticator_id': UUID or certificate key identifier
+        'attestation_format: fido_mds.AttestationFormat
+        'user_verification_methods': []
+        'key_protection': []
+    }
+    """
+
+    authenticator_id: Union[UUID, str]
+    attestation_format: AttestationFormat
+    user_verification_methods: List[str]
+    key_protection: List[str]
+
+
+class FidoMetadataLogElement(LogElement):
+    authenticator_id: Union[UUID, str]
+    last_status_change: datetime
+    metadata_entry: FidoMetadataEntry

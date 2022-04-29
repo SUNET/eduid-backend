@@ -67,6 +67,8 @@ class SecurityMsg(TranslatableMsg):
     no_webauthn = 'security.webauthn-token-notfound'
     invalid_authenticator = 'security.webauthn-invalid-authenticator'
     missing_registration_state = 'security.webauthn-missing-registration-state'
+    webauthn_attestation_fail = 'security.webauthn-attestation-fail'
+    webauthn_metadata_fail = 'security.webauthn-metadata-fail'
 
 
 @dataclass

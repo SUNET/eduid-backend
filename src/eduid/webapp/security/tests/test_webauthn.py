@@ -5,7 +5,6 @@ import base64
 import json
 from typing import Any, Dict, Mapping, Optional
 
-from fido2 import cbor
 from fido2.client import ClientData
 from fido2.ctap2 import AttestationObject
 from mock import patch
@@ -18,6 +17,7 @@ from eduid.webapp.common.session.namespaces import WebauthnRegistration, Webauth
 from eduid.webapp.security.app import SecurityApp, security_init_app
 from eduid.webapp.security.helpers import SecurityMsg
 from eduid.webapp.security.views.webauthn import get_webauthn_server
+from eduid.webapp.security.webauthn_proofing import get_authenticator_information, is_authenticator_mfa_approved
 
 __author__ = 'eperez'
 
@@ -25,49 +25,35 @@ __author__ = 'eperez'
 # CTAP1 test data
 
 # result of calling Fido2Server.register_begin
-REGISTRATION_DATA = {
-    'publicKey': {
-        'attestation': 'none',
-        'authenticatorSelection': {'requireResidentKey': False, 'userVerification': 'discouraged'},
-        'challenge': b')\x03\x00S\x8b\xe1X\xbb^R\x88\x9e\xe7\x8a\x03}s\x8d\\\x80@\xfa\x18(\xa2O\xbfN\x84\x19R\\',
-        'excludeCredentials': [],
-        'pubKeyCredParams': [{'alg': -7, 'type': 'public-key'}],
-        'rp': {'id': 'localhost', 'name': 'Demo server'},
-        'timeout': 30000,
-        'user': {'displayName': 'John Smith', 'id': b'012345678901234567890123', 'name': 'John'},
-    }
-}
+from fido_mds import Attestation
+from fido_mds.models.webauthn import AttestationFormat
+from fido_mds.tests.data import IPHONE_12, MICROSOFT_SURFACE_1796, NEXUS_5, YUBIKEY_4, YUBIKEY_5_NFC
 
-
-STATE = {'challenge': 'KQMAU4vhWLteUoie54oDfXONXIBA-hgook-_ToQZUlw', 'user_verification': 'discouraged'}
-
-# Data returned by the UA in response to the above registration data using a CTAP1 key, encoded as base64url
-REGISTERING_DATA = (
-    b'onFhdHRlc3RhdGlvbk9iamVjdFjio2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVjESZYN5'
-    b'YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2NBAAAAAAAAAAAAAAAAAAAAAAAAAAAAQDH4l0'
-    b'N55lhp-bfKryjw5E7q0P3Yg-nFRUBONRgkpsTOpzhhPk71udaZ-8TWurBRF6E8yBh1tzLgAFg'
-    b'CcVXO0EelAQIDJiABIVggwfFVVUARAPGhvWAt94cyLGCW2EBTMWBl70KdMPMqSBAiWCCK7GQo'
-    b'RgbMfvE_stkZN85WEQxBzXONUHkJ7cmCbLKGkG5jbGllbnREYXRhSlNPTljheyJjaGFsbGVuZ'
-    b'2UiOiJLUU1BVTR2aFdMdGVVb2llNTRvRGZYT05YSUJBLWhnb29rLV9Ub1FaVWx3IiwibmV3X2'
-    b'tleXNfbWF5X2JlX2FkZGVkX2hlcmUiOiJkbyBub3QgY29tcGFyZSBjbGllbnREYXRhSlNPTiB'
-    b'hZ2FpbnN0IGEgdGVtcGxhdGUuIFNlZSBodHRwczovL2dvby5nbC95YWJQZXgiLCJvcmlnaW4i'
-    b'OiJodHRwczovL2xvY2FsaG9zdDo1MDAwIiwidHlwZSI6IndlYmF1dGhuLmNyZWF0ZSJ9'
-)
+# CTAP1 security key
+STATE = {'challenge': 'u3zHzb7krB4c4wj0Uxuhsz2lCXqLnwV9ZxMhvL2lcfo', 'user_verification': 'discouraged'}
 
 ATTESTATION_OBJECT = (
-    b'o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVjESZYN5YgOjGh0NBcPZHZgW4_krrmihjL'
-    b'HmVzzuoMdl2NBAAAAAAAAAAAAAAAAAAAAAAAAAAAAQDH4l0N55lhp-bfKryjw5E7q0P3Yg-'
-    b'nFRUBONRgkpsTOpzhhPk71udaZ-8TWurBRF6E8yBh1tzLgAFgCcVXO0EelAQIDJiABIVggw'
-    b'fFVVUARAPGhvWAt94cyLGCW2EBTMWBl70KdMPMqSBAiWCCK7GQoRgbMfvE_stkZN85WEQxB'
-    b'zXONUHkJ7cmCbLKGkA'
+    b'o2NmbXRoZmlkby11MmZnYXR0U3RtdKJjc2lnWEcwRQIgPCNiKlxIO0iR5Wo9BidnNhX2lAFcAB3VwuRH'
+    b'QZbL3dwCIQDFKuPjwLTvjaDw9TbfoJeww7DMsZSlteW4ClwRivpUqWN4NWOBWQIzMIICLzCCARmgAwIB'
+    b'AgIEQvUaTTALBgkqhkiG9w0BAQswLjEsMCoGA1UEAxMjWXViaWNvIFUyRiBSb290IENBIFNlcmlhbCA0'
+    b'NTcyMDA2MzEwIBcNMTQwODAxMDAwMDAwWhgPMjA1MDA5MDQwMDAwMDBaMCoxKDAmBgNVBAMMH1l1Ymlj'
+    b'byBVMkYgRUUgU2VyaWFsIDExMjMzNTkzMDkwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQphQ-PJYiZ'
+    b'jZEVHtrx5QGE3_LE1-OytZPTwzrpWBKywji_3qmg22mwmVFl32PO269TxY-yVN4jbfVf5uX0EWJWoyYw'
+    b'JDAiBgkrBgEEAYLECgIEFTEuMy42LjEuNC4xLjQxNDgyLjEuNDALBgkqhkiG9w0BAQsDggEBALSc3YwT'
+    b'RbLwXhePj_imdBOhWiqh6ssS2ONgp5tphJCHR5Agjg2VstLBRsJzyJnLgy7bGZ0QbPOyh_J0hsvgBfvj'
+    b'ByXOu1AwCW-tcoJ-pfxESojDLDn8hrFph6eWZoCtBsWMDh6vMqPENeP6grEAECWx4fTpBL9Bm7F-0Rp_'
+    b'd1_l66g4IhF_ZvuRFhY-BUK94BfivuBHpEkMwxKENTas7VkxvlVstUvPqhPHGYOq7RdF1D_THsbNY8-t'
+    b'gCTgvTziEG-bfDeY6zIz5h7bxb1rpajNVTpUDWtVYL7_w44e1KCoErqdS-kEbmmkmm7KvDE8kuyg42Fm'
+    b'b5DTMsbY2jxMlMVoYXV0aERhdGFYxNz3BHEmKmoM4iTRAmMUgSjEdNSeKZskhyDzwzPuNmHTQQAAAAAA'
+    b'AAAAAAAAAAAAAAAAAAAAAEC8lMNeMgJDZOvOHus-78SI8YvR3HVUwv2NR3PcfvBndpabw-UiQQjx4N-T'
+    b'lJZcGJFfhzzQ9oAnkvZhcwGGTdtLpQECAyYgASFYIOHIO6vueJNYEgtQUy_wdwVka6DrKYSXnsIM6nfx'
+    b'-mtgIlggkCpDejidmogF4SZ_n01JlE8dY43tFEIwAPy2qCGinzQ'
 )
 
 CLIENT_DATA_JSON = (
-    b'eyJjaGFsbGVuZ2UiOiJLUU1BVTR2aFdMdGVVb2llNTRvRGZYT05YSUJBLWhnb29rLV9Ub1FaV'
-    b'Wx3IiwibmV3X2tleXNfbWF5X2JlX2FkZGVkX2hlcmUiOiJkbyBub3QgY29tcGFyZSBjbGllbn'
-    b'REYXRhSlNPTiBhZ2FpbnN0IGEgdGVtcGxhdGUuIFNlZSBodHRwczovL2dvby5nbC95YWJQZXg'
-    b'iLCJvcmlnaW4iOiJodHRwczovL2xvY2FsaG9zdDo1MDAwIiwidHlwZSI6IndlYmF1dGhuLmNy'
-    b'ZWF0ZSJ9'
+    b'eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoidTN6SHpiN2tyQjRjNHdqMFV4dWhz'
+    b'ejJsQ1hxTG53VjlaeE1odkwybGNmbyIsIm9yaWdpbiI6Imh0dHBzOi8vZGFzaGJvYXJkLmVkdWlkLmRv'
+    b'Y2tlciIsImNyb3NzT3JpZ2luIjpmYWxzZX0'
 )
 
 CREDENTIAL_ID = (
@@ -75,62 +61,34 @@ CREDENTIAL_ID = (
     'd699fbc4d6bab05117a13cc81875b732e00058027155ced047'
 )
 
-# CTAP2 test data
-
-# result of calling Fido2Server.register_begin
-REGISTRATION_DATA_2 = {
-    'publicKey': {
-        'attestation': 'none',
-        'authenticatorSelection': {'requireResidentKey': False, 'userVerification': 'discouraged'},
-        'challenge': b"y\xe2*'\x8c\xea\xabF\xf0\xb8'k\x8c\x9ec\xd1ia\x1c\x9a\xd8\xfc5\xed\x0b@Q0\x9b\xe1u\r",
-        'excludeCredentials': [
-            {
-                'id': b'1\xf8\x97Cy\xe6Xi'
-                b'\xf9\xb7\xca\xaf(\xf0\xe4N'
-                b'\xea\xd0\xfd\xd8\x83\xe9\xc5E'
-                b'@N5\x18$\xa6\xc4\xce\xa78a>'
-                b'N\xf5\xb9\xd6\x99\xfb\xc4\xd6'
-                b'\xba\xb0Q\x17\xa1<\xc8\x18'
-                b'u\xb72\xe0\x00X\x02qU\xce\xd0G',
-                'type': 'public-key',
-            }
-        ],
-        'pubKeyCredParams': [{'alg': -7, 'type': 'public-key'}],
-        'rp': {'id': 'localhost', 'name': 'Demo server'},
-        'timeout': 30000,
-        'user': {'displayName': 'John Smith', 'id': b'012345678901234567890123', 'name': 'John'},
-    }
-}
-
-STATE_2 = {'challenge': 'eeIqJ4zqq0bwuCdrjJ5j0WlhHJrY_DXtC0BRMJvhdQ0', 'user_verification': 'discouraged'}
-
-# Data returned by the UA in response to the above registration data using a CTAP2 key, encoded as base64url
-REGISTERING_DATA_2 = (
-    b'onFhdHRlc3RhdGlvbk9iamVjdFjio2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVjESZYN5'
-    b'YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2NBAAAAAgAAAAAAAAAAAAAAAAAAAAAAQHutO1'
-    b'n6FunohA4v0VwCajyafSh3_X2Xwlo7MVjRqcuh4Ut8mRORX5EjZsGL0GvJ6QO8d5QJqKfHSVE'
-    b'eK0TlTIilAQIDJiABIVggTSEL0--BrS0lf87s4e-KA-Kkzkl8qlZIZsM7m6mBVD8iWCCKA78z'
-    b'zCQ9j-lHKa1pBnN5Ix-IipZePnZMKYTCTciWUW5jbGllbnREYXRhSlNPTljheyJjaGFsbGVuZ'
-    b'2UiOiJlZUlxSjR6cXEwYnd1Q2Ryako1ajBXbGhISnJZX0RYdEMwQlJNSnZoZFEwIiwibmV3X2'
-    b'tleXNfbWF5X2JlX2FkZGVkX2hlcmUiOiJkbyBub3QgY29tcGFyZSBjbGllbnREYXRhSlNPTiB'
-    b'hZ2FpbnN0IGEgdGVtcGxhdGUuIFNlZSBodHRwczovL2dvby5nbC95YWJQZXgiLCJvcmlnaW4i'
-    b'OiJodHRwczovL2xvY2FsaG9zdDo1MDAwIiwidHlwZSI6IndlYmF1dGhuLmNyZWF0ZSJ9'
-)
+# CTAP2 security key
+STATE_2 = {'challenge': 'iW6wn2xAYUfBueKvhIyTsB6YRsQz9OIwaPfw1ZoCtNY', 'user_verification': 'discouraged'}
 
 ATTESTATION_OBJECT_2 = (
-    b'o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVjESZYN5YgOjGh0NBcPZHZgW4_krrmihjL'
-    b'HmVzzuoMdl2NBAAAAAgAAAAAAAAAAAAAAAAAAAAAAQHutO1n6FunohA4v0VwCajyafSh3_X'
-    b'2Xwlo7MVjRqcuh4Ut8mRORX5EjZsGL0GvJ6QO8d5QJqKfHSVEeK0TlTIilAQIDJiABIVggT'
-    b'SEL0--BrS0lf87s4e-KA-Kkzkl8qlZIZsM7m6mBVD8iWCCKA78zzCQ9j-lHKa1pBnN5Ix-I'
-    b'ipZePnZMKYTCTciWUQ'
+    b'o2NmbXRmcGFja2VkZ2F0dFN0bXSjY2FsZyZjc2lnWEcwRQIhANNvwZhaTvdSujKW3pUCfeYB_ABjCo2X'
+    b'dg8e5RowhAgZAiBmj8DH71y46Rg9W67BTG1MuBmaycK7osVy6g_ppmJGiGN4NWOBWQLBMIICvTCCAaWg'
+    b'AwIBAgIEHo-HNDANBgkqhkiG9w0BAQsFADAuMSwwKgYDVQQDEyNZdWJpY28gVTJGIFJvb3QgQ0EgU2Vy'
+    b'aWFsIDQ1NzIwMDYzMTAgFw0xNDA4MDEwMDAwMDBaGA8yMDUwMDkwNDAwMDAwMFowbjELMAkGA1UEBhMC'
+    b'U0UxEjAQBgNVBAoMCVl1YmljbyBBQjEiMCAGA1UECwwZQXV0aGVudGljYXRvciBBdHRlc3RhdGlvbjEn'
+    b'MCUGA1UEAwweWXViaWNvIFUyRiBFRSBTZXJpYWwgNTEyNzIyNzQwMFkwEwYHKoZIzj0CAQYIKoZIzj0D'
+    b'AQcDQgAEqHn4IzjtFJS6wHBLzH_GY9GycXFZdiQxAcdgURXXwVKeKBwcZzItOEtc1V3T6YGNX9hcIq8y'
+    b'bgxk_CCv4z8jZqNsMGowIgYJKwYBBAGCxAoCBBUxLjMuNi4xLjQuMS40MTQ4Mi4xLjcwEwYLKwYBBAGC'
+    b'5RwCAQEEBAMCBDAwIQYLKwYBBAGC5RwBAQQEEgQQL8BXn4ETR-qxFrtajbkgKjAMBgNVHRMBAf8EAjAA'
+    b'MA0GCSqGSIb3DQEBCwUAA4IBAQCGk_9i3w1XedR0jX_I0QInMYqOWA5qOlfBCOlOA8OFaLNmiU_OViS-'
+    b'Sj79fzQRiz2ZN0P3kqGYkWDI_JrgsE49-e4V4-iMBPyCqNy_WBjhCNzCloV3rnn_ZiuUc0497EWXMF1z'
+    b'5uVe4r65zZZ4ygk15TPrY4-OJvq7gXzaRB--mDGDKuX24q2ZL56720xiI4uPjXq0gdbTJjvNv55KV1UD'
+    b'cJiK1YE0QPoDLK22cjyt2PjXuoCfdbQ8_6Clua3RQjLvnZ4UgSY4IzxMpKhzufismOMroZFnYG4VkJ_N'
+    b'20ot_72uRiAkn5pmRqyB5IMtERn-v6pzGogtolp3gn1G0ZAXaGF1dGhEYXRhWMTc9wRxJipqDOIk0QJj'
+    b'FIEoxHTUnimbJIcg88Mz7jZh00EAAAAEL8BXn4ETR-qxFrtajbkgKgBAz6lLs6rFz6zm4IH73RUcSaVb'
+    b'C5v4-J6j8HGS-VwPYIhyYUi6d1mxHYZPuehFrC5-r4ZmFqd7gpMdoJCo4H1bT6UBAgMmIAEhWCBTzCFk'
+    b'fHJcW7ny9bUS4h8YqUadyw0q4kg91vgkScDscCJYICsxt49Uv09cN4OSw93GtjMLxgoaIfFhAK0vd9WL'
+    b'vOY8'
 )
 
 CLIENT_DATA_JSON_2 = (
-    b'eyJjaGFsbGVuZ2UiOiJlZUlxSjR6cXEwYnd1Q2Ryako1ajBXbGhISnJZX0RYdEMwQlJNSnZoZ'
-    b'FEwIiwibmV3X2tleXNfbWF5X2JlX2FkZGVkX2hlcmUiOiJkbyBub3QgY29tcGFyZSBjbGllbn'
-    b'REYXRhSlNPTiBhZ2FpbnN0IGEgdGVtcGxhdGUuIFNlZSBodHRwczovL2dvby5nbC95YWJQZXg'
-    b'iLCJvcmlnaW4iOiJodHRwczovL2xvY2FsaG9zdDo1MDAwIiwidHlwZSI6IndlYmF1dGhuLmNy'
-    b'ZWF0ZSJ9'
+    b'eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiaVc2d24yeEFZVWZCdWVLdmhJeVRz'
+    b'QjZZUnNRejlPSXdhUGZ3MVpvQ3ROWSIsIm9yaWdpbiI6Imh0dHBzOi8vZGFzaGJvYXJkLmVkdWlkLmRv'
+    b'Y2tlciIsImNyb3NzT3JpZ2luIjpmYWxzZX0'
 )
 
 CREDENTIAL_ID_2 = (
@@ -155,7 +113,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
             {
                 'available_languages': {'en': 'English', 'sv': 'Svenska'},
                 'webauthn_max_allowed_tokens': 10,
-                'fido2_rp_id': 'localhost',
+                'fido2_rp_id': 'eduid.docker',
                 'u2f_app_id': 'https://eduid.se/u2f-app-id.json',
                 'u2f_valid_facets': [],
                 'vccs_url': 'https://vccs',
@@ -164,14 +122,13 @@ class SecurityWebauthnTests(EduidAPITestCase):
         )
         return config
 
-    def _add_token_to_user(self, registration_data: bytes, state: Mapping[str, Any]) -> Webauthn:
-        _registration_data = registration_data + (b'=' * (len(registration_data) % 4))
-        data = cbor.decode(base64.urlsafe_b64decode(_registration_data))
-        client_data = ClientData(data['clientDataJSON'])
-        attestation = data['attestationObject']
-        att_obj = AttestationObject(attestation)
+    def _add_token_to_user(self, client_data: bytes, attestation: bytes, state: Mapping[str, Any]) -> Webauthn:
+        _client_data = client_data + (b'=' * (len(client_data) % 4))
+        client_data_obj = ClientData(base64.urlsafe_b64decode(_client_data))
+        _attestation = attestation + (b'=' * (len(attestation) % 4))
+        att_obj = AttestationObject(base64.urlsafe_b64decode(_attestation))
         server = get_webauthn_server(self.app.conf.fido2_rp_id)
-        auth_data = server.register_complete(state, client_data, att_obj)
+        auth_data = server.register_complete(state, client_data_obj, att_obj)
         cred_data = auth_data.credential_data
         cred_id = cred_data.credential_id
 
@@ -179,7 +136,6 @@ class SecurityWebauthnTests(EduidAPITestCase):
             keyhandle=cred_id.hex(),
             credential_data=base64.urlsafe_b64encode(cred_data).decode('ascii'),
             app_id=self.app.conf.fido2_rp_id,
-            attest_obj=base64.b64encode(attestation).decode('ascii'),
             description='ctap1 token',
             created_by='test_security',
             authenticator=WebauthnAuthenticator.cross_platform,
@@ -230,7 +186,6 @@ class SecurityWebauthnTests(EduidAPITestCase):
             self.assertNotEqual(credential['key'], user_token.key)
 
     # parameterized test methods
-
     def _begin_register_key(
         self,
         other: Optional[str] = None,
@@ -258,9 +213,9 @@ class SecurityWebauthnTests(EduidAPITestCase):
             self._add_u2f_token_to_user(eppn)
 
         if other == 'ctap1':
-            self._add_token_to_user(REGISTERING_DATA, STATE)
+            self._add_token_to_user(client_data=CLIENT_DATA_JSON, attestation=ATTESTATION_OBJECT, state=STATE)
         elif other == 'ctap2':
-            self._add_token_to_user(REGISTERING_DATA_2, STATE_2)
+            self._add_token_to_user(client_data=CLIENT_DATA_JSON_2, attestation=ATTESTATION_OBJECT_2, state=STATE_2)
 
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
@@ -282,9 +237,9 @@ class SecurityWebauthnTests(EduidAPITestCase):
     def _finish_register_key(
         self,
         mock_request_user_sync: Any,
-        state: WebauthnState,
-        att: bytes,
-        cdata: bytes,
+        client_data: bytes,
+        attestation: bytes,
+        state: dict,
         cred_id: bytes,
         existing_legacy_token: bool = False,
         csrf: Optional[str] = None,
@@ -292,9 +247,9 @@ class SecurityWebauthnTests(EduidAPITestCase):
         """
         Finish registering a webauthn token.
 
+        :param client_data: client data passed to the authenticator by the client
+        :param attestation: attestation object, to attest to the provenance of the authenticator and the data it emits
         :param state: mock the webauthn registration state kept in the session
-        :param att: attestation object, to attest to the provenance of the authenticator and the data it emits
-        :param cdata: client data passed to the authenticator by the client
         :param cred_id: credential ID
         :param existing_legacy_token: whether to add a legacy U2F credential to the test user.
         :param csrf: to control the CSRF token to send
@@ -304,12 +259,13 @@ class SecurityWebauthnTests(EduidAPITestCase):
         if existing_legacy_token:
             self._add_u2f_token_to_user(eppn)
 
+        webauthn_state = WebauthnState(state)
         with self.session_cookie(self.browser, eppn) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
                     assert isinstance(sess, EduidSession)
                     sess.security.webauthn_registration = WebauthnRegistration(
-                        webauthn_state=state, authenticator=WebauthnAuthenticator.cross_platform
+                        webauthn_state=webauthn_state, authenticator=WebauthnAuthenticator.cross_platform
                     )
                     if csrf is not None:
                         csrf_token = csrf
@@ -317,8 +273,8 @@ class SecurityWebauthnTests(EduidAPITestCase):
                         csrf_token = sess.get_csrf_token()
                     data = {
                         'csrf_token': csrf_token,
-                        'attestationObject': att.decode('ascii'),
-                        'clientDataJSON': cdata.decode('ascii'),
+                        'attestationObject': attestation.decode(),
+                        'clientDataJSON': client_data.decode(),
                         'credentialId': cred_id,
                         'description': 'dummy description',
                     }
@@ -327,11 +283,10 @@ class SecurityWebauthnTests(EduidAPITestCase):
             )
             return json.loads(response2.data)
 
-    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def _dont_remove_last(
         self,
-        mock_request_user_sync: Any,
-        reg_data: bytes,
+        client_data: bytes,
+        attestation: bytes,
         state: dict,
         existing_legacy_token: bool = False,
         csrf: Optional[str] = None,
@@ -339,9 +294,10 @@ class SecurityWebauthnTests(EduidAPITestCase):
         """
         Send a request to remove the only webauthn credential from the test user - which should fail.
 
-        :param reg_data: registration data as would be produced by a browser.
+        :param client_data: client data as would be produced by a browser
+        :param attestation: attestation object as would be produced by a browser
         :param state: registration state kept in the session
-        :param existing_legacy_token: whether to add a legacy U2F credential to the test user.
+        :param existing_legacy_token: whether to add a legacy U2F credential to the test user
         :param csrf: to control the CSRF token to send
         """
         eppn = self.test_user_data['eduPersonPrincipalName']
@@ -349,7 +305,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         if existing_legacy_token:
             self._add_u2f_token_to_user(eppn)
 
-        user_token = self._add_token_to_user(reg_data, state)
+        user_token = self._add_token_to_user(client_data=client_data, attestation=attestation, state=state)
 
         response = self.browser.post('/webauthn/remove', data={})
         self.assertEqual(response.status_code, 302)  # Redirect to token service
@@ -382,10 +338,12 @@ class SecurityWebauthnTests(EduidAPITestCase):
     def _remove(
         self,
         mock_request_user_sync: Any,
-        reg_data: bytes,
+        client_data: bytes,
+        attestation: bytes,
         state: dict,
-        reg_data2: bytes,
-        state2: dict,
+        client_data_2: bytes,
+        attestation_2: bytes,
+        state_2: dict,
         existing_legacy_token: bool = False,
         csrf: Optional[str] = None,
     ):
@@ -393,19 +351,23 @@ class SecurityWebauthnTests(EduidAPITestCase):
         Send a POST request to remove a webauthn credential from the test user.
         Before sending the request, add 2 webauthn credentials (and possibly a legacy u2f credential) to the test user.
 
-        :param reg_data: registration data as would be produced by a browser.
+        :param client_data: client data as would be produced by a browser
+        :param attestation: attestation object as would be produced by a browser
         :param state: registration state kept in the session
-        :param reg_data2: registration data as would be produced by a browser (for the 2nd webauthn credential)
-        :param state2: registration state kept in the session (for the 2nd webauthn credential)
+        :param client_data_2: client data as would be produced by a browser (for the 2nd webauthn credential)
+        :param attestation_2: attestation object as would be produced by a browser (for the 2nd webauthn credential)
+        :param state_2: registration state kept in the session (for the 2nd webauthn credential)
         :param existing_legacy_token: whether to add a legacy U2F credential to the test user.
         :param csrf: to control the CSRF token to send
         """
+        mock_request_user_sync.side_effect = self.request_user_sync
+
         eppn = self.test_user_data['eduPersonPrincipalName']
         if existing_legacy_token:
             self._add_u2f_token_to_user(eppn)
 
-        user_token = self._add_token_to_user(reg_data, state)
-        self._add_token_to_user(reg_data2, state2)
+        user_token = self._add_token_to_user(client_data=client_data, attestation=attestation, state=state)
+        self._add_token_to_user(client_data=client_data_2, attestation=attestation_2, state=state_2)
 
         response = self.browser.post('/webauthn/remove', data={})
         self.assertEqual(response.status_code, 302)  # Redirect to token service
@@ -421,7 +383,23 @@ class SecurityWebauthnTests(EduidAPITestCase):
                 'credential_key': user_token.key,
             }
             response2 = client.post('/webauthn/remove', data=json.dumps(data), content_type=self.content_type_json)
-            return (user_token, json.loads(response2.data))
+            return user_token, json.loads(response2.data)
+
+    def _apple_special_verify_attestation(self, attestation: Attestation, client_data: bytes) -> bool:
+        if attestation.fmt is AttestationFormat.PACKED:
+            return self.app.fido_mds.verify_packed_attestation(attestation=attestation, client_data=client_data)
+        if attestation.fmt is AttestationFormat.APPLE:
+            # apple attestation cert is only valid for three days
+            return True
+        if attestation.fmt is AttestationFormat.TPM:
+            return self.app.fido_mds.verify_tpm_attestation(attestation=attestation, client_data=client_data)
+        if attestation.fmt is AttestationFormat.ANDROID_SAFETYNET:
+            return self.app.fido_mds.verify_android_safetynet_attestation(
+                attestation=attestation, client_data=client_data
+            )
+        if attestation.fmt is AttestationFormat.FIDO_U2F:
+            return self.app.fido_mds.verify_fido_u2f_attestation(attestation=attestation, client_data=client_data)
+        raise NotImplementedError(f'verification of {attestation.fmt.value} not implemented')
 
     # actual tests
 
@@ -480,93 +458,161 @@ class SecurityWebauthnTests(EduidAPITestCase):
 
     def test_finish_register_ctap1(self):
         data = self._finish_register_key(
-            state=STATE, att=ATTESTATION_OBJECT, cdata=CLIENT_DATA_JSON, cred_id=CREDENTIAL_ID
+            client_data=CLIENT_DATA_JSON, attestation=ATTESTATION_OBJECT, state=STATE, cred_id=CREDENTIAL_ID
         )
         self._check_registration_complete(data)
+        # check that a proofing element was not written as the token is not mfa capable
+        assert self.app.proofing_log.db_count() == 0
 
     def test_finish_register_ctap1_with_legacy_token(self):
         data = self._finish_register_key(
+            client_data=CLIENT_DATA_JSON,
+            attestation=ATTESTATION_OBJECT,
             state=STATE,
-            att=ATTESTATION_OBJECT,
-            cdata=CLIENT_DATA_JSON,
             cred_id=CREDENTIAL_ID,
             existing_legacy_token=True,
         )
         self._check_registration_complete(data)
+        # check that a proofing element was not written as the token is not mfa capable
+        assert self.app.proofing_log.db_count() == 0
 
     def test_finish_register_ctap2(self):
         data = self._finish_register_key(
-            state=STATE_2, att=ATTESTATION_OBJECT_2, cdata=CLIENT_DATA_JSON_2, cred_id=CREDENTIAL_ID_2
+            client_data=CLIENT_DATA_JSON_2, attestation=ATTESTATION_OBJECT_2, state=STATE_2, cred_id=CREDENTIAL_ID_2
         )
         self._check_registration_complete(data)
+        # check that a proofing element was written as the token is mfa capable
+        assert self.app.proofing_log.db_count() == 1
 
     def test_finish_register_ctap2_with_legacy_token(self):
         data = self._finish_register_key(
+            client_data=CLIENT_DATA_JSON_2,
+            attestation=ATTESTATION_OBJECT_2,
             state=STATE_2,
-            att=ATTESTATION_OBJECT_2,
-            cdata=CLIENT_DATA_JSON_2,
             cred_id=CREDENTIAL_ID_2,
             existing_legacy_token=True,
         )
         self._check_registration_complete(data)
+        # check that a proofing element was written as the token is mfa capable
+        assert self.app.proofing_log.db_count() == 1
 
     def test_finish_register_wrong_csrf(self):
         data = self._finish_register_key(
-            state=STATE, att=ATTESTATION_OBJECT, cdata=CLIENT_DATA_JSON, cred_id=CREDENTIAL_ID, csrf='wrong-token'
+            client_data=CLIENT_DATA_JSON,
+            attestation=ATTESTATION_OBJECT,
+            state=STATE,
+            cred_id=CREDENTIAL_ID,
+            csrf='wrong-token',
         )
         self.assertEqual(data['type'], 'POST_WEBAUTHN_WEBAUTHN_REGISTER_COMPLETE_FAIL')
         self.assertEqual(data['payload']['error']['csrf_token'], ['CSRF failed to validate'])
 
     def test_dont_remove_last_ctap1(self):
-        self._dont_remove_last(reg_data=REGISTERING_DATA, state=STATE)
+        self._dont_remove_last(client_data=CLIENT_DATA_JSON, attestation=ATTESTATION_OBJECT, state=STATE)
 
     def test_dont_remove_last_ctap1_with_legacy_token(self):
-        self._dont_remove_last(reg_data=REGISTERING_DATA, state=STATE, existing_legacy_token=True)
+        self._dont_remove_last(
+            client_data=CLIENT_DATA_JSON, attestation=ATTESTATION_OBJECT, state=STATE, existing_legacy_token=True
+        )
 
     def test_dont_remove_last_ctap2(self):
-        self._dont_remove_last(reg_data=REGISTERING_DATA_2, state=STATE_2)
+        self._dont_remove_last(client_data=CLIENT_DATA_JSON_2, attestation=ATTESTATION_OBJECT_2, state=STATE_2)
 
     def test_dont_remove_last_ctap2_with_legacy_token(self):
-        self._dont_remove_last(reg_data=REGISTERING_DATA_2, state=STATE_2, existing_legacy_token=True)
+        self._dont_remove_last(
+            client_data=CLIENT_DATA_JSON_2, attestation=ATTESTATION_OBJECT_2, state=STATE_2, existing_legacy_token=True
+        )
 
     def test_dont_remove_last_wrong_csrf(self):
-        self._dont_remove_last(reg_data=REGISTERING_DATA, state=STATE, csrf='wrong-token')
+        self._dont_remove_last(
+            client_data=CLIENT_DATA_JSON, attestation=ATTESTATION_OBJECT, state=STATE, csrf='wrong-token'
+        )
 
     def test_remove_ctap1(self):
         user_token, data = self._remove(
-            reg_data=REGISTERING_DATA, state=STATE, reg_data2=REGISTERING_DATA_2, state2=STATE_2
+            client_data=CLIENT_DATA_JSON,
+            attestation=ATTESTATION_OBJECT,
+            state=STATE,
+            client_data_2=CLIENT_DATA_JSON_2,
+            attestation_2=ATTESTATION_OBJECT_2,
+            state_2=STATE_2,
         )
         self._check_removal(data, user_token)
 
     def test_remove_ctap1_with_legacy_token(self):
         user_token, data = self._remove(
-            reg_data=REGISTERING_DATA,
+            client_data=CLIENT_DATA_JSON,
+            attestation=ATTESTATION_OBJECT,
             state=STATE,
-            reg_data2=REGISTERING_DATA_2,
-            state2=STATE_2,
+            client_data_2=CLIENT_DATA_JSON_2,
+            attestation_2=ATTESTATION_OBJECT_2,
+            state_2=STATE_2,
             existing_legacy_token=True,
         )
         self._check_removal(data, user_token)
 
     def test_remove_ctap2(self):
         user_token, data = self._remove(
-            reg_data=REGISTERING_DATA_2, state=STATE_2, reg_data2=REGISTERING_DATA, state2=STATE
+            client_data=CLIENT_DATA_JSON_2,
+            attestation=ATTESTATION_OBJECT_2,
+            state=STATE_2,
+            client_data_2=CLIENT_DATA_JSON,
+            attestation_2=ATTESTATION_OBJECT,
+            state_2=STATE,
         )
         self._check_removal(data, user_token)
 
     def test_remove_ctap2_legacy_token(self):
         user_token, data = self._remove(
-            reg_data=REGISTERING_DATA_2,
+            client_data=CLIENT_DATA_JSON_2,
+            attestation=ATTESTATION_OBJECT_2,
             state=STATE_2,
-            reg_data2=REGISTERING_DATA,
-            state2=STATE,
+            client_data_2=CLIENT_DATA_JSON,
+            attestation_2=ATTESTATION_OBJECT,
+            state_2=STATE,
             existing_legacy_token=True,
         )
         self._check_removal(data, user_token)
 
     def test_remove_wrong_csrf(self):
         user_token, data = self._remove(
-            reg_data=REGISTERING_DATA, state=STATE, reg_data2=REGISTERING_DATA_2, state2=STATE_2, csrf='wrong-csrf'
+            client_data=CLIENT_DATA_JSON,
+            attestation=ATTESTATION_OBJECT,
+            state=STATE,
+            client_data_2=CLIENT_DATA_JSON_2,
+            attestation_2=ATTESTATION_OBJECT_2,
+            state_2=STATE_2,
+            csrf='wrong-csrf',
         )
         self.assertEqual(data['type'], 'POST_WEBAUTHN_WEBAUTHN_REMOVE_FAIL')
         self.assertEqual(data['payload']['error']['csrf_token'], ['CSRF failed to validate'])
+
+    @patch('fido_mds.FidoMetadataStore.verify_attestation')
+    def test_authenticator_information(self, mock_verify_attestation):
+        mock_verify_attestation = self._apple_special_verify_attestation
+
+        authenticators = [YUBIKEY_4, YUBIKEY_5_NFC, MICROSOFT_SURFACE_1796, NEXUS_5, IPHONE_12]
+        for authenticator in authenticators:
+            with self.app.test_request_context():
+                authenticator_info = get_authenticator_information(
+                    attestation=authenticator[0], client_data=authenticator[1]
+                )
+            assert authenticator_info is not None
+
+            with self.app.test_request_context():
+                res = is_authenticator_mfa_approved(authenticator_info=authenticator_info)
+                if authenticator is YUBIKEY_4:
+                    # Yubikey 4 does not support any user verification we accept
+                    assert res is False
+                else:
+                    assert res is True
+
+            if authenticator is not IPHONE_12:
+                # No metadata for Apple devices
+                assert (
+                    self.app.fido_metadata_log.exists(
+                        authenticator_id=authenticator_info.authenticator_id,
+                        last_status_change=authenticator_info.last_status_change,
+                    )
+                    is True
+                )
