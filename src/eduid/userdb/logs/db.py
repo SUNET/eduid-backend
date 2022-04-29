@@ -40,7 +40,7 @@ class ProofingLog(LogDB):
 class FidoMetadataLog(LogDB):
     def __init__(self, db_uri, collection='fido_metadata_log'):
         LogDB.__init__(self, db_uri, collection)
-        # Create an index so that scim_id is unique per data owner
+        # Create an index so that metadata logs are unique for authenticator id and last status change datetime
         indexes = {
             'unique-id-date': {'key': [('authenticator_id', 1), ('last_status_change', 1)], 'unique': True},
         }
