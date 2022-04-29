@@ -106,7 +106,7 @@ def get_authenticator_information(attestation: str, client_data: str) -> Authent
     )
 
 
-def is_authenticator_mfa_capable(authenticator_info: AuthenticatorInformation) -> bool:
+def is_authenticator_mfa_approved(authenticator_info: AuthenticatorInformation) -> bool:
     """
     This is our current policy for determine if a FIDO2 authenticator can do multi-factor authentications.
     """

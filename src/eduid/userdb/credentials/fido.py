@@ -92,7 +92,7 @@ class Webauthn(FidoCredential):
     authenticator: WebauthnAuthenticator
     webauthn_proofing_version: Optional[str] = None
     attestation_format: Optional[AttestationFormat] = None
-    mfa_capable: bool = False
+    mfa_approved: bool = False
 
     @property
     def key(self) -> ElementKey:

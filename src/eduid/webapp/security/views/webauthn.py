@@ -32,7 +32,7 @@ from eduid.webapp.security.schemas import (
 from eduid.webapp.security.settings.common import WebauthnAttestation
 from eduid.webapp.security.webauthn_proofing import (
     get_authenticator_information,
-    is_authenticator_mfa_capable,
+    is_authenticator_mfa_approved,
     save_webauthn_proofing_log,
 )
 from fido_mds.exceptions import AttestationVerificationError, MetadataValidationError
@@ -155,10 +155,10 @@ def registration_complete(
     cred_data = auth_data.credential_data
     current_app.logger.debug(f'Processed Webauthn credential data: {cred_data}')
 
-    mfa_capable = is_authenticator_mfa_capable(authenticator_info=authenticator_info)
-    if mfa_capable:
+    mfa_approved = is_authenticator_mfa_approved(authenticator_info=authenticator_info)
+    if mfa_approved:
         current_app.logger.info('authenticator is mfa capable')
-        current_app.stats.count(name='webauthn_mfa_capable')
+        current_app.stats.count(name='webauthn_mfa_approved')
 
     credential = Webauthn(
         keyhandle=credential_id,
@@ -168,13 +168,13 @@ def registration_complete(
         description=description,
         created_by='security',
         authenticator=reg_state.authenticator,
-        mfa_capable=mfa_capable,
+        mfa_approved=mfa_approved,
         webauthn_proofing_version=current_app.conf.webauthn_proofing_version,
         attestation_format=authenticator_info.attestation_format,
     )
     security_user.credentials.add(credential)
 
-    if mfa_capable and not save_webauthn_proofing_log(user.eppn, authenticator_info):
+    if mfa_approved and not save_webauthn_proofing_log(user.eppn, authenticator_info):
         current_app.logger.info('Could not save webauthn proofing log')
         current_app.logger.debug(f'credential: {credential}')
         current_app.logger.debug(f'authenticator_info: {authenticator_info}')

@@ -17,7 +17,7 @@ from eduid.webapp.common.session.namespaces import WebauthnRegistration, Webauth
 from eduid.webapp.security.app import SecurityApp, security_init_app
 from eduid.webapp.security.helpers import SecurityMsg
 from eduid.webapp.security.views.webauthn import get_webauthn_server
-from eduid.webapp.security.webauthn_proofing import get_authenticator_information, is_authenticator_mfa_capable
+from eduid.webapp.security.webauthn_proofing import get_authenticator_information, is_authenticator_mfa_approved
 
 __author__ = 'eperez'
 
@@ -600,7 +600,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
             assert authenticator_info is not None
 
             with self.app.test_request_context():
-                res = is_authenticator_mfa_capable(authenticator_info=authenticator_info)
+                res = is_authenticator_mfa_approved(authenticator_info=authenticator_info)
                 if authenticator is YUBIKEY_4:
                     # Yubikey 4 does not support any user verification we accept
                     assert res is False
