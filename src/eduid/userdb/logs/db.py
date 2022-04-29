@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import logging
+from datetime import datetime
+from typing import Union
+from uuid import UUID
 
 from eduid.userdb.db import BaseDB
 
@@ -32,3 +35,21 @@ class LogDB(BaseDB):
 class ProofingLog(LogDB):
     def __init__(self, db_uri, collection='proofing_log'):
         LogDB.__init__(self, db_uri, collection)
+
+
+class FidoMetadataLog(LogDB):
+    def __init__(self, db_uri, collection='fido_metadata_log'):
+        LogDB.__init__(self, db_uri, collection)
+        # Create an index so that scim_id is unique per data owner
+        indexes = {
+            'unique-id-date': {'key': [('authenticator_id', 1), ('last_status_change', 1)], 'unique': True},
+        }
+        self.setup_indexes(indexes)
+
+    def exists(self, authenticator_id: Union[str, UUID], last_status_change: datetime) -> bool:
+        return bool(
+            self.db_count(
+                spec={'authenticator_id': authenticator_id, 'last_status_change': last_status_change},
+                limit=1,
+            )
+        )
