@@ -30,9 +30,9 @@ arabic-reshaper==2.1.3 \
     # via
     #   -c main.txt
     #   xhtml2pdf
-asgiref==3.5.0 \
-    --hash=sha256:2f8abc20f7248433085eda803936d98992f1343ddb022065779f37c5da0181d0 \
-    --hash=sha256:88d59c13d634dcffe0510be048210188edd79aeccb6a6c9028cdad6f31d730a9
+asgiref==3.5.1 \
+    --hash=sha256:45a429524fba18aba9d512498b19d220c4d628e75b40cf5c627524dbaebc5cc1 \
+    --hash=sha256:fddeea3c53fa99d0cdb613c3941cc6e52d822491fc2753fba25768fb5bf4e865
     # via uvicorn
 asn1crypto==1.5.1 \
     --hash=sha256:13ae38502be632115abf8a24cbe5f4da52e3b5231990aff31123c805306ccb9c \
@@ -287,7 +287,9 @@ fastapi==0.75.2 \
 fido-mds==2022.4 \
     --hash=sha256:ae2a05d067753935722c15e7272801f362e29276bb25e6a035e2cded9a8bc212 \
     --hash=sha256:e110b9dc22fbcb3204ca94be1118bdd871bab8381dc3b8562111b4131d416e2e
-    # via -r webapp_requirements.in
+    # via
+    #   -c main.txt
+    #   -r main.in
 fido2==0.9.1 \
     --hash=sha256:8680ee25238e2307596eb3900a0f8c0d9cc91189146ed8039544f1a3a69dfe6e
     # via
@@ -577,9 +579,9 @@ mock==4.0.3 \
     --hash=sha256:122fcb64ee37cfad5b3f48d7a7d51875d7031aaf3d8be7c42e2bee25044eee62 \
     --hash=sha256:7d3fbbde18228f4ff2f1f119a45cdffa458b4c0dee32eb4d2bb2f82554bac7bc
     # via -r test_requirements.in
-moto[sns]==3.1.6 \
-    --hash=sha256:2ff083c9a91dafed62d3ae19f393d28987db93fae6fe242a145cf1b6298d1e84 \
-    --hash=sha256:51552b2dfa99a539bca8737a66601b7404be01d2c53a41556a2197b18c1cf172
+moto[sns]==3.1.7 \
+    --hash=sha256:20607a0fd0cf6530e05ffb623ca84d3f45d50bddbcec2a33705a0cf471e71289 \
+    --hash=sha256:4ab6fb8dd150343e115d75e3dbdb5a8f850fc7236790819d7cef438c11ee6e89
     # via -r test_requirements.in
 motor==2.5.1 \
     --hash=sha256:663473f4498f955d35db7b6f25651cb165514c247136f368b84419cb7635f6b8 \
@@ -752,9 +754,9 @@ pydantic==1.9.0 \
     #   -r typecheck_requirements.in
     #   fastapi
     #   fido-mds
-pyhanko==0.13.0 \
-    --hash=sha256:428c29a2071fecf3514deb064ac5238b86a8cb721eef2a7bd26cff0d7a319579 \
-    --hash=sha256:9b331805a17e24de19da7770046f4dc208d9a6520cca00e74478cb121b5e4948
+pyhanko==0.13.1 \
+    --hash=sha256:0aec55960fb39160bdf83dfb8177b5b7359ad225d40a31344f0b0413348f2f0a \
+    --hash=sha256:88ed6f42e87758ccae616c1ce2d9748bf2600ff8286b62ae64c62c71ef6b21e3
     # via
     #   -c main.txt
     #   xhtml2pdf
@@ -1129,9 +1131,9 @@ types-redis==4.2.0 \
     --hash=sha256:24c0effe59b2eef030733fd352fdcee6647a66611001aa25762475c3f26fb5f1 \
     --hash=sha256:c9b61894c7621b801db44efd63f843ead93cbbcf034186d7343f7f5771e1106a
     # via -r typecheck_requirements.in
-types-requests==2.27.24 \
-    --hash=sha256:5501ec6bcc164c54a6598e7ee6581827ea0ac0472e9d33b9456d202892f8d94c \
-    --hash=sha256:e1cde99e92d5fb7afa0ee53924b211f4c47639516434d86dc84d53ec84fcfa8a
+types-requests==2.27.25 \
+    --hash=sha256:2444905c89731dbcb6bbcd6d873a04252445df7623917c640e463b2b28d2a708 \
+    --hash=sha256:805ae7e38fd9d157153066dc4381cf585fd34dfa212f2fc1fece248c05aac571
     # via -r typecheck_requirements.in
 types-simplejson==3.17.6 \
     --hash=sha256:c92336cee5361b2a33c68b479ca3f24da2bfe39c7de5f49b3c017c21446cbfc7 \
@@ -1149,9 +1151,9 @@ types-ujson==4.2.1 \
     --hash=sha256:9e7576316914151f4e7086fae4c5aea3a17ae2d66c2edea6525f4c82354c364d \
     --hash=sha256:dd6ef2d1a29561e8fbbe4fa95e3509a1104c8f1d7d77004ae50ff99bfa89320c
     # via -r typecheck_requirements.in
-types-urllib3==1.26.13 \
-    --hash=sha256:40f8fb5e8cd7d57e8aefdee3fdd5e930aa1a1bb4179cdadd55226cea588af790 \
-    --hash=sha256:ff7500641824f881b2c7bde4cc57e6c3abf03d1e005bae83aca752e77213a5da
+types-urllib3==1.26.14 \
+    --hash=sha256:2a2578e4b36341ccd240b00fccda9826988ff0589a44ba4a664bbd69ef348d27 \
+    --hash=sha256:5d2388aa76395b1e3999ff789ea5b3283677dad8e9bcf3d9117ba19271fd35d9
     # via types-requests
 types-werkzeug==1.0.9 \
     --hash=sha256:194bd5715a13c598f05c63e8a739328657590943bce941e8a3619a6b5d4a54ec \
@@ -1256,9 +1258,9 @@ werkzeug==2.1.2 \
     #   flask
     #   moto
     #   satosa
-wrapt==1.14.0 \
-    --hash=sha256:00108411e0f34c52ce16f81f1d308a571df7784932cc7491d1e94be2ee93374b \
-    --hash=sha256:8323a43bd9c91f62bb7d4be74cc9ff10090e7ef820e27bfe8815c57e68261311
+wrapt==1.14.1 \
+    --hash=sha256:380a85cf89e0e69b7cfbe2ea9f765f004ff419f34194018a6827ac0e3edfed4d \
+    --hash=sha256:40e7bc81c9e2b2734ea4bc1aceb8a8f0ceaac7c5299bc5d69e37c44d9081d43b
     # via
     #   -c main.txt
     #   deprecated

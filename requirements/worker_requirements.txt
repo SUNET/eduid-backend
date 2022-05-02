@@ -161,6 +161,7 @@ cryptography==37.0.1 \
     # via
     #   -c main.txt
     #   -r main.in
+    #   fido-mds
     #   fido2
     #   jwcrypto
     #   oic
@@ -214,11 +215,18 @@ email-validator==1.1.3 \
     # via
     #   -c main.txt
     #   -r main.in
+fido-mds==2022.4 \
+    --hash=sha256:ae2a05d067753935722c15e7272801f362e29276bb25e6a035e2cded9a8bc212 \
+    --hash=sha256:e110b9dc22fbcb3204ca94be1118bdd871bab8381dc3b8562111b4131d416e2e
+    # via
+    #   -c main.txt
+    #   -r main.in
 fido2==0.9.1 \
     --hash=sha256:8680ee25238e2307596eb3900a0f8c0d9cc91189146ed8039544f1a3a69dfe6e
     # via
     #   -c main.txt
     #   -r main.in
+    #   fido-mds
 future==0.18.2 \
     --hash=sha256:b1bead90b70cf6ec3f0710ae53a525360fa360d306a86583adc6bf83a4db537d
     # via
@@ -611,9 +619,10 @@ pydantic==1.9.0 \
     # via
     #   -c main.txt
     #   -r main.in
-pyhanko==0.13.0 \
-    --hash=sha256:428c29a2071fecf3514deb064ac5238b86a8cb721eef2a7bd26cff0d7a319579 \
-    --hash=sha256:9b331805a17e24de19da7770046f4dc208d9a6520cca00e74478cb121b5e4948
+    #   fido-mds
+pyhanko==0.13.1 \
+    --hash=sha256:0aec55960fb39160bdf83dfb8177b5b7359ad225d40a31344f0b0413348f2f0a \
+    --hash=sha256:88ed6f42e87758ccae616c1ce2d9748bf2600ff8286b62ae64c62c71ef6b21e3
     # via
     #   -c main.txt
     #   xhtml2pdf
@@ -669,6 +678,7 @@ pyopenssl==22.0.0 \
     # via
     #   -c main.txt
     #   -r main.in
+    #   fido-mds
     #   pysaml2
 pyparsing==3.0.8 \
     --hash=sha256:7bf433498c016c4314268d95df76c81b842a4cb2b276fa3312cfb1e1d85f6954 \
@@ -915,9 +925,9 @@ webencodings==0.5.1 \
     #   cssselect2
     #   html5lib
     #   tinycss2
-wrapt==1.14.0 \
-    --hash=sha256:00108411e0f34c52ce16f81f1d308a571df7784932cc7491d1e94be2ee93374b \
-    --hash=sha256:8323a43bd9c91f62bb7d4be74cc9ff10090e7ef820e27bfe8815c57e68261311
+wrapt==1.14.1 \
+    --hash=sha256:380a85cf89e0e69b7cfbe2ea9f765f004ff419f34194018a6827ac0e3edfed4d \
+    --hash=sha256:40e7bc81c9e2b2734ea4bc1aceb8a8f0ceaac7c5299bc5d69e37c44d9081d43b
     # via
     #   -c main.txt
     #   deprecated
