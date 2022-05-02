@@ -71,3 +71,15 @@ class SupportAppTests(EduidAPITestCase):
         with self.session_cookie(self.client, self.test_user_eppn) as client:
             response = client.get('/')
         self.assertEqual(response.status_code, 200)  # Authenticated request
+
+    def test_search_existing_user(self):
+        existing_mail_address = self.test_user.mail_addresses.to_list()[0]
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            response = client.post('/', data={'query': f'{existing_mail_address.email}'})
+        assert b'<h3>1 user was found using query "johnsmith@example.com":</h3>' in response.data
+
+    def test_search_non_existing_user(self):
+        non_existing_mail_address = 'not_in_db@example.com}'
+        with self.session_cookie(self.client, self.test_user_eppn) as client:
+            response = client.post('/', data={'query': non_existing_mail_address})
+        assert b'<h3>No users matched the search query</h3>' in response.data
