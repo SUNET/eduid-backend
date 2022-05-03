@@ -45,6 +45,7 @@ from eduid.common.config.base import (
     TouConfigMixin,
     WebauthnConfigMixin2,
 )
+from eduid.webapp.idp.assurance_data import SwamidAssurance
 
 
 class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConfigMixin):
@@ -136,6 +137,40 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     geo_statistics_secret_key: Optional[str] = None
     geo_statistics_feature_enabled: bool = False
     geo_statistics_url: Optional[HttpUrl] = None
+    swamid_assurance_profile_1: List[SwamidAssurance] = Field(
+        default=[
+            SwamidAssurance.SWAMID_AL1,
+            SwamidAssurance.REFEDS_ASSURANCE,
+            SwamidAssurance.REFEDS_ID_UNIQUE,
+            SwamidAssurance.REFEDS_EPPN_UNIQUE,
+            SwamidAssurance.REFEDS_IAP_LOW,
+        ]
+    )
+    swamid_assurance_profile_2: List[SwamidAssurance] = Field(
+        default=[
+            SwamidAssurance.SWAMID_AL1,
+            SwamidAssurance.SWAMID_AL2,
+            SwamidAssurance.REFEDS_ASSURANCE,
+            SwamidAssurance.REFEDS_ID_UNIQUE,
+            SwamidAssurance.REFEDS_EPPN_UNIQUE,
+            SwamidAssurance.REFEDS_IAP_LOW,
+            SwamidAssurance.REFEDS_IAP_MEDIUM,
+        ]
+    )
+    swamid_assurance_profile_3: List[SwamidAssurance] = Field(
+        default=[
+            SwamidAssurance.SWAMID_AL1,
+            SwamidAssurance.SWAMID_AL2,
+            SwamidAssurance.SWAMID_AL3,
+            SwamidAssurance.SWAMID_AL2_MFA_HIGH,
+            SwamidAssurance.REFEDS_ASSURANCE,
+            SwamidAssurance.REFEDS_ID_UNIQUE,
+            SwamidAssurance.REFEDS_EPPN_UNIQUE,
+            SwamidAssurance.REFEDS_IAP_LOW,
+            SwamidAssurance.REFEDS_IAP_MEDIUM,
+            SwamidAssurance.REFEDS_IAP_HIGH,
+        ]
+    )
 
     @validator('sso_cookie')
     def make_sso_cookie(cls, v, values) -> CookieConfig:
