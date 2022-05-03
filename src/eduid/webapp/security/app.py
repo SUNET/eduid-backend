@@ -34,6 +34,7 @@
 
 from typing import Any, Mapping, Optional, cast
 
+from fido_mds import FidoMetadataStore
 from flask import current_app
 
 from eduid.common.config.parsers import load_config
@@ -47,7 +48,6 @@ from eduid.userdb.security import PasswordResetStateDB, SecurityUserDB
 from eduid.webapp.common.api import translation
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.security.settings.common import SecurityConfig
-from fido_mds import FidoMetadataStore
 
 
 class SecurityApp(AuthnBaseApp):

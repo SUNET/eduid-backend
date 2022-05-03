@@ -35,6 +35,7 @@ from datetime import timedelta
 from enum import Enum
 from typing import List, Optional
 
+from fido_mds.models.fido_mds import AuthenticatorStatus
 from pydantic import Field
 
 from eduid.common.config.base import (
@@ -46,7 +47,6 @@ from eduid.common.config.base import (
     PasswordConfigMixin,
     WebauthnConfigMixin2,
 )
-from fido_mds.models.fido_mds import AuthenticatorStatus
 
 
 class WebauthnAttestation(str, Enum):
