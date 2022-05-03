@@ -8,6 +8,7 @@ from fido2.client import ClientData
 from fido2.ctap2 import AttestationObject, AttestedCredentialData
 from fido2.server import Fido2Server, PublicKeyCredentialRpEntity
 from fido2.webauthn import UserVerificationRequirement
+from fido_mds.exceptions import AttestationVerificationError, MetadataValidationError
 from flask import Blueprint
 
 from eduid.userdb import User
@@ -35,7 +36,6 @@ from eduid.webapp.security.webauthn_proofing import (
     is_authenticator_mfa_approved,
     save_webauthn_proofing_log,
 )
-from fido_mds.exceptions import AttestationVerificationError, MetadataValidationError
 
 
 def get_webauthn_server(

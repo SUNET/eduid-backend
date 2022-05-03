@@ -7,8 +7,9 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Type, TypeVar, Union
 from uuid import UUID
 
-from eduid.userdb.element import Element
 from fido_mds.models.fido_mds import Entry as FidoMetadataEntry
+
+from eduid.userdb.element import Element
 
 __author__ = 'lundberg'
 
