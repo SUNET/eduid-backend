@@ -4,7 +4,6 @@ import base64
 import datetime
 import logging
 import os
-from collections import OrderedDict
 from typing import Any, List, Mapping, Optional, Tuple, Union
 from unittest import TestCase
 from urllib.parse import parse_qs, quote_plus, urlparse, urlunparse
@@ -50,22 +49,6 @@ class EidasTests(EduidAPITestCase):
         self.test_user_wrong_nin = '190001021234'
         self.test_backdoor_nin = '190102031234'
         self.test_idp = 'https://idp.example.com/simplesaml/saml2/idp/metadata.php'
-        self.mock_address = OrderedDict(
-            [
-                (
-                    u'Name',
-                    OrderedDict(
-                        [(u'GivenNameMarking', u'20'), (u'GivenName', u'Testaren Test'), (u'Surname', u'Testsson')]
-                    ),
-                ),
-                (
-                    u'OfficialAddress',
-                    OrderedDict(
-                        [(u'Address2', u'\xd6RGATAN 79 LGH 10'), (u'PostalCode', u'12345'), (u'City', u'LANDET')]
-                    ),
-                ),
-            ]
-        )
 
         self.saml_response_tpl_success = """<?xml version='1.0' encoding='UTF-8'?>
 <samlp:Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Destination="{sp_url}saml2-acs" ID="id-88b9f586a2a3a639f9327485cc37c40a" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
@@ -515,10 +498,10 @@ class EidasTests(EduidAPITestCase):
             response = browser.get('/')
         self._check_success_response(response, type_='GET_EIDAS_SUCCESS')
 
-    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
-    def test_u2f_token_verify(self, mock_request_user_sync, mock_get_postal_address):
-        mock_get_postal_address.return_value = self.mock_address
+    def test_u2f_token_verify(self, mock_request_user_sync, mock_get_all_navet_data):
+        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
@@ -536,10 +519,10 @@ class EidasTests(EduidAPITestCase):
 
         self._verify_user_parameters(eppn, is_verified=True, num_proofings=1)
 
-    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
-    def test_webauthn_token_verify(self, mock_request_user_sync, mock_get_postal_address):
-        mock_get_postal_address.return_value = self.mock_address
+    def test_webauthn_token_verify(self, mock_request_user_sync, mock_get_all_navet_data):
+        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
@@ -577,10 +560,10 @@ class EidasTests(EduidAPITestCase):
 
         self._verify_user_parameters(eppn, nin=nin, nin_present=False)
 
-    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
-    def test_mfa_token_verify_no_verified_nin(self, mock_request_user_sync, mock_get_postal_address):
-        mock_get_postal_address.return_value = self.mock_address
+    def test_mfa_token_verify_no_verified_nin(self, mock_request_user_sync, mock_get_all_navet_data):
+        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -720,10 +703,10 @@ class EidasTests(EduidAPITestCase):
 
         self._verify_user_parameters(eppn, nin=nin, nin_verified=True, is_verified=True, num_proofings=2)
 
-    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
-    def test_nin_verify(self, mock_request_user_sync, mock_get_postal_address):
-        mock_get_postal_address.return_value = self.mock_address
+    def test_nin_verify(self, mock_request_user_sync, mock_get_all_navet_data):
+        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -772,10 +755,10 @@ class EidasTests(EduidAPITestCase):
 
         self._verify_user_parameters(eppn, num_mfa_tokens=0, num_verified_nins=0, num_proofings=0)
 
-    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
-    def test_mfa_login_unverified_nin(self, mock_request_user_sync, mock_get_postal_address):
-        mock_get_postal_address.return_value = self.mock_address
+    def test_mfa_login_unverified_nin(self, mock_request_user_sync, mock_get_all_navet_data):
+        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_unverified_user_eppn
 
@@ -851,10 +834,10 @@ class EidasTests(EduidAPITestCase):
             eppn, num_mfa_tokens=0, num_verified_nins=1, nin=nin, nin_verified=True, num_proofings=1
         )
 
-    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
-    def test_nin_verify_no_backdoor_in_pro(self, mock_request_user_sync, mock_get_postal_address):
-        mock_get_postal_address.return_value = self.mock_address
+    def test_nin_verify_no_backdoor_in_pro(self, mock_request_user_sync, mock_get_all_navet_data):
+        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -881,10 +864,10 @@ class EidasTests(EduidAPITestCase):
             eppn, nin=self.test_user_nin, num_mfa_tokens=0, num_verified_nins=1, num_proofings=1, nin_verified=True
         )
 
-    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
-    def test_nin_verify_no_backdoor_misconfigured(self, mock_request_user_sync, mock_get_postal_address):
-        mock_get_postal_address.return_value = self.mock_address
+    def test_nin_verify_no_backdoor_misconfigured(self, mock_request_user_sync, mock_get_all_navet_data):
+        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -973,10 +956,10 @@ class EidasTests(EduidAPITestCase):
             nin=self.test_user_wrong_nin,
         )
 
-    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
-    def test_nin_staging_remap_verify(self, mock_request_user_sync, mock_get_postal_address):
-        mock_get_postal_address.return_value = self.mock_address
+    def test_nin_staging_remap_verify(self, mock_request_user_sync, mock_get_all_navet_data):
+        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn

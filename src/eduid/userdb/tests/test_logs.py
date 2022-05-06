@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
 
-from copy import deepcopy
 from unittest import TestCase
 
 import pytest
 from pydantic import ValidationError
 
+from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, FullPostalAddress, Name
 from eduid.userdb.fixtures.users import mocked_user_standard
 from eduid.userdb.logs.db import ProofingLog
 from eduid.userdb.logs.element import (
     LadokProofing,
     LetterProofing,
     MailAddressProofing,
+    NinProofingLogElement,
     PhoneNumberProofing,
     ProofingLogElement,
     SeLegProofing,
@@ -56,7 +57,7 @@ class TestProofingLog(TestCase):
             'reason': 'matched',
             'nin': 'some_nin',
             'mobile_number': 'some_mobile_number',
-            'user_postal_address': {'response_data': {'some': 'data'}},
+            'user_postal_address': {'name': {}, 'official_address': {}},
             'proofing_version': 'test',
         }
         proofing_element = TeleAdressProofing(**data)
@@ -84,10 +85,10 @@ class TestProofingLog(TestCase):
             'reason': 'matched_by_navet',
             'nin': 'some_nin',
             'mobile_number': 'some_mobile_number',
-            'user_postal_address': {'response_data': {'some': 'data'}},
+            'user_postal_address': {'name': {}, 'official_address': {}},
             'mobile_number_registered_to': 'registered_national_identity_number',
             'registered_relation': ['registered_relation_to_user'],
-            'registered_postal_address': {'response_data': {'some': 'data'}},
+            'registered_postal_address': {'name': {}, 'official_address': {}},
             'proofing_version': 'test',
         }
         proofing_element = TeleAdressProofingRelation(**data)
@@ -115,7 +116,7 @@ class TestProofingLog(TestCase):
             'nin': 'some_nin',
             'letter_sent_to': {'name': {'some': 'data'}, 'address': {'some': 'data'}},
             'transaction_id': 'some transaction id',
-            'user_postal_address': {'response_data': {'some': 'data'}},
+            'user_postal_address': {'name': {}, 'official_address': {}},
             'proofing_version': 'test',
         }
         proofing_element = LetterProofing(**data)
@@ -196,7 +197,7 @@ class TestProofingLog(TestCase):
             'nin': 'national_identity_number',
             'vetting_by': 'provider',
             'transaction_id': 'transaction_id',
-            'user_postal_address': {'response_data': {'some': 'data'}},
+            'user_postal_address': {'name': {}, 'official_address': {}},
         }
         proofing_element = SeLegProofing(**data)
         for key, value in data.items():
@@ -227,7 +228,7 @@ class TestProofingLog(TestCase):
             'nin': 'national_identity_number',
             'transaction_id': 'transaction_id',
             'opaque_data': 'some data',
-            'user_postal_address': {'response_data': {'some': 'data'}},
+            'user_postal_address': {'name': {}, 'official_address': {}},
         }
         proofing_element = SeLegProofingFrejaEid(**data)
         for key, value in data.items():
@@ -318,3 +319,27 @@ class TestProofingLog(TestCase):
         proofing_element.phone_number = False
 
         self.assertTrue(self.proofing_log_db.save(proofing_element))
+
+    def test_deregistered_proofing_data(self):
+
+        proofing_element = NinProofingLogElement(
+            eppn=self.user.eppn,
+            created_by='test',
+            proofing_method='test',
+            proofing_version='test',
+            nin='190102031234',
+            user_postal_address=FullPostalAddress(name=Name(given_name='Test', surname='Testsson')),
+            deregistration_information=DeregistrationInformation(
+                date='20220505', cause_code=DeregisteredCauseCode.EMIGRATED
+            ),
+        )
+        self.proofing_log_db.save(proofing_element)
+
+        result = list(self.proofing_log_db._coll.find({}))
+        self.assertEqual(len(result), 1)
+        hit = result[0]
+        assert hit['deregistration_information'] == {'cause_code': 'UV', 'date': '20220505'}
+        assert hit['user_postal_address'] == {
+            'name': {'given_name': 'Test', 'surname': 'Testsson'},
+            'official_address': {},
+        }

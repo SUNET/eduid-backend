@@ -35,7 +35,6 @@ import logging.config
 import pprint
 import sys
 import traceback
-from collections import OrderedDict
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime
@@ -54,6 +53,7 @@ from eduid.userdb.testing import MongoTemporaryInstance
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.session import EduidSession
 from eduid.webapp.common.session.testing import RedisTemporaryInstance
+from eduid.workers.msg.tasks import MessageSender
 
 logger = logging.getLogger(__name__)
 
@@ -226,36 +226,7 @@ class EduidAPITestCase(CommonTestCase):
 
     @staticmethod
     def _get_all_navet_data():
-        rpc_return_value = {
-            'CaseInformation': {'lastChanged': '20170904141659'},
-            'Person': {
-                'PersonId': {'NationalIdentityNumber': '197609272393'},
-                'ReferenceNationalIdentityNumber': '',
-                "DeregistrationInformation": {},
-                'Name': {'GivenNameMarking': '20', 'GivenName': 'Testaren Test', 'Surname': 'Testsson'},
-                'PostalAddresses': {
-                    'OfficialAddress': {'Address2': 'ÖRGATAN 79 LGH 10', 'PostalCode': '12345', 'City': 'LANDET'}
-                },
-                'Relations': [
-                    {
-                        'RelationType': 'VF',
-                        'RelationId': {'NationalIdentityNumber': '200202025678'},
-                        'RelationStartDate': '20020202',
-                    },
-                    {
-                        'RelationType': 'VF',
-                        'RelationId': {'NationalIdentityNumber': '200101014567'},
-                        'RelationStartDate': '20010101',
-                    },
-                    {'RelationType': 'FA', 'RelationId': {'NationalIdentityNumber': '194004048989'}},
-                    {'RelationType': 'MO', 'RelationId': {'NationalIdentityNumber': '195010106543'}},
-                    {'RelationType': 'B', 'RelationId': {'NationalIdentityNumber': '200202025678'}},
-                    {'RelationType': 'B', 'RelationId': {'NationalIdentityNumber': '200101014567'}},
-                    {'RelationType': 'M', 'RelationId': {'NationalIdentityNumber': '197512125432'}},
-                ],
-            },
-        }
-        return NavetData(**rpc_return_value)
+        return NavetData.parse_obj(MessageSender.get_devel_all_navet_data())
 
     def _check_error_response(
         self,
