@@ -53,6 +53,7 @@ class NextResponseSchema(FluxStandardAction):
             forced_username = fields.Str(required=False)
             freja_eidplus = fields.Bool(required=True)
             has_session = fields.Bool(required=True)
+            is_reauthn = fields.Bool(required=True)
             other_device = fields.Bool(required=True)
             password = fields.Bool(required=True)
             username = fields.Bool(required=False)

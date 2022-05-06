@@ -194,6 +194,9 @@ class AuthnOptions:
     credentials.
     """
 
+    # Is this a re-authentication request? Meaning the very same user _has_ to log in, can't switch to another user.
+    is_reauthn: bool
+    # What to use in the greeting of the user at the login page
     display_name: Optional[str] = None
     # Is this login locked to being performed by a particular user? (Identified by the email/phone/...)
     forced_username: Optional[str] = None
@@ -222,7 +225,7 @@ class AuthnOptions:
 
 
 def _get_authn_options(ticket: LoginContext, sso_session: Optional[SSOSession], eppn: Optional[str]) -> Dict[str, Any]:
-    res = AuthnOptions()
+    res = AuthnOptions(is_reauthn=ticket.reauthn_required)
 
     # Availability of "login using another device" is controlled by configuration for now.
     res.other_device = current_app.conf.allow_other_device_logins
