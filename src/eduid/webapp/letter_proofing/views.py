@@ -9,7 +9,7 @@ from eduid.userdb import User
 from eduid.userdb.logs import LetterProofing
 from eduid.userdb.proofing import ProofingUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
-from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed, NoNavetData
+from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed, NoAddressFound
 from eduid.webapp.common.api.helpers import add_nin_to_user, check_magic_cookie, verify_nin_for_user
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.letter_proofing import pdf, schemas
@@ -84,12 +84,9 @@ def proofing(user: User, nin: str) -> FluxData:
 
     try:
         address = get_address(user, proofing_state)
-        if not address or not address.get('OfficialAddress'):
-            current_app.logger.error('No address found for user {}'.format(user))
-            return error_response(message=LetterMsg.address_not_found)
-    except NoNavetData:
+    except NoAddressFound:
         current_app.logger.error('No data returned from Navet')
-        return error_response(message=CommonMsg.no_navet_data)
+        return error_response(message=LetterMsg.address_not_found)
     except MsgTaskFailed:
         current_app.logger.exception(f'Navet lookup failed for user {user}')
         current_app.stats.count('navet_error')

@@ -2,9 +2,9 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import unique
-from typing import Any, Dict
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.rpc.msg_relay import FullPostalAddress
 from eduid.userdb import User
 from eduid.userdb.proofing import LetterProofingState, NinProofingElement
 from eduid.userdb.proofing.element import SentLetterElement
@@ -130,7 +130,7 @@ def create_proofing_state(eppn: str, nin: str) -> LetterProofingState:
     return proofing_state
 
 
-def get_address(user: User, proofing_state: LetterProofingState) -> Dict[str, Any]:
+def get_address(user: User, proofing_state: LetterProofingState) -> FullPostalAddress:
     """
     :param user: User object
     :param proofing_state: Users proofing state
