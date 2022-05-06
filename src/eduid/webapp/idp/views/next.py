@@ -6,6 +6,8 @@ from typing import Any, Dict, List, Optional, Set
 import requests
 from cryptography.hazmat.primitives import hashes, hmac
 from flask import Blueprint, request, url_for
+
+from eduid.webapp.idp.other_device.data import OtherDeviceState
 from saml2 import BINDING_HTTP_POST
 
 from eduid.userdb import LockedIdentityNin
@@ -64,6 +66,26 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
                     'parameters': saml_params.post_params,
                 },
             )
+        elif isinstance(ticket, LoginContextOtherDevice):
+            state = ticket.other_device_req
+            if state.state in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS, OtherDeviceState.AUTHENTICATED]:
+                current_app.logger.info('Aborting login using another device')
+
+                _abort_res = current_app.other_device_db.abort(state)
+                if not _abort_res:
+                    current_app.logger.warning(f'Login using other device: Failed aborting state {state}')
+                    return error_response(message=IdPMsg.general_failure)
+                current_app.stats.count('login_using_other_device_abort_device2')
+
+                return success_response(
+                    message=IdPMsg.finished,
+                    payload={
+                        'action': IdPAction.FINISHED.value,
+                        'target': url_for('other_device.use_other_2', _external=True),
+                    },
+                )
+            else:
+                current_app.logger.info(f'Not aborting use other device in state {state.state}')
 
         current_app.logger.error(f'Don\'t know how to abort login request {ticket}')
         return error_response(message=IdPMsg.general_failure)
