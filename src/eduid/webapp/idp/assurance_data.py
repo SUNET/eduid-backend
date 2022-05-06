@@ -19,6 +19,19 @@ class EduidAuthnContextClass(str, Enum):
     PASSWORD_PT = 'urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport'
 
 
+class SwamidAssurance(str, Enum):
+    SWAMID_AL1 = 'http://www.swamid.se/policy/assurance/al1'
+    SWAMID_AL2 = 'http://www.swamid.se/policy/assurance/al2'
+    SWAMID_AL3 = 'http://www.swamid.se/policy/assurance/al3'
+    SWAMID_AL2_MFA_HIGH = 'http://www.swamid.se/policy/authentication/swamid-al2-mfa-hi'
+    REFEDS_ASSURANCE = 'https://refeds.org/assurance'
+    REFEDS_IAP_HIGH = 'https://refeds.org/assurance/IAP/high'
+    REFEDS_IAP_LOW = 'https://refeds.org/assurance/IAP/low'
+    REFEDS_IAP_MEDIUM = 'https://refeds.org/assurance/IAP/medium'
+    REFEDS_EPPN_UNIQUE = 'https://refeds.org/assurance/ID/eppn-unique-no-reassign'
+    REFEDS_ID_UNIQUE = 'https://refeds.org/assurance/ID/unique'
+
+
 class AuthnInfo(BaseModel):
     """Information about what AuthnContextClass etc. to put in SAML Authn responses."""
 
