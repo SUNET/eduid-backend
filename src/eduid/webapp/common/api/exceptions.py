@@ -45,34 +45,6 @@ class ApiException(Exception):
         return rv
 
 
-class TaskFailed(Exception):
-    pass
-
-
-class AmTaskFailed(TaskFailed):
-    pass
-
-
-class MsgTaskFailed(TaskFailed):
-    pass
-
-
-class NoAddressFound(MsgTaskFailed):
-    pass
-
-
-class NoRelationsFound(MsgTaskFailed):
-    pass
-
-
-class NoNavetData(MsgTaskFailed):
-    pass
-
-
-class MailTaskFailed(TaskFailed):
-    pass
-
-
 class EduidTooManyRequests(Exception):
     pass
 

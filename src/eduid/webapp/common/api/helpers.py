@@ -7,6 +7,7 @@ from flask import current_app, render_template, request
 
 from eduid.common.config.base import MagicCookieMixin
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.rpc.exceptions import NoNavetData
 from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, FullPostalAddress
 from eduid.userdb.logs.element import NinProofingLogElement, TNinProofingLogElementSubclass
 from eduid.userdb.nin import Nin
@@ -16,8 +17,6 @@ from eduid.userdb.user import TUserSubclass, User
 from eduid.webapp.common.api.app import EduIDBaseApp
 
 __author__ = 'lundberg'
-
-from eduid.webapp.common.api.exceptions import NoNavetData
 
 
 def set_user_names_from_official_address(

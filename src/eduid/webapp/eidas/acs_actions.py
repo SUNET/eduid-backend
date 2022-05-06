@@ -4,6 +4,7 @@ from typing import Optional
 from flask import request
 from werkzeug.wrappers import Response as WerkzeugResponse
 
+from eduid.common.rpc.exceptions import AmTaskFailed, MsgTaskFailed, NoNavetData
 from eduid.userdb import LockedIdentityNin, User
 from eduid.userdb.credentials.external import SwedenConnectCredential, TrustFramework
 from eduid.userdb.credentials.fido import FidoCredential
@@ -12,7 +13,6 @@ from eduid.userdb.logs import MFATokenProofing
 from eduid.userdb.proofing.user import ProofingUser
 from eduid.webapp.authn.helpers import credential_used_to_authenticate
 from eduid.webapp.common.api.decorators import require_user
-from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed, NoNavetData
 from eduid.webapp.common.api.helpers import check_magic_cookie, get_proofing_log_navet_data
 from eduid.webapp.common.api.messages import CommonMsg, redirect_with_msg
 from eduid.webapp.common.api.utils import save_and_sync_user

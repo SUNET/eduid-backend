@@ -33,11 +33,11 @@
 
 from flask import render_template
 
+from eduid.common.rpc.exceptions import MsgTaskFailed
 from eduid.userdb import User
 from eduid.userdb.logs import PhoneNumberProofing
 from eduid.userdb.phone import PhoneNumber
 from eduid.userdb.proofing import PhoneProofingElement, PhoneProofingState, ProofingUser
-from eduid.webapp.common.api.exceptions import MsgTaskFailed
 from eduid.webapp.common.api.utils import get_short_hash, save_and_sync_user
 from eduid.webapp.phone.app import current_phone_app as current_app
 

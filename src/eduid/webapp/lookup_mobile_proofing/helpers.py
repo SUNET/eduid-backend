@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import unique
 from typing import List, Optional
 
-from eduid.common.rpc.lookup_mobile_relay import LookupMobileTaskFailed
+from eduid.common.rpc.exceptions import LookupMobileTaskFailed
 from eduid.common.rpc.msg_relay import RelationType
 from eduid.userdb import User
 from eduid.userdb.logs import TeleAdressProofing, TeleAdressProofingRelation

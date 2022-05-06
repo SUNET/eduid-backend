@@ -3,10 +3,9 @@
 
 from flask import Blueprint
 
-from eduid.common.rpc.lookup_mobile_relay import LookupMobileTaskFailed
+from eduid.common.rpc.exceptions import AmTaskFailed, LookupMobileTaskFailed, MsgTaskFailed, NoNavetData
 from eduid.userdb import User
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
-from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed, NoNavetData
 from eduid.webapp.common.api.helpers import add_nin_to_user, verify_nin_for_user
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.schemas.csrf import EmptyResponse

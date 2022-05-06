@@ -34,19 +34,20 @@ import datetime
 import math
 from dataclasses import dataclass
 from enum import unique
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Dict, Mapping, Optional, Union
 
 from flask import render_template
 from flask_babel import gettext as _
 
 from eduid.common.config.base import EduidEnvironment
+from eduid.common.rpc.exceptions import MailTaskFailed
 from eduid.common.utils import urlappend
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.logs import MailAddressProofing, PhoneNumberProofing
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState, ResetPasswordUser
 from eduid.userdb.reset_password.element import CodeElement
 from eduid.userdb.user import User
-from eduid.webapp.common.api.exceptions import MailTaskFailed, ThrottledException
+from eduid.webapp.common.api.exceptions import ThrottledException
 from eduid.webapp.common.api.helpers import send_mail
 from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response, success_response
 from eduid.webapp.common.api.utils import (

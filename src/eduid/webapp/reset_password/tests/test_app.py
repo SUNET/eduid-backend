@@ -632,7 +632,7 @@ class ResetPasswordTests(EduidAPITestCase):
         self.assertNotEqual(state1.email_code.code, state2.email_code.code)
 
     def test_post_email_address_sendmail_fail(self):
-        from eduid.webapp.common.api.exceptions import MailTaskFailed
+        from eduid.common.rpc.exceptions import MailTaskFailed
 
         response = self._post_email_address(sendmail_return=False, sendmail_side_effect=MailTaskFailed)
         self._check_error_response(response, msg=ResetPwMsg.email_send_failure, type_='POST_RESET_PASSWORD_FAIL')
@@ -838,7 +838,7 @@ class ResetPasswordTests(EduidAPITestCase):
 
     def test_post_choose_extra_sec_sms_fail(self):
         self.app.conf.throttle_sms_seconds = 300
-        from eduid.webapp.common.api.exceptions import MsgTaskFailed
+        from eduid.common.rpc.exceptions import MsgTaskFailed
 
         response = self._post_choose_extra_sec(sendsms_side_effect=MsgTaskFailed())
         self._check_error_response(

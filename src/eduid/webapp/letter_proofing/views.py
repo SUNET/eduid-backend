@@ -5,11 +5,11 @@ from flask import Blueprint, abort
 from requests.exceptions import ConnectionError
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.rpc.exceptions import AmTaskFailed, MsgTaskFailed, NoAddressFound
 from eduid.userdb import User
 from eduid.userdb.logs import LetterProofing
 from eduid.userdb.proofing import ProofingUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
-from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed, NoAddressFound
 from eduid.webapp.common.api.helpers import add_nin_to_user, check_magic_cookie, verify_nin_for_user
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.letter_proofing import pdf, schemas

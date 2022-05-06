@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
 from enum import unique
-from uuid import UUID, uuid4
+from uuid import UUID
 
+from eduid.common.rpc.exceptions import AmTaskFailed
 from eduid.userdb import User
 from eduid.userdb.ladok import Ladok, University, UniversityName
 from eduid.userdb.logs.element import LadokProofing
 from eduid.userdb.proofing import ProofingUser
-from eduid.webapp.common.api.exceptions import AmTaskFailed
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, TranslatableMsg, error_response, success_response
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.ladok.app import current_ladok_app as current_app

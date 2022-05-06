@@ -256,7 +256,7 @@ class SecurityTests(EduidAPITestCase):
 
     @patch('eduid.webapp.security.views.security.send_termination_mail')
     def test_account_terminated_sendmail_fail(self, mock_send: Any):
-        from eduid.webapp.common.api.exceptions import MsgTaskFailed
+        from eduid.common.rpc.exceptions import MsgTaskFailed
 
         mock_send.side_effect = MsgTaskFailed()
         response = self._account_terminated(reauthn=50)
@@ -264,7 +264,7 @@ class SecurityTests(EduidAPITestCase):
         self.assertEqual(response.location, 'http://test.localhost/services/authn/logout?next=https://eduid.se')
 
     def test_account_terminated_mail_fail(self):
-        from eduid.webapp.common.api.exceptions import MsgTaskFailed
+        from eduid.common.rpc.exceptions import MsgTaskFailed
 
         response = self._account_terminated(sendmail_side_effect=MsgTaskFailed(), reauthn=8)
         self.assertEqual(response.status_code, 302)
@@ -307,7 +307,7 @@ class SecurityTests(EduidAPITestCase):
 
     @patch('eduid.webapp.security.views.security.remove_nin_from_user')
     def test_remove_nin_am_fail(self, mock_remove: Any):
-        from eduid.webapp.common.api.exceptions import AmTaskFailed
+        from eduid.common.rpc.exceptions import AmTaskFailed
 
         mock_remove.side_effect = AmTaskFailed()
         response = self._remove_nin()
@@ -363,7 +363,7 @@ class SecurityTests(EduidAPITestCase):
 
     @patch('eduid.webapp.security.views.security.add_nin_to_user')
     def test_add_nin_task_failed(self, mock_add):
-        from eduid.webapp.common.api.exceptions import AmTaskFailed
+        from eduid.common.rpc.exceptions import AmTaskFailed
 
         mock_add.side_effect = AmTaskFailed()
         response = self._add_nin()

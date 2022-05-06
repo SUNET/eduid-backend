@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 import eduid.workers.msg
 from eduid.common.config.base import MsgConfigMixin
-from eduid.webapp.common.api.exceptions import MsgTaskFailed, NoAddressFound, NoNavetData, NoRelationsFound
+from eduid.common.rpc.exceptions import MsgTaskFailed, NoAddressFound, NoNavetData, NoRelationsFound
 
 __author__ = 'lundberg'
 

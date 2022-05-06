@@ -5,9 +5,9 @@ from typing import Optional
 
 import eduid.workers.am
 from eduid.common.config.base import AmConfigMixin
+from eduid.common.rpc.exceptions import AmTaskFailed
 from eduid.userdb import User
 from eduid.userdb.exceptions import LockedIdentityViolation
-from eduid.webapp.common.api.exceptions import AmTaskFailed
 
 __author__ = 'lundberg'
 

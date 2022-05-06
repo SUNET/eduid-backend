@@ -79,10 +79,11 @@ from typing import Optional
 
 from flask import Blueprint, abort, request
 
+from eduid.common.rpc.exceptions import MailTaskFailed, MsgTaskFailed
 from eduid.userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
-from eduid.webapp.common.api.exceptions import MailTaskFailed, MsgTaskFailed, ThrottledException
+from eduid.webapp.common.api.exceptions import ThrottledException
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
 from eduid.webapp.common.api.schemas.csrf import EmptyResponse

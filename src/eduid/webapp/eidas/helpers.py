@@ -13,12 +13,12 @@ from saml2.request import AuthnRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.rpc.exceptions import AmTaskFailed, MsgTaskFailed, NoNavetData
 from eduid.userdb.credentials import Credential
 from eduid.userdb.credentials.external import TrustFramework
 from eduid.userdb.logs import MFATokenProofing, SwedenConnectProofing
 from eduid.userdb.proofing import NinProofingElement, ProofingUser
 from eduid.userdb.proofing.state import NinProofingState
-from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed, NoNavetData
 from eduid.webapp.common.api.helpers import check_magic_cookie, get_proofing_log_navet_data, verify_nin_for_user
 from eduid.webapp.common.api.messages import CommonMsg, TranslatableMsg, redirect_with_msg
 from eduid.webapp.common.api.utils import save_and_sync_user

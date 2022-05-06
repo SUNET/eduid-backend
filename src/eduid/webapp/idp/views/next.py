@@ -6,8 +6,6 @@ from typing import Any, Dict, List, Optional, Set
 import requests
 from cryptography.hazmat.primitives import hashes, hmac
 from flask import Blueprint, request, url_for
-
-from eduid.webapp.idp.other_device.data import OtherDeviceState
 from saml2 import BINDING_HTTP_POST
 
 from eduid.userdb import LockedIdentityNin
@@ -23,6 +21,7 @@ from eduid.webapp.idp.idp_saml import cancel_saml_request
 from eduid.webapp.idp.login import SSO, login_next_step
 from eduid.webapp.idp.login_context import LoginContext, LoginContextOtherDevice, LoginContextSAML
 from eduid.webapp.idp.mischttp import get_user_agent
+from eduid.webapp.idp.other_device.data import OtherDeviceState
 from eduid.webapp.idp.other_device.device2 import device2_finish
 from eduid.webapp.idp.schemas import NextRequestSchema, NextResponseSchema
 from eduid.webapp.idp.sso_session import SSOSession

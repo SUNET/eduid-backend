@@ -40,6 +40,7 @@ from flask import Blueprint, redirect, request, url_for
 from marshmallow import ValidationError
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.rpc.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid.common.utils import urlappend
 from eduid.userdb import User
 from eduid.userdb.exceptions import UserOutOfSync
@@ -47,7 +48,6 @@ from eduid.userdb.proofing import NinProofingElement
 from eduid.userdb.proofing.state import NinProofingState
 from eduid.userdb.security import SecurityUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed
 from eduid.webapp.common.api.helpers import add_nin_to_user
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.schemas.csrf import EmptyRequest

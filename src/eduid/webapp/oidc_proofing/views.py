@@ -13,11 +13,11 @@ from flask import Blueprint, make_response, request, url_for
 from jose import jws as jose
 from oic.oic.message import AuthorizationResponse, Claims, ClaimsRequest
 
+from eduid.common.rpc.exceptions import TaskFailed
 from eduid.userdb import User
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.util import UTC
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
-from eduid.webapp.common.api.exceptions import TaskFailed
 from eduid.webapp.common.api.helpers import add_nin_to_user
 from eduid.webapp.common.api.messages import CommonMsg, error_response
 from eduid.webapp.oidc_proofing import helpers, schemas
