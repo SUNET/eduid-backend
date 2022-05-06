@@ -250,44 +250,35 @@ class MessageSender(Task):
         Return a dict with devel data
         """
         result = OrderedDict(
-            [
-                ('CaseInformation', {'lastChanged': '20170904141659'}),
-                (
-                    'Person',
-                    {
-                        'Name': {'GivenNameMarking': '20', 'GivenName': 'Testaren Test', 'Surname': 'Testsson'},
-                        "PersonId": {"NationalIdentityNumber": "197609272393"},
-                        "DeregistrationInformation": {},
-                        "ReferenceNationalIdentityNumber": "",
-                        "PostalAddresses": {
-                            'OfficialAddress': {
-                                'Address2': 'ÖRGATAN 79 LGH 10',
-                                'PostalCode': '12345',
-                                'City': 'LANDET',
-                            },
-                        },
-                        'Relations': {
-                            'Relation': [
-                                {
-                                    'RelationType': 'VF',
-                                    'RelationId': {'NationalIdentityNumber': '200202025678'},
-                                    'RelationStartDate': '20020202',
-                                },
-                                {
-                                    'RelationType': 'VF',
-                                    'RelationId': {'NationalIdentityNumber': '200101014567'},
-                                    'RelationStartDate': '20010101',
-                                },
-                                {'RelationType': 'FA', 'RelationId': {'NationalIdentityNumber': '194004048989'}},
-                                {'RelationType': 'MO', 'RelationId': {'NationalIdentityNumber': '195010106543'}},
-                                {'RelationType': 'B', 'RelationId': {'NationalIdentityNumber': '200202025678'}},
-                                {'RelationType': 'B', 'RelationId': {'NationalIdentityNumber': '200101014567'}},
-                                {'RelationType': 'M', 'RelationId': {'NationalIdentityNumber': '197512125432'}},
-                            ]
-                        },
+            {
+                'CaseInformation': {'lastChanged': '20170904141659'},
+                'Person': {
+                    'PersonId': {'NationalIdentityNumber': '197609272393'},
+                    'ReferenceNationalIdentityNumber': '',
+                    "DeregistrationInformation": {},
+                    'Name': {'GivenNameMarking': '20', 'GivenName': 'Testaren Test', 'Surname': 'Testsson'},
+                    'PostalAddresses': {
+                        'OfficialAddress': {'Address2': 'ÖRGATAN 79 LGH 10', 'PostalCode': '12345', 'City': 'LANDET'}
                     },
-                ),
-            ]
+                    'Relations': [
+                        {
+                            'RelationType': 'VF',
+                            'RelationId': {'NationalIdentityNumber': '200202025678'},
+                            'RelationStartDate': '20020202',
+                        },
+                        {
+                            'RelationType': 'VF',
+                            'RelationId': {'NationalIdentityNumber': '200101014567'},
+                            'RelationStartDate': '20010101',
+                        },
+                        {'RelationType': 'FA', 'RelationId': {'NationalIdentityNumber': '194004048989'}},
+                        {'RelationType': 'MO', 'RelationId': {'NationalIdentityNumber': '195010106543'}},
+                        {'RelationType': 'B', 'RelationId': {'NationalIdentityNumber': '200202025678'}},
+                        {'RelationType': 'B', 'RelationId': {'NationalIdentityNumber': '200101014567'}},
+                        {'RelationType': 'M', 'RelationId': {'NationalIdentityNumber': '197512125432'}},
+                    ],
+                },
+            }
         )
         return result
 
