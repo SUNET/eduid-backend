@@ -70,7 +70,6 @@ class OtherDevice(BaseModel):
         ip_address: str,
         user_agent: Optional[str],
         ttl: timedelta,
-        reauthn_required: bool = False,
     ) -> OtherDevice:
         _uuid = uuid.uuid4()
         short_code = make_short_code()
@@ -92,7 +91,7 @@ class OtherDevice(BaseModel):
                 request_id=ticket.request_id,
                 ip_address=ip_address,
                 user_agent=user_agent,
-                reauthn_required=reauthn_required,
+                reauthn_required=ticket.reauthn_required,
                 service_info=ticket.service_info,
                 is_known_device=_is_known_device,
             ),

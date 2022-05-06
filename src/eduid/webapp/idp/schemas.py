@@ -53,6 +53,7 @@ class NextResponseSchema(FluxStandardAction):
             forced_username = fields.Str(required=False)
             freja_eidplus = fields.Bool(required=True)
             has_session = fields.Bool(required=True)
+            is_reauthn = fields.Bool(required=True)
             other_device = fields.Bool(required=True)
             password = fields.Bool(required=True)
             username = fields.Bool(required=False)
@@ -116,6 +117,7 @@ class UseOther1RequestSchema(IdPRequest):
 
 class UseOther1ResponseSchema(FluxStandardAction):
     class UseOther1ResponsePayload(EduidSchema, CSRFResponseMixin):
+        bad_attempts = fields.Int(required=True)  # number of incorrect response_code attempts
         expires_in = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
         expires_max = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
         qr_img = fields.Str(required=True)  # qr_url as an inline img

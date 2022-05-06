@@ -145,12 +145,13 @@ def device1_state_to_flux_payload(state: OtherDevice, now: datetime) -> Mapping[
 
     payload.update(
         {
-            'expires_max': current_app.conf.other_device_logins_ttl.total_seconds(),
-            'state_id': encrypted_state_id,
-            'state': state.state.value,
-            'short_code': state.display_id,
+            'bad_attempts': state.bad_attempts,
             'expires_in': expires_in,
+            'expires_max': current_app.conf.other_device_logins_ttl.total_seconds(),
             'response_code_required': not state.device1.is_known_device,
+            'short_code': state.display_id,
+            'state': state.state.value,
+            'state_id': encrypted_state_id,
         }
     )
     # NOTE: It is CRITICAL to never return the response code to Device #1
