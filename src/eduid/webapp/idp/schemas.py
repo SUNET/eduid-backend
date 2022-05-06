@@ -116,6 +116,7 @@ class UseOther1RequestSchema(IdPRequest):
 
 class UseOther1ResponseSchema(FluxStandardAction):
     class UseOther1ResponsePayload(EduidSchema, CSRFResponseMixin):
+        bad_attempts = fields.Int(required=True)  # number of incorrect response_code attempts
         expires_in = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
         expires_max = fields.Int(required=True)  # to use expires_at, the client clock have to be in sync with backend
         qr_img = fields.Str(required=True)  # qr_url as an inline img
