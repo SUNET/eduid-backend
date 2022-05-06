@@ -13,7 +13,7 @@ from eduid.userdb.proofing.user import ProofingUser
 from eduid.webapp.authn.helpers import credential_used_to_authenticate
 from eduid.webapp.common.api.decorators import require_user
 from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed, NoNavetData
-from eduid.webapp.common.api.helpers import check_magic_cookie
+from eduid.webapp.common.api.helpers import check_magic_cookie, get_proofing_log_navet_data
 from eduid.webapp.common.api.messages import CommonMsg, redirect_with_msg
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.authn.acs_enums import EidasAcsAction
@@ -115,7 +115,7 @@ def token_verify_action(session_info: SessionInfo, user: User, authndata: SP_Aut
 
     current_app.logger.debug('Authn context: {}'.format(authn_context))
     try:
-        user_address = current_app.msg_relay.get_postal_address(user_nin.number)
+        navet_proofing_data = get_proofing_log_navet_data(nin=user_nin.number)
     except NoNavetData:
         current_app.logger.exception('No data returned from Navet')
         return redirect_with_msg(redirect_url, CommonMsg.no_navet_data)
@@ -131,7 +131,8 @@ def token_verify_action(session_info: SessionInfo, user: User, authndata: SP_Aut
         issuer=issuer,
         authn_context_class=authn_context,
         key_id=token_to_verify.key,
-        user_postal_address=user_address,
+        user_postal_address=navet_proofing_data.user_postal_address,
+        deregistration_information=navet_proofing_data.deregistration_information,
         proofing_version='2018v1',
     )
 

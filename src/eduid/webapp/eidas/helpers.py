@@ -19,7 +19,7 @@ from eduid.userdb.logs import MFATokenProofing, SwedenConnectProofing
 from eduid.userdb.proofing import NinProofingElement, ProofingUser
 from eduid.userdb.proofing.state import NinProofingState
 from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed, NoNavetData
-from eduid.webapp.common.api.helpers import check_magic_cookie, verify_nin_for_user
+from eduid.webapp.common.api.helpers import check_magic_cookie, get_proofing_log_navet_data, verify_nin_for_user
 from eduid.webapp.common.api.messages import CommonMsg, TranslatableMsg, redirect_with_msg
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.authn.cache import OutstandingQueriesCache
@@ -163,7 +163,7 @@ def verify_nin_from_external_mfa(proofing_user: ProofingUser, session_info: Sess
         return EidasMsg.authn_context_mismatch
 
     try:
-        user_address = current_app.msg_relay.get_postal_address(asserted_nin)
+        navet_proofing_data = get_proofing_log_navet_data(nin=asserted_nin)
     except NoNavetData:
         current_app.logger.exception('No data returned from Navet')
         return CommonMsg.no_navet_data
@@ -178,7 +178,8 @@ def verify_nin_from_external_mfa(proofing_user: ProofingUser, session_info: Sess
         nin=asserted_nin,
         issuer=issuer,
         authn_context_class=authn_context,
-        user_postal_address=user_address,
+        user_postal_address=navet_proofing_data.user_postal_address,
+        deregistration_information=navet_proofing_data.deregistration_information,
         proofing_version='2018v1',
     )
 

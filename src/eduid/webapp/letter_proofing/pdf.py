@@ -4,9 +4,11 @@ import logging
 from datetime import datetime, timedelta
 from io import BytesIO, StringIO
 from pathlib import Path
-from typing import Any, Mapping, OrderedDict
+from typing import Mapping, OrderedDict
 
 from xhtml2pdf import pisa
+
+from eduid.common.rpc.msg_relay import FullPostalAddress
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +45,7 @@ def format_address(recipient: Mapping):
 
 
 def create_pdf(
-    recipient: Mapping[str, Any],
+    recipient: FullPostalAddress,
     verification_code: str,
     created_timestamp: datetime,
     primary_mail_address: str,
@@ -66,7 +68,9 @@ def create_pdf(
     pisa.showLogging()
 
     try:
-        name, care_of, address, misc_address, postal_code, city = format_address(recipient)
+        name, care_of, address, misc_address, postal_code, city = format_address(
+            recipient.dict(exclude_none=True, by_alias=True)
+        )
     except AddressFormatException as e:
         logger.error('Postal address formatting failed: {!r}'.format(e))
         raise e

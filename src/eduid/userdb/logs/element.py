@@ -9,6 +9,7 @@ from uuid import UUID
 
 from fido_mds.models.fido_mds import Entry as FidoMetadataEntry
 
+from eduid.common.rpc.msg_relay import DeregistrationInformation, FullPostalAddress
 from eduid.userdb.element import Element
 
 __author__ = 'lundberg'
@@ -67,12 +68,12 @@ class ProofingLogElement(LogElement):
 
 
 class NinProofingLogElement(ProofingLogElement):
-    """ """
-
     # National identity number
     nin: str
     # Navet response for users official address
-    user_postal_address: Dict[str, Any]
+    user_postal_address: FullPostalAddress
+    # Navet response for users deregistration information (used if official address is missing)
+    deregistration_information: Optional[DeregistrationInformation]
 
 
 class MailAddressProofing(ProofingLogElement):
@@ -157,6 +158,7 @@ class TeleAdressProofingRelation(TeleAdressProofing):
         'mobile_number_registered_to': 'registered_national_identity_number',
         'registered_relation': 'registered_relation_to_user'
         'registered_postal_address': {postal_address_from_navet}
+        'registered_deregistration_information': {deregistration information from navet]
     }
     """
 
@@ -165,7 +167,9 @@ class TeleAdressProofingRelation(TeleAdressProofing):
     # Relation of mobile phone subscriber to User
     registered_relation: List[str]
     # Navet response for mobile phone subscriber
-    registered_postal_address: Dict[str, Any]
+    registered_postal_address: FullPostalAddress
+    # Navet response for mobile phone subscriber deregistration information (used if official address is missing)
+    registered_deregistration_information: Optional[DeregistrationInformation]
     # Proofing method name
     proofing_method: str = 'TeleAdress'
 

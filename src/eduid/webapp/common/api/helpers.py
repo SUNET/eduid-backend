@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 import warnings
+from dataclasses import dataclass
 from typing import List, Optional, Type, TypeVar, Union, overload
 
 from flask import current_app, render_template, request
 
 from eduid.common.config.base import MagicCookieMixin
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, FullPostalAddress
 from eduid.userdb.logs.element import NinProofingLogElement, TNinProofingLogElementSubclass
 from eduid.userdb.nin import Nin
 from eduid.userdb.proofing import ProofingUser
@@ -14,6 +16,8 @@ from eduid.userdb.user import TUserSubclass, User
 from eduid.webapp.common.api.app import EduIDBaseApp
 
 __author__ = 'lundberg'
+
+from eduid.webapp.common.api.exceptions import NoNavetData
 
 
 def set_user_names_from_official_address(
@@ -25,26 +29,27 @@ def set_user_names_from_official_address(
 
     :returns: User object
     """
-    navet_data = proofing_log_entry.user_postal_address
-    name = navet_data['Name']
-    user.given_name = name['GivenName']
-    user.surname = name['Surname']
-    given_name_marking = name.get('GivenNameMarking')
+    user.given_name = proofing_log_entry.user_postal_address.name.given_name
+    user.surname = proofing_log_entry.user_postal_address.name.surname
+    if user.given_name is None or user.surname is None:
+        # please mypy
+        raise RuntimeError('No given name or surname found in proofing log user postal address')
+    given_name_marking = proofing_log_entry.user_postal_address.name.given_name_marking
     # Only set display name if not already set
     if not user.display_name:
         user.display_name = f'{user.given_name} {user.surname}'
         if given_name_marking:
             _name_index = (int(given_name_marking) // 10) - 1  # ex. "20" -> 1 (second GivenName is real given name)
             try:
-                _given_name = name['GivenName'].split()[_name_index]
+                _given_name = user.given_name.split()[_name_index]
                 user.display_name = f'{_given_name} {user.surname}'
             except IndexError:
                 # At least occasionally, we've seen GivenName 'Jan-Erik Martin' with GivenNameMarking 30
                 pass
     current_app.logger.info(u'User names set from official address')
     current_app.logger.debug(
-        f'{name} resulted in given_name: {user.given_name}, surname: {user.surname} '
-        f'and display_name: {user.display_name}'
+        f'{proofing_log_entry.user_postal_address.name} resulted in given_name: {user.given_name}, '
+        f'surname: {user.surname} and display_name: {user.display_name}'
     )
     return user
 
@@ -245,3 +250,29 @@ def check_magic_cookie(config: MagicCookieMixin) -> bool:
 
     current_app.logger.info('check_magic_cookie check fail')
     return False
+
+
+@dataclass
+class ProofingNavetData:
+    user_postal_address: Optional[FullPostalAddress] = None
+    deregistration_information: Optional[DeregistrationInformation] = None
+
+
+def get_proofing_log_navet_data(nin: str) -> ProofingNavetData:
+    navet_data = current_app.msg_relay.get_all_navet_data(nin=nin, allow_deregistered=True)
+    # the only cause for deregistration we allow is emigration
+    if (
+        navet_data.person.is_deregistered()
+        and navet_data.person.deregistration_information.cause_code is not DeregisteredCauseCode.EMIGRATED
+    ):
+        raise NoNavetData(
+            f'Person deregistered with code {navet_data.person.deregistration_information.cause_code.value}'
+        )
+
+    user_postal_address = FullPostalAddress(
+        name=navet_data.person.name, official_address=navet_data.person.postal_addresses.official_address
+    )
+    return ProofingNavetData(
+        user_postal_address=user_postal_address,
+        deregistration_information=navet_data.person.deregistration_information,
+    )

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import json
-from collections import OrderedDict
 from datetime import datetime, timedelta
 from typing import Any, Dict, Mapping
 
@@ -24,22 +23,6 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.test_user_nin = '199001023456'
         fifteen_years_ago = datetime.now() - timedelta(days=15 * 365)
         self.test_user_nin_underage = '{}01023456'.format(fifteen_years_ago.year)
-        self.mock_address = OrderedDict(
-            [
-                (
-                    u'Name',
-                    OrderedDict(
-                        [(u'GivenNameMarking', u'20'), (u'GivenName', u'Testaren Test'), (u'Surname', u'Testsson')]
-                    ),
-                ),
-                (
-                    u'OfficialAddress',
-                    OrderedDict(
-                        [(u'Address2', u'\xd6RGATAN 79 LGH 10'), (u'PostalCode', u'12345'), (u'City', u'LANDET')]
-                    ),
-                ),
-            ]
-        )
 
         super(LookupMobileProofingTests, self).setUp(users=['hubba-baar'])
 
@@ -68,11 +51,11 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(response.status_code, 200)  # Authenticated request
 
     @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
-    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
-    def test_proofing_flow(self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile):
+    def test_proofing_flow(self, mock_request_user_sync, mock_get_all_navet_data, mock_find_nin_by_mobile):
         mock_find_nin_by_mobile.return_value = self.test_user_nin
-        mock_get_postal_address.return_value = self.mock_address
+        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -96,11 +79,11 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(self.app.proofing_log.db_count(), 1)
 
     @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
-    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
-    def test_proofing_flow_underage(self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile):
+    def test_proofing_flow_underage(self, mock_request_user_sync, mock_get_all_navet_data, mock_find_nin_by_mobile):
         mock_find_nin_by_mobile.return_value = self.test_user_nin_underage
-        mock_get_postal_address.return_value = self.mock_address
+        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -124,11 +107,11 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(self.app.proofing_log.db_count(), 1)
 
     @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
-    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
-    def test_proofing_flow_no_match(self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile):
+    def test_proofing_flow_no_match(self, mock_request_user_sync, mock_get_all_navet_data, mock_find_nin_by_mobile):
         mock_find_nin_by_mobile.return_value = None
-        mock_get_postal_address.return_value = self.mock_address
+        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -150,13 +133,13 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(self.app.proofing_log.db_count(), 0)
 
     @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
-    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_proofing_flow_LookupMobileTaskFailed(
-        self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile
+        self, mock_request_user_sync, mock_get_all_navet_data, mock_find_nin_by_mobile
     ):
         mock_find_nin_by_mobile.side_effect = LookupMobileTaskFailed('Test Exception')
-        mock_get_postal_address.return_value = self.mock_address
+        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -288,14 +271,14 @@ class LookupMobileProofingTests(EduidAPITestCase):
 
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_relations_to')
     @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
-    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_proofing_flow_relation(
-        self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile, mock_get_relations_to
+        self, mock_request_user_sync, mock_get_all_navet_data, mock_find_nin_by_mobile, mock_get_relations_to
     ):
         mock_get_relations_to.return_value = ['MO']
         mock_find_nin_by_mobile.return_value = '197001021234'
-        mock_get_postal_address.return_value = self.mock_address
+        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -320,14 +303,14 @@ class LookupMobileProofingTests(EduidAPITestCase):
 
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_relations_to')
     @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
-    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_proofing_flow_relation_no_match(
-        self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile, mock_get_relations_to
+        self, mock_request_user_sync, mock_get_all_navet_data, mock_find_nin_by_mobile, mock_get_relations_to
     ):
         mock_get_relations_to.return_value = []
         mock_find_nin_by_mobile.return_value = '197001021234'
-        mock_get_postal_address.return_value = self.mock_address
+        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:

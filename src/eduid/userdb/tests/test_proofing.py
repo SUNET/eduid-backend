@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import List
 from unittest import TestCase
 
+from eduid.common.rpc.msg_relay import FullPostalAddress
 from eduid.userdb.proofing.element import NinProofingElement, SentLetterElement
 from eduid.userdb.proofing.state import LetterProofingState, OidcProofingState, ProofingState
 
@@ -13,7 +14,7 @@ __author__ = 'lundberg'
 EPPN = 'foob-arra'
 
 # Address as we get it from Navet
-ADDRESS = OrderedDict(
+ADDRESS = FullPostalAddress.parse_obj(
     [
         (
             u'Name',
