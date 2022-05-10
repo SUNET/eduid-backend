@@ -5,7 +5,7 @@ from typing import List, Optional, Type, TypeVar, Union, overload
 
 from flask import current_app, render_template, request
 
-from eduid.common.config.base import MagicCookieMixin
+from eduid.common.config.base import MagicCookieMixin, EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.exceptions import NoNavetData
 from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, FullPostalAddress
@@ -230,8 +230,7 @@ def check_magic_cookie(config: MagicCookieMixin) -> bool:
 
     :param config: A configuration object
     """
-    if config.environment not in ('dev', 'staging'):
-        current_app.logger.error(f'Magic cookie not allowed in environment {config.environment}')
+    if config.environment not in [EduidEnvironment.dev, EduidEnvironment.staging]:
         return False
 
     if not config.magic_cookie or not config.magic_cookie_name:
