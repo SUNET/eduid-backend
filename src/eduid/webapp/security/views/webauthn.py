@@ -17,6 +17,7 @@ from eduid.userdb.credentials import Webauthn
 from eduid.userdb.credentials.fido import U2F, FidoCredential
 from eduid.userdb.security import SecurityUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
+from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.schemas.base import FluxStandardAction
 from eduid.webapp.common.api.utils import save_and_sync_user
@@ -32,6 +33,7 @@ from eduid.webapp.security.schemas import (
 )
 from eduid.webapp.security.settings.common import WebauthnAttestation
 from eduid.webapp.security.webauthn_proofing import (
+    OtherAuthenticatorStatus,
     get_authenticator_information,
     is_authenticator_mfa_approved,
     save_webauthn_proofing_log,
@@ -105,7 +107,9 @@ def registration_begin(user: User, authenticator: str) -> FluxData:
 
     current_app.logger.info('User {} has started registration of a webauthn token'.format(user))
     current_app.logger.debug('Webauthn Registration data: {}.'.format(registration_data))
-    current_app.stats.count(name='webauthn_register_begin')
+
+    if not check_magic_cookie(current_app.conf):  # no stats for automatic tests
+        current_app.stats.count(name='webauthn_register_begin')
 
     encoded_data = base64.urlsafe_b64encode(cbor.encode(registration_data)).decode('ascii')
     encoded_data = encoded_data.rstrip('=')
@@ -146,22 +150,15 @@ def registration_complete(
         current_app.logger.info(f'client_data: {client_data}')
         return error_response(message=SecurityMsg.webauthn_metadata_fail)
 
-    current_app.stats.count(name=f'webauthn_attestation_format_{authenticator_info.attestation_format.value}')
-
     # Move registration state from session to local variable to let users restart if something fails
     reg_state = session.security.webauthn_registration
     session.security.webauthn_registration = None
-    auth_data = server.register_complete(reg_state.webauthn_state, cdata_obj, att_obj)
 
+    auth_data = server.register_complete(reg_state.webauthn_state, cdata_obj, att_obj)
     cred_data = auth_data.credential_data
     current_app.logger.debug(f'Processed Webauthn credential data: {cred_data}')
-
     mfa_approved = is_authenticator_mfa_approved(authenticator_info=authenticator_info)
-    if mfa_approved:
-        current_app.logger.info('authenticator is mfa capable')
-        current_app.stats.count(name='webauthn_mfa_approved')
-    else:
-        current_app.stats.count(name='webauthn_not_mfa_approved')
+    current_app.logger.info(f'authenticator mfa approved: {mfa_approved}')
 
     credential = Webauthn(
         keyhandle=credential_id,
@@ -189,7 +186,15 @@ def registration_complete(
         current_app.logger.exception('User sync failed')
         return error_response(message=CommonMsg.temp_problem)
 
-    current_app.stats.count(name='webauthn_register_complete')
+    # no stats for automatic tests
+    if authenticator_info.status is not OtherAuthenticatorStatus.MAGIC_COOKIE:
+        current_app.stats.count(name=f'webauthn_attestation_format_{authenticator_info.attestation_format.value}')
+        current_app.stats.count(name='webauthn_register_complete')
+        if mfa_approved:
+            current_app.stats.count(name='webauthn_mfa_approved')
+        else:
+            current_app.stats.count(name='webauthn_not_mfa_approved')
+
     current_app.logger.info('User has completed registration of a webauthn token')
     credentials = compile_credential_list(security_user)
     return success_response(payload=dict(credentials=credentials), message=SecurityMsg.webauthn_success)

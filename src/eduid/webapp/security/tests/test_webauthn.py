@@ -8,7 +8,9 @@ from typing import Any, Dict, Mapping, Optional
 from fido2.client import ClientData
 from fido2.ctap2 import AttestationObject
 from mock import patch
+from werkzeug.http import dump_cookie
 
+from eduid.common.config.base import EduidEnvironment
 from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.credentials.fido import WebauthnAuthenticator
 from eduid.webapp.common.api.testing import EduidAPITestCase
@@ -616,3 +618,39 @@ class SecurityWebauthnTests(EduidAPITestCase):
                     )
                     is True
                 )
+
+    def test_authenticator_information_backdoor(self):
+        # setup magic cookie backdoor
+        self.app.conf.magic_cookie_name = 'magic-cookie'
+        self.app.conf.magic_cookie = 'magic'
+        self.app.conf.environment = EduidEnvironment.dev
+        cookie = dump_cookie(self.app.conf.magic_cookie_name, self.app.conf.magic_cookie)
+
+        attestation_object = (
+            'o2NmbXRmcGFja2VkZ2F0dFN0bXSjY2FsZyZjc2lnWEYwRAIgYveunFJbAigRE3KZ0jq8Av_fVO82NPR6'
+            'YLxr-PTBeb8CICzfv9hjw8Y4uln8JlROLeCt64v7HggN_I_GcQItOTGrY3g1Y4FZAd8wggHbMIIBfaAD'
+            'AgECAgEBMA0GCSqGSIb3DQEBCwUAMGAxCzAJBgNVBAYTAlVTMREwDwYDVQQKDAhDaHJvbWl1bTEiMCAG'
+            'A1UECwwZQXV0aGVudGljYXRvciBBdHRlc3RhdGlvbjEaMBgGA1UEAwwRQmF0Y2ggQ2VydGlmaWNhdGUw'
+            'HhcNMTcwNzE0MDI0MDAwWhcNNDIwNTA1MTE1NDE0WjBgMQswCQYDVQQGEwJVUzERMA8GA1UECgwIQ2hy'
+            'b21pdW0xIjAgBgNVBAsMGUF1dGhlbnRpY2F0b3IgQXR0ZXN0YXRpb24xGjAYBgNVBAMMEUJhdGNoIENl'
+            'cnRpZmljYXRlMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEjWF-ZclQjmS8xWc6yCpnmdo8FEZoLCWM'
+            'Rj__31jf0vo-bDeLU9eVxKTf-0GZ7deGLyOrrwIDtLiRG6BWmZThAaMlMCMwEwYLKwYBBAGC5RwCAQEE'
+            'BAMCBSAwDAYDVR0TAQH_BAIwADANBgkqhkiG9w0BAQsFAANJADBGAiEArKE7uJfWz1hGHaZmFOsVI-We'
+            '_0InOV5a2iYTY0B3MeYCIQD3YgB3fZ6rblVLxFz6oThec-VjDLmoaBqjCV9XlHKjNmhhdXRoRGF0YVik'
+            'xj7KDbeWdwEtucH8hAuBSeGOZxHTsdSGjUDkRxEYLMJFAAAAAQECAwQFBgcIAQIDBAUGBwgAIIDUjmjJ'
+            'kYbHD_WHo4odto2cGXooDmjgi24AqMK2pXilpQECAyYgASFYIHOTuF0ClvfK2HL2mSy9qNDdcNzGqeor'
+            'i69A4oXAE2DyIlggdDAxctibUevqhHEZbJ2rkxCogHE8k4Ma-F1R6k0zmFE'
+        )
+        client_data = (
+            'eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiX2VqYS1vT3Itdk1hZDJpdnNSYnNS'
+            'N09EUzVXdzAtNUg0QnQweVR0dzNSYyIsIm9yaWdpbiI6Imh0dHBzOi8vZGFzaGJvYXJkLmRldi5lZHVp'
+            'ZC5zZSIsImNyb3NzT3JpZ2luIjpmYWxzZX0'
+        )
+
+        with self.app.test_request_context(headers={'Cookie': cookie}):
+            authenticator_info = get_authenticator_information(attestation=attestation_object, client_data=client_data)
+        assert authenticator_info is not None
+
+        with self.app.test_request_context():
+            res = is_authenticator_mfa_approved(authenticator_info=authenticator_info)
+        assert res is False
