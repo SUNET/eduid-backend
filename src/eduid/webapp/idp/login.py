@@ -16,9 +16,8 @@ import pprint
 import time
 from base64 import b64encode
 from dataclasses import dataclass
-from datetime import timedelta
 from hashlib import sha256
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Mapping, Optional, Union
 from uuid import uuid4
 
 from defusedxml import ElementTree as DefusedElementTree
@@ -198,7 +197,7 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
 @dataclass
 class SAMLResponseParams:
     url: str
-    post_params: Dict[str, str]
+    post_params: Mapping[str, Optional[Union[str, bool]]]
     # Parameters for the old template realm
     binding: str
     http_args: HttpArgs
@@ -347,17 +346,26 @@ class SSO(Service):
 
         # INFO-Log the SSO session id and the AL and destination
         current_app.logger.info(f'{ticket.request_ref}: response authn={authn_info}, dst={destination}')
-        self._fticks_log(
-            relying_party=resp_args.get('sp_entity_id', destination),
-            authn_method=authn_info.class_ref,
-            user_id=str(user.user_id),
-        )
+        _used = ticket.pending_request.used
+        ticket.pending_request.used = True
+        if not _used:
+            self._fticks_log(
+                relying_party=resp_args.get('sp_entity_id', destination),
+                authn_method=authn_info.class_ref,
+                user_id=str(user.user_id),
+            )
 
         params = {
             'SAMLResponse': b64encode(str(saml_response).encode('utf-8')).decode('ascii'),
             'RelayState': ticket.RelayState,
+            'used': _used,
         }
-        return SAMLResponseParams(url=http_args.url, post_params=params, binding=binding, http_args=http_args)
+        return SAMLResponseParams(
+            url=http_args.url,
+            post_params=params,
+            binding=binding,
+            http_args=http_args,
+        )
 
     def _make_saml_response(
         self,

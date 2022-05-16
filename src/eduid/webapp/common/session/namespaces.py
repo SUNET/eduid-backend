@@ -162,6 +162,7 @@ class OnetimeCredential(Credential):
 
 class IdP_PendingRequest(BaseModel, ABC):
     aborted: Optional[bool] = False
+    used: Optional[bool] = False  # set to True after the request has been completed (to handle 'back' button presses)
     template_show_msg: Optional[str]  # set when the template version of the idp should show a message to the user
     # Credentials used while authenticating _this SAML request_. Not ones inherited from SSO.
     credentials_used: Dict[ElementKey, datetime] = Field(default={})

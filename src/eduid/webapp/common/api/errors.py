@@ -10,6 +10,7 @@ from eduid.common.misc.timeutil import utc_now
 
 class EduidErrorsContext(str, Enum):
     saml_response_fail = 'saml_response_fail'
+    saml_response_unsolicited = 'saml_response_unsolicited'
 
 
 def goto_errors_response(
