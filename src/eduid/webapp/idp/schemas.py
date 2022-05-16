@@ -65,7 +65,7 @@ class NextResponseSchema(FluxStandardAction):
 
         action = fields.Str(required=True)
         target = fields.Str(required=True)
-        parameters = fields.Dict(keys=fields.Str(), values=fields.Str(), required=False)
+        parameters = fields.Dict(keys=fields.Str(), required=False)
         authn_options = fields.Nested(AuthnOptionsResponsePayload, required=False)
         service_info = fields.Nested(ServiceInfoResponsePayload, required=False)
 

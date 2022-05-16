@@ -347,17 +347,26 @@ class SSO(Service):
 
         # INFO-Log the SSO session id and the AL and destination
         current_app.logger.info(f'{ticket.request_ref}: response authn={authn_info}, dst={destination}')
-        self._fticks_log(
-            relying_party=resp_args.get('sp_entity_id', destination),
-            authn_method=authn_info.class_ref,
-            user_id=str(user.user_id),
-        )
+        _used = ticket.pending_request.used
+        ticket.pending_request.used = True
+        if not _used:
+            self._fticks_log(
+                relying_party=resp_args.get('sp_entity_id', destination),
+                authn_method=authn_info.class_ref,
+                user_id=str(user.user_id),
+            )
 
         params = {
             'SAMLResponse': b64encode(str(saml_response).encode('utf-8')).decode('ascii'),
             'RelayState': ticket.RelayState,
+            'used': _used,
         }
-        return SAMLResponseParams(url=http_args.url, post_params=params, binding=binding, http_args=http_args)
+        return SAMLResponseParams(
+            url=http_args.url,
+            post_params=params,
+            binding=binding,
+            http_args=http_args,
+        )
 
     def _make_saml_response(
         self,
