@@ -152,20 +152,12 @@ def get_authn_response(
         response = client.parse_authn_request_response(raw_response, BINDING_HTTP_POST, outstanding_queries)
     except AssertionError:
         logger.error('SAML response is not verified')
-        raise BadSAMLResponse(
-            """SAML response is not verified. May be caused by the response
-            was not issued at a reasonable time or the SAML status is not ok.
-            Check the IDP datetime setup"""
-        )
+        raise BadSAMLResponse(EduidErrorsContext.saml_response_fail)
     except ParseError as e:
         logger.error(f'SAML response is not correctly formatted: {repr(e)}')
-        raise BadSAMLResponse(
-            """SAML response is not correctly formatted and therefore the
-            XML document could not be parsed.
-            """
-        )
+        raise BadSAMLResponse(EduidErrorsContext.saml_response_fail)
     except UnsolicitedResponse as e:
-        logger.exception('Unsolicited SAML response')
+        logger.error('Unsolicited SAML response')
         # Extra debug to try and find the cause for some of these that seem to be incorrect
         logger.debug(f'Session: {session}')
         logger.debug(f'Outstanding queries cache: {oq_cache}')
@@ -173,11 +165,11 @@ def get_authn_response(
         raise e
     except StatusError as e:
         logger.error(f'SAML response was a failure: {repr(e)}')
-        raise BadSAMLResponse(f'SAML response was a failure')
+        raise BadSAMLResponse(EduidErrorsContext.saml_response_fail)
 
     if response is None:
         logger.error('SAML response is None')
-        raise BadSAMLResponse('SAML response has errors')
+        raise BadSAMLResponse(EduidErrorsContext.saml_response_fail)
 
     session_id = response.session_id()
     oq_cache.delete(session_id)
@@ -306,13 +298,16 @@ def process_assertion(
     try:
         response, authn_ref = get_authn_response(current_app.saml2_config, sp_data, session, saml_response)
     except BadSAMLResponse as e:
+        current_app.logger.error(f'BadSAMLResponse: {e}')
         if current_app.conf.errors_url_template:
+            _ctx = EduidErrorsContext.saml_response_fail
+            if isinstance(e.args[0], EduidErrorsContext):
+                _ctx = e.args[0]
             return goto_errors_response(
                 current_app.conf.errors_url_template,
-                ctx=EduidErrorsContext.saml_response_fail,
+                ctx=_ctx,
                 rp=current_app.conf.app_name,
             )
-        current_app.logger.error(f'BadSAMLResponse: {e}')
         return make_response(str(e), 400)
 
     if authn_ref not in sp_data.authns:
