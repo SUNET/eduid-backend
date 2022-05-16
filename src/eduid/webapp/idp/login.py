@@ -16,9 +16,8 @@ import pprint
 import time
 from base64 import b64encode
 from dataclasses import dataclass
-from datetime import timedelta
 from hashlib import sha256
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Mapping, Optional, Union
 from uuid import uuid4
 
 from defusedxml import ElementTree as DefusedElementTree
@@ -198,7 +197,7 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
 @dataclass
 class SAMLResponseParams:
     url: str
-    post_params: Dict[str, str]
+    post_params: Mapping[str, Optional[Union[str, bool]]]
     # Parameters for the old template realm
     binding: str
     http_args: HttpArgs
