@@ -162,7 +162,7 @@ def get_authn_response(
         logger.debug(f'Session: {session}')
         logger.debug(f'Outstanding queries cache: {oq_cache}')
         logger.debug(f'Outstanding queries: {outstanding_queries}')
-        raise e
+        raise BadSAMLResponse(EduidErrorsContext.saml_response_unsolicited)
     except StatusError as e:
         logger.error(f'SAML response was a failure: {repr(e)}')
         raise BadSAMLResponse(EduidErrorsContext.saml_response_fail)
