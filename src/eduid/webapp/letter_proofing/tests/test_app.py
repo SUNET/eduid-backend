@@ -9,12 +9,11 @@ from typing import Any, Optional
 from flask import Response
 from mock import Mock, patch
 
-from eduid.userdb.locked_identity import LockedIdentityNin
-from eduid.userdb.nin import Nin
+from eduid.userdb import NinIdentity
+from eduid.userdb.identity import IdentityType
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.letter_proofing.app import init_letter_proofing_app
 from eduid.webapp.letter_proofing.helpers import LetterMsg
-from eduid.webapp.letter_proofing.settings.common import LetterProofingConfig
 
 __author__ = 'lundberg'
 
@@ -253,7 +252,13 @@ class LetterProofingTests(EduidAPITestCase):
             response2,
             type_='POST_LETTER_PROOFING_VERIFY_CODE_SUCCESS',
             payload={
-                'nins': [{'number': self.test_user_nin, 'primary': True, 'verified': True}],
+                'identities': [
+                    {
+                        'identity_type': IdentityType.NIN.value,
+                        'number': self.test_user_nin,
+                        'verified': True,
+                    }
+                ],
             },
         )
 
@@ -263,12 +268,7 @@ class LetterProofingTests(EduidAPITestCase):
         assert 1 == len(log_docs)
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.primary.number, self.test_user_nin)
-        self.assertEqual(user.nins.primary.number, proofing_state.nin.number)
-        self.assertEqual(user.nins.primary.created_by, proofing_state.nin.created_by)
-        self.assertEqual(user.nins.primary.verified_by, proofing_state.nin.created_by)
-        self.assertEqual(user.nins.primary.verified_ts, log_docs[0]['created_ts'])
-        self.assertEqual(user.nins.primary.is_verified, True)
+        self._check_nin_verified_ok(user=user, proofing_state=proofing_state, number=self.test_user_nin)
 
     def test_verify_letter_code_bad_csrf(self):
         self.send_letter(self.test_user_nin)
@@ -303,16 +303,12 @@ class LetterProofingTests(EduidAPITestCase):
         self.verify_code(proofing_state.nin.verification_code, None)
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.primary.number, self.test_user_nin)
-        self.assertEqual(user.nins.primary.created_by, proofing_state.nin.created_by)
-        self.assertEqual(user.nins.primary.verified_by, proofing_state.nin.created_by)
-        self.assertEqual(user.nins.primary.is_verified, True)
-        self.assertEqual(self.app.proofing_log.db_count(), 1)
+        self._check_nin_verified_ok(user=user, proofing_state=proofing_state, number=self.test_user_nin)
 
     def test_proofing_flow_previously_added_nin(self):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        not_verified_nin = Nin(number=self.test_user_nin, created_by='test', is_verified=False, is_primary=False)
-        user.nins.add(not_verified_nin)
+        not_verified_nin = NinIdentity(number=self.test_user_nin, created_by='test', is_verified=False)
+        user.identities.add(not_verified_nin)
         self.app.central_userdb.save(user)
 
         self.send_letter(self.test_user_nin)
@@ -320,11 +316,9 @@ class LetterProofingTests(EduidAPITestCase):
         self.verify_code(proofing_state.nin.verification_code, None)
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.primary.number, self.test_user_nin)
-        self.assertEqual(user.nins.primary.created_by, not_verified_nin.created_by)
-        self.assertEqual(user.nins.primary.verified_by, proofing_state.nin.created_by)
-        self.assertEqual(user.nins.primary.is_verified, True)
-        self.assertEqual(self.app.proofing_log.db_count(), 1)
+        self._check_nin_verified_ok(
+            user=user, proofing_state=proofing_state, number=self.test_user_nin, created_by=not_verified_nin.created_by
+        )
 
     def test_proofing_flow_previously_added_wrong_nin(self):
         # Send letter to correct nin
@@ -332,22 +326,18 @@ class LetterProofingTests(EduidAPITestCase):
 
         # Remove correct unverified nin and add wrong nin
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        user.nins.remove(self.test_user_nin)
-        not_verified_nin = Nin(number=self.test_user_wrong_nin, created_by='test', is_verified=False, is_primary=False)
-        user.nins.add(not_verified_nin)
+        user.identities.remove(IdentityType.NIN)
+        not_verified_nin = NinIdentity(number=self.test_user_wrong_nin, created_by='test', is_verified=False)
+        user.identities.add(not_verified_nin)
         self.app.central_userdb.save(user)
 
         # Time passes, user gets code in the mail. Enters code.
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(user.eppn)
-        response = self.verify_code(proofing_state.nin.verification_code, None)
+        self.verify_code(proofing_state.nin.verification_code, None)
 
         # Now check that the (now verified) NIN on the user is back to the one used to request the letter
-        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.primary.number, self.test_user_nin)
-        self.assertEqual(user.nins.primary.created_by, proofing_state.nin.created_by)
-        self.assertEqual(user.nins.primary.verified_by, proofing_state.nin.created_by)
-        self.assertEqual(user.nins.primary.is_verified, True)
-        self.assertEqual(self.app.proofing_log.db_count(), 1)
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        self._check_nin_verified_ok(user=user, proofing_state=proofing_state, number=self.test_user_nin)
 
     def test_expire_proofing_state(self):
         self.send_letter(self.test_user_nin)
@@ -401,7 +391,7 @@ class LetterProofingTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
         # User with locked_identity and correct nin
-        user.locked_identity.add(LockedIdentityNin(number=self.test_user_nin, created_by='test'))
+        user.locked_identity.add(NinIdentity(number=self.test_user_nin, created_by='test'))
         self.app.central_userdb.save(user, check_sync=False)
         with self.session_cookie(self.browser, self.test_user_eppn):
             response = self.send_letter(self.test_user_nin)
@@ -413,7 +403,7 @@ class LetterProofingTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
-        user.locked_identity.add(LockedIdentityNin(number=self.test_user_nin, created_by='test'))
+        user.locked_identity.add(NinIdentity(number=self.test_user_nin, created_by='test'))
         self.app.central_userdb.save(user, check_sync=False)
 
         # User with locked_identity and incorrect nin
@@ -534,10 +524,8 @@ class LetterProofingTests(EduidAPITestCase):
     def test_proofing_with_a_verified_nin(self):
         """Test that no letter is sent when the user already has a verified NIN"""
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        verified_nin = Nin(
-            number=self.test_user_nin, created_by='test', is_verified=True, verified_by='test', is_primary=True
-        )
-        user.nins.add(verified_nin)
+        verified_nin = NinIdentity(number=self.test_user_nin, created_by='test', is_verified=True, verified_by='test')
+        user.identities.add(verified_nin)
         self.app.central_userdb.save(user)
 
         response = self.send_letter(self.test_user_nin, validate_response=False)

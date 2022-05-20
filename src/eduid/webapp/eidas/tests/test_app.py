@@ -14,7 +14,8 @@ from flask.testing import FlaskClient
 from mock import patch
 
 from eduid.common.config.base import EduidEnvironment
-from eduid.userdb import LockedIdentityNin, Nin
+from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, OfficialAddress
+from eduid.userdb import NinIdentity
 from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.credentials.external import SwedenConnectCredential
 from eduid.userdb.credentials.fido import FidoCredential, WebauthnAuthenticator
@@ -49,6 +50,7 @@ class EidasTests(EduidAPITestCase):
         self.test_user_wrong_nin = '190001021234'
         self.test_backdoor_nin = '190102031234'
         self.test_idp = 'https://idp.example.com/simplesaml/saml2/idp/metadata.php'
+        self.default_redirect_url = 'http://redirect.localhost/redirect'
 
         self.saml_response_tpl_success = """<?xml version='1.0' encoding='UTF-8'?>
 <samlp:Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Destination="{sp_url}saml2-acs" ID="id-88b9f586a2a3a639f9327485cc37c40a" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
@@ -170,12 +172,12 @@ class EidasTests(EduidAPITestCase):
         self.request_user_sync(user)
         return mfa_token
 
-    def add_nin_to_user(self, eppn: str, nin: str, verified: bool) -> Nin:
+    def add_nin_to_user(self, eppn: str, nin: str, verified: bool) -> NinIdentity:
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         # please mypy
         assert user is not None
-        nin_element = Nin(number=nin, created_by='test', is_verified=verified)
-        user.nins.add(nin_element)
+        nin_element = NinIdentity(number=nin, created_by='test', is_verified=verified)
+        user.identities.add(nin_element)
         self.request_user_sync(user)
         return nin_element
 
@@ -232,7 +234,7 @@ class EidasTests(EduidAPITestCase):
         session: EduidSession,
         action: EidasAcsAction,
         req_id: Optional[str] = None,
-        relay_state: str = '/',
+        relay_state: str = 'relay_state',
         verify_token: Optional[ElementKey] = None,
         credentials_used: Optional[List[ElementKey]] = None,
     ) -> None:
@@ -247,14 +249,18 @@ class EidasTests(EduidAPITestCase):
         if credentials_used is not None:
             self._setup_faked_login(session=session, credentials_used=credentials_used)
 
-    def _setup_faked_login(self, session: EduidSession, credentials_used: List[ElementKey]) -> None:
+    def _setup_faked_login(
+        self, session: EduidSession, credentials_used: List[ElementKey], redirect_url: Optional[str] = None
+    ) -> None:
         logger.debug(f'Test setting credentials used for login in session {session}: {credentials_used}')
         _authn_id = AuthnRequestRef(str(uuid4()))
+        if redirect_url is None:
+            redirect_url = self.default_redirect_url
         session.authn.sp.authns[_authn_id] = SP_AuthnRequest(
             post_authn_action=AuthnAcsAction.login,
             credentials_used=credentials_used,
             authn_instant=utc_now(),
-            redirect_url='/',
+            redirect_url=redirect_url,
         )
 
     def _get_request_id_from_session(self, session: EduidSession) -> Tuple[str, AuthnRequestRef]:
@@ -269,7 +275,11 @@ class EidasTests(EduidAPITestCase):
         return saml_req_id, req_ref
 
     def _verify_redirect_url(
-        self, response: Response, expect_msg: TranslatableMsg, expect_error: bool, expect_redirect_url: str
+        self,
+        response: Response,
+        expect_msg: TranslatableMsg,
+        expect_error: bool,
+        expect_redirect_url: Optional[str],
     ) -> None:
         assert response.status_code == 302
 
@@ -278,8 +288,9 @@ class EidasTests(EduidAPITestCase):
         ps = urlparse(response.location)
         # Check the base part of the URL (everything except the query string)
         _ps = ps._replace(query='')  # type: ignore
-        redirect_url_no_params = urlunparse(_ps)
-        assert redirect_url_no_params == expect_redirect_url
+        if expect_redirect_url is not None:
+            redirect_url_no_params = urlunparse(_ps)
+            assert redirect_url_no_params == expect_redirect_url
         # Check the msg in the query string
         qs = parse_qs(str(ps.query))
         if expect_error:
@@ -297,8 +308,6 @@ class EidasTests(EduidAPITestCase):
         locked_nin: Optional[str] = None,
         nin_present: bool = True,
         nin_verified: bool = False,
-        num_verified_nins: Optional[int] = None,
-        at_least_one_verified_nin: Optional[bool] = None,
     ):
         """This function is used to verify a user's parameters at the start of a test case,
         and then again at the end to ensure the right set of changes occurred to the user in the database.
@@ -313,31 +322,23 @@ class EidasTests(EduidAPITestCase):
             assert user_mfa_tokens[0].is_verified == is_verified, 'User token unexpected is_verified'
         assert self.app.proofing_log.db_count() == num_proofings, 'Unexpected number of proofings in db'
 
-        if num_verified_nins is not None:
-            # Check number of verified nins
-            assert (
-                len(user.nins.verified) == num_verified_nins
-            ), f'User does not have {num_verified_nins} verified NINs (has {len(user.nins.verified)})'
-
-        if at_least_one_verified_nin is True:
-            assert len(user.nins.verified) != 0, 'User was expected to have at least one verified NIN'
-
         if nin is not None:
             # Check parameters of a specific nin
-            _match = [x for x in user.nins.to_list() if x.number == nin]
             if not nin_present:
-                assert not _match, f'NIN {nin} not expected to be present on user'
+                assert user.identities.nin != nin, f'NIN {nin} not expected to be present on user'
                 return None
-            assert _match, f'NIN {nin} not present on user'
-            _nin = _match[0]
-            assert isinstance(_nin, Nin)
-            assert _nin.is_verified == nin_verified, f'{_nin.number} was expected to be verified={nin_verified}'
+            assert user.identities.nin is not None, f'NIN {nin} not present on user'
+            assert user.identities.nin.number == nin
+            assert isinstance(user.identities.nin, NinIdentity)
+            assert (
+                user.identities.nin.is_verified == nin_verified
+            ), f'{user.identities.nin.number} was expected to be verified={nin_verified}'
 
         if locked_nin is not None:
             # Check parameters of a specific locked nin
-            locked_identity = user.locked_identity.find('nin')
+            locked_identity = user.locked_identity.nin
             assert locked_identity is not None, f'locked NIN {locked_nin} not present'
-            if isinstance(locked_identity, LockedIdentityNin):
+            if isinstance(locked_identity, NinIdentity):
                 assert (
                     locked_identity.number == locked_nin
                 ), f'locked NIN {locked_identity.number} not matching {locked_nin}'
@@ -356,8 +357,6 @@ class EidasTests(EduidAPITestCase):
         expect_redirect_url: Optional[str] = None,
         browser: Optional[FlaskClient] = None,
     ) -> None:
-        if expect_redirect_url is None:
-            expect_redirect_url = self.app.conf.action_url
         return self._call_endpoint_and_saml_acs(
             endpoint=endpoint,
             eppn=eppn,
@@ -409,7 +408,7 @@ class EidasTests(EduidAPITestCase):
         endpoint: str,
         eppn: Optional[str],
         expect_msg: TranslatableMsg,
-        expect_redirect_url: str,
+        expect_redirect_url: Optional[str] = None,
         expect_mfa_action_error: Optional[MfaActionError] = None,
         expect_error: bool = False,
         expect_saml_error: bool = False,
@@ -433,8 +432,7 @@ class EidasTests(EduidAPITestCase):
             response_template = self.saml_response_tpl_success
 
         if next_url is None:
-            next_url = self.app.conf.action_url
-        next_url = quote_plus(bytes(next_url, 'utf-8'))
+            next_url = self.default_redirect_url
 
         if browser is None:
             browser = self.browser
@@ -453,7 +451,9 @@ class EidasTests(EduidAPITestCase):
                     # the user is at least partial logged in at this stage
                     sess.common.eppn = eppn
 
-            _url = f'{endpoint}/?idp={self.test_idp}&next={next_url}'
+            _url = f'{endpoint}/?idp={self.test_idp}'
+            if next_url is not None:
+                _url = f'{_url}&next={quote_plus(bytes(next_url, "utf-8"))}'
             logger.debug(f'Test fetching url: {_url}')
             response = browser.get(_url)  # type: ignore
             logger.debug(f'Test fetched url {_url}, response: {response}')
@@ -570,7 +570,7 @@ class EidasTests(EduidAPITestCase):
         nin = self.test_user_nin
         credential = self.add_token_to_user(eppn, 'test', 'webauthn')
 
-        self._verify_user_parameters(eppn, num_verified_nins=0)
+        self._verify_user_parameters(eppn, nin_verified=False)
 
         self.verify_token(
             endpoint=f'/verify-token/{credential.key}',
@@ -583,7 +583,7 @@ class EidasTests(EduidAPITestCase):
 
         # Verify the user now has a verified NIN
         self._verify_user_parameters(
-            eppn, is_verified=True, num_proofings=2, num_verified_nins=1, nin=nin, nin_verified=True
+            eppn, is_verified=True, num_proofings=2, nin_present=True, nin=nin, nin_verified=True
         )
 
     def test_mfa_token_verify_no_mfa_login(self):
@@ -710,7 +710,7 @@ class EidasTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, num_verified_nins=0)
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, nin_verified=False)
 
         self.reauthn(
             '/verify-nin',
@@ -719,14 +719,41 @@ class EidasTests(EduidAPITestCase):
             expect_redirect_url='http://test.localhost/profile',
         )
 
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, num_verified_nins=1, num_proofings=1)
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, nin_verified=True, num_proofings=1)
+
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
+    def test_nin_verify_no_official_address(self, mock_request_user_sync, mock_get_all_navet_data):
+        mock_get_all_navet_data.return_value = self._get_all_navet_data()
+        # add empty official address and deregistration information as for a user that has emigrated
+        mock_get_all_navet_data.return_value.person.postal_addresses.official_address = OfficialAddress()
+        mock_get_all_navet_data.return_value.person.deregistration_information = DeregistrationInformation(
+            date='20220509', cause_code=DeregisteredCauseCode.EMIGRATED
+        )
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        eppn = self.test_unverified_user_eppn
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, nin_verified=False)
+
+        self.reauthn(
+            '/verify-nin',
+            expect_msg=EidasMsg.nin_verify_success,
+            eppn=eppn,
+            expect_redirect_url='http://test.localhost/profile',
+        )
+
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, nin_verified=True, num_proofings=1)
+        # check proofing log
+        doc = self.app.proofing_log._get_documents_by_attr(attr='eduPersonPrincipalName', value=eppn)[0]
+        assert doc['user_postal_address']['official_address'] == {}
+        assert doc['deregistration_information']['cause_code'] == 'UV'
 
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_mfa_login(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, num_verified_nins=2)
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, nin_verified=True)
 
         self.reauthn(
             '/mfa-authentication',
@@ -737,11 +764,11 @@ class EidasTests(EduidAPITestCase):
             expect_redirect_url='http://idp.test.localhost/mfa-step',
         )
 
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, num_verified_nins=2, num_proofings=0)
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, nin_verified=True, num_proofings=0)
 
     def test_mfa_login_no_nin(self):
         eppn = self.test_unverified_user_eppn
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, num_verified_nins=0, is_verified=False)
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, nin_verified=False, is_verified=False)
 
         self.reauthn(
             '/mfa-authentication',
@@ -753,7 +780,7 @@ class EidasTests(EduidAPITestCase):
             expect_redirect_url='http://idp.test.localhost/mfa-step',
         )
 
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, num_verified_nins=0, num_proofings=0)
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, nin_verified=False, num_proofings=0)
 
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
@@ -764,11 +791,11 @@ class EidasTests(EduidAPITestCase):
 
         # Add locked nin to user
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        locked_nin = LockedIdentityNin(created_by='test', number=self.test_user_nin)
+        locked_nin = NinIdentity(created_by='test', number=self.test_user_nin)
         user.locked_identity.add(locked_nin)
         self.app.central_userdb.save(user)
 
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, num_verified_nins=0, is_verified=False)
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, nin_verified=False, is_verified=False)
 
         self.reauthn(
             '/mfa-authentication',
@@ -779,7 +806,7 @@ class EidasTests(EduidAPITestCase):
             expect_redirect_url='http://idp.test.localhost/mfa-step',
         )
 
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, num_verified_nins=1, num_proofings=1)
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, nin_verified=True, num_proofings=1)
 
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_mfa_login_backdoor(self, mock_request_user_sync):
@@ -791,7 +818,7 @@ class EidasTests(EduidAPITestCase):
         # add verified magic cookie nin to user
         self.add_nin_to_user(eppn=eppn, nin=nin, verified=True)
 
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, nin=nin, num_verified_nins=1, nin_verified=True)
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, nin=nin, nin_verified=True)
 
         self.app.conf.magic_cookie = 'magic-cookie'
         with self.session_cookie(self.browser, eppn) as browser:
@@ -807,7 +834,7 @@ class EidasTests(EduidAPITestCase):
                 browser=browser,
             )
 
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, num_verified_nins=1, num_proofings=0)
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, nin_verified=True, num_proofings=0)
 
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_nin_verify_backdoor(self, mock_request_user_sync: Any):
@@ -815,7 +842,7 @@ class EidasTests(EduidAPITestCase):
 
         eppn = self.test_unverified_user_eppn
         nin = self.test_backdoor_nin
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, num_verified_nins=0)
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, nin_verified=False)
 
         self.app.conf.magic_cookie = 'magic-cookie'
 
@@ -830,9 +857,7 @@ class EidasTests(EduidAPITestCase):
                 browser=browser,
             )
 
-        self._verify_user_parameters(
-            eppn, num_mfa_tokens=0, num_verified_nins=1, nin=nin, nin_verified=True, num_proofings=1
-        )
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, nin=nin, nin_verified=True, num_proofings=1)
 
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
@@ -843,7 +868,7 @@ class EidasTests(EduidAPITestCase):
         eppn = self.test_unverified_user_eppn
         nin = self.test_backdoor_nin
 
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, num_verified_nins=0)
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, nin_verified=False)
 
         self.app.conf.magic_cookie = 'magic-cookie'
         self.app.conf.environment = EduidEnvironment.production
@@ -860,9 +885,7 @@ class EidasTests(EduidAPITestCase):
             )
 
         # the tests checks that the default nin was verified and not the nin set in the test cookie
-        self._verify_user_parameters(
-            eppn, nin=self.test_user_nin, num_mfa_tokens=0, num_verified_nins=1, num_proofings=1, nin_verified=True
-        )
+        self._verify_user_parameters(eppn, nin=self.test_user_nin, num_mfa_tokens=0, num_proofings=1, nin_verified=True)
 
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
@@ -873,7 +896,7 @@ class EidasTests(EduidAPITestCase):
         eppn = self.test_unverified_user_eppn
         nin = self.test_backdoor_nin
 
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, num_verified_nins=0)
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, nin_verified=False)
 
         self.app.conf.magic_cookie = 'magic-cookie'
 
@@ -889,9 +912,7 @@ class EidasTests(EduidAPITestCase):
             )
 
         # the tests checks that the default nin was verified and not the nin set in the test cookie
-        self._verify_user_parameters(
-            eppn, nin=self.test_user_nin, num_mfa_tokens=0, num_verified_nins=1, num_proofings=1, nin_verified=True
-        )
+        self._verify_user_parameters(eppn, nin=self.test_user_nin, num_mfa_tokens=0, num_proofings=1, nin_verified=True)
 
     def test_nin_verify_already_verified(self):
         # Verify that the test user has a verified NIN in the database already
@@ -900,7 +921,7 @@ class EidasTests(EduidAPITestCase):
         self._verify_user_parameters(eppn, num_mfa_tokens=0, nin=nin, nin_verified=True)
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        assert len(user.nins.verified) != 0
+        assert user.identities.nin.is_verified is True
 
         self.reauthn(
             '/verify-nin',
@@ -915,7 +936,7 @@ class EidasTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        assert len(user.nins.verified) != 0, 'User was expected to have a verified NIN'
+        assert user.identities.nin.is_verified is True, 'User was expected to have a verified NIN'
 
         assert user.credentials.filter(SwedenConnectCredential) == []
         credentials_before = user.credentials.to_list()
@@ -923,7 +944,7 @@ class EidasTests(EduidAPITestCase):
         self.reauthn(
             endpoint='/mfa-authentication',
             expect_msg=EidasMsg.action_completed,
-            expect_redirect_url=self.app.conf.action_url,
+            expect_redirect_url=self.default_redirect_url,
         )
 
         # Verify that an ExternalCredential was added
@@ -938,15 +959,17 @@ class EidasTests(EduidAPITestCase):
     def test_mfa_authentication_too_old_authn_instant(self):
         self.reauthn(
             endpoint='/mfa-authentication',
+            next_url=self.default_redirect_url,
             age=61,
             expect_msg=EidasMsg.reauthn_expired,
             expect_mfa_action_error=MfaActionError.authn_too_old,
             expect_error=True,
+            expect_redirect_url=self.default_redirect_url,
         )
 
     def test_mfa_authentication_wrong_nin(self):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        assert len(user.nins.verified) != 0, 'User was expected to have a verified NIN'
+        assert user.identities.nin.is_verified is True, 'User was expected to have a verified NIN'
 
         self.reauthn(
             endpoint='/mfa-authentication',
@@ -967,7 +990,7 @@ class EidasTests(EduidAPITestCase):
         self.app.conf.environment = EduidEnvironment.staging
         self.app.conf.staging_nin_map = {self.test_user_nin: remapped_nin}
 
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, num_verified_nins=0, nin=remapped_nin, nin_present=False)
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, nin_verified=False, nin=remapped_nin, nin_present=False)
 
         self.reauthn(
             '/verify-nin',
@@ -977,9 +1000,7 @@ class EidasTests(EduidAPITestCase):
             nin=self.test_user_nin,
         )
 
-        self._verify_user_parameters(
-            eppn, num_mfa_tokens=0, num_verified_nins=1, nin=remapped_nin, nin_verified=True, num_proofings=1
-        )
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, nin=remapped_nin, nin_verified=True, num_proofings=1)
 
 
 class RedirectWithMsgTests(TestCase):

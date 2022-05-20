@@ -189,8 +189,8 @@ class ResetPasswordTests(EduidAPITestCase):
         assert user is not None
         verified_phone_numbers = user.phone_numbers.verified
         self.assertEqual(len(verified_phone_numbers), 1)
-        verified_nins = user.nins.verified
-        self.assertEqual(len(verified_nins), 2)
+        assert user.identities.nin is not None
+        assert user.identities.nin.is_verified is True
 
         response = self._post_email_address(data1=data1)
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
@@ -548,8 +548,8 @@ class ResetPasswordTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         verified_phone_numbers = user.phone_numbers.verified
         self.assertEqual(1, len(verified_phone_numbers))
-        verified_nins = user.nins.verified
-        self.assertEqual(2, len(verified_nins))
+        verified_identities = user.identities.verified
+        self.assertEqual(2, len(verified_identities))
 
     def test_get_zxcvbn_terms(self):
         with self.app.test_request_context():
@@ -679,9 +679,9 @@ class ResetPasswordTests(EduidAPITestCase):
         # Remove all verified phone numbers
         for number in user.phone_numbers.verified:
             user.phone_numbers.remove_handling_primary(number.key)
-        # Remove all verified nins
-        for nin in user.nins.verified:
-            user.nins.remove_handling_primary(nin.key)
+        # Remove all verified identities
+        for identity in user.identities.verified:
+            user.identities.remove(identity.identity_type)
         self.app.central_userdb.save(user)
         response = self._post_reset_code()
         self._check_success_response(
@@ -772,8 +772,8 @@ class ResetPasswordTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         verified_phone_numbers = user.phone_numbers.verified
         self.assertEqual(len(verified_phone_numbers), 0)
-        verified_nins = user.nins.verified
-        self.assertEqual(len(verified_nins), 0)
+        verified_identities = user.identities.verified
+        self.assertEqual(len(verified_identities), 0)
 
         # check that the password is marked as generated
         self.assertTrue(user.credentials.to_list()[0].is_generated)
@@ -817,8 +817,8 @@ class ResetPasswordTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         verified_phone_numbers = user.phone_numbers.verified
         self.assertEqual(len(verified_phone_numbers), 1)
-        verified_nins = user.nins.verified
-        self.assertEqual(len(verified_nins), 2)
+        verified_identities = user.identities.verified
+        self.assertEqual(len(verified_identities), 2)
 
     def test_post_reset_password_custom(self):
         data2 = {'password': 'cust0m-p4ssw0rd'}
@@ -901,8 +901,8 @@ class ResetPasswordTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         verified_phone_numbers = user.phone_numbers.verified
         self.assertEqual(1, len(verified_phone_numbers))
-        verified_nins = user.nins.verified
-        self.assertEqual(2, len(verified_nins))
+        verified_identities = user.identities.verified
+        self.assertEqual(len(verified_identities), 2)
 
     @patch('eduid.webapp.reset_password.views.reset_password.verify_phone_number')
     def test_post_reset_password_secure_phone_verify_fail(self, mock_verify: Any):
@@ -956,8 +956,8 @@ class ResetPasswordTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         verified_phone_numbers = user.phone_numbers.verified
         self.assertEqual(1, len(verified_phone_numbers))
-        verified_nins = user.nins.verified
-        self.assertEqual(2, len(verified_nins))
+        verified_identities = user.identities.verified
+        self.assertEqual(len(verified_identities), 2)
 
     def test_post_reset_password_secure_token_custom_pw(self):
         response = self._post_reset_password_secure_token(custom_password='T%7j 8/tT a0=b')
@@ -1033,8 +1033,8 @@ class ResetPasswordTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         verified_phone_numbers = user.phone_numbers.verified
         self.assertEqual(1, len(verified_phone_numbers))
-        verified_nins = user.nins.verified
-        self.assertEqual(2, len(verified_nins))
+        verified_identities = user.identities.verified
+        self.assertEqual(len(verified_identities), 2)
 
     def test_post_reset_password_secure_external_mfa_no_mfa_auth(self):
         external_mfa_state = {'success': False, 'issuer': None}

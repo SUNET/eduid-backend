@@ -37,6 +37,8 @@ from typing import Any, Dict, Mapping, Optional
 from flask import Response
 from mock import patch
 
+from eduid.userdb.element import ElementKey
+from eduid.userdb.identity import IdentityType
 from eduid.webapp.common.api.exceptions import ApiException
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.personal_data.app import PersonalDataApp, pd_init_app
@@ -102,11 +104,11 @@ class PersonalDataTests(EduidAPITestCase):
         eppn = self.test_user_data['eduPersonPrincipalName']
 
         if not verified_user:
-            # Remove all verified nins from the users
+            # Remove verified identities from the users
             user = self.app.central_userdb.get_user_by_eppn(eppn)
             assert user is not None  # please mypy
-            for verified_nin in user.nins.verified:
-                user.nins.remove_handling_primary(verified_nin.key)
+            for identity in user.identities.to_list():
+                user.identities.remove(ElementKey(identity.identity_type.value))
             self.app.central_userdb.save(user)
 
         with self.session_cookie(self.browser, eppn) as client:
@@ -123,18 +125,18 @@ class PersonalDataTests(EduidAPITestCase):
                     data.update(mod_data)
             return client.post('/user', data=json.dumps(data), content_type=self.content_type_json)
 
-    def _get_user_nins(self, eppn: Optional[str] = None):
+    def _get_user_identities(self, eppn: Optional[str] = None):
         """
-        GET a list of all the nins of some user
+        GET a list of all the identities of a user
 
         :param eppn: the eppn of the user
         """
-        response = self.browser.get('/nins')
+        response = self.browser.get('/identities')
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
         eppn = eppn or self.test_user_data['eduPersonPrincipalName']
         with self.session_cookie(self.browser, eppn) as client:
-            response2 = client.get('/nins')
+            response2 = client.get('/identities')
             return response2
 
     # actual test methods
@@ -156,7 +158,7 @@ class PersonalDataTests(EduidAPITestCase):
 
     def test_get_user_all_data(self):
         response = self._get_user_all_data(eppn='hubba-bubba')
-
+        tmp = response.json
         expected_payload = {
             'display_name': 'John Smith',
             'emails': [
@@ -170,9 +172,14 @@ class PersonalDataTests(EduidAPITestCase):
                 'university': {'ladok_name': 'DEV', 'name': {'en': 'Test University', 'sv': 'Testlärosäte'}},
             },
             'language': 'en',
-            'nins': [
-                {'number': '197801011234', 'primary': True, 'verified': True},
-                {'number': '197801011235', 'primary': False, 'verified': True},
+            'identities': [
+                {'identity_type': IdentityType.NIN.value, 'number': '197801011234', 'verified': True},
+                {
+                    'identity_type': IdentityType.EIDAS.value,
+                    'prid': 'unique/prid/string/1',
+                    'prid_persistence': 'B',
+                    'verified': True,
+                },
             ],
             'phones': [
                 {'number': '+34609609609', 'primary': True, 'verified': True},
@@ -262,12 +269,17 @@ class PersonalDataTests(EduidAPITestCase):
         expected_payload = {'error': {'language': ['Language \'es\' is not available']}}
         self._check_error_response(response, type_='POST_PERSONAL_DATA_USER_FAIL', payload=expected_payload)
 
-    def test_get_user_nins(self):
-        response = self._get_user_nins()
+    def test_get_user_identities(self):
+        response = self._get_user_identities()
         expected_payload = {
-            'nins': [
-                {'number': '197801011234', 'primary': True, 'verified': True},
-                {'number': '197801011235', 'primary': False, 'verified': True},
-            ]
+            'identities': [
+                {'identity_type': IdentityType.NIN.value, 'number': '197801011234', 'verified': True},
+                {
+                    'identity_type': IdentityType.EIDAS.value,
+                    'prid': 'unique/prid/string/1',
+                    'prid_persistence': 'B',
+                    'verified': True,
+                },
+            ],
         }
-        self._check_success_response(response, type_='GET_PERSONAL_DATA_NINS_SUCCESS', payload=expected_payload)
+        self._check_success_response(response, type_='GET_PERSONAL_DATA_IDENTITIES_SUCCESS', payload=expected_payload)

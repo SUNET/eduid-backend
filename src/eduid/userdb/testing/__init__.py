@@ -182,6 +182,7 @@ class MongoTestCase(unittest.TestCase):
         :return:
         """
         super().setUp()
+        self.maxDiff = None
         self.tmp_db = MongoTemporaryInstance.get_instance()
         assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
         self.amdb = AmDB(self.tmp_db.uri)

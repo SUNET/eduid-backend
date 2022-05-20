@@ -3,14 +3,13 @@ import binascii
 import json
 import time
 from collections import OrderedDict
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from jose import jws as jose
 from mock import patch
 
-from eduid.userdb.exceptions import DocumentDoesNotExist
-from eduid.userdb.locked_identity import LockedIdentityNin
-from eduid.userdb.nin import Nin
+from eduid.userdb import NinIdentity, User
+from eduid.userdb.proofing import OidcProofingState
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.oidc_proofing.app import OIDCProofingApp, init_oidc_proofing_app
 from eduid.webapp.oidc_proofing.helpers import create_proofing_state, handle_freja_eid_userinfo
@@ -210,11 +209,7 @@ class OidcProofingTests(EduidAPITestCase):
         self.mock_authorization_response(qrdata, proofing_state, userinfo)
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.primary.number, self.test_user_nin)
-        self.assertEqual(user.nins.primary.created_by, proofing_state.nin.created_by)
-        self.assertEqual(user.nins.primary.verified_by, proofing_state.nin.created_by)
-        self.assertEqual(user.nins.primary.is_verified, True)
-        self.assertEqual(self.app.proofing_log.db_count(), 1)
+        self._check_nin_verified_ok(user=user, proofing_state=proofing_state)
 
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
     @patch('eduid.webapp.oidc_proofing.helpers.do_authn_request')
@@ -257,9 +252,7 @@ class OidcProofingTests(EduidAPITestCase):
         self.mock_authorization_response(qrdata, proofing_state, userinfo)
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.count, 1)
-        self.assertEqual(user.nins.verified, [])
-        self.assertEqual(self.app.proofing_log.db_count(), 0)
+        self._check_nin_not_verified_ok(user=user)
 
     @patch('eduid.webapp.oidc_proofing.helpers.do_authn_request')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
@@ -270,8 +263,8 @@ class OidcProofingTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
-        not_verified_nin = Nin(number=self.test_user_nin, created_by='test', is_verified=False, is_primary=False)
-        user.nins.add(not_verified_nin)
+        not_verified_nin = NinIdentity(number=self.test_user_nin, created_by='test', is_verified=False)
+        user.identities.add(not_verified_nin)
         self.app.central_userdb.save(user)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -304,11 +297,7 @@ class OidcProofingTests(EduidAPITestCase):
         self.mock_authorization_response(qrdata, proofing_state, userinfo)
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.primary.number, self.test_user_nin)
-        self.assertEqual(user.nins.primary.created_by, not_verified_nin.created_by)
-        self.assertEqual(user.nins.primary.verified_by, proofing_state.nin.created_by)
-        self.assertEqual(user.nins.primary.is_verified, True)
-        self.assertEqual(self.app.proofing_log.db_count(), 1)
+        self._check_nin_verified_ok(user=user, proofing_state=proofing_state, created_by=not_verified_nin.created_by)
 
     @patch('eduid.webapp.oidc_proofing.helpers.do_authn_request')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
@@ -321,8 +310,8 @@ class OidcProofingTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
-        not_verified_nin = Nin(number=self.test_user_wrong_nin, created_by='test', is_verified=False, is_primary=False)
-        user.nins.add(not_verified_nin)
+        not_verified_nin = NinIdentity(number=self.test_user_wrong_nin, created_by='test', is_verified=False)
+        user.identities.add(not_verified_nin)
         self.app.central_userdb.save(user)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -355,11 +344,7 @@ class OidcProofingTests(EduidAPITestCase):
         self.mock_authorization_response(qrdata, proofing_state, userinfo)
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.primary.number, self.test_user_nin)
-        self.assertEqual(user.nins.primary.created_by, proofing_state.nin.created_by)
-        self.assertEqual(user.nins.primary.verified_by, proofing_state.nin.created_by)
-        self.assertEqual(user.nins.primary.is_verified, True)
-        self.assertEqual(self.app.proofing_log.db_count(), 1)
+        self._check_nin_verified_ok(user=user, proofing_state=proofing_state)
 
     @patch('eduid.webapp.oidc_proofing.helpers.do_authn_request')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
@@ -402,11 +387,7 @@ class OidcProofingTests(EduidAPITestCase):
         with self.app.app_context():
             handle_freja_eid_userinfo(user, proofing_state, userinfo)
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.primary.number, self.test_user_nin)
-        self.assertEqual(user.nins.primary.created_by, proofing_state.nin.created_by)
-        self.assertEqual(user.nins.primary.verified_by, proofing_state.nin.created_by)
-        self.assertEqual(user.nins.primary.is_verified, True)
-        self.assertEqual(self.app.proofing_log.db_count(), 1)
+        self._check_nin_verified_ok(user=user, proofing_state=proofing_state)
 
     @patch('eduid.webapp.oidc_proofing.helpers.do_authn_request')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
@@ -417,8 +398,8 @@ class OidcProofingTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
-        not_verified_nin = Nin(number=self.test_user_nin, created_by='test', is_verified=False, is_primary=False)
-        user.nins.add(not_verified_nin)
+        not_verified_nin = NinIdentity(number=self.test_user_nin, created_by='test', is_verified=False)
+        user.identities.add(not_verified_nin)
         self.app.central_userdb.save(user)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -449,11 +430,7 @@ class OidcProofingTests(EduidAPITestCase):
         with self.app.app_context():
             handle_freja_eid_userinfo(user, proofing_state, userinfo)
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.primary.number, self.test_user_nin)
-        self.assertEqual(user.nins.primary.created_by, not_verified_nin.created_by)
-        self.assertEqual(user.nins.primary.verified_by, proofing_state.nin.created_by)
-        self.assertEqual(user.nins.primary.is_verified, True)
-        self.assertEqual(self.app.proofing_log.db_count(), 1)
+        self._check_nin_verified_ok(user=user, proofing_state=proofing_state, created_by=not_verified_nin.created_by)
 
     @patch('eduid.webapp.oidc_proofing.helpers.do_authn_request')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
@@ -466,8 +443,8 @@ class OidcProofingTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
-        not_verified_nin = Nin(number=self.test_user_wrong_nin, created_by='test', is_verified=False, is_primary=False)
-        user.nins.add(not_verified_nin)
+        not_verified_nin = NinIdentity(number=self.test_user_wrong_nin, created_by='test', is_verified=False)
+        user.identities.add(not_verified_nin)
         self.app.central_userdb.save(user)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -498,11 +475,7 @@ class OidcProofingTests(EduidAPITestCase):
         with self.app.app_context():
             handle_freja_eid_userinfo(user, proofing_state, userinfo)
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.primary.number, self.test_user_nin)
-        self.assertEqual(user.nins.primary.created_by, proofing_state.nin.created_by)
-        self.assertEqual(user.nins.primary.verified_by, proofing_state.nin.created_by)
-        self.assertEqual(user.nins.primary.is_verified, True)
-        self.assertEqual(self.app.proofing_log.db_count(), 1)
+        self._check_nin_verified_ok(user=user, proofing_state=proofing_state)
 
     @patch('eduid.webapp.oidc_proofing.helpers.do_authn_request')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
@@ -557,7 +530,7 @@ class OidcProofingTests(EduidAPITestCase):
         csrf_token = response['payload']['csrf_token']
 
         # User with locked_identity and correct nin
-        user.locked_identity.add(LockedIdentityNin(number=self.test_user_nin, created_by='test'))
+        user.locked_identity.add(NinIdentity(number=self.test_user_nin, created_by='test'))
         self.app.central_userdb.save(user, check_sync=False)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -596,7 +569,7 @@ class OidcProofingTests(EduidAPITestCase):
 
         csrf_token = response['payload']['csrf_token']
 
-        user.locked_identity.add(LockedIdentityNin(number=self.test_user_nin, created_by='test'))
+        user.locked_identity.add(NinIdentity(number=self.test_user_nin, created_by='test'))
         self.app.central_userdb.save(user, check_sync=False)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:

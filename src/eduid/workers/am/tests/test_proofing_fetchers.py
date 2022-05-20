@@ -4,6 +4,7 @@ from uuid import UUID
 
 import bson
 
+from eduid.userdb.identity import IdentityType
 from eduid.userdb.personal_data import PersonalDataUser
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.reset_password import ResetPasswordUser
@@ -51,7 +52,15 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
                 "givenName": "Testaren",
                 "surname": "Testsson",
                 "displayName": "John",
-                'nins': [{'number': '123456781235', 'verified': True, 'primary': True}],
+                'identities': [
+                    {
+                        'identity_type': IdentityType.NIN.value,
+                        'number': '123456781235',
+                        'verified': True,
+                        'created_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                        'modified_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                    }
+                ],
                 "letter_proofing_data": [
                     {
                         "verification_code": "secret code",
@@ -113,7 +122,15 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
                 "givenName": "Testaren",
                 "surname": "Testsson",
                 "displayName": "John",
-                'nins': [{'number': '123456781235', 'verified': True, 'primary': True}],
+                'identities': [
+                    {
+                        'identity_type': IdentityType.NIN.value,
+                        'number': '123456781235',
+                        'verified': True,
+                        'created_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                        'modified_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                    }
+                ],
                 "letter_proofing_data": [
                     {
                         "verification_code": "secret code",
@@ -199,7 +216,15 @@ class AttributeFetcherEmailProofingTests(ProofingTestCase):
                     'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
                 }
             ],
-            'nins': [{'number': '123456781235', 'verified': True, 'primary': True}],
+            'identities': [
+                {
+                    'identity_type': IdentityType.NIN.value,
+                    'number': '123456781235',
+                    'verified': True,
+                    'created_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                    'modified_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                }
+            ],
         }
 
         proofing_user = ProofingUser.from_dict(self.user_data)
@@ -287,7 +312,15 @@ class AttributeFetcherSecurityTests(ProofingTestCase):
                         'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
                     }
                 ],
-                'nins': [{'number': '123456781235', 'primary': True, 'verified': True}],
+                'identities': [
+                    {
+                        'identity_type': IdentityType.NIN.value,
+                        'number': '123456781235',
+                        'verified': True,
+                        'created_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                        'modified_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                    }
+                ],
                 'phone': [{'number': '+46700011336', 'primary': True, 'verified': True}],
             },
             '$unset': {'terminated': None},
@@ -314,7 +347,15 @@ class AttributeFetcherSecurityTests(ProofingTestCase):
                         'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
                     }
                 ],
-                'nins': [{'number': '123456781235', 'primary': True, 'verified': True}],
+                'identities': [
+                    {
+                        'identity_type': IdentityType.NIN.value,
+                        'number': '123456781235',
+                        'verified': True,
+                        'created_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                        'modified_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                    }
+                ],
                 'phone': [{'number': '+46700011336', 'primary': True, 'verified': True}],
             },
             '$unset': {'terminated': None},
@@ -341,7 +382,15 @@ class AttributeFetcherResetPasswordTests(ProofingTestCase):
                         'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
                     }
                 ],
-                'nins': [{'number': '123456781235', 'primary': True, 'verified': True}],
+                'identities': [
+                    {
+                        'identity_type': IdentityType.NIN.value,
+                        'number': '123456781235',
+                        'verified': True,
+                        'created_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                        'modified_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                    }
+                ],
                 'phone': [{'number': '+46700011336', 'primary': True, 'verified': True}],
             },
             '$unset': {'terminated': None},
@@ -365,7 +414,15 @@ class AttributeFetcherResetPasswordTests(ProofingTestCase):
                         'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
                     }
                 ],
-                'nins': [{'number': '123456781235', 'primary': True, 'verified': True}],
+                'identities': [
+                    {
+                        'identity_type': IdentityType.NIN.value,
+                        'number': '123456781235',
+                        'verified': True,
+                        'created_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                        'modified_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                    }
+                ],
                 'phone': [{'number': '+46700011336', 'primary': True, 'verified': True}],
             },
             '$unset': {'terminated': None},

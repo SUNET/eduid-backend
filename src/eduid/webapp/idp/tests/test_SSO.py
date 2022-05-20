@@ -197,16 +197,15 @@ class TestSSO(SSOIdPTests):
         :return: IdPUser instance
         """
         user = self.app.userdb.lookup_user(eppn)
-        user.nins = NinList()
+        user.identities = IdentityList()
         for number in nins:
-            this_nin = Nin(
+            this_nin = NinIdentity(
                 number=number,
                 created_by='unittest',
                 created_ts=utc_now(),
                 is_verified=True,
-                is_primary=user.nins.primary is None,
             )
-            user.nins.add(this_nin)
+            user.identities.add(this_nin)
         return user
 
     # ------------------------------------------------------------------------
