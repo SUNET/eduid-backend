@@ -278,7 +278,7 @@ phonenumbers==8.12.47 \
     --hash=sha256:065fc5930ceff3147f50beb4c6d253c25ab0a467ac461174c62696c119593f7e \
     --hash=sha256:56fd605d2f5460e1df2117085b653bb38322295ec658e6acaafc9c976867d522
     # via -r main.in
-pillow==9.1.0 \
+pillow==9.1.1 \
     --hash=sha256:82283af99c1c3a5ba1da44c67296d5aad19f11c535b551a5ae55328a317ce331 \
     --hash=sha256:f401ed2bbb155e1ade150ccc63db1a4f6c1909d3d378f7d1235a44e90d75fb97
     # via
