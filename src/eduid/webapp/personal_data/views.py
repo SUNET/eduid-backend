@@ -44,7 +44,7 @@ from eduid.webapp.personal_data.app import current_pdata_app as current_app
 from eduid.webapp.personal_data.helpers import PDataMsg
 from eduid.webapp.personal_data.schemas import (
     AllDataResponseSchema,
-    NinsResponseSchema,
+    IdentitiesResponseSchema,
     PersonalDataRequestSchema,
     PersonalDataResponseSchema,
 )
@@ -75,7 +75,9 @@ def post_user(user: User, given_name: str, surname: str, display_name: str, lang
     current_app.logger.debug('Trying to save user {}'.format(user))
 
     # disallow change of first name and surname if the user is verified
-    if user.nins.verified and (given_name != personal_data_user.given_name or surname != personal_data_user.surname):
+    if user.identities.is_verified and (
+        given_name != personal_data_user.given_name or surname != personal_data_user.surname
+    ):
         return error_response(message=PDataMsg.name_change_not_allowed)
 
     personal_data_user.given_name = given_name
@@ -93,11 +95,11 @@ def post_user(user: User, given_name: str, surname: str, display_name: str, lang
     return success_response(payload=personal_data, message=PDataMsg.save_success)
 
 
-@pd_views.route('/nins', methods=['GET'])
-@MarshalWith(NinsResponseSchema)
+@pd_views.route('/identities', methods=['GET'])
+@MarshalWith(IdentitiesResponseSchema)
 @require_user
 def get_nins(user) -> FluxData:
 
-    data = {'nins': user.nins.to_list_of_dicts()}
+    data = {'identities': user.identities.to_list_of_dicts()}
 
     return success_response(payload=data)

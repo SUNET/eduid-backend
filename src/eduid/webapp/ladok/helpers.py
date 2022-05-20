@@ -47,10 +47,10 @@ def link_user_BACKDOOR(user: User, ladok_name: str) -> FluxData:
     )
 
     proofing_user.ladok = ladok_data
-    assert proofing_user.nins.primary is not None  # please mypy
+    assert proofing_user.identities.nin is not None  # please mypy
     proofing_log_entry = LadokProofing(
         eppn=proofing_user.eppn,
-        nin=proofing_user.nins.primary.number,
+        nin=proofing_user.identities.nin.number,
         external_id=str(ladok_data.external_id),
         ladok_name=ladok_name,
         proofing_method='eduid_ladok_dev',

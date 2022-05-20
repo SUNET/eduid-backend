@@ -17,7 +17,7 @@ from eduid.common.rpc.exceptions import TaskFailed
 from eduid.userdb import User
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.util import UTC
-from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
+from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_nin, require_user
 from eduid.webapp.common.api.helpers import add_nin_to_user
 from eduid.webapp.common.api.messages import CommonMsg, error_response
 from eduid.webapp.oidc_proofing import helpers, schemas
@@ -160,7 +160,7 @@ def get_seleg_state(user: User) -> Dict[str, Any]:
 @oidc_proofing_views.route('/proofing', methods=['POST'])
 @UnmarshalWith(schemas.OidcProofingRequestSchema)
 @MarshalWith(schemas.NonceResponseSchema)
-@can_verify_identity
+@can_verify_nin
 @require_user
 def seleg_proofing(user, nin):
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
@@ -228,7 +228,7 @@ def get_freja_state(user: User) -> Mapping[str, Any]:
 @oidc_proofing_views.route('/freja/proofing', methods=['POST'])
 @UnmarshalWith(schemas.OidcProofingRequestSchema)
 @MarshalWith(schemas.FrejaResponseSchema)
-@can_verify_identity
+@can_verify_nin
 @require_user
 def freja_proofing(user, nin):
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)

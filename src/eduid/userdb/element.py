@@ -421,6 +421,17 @@ class ElementList(GenericModel, Generic[ListElement], ABC):
         return [x for x in self.elements if isinstance(x, cls)]
 
     @property
+    def verified(self) -> List[ListElement]:
+        """
+        Get all the verified elements in the ElementList.
+
+        """
+        verified_elements = [e for e in self.elements if isinstance(e, VerifiedElement) and e.is_verified]
+        # mypy figures out the real type of `verified_elements' since isinstance() is used above and complains
+        #    error: Incompatible return value type (got "List[VerifiedElement]", expected "List[ListElement]")
+        return verified_elements  # type: ignore
+
+    @property
     def count(self) -> int:
         """
         Return the number of elements in the list
@@ -538,17 +549,6 @@ class PrimaryElementList(ElementList[ListElement], Generic[ListElement], ABC):
         # mypy figures out the real type of `res[0]' since isinstance() is used above and complains
         #    error: Incompatible return value type (got "PrimaryElement", expected "Optional[ListElement]")
         return res[0]  # type: ignore
-
-    @property
-    def verified(self) -> List[ListElement]:
-        """
-        Get all the verified elements in the ElementList.
-
-        """
-        verified_elements = [e for e in self.elements if isinstance(e, VerifiedElement) and e.is_verified]
-        # mypy figures out the real type of `verified_elements' since isinstance() is used above and complains
-        #    error: Incompatible return value type (got "List[VerifiedElement]", expected "List[ListElement]")
-        return verified_elements  # type: ignore
 
     def remove(self, key: ElementKey) -> None:
         """

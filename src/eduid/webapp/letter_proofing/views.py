@@ -9,7 +9,7 @@ from eduid.common.rpc.exceptions import AmTaskFailed, MsgTaskFailed, NoAddressFo
 from eduid.userdb import User
 from eduid.userdb.logs import LetterProofing
 from eduid.userdb.proofing import ProofingUser
-from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
+from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_nin, require_user
 from eduid.webapp.common.api.helpers import add_nin_to_user, check_magic_cookie, verify_nin_for_user
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.letter_proofing import pdf, schemas
@@ -50,7 +50,7 @@ def get_state(user) -> FluxData:
 @letter_proofing_views.route('/proofing', methods=['POST'])
 @UnmarshalWith(schemas.LetterProofingRequestSchema)
 @MarshalWith(schemas.LetterProofingResponseSchema)
-@can_verify_identity
+@can_verify_nin
 @require_user
 def proofing(user: User, nin: str) -> FluxData:
     current_app.logger.info('Send letter for user {} initiated'.format(user))
@@ -179,7 +179,7 @@ def verify_code(user: User, code: str) -> FluxData:
         current_app.proofing_statedb.remove_state(proofing_state)
         current_app.stats.count(name='nin_verified')
         return success_response(
-            payload=dict(nins=proofing_user.nins.to_list_of_dicts()), message=LetterMsg.verify_success
+            payload=dict(identities=proofing_user.identities.to_list_of_dicts()), message=LetterMsg.verify_success
         )
     except AmTaskFailed:
         current_app.logger.exception(f'Verifying nin for user {user} failed')

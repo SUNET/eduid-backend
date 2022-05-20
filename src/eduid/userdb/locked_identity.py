@@ -3,59 +3,32 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Type
 
-from eduid.userdb.element import Element, ElementKey, ElementList
+from pydantic import validator
+
 from eduid.userdb.exceptions import EduIDUserDBError
+from eduid.userdb.identity import IdentityElement, IdentityList
 
 __author__ = 'lundberg'
 
 
-class LockedIdentityElement(Element):
-
+class LockedIdentityList(IdentityList):
     """
-    Element that is used to lock an identity to a user
-
-    Properties of LockedIdentityElement:
-
-        identity_type
+    Hold a list of IdentityElement instances.
     """
 
-    identity_type: str
-
-    @property
-    def key(self) -> ElementKey:
-        """
-        :return: Type of identity
-        """
-        return ElementKey(self.identity_type)
-
-
-class LockedIdentityNin(LockedIdentityElement):
-
-    """
-    Element that is used to lock a NIN to a user
-
-    Properties of LockedNinElement:
-
-        number
-    """
-
-    number: str
-    identity_type: str = 'nin'
-
-
-class LockedIdentityList(ElementList[LockedIdentityElement]):
-    """
-    Hold a list of LockedIdentityElement instances.
-
-    Provide methods to find and add to the list.
-    """
+    @validator('elements', each_item=True)
+    def verify_validated(cls, v: IdentityElement):
+        if not v.is_verified:
+            raise ValueError('Locked identity has to be verified')
+        return v
 
     @classmethod
     def from_list_of_dicts(cls: Type[LockedIdentityList], items: List[Dict[str, Any]]) -> LockedIdentityList:
-        return cls(elements=[LockedIdentityNin.from_dict(this) for this in items if this.get('identity_type') == 'nin'])
+        obj = super().from_list_of_dicts(items=items)
+        return cls(elements=obj.elements)
 
     def remove(self, key):
         """
         Override remove method as an element should be set once, remove never.
         """
-        raise EduIDUserDBError('Removal of LockedIdentityElements is not permitted')
+        raise EduIDUserDBError('Removal of IdentityElements from LockedIdentityList is not permitted')

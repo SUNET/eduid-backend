@@ -230,10 +230,12 @@ def nin_verify_BACKDOOR(proofing_user: ProofingUser, asserted_nin: str) -> Optio
     issuer = 'https://idp.example.com/simplesaml/saml2/idp/metadata.php'
     authn_context = 'http://id.elegnamnden.se/loa/1.0/loa3'
 
-    user_address = {
-        'Name': {'GivenNameMarking': '20', 'GivenName': 'Magic Cookie', 'Surname': 'Testsson'},
-        'OfficialAddress': {'Address2': 'MAGIC COOKIE', 'PostalCode': '12345', 'City': 'LANDET'},
-    }
+    user_address = FullPostalAddress.parse_obj(
+        {
+            'Name': {'GivenNameMarking': '20', 'GivenName': 'Magic Cookie', 'Surname': 'Testsson'},
+            'OfficialAddress': {'Address2': 'MAGIC COOKIE', 'PostalCode': '12345', 'City': 'LANDET'},
+        }
+    )
 
     proofing_log_entry = SwedenConnectProofing(
         eppn=proofing_user.eppn,
@@ -270,10 +272,12 @@ def token_verify_BACKDOOR(
     issuer = 'MAGIC COOKIE'
     authn_context = 'MAGIC COOKIE'
 
-    user_address = {
-        'Name': {'GivenNameMarking': '20', 'GivenName': 'Magic Cookie', 'Surname': 'Testsson'},
-        'OfficialAddress': {'Address2': 'MAGIC COOKIE', 'PostalCode': '12345', 'City': 'LANDET'},
-    }
+    user_address = FullPostalAddress.parse_obj(
+        {
+            'Name': {'GivenNameMarking': '20', 'GivenName': 'Magic Cookie', 'Surname': 'Testsson'},
+            'OfficialAddress': {'Address2': 'MAGIC COOKIE', 'PostalCode': '12345', 'City': 'LANDET'},
+        }
+    )
 
     proofing_log_entry = MFATokenProofing(
         eppn=proofing_user.eppn,

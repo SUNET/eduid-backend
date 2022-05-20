@@ -5,7 +5,7 @@ from enum import unique
 from typing import List, Optional
 
 from eduid.common.rpc.exceptions import LookupMobileTaskFailed
-from eduid.common.rpc.msg_relay import RelationType
+from eduid.common.rpc.msg_relay import FullPostalAddress, RelationType
 from eduid.userdb import User
 from eduid.userdb.logs import TeleAdressProofing, TeleAdressProofingRelation
 from eduid.userdb.proofing.element import NinProofingElement
@@ -74,10 +74,12 @@ def match_mobile_to_user(
     # to verify a NIN by sending a magic cookie
     if check_magic_cookie(current_app.conf):
         current_app.logger.info('Using the BACKDOOR to verify a NIN through the lookup mobile app')
-        user_postal_address = {
-            'Name': {'GivenName': 'Magic Cookie', 'GivenNameMarking': '20', 'Surname': 'Magic Cookie'},
-            'OfficialAddress': {'Address2': 'Dummy address', 'City': 'LANDET', 'PostalCode': '12345'},
-        }
+        user_postal_address = FullPostalAddress(
+            **{
+                'Name': {'GivenName': 'Magic Cookie', 'GivenNameMarking': '20', 'Surname': 'Magic Cookie'},
+                'OfficialAddress': {'Address2': 'Dummy address', 'City': 'LANDET', 'PostalCode': '12345'},
+            }
+        )
         proofing_log_entry = TeleAdressProofing(
             eppn=user.eppn,
             created_by='lookup_mobile_proofing',

@@ -27,8 +27,8 @@ def error_info() -> FluxData:
     if not user:
         return success_response(payload={'logged_in': False})
 
-    has_locked_nin = bool(user.locked_identity.find('nin'))
-    has_verified_nin = bool(user.nins.verified)
+    has_locked_nin = bool(user.locked_identity.nin)
+    has_verified_nin = bool(user.identities.nin and user.identities.nin.is_verified)
     fido_credentials = user.credentials.filter(FidoCredential)
     has_mfa = bool(fido_credentials)
 

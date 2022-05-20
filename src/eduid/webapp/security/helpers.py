@@ -7,8 +7,8 @@ from typing import List, Optional
 from flask_babel import gettext as _
 
 from eduid.common.misc.timeutil import utc_now
-from eduid.common.rpc.msg_relay import NavetData
-from eduid.userdb import Nin
+from eduid.common.rpc.msg_relay import FullPostalAddress, NavetData
+from eduid.userdb import NinIdentity
 from eduid.userdb.logs.element import NameUpdateProofing
 from eduid.userdb.security import SecurityUser
 from eduid.webapp.common.api.helpers import send_mail, set_user_names_from_official_address
@@ -108,12 +108,12 @@ def compile_credential_list(security_user: SecurityUser) -> List[CredentialInfo]
     return credentials
 
 
-def remove_nin_from_user(security_user: SecurityUser, nin: Nin) -> None:
+def remove_nin_from_user(security_user: SecurityUser, nin: NinIdentity) -> None:
     """
     :param security_user: Private userdb user
     :param nin: NIN to remove
     """
-    security_user.nins.remove(nin.key)
+    security_user.identities.remove(nin.key)
     security_user.modified_ts = utc_now()
     # Save user to private db
     current_app.private_userdb.save(security_user, check_sync=False)
@@ -167,7 +167,7 @@ def check_reauthn(authn: Optional[SP_AuthnRequest], max_age: timedelta) -> Optio
 
 def update_user_official_name(security_user: SecurityUser, navet_data: NavetData) -> bool:
     # please mypy
-    if security_user.nins.primary is None:
+    if security_user.identities.nin is None:
         return False
 
     # Compare current names with what we got from Navet
@@ -175,15 +175,15 @@ def update_user_official_name(security_user: SecurityUser, navet_data: NavetData
         security_user.given_name != navet_data.person.name.given_name
         or security_user.surname != navet_data.person.name.surname
     ):
-        user_postal_address = {
-            'Name': navet_data.person.name.dict(by_alias=True),
-            'OfficialAddress': navet_data.person.postal_addresses.official_address.dict(by_alias=True),
-        }
+        user_postal_address = FullPostalAddress(
+            name=navet_data.person.name,
+            official_address=navet_data.person.postal_addresses.official_address,
+        )
         proofing_log_entry = NameUpdateProofing(
             created_by='security',
             eppn=security_user.eppn,
             proofing_version='2021v1',
-            nin=security_user.nins.primary.number,
+            nin=security_user.identities.nin.number,
             previous_given_name=security_user.given_name or None,  # default to None for empty string
             previous_surname=security_user.surname or None,  # default to None for empty string
             user_postal_address=user_postal_address,

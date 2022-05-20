@@ -10,8 +10,8 @@ from flask import abort, jsonify, request
 from marshmallow.exceptions import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 
-from eduid.userdb import LockedIdentityNin
-from eduid.webapp.common.api.messages import FluxData, error_response
+from eduid.userdb import NinIdentity
+from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response
 from eduid.webapp.common.api.schemas.models import (
     FluxFailResponse,
     FluxResponse,
@@ -52,19 +52,17 @@ def require_user(f):
     return require_user_decorator
 
 
-def can_verify_identity(f):
+def can_verify_nin(f):
     @wraps(f)
     def verify_identity_decorator(*args, **kwargs):
         user = get_user()
-        # For now a user can just have one verified NIN
-        if user.nins.primary is not None:
-            # TODO: Make this a CommonMsg I guess
-            return error_response(message='User is already verified')
+        # A user can just have one verified NIN
+        if user.identities.nin is not None and user.identities.nin.is_verified is True:
+            return error_response(message=CommonMsg.user_already_verified)
         # A user can not verify a nin if another previously was verified
-        locked_nin = user.locked_identity.find('nin')
-        if isinstance(locked_nin, LockedIdentityNin) and locked_nin.number != kwargs['nin']:
-            # TODO: Make this a CommonMsg I guess
-            return error_response(message='Another nin is already registered for this user')
+        locked_nin = user.locked_identity.nin
+        if isinstance(locked_nin, NinIdentity) and locked_nin.number != kwargs['nin']:
+            return error_response(message=CommonMsg.user_has_other_locked_nin)
 
         return f(*args, **kwargs)
 
