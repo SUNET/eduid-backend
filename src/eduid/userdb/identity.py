@@ -5,7 +5,7 @@ import logging
 from abc import ABC
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Type, TypeVar
+from typing import Any, Dict, List, Optional, Type
 
 from pydantic import Field
 
@@ -14,8 +14,6 @@ from eduid.userdb.element import ElementKey, ElementList, VerifiedElement
 __author__ = 'lundberg'
 
 logger = logging.getLogger(__name__)
-
-TIdentityElementSubclass = TypeVar('TIdentityElementSubclass', bound='IdentityElement')
 
 
 class IdentityType(str, Enum):
@@ -143,7 +141,7 @@ class IdentityList(ElementList[IdentityElement]):
 
     @classmethod
     def from_list_of_dicts(cls: Type[IdentityList], items: List[Dict[str, Any]]) -> IdentityList:
-        elements: List[TIdentityElementSubclass] = []
+        elements: List[IdentityElement] = []
         for item in items:
             _type = item['identity_type']
             if _type == IdentityType.NIN.value:
@@ -158,7 +156,9 @@ class IdentityList(ElementList[IdentityElement]):
 
     @property
     def is_verified(self) -> bool:
-        return any([element.is_verified for element in self.elements])
+        # TODO: the isinstance check should not be needed I think, but how to explain that to mypy?
+        #   error: "ListElement" has no attribute "is_verified"
+        return any([element.is_verified for element in self.elements if isinstance(element, IdentityElement)])
 
     @property
     def nin(self) -> Optional[NinIdentity]:
