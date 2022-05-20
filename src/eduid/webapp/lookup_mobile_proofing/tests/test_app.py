@@ -44,7 +44,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
         )
         return config
 
-    def _check_nin_verified_ok(self, user: User, number: Optional[str] = None):
+    def _check_nin_verified_ok_no_proofing_state(self, user: User, number: Optional[str] = None):
         nin_number = number or self.test_user_nin
         assert user.identities.nin is not None
         assert user.identities.nin.number == nin_number
@@ -53,7 +53,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
         assert user.identities.nin.is_verified is True
         assert self.app.proofing_log.db_count() == 1
 
-    def _check_nin_not_verified(self, user: User, number: Optional[str] = None):
+    def _check_nin_not_verified_no_proofing_state(self, user: User, number: Optional[str] = None):
         nin_number = number or self.test_user_nin
         assert user.identities.nin is not None
         assert user.identities.nin.number == nin_number
@@ -90,7 +90,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(response['payload']['success'], True)
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self._check_nin_verified_ok(user=user)
+        self._check_nin_verified_ok_no_proofing_state(user=user)
 
     @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
@@ -114,7 +114,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(response['payload']['success'], True)
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self._check_nin_verified_ok(user=user, number=self.test_user_nin_underage)
+        self._check_nin_verified_ok_no_proofing_state(user=user, number=self.test_user_nin_underage)
 
     @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
@@ -137,7 +137,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(response['type'], 'POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL')
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self._check_nin_not_verified(user=user)
+        self._check_nin_not_verified_no_proofing_state(user=user)
 
     @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
@@ -163,7 +163,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(MobileMsg.lookup_error.value, response['payload']['message'])
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self._check_nin_not_verified(user=user)
+        self._check_nin_not_verified_no_proofing_state(user=user)
 
     @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
@@ -195,7 +195,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(response['payload']['success'], True)
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self._check_nin_verified_ok(user=user, number=self.test_user_nin_underage)
+        self._check_nin_verified_ok_no_proofing_state(user=user, number=self.test_user_nin_underage)
 
     @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
@@ -228,7 +228,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(response['type'], 'POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL')
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self._check_nin_not_verified(user=user)
+        self._check_nin_not_verified_no_proofing_state(user=user)
 
     @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
@@ -260,7 +260,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(response['type'], 'POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL')
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self._check_nin_not_verified(user=user)
+        self._check_nin_not_verified_no_proofing_state(user=user)
 
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_relations_to')
     @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
@@ -288,7 +288,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(response['payload']['success'], True)
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self._check_nin_verified_ok(user=user, number=self.test_user_nin_underage)
+        self._check_nin_verified_ok_no_proofing_state(user=user, number=self.test_user_nin_underage)
 
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_relations_to')
     @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
@@ -315,4 +315,4 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(response['type'], 'POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL')
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self._check_nin_not_verified(user=user, number=self.test_user_nin_underage)
+        self._check_nin_not_verified_no_proofing_state(user=user, number=self.test_user_nin_underage)

@@ -5,7 +5,7 @@ from flask import request
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.rpc.exceptions import AmTaskFailed, MsgTaskFailed, NoNavetData
-from eduid.userdb import LockedIdentityNin, User
+from eduid.userdb import User
 from eduid.userdb.credentials.external import SwedenConnectCredential, TrustFramework
 from eduid.userdb.credentials.fido import FidoCredential
 from eduid.userdb.element import ElementKey
@@ -136,13 +136,13 @@ def token_verify_action(session_info: SessionInfo, user: User, authndata: SP_Aut
         key_id=token_to_verify.key,
         user_postal_address=navet_proofing_data.user_postal_address,
         deregistration_information=navet_proofing_data.deregistration_information,
-        proofing_version=current_app.conf.security_key_proofing_version,
+        proofing_version='2018v1',
     )
 
     # Set token as verified
     token_to_verify.is_verified = True
-    token_to_verify.proofing_method = current_app.conf.security_key_proofing_method
-    token_to_verify.proofing_version = current_app.conf.security_key_proofing_version
+    token_to_verify.proofing_method = 'SWAMID_AL2_MFA_HI'
+    token_to_verify.proofing_version = '2018v1'
 
     # Save proofing log entry and save user
     if current_app.proofing_log.save(proofing_log_entry):
@@ -231,11 +231,10 @@ def mfa_authentication_action(session_info: SessionInfo, authndata: SP_AuthnRequ
             return redirect_with_msg(redirect_url, CommonMsg.nin_invalid)
         asserted_nin = magic_cookie_nin
 
-    locked_nin = user.locked_identity.nin
     if user.identities.nin and user.identities.nin.number == asserted_nin and user.identities.nin.is_verified:
         # nin matched asserted nin and is verified
         mfa_success = True
-    elif isinstance(locked_nin, NinIdentity) and locked_nin.number == asserted_nin:
+    elif user.locked_identity.nin and user.locked_identity.nin.number == asserted_nin:
         # previously verified nin that the user just showed possession of
         mfa_success = True
         # and we can verify it again
@@ -244,7 +243,7 @@ def mfa_authentication_action(session_info: SessionInfo, authndata: SP_AuthnRequ
         if message is not None:
             # If a message was returned, verifying the NIN failed and we abort
             return redirect_with_msg(redirect_url, message)
-    elif user.identities.nin is None and locked_nin is None:
+    elif user.identities.nin is None and user.locked_identity.nin is None:
         # TODO: we _could_ allow the user to give consent to just adding this NIN to the user here,
         #       with a request parameter passed from frontend to /mfa-authentication for example.
         mfa_success = False

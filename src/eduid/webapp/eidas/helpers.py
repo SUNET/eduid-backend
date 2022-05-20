@@ -6,6 +6,8 @@ from typing import Any, Dict, Optional
 
 from dateutil.parser import parse as dt_parse
 from flask import request
+
+from eduid.common.rpc.msg_relay import FullPostalAddress
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.metadata import entity_descriptor
@@ -230,8 +232,8 @@ def nin_verify_BACKDOOR(proofing_user: ProofingUser, asserted_nin: str) -> Optio
     issuer = 'https://idp.example.com/simplesaml/saml2/idp/metadata.php'
     authn_context = 'http://id.elegnamnden.se/loa/1.0/loa3'
 
-    user_address = FullPostalAddress.parse_obj(
-        {
+    user_address = FullPostalAddress(
+        **{
             'Name': {'GivenNameMarking': '20', 'GivenName': 'Magic Cookie', 'Surname': 'Testsson'},
             'OfficialAddress': {'Address2': 'MAGIC COOKIE', 'PostalCode': '12345', 'City': 'LANDET'},
         }
@@ -272,8 +274,8 @@ def token_verify_BACKDOOR(
     issuer = 'MAGIC COOKIE'
     authn_context = 'MAGIC COOKIE'
 
-    user_address = FullPostalAddress.parse_obj(
-        {
+    user_address = FullPostalAddress(
+        **{
             'Name': {'GivenNameMarking': '20', 'GivenName': 'Magic Cookie', 'Surname': 'Testsson'},
             'OfficialAddress': {'Address2': 'MAGIC COOKIE', 'PostalCode': '12345', 'City': 'LANDET'},
         }

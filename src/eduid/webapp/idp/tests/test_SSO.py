@@ -40,6 +40,8 @@ from uuid import uuid4
 
 import saml2.server
 import saml2.time_util
+from eduid.userdb import NinIdentity
+from eduid.userdb.identity import IdentityList
 from saml2 import BINDING_HTTP_POST
 from saml2.s_utils import UnravelError
 from werkzeug.exceptions import BadRequest

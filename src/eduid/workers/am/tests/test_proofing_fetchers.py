@@ -323,7 +323,7 @@ class AttributeFetcherSecurityTests(ProofingTestCase):
                 ],
                 'phone': [{'number': '+46700011336', 'primary': True, 'verified': True}],
             },
-            '$unset': {'terminated': None},
+            '$unset': {'nins': None, 'terminated': None},
         }
         fetched = self.fetcher.fetch_attrs(security_user.user_id)
 
@@ -358,7 +358,7 @@ class AttributeFetcherSecurityTests(ProofingTestCase):
                 ],
                 'phone': [{'number': '+46700011336', 'primary': True, 'verified': True}],
             },
-            '$unset': {'terminated': None},
+            '$unset': {'nins': None, 'terminated': None},
         }
         assert normalised_data(fetched) == expected
 
@@ -393,7 +393,7 @@ class AttributeFetcherResetPasswordTests(ProofingTestCase):
                 ],
                 'phone': [{'number': '+46700011336', 'primary': True, 'verified': True}],
             },
-            '$unset': {'terminated': None},
+            '$unset': {'nins': None, 'terminated': None},
         }
 
         assert normalised_data(fetched) == expected, 'Wrong data fetched by reset password fetcher'
@@ -425,7 +425,7 @@ class AttributeFetcherResetPasswordTests(ProofingTestCase):
                 ],
                 'phone': [{'number': '+46700011336', 'primary': True, 'verified': True}],
             },
-            '$unset': {'terminated': None},
+            '$unset': {'nins': None, 'terminated': None},
         }
 
         assert normalised_data(fetched) == expected, 'Wrong data fetched by reset password fetcher'

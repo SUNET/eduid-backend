@@ -209,7 +209,7 @@ class OidcProofingTests(EduidAPITestCase):
         self.mock_authorization_response(qrdata, proofing_state, userinfo)
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self._check_nin_verified_ok(user=user, proofing_state=proofing_state)
+        self._check_nin_verified_ok(user=user, proofing_state=proofing_state, number=self.test_user_nin)
 
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
     @patch('eduid.webapp.oidc_proofing.helpers.do_authn_request')
@@ -252,7 +252,7 @@ class OidcProofingTests(EduidAPITestCase):
         self.mock_authorization_response(qrdata, proofing_state, userinfo)
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self._check_nin_not_verified_ok(user=user)
+        self._check_nin_not_verified(user=user, number=self.test_user_nin)
 
     @patch('eduid.webapp.oidc_proofing.helpers.do_authn_request')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
@@ -297,7 +297,9 @@ class OidcProofingTests(EduidAPITestCase):
         self.mock_authorization_response(qrdata, proofing_state, userinfo)
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self._check_nin_verified_ok(user=user, proofing_state=proofing_state, created_by=not_verified_nin.created_by)
+        self._check_nin_verified_ok(
+            user=user, proofing_state=proofing_state, number=self.test_user_nin, created_by=not_verified_nin.created_by
+        )
 
     @patch('eduid.webapp.oidc_proofing.helpers.do_authn_request')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
@@ -344,7 +346,7 @@ class OidcProofingTests(EduidAPITestCase):
         self.mock_authorization_response(qrdata, proofing_state, userinfo)
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self._check_nin_verified_ok(user=user, proofing_state=proofing_state)
+        self._check_nin_verified_ok(user=user, proofing_state=proofing_state, number=self.test_user_nin)
 
     @patch('eduid.webapp.oidc_proofing.helpers.do_authn_request')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
@@ -387,7 +389,7 @@ class OidcProofingTests(EduidAPITestCase):
         with self.app.app_context():
             handle_freja_eid_userinfo(user, proofing_state, userinfo)
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self._check_nin_verified_ok(user=user, proofing_state=proofing_state)
+        self._check_nin_verified_ok(user=user, proofing_state=proofing_state, number=self.test_user_nin)
 
     @patch('eduid.webapp.oidc_proofing.helpers.do_authn_request')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
@@ -430,7 +432,9 @@ class OidcProofingTests(EduidAPITestCase):
         with self.app.app_context():
             handle_freja_eid_userinfo(user, proofing_state, userinfo)
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self._check_nin_verified_ok(user=user, proofing_state=proofing_state, created_by=not_verified_nin.created_by)
+        self._check_nin_verified_ok(
+            user=user, proofing_state=proofing_state, number=self.test_user_nin, created_by=not_verified_nin.created_by
+        )
 
     @patch('eduid.webapp.oidc_proofing.helpers.do_authn_request')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
@@ -475,7 +479,7 @@ class OidcProofingTests(EduidAPITestCase):
         with self.app.app_context():
             handle_freja_eid_userinfo(user, proofing_state, userinfo)
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self._check_nin_verified_ok(user=user, proofing_state=proofing_state)
+        self._check_nin_verified_ok(user=user, proofing_state=proofing_state, number=self.test_user_nin)
 
     @patch('eduid.webapp.oidc_proofing.helpers.do_authn_request')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')

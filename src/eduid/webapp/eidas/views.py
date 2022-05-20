@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from typing import Union
+from typing import List, Optional, Union
 from uuid import uuid4
 
 from flask import Blueprint, abort, make_response, redirect, request, url_for
@@ -12,6 +12,7 @@ from eduid.userdb.credentials.fido import FidoCredential
 from eduid.userdb.element import ElementKey
 from eduid.webapp.authn.helpers import credential_used_to_authenticate
 from eduid.webapp.common.api.decorators import MarshalWith, require_user
+from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import FluxData, redirect_with_msg, success_response
 from eduid.webapp.common.api.schemas.csrf import EmptyResponse

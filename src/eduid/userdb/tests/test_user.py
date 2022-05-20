@@ -6,6 +6,7 @@ from bson import ObjectId
 from pydantic import ValidationError
 
 from eduid.userdb import NinIdentity, OidcAuthorization, OidcIdToken, Orcid
+from eduid.userdb.credentials import METHOD_SWAMID_AL2_MFA, Password, CredentialList, U2F
 from eduid.userdb.exceptions import EduIDUserDBError, UserHasNotCompletedSignup, UserIsRevoked
 from eduid.userdb.fixtures.identity import verified_nin_identity
 from eduid.userdb.fixtures.users import mocked_user_standard
