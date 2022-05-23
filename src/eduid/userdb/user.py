@@ -330,7 +330,7 @@ class User(BaseModel):
     @classmethod
     def _parse_identities(cls, data: Dict[str, Any]) -> IdentityList:
         """
-        Parse identity elements in to and IdentityList
+        Parse identity elements into an IdentityList
         """
         _identities = data.pop('identities', [])
         return IdentityList.from_list_of_dicts(items=_identities)

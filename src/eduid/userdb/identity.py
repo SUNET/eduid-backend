@@ -25,9 +25,9 @@ class IdentityType(str, Enum):
 class IdentityElement(VerifiedElement, ABC):
 
     """
-    Element that is used to lock an identity to a user
+    Element that is used for a identity for a user
 
-    Properties of LockedIdentityElement:
+    Properties of IdentityElement:
 
         identity_type
     """
@@ -64,9 +64,9 @@ class IdentityElement(VerifiedElement, ABC):
 class NinIdentity(IdentityElement):
 
     """
-    Element that is used to lock a NIN to a user
+    Element that is used as a NIN identity for a user
 
-    Properties of LockedNinElement:
+    Properties of NinIdentity:
 
         number
     """
@@ -92,19 +92,19 @@ class PridPersistence(str, Enum):
 class EIDASIdentity(IdentityElement):
 
     """
-    Element that is used to lock a NIN to a user
+    Element that is used as an EIDAS identity for a user
 
     Properties of LockedNinElement:
 
         prid
         prid_persistence
-
     """
 
     identity_type: IdentityType = Field(default=IdentityType.EIDAS, const=True)
     prid: str
     prid_persistence: PridPersistence
     date_of_birth: datetime
+    country: str
 
     @property
     def unique_key_name(self) -> str:
@@ -121,6 +121,14 @@ class EIDASIdentity(IdentityElement):
 
 
 class SvipeIdentity(IdentityElement):
+    """
+    Element that is used as a Svipe identity for a user
+
+    Properties of LockedNinElement:
+
+        svipe_id
+    """
+
     identity_type: IdentityType = Field(default=IdentityType.SVIPE, const=True)
     svipe_id: str
     # TODO: attributes are missing
@@ -136,7 +144,7 @@ class SvipeIdentity(IdentityElement):
 
 class IdentityList(ElementList[IdentityElement]):
     """
-    Hold a list of LockedIdentityElement instances.
+    Hold a list of IdentityElement instances.
     """
 
     @classmethod
