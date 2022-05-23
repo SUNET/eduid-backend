@@ -289,10 +289,10 @@ class SecurityTests(EduidAPITestCase):
                 'identities': [
                     {
                         'identity_type': IdentityType.EIDAS.value,
-                        'prid': 'unique/prid/string/1',
-                        'prid_persistence': 'B',
                         'verified': True,
-                    }
+                        'country': 'Germany',
+                        'date_of_birth': '1978-09-02',
+                    },
                 ]
             },
         )
@@ -315,9 +315,9 @@ class SecurityTests(EduidAPITestCase):
                     },
                     {
                         'identity_type': IdentityType.EIDAS.value,
-                        'prid': 'unique/prid/string/1',
-                        'prid_persistence': 'B',
                         'verified': True,
+                        'country': 'Germany',
+                        'date_of_birth': '1978-09-02',
                     },
                 ],
             },
@@ -364,9 +364,9 @@ class SecurityTests(EduidAPITestCase):
                 'identities': [
                     {
                         'identity_type': IdentityType.EIDAS.value,
-                        'prid': 'unique/prid/string/1',
-                        'prid_persistence': 'B',
                         'verified': True,
+                        'country': 'Germany',
+                        'date_of_birth': '1978-09-02',
                     },
                     {'identity_type': IdentityType.NIN.value, 'number': self.test_user_nin, 'verified': False},
                 ],

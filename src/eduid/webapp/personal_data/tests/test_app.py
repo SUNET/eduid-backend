@@ -176,9 +176,9 @@ class PersonalDataTests(EduidAPITestCase):
                 {'identity_type': IdentityType.NIN.value, 'number': '197801011234', 'verified': True},
                 {
                     'identity_type': IdentityType.EIDAS.value,
-                    'prid': 'unique/prid/string/1',
-                    'prid_persistence': 'B',
                     'verified': True,
+                    'country': 'Germany',
+                    'date_of_birth': '1978-09-02',
                 },
             ],
             'phones': [
@@ -276,9 +276,9 @@ class PersonalDataTests(EduidAPITestCase):
                 {'identity_type': IdentityType.NIN.value, 'number': '197801011234', 'verified': True},
                 {
                     'identity_type': IdentityType.EIDAS.value,
-                    'prid': 'unique/prid/string/1',
-                    'prid_persistence': 'B',
                     'verified': True,
+                    'country': 'Germany',
+                    'date_of_birth': '1978-09-02',
                 },
             ],
         }
