@@ -151,25 +151,24 @@ def verify_nin_for_user(
     # if there is no locked nin identity or the locked nin identity matches we can replace the current nin identity
     # with the one just verified
     if proofing_user.identities.nin.number != proofing_state.nin.number:
-        current_app.logger.info('users current nin does not match verified nin')
+        current_app.logger.info('users current nin does not match the nin just verified')
         current_app.logger.debug(f'{proofing_user.identities.nin.number} != {proofing_state.nin.number}')
-        if proofing_user.locked_identity.nin is None:
-            current_app.logger.info('but it is OK as the user has no locked nin identity')
-            replace = True  # user has no locked nin identity
-        elif proofing_user.locked_identity.nin.number == proofing_state.nin.number:
-            current_app.logger.info('but it is OK as the user has a locked nin identity that matches')
-            replace = True  # user has previously verified the nin
-        else:
-            current_app.logger.error('and it is NOT OK as the user has a locked nin identity does NOT match')
-            raise ValueError('users locked nin does not match verified nin')
-        if replace:
-            # replace the never verified nin with the just verified one
+        if (
+            proofing_user.locked_identity.nin is None
+            or proofing_user.locked_identity.nin.number == proofing_state.nin.number
+        ):
+            # user has no locked nin identity or the user has previously verified the nin
+            # replace the never verified nin with the one just verified
             proofing_user.identities.remove(ElementKey(IdentityType.NIN.value))
-            proofing_state_dict = proofing_state.nin.to_dict()
-            if 'verification_code' in proofing_state_dict:
-                del proofing_state_dict['verification_code']
-            nin_identity = NinIdentity(**proofing_state_dict)
+            nin_identity = NinIdentity(
+                number=proofing_state.nin.number,
+                created_ts=proofing_state.nin.created_ts,
+                created_by=proofing_state.nin.created_by,
+            )
             proofing_user.identities.add(nin_identity)
+            current_app.logger.info('replaced users current nin with the one just verified')
+        else:
+            raise ValueError('users locked nin does not match verified nin')
 
     # Update users nin identity
     proofing_user.identities.nin.is_verified = True
