@@ -109,12 +109,12 @@
                                     <tr>
                                         <th>Official address</th>
                                         <td>
-                                            {{ item.letter_proofing.proofing_letter.address.Name.GivenName }} {{ item.letter_proofing.proofing_letter.address.Name.MiddleName }} {{ item.letter_proofing.proofing_letter.address.Name.Surname }}<br />
-                                            {% if item.letter_proofing.proofing_letter.address.OfficialAddress.CareOf %}
-                                                C/O {{ item.letter_proofing.proofing_letter.address.OfficialAddress.CareOf }}<br />
+                                            {{ item.letter_proofing.proofing_letter.address.name.given_name }} {{ item.letter_proofing.proofing_letter.address.name.middle_name }} {{ item.letter_proofing.proofing_letter.address.name.surname }}<br />
+                                            {% if item.letter_proofing.proofing_letter.address.official_address.care_of %}
+                                                C/O {{ item.letter_proofing.proofing_letter.address.official_address.care_of }}<br />
                                             {% endif %}
-                                            {{ item.letter_proofing.proofing_letter.address.OfficialAddress.Address2 }}<br />
-                                            {{ item.letter_proofing.proofing_letter.address.OfficialAddress.PostalCode }} {{ item.letter_proofing.proofing_letter.address.OfficialAddress.City }}
+                                            {{ item.letter_proofing.proofing_letter.address.official_address.address2 }}<br />
+                                            {{ item.letter_proofing.proofing_letter.address.official_address.postal_code }} {{ item.letter_proofing.proofing_letter.address.official_address.city }}
                                         </td>
                                     </tr>
                                 {% else %}
