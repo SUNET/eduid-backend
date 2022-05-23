@@ -6,8 +6,6 @@ from typing import Any, Dict, Optional
 
 from dateutil.parser import parse as dt_parse
 from flask import request
-
-from eduid.common.rpc.msg_relay import FullPostalAddress
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.metadata import entity_descriptor
@@ -16,6 +14,7 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.exceptions import AmTaskFailed, MsgTaskFailed, NoNavetData
+from eduid.common.rpc.msg_relay import FullPostalAddress
 from eduid.userdb.credentials import Credential
 from eduid.userdb.credentials.external import TrustFramework
 from eduid.userdb.logs import MFATokenProofing, SwedenConnectProofing

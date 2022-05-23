@@ -40,14 +40,14 @@ from uuid import uuid4
 
 import saml2.server
 import saml2.time_util
-from eduid.userdb import NinIdentity
-from eduid.userdb.identity import IdentityList
 from saml2 import BINDING_HTTP_POST
 from saml2.s_utils import UnravelError
 from werkzeug.exceptions import BadRequest
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.userdb import NinIdentity
 from eduid.userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, U2F, Credential, Password
+from eduid.userdb.identity import IdentityList
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.nin import Nin, NinList
 from eduid.webapp.common.session import session
