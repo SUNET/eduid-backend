@@ -5,7 +5,7 @@ import logging
 from abc import ABC
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional, Type, Union
 
 from pydantic import Field
 
@@ -81,6 +81,10 @@ class NinIdentity(IdentityElement):
     @property
     def unique_value(self) -> str:
         return self.number
+
+    def to_old_nin(self) -> Dict[str, Union[str, bool]]:
+        # TODO: remove nins after frontend stops using it
+        return {'number': self.number, 'verified': self.is_verified, 'primary': True}
 
 
 class PridPersistence(str, Enum):

@@ -29,3 +29,10 @@ class AnyIdentitySchema(OneOfSchema):
 
     def get_obj_type(self, obj):
         return obj['identity_type']
+
+
+# TODO: Remove after frontend uses identities
+class NinSchema(EduidSchema):
+    number = fields.String(required=True)
+    verified = fields.Boolean(required=True)
+    primary = fields.Boolean(required=True)

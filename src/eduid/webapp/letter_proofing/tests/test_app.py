@@ -252,6 +252,7 @@ class LetterProofingTests(EduidAPITestCase):
             response2,
             type_='POST_LETTER_PROOFING_VERIFY_CODE_SUCCESS',
             payload={
+                'nins': [{'number': self.test_user_nin, 'primary': True, 'verified': True}],
                 'identities': [
                     {
                         'identity_type': IdentityType.NIN.value,

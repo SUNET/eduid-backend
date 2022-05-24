@@ -277,8 +277,13 @@ def add_nin(user: User, nin: str) -> FluxData:
         current_app.logger.debug(f'NIN: {nin}')
         return error_response(message=CommonMsg.temp_problem)
 
+    # TODO: remove nins after frontend stops using it
+    nins = []
+    if security_user.identities.nin is not None:
+        nins.append(security_user.identities.nin.to_old_nin())
+
     return success_response(
-        payload=dict(identities=security_user.identities.to_list_of_dicts()), message=SecurityMsg.add_success
+        payload=dict(identities=security_user.identities.to_list_of_dicts(), nins=nins), message=SecurityMsg.add_success
     )
 
 
@@ -308,8 +313,13 @@ def remove_nin(user: User, nin: str) -> FluxData:
             current_app.logger.debug(f'NIN: {nin}')
             return error_response(message=CommonMsg.temp_problem)
 
+    # TODO: remove nins after frontend stops using it
+    nins = []
+    if security_user.identities.nin is not None:
+        nins.append(security_user.identities.nin.to_old_nin())
+
     return success_response(
-        payload=dict(identities=security_user.identities.to_list_of_dicts()), message=SecurityMsg.rm_success
+        payload=dict(identities=security_user.identities.to_list_of_dicts(), nins=nins), message=SecurityMsg.rm_success
     )
 
 
@@ -344,7 +354,7 @@ def refresh_user_data(user: User) -> FluxData:
         current_app.stats.count(name='refresh_user_data_navet_data_incomplete')
         return error_response(message=SecurityMsg.navet_data_incomplete)
 
-    # Update user offical names if they differ
+    # Update user official names if they differ
     if not update_user_official_name(security_user, navet_data):
         return error_response(message=CommonMsg.temp_problem)
 

@@ -56,7 +56,12 @@ pd_views = Blueprint('personal_data', __name__, url_prefix='')
 @MarshalWith(AllDataResponseSchema)
 @require_user
 def get_all_data(user: User) -> FluxData:
-    return success_response(payload=user.to_dict())
+    user_dict = user.to_dict()
+    # TODO: remove nins after frontend stops using it
+    user_dict['nins'] = []
+    if user.identities.nin is not None:
+        user_dict['nins'].append(user.identities.nin.to_old_nin())
+    return success_response(payload=user_dict)
 
 
 @pd_views.route('/user', methods=['GET'])
@@ -95,11 +100,22 @@ def post_user(user: User, given_name: str, surname: str, display_name: str, lang
     return success_response(payload=personal_data, message=PDataMsg.save_success)
 
 
-@pd_views.route('/identities', methods=['GET'])
+@pd_views.route('/nins', methods=['GET'])
 @MarshalWith(IdentitiesResponseSchema)
 @require_user
 def get_nins(user) -> FluxData:
+    # TODO: remove endpoint after frontend stops using it
+    return get_identities()
 
-    data = {'identities': user.identities.to_list_of_dicts()}
+
+@pd_views.route('/identities', methods=['GET'])
+@MarshalWith(IdentitiesResponseSchema)
+@require_user
+def get_identities(user) -> FluxData:
+    # TODO: remove nins after frontend stops using it
+    data = {'identities': user.identities.to_list_of_dicts(), 'nins': []}
+
+    if user.identities.nin is not None:
+        data['nins'].append(user.identities.nin.to_old_nin())
 
     return success_response(payload=data)
