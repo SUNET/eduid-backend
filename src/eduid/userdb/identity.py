@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Type, Union
 
 from pydantic import Field
 
-from eduid.userdb.element import ElementKey, ElementList, VerifiedElement
+from eduid.userdb.element import ElementKey, ElementList, VerifiedElement, VerifiedElementList
 
 __author__ = 'lundberg'
 
@@ -98,7 +98,7 @@ class EIDASIdentity(IdentityElement):
     """
     Element that is used as an EIDAS identity for a user
 
-    Properties of LockedNinElement:
+    Properties of EIDASIdentity:
 
         prid
         prid_persistence
@@ -128,7 +128,7 @@ class SvipeIdentity(IdentityElement):
     """
     Element that is used as a Svipe identity for a user
 
-    Properties of LockedNinElement:
+    Properties of SvipeIdentity:
 
         svipe_id
     """
@@ -146,7 +146,7 @@ class SvipeIdentity(IdentityElement):
         return self.svipe_id
 
 
-class IdentityList(ElementList[IdentityElement]):
+class IdentityList(VerifiedElementList[IdentityElement]):
     """
     Hold a list of IdentityElement instances.
     """

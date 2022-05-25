@@ -421,6 +421,24 @@ class ElementList(GenericModel, Generic[ListElement], ABC):
         return [x for x in self.elements if isinstance(x, cls)]
 
     @property
+    def count(self) -> int:
+        """
+        Return the number of elements in the list
+        """
+        return len(self.elements)
+
+
+class VerifiedElementList(ElementList[ListElement], Generic[ListElement], ABC):
+    """
+    Hold a list of PrimaryElement instances.
+
+    Provide methods to add, update and remove elements from the list while
+    maintaining some governing principles, such as ensuring there is exactly
+    one primary element in the list (except if the list is empty or there are
+    no confirmed elements).
+    """
+
+    @property
     def verified(self) -> List[ListElement]:
         """
         Get all the verified elements in the ElementList.
@@ -431,15 +449,8 @@ class ElementList(GenericModel, Generic[ListElement], ABC):
         #    error: Incompatible return value type (got "List[VerifiedElement]", expected "List[ListElement]")
         return verified_elements  # type: ignore
 
-    @property
-    def count(self) -> int:
-        """
-        Return the number of elements in the list
-        """
-        return len(self.elements)
 
-
-class PrimaryElementList(ElementList[ListElement], Generic[ListElement], ABC):
+class PrimaryElementList(VerifiedElementList[ListElement], Generic[ListElement], ABC):
     """
     Hold a list of PrimaryElement instances.
 
