@@ -430,12 +430,9 @@ class ElementList(GenericModel, Generic[ListElement], ABC):
 
 class VerifiedElementList(ElementList[ListElement], Generic[ListElement], ABC):
     """
-    Hold a list of PrimaryElement instances.
+    Hold a list of VerifiedElement instances.
 
-    Provide methods to add, update and remove elements from the list while
-    maintaining some governing principles, such as ensuring there is exactly
-    one primary element in the list (except if the list is empty or there are
-    no confirmed elements).
+    Provides methods specific for a collection of verified elements.
     """
 
     @property
