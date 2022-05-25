@@ -125,7 +125,7 @@ class AuthnState(object):
                 logger.debug(f'User credentials:\n{_creds}')
                 logger.debug(f'Session one-time credentials:\n{ticket.pending_request.onetime_credentials}')
 
-        if user.nins.verified:
+        if user.identities.is_verified:
             self.is_swamid_al2 = True
 
     def _gather_credentials(self, sso_session: SSOSession, ticket: LoginContext, user: IdPUser) -> List[UsedCredential]:

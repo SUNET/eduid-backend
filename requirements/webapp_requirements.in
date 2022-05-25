@@ -5,3 +5,4 @@ Flask
 flask-babel
 raven[flask]
 user-agents
+marshmallow-oneofschema

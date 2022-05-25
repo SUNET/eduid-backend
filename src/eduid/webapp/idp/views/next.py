@@ -8,7 +8,6 @@ from cryptography.hazmat.primitives import hashes, hmac
 from flask import Blueprint, request, url_for
 from saml2 import BINDING_HTTP_POST
 
-from eduid.userdb import LockedIdentityNin
 from eduid.userdb.credentials import FidoCredential, Password
 from eduid.userdb.idp import IdPUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
@@ -85,7 +84,6 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
                 )
             else:
                 current_app.logger.info(f'Not aborting use other device in state {state.state}')
-
         current_app.logger.error(f'Don\'t know how to abort login request {ticket}')
         return error_response(message=IdPMsg.general_failure)
 
@@ -335,7 +333,7 @@ def _set_user_options(res: AuthnOptions, eppn: str) -> None:
             current_app.logger.debug(f'User has a FIDO/Webauthn credential')
             res.webauthn = True
 
-        if user.locked_identity.filter(LockedIdentityNin):
+        if user.locked_identity.nin:
             current_app.logger.debug(f'User has a locked NIN -> Freja is possible')
             res.freja_eidplus = True
 

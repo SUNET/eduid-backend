@@ -36,6 +36,7 @@ from __future__ import annotations
 import copy
 from datetime import datetime
 from enum import Enum, unique
+from operator import itemgetter
 from typing import Any, Dict, List, Mapping, Optional, Type, TypeVar, Union, cast
 
 import bson
@@ -45,6 +46,7 @@ from eduid.userdb.credentials import CredentialList
 from eduid.userdb.db import BaseDB
 from eduid.userdb.element import UserDBValueError
 from eduid.userdb.exceptions import UserHasNotCompletedSignup, UserIsRevoked
+from eduid.userdb.identity import IdentityList, IdentityType
 from eduid.userdb.ladok import Ladok
 from eduid.userdb.locked_identity import LockedIdentityList
 from eduid.userdb.mail import MailAddressList
@@ -77,7 +79,7 @@ class User(BaseModel):
     mail_addresses: MailAddressList = Field(default_factory=MailAddressList, alias='mailAliases')
     phone_numbers: PhoneNumberList = Field(default_factory=PhoneNumberList, alias='phone')
     credentials: CredentialList = Field(default_factory=CredentialList, alias='passwords')
-    nins: NinList = Field(default_factory=NinList)
+    identities: IdentityList = Field(default_factory=IdentityList)
     modified_ts: Optional[datetime] = None
     entitlements: List[str] = Field(default_factory=list, alias='eduPersonEntitlement')
     tou: ToUList = Field(default_factory=ToUList)
@@ -153,10 +155,32 @@ class User(BaseModel):
             if 'surname' not in data:
                 data['surname'] = _sn
 
+        # migrate nins to identities
+        # TODO: Remove parsing of nins after next full load-save
+        if 'nins' in data and data.get('nins'):
+            _nins = data.pop('nins')
+            nin_list = NinList.from_list_of_dicts(_nins)
+            if nin_list.count == 1:
+                _nin = nin_list.to_list_of_dicts()[0]
+            else:
+                # somehow the user has more than one nin
+                if nin_list.primary is not None:
+                    # use primary if any
+                    _nin = nin_list.primary.to_dict()
+                else:
+                    # else use the nin added first
+                    _nin = sorted(nin_list.to_list_of_dicts(), key=itemgetter('created_ts'))[0]
+            # Add identity type and remove primary key for old nin objects
+            _nin['identity_type'] = IdentityType.NIN.value
+            del _nin['primary']
+            _identities = data.pop('identities', [])
+            _identities.append(_nin)
+            data['identities'] = _identities
+
         # parse complex data
         data['mail_addresses'] = cls._parse_mail_addresses(data)
         data['phone_numbers'] = cls._parse_phone_numbers(data)
-        data['nins'] = cls._parse_nins(data)
+        data['identities'] = cls._parse_identities(data)
         data['tou'] = cls._parse_tous(data)
         data['locked_identity'] = cls._parse_locked_identity(data)
         data['orcid'] = cls._parse_orcid(data)
@@ -173,7 +197,7 @@ class User(BaseModel):
         data['mailAliases'] = self.mail_addresses.to_list_of_dicts()
         data['phone'] = self.phone_numbers.to_list_of_dicts()
         data['passwords'] = self.credentials.to_list_of_dicts()
-        data['nins'] = self.nins.to_list_of_dicts()
+        data['identities'] = self.identities.to_list_of_dicts()
         if self.tou is not None:
             data['tou'] = self.tou.to_list_of_dicts()
         data['locked_identity'] = self.locked_identity.to_list_of_dicts()
@@ -304,32 +328,12 @@ class User(BaseModel):
         return PhoneNumberList.from_list_of_dicts(_phones)
 
     @classmethod
-    def _parse_nins(cls, data: Dict[str, Any]) -> NinList:
+    def _parse_identities(cls, data: Dict[str, Any]) -> IdentityList:
         """
-        Parse all the different formats of norEduPersonNIN attributes in the database.
+        Parse identity elements into an IdentityList
         """
-        _nins = data.pop('nins', [])
-        if 'norEduPersonNIN' in data:
-            # old-style list of verified nins
-            old_nins = data.pop('norEduPersonNIN')
-            for this in old_nins:
-                if isinstance(this, str):
-                    # XXX lookup NIN in eduid-dashboards verifications to make sure it is verified somehow?
-                    _primary = not _nins
-                    _nins.append({'number': this, 'primary': _primary, 'verified': True})
-                elif isinstance(this, dict):
-                    _nins.append(
-                        {
-                            'number': this.pop('number'),
-                            'primary': this.pop('primary'),
-                            'verified': this.pop('verified'),
-                        }
-                    )
-                    if len(this):
-                        raise UserDBValueError('Old-style NIN-as-dict has unknown data')
-                else:
-                    raise UserDBValueError('Old-style NIN is not a string or dict')
-        return NinList.from_list_of_dicts(_nins)
+        _identities = data.pop('identities', [])
+        return IdentityList.from_list_of_dicts(items=_identities)
 
     @classmethod
     def _parse_tous(cls, data: Dict[str, Any]) -> ToUList:

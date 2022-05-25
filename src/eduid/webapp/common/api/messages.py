@@ -76,6 +76,8 @@ class CommonMsg(TranslatableMsg):
     # TODO: These _should_ be unused now - check and remove
     csrf_try_again = 'csrf.try_again'
     csrf_missing = 'csrf.missing'
+    user_already_verified = 'User is already verified'
+    user_has_other_locked_nin = 'Another nin is already registered for this user'
 
 
 @dataclass(frozen=True)

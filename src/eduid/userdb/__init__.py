@@ -17,7 +17,8 @@ import eduid.userdb.mail
 import eduid.userdb.phone
 from eduid.userdb.db import MongoDB
 from eduid.userdb.event import EventList
-from eduid.userdb.locked_identity import LockedIdentityNin
+from eduid.userdb.identity import EIDASIdentity, NinIdentity, SvipeIdentity
+from eduid.userdb.locked_identity import LockedIdentityList
 from eduid.userdb.mail import MailAddress
 from eduid.userdb.nin import Nin
 from eduid.userdb.orcid import OidcAuthorization, OidcIdToken, Orcid

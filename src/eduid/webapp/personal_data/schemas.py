@@ -35,8 +35,8 @@ from marshmallow import fields
 
 from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
+from eduid.webapp.common.api.schemas.identity import AnyIdentitySchema, NinSchema
 from eduid.webapp.common.api.schemas.ladok import LadokSchema
-from eduid.webapp.common.api.schemas.nin import NinSchema
 from eduid.webapp.common.api.schemas.orcid import OrcidSchema
 from eduid.webapp.email.schemas import EmailSchema
 from eduid.webapp.personal_data.validators import validate_language, validate_nonempty
@@ -68,11 +68,12 @@ class PersonalDataResponseSchema(FluxStandardAction):
     payload = fields.Nested(PersonalDataResponsePayload)
 
 
-class NinsResponseSchema(FluxStandardAction):
-    class NinResponsePayload(EmailSchema, CSRFResponseMixin):
+class IdentitiesResponseSchema(FluxStandardAction):
+    class IdentitiesResponsePayload(EmailSchema, CSRFResponseMixin):
         nins = fields.Nested(NinSchema, many=True)
+        identities = fields.Nested(AnyIdentitySchema, many=True)
 
-    payload = fields.Nested(NinResponsePayload)
+    payload = fields.Nested(IdentitiesResponsePayload)
 
 
 class AllDataSchema(EduidSchema):
@@ -82,6 +83,7 @@ class AllDataSchema(EduidSchema):
     display_name = fields.String(required=True, attribute='displayName')
     language = fields.String(required=True, attribute='preferredLanguage', validate=validate_language)
     nins = fields.Nested(NinSchema, many=True)
+    identities = fields.Nested(AnyIdentitySchema, many=True)
     emails = fields.Nested(EmailSchema, many=True, attribute='mailAliases')
     phones = fields.Nested(PhoneSchema, many=True, attribute='phone')
     orcid = fields.Nested(OrcidSchema, attribute='orcid')

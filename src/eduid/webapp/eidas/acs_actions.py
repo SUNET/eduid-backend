@@ -5,7 +5,7 @@ from flask import request
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.rpc.exceptions import AmTaskFailed, MsgTaskFailed, NoNavetData
-from eduid.userdb import LockedIdentityNin, User
+from eduid.userdb import User
 from eduid.userdb.credentials.external import SwedenConnectCredential, TrustFramework
 from eduid.userdb.credentials.fido import FidoCredential
 from eduid.userdb.element import ElementKey
@@ -57,7 +57,7 @@ def token_verify_action(session_info: SessionInfo, user: User, authndata: SP_Aut
         return redirect_with_msg(redirect_url, EidasMsg.token_not_in_creds)
 
     # Verify asserted NIN for user if there are no verified NIN
-    if len(proofing_user.nins.verified) == 0:
+    if proofing_user.identities.nin is None:
         error_message = verify_nin_from_external_mfa(proofing_user=proofing_user, session_info=session_info)
         if error_message is not None:
             return redirect_with_msg(redirect_url, error_message)
@@ -91,8 +91,11 @@ def token_verify_action(session_info: SessionInfo, user: User, authndata: SP_Aut
             return redirect_with_msg(redirect_url, EidasMsg.nin_not_matching)
         asserted_nin = magic_cookie_nin
 
-    user_nin = proofing_user.nins.find(asserted_nin)
-    if not user_nin or not user_nin.is_verified:
+    if (
+        proofing_user.identities.nin is None
+        or proofing_user.identities.nin.number != asserted_nin
+        or proofing_user.identities.nin.is_verified is False
+    ):
         current_app.logger.error('Asserted NIN not matching user verified nins')
         current_app.logger.debug('Asserted NIN: {}'.format(asserted_nin))
         return redirect_with_msg(redirect_url, EidasMsg.nin_not_matching)
@@ -115,7 +118,7 @@ def token_verify_action(session_info: SessionInfo, user: User, authndata: SP_Aut
 
     current_app.logger.debug('Authn context: {}'.format(authn_context))
     try:
-        navet_proofing_data = get_proofing_log_navet_data(nin=user_nin.number)
+        navet_proofing_data = get_proofing_log_navet_data(nin=proofing_user.identities.nin.number)
     except NoNavetData:
         current_app.logger.exception('No data returned from Navet')
         return redirect_with_msg(redirect_url, CommonMsg.no_navet_data)
@@ -126,8 +129,8 @@ def token_verify_action(session_info: SessionInfo, user: User, authndata: SP_Aut
 
     proofing_log_entry = MFATokenProofing(
         eppn=proofing_user.eppn,
-        created_by='eduid-eidas',
-        nin=user_nin.number,
+        created_by=current_app.conf.app_name,
+        nin=proofing_user.identities.nin.number,
         issuer=issuer,
         authn_context_class=authn_context,
         key_id=token_to_verify.key,
@@ -184,15 +187,9 @@ def nin_verify_action(session_info: SessionInfo, authndata: SP_AuthnRequest, use
             return redirect_with_msg(redirect_url, CommonMsg.nin_invalid)
         asserted_nin = magic_cookie_nin
 
-    if not asserted_nin:
-        raise ValueError(f'Missing NIN in SAML session info: {_nin_list}')
-
-    if len(proofing_user.nins.verified) != 0:
+    if proofing_user.identities.nin and proofing_user.identities.nin.is_verified:
         current_app.logger.error('User already has a verified NIN')
-        if proofing_user.nins.primary:
-            current_app.logger.debug(f'Primary NIN: {proofing_user.nins.primary.number}. Asserted NIN: {asserted_nin}')
-        else:
-            current_app.logger.debug(f'Primary NIN: {proofing_user.nins.primary}. Asserted NIN: {asserted_nin}')
+        current_app.logger.debug(f'NIN: {proofing_user.identities.nin}. Asserted NIN: {asserted_nin}')
         return redirect_with_msg(redirect_url, EidasMsg.nin_already_verified)
 
     message = verify_nin_from_external_mfa(proofing_user=proofing_user, session_info=session_info)
@@ -234,19 +231,10 @@ def mfa_authentication_action(session_info: SessionInfo, authndata: SP_AuthnRequ
             return redirect_with_msg(redirect_url, CommonMsg.nin_invalid)
         asserted_nin = magic_cookie_nin
 
-    user_nin = user.nins.find(asserted_nin)
-    locked_nin = user.locked_identity.find('nin')
-
-    mfa_success = False
-    if user_nin is None and locked_nin is None:
-        # no nin to match anything to
-        # TODO: we _could_ allow the user to give consent to just adding this NIN to the user here,
-        #       with a request parameter passed from frontend to /mfa-authentication for example.
-        mfa_success = False
-    elif user_nin is not None and user_nin.is_verified is True:
+    if user.identities.nin and user.identities.nin.number == asserted_nin and user.identities.nin.is_verified:
         # nin matched asserted nin and is verified
         mfa_success = True
-    elif isinstance(locked_nin, LockedIdentityNin) and locked_nin.number == asserted_nin:
+    elif user.locked_identity.nin and user.locked_identity.nin.number == asserted_nin:
         # previously verified nin that the user just showed possession of
         mfa_success = True
         # and we can verify it again
@@ -255,9 +243,15 @@ def mfa_authentication_action(session_info: SessionInfo, authndata: SP_AuthnRequ
         if message is not None:
             # If a message was returned, verifying the NIN failed and we abort
             return redirect_with_msg(redirect_url, message)
+    elif user.identities.nin is None and user.locked_identity.nin is None:
+        # TODO: we _could_ allow the user to give consent to just adding this NIN to the user here,
+        #       with a request parameter passed from frontend to /mfa-authentication for example.
+        mfa_success = False
+    else:
+        mfa_success = False
 
     if not mfa_success:
-        # No nin to match external mfa authentication with, bail
+        # Matching external mfa authentication with user nin failed, bail
         current_app.logger.error('Asserted NIN not matching user verified nins')
         current_app.logger.debug('Asserted NIN: {}'.format(asserted_nin))
         current_app.stats.count(name='mfa_auth_nin_not_matching')

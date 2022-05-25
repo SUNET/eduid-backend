@@ -69,8 +69,8 @@ from eduid.webapp.security.schemas import (
     AccountTerminatedSchema,
     ChangePasswordSchema,
     ChpassResponseSchema,
+    IdentitiesResponseSchema,
     NINRequestSchema,
-    NINResponseSchema,
     RedirectResponseSchema,
     SecurityResponseSchema,
     SuggestedPasswordResponseSchema,
@@ -257,14 +257,13 @@ def account_terminated(user: User):
 
 @security_views.route('/add-nin', methods=['POST'])
 @UnmarshalWith(NINRequestSchema)
-@MarshalWith(NINResponseSchema)
+@MarshalWith(IdentitiesResponseSchema)
 @require_user
 def add_nin(user: User, nin: str) -> FluxData:
     current_app.logger.info('Adding NIN to user')
     current_app.logger.debug('NIN: {}'.format(nin))
 
-    nin_obj = user.nins.find(nin)
-    if nin_obj:
+    if user.identities.nin is not None:
         current_app.logger.info('NIN already added.')
         return error_response(message=SecurityMsg.already_exists)
 
@@ -278,32 +277,50 @@ def add_nin(user: User, nin: str) -> FluxData:
         current_app.logger.debug(f'NIN: {nin}')
         return error_response(message=CommonMsg.temp_problem)
 
-    return success_response(payload=dict(nins=security_user.nins.to_list_of_dicts()), message=SecurityMsg.add_success)
+    # TODO: remove nins after frontend stops using it
+    nins = []
+    if security_user.identities.nin is not None:
+        nins.append(security_user.identities.nin.to_old_nin())
+
+    return success_response(
+        payload=dict(identities=security_user.identities.to_list_of_dicts(), nins=nins), message=SecurityMsg.add_success
+    )
 
 
 @security_views.route('/remove-nin', methods=['POST'])
 @UnmarshalWith(NINRequestSchema)
-@MarshalWith(NINResponseSchema)
+@MarshalWith(IdentitiesResponseSchema)
 @require_user
 def remove_nin(user: User, nin: str) -> FluxData:
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
     current_app.logger.info('Removing NIN from user')
     current_app.logger.debug('NIN: {}'.format(nin))
 
-    nin_obj = security_user.nins.find(nin)
-    if nin_obj and nin_obj.is_verified:
-        current_app.logger.info('NIN verified. Will not remove it.')
-        return error_response(message=SecurityMsg.rm_verified)
+    if user.identities.nin is not None:
+        if user.identities.nin.number != nin:
+            return success_response(
+                payload=dict(identities=security_user.identities.to_list_of_dicts()), message=SecurityMsg.rm_success
+            )
 
-    try:
-        if nin_obj:
-            remove_nin_from_user(security_user, nin_obj)
-    except AmTaskFailed:
-        current_app.logger.exception('Removing nin from user failed')
-        current_app.logger.debug(f'NIN: {nin}')
-        return error_response(message=CommonMsg.temp_problem)
+        if user.identities.nin.is_verified:
+            current_app.logger.info('NIN verified. Will not remove it.')
+            return error_response(message=SecurityMsg.rm_verified)
 
-    return success_response(payload=dict(nins=security_user.nins.to_list_of_dicts()), message=SecurityMsg.rm_success)
+        try:
+            remove_nin_from_user(security_user, user.identities.nin)
+        except AmTaskFailed:
+            current_app.logger.exception('Removing nin from user failed')
+            current_app.logger.debug(f'NIN: {nin}')
+            return error_response(message=CommonMsg.temp_problem)
+
+    # TODO: remove nins after frontend stops using it
+    nins = []
+    if security_user.identities.nin is not None:
+        nins.append(security_user.identities.nin.to_old_nin())
+
+    return success_response(
+        payload=dict(identities=security_user.identities.to_list_of_dicts(), nins=nins), message=SecurityMsg.rm_success
+    )
 
 
 @security_views.route('/refresh-official-user-data', methods=['POST'])
@@ -312,7 +329,7 @@ def remove_nin(user: User, nin: str) -> FluxData:
 @require_user
 def refresh_user_data(user: User) -> FluxData:
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
-    if security_user.nins.primary is None:
+    if security_user.identities.nin is None or security_user.identities.nin.is_verified is False:
         return error_response(message=SecurityMsg.user_not_verified)
 
     current_app.stats.count(name='refresh_user_data_called')
@@ -325,8 +342,8 @@ def refresh_user_data(user: User) -> FluxData:
 
     # Lookup person data via Navet
     current_app.logger.info('Getting Navet data for user')
-    current_app.logger.debug(f'NIN: {security_user.nins.primary.number}')
-    navet_data = current_app.msg_relay.get_all_navet_data(security_user.nins.primary.number)
+    current_app.logger.debug(f'NIN: {security_user.identities.nin.number}')
+    navet_data = current_app.msg_relay.get_all_navet_data(security_user.identities.nin.number)
     current_app.logger.debug(f'Navet data: {navet_data}')
 
     if navet_data.person.name.given_name is None or navet_data.person.name.surname is None:
@@ -337,7 +354,7 @@ def refresh_user_data(user: User) -> FluxData:
         current_app.stats.count(name='refresh_user_data_navet_data_incomplete')
         return error_response(message=SecurityMsg.navet_data_incomplete)
 
-    # Update user offical names if they differ
+    # Update user official names if they differ
     if not update_user_official_name(security_user, navet_data):
         return error_response(message=CommonMsg.temp_problem)
 

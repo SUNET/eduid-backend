@@ -49,6 +49,7 @@ from eduid.common.testing_base import CommonTestCase
 from eduid.userdb import User
 from eduid.userdb.db import BaseDB
 from eduid.userdb.fixtures.users import new_completed_signup_user_example, new_unverified_user_example, new_user_example
+from eduid.userdb.proofing.state import NinProofingState
 from eduid.userdb.testing import MongoTemporaryInstance
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.session import EduidSession
@@ -319,6 +320,36 @@ class EduidAPITestCase(CommonTestCase):
             else:
                 logger.info(f'Test case got unexpected response ({response.status_code}):\n{response.data}')
             raise
+
+    def _check_nin_verified_ok(
+        self,
+        user: User,
+        proofing_state: NinProofingState,
+        number: Optional[str] = None,
+        created_by: Optional[str] = None,
+    ):
+        if number is None and (self.test_user is not None and self.test_user.identities.nin):
+            number = self.test_user.identities.nin.number
+
+        created_by_str = created_by or proofing_state.nin.created_by
+
+        assert user.identities.nin is not None
+        assert user.identities.nin.number == number
+        assert user.identities.nin.created_by == created_by_str
+        assert user.identities.nin.verified_by == proofing_state.nin.created_by
+        assert user.identities.nin.is_verified is True
+        assert self.app.proofing_log.db_count() == 1
+
+    def _check_nin_not_verified(self, user: User, number: Optional[str] = None, created_by: Optional[str] = None):
+        if number is None and (self.test_user is not None and self.test_user.identities.nin):
+            number = self.test_user.identities.nin.number
+
+        assert user.identities.nin is not None
+        assert user.identities.nin.number == number
+        if created_by:
+            assert user.identities.nin.created_by == created_by
+        assert user.identities.nin.is_verified is False
+        assert self.app.proofing_log.db_count() == 0
 
 
 class CSRFTestClient(FlaskClient):

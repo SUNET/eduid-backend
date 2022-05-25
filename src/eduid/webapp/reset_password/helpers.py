@@ -285,17 +285,15 @@ def unverify_user(user: ResetPasswordUser) -> None:
             current_app.logger.info('Phone number unverified')
             current_app.logger.debug(f'Phone number: {phone_number.number}')
             current_app.stats.count(name='unverified_phone', value=1)
-    # NINs
-    verified_nins = user.nins.verified
-    if verified_nins:
-        current_app.logger.info(f'Unverifying nins for user {user}')
-        if user.nins.primary:
-            user.nins.primary.is_primary = False
-        for nin in verified_nins:
-            nin.is_verified = False
-            current_app.logger.info('NIN unverified')
-            current_app.logger.debug(f'NIN: {nin.number}')
-            current_app.stats.count(name='unverified_nin', value=1)
+    # identities
+    verified_identities = user.identities.verified
+    if verified_identities:
+        current_app.logger.info('Unverifying identities for user')
+        for identity in verified_identities:
+            identity.is_verified = False
+            current_app.logger.info('identity unverified')
+            current_app.logger.debug(f'identity: {identity}')
+            current_app.stats.count(name=f'unverified_{identity.identity_type}', value=1)
 
 
 def reset_user_password(
@@ -365,7 +363,7 @@ def get_extra_security_alternatives(user: User) -> dict:
     """
     alternatives: Dict[str, Any] = {}
 
-    if user.nins.verified:
+    if user.identities.nin is not None and user.identities.nin.is_verified:
         alternatives['external_mfa'] = True
 
     if user.phone_numbers.verified:

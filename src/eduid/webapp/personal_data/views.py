@@ -44,7 +44,7 @@ from eduid.webapp.personal_data.app import current_pdata_app as current_app
 from eduid.webapp.personal_data.helpers import PDataMsg
 from eduid.webapp.personal_data.schemas import (
     AllDataResponseSchema,
-    NinsResponseSchema,
+    IdentitiesResponseSchema,
     PersonalDataRequestSchema,
     PersonalDataResponseSchema,
 )
@@ -56,7 +56,12 @@ pd_views = Blueprint('personal_data', __name__, url_prefix='')
 @MarshalWith(AllDataResponseSchema)
 @require_user
 def get_all_data(user: User) -> FluxData:
-    return success_response(payload=user.to_dict())
+    user_dict = user.to_dict()
+    # TODO: remove nins after frontend stops using it
+    user_dict['nins'] = []
+    if user.identities.nin is not None:
+        user_dict['nins'].append(user.identities.nin.to_old_nin())
+    return success_response(payload=user_dict)
 
 
 @pd_views.route('/user', methods=['GET'])
@@ -75,7 +80,9 @@ def post_user(user: User, given_name: str, surname: str, display_name: str, lang
     current_app.logger.debug('Trying to save user {}'.format(user))
 
     # disallow change of first name and surname if the user is verified
-    if user.nins.verified and (given_name != personal_data_user.given_name or surname != personal_data_user.surname):
+    if user.identities.is_verified and (
+        given_name != personal_data_user.given_name or surname != personal_data_user.surname
+    ):
         return error_response(message=PDataMsg.name_change_not_allowed)
 
     personal_data_user.given_name = given_name
@@ -94,10 +101,21 @@ def post_user(user: User, given_name: str, surname: str, display_name: str, lang
 
 
 @pd_views.route('/nins', methods=['GET'])
-@MarshalWith(NinsResponseSchema)
+@MarshalWith(IdentitiesResponseSchema)
 @require_user
 def get_nins(user) -> FluxData:
+    # TODO: remove endpoint after frontend stops using it
+    return get_identities()
 
-    data = {'nins': user.nins.to_list_of_dicts()}
+
+@pd_views.route('/identities', methods=['GET'])
+@MarshalWith(IdentitiesResponseSchema)
+@require_user
+def get_identities(user) -> FluxData:
+    # TODO: remove nins after frontend stops using it
+    data = {'identities': user.identities.to_list_of_dicts(), 'nins': []}
+
+    if user.identities.nin is not None:
+        data['nins'].append(user.identities.nin.to_old_nin())
 
     return success_response(payload=data)

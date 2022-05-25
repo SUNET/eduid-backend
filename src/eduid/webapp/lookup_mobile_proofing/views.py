@@ -5,7 +5,7 @@ from flask import Blueprint
 
 from eduid.common.rpc.exceptions import AmTaskFailed, LookupMobileTaskFailed, MsgTaskFailed, NoNavetData
 from eduid.userdb import User
-from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
+from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_nin, require_user
 from eduid.webapp.common.api.helpers import add_nin_to_user, verify_nin_for_user
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.schemas.csrf import EmptyResponse
@@ -28,7 +28,7 @@ def get_state(user: User) -> FluxData:
 @mobile_proofing_views.route('/proofing', methods=['POST'])
 @UnmarshalWith(schemas.LookupMobileProofingRequestSchema)
 @MarshalWith(schemas.LookupMobileProofingResponseSchema)
-@can_verify_identity
+@can_verify_nin
 @require_user
 def proofing(user: User, nin: str) -> FluxData:
     current_app.logger.info(f'Trying to verify nin via mobile number for user {user}.')

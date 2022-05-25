@@ -43,7 +43,7 @@ def get_university_info(user: User) -> FluxData:
 @UnmarshalWith(LinkUserRequest)
 @require_user
 def link_user(user: User, ladok_name: str) -> FluxData:
-    if not user.nins.verified:
+    if user.identities.nin is None or user.identities.nin.is_verified is False:
         current_app.logger.error('User has no verified nin')
         return error_response(message=LadokMsg.no_verified_nin)
 
@@ -51,9 +51,9 @@ def link_user(user: User, ladok_name: str) -> FluxData:
     if current_app.conf.environment is EduidEnvironment.dev or check_magic_cookie(current_app.conf):
         return link_user_BACKDOOR(user=user, ladok_name=ladok_name)
 
-    assert user.nins.primary is not None  # please mypy
+    assert user.identities.nin is not None  # please mypy
     try:
-        ladok_info = current_app.ladok_client.get_user_info(ladok_name=ladok_name, nin=user.nins.primary.number)
+        ladok_info = current_app.ladok_client.get_user_info(ladok_name=ladok_name, nin=user.identities.nin.number)
     except LadokClientException:
         current_app.logger.error(f'{ladok_name} not found')
         return error_response(message=LadokMsg.missing_university)
@@ -72,10 +72,10 @@ def link_user(user: User, ladok_name: str) -> FluxData:
         verified_by='eduid-ladok',
     )
     proofing_user.ladok = ladok_data
-    assert proofing_user.nins.primary is not None  # please mypy
+    assert proofing_user.identities.nin is not None  # please mypy
     proofing_log_entry = LadokProofing(
         eppn=proofing_user.eppn,
-        nin=proofing_user.nins.primary.number,
+        nin=proofing_user.identities.nin.number,
         external_id=str(ladok_data.external_id),
         ladok_name=ladok_name,
         proofing_version='2021v1',

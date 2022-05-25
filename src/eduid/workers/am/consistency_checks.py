@@ -6,8 +6,9 @@ from typing import Any, Dict, List, Optional
 from bson import ObjectId
 from celery.utils.log import get_task_logger
 
-from eduid.userdb.exceptions import DocumentDoesNotExist, LockedIdentityViolation, UserDBValueError
-from eduid.userdb.locked_identity import LockedIdentityList, LockedIdentityNin
+from eduid.userdb import LockedIdentityList
+from eduid.userdb.exceptions import DocumentDoesNotExist, LockedIdentityViolation
+from eduid.userdb.identity import IdentityList
 from eduid.userdb.userdb import AmDB
 
 __author__ = 'lundberg'
@@ -20,7 +21,7 @@ def unverify_duplicates(userdb: AmDB, user_id: ObjectId, attributes: Dict) -> Di
     Checks supplied attributes for keys that should have only one user with that
     element verified.
 
-    Checks for verified mail addresses, phone numbers and nins.
+    Checks for verified mail addresses, phone numbers and identities.
 
     :param userdb: Central userdb
     :param user_id: User document _id
@@ -38,7 +39,7 @@ def unverify_duplicates(userdb: AmDB, user_id: ObjectId, attributes: Dict) -> Di
     if attributes.get('$set'):
         mail_count = unverify_mail_aliases(userdb, user_id, attributes['$set'].get('mailAliases'))
         phone_count = unverify_phones(userdb, user_id, attributes['$set'].get('phone'))
-        nin_count = unverify_nins(userdb, user_id, attributes['$set'].get('nins'))
+        nin_count = unverify_identities(userdb, user_id, attributes['$set'].get('identities'))
     return {'mail_count': mail_count, 'phone_count': phone_count, 'nin_count': nin_count}
 
 
@@ -119,40 +120,36 @@ def unverify_phones(userdb: AmDB, user_id: ObjectId, phones: List[Dict[str, Any]
     return count
 
 
-def unverify_nins(userdb: AmDB, user_id: ObjectId, nins: List[Dict[str, Any]]) -> int:
+def unverify_identities(userdb: AmDB, user_id: ObjectId, identities: List[Dict[str, Any]]) -> int:
     """
     :param userdb: Central userdb
     :param user_id: User document _id
-    :param nins: sub dict of attributes
+    :param identities: sub dict of attributes
 
     :return: How many nins that where unverified
     """
     count = 0
-    if nins is None:
-        logger.debug('No nins to check duplicates against for user {!s}.'.format(user_id))
+    if identities is None:
+        logger.debug('No identities to check duplicates against for user {!s}.'.format(user_id))
         return count
-    # Get verified nins from attributes
-    verified_nins = [nin['number'] for nin in nins if nin.get('verified') is True]
-    for number in verified_nins:
+    identity_list = IdentityList.from_list_of_dicts(identities)
+    for identity in identity_list.to_list():
+        if identity.is_verified is False:
+            continue
         try:
-            for user in userdb.get_users_by_nin(number):
-                if user.user_id != user_id:
-                    logger.debug('Removing nin {} from user {}'.format(number, user))
-                    logger.debug('Old user NINs BEFORE: {}.'.format(user.nins.to_list()))
-                    if user.nins.primary and user.nins.primary.number == number:
-                        # Promote some other verified nin to primary (future proofing)
-                        old_nins = user.nins.verified
-                        for this in old_nins:
-                            if this.number != number:
-                                user.nins.set_primary(this.key)
-                                break
-                    old_user_nin = user.nins.find(number)
-                    if old_user_nin is not None:
-                        old_user_nin.is_primary = False
-                        old_user_nin.is_verified = False
+            # get all users with this verified identity
+            for other_user in userdb.get_users_by_identity(
+                identity_type=identity.identity_type, key=identity.unique_key_name, value=identity.unique_value
+            ):
+                if other_user.user_id != user_id:
+                    logger.debug(f'Removing identity {identity} from user {other_user.eppn}')
+                    logger.debug(f'Old user identities BEFORE: {other_user.identities.to_list()}.')
+                    other_identity = other_user.identities.find(identity.identity_type)
+                    if other_identity is not None and other_identity.unique_value == identity.unique_value:
+                        other_identity.is_verified = False
                     count += 1
-                    logger.debug('Old user NINs AFTER: {}.'.format(user.nins.to_list()))
-                    userdb.save(user)
+                    logger.debug(f'Old user identities AFTER: {other_user.identities.to_list()}.')
+                    userdb.save(other_user)
         except DocumentDoesNotExist:
             pass
     return count
@@ -167,38 +164,40 @@ def check_locked_identity(userdb: AmDB, user_id: ObjectId, attributes: Dict, app
 
     :return: attributes to update
     """
-    # Check verified nins that will be set against the locked_identity attribute,
+    # Check verified identities that will be set against the locked_identity attribute,
     # if that does not exist it should be created
     set_attributes = attributes.get('$set', {})
-    nins = set_attributes.get('nins', [])
-    verified_nins = [nin for nin in nins if nin.get('verified') is True]
-    if not verified_nins:
-        return attributes  # No verified nins will be set
-
-    # A user can not have more than one verified nin at this time
-    if len(verified_nins) > 1:
-        logger.error('Tried to set more than one verified nin for user with id {}'.format(user_id))
-        raise UserDBValueError('Tried to set more than one verified nin for user.')
-
-    nin = verified_nins[0]
+    identity_list = IdentityList.from_list_of_dicts(set_attributes.get('identities', []))
 
     # Get the users locked identities
     user = userdb.get_user_by_id(user_id)
     locked_identities = user.locked_identity if user else LockedIdentityList()
+    updated = False
+    for identity in identity_list.to_list():
+        if identity.is_verified is False:
+            # if the identity is not verified then locked identities does not matter
+            continue
 
-    locked_nin = locked_identities.find('nin')
-    # Create a new locked nin if it does not already exist
-    if not locked_nin:
-        locked_nin = LockedIdentityNin(
-            number=nin['number'], created_by=nin.get('created_by', app_name), created_ts=nin.get('created_ts', True)
-        )
-        locked_identities.add(locked_nin)
+        locked_identity = locked_identities.find(identity.identity_type)
+        # add new verified identity to locked identities
+        if locked_identity is None:
+            if identity.created_by is None:
+                identity.created_by = app_name
+            locked_identities.add(identity)
+            updated = True
+            continue
 
-    # Check nin to be set against locked nin
-    if isinstance(locked_nin, LockedIdentityNin):
-        if nin['number'] != locked_nin.number:
-            logger.error(f'Verified nin does not match locked identity for user with id {user_id}')
+        # there is already an identity of the verified identity type in locked identities
+        # bail if they do not match
+        if identity.unique_value != locked_identity.unique_value:
+            # XXX: non-persistent identities should be handled in the app verifying the identity
+            # XXX: by using locked_identities.replace()
+            logger.error(f'Verified identity does not match locked identity for user with id {user_id}')
+            logger.debug(f'identity: {identity}')
+            logger.debug(f'locked_identity: {locked_identity}')
             raise LockedIdentityViolation(f'Verified nin does not match locked identity for user with id {user_id}')
 
-    attributes['$set']['locked_identity'] = locked_identities.to_list_of_dicts()
+    if updated:
+        attributes['$set']['locked_identity'] = locked_identities.to_list_of_dicts()
+
     return attributes

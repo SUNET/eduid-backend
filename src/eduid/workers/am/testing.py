@@ -51,6 +51,7 @@ from eduid.common.config.workers import AmConfig
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.common.testing_base import CommonTestCase
 from eduid.userdb.exceptions import UserDoesNotExist
+from eduid.userdb.identity import IdentityType
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.testing import MongoTemporaryInstance
 from eduid.workers.am.ams import AttributeFetcher
@@ -73,7 +74,15 @@ USER_DATA = {
             'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
         }
     ],
-    'nins': [{'number': '123456781235', 'primary': True, 'verified': True}],
+    'identities': [
+        {
+            'identity_type': IdentityType.NIN.value,
+            'number': '123456781235',
+            'verified': True,
+            'created_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+            'modified_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+        }
+    ],
     'orcid': {
         'oidc_authz': {
             'token_type': 'bearer',

@@ -39,7 +39,14 @@ from pymongo import ReturnDocument
 
 import eduid.userdb.exceptions
 from eduid.userdb.db import BaseDB
-from eduid.userdb.exceptions import DocumentDoesNotExist, EduIDUserDBError, MultipleUsersReturned, UserDoesNotExist
+from eduid.userdb.exceptions import (
+    DocumentDoesNotExist,
+    EduIDUserDBError,
+    MultipleDocumentsReturned,
+    MultipleUsersReturned,
+    UserDoesNotExist,
+)
+from eduid.userdb.identity import IdentityType
 from eduid.userdb.user import User
 from eduid.userdb.util import utc_now
 
@@ -67,9 +74,6 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         super().__init__(db_uri, db_name, collection)
 
         logger.debug(f'{self} connected to database')
-        # XXX Backwards compatibility.
-        # Was: provide access to our backends exceptions to users of this class
-        self.exceptions = eduid.userdb.exceptions
 
     def __repr__(self):
         return f'<eduID {self.__class__.__name__}: {self._db.sanitized_uri} {repr(self._coll_name)})>'
@@ -159,13 +163,21 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
 
         :return: List of User instances
         """
-        old_filter = {'norEduPersonNIN': nin}
-        newmatch = {'number': nin, 'verified': True}
+
+        match = {'identity_type': IdentityType.NIN.value, 'number': nin, 'verified': True}
         if include_unconfirmed:
-            newmatch = {'number': nin}
-        new_filter = {'nins': {'$elemMatch': newmatch}}
-        filter = {'$or': [old_filter, new_filter]}
-        return self._get_user_by_filter(filter)
+            del match['verified']
+        _filter = {'identities': {'$elemMatch': match}}
+        return self._get_user_by_filter(_filter)
+
+    def get_users_by_identity(
+        self, identity_type: IdentityType, key: str, value: str, include_unconfirmed: bool = False
+    ):
+        match = {'identity_type': identity_type.value, key: value, 'verified': True}
+        if include_unconfirmed:
+            del match['verified']
+        _filter = {'identities': {'$elemMatch': match}}
+        return self._get_user_by_filter(_filter)
 
     def get_user_by_phone(self, phone: str) -> Optional[UserVar]:
         """Locate a user with a (confirmed) phone number"""
@@ -230,10 +242,10 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
                 user = self.user_from_dict(data=doc)
                 logger.debug("{!s} Returning user {!s}".format(self, user))
             return user
-        except self.exceptions.DocumentDoesNotExist as e:
+        except DocumentDoesNotExist as e:
             logger.debug("UserDoesNotExist, {!r} = {!r}".format(attr, value))
             raise UserDoesNotExist(e.reason)
-        except self.exceptions.MultipleDocumentsReturned as e:
+        except MultipleDocumentsReturned as e:
             logger.error("MultipleUsersReturned, {!r} = {!r}".format(attr, value))
             raise MultipleUsersReturned(e.reason)
 

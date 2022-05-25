@@ -45,7 +45,9 @@ from saml2.s_utils import UnravelError
 from werkzeug.exceptions import BadRequest
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.userdb import NinIdentity
 from eduid.userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, U2F, Credential, Password
+from eduid.userdb.identity import IdentityList
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.nin import Nin, NinList
 from eduid.webapp.common.session import session
@@ -197,16 +199,15 @@ class TestSSO(SSOIdPTests):
         :return: IdPUser instance
         """
         user = self.app.userdb.lookup_user(eppn)
-        user.nins = NinList()
+        user.identities = IdentityList()
         for number in nins:
-            this_nin = Nin(
+            this_nin = NinIdentity(
                 number=number,
                 created_by='unittest',
                 created_ts=utc_now(),
                 is_verified=True,
-                is_primary=user.nins.primary is None,
             )
-            user.nins.add(this_nin)
+            user.identities.add(this_nin)
         return user
 
     # ------------------------------------------------------------------------
