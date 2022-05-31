@@ -108,7 +108,7 @@ class EIDASIdentity(IdentityElement):
     prid: str
     prid_persistence: PridPersistence
     date_of_birth: datetime
-    country: str
+    country_code: str
 
     @property
     def unique_key_name(self) -> str:

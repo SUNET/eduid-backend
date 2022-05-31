@@ -188,7 +188,7 @@ class PersonalDataTests(EduidAPITestCase):
             'identities': {
                 'is_verified': True,
                 'nin': {'number': '197801011234', 'verified': True},
-                'eidas': {'verified': True, 'country': 'Germany', 'date_of_birth': '1978-09-02'},
+                'eidas': {'verified': True, 'country_code': 'DE', 'date_of_birth': '1978-09-02'},
             },
             'phones': [
                 {'number': '+34609609609', 'primary': True, 'verified': True},
@@ -285,7 +285,7 @@ class PersonalDataTests(EduidAPITestCase):
             'identities': {
                 'is_verified': True,
                 'nin': {'number': '197801011234', 'verified': True},
-                'eidas': {'verified': True, 'country': 'Germany', 'date_of_birth': '1978-09-02'},
+                'eidas': {'verified': True, 'country_code': 'DE', 'date_of_birth': '1978-09-02'},
             },
         }
         self._check_success_response(response, type_='GET_PERSONAL_DATA_NINS_SUCCESS', payload=expected_payload)
@@ -297,7 +297,7 @@ class PersonalDataTests(EduidAPITestCase):
             'identities': {
                 'is_verified': True,
                 'nin': {'number': '197801011234', 'verified': True},
-                'eidas': {'verified': True, 'country': 'Germany', 'date_of_birth': '1978-09-02'},
+                'eidas': {'verified': True, 'country_code': 'DE', 'date_of_birth': '1978-09-02'},
             },
         }
         self._check_success_response(response, type_='GET_PERSONAL_DATA_IDENTITIES_SUCCESS', payload=expected_payload)

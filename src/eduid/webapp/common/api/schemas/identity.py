@@ -17,7 +17,7 @@ class NinIdentitySchema(IdentitySchema):
 
 class EidasIdentitySchema(IdentitySchema):
     date_of_birth = fields.Date(required=True)
-    country = fields.String(required=True)
+    country_code = fields.String(required=True)
 
 
 class IdentitiesSchema(EduidSchema):
