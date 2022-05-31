@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Type, Union
 
 from pydantic import Field
 
-from eduid.userdb.element import ElementKey, ElementList, VerifiedElement, VerifiedElementList
+from eduid.userdb.element import ElementKey, VerifiedElement, VerifiedElementList
 
 __author__ = 'lundberg'
 
@@ -208,3 +208,10 @@ class IdentityList(VerifiedElementList[IdentityElement]):
         elif self.eidas and self.eidas.is_verified:
             return self.eidas.date_of_birth
         return None
+
+    def to_frontend_format(self) -> Dict[str, Any]:
+        res: Dict[str, Union[bool, Dict[str, Any]]] = {
+            item.identity_type.value: item.to_dict() for item in self.to_list()
+        }
+        res['is_verified'] = self.is_verified
+        return res

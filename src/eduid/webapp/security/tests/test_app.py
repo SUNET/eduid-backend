@@ -286,14 +286,10 @@ class SecurityTests(EduidAPITestCase):
             type_='POST_SECURITY_REMOVE_NIN_SUCCESS',
             msg=SecurityMsg.rm_success,
             payload={
-                'identities': [
-                    {
-                        'identity_type': IdentityType.EIDAS.value,
-                        'verified': True,
-                        'country': 'Germany',
-                        'date_of_birth': '1978-09-02',
-                    },
-                ]
+                'identities': {
+                    'is_verified': True,
+                    'eidas': {'verified': True, 'country': 'Germany', 'date_of_birth': '1978-09-02'},
+                },
             },
         )
 
@@ -307,19 +303,11 @@ class SecurityTests(EduidAPITestCase):
             type_='POST_SECURITY_REMOVE_NIN_SUCCESS',
             msg=SecurityMsg.rm_success,
             payload={
-                'identities': [
-                    {
-                        'identity_type': IdentityType.NIN.value,
-                        'number': self.test_user.identities.nin.number,
-                        'verified': True,
-                    },
-                    {
-                        'identity_type': IdentityType.EIDAS.value,
-                        'verified': True,
-                        'country': 'Germany',
-                        'date_of_birth': '1978-09-02',
-                    },
-                ],
+                'identities': {
+                    'is_verified': True,
+                    'nin': {'number': self.test_user.identities.nin.number, 'verified': True},
+                    'eidas': {'verified': True, 'country': 'Germany', 'date_of_birth': '1978-09-02'},
+                },
             },
         )
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -361,15 +349,11 @@ class SecurityTests(EduidAPITestCase):
             type_='POST_SECURITY_ADD_NIN_SUCCESS',
             msg=SecurityMsg.add_success,
             payload={
-                'identities': [
-                    {
-                        'identity_type': IdentityType.EIDAS.value,
-                        'verified': True,
-                        'country': 'Germany',
-                        'date_of_birth': '1978-09-02',
-                    },
-                    {'identity_type': IdentityType.NIN.value, 'number': self.test_user_nin, 'verified': False},
-                ],
+                'identities': {
+                    'is_verified': True,
+                    'eidas': {'verified': True, 'country': 'Germany', 'date_of_birth': '1978-09-02'},
+                    'nin': {'number': self.test_user_nin, 'verified': False},
+                },
             },
         )
 

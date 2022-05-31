@@ -283,7 +283,8 @@ def add_nin(user: User, nin: str) -> FluxData:
         nins.append(security_user.identities.nin.to_old_nin())
 
     return success_response(
-        payload=dict(identities=security_user.identities.to_list_of_dicts(), nins=nins), message=SecurityMsg.add_success
+        payload=dict(identities=security_user.identities.to_frontend_format(), nins=nins),
+        message=SecurityMsg.add_success,
     )
 
 
@@ -299,7 +300,7 @@ def remove_nin(user: User, nin: str) -> FluxData:
     if user.identities.nin is not None:
         if user.identities.nin.number != nin:
             return success_response(
-                payload=dict(identities=security_user.identities.to_list_of_dicts()), message=SecurityMsg.rm_success
+                payload=dict(identities=security_user.identities.to_frontend_format()), message=SecurityMsg.rm_success
             )
 
         if user.identities.nin.is_verified:
@@ -319,7 +320,8 @@ def remove_nin(user: User, nin: str) -> FluxData:
         nins.append(security_user.identities.nin.to_old_nin())
 
     return success_response(
-        payload=dict(identities=security_user.identities.to_list_of_dicts(), nins=nins), message=SecurityMsg.rm_success
+        payload=dict(identities=security_user.identities.to_frontend_format(), nins=nins),
+        message=SecurityMsg.rm_success,
     )
 
 

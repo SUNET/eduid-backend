@@ -185,7 +185,7 @@ def verify_code(user: User, code: str) -> FluxData:
             nins.append(proofing_user.identities.nin.to_old_nin())
 
         return success_response(
-            payload=dict(identities=proofing_user.identities.to_list_of_dicts(), nins=nins),
+            payload=dict(identities=proofing_user.identities.to_frontend_format(), nins=nins),
             message=LetterMsg.verify_success,
         )
     except AmTaskFailed:
