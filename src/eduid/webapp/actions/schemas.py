@@ -30,7 +30,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from marshmallow import fields
+from marshmallow import fields, EXCLUDE
 
 from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
@@ -38,7 +38,7 @@ from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseM
 
 class PostActionRequestSchema(EduidSchema, CSRFRequestMixin):
     class Meta:
-        unknown = None  # Ignore unknown data - actions load the request JSON individually
+        unknown = EXCLUDE  # Ignore unknown data - actions load the request JSON individually
 
 
 class PostActionResponseSchema(FluxStandardAction):
