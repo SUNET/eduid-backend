@@ -38,7 +38,6 @@ from flask import Response
 from mock import patch
 
 from eduid.userdb.element import ElementKey
-from eduid.userdb.identity import IdentityType
 from eduid.webapp.common.api.exceptions import ApiException
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.personal_data.app import PersonalDataApp, pd_init_app
@@ -186,15 +185,11 @@ class PersonalDataTests(EduidAPITestCase):
             },
             'language': 'en',
             'nins': [{'number': '197801011234', 'primary': True, 'verified': True}],
-            'identities': [
-                {'identity_type': IdentityType.NIN.value, 'number': '197801011234', 'verified': True},
-                {
-                    'identity_type': IdentityType.EIDAS.value,
-                    'verified': True,
-                    'country': 'Germany',
-                    'date_of_birth': '1978-09-02',
-                },
-            ],
+            'identities': {
+                'is_verified': True,
+                'nin': {'number': '197801011234', 'verified': True},
+                'eidas': {'verified': True, 'country_code': 'DE', 'date_of_birth': '1978-09-02'},
+            },
             'phones': [
                 {'number': '+34609609609', 'primary': True, 'verified': True},
                 {'number': '+34 6096096096', 'primary': False, 'verified': False},
@@ -287,15 +282,11 @@ class PersonalDataTests(EduidAPITestCase):
         response = self._get_user_nins()
         expected_payload = {
             'nins': [{'number': '197801011234', 'primary': True, 'verified': True}],
-            'identities': [
-                {'identity_type': IdentityType.NIN.value, 'number': '197801011234', 'verified': True},
-                {
-                    'identity_type': IdentityType.EIDAS.value,
-                    'verified': True,
-                    'country': 'Germany',
-                    'date_of_birth': '1978-09-02',
-                },
-            ],
+            'identities': {
+                'is_verified': True,
+                'nin': {'number': '197801011234', 'verified': True},
+                'eidas': {'verified': True, 'country_code': 'DE', 'date_of_birth': '1978-09-02'},
+            },
         }
         self._check_success_response(response, type_='GET_PERSONAL_DATA_NINS_SUCCESS', payload=expected_payload)
 
@@ -303,14 +294,10 @@ class PersonalDataTests(EduidAPITestCase):
         response = self._get_user_identities()
         expected_payload = {
             'nins': [{'number': '197801011234', 'primary': True, 'verified': True}],
-            'identities': [
-                {'identity_type': IdentityType.NIN.value, 'number': '197801011234', 'verified': True},
-                {
-                    'identity_type': IdentityType.EIDAS.value,
-                    'verified': True,
-                    'country': 'Germany',
-                    'date_of_birth': '1978-09-02',
-                },
-            ],
+            'identities': {
+                'is_verified': True,
+                'nin': {'number': '197801011234', 'verified': True},
+                'eidas': {'verified': True, 'country_code': 'DE', 'date_of_birth': '1978-09-02'},
+            },
         }
         self._check_success_response(response, type_='GET_PERSONAL_DATA_IDENTITIES_SUCCESS', payload=expected_payload)

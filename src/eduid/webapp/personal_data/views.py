@@ -57,6 +57,7 @@ pd_views = Blueprint('personal_data', __name__, url_prefix='')
 @require_user
 def get_all_data(user: User) -> FluxData:
     user_dict = user.to_dict()
+    user_dict['identities'] = user.identities.to_frontend_format()
     # TODO: remove nins after frontend stops using it
     user_dict['nins'] = []
     if user.identities.nin is not None:
@@ -113,7 +114,7 @@ def get_nins(user) -> FluxData:
 @require_user
 def get_identities(user) -> FluxData:
     # TODO: remove nins after frontend stops using it
-    data = {'identities': user.identities.to_list_of_dicts(), 'nins': []}
+    data = {'identities': user.identities.to_frontend_format(), 'nins': []}
 
     if user.identities.nin is not None:
         data['nins'].append(user.identities.nin.to_old_nin())
