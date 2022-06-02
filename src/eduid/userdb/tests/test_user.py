@@ -2,6 +2,7 @@ import unittest
 from datetime import datetime
 from hashlib import sha256
 
+import pytest
 from bson import ObjectId
 from pydantic import ValidationError
 
@@ -595,67 +596,94 @@ class TestNewUser(unittest.TestCase):
         self.assertFalse(user.tou.has_accepted('2', reaccept_interval=94608000))  # reaccept_interval seconds (3 years)
 
     def test_locked_identity_load(self):
-        locked_identity = {'created_by': 'test', 'identity_type': IdentityType.NIN.value, 'number': '197801012345'}
+        created_ts = datetime.fromisoformat("2013-09-02T10:23:25")
+        locked_identity = {
+            'created_by': 'test',
+            'identity_type': IdentityType.NIN.value,
+            'number': '197801012345',
+            'verified': True,
+            'created_ts': str(created_ts),
+        }
         data = self.data1
         data['locked_identity'] = [locked_identity]
         user = User.from_dict(data)
         assert user.locked_identity.nin is not None
-        assert isinstance(user.locked_identity.nin.created_by, str) is True
-        assert isinstance(user.locked_identity.nin.created_ts, datetime) is True
-        assert isinstance(user.locked_identity.nin.identity_type, str) is True
-        assert isinstance(user.locked_identity.nin.number, str) is True
+        assert user.locked_identity.nin.identity_type == IdentityType.NIN.value
+        assert user.locked_identity.nin.created_by == 'test'
+        assert user.locked_identity.nin.created_ts == created_ts
+        assert user.locked_identity.nin.number == '197801012345'
+        assert user.locked_identity.nin.is_verified is True
+
+    def test_locked_identity_load_legacy_format(self):
+        created_ts = datetime.fromisoformat("2013-09-02T10:23:25")
+        locked_identity = {
+            'created_by': 'test',
+            'identity_type': 'nin',
+            'number': '197801012345',
+            'created_ts': str(created_ts),
+        }
+        data = self.data1
+        data['locked_identity'] = [locked_identity]
+        user = User.from_dict(data)
+        assert user.locked_identity.nin is not None
+        assert user.locked_identity.nin.identity_type == IdentityType.NIN.value
+        assert user.locked_identity.nin.created_by == 'test'
+        assert user.locked_identity.nin.created_ts == created_ts
+        assert user.locked_identity.nin.number == '197801012345'
+        assert user.locked_identity.nin.is_verified is True
 
     def test_locked_identity_set(self):
-        locked_identity = {'created_by': 'test', 'identity_type': IdentityType.NIN.value, 'number': '197801012345'}
         user = User.from_dict(self.data1)
-        locked_nin = NinIdentity.from_dict(
-            dict(
-                number=locked_identity['number'],
-                created_by=locked_identity['created_by'],
-            )
+        locked_nin = NinIdentity(
+            number='197801012345',
+            created_by='test',
+            is_verified=True,
         )
         user.locked_identity.add(locked_nin)
         self.assertEqual(user.locked_identity.count, 1)
 
         assert user.locked_identity.nin is not None
-        assert isinstance(user.locked_identity.nin.created_by, str) is True
-        assert isinstance(user.locked_identity.nin.created_ts, datetime) is True
-        assert isinstance(user.locked_identity.nin.identity_type, str) is True
-        assert isinstance(user.locked_identity.nin.number, str) is True
+        assert user.locked_identity.nin.identity_type == IdentityType.NIN.value
+        assert user.locked_identity.nin.created_by == 'test'
+        assert user.locked_identity.nin.number == '197801012345'
+        assert user.locked_identity.nin.is_verified is True
 
-    def test_locked_identity_to_dict(self):
+    def test_locked_identity_set_not_verified(self):
         locked_identity = {'created_by': 'test', 'identity_type': IdentityType.NIN.value, 'number': '197801012345'}
         user = User.from_dict(self.data1)
-        locked_nin = NinIdentity.from_dict(
-            dict(
-                number=locked_identity['number'],
-                created_by=locked_identity['created_by'],
-            )
+        locked_nin = NinIdentity(number=locked_identity['number'], created_by=locked_identity['created_by'])
+        with pytest.raises(ValidationError):
+            user.locked_identity.add(locked_nin)
+
+    def test_locked_identity_to_dict(self):
+        user = User.from_dict(self.data1)
+        locked_nin = NinIdentity(
+            number='197801012345',
+            created_by='test',
+            is_verified=True,
         )
         user.locked_identity.add(locked_nin)
 
         old_user = User.from_dict(user.to_dict())
         assert old_user.locked_identity.nin is not None
-        assert isinstance(old_user.locked_identity.nin.created_by, str) is True
-        assert isinstance(old_user.locked_identity.nin.created_ts, datetime) is True
-        assert isinstance(old_user.locked_identity.nin.identity_type, str) is True
-        assert isinstance(old_user.locked_identity.nin.number, str) is True
+        assert old_user.locked_identity.nin.identity_type == IdentityType.NIN.value
+        assert old_user.locked_identity.nin.created_by == 'test'
+        assert old_user.locked_identity.nin.number == '197801012345'
+        assert old_user.locked_identity.nin.is_verified is True
 
         new_user = User.from_dict(user.to_dict())
         assert new_user.locked_identity.nin is not None
-        assert isinstance(new_user.locked_identity.nin.created_by, str) is True
-        assert isinstance(new_user.locked_identity.nin.created_ts, datetime) is True
-        assert isinstance(new_user.locked_identity.nin.identity_type, str) is True
-        assert isinstance(new_user.locked_identity.nin.number, str) is True
+        assert new_user.locked_identity.nin.identity_type == IdentityType.NIN.value
+        assert new_user.locked_identity.nin.created_by == 'test'
+        assert new_user.locked_identity.nin.number == '197801012345'
+        assert new_user.locked_identity.nin.is_verified is True
 
     def test_locked_identity_remove(self):
-        locked_identity = {'created_by': 'test', 'identity_type': IdentityType.NIN.value, 'number': '197801012345'}
         user = User.from_dict(self.data1)
-        locked_nin = NinIdentity.from_dict(
-            dict(
-                number=locked_identity['number'],
-                created_by=locked_identity['created_by'],
-            )
+        locked_nin = NinIdentity(
+            number='197801012345',
+            created_by='test',
+            is_verified=True,
         )
         user.locked_identity.add(locked_nin)
         with self.assertRaises(EduIDUserDBError):

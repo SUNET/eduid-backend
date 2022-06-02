@@ -177,6 +177,12 @@ class User(BaseModel):
             _identities.append(_nin)
             data['identities'] = _identities
 
+        # migrate LockedIdentity objects to IdentityElements
+        # is_verified was not part of LockedIdentity objects
+        # TODO: Remove after next full load-save
+        for _locked_nin in data.get('locked_identity', []):
+            _locked_nin['verified'] = True
+
         # parse complex data
         data['mail_addresses'] = cls._parse_mail_addresses(data)
         data['phone_numbers'] = cls._parse_phone_numbers(data)
