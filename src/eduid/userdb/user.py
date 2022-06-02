@@ -180,9 +180,8 @@ class User(BaseModel):
         # migrate LockedIdentity objects to IdentityElements
         # is_verified was not part of LockedIdentity objects
         # TODO: Remove after next full load-save
-        if 'locked_identity' in data and data.get('locked_identity'):
-            for item in data.get('locked_identity', []):
-                item['verified'] = True
+        for _locked_nin in data.get('locked_identity', []):
+            _locked_nin['verified'] = True
 
         # parse complex data
         data['mail_addresses'] = cls._parse_mail_addresses(data)
