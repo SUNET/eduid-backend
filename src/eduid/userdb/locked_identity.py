@@ -16,9 +16,11 @@ class LockedIdentityList(IdentityList):
     Hold a list of IdentityElement instances.
     """
 
-    @validator('elements', each_item=True)
-    def verify_validated(cls, v: IdentityElement):
-        if not v.is_verified:
+    @validator('elements')
+    def validate_is_verified(cls, v: List[IdentityElement]):
+        # If using a validator with a subclass that references a List type field on a parent class, using
+        # each_item=True will cause the validator not to run; instead, the list must be iterated over programmatically.
+        if not all([item.is_verified for item in v]):
             raise ValueError('Locked identity has to be verified')
         return v
 
