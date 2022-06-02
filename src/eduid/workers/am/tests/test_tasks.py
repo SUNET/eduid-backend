@@ -161,7 +161,7 @@ class TestTasks(AMTestCase):
         attributes = {'$set': {'nins': [{'verified': True, 'number': '200102031234', 'primary': True}]}}
         new_attributes = check_locked_identity(self.amdb, user_id, attributes, 'test')
 
-        locked_nin = NinIdentity.from_dict(dict(number='200102031234', created_by='test', created_ts=True))
+        locked_nin = NinIdentity(number='200102031234', created_by='test', is_verified=True)
         locked_identities = LockedIdentityList(elements=[locked_nin])
         attributes['$set']['locked_identity'] = locked_identities.to_list_of_dicts()
 
@@ -170,7 +170,7 @@ class TestTasks(AMTestCase):
     def test_check_locked_identity(self):
         user_id = ObjectId('012345678901234567890123')  # johnsmith@example.com / hubba-bubba
         user = self.amdb.get_user_by_id(user_id)
-        locked_nin = NinIdentity(number='197801011234', created_by='test')
+        locked_nin = NinIdentity(number='197801011234', created_by='test', is_verified=True)
 
         user.locked_identity.add(locked_nin)
         self.amdb.save(user)
@@ -189,7 +189,7 @@ class TestTasks(AMTestCase):
     def test_check_locked_identity_wrong_nin(self):
         user_id = ObjectId('901234567890123456789012')  # johnsmith@example.org / babba-labba
         user = self.amdb.get_user_by_id(user_id)
-        user.locked_identity.add(NinIdentity.from_dict(dict(number='200102031234', created_by='test', created_ts=True)))
+        user.locked_identity.add(NinIdentity(number='200102031234', created_by='test', is_verified=True))
         self.amdb.save(user)
         attributes = {
             '$set': {

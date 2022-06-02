@@ -392,7 +392,7 @@ class LetterProofingTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
         # User with locked_identity and correct nin
-        user.locked_identity.add(NinIdentity(number=self.test_user_nin, created_by='test'))
+        user.locked_identity.add(NinIdentity(number=self.test_user_nin, created_by='test', is_verified=True))
         self.app.central_userdb.save(user, check_sync=False)
         with self.session_cookie(self.browser, self.test_user_eppn):
             response = self.send_letter(self.test_user_nin)
@@ -404,7 +404,7 @@ class LetterProofingTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
-        user.locked_identity.add(NinIdentity(number=self.test_user_nin, created_by='test'))
+        user.locked_identity.add(NinIdentity(number=self.test_user_nin, created_by='test', is_verified=True))
         self.app.central_userdb.save(user, check_sync=False)
 
         # User with locked_identity and incorrect nin

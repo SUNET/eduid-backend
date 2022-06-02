@@ -791,7 +791,7 @@ class EidasTests(EduidAPITestCase):
 
         # Add locked nin to user
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        locked_nin = NinIdentity(created_by='test', number=self.test_user_nin)
+        locked_nin = NinIdentity(created_by='test', number=self.test_user_nin, is_verified=True)
         user.locked_identity.add(locked_nin)
         self.app.central_userdb.save(user)
 
