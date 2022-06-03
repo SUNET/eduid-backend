@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Mapping, Type, Union
 
 from bson import ObjectId
 
+from eduid.userdb.proofing import LetterProofingState
 from eduid.userdb.signup import SignupUserDB
 from eduid.userdb.support import models
 from eduid.userdb.support.models import GenericFilterDict
@@ -137,6 +138,17 @@ class SupportLetterProofingDB(SupportProofingDB):
         db_name = 'eduid_idproofing_letter'
         collection = 'proofing_data'
         super().__init__(db_uri, db_name, collection)
+
+    def get_proofing_state(self, eppn: str) -> Dict[str, Any]:
+        """
+        :param eppn: User objects eduPersonPrincipalName property
+        :return: A document dict
+        """
+        doc = self._get_document_by_attr('eduPersonPrincipalName', eppn)
+        if not doc:
+            return dict()
+        # hack to support old official address format
+        return self.model(dict(LetterProofingState.from_dict(doc).to_dict()))  # Cast to dict to allow mutability
 
 
 class SupportOidcProofingDB(SupportProofingDB):
