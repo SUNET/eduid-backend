@@ -922,3 +922,14 @@ class TestNewUser(unittest.TestCase):
         user_dict['letter_proofing_data'] = letter_proofing
         user = User.from_dict(user_dict)
         assert user.to_dict()['letter_proofing_data'] == [letter_proofing]
+
+    def test_nins_and_identities_on_user(self):
+        user_dict = mocked_user_standard.to_dict()
+        user = User.from_dict(user_dict)
+        user_dict = mocked_user_standard.to_dict()
+        user_dict['nins'] = [user.identities.nin.to_old_nin()]
+        assert user_dict['identities'] != []
+        assert user_dict['nins'] != []
+        user_dict = User.from_dict(user_dict).to_dict()
+        assert user_dict.get('nins') is None
+        assert user_dict.get('identities') is not None
