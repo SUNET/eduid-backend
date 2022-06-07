@@ -86,6 +86,7 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
                     }
                 ],
             },
+            '$unset': {'nins': None},
         }
 
         assert normalised_data(fetched) == expected, 'Fetched letter proofing data has unexpected data'
@@ -178,6 +179,7 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
                     },
                 ],
             },
+            '$unset': {'nins': None},
         }
 
         assert (

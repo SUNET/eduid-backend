@@ -170,11 +170,13 @@ class User(BaseModel):
                 else:
                     # else use the nin added first
                     _nin = sorted(nin_list.to_list_of_dicts(), key=itemgetter('created_ts'))[0]
-            # Add identity type and remove primary key for old nin objects
-            _nin['identity_type'] = IdentityType.NIN.value
-            del _nin['primary']
             _identities = data.pop('identities', [])
-            _identities.append(_nin)
+            existing_nin = [item for item in _identities if item.get('identity_type') == IdentityType.NIN.value]
+            if not existing_nin:  # workaround for users that did not get their nins list removed due to a bug in am
+                # Add identity type and remove primary key for old nin objects
+                _nin['identity_type'] = IdentityType.NIN.value
+                del _nin['primary']
+                _identities.append(_nin)
             data['identities'] = _identities
 
         # migrate LockedIdentity objects to IdentityElements
