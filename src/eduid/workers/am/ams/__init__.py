@@ -56,7 +56,10 @@ class eduid_oidc_proofing(AttributeFetcher):
         'surname',
         'displayName',
     ]
-    whitelist_unset_attrs = ['norEduPersonNIN', 'identities']  # New format
+    whitelist_unset_attrs = [
+        'identities',
+        'nins',  # Old format
+    ]
     get_user_db = lambda cls, uri: OidcProofingUserDB(uri)
 
 
@@ -70,7 +73,10 @@ class eduid_letter_proofing(AttributeFetcher):
         'surname',
         'displayName',
     ]
-    whitelist_unset_attrs = ['norEduPersonNIN', 'identities']  # New format
+    whitelist_unset_attrs = [
+        'identities',
+        'nins',  # Old format
+    ]
     get_user_db = lambda cls, uri: LetterProofingUserDB(uri)
 
 
@@ -83,7 +89,10 @@ class eduid_lookup_mobile_proofing(AttributeFetcher):
         'surname',
         'displayName',
     ]
-    whitelist_unset_attrs = ['norEduPersonNIN', 'identities']  # New format
+    whitelist_unset_attrs = [
+        'identities',
+        'nins',  # Old format
+    ]
     get_user_db = lambda cls, uri: LookupMobileProofingUserDB(uri)
 
 
@@ -178,7 +187,10 @@ class eduid_eidas(AttributeFetcher):
         'surname',
         'displayName',
     ]
-    whitelist_unset_attrs: List[str] = []
+    whitelist_unset_attrs: List[str] = [
+        'identities',
+        'nins',  # Old format
+    ]
     get_user_db = lambda cls, uri: EidasProofingUserDB(uri)
 
 
