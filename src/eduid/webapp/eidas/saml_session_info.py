@@ -38,6 +38,8 @@ class SAMLAttributes(BaseModel):
     def unwind_value(cls, values: Dict[str, List[str]]) -> Dict[str, str]:
         # log if we get any attributes values with more than one entry
         for key, value in values.items():
+            if not isinstance(value, list):
+                raise ValueError('attribute value is not a list')
             if len(value) > 1:
                 logger.warning(f'got attributes with {key} that has more than one value')
                 logger.debug(f'attributes: {values}')
