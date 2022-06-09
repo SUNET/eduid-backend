@@ -16,3 +16,6 @@ class EidasAcsAction(str, Enum):
     token_verify = 'token-verify-action'
     nin_verify = 'nin-verify-action'
     mfa_authn = 'mfa-authentication-action'
+    token_verify_foreign_eid = 'token-verify-foreign-eid-action'
+    foreign_identity_verify = 'foreign-identity-verify-action'
+    mfa_authn_foreign_eid = 'mfa-authentication-foreign-eid-action'
