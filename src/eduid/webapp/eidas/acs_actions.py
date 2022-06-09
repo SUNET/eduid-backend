@@ -253,48 +253,43 @@ def nin_verify_action(session_info: SessionInfo, authndata: SP_AuthnRequest, use
 
     :return: redirect response
     """
-    redirect_url = authndata.redirect_url
+    if user.identities.nin and user.identities.nin.is_verified:
+        current_app.logger.error('User already has a verified NIN')
+        current_app.logger.debug(f'NIN: {user.identities.nin}. Assertion: {session_info}')
+        return redirect_with_msg(authndata.redirect_url, EidasMsg.nin_already_verified)
 
-    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     try:
         parsed_session_info = NinSessionInfo(**session_info)
         current_app.logger.debug(f'session info: {parsed_session_info}')
     except ValidationError:
         current_app.logger.exception('missing attribute in SAML response')
         # TODO: redirect user back with an error message i session using ref
-        return redirect_with_msg(redirect_url, EidasMsg.attribute_missing)
-
-    asserted_nin = parsed_session_info.attributes.nin
+        return redirect_with_msg(authndata.redirect_url, EidasMsg.attribute_missing)
 
     if check_magic_cookie(current_app.conf):
         # change asserted nin to nin from the integration test cookie
         magic_cookie_nin = request.cookies.get('nin')
         if magic_cookie_nin is None:
             current_app.logger.error("Bad nin cookie")
-            return redirect_with_msg(redirect_url, CommonMsg.nin_invalid)
-        asserted_nin = magic_cookie_nin
+            return redirect_with_msg(authndata.redirect_url, CommonMsg.nin_invalid)
+        parsed_session_info.attributes.nin = magic_cookie_nin
 
-    if proofing_user.identities.nin and proofing_user.identities.nin.is_verified:
-        current_app.logger.error('User already has a verified NIN')
-        current_app.logger.debug(f'NIN: {proofing_user.identities.nin}. Asserted NIN: {asserted_nin}')
-        return redirect_with_msg(redirect_url, EidasMsg.nin_already_verified)
-
+    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     verify_result = verify_nin_from_external_mfa(proofing_user=proofing_user, session_info=parsed_session_info)
     if verify_result.error_message is not None:
-        return redirect_with_msg(redirect_url, verify_result.error_message)
+        return redirect_with_msg(authndata.redirect_url, verify_result.error_message)
 
-    return redirect_with_msg(redirect_url, EidasMsg.nin_verify_success, error=False)
+    return redirect_with_msg(authndata.redirect_url, EidasMsg.nin_verify_success, error=False)
 
 
 @acs_action(EidasAcsAction.foreign_identity_verify)
 @require_user
 def verify_foreign_identity(session_info: SessionInfo, authndata: SP_AuthnRequest, user: User) -> WerkzeugResponse:
-    redirect_url = authndata.redirect_url
 
-    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-
-    current_app.logger.debug(f'session_info: {session_info}')
-    current_app.logger.debug(f'authndata: {authndata}')
+    if user.identities.eidas and user.identities.eidas.is_verified:
+        current_app.logger.error('User already has a verified EIDAS identity')
+        current_app.logger.debug(f'eidas: {user.identities.eidas}. Assertion: {session_info}')
+        return redirect_with_msg(authndata.redirect_url, EidasMsg.foreign_eid_already_verified)
 
     try:
         parsed_session_info = ForeignEidSessionInfo(**session_info)
@@ -302,20 +297,14 @@ def verify_foreign_identity(session_info: SessionInfo, authndata: SP_AuthnReques
     except ValidationError:
         current_app.logger.exception('missing attribute in SAML response')
         # TODO: redirect user back with an error message i session using ref
-        return redirect_with_msg(redirect_url, EidasMsg.attribute_missing)
+        return redirect_with_msg(authndata.redirect_url, EidasMsg.attribute_missing)
 
-    if proofing_user.identities.eidas and proofing_user.identities.eidas.is_verified:
-        current_app.logger.error('User already has a verified EIDAS identity')
-        current_app.logger.debug(
-            f'eidas: {proofing_user.identities.eidas}. Asserted identity: {parsed_session_info.attributes}'
-        )
-        return redirect_with_msg(redirect_url, EidasMsg.foreign_eid_already_verified)
-
+    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     verify_result = verify_eidas_from_external_mfa(proofing_user=proofing_user, session_info=parsed_session_info)
     if verify_result.error_message is not None:
-        return redirect_with_msg(redirect_url, verify_result.error_message)
+        return redirect_with_msg(authndata.redirect_url, verify_result.error_message)
 
-    return redirect_with_msg(redirect_url, EidasMsg.foreign_eid_verify_success, error=False)
+    return redirect_with_msg(authndata.redirect_url, EidasMsg.foreign_eid_verify_success, error=False)
 
 
 @acs_action(EidasAcsAction.mfa_authn)
