@@ -152,24 +152,24 @@ def get_authn_response(
         response = client.parse_authn_request_response(raw_response, BINDING_HTTP_POST, outstanding_queries)
     except AssertionError:
         logger.error('SAML response is not verified')
-        raise BadSAMLResponse(EduidErrorsContext.saml_response_fail)
+        raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_FAIL)
     except ParseError as e:
         logger.error(f'SAML response is not correctly formatted: {repr(e)}')
-        raise BadSAMLResponse(EduidErrorsContext.saml_response_fail)
+        raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_FAIL)
     except UnsolicitedResponse as e:
         logger.error('Unsolicited SAML response')
         # Extra debug to try and find the cause for some of these that seem to be incorrect
         logger.debug(f'Session: {session}')
         logger.debug(f'Outstanding queries cache: {oq_cache}')
         logger.debug(f'Outstanding queries: {outstanding_queries}')
-        raise BadSAMLResponse(EduidErrorsContext.saml_response_unsolicited)
+        raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_UNSOLICITED)
     except StatusError as e:
         logger.error(f'SAML response was a failure: {repr(e)}')
-        raise BadSAMLResponse(EduidErrorsContext.saml_response_fail)
+        raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_FAIL)
 
     if response is None:
         logger.error('SAML response is None')
-        raise BadSAMLResponse(EduidErrorsContext.saml_response_fail)
+        raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_FAIL)
 
     session_id = response.session_id()
     oq_cache.delete(session_id)
@@ -297,15 +297,16 @@ def process_assertion(
     saml_response = form['SAMLResponse']
     try:
         response, authn_ref = get_authn_response(current_app.saml2_config, sp_data, session, saml_response)
+        current_app.logger.debug(f'authn response: {response}')
     except BadSAMLResponse as e:
         current_app.logger.error(f'BadSAMLResponse: {e}')
         if current_app.conf.errors_url_template:
-            _ctx = EduidErrorsContext.saml_response_fail
+            _ctx = EduidErrorsContext.SAML_RESPONSE_FAIL
             if isinstance(e.args[0], EduidErrorsContext):
                 _ctx = e.args[0]
             return goto_errors_response(
                 current_app.conf.errors_url_template,
-                ctx=_ctx,
+                ctx=EduidErrorsContext.SAML_RESPONSE_FAIL,
                 rp=current_app.conf.app_name,
             )
         return make_response(str(e), 400)
