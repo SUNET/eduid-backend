@@ -229,6 +229,7 @@ def verify_nin_from_external_mfa(proofing_user: ProofingUser, session_info: NinS
     current_app.stats.count(name='nin_verified')
     # load the user from central db before returning
     user = current_app.central_userdb.get_user_by_eppn(proofing_user.eppn)
+    assert user is not None  # please mypy
     return VerifyUserResult(user=ProofingUser.from_user(user, current_app.private_userdb))
 
 
@@ -340,6 +341,7 @@ def verify_eidas_from_external_mfa(
     current_app.stats.count(name='eidas_verified')
     # load the user from central db before returning
     user = current_app.central_userdb.get_user_by_eppn(proofing_user.eppn)
+    assert user is not None  # please mypy
     return VerifyUserResult(user=ProofingUser.from_user(user, current_app.private_userdb))
 
 
@@ -510,6 +512,7 @@ def nin_verify_BACKDOOR(proofing_user: ProofingUser, asserted_nin: str) -> Verif
 
     # load the user from central db before returning
     user = current_app.central_userdb.get_user_by_eppn(proofing_user.eppn)
+    assert user is not None  # please mypy
     return VerifyUserResult(user=ProofingUser.from_user(user, current_app.private_userdb))
 
 
