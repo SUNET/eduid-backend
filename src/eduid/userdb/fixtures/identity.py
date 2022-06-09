@@ -2,7 +2,7 @@
 from datetime import datetime
 
 from eduid.userdb import EIDASIdentity, NinIdentity
-from eduid.userdb.identity import PridPersistence
+from eduid.userdb.identity import EIDASLoa, PridPersistence
 
 __author__ = 'lundberg'
 
@@ -26,6 +26,7 @@ unverified_nin_identity = NinIdentity(
 verified_eidas_identity = EIDASIdentity(
     prid='unique/prid/string/1',
     prid_persistence=PridPersistence.B,
+    loa=EIDASLoa.NF_LOW,
     date_of_birth=datetime.fromisoformat("1978-09-02T00:00:00"),
     country_code='DE',
     created_ts=datetime.fromisoformat("2022-09-02T10:23:25"),
@@ -38,6 +39,7 @@ verified_eidas_identity = EIDASIdentity(
 unverified_eidas_identity = EIDASIdentity(
     prid='unique/prid/string/2',
     prid_persistence=PridPersistence.B,
+    loa=EIDASLoa.NF_LOW,
     date_of_birth=datetime.fromisoformat("1977-09-02T00:00:00"),
     country_code='DE',
     created_ts=datetime.fromisoformat("2022-09-02T10:23:25"),
