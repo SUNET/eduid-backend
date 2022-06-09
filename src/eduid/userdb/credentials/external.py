@@ -1,21 +1,23 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Dict, Mapping, Optional, Type
+from typing import Any, Dict, Mapping, Optional
 
 from bson import ObjectId
 from pydantic import Field, validator
 
 from eduid.userdb.credentials import Credential
 from eduid.userdb.element import ElementKey
+from eduid.userdb.util import objectid_str
 
 
 class TrustFramework(str, Enum):
     SWECONN = 'SWECONN'
+    EIDAS = 'EIDAS'
 
 
 class ExternalCredential(Credential):
-    credential_id: str = Field(alias='id')
+    credential_id: str = Field(alias='id', default_factory=objectid_str)
     framework: TrustFramework
 
     @validator('credential_id', pre=True)
@@ -41,15 +43,12 @@ class ExternalCredential(Credential):
 
 
 class SwedenConnectCredential(ExternalCredential):
+    framework: TrustFramework = Field(default=TrustFramework.SWECONN, const=True)
     # To be technology neutral, we don't want to store e.g. the SAML authnContextClassRef in the database,
-    # and mapping a level to an authnContextClassRef really ought to be dependant on configuration matching
+    # and mapping a level to an authnContextClassRef really ought to be dependent on configuration matching
     # the IdP:s expected values at a certain time. Such configuration is better to have in the SP than in
     # the database layer.
     level: str  # a value like "loa3", "eidas_sub", ...
-
-    @classmethod
-    def new(cls: Type[SwedenConnectCredential], level: str) -> SwedenConnectCredential:
-        return cls(framework=TrustFramework.SWECONN, level=level, credential_id=str(ObjectId()))
 
 
 def external_credential_from_dict(data: Mapping[str, Any]) -> Optional[ExternalCredential]:
