@@ -45,11 +45,9 @@ from saml2.s_utils import UnravelError
 from werkzeug.exceptions import BadRequest
 
 from eduid.common.misc.timeutil import utc_now
-from eduid.userdb import NinIdentity
-from eduid.userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, U2F, Credential, Password
-from eduid.userdb.identity import IdentityList
+from eduid.userdb.credentials import U2F, Credential, CredentialProofingMethod, Password
+from eduid.userdb.identity import IdentityList, NinIdentity
 from eduid.userdb.idp import IdPUser
-from eduid.userdb.nin import Nin, NinList
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData
 from eduid.webapp.common.session.namespaces import IdP_SAMLPendingRequest, RequestRef
@@ -71,7 +69,7 @@ _U2F_SWAMID_AL2 = U2F(
     keyhandle='U2F SWAMID AL2',
     public_key='foo',
     is_verified=True,
-    proofing_method=METHOD_SWAMID_AL2_MFA,
+    proofing_method=CredentialProofingMethod.SWAMID_AL2_MFA,
     proofing_version='testing',
 )
 
@@ -81,7 +79,7 @@ _U2F_SWAMID_AL2_HI = U2F(
     keyhandle='U2F SWAMID AL2 HI',
     public_key='foo',
     is_verified=True,
-    proofing_method=METHOD_SWAMID_AL2_MFA_HI,
+    proofing_method=CredentialProofingMethod.SWAMID_AL2_MFA_HI,
     proofing_version='testing',
 )
 

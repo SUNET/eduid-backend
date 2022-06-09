@@ -6,9 +6,7 @@ from unittest import TestCase
 import pytest
 from pydantic import ValidationError
 
-import eduid.userdb.element
-import eduid.userdb.exceptions
-from eduid.userdb.credentials import U2F, CredentialList
+from eduid.userdb.credentials import U2F, CredentialList, CredentialProofingMethod
 
 __author__ = 'lundberg'
 
@@ -93,10 +91,10 @@ class TestU2F(TestCase):
 
     def test_proofing_method(self):
         this = self.three.find(_keyid(_three_dict))
-        this.proofing_method = 'TEST'
-        self.assertEqual(this.proofing_method, 'TEST')
-        this.proofing_method = 'TEST2'
-        self.assertEqual(this.proofing_method, 'TEST2')
+        this.proofing_method = CredentialProofingMethod.SWAMID_AL2_MFA
+        self.assertEqual(this.proofing_method, CredentialProofingMethod.SWAMID_AL2_MFA)
+        this.proofing_method = CredentialProofingMethod.SWAMID_AL2_MFA_HI
+        self.assertEqual(this.proofing_method, CredentialProofingMethod.SWAMID_AL2_MFA_HI)
         this.proofing_method = None
         self.assertEqual(this.proofing_method, None)
 

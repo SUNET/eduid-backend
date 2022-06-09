@@ -35,11 +35,18 @@
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import Any, Dict, Optional
 
 from eduid.userdb.element import VerifiedElement
 
 __author__ = 'ft'
+
+
+# well-known proofing methods
+class CredentialProofingMethod(str, Enum):
+    SWAMID_AL2_MFA = 'SWAMID_AL2_MFA'
+    SWAMID_AL2_MFA_HI = 'SWAMID_AL2_MFA_HI'
 
 
 class Credential(VerifiedElement):
@@ -55,7 +62,7 @@ class Credential(VerifiedElement):
     so we are making them hashable.
     """
 
-    proofing_method: Optional[str] = None
+    proofing_method: Optional[CredentialProofingMethod] = None
     proofing_version: Optional[str] = None
 
     def __str__(self):
