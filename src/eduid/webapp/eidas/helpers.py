@@ -6,7 +6,9 @@ from enum import unique
 from typing import Any, Dict, List, Optional, Union
 
 from dateutil.parser import parse as dt_parse
-from flask import redirect, request, url_for
+from flask import redirect, request, url_for, abort, make_response
+
+from eduid.webapp.common.api.errors import goto_errors_response, EduidErrorsContext
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.metadata import entity_descriptor
@@ -581,6 +583,15 @@ def check_credential_to_verify(user: User, credential_id: str, redirect_url: str
         next_url = url_for('eidas.verify_token', credential_id=token_to_verify.key, _external=True)
         # Add idp arg to next_url if set
         idp = request.args.get('idp')
+        if idp and idp not in current_app.saml2_config.metadata.identity_providers():
+            if not current_app.conf.errors_url_template:
+                abort(make_response('Requested IdP not found in metadata', 404))
+            return goto_errors_response(
+                errors_url=current_app.conf.errors_url_template,
+                ctx=EduidErrorsContext.SAML_REQUEST_MISSING_IDP,
+                rp=current_app.saml2_config.entityid,
+            )
+
         if idp:
             next_url = f'{next_url}?idp={idp}'
         redirect_url = f'{reauthn_url}?next={next_url}'
