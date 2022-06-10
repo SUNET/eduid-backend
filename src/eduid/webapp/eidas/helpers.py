@@ -2,13 +2,11 @@
 
 import logging
 from dataclasses import dataclass
+from datetime import datetime
 from enum import unique
 from typing import Any, Dict, List, Optional, Union
 
-from dateutil.parser import parse as dt_parse
-from flask import redirect, request, url_for, abort, make_response
-
-from eduid.webapp.common.api.errors import goto_errors_response, EduidErrorsContext
+from flask import abort, make_response, redirect, request, url_for
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.metadata import entity_descriptor
@@ -29,6 +27,7 @@ from eduid.userdb.logs.element import MFATokenEIDASProofing, SwedenConnectEIDASP
 from eduid.userdb.proofing import NinProofingElement, ProofingUser
 from eduid.userdb.proofing.state import NinProofingState
 from eduid.webapp.authn.helpers import credential_used_to_authenticate
+from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
 from eduid.webapp.common.api.helpers import (
     ProofingNavetData,
     check_magic_cookie,
@@ -303,13 +302,12 @@ def verify_eidas_from_external_mfa(
     )
 
     # check if the just verified identity matches the locked identity
-    if locked_identity is not None:
-        if locked_identity.prid != new_identity.prid and locked_identity.prid_persistence is PridPersistence.A:
-            # identity is persistent and can not be replaced
+    if locked_identity is not None and locked_identity.prid != new_identity.prid:
+        if not can_replace_eidas_identity(proofing_user=proofing_user, session_info=session_info):
+            # asserted identity did not match the locked identity
             return VerifyUserResult(error_message=CommonMsg.locked_identity_not_matching)
-
-        # replace the locked identity as the users identity has changed
-        # TODO: Should we do anything else here? Is there a point to try to match things like date of birth or names?
+        # replace the locked identity as the users asserted prid has changed
+        # and we are sure enough that it is the same person
         proofing_user.locked_identity.replace(element=new_identity)
 
     # the existing identity is not verified, just remove it
@@ -450,6 +448,23 @@ def _find_or_add_credential(
     current_app.logger.info(f'Sync result for proofing_user {proofing_user}: {result}')
 
     return cred.key
+
+
+def can_replace_eidas_identity(proofing_user: ProofingUser, session_info: ForeignEidSessionInfo) -> bool:
+    locked_identity = proofing_user.locked_identity.eidas
+    if locked_identity is None:
+        return True
+    if locked_identity.prid_persistence is PridPersistence.A:
+        # identity is persistent and can not be replaced
+        return False
+    # the locked identity for this account has prid persistence B or C these change over time.
+    # try to verify that it is the same person with a new eid
+    date_of_birth_matches = locked_identity.date_of_birth.date() == session_info.attributes.date_of_birth
+    given_name_matches = proofing_user.given_name == session_info.attributes.given_name
+    surname_matches = proofing_user.surname == session_info.attributes.surname
+    if date_of_birth_matches and given_name_matches and surname_matches:
+        return True
+    return False
 
 
 def create_metadata(config):
