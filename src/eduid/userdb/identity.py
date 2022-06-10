@@ -25,7 +25,7 @@ class IdentityType(str, Enum):
 class IdentityElement(VerifiedElement, ABC):
 
     """
-    Element that is used for a identity for a user
+    Element that is used for an identity for a user
 
     Properties of IdentityElement:
 
@@ -115,7 +115,7 @@ class EIDASIdentity(IdentityElement):
     prid: str
     prid_persistence: PridPersistence
     loa: EIDASLoa
-    date_of_birth: Optional[datetime]
+    date_of_birth: datetime
     country_code: str
 
     @property
