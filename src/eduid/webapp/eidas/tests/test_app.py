@@ -21,7 +21,7 @@ from eduid.userdb.credentials.external import SwedenConnectCredential
 from eduid.userdb.credentials.fido import FidoCredential, WebauthnAuthenticator
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import EIDASIdentity, EIDASLoa, IdentityElement, PridPersistence
-from eduid.webapp.common.api.messages import TranslatableMsg, redirect_with_msg
+from eduid.webapp.common.api.messages import CommonMsg, TranslatableMsg, redirect_with_msg
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
 from eduid.webapp.common.authn.cache import OutstandingQueriesCache
@@ -47,16 +47,29 @@ class EidasTests(EduidAPITestCase):
     def setUp(self):
         self.test_user_eppn = 'hubba-bubba'
         self.test_unverified_user_eppn = 'hubba-baar'
-        self.test_user_nin = NinIdentity(number='197801011234')
+        self.test_user_nin = NinIdentity(
+            number='197801011234', date_of_birth=datetime.datetime.fromisoformat('1978-01-01')
+        )
         self.test_user_eidas = EIDASIdentity(
-            prid='XA:192011189228',
-            prid_persistence=PridPersistence.A,
+            prid='XB:1bjrk7depnmhu7xn56kon3mlc9q1s0',
+            prid_persistence=PridPersistence.B,
+            loa=EIDASLoa.NF_SUBSTANTIAL,
+            date_of_birth=datetime.datetime.fromisoformat('1964-12-31'),
+            country_code='XB',
+        )
+        self.test_user_wrong_nin = NinIdentity(
+            number='190001021234', date_of_birth=datetime.datetime.fromisoformat('1900-01-02')
+        )
+        self.test_user_other_eidas = EIDASIdentity(
+            prid='XA:some_other_prid',
+            prid_persistence=PridPersistence.B,
             loa=EIDASLoa.NF_SUBSTANTIAL,
             date_of_birth=datetime.datetime.fromisoformat('1920-11-18'),
             country_code='XA',
         )
-        self.test_user_wrong_nin = NinIdentity(number='190001021234')
-        self.test_backdoor_nin = NinIdentity(number='190102031234')
+        self.test_backdoor_nin = NinIdentity(
+            number='190102031234', date_of_birth=datetime.datetime.fromisoformat('1901-02-03')
+        )
         self.test_idp = 'https://idp.example.com/simplesaml/saml2/idp/metadata.php'
         self.default_redirect_url = 'http://redirect.localhost/redirect'
 
@@ -95,7 +108,7 @@ class EidasTests(EduidAPITestCase):
         <saml:AttributeValue xsi:type="xs:string">Ûlla</saml:AttributeValue>
       </saml:Attribute>
       <saml:Attribute FriendlyName="dateOfBirth" Name="urn:oid:1.3.6.1.5.5.7.9.1" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
-        <saml:AttributeValue xsi:type="xs:string">1978-01-01</saml:AttributeValue>
+        <saml:AttributeValue xsi:type="xs:string">{date_of_birth}</saml:AttributeValue>
       </saml:Attribute>
       <saml:Attribute FriendlyName="sn" Name="urn:oid:2.5.4.4" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
         <saml:AttributeValue xsi:type="xs:string">Älm</saml:AttributeValue>
@@ -153,13 +166,13 @@ class EidasTests(EduidAPITestCase):
     </saml:AuthnStatement>
     <saml:AttributeStatement>
       <saml:Attribute FriendlyName="c" Name="urn:oid:2.5.4.6" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
-        <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">XA</saml:AttributeValue>
+        <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">XB</saml:AttributeValue>
       </saml:Attribute>
       <saml:Attribute FriendlyName="pridPersistence" Name="urn:oid:1.2.752.201.3.5" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
-        <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">A</saml:AttributeValue>
+        <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">B</saml:AttributeValue>
       </saml:Attribute>
       <saml:Attribute FriendlyName="givenName" Name="urn:oid:2.5.4.42" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
-        <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">Gunbritt</saml:AttributeValue>
+        <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">Javier</saml:AttributeValue>
       </saml:Attribute>
       <saml:Attribute FriendlyName="transactionIdentifier" Name="urn:oid:1.2.752.201.3.2" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
         <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">_AbZv3Bk5c4d5n0LhvlXqaoTAQCJywBbOBx8Vf58gHL9uroDL7Jfez2tLxqIegCT</saml:AttributeValue>
@@ -168,13 +181,13 @@ class EidasTests(EduidAPITestCase):
         <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">{asserted_identity}</saml:AttributeValue>
       </saml:Attribute>
       <saml:Attribute FriendlyName="eidasPersonIdentifier" Name="urn:oid:1.2.752.201.3.7" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
-        <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">XA/SE/192011189228</saml:AttributeValue>
+        <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">XB/SE/ZWRlbiBSb290IENlcnRpZmljYXRpb24g</saml:AttributeValue>
       </saml:Attribute>
       <saml:Attribute FriendlyName="dateOfBirth" Name="urn:oid:1.3.6.1.5.5.7.9.1" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
-        <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">1920-11-18</saml:AttributeValue>
+        <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">{date_of_birth}</saml:AttributeValue>
       </saml:Attribute>
       <saml:Attribute FriendlyName="sn" Name="urn:oid:2.5.4.4" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
-        <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">Bod&#xE9;n</saml:AttributeValue>
+        <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">Garcia</saml:AttributeValue>
       </saml:Attribute>
       {extra_attributes}
     </saml:AttributeStatement>
@@ -249,13 +262,16 @@ class EidasTests(EduidAPITestCase):
         assert user is not None
         identity.is_verified = verified
         user.identities.replace(element=identity)
+        if verified is True:
+            user.locked_identity.replace(element=identity)
         self.request_user_sync(user)
 
     @staticmethod
     def generate_auth_response(
         request_id: str,
         saml_response_tpl: str,
-        asserted_identity: str = None,
+        asserted_identity: str,
+        date_of_birth: Optional[datetime.datetime] = None,
         age: int = 10,
         credentials_used: Optional[List[ElementKey]] = None,
     ) -> bytes:
@@ -266,6 +282,8 @@ class EidasTests(EduidAPITestCase):
         timestamp = datetime.datetime.utcnow() - datetime.timedelta(seconds=age)
         tomorrow = datetime.datetime.utcnow() + datetime.timedelta(days=1)
         yesterday = datetime.datetime.utcnow() - datetime.timedelta(days=1)
+        if date_of_birth is None:
+            date_of_birth = datetime.datetime.strptime(asserted_identity[:8], '%Y%m%d')
 
         sp_baseurl = 'http://test.localhost:6544/'
 
@@ -287,6 +305,7 @@ class EidasTests(EduidAPITestCase):
             saml_response_tpl.format(
                 **{
                     'asserted_identity': asserted_identity,
+                    'date_of_birth': date_of_birth.strftime('%Y-%m-%d'),
                     'session_id': request_id,
                     'timestamp': timestamp.strftime('%Y-%m-%dT%H:%M:%SZ'),
                     'tomorrow': tomorrow.strftime('%Y-%m-%dT%H:%M:%SZ'),
@@ -423,7 +442,7 @@ class EidasTests(EduidAPITestCase):
         expect_mfa_action_error: Optional[MfaActionError] = None,
         eppn: Optional[str] = None,
         age: int = 10,
-        identity: Optional[IdentityElement] = None,
+        identity: Optional[Union[NinIdentity, EIDASIdentity]] = None,
         logged_in: bool = True,
         next_url: Optional[str] = None,
         response_template: Optional[str] = None,
@@ -455,7 +474,7 @@ class EidasTests(EduidAPITestCase):
         expect_saml_error: bool = False,
         expect_redirect_url: Optional[str] = None,
         age: int = 10,
-        identity: Optional[IdentityElement] = None,
+        identity: Optional[Union[NinIdentity, EIDASIdentity]] = None,
         response_template: Optional[str] = None,
         credentials_used: Optional[List[ElementKey]] = None,
         verify_credential: Optional[ElementKey] = None,
@@ -488,7 +507,7 @@ class EidasTests(EduidAPITestCase):
         expect_error: bool = False,
         expect_saml_error: bool = False,
         age: int = 10,
-        identity: Optional[IdentityElement] = None,
+        identity: Optional[Union[NinIdentity, EIDASIdentity]] = None,
         logged_in: bool = True,
         next_url: Optional[str] = None,
         response_template: Optional[str] = None,
@@ -541,6 +560,7 @@ class EidasTests(EduidAPITestCase):
                 request_id,
                 response_template,
                 asserted_identity=identity.unique_value,
+                date_of_birth=identity.date_of_birth,
                 age=age,
                 credentials_used=credentials_used,
             )
@@ -910,15 +930,63 @@ class EidasTests(EduidAPITestCase):
             eppn, num_mfa_tokens=0, identity=self.test_user_eidas, identity_verified=True, num_proofings=0
         )
 
+    def test_foreign_eid_mfa_login_no_identity(self):
+        eppn = self.test_unverified_user_eppn
+        identity = self.test_user_eidas
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity=identity, identity_present=False)
+
+        self.reauthn(
+            '/mfa-authentication-foreign-eid',
+            expect_msg=EidasMsg.foreign_eid_not_matching,
+            expect_error=True,
+            eppn=eppn,
+            identity=identity,
+            logged_in=False,
+            next_url='http://idp.test.localhost/mfa-step',
+            expect_redirect_url='http://idp.test.localhost/mfa-step',
+            response_template=self.saml_response_foreign_eid_tpl_success,
+        )
+
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, num_proofings=0)
+
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
+    def test_foreign_eid_mfa_login_unverified_identity(self, mock_request_user_sync):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        eppn = self.test_unverified_user_eppn
+        identity = self.test_user_eidas
+
+        # Add locked identity to user
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        identity.is_verified = True
+        user.locked_identity.add(identity)
+        self.app.central_userdb.save(user)
+
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity=identity, identity_present=False)
+
+        self.reauthn(
+            '/mfa-authentication-foreign-eid',
+            expect_msg=EidasMsg.action_completed,
+            eppn=eppn,
+            identity=identity,
+            logged_in=False,
+            next_url='http://idp.test.localhost/mfa-step',
+            expect_redirect_url='http://idp.test.localhost/mfa-step',
+            response_template=self.saml_response_foreign_eid_tpl_success,
+        )
+
+        self._verify_user_parameters(
+            eppn, num_mfa_tokens=0, identity=identity, identity_present=True, identity_verified=True, num_proofings=1
+        )
+
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_foreign_eid_webauthn_token_verify(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
         credential = self.add_token_to_user(eppn, 'test', 'webauthn')
-        self.set_eidas_for_user(eppn=eppn, identity=self.test_user_eidas, verified=False)
+        self.set_eidas_for_user(eppn=eppn, identity=self.test_user_eidas, verified=True)
 
-        self._verify_user_parameters(eppn, identity=self.test_user_eidas)
+        self._verify_user_parameters(eppn, identity=self.test_user_eidas, identity_verified=True)
 
         self.verify_token(
             endpoint=f'/verify-token-foreign-eid/{credential.key}',
@@ -931,8 +999,91 @@ class EidasTests(EduidAPITestCase):
         )
 
         self._verify_user_parameters(
-            eppn, identity=self.test_user_eidas, identity_verified=True, token_verified=True, num_proofings=2
+            eppn, identity=self.test_user_eidas, identity_verified=True, token_verified=True, num_proofings=1
         )
+
+    def test_foreign_eid_mfa_token_verify_wrong_verified_identity(self):
+        eppn = self.test_user.eppn
+        identity = self.test_user_other_eidas
+        self.set_eidas_for_user(eppn=eppn, identity=identity, verified=True)
+        credential = self.add_token_to_user(eppn, 'test', 'webauthn')
+
+        self._verify_user_parameters(eppn, identity=identity, identity_present=True, identity_verified=True)
+
+        self.verify_token(
+            endpoint=f'/verify-token-foreign-eid/{credential.key}',
+            eppn=eppn,
+            identity=self.test_user_eidas,
+            expect_msg=EidasMsg.foreign_eid_not_matching,
+            expect_error=True,
+            credentials_used=[credential.key, 'other_id'],
+            verify_credential=credential.key,
+            response_template=self.saml_response_foreign_eid_tpl_success,
+        )
+
+        self._verify_user_parameters(
+            eppn, identity=identity, identity_present=True, identity_verified=True, num_proofings=0
+        )
+
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
+    def test_foreign_eid_mfa_token_verify_no_verified_identity(self, mock_request_user_sync):
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        eppn = self.test_unverified_user_eppn
+        identity = self.test_user_eidas
+        credential = self.add_token_to_user(eppn, 'test', 'webauthn')
+
+        self._verify_user_parameters(eppn, identity_verified=False, identity_present=False)
+
+        self.verify_token(
+            endpoint=f'/verify-token-foreign-eid/{credential.key}',
+            eppn=eppn,
+            identity=identity,
+            expect_msg=EidasMsg.verify_success,
+            credentials_used=[credential.key, 'other_id'],
+            verify_credential=credential.key,
+            response_template=self.saml_response_foreign_eid_tpl_success,
+        )
+
+        # Verify the user now has a verified eidas identity
+        self._verify_user_parameters(
+            eppn, token_verified=True, num_proofings=2, identity_present=True, identity=identity, identity_verified=True
+        )
+
+    def test_foreign_eid_mfa_token_verify_no_mfa_login(self):
+        eppn = self.test_user.eppn
+        credential = self.add_token_to_user(eppn, 'test', 'webauthn')
+
+        self._verify_user_parameters(eppn)
+
+        with self.session_cookie(self.browser, eppn) as browser:
+            response = browser.get(f'/verify-token-foreign-eid/{credential.key}')
+            assert response.status_code == 302
+            assert response.location == (
+                'http://test.localhost/reauthn?next=' f'http://test.localhost/verify-token/{credential.key}'
+            )
+
+        self._verify_user_parameters(eppn)
+
+    def test_foreign_eid_mfa_token_verify_no_mfa_token_in_session(self):
+        eppn = self.test_user.eppn
+        identity = self.test_user_eidas
+        credential = self.add_token_to_user(eppn, 'test', 'webauthn')
+
+        self._verify_user_parameters(eppn)
+
+        self.verify_token(
+            endpoint=f'/verify-token-foreign-eid/{credential.key}',
+            eppn=eppn,
+            identity=identity,
+            expect_msg=EidasMsg.token_not_in_creds,
+            credentials_used=[credential.key, 'other_id'],
+            verify_credential=credential.key,
+            response_template=self.saml_response_tpl_fail,
+            expect_saml_error=True,
+        )
+
+        self._verify_user_parameters(eppn)
 
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_mfa_login_backdoor(self, mock_request_user_sync):
@@ -1141,17 +1292,86 @@ class EidasTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False)
+        identity = self.test_user_eidas
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_present=False)
 
         self.reauthn(
             '/verify-foreign-identity',
             expect_msg=EidasMsg.foreign_eid_verify_success,
             eppn=eppn,
+            identity=identity,
             response_template=self.saml_response_foreign_eid_tpl_success,
             expect_redirect_url='http://test.localhost/profile',
         )
 
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=1)
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity=identity, identity_verified=True, num_proofings=1)
+
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
+    def test_foreign_identity_verify_existing_prid_persistence_A(self, mock_request_user_sync):
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        eppn = self.test_unverified_user_eppn
+        identity = self.test_user_other_eidas
+        # Add locked identity with prid persistence A to user
+        locked_identity = self.test_user_eidas
+        locked_identity.prid_persistence = PridPersistence.A
+        locked_identity.is_verified = True
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        user.locked_identity.add(locked_identity)
+        self.app.central_userdb.save(user)
+
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, locked_identity=locked_identity, identity_present=False)
+
+        self.reauthn(
+            '/verify-foreign-identity',
+            expect_msg=CommonMsg.locked_identity_not_matching,
+            expect_error=True,
+            eppn=eppn,
+            identity=identity,
+            response_template=self.saml_response_foreign_eid_tpl_success,
+            expect_redirect_url='http://test.localhost/profile',
+        )
+
+        self._verify_user_parameters(
+            eppn, num_mfa_tokens=0, locked_identity=locked_identity, identity_verified=False, num_proofings=0
+        )
+
+    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
+    def test_foreign_identity_verify_existing_prid_persistence_B(self, mock_request_user_sync):
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        eppn = self.test_unverified_user_eppn
+        identity = self.test_user_other_eidas
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        # Add locked identity with prid persistence B and same date of birth to user
+        locked_identity = EIDASIdentity(
+            prid='XA:some_other_other_prid',
+            prid_persistence=PridPersistence.B,
+            loa=EIDASLoa.NF_SUBSTANTIAL,
+            date_of_birth=datetime.datetime.fromisoformat('1920-11-18'),
+            country_code='XX',
+            is_verified=True,
+        )
+        # add same names as assertion to the user
+        user.given_name = 'Javier'
+        user.surname = 'Garcia'
+        user.locked_identity.add(locked_identity)
+        self.app.central_userdb.save(user)
+
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, locked_identity=locked_identity, identity_present=False)
+
+        self.reauthn(
+            '/verify-foreign-identity',
+            expect_msg=EidasMsg.foreign_eid_verify_success,
+            eppn=eppn,
+            identity=identity,
+            response_template=self.saml_response_foreign_eid_tpl_success,
+            expect_redirect_url='http://test.localhost/profile',
+        )
+
+        self._verify_user_parameters(
+            eppn, num_mfa_tokens=0, locked_identity=identity, identity=identity, identity_verified=True, num_proofings=1
+        )
 
 
 class RedirectWithMsgTests(TestCase):
