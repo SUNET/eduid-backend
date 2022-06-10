@@ -29,6 +29,12 @@ class LockedIdentityList(IdentityList):
         obj = super().from_list_of_dicts(items=items)
         return cls(elements=obj.elements)
 
+    def replace(self, element: IdentityElement) -> None:
+        # ignore type due to error: "ListElement" has no attribute "key"
+        self.elements = [this for this in self.elements if this.key != element.key]  # type: ignore
+        self.add(element=element)
+        return None
+
     def remove(self, key):
         """
         Override remove method as an element should be set once, remove never.
