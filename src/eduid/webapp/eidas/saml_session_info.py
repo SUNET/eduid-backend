@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
-from datetime import datetime
+from datetime import date, datetime
 from typing import Dict, List, Optional, Tuple
 
 from dateutil.parser import parse as dt_parse
@@ -51,7 +51,7 @@ class NinAttributes(SAMLAttributes):
     given_name: str = Field(alias='givenName')
     surname: str = Field(alias='sn')
     display_name: Optional[str] = Field(default=None, alias='displayName')
-    date_of_birth: str = Field(alias='dateOfBirth')
+    date_of_birth: date = Field(alias='dateOfBirth')
 
 
 class ForeignEidAttributes(SAMLAttributes):
@@ -68,7 +68,7 @@ class ForeignEidAttributes(SAMLAttributes):
     # matching process as used when an identity is first encountered utilising the Minimum Data
     # Set to identify the Principal within the service.
     eidas_person_identifier: str = Field(alias='eidasPersonIdentifier')
-    date_of_birth: str = Field(alias='dateOfBirth')
+    date_of_birth: date = Field(alias='dateOfBirth')
     given_name: str = Field(alias='givenName')
     surname: str = Field(alias='sn')
     country_code: str = Field(alias='c')

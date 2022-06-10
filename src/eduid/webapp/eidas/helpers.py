@@ -248,7 +248,7 @@ def create_eidas_mfa_proofing_element(
         eidas_person_identifier=session_info.attributes.eidas_person_identifier,
         given_name=session_info.attributes.given_name,
         surname=session_info.attributes.surname,
-        date_of_birth=session_info.attributes.date_of_birth,
+        date_of_birth=session_info.attributes.date_of_birth.strftime('%Y-%m-%d'),
         country_code=session_info.attributes.country_code,
         transaction_identifier=session_info.attributes.transaction_identifier,
         proofing_version=current_app.conf.security_key_foreign_eid_proofing_version,
@@ -269,7 +269,7 @@ def create_eidas_proofing_element(
         eidas_person_identifier=session_info.attributes.eidas_person_identifier,
         given_name=session_info.attributes.given_name,
         surname=session_info.attributes.surname,
-        date_of_birth=session_info.attributes.date_of_birth,
+        date_of_birth=session_info.attributes.date_of_birth.strftime('%Y-%m-%d'),
         country_code=session_info.attributes.country_code,
         transaction_identifier=session_info.attributes.transaction_identifier,
         proofing_version=current_app.conf.foreign_eid_proofing_version,
@@ -290,12 +290,13 @@ def verify_eidas_from_external_mfa(
         return VerifyUserResult(user=proofing_user)
 
     loa = EIDASLoa(authn_context_class_to_loa(session_info=session_info))
+    date_of_birth = session_info.attributes.date_of_birth
     new_identity = EIDASIdentity(
         created_by=current_app.conf.app_name,
         prid=session_info.attributes.prid,
         prid_persistence=session_info.attributes.prid_persistence,
         loa=loa,
-        date_of_birth=dt_parse(session_info.attributes.date_of_birth),
+        date_of_birth=datetime(year=date_of_birth.year, month=date_of_birth.month, day=date_of_birth.day),
         country_code=session_info.attributes.country_code,
         verified_by=current_app.conf.app_name,
         is_verified=True,
