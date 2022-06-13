@@ -65,6 +65,7 @@ class MfaActionError(str, Enum):
     authn_context_mismatch = 'authn_context_mismatch'
     authn_too_old = 'authn_too_old'
     nin_not_matching = 'nin_not_matching'
+    foreign_eid_not_matching = 'foreign_eid_not_matching'
 
 
 class Common(SessionNSBase):
@@ -85,7 +86,7 @@ class MfaAction(SessionNSBase):
     credential_used: Optional[ElementKey] = None
     # Third-party MFA parameters
     framework: Optional[TrustFramework] = None
-    required_loa: Optional[str] = None
+    required_loa: List[str] = Field(default_factory=list)
     issuer: Optional[str] = None
     authn_instant: Optional[str] = None
     authn_context: Optional[str] = None

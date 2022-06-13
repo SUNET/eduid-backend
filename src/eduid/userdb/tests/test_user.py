@@ -7,7 +7,7 @@ from bson import ObjectId
 from pydantic import ValidationError
 
 from eduid.userdb import NinIdentity, OidcAuthorization, OidcIdToken, Orcid
-from eduid.userdb.credentials import METHOD_SWAMID_AL2_MFA, U2F, CredentialList, Password
+from eduid.userdb.credentials import U2F, CredentialList, CredentialProofingMethod, Password
 from eduid.userdb.exceptions import EduIDUserDBError, UserHasNotCompletedSignup, UserIsRevoked
 from eduid.userdb.fixtures.identity import verified_nin_identity
 from eduid.userdb.fixtures.users import mocked_user_standard
@@ -91,7 +91,7 @@ class TestNewUser(unittest.TestCase):
                     'keyhandle': 'U2F SWAMID AL2',
                     'public_key': 'foo',
                     'verified': True,
-                    'proofing_method': METHOD_SWAMID_AL2_MFA,
+                    'proofing_method': CredentialProofingMethod.SWAMID_AL2_MFA,
                     'proofing_version': 'testing',
                 },
             ],
@@ -187,7 +187,7 @@ class TestNewUser(unittest.TestCase):
                 keyhandle='U2F SWAMID AL2',
                 public_key='foo',
                 is_verified=True,
-                proofing_method=METHOD_SWAMID_AL2_MFA,
+                proofing_method=CredentialProofingMethod.SWAMID_AL2_MFA,
                 proofing_version='testing',
             ),
         ]
@@ -745,10 +745,10 @@ class TestNewUser(unittest.TestCase):
 
     def test_user_unverified_credential(self):
         cred = [x for x in self.user2.credentials.to_list() if x.is_verified][0]
-        self.assertEqual(cred.proofing_method, METHOD_SWAMID_AL2_MFA)
+        self.assertEqual(cred.proofing_method, CredentialProofingMethod.SWAMID_AL2_MFA)
         _dict1 = cred.to_dict()
         self.assertEqual(_dict1['verified'], True)
-        self.assertEqual(_dict1['proofing_method'], METHOD_SWAMID_AL2_MFA)
+        self.assertEqual(_dict1['proofing_method'], CredentialProofingMethod.SWAMID_AL2_MFA)
         self.assertEqual(_dict1['proofing_version'], 'testing')
         cred.is_verified = False
         _dict2 = cred.to_dict()
@@ -860,7 +860,7 @@ class TestNewUser(unittest.TestCase):
             'keyhandle': 'U2F SWAMID AL2',
             'public_key': 'foo',
             'verified': True,
-            'proofing_method': METHOD_SWAMID_AL2_MFA,
+            'proofing_method': CredentialProofingMethod.SWAMID_AL2_MFA,
             'proofing_version': 'testing',
         }
 

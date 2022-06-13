@@ -76,6 +76,13 @@ class NinProofingLogElement(ProofingLogElement):
     deregistration_information: Optional[DeregistrationInformation]
 
 
+class ForeignEidProofingLogElement(ProofingLogElement):
+    given_name: str
+    surname: str
+    date_of_birth: str
+    country_code: str
+
+
 class MailAddressProofing(ProofingLogElement):
     """
     {
@@ -281,10 +288,48 @@ class SwedenConnectProofing(NinProofingLogElement):
     }
     """
 
-    # Provider transaction id
+    # Identity issuer
     issuer: str
     # The authentication context class asserted
     authn_context_class: str
+    # Proofing method name
+    proofing_method: str = 'swedenconnect'
+
+
+class SwedenConnectEIDASProofing(ForeignEidProofingLogElement):
+    """
+    {
+        'eduPersonPrincipalName': eppn,
+        'created_ts': utc_now(),
+        'created_by': 'application',
+        'proofing_method': 'swedenconnect',
+        'proofing_version': '2022v1',
+        'issuer': 'provider who performed the vetting',
+        'authn_context_class': 'the asserted authn context class',
+        'prid': 'Sweden connect provisional identifier',
+        'prid_persistence': 'prid persistence indicator',
+        'eidas_person_identifier': 'eIDAS uniqueness identifier for natural persons',
+        'transaction_identifier': 'transaction id',
+        'mapped_personal_identity_number': 'mapped nin',
+        'personal_identity_number_binding': 'how nin is mapped'
+    }
+    """
+
+    # Identity issuer
+    issuer: str
+    # The authentication context class asserted
+    authn_context_class: str
+    # Provisional identifier
+    prid: str
+    # Provisional identifier persistence indicator
+    prid_persistence: str
+    # eIDAS uniqueness identifier for natural persons
+    eidas_person_identifier: str
+    # Transaction identifier
+    transaction_identifier: str
+    # if and when a nin can be mapped to a person these will be used
+    mapped_personal_identity_number: Optional[str]
+    personal_identity_number_binding: Optional[str]
     # Proofing method name
     proofing_method: str = 'swedenconnect'
 
@@ -302,6 +347,32 @@ class MFATokenProofing(SwedenConnectProofing):
         'key_id: 'Key id of token vetted',
         'nin': 'national_identity_number',
         'user_postal_address': {postal_address_from_navet}
+    }
+    """
+
+    # Data used to initialize the vetting process
+    key_id: str
+    # Proofing method name
+    proofing_method: str = 'swedenconnect'
+
+
+class MFATokenEIDASProofing(SwedenConnectEIDASProofing):
+    """
+    {
+        'eduPersonPrincipalName': eppn,
+        'created_ts': utc_now(),
+        'created_by': 'application',
+        'proofing_method': 'swedenconnect',
+        'proofing_version': '2022v1',
+        'issuer': 'provider who performed the vetting',
+        'authn_context_class': 'the asserted authn context class',
+        'prid': 'Sweden connect provisional identifier',
+        'prid_persistence': 'prid persistence indicator',
+        'eidas_person_identifier': 'eIDAS uniqueness identifier for natural persons',
+        'transaction_identifier': 'transaction id',
+        'mapped_personal_identity_number': 'mapped nin',
+        'personal_identity_number_binding': 'how nin is mapped'
+        'key_id: 'Key id of token vetted',
     }
     """
 

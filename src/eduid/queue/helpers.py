@@ -26,7 +26,7 @@ class Jinja2Env:
         logger.info(f'Loaded templates from {templates_dir}: {template_loader.list_templates()}')
         self.env = Environment(
             loader=template_loader,
-            extensions=['jinja2.ext.i18n', 'jinja2.ext.autoescape'],
+            extensions=['jinja2.ext.i18n'],
             autoescape=select_autoescape(),
         )
         # Translations

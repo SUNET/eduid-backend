@@ -78,6 +78,7 @@ class CommonMsg(TranslatableMsg):
     csrf_missing = 'csrf.missing'
     user_already_verified = 'User is already verified'
     user_has_other_locked_nin = 'Another nin is already registered for this user'
+    locked_identity_not_matching = 'common.locked_identity_not_matching'
 
 
 @dataclass(frozen=True)

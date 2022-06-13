@@ -25,7 +25,7 @@ class IdentityType(str, Enum):
 class IdentityElement(VerifiedElement, ABC):
 
     """
-    Element that is used for a identity for a user
+    Element that is used for an identity for a user
 
     Properties of IdentityElement:
 
@@ -73,6 +73,7 @@ class NinIdentity(IdentityElement):
 
     identity_type: IdentityType = Field(default=IdentityType.NIN, const=True)
     number: str
+    date_of_birth: Optional[datetime]
 
     @property
     def unique_key_name(self) -> str:
@@ -93,6 +94,12 @@ class PridPersistence(str, Enum):
     C = 'C'  # No expectations regarding persistence over time
 
 
+class EIDASLoa(str, Enum):
+    NF_LOW = 'eidas-nf-low'
+    NF_SUBSTANTIAL = 'eidas-nf-sub'
+    NF_HIGH = 'eidas-nf-high'
+
+
 class EIDASIdentity(IdentityElement):
 
     """
@@ -107,6 +114,7 @@ class EIDASIdentity(IdentityElement):
     identity_type: IdentityType = Field(default=IdentityType.EIDAS, const=True)
     prid: str
     prid_persistence: PridPersistence
+    loa: EIDASLoa
     date_of_birth: datetime
     country_code: str
 
@@ -166,6 +174,11 @@ class IdentityList(VerifiedElementList[IdentityElement]):
                 raise ValueError(f'identity_type {_type} not valid')
         return cls(elements=elements)
 
+    def replace(self, element: IdentityElement) -> None:
+        self.remove(key=element.key)
+        self.add(element=element)
+        return None
+
     @property
     def is_verified(self) -> bool:
         # TODO: the isinstance check should not be needed I think, but how to explain that to mypy?
@@ -199,13 +212,16 @@ class IdentityList(VerifiedElementList[IdentityElement]):
             return None
         # NIN
         if self.nin and self.nin.is_verified:
+            if self.nin.date_of_birth is not None:
+                return self.nin.date_of_birth
+            # Fall back to parsing NIN as this should work for all existing users
             try:
                 return datetime.strptime(self.nin.number[:8], '%Y%m%d')
             except ValueError:
                 logger.exception('Unable to parse user nin to date of birth')
                 logger.debug(f'User nins: {self.nin}')
         # EIDAS
-        elif self.eidas and self.eidas.is_verified:
+        if self.eidas and self.eidas.is_verified:
             return self.eidas.date_of_birth
         return None
 

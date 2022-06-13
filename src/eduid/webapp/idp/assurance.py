@@ -36,7 +36,7 @@ import logging
 from typing import Dict, List
 
 from eduid.common.misc.timeutil import utc_now
-from eduid.userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, FidoCredential, Password
+from eduid.userdb.credentials import CredentialProofingMethod, FidoCredential, Password
 from eduid.userdb.credentials.external import SwedenConnectCredential
 from eduid.userdb.element import ElementKey
 from eduid.userdb.idp import IdPUser
@@ -99,9 +99,9 @@ class AuthnState(object):
             elif isinstance(cred, FidoCredential):
                 self.fido_used = True
                 if cred.is_verified:
-                    if cred.proofing_method == METHOD_SWAMID_AL2_MFA:
+                    if cred.proofing_method == CredentialProofingMethod.SWAMID_AL2_MFA:
                         self.swamid_al2_used = True
-                    elif cred.proofing_method == METHOD_SWAMID_AL2_MFA_HI:
+                    elif cred.proofing_method == CredentialProofingMethod.SWAMID_AL2_MFA_HI:
                         self.swamid_al2_hi_used = True
             elif isinstance(cred, OnetimeCredential):
                 # OLD way

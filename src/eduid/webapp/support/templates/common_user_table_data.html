@@ -34,7 +34,7 @@
                         <dt>Country code</dt><dd>{{ item.get('country_code') }}</dd>
                     {% endif %}
                     {% if item.get('date_of_birth') %}
-                        <dt>Date of birth</dt><dd>{{ item.get('date_of_birth') }}</dd>
+                        <dt>Date of birth</dt><dd>{{ item.get('date_of_birth')|dateformat }}</dd>
                     {% endif %}
                     <dt>Verified</dt><dd>{{ item.get('verified') }}</dd>
                     <dt>Added timestamp</dt><dd>{{ item.get('created_ts')|datetimeformat }}</dd>
