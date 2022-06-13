@@ -932,3 +932,10 @@ class TestNewUser(unittest.TestCase):
         user_dict = User.from_dict(user_dict).to_dict()
         assert user_dict.get('nins') is None
         assert user_dict.get('identities') is not None
+
+    def test_empty_nins_list(self):
+        user_dict = mocked_user_standard.to_dict()
+        del user_dict['identities']
+        user_dict['nins'] = []
+        user = User.from_dict(user_dict)
+        assert len(user.identities.to_list()) == 0
