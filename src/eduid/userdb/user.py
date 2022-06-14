@@ -157,8 +157,8 @@ class User(BaseModel):
 
         # migrate nins to identities
         # TODO: Remove parsing of nins after next full load-save
-        if 'nins' in data and data.get('nins'):
-            _nins = data.pop('nins')
+        _nins = data.pop('nins', None)
+        if _nins:  # check for None or empty list
             nin_list = NinList.from_list_of_dicts(_nins)
             if nin_list.count == 1:
                 _nin = nin_list.to_list_of_dicts()[0]
