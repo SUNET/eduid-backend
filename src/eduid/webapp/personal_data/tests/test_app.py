@@ -224,7 +224,7 @@ class PersonalDataTests(EduidAPITestCase):
         expected_payload = {
             'surname': 'Smith',
             'given_name': 'John',
-            'display_name': 'New Display Name',
+            'display_name': 'John Smith',
             'language': 'sv',
         }
         response = self._post_user(mod_data=expected_payload)
