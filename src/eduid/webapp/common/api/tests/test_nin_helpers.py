@@ -358,3 +358,40 @@ class NinHelpersTest(EduidAPITestCase):
             self.assertEqual(user.given_name, 'Testaren Test')
             self.assertEqual(user.surname, 'Testsson')
             self.assertEqual(user.display_name, 'John Smith')
+    def test_set_user_names_from_foreign_eid_existing_display_name(self):
+        userdata = new_user_example.to_dict()
+        user = ProofingUser.from_dict(data=userdata)
+        proofing_element = ForeignEidProofingLogElement(
+            eppn=user.eppn,
+            created_by='test',
+            given_name='Testaren Test',
+            surname='Testsson',
+            date_of_birth='1901-02-03',
+            country_code='DE',
+            proofing_method='test',
+            proofing_version='2018v1',
+        )
+        with self.app.app_context():
+            user = set_user_names_from_foreign_eid(user, proofing_element)
+            assert user.given_name == 'Testaren Test'
+            assert user.surname == 'Testsson'
+            assert user.display_name == 'Testaren Test Testsson'
+
+    def test_set_user_names_from_foreign_eid_custom_display_name(self):
+        userdata = new_user_example.to_dict()
+        user = ProofingUser.from_dict(data=userdata)
+        proofing_element = ForeignEidProofingLogElement(
+            eppn=user.eppn,
+            created_by='test',
+            given_name='Testaren Test',
+            surname='Testsson',
+            date_of_birth='1901-02-03',
+            country_code='DE',
+            proofing_method='test',
+            proofing_version='2018v1',
+        )
+        with self.app.app_context():
+            user = set_user_names_from_foreign_eid(user, proofing_element, display_name='Test Testsson')
+            assert user.given_name == 'Testaren Test'
+            assert user.surname == 'Testsson'
+            assert user.display_name == 'Test Testsson'

@@ -33,6 +33,7 @@ from eduid.webapp.common.api.helpers import (
     check_magic_cookie,
     get_proofing_log_navet_data,
     verify_nin_for_user,
+    set_user_names_from_foreign_eid,
 )
 from eduid.webapp.common.api.messages import CommonMsg, TranslatableMsg, redirect_with_msg
 from eduid.webapp.common.api.utils import save_and_sync_user
@@ -317,13 +318,12 @@ def verify_eidas_from_external_mfa(
     # everything seems to check out, add the new identity to the user
     proofing_user.identities.add(element=new_identity)
 
-    # update the users names from the verified identity
-    proofing_user.given_name = session_info.attributes.given_name
-    proofing_user.surname = session_info.attributes.surname
-    proofing_user.display_name = f'{proofing_user.given_name} {proofing_user.surname}'
-
     # Create a proofing log
     proofing_log_entry = create_eidas_proofing_element(proofing_user=proofing_user, session_info=session_info)
+
+    # update the users names from the verified identity
+    proofing_user = set_user_names_from_foreign_eid(proofing_user, proofing_log_entry)
+
     # Verify EIDAS identity for user
     if not current_app.proofing_log.save(proofing_log_entry):
         current_app.logger.error('Failed to save EIDAS identity proofing log for user')

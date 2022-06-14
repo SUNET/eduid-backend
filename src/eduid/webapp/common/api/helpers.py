@@ -55,6 +55,24 @@ def set_user_names_from_official_address(
     return user
 
 
+def set_user_names_from_foreign_eid(
+    user: TUserSubclass, proofing_log_entry: TForeignEidProofingLogElementSubclass, display_name: Optional[str] = None
+) -> TUserSubclass:
+    """
+    :param user: Proofing app private userdb user
+    :param proofing_log_entry: Proofing log entry element
+    :param display_name: If any other display name than given name + surname should be used
+
+    :returns: User object
+    """
+    user.given_name = proofing_log_entry.given_name
+    user.surname = proofing_log_entry.surname
+    user.display_name = f'{user.given_name} {user.surname}'
+    if display_name is not None:
+        user.display_name = display_name
+    return user
+
+
 def number_match_proofing(user: User, proofing_state: OidcProofingState, number: str) -> bool:
     """
     :param user: Central userdb user

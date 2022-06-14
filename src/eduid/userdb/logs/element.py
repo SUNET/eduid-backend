@@ -21,6 +21,9 @@ logger = logging.getLogger(__name__)
 
 TLogElementSubclass = TypeVar('TLogElementSubclass', bound='LogElement')
 TNinProofingLogElementSubclass = TypeVar('TNinProofingLogElementSubclass', bound='NinProofingLogElement')
+TForeignEidProofingLogElementSubclass = TypeVar(
+    'TForeignEidProofingLogElementSubclass', bound='ForeignEidProofingLogElement'
+)
 
 
 class LogElement(Element):
