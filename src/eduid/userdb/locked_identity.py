@@ -30,8 +30,7 @@ class LockedIdentityList(IdentityList):
         return cls(elements=obj.elements)
 
     def replace(self, element: IdentityElement) -> None:
-        # ignore type due to error: "ListElement" has no attribute "key"
-        self.elements = [this for this in self.elements if this.key != element.key]  # type: ignore
+        self.elements = [this for this in self.elements if this.key != element.key]
         self.add(element=element)
         return None
 
