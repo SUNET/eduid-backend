@@ -82,14 +82,10 @@ def post_user(user: User, given_name: str, surname: str, language: str, display_
     current_app.logger.debug('Trying to save user {}'.format(user))
 
     # disallow change of first name, surname and display name if the user is verified
-    if user.identities.is_verified and (
-        given_name != personal_data_user.given_name or surname != personal_data_user.surname
-    ):
-        return error_response(message=PDataMsg.name_change_not_allowed)
-
-    personal_data_user.given_name = given_name
-    personal_data_user.surname = surname
-    personal_data_user.display_name = f'{given_name} {surname}'
+    if not user.identities.is_verified:
+        personal_data_user.given_name = given_name
+        personal_data_user.surname = surname
+        personal_data_user.display_name = f'{given_name} {surname}'
     personal_data_user.language = language
     try:
         save_and_sync_user(personal_data_user)

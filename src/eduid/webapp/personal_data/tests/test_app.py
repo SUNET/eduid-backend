@@ -232,9 +232,16 @@ class PersonalDataTests(EduidAPITestCase):
         mod_data = {
             'surname': 'Johnson',
             'given_name': 'Peter',
+            'language': 'sv',
+        }
+        expected_payload = {
+            'surname': 'Smith',
+            'given_name': 'John',
+            'display_name': 'John Smith',
+            'language': 'sv',
         }
         response = self._post_user(mod_data=mod_data)
-        self._check_error_response(response, type_='POST_PERSONAL_DATA_USER_FAIL', msg=PDataMsg.name_change_not_allowed)
+        self._check_success_response(response, type_='POST_PERSONAL_DATA_USER_SUCCESS', payload=expected_payload)
 
     def test_post_user_bad_csrf(self):
         response = self._post_user(mod_data={'csrf_token': 'wrong-token'})
