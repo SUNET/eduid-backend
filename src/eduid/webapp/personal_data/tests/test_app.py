@@ -116,7 +116,6 @@ class PersonalDataTests(EduidAPITestCase):
                     data = {
                         'given_name': 'Peter',
                         'surname': 'Johnson',
-                        'display_name': 'Peter Johnson',
                         'language': 'en',
                         'csrf_token': sess.get_csrf_token(),
                     }
@@ -215,7 +214,6 @@ class PersonalDataTests(EduidAPITestCase):
         expected_payload = {
             'surname': 'Johnson',
             'given_name': 'Peter',
-            'display_name': 'Peter Johnson',
             'language': 'en',
         }
         self._check_success_response(response, type_='POST_PERSONAL_DATA_USER_SUCCESS', payload=expected_payload)
@@ -263,10 +261,16 @@ class PersonalDataTests(EduidAPITestCase):
         expected_payload = {'error': {'surname': ['pdata.field_required']}}
         self._check_error_response(response, type_='POST_PERSONAL_DATA_USER_FAIL', payload=expected_payload)
 
-    def test_post_user_no_display_name(self):
-        response = self._post_user(mod_data={'display_name': ''})
-        expected_payload = {'error': {'display_name': ['pdata.field_required']}}
-        self._check_error_response(response, type_='POST_PERSONAL_DATA_USER_FAIL', payload=expected_payload)
+    def test_post_user_with_display_name(self):
+        # verify that display_name is ignored
+        response = self._post_user(mod_data={'display_name': 'Not Peter Johnson'}, verified_user=False)
+        expected_payload = {
+            'surname': 'Johnson',
+            'given_name': 'Peter',
+            'display_name': 'Peter Johnson',
+            'language': 'en',
+        }
+        self._check_success_response(response, type_='POST_PERSONAL_DATA_USER_SUCCESS', payload=expected_payload)
 
     def test_post_user_no_language(self):
         response = self._post_user(mod_data={'language': ''})

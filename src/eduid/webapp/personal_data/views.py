@@ -30,7 +30,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
+from typing import Optional
 
 from flask import Blueprint
 
@@ -76,21 +76,20 @@ def get_user(user: User) -> FluxData:
 @UnmarshalWith(PersonalDataRequestSchema)
 @MarshalWith(PersonalDataResponseSchema)
 @require_user
-def post_user(user: User, given_name: str, surname: str, display_name: str, language: str) -> FluxData:
+def post_user(user: User, given_name: str, surname: str, language: str, display_name: Optional[str] = None) -> FluxData:
+    # TODO: Remove display_name when frontend stops sending it
     personal_data_user = PersonalDataUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug('Trying to save user {}'.format(user))
 
     # disallow change of first name, surname and display name if the user is verified
     if user.identities.is_verified and (
-        given_name != personal_data_user.given_name
-        or surname != personal_data_user.surname
-        or display_name != personal_data_user.display_name
+        given_name != personal_data_user.given_name or surname != personal_data_user.surname
     ):
         return error_response(message=PDataMsg.name_change_not_allowed)
 
     personal_data_user.given_name = given_name
     personal_data_user.surname = surname
-    personal_data_user.display_name = display_name
+    personal_data_user.display_name = f'{given_name} {surname}'
     personal_data_user.language = language
     try:
         save_and_sync_user(personal_data_user)
