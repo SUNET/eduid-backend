@@ -596,7 +596,7 @@ class ResetPasswordTests(EduidAPITestCase):
             response2,
             msg=ResetPwMsg.email_send_throttled,
             type_='POST_RESET_PASSWORD_SUCCESS',
-            payload={'expires_max': 300},
+            payload={'throttled_max': 300},
         )
 
     def test_do_not_overwrite_email_state(self):

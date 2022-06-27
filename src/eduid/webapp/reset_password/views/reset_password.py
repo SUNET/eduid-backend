@@ -94,6 +94,7 @@ from eduid.webapp.reset_password.app import current_reset_password_app as curren
 from eduid.webapp.reset_password.helpers import (
     ResetPwMsg,
     StateException,
+    email_state_to_response_payload,
     generate_suggested_password,
     get_context,
     get_extra_security_alternatives,
@@ -159,11 +160,7 @@ def start_reset_pw(email: str) -> FluxData:
         current_app.logger.error(f'Email resending throttled for {email}')
         # return error_response(message=ResetPwMsg.email_send_throttled)
         return success_response(
-            message=ResetPwMsg.email_send_throttled,
-            payload={
-                'expires_in': int(e.time_left.total_seconds()),
-                'expires_max': int(e.time_max.total_seconds()),
-            },
+            message=ResetPwMsg.email_send_throttled, payload=email_state_to_response_payload(e.state)
         )
     except UserHasNotCompletedSignup:
         # Old bug where incomplete signup users where written to the central db
@@ -174,13 +171,8 @@ def start_reset_pw(email: str) -> FluxData:
         return error_response(message=ResetPwMsg.email_send_failure)
 
     current_app.stats.count(name='email_sent', value=1)
-    return success_response(
-        message=ResetPwMsg.reset_pw_initialized,
-        payload={
-            'expires_in': int(state.throttle_time_left(current_app.conf.throttle_resend).total_seconds()),
-            'expires_max': int(current_app.conf.throttle_resend.total_seconds()),
-        },
-    )
+
+    return success_response(message=ResetPwMsg.reset_pw_initialized, payload=email_state_to_response_payload(state))
 
 
 @reset_password_views.route('/verify-email/', methods=['POST'])

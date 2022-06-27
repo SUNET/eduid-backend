@@ -88,7 +88,7 @@ class ResetPasswordState(object):
 
     def is_throttled(self, min_wait: datetime.timedelta) -> bool:
         time_left = self.throttle_time_left(min_wait)
-        if time_left.total_seconds():
+        if int(time_left.total_seconds()) > 0:
             logger.warning(f'Resend throttled for {time_left}')
             return True
         return False

@@ -51,8 +51,10 @@ class ResetPasswordEmailCodeRequestSchema(EduidSchema, CSRFRequestMixin):
 
 class ResetPasswordResponseSchema(FluxStandardAction):
     class ResetPasswordResponsePayload(EduidSchema, CSRFResponseMixin):
-        expires_in = fields.Int()
-        expires_max = fields.Int()
+        email = LowercaseEmail(required=True)
+        email_code_timeout = fields.Int(required=True)
+        throttled_seconds = fields.Int(required=True)
+        throttled_max = fields.Int(required=True)
 
     payload = fields.Nested(ResetPasswordResponsePayload)
 

@@ -8,6 +8,8 @@ __author__ = 'lundberg'
 
 from pydantic import Field
 
+from eduid.userdb.reset_password import ResetPasswordEmailState
+
 
 class ApiException(Exception):
     status_code = 500
@@ -59,13 +61,11 @@ class EduidForbidden(Exception):
 
 class ThrottledException(Exception):
 
-    time_max: timedelta = Field(default=timedelta())
-    time_left: timedelta = Field(default=timedelta())
+    state: ResetPasswordEmailState
 
-    def __init__(self, time_left: timedelta, time_max: timedelta):
+    def __init__(self, state: ResetPasswordEmailState):
         Exception.__init__(self)
-        self.time_left = time_left
-        self.time_max = time_max
+        self.state = state
 
 
 def init_exception_handlers(app):

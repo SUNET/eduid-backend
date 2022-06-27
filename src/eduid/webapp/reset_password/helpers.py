@@ -206,12 +206,9 @@ def send_password_reset_mail(email_address: str) -> ResetPasswordEmailState:
     # User found, check if a state already exists
     state = current_app.password_reset_state_db.get_state_by_eppn(eppn=user.eppn)
     if state and not state.email_code.is_expired(timeout=current_app.conf.email_code_timeout):
-        # Let the user only send one mail every throttle_resend_seconds
+        # Let the user only send one mail every throttle_resend time period
         if state.is_throttled(current_app.conf.throttle_resend):
-            raise ThrottledException(
-                time_left=state.throttle_time_left(min_wait=current_app.conf.throttle_resend),
-                time_max=current_app.conf.throttle_resend,
-            )
+            raise ThrottledException(state=state)
         # If a state is found and not expired, just send another message with the same code
         # Update created_ts to give the user another email_code_timeout seconds to complete the password reset
         state.email_code.created_ts = utc_now()
@@ -490,3 +487,15 @@ def verify_phone_number(state: ResetPasswordEmailAndPhoneState) -> bool:
         return True
 
     return False
+
+
+def email_state_to_response_payload(state: ResetPasswordEmailState) -> Dict[str, Any]:
+    _throttled = int(state.throttle_time_left(current_app.conf.throttle_resend).total_seconds())
+    if _throttled < 0:
+        _throttled = 0
+    return {
+        'email': state.email_address,
+        'email_code_timeout': int(current_app.conf.email_code_timeout.total_seconds()),
+        'throttled_seconds': _throttled,
+        'throttled_max': int(current_app.conf.throttle_resend.total_seconds()),
+    }
