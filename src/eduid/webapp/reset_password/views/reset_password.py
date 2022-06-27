@@ -158,7 +158,6 @@ def start_reset_pw(email: str) -> FluxData:
         return error_response(message=ResetPwMsg.user_not_found)
     except ThrottledException as e:
         current_app.logger.error(f'Email resending throttled for {email}')
-        # return error_response(message=ResetPwMsg.email_send_throttled)
         return success_response(
             message=ResetPwMsg.email_send_throttled, payload=email_state_to_response_payload(e.state)
         )
