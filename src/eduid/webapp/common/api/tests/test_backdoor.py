@@ -112,7 +112,7 @@ class BackdoorTests(EduidAPITestCase):
 
     def test_no_backdoor_in_pro(self):
         """"""
-        self.app.conf.environment = 'pro'
+        self.app.conf.environment = 'production'
 
         with self.session_cookie_anon(self.browser) as client:
 

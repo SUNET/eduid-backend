@@ -271,7 +271,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
         # enable geo statistics
         self.app.conf.geo_statistics_feature_enabled = True
-        self.app.conf.geo_statistics_url = 'http://localhost'
+        self.app.conf.geo_statistics_url = 'http://eduid.docker'
 
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, 'authenticate'):
@@ -306,7 +306,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
         # enable geo statistics
         self.app.conf.geo_statistics_feature_enabled = True
-        self.app.conf.geo_statistics_url = 'http://localhost'
+        self.app.conf.geo_statistics_url = 'http://eduid.docker'
 
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, 'authenticate'):

@@ -98,6 +98,9 @@ class RootConfig(BaseModel):
     debug: bool = False
     testing: bool = False
 
+    class Config:
+        validate_assignment = True  # validate data when test cases modify the config object
+
 
 # EduIDBaseApp is currently Flask apps
 TEduIDBaseAppConfigSubclass = TypeVar('TEduIDBaseAppConfigSubclass', bound='EduIDBaseAppConfig')

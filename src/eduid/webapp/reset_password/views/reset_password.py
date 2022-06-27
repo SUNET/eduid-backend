@@ -152,7 +152,6 @@ def start_reset_pw(email: str) -> FluxData:
     current_app.logger.info(f'Trying to send password reset email to {email}')
     try:
         state = send_password_reset_mail(email)
-        current_app.logger.debug(f"EXTRA DEBUG: RESET PASSWORD SATE {state.to_dict()}")
     except UserDoesNotExist:
         current_app.logger.error(f'No user with email {email} found')
         return error_response(message=ResetPwMsg.user_not_found)
