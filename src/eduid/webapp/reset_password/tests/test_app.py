@@ -592,11 +592,16 @@ class ResetPasswordTests(EduidAPITestCase):
             response1, msg=ResetPwMsg.reset_pw_initialized, type_='POST_RESET_PASSWORD_SUCCESS'
         )
         response2 = self._post_email_address()
-        self._check_error_response(response2, msg=ResetPwMsg.email_send_throttled, type_='POST_RESET_PASSWORD_FAIL')
+        self._check_success_response(
+            response2,
+            msg=ResetPwMsg.email_send_throttled,
+            type_='POST_RESET_PASSWORD_SUCCESS',
+            payload={'expires_max': 300},
+        )
 
     def test_do_not_overwrite_email_state(self):
-        # Set min wait time to -1 to not get throttled
-        self.app.conf.throttle_resend_seconds = -1
+        # Avoid getting throttled
+        self.app.conf.throttle_resend = datetime.timedelta()
         response1 = self._post_email_address()
         self._check_success_response(
             response1, msg=ResetPwMsg.reset_pw_initialized, type_='POST_RESET_PASSWORD_SUCCESS'
@@ -620,7 +625,7 @@ class ResetPasswordTests(EduidAPITestCase):
         state1 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         # Set created time 5 minutes before email_code_timeout
         state1.email_code.created_ts = datetime.datetime.utcnow() - (
-            datetime.timedelta(seconds=self.app.conf.email_code_timeout) + datetime.timedelta(minutes=5)
+            self.app.conf.email_code_timeout + datetime.timedelta(minutes=5)
         )
         self.app.password_reset_state_db.save(state1)
 
@@ -837,7 +842,7 @@ class ResetPasswordTests(EduidAPITestCase):
         )
 
     def test_post_choose_extra_sec_sms_fail(self):
-        self.app.conf.throttle_sms_seconds = 300
+        self.app.conf.throttle_sms = 300
         from eduid.common.rpc.exceptions import MsgTaskFailed
 
         response = self._post_choose_extra_sec(sendsms_side_effect=MsgTaskFailed())
@@ -846,14 +851,14 @@ class ResetPasswordTests(EduidAPITestCase):
         )
 
     def test_post_choose_extra_sec_throttled(self):
-        self.app.conf.throttle_sms_seconds = 300
+        self.app.conf.throttle_sms = datetime.timedelta(minutes=5)
         response = self._post_choose_extra_sec(repeat=True)
         self._check_error_response(
             response, type_='POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL', msg=ResetPwMsg.send_sms_throttled
         )
 
     def test_post_choose_extra_sec_not_throttled(self):
-        self.app.conf.throttle_sms_seconds = 0
+        self.app.conf.throttle_sms = 0
         response = self._post_choose_extra_sec(repeat=True)
         self._check_success_response(
             response, type_='POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_SUCCESS', msg=ResetPwMsg.send_sms_success

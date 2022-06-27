@@ -44,6 +44,7 @@ from eduid.userdb.reset_password.state import (
 from eduid.userdb.reset_password.user import ResetPasswordUser
 from eduid.userdb.user import User
 from eduid.userdb.userdb import UserDB
+from eduid.userdb.util import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +119,7 @@ class ResetPasswordStateDB(BaseDB):
                            database since it was loaded
         """
         modified = state.modified_ts
-        state.modified_ts = datetime.utcnow()
+        state.modified_ts = utc_now()
         if modified is None:
             # document has never been modified
             # Remove old reset password state

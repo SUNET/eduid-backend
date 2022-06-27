@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
+from datetime import timedelta
+from typing import Optional
 
 from flask import jsonify
 
 __author__ = 'lundberg'
+
+from pydantic import Field
 
 
 class ApiException(Exception):
@@ -54,7 +58,14 @@ class EduidForbidden(Exception):
 
 
 class ThrottledException(Exception):
-    pass
+
+    time_max: timedelta = Field(default=timedelta())
+    time_left: timedelta = Field(default=timedelta())
+
+    def __init__(self, time_left: timedelta, time_max: timedelta):
+        Exception.__init__(self)
+        self.time_left = time_left
+        self.time_max = time_max
 
 
 def init_exception_handlers(app):
