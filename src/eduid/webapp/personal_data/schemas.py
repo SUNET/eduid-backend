@@ -49,7 +49,8 @@ class PersonalDataRequestSchema(EduidSchema, CSRFRequestMixin):
 
     given_name = fields.String(required=True, validate=[validate_nonempty])
     surname = fields.String(required=True, validate=[validate_nonempty])
-    display_name = fields.String(required=True, validate=validate_nonempty)
+    # TODO: remove display_name when frontend stops sending it
+    display_name = fields.String(required=False)
     language = fields.String(required=True, default='en', validate=validate_language)
 
 

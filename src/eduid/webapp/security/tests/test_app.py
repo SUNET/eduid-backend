@@ -430,8 +430,7 @@ class SecurityTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.given_name == 'Testaren Test'
         assert user.surname == 'Testsson'
-        # Do not overwrite display_name if it is set
-        assert user.display_name == 'John Smith'
+        assert user.display_name == 'Test Testsson'
         self._check_success_response(
             response,
             type_='POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS',

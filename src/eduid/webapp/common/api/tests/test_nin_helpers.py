@@ -11,12 +11,17 @@ from eduid.common.rpc.msg_relay import FullPostalAddress
 from eduid.userdb import NinIdentity
 from eduid.userdb.fixtures.users import new_user_example
 from eduid.userdb.logs import ProofingLog
-from eduid.userdb.logs.element import NinProofingLogElement
+from eduid.userdb.logs.element import NinProofingLogElement, ForeignEidProofingLogElement
 from eduid.userdb.proofing import LetterProofingStateDB, LetterProofingUserDB, NinProofingElement, ProofingUser
 from eduid.userdb.proofing.state import NinProofingState
 from eduid.userdb.user import User
 from eduid.webapp.common.api.app import EduIDBaseApp
-from eduid.webapp.common.api.helpers import add_nin_to_user, set_user_names_from_official_address, verify_nin_for_user
+from eduid.webapp.common.api.helpers import (
+    add_nin_to_user,
+    set_user_names_from_official_address,
+    verify_nin_for_user,
+    set_user_names_from_foreign_eid,
+)
 from eduid.webapp.common.api.testing import EduidAPITestCase, normalised_data
 from eduid.webapp.common.session.eduid_session import SessionFactory
 
@@ -275,9 +280,9 @@ class NinHelpersTest(EduidAPITestCase):
         )
         with self.app.app_context():
             user = set_user_names_from_official_address(user, proofing_element)
-            self.assertEqual(user.given_name, 'Testaren Test')
-            self.assertEqual(user.surname, 'Testsson')
-            self.assertEqual(user.display_name, 'Test Testsson')
+            assert user.given_name == 'Testaren Test'
+            assert user.surname == 'Testsson'
+            assert user.display_name == 'Test Testsson'
 
     def test_set_user_names_from_offical_address_2(self):
         userdata = new_user_example.to_dict()
@@ -296,9 +301,9 @@ class NinHelpersTest(EduidAPITestCase):
         )
         with self.app.app_context():
             user = set_user_names_from_official_address(user, proofing_element)
-            self.assertEqual(user.given_name, 'Test')
-            self.assertEqual(user.surname, 'Testsson')
-            self.assertEqual(user.display_name, 'Test Testsson')
+            assert user.given_name == 'Test'
+            assert user.surname == 'Testsson'
+            assert user.display_name == 'Test Testsson'
 
     def test_set_user_names_from_offical_address_3(self):
         userdata = new_user_example.to_dict()
@@ -318,9 +323,9 @@ class NinHelpersTest(EduidAPITestCase):
         )
         with self.app.app_context():
             user = set_user_names_from_official_address(user, proofing_element)
-            self.assertEqual(user.given_name, 'Pippilotta Viktualia Rullgardina Krusmynta Efraimsdotter')
-            self.assertEqual(user.surname, 'Långstrump')
-            self.assertEqual(user.display_name, 'Rullgardina Långstrump')
+            assert user.given_name == 'Pippilotta Viktualia Rullgardina Krusmynta Efraimsdotter'
+            assert user.surname == 'Långstrump'
+            assert user.display_name == 'Rullgardina Långstrump'
 
     def test_set_user_names_from_offical_address_4(self):
         userdata = new_user_example.to_dict()
@@ -338,23 +343,63 @@ class NinHelpersTest(EduidAPITestCase):
         )
         with self.app.app_context():
             user = set_user_names_from_official_address(user, proofing_element)
-            self.assertEqual(user.given_name, 'Testaren Test')
-            self.assertEqual(user.surname, 'Testsson')
-            self.assertEqual(user.display_name, 'Testaren Test Testsson')
+            assert user.given_name == 'Testaren Test'
+            assert user.surname == 'Testsson'
+            assert user.display_name == 'Testaren Test Testsson'
 
-    def test_set_user_names_from_offical_address_existing_display_name(self):
+    def test_set_user_names_from_foreign_eid(self):
         userdata = new_user_example.to_dict()
         user = ProofingUser.from_dict(data=userdata)
-        proofing_element = NinProofingLogElement(
+        proofing_element = ForeignEidProofingLogElement(
             eppn=user.eppn,
             created_by='test',
-            nin='190102031234',
-            user_postal_address=self.navet_response(),
+            given_name='Testaren Test',
+            surname='Testsson',
+            date_of_birth='1901-02-03',
+            country_code='DE',
             proofing_method='test',
             proofing_version='2018v1',
         )
         with self.app.app_context():
-            user = set_user_names_from_official_address(user, proofing_element)
-            self.assertEqual(user.given_name, 'Testaren Test')
-            self.assertEqual(user.surname, 'Testsson')
-            self.assertEqual(user.display_name, 'John Smith')
+            user = set_user_names_from_foreign_eid(user, proofing_element)
+            assert user.given_name == 'Testaren Test'
+            assert user.surname == 'Testsson'
+            assert user.display_name == 'Testaren Test Testsson'
+
+    def test_set_user_names_from_foreign_eid_existing_display_name(self):
+        userdata = new_user_example.to_dict()
+        user = ProofingUser.from_dict(data=userdata)
+        proofing_element = ForeignEidProofingLogElement(
+            eppn=user.eppn,
+            created_by='test',
+            given_name='Testaren Test',
+            surname='Testsson',
+            date_of_birth='1901-02-03',
+            country_code='DE',
+            proofing_method='test',
+            proofing_version='2018v1',
+        )
+        with self.app.app_context():
+            user = set_user_names_from_foreign_eid(user, proofing_element)
+            assert user.given_name == 'Testaren Test'
+            assert user.surname == 'Testsson'
+            assert user.display_name == 'Testaren Test Testsson'
+
+    def test_set_user_names_from_foreign_eid_custom_display_name(self):
+        userdata = new_user_example.to_dict()
+        user = ProofingUser.from_dict(data=userdata)
+        proofing_element = ForeignEidProofingLogElement(
+            eppn=user.eppn,
+            created_by='test',
+            given_name='Testaren Test',
+            surname='Testsson',
+            date_of_birth='1901-02-03',
+            country_code='DE',
+            proofing_method='test',
+            proofing_version='2018v1',
+        )
+        with self.app.app_context():
+            user = set_user_names_from_foreign_eid(user, proofing_element, display_name='Test Testsson')
+            assert user.given_name == 'Testaren Test'
+            assert user.surname == 'Testsson'
+            assert user.display_name == 'Test Testsson'

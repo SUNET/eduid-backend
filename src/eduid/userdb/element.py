@@ -303,8 +303,8 @@ class PrimaryElement(VerifiedElement, ABC):
         return data
 
 
-ListElement = TypeVar('ListElement')
-MatchingElement = TypeVar('MatchingElement')
+ListElement = TypeVar('ListElement', bound=Element)
+MatchingElement = TypeVar('MatchingElement', bound=Element)
 
 
 class ElementList(GenericModel, Generic[ListElement], ABC):
@@ -382,9 +382,7 @@ class ElementList(GenericModel, Generic[ListElement], ABC):
             return None
         if len(res) > 1:
             raise EduIDUserDBError('More than one element found')
-        # mypy figures out the real type of elements in `res' since isinstance() is used above and complains
-        #    error: Incompatible return value type (got "Element", expected "Optional[ListElement]")
-        return res[0]  # type: ignore
+        return res[0]
 
     def add(self, element: ListElement):
         """

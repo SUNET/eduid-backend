@@ -12,7 +12,11 @@ from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInfo
 from eduid.userdb import NinIdentity
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import IdentityType
-from eduid.userdb.logs.element import NinProofingLogElement, TNinProofingLogElementSubclass
+from eduid.userdb.logs.element import (
+    NinProofingLogElement,
+    TNinProofingLogElementSubclass,
+    TForeignEidProofingLogElementSubclass,
+)
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.proofing.state import NinProofingState, OidcProofingState
 from eduid.userdb.user import TUserSubclass, User
@@ -36,22 +40,38 @@ def set_user_names_from_official_address(
         # please mypy
         raise RuntimeError('No given name or surname found in proofing log user postal address')
     given_name_marking = proofing_log_entry.user_postal_address.name.given_name_marking
-    # Only set display name if not already set
-    if not user.display_name:
-        user.display_name = f'{user.given_name} {user.surname}'
-        if given_name_marking:
-            _name_index = (int(given_name_marking) // 10) - 1  # ex. "20" -> 1 (second GivenName is real given name)
-            try:
-                _given_name = user.given_name.split()[_name_index]
-                user.display_name = f'{_given_name} {user.surname}'
-            except IndexError:
-                # At least occasionally, we've seen GivenName 'Jan-Erik Martin' with GivenNameMarking 30
-                pass
+    user.display_name = f'{user.given_name} {user.surname}'
+    if given_name_marking:
+        _name_index = (int(given_name_marking) // 10) - 1  # ex. "20" -> 1 (second GivenName is real given name)
+        try:
+            _given_name = user.given_name.split()[_name_index]
+            user.display_name = f'{_given_name} {user.surname}'
+        except IndexError:
+            # At least occasionally, we've seen GivenName 'Jan-Erik Martin' with GivenNameMarking 30
+            pass
     current_app.logger.info(u'User names set from official address')
     current_app.logger.debug(
         f'{proofing_log_entry.user_postal_address.name} resulted in given_name: {user.given_name}, '
         f'surname: {user.surname} and display_name: {user.display_name}'
     )
+    return user
+
+
+def set_user_names_from_foreign_eid(
+    user: TUserSubclass, proofing_log_entry: TForeignEidProofingLogElementSubclass, display_name: Optional[str] = None
+) -> TUserSubclass:
+    """
+    :param user: Proofing app private userdb user
+    :param proofing_log_entry: Proofing log entry element
+    :param display_name: If any other display name than given name + surname should be used
+
+    :returns: User object
+    """
+    user.given_name = proofing_log_entry.given_name
+    user.surname = proofing_log_entry.surname
+    user.display_name = f'{user.given_name} {user.surname}'
+    if display_name is not None:
+        user.display_name = display_name
     return user
 
 
