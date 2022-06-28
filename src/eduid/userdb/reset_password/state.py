@@ -81,7 +81,7 @@ class ResetPasswordState(object):
         return cls(**data)
 
     def throttle_time_left(self, min_wait: datetime.timedelta) -> datetime.timedelta:
-        if self.modified_ts is None or min_wait.total_seconds() == 0:
+        if self.modified_ts is None or int(min_wait.total_seconds()) == 0:
             return datetime.timedelta()
         throttle_ends = self.modified_ts + min_wait
         return throttle_ends - utc_now()
