@@ -1,8 +1,14 @@
 # -*- coding: utf-8 -*-
+from datetime import timedelta
+from typing import Optional
 
 from flask import jsonify
 
 __author__ = 'lundberg'
+
+from pydantic import Field
+
+from eduid.userdb.reset_password import ResetPasswordEmailState
 
 
 class ApiException(Exception):
@@ -54,7 +60,12 @@ class EduidForbidden(Exception):
 
 
 class ThrottledException(Exception):
-    pass
+
+    state: ResetPasswordEmailState
+
+    def __init__(self, state: ResetPasswordEmailState):
+        Exception.__init__(self)
+        self.state = state
 
 
 def init_exception_handlers(app):

@@ -207,7 +207,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
         mock_get_postal_address.return_value = None
         mock_request_user_sync.side_effect = self.request_user_sync
 
-        self.app.conf.environment = 'pro'
+        self.app.conf.environment = 'production'
         self.app.conf.magic_cookie = 'magic-cookie'
         self.app.conf.magic_cookie_name = 'magic-cookie'
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)

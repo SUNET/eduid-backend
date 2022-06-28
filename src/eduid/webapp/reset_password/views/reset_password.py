@@ -94,6 +94,7 @@ from eduid.webapp.reset_password.app import current_reset_password_app as curren
 from eduid.webapp.reset_password.helpers import (
     ResetPwMsg,
     StateException,
+    email_state_to_response_payload,
     generate_suggested_password,
     get_context,
     get_extra_security_alternatives,
@@ -109,6 +110,7 @@ from eduid.webapp.reset_password.schemas import (
     NewPasswordSecureTokenRequestSchema,
     ResetPasswordEmailCodeRequestSchema,
     ResetPasswordEmailRequestSchema,
+    ResetPasswordEmailResponseSchema,
     ResetPasswordExtraSecPhoneSchema,
     ResetPasswordResponseSchema,
     ResetPasswordVerifyEmailResponseSchema,
@@ -132,7 +134,7 @@ def init_reset_pw() -> FluxData:
 
 @reset_password_views.route('/', methods=['POST'])
 @UnmarshalWith(ResetPasswordEmailRequestSchema)
-@MarshalWith(ResetPasswordResponseSchema)
+@MarshalWith(ResetPasswordEmailResponseSchema)
 def start_reset_pw(email: str) -> FluxData:
     """
     View that receives an email address to initiate a reset password process.
@@ -151,13 +153,15 @@ def start_reset_pw(email: str) -> FluxData:
     """
     current_app.logger.info(f'Trying to send password reset email to {email}')
     try:
-        send_password_reset_mail(email)
+        state = send_password_reset_mail(email)
     except UserDoesNotExist:
         current_app.logger.error(f'No user with email {email} found')
         return error_response(message=ResetPwMsg.user_not_found)
-    except ThrottledException:
+    except ThrottledException as e:
         current_app.logger.error(f'Email resending throttled for {email}')
-        return error_response(message=ResetPwMsg.email_send_throttled)
+        return success_response(
+            message=ResetPwMsg.email_send_throttled, payload=email_state_to_response_payload(e.state)
+        )
     except UserHasNotCompletedSignup:
         # Old bug where incomplete signup users where written to the central db
         current_app.logger.exception(f'User with email {email} has to complete signup')
@@ -167,7 +171,8 @@ def start_reset_pw(email: str) -> FluxData:
         return error_response(message=ResetPwMsg.email_send_failure)
 
     current_app.stats.count(name='email_sent', value=1)
-    return success_response(message=ResetPwMsg.reset_pw_initialized)
+
+    return success_response(message=ResetPwMsg.reset_pw_initialized, payload=email_state_to_response_payload(state))
 
 
 @reset_password_views.route('/verify-email/', methods=['POST'])
@@ -318,7 +323,7 @@ def choose_extra_security_phone(email_code: str, phone_index: int) -> FluxData:
         return error_response(message=e.msg)
 
     if isinstance(context.state, ResetPasswordEmailAndPhoneState):
-        if context.state.is_throttled(current_app.conf.throttle_sms_seconds):
+        if context.state.is_throttled(current_app.conf.throttle_sms):
             current_app.logger.error(f'Throttling reset password SMS for: {context.state.eppn}')
             return error_response(message=ResetPwMsg.send_sms_throttled)
 

@@ -29,6 +29,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from datetime import timedelta
 
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState, ResetPasswordStateDB
 from eduid.userdb.testing import MongoTestCase
@@ -51,8 +52,8 @@ class TestResetPasswordStateDB(MongoTestCase):
         self.assertEqual(state.email_code.code, "dummy-code")
         self.assertEqual(state.method, "email")
 
-        self.assertTrue(state.email_code.is_expired(0))
-        self.assertFalse(state.email_code.is_expired(1))
+        self.assertTrue(state.email_code.is_expired(timedelta(0)))
+        self.assertFalse(state.email_code.is_expired(timedelta(1)))
 
     def test_email_state_get_by_code(self):
         email_state = ResetPasswordEmailState(

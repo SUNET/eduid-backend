@@ -429,7 +429,7 @@ class LetterProofingTests(EduidAPITestCase):
     def test_get_code_no_backdoor_in_pro(self):
         self.app.conf.magic_cookie = 'magic-cookie'
         self.app.conf.magic_cookie_name = 'magic'
-        self.app.conf.environment = 'pro'
+        self.app.conf.environment = 'production'
 
         response = self.get_code_backdoor()
 

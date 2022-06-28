@@ -40,6 +40,7 @@ from flask import render_template
 from flask_babel import gettext as _
 
 from eduid.common.config.base import EduidEnvironment
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.exceptions import MailTaskFailed
 from eduid.common.utils import urlappend
 from eduid.userdb.exceptions import UserDoesNotExist
@@ -193,7 +194,7 @@ def is_generated_password(password: str) -> bool:
     return False
 
 
-def send_password_reset_mail(email_address: str) -> None:
+def send_password_reset_mail(email_address: str) -> ResetPasswordEmailState:
     """
     :param email_address: User input for password reset
     """
@@ -204,13 +205,13 @@ def send_password_reset_mail(email_address: str) -> None:
 
     # User found, check if a state already exists
     state = current_app.password_reset_state_db.get_state_by_eppn(eppn=user.eppn)
-    if state and not state.email_code.is_expired(timeout_seconds=current_app.conf.email_code_timeout):
-        # Let the user only send one mail every throttle_resend_seconds
-        if state.is_throttled(current_app.conf.throttle_resend_seconds):
-            raise ThrottledException()
+    if state and not state.email_code.is_expired(timeout=current_app.conf.email_code_timeout):
+        # Let the user only send one mail every throttle_resend time period
+        if state.is_throttled(current_app.conf.throttle_resend):
+            raise ThrottledException(state=state)
         # If a state is found and not expired, just send another message with the same code
         # Update created_ts to give the user another email_code_timeout seconds to complete the password reset
-        state.email_code.created_ts = datetime.datetime.utcnow()
+        state.email_code.created_ts = utc_now()
     else:
         # create a new state
         state = ResetPasswordEmailState(
@@ -224,7 +225,7 @@ def send_password_reset_mail(email_address: str) -> None:
     text_template = 'reset_password_email.txt.jinja2'
     html_template = 'reset_password_email.html.jinja2'
     to_addresses = [address.email for address in user.mail_addresses.verified]
-    pwreset_timeout = current_app.conf.email_code_timeout // 60 // 60  # seconds to hours
+    pwreset_timeout = int(current_app.conf.email_code_timeout.total_seconds()) // 60 // 60  # seconds to hours
     # We must send the user to an url that does not correspond to a flask view,
     # but to a js bundle (i.e. a flask view in a *different* app)
     resetpw_link = urlappend(current_app.conf.password_reset_link, state.email_code.code)
@@ -239,6 +240,8 @@ def send_password_reset_mail(email_address: str) -> None:
 
     current_app.logger.info(f'Sent password reset email')
     current_app.logger.debug(f'Mail addresses: {to_addresses}')
+
+    return state
 
 
 def generate_suggested_password(password_length: int) -> str:
@@ -308,7 +311,7 @@ def reset_user_password(
     :param password: Plain text password
     :param mfa_used: If a security key or external MFA was used as extra security
     """
-    # Check the the password complexity is enough
+    # Check the password complexity is enough
     user_info = get_zxcvbn_terms(user)
     try:
         is_valid_password(
@@ -484,3 +487,15 @@ def verify_phone_number(state: ResetPasswordEmailAndPhoneState) -> bool:
         return True
 
     return False
+
+
+def email_state_to_response_payload(state: ResetPasswordEmailState) -> Dict[str, Any]:
+    _throttled = int(state.throttle_time_left(current_app.conf.throttle_resend).total_seconds())
+    if _throttled < 0:
+        _throttled = 0
+    return {
+        'email': state.email_address,
+        'email_code_timeout': int(current_app.conf.email_code_timeout.total_seconds()),
+        'throttled_seconds': _throttled,
+        'throttled_max': int(current_app.conf.throttle_resend.total_seconds()),
+    }
