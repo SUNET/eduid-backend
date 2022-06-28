@@ -311,7 +311,7 @@ def reset_user_password(
     :param password: Plain text password
     :param mfa_used: If a security key or external MFA was used as extra security
     """
-    # Check the the password complexity is enough
+    # Check the password complexity is enough
     user_info = get_zxcvbn_terms(user)
     try:
         is_valid_password(

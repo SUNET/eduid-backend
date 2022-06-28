@@ -110,6 +110,7 @@ from eduid.webapp.reset_password.schemas import (
     NewPasswordSecureTokenRequestSchema,
     ResetPasswordEmailCodeRequestSchema,
     ResetPasswordEmailRequestSchema,
+    ResetPasswordEmailResponseSchema,
     ResetPasswordExtraSecPhoneSchema,
     ResetPasswordResponseSchema,
     ResetPasswordVerifyEmailResponseSchema,
@@ -133,7 +134,7 @@ def init_reset_pw() -> FluxData:
 
 @reset_password_views.route('/', methods=['POST'])
 @UnmarshalWith(ResetPasswordEmailRequestSchema)
-@MarshalWith(ResetPasswordResponseSchema)
+@MarshalWith(ResetPasswordEmailResponseSchema)
 def start_reset_pw(email: str) -> FluxData:
     """
     View that receives an email address to initiate a reset password process.
