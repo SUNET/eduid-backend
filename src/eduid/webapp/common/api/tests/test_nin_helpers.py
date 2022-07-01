@@ -11,16 +11,16 @@ from eduid.common.rpc.msg_relay import FullPostalAddress
 from eduid.userdb import NinIdentity
 from eduid.userdb.fixtures.users import new_user_example
 from eduid.userdb.logs import ProofingLog
-from eduid.userdb.logs.element import NinProofingLogElement, ForeignEidProofingLogElement
+from eduid.userdb.logs.element import ForeignEidProofingLogElement, NinProofingLogElement
 from eduid.userdb.proofing import LetterProofingStateDB, LetterProofingUserDB, NinProofingElement, ProofingUser
 from eduid.userdb.proofing.state import NinProofingState
 from eduid.userdb.user import User
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.helpers import (
     add_nin_to_user,
+    set_user_names_from_foreign_eid,
     set_user_names_from_official_address,
     verify_nin_for_user,
-    set_user_names_from_foreign_eid,
 )
 from eduid.webapp.common.api.testing import EduidAPITestCase, normalised_data
 from eduid.webapp.common.session.eduid_session import SessionFactory
