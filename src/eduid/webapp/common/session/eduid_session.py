@@ -20,14 +20,15 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.webapp.common.session.meta import SessionMeta
 from eduid.webapp.common.session.namespaces import (
     Actions,
-    Authn_Namespace,
+    AuthnNamespace,
     Common,
-    Eidas_Namespace,
+    EidasNamespace,
     IdP_Namespace,
     MfaAction,
     ResetPasswordNS,
     SecurityNS,
     Signup,
+    SvipeIDNamespace,
     TimestampedNS,
 )
 from eduid.webapp.common.session.redis_session import RedisEncryptedSession, SessionManager, SessionOutOfSync
@@ -52,8 +53,9 @@ class EduidNamespaces(BaseModel):
     reset_password: Optional[ResetPasswordNS] = None
     security: Optional[SecurityNS] = None
     idp: Optional[IdP_Namespace] = None
-    eidas: Optional[Eidas_Namespace] = None
-    authn: Optional[Authn_Namespace] = None
+    eidas: Optional[EidasNamespace] = None
+    authn: Optional[AuthnNamespace] = None
+    svipe_id: Optional[SvipeIDNamespace] = None
 
 
 class EduidSession(SessionMixin, MutableMapping):
@@ -212,16 +214,22 @@ class EduidSession(SessionMixin, MutableMapping):
         return self._namespaces.idp
 
     @property
-    def eidas(self) -> Eidas_Namespace:
+    def eidas(self) -> EidasNamespace:
         if not self._namespaces.eidas:
-            self._namespaces.eidas = Eidas_Namespace.from_dict(self._session.get('eidas', {}))
+            self._namespaces.eidas = EidasNamespace.from_dict(self._session.get('eidas', {}))
         return self._namespaces.eidas
 
     @property
-    def authn(self) -> Authn_Namespace:
+    def authn(self) -> AuthnNamespace:
         if not self._namespaces.authn:
-            self._namespaces.authn = Authn_Namespace.from_dict(self._session.get('authn', {}))
+            self._namespaces.authn = AuthnNamespace.from_dict(self._session.get('authn', {}))
         return self._namespaces.authn
+
+    @property
+    def svipe_id(self) -> SvipeIDNamespace:
+        if not self._namespaces.svipe_id:
+            self._namespaces.svipe_id = SvipeIDNamespace.from_dict(self._session.get('svipe_id', {}))
+        return self._namespaces.svipe_id
 
     @property
     def created(self):

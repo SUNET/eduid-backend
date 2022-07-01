@@ -4,12 +4,12 @@ from __future__ import annotations
 import logging
 from abc import ABC
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum, unique
 from typing import Any, Dict, List, Mapping, NewType, Optional, Type, TypeVar, Union
 from uuid import uuid4
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, validator
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.actions import Action
@@ -20,6 +20,7 @@ __author__ = 'ft'
 from eduid.userdb.credentials.external import TrustFramework
 from eduid.userdb.credentials.fido import WebauthnAuthenticator
 from eduid.userdb.element import ElementKey
+from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
 from eduid.webapp.idp.other_device.data import OtherDeviceId
 
@@ -27,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 AuthnRequestRef = NewType('AuthnRequestRef', str)
+OIDCState = NewType('OIDCState', str)
 
 
 class SessionNSBase(BaseModel, ABC):
@@ -166,8 +168,8 @@ class IdP_PendingRequest(BaseModel, ABC):
     used: Optional[bool] = False  # set to True after the request has been completed (to handle 'back' button presses)
     template_show_msg: Optional[str]  # set when the template version of the idp should show a message to the user
     # Credentials used while authenticating _this SAML request_. Not ones inherited from SSO.
-    credentials_used: Dict[ElementKey, datetime] = Field(default={})
-    onetime_credentials: Dict[ElementKey, OnetimeCredential] = Field(default={})
+    credentials_used: Dict[ElementKey, datetime] = Field(default_factory=dict)
+    onetime_credentials: Dict[ElementKey, OnetimeCredential] = Field(default_factory=dict)
 
 
 class IdP_SAMLPendingRequest(IdP_PendingRequest):
@@ -212,15 +214,15 @@ class IdP_Namespace(TimestampedNS):
 class SP_AuthnRequest(BaseModel):
     redirect_url: str
     post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction]] = None
-    credentials_used: List[ElementKey] = Field(default=[])
+    credentials_used: List[ElementKey] = Field(default_factory=list)
     created_ts: datetime = Field(default_factory=utc_now)
     authn_instant: Optional[datetime] = None
 
 
 class SPAuthnData(BaseModel):
     post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction]] = None
-    pysaml2_dicts: Dict[str, Any] = Field(default={})
-    authns: Dict[AuthnRequestRef, SP_AuthnRequest] = Field(default={})
+    pysaml2_dicts: Dict[str, Any] = Field(default_factory=dict)
+    authns: Dict[AuthnRequestRef, SP_AuthnRequest] = Field(default_factory=dict)
 
     def get_authn_for_action(self, action: Union[AuthnAcsAction, EidasAcsAction]) -> Optional[SP_AuthnRequest]:
         for authn in self.authns.values():
@@ -229,14 +231,33 @@ class SPAuthnData(BaseModel):
         return None
 
 
-class Eidas_Namespace(SessionNSBase):
+class EidasNamespace(SessionNSBase):
 
     verify_token_action_credential_id: Optional[ElementKey] = None
     sp: SPAuthnData = Field(default=SPAuthnData())
 
 
-class Authn_Namespace(SessionNSBase):
+class AuthnNamespace(SessionNSBase):
 
     sp: SPAuthnData = Field(default=SPAuthnData())
     name_id: Optional[str] = None  # SAML NameID, used in logout
     next: Optional[str] = None
+
+
+class OIDCResult(BaseModel):
+    message: str
+    error: bool = False
+
+
+class OIDCData(BaseModel):
+    created_ts: datetime = Field(default_factory=utc_now)
+    nonce: Optional[str]
+    result: Optional[OIDCResult]
+
+
+class SvipeIDNamespace(SessionNSBase):
+    oidc_states: Dict[OIDCState, OIDCData] = Field(default_factory=dict)
+
+    @validator('oidc_states')
+    def expire_oidc_states(cls, v: Dict[OIDCState, OIDCData]):
+        return {key: value for key, value in v.items() if (utc_now() - value.created_ts) < timedelta(hours=2)}
