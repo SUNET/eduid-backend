@@ -260,8 +260,6 @@ class BaseDB(object):
         if doc_count == 0:
             return []
         return docs
-    
-
 
     def _get_documents_by_filter(
         self,

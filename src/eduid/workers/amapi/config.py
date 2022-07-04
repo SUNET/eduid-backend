@@ -10,7 +10,6 @@ from eduid.common.utils import removesuffix
 logger = logging.getLogger(__name__)
 
 
-
 class ReasonableDomainName(ConstrainedStr):
     min_length = len('x.se')
     to_lower = True

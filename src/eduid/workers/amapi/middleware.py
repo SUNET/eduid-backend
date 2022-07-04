@@ -15,7 +15,7 @@ from starlette.responses import PlainTextResponse
 from starlette.types import Message
 
 from eduid.common.utils import removeprefix
-from eduid.workers.amapi.config import DataOwnerName, AMApiConfig, ScopeName
+from eduid.workers.amapi.config import AMApiConfig, DataOwnerName, ScopeName
 from eduid.workers.amapi.context import Context
 from eduid.workers.amapi.context_request import ContextRequestMixin
 
@@ -225,8 +225,8 @@ class AuthenticationMiddleware(BaseMiddleware):
 
         req.context.data_owner = data_owner
         req.context.userdb = self.context.get_userdb(data_owner)
-       # req.context.groupdb = self.context.get_groupdb(data_owner)
-       # req.context.invitedb = self.context.get_invitedb(data_owner)
-       # req.context.eventdb = self.context.get_eventdb(data_owner)
+        # req.context.groupdb = self.context.get_groupdb(data_owner)
+        # req.context.invitedb = self.context.get_invitedb(data_owner)
+        # req.context.eventdb = self.context.get_eventdb(data_owner)
 
         return await call_next(req)
