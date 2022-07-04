@@ -14,8 +14,8 @@ from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.logs.element import (
     NinProofingLogElement,
-    TNinProofingLogElementSubclass,
     TForeignEidProofingLogElementSubclass,
+    TNinProofingLogElementSubclass,
 )
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.proofing.state import NinProofingState, OidcProofingState

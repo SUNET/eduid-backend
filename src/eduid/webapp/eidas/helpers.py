@@ -32,8 +32,8 @@ from eduid.webapp.common.api.helpers import (
     ProofingNavetData,
     check_magic_cookie,
     get_proofing_log_navet_data,
-    verify_nin_for_user,
     set_user_names_from_foreign_eid,
+    verify_nin_for_user,
 )
 from eduid.webapp.common.api.messages import CommonMsg, TranslatableMsg, redirect_with_msg
 from eduid.webapp.common.api.utils import save_and_sync_user
