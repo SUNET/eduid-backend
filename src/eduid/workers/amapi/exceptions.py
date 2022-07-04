@@ -11,7 +11,6 @@ from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import JSONResponse
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -28,6 +27,7 @@ async def unexpected_error_handler(req: Request, exc: Exception):
         status_code=500, detail=f'Please reference the error id {error_id} when reporting this issue'
     )
     return await http_exception_handler(req, http_exception)
+
 
 async def http_error_detail_handler(req: Request, exc: HTTPErrorDetail):
     logger.error(f'error detail: {req.method} {req.url.path} - {exc} - {exc.error_detail}')

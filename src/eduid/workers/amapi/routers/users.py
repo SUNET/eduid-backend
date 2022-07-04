@@ -1,20 +1,13 @@
 from typing import Any, Dict, List, Optional
 
 from fastapi import Response
+
 from eduid.userdb import user
 from eduid.workers.amapi.api_router import APIRouter
 from eduid.workers.amapi.context_request import ContextRequest, ContextRequestRoute
 from eduid.workers.amapi.exceptions import BadRequest, ErrorDetail, NotFound
-from eduid.workers.amapi.models.user import (
-    UserUpdateNameRequest,
-    UserUpdateEmailRequest,
-    UserUpdateResponse,
-)
-from eduid.workers.amapi.routers.utils.users import (
-    patch_user_name,
-    patch_user_email,
-)
-
+from eduid.workers.amapi.models.user import UserUpdateEmailRequest, UserUpdateNameRequest, UserUpdateResponse
+from eduid.workers.amapi.routers.utils.users import patch_user_email, patch_user_name
 
 users_router = APIRouter(
     route_class=ContextRequestRoute,
@@ -26,8 +19,11 @@ users_router = APIRouter(
     },
 )
 
+
 @users_router.patch('/{eppn}/name', response_model=UserUpdateResponse)
-async def on_update_name(ctx: ContextRequest, resp: Response, req: UserUpdateNameRequest, eppn: Optional[str] = None) -> None:
+async def on_update_name(
+    ctx: ContextRequest, resp: Response, req: UserUpdateNameRequest, eppn: Optional[str] = None
+) -> None:
     if eppn is None:
         raise BadRequest(detail="Not implemented")
     # if check ctx.user.Allowed()
@@ -36,7 +32,9 @@ async def on_update_name(ctx: ContextRequest, resp: Response, req: UserUpdateNam
 
 
 @users_router.patch('/{eppn}/email', response_model=UserUpdateResponse)
-async def on_update_email(ctx: ContextRequest, resp: Response, req: UserUpdateEmailRequest, eppn: Optional[str] = None) -> None:
+async def on_update_email(
+    ctx: ContextRequest, resp: Response, req: UserUpdateEmailRequest, eppn: Optional[str] = None
+) -> None:
     if eppn is None:
         raise BadRequest(detail="Not implemented")
     ctx.context.logger.info(f'Update user {eppn} email')

@@ -75,9 +75,7 @@ def get_cached_response(ctx: ContextRequest, resp: Response, key: str) -> Option
     if SIMPLE_CACHE.get(key) is not None:
         if now < SIMPLE_CACHE[key].expire_time:
             if ctx.app.config.debug:
-                ctx.app.logger.debug(
-                    f'Returned cached response for {key}' f' {now} < {SIMPLE_CACHE[key].expire_time}'
-                )
+                ctx.app.logger.debug(f'Returned cached response for {key}' f' {now} < {SIMPLE_CACHE[key].expire_time}')
             resp.headers['Expires'] = SIMPLE_CACHE[key].expire_time.strftime("%a, %d %b %Y %H:%M:%S UTC")
             return SIMPLE_CACHE[key].data
     return None

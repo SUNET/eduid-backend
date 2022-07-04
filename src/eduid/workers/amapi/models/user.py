@@ -7,8 +7,10 @@ from eduid.userdb import User
 
 __author__ = 'masv'
 
+
 class UserUpdateResponse:
     pass
+
 
 class UserUpdateNameRequest(User):
     @staticmethod
@@ -31,6 +33,7 @@ class UserUpdateNameRequest(User):
         }
         return operations
 
+
 class UserUpdateEmailRequest(User):
     @staticmethod
     def operation() -> Mapping[str, Any]:
@@ -48,10 +51,10 @@ class UserUpdateEmailRequest(User):
         }
         return operations
 
+
 class UserCreateRequest(User):
     pass
 
 
 class UserResponse:
     pass
-

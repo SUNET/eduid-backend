@@ -10,7 +10,6 @@ from fastapi.routing import APIRoute
 from eduid.workers.amapi.app import AMAPI
 
 
-
 @dataclass
 class Context:
     def to_dict(self):
