@@ -55,7 +55,9 @@ class ScimAttributes(ResponseMicroService):
         return self._userdbs[data_owner]
 
     def process(
-        self, context: satosa.context.Context, data: satosa.internal.InternalData,
+        self,
+        context: satosa.context.Context,
+        data: satosa.internal.InternalData,
     ) -> satosa.internal.InternalData:
         logger.debug(f'Data as dict:\n{pprint.pformat(data.to_dict())}')
 

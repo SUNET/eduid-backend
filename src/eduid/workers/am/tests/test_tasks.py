@@ -3,9 +3,10 @@ from __future__ import absolute_import
 from bson import ObjectId
 
 import eduid.userdb
-from eduid.userdb.exceptions import EduIDUserDBError, MultipleUsersReturned, UserDoesNotExist
+from eduid.userdb import LockedIdentityList, NinIdentity
+from eduid.userdb.exceptions import EduIDUserDBError, MultipleUsersReturned
 from eduid.userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
-from eduid.userdb.locked_identity import LockedIdentityList, LockedIdentityNin
+from eduid.userdb.identity import IdentityType
 from eduid.workers.am.consistency_checks import check_locked_identity, unverify_duplicates
 from eduid.workers.am.testing import AMTestCase
 
@@ -76,13 +77,20 @@ class TestTasks(AMTestCase):
         user_id = ObjectId('901234567890123456789012')  # johnsmith@example.org / babba-labba
         attributes = {
             '$set': {
-                'nins': [{'verified': True, 'number': '197801011234', 'primary': True}]  # hubba-bubba's primary nin
+                'identities': [
+                    {
+                        'identity_type': IdentityType.NIN.value,
+                        'verified': True,
+                        'number': '197801011234',
+                    }  # hubba-bubba's nin
+                ]
             }
         }
         stats = unverify_duplicates(self.amdb, user_id, attributes)
         user = self.amdb.get_user_by_eppn('hubba-bubba')
-        self.assertIsNone(user.nins.primary)
-        self.assertFalse(user.nins.find('197801011234').is_verified)
+        assert user.identities.nin is not None
+        assert user.identities.nin.number == '197801011234'
+        assert user.identities.nin.is_verified is False
         self.assertEqual(stats['nin_count'], 1)
 
     def test_unverify_duplicate_all(self):
@@ -98,7 +106,13 @@ class TestTasks(AMTestCase):
                     }
                 ],
                 'phone': [{'verified': True, 'number': '+34609609609', 'primary': True}],  # hubba-bubba's primary phone
-                'nins': [{'verified': True, 'number': '197801011234', 'primary': True}],  # hubba-bubba's primary nin
+                'identities': [
+                    {
+                        'identity_type': IdentityType.NIN.value,
+                        'verified': True,
+                        'number': '197801011234',
+                    }  # hubba-bubba's nin
+                ],
             }
         }
         stats = unverify_duplicates(self.amdb, user_id, attributes)
@@ -112,8 +126,9 @@ class TestTasks(AMTestCase):
         self.assertFalse(user.phone_numbers.find('+34609609609').is_verified)
         self.assertTrue(user.phone_numbers.primary)
 
-        self.assertIsNone(user.nins.primary)
-        self.assertFalse(user.nins.find('197801011234').is_verified)
+        assert user.identities.nin is not None
+        assert user.identities.nin.number == '197801011234'
+        assert user.identities.nin.is_verified is False
 
         self.assertEqual(stats['mail_count'], 1)
         self.assertEqual(stats['phone_count'], 1)
@@ -146,7 +161,7 @@ class TestTasks(AMTestCase):
         attributes = {'$set': {'nins': [{'verified': True, 'number': '200102031234', 'primary': True}]}}
         new_attributes = check_locked_identity(self.amdb, user_id, attributes, 'test')
 
-        locked_nin = LockedIdentityNin.from_dict(dict(number='200102031234', created_by='test', created_ts=True))
+        locked_nin = NinIdentity(number='200102031234', created_by='test', is_verified=True)
         locked_identities = LockedIdentityList(elements=[locked_nin])
         attributes['$set']['locked_identity'] = locked_identities.to_list_of_dicts()
 
@@ -155,7 +170,7 @@ class TestTasks(AMTestCase):
     def test_check_locked_identity(self):
         user_id = ObjectId('012345678901234567890123')  # johnsmith@example.com / hubba-bubba
         user = self.amdb.get_user_by_id(user_id)
-        locked_nin = LockedIdentityNin(number='197801011234', created_by='test')
+        locked_nin = NinIdentity(number='197801011234', created_by='test', is_verified=True)
 
         user.locked_identity.add(locked_nin)
         self.amdb.save(user)
@@ -174,11 +189,13 @@ class TestTasks(AMTestCase):
     def test_check_locked_identity_wrong_nin(self):
         user_id = ObjectId('901234567890123456789012')  # johnsmith@example.org / babba-labba
         user = self.amdb.get_user_by_id(user_id)
-        user.locked_identity.add(
-            LockedIdentityNin.from_dict(dict(number='200102031234', created_by='test', created_ts=True))
-        )
+        user.locked_identity.add(NinIdentity(number='200102031234', created_by='test', is_verified=True))
         self.amdb.save(user)
-        attributes = {'$set': {'nins': [{'verified': True, 'number': '200506076789', 'primary': True}]}}
+        attributes = {
+            '$set': {
+                'identities': [{'identity_type': IdentityType.NIN.value, 'verified': True, 'number': '200506076789'}]
+            }
+        }
         with self.assertRaises(EduIDUserDBError):
             check_locked_identity(self.amdb, user_id, attributes, 'test')
 
@@ -188,6 +205,10 @@ class TestTasks(AMTestCase):
         new_attributes = check_locked_identity(self.amdb, user_id, attributes, 'test')
         self.assertDictEqual(attributes, new_attributes)
 
-        attributes = {'$set': {'nins': [{'verified': False, 'number': '200506076789', 'primary': False}]}}
+        attributes = {
+            '$set': {
+                'identities': [{'identity_type': IdentityType.NIN.value, 'verified': False, 'number': '200506076789'}]
+            }
+        }
         new_attributes = check_locked_identity(self.amdb, user_id, attributes, 'test')
         self.assertDictEqual(attributes, new_attributes)

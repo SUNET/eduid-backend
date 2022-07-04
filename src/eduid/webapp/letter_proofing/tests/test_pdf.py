@@ -6,6 +6,7 @@ from collections import OrderedDict
 from datetime import datetime
 from io import BytesIO, StringIO
 
+from eduid.common.rpc.msg_relay import FullPostalAddress
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.letter_proofing import pdf
 from eduid.webapp.letter_proofing.app import init_letter_proofing_app
@@ -142,38 +143,42 @@ class CreatePDFTest(EduidAPITestCase):
 
     def update_config(self, app_config):
         app_config.update(
-            {'letter_wait_time_hours': 336,}
+            {
+                'letter_wait_time_hours': 336,
+            }
         )
         return app_config
 
     def test_create_pdf(self):
 
-        recipient = OrderedDict(
-            [
-                (
-                    u'Name',
-                    OrderedDict(
-                        [
-                            (u'GivenNameMarking', u'20'),
-                            (u'GivenName', u'Testaren Test'),
-                            (u'MiddleName', u'Tester'),
-                            (u'Surname', u'Testsson'),
-                        ]
+        recipient = FullPostalAddress.parse_obj(
+            OrderedDict(
+                [
+                    (
+                        u'Name',
+                        OrderedDict(
+                            [
+                                (u'GivenNameMarking', u'20'),
+                                (u'GivenName', u'Testaren Test'),
+                                (u'MiddleName', u'Tester'),
+                                (u'Surname', u'Testsson'),
+                            ]
+                        ),
                     ),
-                ),
-                (
-                    u'OfficialAddress',
-                    OrderedDict(
-                        [
-                            (u'Address2', u'\xd6RGATAN 79 LGH 10'),
-                            (u'Address1', u'LGH 4321'),
-                            (u'CareOf', u'TESTAREN & TESTSSON'),
-                            (u'PostalCode', u'12345'),
-                            (u'City', u'LANDET'),
-                        ]
+                    (
+                        u'OfficialAddress',
+                        OrderedDict(
+                            [
+                                (u'Address2', u'\xd6RGATAN 79 LGH 10'),
+                                (u'Address1', u'LGH 4321'),
+                                (u'CareOf', u'TESTAREN & TESTSSON'),
+                                (u'PostalCode', u'12345'),
+                                (u'City', u'LANDET'),
+                            ]
+                        ),
                     ),
-                ),
-            ]
+                ]
+            )
         )
 
         with self.app.app_context():

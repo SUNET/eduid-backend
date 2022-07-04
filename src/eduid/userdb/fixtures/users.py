@@ -45,6 +45,7 @@ from eduid.userdb.fixtures.email_addresses import (
     johnsmith_example_com_old,
     johnsmith_example_org,
 )
+from eduid.userdb.fixtures.identity import verified_eidas_identity, verified_nin_identity
 from eduid.userdb.fixtures.ladok import dashboard_ladok
 from eduid.userdb.fixtures.locked_identities import dashboard_locked_nin
 from eduid.userdb.fixtures.nins import dashboard_primary_nin, dashboard_verified_nin
@@ -58,8 +59,8 @@ from eduid.userdb.fixtures.phones import (
     old_primary_phone,
     old_unverified_phone,
 )
-from eduid.userdb.fixtures.postal_addresses import old_postal_addresses
 from eduid.userdb.fixtures.tous import signup_2016_v1
+from eduid.userdb.identity import IdentityList
 from eduid.userdb.locked_identity import LockedIdentityList
 from eduid.userdb.mail import MailAddressList
 from eduid.userdb.nin import NinList
@@ -74,7 +75,7 @@ mocked_user_standard = User(
     given_name='John',
     surname='Smith',
     display_name='John Smith',
-    nins=NinList(elements=[dashboard_primary_nin]),
+    identities=IdentityList(elements=[verified_nin_identity]),
     language='en',
     entitlements=['urn:mace:eduid.se:role:admin', 'urn:mace:eduid.se:role:student'],
     phone_numbers=PhoneNumberList(
@@ -95,7 +96,7 @@ mocked_user_standard_2 = User(
     given_name='John',
     surname='Smith',
     display_name='John Smith',
-    nins=NinList(),
+    identities=IdentityList(),
     language='en',
     entitlements=['urn:mace:eduid.se:role:admin', 'urn:mace:eduid.se:role:student'],
     phone_numbers=PhoneNumberList(),
@@ -115,7 +116,7 @@ new_completed_signup_user_example = User(
     tou=ToUList(elements=[signup_2016_v1]),
     terminated=None,
     mail_addresses=MailAddressList(elements=[johnsmith3_example_com]),
-    nins=NinList(),
+    identities=IdentityList(),
     phone_numbers=PhoneNumberList(elements=[dashboard_primary_phone, dashboard_unverified_phone]),
     credentials=CredentialList(elements=[signup_password_2]),
     entitlements=[],
@@ -134,10 +135,13 @@ new_signup_user_example = SignupUser(
     modified_ts=datetime.fromisoformat("2013-09-02T10:23:25"),
     terminated=None,
     mail_addresses=MailAddressList(elements=[johnsmith_example_com, johnsmith2_example_com]),
-    nins=NinList(elements=[dashboard_primary_nin, dashboard_verified_nin]),
+    identities=IdentityList(),
     phone_numbers=PhoneNumberList(elements=[dashboard_primary_phone, dashboard_unverified_phone]),
     credentials=CredentialList(elements=[signup_password]),
-    entitlements=['urn:mace:eduid.se:role:admin', 'urn:mace:eduid.se:role:student',],
+    entitlements=[
+        'urn:mace:eduid.se:role:admin',
+        'urn:mace:eduid.se:role:student',
+    ],
     locked_identity=LockedIdentityList(elements=[dashboard_locked_nin]),
     social_network='facebook',
     social_network_id='hubba-1234',
@@ -156,10 +160,13 @@ new_unverified_user_example = User(
     modified_ts=datetime.fromisoformat("2013-09-02T10:23:25"),
     terminated=None,
     mail_addresses=MailAddressList(elements=[johnsmith_example_com, johnsmith2_example_com]),
-    nins=NinList(),
+    identities=IdentityList(),
     phone_numbers=PhoneNumberList(elements=[dashboard_primary_phone, dashboard_unverified_phone]),
     credentials=CredentialList(elements=[signup_password]),
-    entitlements=['urn:mace:eduid.se:role:admin', 'urn:mace:eduid.se:role:student',],
+    entitlements=[
+        'urn:mace:eduid.se:role:admin',
+        'urn:mace:eduid.se:role:student',
+    ],
     locked_identity=LockedIdentityList(),
 )
 
@@ -175,10 +182,13 @@ new_user_example = User(
     modified_ts=datetime.fromisoformat("2013-09-02T10:23:25"),
     terminated=None,
     mail_addresses=MailAddressList(elements=[johnsmith_example_com, johnsmith2_example_com]),
-    nins=NinList(elements=[dashboard_primary_nin, dashboard_verified_nin]),
+    identities=IdentityList(elements=[verified_nin_identity, verified_eidas_identity]),
     phone_numbers=PhoneNumberList(elements=[dashboard_primary_phone, dashboard_unverified_phone]),
     credentials=CredentialList(elements=[signup_password]),
-    entitlements=['urn:mace:eduid.se:role:admin', 'urn:mace:eduid.se:role:student',],
+    entitlements=[
+        'urn:mace:eduid.se:role:admin',
+        'urn:mace:eduid.se:role:student',
+    ],
     locked_identity=LockedIdentityList(elements=[dashboard_locked_nin]),
     ladok=dashboard_ladok,
 )
@@ -194,12 +204,24 @@ old_user_example = User.from_dict(
         preferredLanguage='en',
         modified_ts=datetime.fromisoformat("2013-09-02T10:23:25"),
         mailAliases=MailAddressList(
-            elements=[johnsmith_example_com_old, johnsmith2_example_com_old, johnsmith3_example_com_unverified,]
+            elements=[
+                johnsmith_example_com_old,
+                johnsmith2_example_com_old,
+                johnsmith3_example_com_unverified,
+            ]
         ).to_list_of_dicts(),
-        norEduPersonNIN=['197801011234'],
-        phone=PhoneNumberList(elements=[old_primary_phone, old_unverified_phone,]).to_list_of_dicts(),
+        nins=NinList(elements=[dashboard_primary_nin, dashboard_verified_nin]).to_list_of_dicts(),
+        phone=PhoneNumberList(
+            elements=[
+                old_primary_phone,
+                old_unverified_phone,
+            ]
+        ).to_list_of_dicts(),
         passwords=CredentialList(elements=[old_password]).to_list_of_dicts(),
-        eduPersonEntitlement=['urn:mace:eduid.se:role:admin', 'urn:mace:eduid.se:role:student',],
+        eduPersonEntitlement=[
+            'urn:mace:eduid.se:role:admin',
+            'urn:mace:eduid.se:role:student',
+        ],
         terminated=None,
     )
 )

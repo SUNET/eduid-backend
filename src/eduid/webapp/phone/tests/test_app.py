@@ -698,7 +698,7 @@ class PhoneTests(EduidAPITestCase):
     def test_get_code_no_backdoor_in_pro(self):
         self.app.conf.magic_cookie = 'magic-cookie'
         self.app.conf.magic_cookie_name = 'magic'
-        self.app.conf.environment = 'pro'
+        self.app.conf.environment = 'production'
 
         code = '0123456'
         resp = self._get_code_backdoor(code=code)

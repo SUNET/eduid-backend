@@ -51,7 +51,7 @@ class EduidFormatter(logging.Formatter):
 
 
 class AppFilter(logging.Filter):
-    """ Add `system_hostname`, `hostname` and `app_name` to records being logged. """
+    """Add `system_hostname`, `hostname` and `app_name` to records being logged."""
 
     def __init__(self, app_name):
         super().__init__()
@@ -69,12 +69,12 @@ class AppFilter(logging.Filter):
         name = record.__getattribute__('name')
         if isinstance(name, str):
             shorten = [
-                ('eduid.webapp.common.', 'e.w.c.',),
-                ('eduid.webapp.', 'e.w.',),
-                ('eduid.common.', 'e.c.',),
-                ('eduid.userdb.', 'e.u.',),
+                ('eduid.webapp.common.', 'e.w.c.'),
+                ('eduid.webapp.', 'e.w.'),
+                ('eduid.common.', 'e.c.'),
+                ('eduid.userdb.', 'e.u.'),
             ]
-            for k, v, in shorten:
+            for (k, v) in shorten:
                 if name.startswith(k):
                     record.__setattr__('name', v + name[len(k) :])
                     break
@@ -112,7 +112,7 @@ class UserFilter(logging.Filter):
 
 
 class RequireDebugTrue(logging.Filter):
-    """ A filter to discard all debug log records if the Flask app.debug is not True. Generally not used. """
+    """A filter to discard all debug log records if the Flask app.debug is not True. Generally not used."""
 
     def __init__(self, app_debug: bool):
         super().__init__()
@@ -123,7 +123,7 @@ class RequireDebugTrue(logging.Filter):
 
 
 class RequireDebugFalse(logging.Filter):
-    """ A filter to discard all debug log records if the Flask app.debug is not False. Generally not used. """
+    """A filter to discard all debug log records if the Flask app.debug is not False. Generally not used."""
 
     def __init__(self, app_debug: bool):
         super().__init__()
@@ -134,7 +134,7 @@ class RequireDebugFalse(logging.Filter):
 
 
 def merge_config(base_config: Dict[str, Any], new_config: Dict[str, Any]) -> Dict[str, Any]:
-    """ Recursively merge two dictConfig dicts. """
+    """Recursively merge two dictConfig dicts."""
 
     def merge(node, key, value):
         if isinstance(value, dict):
@@ -232,7 +232,10 @@ def make_dictConfig(local_context: LocalContext) -> Dict[str, Any]:
 
     _available_filters = {
         # A filter that adds various hostname/container name information to the log records
-        LoggingFilters.NAMES: {'()': 'eduid.common.logging.AppFilter', 'app_name': 'cfg://local_context.app_name',},
+        LoggingFilters.NAMES: {
+            '()': 'eduid.common.logging.AppFilter',
+            'app_name': 'cfg://local_context.app_name',
+        },
         # Only log debug messages if Flask app.debug is False
         LoggingFilters.DEBUG_FALSE: {
             '()': 'eduid.common.logging.RequireDebugFalse',
@@ -280,6 +283,9 @@ def make_dictConfig(local_context: LocalContext) -> Dict[str, Any]:
             },
         },
         # Loggers
-        'root': {'handlers': ['console'], 'level': 'cfg://local_context.level',},
+        'root': {
+            'handlers': ['console'],
+            'level': 'cfg://local_context.level',
+        },
     }
     return base_config

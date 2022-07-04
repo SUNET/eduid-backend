@@ -53,7 +53,7 @@ logger = logging.getLogger(__name__)
 
 
 def need_security_key(user: IdPUser, ticket: LoginContext) -> bool:
-    """ Check if the user needs to use a Security Key for this very request, regardless of authnContextClassRef """
+    """Check if the user needs to use a Security Key for this very request, regardless of authnContextClassRef"""
     tokens = user.credentials.filter(FidoCredential)
     if not tokens:
         logger.debug('User has no FIDO credentials, no extra requirement for MFA this session imposed')

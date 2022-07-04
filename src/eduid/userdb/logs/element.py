@@ -3,22 +3,31 @@
 # Helper functions to log proofing events.
 #
 import logging
-from typing import Any, Dict, List, Optional, Type, TypeVar
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Type, TypeVar, Union
+from uuid import UUID
 
-from eduid.userdb.element import Element, ElementKey
+from fido_mds.models.fido_mds import Entry as FidoMetadataEntry
+
+from eduid.common.rpc.msg_relay import DeregistrationInformation, FullPostalAddress
+from eduid.userdb.element import Element
 
 __author__ = 'lundberg'
+
+from fido_mds.models.webauthn import AttestationFormat
 
 logger = logging.getLogger(__name__)
 
 
 TLogElementSubclass = TypeVar('TLogElementSubclass', bound='LogElement')
 TNinProofingLogElementSubclass = TypeVar('TNinProofingLogElementSubclass', bound='NinProofingLogElement')
+TForeignEidProofingLogElementSubclass = TypeVar(
+    'TForeignEidProofingLogElementSubclass', bound='ForeignEidProofingLogElement'
+)
 
 
 class LogElement(Element):
-    """
-    """
+    """ """
 
     # Application creating the log element
     created_by: str
@@ -51,8 +60,7 @@ class LogElement(Element):
 
 
 class ProofingLogElement(LogElement):
-    """
-    """
+    """ """
 
     # eduPersonPrincipalName
     eppn: str
@@ -63,13 +71,19 @@ class ProofingLogElement(LogElement):
 
 
 class NinProofingLogElement(ProofingLogElement):
-    """
-    """
-
     # National identity number
     nin: str
     # Navet response for users official address
-    user_postal_address: Dict[str, Any]
+    user_postal_address: FullPostalAddress
+    # Navet response for users deregistration information (used if official address is missing)
+    deregistration_information: Optional[DeregistrationInformation]
+
+
+class ForeignEidProofingLogElement(ProofingLogElement):
+    given_name: str
+    surname: str
+    date_of_birth: str
+    country_code: str
 
 
 class MailAddressProofing(ProofingLogElement):
@@ -154,6 +168,7 @@ class TeleAdressProofingRelation(TeleAdressProofing):
         'mobile_number_registered_to': 'registered_national_identity_number',
         'registered_relation': 'registered_relation_to_user'
         'registered_postal_address': {postal_address_from_navet}
+        'registered_deregistration_information': {deregistration information from navet]
     }
     """
 
@@ -162,7 +177,9 @@ class TeleAdressProofingRelation(TeleAdressProofing):
     # Relation of mobile phone subscriber to User
     registered_relation: List[str]
     # Navet response for mobile phone subscriber
-    registered_postal_address: Dict[str, Any]
+    registered_postal_address: FullPostalAddress
+    # Navet response for mobile phone subscriber deregistration information (used if official address is missing)
+    registered_deregistration_information: Optional[DeregistrationInformation]
     # Proofing method name
     proofing_method: str = 'TeleAdress'
 
@@ -274,10 +291,48 @@ class SwedenConnectProofing(NinProofingLogElement):
     }
     """
 
-    # Provider transaction id
+    # Identity issuer
     issuer: str
     # The authentication context class asserted
     authn_context_class: str
+    # Proofing method name
+    proofing_method: str = 'swedenconnect'
+
+
+class SwedenConnectEIDASProofing(ForeignEidProofingLogElement):
+    """
+    {
+        'eduPersonPrincipalName': eppn,
+        'created_ts': utc_now(),
+        'created_by': 'application',
+        'proofing_method': 'swedenconnect',
+        'proofing_version': '2022v1',
+        'issuer': 'provider who performed the vetting',
+        'authn_context_class': 'the asserted authn context class',
+        'prid': 'Sweden connect provisional identifier',
+        'prid_persistence': 'prid persistence indicator',
+        'eidas_person_identifier': 'eIDAS uniqueness identifier for natural persons',
+        'transaction_identifier': 'transaction id',
+        'mapped_personal_identity_number': 'mapped nin',
+        'personal_identity_number_binding': 'how nin is mapped'
+    }
+    """
+
+    # Identity issuer
+    issuer: str
+    # The authentication context class asserted
+    authn_context_class: str
+    # Provisional identifier
+    prid: str
+    # Provisional identifier persistence indicator
+    prid_persistence: str
+    # eIDAS uniqueness identifier for natural persons
+    eidas_person_identifier: str
+    # Transaction identifier
+    transaction_identifier: str
+    # if and when a nin can be mapped to a person these will be used
+    mapped_personal_identity_number: Optional[str]
+    personal_identity_number_binding: Optional[str]
     # Proofing method name
     proofing_method: str = 'swedenconnect'
 
@@ -295,6 +350,32 @@ class MFATokenProofing(SwedenConnectProofing):
         'key_id: 'Key id of token vetted',
         'nin': 'national_identity_number',
         'user_postal_address': {postal_address_from_navet}
+    }
+    """
+
+    # Data used to initialize the vetting process
+    key_id: str
+    # Proofing method name
+    proofing_method: str = 'swedenconnect'
+
+
+class MFATokenEIDASProofing(SwedenConnectEIDASProofing):
+    """
+    {
+        'eduPersonPrincipalName': eppn,
+        'created_ts': utc_now(),
+        'created_by': 'application',
+        'proofing_method': 'swedenconnect',
+        'proofing_version': '2022v1',
+        'issuer': 'provider who performed the vetting',
+        'authn_context_class': 'the asserted authn context class',
+        'prid': 'Sweden connect provisional identifier',
+        'prid_persistence': 'prid persistence indicator',
+        'eidas_person_identifier': 'eIDAS uniqueness identifier for natural persons',
+        'transaction_identifier': 'transaction id',
+        'mapped_personal_identity_number': 'mapped nin',
+        'personal_identity_number_binding': 'how nin is mapped'
+        'key_id: 'Key id of token vetted',
     }
     """
 
@@ -349,3 +430,30 @@ class LadokProofing(ProofingLogElement):
     # University name short name in Ladok
     ladok_name: str
     proofing_method: str = 'eduid_ladok'
+
+
+class WebauthnMfaCapabilityProofingLog(ProofingLogElement):
+    """
+    {
+        'eduPersonPrincipalName': eppn,
+        'created_ts': utc_now(),
+        'created_by': 'application',
+        'proofing_method': 'webauthn metadata',
+        'proofing_version': '2022v1',
+        'authenticator_id': UUID or certificate key identifier
+        'attestation_format: fido_mds.AttestationFormat
+        'user_verification_methods': []
+        'key_protection': []
+    }
+    """
+
+    authenticator_id: Union[UUID, str]
+    attestation_format: AttestationFormat
+    user_verification_methods: List[str]
+    key_protection: List[str]
+
+
+class FidoMetadataLogElement(LogElement):
+    authenticator_id: Union[UUID, str]
+    last_status_change: datetime
+    metadata_entry: FidoMetadataEntry

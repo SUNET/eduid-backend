@@ -45,6 +45,7 @@ from eduid.common.config.base import (
     TouConfigMixin,
     WebauthnConfigMixin2,
 )
+from eduid.webapp.idp.assurance_data import SwamidAssurance
 
 
 class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConfigMixin):
@@ -125,8 +126,51 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     enable_legacy_template_mode: bool = False
     other_device_logins_ttl: timedelta = Field(default=timedelta(minutes=2))
     other_device_max_code_attempts: int = 3
+    other_device_secret_key: str  # secretbox key for protecting the login-with-other-device shared ID
     # SPs that are allowed to request a login for a particular user (idpproxy for stepup, dashboard for chpass, ...)
     request_subject_allowed_entity_ids: List[str] = Field(default=[])
+    known_devices_secret_key: str  # secretbox key for decrypting the data stored in the browser local storage
+    known_devices_new_ttl: timedelta = Field(default=timedelta(minutes=30))
+    known_devices_ttl: timedelta = Field(default=timedelta(days=90))
+    known_devices_feature_enabled: bool = False
+    # secret key for encrypting personal information for geo-location service
+    geo_statistics_secret_key: Optional[str] = None
+    geo_statistics_feature_enabled: bool = False
+    geo_statistics_url: Optional[HttpUrl] = None
+    swamid_assurance_profile_1: List[SwamidAssurance] = Field(
+        default=[
+            SwamidAssurance.SWAMID_AL1,
+            SwamidAssurance.REFEDS_ASSURANCE,
+            SwamidAssurance.REFEDS_ID_UNIQUE,
+            SwamidAssurance.REFEDS_EPPN_UNIQUE,
+            SwamidAssurance.REFEDS_IAP_LOW,
+        ]
+    )
+    swamid_assurance_profile_2: List[SwamidAssurance] = Field(
+        default=[
+            SwamidAssurance.SWAMID_AL1,
+            SwamidAssurance.SWAMID_AL2,
+            SwamidAssurance.REFEDS_ASSURANCE,
+            SwamidAssurance.REFEDS_ID_UNIQUE,
+            SwamidAssurance.REFEDS_EPPN_UNIQUE,
+            SwamidAssurance.REFEDS_IAP_LOW,
+            SwamidAssurance.REFEDS_IAP_MEDIUM,
+        ]
+    )
+    swamid_assurance_profile_3: List[SwamidAssurance] = Field(
+        default=[
+            SwamidAssurance.SWAMID_AL1,
+            SwamidAssurance.SWAMID_AL2,
+            SwamidAssurance.SWAMID_AL3,
+            SwamidAssurance.SWAMID_AL2_MFA_HIGH,
+            SwamidAssurance.REFEDS_ASSURANCE,
+            SwamidAssurance.REFEDS_ID_UNIQUE,
+            SwamidAssurance.REFEDS_EPPN_UNIQUE,
+            SwamidAssurance.REFEDS_IAP_LOW,
+            SwamidAssurance.REFEDS_IAP_MEDIUM,
+            SwamidAssurance.REFEDS_IAP_HIGH,
+        ]
+    )
 
     @validator('sso_cookie')
     def make_sso_cookie(cls, v, values) -> CookieConfig:
@@ -145,6 +189,15 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
         if isinstance(v, int):
             # legacy format for this was number of minutes
             v = v * 60
-        if not (isinstance(v, (int, str, timedelta,))):
+        if not (
+            isinstance(
+                v,
+                (
+                    int,
+                    str,
+                    timedelta,
+                ),
+            )
+        ):
             raise ValueError('Invalid sso_session_lifetime (must be int, str or timedelta)')
         return v

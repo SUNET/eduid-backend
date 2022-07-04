@@ -36,7 +36,7 @@ from marshmallow import ValidationError, fields, validates
 
 from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
-from eduid.webapp.common.api.schemas.nin import NinSchema
+from eduid.webapp.common.api.schemas.identity import IdentitiesSchema, NinSchema
 from eduid.webapp.common.api.schemas.password import PasswordSchema
 from eduid.webapp.common.api.schemas.validators import validate_nin
 
@@ -153,11 +153,11 @@ class NINRequestSchema(EduidSchema, CSRFRequestMixin):
     nin = fields.String(required=True, validate=validate_nin)
 
 
-class NINResponseSchema(FluxStandardAction):
+class IdentitiesResponseSchema(FluxStandardAction):
     class RemoveNINPayload(EduidSchema, CSRFResponseMixin):
-        success = fields.Boolean(required=True)  # TODO: is this used? we should remove it as message should be used
         message = fields.String(required=False)
         nins = fields.Nested(NinSchema, many=True)
+        identities = fields.Nested(IdentitiesSchema)
 
     payload = fields.Nested(RemoveNINPayload)
 

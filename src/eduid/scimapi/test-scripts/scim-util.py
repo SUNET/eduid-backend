@@ -63,7 +63,11 @@ def scim_request(
 
 
 def _make_request(
-    func: Callable, url: str, data: Optional[dict] = None, headers: Optional[dict] = None, verify: bool = True,
+    func: Callable,
+    url: str,
+    data: Optional[dict] = None,
+    headers: Optional[dict] = None,
+    verify: bool = True,
 ) -> Optional[requests.Response]:
     r = func(url, json=data, headers=headers, verify=verify)
     logger.debug(f'Response from server: {r}\n{r.text}')
@@ -210,7 +214,11 @@ def put_group(api: Api, scim_id: str, data: Dict[str, Any], token: Optional[str]
 
 
 def post_event(
-    api: Api, resource_scim_id: str, resource_type: str, level: str = 'info', data: Optional[Dict[str, Any]] = None,
+    api: Api,
+    resource_scim_id: str,
+    resource_type: str,
+    level: str = 'info',
+    data: Optional[Dict[str, Any]] = None,
 ) -> None:
 
     if resource_type == 'User':

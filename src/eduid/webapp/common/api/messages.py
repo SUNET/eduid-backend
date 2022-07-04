@@ -65,8 +65,10 @@ class CommonMsg(TranslatableMsg):
     temp_problem = 'Temporary technical problems'
     # The user has changed in the db since it was retrieved
     out_of_sync = 'user-out-of-sync'
-    # error in the communications with navet
+    # error in the communications with Navet
     navet_error = 'error_navet_task'
+    # no official address returned from Navet
+    no_navet_data = 'no_navet_data'
     # NIN validation error
     nin_invalid = 'nin needs to be formatted as 18|19|20yymmddxxxx'
     # Email address validation error
@@ -74,6 +76,9 @@ class CommonMsg(TranslatableMsg):
     # TODO: These _should_ be unused now - check and remove
     csrf_try_again = 'csrf.try_again'
     csrf_missing = 'csrf.missing'
+    user_already_verified = 'User is already verified'
+    user_has_other_locked_nin = 'Another nin is already registered for this user'
+    locked_identity_not_matching = 'common.locked_identity_not_matching'
 
 
 @dataclass(frozen=True)

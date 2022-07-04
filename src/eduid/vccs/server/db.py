@@ -48,7 +48,7 @@ class Credential:
 
     @classmethod
     def _from_dict(cls: Type[Credential], data: Mapping[str, Any]) -> Credential:
-        """ Construct element from a data dict in database format. """
+        """Construct element from a data dict in database format."""
 
         _data = dict(data)  # to not modify callers data
         if 'credential' in _data:
@@ -131,7 +131,7 @@ class RevokedCredential(Credential, _RevokedCredentialRequired):
 
     @classmethod
     def from_dict_backwards_compat(cls: Type[RevokedCredential], data: Mapping[str, Any]) -> RevokedCredential:
-        """ The old VCCS backend stored revoked credentials like this:
+        """The old VCCS backend stored revoked credentials like this:
 
         {
             'status': 'revoked',

@@ -52,48 +52,48 @@ async def on_get(req: ContextRequest, resp: Response, scim_id: Optional[str] = N
 @invites_router.post('/', response_model=InviteResponse, response_model_exclude_none=True)
 async def on_post(req: ContextRequest, resp: Response, create_request: InviteCreateRequest) -> InviteResponse:
     """
-           POST /Invites  HTTP/1.1
-           Host: example.com
-           Accept: application/scim+json
-           Content-Type: application/scim+json
-           Authorization: Bearer h480djs93hd8
-           Content-Length: ...
+    POST /Invites  HTTP/1.1
+    Host: example.com
+    Accept: application/scim+json
+    Content-Type: application/scim+json
+    Authorization: Bearer h480djs93hd8
+    Content-Length: ...
 
-            {
-                'schemas': ['https://scim.eduid.se/schema/nutid/invite/v1',
-                            'https://scim.eduid.se/schema/nutid/user/v1'],
-                'expiresAt': '2021-03-02T14:35:52',
-                'groups': [],
-                'phoneNumbers': [
-                    {'type': 'fax', 'value': 'tel:+461234567', 'primary': True},
-                    {'type': 'home', 'value': 'tel:+5-555-555-5555', 'primary': False},
-                ],
-                'meta': {
-                    'location': 'http://localhost:8000/Invites/fb96a6d0-1837-4c3b-9945-4249c476875c',
-                    'resourceType': 'Invite',
-                    'created': '2020-09-03T14:35:52.381881',
-                    'version': 'W/"5f50ff48df3ce45b48394eb2"',
-                    'lastModified': '2020-09-03T14:35:52.388959',
-                },
-                'nationalIdentityNumber': '190102031234',
-                'id': 'fb96a6d0-1837-4c3b-9945-4249c476875c',
-                'preferredLanguage': 'se-SV',
-                'sendEmail': True,
-                'name': {
-                    'familyName': 'Testsson',
-                    'middleName': 'Testaren',
-                    'formatted': 'Test T. Testsson',
-                    'givenName': 'Test',
-                },
-                'finishURL': 'https://finish.example.com',
-                'https://scim.eduid.se/schema/nutid/user/v1': {
-                    'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}}
-                },
-                'emails': [
-                    {'type': 'other', 'value': 'johnsmith@example.com', 'primary': True},
-                    {'type': 'home', 'value': 'johnsmith2@example.com', 'primary': False},
-                ],
-            }
+     {
+         'schemas': ['https://scim.eduid.se/schema/nutid/invite/v1',
+                     'https://scim.eduid.se/schema/nutid/user/v1'],
+         'expiresAt': '2021-03-02T14:35:52',
+         'groups': [],
+         'phoneNumbers': [
+             {'type': 'fax', 'value': 'tel:+461234567', 'primary': True},
+             {'type': 'home', 'value': 'tel:+5-555-555-5555', 'primary': False},
+         ],
+         'meta': {
+             'location': 'http://localhost:8000/Invites/fb96a6d0-1837-4c3b-9945-4249c476875c',
+             'resourceType': 'Invite',
+             'created': '2020-09-03T14:35:52.381881',
+             'version': 'W/"5f50ff48df3ce45b48394eb2"',
+             'lastModified': '2020-09-03T14:35:52.388959',
+         },
+         'nationalIdentityNumber': '190102031234',
+         'id': 'fb96a6d0-1837-4c3b-9945-4249c476875c',
+         'preferredLanguage': 'se-SV',
+         'sendEmail': True,
+         'name': {
+             'familyName': 'Testsson',
+             'middleName': 'Testaren',
+             'formatted': 'Test T. Testsson',
+             'givenName': 'Test',
+         },
+         'finishURL': 'https://finish.example.com',
+         'https://scim.eduid.se/schema/nutid/user/v1': {
+             'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}}
+         },
+         'emails': [
+             {'type': 'other', 'value': 'johnsmith@example.com', 'primary': True},
+             {'type': 'home', 'value': 'johnsmith2@example.com', 'primary': False},
+         ],
+     }
     """
     req.app.context.logger.info(f'Creating invite')
     profiles = {}
@@ -168,34 +168,34 @@ async def on_delete(req: ContextRequest, scim_id: str) -> None:
 @invites_router.post('/.search', response_model=ListResponse, response_model_exclude_none=True)
 async def search(req: ContextRequest, query: SearchRequest) -> ListResponse:
     """
-       POST /Invites/.search
-       Host: scim.eduid.se
-       Accept: application/scim+json
+    POST /Invites/.search
+    Host: scim.eduid.se
+    Accept: application/scim+json
 
-       {
-         "schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"],
-         "attributes": ["id"],
-         "filter": "meta.lastModified ge \"2020-09-14T12:49:45\"",
-         "encryptionKey": "h026jGKrSW%2BTTekkA8Y8mv8%2FGqkGgAfLzaj3ucD3STQ"
-         "startIndex": 1,
-         "count": 1
-       }
+    {
+      "schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"],
+      "attributes": ["id"],
+      "filter": "meta.lastModified ge \"2020-09-14T12:49:45\"",
+      "encryptionKey": "h026jGKrSW%2BTTekkA8Y8mv8%2FGqkGgAfLzaj3ucD3STQ"
+      "startIndex": 1,
+      "count": 1
+    }
 
-       HTTP/1.1 200 OK
-       Content-Type: application/scim+json
-       Location: https://example.com/Invites/.search
+    HTTP/1.1 200 OK
+    Content-Type: application/scim+json
+    Location: https://example.com/Invites/.search
 
-       {
-         "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
-         "totalResults": 1,
-         "itemsPerPage": 1,
-         "startIndex": 1,
-         "Resources": [
-           {
-             "id": "fb96a6d0-1837-4c3b-9945-4249c476875c",
-           }
-         ]
-       }
+    {
+      "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+      "totalResults": 1,
+      "itemsPerPage": 1,
+      "startIndex": 1,
+      "Resources": [
+        {
+          "id": "fb96a6d0-1837-4c3b-9945-4249c476875c",
+        }
+      ]
+    }
     """
     req.app.context.logger.info(f'Searching for users(s)')
     req.app.context.logger.debug(f'Parsed user search query: {query}')

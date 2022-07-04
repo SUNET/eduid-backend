@@ -35,7 +35,6 @@ import logging.config
 import pprint
 import sys
 import traceback
-from collections import OrderedDict
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime
@@ -50,10 +49,12 @@ from eduid.common.testing_base import CommonTestCase
 from eduid.userdb import User
 from eduid.userdb.db import BaseDB
 from eduid.userdb.fixtures.users import new_completed_signup_user_example, new_unverified_user_example, new_user_example
+from eduid.userdb.proofing.state import NinProofingState
 from eduid.userdb.testing import MongoTemporaryInstance
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.session import EduidSession
 from eduid.webapp.common.session.testing import RedisTemporaryInstance
+from eduid.workers.msg.tasks import MessageSender
 
 logger = logging.getLogger(__name__)
 
@@ -226,35 +227,7 @@ class EduidAPITestCase(CommonTestCase):
 
     @staticmethod
     def _get_all_navet_data():
-        rpc_return_value = {
-            'CaseInformation': {'lastChanged': '20170904141659'},
-            'Person': {
-                'Name': {'GivenNameMarking': '20', 'GivenName': 'Testaren Test', 'Surname': 'Testsson'},
-                'PersonId': {'NationalIdentityNumber': '197609272393'},
-                'ReferenceNationalIdentityNumber': '',
-                'PostalAddresses': {
-                    'OfficialAddress': {'Address2': 'ÖRGATAN 79 LGH 10', 'PostalCode': '12345', 'City': 'LANDET'}
-                },
-                'Relations': [
-                    {
-                        'RelationType': 'VF',
-                        'RelationId': {'NationalIdentityNumber': '200202025678'},
-                        'RelationStartDate': '20020202',
-                    },
-                    {
-                        'RelationType': 'VF',
-                        'RelationId': {'NationalIdentityNumber': '200101014567'},
-                        'RelationStartDate': '20010101',
-                    },
-                    {'RelationType': 'FA', 'RelationId': {'NationalIdentityNumber': '194004048989'}},
-                    {'RelationType': 'MO', 'RelationId': {'NationalIdentityNumber': '195010106543'}},
-                    {'RelationType': 'B', 'RelationId': {'NationalIdentityNumber': '200202025678'}},
-                    {'RelationType': 'B', 'RelationId': {'NationalIdentityNumber': '200101014567'}},
-                    {'RelationType': 'M', 'RelationId': {'NationalIdentityNumber': '197512125432'}},
-                ],
-            },
-        }
-        return NavetData(**rpc_return_value)
+        return NavetData.parse_obj(MessageSender.get_devel_all_navet_data())
 
     def _check_error_response(
         self,
@@ -264,7 +237,7 @@ class EduidAPITestCase(CommonTestCase):
         error: Optional[Mapping[str, Any]] = None,
         payload: Optional[Mapping[str, Any]] = None,
     ):
-        """ Check that a call to the API failed in the data validation stage. """
+        """Check that a call to the API failed in the data validation stage."""
         return self._check_api_response(response, 200, type_=type_, message=msg, error=error, payload=payload)
 
     def _check_success_response(
@@ -348,6 +321,36 @@ class EduidAPITestCase(CommonTestCase):
                 logger.info(f'Test case got unexpected response ({response.status_code}):\n{response.data}')
             raise
 
+    def _check_nin_verified_ok(
+        self,
+        user: User,
+        proofing_state: NinProofingState,
+        number: Optional[str] = None,
+        created_by: Optional[str] = None,
+    ):
+        if number is None and (self.test_user is not None and self.test_user.identities.nin):
+            number = self.test_user.identities.nin.number
+
+        created_by_str = created_by or proofing_state.nin.created_by
+
+        assert user.identities.nin is not None
+        assert user.identities.nin.number == number
+        assert user.identities.nin.created_by == created_by_str
+        assert user.identities.nin.verified_by == proofing_state.nin.created_by
+        assert user.identities.nin.is_verified is True
+        assert self.app.proofing_log.db_count() == 1
+
+    def _check_nin_not_verified(self, user: User, number: Optional[str] = None, created_by: Optional[str] = None):
+        if number is None and (self.test_user is not None and self.test_user.identities.nin):
+            number = self.test_user.identities.nin.number
+
+        assert user.identities.nin is not None
+        assert user.identities.nin.number == number
+        if created_by:
+            assert user.identities.nin.created_by == created_by
+        assert user.identities.nin.is_verified is False
+        assert self.app.proofing_log.db_count() == 0
+
 
 class CSRFTestClient(FlaskClient):
 
@@ -394,7 +397,7 @@ class CSRFTestClient(FlaskClient):
 def normalised_data(
     data: Union[Mapping[str, Any], Sequence[Mapping[str, Any]]]
 ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
-    """ Utility function for normalising dicts (or list of dicts) before comparisons in test cases. """
+    """Utility function for normalising dicts (or list of dicts) before comparisons in test cases."""
     if isinstance(data, list):
         # Recurse into lists of dicts. mypy (correctly) says this recursion can in fact happen
         # more than once, so the result can be a list of list of dicts or whatever, but the return
@@ -416,7 +419,7 @@ class SortEncoder(json.JSONEncoder):
 
 
 def _any_key(value: Any):
-    """ Helper function to be able to use sorted with key argument for everything """
+    """Helper function to be able to use sorted with key argument for everything"""
     if isinstance(value, dict):
         return json.dumps(value, sort_keys=True, cls=SortEncoder)  # Turn dict in to a string for sorting
     return value

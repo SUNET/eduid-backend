@@ -85,23 +85,23 @@ class LadokClient:
 
     def get_universities(self) -> UniversitiesData:
         """
-         path: /api/v1/schoolinfo
-         reply:
-         {
-           "data": {
-             "school_names": {
-               "ab": {
-                 "long_name_sv": "University Name",
-                 "long_name_en": ""
-               },
-               "cd": {
-                 "long_name_sv": "Another University Name",
-                 "long_name_en": ""
-               }
-             }
-           },
-           "error": null
-         }
+        path: /api/v1/schoolinfo
+        reply:
+        {
+          "data": {
+            "school_names": {
+              "ab": {
+                "long_name_sv": "University Name",
+                "long_name_en": ""
+              },
+              "cd": {
+                "long_name_sv": "Another University Name",
+                "long_name_en": ""
+              }
+            }
+          },
+          "error": null
+        }
         """
         endpoint = urlappend(self.base_endpoint, 'schoolinfo')
 
@@ -119,23 +119,23 @@ class LadokClient:
 
     def get_user_info(self, ladok_name: str, nin: str) -> Optional[LadokUserInfo]:
         """
-         path: /api/v1/kf/ladokinfo
-         Request body:
-         {
-            "data": {
-              "nin": "string"
-            }
-         }
-         Reply:
-         {
+        path: /api/v1/kf/ladokinfo
+        Request body:
+        {
            "data": {
-             "ladok_externt_uid" : "857c0573-..."
-             "esi": "urn:schac:personalUniqueCode:int:esi:ladok.se:externtstudentuid-857c0573-...",
-             "is_student": false,
-             "expire_student": "0001-01-01T00:00:00Z"
-           },
-           "error": null
-         }
+             "nin": "string"
+           }
+        }
+        Reply:
+        {
+          "data": {
+            "ladok_externt_uid" : "857c0573-..."
+            "esi": "urn:schac:personalUniqueCode:int:esi:ladok.se:externtstudentuid-857c0573-...",
+            "is_student": false,
+            "expire_student": "0001-01-01T00:00:00Z"
+          },
+          "error": null
+        }
         """
         if ladok_name not in self.universities:
             raise LadokClientException(f'university with Ladok name {ladok_name} not found')

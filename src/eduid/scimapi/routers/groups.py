@@ -231,7 +231,9 @@ async def on_post(req: ContextRequest, resp: Response, create_request: GroupCrea
 
 
 @groups_router.delete(
-    '/{scim_id}', status_code=204, responses={204: {'description': 'No Content'}},
+    '/{scim_id}',
+    status_code=204,
+    responses={204: {'description': 'No Content'}},
 )
 async def on_delete(req: ContextRequest, scim_id: str) -> None:
     req.app.context.logger.info(f'Deleting group {scim_id}')

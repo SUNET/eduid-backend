@@ -49,12 +49,12 @@ from eduid.userdb.tou import ToUEvent
 from eduid.vccs.client import VCCSClient
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import IdP_Namespace, RequestRef
+from eduid.webapp.idp.assurance_data import EduidAuthnContextClass
 from eduid.webapp.idp.login_context import LoginContext
 from eduid.webapp.idp.mfa_action import add_actions as mfa_add_actions
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.tests.test_app import LoginState
-from eduid.webapp.idp.tests.test_SSO import SWAMID_AL2, SSOIdPTests
-from eduid.webapp.idp.tests.test_SSO import cc as CONTEXTCLASSREFS
+from eduid.webapp.idp.tests.test_SSO import SSOIdPTests
 from eduid.webapp.idp.tou_action import add_tou_action as tou_add_actions
 
 logger = logging.getLogger(__name__)
@@ -77,7 +77,9 @@ class TestActions(SSOIdPTests):
         self.test_action = self.actions.add_action(self.test_user.eppn, action_type='dummy', preference=100, params={})
 
         self.sso_session = SSOSession(
-            authn_request_id='some-unique-id-1', authn_credentials=[], eppn=self.test_user.eppn,
+            authn_request_id='some-unique-id-1',
+            authn_credentials=[],
+            eppn=self.test_user.eppn,
         )
         self.app.sso_sessions.save(self.sso_session)
 
@@ -85,7 +87,6 @@ class TestActions(SSOIdPTests):
             keyhandle='test_key_handle',
             credential_data='test_credential_data',
             app_id='https://dev.eduid.se/u2f-app-id.json',
-            attest_obj='test_attest_obj',
             description='test_description',
             authenticator=WebauthnAuthenticator.cross_platform,
         )
@@ -104,7 +105,7 @@ class TestActions(SSOIdPTests):
 
     @property
     def num_actions(self):
-        """ Return the current number of actions for the test user in the test session """
+        """Return the current number of actions for the test user in the test session"""
         return len(self.actions.get_actions(self.test_user.eppn, self.mock_session_key))
 
     def _test_no_actions(self, tou: ToUEvent):
@@ -140,7 +141,7 @@ class TestActions(SSOIdPTests):
         self._test_no_actions(tou)
 
     def test_add_action(self):
-        """ Test that we are redirected to the actions app when there is an action for the user (self.test_action) """
+        """Test that we are redirected to the actions app when there is an action for the user (self.test_action)"""
 
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, 'authenticate'):
@@ -156,7 +157,7 @@ class TestActions(SSOIdPTests):
 
         with self.app.test_request_context():
             mock_ticket = self._make_login_ticket(
-                req_class_ref=SWAMID_AL2, request_ref=RequestRef(self.mock_session_key)
+                req_class_ref=EduidAuthnContextClass.REFEDS_SFA, request_ref=RequestRef(self.mock_session_key)
             )
             assert self.num_actions == 0
             assert mfa_add_actions(self.test_user, mock_ticket, self.sso_session) is None
@@ -167,7 +168,7 @@ class TestActions(SSOIdPTests):
 
         with self.app.test_request_context():
             mock_ticket = self._make_login_ticket(
-                req_class_ref=CONTEXTCLASSREFS['REFEDS_MFA'], request_ref=RequestRef(self.mock_session_key)
+                req_class_ref=EduidAuthnContextClass.REFEDS_MFA, request_ref=RequestRef(self.mock_session_key)
             )
             assert self.num_actions == 0
             action = mfa_add_actions(self.test_user, mock_ticket, self.sso_session)
@@ -189,7 +190,7 @@ class TestActions(SSOIdPTests):
 
         with self.app.test_request_context():
             mock_ticket = self._make_login_ticket(
-                req_class_ref=SWAMID_AL2, request_ref=RequestRef(self.mock_session_key)
+                req_class_ref=EduidAuthnContextClass.REFEDS_SFA, request_ref=RequestRef(self.mock_session_key)
             )
             assert self.num_actions == 0
             action = mfa_add_actions(self.test_user, mock_ticket, self.sso_session)
@@ -202,7 +203,6 @@ class TestActions(SSOIdPTests):
             keyhandle='test_key_handle',
             credential_data='test_credential_data',
             app_id='https://dev.eduid.se/u2f-app-id.json',
-            attest_obj='test_attest_obj',
             description='test_description',
             authenticator=WebauthnAuthenticator.cross_platform,
         )
@@ -211,7 +211,7 @@ class TestActions(SSOIdPTests):
 
         with self.app.test_request_context():
             mock_ticket = self._make_login_ticket(
-                req_class_ref=SWAMID_AL2, request_ref=RequestRef(self.mock_session_key)
+                req_class_ref=EduidAuthnContextClass.REFEDS_SFA, request_ref=RequestRef(self.mock_session_key)
             )
             assert self.num_actions == 0
             action = mfa_add_actions(self.test_user, mock_ticket, self.sso_session)
@@ -239,7 +239,7 @@ class TestActions(SSOIdPTests):
 
         with self.app.test_request_context():
             mock_ticket = self._make_login_ticket(
-                req_class_ref=SWAMID_AL2, request_ref=RequestRef(self.mock_session_key)
+                req_class_ref=EduidAuthnContextClass.REFEDS_SFA, request_ref=RequestRef(self.mock_session_key)
             )
             action = mfa_add_actions(cast(IdPUser, self.test_user), mock_ticket, self.sso_session)
             # 'prime' the ticket and session for checking later - accessing request_ref gets the SAML data loaded
@@ -284,7 +284,7 @@ class TestActions(SSOIdPTests):
 
         with self.app.app_context():
             mock_ticket = self._make_login_ticket(
-                req_class_ref=SWAMID_AL2, request_ref=RequestRef(self.mock_session_key)
+                req_class_ref=EduidAuthnContextClass.REFEDS_SFA, request_ref=RequestRef(self.mock_session_key)
             )
             assert self.num_actions == 0
             action = tou_add_actions(self.test_user, mock_ticket)
@@ -305,7 +305,7 @@ class TestActions(SSOIdPTests):
 
         with self.app.app_context():
             mock_ticket = self._make_login_ticket(
-                req_class_ref=SWAMID_AL2, request_ref=RequestRef(self.mock_session_key)
+                req_class_ref=EduidAuthnContextClass.REFEDS_SFA, request_ref=RequestRef(self.mock_session_key)
             )
             assert self.num_actions == 0
             action = tou_add_actions(self.test_user, mock_ticket)
@@ -320,7 +320,7 @@ class TestActions(SSOIdPTests):
 
         with self.app.app_context():
             mock_ticket = self._make_login_ticket(
-                req_class_ref=SWAMID_AL2, request_ref=RequestRef(self.mock_session_key)
+                req_class_ref=EduidAuthnContextClass.REFEDS_SFA, request_ref=RequestRef(self.mock_session_key)
             )
             assert self.num_actions == 1
             assert tou_add_actions(self.test_user, mock_ticket) is None
@@ -334,7 +334,7 @@ class TestActions(SSOIdPTests):
 
         with self.app.app_context():
             mock_ticket = self._make_login_ticket(
-                req_class_ref=SWAMID_AL2, request_ref=RequestRef(self.mock_session_key)
+                req_class_ref=EduidAuthnContextClass.REFEDS_SFA, request_ref=RequestRef(self.mock_session_key)
             )
             assert self.num_actions == 1
             action = tou_add_actions(self.test_user, mock_ticket)
@@ -356,7 +356,7 @@ class TestActions(SSOIdPTests):
 
         with self.app.app_context():
             mock_ticket = self._make_login_ticket(
-                req_class_ref=SWAMID_AL2, request_ref=RequestRef(self.mock_session_key)
+                req_class_ref=EduidAuthnContextClass.REFEDS_SFA, request_ref=RequestRef(self.mock_session_key)
             )
             assert self.num_actions == 0
             action = tou_add_actions(self.test_user, mock_ticket)
@@ -364,7 +364,7 @@ class TestActions(SSOIdPTests):
             assert self.num_actions == 1
 
     def test_mfa_action_fake_completion(self):
-        """ Test returning from actions after completing an MFA actions """
+        """Test returning from actions after completing an MFA actions"""
 
         # Only bother with MFA actions in this test, so mark the ToU as registered already
         event_id = bson.ObjectId()
@@ -383,7 +383,6 @@ class TestActions(SSOIdPTests):
             keyhandle='test_key_handle',
             credential_data='test_credential_data',
             app_id='https://dev.eduid.se/u2f-app-id.json',
-            attest_obj='test_attest_obj',
             description='test_description',
             authenticator=WebauthnAuthenticator.cross_platform,
         )

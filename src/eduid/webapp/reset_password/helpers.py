@@ -34,19 +34,21 @@ import datetime
 import math
 from dataclasses import dataclass
 from enum import unique
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Dict, Mapping, Optional, Union
 
 from flask import render_template
 from flask_babel import gettext as _
 
 from eduid.common.config.base import EduidEnvironment
+from eduid.common.misc.timeutil import utc_now
+from eduid.common.rpc.exceptions import MailTaskFailed
 from eduid.common.utils import urlappend
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.logs import MailAddressProofing, PhoneNumberProofing
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState, ResetPasswordUser
 from eduid.userdb.reset_password.element import CodeElement
 from eduid.userdb.user import User
-from eduid.webapp.common.api.exceptions import MailTaskFailed, ThrottledException
+from eduid.webapp.common.api.exceptions import ThrottledException
 from eduid.webapp.common.api.helpers import send_mail
 from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response, success_response
 from eduid.webapp.common.api.utils import (
@@ -192,7 +194,7 @@ def is_generated_password(password: str) -> bool:
     return False
 
 
-def send_password_reset_mail(email_address: str) -> None:
+def send_password_reset_mail(email_address: str) -> ResetPasswordEmailState:
     """
     :param email_address: User input for password reset
     """
@@ -203,13 +205,13 @@ def send_password_reset_mail(email_address: str) -> None:
 
     # User found, check if a state already exists
     state = current_app.password_reset_state_db.get_state_by_eppn(eppn=user.eppn)
-    if state and not state.email_code.is_expired(timeout_seconds=current_app.conf.email_code_timeout):
-        # Let the user only send one mail every throttle_resend_seconds
-        if state.is_throttled(current_app.conf.throttle_resend_seconds):
-            raise ThrottledException()
+    if state and not state.email_code.is_expired(timeout=current_app.conf.email_code_timeout):
+        # Let the user only send one mail every throttle_resend time period
+        if state.is_throttled(current_app.conf.throttle_resend):
+            raise ThrottledException(state=state)
         # If a state is found and not expired, just send another message with the same code
         # Update created_ts to give the user another email_code_timeout seconds to complete the password reset
-        state.email_code.created_ts = datetime.datetime.utcnow()
+        state.email_code.created_ts = utc_now()
     else:
         # create a new state
         state = ResetPasswordEmailState(
@@ -223,7 +225,7 @@ def send_password_reset_mail(email_address: str) -> None:
     text_template = 'reset_password_email.txt.jinja2'
     html_template = 'reset_password_email.html.jinja2'
     to_addresses = [address.email for address in user.mail_addresses.verified]
-    pwreset_timeout = current_app.conf.email_code_timeout // 60 // 60  # seconds to hours
+    pwreset_timeout = int(current_app.conf.email_code_timeout.total_seconds()) // 60 // 60  # seconds to hours
     # We must send the user to an url that does not correspond to a flask view,
     # but to a js bundle (i.e. a flask view in a *different* app)
     resetpw_link = urlappend(current_app.conf.password_reset_link, state.email_code.code)
@@ -238,6 +240,8 @@ def send_password_reset_mail(email_address: str) -> None:
 
     current_app.logger.info(f'Sent password reset email')
     current_app.logger.debug(f'Mail addresses: {to_addresses}')
+
+    return state
 
 
 def generate_suggested_password(password_length: int) -> str:
@@ -284,17 +288,15 @@ def unverify_user(user: ResetPasswordUser) -> None:
             current_app.logger.info('Phone number unverified')
             current_app.logger.debug(f'Phone number: {phone_number.number}')
             current_app.stats.count(name='unverified_phone', value=1)
-    # NINs
-    verified_nins = user.nins.verified
-    if verified_nins:
-        current_app.logger.info(f'Unverifying nins for user {user}')
-        if user.nins.primary:
-            user.nins.primary.is_primary = False
-        for nin in verified_nins:
-            nin.is_verified = False
-            current_app.logger.info('NIN unverified')
-            current_app.logger.debug(f'NIN: {nin.number}')
-            current_app.stats.count(name='unverified_nin', value=1)
+    # identities
+    verified_identities = user.identities.verified
+    if verified_identities:
+        current_app.logger.info('Unverifying identities for user')
+        for identity in verified_identities:
+            identity.is_verified = False
+            current_app.logger.info('identity unverified')
+            current_app.logger.debug(f'identity: {identity}')
+            current_app.stats.count(name=f'unverified_{identity.identity_type}', value=1)
 
 
 def reset_user_password(
@@ -309,7 +311,7 @@ def reset_user_password(
     :param password: Plain text password
     :param mfa_used: If a security key or external MFA was used as extra security
     """
-    # Check the the password complexity is enough
+    # Check the password complexity is enough
     user_info = get_zxcvbn_terms(user)
     try:
         is_valid_password(
@@ -364,7 +366,7 @@ def get_extra_security_alternatives(user: User) -> dict:
     """
     alternatives: Dict[str, Any] = {}
 
-    if user.nins.verified:
+    if user.identities.nin is not None and user.identities.nin.is_verified:
         alternatives['external_mfa'] = True
 
     if user.phone_numbers.verified:
@@ -485,3 +487,15 @@ def verify_phone_number(state: ResetPasswordEmailAndPhoneState) -> bool:
         return True
 
     return False
+
+
+def email_state_to_response_payload(state: ResetPasswordEmailState) -> Dict[str, Any]:
+    _throttled = int(state.throttle_time_left(current_app.conf.throttle_resend).total_seconds())
+    if _throttled < 0:
+        _throttled = 0
+    return {
+        'email': state.email_address,
+        'email_code_timeout': int(current_app.conf.email_code_timeout.total_seconds()),
+        'throttled_seconds': _throttled,
+        'throttled_max': int(current_app.conf.throttle_resend.total_seconds()),
+    }

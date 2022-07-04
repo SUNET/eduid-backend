@@ -11,7 +11,7 @@ _2016_v1_en = """
 <ul>
     <li>that all usage of user accounts follow Sweden's laws and by-laws,</li>
     <li>that all personal information that you provide, such as name and contact information shall be truthful,</li>
-    <li>that user accounts, password and codes are individual and shall only be used by the intended individual,</li>
+    <li>that user accounts, password, security keys and codes are individual and shall only be used by the intended individual,</li>
     <li>that SUNET's ethical rules regulate the "other" usage. SUNET judges unethical behaviour to be when someone</li>
     <ul>
         <li>attempts to gain access to network resources that they do not have the right to</li>
@@ -33,7 +33,7 @@ _2016_v1_sv = """
 <ul>
     <li>att all användning av användarkonton ska följa Sveriges lagar och förordningar,</li>
     <li>att man är sanningsenlig vid uppgivande av personlig information som namn, kontaktuppgifter el. dyl,</li>
-    <li>att användarkonton, lösenord och koder är personliga och får endast användas av innehavaren,</li>
+    <li>att användarkonton, lösenord, säkerhetsnycklar och koder är personliga och får endast användas av innehavaren,</li>
     <li>att SUNET:s etiska regler reglerar övrig tillåten användning. SUNET bedömer som oetiskt när någon</li>
     <ul>
         <li>försöker få tillgång till nätverksresurser utan att ha rätt till det</li>

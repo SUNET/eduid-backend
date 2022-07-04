@@ -80,7 +80,7 @@ class TestInitConfig(unittest.TestCase):
         ]
 
     def test_YamlConfig_unknown_data(self):
-        """ Unknown data should not be rejected because it is an operational nightmare """
+        """Unknown data should not be rejected because it is an operational nightmare"""
         os.environ['EDUID_CONFIG_NS'] = '/eduid/test/test_unknown_data'
         os.environ['EDUID_CONFIG_COMMON_NS'] = '/eduid/test/common'
         os.environ['EDUID_CONFIG_YAML'] = str(self.data_dir / 'test.yaml')
@@ -90,7 +90,7 @@ class TestInitConfig(unittest.TestCase):
         assert config.foo == 'bar'
 
     def test_YamlConfig_mixed_case_keys(self):
-        """ For legacy reasons, all keys should be lowercased """
+        """For legacy reasons, all keys should be lowercased"""
         os.environ['EDUID_CONFIG_NS'] = '/eduid/test/test_mixed_case_keys'
         os.environ['EDUID_CONFIG_COMMON_NS'] = '/eduid/test/common'
         os.environ['EDUID_CONFIG_YAML'] = str(self.data_dir / 'test.yaml')

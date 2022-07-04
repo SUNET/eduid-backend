@@ -49,14 +49,13 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ResetPasswordState(object):
-    """
-    """
+    """ """
 
     eppn: str
     id: bson.ObjectId = field(default_factory=lambda: bson.ObjectId())
     reference: str = field(init=False)
     method: Optional[str] = None
-    created_ts: datetime.datetime = field(default_factory=datetime.datetime.utcnow)
+    created_ts: datetime.datetime = field(default_factory=utc_now)
     modified_ts: Optional[datetime.datetime] = None
     extra_security: Optional[Dict[str, Any]] = None
     generated_password: bool = False
@@ -81,22 +80,23 @@ class ResetPasswordState(object):
             data.pop('reference')
         return cls(**data)
 
-    def is_throttled(self, min_wait_seconds: int) -> bool:
-        if not isinstance(self.modified_ts, datetime.datetime):
-            if self.modified_ts is True or self.modified_ts is None:
-                return False
-        time_since_last_resend = utc_now() - self.modified_ts
-        throttle_seconds = datetime.timedelta(seconds=min_wait_seconds)
-        if time_since_last_resend < throttle_seconds:
-            logger.warning(f'Resend throttled for {throttle_seconds - time_since_last_resend}')
+    def throttle_time_left(self, min_wait: datetime.timedelta) -> datetime.timedelta:
+        if self.modified_ts is None or int(min_wait.total_seconds()) == 0:
+            return datetime.timedelta()
+        throttle_ends = self.modified_ts + min_wait
+        return throttle_ends - utc_now()
+
+    def is_throttled(self, min_wait: datetime.timedelta) -> bool:
+        time_left = self.throttle_time_left(min_wait)
+        if int(time_left.total_seconds()) > 0:
+            logger.warning(f'Resend throttled for {time_left}')
             return True
         return False
 
 
 @dataclass
 class _ResetPasswordEmailStateRequired:
-    """
-    """
+    """ """
 
     email_address: str
     email_code: CodeElement
@@ -104,8 +104,7 @@ class _ResetPasswordEmailStateRequired:
 
 @dataclass
 class ResetPasswordEmailState(ResetPasswordState, _ResetPasswordEmailStateRequired):
-    """
-    """
+    """ """
 
     def __post_init__(self):
         super().__post_init__()
@@ -120,8 +119,7 @@ class ResetPasswordEmailState(ResetPasswordState, _ResetPasswordEmailStateRequir
 
 @dataclass
 class _ResetPasswordEmailAndPhoneStateRequired:
-    """
-    """
+    """ """
 
     phone_number: str
     phone_code: CodeElement
@@ -129,8 +127,7 @@ class _ResetPasswordEmailAndPhoneStateRequired:
 
 @dataclass
 class ResetPasswordEmailAndPhoneState(ResetPasswordEmailState, _ResetPasswordEmailAndPhoneStateRequired):
-    """
-    """
+    """ """
 
     def __post_init__(self):
         super().__post_init__()

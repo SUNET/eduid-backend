@@ -189,8 +189,8 @@ class ResetPasswordTests(EduidAPITestCase):
         assert user is not None
         verified_phone_numbers = user.phone_numbers.verified
         self.assertEqual(len(verified_phone_numbers), 1)
-        verified_nins = user.nins.verified
-        self.assertEqual(len(verified_nins), 2)
+        assert user.identities.nin is not None
+        assert user.identities.nin.is_verified is True
 
         response = self._post_email_address(data1=data1)
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
@@ -548,8 +548,8 @@ class ResetPasswordTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         verified_phone_numbers = user.phone_numbers.verified
         self.assertEqual(1, len(verified_phone_numbers))
-        verified_nins = user.nins.verified
-        self.assertEqual(2, len(verified_nins))
+        verified_identities = user.identities.verified
+        self.assertEqual(2, len(verified_identities))
 
     def test_get_zxcvbn_terms(self):
         with self.app.test_request_context():
@@ -592,11 +592,16 @@ class ResetPasswordTests(EduidAPITestCase):
             response1, msg=ResetPwMsg.reset_pw_initialized, type_='POST_RESET_PASSWORD_SUCCESS'
         )
         response2 = self._post_email_address()
-        self._check_error_response(response2, msg=ResetPwMsg.email_send_throttled, type_='POST_RESET_PASSWORD_FAIL')
+        self._check_success_response(
+            response2,
+            msg=ResetPwMsg.email_send_throttled,
+            type_='POST_RESET_PASSWORD_SUCCESS',
+            payload={'throttled_max': 300},
+        )
 
     def test_do_not_overwrite_email_state(self):
-        # Set min wait time to -1 to not get throttled
-        self.app.conf.throttle_resend_seconds = -1
+        # Avoid getting throttled
+        self.app.conf.throttle_resend = datetime.timedelta()
         response1 = self._post_email_address()
         self._check_success_response(
             response1, msg=ResetPwMsg.reset_pw_initialized, type_='POST_RESET_PASSWORD_SUCCESS'
@@ -620,7 +625,7 @@ class ResetPasswordTests(EduidAPITestCase):
         state1 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         # Set created time 5 minutes before email_code_timeout
         state1.email_code.created_ts = datetime.datetime.utcnow() - (
-            datetime.timedelta(seconds=self.app.conf.email_code_timeout) + datetime.timedelta(minutes=5)
+            self.app.conf.email_code_timeout + datetime.timedelta(minutes=5)
         )
         self.app.password_reset_state_db.save(state1)
 
@@ -632,7 +637,7 @@ class ResetPasswordTests(EduidAPITestCase):
         self.assertNotEqual(state1.email_code.code, state2.email_code.code)
 
     def test_post_email_address_sendmail_fail(self):
-        from eduid.webapp.common.api.exceptions import MailTaskFailed
+        from eduid.common.rpc.exceptions import MailTaskFailed
 
         response = self._post_email_address(sendmail_return=False, sendmail_side_effect=MailTaskFailed)
         self._check_error_response(response, msg=ResetPwMsg.email_send_failure, type_='POST_RESET_PASSWORD_FAIL')
@@ -652,7 +657,9 @@ class ResetPasswordTests(EduidAPITestCase):
         data = {'email': 'invalid-address'}
         response = self._post_email_address(data1=data)
         self._check_error_response(
-            response, type_='POST_RESET_PASSWORD_FAIL', payload={'error': {'email': ['Not a valid email address.']}},
+            response,
+            type_='POST_RESET_PASSWORD_FAIL',
+            payload={'error': {'email': ['Not a valid email address.']}},
         )
 
     def test_post_reset_code(self):
@@ -677,9 +684,9 @@ class ResetPasswordTests(EduidAPITestCase):
         # Remove all verified phone numbers
         for number in user.phone_numbers.verified:
             user.phone_numbers.remove_handling_primary(number.key)
-        # Remove all verified nins
-        for nin in user.nins.verified:
-            user.nins.remove_handling_primary(nin.key)
+        # Remove all verified identities
+        for identity in user.identities.verified:
+            user.identities.remove(identity.identity_type)
         self.app.central_userdb.save(user)
         response = self._post_reset_code()
         self._check_success_response(
@@ -723,7 +730,9 @@ class ResetPasswordTests(EduidAPITestCase):
         data2 = {'csrf_token': 'wrong-code'}
         response = self._post_reset_code(data2=data2)
         self._check_error_response(
-            response, type_='POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL', error={'csrf_token': ['CSRF failed to validate']},
+            response,
+            type_='POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL',
+            error={'csrf_token': ['CSRF failed to validate']},
         )
 
     @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
@@ -768,8 +777,8 @@ class ResetPasswordTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         verified_phone_numbers = user.phone_numbers.verified
         self.assertEqual(len(verified_phone_numbers), 0)
-        verified_nins = user.nins.verified
-        self.assertEqual(len(verified_nins), 0)
+        verified_identities = user.identities.verified
+        self.assertEqual(len(verified_identities), 0)
 
         # check that the password is marked as generated
         self.assertTrue(user.credentials.to_list()[0].is_generated)
@@ -795,7 +804,11 @@ class ResetPasswordTests(EduidAPITestCase):
         data2 = {'csrf_token': ''}
         response = self._post_reset_password(data2=data2)
         self._check_error_response(
-            response, type_='POST_RESET_PASSWORD_NEW_PASSWORD_FAIL', error={'csrf_token': ['CSRF failed to validate'],},
+            response,
+            type_='POST_RESET_PASSWORD_NEW_PASSWORD_FAIL',
+            error={
+                'csrf_token': ['CSRF failed to validate'],
+            },
         )
 
     def test_post_reset_password_wrong_code(self):
@@ -809,8 +822,8 @@ class ResetPasswordTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         verified_phone_numbers = user.phone_numbers.verified
         self.assertEqual(len(verified_phone_numbers), 1)
-        verified_nins = user.nins.verified
-        self.assertEqual(len(verified_nins), 2)
+        verified_identities = user.identities.verified
+        self.assertEqual(len(verified_identities), 2)
 
     def test_post_reset_password_custom(self):
         data2 = {'password': 'cust0m-p4ssw0rd'}
@@ -829,8 +842,8 @@ class ResetPasswordTests(EduidAPITestCase):
         )
 
     def test_post_choose_extra_sec_sms_fail(self):
-        self.app.conf.throttle_sms_seconds = 300
-        from eduid.webapp.common.api.exceptions import MsgTaskFailed
+        self.app.conf.throttle_sms = 300
+        from eduid.common.rpc.exceptions import MsgTaskFailed
 
         response = self._post_choose_extra_sec(sendsms_side_effect=MsgTaskFailed())
         self._check_error_response(
@@ -838,14 +851,14 @@ class ResetPasswordTests(EduidAPITestCase):
         )
 
     def test_post_choose_extra_sec_throttled(self):
-        self.app.conf.throttle_sms_seconds = 300
+        self.app.conf.throttle_sms = datetime.timedelta(minutes=5)
         response = self._post_choose_extra_sec(repeat=True)
         self._check_error_response(
             response, type_='POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL', msg=ResetPwMsg.send_sms_throttled
         )
 
     def test_post_choose_extra_sec_not_throttled(self):
-        self.app.conf.throttle_sms_seconds = 0
+        self.app.conf.throttle_sms = 0
         response = self._post_choose_extra_sec(repeat=True)
         self._check_success_response(
             response, type_='POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_SUCCESS', msg=ResetPwMsg.send_sms_success
@@ -893,8 +906,8 @@ class ResetPasswordTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         verified_phone_numbers = user.phone_numbers.verified
         self.assertEqual(1, len(verified_phone_numbers))
-        verified_nins = user.nins.verified
-        self.assertEqual(2, len(verified_nins))
+        verified_identities = user.identities.verified
+        self.assertEqual(len(verified_identities), 2)
 
     @patch('eduid.webapp.reset_password.views.reset_password.verify_phone_number')
     def test_post_reset_password_secure_phone_verify_fail(self, mock_verify: Any):
@@ -948,8 +961,8 @@ class ResetPasswordTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         verified_phone_numbers = user.phone_numbers.verified
         self.assertEqual(1, len(verified_phone_numbers))
-        verified_nins = user.nins.verified
-        self.assertEqual(2, len(verified_nins))
+        verified_identities = user.identities.verified
+        self.assertEqual(len(verified_identities), 2)
 
     def test_post_reset_password_secure_token_custom_pw(self):
         response = self._post_reset_password_secure_token(custom_password='T%7j 8/tT a0=b')
@@ -1025,8 +1038,8 @@ class ResetPasswordTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         verified_phone_numbers = user.phone_numbers.verified
         self.assertEqual(1, len(verified_phone_numbers))
-        verified_nins = user.nins.verified
-        self.assertEqual(2, len(verified_nins))
+        verified_identities = user.identities.verified
+        self.assertEqual(len(verified_identities), 2)
 
     def test_post_reset_password_secure_external_mfa_no_mfa_auth(self):
         external_mfa_state = {'success': False, 'issuer': None}
@@ -1098,7 +1111,7 @@ class ResetPasswordTests(EduidAPITestCase):
     def test_get_code_no_backdoor_in_pro(self):
         self.app.conf.magic_cookie = 'magic-cookie'
         self.app.conf.magic_cookie_name = 'magic'
-        self.app.conf.environment = 'pro'
+        self.app.conf.environment = 'production'
 
         resp = self._get_email_code_backdoor()
 
@@ -1137,7 +1150,7 @@ class ResetPasswordTests(EduidAPITestCase):
     def test_get_phone_code_no_backdoor_in_pro(self):
         self.app.conf.magic_cookie = 'magic-cookie'
         self.app.conf.magic_cookie_name = 'magic'
-        self.app.conf.environment = 'pro'
+        self.app.conf.environment = 'production'
 
         resp = self._get_phone_code_backdoor()
 

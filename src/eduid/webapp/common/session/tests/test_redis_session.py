@@ -17,7 +17,7 @@ class TestSession(TestCase):
         self.manager = SessionManager(redis_cfg, app_secret='s3cr3t')
 
     def test_create_session(self):
-        """ Test creating a session and reading it back """
+        """Test creating a session and reading it back"""
         _meta = SessionMeta.new(app_secret=self.manager.secret)
 
         session1 = self.manager.get_session(meta=_meta, new=True)
@@ -29,7 +29,7 @@ class TestSession(TestCase):
         self.assertEqual(session2['foo'], session1['foo'])
 
     def test_clear_session(self):
-        """ Test creating a session, clearing it and verifying it is gone """
+        """Test creating a session, clearing it and verifying it is gone"""
         _meta = SessionMeta.new(app_secret=self.manager.secret)
 
         session1 = self.manager.get_session(meta=_meta, new=True)
@@ -79,13 +79,13 @@ class TestSession(TestCase):
         assert decrypted['flag'] == 'dirty session to force saving to redis 0.9806122964128207'
 
     def test_usable_token_encoding(self):
-        """ Pysaml uses the token as an XML NCName so it can't contain some characters. """
+        """Pysaml uses the token as an XML NCName so it can't contain some characters."""
         for i in range(1024):
             _meta = SessionMeta.new(app_secret=self.manager.secret)
             self.assertRegex(_meta.cookie_val, '^[a-z][a-zA-Z0-9.]+$')
 
     def test_clobbered_session(self):
-        """ Test what would happen if two requests are processed simultaneously """
+        """Test what would happen if two requests are processed simultaneously"""
         _meta = SessionMeta.new(app_secret=self.manager.secret)
         session1 = self.manager.get_session(meta=_meta, new=True)
         session1.commit()

@@ -4,7 +4,7 @@ from eduid.vccs.server.db import CredType
 
 
 class RequestFactor(BaseModel):
-    """ Add/auth password """
+    """Add/auth password"""
 
     H1: str
     credential_id: str
@@ -12,7 +12,7 @@ class RequestFactor(BaseModel):
 
 
 class RevokeFactor(BaseModel):
-    """ Revoke a credential """
+    """Revoke a credential"""
 
     credential_id: str
     reason: str

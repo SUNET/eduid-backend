@@ -28,7 +28,7 @@ from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.idp_saml import gen_key
 from eduid.webapp.idp.mischttp import HttpArgs
 from eduid.webapp.idp.service import SAMLQueryParams, Service
-from eduid.webapp.idp.sso_session import SSOSession
+from eduid.webapp.idp.sso_session import SSOSession, get_sso_session_id
 from eduid.webapp.idp.util import maybe_xml_to_string
 
 # -----------------------------------------------------------------------------
@@ -42,13 +42,13 @@ class SLO(Service):
     """
 
     def redirect(self) -> WerkzeugResponse:
-        """ Expects a HTTP-redirect request """
+        """Expects a HTTP-redirect request"""
 
         _data = self.unpack_redirect()
         return self.perform_logout(_data, BINDING_HTTP_REDIRECT)
 
     def post(self) -> WerkzeugResponse:
-        """ Expects a HTTP-POST request """
+        """Expects a HTTP-POST request"""
 
         _data = self.unpack_post()
         return self.perform_logout(_data, BINDING_HTTP_POST)
@@ -108,7 +108,7 @@ class SLO(Service):
         current_app.logger.debug(f'Logout request sender: {req_info.sender()}')
 
         _name_id = req_info.message.name_id
-        _session_id = current_app.get_sso_session_id()
+        _session_id = get_sso_session_id()
         _username = None
         sessions: List[SSOSession] = []
         if _session_id:

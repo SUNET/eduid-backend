@@ -264,7 +264,7 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
 
     @property
     def short_id(self) -> str:
-        """ Short version of db_key for use in logging """
+        """Short version of db_key for use in logging"""
         return self.db_key[:8] + '...'
 
     def load_session(self) -> bool:

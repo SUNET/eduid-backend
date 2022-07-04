@@ -106,7 +106,7 @@ class SortEncoder(json.JSONEncoder):
 
 
 def _any_key(value: Any):
-    """ Helper function to be able to use sorted with key argument for everything """
+    """Helper function to be able to use sorted with key argument for everything"""
     if isinstance(value, dict):
         return json.dumps(value, sort_keys=True, cls=SortEncoder)  # Turn dict in to a string for sorting
     return value
@@ -135,7 +135,7 @@ def _normalise_value(data: Any) -> Any:
 def normalised_data(
     data: Union[Mapping[str, Any], Sequence[Mapping[str, Any]]]
 ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
-    """ Utility function for normalising dicts (or list of dicts) before comparisons in test cases. """
+    """Utility function for normalising dicts (or list of dicts) before comparisons in test cases."""
     if isinstance(data, list):
         # Recurse into lists of dicts. mypy (correctly) says this recursion can in fact happen
         # more than once, so the result can be a list of list of dicts or whatever, but the return
@@ -182,6 +182,7 @@ class MongoTestCase(unittest.TestCase):
         :return:
         """
         super().setUp()
+        self.maxDiff = None
         self.tmp_db = MongoTemporaryInstance.get_instance()
         assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
         self.amdb = AmDB(self.tmp_db.uri)

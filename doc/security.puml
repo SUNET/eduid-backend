@@ -62,7 +62,13 @@ else user has not set name
 end
 |||
 Client -> "/webauthn/register/complete": POST {credential_id: str, attestation_object: str, client_data: str, description: str}
-"/webauthn/register/complete"->Client: {"payload":{"message":"security.webauthn_register_success","credentials": [CREDENTIAL]},"type":"POST_SECURITY_WEBAUTHN_REGISTER_COMPLETE_SUCCESS"}
+alt security key registered successfully
+    "/webauthn/register/complete"->Client: {"payload":{"message":"security.webauthn_register_success","credentials": [CREDENTIAL]},"type":"POST_SECURITY_WEBAUTHN_REGISTER_COMPLETE_SUCCESS"}
+else failed to verify security key attestation
+    "/webauthn/register/complete"->Client: {"payload":{"message":"security.webauthn-attestation-fail","type":"POST_SECURITY_WEBAUTHN_REGISTER_COMPLETE_FAIL"}
+else failed to validate security key against metadata
+    "/webauthn/register/complete"->Client: {"payload":{"message":"security.webauthn-metadata-fail","type":"POST_SECURITY_WEBAUTHN_REGISTER_COMPLETE_FAIL"}
+end
 |||
 Client -> "/webauthn/remove": POST {credential_key: str}
 alt security key removed

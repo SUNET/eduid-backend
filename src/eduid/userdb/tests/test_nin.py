@@ -98,7 +98,7 @@ class TestNinList(unittest.TestCase):
             self.one.add(new)
 
     def test_add_wrong_type(self):
-        """ Test adding a phone number to the nin-list.
+        """Test adding a phone number to the nin-list.
         Specifically phone, since pydantic can coerce it into a nin since they both have the 'number' field.
         """
         new = PhoneNumber(number='+4612345678')

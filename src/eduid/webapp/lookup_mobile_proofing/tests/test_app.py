@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 import json
-from collections import OrderedDict
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping
+from typing import Any, Dict, Mapping, Optional
 
 from mock import patch
 
-from eduid.common.rpc.lookup_mobile_relay import LookupMobileTaskFailed
+from eduid.common.rpc.exceptions import LookupMobileTaskFailed
+from eduid.userdb import User
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.lookup_mobile_proofing.app import MobileProofingApp, init_lookup_mobile_proofing_app
 from eduid.webapp.lookup_mobile_proofing.helpers import MobileMsg
@@ -24,22 +24,6 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.test_user_nin = '199001023456'
         fifteen_years_ago = datetime.now() - timedelta(days=15 * 365)
         self.test_user_nin_underage = '{}01023456'.format(fifteen_years_ago.year)
-        self.mock_address = OrderedDict(
-            [
-                (
-                    u'Name',
-                    OrderedDict(
-                        [(u'GivenNameMarking', u'20'), (u'GivenName', u'Testaren Test'), (u'Surname', u'Testsson')]
-                    ),
-                ),
-                (
-                    u'OfficialAddress',
-                    OrderedDict(
-                        [(u'Address2', u'\xd6RGATAN 79 LGH 10'), (u'PostalCode', u'12345'), (u'City', u'LANDET')]
-                    ),
-                ),
-            ]
-        )
 
         super(LookupMobileProofingTests, self).setUp(users=['hubba-baar'])
 
@@ -51,8 +35,31 @@ class LookupMobileProofingTests(EduidAPITestCase):
         return init_lookup_mobile_proofing_app('testing', config)
 
     def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
-        config.update({'environment': 'dev', 'magic_cookie': '', 'magic_cookie_name': '',},)
+        config.update(
+            {
+                'environment': 'dev',
+                'magic_cookie': '',
+                'magic_cookie_name': '',
+            },
+        )
         return config
+
+    def _check_nin_verified_ok_no_proofing_state(self, user: User, number: Optional[str] = None):
+        nin_number = number or self.test_user_nin
+        assert user.identities.nin is not None
+        assert user.identities.nin.number == nin_number
+        assert user.identities.nin.created_by == 'lookup_mobile_proofing'
+        assert user.identities.nin.verified_by == 'lookup_mobile_proofing'
+        assert user.identities.nin.is_verified is True
+        assert self.app.proofing_log.db_count() == 1
+
+    def _check_nin_not_verified_no_proofing_state(self, user: User, number: Optional[str] = None):
+        nin_number = number or self.test_user_nin
+        assert user.identities.nin is not None
+        assert user.identities.nin.number == nin_number
+        assert user.identities.nin.created_by == 'lookup_mobile_proofing'
+        assert user.identities.nin.is_verified is False
+        assert self.app.proofing_log.db_count() == 0
 
     def test_authenticate(self):
         response = self.browser.get('/proofing')
@@ -62,11 +69,11 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(response.status_code, 200)  # Authenticated request
 
     @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
-    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
-    def test_proofing_flow(self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile):
+    def test_proofing_flow(self, mock_request_user_sync, mock_get_all_navet_data, mock_find_nin_by_mobile):
         mock_find_nin_by_mobile.return_value = self.test_user_nin
-        mock_get_postal_address.return_value = self.mock_address
+        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -83,18 +90,14 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(response['payload']['success'], True)
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.primary.number, self.test_user_nin)
-        self.assertEqual(user.nins.primary.created_by, 'lookup_mobile_proofing')
-        self.assertEqual(user.nins.primary.verified_by, 'lookup_mobile_proofing')
-        self.assertEqual(user.nins.primary.is_verified, True)
-        self.assertEqual(self.app.proofing_log.db_count(), 1)
+        self._check_nin_verified_ok_no_proofing_state(user=user)
 
     @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
-    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
-    def test_proofing_flow_underage(self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile):
+    def test_proofing_flow_underage(self, mock_request_user_sync, mock_get_all_navet_data, mock_find_nin_by_mobile):
         mock_find_nin_by_mobile.return_value = self.test_user_nin_underage
-        mock_get_postal_address.return_value = self.mock_address
+        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -111,18 +114,14 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(response['payload']['success'], True)
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.primary.number, self.test_user_nin_underage)
-        self.assertEqual(user.nins.primary.created_by, 'lookup_mobile_proofing')
-        self.assertEqual(user.nins.primary.verified_by, 'lookup_mobile_proofing')
-        self.assertEqual(user.nins.primary.is_verified, True)
-        self.assertEqual(self.app.proofing_log.db_count(), 1)
+        self._check_nin_verified_ok_no_proofing_state(user=user, number=self.test_user_nin_underage)
 
     @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
-    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
-    def test_proofing_flow_no_match(self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile):
+    def test_proofing_flow_no_match(self, mock_request_user_sync, mock_get_all_navet_data, mock_find_nin_by_mobile):
         mock_find_nin_by_mobile.return_value = None
-        mock_get_postal_address.return_value = self.mock_address
+        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -138,19 +137,16 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(response['type'], 'POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL')
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.count, 1)
-        self.assertEqual(user.nins.find(self.test_user_nin).created_by, 'lookup_mobile_proofing')
-        self.assertEqual(user.nins.find(self.test_user_nin).is_verified, False)
-        self.assertEqual(self.app.proofing_log.db_count(), 0)
+        self._check_nin_not_verified_no_proofing_state(user=user)
 
     @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
-    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_proofing_flow_LookupMobileTaskFailed(
-        self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile
+        self, mock_request_user_sync, mock_get_all_navet_data, mock_find_nin_by_mobile
     ):
         mock_find_nin_by_mobile.side_effect = LookupMobileTaskFailed('Test Exception')
-        mock_get_postal_address.return_value = self.mock_address
+        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -167,10 +163,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(MobileMsg.lookup_error.value, response['payload']['message'])
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.count, 1)
-        self.assertEqual(user.nins.find(self.test_user_nin).created_by, 'lookup_mobile_proofing')
-        self.assertEqual(user.nins.find(self.test_user_nin).is_verified, False)
-        self.assertEqual(self.app.proofing_log.db_count(), 0)
+        self._check_nin_not_verified_no_proofing_state(user=user)
 
     @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
@@ -184,7 +177,6 @@ class LookupMobileProofingTests(EduidAPITestCase):
 
         self.app.conf.magic_cookie = 'magic-cookie'
         self.app.conf.magic_cookie_name = 'magic-cookie'
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = json.loads(browser.get('/proofing').data)
@@ -196,18 +188,14 @@ class LookupMobileProofingTests(EduidAPITestCase):
 
             browser.set_cookie('localhost', key='magic-cookie', value='magic-cookie')
 
-            data = {'nin': self.test_user_nin, 'csrf_token': csrf_token}
+            data = {'nin': self.test_user_nin_underage, 'csrf_token': csrf_token}
             response = browser.post('/proofing', data=json.dumps(data), content_type=self.content_type_json)
             response = json.loads(response.data)
         self.assertEqual(response['type'], 'POST_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS')
         self.assertEqual(response['payload']['success'], True)
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.primary.number, self.test_user_nin)
-        self.assertEqual(user.nins.primary.created_by, 'lookup_mobile_proofing')
-        self.assertEqual(user.nins.primary.verified_by, 'lookup_mobile_proofing')
-        self.assertEqual(user.nins.primary.is_verified, True)
-        self.assertEqual(self.app.proofing_log.db_count(), 1)
+        self._check_nin_verified_ok_no_proofing_state(user=user, number=self.test_user_nin_underage)
 
     @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
@@ -219,7 +207,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
         mock_get_postal_address.return_value = None
         mock_request_user_sync.side_effect = self.request_user_sync
 
-        self.app.conf.environment = 'pro'
+        self.app.conf.environment = 'production'
         self.app.conf.magic_cookie = 'magic-cookie'
         self.app.conf.magic_cookie_name = 'magic-cookie'
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -240,10 +228,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(response['type'], 'POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL')
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.count, 1)
-        self.assertEqual(user.nins.find(self.test_user_nin).created_by, 'lookup_mobile_proofing')
-        self.assertEqual(user.nins.find(self.test_user_nin).is_verified, False)
-        self.assertEqual(self.app.proofing_log.db_count(), 0)
+        self._check_nin_not_verified_no_proofing_state(user=user)
 
     @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
@@ -275,21 +260,18 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(response['type'], 'POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL')
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.count, 1)
-        self.assertEqual(user.nins.find(self.test_user_nin).created_by, 'lookup_mobile_proofing')
-        self.assertEqual(user.nins.find(self.test_user_nin).is_verified, False)
-        self.assertEqual(self.app.proofing_log.db_count(), 0)
+        self._check_nin_not_verified_no_proofing_state(user=user)
 
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_relations_to')
     @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
-    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_proofing_flow_relation(
-        self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile, mock_get_relations_to
+        self, mock_request_user_sync, mock_get_all_navet_data, mock_find_nin_by_mobile, mock_get_relations_to
     ):
         mock_get_relations_to.return_value = ['MO']
         mock_find_nin_by_mobile.return_value = '197001021234'
-        mock_get_postal_address.return_value = self.mock_address
+        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -306,22 +288,18 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(response['payload']['success'], True)
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.primary.number, self.test_user_nin_underage)
-        self.assertEqual(user.nins.primary.created_by, 'lookup_mobile_proofing')
-        self.assertEqual(user.nins.primary.verified_by, 'lookup_mobile_proofing')
-        self.assertEqual(user.nins.primary.is_verified, True)
-        self.assertEqual(self.app.proofing_log.db_count(), 1)
+        self._check_nin_verified_ok_no_proofing_state(user=user, number=self.test_user_nin_underage)
 
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_relations_to')
     @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
-    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_postal_address')
+    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def test_proofing_flow_relation_no_match(
-        self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile, mock_get_relations_to
+        self, mock_request_user_sync, mock_get_all_navet_data, mock_find_nin_by_mobile, mock_get_relations_to
     ):
         mock_get_relations_to.return_value = []
         mock_find_nin_by_mobile.return_value = '197001021234'
-        mock_get_postal_address.return_value = self.mock_address
+        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -337,7 +315,4 @@ class LookupMobileProofingTests(EduidAPITestCase):
         self.assertEqual(response['type'], 'POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL')
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.count, 1)
-        self.assertEqual(user.nins.find(self.test_user_nin_underage).created_by, 'lookup_mobile_proofing')
-        self.assertEqual(user.nins.find(self.test_user_nin_underage).is_verified, False)
-        self.assertEqual(self.app.proofing_log.db_count(), 0)
+        self._check_nin_not_verified_no_proofing_state(user=user, number=self.test_user_nin_underage)

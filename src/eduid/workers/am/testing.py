@@ -38,7 +38,9 @@ __author__ = 'leifj'
 
 import logging
 from copy import deepcopy
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
+from uuid import UUID
 
 import bson
 import pytest
@@ -49,6 +51,7 @@ from eduid.common.config.workers import AmConfig
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.common.testing_base import CommonTestCase
 from eduid.userdb.exceptions import UserDoesNotExist
+from eduid.userdb.identity import IdentityType
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.testing import MongoTemporaryInstance
 from eduid.workers.am.ams import AttributeFetcher
@@ -71,7 +74,15 @@ USER_DATA = {
             'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
         }
     ],
-    'nins': [{'number': '123456781235', 'primary': True, 'verified': True}],
+    'identities': [
+        {
+            'identity_type': IdentityType.NIN.value,
+            'number': '123456781235',
+            'verified': True,
+            'created_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+            'modified_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+        }
+    ],
     'orcid': {
         'oidc_authz': {
             'token_type': 'bearer',
@@ -96,6 +107,19 @@ USER_DATA = {
         'id': 'orcid_unique_id',
         'verified': True,
         'created_by': 'orcid',
+    },
+    'ladok': {
+        'created_ts': datetime(2022, 2, 23, 17, 39, 32, 303000, tzinfo=timezone.utc),
+        'modified_ts': datetime(2022, 2, 23, 17, 39, 32, 303000, tzinfo=timezone.utc),
+        'verified_by': 'eduid-ladok',
+        'external_id': UUID('9555f3de-dd32-4bed-8e36-72ef00fb4df2'),
+        'university': {
+            'created_ts': datetime(2022, 2, 23, 17, 39, 32, 303000, tzinfo=timezone.utc),
+            'modified_ts': datetime(2022, 2, 23, 17, 39, 32, 303000, tzinfo=timezone.utc),
+            'ladok_name': 'ab',
+            'name': {'sv': 'Lärosätesnamn', 'en': 'University Name'},
+        },
+        'verified': True,
     },
 }
 
@@ -144,7 +168,7 @@ class WorkerTestCase(CommonTestCase):
 
 
 class AMTestCase(WorkerTestCase):
-    """ TestCase with an embedded Attribute Manager. """
+    """TestCase with an embedded Attribute Manager."""
 
     def tearDown(self):
         for fetcher in AmCelerySingleton.af_registry.all_fetchers():

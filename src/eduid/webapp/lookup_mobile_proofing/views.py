@@ -3,10 +3,9 @@
 
 from flask import Blueprint
 
-from eduid.common.rpc.lookup_mobile_relay import LookupMobileTaskFailed
+from eduid.common.rpc.exceptions import AmTaskFailed, LookupMobileTaskFailed, MsgTaskFailed, NoNavetData
 from eduid.userdb import User
-from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_identity, require_user
-from eduid.webapp.common.api.exceptions import AmTaskFailed, MsgTaskFailed
+from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_nin, require_user
 from eduid.webapp.common.api.helpers import add_nin_to_user, verify_nin_for_user
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.schemas.csrf import EmptyResponse
@@ -29,7 +28,7 @@ def get_state(user: User) -> FluxData:
 @mobile_proofing_views.route('/proofing', methods=['POST'])
 @UnmarshalWith(schemas.LookupMobileProofingRequestSchema)
 @MarshalWith(schemas.LookupMobileProofingResponseSchema)
-@can_verify_identity
+@can_verify_nin
 @require_user
 def proofing(user: User, nin: str) -> FluxData:
     current_app.logger.info(f'Trying to verify nin via mobile number for user {user}.')
@@ -49,6 +48,9 @@ def proofing(user: User, nin: str) -> FluxData:
     except LookupMobileTaskFailed:
         current_app.stats.count('validate_nin_by_mobile_error')
         return error_response(message=MobileMsg.lookup_error)
+    except NoNavetData:
+        current_app.logger.exception('No data returned from Navet')
+        return error_response(message=CommonMsg.no_navet_data)
     except MsgTaskFailed:
         current_app.stats.count('navet_error')
         return error_response(message=CommonMsg.navet_error)

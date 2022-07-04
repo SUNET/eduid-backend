@@ -79,7 +79,10 @@ class ChangePasswordTests(EduidAPITestCase):
 
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
     def _change_password(
-        self, mock_request_user_sync: Any, data1: Optional[dict] = None, reauthn: Optional[int] = 60,
+        self,
+        mock_request_user_sync: Any,
+        data1: Optional[dict] = None,
+        reauthn: Optional[int] = 60,
     ):
         """
         To change the password of the test user, POST old and new passwords,
@@ -244,13 +247,17 @@ class ChangePasswordTests(EduidAPITestCase):
         data1 = {'new_password': 'pw'}
         response = self._change_password(data1=data1)
         self._check_error_response(
-            response, type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_FAIL', msg=SecurityMsg.chpass_weak,
+            response,
+            type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_FAIL',
+            msg=SecurityMsg.chpass_weak,
         )
 
     def test_change_passwd_no_reauthn(self):
         response = self._change_password(reauthn=None)
         self._check_error_response(
-            response, type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_FAIL', msg=SecurityMsg.no_reauthn,
+            response,
+            type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_FAIL',
+            msg=SecurityMsg.no_reauthn,
         )
 
     def test_get_suggested_and_change(self):
@@ -291,7 +298,9 @@ class ChangePasswordTests(EduidAPITestCase):
     def test_get_suggested_and_change_wrong_old_pw(self):
         response = self._get_suggested_and_change(correct_old_password=False)
         self._check_error_response(
-            response, type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_FAIL', msg=SecurityMsg.unrecognized_pw,
+            response,
+            type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_FAIL',
+            msg=SecurityMsg.unrecognized_pw,
         )
 
         # check that the password is not marked as generated, in this case changed
@@ -302,7 +311,9 @@ class ChangePasswordTests(EduidAPITestCase):
         data1 = {'new_password': 'pw'}
         response = self._get_suggested_and_change(data1=data1)
         self._check_error_response(
-            response, type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_FAIL', msg=SecurityMsg.chpass_weak,
+            response,
+            type_='POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_FAIL',
+            msg=SecurityMsg.chpass_weak,
         )
 
         # check that the password is not marked as generated, in this case changed

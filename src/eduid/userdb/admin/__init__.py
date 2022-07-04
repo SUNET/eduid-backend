@@ -148,7 +148,10 @@ class RawDb(object):
                     continue
                 if raw.doc[k] != raw.before[k]:
                     fd.write(
-                        'MOD: BEFORE={} AFTER={}\n'.format(safe_encode(k, raw.before[k]), safe_encode(k, raw.doc[k]),)
+                        'MOD: BEFORE={} AFTER={}\n'.format(
+                            safe_encode(k, raw.before[k]),
+                            safe_encode(k, raw.doc[k]),
+                        )
                     )
 
             fd.write('DB_RESULT: {}\n'.format(res))

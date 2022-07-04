@@ -16,19 +16,33 @@
         <td>{{ user_dict.displayName }}</td>
     </tr>
     <tr>
-        <th>National identity numbers:</th>
+        <th>Identities:</th>
         <td>
-            {% for nin in user_dict.nins|multisort('verified', 'created_ts', reverse=True) %}
+            {% for item in user_dict.identities|multisort('verified', 'created_ts', reverse=True) %}
                 <dl>
-                    <dt>Number</dt><dd>{{ nin.get('number') }}</dd>
-                    <dt>Primary</dt><dd>{{ nin.get('primary') }}</dd>
-                    <dt>Verified</dt><dd>{{ nin.get('verified') }}</dd>
-                    <dt>Added timestamp</dt><dd>{{ nin.get('created_ts')|datetimeformat }}</dd>
-                    {% if nin.get('verified_by') %}
-                        <dt>Verified using</dt><dd>{{ nin.get('verified_by') }}</dd>
+                    <dt>Type</dt><dd>{{ item.get('identity_type') }}</dd>
+                    {% if item.get('number') %}
+                        <dt>Number</dt><dd>{{ item.get('number') }}</dd>
                     {% endif %}
-                    {% if  nin.get('verified_ts') %}
-                        <dt>Verified timestamp</dt><dd>{{ nin.get('verified_ts')|datetimeformat }}</dd>
+                    {% if item.get('prid') %}
+                        <dt>Prid</dt><dd>{{ item.get('prid') }}</dd>
+                    {% endif %}
+                    {% if item.get('prid_persistence') %}
+                        <dt>Prid persistence</dt><dd>{{ item.get('prid_persistence') }}</dd>
+                    {% endif %}
+                    {% if item.get('country_code') %}
+                        <dt>Country code</dt><dd>{{ item.get('country_code') }}</dd>
+                    {% endif %}
+                    {% if item.get('date_of_birth') %}
+                        <dt>Date of birth</dt><dd>{{ item.get('date_of_birth')|dateformat }}</dd>
+                    {% endif %}
+                    <dt>Verified</dt><dd>{{ item.get('verified') }}</dd>
+                    <dt>Added timestamp</dt><dd>{{ item.get('created_ts')|datetimeformat }}</dd>
+                    {% if item.get('verified_by') %}
+                        <dt>Verified using</dt><dd>{{ item.get('verified_by') }}</dd>
+                    {% endif %}
+                    {% if  item.get('verified_ts') %}
+                        <dt>Verified timestamp</dt><dd>{{ item.get('verified_ts')|datetimeformat }}</dd>
                     {% endif %}
                 </dl>
             {% endfor %}

@@ -1,13 +1,22 @@
 # -*- coding: utf-8 -*-
 import warnings
+from dataclasses import dataclass
 from typing import List, Optional, Type, TypeVar, Union, overload
 
 from flask import current_app, render_template, request
 
-from eduid.common.config.base import MagicCookieMixin
+from eduid.common.config.base import EduidEnvironment, MagicCookieMixin
 from eduid.common.misc.timeutil import utc_now
-from eduid.userdb.logs.element import NinProofingLogElement, TNinProofingLogElementSubclass
-from eduid.userdb.nin import Nin
+from eduid.common.rpc.exceptions import NoNavetData
+from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, FullPostalAddress
+from eduid.userdb import NinIdentity
+from eduid.userdb.element import ElementKey
+from eduid.userdb.identity import IdentityType
+from eduid.userdb.logs.element import (
+    NinProofingLogElement,
+    TNinProofingLogElementSubclass,
+    TForeignEidProofingLogElementSubclass,
+)
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.proofing.state import NinProofingState, OidcProofingState
 from eduid.userdb.user import TUserSubclass, User
@@ -25,27 +34,44 @@ def set_user_names_from_official_address(
 
     :returns: User object
     """
-    navet_data = proofing_log_entry.user_postal_address
-    name = navet_data['Name']
-    user.given_name = name['GivenName']
-    user.surname = name['Surname']
-    given_name_marking = name.get('GivenNameMarking')
-    # Only set display name if not already set
-    if not user.display_name:
-        user.display_name = f'{user.given_name} {user.surname}'
-        if given_name_marking:
-            _name_index = (int(given_name_marking) // 10) - 1  # ex. "20" -> 1 (second GivenName is real given name)
-            try:
-                _given_name = name['GivenName'].split()[_name_index]
-                user.display_name = f'{_given_name} {user.surname}'
-            except IndexError:
-                # At least occasionally, we've seen GivenName 'Jan-Erik Martin' with GivenNameMarking 30
-                pass
+    user.given_name = proofing_log_entry.user_postal_address.name.given_name
+    user.surname = proofing_log_entry.user_postal_address.name.surname
+    if user.given_name is None or user.surname is None:
+        # please mypy
+        raise RuntimeError('No given name or surname found in proofing log user postal address')
+    given_name_marking = proofing_log_entry.user_postal_address.name.given_name_marking
+    user.display_name = f'{user.given_name} {user.surname}'
+    if given_name_marking:
+        _name_index = (int(given_name_marking) // 10) - 1  # ex. "20" -> 1 (second GivenName is real given name)
+        try:
+            _given_name = user.given_name.split()[_name_index]
+            user.display_name = f'{_given_name} {user.surname}'
+        except IndexError:
+            # At least occasionally, we've seen GivenName 'Jan-Erik Martin' with GivenNameMarking 30
+            pass
     current_app.logger.info(u'User names set from official address')
     current_app.logger.debug(
-        f'{name} resulted in given_name: {user.given_name}, surname: {user.surname} '
-        f'and display_name: {user.display_name}'
+        f'{proofing_log_entry.user_postal_address.name} resulted in given_name: {user.given_name}, '
+        f'surname: {user.surname} and display_name: {user.display_name}'
     )
+    return user
+
+
+def set_user_names_from_foreign_eid(
+    user: TUserSubclass, proofing_log_entry: TForeignEidProofingLogElementSubclass, display_name: Optional[str] = None
+) -> TUserSubclass:
+    """
+    :param user: Proofing app private userdb user
+    :param proofing_log_entry: Proofing log entry element
+    :param display_name: If any other display name than given name + surname should be used
+
+    :returns: User object
+    """
+    user.given_name = proofing_log_entry.given_name
+    user.surname = proofing_log_entry.surname
+    user.display_name = f'{user.given_name} {user.surname}'
+    if display_name is not None:
+        user.display_name = display_name
     return user
 
 
@@ -83,17 +109,16 @@ def add_nin_to_user(user, proofing_state, user_type=ProofingUser):
 
     proofing_user = user_type.from_user(user, current_app.private_userdb)
     # Add nin to user if not already there
-    if not proofing_user.nins.find(proofing_state.nin.number):
+    if not proofing_user.identities.nin:
         current_app.logger.info(f'Adding NIN for user {user}')
         current_app.logger.debug(f'Self asserted NIN: {proofing_state.nin.number}')
-        nin_element = Nin(
+        nin_identity = NinIdentity(
             created_by=proofing_state.nin.created_by,
             created_ts=proofing_state.nin.created_ts,
-            is_primary=False,
-            is_verified=proofing_state.nin.is_verified,
+            is_verified=False,  # always add a nin identity as unverified
             number=proofing_state.nin.number,
         )
-        proofing_user.nins.add(nin_element)
+        proofing_user.identities.add(nin_identity)
         proofing_user.modified_ts = utc_now()
         # Save user to private db
         current_app.private_userdb.save(proofing_user, check_sync=False)
@@ -128,35 +153,48 @@ def verify_nin_for_user(
         # the new NIN element without re-loading the user from the central database.
         warnings.warn('verify_nin_for_user() called with a User, not a ProofingUser', DeprecationWarning)
         proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    nin_element = proofing_user.nins.find(proofing_state.nin.number)
-    if not nin_element:
-        nin_element = Nin(
-            number=proofing_state.nin.number,
-            created_by=proofing_state.nin.created_by,
-            created_ts=proofing_state.nin.created_ts,
-            is_verified=False,
-            is_primary=False,
-        )
-        proofing_user.nins.add(nin_element)
-        # What is added to the list of nins is a copy of the element, so in order
-        # to continue updating it below we have to fetch it from the list again.
-        nin_element = proofing_user.nins.find(nin_element.key)
-        assert nin_element  # please mypy
+
+    # add an unverified nin identity to the user if it does not exist yet
+    if proofing_user.identities.nin is None:
+        proofing_user = add_nin_to_user(user=proofing_user, proofing_state=proofing_state)
+
+    # please mypy
+    assert proofing_user.identities.nin is not None
 
     # Check if the NIN is already verified
-    if nin_element and nin_element.is_verified:
-        current_app.logger.info(f'NIN is already verified for user {proofing_user}')
-        current_app.logger.debug(f'NIN: {proofing_state.nin.number}')
+    if proofing_user.identities.nin.is_verified:
+        current_app.logger.info('User already has a verified NIN')
+        current_app.logger.debug(f'NIN: {proofing_user.identities.nin.number}')
         return True
 
-    # Update users nin element
-    if proofing_user.nins.primary is None:
-        # No primary NIN found, make the only verified NIN primary
-        nin_element.is_primary = True
-    nin_element.is_verified = True
+    # check if the users current nin is the same as the one just verified
+    # if there is no locked nin identity or the locked nin identity matches we can replace the current nin identity
+    # with the one just verified
+    if proofing_user.identities.nin.number != proofing_state.nin.number:
+        current_app.logger.info('users current nin does not match the nin just verified')
+        current_app.logger.debug(f'{proofing_user.identities.nin.number} != {proofing_state.nin.number}')
+        if (
+            proofing_user.locked_identity.nin is not None
+            and proofing_user.locked_identity.nin.number != proofing_state.nin.number
+        ):
+            raise ValueError('users locked nin does not match verified nin')
+
+        # user has no locked nin identity or the user has previously verified the nin
+        # replace the never verified nin with the one just verified
+        proofing_user.identities.remove(ElementKey(IdentityType.NIN.value))
+        nin_identity = NinIdentity(
+            number=proofing_state.nin.number,
+            created_ts=proofing_state.nin.created_ts,
+            created_by=proofing_state.nin.created_by,
+        )
+        proofing_user.identities.add(nin_identity)
+        current_app.logger.info('replaced users current nin with the one just verified')
+
+    # Update users nin identity
+    proofing_user.identities.nin.is_verified = True
     # Ensure matching timestamp in verification log entry, and NIN element on user
-    nin_element.verified_ts = proofing_log_entry.created_ts
-    nin_element.verified_by = proofing_state.nin.created_by
+    proofing_user.identities.nin.verified_ts = proofing_log_entry.created_ts
+    proofing_user.identities.nin.verified_by = proofing_state.nin.created_by
 
     # Update users name
     proofing_user = set_user_names_from_official_address(proofing_user, proofing_log_entry)
@@ -165,8 +203,7 @@ def verify_nin_for_user(
     # Send proofing data to the proofing log
     if not current_app.proofing_log.save(proofing_log_entry):
         return False
-
-    current_app.logger.info(f'Recorded verification for {proofing_user} in the proofing log')
+    current_app.logger.info(f'Recorded nin identity verification in the proofing log')
 
     # Save user to private db
     current_app.private_userdb.save(proofing_user)
@@ -195,7 +232,7 @@ def send_mail(
     :param html_template: html message as a jinja template
     :param app: Flask current app
     :param context: template context
-    :param reference: Audit reference to help cross reference audit log and events
+    :param reference: Audit reference to help cross-reference audit log and events
     """
     site_name = app.conf.eduid_site_name  # type: ignore
     site_url = app.conf.eduid_site_url  # type: ignore
@@ -226,8 +263,7 @@ def check_magic_cookie(config: MagicCookieMixin) -> bool:
 
     :param config: A configuration object
     """
-    if config.environment not in ('dev', 'staging'):
-        current_app.logger.error(f'Magic cookie not allowed in environment {config.environment}')
+    if config.environment not in [EduidEnvironment.dev, EduidEnvironment.staging]:
         return False
 
     if not config.magic_cookie or not config.magic_cookie_name:
@@ -245,3 +281,29 @@ def check_magic_cookie(config: MagicCookieMixin) -> bool:
 
     current_app.logger.info('check_magic_cookie check fail')
     return False
+
+
+@dataclass
+class ProofingNavetData:
+    user_postal_address: Optional[FullPostalAddress] = None
+    deregistration_information: Optional[DeregistrationInformation] = None
+
+
+def get_proofing_log_navet_data(nin: str) -> ProofingNavetData:
+    navet_data = current_app.msg_relay.get_all_navet_data(nin=nin, allow_deregistered=True)
+    # the only cause for deregistration we allow is emigration
+    if (
+        navet_data.person.is_deregistered()
+        and navet_data.person.deregistration_information.cause_code is not DeregisteredCauseCode.EMIGRATED
+    ):
+        raise NoNavetData(
+            f'Person deregistered with code {navet_data.person.deregistration_information.cause_code.value}'
+        )
+
+    user_postal_address = FullPostalAddress(
+        name=navet_data.person.name, official_address=navet_data.person.postal_addresses.official_address
+    )
+    return ProofingNavetData(
+        user_postal_address=user_postal_address,
+        deregistration_information=navet_data.person.deregistration_information,
+    )

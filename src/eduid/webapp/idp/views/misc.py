@@ -39,9 +39,10 @@ from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
 from eduid.webapp.common.session.namespaces import RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
+from eduid.webapp.idp.decorators import require_ticket
 from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.login import do_verify, get_ticket, show_login_page
-from eduid.webapp.idp.login_context import LoginContextSAML
+from eduid.webapp.idp.login_context import LoginContext, LoginContextSAML
 
 __author__ = 'ft'
 
@@ -60,15 +61,11 @@ def index() -> WerkzeugResponse:
 @misc_views.route('/abort', methods=['POST'])
 @UnmarshalWith(AbortRequestSchema)
 @MarshalWith(AbortResponseSchema)
-def abort(ref: RequestRef) -> FluxData:
-    """ Abort the current request """
+@require_ticket
+def abort(ticket: LoginContext) -> FluxData:
+    """Abort the current request"""
     current_app.logger.debug('\n\n')
-    current_app.logger.debug(f'--- Abort ({ref}) ---')
-
-    _info = SAMLQueryParams(request_ref=ref)
-    ticket = get_ticket(_info, None)
-    if not ticket:
-        return error_response(message=IdPMsg.bad_ref)
+    current_app.logger.debug(f'--- Abort ({ticket.request_ref}) ---')
 
     ticket.pending_request.aborted = True
 

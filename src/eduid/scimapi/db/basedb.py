@@ -8,7 +8,11 @@ __author__ = 'lundberg'
 
 class ScimApiBaseDB(BaseDB):
     def _get_documents_and_count_by_filter(
-        self, spec: dict, fields: Optional[dict] = None, limit: Optional[int] = None, skip: Optional[int] = None,
+        self,
+        spec: dict,
+        fields: Optional[dict] = None,
+        limit: Optional[int] = None,
+        skip: Optional[int] = None,
     ) -> Tuple[List[Mapping], int]:
         """
         Locate and count documents in the db using a custom search filter.

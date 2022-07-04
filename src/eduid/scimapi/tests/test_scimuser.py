@@ -184,7 +184,7 @@ class ScimApiTestUserResourceBase(ScimApiTestCase):
         self.test_profile = ScimApiProfile(attributes={'displayName': 'Test User 1'}, data={'test_key': 'test_value'})
 
     def _assertUserUpdateSuccess(self, req: Mapping, response, user: ScimApiUser):
-        """ Function to validate successful responses to SCIM calls that update a user according to a request. """
+        """Function to validate successful responses to SCIM calls that update a user according to a request."""
 
         if response.json().get('schemas') == [SCIMSchema.ERROR.value]:
             self.fail(f'Got SCIM error parsed_response ({response.status}):\n{response.json}')
@@ -216,7 +216,9 @@ class ScimApiTestUserResourceBase(ScimApiTestCase):
             req_nutid = req[SCIMSchema.NUTID_USER_V1.value]
             resp_nutid = response.json().get(SCIMSchema.NUTID_USER_V1.value)
             self.assertEqual(
-                req_nutid, resp_nutid, 'Unexpected NUTID user data in parsed_response',
+                req_nutid,
+                resp_nutid,
+                'Unexpected NUTID user data in parsed_response',
             )
         elif SCIMSchema.NUTID_USER_V1.value in response.json:
             self.fail(f'Unexpected {SCIMSchema.NUTID_USER_V1.value} in the parsed_response')
@@ -313,7 +315,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
         assert event.data['status'] == EventStatus.CREATED.value
 
     def test_create_and_update_user(self):
-        """ Test that creating a user and then updating it without changes only results in one event """
+        """Test that creating a user and then updating it without changes only results in one event"""
         req = {
             'externalId': 'test-id-1',
             'name': {'familyName': 'Testsson', 'givenName': 'Test', 'middleName': 'Testaren'},
@@ -559,7 +561,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
         )
 
     def test_create_and_update_user_with_linked_accounts(self):
-        """ Test that creating a user and then updating it without changes only results in one event """
+        """Test that creating a user and then updating it without changes only results in one event"""
         account = LinkedAccount(issuer='eduid.se', value='test@dev.eduid.se')
         _db_account = ScimApiLinkedAccount(issuer=account.issuer, value=account.value, parameters=account.parameters)
         req = {
@@ -594,7 +596,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
         assert db_user.linked_accounts == [_db_account]
 
     def test_create_user_with_invalid_linked_accounts(self):
-        """ Test that creating a user and then updating it without changes only results in one event """
+        """Test that creating a user and then updating it without changes only results in one event"""
         account = LinkedAccount(issuer='NOT-eduid.se', value='test@dev.eduid.se')
         req = {
             'externalId': 'test-id-9',
@@ -618,7 +620,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
         self._assertUserUpdateSuccess(req, result.response, db_user)
 
     def test_update_user_set_linked_accounts2(self):
-        """ Test updating linked accounts sorted 'wrong' """
+        """Test updating linked accounts sorted 'wrong'"""
         db_account1 = ScimApiLinkedAccount(issuer='eduid.se', value='test1@dev.eduid.se')
         account1 = LinkedAccount(issuer=db_account1.issuer, value=db_account1.value)
         account2 = LinkedAccount(issuer='eduid.se', value='test2@dev.eduid.se', parameters={'mfa_stepup': True})

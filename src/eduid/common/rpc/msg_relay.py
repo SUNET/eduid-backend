@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 import logging
+from enum import Enum
 from typing import List, Optional
 
-from pydantic import BaseModel, Extra, Field
+from pydantic import BaseModel, Field
 
 import eduid.workers.msg
 from eduid.common.config.base import MsgConfigMixin
-from eduid.webapp.common.api.exceptions import MsgTaskFailed
+from eduid.common.rpc.exceptions import MsgTaskFailed, NoAddressFound, NoNavetData, NoRelationsFound
 
 __author__ = 'lundberg'
 
@@ -63,10 +64,21 @@ class RelationId(NavetModelConfig):
     birth_time_number: Optional[str] = Field(default=None, alias='BirthTimeNumber')
 
 
+class RelationType(str, Enum):
+    CHILD = 'B'
+    MOTHER = 'MO'
+    FATHER = 'FA'
+    PARENT = 'F'
+    GUARDIAN = 'V'
+    GUARDIAN_FOR = 'VF'
+    SPOUSE = 'M'
+    PARTNER = 'P'
+
+
 class Relation(NavetModelConfig):
     name: Name = Field(default_factory=Name, alias='Name')
     relation_id: RelationId = Field(alias='RelationId')
-    relation_type: Optional[str] = Field(default=None, alias='RelationType')
+    relation_type: Optional[RelationType] = Field(default=None, alias='RelationType')
     relation_start_date: Optional[str] = Field(default=None, alias='RelationStartDate')
     relation_end_date: Optional[str] = Field(default=None, alias='RelationEndDate')
     status: Optional[str] = Field(default=None, alias='Status')
@@ -76,17 +88,42 @@ class PostalAddresses(NavetModelConfig):
     official_address: OfficialAddress = Field(alias='OfficialAddress')
 
 
+class DeregisteredCauseCode(str, Enum):
+    DECEASED = 'AV'
+    EMIGRATED = 'UV'
+    OLD_NIN = 'GN'
+    OTHER_REASON = 'AN'
+    TECHNICALLY_DEREGISTERED = 'TA'
+    MISSING = 'OB'
+    FALSE_IDENTITY = 'FI'
+
+
+class DeregistrationInformation(NavetModelConfig):
+    date: Optional[str] = None
+    cause_code: Optional[DeregisteredCauseCode] = Field(default=None, alias='causeCode')
+
+
 class Person(NavetModelConfig):
     name: Name = Field(default_factory=Name, alias='Name')
     person_id: PersonId = Field(alias='PersonId')
+    deregistration_information: DeregistrationInformation = Field(alias='DeregistrationInformation')
     reference_national_identity_number: Optional[str] = Field(default=None, alias='ReferenceNationalIdentityNumber')
     postal_addresses: PostalAddresses = Field(alias='PostalAddresses')
-    relations: List[Relation] = Field(default_factory=list)
+    relations: List[Relation] = Field(default_factory=list, alias='Relations')
+
+    def is_deregistered(self) -> bool:
+        return bool(self.deregistration_information.cause_code or self.deregistration_information.date)
 
 
 class NavetData(NavetModelConfig):
     case_information: CaseInformation = Field(alias='CaseInformation')
     person: Person = Field(alias='Person')
+
+
+# Used to parse data from get_postal_address
+class FullPostalAddress(NavetModelConfig):
+    name: Name = Field(default_factory=Name, alias='Name')
+    official_address: OfficialAddress = Field(default_factory=OfficialAddress, alias='OfficialAddress')
 
 
 class MsgRelay(object):
@@ -111,29 +148,32 @@ class MsgRelay(object):
     def get_language(lang: str) -> str:
         return LANGUAGE_MAPPING.get(lang, 'en_US')
 
-    def get_all_navet_data(self, nin: str, timeout: int = 25) -> NavetData:
+    def get_all_navet_data(self, nin: str, timeout: int = 25, allow_deregistered: bool = False) -> NavetData:
         """
         :param nin: Swedish national identity number
         :param timeout: Max wait time for task to finish
+        :param allow_deregistered: allow return of deregistered persons
         :return: All Navet data about the person
         """
         rtask = self._get_all_navet_data.apply_async(args=[nin])
         try:
             ret = rtask.get(timeout=timeout)
             if ret is not None:
-                return NavetData.parse_obj(ret)
-            raise MsgTaskFailed('No data returned from Navet')
+                data = NavetData.parse_obj(ret)
+                if not data.person.is_deregistered() or allow_deregistered:
+                    return data
+            raise NoNavetData('No data returned from Navet')
         except Exception as e:
             rtask.forget()
             raise MsgTaskFailed(f'get_all_navet_data task failed: {e}')
 
-    def get_postal_address(self, nin: str, timeout: int = 25) -> dict:
+    def get_postal_address(self, nin: str, timeout: int = 25) -> FullPostalAddress:
         """
         :param nin: Swedish national identity number
         :param timeout: Max wait time for task to finish
         :return: Official name and postal address
 
-            The expected address format is:
+            The data format from worker is:
 
                 OrderedDict([
                     (u'Name', OrderedDict([
@@ -152,13 +192,14 @@ class MsgRelay(object):
         try:
             ret = rtask.get(timeout=timeout)
             if ret is not None:
-                return ret
-            raise MsgTaskFailed('No postal address returned from Navet')
+                data = FullPostalAddress.parse_obj(ret)
+                return data
+            raise NoAddressFound('No postal address returned from Navet')
         except Exception as e:
             rtask.forget()
             raise MsgTaskFailed(f'get_postal_address task failed: {e}')
 
-    def get_relations_to(self, nin: str, relative_nin: str, timeout: int = 25) -> List[str]:
+    def get_relations_to(self, nin: str, relative_nin: str, timeout: int = 25) -> List[RelationType]:
         """
         Get a list of the NAVET 'Relations' type codes between a NIN and a relatives NIN.
 
@@ -178,8 +219,8 @@ class MsgRelay(object):
         try:
             ret = rtask.get(timeout=timeout)
             if ret is not None:
-                return ret
-            raise MsgTaskFailed('No postal address returned from Navet')
+                return [RelationType(item) for item in ret]
+            raise NoRelationsFound('No relations returned from Navet')
         except Exception as e:
             rtask.forget()
             raise MsgTaskFailed(f'get_relations_to task failed: {e}')

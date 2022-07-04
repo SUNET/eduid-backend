@@ -46,7 +46,7 @@ _three_dict = {
 
 
 class SomeEventList(EventList[ToUEvent]):
-    """ EventList is an ABC, so make a subclass of it just for tests in this module. """
+    """EventList is an ABC, so make a subclass of it just for tests in this module."""
 
     @classmethod
     def from_list_of_dicts(cls: Type[SomeEventList], items: List[Dict[str, Any]]) -> SomeEventList:
@@ -97,7 +97,11 @@ class TestEventList(TestCase):
             self.two.add(dup)
 
         assert exc_info.value.errors() == [
-            {'loc': ('elements',), 'msg': "Duplicate element key: '222222222222222222222222'", 'type': 'value_error',}
+            {
+                'loc': ('elements',),
+                'msg': "Duplicate element key: '222222222222222222222222'",
+                'type': 'value_error',
+            }
         ]
 
     def test_add_event(self):

@@ -24,7 +24,7 @@ class RevokeCredsResponseV1(BaseModel):
 
 
 class RevokeCredsFormResponse(BaseModel):
-    """ Extra wrapping class to handle legacy requests sent as form data """
+    """Extra wrapping class to handle legacy requests sent as form data"""
 
     revoke_creds_response: RevokeCredsResponseV1
 
@@ -34,7 +34,7 @@ async def revoke_creds_legacy(req: Request, request: str = Form(...)) -> RevokeC
     req.app.logger.debug(f'Revoke credentials (using form): {request}')
 
     class RevokeCredsInnerRequest(BaseModel):
-        """ Requests all the way down. """
+        """Requests all the way down."""
 
         revoke_creds: RevokeCredsRequestV1
 

@@ -37,10 +37,8 @@
 User and user database module.
 """
 import logging
-import warnings
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, List, Optional
 
 from eduid.userdb import User
 
@@ -84,7 +82,9 @@ class IdPUser(User):
     """
 
     def to_saml_attributes(
-        self, settings: SAMLAttributeSettings, filter_attributes: List[str] = _SAML_ATTRIBUTES,
+        self,
+        settings: SAMLAttributeSettings,
+        filter_attributes: Optional[List[str]] = None,
     ) -> dict:
         """
         Return a dict of SAML attributes for a user.
@@ -97,6 +97,8 @@ class IdPUser(User):
 
         :return: SAML attributes
         """
+        if filter_attributes is None:
+            filter_attributes = _SAML_ATTRIBUTES
         attributes_in = self.to_dict()
         attributes = {}
         for approved in filter_attributes:
@@ -175,7 +177,7 @@ def add_eduperson_assurance(attributes: Dict[str, Any], user: IdPUser) -> Dict[s
     :return: New attributes
     """
     attributes['eduPersonAssurance'] = ['http://www.swamid.se/policy/assurance/al1']
-    if len(user.nins.verified):
+    if user.identities.is_verified:
         attributes['eduPersonAssurance'] = ['http://www.swamid.se/policy/assurance/al2']
     return attributes
 
@@ -205,9 +207,8 @@ def make_nor_eduperson_nin(attributes: dict, user: IdPUser) -> dict:
     if attributes.get('norEduPersonNIN') is not None:
         return attributes
 
-    # A primary element have to be verified but better be defensive
-    if user.nins.primary is not None and user.nins.primary.is_verified:
-        attributes['norEduPersonNIN'] = user.nins.primary.number
+    if user.identities.nin is not None and user.identities.nin.is_verified:
+        attributes['norEduPersonNIN'] = user.identities.nin.number
     return attributes
 
 
@@ -220,9 +221,8 @@ def make_personal_identity_number(attributes: dict, user: IdPUser) -> dict:
     if attributes.get('personalIdentityNumber') is not None:
         return attributes
 
-    # A primary element have to be verified but better be defensive
-    if user.nins.primary is not None and user.nins.primary.is_verified:
-        attributes['personalIdentityNumber'] = user.nins.primary.number
+    if user.identities.nin is not None and user.identities.nin.is_verified:
+        attributes['personalIdentityNumber'] = user.identities.nin.number
     return attributes
 
 
@@ -233,14 +233,8 @@ def make_schac_date_of_birth(attributes: dict, user: IdPUser) -> dict:
     if attributes.get('schacDateOfBirth') is not None:
         return attributes
 
-    # A primary element have to be verified but better be defensive
-    if user.nins.primary is not None and user.nins.primary.is_verified:
-        try:
-            parsed_date = datetime.strptime(user.nins.primary.number[:8], '%Y%m%d')
-            attributes['schacDateOfBirth'] = parsed_date.strftime('%Y%m%d')
-        except ValueError:
-            logger.exception('Unable to parse user nin to date of birth')
-            logger.debug(f'User nins: {user.nins}')
+    if user.identities.is_verified and user.identities.date_of_birth is not None:
+        attributes['schacDateOfBirth'] = user.identities.date_of_birth.strftime('%Y%m%d')
     return attributes
 
 
@@ -267,7 +261,7 @@ def make_eduperson_orcid(attributes: dict, user: IdPUser) -> dict:
 
 def _make_user_esi(user: IdPUser, settings: SAMLAttributeSettings) -> Optional[str]:
     # do not release Ladok ESI for an unverified user as you need to be verified to connect to Ladok
-    if user.nins.primary is not None and user.nins.primary.is_verified:
+    if user.identities.is_verified:
         if user.ladok is not None and user.ladok.is_verified:
             return f'{settings.esi_ladok_prefix}{user.ladok.external_id}'
     return None

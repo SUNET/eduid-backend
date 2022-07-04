@@ -79,7 +79,9 @@ class PhoneNumberStr(str):
     @classmethod
     def __modify_schema__(cls, field_schema):
         # TODO: Better documentation
-        field_schema.update(examples=['tel:555-55555'],)
+        field_schema.update(
+            examples=['tel:555-55555'],
+        )
 
     @classmethod
     def validate(cls, value):
@@ -103,7 +105,9 @@ class LanguageTag(str):
     @classmethod
     def __modify_schema__(cls, field_schema):
         # TODO: Better documentation
-        field_schema.update(examples=['sv-se', 'en-us'],)
+        field_schema.update(
+            examples=['sv-se', 'en-us'],
+        )
 
     @classmethod
     def validate(cls, value):
@@ -227,7 +231,7 @@ class PhoneNumber(EduidBaseModel):
 
 
 class BaseResponse(EduidBaseModel):
-    """ This is basically the implementation of the common attributes defined in RFC7643 #3.1. (Common Attributes) """
+    """This is basically the implementation of the common attributes defined in RFC7643 #3.1. (Common Attributes)"""
 
     id: UUID
     meta: Meta

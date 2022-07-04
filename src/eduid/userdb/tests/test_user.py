@@ -2,14 +2,17 @@ import unittest
 from datetime import datetime
 from hashlib import sha256
 
+import pytest
 from bson import ObjectId
 from pydantic import ValidationError
 
-from eduid.userdb import LockedIdentityNin, OidcAuthorization, OidcIdToken, Orcid
-from eduid.userdb.credentials import METHOD_SWAMID_AL2_MFA, U2F, CredentialList, Password
+from eduid.userdb import NinIdentity, OidcAuthorization, OidcIdToken, Orcid
+from eduid.userdb.credentials import U2F, CredentialList, CredentialProofingMethod, Password
 from eduid.userdb.exceptions import EduIDUserDBError, UserHasNotCompletedSignup, UserIsRevoked
+from eduid.userdb.fixtures.identity import verified_nin_identity
+from eduid.userdb.fixtures.users import mocked_user_standard
+from eduid.userdb.identity import IdentityList, IdentityType
 from eduid.userdb.mail import MailAddress, MailAddressList
-from eduid.userdb.nin import Nin, NinList
 from eduid.userdb.phone import PhoneNumber, PhoneNumberList
 from eduid.userdb.profile import Profile, ProfileList
 from eduid.userdb.tou import ToUList
@@ -46,7 +49,7 @@ class TestNewUser(unittest.TestCase):
                     u'is_generated': False,
                 }
             ],
-            u'norEduPersonNIN': [u'197801012345'],
+            u'identities': [verified_nin_identity.to_dict()],
             u'subject': u'physical person',
             u'eduPersonEntitlement': [u'http://foo.example.org'],
             u'preferredLanguage': u'en',
@@ -88,7 +91,7 @@ class TestNewUser(unittest.TestCase):
                     'keyhandle': 'U2F SWAMID AL2',
                     'public_key': 'foo',
                     'verified': True,
-                    'proofing_method': METHOD_SWAMID_AL2_MFA,
+                    'proofing_method': CredentialProofingMethod.SWAMID_AL2_MFA,
                     'proofing_version': 'testing',
                 },
             ],
@@ -133,12 +136,11 @@ class TestNewUser(unittest.TestCase):
             )
         ]
 
-        nin_list = [
-            Nin(
+        identity_list = [
+            NinIdentity(
                 number='197801012345',
                 created_ts=datetime.fromisoformat('2014-11-24T16:22:49.188000'),
                 is_verified=True,
-                is_primary=True,
                 created_by='dashboard',
             )
         ]
@@ -147,7 +149,7 @@ class TestNewUser(unittest.TestCase):
             eppn='guvat-nalif',
             mail_addresses=MailAddressList(elements=mailAliases_list),
             credentials=CredentialList(elements=password_list),
-            nins=NinList(elements=nin_list),
+            identities=IdentityList(elements=identity_list),
             subject=SubjectType('physical person'),
             entitlements=[u'http://foo.example.org'],
             language='en',
@@ -185,7 +187,7 @@ class TestNewUser(unittest.TestCase):
                 keyhandle='U2F SWAMID AL2',
                 public_key='foo',
                 is_verified=True,
-                proofing_method=METHOD_SWAMID_AL2_MFA,
+                proofing_method=CredentialProofingMethod.SWAMID_AL2_MFA,
                 proofing_version='testing',
             ),
         ]
@@ -594,58 +596,94 @@ class TestNewUser(unittest.TestCase):
         self.assertFalse(user.tou.has_accepted('2', reaccept_interval=94608000))  # reaccept_interval seconds (3 years)
 
     def test_locked_identity_load(self):
-        locked_identity = {'created_by': 'test', 'identity_type': 'nin', 'number': '197801012345'}
+        created_ts = datetime.fromisoformat("2013-09-02T10:23:25")
+        locked_identity = {
+            'created_by': 'test',
+            'identity_type': IdentityType.NIN.value,
+            'number': '197801012345',
+            'verified': True,
+            'created_ts': str(created_ts),
+        }
         data = self.data1
         data['locked_identity'] = [locked_identity]
         user = User.from_dict(data)
-        self.assertTrue(user.locked_identity)
-        self.assertIsInstance(user.locked_identity.find('nin').created_by, str)
-        self.assertIsInstance(user.locked_identity.find('nin').created_ts, datetime)
-        self.assertIsInstance(user.locked_identity.find('nin').identity_type, str)
-        self.assertIsInstance(user.locked_identity.find('nin').number, str)
+        assert user.locked_identity.nin is not None
+        assert user.locked_identity.nin.identity_type == IdentityType.NIN.value
+        assert user.locked_identity.nin.created_by == 'test'
+        assert user.locked_identity.nin.created_ts == created_ts
+        assert user.locked_identity.nin.number == '197801012345'
+        assert user.locked_identity.nin.is_verified is True
+
+    def test_locked_identity_load_legacy_format(self):
+        created_ts = datetime.fromisoformat("2013-09-02T10:23:25")
+        locked_identity = {
+            'created_by': 'test',
+            'identity_type': 'nin',
+            'number': '197801012345',
+            'created_ts': str(created_ts),
+        }
+        data = self.data1
+        data['locked_identity'] = [locked_identity]
+        user = User.from_dict(data)
+        assert user.locked_identity.nin is not None
+        assert user.locked_identity.nin.identity_type == IdentityType.NIN.value
+        assert user.locked_identity.nin.created_by == 'test'
+        assert user.locked_identity.nin.created_ts == created_ts
+        assert user.locked_identity.nin.number == '197801012345'
+        assert user.locked_identity.nin.is_verified is True
 
     def test_locked_identity_set(self):
-        locked_identity = {'created_by': 'test', 'identity_type': 'nin', 'number': '197801012345'}
         user = User.from_dict(self.data1)
-        locked_nin = LockedIdentityNin.from_dict(
-            dict(number=locked_identity['number'], created_by=locked_identity['created_by'],)
+        locked_nin = NinIdentity(
+            number='197801012345',
+            created_by='test',
+            is_verified=True,
         )
         user.locked_identity.add(locked_nin)
         self.assertEqual(user.locked_identity.count, 1)
 
-        locked_nin = user.locked_identity.find('nin')
-        self.assertIsInstance(locked_nin.created_by, str)
-        self.assertIsInstance(locked_nin.created_ts, datetime)
-        self.assertIsInstance(locked_nin.identity_type, str)
-        self.assertIsInstance(locked_nin.number, str)
+        assert user.locked_identity.nin is not None
+        assert user.locked_identity.nin.identity_type == IdentityType.NIN.value
+        assert user.locked_identity.nin.created_by == 'test'
+        assert user.locked_identity.nin.number == '197801012345'
+        assert user.locked_identity.nin.is_verified is True
+
+    def test_locked_identity_set_not_verified(self):
+        locked_identity = {'created_by': 'test', 'identity_type': IdentityType.NIN.value, 'number': '197801012345'}
+        user = User.from_dict(self.data1)
+        locked_nin = NinIdentity(number=locked_identity['number'], created_by=locked_identity['created_by'])
+        with pytest.raises(ValidationError):
+            user.locked_identity.add(locked_nin)
 
     def test_locked_identity_to_dict(self):
-        locked_identity = {'created_by': 'test', 'identity_type': 'nin', 'number': '197801012345'}
         user = User.from_dict(self.data1)
-        locked_nin = LockedIdentityNin.from_dict(
-            dict(number=locked_identity['number'], created_by=locked_identity['created_by'],)
+        locked_nin = NinIdentity(
+            number='197801012345',
+            created_by='test',
+            is_verified=True,
         )
         user.locked_identity.add(locked_nin)
 
         old_user = User.from_dict(user.to_dict())
-        self.assertEqual(user.locked_identity.count, 1)
-        self.assertIsInstance(old_user.locked_identity.to_list()[0].created_by, str)
-        self.assertIsInstance(old_user.locked_identity.to_list()[0].created_ts, datetime)
-        self.assertIsInstance(old_user.locked_identity.to_list()[0].identity_type, str)
-        self.assertIsInstance(old_user.locked_identity.to_list()[0].number, str)
+        assert old_user.locked_identity.nin is not None
+        assert old_user.locked_identity.nin.identity_type == IdentityType.NIN.value
+        assert old_user.locked_identity.nin.created_by == 'test'
+        assert old_user.locked_identity.nin.number == '197801012345'
+        assert old_user.locked_identity.nin.is_verified is True
 
         new_user = User.from_dict(user.to_dict())
-        self.assertEqual(user.locked_identity.count, 1)
-        self.assertIsInstance(new_user.locked_identity.to_list()[0].created_by, str)
-        self.assertIsInstance(new_user.locked_identity.to_list()[0].created_ts, datetime)
-        self.assertIsInstance(new_user.locked_identity.to_list()[0].identity_type, str)
-        self.assertIsInstance(new_user.locked_identity.to_list()[0].number, str)
+        assert new_user.locked_identity.nin is not None
+        assert new_user.locked_identity.nin.identity_type == IdentityType.NIN.value
+        assert new_user.locked_identity.nin.created_by == 'test'
+        assert new_user.locked_identity.nin.number == '197801012345'
+        assert new_user.locked_identity.nin.is_verified is True
 
     def test_locked_identity_remove(self):
-        locked_identity = {'created_by': 'test', 'identity_type': 'nin', 'number': '197801012345'}
         user = User.from_dict(self.data1)
-        locked_nin = LockedIdentityNin.from_dict(
-            dict(number=locked_identity['number'], created_by=locked_identity['created_by'],)
+        locked_nin = NinIdentity(
+            number='197801012345',
+            created_by='test',
+            is_verified=True,
         )
         user.locked_identity.add(locked_nin)
         with self.assertRaises(EduIDUserDBError):
@@ -707,10 +745,10 @@ class TestNewUser(unittest.TestCase):
 
     def test_user_unverified_credential(self):
         cred = [x for x in self.user2.credentials.to_list() if x.is_verified][0]
-        self.assertEqual(cred.proofing_method, METHOD_SWAMID_AL2_MFA)
+        self.assertEqual(cred.proofing_method, CredentialProofingMethod.SWAMID_AL2_MFA)
         _dict1 = cred.to_dict()
         self.assertEqual(_dict1['verified'], True)
-        self.assertEqual(_dict1['proofing_method'], METHOD_SWAMID_AL2_MFA)
+        self.assertEqual(_dict1['proofing_method'], CredentialProofingMethod.SWAMID_AL2_MFA)
         self.assertEqual(_dict1['proofing_version'], 'testing')
         cred.is_verified = False
         _dict2 = cred.to_dict()
@@ -719,7 +757,7 @@ class TestNewUser(unittest.TestCase):
         self.assertFalse('proofing_version' in _dict2)
 
     def test_both_mobile_and_phone(self):
-        """ Test user that has both 'mobile' and 'phone' """
+        """Test user that has both 'mobile' and 'phone'"""
         phone = [
             {'number': '+4673123', 'primary': True, 'verified': True},
             {'created_by': 'phone', 'number': '+4670999', 'primary': False, 'verified': False},
@@ -738,7 +776,7 @@ class TestNewUser(unittest.TestCase):
         assert phone == out, 'The phone objects differ when using both phone and mobile'
 
     def test_both_sn_and_surname(self):
-        """ Test user that has both 'sn' and 'surname' """
+        """Test user that has both 'sn' and 'surname'"""
         user = User.from_dict(
             data={
                 '_id': ObjectId(),
@@ -822,7 +860,7 @@ class TestNewUser(unittest.TestCase):
             'keyhandle': 'U2F SWAMID AL2',
             'public_key': 'foo',
             'verified': True,
-            'proofing_method': METHOD_SWAMID_AL2_MFA,
+            'proofing_method': CredentialProofingMethod.SWAMID_AL2_MFA,
             'proofing_version': 'testing',
         }
 
@@ -882,3 +920,49 @@ class TestNewUser(unittest.TestCase):
         # verify that user.modified_ts is synced with meta.modified_ts
         self.user1.modified_ts = utc_now()
         assert self.user1.meta.modified_ts == self.user1.modified_ts
+
+    def test_letter_proofing_data_to_list(self):
+        letter_proofing = {
+            'created_by': 'eduid-idproofing-letter',
+            'created_ts': datetime(2015, 12, 18, 12, 0, 46),
+            'number': '198311220134',
+            'official_address': {
+                'Name': {
+                    'GivenName': 'Test Testaren',
+                    'GivenNameMarking': '10',
+                    'MiddleName': 'Testare',
+                    'Surname': 'Testsson',
+                },
+                'OfficialAddress': {
+                    'Address2': 'VÄGEN 16',
+                    'City': 'STADEN',
+                    'PostalCode': '12345',
+                },
+            },
+            'transaction_id': '0000000-0000-0000-0000-00000000',
+            'verification_code': 'xxxxxxxxxx',
+            'verified': True,
+            'verified_by': 'eduid-idproofing-letter',
+            'verified_ts': datetime(2015, 12, 18, 12, 3, 20),
+        }
+        user_dict = mocked_user_standard.to_dict()
+        user_dict['letter_proofing_data'] = letter_proofing
+        user = User.from_dict(user_dict)
+        assert user.to_dict()['letter_proofing_data'] == [letter_proofing]
+
+    def test_nins_and_identities_on_user(self):
+        user_dict = mocked_user_standard.to_dict()
+        user = User.from_dict(user_dict)
+        user_dict['nins'] = [user.identities.nin.to_old_nin()]
+        assert user_dict['identities'] != []
+        assert user_dict['nins'] != []
+        user_dict = User.from_dict(user_dict).to_dict()
+        assert user_dict.get('nins') is None
+        assert user_dict.get('identities') is not None
+
+    def test_empty_nins_list(self):
+        user_dict = mocked_user_standard.to_dict()
+        del user_dict['identities']
+        user_dict['nins'] = []
+        user = User.from_dict(user_dict)
+        assert len(user.identities.to_list()) == 0

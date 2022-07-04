@@ -49,7 +49,9 @@ class LoggingTest(EduidAPITestCase):
                     '()': 'eduid.webapp.common.api.logging.AppFilter',
                     'app_name': 'cfg://local_context.app_name',
                 },
-                'user_filter': {'()': 'eduid.webapp.common.api.logging.UserFilter',},
+                'user_filter': {
+                    '()': 'eduid.webapp.common.api.logging.UserFilter',
+                },
             },
             'handlers': {
                 'console': {
@@ -59,7 +61,10 @@ class LoggingTest(EduidAPITestCase):
                     'filters': ['app_filter', 'user_filter'],
                 },
             },
-            'root': {'handlers': ['console'], 'level': 'cfg://local_context.level',},
+            'root': {
+                'handlers': ['console'],
+                'level': 'cfg://local_context.level',
+            },
         }
         settings_config = {
             'formatters': {'test': {'format': '%(levelname)s: Module: %(name)s Msg: %(message)s'}},

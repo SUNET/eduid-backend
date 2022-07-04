@@ -109,7 +109,7 @@ class ProofingState(object):
 
     @property
     def reference(self) -> str:
-        """ Audit reference to help cross reference audit log and events. """
+        """Audit reference to help cross reference audit log and events."""
         return str(self.id)
 
     def is_expired(self, timeout_seconds: int) -> bool:

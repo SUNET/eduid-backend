@@ -36,11 +36,11 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, Mapping, Type, Union
 
 from eduid.userdb.element import Element, ElementKey
+from eduid.userdb.util import utc_now
 
 
 class CodeElement(Element):
-    """
-    """
+    """ """
 
     code: str
     is_verified: bool
@@ -73,15 +73,14 @@ class CodeElement(Element):
 
         return data
 
-    def is_expired(self, timeout_seconds: int) -> bool:
+    def is_expired(self, timeout: timedelta) -> bool:
         """
         Check whether the code is expired.
 
         :param timeout_seconds: the number of seconds a code is valid
         """
-        delta = timedelta(seconds=timeout_seconds)
-        expiry_date = self.created_ts + delta
-        now = datetime.now(tz=self.created_ts.tzinfo)
+        expiry_date = self.created_ts + timeout
+        now = utc_now()
         return expiry_date < now
 
     @classmethod

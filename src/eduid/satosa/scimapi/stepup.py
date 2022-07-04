@@ -254,7 +254,9 @@ class StepUp(ResponseMicroService):
 
         try:
             binding, destination = self.sp.pick_binding(
-                service="single_sign_on_service", descr_type="idpsso", entity_id=stepup_provider,
+                service="single_sign_on_service",
+                descr_type="idpsso",
+                entity_id=stepup_provider,
             )
         except Exception as e:
             error_context = {
@@ -324,7 +326,9 @@ class StepUp(ResponseMicroService):
 
         try:
             authn_response = self.sp.parse_authn_request_response(
-                context.request["SAMLResponse"], binding, outstanding=self.outstanding_queries,
+                context.request["SAMLResponse"],
+                binding,
+                outstanding=self.outstanding_queries,
             )
         except Exception as e:
             error_context = {
@@ -380,7 +384,10 @@ class StepUp(ResponseMicroService):
         )
 
         logger.debug(
-            {"user_identifier": user_identifier, "stepup_user_identifier": stepup_user_identifier,}
+            {
+                "user_identifier": user_identifier,
+                "stepup_user_identifier": stepup_user_identifier,
+            }
         )
 
         if not is_stepup_successful:
@@ -437,6 +444,11 @@ class StepUp(ResponseMicroService):
 
         # metadata endpoint
         parsed_entity_id = urlparse(self.sp.config.entityid)
-        url_map.append(("^{endpoint}".format(endpoint=parsed_entity_id.path[1:]), self._metadata_endpoint,))
+        url_map.append(
+            (
+                "^{endpoint}".format(endpoint=parsed_entity_id.path[1:]),
+                self._metadata_endpoint,
+            )
+        )
 
         return url_map

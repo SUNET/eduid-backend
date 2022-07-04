@@ -50,6 +50,7 @@ from eduid.userdb import UserDB
 from eduid.userdb.exceptions import MultipleUsersReturned, UserDoesNotExist
 from eduid.userdb.user import User
 from eduid.webapp.authn.app import current_authn_app as current_app
+from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
 from eduid.webapp.common.api.utils import sanitise_redirect_url
 from eduid.webapp.common.authn.cache import IdentityCache, OutstandingQueriesCache, StateCache
 from eduid.webapp.common.authn.session_info import SessionInfo
@@ -125,7 +126,7 @@ def get_authn_response(
     saml2_config: SPConfig, sp_data: SPAuthnData, session: EduidSession, raw_response: str
 ) -> Tuple[AuthnResponse, AuthnRequestRef]:
     """
-    Check a SAML response and return the the response.
+    Check a SAML response and return the response.
 
     The response can be used to retrieve a session_info dict.
 
@@ -151,32 +152,24 @@ def get_authn_response(
         response = client.parse_authn_request_response(raw_response, BINDING_HTTP_POST, outstanding_queries)
     except AssertionError:
         logger.error('SAML response is not verified')
-        raise BadSAMLResponse(
-            """SAML response is not verified. May be caused by the response
-            was not issued at a reasonable time or the SAML status is not ok.
-            Check the IDP datetime setup"""
-        )
+        raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_FAIL)
     except ParseError as e:
         logger.error(f'SAML response is not correctly formatted: {repr(e)}')
-        raise BadSAMLResponse(
-            """SAML response is not correctly formatted and therefore the
-            XML document could not be parsed.
-            """
-        )
+        raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_FAIL)
     except UnsolicitedResponse as e:
-        logger.exception('Unsolicited SAML response')
+        logger.error('Unsolicited SAML response')
         # Extra debug to try and find the cause for some of these that seem to be incorrect
         logger.debug(f'Session: {session}')
         logger.debug(f'Outstanding queries cache: {oq_cache}')
         logger.debug(f'Outstanding queries: {outstanding_queries}')
-        raise e
+        raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_UNSOLICITED)
     except StatusError as e:
         logger.error(f'SAML response was a failure: {repr(e)}')
-        raise BadSAMLResponse(f'SAML response was a failure')
+        raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_FAIL)
 
     if response is None:
         logger.error('SAML response is None')
-        raise BadSAMLResponse('SAML response has errors')
+        raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_FAIL)
 
     session_id = response.session_id()
     oq_cache.delete(session_id)
@@ -304,8 +297,18 @@ def process_assertion(
     saml_response = form['SAMLResponse']
     try:
         response, authn_ref = get_authn_response(current_app.saml2_config, sp_data, session, saml_response)
+        current_app.logger.debug(f'authn response: {response}')
     except BadSAMLResponse as e:
         current_app.logger.error(f'BadSAMLResponse: {e}')
+        if current_app.conf.errors_url_template:
+            _ctx = EduidErrorsContext.SAML_RESPONSE_FAIL
+            if isinstance(e.args[0], EduidErrorsContext):
+                _ctx = e.args[0]
+            return goto_errors_response(
+                current_app.conf.errors_url_template,
+                ctx=EduidErrorsContext.SAML_RESPONSE_FAIL,
+                rp=current_app.conf.app_name,
+            )
         return make_response(str(e), 400)
 
     if authn_ref not in sp_data.authns:

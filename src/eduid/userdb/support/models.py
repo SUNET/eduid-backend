@@ -45,9 +45,9 @@ class SupportUserFilter(GenericFilterDict):
         _data = deepcopy(data)
         super(SupportUserFilter, self).__init__(_data)
 
-        self['mailAliases'] = [MailAlias(alias) for alias in self['mailAliases']]
-        self['passwords'] = [Credential(password) for password in self['passwords']]
-        self['tou'] = [ToU(tou) for tou in self['tou']]
+        self['mailAliases'] = [MailAlias(alias) for alias in self.get('mailAliases', [])]
+        self['passwords'] = [Credential(password) for password in self.get('passwords', [])]
+        self['tou'] = [ToU(tou) for tou in self.get('tou', [])]
 
 
 class SupportSignupUserFilter(GenericFilterDict):
@@ -58,9 +58,9 @@ class SupportSignupUserFilter(GenericFilterDict):
         _data = deepcopy(data)
         super(SupportSignupUserFilter, self).__init__(_data)
 
-        self['mailAliases'] = [MailAlias(alias) for alias in self['mailAliases']]
-        self['passwords'] = [Credential(password) for password in self['passwords']]
-        self['tou'] = [ToU(tou) for tou in self['tou']]
+        self['mailAliases'] = [MailAlias(alias) for alias in self.get('mailAliases', [])]
+        self['passwords'] = [Credential(password) for password in self.get('passwords', [])]
+        self['tou'] = [ToU(tou) for tou in self.get('tou', [])]
         self['pending_mail_address'] = PendingMailAddress(self.get('pending_mail_address'))
 
 

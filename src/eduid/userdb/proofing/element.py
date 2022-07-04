@@ -33,10 +33,11 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, Mapping, Optional, Type, TypeVar
+from typing import Any, Dict, Optional, Type, TypeVar
 
 from pydantic import validator
 
+from eduid.common.rpc.msg_relay import FullPostalAddress
 from eduid.userdb.element import Element, VerifiedElement
 
 __author__ = 'lundberg'
@@ -153,4 +154,4 @@ class SentLetterElement(Element):
     is_sent: bool = False
     sent_ts: Optional[datetime] = None
     transaction_id: Optional[str] = None
-    address: Optional[Mapping] = None
+    address: Optional[FullPostalAddress] = None

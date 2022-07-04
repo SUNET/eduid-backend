@@ -37,6 +37,7 @@ from typing import Any, Dict, Mapping, Optional
 from flask import Response
 from mock import patch
 
+from eduid.userdb.element import ElementKey
 from eduid.webapp.common.api.exceptions import ApiException
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.personal_data.app import PersonalDataApp, pd_init_app
@@ -58,7 +59,9 @@ class PersonalDataTests(EduidAPITestCase):
 
     def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         config.update(
-            {'available_languages': {'en': 'English', 'sv': 'Svenska'},}
+            {
+                'available_languages': {'en': 'English', 'sv': 'Svenska'},
+            }
         )
         return config
 
@@ -100,11 +103,11 @@ class PersonalDataTests(EduidAPITestCase):
         eppn = self.test_user_data['eduPersonPrincipalName']
 
         if not verified_user:
-            # Remove all verified nins from the users
+            # Remove verified identities from the users
             user = self.app.central_userdb.get_user_by_eppn(eppn)
             assert user is not None  # please mypy
-            for verified_nin in user.nins.verified:
-                user.nins.remove_handling_primary(verified_nin.key)
+            for identity in user.identities.verified:
+                user.identities.remove(ElementKey(identity.identity_type.value))
             self.app.central_userdb.save(user)
 
         with self.session_cookie(self.browser, eppn) as client:
@@ -113,7 +116,6 @@ class PersonalDataTests(EduidAPITestCase):
                     data = {
                         'given_name': 'Peter',
                         'surname': 'Johnson',
-                        'display_name': 'Peter Johnson',
                         'language': 'en',
                         'csrf_token': sess.get_csrf_token(),
                     }
@@ -121,9 +123,23 @@ class PersonalDataTests(EduidAPITestCase):
                     data.update(mod_data)
             return client.post('/user', data=json.dumps(data), content_type=self.content_type_json)
 
+    def _get_user_identities(self, eppn: Optional[str] = None):
+        """
+        GET a list of all the identities of a user
+
+        :param eppn: the eppn of the user
+        """
+        response = self.browser.get('/identities')
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        eppn = eppn or self.test_user_data['eduPersonPrincipalName']
+        with self.session_cookie(self.browser, eppn) as client:
+            response2 = client.get('/identities')
+            return response2
+
     def _get_user_nins(self, eppn: Optional[str] = None):
         """
-        GET a list of all the nins of some user
+        GET a list of all the identities of a user
 
         :param eppn: the eppn of the user
         """
@@ -154,7 +170,6 @@ class PersonalDataTests(EduidAPITestCase):
 
     def test_get_user_all_data(self):
         response = self._get_user_all_data(eppn='hubba-bubba')
-
         expected_payload = {
             'display_name': 'John Smith',
             'emails': [
@@ -168,10 +183,12 @@ class PersonalDataTests(EduidAPITestCase):
                 'university': {'ladok_name': 'DEV', 'name': {'en': 'Test University', 'sv': 'Testlärosäte'}},
             },
             'language': 'en',
-            'nins': [
-                {'number': '197801011234', 'primary': True, 'verified': True},
-                {'number': '197801011235', 'primary': False, 'verified': True},
-            ],
+            'nins': [{'number': '197801011234', 'primary': True, 'verified': True}],
+            'identities': {
+                'is_verified': True,
+                'nin': {'number': '197801011234', 'verified': True},
+                'eidas': {'verified': True, 'country_code': 'DE', 'date_of_birth': '1978-09-02'},
+            },
             'phones': [
                 {'number': '+34609609609', 'primary': True, 'verified': True},
                 {'number': '+34 6096096096', 'primary': False, 'verified': False},
@@ -197,7 +214,6 @@ class PersonalDataTests(EduidAPITestCase):
         expected_payload = {
             'surname': 'Johnson',
             'given_name': 'Peter',
-            'display_name': 'Peter Johnson',
             'language': 'en',
         }
         self._check_success_response(response, type_='POST_PERSONAL_DATA_USER_SUCCESS', payload=expected_payload)
@@ -206,7 +222,7 @@ class PersonalDataTests(EduidAPITestCase):
         expected_payload = {
             'surname': 'Smith',
             'given_name': 'John',
-            'display_name': 'New Display Name',
+            'display_name': 'John Smith',
             'language': 'sv',
         }
         response = self._post_user(mod_data=expected_payload)
@@ -216,9 +232,16 @@ class PersonalDataTests(EduidAPITestCase):
         mod_data = {
             'surname': 'Johnson',
             'given_name': 'Peter',
+            'language': 'sv',
+        }
+        expected_payload = {
+            'surname': 'Smith',
+            'given_name': 'John',
+            'display_name': 'John Smith',
+            'language': 'sv',
         }
         response = self._post_user(mod_data=mod_data)
-        self._check_error_response(response, type_='POST_PERSONAL_DATA_USER_FAIL', msg=PDataMsg.name_change_not_allowed)
+        self._check_success_response(response, type_='POST_PERSONAL_DATA_USER_SUCCESS', payload=expected_payload)
 
     def test_post_user_bad_csrf(self):
         response = self._post_user(mod_data={'csrf_token': 'wrong-token'})
@@ -245,10 +268,16 @@ class PersonalDataTests(EduidAPITestCase):
         expected_payload = {'error': {'surname': ['pdata.field_required']}}
         self._check_error_response(response, type_='POST_PERSONAL_DATA_USER_FAIL', payload=expected_payload)
 
-    def test_post_user_no_display_name(self):
-        response = self._post_user(mod_data={'display_name': ''})
-        expected_payload = {'error': {'display_name': ['pdata.field_required']}}
-        self._check_error_response(response, type_='POST_PERSONAL_DATA_USER_FAIL', payload=expected_payload)
+    def test_post_user_with_display_name(self):
+        # verify that display_name is ignored
+        response = self._post_user(mod_data={'display_name': 'Not Peter Johnson'}, verified_user=False)
+        expected_payload = {
+            'surname': 'Johnson',
+            'given_name': 'Peter',
+            'display_name': 'Peter Johnson',
+            'language': 'en',
+        }
+        self._check_success_response(response, type_='POST_PERSONAL_DATA_USER_SUCCESS', payload=expected_payload)
 
     def test_post_user_no_language(self):
         response = self._post_user(mod_data={'language': ''})
@@ -263,9 +292,23 @@ class PersonalDataTests(EduidAPITestCase):
     def test_get_user_nins(self):
         response = self._get_user_nins()
         expected_payload = {
-            'nins': [
-                {'number': '197801011234', 'primary': True, 'verified': True},
-                {'number': '197801011235', 'primary': False, 'verified': True},
-            ]
+            'nins': [{'number': '197801011234', 'primary': True, 'verified': True}],
+            'identities': {
+                'is_verified': True,
+                'nin': {'number': '197801011234', 'verified': True},
+                'eidas': {'verified': True, 'country_code': 'DE', 'date_of_birth': '1978-09-02'},
+            },
         }
         self._check_success_response(response, type_='GET_PERSONAL_DATA_NINS_SUCCESS', payload=expected_payload)
+
+    def test_get_user_identities(self):
+        response = self._get_user_identities()
+        expected_payload = {
+            'nins': [{'number': '197801011234', 'primary': True, 'verified': True}],
+            'identities': {
+                'is_verified': True,
+                'nin': {'number': '197801011234', 'verified': True},
+                'eidas': {'verified': True, 'country_code': 'DE', 'date_of_birth': '1978-09-02'},
+            },
+        }
+        self._check_success_response(response, type_='GET_PERSONAL_DATA_IDENTITIES_SUCCESS', payload=expected_payload)

@@ -10,8 +10,8 @@ from flask import abort, jsonify, request
 from marshmallow.exceptions import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 
-from eduid.userdb import LockedIdentityNin
-from eduid.webapp.common.api.messages import FluxData, error_response
+from eduid.userdb import NinIdentity
+from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response
 from eduid.webapp.common.api.schemas.models import (
     FluxFailResponse,
     FluxResponse,
@@ -33,7 +33,7 @@ def require_eppn(f):
         eppn = session.common.eppn
         # If the user is logged in and has a session
         # pass on the request to the decorated view
-        # together with the eppn of the logged in user.
+        # together with the eppn of the logged-in user.
         if eppn:
             kwargs['eppn'] = eppn
             return f(*args, **kwargs)
@@ -52,19 +52,17 @@ def require_user(f):
     return require_user_decorator
 
 
-def can_verify_identity(f):
+def can_verify_nin(f):
     @wraps(f)
     def verify_identity_decorator(*args, **kwargs):
         user = get_user()
-        # For now a user can just have one verified NIN
-        if user.nins.primary is not None:
-            # TODO: Make this a CommonMsg I guess
-            return error_response(message='User is already verified')
+        # A user can just have one verified NIN
+        if user.identities.nin is not None and user.identities.nin.is_verified is True:
+            return error_response(message=CommonMsg.user_already_verified)
         # A user can not verify a nin if another previously was verified
-        locked_nin = user.locked_identity.find('nin')
-        if isinstance(locked_nin, LockedIdentityNin) and locked_nin.number != kwargs['nin']:
-            # TODO: Make this a CommonMsg I guess
-            return error_response(message='Another nin is already registered for this user')
+        locked_nin = user.locked_identity.nin
+        if isinstance(locked_nin, NinIdentity) and locked_nin.number != kwargs['nin']:
+            return error_response(message=CommonMsg.user_has_other_locked_nin)
 
         return f(*args, **kwargs)
 
@@ -131,10 +129,16 @@ class UnmarshalWith(object):
         def unmarshal_decorator(*args, **kwargs):
             flux_logger.debug('')
             flux_logger.debug(f'--- New request ({request.path})')
-            json_data = request.get_json()
+            json_data = request.get_json(
+                silent=True
+            )  # silent=True lets get_json return None even if mime-type is not application/json
             if json_data is None:
                 json_data = {}
-            flux_logger.debug(f'Decoding request: {json_data} using schema {self.schema()}')
+            _data_str = str(json_data)
+            if 'password' in _data_str:
+                flux_logger.debug(f'Decoding request with a password in it using schema {self.schema()}')
+            else:
+                flux_logger.debug(f'Decoding request: {repr(json_data)} using schema {self.schema()}')
             try:
                 unmarshal_result = self.schema().load(json_data)
             except ValidationError as e:
@@ -142,7 +146,10 @@ class UnmarshalWith(object):
                     request, payload={'error': e.normalized_messages(), 'csrf_token': session.get_csrf_token()}
                 )
                 logger.warning(f'Error unmarshalling request using {self.schema}: {e.normalized_messages()}')
-                logger.debug(f'Failing request JSON data:\n{json.dumps(json_data, indent=4)}')
+                if 'password' in _data_str:
+                    logger.debug(f'Failing request has a password in it, not logging JSON data')
+                else:
+                    logger.debug(f'Failing request JSON data:\n{json.dumps(json_data, indent=4, sort_keys=True)}')
                 return jsonify(response_data.to_dict())
             if 'password' in unmarshal_result:
                 # A simple safeguard for if debug logging is ever activated in production

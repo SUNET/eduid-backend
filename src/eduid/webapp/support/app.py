@@ -69,6 +69,12 @@ def register_template_funcs(app: SupportApp) -> None:
             return ''
         return value.strftime(format)
 
+    @app.template_filter('dateformat')
+    def dateformat(value, format='%Y-%m-%d'):
+        if not value:
+            return ''
+        return value.strftime(format)
+
     @app.template_filter('multisort')
     def sort_multi(l, *operators, **kwargs):
         # Don't try to sort on missing keys

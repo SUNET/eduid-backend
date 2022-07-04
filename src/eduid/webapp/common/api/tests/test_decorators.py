@@ -18,11 +18,11 @@ class MarshalDecoratorTests(TestCase):
     @MarshalWith(FluxStandardAction)
     @test_views.route('/foo', methods=['GET'])
     def flask_view(self, ret: FluxData):
-        """ Fake flask view, returning a FluxData that will be turned into a FluxResponse by the decorator. """
+        """Fake flask view, returning a FluxData that will be turned into a FluxResponse by the decorator."""
         return ret
 
     def test_success_message(self):
-        """ Test that a simple success_message is turned into a well-formed Flux Standard Action response"""
+        """Test that a simple success_message is turned into a well-formed Flux Standard Action response"""
         msg = success_response(message=TestsMsg.fst_test_msg)
         with self.app.test_request_context('/test/foo'):
             response = self.flask_view(msg)
@@ -32,7 +32,7 @@ class MarshalDecoratorTests(TestCase):
             }
 
     def test_success_message_with_data(self):
-        """ Test that a success_message with data is turned into a well-formed Flux Standard Action response"""
+        """Test that a success_message with data is turned into a well-formed Flux Standard Action response"""
         msg = success_response(payload={'working': True}, message=TestsMsg.fst_test_msg)
         with self.app.test_request_context('/test/foo'):
             response = self.flask_view(msg)
@@ -42,7 +42,7 @@ class MarshalDecoratorTests(TestCase):
             }
 
     def test_error_message(self):
-        """ Test that a simple success_message is turned into a well-formed Flux Standard Action response"""
+        """Test that a simple success_message is turned into a well-formed Flux Standard Action response"""
         msg = error_response(message=TestsMsg.fst_test_msg)
         with self.app.test_request_context('/test/foo'):
             response = self.flask_view(msg)
@@ -53,7 +53,7 @@ class MarshalDecoratorTests(TestCase):
             }
 
     def test_error_message_with_data(self):
-        """ Test that an error_message with data is turned into a well-formed Flux Standard Action response"""
+        """Test that an error_message with data is turned into a well-formed Flux Standard Action response"""
         msg = error_response(payload={'working': True}, message=TestsMsg.fst_test_msg)
         with self.app.test_request_context('/test/foo'):
             response = self.flask_view(msg)

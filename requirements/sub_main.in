@@ -3,3 +3,4 @@ importlib-metadata
 importlib-resources
 cached-property
 setuptools
+backports.zoneinfo

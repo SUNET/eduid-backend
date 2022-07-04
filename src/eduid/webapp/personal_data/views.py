@@ -30,7 +30,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
+from typing import Optional
 
 from flask import Blueprint
 
@@ -44,7 +44,7 @@ from eduid.webapp.personal_data.app import current_pdata_app as current_app
 from eduid.webapp.personal_data.helpers import PDataMsg
 from eduid.webapp.personal_data.schemas import (
     AllDataResponseSchema,
-    NinsResponseSchema,
+    IdentitiesResponseSchema,
     PersonalDataRequestSchema,
     PersonalDataResponseSchema,
 )
@@ -56,7 +56,13 @@ pd_views = Blueprint('personal_data', __name__, url_prefix='')
 @MarshalWith(AllDataResponseSchema)
 @require_user
 def get_all_data(user: User) -> FluxData:
-    return success_response(payload=user.to_dict())
+    user_dict = user.to_dict()
+    user_dict['identities'] = user.identities.to_frontend_format()
+    # TODO: remove nins after frontend stops using it
+    user_dict['nins'] = []
+    if user.identities.nin is not None:
+        user_dict['nins'].append(user.identities.nin.to_old_nin())
+    return success_response(payload=user_dict)
 
 
 @pd_views.route('/user', methods=['GET'])
@@ -70,17 +76,16 @@ def get_user(user: User) -> FluxData:
 @UnmarshalWith(PersonalDataRequestSchema)
 @MarshalWith(PersonalDataResponseSchema)
 @require_user
-def post_user(user: User, given_name: str, surname: str, display_name: str, language: str) -> FluxData:
+def post_user(user: User, given_name: str, surname: str, language: str, display_name: Optional[str] = None) -> FluxData:
+    # TODO: Remove display_name when frontend stops sending it
     personal_data_user = PersonalDataUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug('Trying to save user {}'.format(user))
 
-    # disallow change of first name and surname if the user is verified
-    if user.nins.verified and (given_name != personal_data_user.given_name or surname != personal_data_user.surname):
-        return error_response(message=PDataMsg.name_change_not_allowed)
-
-    personal_data_user.given_name = given_name
-    personal_data_user.surname = surname
-    personal_data_user.display_name = display_name
+    # disallow change of first name, surname and display name if the user is verified
+    if not user.identities.is_verified:
+        personal_data_user.given_name = given_name
+        personal_data_user.surname = surname
+        personal_data_user.display_name = f'{given_name} {surname}'
     personal_data_user.language = language
     try:
         save_and_sync_user(personal_data_user)
@@ -94,10 +99,21 @@ def post_user(user: User, given_name: str, surname: str, display_name: str, lang
 
 
 @pd_views.route('/nins', methods=['GET'])
-@MarshalWith(NinsResponseSchema)
+@MarshalWith(IdentitiesResponseSchema)
 @require_user
 def get_nins(user) -> FluxData:
+    # TODO: remove endpoint after frontend stops using it
+    return get_identities()
 
-    data = {'nins': user.nins.to_list_of_dicts()}
+
+@pd_views.route('/identities', methods=['GET'])
+@MarshalWith(IdentitiesResponseSchema)
+@require_user
+def get_identities(user) -> FluxData:
+    # TODO: remove nins after frontend stops using it
+    data = {'identities': user.identities.to_frontend_format(), 'nins': []}
+
+    if user.identities.nin is not None:
+        data['nins'].append(user.identities.nin.to_old_nin())
 
     return success_response(payload=data)

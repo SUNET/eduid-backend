@@ -33,19 +33,18 @@
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
 import logging
-from datetime import datetime
-from typing import Dict, List, Optional, Sequence
+from typing import Dict, List
 
 from eduid.common.misc.timeutil import utc_now
-from eduid.userdb.credentials import METHOD_SWAMID_AL2_MFA, METHOD_SWAMID_AL2_MFA_HI, FidoCredential, Password
-from eduid.userdb.credentials.external import ExternalCredential, SwedenConnectCredential, TrustFramework
+from eduid.userdb.credentials import CredentialProofingMethod, FidoCredential, Password
+from eduid.userdb.credentials.external import SwedenConnectCredential
 from eduid.userdb.element import ElementKey
 from eduid.userdb.idp import IdPUser
 from eduid.webapp.common.session.namespaces import OnetimeCredential, OnetimeCredType
 from eduid.webapp.idp.app import current_idp_app
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance_data import AuthnInfo, EduidAuthnContextClass, UsedCredential, UsedWhere
-from eduid.webapp.idp.login_context import LoginContext, LoginContextSAML
+from eduid.webapp.idp.login_context import LoginContext
 from eduid.webapp.idp.sso_session import SSOSession
 
 logger = logging.getLogger(__name__)
@@ -100,9 +99,9 @@ class AuthnState(object):
             elif isinstance(cred, FidoCredential):
                 self.fido_used = True
                 if cred.is_verified:
-                    if cred.proofing_method == METHOD_SWAMID_AL2_MFA:
+                    if cred.proofing_method == CredentialProofingMethod.SWAMID_AL2_MFA:
                         self.swamid_al2_used = True
-                    elif cred.proofing_method == METHOD_SWAMID_AL2_MFA_HI:
+                    elif cred.proofing_method == CredentialProofingMethod.SWAMID_AL2_MFA_HI:
                         self.swamid_al2_hi_used = True
             elif isinstance(cred, OnetimeCredential):
                 # OLD way
@@ -126,7 +125,7 @@ class AuthnState(object):
                 logger.debug(f'User credentials:\n{_creds}')
                 logger.debug(f'Session one-time credentials:\n{ticket.pending_request.onetime_credentials}')
 
-        if user.nins.verified:
+        if user.identities.is_verified:
             self.is_swamid_al2 = True
 
     def _gather_credentials(self, sso_session: SSOSession, ticket: LoginContext, user: IdPUser) -> List[UsedCredential]:
@@ -231,10 +230,6 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser, sso_s
     req_authn_ctx = ticket.get_requested_authn_context()
     logger.info(f'Authn for {user} will be evaluated based on: {authn}')
 
-    SWAMID_AL1 = 'http://www.swamid.se/policy/assurance/al1'
-    SWAMID_AL2 = 'http://www.swamid.se/policy/assurance/al2'
-    SWAMID_AL2_MFA_HI = 'http://www.swamid.se/policy/authentication/swamid-al2-mfa-hi'
-
     attributes = {}
     response_authn = None
 
@@ -288,11 +283,11 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser, sso_s
             EduidAuthnContextClass.REFEDS_SFA,
             EduidAuthnContextClass.REFEDS_MFA,
         ]:
-            attributes['eduPersonAssurance'] = [SWAMID_AL1, SWAMID_AL2, SWAMID_AL2_MFA_HI]
+            attributes['eduPersonAssurance'] = [item.value for item in current_app.conf.swamid_assurance_profile_3]
         else:
-            attributes['eduPersonAssurance'] = [SWAMID_AL1, SWAMID_AL2]
+            attributes['eduPersonAssurance'] = [item.value for item in current_app.conf.swamid_assurance_profile_2]
     else:
-        attributes['eduPersonAssurance'] = [SWAMID_AL1]
+        attributes['eduPersonAssurance'] = [item.value for item in current_app.conf.swamid_assurance_profile_1]
 
     logger.info(f'Assurances for {user} was evaluated to: {response_authn.name} with attributes {attributes}')
 

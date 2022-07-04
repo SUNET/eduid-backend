@@ -34,12 +34,12 @@
 
 from flask import Blueprint, abort, request
 
+from eduid.common.rpc.exceptions import MsgTaskFailed
 from eduid.userdb import User
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.phone import PhoneNumber
 from eduid.userdb.proofing import ProofingUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid.webapp.common.api.exceptions import MsgTaskFailed
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.utils import save_and_sync_user

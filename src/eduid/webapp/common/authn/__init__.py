@@ -51,4 +51,6 @@ def get_vccs_client(vccs_url: str) -> VCCSClient:
 
             _test_client = MockVCCSClient()
         return cast(VCCSClient, _test_client)
-    return VCCSClient(base_url=vccs_url,)
+    return VCCSClient(
+        base_url=vccs_url,
+    )

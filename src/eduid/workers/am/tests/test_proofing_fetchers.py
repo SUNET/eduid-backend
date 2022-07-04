@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
+from datetime import datetime, timezone
+from uuid import UUID
 
 import bson
 
+from eduid.userdb.identity import IdentityType
 from eduid.userdb.personal_data import PersonalDataUser
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.reset_password import ResetPasswordUser
@@ -49,7 +52,15 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
                 "givenName": "Testaren",
                 "surname": "Testsson",
                 "displayName": "John",
-                'nins': [{'number': '123456781235', 'verified': True, 'primary': True}],
+                'identities': [
+                    {
+                        'identity_type': IdentityType.NIN.value,
+                        'number': '123456781235',
+                        'verified': True,
+                        'created_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                        'modified_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                    }
+                ],
                 "letter_proofing_data": [
                     {
                         "verification_code": "secret code",
@@ -62,7 +73,11 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
                                 "City": "LANDET",
                                 "Address2": "ÖRGATAN 79 LGH 10",
                             },
-                            "Name": {"Surname": "Testsson", "GivenName": "Testaren Test", "GivenNameMarking": "20",},
+                            "Name": {
+                                "Surname": "Testsson",
+                                "GivenName": "Testaren Test",
+                                "GivenNameMarking": "20",
+                            },
                         },
                         "number": "123456781235",
                         "created_by": "eduid-idproofing-letter",
@@ -71,6 +86,7 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
                     }
                 ],
             },
+            '$unset': {'nins': None},
         }
 
         assert normalised_data(fetched) == expected, 'Fetched letter proofing data has unexpected data'
@@ -107,7 +123,15 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
                 "givenName": "Testaren",
                 "surname": "Testsson",
                 "displayName": "John",
-                'nins': [{'number': '123456781235', 'verified': True, 'primary': True}],
+                'identities': [
+                    {
+                        'identity_type': IdentityType.NIN.value,
+                        'number': '123456781235',
+                        'verified': True,
+                        'created_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                        'modified_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                    }
+                ],
                 "letter_proofing_data": [
                     {
                         "verification_code": "secret code",
@@ -120,7 +144,11 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
                                 "City": "LANDET",
                                 "Address2": "ÖRGATAN 79 LGH 10",
                             },
-                            "Name": {"Surname": "Testsson", "GivenName": "Testaren Test", "GivenNameMarking": "20",},
+                            "Name": {
+                                "Surname": "Testsson",
+                                "GivenName": "Testaren Test",
+                                "GivenNameMarking": "20",
+                            },
                         },
                         "number": "123456781235",
                         "created_by": "eduid-idproofing-letter",
@@ -138,7 +166,11 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
                                 "City": "LANDET",
                                 "Address2": "ÖRGATAN 79 LGH 10",
                             },
-                            "Name": {"Surname": "Testsson", "GivenName": "Testaren Test", "GivenNameMarking": "20",},
+                            "Name": {
+                                "Surname": "Testsson",
+                                "GivenName": "Testaren Test",
+                                "GivenNameMarking": "20",
+                            },
                         },
                         "number": "123456781235",
                         "created_by": "eduid-idproofing-letter",
@@ -147,6 +179,7 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
                     },
                 ],
             },
+            '$unset': {'nins': None},
         }
 
         assert (
@@ -185,7 +218,15 @@ class AttributeFetcherEmailProofingTests(ProofingTestCase):
                     'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
                 }
             ],
-            'nins': [{'number': '123456781235', 'verified': True, 'primary': True}],
+            'identities': [
+                {
+                    'identity_type': IdentityType.NIN.value,
+                    'number': '123456781235',
+                    'verified': True,
+                    'created_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                    'modified_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                }
+            ],
         }
 
         proofing_user = ProofingUser.from_dict(self.user_data)
@@ -273,10 +314,18 @@ class AttributeFetcherSecurityTests(ProofingTestCase):
                         'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
                     }
                 ],
-                'nins': [{'number': '123456781235', 'primary': True, 'verified': True}],
+                'identities': [
+                    {
+                        'identity_type': IdentityType.NIN.value,
+                        'number': '123456781235',
+                        'verified': True,
+                        'created_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                        'modified_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                    }
+                ],
                 'phone': [{'number': '+46700011336', 'primary': True, 'verified': True}],
             },
-            '$unset': {'terminated': None},
+            '$unset': {'nins': None, 'terminated': None},
         }
         fetched = self.fetcher.fetch_attrs(security_user.user_id)
 
@@ -300,10 +349,18 @@ class AttributeFetcherSecurityTests(ProofingTestCase):
                         'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
                     }
                 ],
-                'nins': [{'number': '123456781235', 'primary': True, 'verified': True}],
+                'identities': [
+                    {
+                        'identity_type': IdentityType.NIN.value,
+                        'number': '123456781235',
+                        'verified': True,
+                        'created_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                        'modified_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                    }
+                ],
                 'phone': [{'number': '+46700011336', 'primary': True, 'verified': True}],
             },
-            '$unset': {'terminated': None},
+            '$unset': {'nins': None, 'terminated': None},
         }
         assert normalised_data(fetched) == expected
 
@@ -327,10 +384,18 @@ class AttributeFetcherResetPasswordTests(ProofingTestCase):
                         'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
                     }
                 ],
-                'nins': [{'number': '123456781235', 'primary': True, 'verified': True}],
+                'identities': [
+                    {
+                        'identity_type': IdentityType.NIN.value,
+                        'number': '123456781235',
+                        'verified': True,
+                        'created_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                        'modified_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                    }
+                ],
                 'phone': [{'number': '+46700011336', 'primary': True, 'verified': True}],
             },
-            '$unset': {'terminated': None},
+            '$unset': {'nins': None, 'terminated': None},
         }
 
         assert normalised_data(fetched) == expected, 'Wrong data fetched by reset password fetcher'
@@ -351,10 +416,18 @@ class AttributeFetcherResetPasswordTests(ProofingTestCase):
                         'salt': '$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$',
                     }
                 ],
-                'nins': [{'number': '123456781235', 'primary': True, 'verified': True}],
+                'identities': [
+                    {
+                        'identity_type': IdentityType.NIN.value,
+                        'number': '123456781235',
+                        'verified': True,
+                        'created_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                        'modified_ts': datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                    }
+                ],
                 'phone': [{'number': '+46700011336', 'primary': True, 'verified': True}],
             },
-            '$unset': {'terminated': None},
+            '$unset': {'nins': None, 'terminated': None},
         }
 
         assert normalised_data(fetched) == expected, 'Wrong data fetched by reset password fetcher'
@@ -406,3 +479,40 @@ class AttributeFetcherOrcidTests(ProofingTestCase):
         self.fetcher.private_db.save(proofing_user)
 
         self.assertDictEqual(self.fetcher.fetch_attrs(proofing_user.user_id), {'$unset': {'orcid': None}})
+
+
+class AttributeFetcherLadokTests(ProofingTestCase):
+
+    fetcher_name = 'eduid_ladok'
+
+    def test_existing_user(self):
+        proofing_user = ProofingUser.from_dict(self.user_data)
+        self.fetcher.private_db.save(proofing_user)
+        fetched = self.fetcher.fetch_attrs(proofing_user.user_id)
+
+        expected = {
+            '$set': {
+                'ladok': {
+                    'created_ts': datetime(2022, 2, 23, 17, 39, 32, tzinfo=timezone.utc),
+                    'modified_ts': datetime(2022, 2, 23, 17, 39, 32, tzinfo=timezone.utc),
+                    'verified_by': 'eduid-ladok',
+                    'external_id': UUID('9555f3de-dd32-4bed-8e36-72ef00fb4df2'),
+                    'university': {
+                        'created_ts': datetime(2022, 2, 23, 17, 39, 32, tzinfo=timezone.utc),
+                        'modified_ts': datetime(2022, 2, 23, 17, 39, 32, tzinfo=timezone.utc),
+                        'ladok_name': 'ab',
+                        'name': {'sv': 'Lärosätesnamn', 'en': 'University Name'},
+                    },
+                    'verified': True,
+                }
+            }
+        }
+
+        assert normalised_data(fetched) == expected
+
+    def test_remove_ladok(self):
+        proofing_user = ProofingUser.from_dict(self.user_data)
+        proofing_user.ladok = None
+        self.fetcher.private_db.save(proofing_user)
+
+        self.assertDictEqual(self.fetcher.fetch_attrs(proofing_user.user_id), {'$unset': {'ladok': None}})

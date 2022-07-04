@@ -18,6 +18,7 @@ from eduid.userdb import User
 from eduid.userdb.db import BaseDB
 from eduid.webapp.idp.assurance_data import EduidAuthnContextClass, UsedCredential
 from eduid.webapp.idp.idp_saml import ServiceInfo
+from eduid.webapp.idp.mischttp import get_user_agent
 from eduid.webapp.idp.other_device.data import OtherDeviceId, OtherDeviceState
 
 if typing.TYPE_CHECKING:
@@ -34,6 +35,7 @@ class Device1Data(BaseModel):
     ip_address: str  # the IP address of device 1, to be used by the user on device 2 to assess the request
     user_agent: Optional[str]  # the user agent of device 1, to be used by the user on device 2 to assess the request
     service_info: Optional['ServiceInfo']  # information about the service (SP) where the user is logging in
+    is_known_device: bool  # device 1 is a device that has previously logged in as state.eppn
 
 
 class Device2Data(BaseModel):
@@ -62,32 +64,36 @@ class OtherDevice(BaseModel):
     @classmethod
     def from_parameters(
         cls: Type[OtherDevice],
+        ticket: 'LoginContext',
         eppn: Optional[str],
-        device1_ref: str,
         authn_context: Optional[EduidAuthnContextClass],
-        request_id: Optional[str],
         ip_address: str,
         user_agent: Optional[str],
         ttl: timedelta,
-        reauthn_required: bool = False,
-        service_info: Optional[ServiceInfo] = None,
     ) -> OtherDevice:
         _uuid = uuid.uuid4()
         short_code = make_short_code()
         now = utc_now()
+        if not eppn and ticket.known_device:
+            eppn = ticket.known_device.data.eppn
+        _is_known_device = False
+        if ticket.known_device and ticket.known_device.data.eppn == eppn and eppn:
+            # If is_known_device is true, the user won't have to enter the response code from device 2 on device 1
+            _is_known_device = True
         return cls(
             state_id=OtherDeviceId(str(_uuid)),
             state=OtherDeviceState.NEW,
             display_id=short_code,
             eppn=eppn,
             device1=Device1Data(
-                ref=device1_ref,
+                ref=ticket.request_ref,
                 authn_context=authn_context,
-                request_id=request_id,
+                request_id=ticket.request_id,
                 ip_address=ip_address,
                 user_agent=user_agent,
-                reauthn_required=reauthn_required,
-                service_info=service_info,
+                reauthn_required=ticket.reauthn_required,
+                service_info=ticket.service_info,
+                is_known_device=_is_known_device,
             ),
             device2=Device2Data(),
             created_at=now,
@@ -98,7 +104,7 @@ class OtherDevice(BaseModel):
         return self.dict()
 
     def to_json(self):
-        """ For debug logging ONLY. Redacts the response code if set. """
+        """For debug logging ONLY. Redacts the response code if set."""
         data = self.to_dict()
         if data['device2']['response_code']:
             data['device2']['response_code'] = 'REDACTED'
@@ -110,7 +116,7 @@ class OtherDevice(BaseModel):
 
 
 def make_short_code(digits: int = 6) -> str:
-    """ Make a short decimal code, left-padded with zeros to the width specified by `digits'. """
+    """Make a short decimal code, left-padded with zeros to the width specified by `digits'."""
     code = int.from_bytes(os.urandom(4), byteorder='big') % 1000000
     return str(code).zfill(digits)
 
@@ -144,16 +150,19 @@ class OtherDeviceDB(BaseDB):
         return OtherDevice.from_dict(state)
 
     def add_new_state(self, ticket: 'LoginContext', user: Optional[User], ttl: timedelta) -> OtherDevice:
+        user_agent = None
+        ua = get_user_agent()
+        if ua:
+            user_agent = str(ua.parsed)
+
         authn_ref = ticket.get_requested_authn_context()
         state = OtherDevice.from_parameters(
+            ticket=ticket,
             authn_context=authn_ref,
-            device1_ref=ticket.request_ref,
             eppn=None if not user else user.eppn,
             ip_address=request.remote_addr,
-            request_id=ticket.request_id,
-            service_info=ticket.service_info,
             ttl=ttl,
-            user_agent=request.headers.get('user-agent'),
+            user_agent=user_agent,
         )
         res = self.save(state)
         logger.debug(f'Save {state.state_id} result: {res}')
@@ -164,8 +173,11 @@ class OtherDeviceDB(BaseDB):
     def abort(self, state: OtherDevice) -> Optional[OtherDevice]:
         """
         Abort a state.
+
+        It may be aborted in the states NEW and IN_PROGRESS from device #1,
+        and in the state AUTHENTICATED on device #2.
         """
-        if state.state not in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS]:
+        if state.state not in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS, OtherDeviceState.AUTHENTICATED]:
             return None
         _state_val = state.state.value
         state.state = OtherDeviceState.ABORTED

@@ -33,7 +33,9 @@ class GroupExtensions(object):
 
     @classmethod
     def from_mapping(cls: Type[GroupExtensions], data: Mapping) -> GroupExtensions:
-        return cls(data=data.get('data', {}),)
+        return cls(
+            data=data.get('data', {}),
+        )
 
 
 @dataclass

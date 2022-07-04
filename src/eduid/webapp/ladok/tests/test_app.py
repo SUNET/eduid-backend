@@ -118,7 +118,7 @@ class LadokTests(EduidAPITestCase):
         )
 
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
-        assert len(user.nins.verified) == 2
+        assert user.identities.nin.is_verified is True
 
         ladok_name = 'ab'
         response = self._link_user(eppn=self.test_user_eppn, ladok_name=ladok_name)
@@ -152,7 +152,7 @@ class LadokTests(EduidAPITestCase):
 
     def test_link_user_no_nin(self):
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_unverified_user_eppn)
-        assert len(user.nins.verified) == 0
+        assert user.identities.nin is None
 
         ladok_name = 'ab'
         response = self._link_user(eppn=self.test_unverified_user_eppn, ladok_name=ladok_name)

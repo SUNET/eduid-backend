@@ -35,29 +35,43 @@
 Configuration (file) handling for the eduID eidas app.
 """
 
-from typing import Dict, Mapping, Optional
+from typing import Dict, List, Mapping, Optional
 
 from pydantic import Field
 
-from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig, MagicCookieMixin, MsgConfigMixin
+from eduid.common.config.base import (
+    AmConfigMixin,
+    EduIDBaseAppConfig,
+    ErrorsConfigMixin,
+    MagicCookieMixin,
+    MsgConfigMixin,
+)
+from eduid.userdb.credentials import CredentialProofingMethod
 from eduid.userdb.credentials.external import TrustFramework
 
 
-class EidasConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MsgConfigMixin):
+class EidasConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MsgConfigMixin, ErrorsConfigMixin):
     """
     Configuration for the eidas app
     """
 
     app_name: str = 'eidas'
 
-    action_url: str
     token_service_url: str
 
     token_verify_redirect_url: str
-    nin_verify_redirect_url: str
+    identity_verify_redirect_url: str
 
+    # sweden connect
     trust_framework: TrustFramework = TrustFramework.SWECONN
-    required_loa: str = 'loa3'  # one of authentication_context_map below
+    required_loa: List[str] = Field(default=['loa3'])  # one of authentication_context_map below
+
+    # eidas
+    foreign_trust_framework: TrustFramework = TrustFramework.EIDAS
+    foreign_required_loa: List[str] = Field(
+        default=['eidas-nf-low', 'eidas-nf-sub', 'eidas-nf-high']
+    )  # one of authentication_context_map below
+    foreign_identity_idp: Optional[str] = None
 
     # Federation config
     authentication_context_map: Dict[str, str] = Field(
@@ -92,3 +106,12 @@ class EidasConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MsgConfig
     saml2_settings_module: str
     safe_relay_domain: str = 'eduid.se'
     unsolicited_response_redirect_url: str = 'https://eduid.se'
+
+    # identity proofing
+    nin_proofing_version: str = Field(default='2018v1')
+    foreign_eid_proofing_version: str = Field(default='2022v1')
+
+    # security key proofing
+    security_key_proofing_method: CredentialProofingMethod = Field(default=CredentialProofingMethod.SWAMID_AL2_MFA_HI)
+    security_key_proofing_version: str = Field(default='2018v1')
+    security_key_foreign_eid_proofing_version: str = Field(default='2022v1')

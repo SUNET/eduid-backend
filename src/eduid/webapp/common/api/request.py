@@ -185,8 +185,8 @@ class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
         """
         Sanitized __getitem__
         """
-        val = ImmutableTypeConversionDict.__getitem__(self, key)
-        return self.sanitize_input(val)
+        val = super(ImmutableTypeConversionDict, self).__getitem__(key)
+        return self.sanitize_input(str(val))
 
     def get(self, key, default=None, type=None):
         """
@@ -215,13 +215,13 @@ class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
         """
         sanitized values
         """
-        return [self.sanitize_input(v) for v in ImmutableTypeConversionDict.values(self)]
+        return [self.sanitize_input(v) for v in super(ImmutableTypeConversionDict, self).values()]
 
     def items(self):
         """
         Sanitized items
         """
-        return [(v[0], self.sanitize_input(v[1])) for v in ImmutableTypeConversionDict.items(self)]
+        return [(v[0], self.sanitize_input(v[1])) for v in super(ImmutableTypeConversionDict, self).items()]
 
     def pop(self, key: str, default=None):
         """

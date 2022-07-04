@@ -353,7 +353,7 @@ class SignupTests(EduidAPITestCase):
     def test_get_code_no_backdoor_in_pro(self):
         self.app.conf.magic_cookie = 'magic-cookie'
         self.app.conf.magic_cookie_name = 'magic'
-        self.app.conf.environment = 'pro'
+        self.app.conf.environment = 'production'
 
         email = 'johnsmith4@example.com'
         resp = self._get_code_backdoor(email=email)
@@ -396,7 +396,7 @@ class SignupTests(EduidAPITestCase):
         assert mixed_user.pending_mail_address.email == lower_user.pending_mail_address.email
 
     def test_captcha_new_no_key(self):
-        self.app.conf.recaptcha_public_key = None
+        self.app.conf.recaptcha_public_key = ''
         res = self._captcha_new(
             email='JohnSmith@Example.com', expect_success=False, expected_message=SignupMsg.no_recaptcha
         )
@@ -454,7 +454,7 @@ class SignupTests(EduidAPITestCase):
     def test_captcha_no_backdoor_in_pro(self):
         self.app.conf.magic_cookie = 'magic-cookie'
         self.app.conf.magic_cookie_name = 'magic'
-        self.app.conf.environment = 'pro'
+        self.app.conf.environment = 'production'
         res = self._captcha_new(
             recaptcha_return_value=False,
             add_magic_cookie=True,
@@ -562,7 +562,11 @@ class SignupTests(EduidAPITestCase):
 
     def test_verify_code_after_captcha_wrong_csrf(self):
         data1 = {'csrf_token': 'wrong-token'}
-        res = self._verify_code_after_captcha(data1=data1, captcha_expect_success=False, captcha_expected_message=None,)
+        res = self._verify_code_after_captcha(
+            data1=data1,
+            captcha_expect_success=False,
+            captcha_expected_message=None,
+        )
         assert res.response.json['payload']['error'] == {'csrf_token': ['CSRF failed to validate']}
 
     def test_verify_code_after_captcha_dont_accept_tou(self):

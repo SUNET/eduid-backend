@@ -40,5 +40,5 @@ class AFRegistry:
         return self._fetchers.values()
 
     def reset(self):
-        """ After a worker failure, we reset the AF registry to have everything re-initialise """
+        """After a worker failure, we reset the AF registry to have everything re-initialise"""
         self._fetchers = {}

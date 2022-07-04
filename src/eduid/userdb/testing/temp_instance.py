@@ -109,13 +109,13 @@ class EduidTemporaryInstance(ABC):
     @property
     @abstractmethod
     def conn(self) -> Any:
-        """ Return the initialised _conn instance. No default since it ought to be typed in the subclasses. """
+        """Return the initialised _conn instance. No default since it ought to be typed in the subclasses."""
         raise NotImplementedError('All subclasses of EduidTemporaryInstance should implement the conn property')
 
     @property
     @abstractmethod
     def command(self) -> Sequence[str]:
-        """ This is the shell command to start the temporary instance. """
+        """This is the shell command to start the temporary instance."""
         raise NotImplementedError('All subclasses of EduidTemporaryInstance must implement the command property')
 
     @property

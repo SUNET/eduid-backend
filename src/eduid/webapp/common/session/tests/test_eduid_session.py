@@ -93,7 +93,11 @@ class EduidSessionTests(EduidAPITestCase):
 
     def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         config.update(
-            {'debug': True, 'log_level': 'DEBUG', 'no_authn_urls': [],}
+            {
+                'debug': True,
+                'log_level': 'DEBUG',
+                'no_authn_urls': [],
+            }
         )
         return config
 
@@ -227,7 +231,7 @@ class EduidSessionTests(EduidAPITestCase):
                 assert ts1 != ts2
 
     def test_timestamp_dynamic_default(self):
-        """ Verify that not all timestamped namespaces get the same timestamp as default """
+        """Verify that not all timestamped namespaces get the same timestamp as default"""
         with self.browser as browser:
             with browser.session_transaction() as sess:
                 assert sess.idp.ts != sess.signup.ts

@@ -41,6 +41,7 @@ from mock import patch
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User
 from eduid.userdb.element import ElementKey
+from eduid.userdb.identity import IdentityType
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
@@ -143,7 +144,7 @@ class SecurityTests(EduidAPITestCase):
             return client.get('/account-terminated')
 
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
-    def _remove_nin(self, mock_request_user_sync: Any, data1: Optional[dict] = None, unverify: bool = True):
+    def _remove_nin(self, mock_request_user_sync: Any, data1: Optional[dict] = None, unverify: bool = False):
         """
         Send a POST request to remove a NIN from the test user, possibly
         unverifying his verified NIN.
@@ -154,30 +155,28 @@ class SecurityTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        assert user
-        assert user.nins.count == 2
-        assert len(user.nins.verified) == 2
+        assert user is not None
+        assert user.identities.nin is not None
+        assert user.identities.nin.is_verified is True
 
         if unverify:
-            nin = user.nins.find(self.test_user_nin)
-            assert nin is not None
-            nin.is_primary = False
-            nin.is_verified = False
+            user.identities.nin.is_verified = False
             self.app.central_userdb.save(user, check_sync=False)
-
-            self.assertEqual(len(user.nins.verified), 1)
+            assert user.identities.nin.is_verified is False
 
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
-                    data = {'nin': self.test_user_nin, 'csrf_token': sess.get_csrf_token()}
+                    data = {'nin': user.identities.nin.number, 'csrf_token': sess.get_csrf_token()}
                 if data1 is not None:
                     data.update(data1)
 
                 return client.post('/remove-nin', data=json.dumps(data), content_type=self.content_type_json)
 
     @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
-    def _add_nin(self, mock_request_user_sync: Any, data1: Optional[dict] = None, remove: bool = True):
+    def _add_nin(
+        self, mock_request_user_sync: Any, data1: Optional[dict] = None, remove: bool = True, unverify: bool = False
+    ):
         """
         Send a POST request to add a NIN to the test user, possibly removing it's primary, verified NIN.
 
@@ -188,13 +187,18 @@ class SecurityTests(EduidAPITestCase):
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user is not None
-        assert user.nins.count == 2
-        assert len(user.nins.verified) == 2
+        assert user.identities.nin is not None
+        assert user.identities.nin.is_verified is True
+
+        if unverify:
+            user.identities.nin.is_verified = False
+            self.app.central_userdb.save(user, check_sync=False)
+            assert user.identities.nin.is_verified is False
 
         if remove:
-            user.nins.remove(ElementKey(self.test_user_nin))
+            user.identities.remove(ElementKey(IdentityType.NIN.value))
             self.app.central_userdb.save(user, check_sync=False)
-            self.assertEqual(len(user.nins.verified), 1)
+            assert user.identities.nin is None
 
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             with self.app.test_request_context():
@@ -256,7 +260,7 @@ class SecurityTests(EduidAPITestCase):
 
     @patch('eduid.webapp.security.views.security.send_termination_mail')
     def test_account_terminated_sendmail_fail(self, mock_send: Any):
-        from eduid.webapp.common.api.exceptions import MsgTaskFailed
+        from eduid.common.rpc.exceptions import MsgTaskFailed
 
         mock_send.side_effect = MsgTaskFailed()
         response = self._account_terminated(reauthn=50)
@@ -264,7 +268,7 @@ class SecurityTests(EduidAPITestCase):
         self.assertEqual(response.location, 'http://test.localhost/services/authn/logout?next=https://eduid.se')
 
     def test_account_terminated_mail_fail(self):
-        from eduid.webapp.common.api.exceptions import MsgTaskFailed
+        from eduid.common.rpc.exceptions import MsgTaskFailed
 
         response = self._account_terminated(sendmail_side_effect=MsgTaskFailed(), reauthn=8)
         self.assertEqual(response.status_code, 302)
@@ -276,38 +280,43 @@ class SecurityTests(EduidAPITestCase):
         self.assertEqual(response.location, 'http://test.localhost/services/authn/logout?next=https://eduid.se')
 
     def test_remove_nin(self):
-        response = self._remove_nin()
-        self._check_success_response(
-            response,
-            type_='POST_SECURITY_REMOVE_NIN_SUCCESS',
-            msg=SecurityMsg.rm_success,
-            payload={'nins': [{'number': '197801011234', 'primary': True, 'verified': True}]},
-        )
-
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.count, 1)
-        self.assertEqual(len(user.nins.verified), 1)
-
-    def test_remove_not_existing_nin(self):
-        response = self._remove_nin(data1={'nin': '190102031234'})
+        response = self._remove_nin(unverify=True)
         self._check_success_response(
             response,
             type_='POST_SECURITY_REMOVE_NIN_SUCCESS',
             msg=SecurityMsg.rm_success,
             payload={
-                'nins': [
-                    {'number': '197801011234', 'primary': True, 'verified': True},
-                    {'number': '197801011235', 'primary': False, 'verified': False},
-                ]
+                'identities': {
+                    'is_verified': True,
+                    'eidas': {'verified': True, 'country_code': 'DE', 'date_of_birth': '1978-09-02'},
+                },
+            },
+        )
+
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert user.identities.nin is None
+
+    def test_remove_not_existing_nin(self):
+        response = self._remove_nin(data1={'nin': '202202031234'})
+        self._check_success_response(
+            response,
+            type_='POST_SECURITY_REMOVE_NIN_SUCCESS',
+            msg=SecurityMsg.rm_success,
+            payload={
+                'identities': {
+                    'is_verified': True,
+                    'nin': {'number': self.test_user.identities.nin.number, 'verified': True},
+                    'eidas': {'verified': True, 'country_code': 'DE', 'date_of_birth': '1978-09-02'},
+                },
             },
         )
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        assert user.nins.count == 2
-        assert len(user.nins.verified) == 1
+        assert user.identities.nin is not None
+        assert user.identities.nin.is_verified is True
 
     @patch('eduid.webapp.security.views.security.remove_nin_from_user')
     def test_remove_nin_am_fail(self, mock_remove: Any):
-        from eduid.webapp.common.api.exceptions import AmTaskFailed
+        from eduid.common.rpc.exceptions import AmTaskFailed
 
         mock_remove.side_effect = AmTaskFailed()
         response = self._remove_nin()
@@ -321,16 +330,16 @@ class SecurityTests(EduidAPITestCase):
         self.assertTrue(response.json['payload']['error'])
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.count, 2)
-        self.assertEqual(len(user.nins.verified), 1)
+        assert user.identities.nin is not None
+        assert user.identities.nin.is_verified is True
 
     def test_remove_verified_nin(self):
-        response = self._remove_nin(unverify=False)
+        response = self._remove_nin()
         self._check_error_response(response, type_='POST_SECURITY_REMOVE_NIN_FAIL', msg=SecurityMsg.rm_verified)
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.count, 2)
-        self.assertEqual(len(user.nins.verified), 2)
+        assert user.identities.nin is not None
+        assert user.identities.nin.is_verified is True
 
     def test_add_nin(self):
         response = self._add_nin()
@@ -340,30 +349,43 @@ class SecurityTests(EduidAPITestCase):
             type_='POST_SECURITY_ADD_NIN_SUCCESS',
             msg=SecurityMsg.add_success,
             payload={
-                'nins': [
-                    {'number': '197801011234', 'primary': True, 'verified': True},
-                    {'number': '197801011235', 'primary': False, 'verified': False},
-                ]
+                'identities': {
+                    'is_verified': True,
+                    'eidas': {'verified': True, 'country_code': 'DE', 'date_of_birth': '1978-09-02'},
+                    'nin': {'number': self.test_user_nin, 'verified': False},
+                },
             },
         )
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.count, 2)
-        self.assertEqual(len(user.nins.verified), 1)
+        assert user.identities.nin is not None
+        assert user.identities.nin.is_verified is False
 
     def test_add_existing_nin(self):
         response = self._add_nin(remove=False)
 
-        self.assertFalse(response.json['payload']['success'])
         self.assertEqual(response.json['payload']['message'], 'nins.already_exists')
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.count, 2)
-        self.assertEqual(len(user.nins.verified), 2)
+        assert user.identities.nin is not None
+        assert user.identities.nin.is_verified is True
+
+    def test_add_other_existing_unverified_nin(self):
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        number_before = user.identities.nin.number
+        data1 = {'nin': '202201023456'}
+        response = self._add_nin(data1=data1, remove=False, unverify=True)
+
+        self.assertEqual(response.json['payload']['message'], 'nins.already_exists')
+
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert user.identities.nin is not None
+        assert user.identities.nin.is_verified is False
+        assert user.identities.nin.number == number_before
 
     @patch('eduid.webapp.security.views.security.add_nin_to_user')
     def test_add_nin_task_failed(self, mock_add):
-        from eduid.webapp.common.api.exceptions import AmTaskFailed
+        from eduid.common.rpc.exceptions import AmTaskFailed
 
         mock_add.side_effect = AmTaskFailed()
         response = self._add_nin()
@@ -377,8 +399,8 @@ class SecurityTests(EduidAPITestCase):
         self.assertTrue(response.json['payload']['error'])
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.count, 2)
-        self.assertEqual(len(user.nins.verified), 2)
+        assert user.identities.nin is not None
+        assert user.identities.nin.is_verified is True
 
     def test_add_invalid_nin(self):
         data1 = {'nin': '123456789'}
@@ -391,8 +413,8 @@ class SecurityTests(EduidAPITestCase):
             error={'nin': ['nin needs to be formatted as 18|19|20yymmddxxxx']},
         )
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.nins.count, 2)
-        self.assertEqual(len(user.nins.verified), 2)
+        assert user.identities.nin is not None
+        assert user.identities.nin.is_verified is True
 
     def test_refresh_user_official_name(self):
         """
@@ -408,10 +430,11 @@ class SecurityTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.given_name == 'Testaren Test'
         assert user.surname == 'Testsson'
-        # Do not overwrite display_name if it is set
-        assert user.display_name == 'John Smith'
+        assert user.display_name == 'Test Testsson'
         self._check_success_response(
-            response, type_='POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS', msg=SecurityMsg.user_updated,
+            response,
+            type_='POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS',
+            msg=SecurityMsg.user_updated,
         )
 
     def test_refresh_user_official_name_no_display_name(self):
@@ -430,7 +453,9 @@ class SecurityTests(EduidAPITestCase):
         assert user.surname == 'Testsson'
         assert user.display_name == 'Test Testsson'
         self._check_success_response(
-            response, type_='POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS', msg=SecurityMsg.user_updated,
+            response,
+            type_='POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS',
+            msg=SecurityMsg.user_updated,
         )
 
     def test_refresh_user_official_name_throttle(self):
@@ -450,9 +475,8 @@ class SecurityTests(EduidAPITestCase):
         Refresh an unverified users, make sure an error is returned.
         """
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        # Remove all verified nins from the users
-        for verified_nin in user.nins.verified:
-            user.nins.remove_handling_primary(verified_nin.key)
+        # Remove verified nin from the users
+        user.identities.remove(ElementKey(IdentityType.NIN))
         self.app.central_userdb.save(user)
         response = self._refresh_user_data(user=user)
         self._check_error_response(

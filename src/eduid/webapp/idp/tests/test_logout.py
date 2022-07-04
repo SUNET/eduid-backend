@@ -28,12 +28,14 @@ class IdPTestLogout(IdPTests):
     def update_config(self, config):
         config = super().update_config(config)
         config.update(
-            {'enable_legacy_template_mode': True,}
+            {
+                'enable_legacy_template_mode': True,
+            }
         )
         return config
 
     def test_basic_logout(self):
-        """ This logs in, then out - but it calls the SOAP binding with the SSO cookie present """
+        """This logs in, then out - but it calls the SOAP binding with the SSO cookie present"""
         with self.browser.session_transaction() as sess:
             # Patch the VCCSClient so we do not need a vccs server
             with patch.object(VCCSClient, 'authenticate'):
@@ -128,7 +130,12 @@ class IdPTestLogout(IdPTests):
         session_indexes = [session_info['session_index']]
 
         req_id, request = self.saml2_client.create_logout_request(
-            destination, self.idp_entity_id, name_id=name_id, reason='', expire=None, session_indexes=session_indexes,
+            destination,
+            self.idp_entity_id,
+            name_id=name_id,
+            reason='',
+            expire=None,
+            session_indexes=session_indexes,
         )
 
         relay_state = 'testing-testing'

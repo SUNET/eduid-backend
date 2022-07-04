@@ -153,50 +153,50 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
 @users_router.post('/', response_model=UserResponse, response_model_exclude_none=True)
 async def on_post(req: ContextRequest, resp: Response, create_request: UserCreateRequest) -> UserResponse:
     """
-           POST /Users  HTTP/1.1
-           Host: example.com
-           Accept: application/scim+json
-           Content-Type: application/scim+json
-           Authorization: Bearer h480djs93hd8
-           Content-Length: ...
+    POST /Users  HTTP/1.1
+    Host: example.com
+    Accept: application/scim+json
+    Content-Type: application/scim+json
+    Authorization: Bearer h480djs93hd8
+    Content-Length: ...
 
-           {
-             "schemas":["urn:ietf:params:scim:schemas:core:2.0:User"],
-             "userName":"bjensen",
-             "externalId":"bjensen",
-             "name":{
-               "formatted":"Ms. Barbara J Jensen III",
-               "familyName":"Jensen",
-               "givenName":"Barbara"
-             }
-           }
+    {
+      "schemas":["urn:ietf:params:scim:schemas:core:2.0:User"],
+      "userName":"bjensen",
+      "externalId":"bjensen",
+      "name":{
+        "formatted":"Ms. Barbara J Jensen III",
+        "familyName":"Jensen",
+        "givenName":"Barbara"
+      }
+    }
 
 
-           HTTP/1.1 201 Created
-           Content-Type: application/scim+json
-           Location:
-            https://example.com/v2/Users/2819c223-7f76-453a-919d-413861904646
-           ETag: W/"e180ee84f0671b1"
+    HTTP/1.1 201 Created
+    Content-Type: application/scim+json
+    Location:
+     https://example.com/v2/Users/2819c223-7f76-453a-919d-413861904646
+    ETag: W/"e180ee84f0671b1"
 
-           {
-             "schemas":["urn:ietf:params:scim:schemas:core:2.0:User"],
-             "id":"2819c223-7f76-453a-919d-413861904646",
-             "externalId":"bjensen",
-             "meta":{
-               "resourceType":"User",
-               "created":"2011-08-01T21:32:44.882Z",
-               "lastModified":"2011-08-01T21:32:44.882Z",
-               "location":
-           "https://example.com/v2/Users/2819c223-7f76-453a-919d-413861904646",
-               "version":"W\/\"e180ee84f0671b1\""
-             },
-             "name":{
-               "formatted":"Ms. Barbara J Jensen III",
-               "familyName":"Jensen",
-               "givenName":"Barbara"
-             },
-             "userName":"bjensen"
-           }
+    {
+      "schemas":["urn:ietf:params:scim:schemas:core:2.0:User"],
+      "id":"2819c223-7f76-453a-919d-413861904646",
+      "externalId":"bjensen",
+      "meta":{
+        "resourceType":"User",
+        "created":"2011-08-01T21:32:44.882Z",
+        "lastModified":"2011-08-01T21:32:44.882Z",
+        "location":
+    "https://example.com/v2/Users/2819c223-7f76-453a-919d-413861904646",
+        "version":"W\/\"e180ee84f0671b1\""
+      },
+      "name":{
+        "formatted":"Ms. Barbara J Jensen III",
+        "familyName":"Jensen",
+        "givenName":"Barbara"
+      },
+      "userName":"bjensen"
+    }
     """
 
     req.app.context.logger.info(f'Creating user')
@@ -247,36 +247,36 @@ async def on_post(req: ContextRequest, resp: Response, create_request: UserCreat
 @users_router.post('/.search', response_model=ListResponse, response_model_exclude_none=True)
 async def search(req: ContextRequest, query: SearchRequest) -> ListResponse:
     """
-       POST /Users/.search
-       Host: scim.eduid.se
-       Accept: application/scim+json
+    POST /Users/.search
+    Host: scim.eduid.se
+    Accept: application/scim+json
 
-       {
-         "schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"],
-         "attributes": ["givenName", "familyName"],
-         "filter": "id eq \"takaj-jorar\"",
-         "startIndex": 1,
-         "count": 1
-       }
+    {
+      "schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"],
+      "attributes": ["givenName", "familyName"],
+      "filter": "id eq \"takaj-jorar\"",
+      "startIndex": 1,
+      "count": 1
+    }
 
 
 
-       HTTP/1.1 200 OK
-       Content-Type: application/scim+json
-       Location: https://example.com/Users/.search
+    HTTP/1.1 200 OK
+    Content-Type: application/scim+json
+    Location: https://example.com/Users/.search
 
-       {
-         "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
-         "totalResults": 1,
-         "itemsPerPage": 1,
-         "startIndex": 1,
-         "Resources": [
-           {
-             "givenName": "Kim",
-             "familyName": "Svensson"
-           }
-         ]
-       }
+    {
+      "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+      "totalResults": 1,
+      "itemsPerPage": 1,
+      "startIndex": 1,
+      "Resources": [
+        {
+          "givenName": "Kim",
+          "familyName": "Svensson"
+        }
+      ]
+    }
     """
     req.app.context.logger.info(f'Searching for users(s)')
     req.app.context.logger.debug(f'Parsed user search query: {query}')

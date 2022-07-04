@@ -139,8 +139,8 @@ class Element(BaseModel):
     modified_ts: datetime = Field(default_factory=utc_now)
     # This is a short-term hack to deploy new dataclass based elements without
     # any changes to data in the production database. Remove after a burn-in period.
-    no_created_ts_in_db: bool = False
-    no_modified_ts_in_db: bool = False
+    no_created_ts_in_db: bool = Field(default=False, exclude=True)
+    no_modified_ts_in_db: bool = Field(default=False, exclude=True)
 
     class Config:
         allow_population_by_field_name = True  # allow setting created_ts by name, not just it's alias
@@ -205,15 +205,13 @@ class Element(BaseModel):
         """
         # If there was no modified_ts in the data that was loaded from the database,
         # don't write one back if it matches the implied one of created_ts
-        if 'no_modified_ts_in_db' in data:
-            if data.pop('no_modified_ts_in_db') is True:
-                if data.get('modified_ts') == data.get('created_ts'):
-                    del data['modified_ts']
+        if self.no_modified_ts_in_db is True:
+            if data.get('modified_ts') == data.get('created_ts'):
+                del data['modified_ts']
 
-        if 'no_created_ts_in_db' in data:
-            if data.pop('no_created_ts_in_db') is True:
-                if 'created_ts' in data:
-                    del data['created_ts']
+        if self.no_created_ts_in_db is True:
+            if 'created_ts' in data:
+                del data['created_ts']
 
         return data
 
@@ -234,7 +232,7 @@ class VerifiedElement(Element, ABC):
     Elements that can be verified or not.
     """
 
-    is_verified: bool = False
+    is_verified: bool = Field(default=False, alias='verified')
     verified_by: Optional[str] = None
     verified_ts: Optional[datetime] = None
 
@@ -305,8 +303,8 @@ class PrimaryElement(VerifiedElement, ABC):
         return data
 
 
-ListElement = TypeVar('ListElement')
-MatchingElement = TypeVar('MatchingElement')
+ListElement = TypeVar('ListElement', bound=Element)
+MatchingElement = TypeVar('MatchingElement', bound=Element)
 
 
 class ElementList(GenericModel, Generic[ListElement], ABC):
@@ -384,9 +382,7 @@ class ElementList(GenericModel, Generic[ListElement], ABC):
             return None
         if len(res) > 1:
             raise EduIDUserDBError('More than one element found')
-        # mypy figures out the real type of elements in `res' since isinstance() is used above and complains
-        #    error: Incompatible return value type (got "Element", expected "Optional[ListElement]")
-        return res[0]  # type: ignore
+        return res[0]
 
     def add(self, element: ListElement):
         """
@@ -430,7 +426,26 @@ class ElementList(GenericModel, Generic[ListElement], ABC):
         return len(self.elements)
 
 
-class PrimaryElementList(ElementList[ListElement], Generic[ListElement], ABC):
+class VerifiedElementList(ElementList[ListElement], Generic[ListElement], ABC):
+    """
+    Hold a list of VerifiedElement instances.
+
+    Provides methods specific for a collection of verified elements.
+    """
+
+    @property
+    def verified(self) -> List[ListElement]:
+        """
+        Get all the verified elements in the ElementList.
+
+        """
+        verified_elements = [e for e in self.elements if isinstance(e, VerifiedElement) and e.is_verified]
+        # mypy figures out the real type of `verified_elements' since isinstance() is used above and complains
+        #    error: Incompatible return value type (got "List[VerifiedElement]", expected "List[ListElement]")
+        return verified_elements  # type: ignore
+
+
+class PrimaryElementList(VerifiedElementList[ListElement], Generic[ListElement], ABC):
     """
     Hold a list of PrimaryElement instances.
 
@@ -541,17 +556,6 @@ class PrimaryElementList(ElementList[ListElement], Generic[ListElement], ABC):
         #    error: Incompatible return value type (got "PrimaryElement", expected "Optional[ListElement]")
         return res[0]  # type: ignore
 
-    @property
-    def verified(self) -> List[ListElement]:
-        """
-        Get all the verified elements in the ElementList.
-
-        """
-        verified_elements = [e for e in self.elements if isinstance(e, VerifiedElement) and e.is_verified]
-        # mypy figures out the real type of `verified_elements' since isinstance() is used above and complains
-        #    error: Incompatible return value type (got "List[VerifiedElement]", expected "List[ListElement]")
-        return verified_elements  # type: ignore
-
     def remove(self, key: ElementKey) -> None:
         """
         Remove an existing Element from the list. Removing the primary element is not allowed.
@@ -570,7 +574,7 @@ class PrimaryElementList(ElementList[ListElement], Generic[ListElement], ABC):
         return None
 
     def remove_handling_primary(self, key: ElementKey) -> None:
-        """ Remove an element from the list. If the element is primary, first promote
+        """Remove an element from the list. If the element is primary, first promote
         any other present verified element to primary in order to not get a PrimaryElementViolation.
 
         TODO: This should perhaps be done in the regular `remove' method of PrimaryElementList,

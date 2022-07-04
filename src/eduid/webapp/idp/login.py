@@ -17,7 +17,7 @@ import time
 from base64 import b64encode
 from dataclasses import dataclass
 from hashlib import sha256
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Mapping, Optional, Union
 from uuid import uuid4
 
 from defusedxml import ElementTree as DefusedElementTree
@@ -30,6 +30,7 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.utils import urlappend
+from eduid.userdb import User
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.idp.user import SAMLAttributeSettings
 from eduid.webapp.common.api import exceptions
@@ -52,7 +53,7 @@ from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.idp_saml import ResponseArgs, SamlResponse
 from eduid.webapp.idp.login_context import LoginContext, LoginContextOtherDevice, LoginContextSAML
 from eduid.webapp.idp.mfa_action import add_mfa_action, need_security_key, process_mfa_action_results
-from eduid.webapp.idp.mischttp import HttpArgs, get_default_template_arguments
+from eduid.webapp.idp.mischttp import HttpArgs, get_default_template_arguments, get_user_agent
 from eduid.webapp.idp.other_device.data import OtherDeviceState
 from eduid.webapp.idp.service import SAMLQueryParams, Service
 from eduid.webapp.idp.sso_session import SSOSession
@@ -77,9 +78,7 @@ class NextResult(BaseModel):
     error: bool = False
     authn_info: Optional[AuthnInfo] = None
     authn_state: Optional[AuthnState] = None
-    # kludge for the template processing, pydantic doesn't embed dataclasses very well:
-    #  TypeError: non-default argument 'mail_addresses' follows default argument
-    user: Optional[Any] = None
+    user: Optional[User] = None
 
     class Config:
         # don't reject WerkzeugResponse
@@ -93,10 +92,40 @@ class NextResult(BaseModel):
 
 
 def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], template_mode: bool = False) -> NextResult:
-    """ The main state machine for the login flow(s). """
+    """The main state machine for the login flow(s)."""
     if ticket.pending_request.aborted:
         current_app.logger.debug('Login request is aborted')
         return NextResult(message=IdPMsg.aborted)
+
+    if current_app.conf.known_devices_feature_enabled:
+        if ticket.known_device_info and ticket.remember_me is False:
+            current_app.logger.debug('Forgetting user device upon request by user')
+            # User has requested that eduID do not remember them on this device. Forgetting a device is done
+            # using ttl to give the user a grace period in which they can revert the decision.
+            if ticket.known_device:
+                current_app.known_device_db.save(
+                    ticket.known_device,
+                    from_browser=ticket.known_device_info,
+                    ttl=current_app.conf.known_devices_new_ttl,
+                )
+            ticket.forget_known_device()
+            current_app.stats.count('login_known_device_forgotten')
+
+        if not ticket.known_device:
+            _require_known_device = True
+
+            ua = get_user_agent()
+            if ua and (ua.parsed.is_bot or ua.parsed.browser.family in ['Python Requests', 'PingdomBot']):
+                # Except monitoring and bots from the known device requirement (for now at least)
+                current_app.logger.debug(f'Not requiring known_device from UA {str(ua)}')
+
+            if ticket.remember_me is False:
+                current_app.logger.info('User asks to not be remembered')
+                _require_known_device = False
+
+            if _require_known_device:
+                current_app.logger.debug('Login request from unknown device')
+                return NextResult(message=IdPMsg.unknown_device)
 
     if current_app.conf.allow_other_device_logins:
         if ticket.is_other_device_1:
@@ -168,7 +197,7 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
 @dataclass
 class SAMLResponseParams:
     url: str
-    post_params: Dict[str, str]
+    post_params: Mapping[str, Optional[Union[str, bool]]]
     # Parameters for the old template realm
     binding: str
     http_args: HttpArgs
@@ -205,7 +234,7 @@ class SSO(Service):
         return self._redirect_or_post(_info, BINDING_HTTP_POST)
 
     def _redirect_or_post(self, info: SAMLQueryParams, binding: str) -> WerkzeugResponse:
-        """ Common code for redirect() and post() endpoints. """
+        """Common code for redirect() and post() endpoints."""
 
         ticket = get_ticket(info, binding)
         if not ticket:
@@ -317,17 +346,26 @@ class SSO(Service):
 
         # INFO-Log the SSO session id and the AL and destination
         current_app.logger.info(f'{ticket.request_ref}: response authn={authn_info}, dst={destination}')
-        self._fticks_log(
-            relying_party=resp_args.get('sp_entity_id', destination),
-            authn_method=authn_info.class_ref,
-            user_id=str(user.user_id),
-        )
+        _used = ticket.pending_request.used
+        ticket.pending_request.used = True
+        if not _used:
+            self._fticks_log(
+                relying_party=resp_args.get('sp_entity_id', destination),
+                authn_method=authn_info.class_ref,
+                user_id=str(user.user_id),
+            )
 
         params = {
             'SAMLResponse': b64encode(str(saml_response).encode('utf-8')).decode('ascii'),
             'RelayState': ticket.RelayState,
+            'used': _used,
         }
-        return SAMLResponseParams(url=http_args.url, post_params=params, binding=binding, http_args=http_args)
+        return SAMLResponseParams(
+            url=http_args.url,
+            post_params=params,
+            binding=binding,
+            http_args=http_args,
+        )
 
     def _make_saml_response(
         self,
@@ -435,7 +473,11 @@ class SSO(Service):
             bytes(current_app.conf.fticks_secret_key, 'ascii'), msg=bytes(user_id, 'ascii'), digestmod=sha256
         ).hexdigest()
         msg = current_app.conf.fticks_format_string.format(
-            ts=_timestamp, rp=relying_party, ap=current_app.IDP.config.entityid, pn=_anon_userid, am=authn_method,
+            ts=_timestamp,
+            rp=relying_party,
+            ap=current_app.IDP.config.entityid,
+            pn=_anon_userid,
+            am=authn_method,
         )
         current_app.logger.info(msg)
 
@@ -671,7 +713,7 @@ def get_ticket(info: SAMLQueryParams, binding: Optional[str]) -> Optional[LoginC
 
     pending = session.idp.pending_requests[info.request_ref]
     if isinstance(pending, IdP_SAMLPendingRequest):
-        return LoginContextSAML(info.request_ref)
+        return LoginContextSAML(request_ref=info.request_ref)
     elif isinstance(pending, IdP_OtherDevicePendingRequest):
         logger.debug(f'get_ticket: Loading IdP_OtherDevicePendingRequest (state_id {pending.state_id})')
         state = None

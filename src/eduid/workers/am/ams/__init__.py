@@ -50,37 +50,49 @@ class eduid_oidc_proofing(AttributeFetcher):
 
     whitelist_set_attrs = [
         # TODO: Arrays must use put or pop, not set, but need more deep refacts
-        'nins',  # New format
+        'nins',  # Old format
+        'identities',  # New format
         'givenName',
-        'surname',  # New format
+        'surname',
         'displayName',
     ]
-    whitelist_unset_attrs = ['norEduPersonNIN', 'nins']  # New format
+    whitelist_unset_attrs = [
+        'identities',
+        'nins',  # Old format
+    ]
     get_user_db = lambda cls, uri: OidcProofingUserDB(uri)
 
 
 class eduid_letter_proofing(AttributeFetcher):
 
     whitelist_set_attrs = [
-        'nins',  # New format
+        'nins',  # Old format
+        'identities',  # New format
         'letter_proofing_data',
         'givenName',
-        'surname',  # New format
+        'surname',
         'displayName',
     ]
-    whitelist_unset_attrs = ['norEduPersonNIN', 'nins']  # New format
+    whitelist_unset_attrs = [
+        'identities',
+        'nins',  # Old format
+    ]
     get_user_db = lambda cls, uri: LetterProofingUserDB(uri)
 
 
 class eduid_lookup_mobile_proofing(AttributeFetcher):
 
     whitelist_set_attrs = [
-        'nins',  # New format
+        'nins',  # Old format
+        'identities',  # New format
         'givenName',
-        'surname',  # New format
+        'surname',
         'displayName',
     ]
-    whitelist_unset_attrs = ['norEduPersonNIN', 'nins']  # New format
+    whitelist_unset_attrs = [
+        'identities',
+        'nins',  # Old format
+    ]
     get_user_db = lambda cls, uri: LookupMobileProofingUserDB(uri)
 
 
@@ -89,7 +101,6 @@ class eduid_email(AttributeFetcher):
     whitelist_set_attrs = ['mailAliases']
     whitelist_unset_attrs = [
         'mailAliases',
-        'mail',  # Old format
     ]
     get_user_db = lambda cls, uri: EmailProofingUserDB(uri)
 
@@ -99,7 +110,6 @@ class eduid_phone(AttributeFetcher):
     whitelist_set_attrs = ['phone']
     whitelist_unset_attrs = [
         'phone',
-        'mobile',  # Old format
     ]
     get_user_db = lambda cls, uri: PhoneProofingUserDB(uri)
 
@@ -108,12 +118,9 @@ class eduid_personal_data(AttributeFetcher):
 
     whitelist_set_attrs = [
         'givenName',
-        'surname',  # New format
+        'surname',
         'displayName',
         'preferredLanguage',
-    ]
-    whitelist_unset_attrs = [
-        'sn',  # Old format
     ]
     get_user_db = lambda cls, uri: PersonalDataUserDB(uri)
 
@@ -123,7 +130,8 @@ class eduid_security(AttributeFetcher):
     whitelist_set_attrs = [
         'passwords',
         'terminated',
-        'nins',  # For AL1 downgrade on password reset
+        'nins',  # Old format for AL1 downgrade on password reset
+        'identities',  # For AL1 downgrade on password reset
         'phone',  # For AL1 downgrade on password reset
         'givenName',  # For updating user from official source (Navet)
         'surname',  # For updating user from official source (Navet)
@@ -132,8 +140,8 @@ class eduid_security(AttributeFetcher):
     whitelist_unset_attrs = [
         'passwords',
         'terminated',
-        'norEduPersonNIN',  # For AL1 downgrade on password reset
-        'nins',  # For AL1 downgrade on password reset
+        'nins',  # Old format for AL1 downgrade on password reset
+        'identities',  # For AL1 downgrade on password reset
         'phone',  # For AL1 downgrade on password reset
     ]
     get_user_db = lambda cls, uri: SecurityUserDB(uri)
@@ -144,14 +152,15 @@ class eduid_reset_password(AttributeFetcher):
     whitelist_set_attrs = [
         'passwords',
         'terminated',  # For revoking termination status
-        'nins',  # For AL1 downgrade on password reset
+        'nins',  # Old format for AL1 downgrade on password reset
+        'identities',  # For AL1 downgrade on password reset
         'phone',  # For AL1 downgrade on password reset
     ]
     whitelist_unset_attrs = [
         'passwords',
         'terminated',  # For revoking termination status
-        'norEduPersonNIN',  # For AL1 downgrade on password reset
-        'nins',  # For AL1 downgrade on password reset
+        'nins',  # Old format for AL1 downgrade on password reset
+        'identities',  # For AL1 downgrade on password reset
         'phone',  # For AL1 downgrade on password reset
     ]
     get_user_db = lambda cls, uri: ResetPasswordUserDB(uri)
@@ -172,12 +181,16 @@ class eduid_eidas(AttributeFetcher):
 
     whitelist_set_attrs = [
         'passwords',
-        'nins',
+        'nins',  # Old format
+        'identities',
         'givenName',
-        'surname',  # New format
+        'surname',
         'displayName',
     ]
-    whitelist_unset_attrs: List[str] = []
+    whitelist_unset_attrs: List[str] = [
+        'identities',
+        'nins',  # Old format
+    ]
     get_user_db = lambda cls, uri: EidasProofingUserDB(uri)
 
 

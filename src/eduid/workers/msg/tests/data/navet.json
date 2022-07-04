@@ -12,6 +12,7 @@
                 "PersonId": {
                     "NationalIdentityNumber": "197609272393"
                 },
+                "DeregistrationInformation": {},
                 "PostalAddresses": {
                     "OfficialAddress": {
                         "Address1": "\u00d6VER G\u00c5RDEN",

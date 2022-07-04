@@ -2,7 +2,7 @@ import datetime
 from hashlib import sha256
 from unittest import TestCase
 
-from eduid.userdb.credentials import CredentialList
+from eduid.userdb.credentials import CredentialList, CredentialProofingMethod
 
 __author__ = 'lundberg'
 
@@ -10,19 +10,16 @@ _one_dict = {
     'app_id': 'unit test',
     'keyhandle': 'firstWebauthnElement',
     'credential_data': 'bar',
-    'attest_obj': 'foo',
 }
 _two_dict = {
     'app_id': 'unit test',
     'keyhandle': 'secondWebauthnElement',
     'credential_data': 'bar',
-    'attest_obj': 'foo',
 }
 _three_dict = {
     'app_id': 'unit test',
     'keyhandle': 'thirdWebauthnElement',
     'credential_data': 'bar',
-    'attest_obj': 'foo',
 }
 
 
@@ -47,7 +44,6 @@ class TestWebauthn(TestCase):
             _keyid(
                 {
                     'keyhandle': this.keyhandle,
-                    'attestation_object': this.attest_obj,
                     'credential_data': this.credential_data,
                 }
             ),
@@ -72,10 +68,10 @@ class TestWebauthn(TestCase):
 
     def test_proofing_method(self):
         this = self.three.find(_keyid(_three_dict))
-        this.proofing_method = 'TEST'
-        self.assertEqual(this.proofing_method, 'TEST')
-        this.proofing_method = 'TEST2'
-        self.assertEqual(this.proofing_method, 'TEST2')
+        this.proofing_method = CredentialProofingMethod.SWAMID_AL2_MFA
+        self.assertEqual(this.proofing_method, CredentialProofingMethod.SWAMID_AL2_MFA)
+        this.proofing_method = CredentialProofingMethod.SWAMID_AL2_MFA_HI
+        self.assertEqual(this.proofing_method, CredentialProofingMethod.SWAMID_AL2_MFA_HI)
         this.proofing_method = None
         self.assertEqual(this.proofing_method, None)
 

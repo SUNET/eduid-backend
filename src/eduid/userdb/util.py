@@ -35,6 +35,8 @@ __author__ = 'ft'
 
 import datetime
 
+from bson import ObjectId
+
 
 class UTC(datetime.tzinfo):
     """UTC"""
@@ -51,5 +53,9 @@ class UTC(datetime.tzinfo):
 
 # NOTE: This function is copied from eduid.webapp.common.misc.timeutil because eduid-userdb can't import eduid.webapp.common
 def utc_now() -> datetime.datetime:
-    """ Return current time with tz=UTC """
+    """Return current time with tz=UTC"""
     return datetime.datetime.now(tz=datetime.timezone.utc)
+
+
+def objectid_str() -> str:
+    return str(ObjectId())

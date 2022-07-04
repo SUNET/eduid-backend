@@ -33,8 +33,9 @@
 #
 from datetime import timedelta
 from enum import Enum
-from typing import Optional
+from typing import List, Optional
 
+from fido_mds.models.fido_mds import AuthenticatorStatus
 from pydantic import Field
 
 from eduid.common.config.base import (
@@ -87,8 +88,37 @@ class SecurityConfig(
     chpass_old_password_needed: bool = True
 
     # webauthn
+    webauthn_proofing_method = Field(default='webauthn metadata')
+    webauthn_proofing_version = Field(default='2022v1')
     webauthn_max_allowed_tokens: int = 10
     webauthn_attestation: Optional[WebauthnAttestation] = None
+    webauthn_allowed_user_verification_methods: List[str] = Field(
+        default=[
+            'faceprint_internal',
+            'passcode_external',
+            'passcode_internal',
+            'handprint_internal',
+            'pattern_internal',
+            'voiceprint_internal',
+            'fingerprint_internal',
+            'eyeprint_internal',
+            'apple',
+        ]
+    )
+    webauthn_allowed_key_protection: List[str] = Field(
+        default=['remote_handle', 'hardware', 'secure_element', 'tee', 'apple']
+    )
+    webauthn_allowed_status: List[AuthenticatorStatus] = Field(
+        default=[
+            AuthenticatorStatus.FIDO_CERTIFIED,
+            AuthenticatorStatus.FIDO_CERTIFIED_L1,
+            AuthenticatorStatus.FIDO_CERTIFIED_L2,
+            AuthenticatorStatus.FIDO_CERTIFIED_L3,
+            AuthenticatorStatus.FIDO_CERTIFIED_L1plus,
+            AuthenticatorStatus.FIDO_CERTIFIED_L2plus,
+            AuthenticatorStatus.FIDO_CERTIFIED_L3plus,
+        ]
+    )
 
     # for logging out when terminating an account
     logout_endpoint: str = '/services/authn/logout'

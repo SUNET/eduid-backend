@@ -101,14 +101,19 @@ class Plugin(ActionPlugin):
             authn_context = session.mfa_action.authn_context
             current_app.logger.info(f'User {user} logged in using external MFA service {issuer}')
             action.result = ActionResultThirdPartyMFA(
-                success=True, issuer=issuer, authn_instant=authn_instant, authn_context=authn_context,
+                success=True,
+                issuer=issuer,
+                authn_instant=authn_instant,
+                authn_context=authn_context,
             )
             current_app.actions_db.update_action(action)
             # Clear mfa_action from session
             del session.mfa_action
             return action.result
 
-        req_json = request.get_json()
+        req_json = request.get_json(
+            silent=True
+        )  # silent=True lets get_json return None even if mime-type is not application/json
         if not req_json:
             current_app.logger.error(f'No data in request to authn {user}')
             raise self.ActionError(ActionsMsg.no_data)

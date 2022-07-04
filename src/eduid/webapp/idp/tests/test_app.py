@@ -76,7 +76,9 @@ class IdPTests(EduidAPITestCase):
     """Base TestCase for those tests that need a full environment setup"""
 
     def setUp(
-        self, *args, **kwargs,
+        self,
+        *args,
+        **kwargs,
     ):
         super().setUp(*args, **kwargs)
         self.idp_entity_id = 'https://unittest-idp.example.edu/idp.xml'
@@ -110,6 +112,9 @@ class IdPTests(EduidAPITestCase):
                 'u2f_app_id': 'https://example.com',
                 'u2f_valid_facets': ['https://dashboard.dev.eduid.se', 'https://idp.dev.eduid.se'],
                 'fido2_rp_id': 'idp.example.com',
+                'other_device_secret_key': 'lx0sg0g21QUkiu9JAPfhx4hJ5prJtbk1PPE-OBvpiAk=',
+                'known_devices_secret_key': 'WwemHQgPm1hpx41NYaVBQpRV7BAq0OMtfF3k4H72J7c=',
+                'geo_statistics_secret_key': 'gk5cBWIZ6k-mNHWnA33ZpsgXfgH50Wi_s3mUNI9GF0o=',
             }
         )
         return config
@@ -249,7 +254,7 @@ class IdPTests(EduidAPITestCase):
         return self.app.sso_sessions.get_session(sso_cookie_val)
 
     def add_test_user_tou(self, version: Optional[str] = None) -> ToUEvent:
-        """ Utility function to add a valid ToU to the default test user """
+        """Utility function to add a valid ToU to the default test user"""
         if version is None:
             version = self.app.conf.tou_version
         tou = ToUEvent(

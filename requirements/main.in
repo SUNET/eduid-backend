@@ -28,7 +28,7 @@ py-bcrypt
 pyOpenSSL
 pyXMLSecurity[PKCS11]==0.21
 pydantic
-email-validator  # for pydantic
+email-validator<1.2.0  # for pydantic (pinned until example.com rejection is fixed)
 pymongo<4.0.0
 pynacl
 pysaml2>=7.1.0,==7.*
@@ -43,3 +43,4 @@ suds-community
 xhtml2pdf
 zxcvbn>=4.4.27,<5.0
 jwcrypto
+fido_mds

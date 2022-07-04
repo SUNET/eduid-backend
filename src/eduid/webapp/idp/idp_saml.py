@@ -55,7 +55,7 @@ SamlResponse = NewType('SamlResponse', str)
 
 
 class ServiceInfo(BaseModel):
-    """ Info about the service (SAML SP) where the user is logging in """
+    """Info about the service (SAML SP) where the user is logging in"""
 
     display_name: Dict[str, str]  # locale ('sv', 'en', ...) to display_name
 
@@ -65,7 +65,11 @@ class ServiceInfo(BaseModel):
 
 class IdP_SAMLRequest(object):
     def __init__(
-        self, request: str, binding: str, idp: saml2.server.Server, debug: bool = False,
+        self,
+        request: str,
+        binding: str,
+        idp: saml2.server.Server,
+        debug: bool = False,
     ):
         self._request = request
         self._binding = binding
@@ -126,7 +130,7 @@ class IdP_SAMLRequest(object):
         return self._req_info.message.requested_authn_context
 
     def get_requested_authn_contexts(self) -> List[str]:
-        """ SAML requested authn context. """
+        """SAML requested authn context."""
         if self.raw_requested_authn_context:
             res = [x.text for x in self.raw_requested_authn_context.authn_context_class_ref]
             for this in res:
@@ -175,7 +179,7 @@ class IdP_SAMLRequest(object):
 
     @property
     def login_subject(self) -> Optional[str]:
-        """ Get information about who the SP thinks should log in.
+        """Get information about who the SP thinks should log in.
 
         This is used by the IdPProxy when doing MFA Step-up authentication, to signal
         who must log in for the process to continue.
@@ -211,7 +215,7 @@ class IdP_SAMLRequest(object):
 
     @property
     def service_info(self) -> Optional[Dict[str, Any]]:
-        """ Information about the service where the user is logging in """
+        """Information about the service where the user is logging in"""
         if self._service_info is None:
             res: Dict[str, Any] = {}
             logger.debug(f'Looking up MDUI info in metadata for entity id {self.sp_entity_id}')
@@ -309,8 +313,7 @@ class IdP_SAMLRequest(object):
         return SamlResponse(saml_response)
 
     def apply_binding(self, resp_args: ResponseArgs, relay_state: str, saml_response: SamlResponse) -> HttpArgs:
-        """ Create the Javascript self-posting form that will take the user back to the SP with a SAMLResponse.
-        """
+        """Create the Javascript self-posting form that will take the user back to the SP with a SAMLResponse."""
         binding = resp_args.get('binding')
         destination = resp_args.get('destination')
         logger.debug(f'Applying binding {binding}, destination {destination}, relay_state {relay_state}')

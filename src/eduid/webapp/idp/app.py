@@ -45,10 +45,11 @@ from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.authn.utils import init_pysaml2
 from eduid.webapp.common.session import session
 from eduid.webapp.idp import idp_authn
+from eduid.webapp.idp.known_device import KnownDeviceDB
 from eduid.webapp.idp.other_device.db import OtherDeviceDB
 from eduid.webapp.idp.settings.common import IdPConfig
 from eduid.webapp.idp.sso_cache import SSOSessionCache
-from eduid.webapp.idp.sso_session import SSOSession, SSOSessionId
+from eduid.webapp.idp.sso_session import SSOSession, SSOSessionId, get_sso_session
 
 __author__ = 'ft'
 
@@ -79,86 +80,30 @@ class IdPApp(EduIDBaseApp):
 
         self.actions_db = ActionDB(config.mongo_uri)
 
-        self.userdb = IdPUserDb(db_uri=config.mongo_uri, db_name='eduid_am', collection='attributes')
+        self.userdb = IdPUserDb(db_uri=config.mongo_uri)
         self.authn = idp_authn.IdPAuthn(config=config, userdb=self.userdb)
         self.tou_db = ToUUserDB(config.mongo_uri)
         self.other_device_db = OtherDeviceDB(config.mongo_uri)
+        self.known_device_db = KnownDeviceDB(
+            config.mongo_uri,
+            app_secretbox_key=config.known_devices_secret_key,
+            new_ttl=config.known_devices_new_ttl,
+            ttl=config.known_devices_ttl,
+        )
 
         # Init celery
         self.am_relay = AmRelay(config)
 
         self.logger.info('eduid-IdP application started')
 
+    # OLD way, call sso_session.get_sso_session() directly instead, or use the @uses_sso_session decorator
     def _lookup_sso_session(self) -> Optional[SSOSession]:
         """
         Locate any existing SSO session for this request.
 
         :returns: SSO session if found (and valid)
         """
-        session = self._lookup_sso_session2()
-        if session:
-            self.logger.debug(f'SSO session found in the database: {session}')
-            _age = session.age
-            if _age > self.conf.sso_session_lifetime:
-                self.logger.debug(f'SSO session expired (age {_age} > {self.conf.sso_session_lifetime})')
-                return None
-            self.logger.debug(f'SSO session is still valid (age {_age} <= {self.conf.sso_session_lifetime})')
-        return session
-
-    def _lookup_sso_session2(self) -> Optional[SSOSession]:
-        """
-        See if a SSO session exists for this request, and return the data about
-        the currently logged in user from the session store.
-
-        :return: Data about currently logged in user
-        """
-        _sso = None
-
-        _session_id = self.get_sso_session_id()
-        if _session_id:
-            _sso = self.sso_sessions.get_session(_session_id)
-            self.logger.debug(f'Looked up SSO session using session ID {repr(_session_id)}: {_sso}')
-
-        if not _sso:
-            self.logger.debug('SSO session not found using IdP SSO cookie')
-
-            if session.idp.sso_cookie_val is not None:
-                # Debug issues with browsers not returning updated SSO cookie values.
-                # Only log partial cookie value since it allows impersonation if leaked.
-                _other_session_id = SSOSessionId(session.idp.sso_cookie_val)
-                self.logger.debug(
-                    'Found potential sso_cookie_val in the eduID session: ' f'({session.idp.sso_cookie_val[:8]}...)'
-                )
-                _other_sso = self.sso_sessions.get_session(_other_session_id)
-                if _other_sso is not None:
-                    self.logger.info(
-                        f'Found no SSO session, but found one from session.idp.sso_cookie_val: {_other_sso}'
-                    )
-
-            if session.common.eppn:
-                for this in self.sso_sessions.get_sessions_for_user(session.common.eppn):
-                    self.logger.info(
-                        f'Found no SSO session, but found SSO session for user {session.common.eppn}: {this}'
-                    )
-
-            return None
-        self.logger.debug(f'Loaded SSO session {_sso}')
-        return _sso
-
-    def get_sso_session_id(self) -> Optional[SSOSessionId]:
-        """
-        Get the SSO session id from the IdP SSO cookie.
-
-        :return: SSO session id
-        """
-        # local import to avoid import-loop
-        from eduid.webapp.idp.mischttp import read_cookie
-
-        _session_id = read_cookie(self.conf.sso_cookie.key)
-        if not _session_id:
-            return None
-        self.logger.debug(f'Got SSO session ID from IdP SSO cookie {repr(_session_id)}')
-        return SSOSessionId(_session_id)
+        return get_sso_session()
 
 
 current_idp_app = cast(IdPApp, current_app)
@@ -176,6 +121,8 @@ def init_idp_app(name: str = 'idp', test_config: Optional[Mapping[str, Any]] = N
     app = IdPApp(config, handle_exceptions=False)
 
     # Register views
+    from eduid.webapp.idp.views.error_info import error_info_views
+    from eduid.webapp.idp.views.known_device import known_device_views
     from eduid.webapp.idp.views.mfa_auth import mfa_auth_views
     from eduid.webapp.idp.views.misc import misc_views
     from eduid.webapp.idp.views.next import next_views
@@ -184,6 +131,7 @@ def init_idp_app(name: str = 'idp', test_config: Optional[Mapping[str, Any]] = N
     from eduid.webapp.idp.views.tou import tou_views
     from eduid.webapp.idp.views.use_other import other_device_views
 
+    app.register_blueprint(known_device_views)
     app.register_blueprint(mfa_auth_views)
     app.register_blueprint(misc_views)
     app.register_blueprint(next_views)
@@ -191,6 +139,7 @@ def init_idp_app(name: str = 'idp', test_config: Optional[Mapping[str, Any]] = N
     app.register_blueprint(pw_auth_views)
     app.register_blueprint(saml_views)
     app.register_blueprint(tou_views)
+    app.register_blueprint(error_info_views)
 
     from eduid.webapp.idp.exceptions import init_exception_handlers
 

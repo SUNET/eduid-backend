@@ -79,7 +79,7 @@ class VCCSYHSMHasher(VCCSHasher):
         self._yhsm = pyhsm.base.YHSM(device, debug)
 
     def unlock(self, password: str) -> None:
-        """ Unlock YubiHSM on startup. The password is supposed to be hex encoded. """
+        """Unlock YubiHSM on startup. The password is supposed to be hex encoded."""
         self._yhsm.unlock(unhexlify(password))
 
     def info(self) -> Any:

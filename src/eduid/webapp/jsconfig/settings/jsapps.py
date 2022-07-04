@@ -68,6 +68,9 @@ class JsAppsConfig(PasswordConfigMixin):
     request_other_url: Optional[
         HttpUrl
     ] = None  # Needs to be a full URL since the backend is on the idp, not on https://eduid.se
+    error_info_url: Optional[
+        HttpUrl
+    ] = None  # Needs to be a full URL since the backend is on the idp, not on https://eduid.se
     lookup_mobile_proofing_url: str
     mobile_url: Optional[str] = None  # should be replaced by phone_url
     oidc_proofing_freja_url: str

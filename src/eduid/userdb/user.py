@@ -36,7 +36,8 @@ from __future__ import annotations
 import copy
 from datetime import datetime
 from enum import Enum, unique
-from typing import Any, Dict, List, Mapping, Optional, Type, TypeVar, cast
+from operator import itemgetter
+from typing import Any, Dict, List, Mapping, Optional, Type, TypeVar, Union, cast
 
 import bson
 from pydantic import BaseModel, Extra, Field, root_validator, validator
@@ -46,6 +47,7 @@ from eduid.userdb.credentials import CredentialList
 from eduid.userdb.db import BaseDB
 from eduid.userdb.element import UserDBValueError
 from eduid.userdb.exceptions import UserHasNotCompletedSignup, UserIsRevoked
+from eduid.userdb.identity import IdentityList, IdentityType
 from eduid.userdb.ladok import Ladok
 from eduid.userdb.locked_identity import LockedIdentityList
 from eduid.userdb.mail import MailAddressList
@@ -72,15 +74,15 @@ class User(BaseModel):
     meta: Meta = Field(default_factory=Meta)
     eppn: str = Field(alias='eduPersonPrincipalName')
     user_id: bson.ObjectId = Field(default_factory=bson.ObjectId, alias='_id')
-    given_name: str = Field(default='', alias='givenName')
+    given_name: Optional[str] = Field(default=None, alias='givenName')
     display_name: Optional[str] = Field(default=None, alias='displayName')
-    surname: str = ''
+    surname: Optional[str] = None
     subject: Optional[SubjectType] = None
-    language: str = Field(default='sv', alias='preferredLanguage')
+    language: Optional[str] = Field(default=None, alias='preferredLanguage')
     mail_addresses: MailAddressList = Field(default_factory=MailAddressList, alias='mailAliases')
     phone_numbers: PhoneNumberList = Field(default_factory=PhoneNumberList, alias='phone')
     credentials: CredentialList = Field(default_factory=CredentialList, alias='passwords')
-    nins: NinList = Field(default_factory=NinList)
+    identities: IdentityList = Field(default_factory=IdentityList)
     modified_ts: Optional[datetime] = None  # TODO: remove after meta.modified_ts is used
     entitlements: List[str] = Field(default_factory=list, alias='eduPersonEntitlement')
     tou: ToUList = Field(default_factory=ToUList)
@@ -89,14 +91,14 @@ class User(BaseModel):
     orcid: Optional[Orcid] = None
     ladok: Optional[Ladok] = None
     profiles: ProfileList = Field(default_factory=ProfileList)
-    letter_proofing_data: Optional[list] = None
+    letter_proofing_data: Optional[Union[list, dict]] = None  # remove dict after a full load-save-users
     revoked_ts: Optional[datetime] = None
 
     class Config:
-        allow_population_by_field_name = True  # allow setting fields ex. given_name by name, not just it's alias
+        allow_population_by_field_name = True  # allow setting created_ts by name, not just it's alias
         validate_assignment = True  # validate data when updated, not just when initialised
         extra = Extra.forbid  # reject unknown data
-        arbitrary_types_allowed = True  # allow ObjectId as type
+        arbitrary_types_allowed = True  # allow ObjectId as type in Event
 
     @validator('eppn', pre=True)
     def check_eppn(cls, v: str) -> str:
@@ -107,6 +109,15 @@ class User(BaseModel):
                 if not v.startswith('hubba-') and 'test' not in v:
                     raise UserDBValueError(f'Malformed eppn ({v})')
         return v
+
+    @root_validator(pre=True)
+    def check_revoked(cls, values: Dict[str, Any]):
+        # raise exception if the user is revoked
+        if values.get('revoked_ts') is not None:
+            raise UserIsRevoked(
+                f'User {values.get("user_id")}/{values.get("eppn")} was revoked at {values.get("revoked_ts")}'
+            )
+        return values
 
     @root_validator()
     def update_meta_modified_ts(cls, values: Dict[str, Any]):
@@ -152,12 +163,6 @@ class User(BaseModel):
 
     @classmethod
     def _from_dict_transform(cls: Type[TUserSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
-        # raise exception if the user is revoked
-        if data.get('revoked_ts') is not None:
-            raise UserIsRevoked(
-                f'User {data.get("user_id")}/{data.get("eppn")} was revoked at {data.get("revoked_ts")}'
-            )
-
         # clean up sn
         if 'sn' in data:
             _sn = data.pop('sn')
@@ -166,10 +171,40 @@ class User(BaseModel):
             if 'surname' not in data:
                 data['surname'] = _sn
 
+        # migrate nins to identities
+        # TODO: Remove parsing of nins after next full load-save
+        _nins = data.pop('nins', None)
+        if _nins:  # check for None or empty list
+            nin_list = NinList.from_list_of_dicts(_nins)
+            if nin_list.count == 1:
+                _nin = nin_list.to_list_of_dicts()[0]
+            else:
+                # somehow the user has more than one nin
+                if nin_list.primary is not None:
+                    # use primary if any
+                    _nin = nin_list.primary.to_dict()
+                else:
+                    # else use the nin added first
+                    _nin = sorted(nin_list.to_list_of_dicts(), key=itemgetter('created_ts'))[0]
+            _identities = data.pop('identities', [])
+            existing_nin = [item for item in _identities if item.get('identity_type') == IdentityType.NIN.value]
+            if not existing_nin:  # workaround for users that did not get their nins list removed due to a bug in am
+                # Add identity type and remove primary key for old nin objects
+                _nin['identity_type'] = IdentityType.NIN.value
+                del _nin['primary']
+                _identities.append(_nin)
+            data['identities'] = _identities
+
+        # migrate LockedIdentity objects to IdentityElements
+        # is_verified was not part of LockedIdentity objects
+        # TODO: Remove after next full load-save
+        for _locked_nin in data.get('locked_identity', []):
+            _locked_nin['verified'] = True
+
         # parse complex data
         data['mail_addresses'] = cls._parse_mail_addresses(data)
         data['phone_numbers'] = cls._parse_phone_numbers(data)
-        data['nins'] = cls._parse_nins(data)
+        data['identities'] = cls._parse_identities(data)
         data['tou'] = cls._parse_tous(data)
         data['locked_identity'] = cls._parse_locked_identity(data)
         data['orcid'] = cls._parse_orcid(data)
@@ -186,16 +221,29 @@ class User(BaseModel):
         data['mailAliases'] = self.mail_addresses.to_list_of_dicts()
         data['phone'] = self.phone_numbers.to_list_of_dicts()
         data['passwords'] = self.credentials.to_list_of_dicts()
-        data['nins'] = self.nins.to_list_of_dicts()
+        data['identities'] = self.identities.to_list_of_dicts()
         if self.tou is not None:
             data['tou'] = self.tou.to_list_of_dicts()
         data['locked_identity'] = self.locked_identity.to_list_of_dicts()
         data['profiles'] = self.profiles.to_list_of_dicts()
-        data['orcid'] = None
         if self.orcid is not None:
             data['orcid'] = self.orcid.to_dict()
         if self.ladok is not None:
             data['ladok'] = self.ladok.to_dict()
+
+        # remove empty strings and empty lists
+        for key in list(data.keys()):
+            if data[key] in ['', []]:
+                if key in ['passwords', 'credentials']:
+                    # Empty lists are acceptable for these. When the UserHasNotComepletedSignup
+                    # exception is removed, this exception to the rule can be removed too.
+                    continue
+                del data[key]
+
+        # make sure letter_proofing_data is a list as some old users has a dict instead
+        if 'letter_proofing_data' in data and isinstance(data['letter_proofing_data'], dict):
+            data['letter_proofing_data'] = [data['letter_proofing_data']]
+
         return data
 
     @classmethod
@@ -230,6 +278,8 @@ class User(BaseModel):
         In case of problems they should raise whatever Exception is appropriate.
         """
         if 'passwords' not in data:
+            # When this exception is removed, _to_dict_transform (above) should be updated to no longer
+            # allow empty lists in 'password' or 'credential'
             raise UserHasNotCompletedSignup(
                 'User {!s}/{!s} is incomplete'.format(data.get('_id'), data.get('eduPersonPrincipalName'))
             )
@@ -302,32 +352,12 @@ class User(BaseModel):
         return PhoneNumberList.from_list_of_dicts(_phones)
 
     @classmethod
-    def _parse_nins(cls, data: Dict[str, Any]) -> NinList:
+    def _parse_identities(cls, data: Dict[str, Any]) -> IdentityList:
         """
-        Parse all the different formats of norEduPersonNIN attributes in the database.
+        Parse identity elements into an IdentityList
         """
-        _nins = data.pop('nins', [])
-        if 'norEduPersonNIN' in data:
-            # old-style list of verified nins
-            old_nins = data.pop('norEduPersonNIN')
-            for this in old_nins:
-                if isinstance(this, str):
-                    # XXX lookup NIN in eduid-dashboards verifications to make sure it is verified somehow?
-                    _primary = not _nins
-                    _nins.append({'number': this, 'primary': _primary, 'verified': True})
-                elif isinstance(this, dict):
-                    _nins.append(
-                        {
-                            'number': this.pop('number'),
-                            'primary': this.pop('primary'),
-                            'verified': this.pop('verified'),
-                        }
-                    )
-                    if len(this):
-                        raise UserDBValueError('Old-style NIN-as-dict has unknown data')
-                else:
-                    raise UserDBValueError('Old-style NIN is not a string or dict')
-        return NinList.from_list_of_dicts(_nins)
+        _identities = data.pop('identities', [])
+        return IdentityList.from_list_of_dicts(items=_identities)
 
     @classmethod
     def _parse_tous(cls, data: Dict[str, Any]) -> ToUList:

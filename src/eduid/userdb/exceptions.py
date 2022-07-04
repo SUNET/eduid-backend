@@ -18,7 +18,9 @@ class EduIDDBError(Exception):
 
     def __str__(self):
         return '<{cl} instance at {addr}: {reason!r}>'.format(
-            cl=self.__class__.__name__, addr=hex(id(self)), reason=self.reason,
+            cl=self.__class__.__name__,
+            addr=hex(id(self)),
+            reason=self.reason,
         )
 
 

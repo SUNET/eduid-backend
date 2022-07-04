@@ -60,7 +60,7 @@ logger = logging.getLogger(__name__)
 
 
 class ExternalAuthnData(BaseModel):
-    """ Per-authentication remembered data about a used ExternalCredential """
+    """Per-authentication remembered data about a used ExternalCredential"""
 
     issuer: str
     authn_context: str
@@ -81,12 +81,12 @@ class AuthnData(BaseModel):
         allow_population_by_field_name = True  # allow setting timestamp using it's name, not just the alias
 
     def to_dict(self) -> Dict[str, Any]:
-        """ Return the object in dict format (serialized for storing in MongoDB). """
+        """Return the object in dict format (serialized for storing in MongoDB)."""
         return self.dict()
 
     @classmethod
     def from_dict(cls: Type[AuthnData], data: Mapping[str, Any]) -> AuthnData:
-        """ Construct element from a data dict in database format. """
+        """Construct element from a data dict in database format."""
         return cls(**data)
 
 
@@ -109,7 +109,9 @@ class IdPAuthn(object):
     """
 
     def __init__(
-        self, config: IdPConfig, userdb: IdPUserDb,
+        self,
+        config: IdPConfig,
+        userdb: IdPUserDb,
     ):
         self.config = config
         self.userdb = userdb
@@ -357,14 +359,14 @@ class AuthnInfoStore:
         return None
 
     def get_user_authn_info(self, user: IdPUser) -> UserAuthnInfo:
-        """ Load stored Authn information for user. """
+        """Load stored Authn information for user."""
         data = self.collection.find({'_id': user.user_id})
         if not data.count():
             return UserAuthnInfo(failures_this_month=0, last_used_credentials=[])
         return UserAuthnInfo.from_dict(data[0])
 
     def get_credential_last_used(self, cred_id: str) -> Optional[datetime]:
-        """ Get the timestamp for when a specific credential was last used successfully.
+        """Get the timestamp for when a specific credential was last used successfully.
 
         :return: Time of last successful use, or None
         """
@@ -389,7 +391,7 @@ class UserAuthnInfo:
 
     @classmethod
     def from_dict(cls: Type[UserAuthnInfo], data: Dict[str, Any], ts: Optional[datetime] = None) -> UserAuthnInfo:
-        """ Construct element from a data dict in database format. """
+        """Construct element from a data dict in database format."""
         data = dict(data)  # to not modify callers data
 
         if ts is None:

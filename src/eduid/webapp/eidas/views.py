@@ -1,21 +1,20 @@
 # -*- coding: utf-8 -*-
-from typing import Union
+from typing import List, Optional, Union
 from uuid import uuid4
 
-from flask import Blueprint, abort, make_response, redirect, request, url_for
+from flask import Blueprint, abort, make_response, redirect, request
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.userdb import User
 from eduid.userdb.credentials.external import TrustFramework
-from eduid.userdb.credentials.fido import FidoCredential
 from eduid.userdb.element import ElementKey
-from eduid.webapp.authn.helpers import credential_used_to_authenticate
 from eduid.webapp.common.api.decorators import MarshalWith, require_user
+from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import FluxData, redirect_with_msg, success_response
 from eduid.webapp.common.api.schemas.csrf import EmptyResponse
-from eduid.webapp.common.api.utils import sanitise_redirect_url, urlappend
+from eduid.webapp.common.api.utils import sanitise_redirect_url
 from eduid.webapp.common.authn.acs_enums import EidasAcsAction
 from eduid.webapp.common.authn.acs_registry import get_action
 from eduid.webapp.common.authn.eduid_saml2 import process_assertion
@@ -25,6 +24,7 @@ from eduid.webapp.common.session.namespaces import AuthnRequestRef, MfaActionErr
 from eduid.webapp.eidas.app import current_eidas_app as current_app
 from eduid.webapp.eidas.helpers import (
     EidasMsg,
+    check_credential_to_verify,
     create_authn_request,
     create_metadata,
     is_required_loa,
@@ -50,30 +50,10 @@ def verify_token(user: User, credential_id: ElementKey) -> Union[FluxData, Werkz
     current_app.logger.debug(f'verify-token called with credential_id: {credential_id}')
     redirect_url = current_app.conf.token_verify_redirect_url
 
-    # Check if requested key id is a mfa token and if the user used that to log in
-    token_to_verify = user.credentials.find(credential_id)
-    if not isinstance(token_to_verify, FidoCredential):
-        current_app.logger.error(f'Credential {token_to_verify} is not a FidoCredential')
-        return redirect_with_msg(redirect_url, EidasMsg.token_not_found)
-
-    # Check if the credential was just now (within 60s) used to log in
-    credential_already_used = credential_used_to_authenticate(token_to_verify, max_age=60)
-
-    current_app.logger.debug(f'Credential {credential_id} recently used for login: {credential_already_used}')
-
-    if not credential_already_used:
-        # If token was not used for login, ask authn to authenticate the user again,
-        # and then return to this endpoint with the same credential_id. Better luck next time I guess.
-        current_app.logger.info(f'Started proofing of token {token_to_verify.key}, redirecting to authn')
-        reauthn_url = urlappend(current_app.conf.token_service_url, 'reauthn')
-        next_url = url_for('eidas.verify_token', credential_id=credential_id, _external=True)
-        # Add idp arg to next_url if set
-        idp = request.args.get('idp')
-        if idp:
-            next_url = f'{next_url}?idp={idp}'
-        redirect_url = f'{reauthn_url}?next={next_url}'
-        current_app.logger.debug(f'Redirecting user to {redirect_url}')
-        return redirect(redirect_url)
+    # verify that the user has the credential and that it was used for login recently
+    ret = check_credential_to_verify(user=user, credential_id=credential_id, redirect_url=redirect_url)
+    if ret is not None:
+        return ret
 
     # Store the id of the credential that is supposed to be proofed in the session
     session.eidas.verify_token_action_credential_id = credential_id
@@ -82,6 +62,28 @@ def verify_token(user: User, credential_id: ElementKey) -> Union[FluxData, Werkz
     required_loa = current_app.conf.required_loa
     framework = current_app.conf.trust_framework
     return _authn(EidasAcsAction.token_verify, framework, required_loa, force_authn=True, redirect_url=redirect_url)
+
+
+@eidas_views.route('/verify-token-foreign-eid/<credential_id>', methods=['GET'])
+@require_user
+def verify_token_foreign_eid(user: User, credential_id: ElementKey) -> Union[FluxData, WerkzeugResponse]:
+    current_app.logger.debug(f'verify-token-foreign-identity called with credential_id: {credential_id}')
+    redirect_url = current_app.conf.token_verify_redirect_url
+
+    # verify that the user has the credential and that it was used for login recently
+    ret = check_credential_to_verify(user=user, credential_id=credential_id, redirect_url=redirect_url)
+    if ret is not None:
+        return ret
+
+    # Store the id of the credential that is supposed to be proofed in the session
+    session.eidas.verify_token_action_credential_id = credential_id
+
+    # Request an authentication from the idp
+    required_loa = current_app.conf.foreign_required_loa
+    framework = current_app.conf.foreign_trust_framework
+    return _authn(
+        EidasAcsAction.token_verify_foreign_eid, framework, required_loa, force_authn=True, redirect_url=redirect_url
+    )
 
 
 @eidas_views.route('/verify-nin', methods=['GET'])
@@ -95,7 +97,24 @@ def verify_nin(user: User) -> WerkzeugResponse:
         framework,
         required_loa,
         force_authn=True,
-        redirect_url=current_app.conf.nin_verify_redirect_url,
+        redirect_url=current_app.conf.identity_verify_redirect_url,
+    )
+
+
+@eidas_views.route('/verify-foreign-identity', methods=['GET'])
+@require_user
+def verify_foreign_identity(user: User) -> WerkzeugResponse:
+    current_app.logger.debug('verify-foreign-identity called')
+    required_loa = current_app.conf.foreign_required_loa
+    framework = current_app.conf.foreign_trust_framework
+    eidas_connector = current_app.conf.foreign_identity_idp
+    return _authn(
+        EidasAcsAction.foreign_identity_verify,
+        framework,
+        required_loa,
+        force_authn=True,
+        redirect_url=current_app.conf.identity_verify_redirect_url,
+        idp=eidas_connector,
     )
 
 
@@ -108,8 +127,24 @@ def mfa_authentication() -> WerkzeugResponse:
     return _authn(EidasAcsAction.mfa_authn, framework, required_loa, force_authn=True, redirect_url=redirect_url)
 
 
+@eidas_views.route('/mfa-authentication-foreign-eid', methods=['GET'])
+def mfa_authentication_foreign_eid() -> WerkzeugResponse:
+    current_app.logger.debug('mfa-authentication foreign eid called')
+    redirect_url = sanitise_redirect_url(request.args.get('next', '/'))
+    required_loa = current_app.conf.foreign_required_loa
+    framework = current_app.conf.foreign_trust_framework
+    return _authn(
+        EidasAcsAction.mfa_authn_foreign_eid, framework, required_loa, force_authn=True, redirect_url=redirect_url
+    )
+
+
 def _authn(
-    action: EidasAcsAction, framework: TrustFramework, required_loa: str, force_authn: bool, redirect_url: str
+    action: EidasAcsAction,
+    framework: TrustFramework,
+    required_loa: List[str],
+    force_authn: bool,
+    redirect_url: str,
+    idp: Optional[str] = None,
 ) -> WerkzeugResponse:
     """
     :param action: name of action
@@ -124,7 +159,8 @@ def _authn(
     session.eidas.sp.authns[_authn_id] = SP_AuthnRequest(post_authn_action=action, redirect_url=redirect_url)
     current_app.logger.debug(f'Stored SP_AuthnRequest[{_authn_id}]: {session.eidas.sp.authns[_authn_id]}')
 
-    idp = request.args.get('idp')
+    if idp is None:
+        idp = request.args.get('idp')
     current_app.logger.debug(f'Requested IdP: {idp}')
 
     if check_magic_cookie(current_app.conf):
@@ -132,31 +168,38 @@ def _authn(
         idp = current_app.conf.magic_cookie_idp
         current_app.logger.debug(f'Changed requested IdP due to magic cookie: {idp}')
 
-    idps = current_app.saml2_config.metadata.identity_providers()
+    idps: List[str] = current_app.saml2_config.metadata.identity_providers()
     current_app.logger.debug(f'IdPs from metadata: {idps}')
 
-    if idp is not None and idp in idps:
-        authn_request = create_authn_request(
-            authn_ref=_authn_id,
-            selected_idp=idp,
-            framework=framework,
-            required_loa=required_loa,
-            force_authn=force_authn,
+    if idp not in idps:
+        if not current_app.conf.errors_url_template:
+            abort(make_response('Requested IdP not found in metadata', 404))
+        return goto_errors_response(
+            errors_url=current_app.conf.errors_url_template,
+            ctx=EduidErrorsContext.SAML_REQUEST_MISSING_IDP,
+            rp=current_app.saml2_config.entityid,
         )
-        # Clear session keys used for external mfa
-        del session.mfa_action
-        # Ideally, we should be able to support multiple ongoing external MFA requests at the same time,
-        # but for now at least remember the SAML request id and the login_ref (when the frontend has been
-        # updated to supply it to /mfa-authentication) so that the IdP can verify the login_ref matches
-        # when processing a successful response in session.mfa_action.
-        session.mfa_action.authn_req_ref = _authn_id
-        session.mfa_action.login_ref = login_ref
-        session.mfa_action.framework = framework
-        session.mfa_action.required_loa = required_loa
 
-        current_app.logger.info(f'Redirecting the user to {idp} for {action}')
-        return redirect(get_location(authn_request))
-    abort(make_response('Requested IdP not found in metadata', 404))
+    authn_request = create_authn_request(
+        authn_ref=_authn_id,
+        selected_idp=idp,
+        framework=framework,
+        required_loa=required_loa,
+        force_authn=force_authn,
+    )
+    # Clear session keys used for external mfa
+    del session.mfa_action
+    # Ideally, we should be able to support multiple ongoing external MFA requests at the same time,
+    # but for now at least remember the SAML request id and the login_ref (when the frontend has been
+    # updated to supply it to /mfa-authentication) so that the IdP can verify the login_ref matches
+    # when processing a successful response in session.mfa_action.
+    session.mfa_action.authn_req_ref = _authn_id
+    session.mfa_action.login_ref = login_ref
+    session.mfa_action.framework = framework
+    session.mfa_action.required_loa = required_loa
+
+    current_app.logger.info(f'Redirecting the user to {idp} for {action}')
+    return redirect(get_location(authn_request))
 
 
 @eidas_views.route('/saml2-acs', methods=['POST'])

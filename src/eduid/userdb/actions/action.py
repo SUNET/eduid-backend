@@ -91,7 +91,7 @@ class Action(BaseModel):
 
     @validator('action_id', pre=True)
     def action_id_objectid(cls, v):
-        """ Make ObjectId from serialised form (string) """
+        """Make ObjectId from serialised form (string)"""
         if isinstance(v, str):
             v = ObjectId(v)
         if not isinstance(v, ObjectId):
@@ -100,7 +100,7 @@ class Action(BaseModel):
 
     @validator('result', pre=True)
     def action_result(cls, v):
-        """ Decode results to the right variant of ActionResult """
+        """Decode results to the right variant of ActionResult"""
         if isinstance(v, dict):
             if 'issuer' in v and 'authn_instant' in v:
                 v = ActionResultThirdPartyMFA(**v)

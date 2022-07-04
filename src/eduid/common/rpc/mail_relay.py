@@ -36,7 +36,7 @@ from typing import List, Optional
 
 import eduid.workers.msg
 from eduid.common.config.base import MailConfigMixin
-from eduid.webapp.common.api.exceptions import MailTaskFailed
+from eduid.common.rpc.exceptions import MailTaskFailed
 
 logger = logging.getLogger(__name__)
 

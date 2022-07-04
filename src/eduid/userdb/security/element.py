@@ -10,8 +10,7 @@ from eduid.userdb.element import Element, ElementKey
 
 
 class CodeElement(Element):
-    """
-    """
+    """ """
 
     code: str
     is_verified: bool = Field(default=False, alias='verified')

@@ -1,12 +1,11 @@
 import logging
 import os
-from uuid import uuid4
+from unittest.mock import MagicMock, patch
 
-from mock import patch
+from requests import RequestException
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 
-from eduid.userdb.ladok import Ladok
 from eduid.vccs.client import VCCSClient
 from eduid.webapp.common.authn.utils import get_saml2_config
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
@@ -23,7 +22,11 @@ class IdPTestLogin(IdPTests):
     def update_config(self, config):
         config = super().update_config(config)
         config.update(
-            {'signup_link': 'TEST-SIGNUP-LINK', 'log_level': 'DEBUG', 'enable_legacy_template_mode': True,}
+            {
+                'signup_link': 'TEST-SIGNUP-LINK',
+                'log_level': 'DEBUG',
+                'enable_legacy_template_mode': True,
+            }
         )
         return config
 
@@ -31,7 +34,9 @@ class IdPTestLogin(IdPTests):
         next_url = '/back-to-test-marker'
 
         (session_id, info) = self.saml2_client.prepare_for_authenticate(
-            entityid=self.idp_entity_id, relay_state=next_url, binding=BINDING_HTTP_REDIRECT,
+            entityid=self.idp_entity_id,
+            relay_state=next_url,
+            binding=BINDING_HTTP_REDIRECT,
         )
 
         path = self._extract_path_from_info(info)
@@ -155,7 +160,7 @@ class IdPTestLogin(IdPTests):
     def test_with_authncontext(self):
         """
         Request REFEDS_MFA, but the test user does not have any MFA credentials.
-        The user can still login using external MFA though, so this test expects to be redirected to actions. """
+        The user can still login using external MFA though, so this test expects to be redirected to actions."""
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, 'authenticate'):
             VCCSClient.authenticate.return_value = True
@@ -259,3 +264,56 @@ class IdPTestLoginAPI(IdPAPITests):
         assert result.finished_result.payload['target'] == 'https://sp.example.edu/saml2/acs/'
         assert result.finished_result.payload['parameters']['RelayState'] == self.relay_state
         # TODO: test parsing the SAML response
+
+    def test_geo_statistics_success(self):
+        # pre-accept ToU for this test
+        self.add_test_user_tou(self.app.conf.tou_version)
+
+        # enable geo statistics
+        self.app.conf.geo_statistics_feature_enabled = True
+        self.app.conf.geo_statistics_url = 'http://eduid.docker'
+
+        # Patch the VCCSClient so we do not need a vccs server
+        with patch.object(VCCSClient, 'authenticate'):
+            VCCSClient.authenticate.return_value = True
+            with patch('requests.post', new_callable=MagicMock) as mock_post:
+                result = self._try_login(username=self.test_user.eppn, password='bar')
+                assert mock_post.call_count == 1
+                assert mock_post.call_args.kwargs.get('json') == {
+                    'data': {
+                        'user_id': 'f58a28aad6b221e6827b8ba4481bb5b6da3833acab5eab43d0f3371b218f6cdc',
+                        'client_ip': '127.0.0.1',
+                        'known_device': False,
+                        'user_agent': {
+                            'browser': {'family': 'Other'},
+                            'os': {'family': 'Other'},
+                            'device': {'family': 'Other'},
+                            'sophisticated': {
+                                'is_mobile': False,
+                                'is_pc': False,
+                                'is_tablet': False,
+                                'is_touch_capable': False,
+                            },
+                        },
+                    }
+                }
+
+        assert result.finished_result.payload['message'] == IdPMsg.finished.value
+
+    def test_geo_statistics_fail(self):
+        # pre-accept ToU for this test
+        self.add_test_user_tou(self.app.conf.tou_version)
+
+        # enable geo statistics
+        self.app.conf.geo_statistics_feature_enabled = True
+        self.app.conf.geo_statistics_url = 'http://eduid.docker'
+
+        # Patch the VCCSClient so we do not need a vccs server
+        with patch.object(VCCSClient, 'authenticate'):
+            VCCSClient.authenticate.return_value = True
+            with patch('requests.post', new_callable=MagicMock) as mock_post:
+                mock_post.side_effect = RequestException('Test Exception')
+                result = self._try_login(username=self.test_user.eppn, password='bar')
+                assert mock_post.call_count == 1
+
+        assert result.finished_result.payload['message'] == IdPMsg.finished.value

@@ -65,6 +65,7 @@ class MfaActionError(str, Enum):
     authn_context_mismatch = 'authn_context_mismatch'
     authn_too_old = 'authn_too_old'
     nin_not_matching = 'nin_not_matching'
+    foreign_eid_not_matching = 'foreign_eid_not_matching'
 
 
 class Common(SessionNSBase):
@@ -85,7 +86,7 @@ class MfaAction(SessionNSBase):
     credential_used: Optional[ElementKey] = None
     # Third-party MFA parameters
     framework: Optional[TrustFramework] = None
-    required_loa: Optional[str] = None
+    required_loa: List[str] = Field(default_factory=list)
     issuer: Optional[str] = None
     authn_instant: Optional[str] = None
     authn_context: Optional[str] = None
@@ -162,6 +163,7 @@ class OnetimeCredential(Credential):
 
 class IdP_PendingRequest(BaseModel, ABC):
     aborted: Optional[bool] = False
+    used: Optional[bool] = False  # set to True after the request has been completed (to handle 'back' button presses)
     template_show_msg: Optional[str]  # set when the template version of the idp should show a message to the user
     # Credentials used while authenticating _this SAML request_. Not ones inherited from SSO.
     credentials_used: Dict[ElementKey, datetime] = Field(default={})
@@ -201,7 +203,7 @@ class IdP_Namespace(TimestampedNS):
     def log_credential_used(
         self, request_ref: RequestRef, credential: Union[Credential, OnetimeCredential], timestamp: datetime
     ) -> None:
-        """ Log the credential used in the session, under this particular SAML request """
+        """Log the credential used in the session, under this particular SAML request"""
         if isinstance(credential, OnetimeCredential):
             self.pending_requests[request_ref].onetime_credentials[credential.key] = credential
         self.pending_requests[request_ref].credentials_used[credential.key] = timestamp

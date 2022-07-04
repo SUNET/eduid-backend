@@ -149,7 +149,7 @@ class TestGroupResource(ScimApiTestCase):
         return resources
 
     def _assertGroupUpdateSuccess(self, req: Mapping, response, group: ScimApiGroup):
-        """ Function to validate successful responses to SCIM calls that update a group according to a request. """
+        """Function to validate successful responses to SCIM calls that update a group according to a request."""
         if response.json().get('schemas') == [SCIMSchema.ERROR.value]:
             self.fail(f'Got SCIM error parsed_response ({response.status}):\n{response.json}')
 
@@ -431,7 +431,11 @@ class TestGroupResource_PUT(TestGroupResource):
         db_group = self.add_group(uuid4(), 'Test Group 1')
         _user_scim_id = str(uuid4())
         members = [
-            {'value': _user_scim_id, '$ref': f'http://localhost:8000/Users/{_user_scim_id}', 'display': 'Test User 1',}
+            {
+                'value': _user_scim_id,
+                '$ref': f'http://localhost:8000/Users/{_user_scim_id}',
+                'display': 'Test User 1',
+            }
         ]
         req = {
             'schemas': [SCIMSchema.CORE_20_GROUP.value],

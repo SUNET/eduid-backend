@@ -3,10 +3,7 @@ import eduid.workers.lookup_mobile
 __author__ = 'mathiashedstrom'
 from eduid.common.config.base import CeleryConfigMixin
 from eduid.common.decorators import deprecated
-
-
-class LookupMobileTaskFailed(Exception):
-    pass
+from eduid.common.rpc.exceptions import LookupMobileTaskFailed
 
 
 class LookupMobileRelay(object):

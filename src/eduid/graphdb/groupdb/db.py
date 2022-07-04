@@ -109,7 +109,7 @@ class GroupDB(BaseGraphDB):
         return members, owners
 
     def _remove_missing_users_and_groups(self, tx: Transaction, group: Group, role: Role) -> None:
-        """ Remove the relationship between group and member if the member no longer is in the groups member list"""
+        """Remove the relationship between group and member if the member no longer is in the groups member list"""
         q = f"""
             MATCH (Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(m)
             RETURN m.scope as scope, m.identifier as identifier, labels(m) as labels
@@ -134,7 +134,10 @@ class GroupDB(BaseGraphDB):
             DELETE r
             """
         tx.run(
-            q, scope=self.scope, identifier=group.identifier, group_identifier=group_identifier,
+            q,
+            scope=self.scope,
+            identifier=group.identifier,
+            group_identifier=group_identifier,
         )
 
     def _remove_user_from_group(self, tx: Transaction, group: Group, user_identifier: str, role: Role):
@@ -379,10 +382,10 @@ class GroupDB(BaseGraphDB):
 
     @staticmethod
     def _load_group(data: Dict) -> Group:
-        """ Method meant to be overridden by subclasses wanting to annotate the group. """
+        """Method meant to be overridden by subclasses wanting to annotate the group."""
         return Group.from_mapping(data)
 
     @staticmethod
     def _load_user(data: Dict) -> User:
-        """ Method meant to be overridden by subclasses wanting to annotate the user. """
+        """Method meant to be overridden by subclasses wanting to annotate the user."""
         return User.from_mapping(data)

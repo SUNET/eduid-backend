@@ -4,13 +4,14 @@ from datetime import datetime
 from enum import unique
 from typing import List, Optional
 
-from eduid.common.rpc.lookup_mobile_relay import LookupMobileTaskFailed
+from eduid.common.rpc.exceptions import LookupMobileTaskFailed
+from eduid.common.rpc.msg_relay import FullPostalAddress, RelationType
 from eduid.userdb import User
 from eduid.userdb.logs import TeleAdressProofing, TeleAdressProofingRelation
 from eduid.userdb.proofing.element import NinProofingElement
 from eduid.userdb.proofing.state import NinProofingState
 from eduid.userdb.util import utc_now
-from eduid.webapp.common.api.helpers import check_magic_cookie
+from eduid.webapp.common.api.helpers import check_magic_cookie, get_proofing_log_navet_data
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.lookup_mobile_proofing.app import current_mobilep_app as current_app
 from eduid.workers.lookup_mobile.utilities import format_NIN
@@ -73,10 +74,12 @@ def match_mobile_to_user(
     # to verify a NIN by sending a magic cookie
     if check_magic_cookie(current_app.conf):
         current_app.logger.info('Using the BACKDOOR to verify a NIN through the lookup mobile app')
-        user_postal_address = {
-            'Name': {'GivenName': 'Magic Cookie', 'GivenNameMarking': '20', 'Surname': 'Magic Cookie'},
-            'OfficialAddress': {'Address2': 'Dummy address', 'City': 'LANDET', 'PostalCode': '12345'},
-        }
+        user_postal_address = FullPostalAddress(
+            **{
+                'Name': {'GivenName': 'Magic Cookie', 'GivenNameMarking': '20', 'Surname': 'Magic Cookie'},
+                'OfficialAddress': {'Address2': 'Dummy address', 'City': 'LANDET', 'PostalCode': '12345'},
+            }
+        )
         proofing_log_entry = TeleAdressProofing(
             eppn=user.eppn,
             created_by='lookup_mobile_proofing',
@@ -105,7 +108,7 @@ def match_mobile_to_user(
         if registered_to_nin == self_asserted_nin:
             current_app.logger.info('Mobile number matched for user')
             current_app.logger.info('Looking up official address for user')
-            user_postal_address = current_app.msg_relay.get_postal_address(self_asserted_nin)
+            navet_proofing_data = get_proofing_log_navet_data(nin=self_asserted_nin)
             current_app.logger.info('Creating proofing log entry for user')
             proofing_log_entry = TeleAdressProofing(
                 eppn=user.eppn,
@@ -113,7 +116,8 @@ def match_mobile_to_user(
                 reason='matched',
                 nin=self_asserted_nin,
                 mobile_number=mobile_number,
-                user_postal_address=user_postal_address,
+                user_postal_address=navet_proofing_data.user_postal_address,
+                deregistration_information=navet_proofing_data.deregistration_information,
                 proofing_version='2014v1',
             )
             current_app.stats.count('validate_nin_by_mobile_exact_match')
@@ -121,19 +125,15 @@ def match_mobile_to_user(
         # Check if registered nin is related to given nin if the user is under 18 years of age
         elif registered_to_nin and age < 18:
             relations = current_app.msg_relay.get_relations_to(self_asserted_nin, registered_to_nin)
-            # FA - Fader
-            # MO - Moder
-            # VF - Vårdnadshavare för
-            # F - Förälder
-            valid_relations = ['FA', 'MO', 'VF', 'F']
+            valid_relations = [RelationType.FATHER, RelationType.MOTHER, RelationType.GUARDIAN_FOR, RelationType.PARENT]
             if any(r in relations for r in valid_relations):
                 current_app.logger.info('Mobile number matched for user relation via navet.')
                 current_app.logger.debug(f'Mobile {mobile_number} registered to NIN: {registered_to_nin}.')
                 current_app.logger.debug(f'Person with NIN {registered_to_nin} have relation {relations} to user')
                 current_app.logger.info('Looking up official address for user')
-                user_postal_address = current_app.msg_relay.get_postal_address(self_asserted_nin)
+                navet_proofing_data = get_proofing_log_navet_data(nin=self_asserted_nin)
                 current_app.logger.info(f'Looking up official address for relation {relations}.')
-                registered_postal_address = current_app.msg_relay.get_postal_address(registered_to_nin)
+                registered_navet_proofing_data = get_proofing_log_navet_data(nin=registered_to_nin)
                 current_app.logger.info('Creating proofing log entry for user')
                 proofing_log_entry = TeleAdressProofingRelation(
                     eppn=user.eppn,
@@ -141,10 +141,12 @@ def match_mobile_to_user(
                     reason='match_by_navet',
                     nin=self_asserted_nin,
                     mobile_number=mobile_number,
-                    user_postal_address=user_postal_address,
                     mobile_number_registered_to=registered_to_nin,
-                    registered_postal_address=registered_postal_address,
+                    registered_postal_address=registered_navet_proofing_data.user_postal_address,
+                    registered_deregistration_information=registered_navet_proofing_data.deregistration_information,
                     registered_relation=relations,
+                    user_postal_address=navet_proofing_data.user_postal_address,
+                    deregistration_information=navet_proofing_data.deregistration_information,
                     proofing_version='2014v1',
                 )
                 current_app.stats.count('validate_nin_by_mobile_relative_match')

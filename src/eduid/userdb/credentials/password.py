@@ -51,7 +51,7 @@ class Password(Credential):
 
     @validator('credential_id', pre=True)
     def credential_id_objectid(cls, v):
-        """ Turn ObjectId into string """
+        """Turn ObjectId into string"""
         if isinstance(v, ObjectId):
             v = str(v)
         if not isinstance(v, str):
