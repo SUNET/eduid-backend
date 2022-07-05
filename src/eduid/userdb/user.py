@@ -121,16 +121,10 @@ class User(BaseModel):
 
     @root_validator()
     def update_meta_modified_ts(cls, values: Dict[str, Any]):
-        # TODO: change this to the method below after meta.modified_ts is used
         # as we validate on assignment this will run everytime the User is changed
         if values.get('modified_ts'):
             values['meta'].modified_ts = values['modified_ts']
         return values
-
-    # @root_validator()
-    # def update_meta_modified_ts(cls, values: Dict[str, Any]):
-    #    # as we validate on assignment this will run everytime the User is changed
-    #    values['meta'].modified_ts = utc_now()
 
     def __str__(self):
         return f'<eduID {self.__class__.__name__}: {self.eppn}/{self.user_id}>'
