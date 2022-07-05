@@ -418,7 +418,7 @@ loguru==0.6.0 \
     --hash=sha256:066bd06758d0a513e9836fd9c6b5a75bfb3fd36841f4b996bc60b547a309d41c \
     --hash=sha256:4e2414d534a2ab57573365b3e6d0234dfb1d84b68b7f3b948e6fb743860a77c3
     # via -r fastapi_requirements.in
-lxml==4.9.0 \
+lxml==4.9.1 \
     --hash=sha256:00f3a6f88fd5f4357844dd91a1abac5f466c6799f1b7f1da2df6665253845b11 \
     --hash=sha256:024684e0c5cfa121c22140d3a0898a3a9b2ea0f0fd2c229b6658af4bdf1155e5 \
     --hash=sha256:03370ec37fe562238d385e2c53089076dee53aabf8325cab964fdb04a9130fa0 \
