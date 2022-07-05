@@ -1,5 +1,4 @@
-from curses.ascii import US
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Mapping
 
 from pydantic import Field
 
@@ -19,11 +18,11 @@ class UserUpdateNameRequest(User):
         sets = {}
 
         if User.given_name is None:
-            unsets["given_name"]
+            unsets["given_name"] = ''
         if User.given_name is not None:
             sets['given_name'] = User.given_name
         if User.surname is None:
-            unsets['surname']
+            unsets['surname'] = ''
         if User.surname is not None:
             sets['surname'] = User.surname
 
@@ -51,10 +50,3 @@ class UserUpdateEmailRequest(User):
         }
         return operations
 
-
-class UserCreateRequest(User):
-    pass
-
-
-class UserResponse:
-    pass

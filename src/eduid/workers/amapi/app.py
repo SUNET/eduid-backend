@@ -9,7 +9,7 @@ from eduid.common.logging import init_logging
 from eduid.userdb.amapi.db import AMApiDB
 from eduid.workers.amapi.config import AMApiConfig
 from eduid.workers.amapi.context_request import ContextRequestRoute
-from eduid.workers.amapi.exceptions import (
+from eduid.common.fastapi.exceptions import (
     HTTPErrorDetail,
     http_error_detail_handler,  # validation_exception_handler,
     unexpected_error_handler,

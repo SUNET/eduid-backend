@@ -4,7 +4,7 @@ from typing import Mapping
 
 from fastapi import Response
 
-from eduid.workers.amapi.api_router import APIRouter
+from eduid.common.fastapi.api_router import APIRouter
 from eduid.workers.amapi.context_request import ContextRequest, ContextRequestRoute
 from eduid.workers.amapi.models.status import StatusResponse
 from eduid.workers.amapi.routers.utils.status import check_mongo, get_cached_response, set_cached_response

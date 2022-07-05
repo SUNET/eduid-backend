@@ -2,9 +2,9 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import Response
 
-from eduid.workers.amapi.api_router import APIRouter
+from eduid.common.fastapi.api_router import APIRouter
 from eduid.workers.amapi.context_request import ContextRequest, ContextRequestRoute
-from eduid.workers.amapi.exceptions import BadRequest, ErrorDetail, NotFound
+from eduid.common.fastapi.exceptions import BadRequest, ErrorDetail, NotFound
 from eduid.workers.amapi.models.sampler import SamplerRequest, SamplerResponse
 from eduid.workers.amapi.routers.utils.sampler import get_sample
 

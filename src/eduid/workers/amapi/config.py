@@ -33,12 +33,8 @@ class AMApiConfig(RootConfig, LoggingConfigMixin):
     application_root: str = ''
     log_format: str = '{asctime} | {levelname:7} | {hostname} | {name:35} | {module:10} | {message}'
     mongo_uri: str = ''
-    authorization_mandatory: bool = True
-    authorization_token_expire: int = 5 * 60
     keystore_path: Path
-    signing_key_id: str
-    login_enabled: bool = False
-    no_authn_urls: List[str] = Field(default=['^/login/?$', '^/status/healthy$', '^/docs/?$', '^/openapi.json'])
+    no_authn_urls: List[str] = Field(default=['^/status/healthy$', '^/docs/?$', '^/openapi.json'])
     status_cache_seconds: int = 10
     # The expected value of the authn JWT claims['requested_access']['type']
     allow_db_set: List[Mapping[str, str]]

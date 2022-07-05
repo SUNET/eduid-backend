@@ -4,7 +4,7 @@ from typing import Optional
 
 from fastapi import Response
 
-from eduid.scimapi.api_router import APIRouter
+from eduid.common.fastapi.api_router import APIRouter
 from eduid.scimapi.context_request import ContextRequest, ContextRequestRoute
 from eduid.scimapi.exceptions import BadRequest, ErrorDetail, NotFound
 from eduid.scimapi.models.event import EventCreateRequest, EventResponse

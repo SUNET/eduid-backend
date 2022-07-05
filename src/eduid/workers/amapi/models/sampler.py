@@ -6,7 +6,7 @@ __author__ = 'masv'
 
 
 class SamplerResponse(BaseModel):
-    Eppns: List[str]
+    eppns: List[str]
 
 
 class SamplerRequest(BaseModel):

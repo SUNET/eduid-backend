@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 from bson import ObjectId
 
 from eduid.workers.amapi.context_request import ContextRequest
-from eduid.workers.amapi.exceptions import BadRequest
+from eduid.common.fastapi.exceptions import BadRequest
 from eduid.workers.amapi.models.user import UserUpdateEmailRequest, UserUpdateNameRequest
 
 

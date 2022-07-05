@@ -11,13 +11,17 @@ from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import JSONResponse
 
+
 logger = logging.getLogger(__name__)
 
 
 class ErrorDetail(BaseModel):
-    scimType: Optional[str] = None
     detail: Optional[Union[str, Dict, List]] = None
     status: Optional[int] = None
+
+
+class ErrorResponse(JSONResponse):
+    media_type = "application/json"
 
 
 async def unexpected_error_handler(req: Request, exc: Exception):
@@ -29,9 +33,19 @@ async def unexpected_error_handler(req: Request, exc: Exception):
     return await http_exception_handler(req, http_exception)
 
 
+async def validation_exception_handler(req: Request, exc: RequestValidationError):
+    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+    detail = ErrorDetail(
+        detail=exc.errors(), 
+        status=status_code,
+    )
+    logger.error(f'validation exception: {req.method} {req.url.path} - {exc} - {detail}')
+    return ErrorResponse(content=detail.dict(exclude_none=True), status_code=status_code)
+
+
 async def http_error_detail_handler(req: Request, exc: HTTPErrorDetail):
     logger.error(f'error detail: {req.method} {req.url.path} - {exc} - {exc.error_detail}')
-    return SCIMErrorResponse(
+    return ErrorResponse(
         content=exc.error_detail.dict(exclude_none=True),
         headers=exc.extra_headers,
         # default to status code 400 as error_detail status should be optional
@@ -45,6 +59,7 @@ class HTTPErrorDetail(Exception):
         status_code: int,
         detail: str = None,
     ):
+
         self._error_detail = ErrorDetail(detail=detail, status=status_code)
         self._extra_headers: Optional[Dict] = None
 

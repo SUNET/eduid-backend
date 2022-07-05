@@ -3,9 +3,9 @@ from typing import Any, Dict, List, Optional
 from fastapi import Response
 
 from eduid.userdb import user
-from eduid.workers.amapi.api_router import APIRouter
+from eduid.common.fastapi.api_router import APIRouter
 from eduid.workers.amapi.context_request import ContextRequest, ContextRequestRoute
-from eduid.workers.amapi.exceptions import BadRequest, ErrorDetail, NotFound
+from eduid.common.fastapi.exceptions import BadRequest, ErrorDetail, NotFound
 from eduid.workers.amapi.models.user import UserUpdateEmailRequest, UserUpdateNameRequest, UserUpdateResponse
 from eduid.workers.amapi.routers.utils.users import patch_user_email, patch_user_name
 
