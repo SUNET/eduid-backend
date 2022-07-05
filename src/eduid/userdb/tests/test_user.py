@@ -894,6 +894,33 @@ class TestNewUser(unittest.TestCase):
 
         assert obtained == expected
 
+    def test_user_meta(self):
+        version = ObjectId()
+        modified_ts = utc_now()
+        user_dict = self.user1.to_dict()
+        user_dict['meta'] = {}
+        user_dict['meta']['version'] = version
+        user_dict['meta']['modified_ts'] = modified_ts
+        user = User.from_dict(user_dict)
+        assert user.meta.version == version
+        assert user.meta.modified_ts == modified_ts
+        user_dict2 = user.to_dict()
+        expected = {
+            'version': version,
+            'modified_ts': modified_ts,
+        }
+        assert user_dict2['meta'] == expected
+
+    def test_user_meta_version(self):
+        assert isinstance(self.user1.meta.version, ObjectId) is True
+
+    def test_user_meta_modified_ts(self):
+        assert isinstance(self.user1.meta.modified_ts, datetime) is True
+        # TODO: remove below check when removing user.modified_ts
+        # verify that user.modified_ts is synced with meta.modified_ts
+        self.user1.modified_ts = utc_now()
+        assert self.user1.meta.modified_ts == self.user1.modified_ts
+
     def test_letter_proofing_data_to_list(self):
         letter_proofing = {
             'created_by': 'eduid-idproofing-letter',
