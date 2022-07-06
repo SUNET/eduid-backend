@@ -210,7 +210,7 @@ kombu==5.2.4 \
 langcodes==2.2.0 \
     --hash=sha256:29b076457744ea0c5e2e3f72241a6d97cd229e2e77489f078aba8826d7eeb0d4
     # via -r main.in
-lxml==4.9.0 \
+lxml==4.9.1 \
     --hash=sha256:520461c36727268a989790aef08884347cd41f2d8ae855489ccf40b50321d8d7 \
     --hash=sha256:754a1dd04bff8a509a31146bd8f3a5dc8191a8694d582dd5fb71ff09f0722c22 \
     --hash=sha256:d882c2f3345261e898b9f604be76b61c901fbfa4ac32e3f51d5dc1edc89da3cb
