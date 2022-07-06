@@ -304,7 +304,7 @@ langcodes==2.2.0 \
     # via
     #   -c main.txt
     #   -r main.in
-lxml==4.9.0 \
+lxml==4.9.1 \
     --hash=sha256:00f3a6f88fd5f4357844dd91a1abac5f466c6799f1b7f1da2df6665253845b11 \
     --hash=sha256:024684e0c5cfa121c22140d3a0898a3a9b2ea0f0fd2c229b6658af4bdf1155e5 \
     --hash=sha256:03370ec37fe562238d385e2c53089076dee53aabf8325cab964fdb04a9130fa0 \
