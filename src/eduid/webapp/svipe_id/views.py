@@ -2,9 +2,8 @@
 from urllib.parse import urlencode
 
 from flask import Blueprint, Response, redirect, request, url_for
+from oic.oic import ClaimsRequest, Claims, AuthorizationResponse
 from werkzeug import Response as WerkzeugResponse
-from idpyoidc.message.oauth2 import AuthorizationResponse
-from idpyoidc.message.oidc import Claims, ClaimsRequest
 
 from eduid.common.utils import urlappend
 from eduid.userdb.proofing import ProofingUser
@@ -128,13 +127,8 @@ def proofing_callback(user):
     current_app.logger.info('proofing data saved to user')
 
     session.svipe_id.oidc_states[oidc_state].result = OIDCResult(message=SvipeIDMsg.identity_proofing_success.value)
+    current_app.oidc_client.do_end_session_request(state=oidc_state)
     return redirect(f'{urlappend(redirect_url, oidc_state)}')
-
-
-@svipe_id_views.route('/logout-callback', methods=['GET'])
-@require_user
-def logout(user):
-    return request.args
 
 
 @svipe_id_views.route('/proofing-result/<oidc_state>', methods=['GET'])
