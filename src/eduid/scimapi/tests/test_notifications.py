@@ -20,7 +20,7 @@ __author__ = 'lundberg'
 mock_sns = mock.MagicMock()  # fix import error for skipped tests
 
 
-@SkipTest
+@SkipTest  # type: ignore
 class TestNotifications(ScimApiTestCase):
     def setUp(self) -> None:
         super().setUp()
