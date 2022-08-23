@@ -4,8 +4,7 @@ import base64
 from typing import List, Optional, Sequence
 
 from fido2 import cbor
-from fido2.client import ClientData
-from fido2.ctap2 import AttestationObject, AttestedCredentialData
+from fido2.webauthn import AttestationObject, AttestedCredentialData, CollectedClientData
 from fido2.server import Fido2Server, PublicKeyCredentialRpEntity
 from fido2.webauthn import UserVerificationRequirement
 from fido_mds.exceptions import AttestationVerificationError, MetadataValidationError
@@ -43,7 +42,7 @@ from eduid.webapp.security.webauthn_proofing import (
 def get_webauthn_server(
     rp_id: str, name='eduID security API', attestation: Optional[WebauthnAttestation] = None
 ) -> Fido2Server:
-    rp = PublicKeyCredentialRpEntity(rp_id, name)
+    rp = PublicKeyCredentialRpEntity(id=rp_id, name=name)
     _att = None
     if attestation:
         _att = attestation.value
@@ -131,7 +130,7 @@ def registration_complete(
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
     server = get_webauthn_server(current_app.conf.fido2_rp_id)
     att_obj = AttestationObject(urlsafe_b64decode(attestation_object))
-    cdata_obj = ClientData(urlsafe_b64decode(client_data))
+    cdata_obj = CollectedClientData(urlsafe_b64decode(client_data))
     if not session.security.webauthn_registration:
         current_app.logger.info('Found no webauthn registration state in the session')
         return error_response(message=SecurityMsg.missing_registration_state)
