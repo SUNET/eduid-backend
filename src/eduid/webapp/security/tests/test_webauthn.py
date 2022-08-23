@@ -5,7 +5,7 @@ import base64
 import json
 from typing import Any, Dict, Mapping, Optional
 
-from fido2.webauthn import CollectedClientData, AttestationObject
+from fido2.webauthn import AttestationObject, CollectedClientData
 from mock import patch
 from werkzeug.http import dump_cookie
 

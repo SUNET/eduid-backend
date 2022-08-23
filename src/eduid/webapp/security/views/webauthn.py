@@ -4,9 +4,8 @@ import base64
 from typing import List, Optional, Sequence
 
 from fido2 import cbor
-from fido2.webauthn import AttestationObject, AttestedCredentialData, CollectedClientData
 from fido2.server import Fido2Server, PublicKeyCredentialRpEntity
-from fido2.webauthn import UserVerificationRequirement
+from fido2.webauthn import AttestationObject, AttestedCredentialData, CollectedClientData, UserVerificationRequirement
 from fido_mds.exceptions import AttestationVerificationError, MetadataValidationError
 from flask import Blueprint
 

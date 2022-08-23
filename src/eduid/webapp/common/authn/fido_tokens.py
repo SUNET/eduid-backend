@@ -38,7 +38,7 @@ from typing import Any, Dict, Mapping
 from fido2 import cbor
 from fido2.server import Fido2Server, U2FFido2Server
 from fido2.utils import websafe_decode
-from fido2.webauthn import PublicKeyCredentialRpEntity, AttestedCredentialData, AuthenticatorData, CollectedClientData
+from fido2.webauthn import AttestedCredentialData, AuthenticatorData, CollectedClientData, PublicKeyCredentialRpEntity
 from pydantic import BaseModel
 
 from eduid.userdb.credentials import U2F, Webauthn
