@@ -18,7 +18,7 @@ ADDRESS = FullPostalAddress.parse_obj(
     [
         (
             u'Name',
-            OrderedDict([(u'GivenNameMarking', u'20'), (u'GivenName', u'Testaren Test'), (u'SurName', u'Testsson')]),
+            OrderedDict([(u'GivenNameMarking', u'20'), (u'GivenName', u'Testaren Test'), (u'Surname', u'Testsson')]),
         ),
         (
             u'OfficialAddress',
