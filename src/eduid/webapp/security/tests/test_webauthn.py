@@ -5,8 +5,7 @@ import base64
 import json
 from typing import Any, Dict, Mapping, Optional
 
-from fido2.client import ClientData
-from fido2.ctap2 import AttestationObject
+from fido2.webauthn import AttestationObject, CollectedClientData
 from mock import patch
 from werkzeug.http import dump_cookie
 
@@ -126,10 +125,10 @@ class SecurityWebauthnTests(EduidAPITestCase):
 
     def _add_token_to_user(self, client_data: bytes, attestation: bytes, state: Mapping[str, Any]) -> Webauthn:
         _client_data = client_data + (b'=' * (len(client_data) % 4))
-        client_data_obj = ClientData(base64.urlsafe_b64decode(_client_data))
+        client_data_obj = CollectedClientData(base64.urlsafe_b64decode(_client_data))
         _attestation = attestation + (b'=' * (len(attestation) % 4))
         att_obj = AttestationObject(base64.urlsafe_b64decode(_attestation))
-        server = get_webauthn_server(self.app.conf.fido2_rp_id)
+        server = get_webauthn_server(rp_id=self.app.conf.fido2_rp_id, rp_name=self.app.conf.fido2_rp_name)
         auth_data = server.register_complete(state, client_data_obj, att_obj)
         cred_data = auth_data.credential_data
         cred_id = cred_data.credential_id
