@@ -58,16 +58,6 @@ class MsgRelayTests(unittest.TestCase):
         assert res == FullPostalAddress(**self.message_sender.get_devel_postal_address())
 
     @patch('eduid.workers.msg.tasks.get_postal_address.apply_async')
-    def test_get_postal_address_missing_address(self, mock_get_postal_address):
-        no_address_ret = self.message_sender.get_devel_postal_address()
-        no_address_ret['OfficialAddress'] = {}
-        mock_conf = {'get.return_value': no_address_ret}
-        ret = Mock(**mock_conf)
-        mock_get_postal_address.return_value = ret
-        with pytest.raises(NoAddressFound):
-            self.msg_relay.get_postal_address(nin='190102031234')
-
-    @patch('eduid.workers.msg.tasks.get_postal_address.apply_async')
     def test_get_postal_address_none_response(self, mock_get_postal_address):
         mock_conf = {'get.return_value': None}
         ret = Mock(**mock_conf)

@@ -38,9 +38,9 @@ class CaseInformation(NavetModelConfig):
 
 class Name(NavetModelConfig):
     given_name_marking: Optional[str] = Field(default=None, alias='GivenNameMarking')
-    given_name: str = Field(alias='GivenName')
+    given_name: Optional[str] = Field(default=None, alias='GivenName')
     middle_name: Optional[str] = Field(default=None, alias='MiddleName')
-    surname: str = Field(alias='Surname')
+    surname: Optional[str] = Field(default=None, alias='Surname')
 
 
 class RelationName(NavetModelConfig):
@@ -61,9 +61,9 @@ class OfficialAddress(NavetModelConfig):
     # is needed. In practice, it is rarely used, but when actually
     # used it has been seen to often contains apartment numbers.
     address1: Optional[str] = Field(default=None, alias='Address1')
-    address2: str = Field(alias='Address2')
-    postal_code: str = Field(alias='PostalCode')
-    city: str = Field(alias='City')
+    address2: Optional[str] = Field(default=None, alias='Address2')
+    postal_code: Optional[str] = Field(default=None, alias='PostalCode')
+    city: Optional[str] = Field(default=None, alias='City')
 
 
 class RelationId(NavetModelConfig):
