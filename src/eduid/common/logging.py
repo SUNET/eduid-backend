@@ -99,8 +99,12 @@ class UserFilter(logging.Filter):
         from eduid.webapp.common.session import session
 
         eppn = ''
-        if session and session.common.eppn:
-            eppn = session.common.eppn
+        try:
+            if session and session.common.eppn:
+                eppn = session.common.eppn
+        except AttributeError:  # no session
+            pass
+
         record.__setattr__('eppn', eppn)  # use setattr to prevent mypy unhappiness
         if record.levelno == logging.DEBUG:
             # If debug_eppns is not empty, we filter debug messages here and only allow them

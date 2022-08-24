@@ -379,7 +379,10 @@ def get_extra_security_alternatives(user: User) -> dict:
 
     if tokens:
         alternatives['tokens'] = fido_tokens.start_token_verification(
-            user, current_app.conf.fido2_rp_id, session.mfa_action
+            user=user,
+            fido2_rp_id=current_app.conf.fido2_rp_id,
+            fido2_rp_name=current_app.conf.fido2_rp_name,
+            state=session.mfa_action,
         )
 
     return alternatives

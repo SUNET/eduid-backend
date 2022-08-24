@@ -463,6 +463,7 @@ def set_new_pw_extra_security_token(
                 user=context.user,
                 request_dict=request_dict,
                 rp_id=current_app.conf.fido2_rp_id,
+                rp_name=current_app.conf.fido2_rp_name,
                 state=session.mfa_action,
             )
             success = result.success

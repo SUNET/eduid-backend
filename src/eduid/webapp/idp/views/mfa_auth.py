@@ -2,7 +2,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Dict, Mapping, Optional
 
-from flask import Blueprint, request
+from flask import Blueprint
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User
@@ -75,7 +75,12 @@ def mfa_auth(ticket: LoginContext, webauthn_response: Optional[Mapping[str, str]
         candidates = user.credentials.filter(FidoCredential)
         if candidates:
             current_app.logger.debug('User has one or more FIDO tokens, adding webauthn challenge to response')
-            options = fido_tokens.start_token_verification(user, current_app.conf.fido2_rp_id, session.mfa_action)
+            options = fido_tokens.start_token_verification(
+                user=user,
+                fido2_rp_id=current_app.conf.fido2_rp_id,
+                fido2_rp_name=current_app.conf.fido2_rp_name,
+                state=session.mfa_action,
+            )
             payload.update(options)
 
         current_app.logger.debug('No MFA submitted. Sending not-finished response.')
@@ -189,7 +194,13 @@ def _check_webauthn(
         return CheckResult(response=error_response(message=IdPMsg.general_failure))
 
     try:
-        result = fido_tokens.verify_webauthn(user, webauthn_response, current_app.conf.fido2_rp_id, mfa_action)
+        result = fido_tokens.verify_webauthn(
+            user=user,
+            request_dict=webauthn_response,
+            rp_id=current_app.conf.fido2_rp_id,
+            rp_name=current_app.conf.fido2_rp_name,
+            state=mfa_action,
+        )
     except fido_tokens.VerificationProblem:
         current_app.logger.exception('Webauthn verification failed')
         current_app.logger.debug(f'webauthn_response: {repr(webauthn_response)}')

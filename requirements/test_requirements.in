@@ -8,7 +8,6 @@
 black==22.3.0
 isort==5.10.1
 mock
-moto[sns]
 mypy
 pytest
 pytest-cov
