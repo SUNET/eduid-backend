@@ -64,7 +64,13 @@ def start_verification():
     from eduid.webapp.common.session import session
 
     try:
-        result = verify_webauthn(user, data, current_app.conf.fido2_rp_id, session.mfa_action).json()
+        result = verify_webauthn(
+            user=user,
+            request_dict=data,
+            rp_id=current_app.conf.fido2_rp_id,
+            rp_name=current_app.conf.fido2_rp_name,
+            state=session.mfa_action,
+        ).json()
     except VerificationProblem as exc:
         current_app.logger.error(f'Webauthn verification failed: {repr(exc)}')
         result = {'success': False, 'message': 'mfa.verification-problem'}
@@ -146,7 +152,12 @@ class FidoTokensTestCase(EduidAPITestCase):
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    config = start_token_verification(self.test_user, self.app.conf.fido2_rp_id, sess.mfa_action)
+                    config = start_token_verification(
+                        user=self.test_user,
+                        fido2_rp_id=self.app.conf.fido2_rp_id,
+                        fido2_rp_name=self.app.conf.fido2_rp_name,
+                        state=sess.mfa_action,
+                    )
                     assert 'u2fdata' not in config
                     assert 'webauthn_options' in config
                     s = config['webauthn_options']
@@ -167,7 +178,12 @@ class FidoTokensTestCase(EduidAPITestCase):
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    config = start_token_verification(self.test_user, self.app.conf.fido2_rp_id, sess.mfa_action)
+                    config = start_token_verification(
+                        user=self.test_user,
+                        fido2_rp_id=self.app.conf.fido2_rp_id,
+                        fido2_rp_name=self.app.conf.fido2_rp_name,
+                        state=sess.mfa_action,
+                    )
                     assert 'u2fdata' not in config
                     assert 'webauthn_options' in config
                     s = config['webauthn_options']

@@ -117,7 +117,7 @@ def _get_fido2server(credentials: Dict[ElementKey, FidoCred], fido2rp: PublicKey
     return Fido2Server(fido2rp)
 
 
-def start_token_verification(user: User, fido2_rp_id: str, state: MfaAction) -> Dict[str, Any]:
+def start_token_verification(user: User, fido2_rp_id: str, fido2_rp_name: str, state: MfaAction) -> Dict[str, Any]:
     """
     Begin authentication process based on the hardware tokens registered by the user.
     """
@@ -128,7 +128,7 @@ def start_token_verification(user: User, fido2_rp_id: str, state: MfaAction) -> 
 
     webauthn_credentials = [v.webauthn for v in credential_data.values()]
 
-    fido2rp = PublicKeyCredentialRpEntity(id=fido2_rp_id, name='eduID security API')
+    fido2rp = PublicKeyCredentialRpEntity(id=fido2_rp_id, name=fido2_rp_name)
     fido2server = _get_fido2server(credential_data, fido2rp)
     raw_fido2data, fido2state = fido2server.authenticate_begin(webauthn_credentials)
 
@@ -158,7 +158,9 @@ class WebauthnResult(BaseModel):
     credential_key: ElementKey
 
 
-def verify_webauthn(user: User, request_dict: Mapping[str, Any], rp_id: str, state: MfaAction) -> WebauthnResult:
+def verify_webauthn(
+    user: User, request_dict: Mapping[str, Any], rp_id: str, rp_name: str, state: MfaAction
+) -> WebauthnResult:
     """
     Verify received Webauthn data against the user's credentials.
 
@@ -194,7 +196,7 @@ def verify_webauthn(user: User, request_dict: Mapping[str, Any], rp_id: str, sta
 
     credentials = get_user_credentials(user)
 
-    fido2rp = PublicKeyCredentialRpEntity(id=rp_id, name='eduID security API')
+    fido2rp = PublicKeyCredentialRpEntity(id=rp_id, name=rp_name)
     fido2server = _get_fido2server(credentials, fido2rp)
     # Filter out the FidoCred that has webauthn.credential_id matching the credentialId in the request
     matching_credentials = {k: v for k, v in credentials.items() if v.webauthn.credential_id == req.credentialId}

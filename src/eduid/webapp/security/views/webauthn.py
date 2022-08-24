@@ -38,10 +38,8 @@ from eduid.webapp.security.webauthn_proofing import (
 )
 
 
-def get_webauthn_server(
-    rp_id: str, name='eduID security API', attestation: Optional[WebauthnAttestation] = None
-) -> Fido2Server:
-    rp = PublicKeyCredentialRpEntity(id=rp_id, name=name)
+def get_webauthn_server(rp_id: str, rp_name: str, attestation: Optional[WebauthnAttestation] = None) -> Fido2Server:
+    rp = PublicKeyCredentialRpEntity(id=rp_id, name=rp_name)
     _att = None
     if attestation:
         _att = attestation.value
@@ -87,7 +85,11 @@ def registration_begin(user: User, authenticator: str) -> FluxData:
         return error_response(message=SecurityMsg.max_webauthn)
 
     creds = make_credentials(user_webauthn_tokens)
-    server = get_webauthn_server(current_app.conf.fido2_rp_id, attestation=current_app.conf.webauthn_attestation)
+    server = get_webauthn_server(
+        rp_id=current_app.conf.fido2_rp_id,
+        rp_name=current_app.conf.fido2_rp_name,
+        attestation=current_app.conf.webauthn_attestation,
+    )
     if user.given_name is None or user.surname is None or user.display_name is None:
         return error_response(message=SecurityMsg.no_pdata)
 
@@ -127,7 +129,7 @@ def registration_complete(
     user: User, credential_id: str, attestation_object: str, client_data: str, description: str
 ) -> FluxData:
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
-    server = get_webauthn_server(current_app.conf.fido2_rp_id)
+    server = get_webauthn_server(rp_id=current_app.conf.fido2_rp_id, rp_name=current_app.conf.fido2_rp_name)
     att_obj = AttestationObject(urlsafe_b64decode(attestation_object))
     cdata_obj = CollectedClientData(urlsafe_b64decode(client_data))
     if not session.security.webauthn_registration:

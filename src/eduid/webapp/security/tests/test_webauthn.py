@@ -128,7 +128,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         client_data_obj = CollectedClientData(base64.urlsafe_b64decode(_client_data))
         _attestation = attestation + (b'=' * (len(attestation) % 4))
         att_obj = AttestationObject(base64.urlsafe_b64decode(_attestation))
-        server = get_webauthn_server(self.app.conf.fido2_rp_id)
+        server = get_webauthn_server(rp_id=self.app.conf.fido2_rp_id, rp_name=self.app.conf.fido2_rp_name)
         auth_data = server.register_complete(state, client_data_obj, att_obj)
         cred_data = auth_data.credential_data
         cred_id = cred_data.credential_id
