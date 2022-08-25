@@ -21,6 +21,7 @@ from eduid.userdb.credentials.external import TrustFramework
 from eduid.userdb.credentials.fido import WebauthnAuthenticator
 from eduid.userdb.element import ElementKey
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
+from eduid.webapp.eidas.helpers import EidasMsg
 from eduid.webapp.idp.other_device.data import OtherDeviceId
 
 logger = logging.getLogger(__name__)
@@ -132,6 +133,7 @@ class Signup(TimestampedNS):
     email_verification_code: Optional[str] = None
 
 
+# TODO: Remove Actions, should be unused
 class Actions(TimestampedNS):
     session: Optional[str] = None
     current_plugin: Optional[str] = None
@@ -215,6 +217,13 @@ class SP_AuthnRequest(BaseModel):
     credentials_used: List[ElementKey] = Field(default=[])
     created_ts: datetime = Field(default_factory=utc_now)
     authn_instant: Optional[datetime] = None
+    # login_ref is used when logging in
+    frontend_state: Optional[str] = None
+    # proofing_credential_id is the credential being person-proofed, when doing that
+    proofing_credential_id: Optional[ElementKey] = None
+    # Third-party MFA parameters
+    method: Optional[str] = None
+    error: Optional[EidasMsg] = None  # populated by the SAML2 ACS
 
 
 class SPAuthnData(BaseModel):
@@ -231,6 +240,7 @@ class SPAuthnData(BaseModel):
 
 class Eidas_Namespace(SessionNSBase):
 
+    # TODO: Move verify_token_action_credential_id into SP_AuthnRequest
     verify_token_action_credential_id: Optional[ElementKey] = None
     sp: SPAuthnData = Field(default=SPAuthnData())
 

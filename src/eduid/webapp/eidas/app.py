@@ -58,9 +58,11 @@ def init_eidas_app(name: str = 'eidas', test_config: Optional[Mapping[str, Any]]
     app.logger.info(f'Init {app}...')
 
     # Register views
+    from eduid.webapp.eidas.old_views import old_eidas_views
     from eduid.webapp.eidas.views import eidas_views
 
     app.register_blueprint(eidas_views)
+    app.register_blueprint(old_eidas_views)
 
     # Register view path that should not be authorized
     no_authn_views(config, ['/saml2-metadata', '/saml2-acs', '/mfa-authentication', '/mfa-authentication-foreign-eid'])

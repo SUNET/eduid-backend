@@ -45,12 +45,15 @@ from eduid.common.config.base import (
     ErrorsConfigMixin,
     MagicCookieMixin,
     MsgConfigMixin,
+    ProofingConfigMixin,
 )
 from eduid.userdb.credentials import CredentialProofingMethod
 from eduid.userdb.credentials.external import TrustFramework
 
 
-class EidasConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MsgConfigMixin, ErrorsConfigMixin):
+class EidasConfig(
+    EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MsgConfigMixin, ErrorsConfigMixin, ProofingConfigMixin
+):
     """
     Configuration for the eidas app
     """
@@ -59,19 +62,8 @@ class EidasConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MsgConfig
 
     token_service_url: str
 
-    token_verify_redirect_url: str
-    identity_verify_redirect_url: str
-
-    # sweden connect
-    trust_framework: TrustFramework = TrustFramework.SWECONN
-    required_loa: List[str] = Field(default=['loa3'])  # one of authentication_context_map below
-
-    # eidas
-    foreign_trust_framework: TrustFramework = TrustFramework.EIDAS
-    foreign_required_loa: List[str] = Field(
-        default=['eidas-nf-low', 'eidas-nf-sub', 'eidas-nf-high']
-    )  # one of authentication_context_map below
-    foreign_identity_idp: Optional[str] = None
+    token_verify_redirect_url: str  # TODO: remove when old views are gone
+    identity_verify_redirect_url: str  # TODO: remove when old views are gone
 
     # Federation config
     authentication_context_map: Dict[str, str] = Field(

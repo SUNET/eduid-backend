@@ -6,7 +6,7 @@ from datetime import datetime
 from enum import unique
 from typing import Any, Dict, List, Optional, Union
 
-from flask import abort, make_response, redirect, request, url_for
+from flask import abort, make_response, request, url_for
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.metadata import entity_descriptor
@@ -59,32 +59,36 @@ class EidasMsg(TranslatableMsg):
     # LOA 3 not needed
     authn_context_mismatch = 'eidas.authn_context_mismatch'
     # re-authentication expired
-    reauthn_expired = 'eidas.reauthn_expired'
+    reauthn_expired = 'eidas.reauthn_expired'  # TODO: Use must_authenticate instead
     # the token was not used to authenticate this session
-    token_not_in_creds = 'eidas.token_not_in_credentials_used'
+    token_not_in_creds = 'eidas.token_not_in_credentials_used'  # TODO: Use must_authenticate instead
     # the personalIdentityNumber from Sweden Connect does not correspond
     # to a verified nin in the user's account
-    nin_not_matching = 'eidas.nin_not_matching'
-    # prid does not correspond to the verified foreign eid
-    foreign_eid_not_matching = 'eidas.foreign_eid_not_matching'
+    nin_not_matching = 'eidas.nin_not_matching'  # TODO: Use identity_not_matching instead
+    # prid does not correspond to the verified NIN/EIDAS identity
+    identity_not_matching = 'eidas.identity_not_matching'
     # successfully verified the token
     verify_success = 'eidas.token_verify_success'
     # The user already has a verified NIN
-    nin_already_verified = 'eidas.nin_already_verified'
-    # The user already has a verified EIDAS identity
-    foreign_eid_already_verified = 'eidas.foreign_eid_already_verified'
+    nin_already_verified = 'eidas.nin_already_verified'  # TODO: Use identity_already_verified instead
+    # The user already has a verified NIN/EIDAS identity
+    identity_already_verified = 'eidas.identity_already_verified'
     # Successfully verified the NIN
-    nin_verify_success = 'eidas.nin_verify_success'
-    # Successfully verified the foreign eid
-    foreign_eid_verify_success = 'eidas.foreign_eid_verify_success'
+    nin_verify_success = 'eidas.nin_verify_success'  # TODO: Use identity_verify_success instead
+    # Successfully verified the NIN/EIDAS identity
+    identity_verify_success = 'eidas.identity_verify_success'
     # missing redirect URL for mfa authn
     no_redirect_url = 'eidas.no_redirect_url'
-    # Action completed, redirect to actions app
-    action_completed = 'actions.action-completed'
     # Token not found on the credentials in the user's account
     token_not_found = 'eidas.token_not_found'
     # Attribute missing from IdP
     attribute_missing = 'eidas.attribute_missing'
+    # Unavailable vetting method requested
+    method_not_available = 'eidas.method_not_available'
+    # Need to authenticate (again?) before performing this action
+    must_authenticate = 'eidas.must_authenticate'
+    # Status requested for unknown authn_id
+    not_found = 'eidas.not_found'
 
 
 @dataclass
@@ -581,12 +585,21 @@ def token_verify_BACKDOOR(
     return redirect_with_msg(redirect_url, EidasMsg.verify_success, error=False)
 
 
-def check_credential_to_verify(user: User, credential_id: str, redirect_url: str) -> Optional[WerkzeugResponse]:
+@dataclass()
+class CredentialVerifyResult:
+    verified_ok: bool
+    message: Optional[EidasMsg] = None
+    response: Optional[WerkzeugResponse] = None  # TODO: make obsolete and remove
+    location: Optional[str] = None
+
+
+def check_credential_to_verify(user: User, credential_id: str) -> CredentialVerifyResult:
     # Check if requested key id is a mfa token and if the user used that to log in
     token_to_verify = user.credentials.find(credential_id)
     if not isinstance(token_to_verify, FidoCredential):
         current_app.logger.error(f'Credential {token_to_verify} is not a FidoCredential')
-        return redirect_with_msg(redirect_url, EidasMsg.token_not_found)
+        # return redirect_with_msg(redirect_url, EidasMsg.token_not_found)
+        return CredentialVerifyResult(verified_ok=False, message=EidasMsg.token_not_found)
 
     # Check if the credential was just now (within 60s) used to log in
     credential_already_used = credential_used_to_authenticate(token_to_verify, max_age=60)
@@ -602,15 +615,17 @@ def check_credential_to_verify(user: User, credential_id: str, redirect_url: str
         if idp and idp not in current_app.saml2_config.metadata.identity_providers():
             if not current_app.conf.errors_url_template:
                 abort(make_response('Requested IdP not found in metadata', 404))
-            return goto_errors_response(
+            _response = goto_errors_response(
                 errors_url=current_app.conf.errors_url_template,
                 ctx=EduidErrorsContext.SAML_REQUEST_MISSING_IDP,
                 rp=current_app.saml2_config.entityid,
             )
+            return CredentialVerifyResult(verified_ok=False, response=_response, message=EidasMsg.method_not_available)
 
         if idp:
             next_url = f'{next_url}?idp={idp}'
         redirect_url = f'{reauthn_url}?next={next_url}'
-        current_app.logger.debug(f'Redirecting user to {redirect_url}')
-        return redirect(redirect_url)
+        current_app.logger.debug(f'Redirecting user to {redirect_url} for re-authentication')
+        return CredentialVerifyResult(verified_ok=False, location=redirect_url, message=EidasMsg.must_authenticate)
+        # return redirect(redirect_url)
     return None

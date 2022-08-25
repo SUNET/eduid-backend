@@ -54,26 +54,29 @@ def token_verify_action(session_info: SessionInfo, user: User, authndata: SP_Aut
     token_to_verify = proofing_user.credentials.find(session.eidas.verify_token_action_credential_id)
     if not isinstance(token_to_verify, FidoCredential):
         current_app.logger.error(f'Credential {token_to_verify} is not a FidoCredential')
+        authndata.error = EidasMsg.token_not_in_creds
         return redirect_with_msg(redirect_url, EidasMsg.token_not_in_creds)
 
     # Check (again) if token was used to authenticate this session. The first time we checked,
     # we verified that the token was used very recently, but we have to allow for more time
     # here since the user might have spent a couple of minutes authenticating with the external IdP.
     if not credential_used_to_authenticate(token_to_verify, max_age=300):
-        return redirect_with_msg(redirect_url, EidasMsg.token_not_in_creds)
+        authndata.error = EidasMsg.reauthn_expired
+        return redirect_with_msg(redirect_url, EidasMsg.reauthn_expired)
 
     try:
         parsed_session_info = NinSessionInfo(**session_info)
         current_app.logger.debug(f'session info: {parsed_session_info}')
     except ValidationError:
         current_app.logger.exception('missing attribute in SAML response')
-        # TODO: redirect user back with an error message i session using ref
+        authndata.error = EidasMsg.attribute_missing
         return redirect_with_msg(redirect_url, EidasMsg.attribute_missing)
 
     # Verify asserted NIN for user if there are no verified NIN
     if proofing_user.identities.nin is None or proofing_user.identities.nin.is_verified is False:
         verify_result = verify_nin_from_external_mfa(proofing_user=proofing_user, session_info=parsed_session_info)
         if verify_result.error_message is not None:
+            authndata.error = verify_result.error_message
             return redirect_with_msg(redirect_url, verify_result.error_message)
         if not verify_result.user:
             # mostly keep mypy calm
@@ -90,6 +93,7 @@ def token_verify_action(session_info: SessionInfo, user: User, authndata: SP_Aut
         magic_cookie_nin = request.cookies.get('nin')
         if magic_cookie_nin is None:
             current_app.logger.error("Bad nin cookie")
+            authndata.error = EidasMsg.nin_not_matching
             return redirect_with_msg(redirect_url, EidasMsg.nin_not_matching)
         asserted_nin = magic_cookie_nin
 
@@ -100,6 +104,7 @@ def token_verify_action(session_info: SessionInfo, user: User, authndata: SP_Aut
     ):
         current_app.logger.error('Asserted NIN not matching user verified nins')
         current_app.logger.debug('Asserted NIN: {}'.format(asserted_nin))
+        authndata.error = EidasMsg.nin_not_matching
         return redirect_with_msg(redirect_url, EidasMsg.nin_not_matching)
 
     if check_magic_cookie(current_app.conf):
@@ -117,10 +122,12 @@ def token_verify_action(session_info: SessionInfo, user: User, authndata: SP_Aut
         navet_proofing_data = get_proofing_log_navet_data(nin=proofing_user.identities.nin.number)
     except NoNavetData:
         current_app.logger.exception('No data returned from Navet')
+        authndata.error = CommonMsg.no_navet_data
         return redirect_with_msg(redirect_url, CommonMsg.no_navet_data)
     except MsgTaskFailed:
         current_app.logger.exception('Navet lookup failed')
         current_app.stats.count('navet_error')
+        authndata.error = CommonMsg.navet_error
         return redirect_with_msg(redirect_url, CommonMsg.navet_error)
 
     proofing_log_entry = MFATokenProofing(
@@ -145,12 +152,13 @@ def token_verify_action(session_info: SessionInfo, user: User, authndata: SP_Aut
         current_app.logger.info('Recorded MFA token verification in the proofing log')
         try:
             save_and_sync_user(proofing_user)
-        except AmTaskFailed as e:
-            current_app.logger.error('Verifying token for user failed')
-            current_app.logger.error('{}'.format(e))
+        except AmTaskFailed:
+            current_app.logger.exception('Verifying token for user failed')
+            authndata.error = CommonMsg.temp_problem
             return redirect_with_msg(redirect_url, CommonMsg.temp_problem)
         current_app.stats.count(name='fido_token_verified')
 
+    authndata.error = EidasMsg.verify_success
     return redirect_with_msg(redirect_url, EidasMsg.verify_success, error=False)
 
 
@@ -175,26 +183,29 @@ def token_verify_foreign_eid_action(
     token_to_verify = proofing_user.credentials.find(session.eidas.verify_token_action_credential_id)
     if not isinstance(token_to_verify, FidoCredential):
         current_app.logger.error(f'Credential {token_to_verify} is not a FidoCredential')
+        authndata.error = EidasMsg.token_not_in_creds
         return redirect_with_msg(redirect_url, EidasMsg.token_not_in_creds)
 
     # Check (again) if token was used to authenticate this session. The first time we checked,
     # we verified that the token was used very recently, but we have to allow for more time
     # here since the user might have spent a couple of minutes authenticating with the external IdP.
     if not credential_used_to_authenticate(token_to_verify, max_age=300):
-        return redirect_with_msg(redirect_url, EidasMsg.token_not_in_creds)
+        authndata.error = EidasMsg.reauthn_expired
+        return redirect_with_msg(redirect_url, EidasMsg.reauthn_expired)
 
     try:
         parsed_session_info = ForeignEidSessionInfo(**session_info)
         current_app.logger.debug(f'session info: {parsed_session_info}')
     except ValidationError:
         current_app.logger.exception('missing attribute in SAML response')
-        # TODO: redirect user back with an error message i session using ref
+        # TODO: redirect user back with an error message in session using ref
         return redirect_with_msg(redirect_url, EidasMsg.attribute_missing)
 
-    # Verify asserted identity for user if there are no verified eidas
+    # Verify asserted identity for user if the user has no verified eidas identity
     if proofing_user.identities.eidas is None or proofing_user.identities.eidas.is_verified is False:
         verify_result = verify_eidas_from_external_mfa(proofing_user=proofing_user, session_info=parsed_session_info)
         if verify_result.error_message is not None:
+            authndata.error = verify_result.error_message
             return redirect_with_msg(redirect_url, verify_result.error_message)
         # verify_nin_from_external_mfa modifies the user in the database, so we have to load it again.
         if not verify_result.user:
@@ -213,7 +224,8 @@ def token_verify_foreign_eid_action(
     ):
         current_app.logger.error('Asserted identity not matching user verified eidas')
         current_app.logger.debug('Asserted NIN: {}'.format(parsed_session_info.attributes.prid))
-        return redirect_with_msg(redirect_url, EidasMsg.foreign_eid_not_matching)
+        authndata.error = EidasMsg.identity_not_matching
+        return redirect_with_msg(redirect_url, EidasMsg.identity_not_matching)
 
     current_app.logger.debug('Issuer: {}'.format(parsed_session_info.issuer))
     current_app.logger.debug('Authn context: {}'.format(parsed_session_info.authn_context))
@@ -232,12 +244,13 @@ def token_verify_foreign_eid_action(
         current_app.logger.info('Recorded MFA token verification in the proofing log')
         try:
             save_and_sync_user(proofing_user)
-        except AmTaskFailed as e:
-            current_app.logger.error('Verifying token for user failed')
-            current_app.logger.error('{}'.format(e))
+        except AmTaskFailed:
+            current_app.logger.exception('Verifying token for user failed')
+            authndata.error = CommonMsg.temp_problem
             return redirect_with_msg(redirect_url, CommonMsg.temp_problem)
         current_app.stats.count(name='fido_token_verified')
 
+    authndata.error = EidasMsg.verify_success
     return redirect_with_msg(redirect_url, EidasMsg.verify_success, error=False)
 
 
@@ -256,6 +269,7 @@ def nin_verify_action(session_info: SessionInfo, authndata: SP_AuthnRequest, use
     if user.identities.nin and user.identities.nin.is_verified:
         current_app.logger.error('User already has a verified NIN')
         current_app.logger.debug(f'NIN: {user.identities.nin}. Assertion: {session_info}')
+        authndata.error = EidasMsg.nin_already_verified
         return redirect_with_msg(authndata.redirect_url, EidasMsg.nin_already_verified)
 
     try:
@@ -263,7 +277,7 @@ def nin_verify_action(session_info: SessionInfo, authndata: SP_AuthnRequest, use
         current_app.logger.debug(f'session info: {parsed_session_info}')
     except ValidationError:
         current_app.logger.exception('missing attribute in SAML response')
-        # TODO: redirect user back with an error message i session using ref
+        authndata.error = EidasMsg.attribute_missing
         return redirect_with_msg(authndata.redirect_url, EidasMsg.attribute_missing)
 
     if check_magic_cookie(current_app.conf):
@@ -271,12 +285,14 @@ def nin_verify_action(session_info: SessionInfo, authndata: SP_AuthnRequest, use
         magic_cookie_nin = request.cookies.get('nin')
         if magic_cookie_nin is None:
             current_app.logger.error("Bad nin cookie")
+            authndata.error = CommonMsg.nin_invalid
             return redirect_with_msg(authndata.redirect_url, CommonMsg.nin_invalid)
         parsed_session_info.attributes.nin = magic_cookie_nin
 
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     verify_result = verify_nin_from_external_mfa(proofing_user=proofing_user, session_info=parsed_session_info)
     if verify_result.error_message is not None:
+        authndata.error = verify_result.error_message
         return redirect_with_msg(authndata.redirect_url, verify_result.error_message)
 
     return redirect_with_msg(authndata.redirect_url, EidasMsg.nin_verify_success, error=False)
@@ -289,22 +305,25 @@ def verify_foreign_identity(session_info: SessionInfo, authndata: SP_AuthnReques
     if user.identities.eidas and user.identities.eidas.is_verified:
         current_app.logger.error('User already has a verified EIDAS identity')
         current_app.logger.debug(f'eidas: {user.identities.eidas}. Assertion: {session_info}')
-        return redirect_with_msg(authndata.redirect_url, EidasMsg.foreign_eid_already_verified)
+        authndata.error = EidasMsg.identity_already_verified
+        return redirect_with_msg(authndata.redirect_url, EidasMsg.identity_already_verified)
 
     try:
         parsed_session_info = ForeignEidSessionInfo(**session_info)
         current_app.logger.debug(f'session info: {parsed_session_info}')
     except ValidationError:
         current_app.logger.exception('missing attribute in SAML response')
-        # TODO: redirect user back with an error message i session using ref
+        authndata.error = EidasMsg.attribute_missing
         return redirect_with_msg(authndata.redirect_url, EidasMsg.attribute_missing)
 
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     verify_result = verify_eidas_from_external_mfa(proofing_user=proofing_user, session_info=parsed_session_info)
     if verify_result.error_message is not None:
+        authndata.error = verify_result.error_message
         return redirect_with_msg(authndata.redirect_url, verify_result.error_message)
 
-    return redirect_with_msg(authndata.redirect_url, EidasMsg.foreign_eid_verify_success, error=False)
+    authndata.error = EidasMsg.identity_verify_success
+    return redirect_with_msg(authndata.redirect_url, EidasMsg.identity_verify_success, error=False)
 
 
 @acs_action(EidasAcsAction.mfa_authn)
@@ -319,7 +338,7 @@ def nin_mfa_authentication_action(session_info: SessionInfo, authndata: SP_Authn
         current_app.logger.debug(f'session info: {parsed_session_info}')
     except ValidationError:
         current_app.logger.exception('missing attribute in SAML response')
-        # TODO: redirect user back with an error message i session using ref
+        authndata.error = EidasMsg.attribute_missing
         return redirect_with_msg(redirect_url, EidasMsg.attribute_missing)
 
     # Get user from central database
@@ -333,12 +352,14 @@ def nin_mfa_authentication_action(session_info: SessionInfo, authndata: SP_Authn
         magic_cookie_nin = request.cookies.get('nin')
         if magic_cookie_nin is None:
             current_app.logger.error("Bad nin cookie")
+            authndata.error = CommonMsg.nin_invalid
             return redirect_with_msg(redirect_url, CommonMsg.nin_invalid)
         parsed_session_info.attributes.nin = magic_cookie_nin
 
     # Check that a verified NIN is equal to the asserted attribute personalIdentityNumber
     message = match_identity_for_mfa(user=user, session_info=parsed_session_info)
     if message is not None:
+        authndata.error = message
         return redirect_with_msg(redirect_url, message)
 
     if not session.mfa_action.success:

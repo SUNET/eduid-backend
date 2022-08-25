@@ -41,6 +41,8 @@ from typing import Any, List, Mapping, Optional, Sequence, TypeVar
 
 from pydantic import BaseModel, Field
 
+from eduid.userdb.credentials.external import TrustFramework
+
 
 class CeleryConfig(BaseModel):
     """
@@ -321,6 +323,20 @@ class PasswordConfigMixin(BaseModel):
 
 class ErrorsConfigMixin(BaseModel):
     errors_url_template: Optional[str] = None
+
+
+class ProofingConfigMixin(BaseModel):
+    # sweden connect
+    trust_framework: TrustFramework = TrustFramework.SWECONN
+    required_loa: List[str] = Field(default=['loa3'])  # one of authentication_context_map below
+    freja_idp: Optional[str] = None
+
+    # eidas
+    foreign_trust_framework: TrustFramework = TrustFramework.EIDAS
+    foreign_required_loa: List[str] = Field(
+        default=['eidas-nf-low', 'eidas-nf-sub', 'eidas-nf-high']
+    )  # one of authentication_context_map below
+    foreign_identity_idp: Optional[str] = None
 
 
 class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, RedisConfigMixin):
