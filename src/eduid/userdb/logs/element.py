@@ -152,6 +152,7 @@ class TeleAdressProofing(NinProofingLogElement):
     proofing_method: str = 'TeleAdress'
 
 
+# DEPRECATED: This proofing is deprecated
 class TeleAdressProofingRelation(TeleAdressProofing):
     """
     {

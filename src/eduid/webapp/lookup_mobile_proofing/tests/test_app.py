@@ -284,11 +284,11 @@ class LookupMobileProofingTests(EduidAPITestCase):
             data = {'nin': self.test_user_nin_underage, 'csrf_token': csrf_token}
             response = browser.post('/proofing', data=json.dumps(data), content_type=self.content_type_json)
             response = json.loads(response.data)
-        self.assertEqual(response['type'], 'POST_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS')
-        self.assertEqual(response['payload']['success'], True)
+        assert response['type'] == 'POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL'
+        assert response['payload']['message'] == MobileMsg.no_match.value
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self._check_nin_verified_ok_no_proofing_state(user=user, number=self.test_user_nin_underage)
+        self._check_nin_not_verified_no_proofing_state(user=user, number=self.test_user_nin_underage)
 
     @patch('eduid.common.rpc.msg_relay.MsgRelay.get_relations_to')
     @patch('eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile')
