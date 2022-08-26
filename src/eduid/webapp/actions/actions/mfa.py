@@ -67,7 +67,12 @@ class Plugin(ActionPlugin):
         if not user:
             raise self.ActionError(ActionsMsg.user_not_found)
 
-        config = fido_tokens.start_token_verification(user, current_app.conf.fido2_rp_id, session.mfa_action)
+        config = fido_tokens.start_token_verification(
+            user=user,
+            fido2_rp_id=current_app.conf.fido2_rp_id,
+            fido2_rp_name=current_app.conf.fido2_rp_name,
+            state=session.mfa_action,
+        )
 
         # Explicit check for boolean True
         if current_app.conf.mfa_testing is True:
@@ -126,7 +131,13 @@ class Plugin(ActionPlugin):
                 raise self.ActionError(ActionsMsg.no_data)
 
             try:
-                result = fido_tokens.verify_webauthn(user, req_json, current_app.conf.fido2_rp_id, session.mfa_action)
+                result = fido_tokens.verify_webauthn(
+                    user=user,
+                    request_dict=req_json,
+                    rp_id=current_app.conf.fido2_rp_id,
+                    rp_name=current_app.conf.fido2_rp_name,
+                    state=session.mfa_action,
+                )
             except fido_tokens.VerificationProblem as exc:
                 raise self.ActionError(exc.msg)
             finally:

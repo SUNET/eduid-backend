@@ -9,12 +9,12 @@ boto3==1.17.*
 celery[redis]
 cookies-samesite-compat==0.0.*
 cryptography
-fido2==0.9.1
+fido2
 gunicorn
 hammock
 html5lib
 idna
-langcodes==2.*
+langcodes==3.*
 marshmallow-dataclass[enum,union]==7.3.*
 marshmallow-enum==1.5.*
 marshmallow>=3.0,==3.*

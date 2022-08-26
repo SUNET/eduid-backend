@@ -244,6 +244,7 @@ class FlaskConfig(BaseModel):
 
 class WebauthnConfigMixin2(BaseModel):
     fido2_rp_id: str  # 'eduid.se'
+    fido2_rp_name: str = 'eduID Sweden'
 
 
 class MagicCookieMixin(BaseModel):

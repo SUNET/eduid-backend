@@ -42,6 +42,7 @@ from typing import Any, Dict, List, Mapping, Optional, Type, TypeVar, Union, cas
 import bson
 from pydantic import BaseModel, Extra, Field, root_validator, validator
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import CredentialList
 from eduid.userdb.db import BaseDB
 from eduid.userdb.element import UserDBValueError
@@ -50,6 +51,7 @@ from eduid.userdb.identity import IdentityList, IdentityType
 from eduid.userdb.ladok import Ladok
 from eduid.userdb.locked_identity import LockedIdentityList
 from eduid.userdb.mail import MailAddressList
+from eduid.userdb.meta import Meta
 from eduid.userdb.nin import NinList
 from eduid.userdb.orcid import Orcid
 from eduid.userdb.phone import PhoneNumberList
@@ -69,6 +71,7 @@ class User(BaseModel):
     Generic eduID user object.
     """
 
+    meta: Meta = Field(default_factory=Meta)
     eppn: str = Field(alias='eduPersonPrincipalName')
     user_id: bson.ObjectId = Field(default_factory=bson.ObjectId, alias='_id')
     given_name: Optional[str] = Field(default=None, alias='givenName')
@@ -80,7 +83,7 @@ class User(BaseModel):
     phone_numbers: PhoneNumberList = Field(default_factory=PhoneNumberList, alias='phone')
     credentials: CredentialList = Field(default_factory=CredentialList, alias='passwords')
     identities: IdentityList = Field(default_factory=IdentityList)
-    modified_ts: Optional[datetime] = None
+    modified_ts: Optional[datetime] = None  # TODO: remove after meta.modified_ts is used
     entitlements: List[str] = Field(default_factory=list, alias='eduPersonEntitlement')
     tou: ToUList = Field(default_factory=ToUList)
     terminated: Optional[datetime] = None
@@ -114,6 +117,13 @@ class User(BaseModel):
             raise UserIsRevoked(
                 f'User {values.get("user_id")}/{values.get("eppn")} was revoked at {values.get("revoked_ts")}'
             )
+        return values
+
+    @root_validator()
+    def update_meta_modified_ts(cls, values: Dict[str, Any]):
+        # as we validate on assignment this will run everytime the User is changed
+        if values.get('modified_ts'):
+            values['meta'].modified_ts = values['modified_ts']
         return values
 
     def __str__(self):

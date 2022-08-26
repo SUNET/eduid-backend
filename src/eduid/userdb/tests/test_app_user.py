@@ -7,7 +7,7 @@ from eduid.userdb.credentials import CredentialList
 from eduid.userdb.fixtures.users import new_user_example
 
 
-class TestDashboardUser(TestCase):
+class TestAppUser(TestCase):
     def test_proper_user(self):
         userdata = new_user_example.to_dict()
         user = User.from_dict(data=userdata)

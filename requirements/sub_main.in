@@ -3,4 +3,4 @@ importlib-metadata
 importlib-resources
 cached-property
 setuptools
-backports.zoneinfo
+backports.zoneinfo;python_version<"3.9"
