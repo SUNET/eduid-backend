@@ -2,7 +2,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Dict, Mapping, Optional
 
-from flask import Blueprint, request
+from flask import Blueprint
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User
@@ -15,8 +15,8 @@ from eduid.webapp.common.session.logindata import ExternalMfaData
 from eduid.webapp.common.session.namespaces import (
     MfaAction,
     MfaActionError,
-    OnetimeCredential,
     OnetimeCredType,
+    OnetimeCredential,
     RequestRef,
 )
 from eduid.webapp.idp.app import current_idp_app as current_app
@@ -53,7 +53,7 @@ def mfa_auth(ticket: LoginContext, webauthn_response: Optional[Mapping[str, str]
 
     # Clear mfa_action from session, so that we know if the user did external MFA
     # Yes - this should be done even if the user has FIDO credentials because the user might
-    # opt to do external MFA anyways.
+    # opt to do external MFA anyway.
     saved_mfa_action = deepcopy(session.mfa_action)
     del session.mfa_action
 

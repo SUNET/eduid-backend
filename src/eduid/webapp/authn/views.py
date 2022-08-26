@@ -47,7 +47,7 @@ from eduid.webapp.authn import acs_actions  # acs_action needs to be imported to
 from eduid.webapp.authn.app import current_authn_app as current_app
 from eduid.webapp.common.api.utils import sanitise_redirect_url
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
-from eduid.webapp.common.authn.acs_registry import get_action
+from eduid.webapp.common.authn.acs_registry import ACSArgs, get_action
 from eduid.webapp.common.authn.cache import IdentityCache, StateCache
 from eduid.webapp.common.authn.eduid_saml2 import get_authn_request, process_assertion, saml_logout
 from eduid.webapp.common.authn.utils import check_previous_identification, get_location
@@ -148,7 +148,6 @@ def assertion_consumer_service():
     assertion = process_assertion(
         form=request.form,
         sp_data=session.authn.sp,
-        error_redirect_url=current_app.conf.unsolicited_response_redirect_url,
         strip_suffix=current_app.conf.saml2_strip_saml_user_suffix,
     )
     if isinstance(assertion, WerkzeugResponse):
@@ -156,7 +155,26 @@ def assertion_consumer_service():
     current_app.logger.debug(f'Auth response:\n{assertion}\n\n')
 
     action = get_action(default_action=AuthnAcsAction.login, authndata=assertion.authndata)
-    return action(assertion.session_info, assertion.user, authndata=assertion.authndata)
+    args = ACSArgs(
+        session_info=assertion.session_info,
+        authn_req=assertion.authndata,
+        user=assertion.user,
+    )
+    result = action(args)
+
+    # action = get_action(default_action=AuthnAcsAction.login, authndata=assertion.authndata)
+    # return action(assertion.session_info, assertion.user, authndata=assertion.authndata)
+
+    if result.error:
+        # update session so this error can be retrieved from the /status endpoint
+        args.authn_req.error = result.error
+        # Including the error in the redirect URL is deprecated and should be removed once fronted stops using it
+        return redirect_with_msg(proofing_method.finish_url, result.error)
+
+    if result.success:
+        return redirect(proofing_method.finish_url)
+
+    return redirect_with_msg(proofing_method.finish_url, EidasMsg.method_not_available)
 
 
 def _get_authn_name_id(session: EduidSession) -> Optional[NameID]:

@@ -10,6 +10,7 @@ from eduid.common.config.base import EduidEnvironment
 from eduid.userdb import User
 from eduid.userdb.element import ElementKey
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
+from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import (
     FluxData,
@@ -167,8 +168,11 @@ def _authn(
     idp = proofing_method.idp
     if check_magic_cookie(current_app.conf):
         # set a test IdP with minimal interaction for the integration tests
-        idp = current_app.conf.magic_cookie_idp
-        current_app.logger.debug(f'Changed requested IdP due to magic cookie: {idp}')
+        if current_app.conf.magic_cookie_idp:
+            idp = current_app.conf.magic_cookie_idp
+            current_app.logger.debug(f'Changed requested IdP due to magic cookie: {idp}')
+        else:
+            current_app.logger.warning(f'Missing configuration magic_cookie_idp')
 
     ref = AuthnRequestRef(str(uuid4()))
     authn_request = create_authn_request(
@@ -204,7 +208,6 @@ def assertion_consumer_service() -> WerkzeugResponse:
     assertion = process_assertion(
         form=request.form,
         sp_data=session.eidas.sp,
-        error_redirect_url=current_app.conf.unsolicited_response_redirect_url,
         authenticate_user=False,  # If the IdP is not our own, we can't load the user
     )
     if isinstance(assertion, WerkzeugResponse):
@@ -217,24 +220,40 @@ def assertion_consumer_service() -> WerkzeugResponse:
         # Perhaps a SAML authn response received out of order - abort without destroying state
         # (User makes two requests, A and B. Response B arrives, user is happy and proceeds with their work.
         #  Then response A arrives late. Just silently abort, no need to mess up the users' session.)
-        error_url = current_app.conf.unsolicited_response_redirect_url
         current_app.logger.info(
-            f'Response {assertion.authn_req_ref} does not match one in session, redirecting user to {error_url}'
+            f'Response {assertion.authn_req_ref} does not match one in session, redirecting user to eduID Errors page'
         )
-        return redirect(error_url)
+        if not current_app.conf.errors_url_template:
+            return make_response('Unknown authn response', 400)
+        return goto_errors_response(
+            errors_url=current_app.conf.errors_url_template,
+            ctx=EduidErrorsContext.SAML_RESPONSE_UNSOLICITED,
+            rp=current_app.saml2_config.entityid,
+        )
 
     proofing_method = get_proofing_method(
         assertion.authndata.method, assertion.authndata.frontend_action, current_app.conf
     )
+    if not proofing_method or not proofing_method.finish_url:
+        # We _really_ shouldn't end up here because this same thing would have been done in the
+        # starting views above.
+        current_app.logger.warning(f'No proofing_method for method {assertion.authndata.method}')
+        if not current_app.conf.errors_url_template:
+            return make_response('Unknown authn method', 400)
+        return goto_errors_response(
+            errors_url=current_app.conf.errors_url_template,
+            ctx=EduidErrorsContext.SAML_RESPONSE_FAIL,
+            rp=current_app.saml2_config.entityid,
+        )
 
-    if not is_required_loa(assertion.session_info, authn_req.required_loa):
+    if not is_required_loa(assertion.session_info, proofing_method.required_loa):
         session.mfa_action.error = MfaActionError.authn_context_mismatch  # TODO: Old way, remove after a release cycle
-        assertion.authndata.error = MfaActionError.authn_context_mismatch
+        assertion.authndata.error = EidasMsg.authn_context_mismatch
         return redirect_with_msg(proofing_method.finish_url, EidasMsg.authn_context_mismatch)
 
     if not is_valid_reauthn(assertion.session_info):
         session.mfa_action.error = MfaActionError.authn_too_old  # TODO: Old way, remove after a release cycle
-        assertion.authndata.error = MfaActionError.authn_too_old
+        assertion.authndata.error = EidasMsg.reauthn_expired
         return redirect_with_msg(proofing_method.finish_url, EidasMsg.reauthn_expired)
 
     # Remap nin in staging environment

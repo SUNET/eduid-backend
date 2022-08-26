@@ -46,4 +46,3 @@ class EidasStatusRequestSchema(EduidSchema, CSRFResponseMixin):
 class EidasStatusResponseSchema(EduidSchema, CSRFResponseMixin):
     frontend_action = fields.String(required=True)
     frontend_state = fields.String(required=False)
-    message: Optional[EidasMsg] = None

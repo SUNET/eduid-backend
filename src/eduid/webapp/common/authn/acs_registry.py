@@ -47,6 +47,7 @@ from typing import Callable, Dict, Optional
 from flask import current_app
 from werkzeug.wrappers import Response as WerkzeugResponse
 
+from eduid.userdb import User
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.proofing.methods import ProofingMethod
@@ -59,6 +60,7 @@ class ACSArgs:
     authn_req: SP_AuthnRequest
     proofing_method: Optional[ProofingMethod] = None
     backdoor: bool = False
+    user: Optional[User] = None
 
 
 @dataclass

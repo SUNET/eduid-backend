@@ -30,9 +30,16 @@ def verify_identity_action(user: User, args: ACSArgs) -> ACSResult:
 
     :return: ACS action result
     """
+    # please type checking
+    if not args.proofing_method:
+        return ACSResult(error=EidasMsg.method_not_available)
+
     parsed = args.proofing_method.parse_session_info(args.session_info, backdoor=args.backdoor)
     if parsed.error:
         return ACSResult(error=parsed.error)
+
+    # please type checking
+    assert parsed.info
 
     proofing = get_proofing_functions(
         session_info=parsed.info, app_name=current_app.conf.app_name, config=current_app.conf, backdoor=args.backdoor
@@ -62,6 +69,10 @@ def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
 
     :return: ACS action result
     """
+    # please type checking
+    if not args.proofing_method:
+        return ACSResult(error=EidasMsg.method_not_available)
+
     credential = user.credentials.find(args.authn_req.proofing_credential_id)
     if not isinstance(credential, FidoCredential):
         current_app.logger.error(f'Credential {credential} is not a FidoCredential')
@@ -77,6 +88,9 @@ def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
     if parsed.error:
         return ACSResult(error=parsed.error)
 
+    # please type checking
+    assert parsed.info
+
     proofing = get_proofing_functions(
         session_info=parsed.info, app_name=current_app.conf.app_name, config=current_app.conf, backdoor=args.backdoor
     )
@@ -87,11 +101,15 @@ def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
         verify_result = proofing.verify_identity(user=user)
         if verify_result.error_message is not None:
             return ACSResult(error=verify_result.error_message)
-        # Get an updated user object
-        user = verify_result.user
-        # It is necessary to look up the credential again in order for changes to the instance to
-        # actually be saved to the database. Can't be references to old user objects credential.
-        credential = user.credentials.find(credential.key)
+        if verify_result.user:
+            # Get an updated user object
+            user = verify_result.user
+            # It is necessary to look up the credential again in order for changes to the instance to
+            # actually be saved to the database. Can't be references to old user objects credential.
+            credential = user.credentials.find(credential.key)
+            if not isinstance(credential, FidoCredential):
+                current_app.logger.error(f'Credential {credential} is not a FidoCredential')
+                return ACSResult(error=EidasMsg.token_not_in_creds)
 
     # Check that the users' verified identity matches the one that was asserted now
     match_res = proofing.match_identity(user=user, proofing_method=args.proofing_method)
@@ -125,6 +143,10 @@ def mfa_authenticate_action(args: ACSArgs) -> ACSResult:
 
     :return: ACS action result
     """
+    # please type checking
+    if not args.proofing_method:
+        return ACSResult(error=EidasMsg.method_not_available)
+
     # Get user from central database
     user = current_app.central_userdb.get_user_by_eppn(session.common.eppn)
     if user is None:
@@ -134,6 +156,9 @@ def mfa_authenticate_action(args: ACSArgs) -> ACSResult:
     parsed = args.proofing_method.parse_session_info(args.session_info, backdoor=args.backdoor)
     if parsed.error:
         return ACSResult(error=parsed.error)
+
+    # please type checking
+    assert parsed.info
 
     proofing = get_proofing_functions(
         session_info=parsed.info, app_name=current_app.conf.app_name, config=current_app.conf, backdoor=args.backdoor

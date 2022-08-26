@@ -34,7 +34,7 @@ class ProofingMethod(ABC):
     required_loa: List[str]
 
     def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
-        raise NotImplemented('Subclass must implement parse_session_info')
+        raise NotImplementedError('Subclass must implement parse_session_info')
 
 
 class ProofingMethodFreja(ProofingMethod):
@@ -77,6 +77,9 @@ def get_proofing_method(
     finish_url = config.frontend_action_finish_url.get(frontend_action)
 
     if method == 'freja':
+        if not config.freja_idp:
+            logger.warning(f'Missing configuration freja_idp required for proofing method {method}')
+            return None
         return ProofingMethodFreja(
             finish_url=finish_url,
             framework=TrustFramework.SWECONN,
@@ -85,6 +88,9 @@ def get_proofing_method(
             required_loa=config.required_loa,
         )
     if method == 'eidas':
+        if not config.foreign_identity_idp:
+            logger.warning(f'Missing configuration foreign_identity_idp required for proofing method {method}')
+            return None
         return ProofingMethodEidas(
             finish_url=finish_url,
             framework=TrustFramework.EIDAS,

@@ -39,7 +39,7 @@ from eduid.userdb import User
 from eduid.webapp.authn.app import current_authn_app as current_app
 from eduid.webapp.common.api.utils import sanitise_redirect_url
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
-from eduid.webapp.common.authn.acs_registry import acs_action
+from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_action
 from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import LoginApplication, SP_AuthnRequest
@@ -65,7 +65,7 @@ def update_user_session(session_info: SessionInfo, user: User) -> None:
 
 
 @acs_action(AuthnAcsAction.login)
-def login_action(session_info: SessionInfo, user: User, authndata: SP_AuthnRequest) -> WerkzeugResponse:
+def login_action(user: User, args: ACSArgs) -> ACSResult:
     """
     Upon successful login in the IdP, store login info in the session
     and redirect back to the app that asked for authn.
@@ -75,36 +75,36 @@ def login_action(session_info: SessionInfo, user: User, authndata: SP_AuthnReque
     :param authndata: data about this particular authentication event
     """
     current_app.logger.info(f'User {user} logging in.')
-    update_user_session(session_info, user)
+    update_user_session(args.session_info, user)
     current_app.stats.count('login_success')
 
     # redirect the user to the view they came from
-    relay_state = sanitise_redirect_url(authndata.redirect_url)
+    relay_state = sanitise_redirect_url(args.proofing_method.finish_url)
     current_app.logger.debug(f'Redirecting to the RelayState: {relay_state}')
     response = redirect(location=relay_state)
     current_app.logger.info(f'Redirecting user {user} to {repr(relay_state)}')
-    return response
+    return ACSResult(success=True, response=response)
 
 
 @acs_action(AuthnAcsAction.change_password)
-def chpass_action(session_info: SessionInfo, user: User, authndata: SP_AuthnRequest) -> WerkzeugResponse:
+def chpass_action(user: User, args: ACSArgs) -> ACSResult:
     current_app.stats.count('reauthn_chpass_success')
-    return _reauthn('reauthn-for-chpass', session_info, user, authndata=authndata)
+    return _reauthn('reauthn-for-chpass', user=user, args=args)
 
 
 @acs_action(AuthnAcsAction.terminate_account)
-def term_account_action(session_info: SessionInfo, user: User, authndata: SP_AuthnRequest) -> WerkzeugResponse:
+def term_account_action(user: User, args: ACSArgs) -> ACSResult:
     current_app.stats.count('reauthn_termination_success')
-    return _reauthn('reauthn-for-termination', session_info, user, authndata=authndata)
+    return _reauthn('reauthn-for-termination', user=user, args=args)
 
 
 @acs_action(AuthnAcsAction.reauthn)
-def reauthn_account_action(session_info: SessionInfo, user: User, authndata: SP_AuthnRequest) -> WerkzeugResponse:
+def reauthn_account_action(user: User, args: ACSArgs) -> ACSResult:
     current_app.stats.count('reauthn_success')
-    return _reauthn('reauthn', session_info, user, authndata=authndata)
+    return _reauthn('reauthn', user=user, args=args)
 
 
-def _reauthn(reason: str, session_info: SessionInfo, user: User, authndata: SP_AuthnRequest) -> WerkzeugResponse:
+def _reauthn(reason: str, user: User, args: ACSArgs) -> ACSResult:
     """
     Upon successful reauthn in the IdP, update the session and redirect back to the app that asked for reauthn.
 

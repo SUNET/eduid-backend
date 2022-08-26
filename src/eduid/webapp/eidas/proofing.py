@@ -31,7 +31,6 @@ from eduid.webapp.common.proofing.methods import ProofingMethod
 from eduid.webapp.common.session import session
 from eduid.webapp.eidas.app import current_eidas_app as current_app
 from eduid.webapp.eidas.helpers import (
-    VerifyUserResult,
     authn_context_class_to_loa,
 )
 from eduid.webapp.eidas.saml_session_info import ForeignEidSessionInfo, NinSessionInfo
@@ -46,6 +45,12 @@ class MatchResult:
     credential_used: Optional[ElementKey] = None
 
 
+@dataclass
+class VerifyUserResult:
+    user: Optional[User] = None
+    error_message: Optional[TranslatableMsg] = None
+
+
 @dataclass()
 class ProofingFunctions(ABC, Generic[SessionInfoVar]):
 
@@ -55,16 +60,16 @@ class ProofingFunctions(ABC, Generic[SessionInfoVar]):
     backdoor: bool
 
     def get_identity(self, user: User) -> Optional[IdentityElement]:
-        raise NotImplemented('Subclass must implement get_identity')
+        raise NotImplementedError('Subclass must implement get_identity')
 
     def verify_identity(self, user: User) -> VerifyUserResult:
-        raise NotImplemented("Subclass must implement verify_identity")
+        raise NotImplementedError("Subclass must implement verify_identity")
 
     def verify_credential(self, user: User, credential: Credential) -> VerifyUserResult:
-        raise NotImplemented("Subclass must implement verify_credential")
+        raise NotImplementedError("Subclass must implement verify_credential")
 
     def match_identity(self, user: User, proofing_method: ProofingMethod) -> MatchResult:
-        raise NotImplemented("Subclass must implement match_identity")
+        raise NotImplementedError("Subclass must implement match_identity")
 
     def _match_identity_for_mfa(
         self, user: User, identity_type: IdentityType, asserted_unique_value: str, proofing_method: ProofingMethod
@@ -98,15 +103,15 @@ class ProofingFunctions(ABC, Generic[SessionInfoVar]):
         session.mfa_action.success = mfa_success
         if mfa_success is True:
             # add metadata if the authentication was a success
-            session.mfa_action.issuer = self.session_info.issuer
-            session.mfa_action.authn_instant = self.session_info.authn_instant.isoformat()
-            session.mfa_action.authn_context = self.session_info.authn_context
+            session.mfa_action.issuer = self.session_info.issuer  # type: ignore
+            session.mfa_action.authn_instant = self.session_info.authn_instant.isoformat()  # type: ignore
+            session.mfa_action.authn_context = self.session_info.authn_context  # type: ignore
             session.mfa_action.credential_used = credential_used
 
         if not mfa_success:
             current_app.logger.error('Asserted identity not matching user verified identity')
             current_app.logger.debug(f'Current identity: {self.get_identity(user)}')
-            current_app.logger.debug(f'Asserted attributes: {self.session_info.attributes}')
+            current_app.logger.debug(f'Asserted attributes: {self.session_info.attributes}')  # type: ignore
 
         return MatchResult(matched=mfa_success, credential_used=credential_used)
 
@@ -184,6 +189,9 @@ class FrejaProofingFunctions(ProofingFunctions[NinSessionInfo]):
         return VerifyUserResult(user=_user)
 
     def identity_proofing_element(self, user: User):
+        issuer: Optional[str]
+        authn_context: Optional[str]
+
         if self.backdoor:
             proofing_version = '1999v1'
             # TODO: Used to use these values when backdoor was in use, but is that really wise?
@@ -212,6 +220,9 @@ class FrejaProofingFunctions(ProofingFunctions[NinSessionInfo]):
         )
 
     def credential_proofing_element(self, user: User, credential: Credential):
+        issuer: Optional[str]
+        authn_context: Optional[str]
+
         if self.backdoor:
             proofing_version = '1999v1'
             issuer = 'MAGIC COOKIE'
@@ -220,6 +231,9 @@ class FrejaProofingFunctions(ProofingFunctions[NinSessionInfo]):
             proofing_version = self.config.security_key_proofing_version
             issuer = self.session_info.issuer
             authn_context = self.session_info.authn_context
+
+        # please type checking
+        assert user.identities.nin
 
         navet_proofing_data = self._get_navet_data(nin=user.identities.nin.number)
 

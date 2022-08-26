@@ -55,7 +55,6 @@ class AuthnConfig(EduIDBaseAppConfig, ErrorsConfigMixin):
     available_loa: str = 'http://www.swamid.se/policy/assurance/al1'
     signup_authn_success_redirect_url: str = 'https://dashboard.eduid.se'
     signup_authn_failure_redirect_url: str = 'https://dashboard.eduid.se'
-    unsolicited_response_redirect_url: str = 'https://dashboard.eduid.se'
     authn_sign_alg: Optional[str] = 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256'
     authn_digest_alg: Optional[str] = 'http://www.w3.org/2001/04/xmlenc#sha256'
     saml2_login_redirect_url: str

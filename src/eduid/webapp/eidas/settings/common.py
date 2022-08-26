@@ -96,4 +96,3 @@ class EidasConfig(
 
     saml2_settings_module: str
     safe_relay_domain: str = 'eduid.se'
-    unsolicited_response_redirect_url: str = 'https://eduid.se'

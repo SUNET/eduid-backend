@@ -13,7 +13,6 @@ from eduid.common.utils import urlappend
 from eduid.userdb import User
 from eduid.userdb.credentials import FidoCredential
 from eduid.userdb.credentials.external import TrustFramework
-from eduid.userdb.proofing import ProofingUser
 from eduid.webapp.authn.helpers import credential_used_to_authenticate
 from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
 from eduid.webapp.common.api.messages import TranslatableMsg
@@ -73,12 +72,6 @@ class EidasMsg(TranslatableMsg):
     must_authenticate = 'eidas.must_authenticate'
     # Status requested for unknown authn_id
     not_found = 'eidas.not_found'
-
-
-@dataclass
-class VerifyUserResult:
-    user: Optional[ProofingUser] = None
-    error_message: Optional[TranslatableMsg] = None
 
 
 def create_authn_request(

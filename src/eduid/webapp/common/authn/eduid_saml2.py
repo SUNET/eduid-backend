@@ -280,7 +280,6 @@ class AssertionData:
 def process_assertion(
     form: Mapping[str, Any],
     sp_data: SPAuthnData,
-    error_redirect_url: str,
     strip_suffix: Optional[str] = None,
     authenticate_user: bool = True,
 ) -> Union[AssertionData, WerkzeugResponse]:
@@ -300,20 +299,26 @@ def process_assertion(
         current_app.logger.debug(f'authn response: {response}')
     except BadSAMLResponse as e:
         current_app.logger.error(f'BadSAMLResponse: {e}')
-        if current_app.conf.errors_url_template:
-            _ctx = EduidErrorsContext.SAML_RESPONSE_FAIL
-            if isinstance(e.args[0], EduidErrorsContext):
-                _ctx = e.args[0]
-            return goto_errors_response(
-                current_app.conf.errors_url_template,
-                ctx=EduidErrorsContext.SAML_RESPONSE_FAIL,
-                rp=current_app.conf.app_name,
-            )
-        return make_response(str(e), 400)
+        if not current_app.conf.errors_url_template:
+            return make_response(str(e), 400)
+        _ctx = EduidErrorsContext.SAML_RESPONSE_FAIL
+        if isinstance(e.args[0], EduidErrorsContext):
+            _ctx = e.args[0]
+        return goto_errors_response(
+            current_app.conf.errors_url_template,
+            ctx=EduidErrorsContext.SAML_RESPONSE_FAIL,
+            rp=current_app.conf.app_name,
+        )
 
     if authn_ref not in sp_data.authns:
-        current_app.logger.info(f'Unknown response. Redirecting user to {error_redirect_url}')
-        return redirect(error_redirect_url)
+        current_app.logger.info(f'Unknown response. Redirecting user to eduID Errors page')
+        if not current_app.conf.errors_url_template:
+            return make_response('Unknown authn response', 400)
+        return goto_errors_response(
+            errors_url=current_app.conf.errors_url_template,
+            ctx=EduidErrorsContext.SAML_RESPONSE_UNSOLICITED,
+            rp=current_app.saml2_config.entityid,
+        )
 
     authn_data = sp_data.authns[authn_ref]
     current_app.logger.debug(f'Authentication request data retrieved from session: {authn_data}')
