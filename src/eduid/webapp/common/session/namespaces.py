@@ -212,17 +212,15 @@ class IdP_Namespace(TimestampedNS):
 
 
 class SP_AuthnRequest(BaseModel):
-    redirect_url: str
+    frontend_action: str  # what action frontend is performing, decides the finish URL the user is redirected to
     post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction]] = None
     credentials_used: List[ElementKey] = Field(default=[])
     created_ts: datetime = Field(default_factory=utc_now)
     authn_instant: Optional[datetime] = None
-    # login_ref is used when logging in
-    frontend_state: Optional[str] = None
+    frontend_state: Optional[str] = None  # opaque data from frontend, returned in /status
     # proofing_credential_id is the credential being person-proofed, when doing that
     proofing_credential_id: Optional[ElementKey] = None
-    # Third-party MFA parameters
-    method: Optional[str] = None
+    method: Optional[str] = None  # proofing method that frontend is invoking
     error: Optional[EidasMsg] = None  # populated by the SAML2 ACS
 
 

@@ -61,7 +61,7 @@ class CommonMsg(TranslatableMsg):
 
     # some form has failed to validate
     form_errors = 'form-errors'
-    # problem synchronzing the account to the central db
+    # problem synchronising the account to the central db
     temp_problem = 'Temporary technical problems'
     # The user has changed in the db since it was retrieved
     out_of_sync = 'user-out-of-sync'
@@ -79,6 +79,7 @@ class CommonMsg(TranslatableMsg):
     user_already_verified = 'User is already verified'
     user_has_other_locked_nin = 'Another nin is already registered for this user'
     locked_identity_not_matching = 'common.locked_identity_not_matching'
+
 
 
 @dataclass(frozen=True)

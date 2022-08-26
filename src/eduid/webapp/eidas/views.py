@@ -1,27 +1,29 @@
 # -*- coding: utf-8 -*-
 from dataclasses import dataclass
-from typing import List, Optional, Union
+from typing import Optional
 from uuid import uuid4
 
-from flask import Blueprint, abort, make_response, redirect, request
-from saml2.request import AuthnRequest
+from flask import Blueprint, make_response, redirect, request
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.userdb import User
-from eduid.userdb.credentials.external import TrustFramework
 from eduid.userdb.element import ElementKey
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
 from eduid.webapp.common.api.helpers import check_magic_cookie
-from eduid.webapp.common.api.messages import FluxData, error_response, redirect_with_msg, success_response
+from eduid.webapp.common.api.messages import (
+    FluxData,
+    TranslatableMsg,
+    error_response,
+    redirect_with_msg,
+    success_response,
+)
 from eduid.webapp.common.api.schemas.csrf import EmptyResponse
-from eduid.webapp.common.api.utils import sanitise_redirect_url
 from eduid.webapp.common.authn.acs_enums import EidasAcsAction
-from eduid.webapp.common.authn.acs_registry import get_action
+from eduid.webapp.common.authn.acs_registry import ACSArgs, get_action
 from eduid.webapp.common.authn.eduid_saml2 import process_assertion
 from eduid.webapp.common.authn.utils import get_location
-from eduid.webapp.common.proofing.methods import ProofingMethod, get_proofing_method
+from eduid.webapp.common.proofing.methods import get_proofing_method
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import AuthnRequestRef, MfaActionError, SP_AuthnRequest
 from eduid.webapp.eidas.app import current_eidas_app as current_app
@@ -34,6 +36,7 @@ from eduid.webapp.eidas.helpers import (
     is_valid_reauthn,
     staging_nin_remap,
 )
+from saml2.request import AuthnRequest
 
 __author__ = 'lundberg'
 
@@ -65,7 +68,7 @@ def status(user: User, authn_id: AuthnRequestRef) -> FluxData:
     if not authn:
         return error_response(message=EidasMsg.not_found)
 
-    return success_response(payload={'frontend_state': authn.frontend_state})
+    return success_response(payload={'frontend_action': authn.frontend_action, 'frontend_state': authn.frontend_state})
 
 
 @eidas_views.route('/verify-credential', methods=['POST'])
@@ -73,7 +76,7 @@ def status(user: User, authn_id: AuthnRequestRef) -> FluxData:
 @MarshalWith(EidasVerifyTokenResponseSchema)
 @require_user
 def verify_credential(
-    user: User, method: str, credential_id: ElementKey, finish_url: str, frontend_state: Optional[str] = None
+    user: User, method: str, credential_id: ElementKey, frontend_action: str, frontend_state: Optional[str] = None
 ) -> FluxData:
     current_app.logger.debug(f'verify-credential called with credential_id: {credential_id}')
 
@@ -86,119 +89,80 @@ def verify_credential(
             return success_response(payload={'location': ret.location}, message=ret.message)
         return error_response(message=ret.message)
 
-    url = None
+    result = _authn(
+        EidasAcsAction.verify_credential,
+        method=method,
+        frontend_action=frontend_action,
+        frontend_state=frontend_state,
+        proofing_credential_id=credential_id,
+    )
 
-    if method == 'eidas':
-        _authn_req = _authn(
-            EidasAcsAction.token_verify_foreign_eid,
-            current_app.conf.foreign_trust_framework,
-            current_app.conf.foreign_required_loa,
-            finish_url=finish_url,
-            force_authn=True,
-            frontend_state=frontend_state,
-            idp=current_app.conf.foreign_identity_idp,
-            proofing_credential_id=credential_id,
-        )
-        url = get_location(_authn_req)
-    elif method == 'freja':
-        _authn_req = _authn(
-            EidasAcsAction.token_verify,
-            current_app.conf.trust_framework,
-            current_app.conf.required_loa,
-            finish_url=finish_url,
-            force_authn=True,
-            frontend_state=frontend_state,
-            idp=current_app.conf.freja_idp,
-            proofing_credential_id=credential_id,
-        )
-        url = get_location(_authn_req)
+    if result.error:
+        return error_response(message=result.error)
 
-    if not url:
-        return error_response(message=EidasMsg.method_not_available)
-
-    return success_response(payload={'location': url})
+    return success_response(payload={'location': result.url})
 
 
 @eidas_views.route('/verify-identity', methods=['POST'])
 @UnmarshalWith(EidasVerifyRequestSchema)
 @MarshalWith(EidasVerifyResponseSchema)
 @require_user
-def verify_identity(user: User, method: str, finish_url: str, frontend_state: Optional[str] = None) -> FluxData:
+def verify_identity(user: User, method: str, frontend_action: str, frontend_state: Optional[str] = None) -> FluxData:
     current_app.logger.debug(f'verify-identity called for method {method}')
-    url = ''
 
-    proofing_method = get_proofing_method(method)
-    if not proofing_method:
-        return error_response(message=EidasMsg.method_not_available)
-
-    if method == 'eidas':
-        _authn_req = _authn(
-            EidasAcsAction.foreign_identity_verify,
-            proofing_method=proofing_method,
-            finish_url=finish_url,
-            frontend_state=frontend_state,
-        )
-        url = get_location(_authn_req)
-    elif method == 'freja':
-        _authn_req = _authn(
-            EidasAcsAction.nin_verify,
-            proofing_method=proofing_method,
-            finish_url=finish_url,
-            frontend_state=frontend_state,
-        )
-        url = get_location(_authn_req)
-
-    if not url:
-        return error_response(message=EidasMsg.method_not_available)
-
-    return success_response(payload={'location': url})
-
-
-# TODO: MAKE POST
-@eidas_views.route('/mfa-authentication', methods=['GET'])
-def mfa_authentication() -> WerkzeugResponse:
-    current_app.logger.debug('mfa-authentication called')
-    redirect_url = sanitise_redirect_url(request.args.get('next', '/'))
-    required_loa = current_app.conf.required_loa
-    framework = current_app.conf.trust_framework
-    return _authn_redirect(EidasAcsAction.mfa_authn, framework, required_loa, force_authn=True, finish_url=redirect_url)
-
-
-# TODO: MAKE POST
-@eidas_views.route('/mfa-authentication-foreign-eid', methods=['GET'])
-def mfa_authentication_foreign_eid() -> WerkzeugResponse:
-    current_app.logger.debug('mfa-authentication foreign eid called')
-    redirect_url = sanitise_redirect_url(request.args.get('next', '/'))
-    required_loa = current_app.conf.foreign_required_loa
-    framework = current_app.conf.foreign_trust_framework
-    return _authn_redirect(
-        EidasAcsAction.mfa_authn_foreign_eid, framework, required_loa, force_authn=True, finish_url=redirect_url
+    result = _authn(
+        EidasAcsAction.verify_identity,
+        method=method,
+        frontend_action=frontend_action,
+        frontend_state=frontend_state,
     )
+
+    if result.error:
+        return error_response(message=result.error)
+
+    return success_response(payload={'location': result.url})
+
+
+@eidas_views.route('/mfa-authenticate', methods=['POST'])
+@UnmarshalWith(EidasVerifyRequestSchema)
+@MarshalWith(EidasVerifyResponseSchema)
+def mfa_authentication(method: str, frontend_action: str, frontend_state: Optional[str] = None) -> FluxData:
+    current_app.logger.debug('mfa-authenticate called')
+
+    result = _authn(
+        EidasAcsAction.mfa_authenticate,
+        method=method,
+        frontend_action=frontend_action,
+        frontend_state=frontend_state,
+    )
+
+    if result.error:
+        return error_response(message=result.error)
+
+    return success_response(payload={'location': result.url})
 
 
 @dataclass
 class AuthnResult:
-    authn_req: AuthnRequest
-    authn_id: AuthnRequestRef
+    authn_req: Optional[AuthnRequest] = None
+    authn_id: Optional[AuthnRequestRef] = None
+    error: Optional[TranslatableMsg] = None
+    url: Optional[str] = None
 
 
 def _authn(
     action: EidasAcsAction,
-    proofing_method: ProofingMethod,
-    finish_url: str,
-    force_authn: bool = True,
+    method: str,
+    frontend_action: str,
     frontend_state: Optional[str] = None,
     proofing_credential_id: Optional[ElementKey] = None,
 ) -> AuthnResult:
-    """
-    :param action: name of action
-    :param required_loa: friendly loa name
-    :param force_authn: should a new authentication be forced
-    :param finish_url: redirect url after successful authentication
+    current_app.logger.debug(f'Requested method: {method}, frontend action: {frontend_action}')
 
-    :return: redirect response
-    """
-    current_app.logger.debug(f'Requested proofing: {proofing_method}')
+    proofing_method = get_proofing_method(method, frontend_action, current_app.conf)
+    current_app.logger.debug(f'Proofing method: {proofing_method}')
+    if not proofing_method or not proofing_method.finish_url:
+        return AuthnResult(error=EidasMsg.method_not_available)
 
     idp = proofing_method.idp
     if check_magic_cookie(current_app.conf):
@@ -206,25 +170,30 @@ def _authn(
         idp = current_app.conf.magic_cookie_idp
         current_app.logger.debug(f'Changed requested IdP due to magic cookie: {idp}')
 
-    _authn_id = AuthnRequestRef(str(uuid4()))
+    ref = AuthnRequestRef(str(uuid4()))
     authn_request = create_authn_request(
-        authn_ref=_authn_id,
-        force_authn=force_authn,
+        authn_ref=ref,
+        force_authn=True,
         framework=proofing_method.framework,
         required_loa=proofing_method.required_loa,
         selected_idp=idp,
     )
 
-    session.eidas.sp.authns[_authn_id] = SP_AuthnRequest(
+    session.eidas.sp.authns[ref] = SP_AuthnRequest(
+        frontend_action=frontend_action,
         frontend_state=frontend_state,
         post_authn_action=action,
         proofing_credential_id=proofing_credential_id,
-        redirect_url=finish_url,
         method=proofing_method.method,
     )
-    current_app.logger.debug(f'Stored SP_AuthnRequest[{_authn_id}]: {session.eidas.sp.authns[_authn_id]}')
+    current_app.logger.debug(f'Stored SP_AuthnRequest[{ref}]: {session.eidas.sp.authns[ref]}')
 
-    return AuthnResult(authn_req=authn_request, authn_id=_authn_id)
+    url = get_location(authn_request)  # type: ignore
+    if not url:
+        current_app.logger.error(f"Couldn't extract Location from {authn_request}")
+        return AuthnResult(error=EidasMsg.method_not_available)
+
+    return AuthnResult(authn_req=authn_request, authn_id=ref)
 
 
 @eidas_views.route('/saml2-acs', methods=['POST'])
@@ -242,37 +211,55 @@ def assertion_consumer_service() -> WerkzeugResponse:
         return assertion
     current_app.logger.debug(f'Auth response:\n{assertion}\n\n')
 
-    if session.mfa_action and assertion.authn_req_ref != session.mfa_action.authn_req_ref:
+    authn_req = session.eidas.sp.authns.get(assertion.authn_req_ref)
+
+    if not authn_req:
         # Perhaps a SAML authn response received out of order - abort without destroying state
         # (User makes two requests, A and B. Response B arrives, user is happy and proceeds with their work.
         #  Then response A arrives late. Just silently abort, no need to mess up the users' session.)
         error_url = current_app.conf.unsolicited_response_redirect_url
         current_app.logger.info(
-            f'Response {assertion.authn_req_ref} does not match current one in session, '
-            f'{session.mfa_action.authn_req_ref}. Redirecting user to {error_url}'
+            f'Response {assertion.authn_req_ref} does not match one in session, redirecting user to {error_url}'
         )
         return redirect(error_url)
 
-    if not is_required_loa(assertion.session_info, session.mfa_action.required_loa):
-        if session.mfa_action:
-            # OLD way
-            session.mfa_action.error = MfaActionError.authn_context_mismatch
+    proofing_method = get_proofing_method(
+        assertion.authndata.method, assertion.authndata.frontend_action, current_app.conf
+    )
+
+    if not is_required_loa(assertion.session_info, authn_req.required_loa):
+        session.mfa_action.error = MfaActionError.authn_context_mismatch  # TODO: Old way, remove after a release cycle
         assertion.authndata.error = MfaActionError.authn_context_mismatch
-        return redirect_with_msg(assertion.authndata.redirect_url, EidasMsg.authn_context_mismatch)
+        return redirect_with_msg(proofing_method.finish_url, EidasMsg.authn_context_mismatch)
 
     if not is_valid_reauthn(assertion.session_info):
-        if session.mfa_action:
-            # OLD way
-            session.mfa_action.error = MfaActionError.authn_too_old
+        session.mfa_action.error = MfaActionError.authn_too_old  # TODO: Old way, remove after a release cycle
         assertion.authndata.error = MfaActionError.authn_too_old
-        return redirect_with_msg(assertion.authndata.redirect_url, EidasMsg.reauthn_expired)
+        return redirect_with_msg(proofing_method.finish_url, EidasMsg.reauthn_expired)
 
     # Remap nin in staging environment
     if current_app.conf.environment == EduidEnvironment.staging:
         assertion.session_info = staging_nin_remap(assertion.session_info)
 
     action = get_action(default_action=None, authndata=assertion.authndata)
-    return action(assertion.session_info, authndata=assertion.authndata)
+    backdoor = check_magic_cookie(config=current_app.conf)
+    args = ACSArgs(
+        session_info=assertion.session_info,
+        authn_req=assertion.authndata,
+        proofing_method=proofing_method,
+        backdoor=backdoor,
+    )
+    result = action(args)
+    if result.error:
+        # update session so this error can be retrieved from the /status endpoint
+        args.authn_req.error = result.error
+        # Including the error in the redirect URL is deprecated and should be removed once fronted stops using it
+        return redirect_with_msg(proofing_method.finish_url, result.error)
+
+    if result.success:
+        return redirect(proofing_method.finish_url)
+
+    return redirect_with_msg(proofing_method.finish_url, EidasMsg.method_not_available)
 
 
 @eidas_views.route('/saml2-metadata')

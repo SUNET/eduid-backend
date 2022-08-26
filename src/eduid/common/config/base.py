@@ -37,10 +37,11 @@ Configuration (file) handling for eduID IdP.
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, List, Mapping, Optional, Sequence, TypeVar
+from typing import Any, Dict, List, Mapping, Optional, Sequence, TypeVar
 
 from pydantic import BaseModel, Field
 
+from eduid.userdb.credentials import CredentialProofingMethod
 from eduid.userdb.credentials.external import TrustFramework
 
 
@@ -337,6 +338,17 @@ class ProofingConfigMixin(BaseModel):
         default=['eidas-nf-low', 'eidas-nf-sub', 'eidas-nf-high']
     )  # one of authentication_context_map below
     foreign_identity_idp: Optional[str] = None
+
+    frontend_action_finish_url: Dict[str, str] = Field(default=dict)
+
+    # identity proofing
+    nin_proofing_version: str = Field(default='2018v1')
+    foreign_eid_proofing_version: str = Field(default='2022v1')
+
+    # security key proofing
+    security_key_proofing_method: CredentialProofingMethod = Field(default=CredentialProofingMethod.SWAMID_AL2_MFA_HI)
+    security_key_proofing_version: str = Field(default='2018v1')
+    security_key_foreign_eid_proofing_version: str = Field(default='2022v1')
 
 
 class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, RedisConfigMixin):

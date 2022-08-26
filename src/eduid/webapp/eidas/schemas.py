@@ -23,7 +23,7 @@ class EidasVerifyRequestSchema(EduidSchema, CSRFRequestMixin):
     """A verify request for either an identity or a credential proofing."""
 
     method = fields.String(required=True)
-    finish_url = fields.String(required=True)
+    frontend_action = fields.String(required=True)
     frontend_state = fields.String(required=False)
 
 
@@ -44,5 +44,6 @@ class EidasStatusRequestSchema(EduidSchema, CSRFResponseMixin):
 
 
 class EidasStatusResponseSchema(EduidSchema, CSRFResponseMixin):
+    frontend_action = fields.String(required=True)
     frontend_state = fields.String(required=False)
     message: Optional[EidasMsg] = None

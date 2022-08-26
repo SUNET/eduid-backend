@@ -35,7 +35,7 @@
 Configuration (file) handling for the eduID eidas app.
 """
 
-from typing import Dict, List, Mapping, Optional
+from typing import Dict, Mapping, Optional
 
 from pydantic import Field
 
@@ -48,7 +48,6 @@ from eduid.common.config.base import (
     ProofingConfigMixin,
 )
 from eduid.userdb.credentials import CredentialProofingMethod
-from eduid.userdb.credentials.external import TrustFramework
 
 
 class EidasConfig(
@@ -98,12 +97,3 @@ class EidasConfig(
     saml2_settings_module: str
     safe_relay_domain: str = 'eduid.se'
     unsolicited_response_redirect_url: str = 'https://eduid.se'
-
-    # identity proofing
-    nin_proofing_version: str = Field(default='2018v1')
-    foreign_eid_proofing_version: str = Field(default='2022v1')
-
-    # security key proofing
-    security_key_proofing_method: CredentialProofingMethod = Field(default=CredentialProofingMethod.SWAMID_AL2_MFA_HI)
-    security_key_proofing_version: str = Field(default='2018v1')
-    security_key_foreign_eid_proofing_version: str = Field(default='2022v1')
