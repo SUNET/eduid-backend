@@ -326,6 +326,17 @@ class ErrorsConfigMixin(BaseModel):
     errors_url_template: Optional[str] = None
 
 
+class Pysaml2SPConfigMixin(BaseModel):
+    frontend_action_finish_url: Dict[str, str] = Field(default=dict)
+
+    # Authn algorithms
+    authn_sign_alg: str = 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256'
+    authn_digest_alg: str = 'http://www.w3.org/2001/04/xmlenc#sha256'
+
+    saml2_settings_module: str
+    safe_relay_domain: str = 'eduid.se'
+
+
 class ProofingConfigMixin(BaseModel):
     # sweden connect
     trust_framework: TrustFramework = TrustFramework.SWECONN
@@ -339,8 +350,6 @@ class ProofingConfigMixin(BaseModel):
     )  # one of authentication_context_map below
     foreign_identity_idp: Optional[str] = None
 
-    frontend_action_finish_url: Dict[str, str] = Field(default=dict)
-
     # identity proofing
     nin_proofing_version: str = Field(default='2018v1')
     foreign_eid_proofing_version: str = Field(default='2022v1')
@@ -349,6 +358,8 @@ class ProofingConfigMixin(BaseModel):
     security_key_proofing_method: CredentialProofingMethod = Field(default=CredentialProofingMethod.SWAMID_AL2_MFA_HI)
     security_key_proofing_version: str = Field(default='2018v1')
     security_key_foreign_eid_proofing_version: str = Field(default='2022v1')
+
+    frontend_action_finish_url: Dict[str, str] = Field(default=dict)
 
 
 class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, RedisConfigMixin):

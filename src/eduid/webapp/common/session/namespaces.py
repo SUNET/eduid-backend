@@ -9,21 +9,21 @@ from enum import Enum, unique
 from typing import Any, Dict, List, Mapping, NewType, Optional, Type, TypeVar, Union
 from uuid import uuid4
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import AnyUrl, BaseModel, Field, ValidationError
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.actions import Action
 from eduid.userdb.credentials import Credential
-
-__author__ = 'ft'
 
 from eduid.userdb.credentials.external import TrustFramework
 from eduid.userdb.credentials.fido import WebauthnAuthenticator
 from eduid.userdb.element import ElementKey
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
-from eduid.webapp.eidas.helpers import EidasMsg
 from eduid.webapp.idp.other_device.data import OtherDeviceId
+
+
+__author__ = 'ft'
 
 logger = logging.getLogger(__name__)
 
@@ -223,7 +223,7 @@ class SP_AuthnRequest(BaseModel):
     proofing_credential_id: Optional[ElementKey] = None
     method: Optional[str] = None  # proofing method that frontend is invoking
     error: Optional[TranslatableMsg] = None  # populated by the SAML2 ACS
-    redirect_url: Optional[str] = None
+    redirect_url: Optional[str]  # Deprecated, use frontend_action to get return URL from config instead
 
 
 class SPAuthnData(BaseModel):

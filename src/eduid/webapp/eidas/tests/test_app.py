@@ -21,6 +21,7 @@ from eduid.userdb.credentials.external import SwedenConnectCredential
 from eduid.userdb.credentials.fido import FidoCredential, WebauthnAuthenticator
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import EIDASIdentity, EIDASLoa, IdentityElement, PridPersistence
+from eduid.webapp.authn.views import FALLBACK_FRONTEND_ACTION
 from eduid.webapp.common.api.messages import CommonMsg, TranslatableMsg, redirect_with_msg
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
@@ -350,6 +351,7 @@ class EidasTests(EduidAPITestCase):
             credentials_used=credentials_used,
             authn_instant=utc_now(),
             redirect_url=redirect_url,
+            frontend_action=FALLBACK_FRONTEND_ACTION,
         )
 
     def _get_request_id_from_session(self, session: EduidSession) -> Tuple[str, AuthnRequestRef]:

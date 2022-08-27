@@ -2,16 +2,13 @@ import logging
 from abc import ABC
 from dataclasses import dataclass
 from typing import List, Optional, Union
-from flask import request
 
+from flask import request
 from pydantic import ValidationError
 
-from eduid.common.config.base import MagicCookieMixin, ProofingConfigMixin
-from eduid.userdb import User
+from eduid.common.config.base import ProofingConfigMixin
 from eduid.userdb.credentials.external import TrustFramework
-from eduid.userdb.identity import IdentityElement
-from eduid.webapp.common.api.helpers import check_magic_cookie
-from eduid.webapp.common.api.messages import CommonMsg, TranslatableMsg
+from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.eidas.saml_session_info import ForeignEidSessionInfo, NinSessionInfo

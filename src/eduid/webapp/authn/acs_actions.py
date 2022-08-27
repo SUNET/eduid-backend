@@ -78,12 +78,7 @@ def login_action(user: User, args: ACSArgs) -> ACSResult:
     update_user_session(args.session_info, user)
     current_app.stats.count('login_success')
 
-    # redirect the user to the view they came from
-    relay_state = sanitise_redirect_url(args.proofing_method.finish_url)
-    current_app.logger.debug(f'Redirecting to the RelayState: {relay_state}')
-    response = redirect(location=relay_state)
-    current_app.logger.info(f'Redirecting user {user} to {repr(relay_state)}')
-    return ACSResult(success=True, response=response)
+    return ACSResult(success=True)
 
 
 @acs_action(AuthnAcsAction.change_password)
@@ -113,10 +108,7 @@ def _reauthn(reason: str, user: User, args: ACSArgs) -> ACSResult:
     :param authndata: data about this particular authentication event
     """
     current_app.logger.info(f'Re-authenticating user {user} for {reason}.')
-    current_app.logger.debug(f'Data about this authentication: {authndata}')
-    update_user_session(session_info, user)
+    current_app.logger.debug(f'Data about this authentication: {args.authn_req}')
+    update_user_session(args.session_info, user)
 
-    # redirect the user to the view they came from
-    redirect_url = sanitise_redirect_url(authndata.redirect_url)
-    current_app.logger.debug(f'Redirecting to the redirect_url: {redirect_url}')
-    return redirect(location=redirect_url)
+    return ACSResult(success=True)

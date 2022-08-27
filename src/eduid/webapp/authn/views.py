@@ -34,6 +34,9 @@ import uuid
 from typing import Optional
 
 from flask import Blueprint, abort, make_response, redirect, request
+
+from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
+from eduid.webapp.common.api.messages import redirect_with_msg
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.ident import decode
@@ -57,6 +60,9 @@ from eduid.webapp.common.session.namespaces import AuthnRequestRef, LoginApplica
 assert acs_actions  # make sure nothing optimises away the import of this, as it is needed to execute @acs_actions
 
 authn_views = Blueprint('authn', __name__, url_prefix='')
+
+# use this as frontend_action to fall back to the old mechanism using redirect_url
+FALLBACK_FRONTEND_ACTION = 'unknown-authn'
 
 
 @authn_views.route('/login')
@@ -93,13 +99,18 @@ def terminate() -> WerkzeugResponse:
 
 
 def _authn(action: AuthnAcsAction, force_authn=False, same_user: bool = True) -> WerkzeugResponse:
+    # TODO: Stop using the "next" parameter, because it opens up for redirect attacks.
+    #       Instead, let frontend say "frontend_action=chpass" and we look up the finish_url
+    #       for "chpass" in configuration.
     redirect_url = sanitise_redirect_url(request.args.get('next'), current_app.conf.saml2_login_redirect_url)
+    frontend_action = request.args.get('frontend_action', FALLBACK_FRONTEND_ACTION)
 
     # In the future, we might want to support choosing the IdP somehow but for now
     # the only supported configuration is one (1) IdP.
     _configured_idps = current_app.saml2_config.getattr('idp')
     if len(_configured_idps) != 1:
         current_app.logger.error(f'Unknown SAML2 idp config: {repr(_configured_idps)}')
+        # TODO: use goto_errors_response()
         raise RuntimeError('Unknown SAML2 idp config')
     # For now, we will only ever use the single configured IdP
     idp = list(_configured_idps.keys())[0]
@@ -107,14 +118,23 @@ def _authn(action: AuthnAcsAction, force_authn=False, same_user: bool = True) ->
     _requested_idp = request.args.get('idp')
     if _requested_idp and _requested_idp != idp:
         current_app.logger.error(f'Requested IdP {_requested_idp} not allowed')
+        # TODO: use goto_errors_response()
         raise Forbidden('Requested IdP not allowed')
+
+    # finish_url = current_app.conf.frontend_action_finish_url.get(frontend_action)
+    # if not finish_url:
+    #    current_app.logger.warning(f'No finish_url for frontend_action {frontend_action}')
+    #    # TODO: use goto_errors_response()
+    #    raise Forbidden('Unknown frontend_action')
 
     _authn_id = AuthnRequestRef(str(uuid.uuid4()))
     # Filter out any previous authns with the same post_authn_action, both to keep the size of the session
     # below an upper bound, and because we currently need to use the post_authn_action value to find the
     # authn data for a specific action.
     session.authn.sp.authns = {k: v for k, v in session.authn.sp.authns.items() if v.post_authn_action != action}
-    session.authn.sp.authns[_authn_id] = SP_AuthnRequest(post_authn_action=action, redirect_url=redirect_url)
+    session.authn.sp.authns[_authn_id] = SP_AuthnRequest(
+        post_authn_action=action, redirect_url=redirect_url, frontend_action=frontend_action
+    )
 
     subject = None
     if same_user:
@@ -133,7 +153,7 @@ def _authn(action: AuthnAcsAction, force_authn=False, same_user: bool = True) ->
         digest_alg=current_app.conf.authn_digest_alg,
         subject=subject,
     )
-    current_app.logger.info(f'Redirecting the user to the IdP for {action} (redirect_url {redirect_url})')
+    current_app.logger.info(f'Redirecting the user to the IdP for {action} (frontend_action {frontend_action})')
     current_app.logger.debug(f'Stored SP_AuthnRequest[{_authn_id}]: {session.authn.sp.authns[_authn_id]}')
     _idp_redirect_url = get_location(authn_request)
     current_app.logger.debug(f'Redirecting user to the IdP: {_idp_redirect_url}')
@@ -141,7 +161,7 @@ def _authn(action: AuthnAcsAction, force_authn=False, same_user: bool = True) ->
 
 
 @authn_views.route('/saml2-acs', methods=['POST'])
-def assertion_consumer_service():
+def assertion_consumer_service() -> WerkzeugResponse:
     """
     Assertion consumer service, receives POSTs from SAML2 IdP's
     """
@@ -165,21 +185,46 @@ def assertion_consumer_service():
     # action = get_action(default_action=AuthnAcsAction.login, authndata=assertion.authndata)
     # return action(assertion.session_info, assertion.user, authndata=assertion.authndata)
 
+    if args.authn_req.frontend_action == FALLBACK_FRONTEND_ACTION:
+        # Redirect the user to the view they came from.
+        # TODO: This way is deprecated, since it might be abused in redirect attacks. Better have
+        #       a number of configured return-URLs in the backend config, and have the frontend
+        #       choose which one will be used with the 'frontend_action'.
+        finish_url = args.authn_req.redirect_url
+    else:
+        finish_url = current_app.conf.frontend_action_finish_url.get(args.authn_req.frontend_action)
+
+    if not finish_url:
+        # We _really_ shouldn't end up here because this same thing would have been done in the
+        # starting views above.
+        current_app.logger.warning(f'No finish_url for frontend_action {args.authn_req.frontend_action}')
+        if not current_app.conf.errors_url_template:
+            return make_response('Unknown frontend action', 400)
+        return goto_errors_response(
+            errors_url=current_app.conf.errors_url_template,
+            ctx=EduidErrorsContext.SAML_RESPONSE_FAIL,
+            rp=current_app.saml2_config.entityid,
+        )
+
     if result.error:
         # update session so this error can be retrieved from the /status endpoint
         args.authn_req.error = result.error
-        # Including the error in the redirect URL is deprecated and should be removed once fronted stops using it
-        return redirect_with_msg(proofing_method.finish_url, result.error)
+        # Including the error in the redirect URL is deprecated and should be removed once frontend stops using it
+        return redirect_with_msg(finish_url, result.error)
 
     if result.success:
-        return redirect(proofing_method.finish_url)
+        return redirect(finish_url)
 
-    return redirect_with_msg(proofing_method.finish_url, EidasMsg.method_not_available)
+    if result.response:
+        return result.response
+
+    # should never get here
+    raise RuntimeError('Reached end of authn')
 
 
 def _get_authn_name_id(session: EduidSession) -> Optional[NameID]:
     """
-    Get the SAML2 NameID of the currently logged in user.
+    Get the SAML2 NameID of the currently logged-in user.
     :param session: The current session object
     :return: NameID
     """

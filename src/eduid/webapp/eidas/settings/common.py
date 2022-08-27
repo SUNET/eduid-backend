@@ -46,12 +46,19 @@ from eduid.common.config.base import (
     MagicCookieMixin,
     MsgConfigMixin,
     ProofingConfigMixin,
+    Pysaml2SPConfigMixin,
 )
 from eduid.userdb.credentials import CredentialProofingMethod
 
 
 class EidasConfig(
-    EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MsgConfigMixin, ErrorsConfigMixin, ProofingConfigMixin
+    EduIDBaseAppConfig,
+    MagicCookieMixin,
+    AmConfigMixin,
+    MsgConfigMixin,
+    ErrorsConfigMixin,
+    ProofingConfigMixin,
+    Pysaml2SPConfigMixin,
 ):
     """
     Configuration for the eidas app
@@ -81,10 +88,6 @@ class EidasConfig(
         }
     )
 
-    # Authn algorithms
-    authn_sign_alg: str = 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256'
-    authn_digest_alg: str = 'http://www.w3.org/2001/04/xmlenc#sha256'
-
     # Staging nin map
     staging_nin_map: Mapping[str, str] = Field(
         default={
@@ -93,6 +96,3 @@ class EidasConfig(
     )
     # magic cookie IdP is used for integration tests when magic cookie is set
     magic_cookie_idp: Optional[str] = None
-
-    saml2_settings_module: str
-    safe_relay_domain: str = 'eduid.se'

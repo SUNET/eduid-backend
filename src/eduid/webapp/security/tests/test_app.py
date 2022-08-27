@@ -42,6 +42,7 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import IdentityType
+from eduid.webapp.authn.views import FALLBACK_FRONTEND_ACTION
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
@@ -140,6 +141,7 @@ class SecurityTests(EduidAPITestCase):
                         post_authn_action=AuthnAcsAction.terminate_account,
                         redirect_url='/test',
                         authn_instant=utc_now() - timedelta(seconds=reauthn),
+                        frontend_action=FALLBACK_FRONTEND_ACTION,
                     )
             return client.get('/account-terminated')
 
@@ -578,6 +580,7 @@ class SecurityTests(EduidAPITestCase):
                         post_authn_action=AuthnAcsAction.change_password,
                         redirect_url='/test',
                         authn_instant=utc_now() - timedelta(days=1),
+                        frontend_action=FALLBACK_FRONTEND_ACTION,
                     )
                     data = {
                         'csrf_token': sess.get_csrf_token(),
@@ -651,6 +654,7 @@ class SecurityTests(EduidAPITestCase):
                             post_authn_action=AuthnAcsAction.change_password,
                             redirect_url='/test',
                             authn_instant=utc_now() - timedelta(seconds=12),
+                            frontend_action=FALLBACK_FRONTEND_ACTION,
                         )
                         data = {
                             'csrf_token': sess.get_csrf_token(),

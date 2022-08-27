@@ -272,7 +272,7 @@ def assertion_consumer_service() -> WerkzeugResponse:
     if result.error:
         # update session so this error can be retrieved from the /status endpoint
         args.authn_req.error = result.error
-        # Including the error in the redirect URL is deprecated and should be removed once fronted stops using it
+        # Including the error in the redirect URL is deprecated and should be removed once frontend stops using it
         return redirect_with_msg(proofing_method.finish_url, result.error)
 
     if result.success:
