@@ -81,7 +81,6 @@ class CommonMsg(TranslatableMsg):
     locked_identity_not_matching = 'common.locked_identity_not_matching'
 
 
-
 @dataclass(frozen=True)
 class FluxData:
     status: FluxResponseStatus

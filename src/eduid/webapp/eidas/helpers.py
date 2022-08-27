@@ -46,9 +46,7 @@ class EidasMsg(TranslatableMsg):
     # the token was not used to authenticate this session
     token_not_in_creds = 'eidas.token_not_in_credentials_used'  # TODO: Use must_authenticate instead
     # the personalIdentityNumber from Sweden Connect does not correspond
-    # to a verified nin in the user's account
-    nin_not_matching = 'eidas.nin_not_matching'  # TODO: Use identity_not_matching instead
-    # prid does not correspond to the verified NIN/EIDAS identity
+    # to a verified nin in the user's account, or prid does not correspond to the verified EIDAS identity
     identity_not_matching = 'eidas.identity_not_matching'
     # successfully verified the token
     verify_success = 'eidas.token_verify_success'
@@ -72,6 +70,8 @@ class EidasMsg(TranslatableMsg):
     must_authenticate = 'eidas.must_authenticate'
     # Status requested for unknown authn_id
     not_found = 'eidas.not_found'
+    # Action completed, redirect to actions app
+    action_completed = 'actions.action-completed'
 
 
 def create_authn_request(
@@ -199,7 +199,7 @@ def check_credential_to_verify(user: User, credential_id: str) -> CredentialVeri
         # and then return to this endpoint with the same credential_id. Better luck next time I guess.
         current_app.logger.info(f'Started proofing of token {token_to_verify.key}, redirecting to authn')
         reauthn_url = urlappend(current_app.conf.token_service_url, 'reauthn')
-        next_url = url_for('eidas.verify_token', credential_id=token_to_verify.key, _external=True)
+        next_url = url_for('old_eidas.verify_token', credential_id=token_to_verify.key, _external=True)
         # Add idp arg to next_url if set
         idp = request.args.get('idp')
         if idp and idp not in current_app.saml2_config.metadata.identity_providers():

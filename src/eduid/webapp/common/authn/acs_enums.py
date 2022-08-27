@@ -13,10 +13,6 @@ class AuthnAcsAction(str, Enum):
 
 @unique
 class EidasAcsAction(str, Enum):
-    token_verify = 'token-verify-action'
-    mfa_authn = 'mfa-authentication-action'
-    token_verify_foreign_eid = 'token-verify-foreign-eid-action'
-    mfa_authn_foreign_eid = 'mfa-authentication-foreign-eid-action'
     verify_identity = 'verify-identity-action'
     verify_credential = 'verify-credential-action'
     mfa_authenticate = 'mfa-authenticate-action'

@@ -222,7 +222,7 @@ class SP_AuthnRequest(BaseModel):
     # proofing_credential_id is the credential being person-proofed, when doing that
     proofing_credential_id: Optional[ElementKey] = None
     method: Optional[str] = None  # proofing method that frontend is invoking
-    error: Optional[TranslatableMsg] = None  # populated by the SAML2 ACS
+    error: Optional[str] = None  # populated by the SAML2 ACS
     redirect_url: Optional[str]  # Deprecated, use frontend_action to get return URL from config instead
 
 

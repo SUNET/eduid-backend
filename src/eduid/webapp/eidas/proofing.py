@@ -127,7 +127,9 @@ class ProofingFunctions(ABC, Generic[SessionInfoVar]):
         else:
             mfa_success = False
 
-        credential_used = _find_or_add_credential(user, proofing_method.framework, proofing_method.required_loa)
+        credential_used = None
+        if mfa_success:
+            credential_used = _find_or_add_credential(user, proofing_method.framework, proofing_method.required_loa)
 
         # OLD way - remove as soon as possible
         # update session

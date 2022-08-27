@@ -166,6 +166,7 @@ def mfa_authenticate_action(args: ACSArgs) -> ACSResult:
 
     # Check that a verified NIN is equal to the asserted attribute personalIdentityNumber
     match_res = proofing.match_identity(user=user, proofing_method=args.proofing_method)
+    current_app.logger.debug(f'MFA authentication identity matching result: {match_res}')
     if match_res.error is not None:
         return ACSResult(error=match_res.error)
 

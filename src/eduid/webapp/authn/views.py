@@ -62,7 +62,7 @@ assert acs_actions  # make sure nothing optimises away the import of this, as it
 authn_views = Blueprint('authn', __name__, url_prefix='')
 
 # use this as frontend_action to fall back to the old mechanism using redirect_url
-FALLBACK_FRONTEND_ACTION = 'unknown-authn'
+FALLBACK_FRONTEND_ACTION = 'fallback-redirect-url'
 
 
 @authn_views.route('/login')
@@ -181,6 +181,7 @@ def assertion_consumer_service() -> WerkzeugResponse:
         user=assertion.user,
     )
     result = action(args)
+    current_app.logger.debug(f'ACS action result: {result}')
 
     # action = get_action(default_action=AuthnAcsAction.login, authndata=assertion.authndata)
     # return action(assertion.session_info, assertion.user, authndata=assertion.authndata)
@@ -207,15 +208,18 @@ def assertion_consumer_service() -> WerkzeugResponse:
         )
 
     if result.error:
+        current_app.logger.info(f'SAML ACS action failed: {result.error}')
         # update session so this error can be retrieved from the /status endpoint
-        args.authn_req.error = result.error
+        args.authn_req.error = result.error.value
         # Including the error in the redirect URL is deprecated and should be removed once frontend stops using it
-        return redirect_with_msg(finish_url, result.error)
+        return redirect_with_msg(finish_url, result.error, error=True)
 
     if result.success:
+        current_app.logger.debug(f'SAML ACS action successful')
         return redirect(finish_url)
 
     if result.response:
+        current_app.logger.debug(f'SAML ACS action returned a response')
         return result.response
 
     # should never get here

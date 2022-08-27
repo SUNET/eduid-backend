@@ -67,11 +67,14 @@ class ProofingMethodEidas(ProofingMethod):
 
 
 def get_proofing_method(
-    method: Optional[str], frontend_action: str, config: ProofingConfigMixin
+    method: Optional[str],
+    frontend_action: str,
+    config: ProofingConfigMixin,
+    fallback_redirect_url: Optional[str] = None,
 ) -> Optional[ProofingMethod]:
     # look up the finish_url here (when receiving the request, rather than in the ACS)
     # to be able to fail fast if frontend requests an action that backend isn't configured for
-    finish_url = config.frontend_action_finish_url.get(frontend_action)
+    finish_url = config.frontend_action_finish_url.get(frontend_action, fallback_redirect_url)
 
     if method == 'freja':
         if not config.freja_idp:

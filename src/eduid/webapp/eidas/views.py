@@ -9,6 +9,7 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 from eduid.common.config.base import EduidEnvironment
 from eduid.userdb import User
 from eduid.userdb.element import ElementKey
+from eduid.webapp.authn.views import FALLBACK_FRONTEND_ACTION
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
 from eduid.webapp.common.api.helpers import check_magic_cookie
@@ -157,10 +158,15 @@ def _authn(
     frontend_action: str,
     frontend_state: Optional[str] = None,
     proofing_credential_id: Optional[ElementKey] = None,
+    redirect_url: Optional[str] = None,  # DEPRECATED - try to use frontend_action instead
 ) -> AuthnResult:
     current_app.logger.debug(f'Requested method: {method}, frontend action: {frontend_action}')
 
-    proofing_method = get_proofing_method(method, frontend_action, current_app.conf)
+    fallback_url = None
+    if frontend_action == FALLBACK_FRONTEND_ACTION:
+        fallback_url = redirect_url
+
+    proofing_method = get_proofing_method(method, frontend_action, current_app.conf, fallback_redirect_url=fallback_url)
     current_app.logger.debug(f'Proofing method: {proofing_method}')
     if not proofing_method or not proofing_method.finish_url:
         return AuthnResult(error=EidasMsg.method_not_available)
@@ -189,6 +195,7 @@ def _authn(
         post_authn_action=action,
         proofing_credential_id=proofing_credential_id,
         method=proofing_method.method,
+        redirect_url=redirect_url,  # DEPRECATED - try to use frontend_action instead
     )
     current_app.logger.debug(f'Stored SP_AuthnRequest[{ref}]: {session.eidas.sp.authns[ref]}')
 
@@ -197,7 +204,7 @@ def _authn(
         current_app.logger.error(f"Couldn't extract Location from {authn_request}")
         return AuthnResult(error=EidasMsg.method_not_available)
 
-    return AuthnResult(authn_req=authn_request, authn_id=ref)
+    return AuthnResult(authn_req=authn_request, authn_id=ref, url=url)
 
 
 @eidas_views.route('/saml2-acs', methods=['POST'])
@@ -231,8 +238,15 @@ def assertion_consumer_service() -> WerkzeugResponse:
             rp=current_app.saml2_config.entityid,
         )
 
+    fallback_url = None
+    if assertion.authndata.frontend_action == FALLBACK_FRONTEND_ACTION:
+        fallback_url = assertion.authndata.redirect_url
+
     proofing_method = get_proofing_method(
-        assertion.authndata.method, assertion.authndata.frontend_action, current_app.conf
+        assertion.authndata.method,
+        assertion.authndata.frontend_action,
+        current_app.conf,
+        fallback_redirect_url=fallback_url,
     )
     if not proofing_method or not proofing_method.finish_url:
         # We _really_ shouldn't end up here because this same thing would have been done in the
@@ -248,12 +262,12 @@ def assertion_consumer_service() -> WerkzeugResponse:
 
     if not is_required_loa(assertion.session_info, proofing_method.required_loa):
         session.mfa_action.error = MfaActionError.authn_context_mismatch  # TODO: Old way, remove after a release cycle
-        assertion.authndata.error = EidasMsg.authn_context_mismatch
+        assertion.authndata.error = EidasMsg.authn_context_mismatch.value
         return redirect_with_msg(proofing_method.finish_url, EidasMsg.authn_context_mismatch)
 
     if not is_valid_reauthn(assertion.session_info):
         session.mfa_action.error = MfaActionError.authn_too_old  # TODO: Old way, remove after a release cycle
-        assertion.authndata.error = EidasMsg.reauthn_expired
+        assertion.authndata.error = EidasMsg.reauthn_expired.value
         return redirect_with_msg(proofing_method.finish_url, EidasMsg.reauthn_expired)
 
     # Remap nin in staging environment
@@ -269,13 +283,19 @@ def assertion_consumer_service() -> WerkzeugResponse:
         backdoor=backdoor,
     )
     result = action(args)
+    current_app.logger.debug(f'ACS action result: {result}')
+
     if result.error:
+        current_app.logger.info(f'SAML ACS action failed: {result.error}')
         # update session so this error can be retrieved from the /status endpoint
-        args.authn_req.error = result.error
+        args.authn_req.error = result.error.value
         # Including the error in the redirect URL is deprecated and should be removed once frontend stops using it
-        return redirect_with_msg(proofing_method.finish_url, result.error)
+        return redirect_with_msg(proofing_method.finish_url, result.error, error=True)
 
     if result.success:
+        current_app.logger.debug(f'SAML ACS action successful (frontend_action {args.authn_req.frontend_action})')
+        if args.authn_req.frontend_action == FALLBACK_FRONTEND_ACTION:
+            return redirect_with_msg(proofing_method.finish_url, EidasMsg.action_completed, error=False)
         return redirect(proofing_method.finish_url)
 
     return redirect_with_msg(proofing_method.finish_url, EidasMsg.method_not_available)

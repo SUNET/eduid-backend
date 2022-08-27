@@ -216,6 +216,11 @@ class EidasTests(EduidAPITestCase):
                 'magic_cookie_name': 'magic-cookie',
                 'magic_cookie_idp': self.test_idp,
                 'environment': 'dev',
+                'freja_idp': self.test_idp,
+                'frontend_action_finish_url': {
+                    'token_verify_redirect': 'http://test.localhost/profile',
+                    'identity_verify_redirect': 'http://test.localhost/profile',
+                },
             }
         )
         return app_config
@@ -652,7 +657,7 @@ class EidasTests(EduidAPITestCase):
         self.verify_token(
             endpoint=f'/verify-token/{credential.key}',
             eppn=eppn,
-            expect_msg=EidasMsg.nin_not_matching,
+            expect_msg=EidasMsg.identity_not_matching,
             expect_error=True,
             credentials_used=[credential.key, 'other_id'],
             verify_credential=credential.key,
@@ -873,7 +878,7 @@ class EidasTests(EduidAPITestCase):
 
         self.reauthn(
             '/mfa-authentication',
-            expect_msg=EidasMsg.nin_not_matching,
+            expect_msg=EidasMsg.identity_not_matching,
             expect_error=True,
             eppn=eppn,
             logged_in=False,
@@ -1256,8 +1261,7 @@ class EidasTests(EduidAPITestCase):
 
         self.reauthn(
             endpoint='/mfa-authentication',
-            expect_msg=EidasMsg.nin_not_matching,
-            expect_mfa_action_error=MfaActionError.nin_not_matching,
+            expect_msg=EidasMsg.identity_not_matching,
             expect_error=True,
             identity=self.test_user_wrong_nin,
         )

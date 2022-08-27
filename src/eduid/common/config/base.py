@@ -327,7 +327,7 @@ class ErrorsConfigMixin(BaseModel):
 
 
 class Pysaml2SPConfigMixin(BaseModel):
-    frontend_action_finish_url: Dict[str, str] = Field(default=dict)
+    frontend_action_finish_url: Dict[str, str] = Field(default={})
 
     # Authn algorithms
     authn_sign_alg: str = 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256'
@@ -359,7 +359,7 @@ class ProofingConfigMixin(BaseModel):
     security_key_proofing_version: str = Field(default='2018v1')
     security_key_foreign_eid_proofing_version: str = Field(default='2022v1')
 
-    frontend_action_finish_url: Dict[str, str] = Field(default=dict)
+    frontend_action_finish_url: Dict[str, str] = Field(default={})
 
 
 class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, RedisConfigMixin):

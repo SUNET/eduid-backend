@@ -48,7 +48,6 @@ from eduid.common.config.base import (
     ProofingConfigMixin,
     Pysaml2SPConfigMixin,
 )
-from eduid.userdb.credentials import CredentialProofingMethod
 
 
 class EidasConfig(
