@@ -382,6 +382,7 @@ class EidasTests(EduidAPITestCase):
         expect_msg: TranslatableMsg,
         expect_error: bool,
         expect_redirect_url: Optional[str],
+        allow_no_message: bool = False,
     ) -> None:
         assert response.status_code == 302
 
@@ -398,7 +399,7 @@ class EidasTests(EduidAPITestCase):
         if expect_error:
             assert qs['msg'] == [f':ERROR:{expect_msg.value}']
         else:
-            if 'msg' not in qs and expect_msg == EidasMsg.action_completed:
+            if 'msg' not in qs and allow_no_message:
                 # allow new-style APIs not returning a message on success
                 pass
             else:
@@ -522,6 +523,9 @@ class EidasTests(EduidAPITestCase):
             verify_credential=verify_credential,
         )
 
+    def _is_new_endpoint(self, endpoint: str) -> bool:
+        return endpoint in ['/mfa-authenticate', '/verify-identity', '/verify-credential']
+
     def _get_authn_redirect_url(
         self,
         browser: Optional[FlaskClient],
@@ -534,7 +538,7 @@ class EidasTests(EduidAPITestCase):
         with browser.session_transaction() as sess:  # type: ignore
             csrf_token = sess.get_csrf_token()
 
-        if endpoint in ['/mfa-authenticate', '/verify-identity', '/verify-credential']:
+        if self._is_new_endpoint(endpoint):
             req = {
                 'csrf_token': csrf_token,
                 'method': method,
@@ -616,10 +620,14 @@ class EidasTests(EduidAPITestCase):
                 verify_credential=verify_credential,
             )
 
-            logger.debug(f'Test fetching url: {_url}')
-            response = browser.get(_url)  # type: ignore
-            logger.debug(f'Test fetched url {_url}, response: {response}')
-            assert response.status_code == 302
+            if not self._is_new_endpoint(endpoint):
+                # OLD redirect based endpoints
+                logger.debug(f'Test fetching url: {_url}')
+                response = browser.get(_url)  # type: ignore
+                logger.debug(f'Test fetched url {_url}, response: {response}')
+                assert response.status_code == 302
+            else:
+                logger.debug(f'Backend told us to proceed with URL {_url}')
 
             with browser.session_transaction() as sess:  # type: ignore
                 request_id, authn_ref = self._get_request_id_from_session(sess)
@@ -634,6 +642,7 @@ class EidasTests(EduidAPITestCase):
             )
 
             data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': ''}
+            logger.debug(f'Posting a fake SAML assertion in response to request {request_id} (ref {authn_ref})')
             response = browser.post('/saml2-acs', data=data)  # type: ignore
 
             if expect_mfa_action_error is not None:
@@ -649,6 +658,7 @@ class EidasTests(EduidAPITestCase):
             expect_msg=expect_msg,
             expect_error=expect_error,
             expect_redirect_url=expect_redirect_url,
+            allow_no_message=self._is_new_endpoint(endpoint),
         )
 
     def test_authenticate(self):
@@ -1076,6 +1086,7 @@ class EidasTests(EduidAPITestCase):
             credentials_used=[credential.key, 'other_id'],
             verify_credential=credential.key,
             response_template=self.saml_response_foreign_eid_tpl_success,
+            expect_redirect_url='http://test.localhost/testing-verify-credential',
             method='eidas',
             frontend_action='verify_credential',
         )
@@ -1101,8 +1112,9 @@ class EidasTests(EduidAPITestCase):
             credentials_used=[credential.key, 'other_id'],
             verify_credential=credential.key,
             response_template=self.saml_response_foreign_eid_tpl_success,
+            expect_redirect_url='http://test.localhost/testing-verify-credential',
             method='eidas',
-            frontend_action='mfa_authenticate',
+            frontend_action='verify_credential',
         )
 
         self._verify_user_parameters(
@@ -1123,11 +1135,13 @@ class EidasTests(EduidAPITestCase):
             endpoint='/verify-credential',
             eppn=eppn,
             identity=identity,
-            expect_msg=EidasMsg.old_token_verify_success,
+            expect_msg=EidasMsg.identity_verify_success,
             credentials_used=[credential.key, 'other_id'],
+            verify_credential=credential.key,
             response_template=self.saml_response_foreign_eid_tpl_success,
+            expect_redirect_url='http://test.localhost/testing-verify-credential',
             method='eidas',
-            frontend_action='mfa_authenticate',
+            frontend_action='verify_credential',
         )
 
         # Verify the user now has a verified eidas identity
@@ -1385,12 +1399,14 @@ class EidasTests(EduidAPITestCase):
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_present=False)
 
         self.reauthn(
-            '/verify-foreign-identity',
-            expect_msg=EidasMsg.foreign_eid_verify_success,
+            '/verify-identity',
+            expect_msg=EidasMsg.identity_verify_success,
             eppn=eppn,
             identity=identity,
             response_template=self.saml_response_foreign_eid_tpl_success,
-            expect_redirect_url='http://test.localhost/profile',
+            expect_redirect_url='http://test.localhost/testing-verify-identity',
+            method='eidas',
+            frontend_action='verify_identity',
         )
 
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity=identity, identity_verified=True, num_proofings=1)
@@ -1412,13 +1428,15 @@ class EidasTests(EduidAPITestCase):
         self._verify_user_parameters(eppn, num_mfa_tokens=0, locked_identity=locked_identity, identity_present=False)
 
         self.reauthn(
-            '/verify-foreign-identity',
+            '/verify-identity',
             expect_msg=CommonMsg.locked_identity_not_matching,
             expect_error=True,
             eppn=eppn,
             identity=identity,
             response_template=self.saml_response_foreign_eid_tpl_success,
-            expect_redirect_url='http://test.localhost/profile',
+            expect_redirect_url='http://test.localhost/testing-verify-identity',
+            method='eidas',
+            frontend_action='verify_identity',
         )
 
         self._verify_user_parameters(
@@ -1450,12 +1468,14 @@ class EidasTests(EduidAPITestCase):
         self._verify_user_parameters(eppn, num_mfa_tokens=0, locked_identity=locked_identity, identity_present=False)
 
         self.reauthn(
-            '/verify-foreign-identity',
-            expect_msg=EidasMsg.foreign_eid_verify_success,
+            '/verify-identity',
+            expect_msg=EidasMsg.identity_verify_success,
             eppn=eppn,
             identity=identity,
             response_template=self.saml_response_foreign_eid_tpl_success,
-            expect_redirect_url='http://test.localhost/profile',
+            expect_redirect_url='http://test.localhost/testing-verify-identity',
+            method='eidas',
+            frontend_action='verify_identity',
         )
 
         self._verify_user_parameters(
