@@ -32,6 +32,7 @@ def verify_token(user: User, credential_id: ElementKey) -> Union[FluxData, Werkz
 
     # verify that the user has the credential and that it was used for login recently
     ret = check_credential_to_verify(user=user, credential_id=credential_id)
+    current_app.logger.debug(f'Credential check result: {ret}')
     if not ret.verified_ok:
         if ret.response is not None:
             return ret.response
@@ -40,10 +41,19 @@ def verify_token(user: User, credential_id: ElementKey) -> Union[FluxData, Werkz
         raise RuntimeError('Credential verification failed, but no response nor location')
 
     # Store the id of the credential that is supposed to be proofed in the session
-    session.eidas.verify_token_action_credential_id = credential_id
+    # session.eidas.verify_token_action_credential_id = credential_id
 
     # Request an authentication from the idp
-    return _authn_redirect(EidasAcsAction.verify_credential, frontend_action='token_verify_redirect')
+
+    redirect_url = current_app.conf.token_verify_redirect_url
+    frontend_action = EidasAcsAction.old_token_verify
+
+    return _authn_redirect(
+        EidasAcsAction.verify_credential,
+        frontend_action=frontend_action,
+        redirect_url=redirect_url,
+        proofing_credential_id=credential_id,
+    )
 
 
 # TODO: Make frontend use POST /verify-identity instead of this endpoint
@@ -51,7 +61,9 @@ def verify_token(user: User, credential_id: ElementKey) -> Union[FluxData, Werkz
 @require_user
 def verify_nin(user: User) -> WerkzeugResponse:
     current_app.logger.debug('verify-nin called')
-    return _authn_redirect(EidasAcsAction.verify_identity, frontend_action='identity_verify_redirect')
+    redirect_url = current_app.conf.identity_verify_redirect_url
+    frontend_action = EidasAcsAction.old_nin_verify
+    return _authn_redirect(EidasAcsAction.verify_identity, frontend_action=frontend_action, redirect_url=redirect_url)
 
 
 # TODO: Make frontend use POST /mfa-authenticate instead of this endpoint
@@ -59,7 +71,7 @@ def verify_nin(user: User) -> WerkzeugResponse:
 def mfa_authentication() -> WerkzeugResponse:
     current_app.logger.debug('mfa-authentication called')
     redirect_url = sanitise_redirect_url(request.args.get('next', '/'))
-    frontend_action = FALLBACK_FRONTEND_ACTION
+    frontend_action = EidasAcsAction.old_mfa_authn
     return _authn_redirect(EidasAcsAction.mfa_authenticate, frontend_action=frontend_action, redirect_url=redirect_url)
 
 

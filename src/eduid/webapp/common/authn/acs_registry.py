@@ -98,7 +98,7 @@ def acs_action(action: Enum):
     return outer
 
 
-def get_action(default_action: Optional[Enum], authndata: SP_AuthnRequest) -> Callable[[ACSArgs], ACSResult]:
+def get_action(default_action: Optional[Enum], authndata: SP_AuthnRequest) -> Callable[..., ACSResult]:
     """
     Retrieve an action from the registry based on the AcsAction stored in the session.
 

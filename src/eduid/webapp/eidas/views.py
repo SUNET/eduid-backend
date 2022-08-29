@@ -21,7 +21,7 @@ from eduid.webapp.common.api.messages import (
     success_response,
 )
 from eduid.webapp.common.api.schemas.csrf import EmptyResponse
-from eduid.webapp.common.authn.acs_enums import EidasAcsAction
+from eduid.webapp.common.authn.acs_enums import EidasAcsAction, is_old_action
 from eduid.webapp.common.authn.acs_registry import ACSArgs, get_action
 from eduid.webapp.common.authn.eduid_saml2 import process_assertion
 from eduid.webapp.common.authn.utils import get_location
@@ -84,6 +84,7 @@ def verify_credential(
 
     # verify that the user has the credential and that it was used for login recently
     ret = check_credential_to_verify(user=user, credential_id=credential_id)
+    current_app.logger.debug(f'Credential check result: {ret}')
     if not ret.verified_ok:
         current_app.logger.info(f'Can\'t proceed with verify-credential at this time: {ret.message}')
         current_app.logger.debug(f'Can\'t proceed with verify-credential at this time: {ret}')
@@ -163,7 +164,8 @@ def _authn(
     current_app.logger.debug(f'Requested method: {method}, frontend action: {frontend_action}')
 
     fallback_url = None
-    if frontend_action == FALLBACK_FRONTEND_ACTION:
+    if is_old_action(frontend_action):
+        current_app.logger.debug(f'Using fallback URL {redirect_url} for action {frontend_action}')
         fallback_url = redirect_url
 
     proofing_method = get_proofing_method(method, frontend_action, current_app.conf, fallback_redirect_url=fallback_url)
@@ -239,8 +241,9 @@ def assertion_consumer_service() -> WerkzeugResponse:
         )
 
     fallback_url = None
-    if assertion.authndata.frontend_action == FALLBACK_FRONTEND_ACTION:
+    if is_old_action(assertion.authndata.frontend_action):
         fallback_url = assertion.authndata.redirect_url
+        current_app.logger.debug(f'Using fallback URL {fallback_url} for action {assertion.authndata.frontend_action}')
 
     proofing_method = get_proofing_method(
         assertion.authndata.method,
@@ -282,7 +285,7 @@ def assertion_consumer_service() -> WerkzeugResponse:
         proofing_method=proofing_method,
         backdoor=backdoor,
     )
-    result = action(args)
+    result = action(args=args)
     current_app.logger.debug(f'ACS action result: {result}')
 
     if result.error:
@@ -294,8 +297,13 @@ def assertion_consumer_service() -> WerkzeugResponse:
 
     if result.success:
         current_app.logger.debug(f'SAML ACS action successful (frontend_action {args.authn_req.frontend_action})')
-        if args.authn_req.frontend_action == FALLBACK_FRONTEND_ACTION:
+        if args.authn_req.frontend_action == EidasAcsAction.old_mfa_authn:
             return redirect_with_msg(proofing_method.finish_url, EidasMsg.action_completed, error=False)
+        if args.authn_req.frontend_action == EidasAcsAction.old_token_verify:
+            return redirect_with_msg(proofing_method.finish_url, EidasMsg.old_token_verify_success, error=False)
+        if args.authn_req.frontend_action == EidasAcsAction.old_nin_verify:
+            return redirect_with_msg(proofing_method.finish_url, EidasMsg.old_nin_verify_success, error=False)
+
         return redirect(proofing_method.finish_url)
 
     return redirect_with_msg(proofing_method.finish_url, EidasMsg.method_not_available)

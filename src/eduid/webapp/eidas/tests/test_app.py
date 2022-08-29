@@ -26,6 +26,7 @@ from eduid.webapp.common.api.messages import CommonMsg, TranslatableMsg, redirec
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
 from eduid.webapp.common.authn.cache import OutstandingQueriesCache
+from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.session import EduidSession
 from eduid.webapp.common.session.namespaces import AuthnRequestRef, MfaActionError, SP_AuthnRequest
 from eduid.webapp.eidas.app import EidasApp, init_eidas_app
@@ -571,12 +572,13 @@ class EidasTests(EduidAPITestCase):
                 age=age,
                 credentials_used=credentials_used,
             )
-            if verify_credential:
+            if False and verify_credential:
                 logger.debug(
                     f'Test setting verify_token_action_credential_id = {verify_credential} '
                     f'(was: {sess.eidas.verify_token_action_credential_id})'
                 )
                 with browser.session_transaction() as sess:  # type: ignore
+                    # TODO: REMOVE - NOT USED ???
                     sess.eidas.verify_token_action_credential_id = verify_credential
 
             data = {'SAMLResponse': base64.b64encode(authn_response), 'RelayState': ''}
@@ -618,7 +620,7 @@ class EidasTests(EduidAPITestCase):
         self.verify_token(
             endpoint=f'/verify-token/{credential.key}',
             eppn=eppn,
-            expect_msg=EidasMsg.verify_success,
+            expect_msg=EidasMsg.old_token_verify_success,
             credentials_used=[credential.key, 'other_id'],
             verify_credential=credential.key,
         )
@@ -640,7 +642,7 @@ class EidasTests(EduidAPITestCase):
         self.verify_token(
             endpoint=f'/verify-token/{credential.key}',
             eppn=eppn,
-            expect_msg=EidasMsg.verify_success,
+            expect_msg=EidasMsg.old_token_verify_success,
             credentials_used=[credential.key, 'other_id'],
             verify_credential=credential.key,
         )
@@ -681,7 +683,7 @@ class EidasTests(EduidAPITestCase):
         self.verify_token(
             endpoint=f'/verify-token/{credential.key}',
             eppn=eppn,
-            expect_msg=EidasMsg.verify_success,
+            expect_msg=EidasMsg.old_token_verify_success,
             credentials_used=[credential.key, 'other_id'],
             verify_credential=credential.key,
             identity=nin,
@@ -735,7 +737,7 @@ class EidasTests(EduidAPITestCase):
         self.verify_token(
             endpoint=f'/verify-token/{credential.key}',
             eppn=eppn,
-            expect_msg=EidasMsg.verify_success,
+            expect_msg=EidasMsg.old_token_verify_success,
             credentials_used=[credential.key, 'other_id'],
             verify_credential=credential.key,
             response_template=self.saml_response_tpl_fail,
@@ -754,7 +756,7 @@ class EidasTests(EduidAPITestCase):
         self.verify_token(
             endpoint=f'/verify-token/{credential.key}',
             eppn=eppn,
-            expect_msg=EidasMsg.verify_success,
+            expect_msg=EidasMsg.old_token_verify_success,
             credentials_used=[credential.key, 'other_id'],
             verify_credential=credential.key,
             identity=self.test_user_wrong_nin,
@@ -774,7 +776,7 @@ class EidasTests(EduidAPITestCase):
         self.verify_token(
             endpoint=f'/verify-token/{credential.key}',
             eppn=eppn,
-            expect_msg=EidasMsg.verify_success,
+            expect_msg=EidasMsg.old_token_verify_success,
             credentials_used=[credential.key, 'other_id'],
             verify_credential=credential.key,
             identity=self.test_user_wrong_nin,
@@ -801,7 +803,7 @@ class EidasTests(EduidAPITestCase):
             self.verify_token(
                 endpoint=f'/verify-token/{credential.key}',
                 eppn=eppn,
-                expect_msg=EidasMsg.verify_success,
+                expect_msg=EidasMsg.old_token_verify_success,
                 credentials_used=[credential.key, 'other_id'],
                 verify_credential=credential.key,
                 browser=browser,
@@ -820,7 +822,7 @@ class EidasTests(EduidAPITestCase):
 
         self.reauthn(
             '/verify-nin',
-            expect_msg=EidasMsg.nin_verify_success,
+            expect_msg=EidasMsg.old_nin_verify_success,
             eppn=eppn,
             expect_redirect_url='http://test.localhost/profile',
         )
@@ -843,7 +845,7 @@ class EidasTests(EduidAPITestCase):
 
         self.reauthn(
             '/verify-nin',
-            expect_msg=EidasMsg.nin_verify_success,
+            expect_msg=EidasMsg.old_nin_verify_success,
             eppn=eppn,
             expect_redirect_url='http://test.localhost/profile',
         )
@@ -999,7 +1001,7 @@ class EidasTests(EduidAPITestCase):
             endpoint=f'/verify-token-foreign-eid/{credential.key}',
             eppn=eppn,
             identity=self.test_user_eidas,
-            expect_msg=EidasMsg.verify_success,
+            expect_msg=EidasMsg.old_token_verify_success,
             credentials_used=[credential.key, 'other_id'],
             verify_credential=credential.key,
             response_template=self.saml_response_foreign_eid_tpl_success,
@@ -1046,7 +1048,7 @@ class EidasTests(EduidAPITestCase):
             endpoint=f'/verify-token-foreign-eid/{credential.key}',
             eppn=eppn,
             identity=identity,
-            expect_msg=EidasMsg.verify_success,
+            expect_msg=EidasMsg.old_token_verify_success,
             credentials_used=[credential.key, 'other_id'],
             verify_credential=credential.key,
             response_template=self.saml_response_foreign_eid_tpl_success,
@@ -1135,7 +1137,7 @@ class EidasTests(EduidAPITestCase):
             browser.set_cookie('localhost', key='nin', value=nin.number)
             self.reauthn(
                 '/verify-nin',
-                expect_msg=EidasMsg.nin_verify_success,
+                expect_msg=EidasMsg.old_nin_verify_success,
                 eppn=eppn,
                 expect_redirect_url='http://test.localhost/profile',
                 browser=browser,
@@ -1162,7 +1164,7 @@ class EidasTests(EduidAPITestCase):
             browser.set_cookie('localhost', key='nin', value=nin.number)
             self.reauthn(
                 '/verify-nin',
-                expect_msg=EidasMsg.nin_verify_success,
+                expect_msg=EidasMsg.old_nin_verify_success,
                 eppn=eppn,
                 expect_redirect_url='http://test.localhost/profile',
                 browser=browser,
@@ -1191,7 +1193,7 @@ class EidasTests(EduidAPITestCase):
             browser.set_cookie('localhost', key='nin', value=nin.number)
             self.reauthn(
                 '/verify-nin',
-                expect_msg=EidasMsg.nin_verify_success,
+                expect_msg=EidasMsg.old_nin_verify_success,
                 eppn=eppn,
                 expect_redirect_url='http://test.localhost/profile',
                 browser=browser,
@@ -1213,7 +1215,7 @@ class EidasTests(EduidAPITestCase):
 
         self.reauthn(
             '/verify-nin',
-            expect_msg=EidasMsg.nin_already_verified,
+            expect_msg=ProofingMsg.identity_already_verified,
             expect_error=True,
             expect_redirect_url='http://test.localhost/profile',
             identity=nin,
@@ -1283,7 +1285,7 @@ class EidasTests(EduidAPITestCase):
 
         self.reauthn(
             '/verify-nin',
-            expect_msg=EidasMsg.nin_verify_success,
+            expect_msg=EidasMsg.old_nin_verify_success,
             eppn=eppn,
             expect_redirect_url='http://test.localhost/profile',
             identity=self.test_user_nin,

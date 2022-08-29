@@ -79,6 +79,11 @@ class ProofingFunctions(ABC, Generic[SessionInfoVar]):
             current_app.stats.count('navet_error')
             return VerifyUserResult(error_message=CommonMsg.navet_error)
 
+        # get a reference to the credential on the proofing_user, since that is the one we'll save below
+        credential = proofing_user.credentials.find(credential.key)
+        # please type checking
+        assert credential
+
         # Set token as verified
         credential.is_verified = True
         credential.proofing_method = self.config.security_key_proofing_method
@@ -86,7 +91,7 @@ class ProofingFunctions(ABC, Generic[SessionInfoVar]):
 
         # Save proofing log entry and save user
         if current_app.proofing_log.save(proofing_log_entry):
-            current_app.logger.info('Recorded MFA token verification in the proofing log')
+            current_app.logger.info(f'Recorded credential {credential} verification in the proofing log')
             try:
                 save_and_sync_user(proofing_user)
             except AmTaskFailed:

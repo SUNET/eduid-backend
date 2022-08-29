@@ -48,14 +48,10 @@ class EidasMsg(TranslatableMsg):
     # the personalIdentityNumber from Sweden Connect does not correspond
     # to a verified nin in the user's account, or prid does not correspond to the verified EIDAS identity
     identity_not_matching = 'eidas.identity_not_matching'
-    # successfully verified the token
-    verify_success = 'eidas.token_verify_success'
     # The user already has a verified NIN
     nin_already_verified = 'eidas.nin_already_verified'  # TODO: Use identity_already_verified instead
     # The user already has a verified NIN/EIDAS identity
     identity_already_verified = 'eidas.identity_already_verified'
-    # Successfully verified the NIN
-    nin_verify_success = 'eidas.nin_verify_success'  # TODO: Use identity_verify_success instead
     # Successfully verified the NIN/EIDAS identity
     identity_verify_success = 'eidas.identity_verify_success'
     # missing redirect URL for mfa authn
@@ -72,6 +68,9 @@ class EidasMsg(TranslatableMsg):
     not_found = 'eidas.not_found'
     # Action completed, redirect to actions app
     action_completed = 'actions.action-completed'
+
+    old_token_verify_success = 'eidas.token_verify_success'
+    old_nin_verify_success = 'eidas.nin_verify_success'
 
 
 def create_authn_request(
