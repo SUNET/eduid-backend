@@ -90,6 +90,16 @@ TEST_CONFIG = {
         'result_backend': 'cache',
         'cache_backend': 'memory',
     },
+    'logging_config': {
+        'loggers': {
+            'saml2': {'level': 'WARNING'},
+            'xmlsec': {'level': 'INFO'},
+            'urllib3': {'level': 'INFO'},
+            'eduid.webapp.common.session': {'level': 'INFO'},
+            'eduid.userdb.userdb.extra_debug': {'level': 'INFO'},
+            'eduid.userdb': {'level': 'INFO'},
+        }
+    },
 }
 
 
