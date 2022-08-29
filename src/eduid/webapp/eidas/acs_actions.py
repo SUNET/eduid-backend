@@ -11,6 +11,7 @@ from eduid.webapp.common.session import session
 from eduid.webapp.eidas.app import current_eidas_app as current_app
 from eduid.webapp.eidas.helpers import (
     EidasMsg,
+    authn_ctx_to_loa,
 )
 from eduid.webapp.eidas.proofing import (
     get_proofing_functions,
@@ -52,8 +53,8 @@ def verify_identity_action(user: User, args: ACSArgs) -> ACSResult:
         return ACSResult(error=ProofingMsg.identity_already_verified)
 
     verify_result = proofing.verify_identity(user=user)
-    if verify_result.error_message is not None:
-        return ACSResult(error=verify_result.error_message)
+    if verify_result.error is not None:
+        return ACSResult(error=verify_result.error)
 
     return ACSResult(success=True)
 
@@ -99,8 +100,8 @@ def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
     if not _identity or not _identity.is_verified:
         # proof users' identity too in this process if the user didn't have a verified identity of this type already
         verify_result = proofing.verify_identity(user=user)
-        if verify_result.error_message is not None:
-            return ACSResult(error=verify_result.error_message)
+        if verify_result.error is not None:
+            return ACSResult(error=verify_result.error)
         if verify_result.user:
             # Get an updated user object
             user = verify_result.user
@@ -121,9 +122,11 @@ def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
         current_app.stats.count(name=f'verify_credential_{args.proofing_method.method}_identity_not_matching')
         return ACSResult(error=EidasMsg.identity_not_matching)
 
-    verify_result = proofing.verify_credential(user=user, credential=credential)
-    if verify_result.error_message is not None:
-        return ACSResult(error=verify_result.error_message)
+    loa = authn_ctx_to_loa(args.session_info)
+
+    verify_result = proofing.verify_credential(user=user, credential=credential, loa=loa)
+    if verify_result.error is not None:
+        return ACSResult(error=verify_result.error)
 
     current_app.stats.count(name='fido_token_verified')
     current_app.stats.count(name=f'verify_credential_{args.proofing_method.method}_success')

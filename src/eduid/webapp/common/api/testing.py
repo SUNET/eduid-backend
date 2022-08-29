@@ -242,7 +242,7 @@ class EduidAPITestCase(CommonTestCase):
     def _check_error_response(
         self,
         response: Response,
-        type_: str,
+        type_: Optional[str],
         msg: Optional[TranslatableMsg] = None,
         error: Optional[Mapping[str, Any]] = None,
         payload: Optional[Mapping[str, Any]] = None,
@@ -253,7 +253,7 @@ class EduidAPITestCase(CommonTestCase):
     def _check_success_response(
         self,
         response: Response,
-        type_: str,
+        type_: Optional[str],
         msg: Optional[TranslatableMsg] = None,
         payload: Optional[Mapping[str, Any]] = None,
     ):
@@ -266,7 +266,7 @@ class EduidAPITestCase(CommonTestCase):
     def _check_api_response(
         response: Response,
         status: int,
-        type_: str,
+        type_: Optional[str],
         message: Optional[TranslatableMsg] = None,
         error: Optional[Mapping[str, Any]] = None,
         payload: Optional[Mapping[str, Any]] = None,
@@ -301,9 +301,10 @@ class EduidAPITestCase(CommonTestCase):
         """
         try:
             assert status == response.status_code, f'The HTTP response code was {response.status_code} not {status}'
-            assert (
-                type_ == response.json['type']
-            ), f'Wrong response type. expected: {type_}, actual: {response.json["type"]}'
+            if type_ is not None:
+                assert (
+                    type_ == response.json['type']
+                ), f'Wrong response type. expected: {type_}, actual: {response.json["type"]}'
             assert 'payload' in response.json, 'JSON body has no "payload" element'
             if message is not None:
                 assert 'message' in response.json['payload'], 'JSON payload has no "message" element'

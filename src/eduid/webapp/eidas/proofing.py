@@ -1,19 +1,27 @@
 from abc import ABC
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Generic, List, Optional, TypeVar, Union
+from typing import Any, Generic, List, Optional, TypeVar, Union
 
 from eduid.common.config.base import ProofingConfigMixin
 from eduid.common.rpc.exceptions import AmTaskFailed, MsgTaskFailed, NoNavetData
 from eduid.common.rpc.msg_relay import FullPostalAddress
 from eduid.userdb import EIDASIdentity, User
 from eduid.userdb.credentials import Credential
-from eduid.userdb.credentials.external import SwedenConnectCredential, TrustFramework
+from eduid.userdb.credentials.external import (
+    EidasCredential,
+    ExternalCredential,
+    SwedenConnectCredential,
+    TrustFramework,
+)
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import EIDASLoa, IdentityElement, IdentityType, PridPersistence
 from eduid.userdb.logs.element import (
+    ForeignEidProofingLogElement,
     MFATokenEIDASProofing,
     MFATokenProofing,
+    NinProofingLogElement,
+    ProofingLogElement,
     SwedenConnectEIDASProofing,
     SwedenConnectProofing,
 )
@@ -31,6 +39,7 @@ from eduid.webapp.common.proofing.methods import ProofingMethod
 from eduid.webapp.common.session import session
 from eduid.webapp.eidas.app import current_eidas_app as current_app
 from eduid.webapp.eidas.helpers import (
+    EidasMsg,
     authn_context_class_to_loa,
 )
 from eduid.webapp.eidas.saml_session_info import ForeignEidSessionInfo, NinSessionInfo
@@ -48,7 +57,18 @@ class MatchResult:
 @dataclass
 class VerifyUserResult:
     user: Optional[User] = None
-    error_message: Optional[TranslatableMsg] = None
+    error: Optional[TranslatableMsg] = None
+
+
+@dataclass
+class VerifyCredentialResult(VerifyUserResult):
+    credential: Optional[Credential] = None
+
+
+@dataclass
+class ProofingElementResult:
+    data: Optional[ProofingLogElement] = None
+    error: Optional[TranslatableMsg] = None
 
 
 @dataclass()
@@ -65,24 +85,25 @@ class ProofingFunctions(ABC, Generic[SessionInfoVar]):
     def verify_identity(self, user: User) -> VerifyUserResult:
         raise NotImplementedError("Subclass must implement verify_identity")
 
-    def verify_credential(self, user: User, credential: Credential) -> VerifyUserResult:
+    def verify_credential(self, user: User, credential: Credential, loa: Optional[str]) -> VerifyCredentialResult:
         proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
 
+        mark_result = self.mark_credential_as_verified(credential, loa)
+        if mark_result.error:
+            return mark_result
+        assert mark_result.credential  # please type checking
+        credential = mark_result.credential
+
         # Create a proofing log
-        try:
-            proofing_log_entry = self.credential_proofing_element(user=user, credential=credential)
-        except NoNavetData:
-            current_app.logger.exception('No data returned from Navet')
-            return VerifyUserResult(error_message=CommonMsg.no_navet_data)
-        except MsgTaskFailed:
-            current_app.logger.exception('Navet lookup failed')
-            current_app.stats.count('navet_error')
-            return VerifyUserResult(error_message=CommonMsg.navet_error)
+        proofing_log_entry = self.credential_proofing_element(user=user, credential=credential)
+        if proofing_log_entry.error:
+            return VerifyCredentialResult(error=proofing_log_entry.error)
 
         # get a reference to the credential on the proofing_user, since that is the one we'll save below
-        credential = proofing_user.credentials.find(credential.key)
+        _credential = proofing_user.credentials.find(credential.key)
         # please type checking
-        assert credential
+        assert _credential
+        credential = _credential
 
         # Set token as verified
         credential.is_verified = True
@@ -90,19 +111,20 @@ class ProofingFunctions(ABC, Generic[SessionInfoVar]):
         credential.proofing_version = self.config.security_key_proofing_version
 
         # Save proofing log entry and save user
-        if current_app.proofing_log.save(proofing_log_entry):
+        assert proofing_log_entry.data  # please type checking
+        if current_app.proofing_log.save(proofing_log_entry.data):
             current_app.logger.info(f'Recorded credential {credential} verification in the proofing log')
             try:
                 save_and_sync_user(proofing_user)
             except AmTaskFailed:
                 current_app.logger.exception('Verifying token for user failed')
-                return VerifyUserResult(error_message=CommonMsg.temp_problem)
+                return VerifyCredentialResult(error=CommonMsg.temp_problem)
             current_app.stats.count(name='fido_token_verified')
 
         # re-load the user from central db before returning
         _user = current_app.central_userdb.get_user_by_eppn(proofing_user.eppn)
         assert _user is not None  # please mypy
-        return VerifyUserResult(user=_user)
+        return VerifyCredentialResult(user=_user)
 
     def match_identity(self, user: User, proofing_method: ProofingMethod) -> MatchResult:
         raise NotImplementedError("Subclass must implement match_identity")
@@ -122,9 +144,9 @@ class ProofingFunctions(ABC, Generic[SessionInfoVar]):
             # and we can verify it again
             proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
             res = self.verify_identity(user=proofing_user)
-            if res.error_message is not None:
+            if res.error is not None:
                 # If a message was returned, verifying the identity failed, and we abort
-                return MatchResult(error=res.error_message)
+                return MatchResult(error=res.error)
         elif user_identity is None and user_locked_identity is None:
             # TODO: we _could_ allow the user to give consent to just adding this identity to the user here,
             #       with a request parameter passed from frontend to /mfa-authentication for example.
@@ -153,8 +175,11 @@ class ProofingFunctions(ABC, Generic[SessionInfoVar]):
 
         return MatchResult(matched=mfa_success, credential_used=credential_used)
 
-    def credential_proofing_element(self, user: User, credential: Credential):
+    def credential_proofing_element(self, user: User, credential: Credential) -> ProofingElementResult:
         raise NotImplementedError("Subclass must implement credential_proofing_element")
+
+    def mark_credential_as_verified(self, credential: Credential, loa: Optional[str]) -> VerifyCredentialResult:
+        raise NotImplementedError("Subclass must implement mark_credential_as_verified")
 
 
 @dataclass()
@@ -166,15 +191,10 @@ class FrejaProofingFunctions(ProofingFunctions[NinSessionInfo]):
         proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
 
         # Create a proofing log
-        try:
-            proofing_log_entry = self.identity_proofing_element(user=user)
-        except NoNavetData:
-            current_app.logger.exception('No data returned from Navet')
-            return VerifyUserResult(error_message=CommonMsg.no_navet_data)
-        except MsgTaskFailed:
-            current_app.logger.exception('Navet lookup failed')
-            current_app.stats.count('navet_error')
-            return VerifyUserResult(error_message=CommonMsg.navet_error)
+        proofing_log_entry = self.identity_proofing_element(user=user)
+        if proofing_log_entry.error:
+            return VerifyUserResult(error=proofing_log_entry.error)
+        assert isinstance(proofing_log_entry.data, NinProofingLogElement)  # please type checking
 
         # Verify NIN for user
         try:
@@ -182,12 +202,12 @@ class FrejaProofingFunctions(ProofingFunctions[NinSessionInfo]):
                 number=self.session_info.attributes.nin, created_by=current_app.conf.app_name, is_verified=False
             )
             proofing_state = NinProofingState(id=None, modified_ts=None, eppn=proofing_user.eppn, nin=nin_element)
-            if not verify_nin_for_user(proofing_user, proofing_state, proofing_log_entry):
+            if not verify_nin_for_user(proofing_user, proofing_state, proofing_log_entry.data):
                 current_app.logger.error(f'Failed verifying NIN for user {proofing_user}')
-                return VerifyUserResult(error_message=CommonMsg.temp_problem)
+                return VerifyUserResult(error=CommonMsg.temp_problem)
         except AmTaskFailed:
             current_app.logger.exception('Verifying NIN for user failed')
-            return VerifyUserResult(error_message=CommonMsg.temp_problem)
+            return VerifyUserResult(error=CommonMsg.temp_problem)
 
         current_app.stats.count(name='nin_verified')
         # re-load the user from central db before returning
@@ -195,7 +215,7 @@ class FrejaProofingFunctions(ProofingFunctions[NinSessionInfo]):
         assert _user is not None  # please mypy
         return VerifyUserResult(user=ProofingUser.from_user(_user, current_app.private_userdb))
 
-    def identity_proofing_element(self, user: User):
+    def identity_proofing_element(self, user: User) -> ProofingElementResult:
         issuer: Optional[str]
         authn_context: Optional[str]
 
@@ -213,9 +233,17 @@ class FrejaProofingFunctions(ProofingFunctions[NinSessionInfo]):
             authn_context = self.session_info.authn_context
 
         _nin = self.session_info.attributes.nin
-        navet_proofing_data = self._get_navet_data(nin=_nin)
+        try:
+            navet_proofing_data = self._get_navet_data(nin=_nin)
+        except NoNavetData:
+            current_app.logger.exception('No data returned from Navet')
+            return ProofingElementResult(error=CommonMsg.no_navet_data)
+        except MsgTaskFailed:
+            current_app.logger.exception('Navet lookup failed')
+            current_app.stats.count('navet_error')
+            return ProofingElementResult(error=CommonMsg.navet_error)
 
-        return SwedenConnectProofing(
+        data = SwedenConnectProofing(
             authn_context_class=authn_context,
             created_by=current_app.conf.app_name,
             deregistration_information=navet_proofing_data.deregistration_information,
@@ -225,8 +253,9 @@ class FrejaProofingFunctions(ProofingFunctions[NinSessionInfo]):
             proofing_version=proofing_version,
             user_postal_address=navet_proofing_data.user_postal_address,
         )
+        return ProofingElementResult(data=data)
 
-    def credential_proofing_element(self, user: User, credential: Credential):
+    def credential_proofing_element(self, user: User, credential: Credential) -> ProofingElementResult:
         issuer: Optional[str]
         authn_context: Optional[str]
 
@@ -242,9 +271,17 @@ class FrejaProofingFunctions(ProofingFunctions[NinSessionInfo]):
         # please type checking
         assert user.identities.nin
 
-        navet_proofing_data = self._get_navet_data(nin=user.identities.nin.number)
+        try:
+            navet_proofing_data = self._get_navet_data(nin=user.identities.nin.number)
+        except NoNavetData:
+            current_app.logger.exception('No data returned from Navet')
+            return ProofingElementResult(error=CommonMsg.no_navet_data)
+        except MsgTaskFailed:
+            current_app.logger.exception('Navet lookup failed')
+            current_app.stats.count('navet_error')
+            return ProofingElementResult(error=CommonMsg.navet_error)
 
-        return MFATokenProofing(
+        data = MFATokenProofing(
             authn_context_class=authn_context,
             created_by=self.app_name,
             deregistration_information=navet_proofing_data.deregistration_information,
@@ -255,6 +292,7 @@ class FrejaProofingFunctions(ProofingFunctions[NinSessionInfo]):
             proofing_version=proofing_version,
             user_postal_address=navet_proofing_data.user_postal_address,
         )
+        return ProofingElementResult(data=data)
 
     def match_identity(self, user: User, proofing_method: ProofingMethod) -> MatchResult:
         identity_type = IdentityType.NIN
@@ -278,14 +316,22 @@ class FrejaProofingFunctions(ProofingFunctions[NinSessionInfo]):
                     'OfficialAddress': {'Address2': 'MAGIC COOKIE', 'PostalCode': '12345', 'City': 'LANDET'},
                 }
             )
-            navet_proofing_data = ProofingNavetData(
+            return ProofingNavetData(
                 user_postal_address=user_postal_address,
                 deregistration_information=None,
             )
-        else:
-            navet_proofing_data = get_proofing_log_navet_data(nin=nin)
 
-        return navet_proofing_data
+        return get_proofing_log_navet_data(nin=nin)
+
+    def mark_credential_as_verified(self, credential: Credential, loa: Optional[str]) -> VerifyCredentialResult:
+        if loa != 'loa3':
+            return VerifyCredentialResult(error=EidasMsg.authn_context_mismatch)
+
+        credential.is_verified = True
+        credential.proofing_method = self.config.security_key_proofing_method
+        credential.proofing_version = self.config.security_key_proofing_version
+
+        return VerifyCredentialResult(credential=credential)
 
 
 @dataclass()
@@ -316,7 +362,7 @@ class EidasProofingFunctions(ProofingFunctions[ForeignEidSessionInfo]):
         if locked_identity is not None and locked_identity.prid != new_identity.prid:
             if not self._can_replace_identity(proofing_user=proofing_user):
                 # asserted identity did not match the locked identity
-                return VerifyUserResult(error_message=CommonMsg.locked_identity_not_matching)
+                return VerifyUserResult(error=CommonMsg.locked_identity_not_matching)
             # replace the locked identity as the users asserted prid has changed,
             # and we are sure enough that it is the same person
             proofing_user.locked_identity.replace(element=new_identity)
@@ -330,14 +376,17 @@ class EidasProofingFunctions(ProofingFunctions[ForeignEidSessionInfo]):
 
         # Create a proofing log
         proofing_log_entry = self.identity_proofing_element(user=proofing_user)
+        if proofing_log_entry.error:
+            return VerifyUserResult(error=proofing_log_entry.error)
+        assert isinstance(proofing_log_entry.data, ForeignEidProofingLogElement)  # please type checking
 
         # update the users names from the verified identity
-        proofing_user = set_user_names_from_foreign_eid(proofing_user, proofing_log_entry)
+        proofing_user = set_user_names_from_foreign_eid(proofing_user, proofing_log_entry.data)
 
         # Verify EIDAS identity for user
-        if not current_app.proofing_log.save(proofing_log_entry):
+        if not current_app.proofing_log.save(proofing_log_entry.data):
             current_app.logger.error('Failed to save EIDAS identity proofing log for user')
-            return VerifyUserResult(error_message=CommonMsg.temp_problem)
+            return VerifyUserResult(error=CommonMsg.temp_problem)
         try:
             # Save user to private db
             current_app.private_userdb.save(proofing_user)
@@ -347,7 +396,7 @@ class EidasProofingFunctions(ProofingFunctions[ForeignEidSessionInfo]):
             current_app.logger.info(f'Sync result for user: {result}')
         except AmTaskFailed:
             current_app.logger.exception('Verifying EIDAS identity for user failed')
-            return VerifyUserResult(error_message=CommonMsg.temp_problem)
+            return VerifyUserResult(error=CommonMsg.temp_problem)
 
         current_app.stats.count(name='eidas_verified')
         # load the user from central db before returning
@@ -355,8 +404,8 @@ class EidasProofingFunctions(ProofingFunctions[ForeignEidSessionInfo]):
         assert _user is not None  # please mypy
         return VerifyUserResult(user=_user)
 
-    def identity_proofing_element(self, user: User):
-        return SwedenConnectEIDASProofing(
+    def identity_proofing_element(self, user: User) -> ProofingElementResult:
+        data = SwedenConnectEIDASProofing(
             authn_context_class=self.session_info.authn_context,
             country_code=self.session_info.attributes.country_code,
             created_by=current_app.conf.app_name,
@@ -371,9 +420,10 @@ class EidasProofingFunctions(ProofingFunctions[ForeignEidSessionInfo]):
             surname=self.session_info.attributes.surname,
             transaction_identifier=self.session_info.attributes.transaction_identifier,
         )
+        return ProofingElementResult(data=data)
 
-    def credential_proofing_element(self, user: User, credential: Credential):
-        return MFATokenEIDASProofing(
+    def credential_proofing_element(self, user: User, credential: Credential) -> ProofingElementResult:
+        data = MFATokenEIDASProofing(
             authn_context_class=self.session_info.authn_context,
             country_code=self.session_info.attributes.country_code,
             created_by=current_app.conf.app_name,
@@ -389,6 +439,7 @@ class EidasProofingFunctions(ProofingFunctions[ForeignEidSessionInfo]):
             surname=self.session_info.attributes.surname,
             transaction_identifier=self.session_info.attributes.transaction_identifier,
         )
+        return ProofingElementResult(data=data)
 
     def match_identity(self, user: User, proofing_method: ProofingMethod) -> MatchResult:
         identity_type = IdentityType.EIDAS
@@ -416,29 +467,49 @@ class EidasProofingFunctions(ProofingFunctions[ForeignEidSessionInfo]):
             return True
         return False
 
+    def mark_credential_as_verified(self, credential: Credential, loa: Optional[str]) -> VerifyCredentialResult:
+        if loa not in ['eidas-nf-low', 'eidas-nf-sub', 'eidas-nf-high']:
+            return VerifyCredentialResult(error=EidasMsg.authn_context_mismatch)
+
+        credential.is_verified = True
+        credential.proofing_method = self.config.security_key_proofing_method
+        credential.proofing_version = self.config.security_key_foreign_eid_proofing_version
+
+        return VerifyCredentialResult(credential=credential)
+
 
 def _find_or_add_credential(
     user: User, framework: Optional[TrustFramework], required_loa: List[str]
 ) -> Optional[ElementKey]:
-    if framework != TrustFramework.SWECONN:
-        current_app.logger.info(f'Not recording credential used for unknown trust framework: {framework}')
-        return None
-
     if not required_loa:
         # mainly keep mypy calm
         current_app.logger.debug(f'Not recording credential used without required_loa')
         return None
 
-    for this in user.credentials.filter(SwedenConnectCredential):
-        if this.level == required_loa:
-            current_app.logger.debug(f'Found suitable credential on user: {this}')
-            return this.key
+    cred: ExternalCredential
+    this: ExternalCredential
+    if framework == TrustFramework.SWECONN:
+        for this in user.credentials.filter(SwedenConnectCredential):
+            if this.level in required_loa:
+                current_app.logger.debug(f'Found suitable credential on user: {this}')
+                return this.key
 
-    cred = SwedenConnectCredential(level=required_loa[0])
-    cred.created_by = current_app.conf.app_name
-    if required_loa == "loa3":
-        # TODO: proof token as SWAMID_AL2_MFA_HI?
-        pass
+        cred = SwedenConnectCredential(level=required_loa[0])
+        cred.created_by = current_app.conf.app_name
+        if cred.level == "loa3":
+            # TODO: proof token as SWAMID_AL2_MFA_HI?
+            pass
+    elif framework == TrustFramework.EIDAS:
+        for this in user.credentials.filter(EidasCredential):
+            if this.level in required_loa:
+                current_app.logger.debug(f'Found suitable credential on user: {this}')
+                return this.key
+
+        cred = EidasCredential(level=required_loa[0])
+        cred.created_by = current_app.conf.app_name
+    else:
+        current_app.logger.info(f'Not recording credential used for unknown trust framework: {framework}')
+        return None
 
     # Reload the user from the central database, to not overwrite any earlier NIN proofings
     _user = current_app.central_userdb.get_user_by_eppn(user.eppn)

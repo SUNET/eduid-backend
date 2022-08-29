@@ -9,7 +9,6 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 from eduid.common.config.base import EduidEnvironment
 from eduid.userdb import User
 from eduid.userdb.element import ElementKey
-from eduid.webapp.authn.views import FALLBACK_FRONTEND_ACTION
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
 from eduid.webapp.common.api.helpers import check_magic_cookie
@@ -45,10 +44,9 @@ __author__ = 'lundberg'
 from eduid.webapp.eidas.schemas import (
     EidasStatusRequestSchema,
     EidasStatusResponseSchema,
-    EidasVerifyRequestSchema,
-    EidasVerifyResponseSchema,
-    EidasVerifyTokenRequestSchema,
-    EidasVerifyTokenResponseSchema,
+    EidasVerifyCredentialRequestSchema,
+    EidasCommonRequestSchema,
+    EidasCommonResponseSchema,
 )
 
 eidas_views = Blueprint('eidas', __name__, url_prefix='')
@@ -74,8 +72,8 @@ def status(user: User, authn_id: AuthnRequestRef) -> FluxData:
 
 
 @eidas_views.route('/verify-credential', methods=['POST'])
-@UnmarshalWith(EidasVerifyTokenRequestSchema)
-@MarshalWith(EidasVerifyTokenResponseSchema)
+@UnmarshalWith(EidasVerifyCredentialRequestSchema)
+@MarshalWith(EidasCommonResponseSchema)
 @require_user
 def verify_credential(
     user: User, method: str, credential_id: ElementKey, frontend_action: str, frontend_state: Optional[str] = None
@@ -107,8 +105,8 @@ def verify_credential(
 
 
 @eidas_views.route('/verify-identity', methods=['POST'])
-@UnmarshalWith(EidasVerifyRequestSchema)
-@MarshalWith(EidasVerifyResponseSchema)
+@UnmarshalWith(EidasCommonRequestSchema)
+@MarshalWith(EidasCommonResponseSchema)
 @require_user
 def verify_identity(user: User, method: str, frontend_action: str, frontend_state: Optional[str] = None) -> FluxData:
     current_app.logger.debug(f'verify-identity called for method {method}')
@@ -127,8 +125,8 @@ def verify_identity(user: User, method: str, frontend_action: str, frontend_stat
 
 
 @eidas_views.route('/mfa-authenticate', methods=['POST'])
-@UnmarshalWith(EidasVerifyRequestSchema)
-@MarshalWith(EidasVerifyResponseSchema)
+@UnmarshalWith(EidasCommonRequestSchema)
+@MarshalWith(EidasCommonResponseSchema)
 def mfa_authentication(method: str, frontend_action: str, frontend_state: Optional[str] = None) -> FluxData:
     current_app.logger.debug('mfa-authenticate called')
 

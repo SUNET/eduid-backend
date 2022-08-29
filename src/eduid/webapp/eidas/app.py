@@ -65,6 +65,6 @@ def init_eidas_app(name: str = 'eidas', test_config: Optional[Mapping[str, Any]]
     app.register_blueprint(old_eidas_views)
 
     # Register view path that should not be authorized
-    no_authn_views(config, ['/saml2-metadata', '/saml2-acs', '/mfa-authentication', '/mfa-authentication-foreign-eid'])
+    no_authn_views(config, ['/saml2-metadata', '/saml2-acs', '/mfa-authentication', '/mfa-authenticate'])
 
     return app

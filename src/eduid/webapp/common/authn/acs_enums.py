@@ -23,9 +23,9 @@ class EidasAcsAction(str, Enum):
     old_mfa_authn = 'mfa-authentication-action'
 
 
-def is_old_action(frontend_action: EidasAcsAction) -> bool:
+def is_old_action(frontend_action: str) -> bool:
     return frontend_action in [
-        EidasAcsAction.old_mfa_authn,
-        EidasAcsAction.old_token_verify,
-        EidasAcsAction.old_nin_verify,
+        EidasAcsAction.old_mfa_authn.value,
+        EidasAcsAction.old_token_verify.value,
+        EidasAcsAction.old_nin_verify.value,
     ]

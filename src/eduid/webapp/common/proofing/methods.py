@@ -75,6 +75,8 @@ def get_proofing_method(
     # look up the finish_url here (when receiving the request, rather than in the ACS)
     # to be able to fail fast if frontend requests an action that backend isn't configured for
     finish_url = config.frontend_action_finish_url.get(frontend_action, fallback_redirect_url)
+    if not finish_url:
+        logger.warning(f'No finish_url for frontend_action {frontend_action} (fallback: {fallback_redirect_url})')
 
     if method == 'freja':
         if not config.freja_idp:
@@ -96,6 +98,6 @@ def get_proofing_method(
             framework=TrustFramework.EIDAS,
             idp=config.foreign_identity_idp,
             method=method,
-            required_loa=config.foreign_required_loa,
+            required_loa=config.foreign_required_loa,  # TODO: True Required LOA is likely higher here when verifying credentials
         )
     return None

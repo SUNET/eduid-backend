@@ -71,6 +71,9 @@ def login_action(args: ACSArgs) -> ACSResult:
     :param authndata: data about this particular authentication event
     """
     current_app.logger.info(f'User {args.user} logging in.')
+    if not args.user:
+        # please type checking
+        return ACSResult(success=False)
     update_user_session(args.session_info, args.user)
     current_app.stats.count('login_success')
 
@@ -105,6 +108,10 @@ def _reauthn(reason: str, args: ACSArgs) -> ACSResult:
     """
     current_app.logger.info(f'Re-authenticating user {args.user} for {reason}.')
     current_app.logger.debug(f'Data about this authentication: {args.authn_req}')
+    if not args.user:
+        # please type checking
+        return ACSResult(success=False)
+
     update_user_session(args.session_info, args.user)
 
     return ACSResult(success=True)
