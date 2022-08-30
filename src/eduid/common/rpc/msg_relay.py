@@ -3,7 +3,7 @@ import logging
 from enum import Enum
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 import eduid.workers.msg
 from eduid.common.config.base import MsgConfigMixin
@@ -43,6 +43,13 @@ class Name(NavetModelConfig):
     surname: Optional[str] = Field(default=None, alias='Surname')
 
 
+class RelationName(NavetModelConfig):
+    given_name_marking: Optional[str] = Field(default=None, alias='GivenNameMarking')
+    given_name: Optional[str] = Field(default=None, alias='GivenName')
+    middle_name: Optional[str] = Field(default=None, alias='MiddleName')
+    surname: Optional[str] = Field(default=None, alias='Surname')
+
+
 class PersonId(NavetModelConfig):
     national_identity_number: Optional[str] = Field(default=None, alias='NationalIdentityNumber')
     co_ordination_number: Optional[str] = Field(default=None, alias='CoOrdinationNumber')
@@ -51,7 +58,7 @@ class PersonId(NavetModelConfig):
 class OfficialAddress(NavetModelConfig):
     care_of: Optional[str] = Field(default=None, alias='CareOf')
     # From Skatteverket's documentation it is not clear why Address1
-    # is needed. In practice it is rarely used, but when actually
+    # is needed. In practice, it is rarely used, but when actually
     # used it has been seen to often contains apartment numbers.
     address1: Optional[str] = Field(default=None, alias='Address1')
     address2: Optional[str] = Field(default=None, alias='Address2')
@@ -76,7 +83,7 @@ class RelationType(str, Enum):
 
 
 class Relation(NavetModelConfig):
-    name: Name = Field(default_factory=Name, alias='Name')
+    name: RelationName = Field(default_factory=RelationName, alias='Name')
     relation_id: RelationId = Field(alias='RelationId')
     relation_type: Optional[RelationType] = Field(default=None, alias='RelationType')
     relation_start_date: Optional[str] = Field(default=None, alias='RelationStartDate')
@@ -158,14 +165,22 @@ class MsgRelay(object):
         rtask = self._get_all_navet_data.apply_async(args=[nin])
         try:
             ret = rtask.get(timeout=timeout)
-            if ret is not None:
-                data = NavetData.parse_obj(ret)
-                if not data.person.is_deregistered() or allow_deregistered:
-                    return data
-            raise NoNavetData('No data returned from Navet')
         except Exception as e:
             rtask.forget()
             raise MsgTaskFailed(f'get_all_navet_data task failed: {e}')
+
+        if ret is None:
+            raise NoNavetData('No data returned from Navet')
+
+        try:
+            data = NavetData.parse_obj(ret)
+        except ValidationError:
+            logger.exception('Insufficient data returned from Navet')
+            raise NoNavetData('Insufficient data returned from Navet')
+
+        if not data.person.is_deregistered() or allow_deregistered:
+            return data
+        raise NoNavetData('No data returned from Navet')
 
     def get_postal_address(self, nin: str, timeout: int = 25) -> FullPostalAddress:
         """
@@ -191,13 +206,19 @@ class MsgRelay(object):
         rtask = self._get_postal_address.apply_async(args=[nin])
         try:
             ret = rtask.get(timeout=timeout)
-            if ret is not None:
-                data = FullPostalAddress.parse_obj(ret)
-                return data
-            raise NoAddressFound('No postal address returned from Navet')
         except Exception as e:
             rtask.forget()
             raise MsgTaskFailed(f'get_postal_address task failed: {e}')
+
+        if ret is None:
+            raise NoAddressFound('No postal address returned from Navet')
+
+        try:
+            data = FullPostalAddress.parse_obj(ret)
+            return data
+        except ValidationError:
+            logger.exception('Missing data in postal address returned from Navet')
+            raise NoAddressFound('Missing data in postal address returned from Navet')
 
     def get_relations_to(self, nin: str, relative_nin: str, timeout: int = 25) -> List[RelationType]:
         """
@@ -218,12 +239,13 @@ class MsgRelay(object):
         rtask = self._get_relations_to.apply_async(args=[nin, relative_nin])
         try:
             ret = rtask.get(timeout=timeout)
-            if ret is not None:
-                return [RelationType(item) for item in ret]
-            raise NoRelationsFound('No relations returned from Navet')
         except Exception as e:
             rtask.forget()
             raise MsgTaskFailed(f'get_relations_to task failed: {e}')
+
+        if ret is not None:
+            return [RelationType(item) for item in ret]
+        raise NoRelationsFound('No relations returned from Navet')
 
     def sendsms(self, recipient: str, message: str, reference: str, timeout: int = 25) -> None:
         """
