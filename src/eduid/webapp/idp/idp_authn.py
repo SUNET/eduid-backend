@@ -45,6 +45,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Type
 
 from bson import ObjectId
 from pydantic import BaseModel, Field
+from pymongo import ReturnDocument
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import MongoDB
@@ -324,15 +325,14 @@ class AuthnInfoStore:
         if ts is None:
             ts = utc_now()
         this_month = (ts.year * 100) + ts.month  # format year-month as integer (e.g. 201402)
-        self.collection.find_and_modify(
-            query={'_id': user_id},
+        self.collection.find_one_and_update(
+            filter={'_id': user_id},
             update={
                 '$set': {'success_ts': ts, 'last_credential_ids': success},
                 '$inc': {f'fail_count.{this_month}': len(failure), f'success_count.{this_month}': len(success)},
             },
             upsert=True,
-            new=True,
-            multi=False,
+            return_document=ReturnDocument.AFTER,
         )
         return None
 
@@ -349,12 +349,11 @@ class AuthnInfoStore:
         if ts is None:
             ts = utc_now()
         this_month = (ts.year * 100) + ts.month  # format year-month as integer (e.g. 201402)
-        self.collection.find_and_modify(
-            query={'_id': user_id},
+        self.collection.find_one_and_update(
+            filter={'_id': user_id},
             update={'$set': {f'fail_count.{this_month}': fail_count}},
             upsert=True,
-            new=True,
-            multi=False,
+            return_document=ReturnDocument.AFTER,
         )
         return None
 
