@@ -1,7 +1,7 @@
 from abc import ABC
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Generic, List, Optional, TypeVar, Union
+from typing import Generic, List, Optional, TypeVar, Union
 
 from eduid.common.config.base import ProofingConfigMixin
 from eduid.common.rpc.exceptions import AmTaskFailed, MsgTaskFailed, NoNavetData

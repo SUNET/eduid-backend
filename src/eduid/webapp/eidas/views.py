@@ -13,6 +13,7 @@ from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, requi
 from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import (
+    CommonMsg,
     FluxData,
     TranslatableMsg,
     error_response,
@@ -59,16 +60,25 @@ def index(user: User) -> FluxData:
     return success_response(payload=None, message=None)
 
 
-@eidas_views.route('/status', methods=['POST'])
+# get_status to not get tangled up in /status/healthy and the like
+@eidas_views.route('/get_status', methods=['POST'])
 @UnmarshalWith(EidasStatusRequestSchema)
 @MarshalWith(EidasStatusResponseSchema)
-@require_user
-def status(user: User, authn_id: AuthnRequestRef) -> FluxData:
+def get_status(authn_id: AuthnRequestRef) -> FluxData:
     authn = session.eidas.sp.authns.get(authn_id)
     if not authn:
         return error_response(message=EidasMsg.not_found)
 
-    return success_response(payload={'frontend_action': authn.frontend_action, 'frontend_state': authn.frontend_state})
+    payload = {
+        'frontend_action': authn.frontend_action,
+        'frontend_state': authn.frontend_state,
+        'method': authn.method,
+        'error': bool(authn.error),
+    }
+    if authn.status is not None:
+        payload['status'] = authn.status
+
+    return success_response(payload=payload)
 
 
 @eidas_views.route('/verify-credential', methods=['POST'])
@@ -263,12 +273,14 @@ def assertion_consumer_service() -> WerkzeugResponse:
 
     if not is_required_loa(assertion.session_info, proofing_method.required_loa):
         session.mfa_action.error = MfaActionError.authn_context_mismatch  # TODO: Old way, remove after a release cycle
-        assertion.authndata.error = EidasMsg.authn_context_mismatch.value
+        assertion.authndata.error = True
+        assertion.authndata.status = EidasMsg.authn_context_mismatch.value
         return redirect_with_msg(proofing_method.finish_url, EidasMsg.authn_context_mismatch)
 
     if not is_valid_reauthn(assertion.session_info):
         session.mfa_action.error = MfaActionError.authn_too_old  # TODO: Old way, remove after a release cycle
-        assertion.authndata.error = EidasMsg.reauthn_expired.value
+        assertion.authndata.error = True
+        assertion.authndata.status = EidasMsg.reauthn_expired.value
         return redirect_with_msg(proofing_method.finish_url, EidasMsg.reauthn_expired)
 
     # Remap nin in staging environment
@@ -286,25 +298,37 @@ def assertion_consumer_service() -> WerkzeugResponse:
     result = action(args=args)
     current_app.logger.debug(f'ACS action result: {result}')
 
-    if result.error:
-        current_app.logger.info(f'SAML ACS action failed: {result.error}')
+    formatted_finish_url = proofing_method.formatted_finish_url(
+        app_name=current_app.conf.app_name, authn_id=assertion.authn_req_ref
+    )
+    assert formatted_finish_url  # please type checking
+
+    if not result.success:
+        current_app.logger.info(f'SAML ACS action failed: {result.message}')
         # update session so this error can be retrieved from the /status endpoint
-        args.authn_req.error = result.error.value
-        # Including the error in the redirect URL is deprecated and should be removed once frontend stops using it
-        return redirect_with_msg(proofing_method.finish_url, result.error, error=True)
+        _msg = result.message or CommonMsg.temp_problem
+        args.authn_req.status = _msg.value
+        args.authn_req.error = True
+        if is_old_action(assertion.authndata.frontend_action):
+            # Including the error in the redirect URL is deprecated and should be removed once frontend stops using it
+            return redirect_with_msg(formatted_finish_url, _msg, error=True)
+        return redirect(formatted_finish_url)
 
-    if result.success:
-        current_app.logger.debug(f'SAML ACS action successful (frontend_action {args.authn_req.frontend_action})')
-        if args.authn_req.frontend_action == EidasAcsAction.old_mfa_authn:
-            return redirect_with_msg(proofing_method.finish_url, EidasMsg.action_completed, error=False)
-        if args.authn_req.frontend_action == EidasAcsAction.old_token_verify:
-            return redirect_with_msg(proofing_method.finish_url, EidasMsg.old_token_verify_success, error=False)
-        if args.authn_req.frontend_action == EidasAcsAction.old_nin_verify:
-            return redirect_with_msg(proofing_method.finish_url, EidasMsg.old_nin_verify_success, error=False)
+    current_app.logger.debug(f'SAML ACS action successful (frontend_action {args.authn_req.frontend_action})')
+    if result.message:
+        args.authn_req.status = result.message.value
+    args.authn_req.error = False
 
-        return redirect(proofing_method.finish_url)
+    _old_action_success_msg = {
+        EidasAcsAction.old_mfa_authn.value: EidasMsg.action_completed,
+        EidasAcsAction.old_token_verify.value: EidasMsg.old_token_verify_success,
+        EidasAcsAction.old_nin_verify.value: EidasMsg.old_nin_verify_success,
+    }
+    _msg2 = _old_action_success_msg.get(args.authn_req.frontend_action)
+    if _msg2:
+        return redirect_with_msg(proofing_method.finish_url, _msg2, error=False)
 
-    return redirect_with_msg(proofing_method.finish_url, EidasMsg.method_not_available)
+    return redirect(formatted_finish_url)
 
 
 @eidas_views.route('/saml2-metadata')

@@ -36,7 +36,7 @@ from typing import Optional
 from flask import Blueprint, abort, make_response, redirect, request
 
 from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
-from eduid.webapp.common.api.messages import redirect_with_msg
+from eduid.webapp.common.api.messages import CommonMsg, redirect_with_msg
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.ident import decode
@@ -207,23 +207,21 @@ def assertion_consumer_service() -> WerkzeugResponse:
             rp=current_app.saml2_config.entityid,
         )
 
-    if result.error:
-        current_app.logger.info(f'SAML ACS action failed: {result.error}')
+    if not result.success:
+        current_app.logger.info(f'SAML ACS action failed: {result.message}')
         # update session so this error can be retrieved from the /status endpoint
-        args.authn_req.error = result.error.value
+        _msg = result.message or CommonMsg.temp_problem
+        args.authn_req.error = _msg.value
         # Including the error in the redirect URL is deprecated and should be removed once frontend stops using it
-        return redirect_with_msg(finish_url, result.error, error=True)
+        return redirect_with_msg(finish_url, _msg, error=True)
 
-    if result.success:
-        current_app.logger.debug(f'SAML ACS action successful')
-        return redirect(finish_url)
+    current_app.logger.debug(f'SAML ACS action successful')
 
     if result.response:
         current_app.logger.debug(f'SAML ACS action returned a response')
         return result.response
 
-    # should never get here
-    raise RuntimeError('Reached end of authn')
+    return redirect(finish_url)
 
 
 def _get_authn_name_id(session: EduidSession) -> Optional[NameID]:

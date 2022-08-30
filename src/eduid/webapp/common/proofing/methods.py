@@ -33,6 +33,11 @@ class ProofingMethod(ABC):
     def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
         raise NotImplementedError('Subclass must implement parse_session_info')
 
+    def formatted_finish_url(self, app_name: str, authn_id: str) -> Optional[str]:
+        if not self.finish_url:
+            return None
+        return self.finish_url.format(app_name=app_name, authn_id=authn_id)
+
 
 class ProofingMethodFreja(ProofingMethod):
     def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:

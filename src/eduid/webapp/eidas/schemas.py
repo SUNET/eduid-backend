@@ -27,7 +27,7 @@ class EidasVerifyCredentialRequestSchema(EidasCommonRequestSchema):
     credential_id = fields.String(required=True)
 
 
-class EidasStatusRequestSchema(EduidSchema, CSRFResponseMixin):
+class EidasStatusRequestSchema(EduidSchema, CSRFRequestMixin):
     authn_id = fields.String(required=False)
 
 
@@ -35,5 +35,8 @@ class EidasStatusResponseSchema(EduidSchema, CSRFResponseMixin):
     class StatusResponsePayload(EduidSchema, CSRFResponseMixin):
         frontend_action = fields.String(required=True)
         frontend_state = fields.String(required=False)
+        method = fields.String(required=True)
+        error = fields.Boolean(required=False)
+        status = fields.String(required=False)
 
     payload = fields.Nested(StatusResponsePayload)

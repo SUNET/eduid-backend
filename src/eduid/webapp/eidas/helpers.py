@@ -68,6 +68,10 @@ class EidasMsg(TranslatableMsg):
     not_found = 'eidas.not_found'
     # Action completed, redirect to actions app
     action_completed = 'actions.action-completed'
+    # Successfully authenticated with external MFA
+    mfa_authn_success = 'eidas.mfa_authn_success'
+    # Successfully verified a credential
+    credential_verify_success = 'eidas.credential_verify_success'
 
     old_token_verify_success = 'eidas.token_verify_success'
     old_nin_verify_success = 'eidas.nin_verify_success'

@@ -65,9 +65,9 @@ class ACSArgs:
 
 @dataclass
 class ACSResult:
-    error: Optional[TranslatableMsg] = None
     response: Optional[WerkzeugResponse] = None
     success: bool = False
+    message: Optional[TranslatableMsg] = None
 
 
 # This is the list of ACS actions loaded. It is populated by decorating functions with the @acs_action.
