@@ -51,6 +51,7 @@ from eduid.userdb.user import User
 from eduid.userdb.util import utc_now
 
 logger = logging.getLogger(__name__)
+extra_debug_logger = logger.getChild('extra_debug')
 
 UserVar = TypeVar('UserVar')
 
@@ -291,7 +292,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
             import pprint
 
             extra_debug = pprint.pformat(user.to_dict(), width=120)
-            logger.debug(f"Extra debug:\n{extra_debug}")
+            extra_debug_logger.debug(f"Extra debug:\n{extra_debug}")
         return result.acknowledged
 
     def remove_user_by_id(self, user_id: ObjectId) -> bool:

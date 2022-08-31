@@ -37,9 +37,12 @@ Configuration (file) handling for eduID IdP.
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, List, Mapping, Optional, Sequence, TypeVar
+from typing import Any, Dict, List, Mapping, Optional, Sequence, TypeVar
 
 from pydantic import BaseModel, Field
+
+from eduid.userdb.credentials import CredentialProofingMethod
+from eduid.userdb.credentials.external import TrustFramework
 
 
 class CeleryConfig(BaseModel):
@@ -322,6 +325,42 @@ class PasswordConfigMixin(BaseModel):
 
 class ErrorsConfigMixin(BaseModel):
     errors_url_template: Optional[str] = None
+
+
+class Pysaml2SPConfigMixin(BaseModel):
+    frontend_action_finish_url: Dict[str, str] = Field(default={})
+
+    # Authn algorithms
+    authn_sign_alg: str = 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256'
+    authn_digest_alg: str = 'http://www.w3.org/2001/04/xmlenc#sha256'
+
+    saml2_settings_module: str
+    safe_relay_domain: str = 'eduid.se'
+
+
+class ProofingConfigMixin(BaseModel):
+    # sweden connect
+    trust_framework: TrustFramework = TrustFramework.SWECONN
+    required_loa: List[str] = Field(default=['loa3'])  # one of authentication_context_map below
+    freja_idp: Optional[str] = None
+
+    # eidas
+    foreign_trust_framework: TrustFramework = TrustFramework.EIDAS
+    foreign_required_loa: List[str] = Field(
+        default=['eidas-nf-low', 'eidas-nf-sub', 'eidas-nf-high']
+    )  # one of authentication_context_map below
+    foreign_identity_idp: Optional[str] = None
+
+    # identity proofing
+    nin_proofing_version: str = Field(default='2018v1')
+    foreign_eid_proofing_version: str = Field(default='2022v1')
+
+    # security key proofing
+    security_key_proofing_method: CredentialProofingMethod = Field(default=CredentialProofingMethod.SWAMID_AL2_MFA_HI)
+    security_key_proofing_version: str = Field(default='2018v1')
+    security_key_foreign_eid_proofing_version: str = Field(default='2022v1')
+
+    frontend_action_finish_url: Dict[str, str] = Field(default={})
 
 
 class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, RedisConfigMixin):

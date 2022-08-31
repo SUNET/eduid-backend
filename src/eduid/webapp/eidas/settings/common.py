@@ -35,7 +35,7 @@
 Configuration (file) handling for the eduID eidas app.
 """
 
-from typing import Dict, List, Mapping, Optional
+from typing import Dict, Mapping, Optional
 
 from pydantic import Field
 
@@ -45,12 +45,20 @@ from eduid.common.config.base import (
     ErrorsConfigMixin,
     MagicCookieMixin,
     MsgConfigMixin,
+    ProofingConfigMixin,
+    Pysaml2SPConfigMixin,
 )
-from eduid.userdb.credentials import CredentialProofingMethod
-from eduid.userdb.credentials.external import TrustFramework
 
 
-class EidasConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MsgConfigMixin, ErrorsConfigMixin):
+class EidasConfig(
+    EduIDBaseAppConfig,
+    MagicCookieMixin,
+    AmConfigMixin,
+    MsgConfigMixin,
+    ErrorsConfigMixin,
+    ProofingConfigMixin,
+    Pysaml2SPConfigMixin,
+):
     """
     Configuration for the eidas app
     """
@@ -59,19 +67,8 @@ class EidasConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MsgConfig
 
     token_service_url: str
 
-    token_verify_redirect_url: str
-    identity_verify_redirect_url: str
-
-    # sweden connect
-    trust_framework: TrustFramework = TrustFramework.SWECONN
-    required_loa: List[str] = Field(default=['loa3'])  # one of authentication_context_map below
-
-    # eidas
-    foreign_trust_framework: TrustFramework = TrustFramework.EIDAS
-    foreign_required_loa: List[str] = Field(
-        default=['eidas-nf-low', 'eidas-nf-sub', 'eidas-nf-high']
-    )  # one of authentication_context_map below
-    foreign_identity_idp: Optional[str] = None
+    token_verify_redirect_url: str  # TODO: remove when old views are gone
+    identity_verify_redirect_url: str  # TODO: remove when old views are gone
 
     # Federation config
     authentication_context_map: Dict[str, str] = Field(
@@ -90,10 +87,6 @@ class EidasConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MsgConfig
         }
     )
 
-    # Authn algorithms
-    authn_sign_alg: str = 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256'
-    authn_digest_alg: str = 'http://www.w3.org/2001/04/xmlenc#sha256'
-
     # Staging nin map
     staging_nin_map: Mapping[str, str] = Field(
         default={
@@ -102,16 +95,3 @@ class EidasConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MsgConfig
     )
     # magic cookie IdP is used for integration tests when magic cookie is set
     magic_cookie_idp: Optional[str] = None
-
-    saml2_settings_module: str
-    safe_relay_domain: str = 'eduid.se'
-    unsolicited_response_redirect_url: str = 'https://eduid.se'
-
-    # identity proofing
-    nin_proofing_version: str = Field(default='2018v1')
-    foreign_eid_proofing_version: str = Field(default='2022v1')
-
-    # security key proofing
-    security_key_proofing_method: CredentialProofingMethod = Field(default=CredentialProofingMethod.SWAMID_AL2_MFA_HI)
-    security_key_proofing_version: str = Field(default='2018v1')
-    security_key_foreign_eid_proofing_version: str = Field(default='2022v1')

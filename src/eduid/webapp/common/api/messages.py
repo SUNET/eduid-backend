@@ -61,7 +61,7 @@ class CommonMsg(TranslatableMsg):
 
     # some form has failed to validate
     form_errors = 'form-errors'
-    # problem synchronzing the account to the central db
+    # problem synchronising the account to the central db
     temp_problem = 'Temporary technical problems'
     # The user has changed in the db since it was retrieved
     out_of_sync = 'user-out-of-sync'

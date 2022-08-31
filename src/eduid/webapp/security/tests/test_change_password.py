@@ -8,6 +8,7 @@ from uuid import uuid4
 from eduid.userdb.credentials import Password
 from eduid.userdb.element import ElementKey
 from eduid.userdb.util import utc_now
+from eduid.webapp.authn.views import FALLBACK_FRONTEND_ACTION
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.api.utils import hash_password
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
@@ -74,6 +75,7 @@ class ChangePasswordTests(EduidAPITestCase):
                         post_authn_action=AuthnAcsAction.change_password,
                         redirect_url='/test',
                         authn_instant=utc_now() - timedelta(seconds=reauthn),
+                        frontend_action=FALLBACK_FRONTEND_ACTION,
                     )
             return client.get('/change-password/suggested-password')
 
@@ -102,6 +104,7 @@ class ChangePasswordTests(EduidAPITestCase):
                             post_authn_action=AuthnAcsAction.change_password,
                             redirect_url='/test',
                             authn_instant=utc_now() - timedelta(seconds=reauthn),
+                            frontend_action=FALLBACK_FRONTEND_ACTION,
                         )
                     data = {'new_password': '0ieT/(.edW76', 'old_password': '5678', 'csrf_token': sess.get_csrf_token()}
                     if data1 == {}:
@@ -147,6 +150,7 @@ class ChangePasswordTests(EduidAPITestCase):
                                         redirect_url='/test',
                                         authn_instant=utc_now() - timedelta(seconds=reauthn),
                                         credentials_used=[ElementKey('112345678901234567890123')],
+                                        frontend_action=FALLBACK_FRONTEND_ACTION,
                                     )
                             response2 = client.get('/change-password/suggested-password')
                             passwd = json.loads(response2.data)
@@ -180,7 +184,7 @@ class ChangePasswordTests(EduidAPITestCase):
     def test_app_starts(self):
         self.assertEqual(self.app.conf.app_name, 'testing')
         response1 = self.browser.get('/change-password/suggested-password')
-        assert response1.status_code == 302  # redirect to login
+        assert response1.status_code == 302  # redirect to the login page
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             response2 = client.get('/change-password/suggested-password')
             assert response2.status_code == 200  # authenticated response

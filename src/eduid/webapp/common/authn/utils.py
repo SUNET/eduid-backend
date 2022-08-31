@@ -73,7 +73,7 @@ def get_saml2_config(module_path: str, name='SAML_CONFIG') -> SPConfig:
     return conf
 
 
-def get_location(http_info):
+def get_location(http_info: Mapping[str, Any]) -> str:
     """Extract the redirect URL from a pysaml2 http_info object"""
     assert 'headers' in http_info
     headers = http_info['headers']

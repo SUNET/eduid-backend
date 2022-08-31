@@ -14,14 +14,13 @@ from pydantic import BaseModel, Field, ValidationError
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.actions import Action
 from eduid.userdb.credentials import Credential
-
-__author__ = 'ft'
-
 from eduid.userdb.credentials.external import TrustFramework
 from eduid.userdb.credentials.fido import WebauthnAuthenticator
 from eduid.userdb.element import ElementKey
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
 from eduid.webapp.idp.other_device.data import OtherDeviceId
+
+__author__ = 'ft'
 
 logger = logging.getLogger(__name__)
 
@@ -132,6 +131,7 @@ class Signup(TimestampedNS):
     email_verification_code: Optional[str] = None
 
 
+# TODO: Remove Actions, should be unused
 class Actions(TimestampedNS):
     session: Optional[str] = None
     current_plugin: Optional[str] = None
@@ -210,11 +210,18 @@ class IdP_Namespace(TimestampedNS):
 
 
 class SP_AuthnRequest(BaseModel):
-    redirect_url: str
+    frontend_action: str  # what action frontend is performing, decides the finish URL the user is redirected to
     post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction]] = None
     credentials_used: List[ElementKey] = Field(default=[])
     created_ts: datetime = Field(default_factory=utc_now)
     authn_instant: Optional[datetime] = None
+    frontend_state: Optional[str] = None  # opaque data from frontend, returned in /status
+    # proofing_credential_id is the credential being person-proofed, when doing that
+    proofing_credential_id: Optional[ElementKey] = None
+    method: Optional[str] = None  # proofing method that frontend is invoking
+    status: Optional[str] = None  # populated by the SAML2 ACS
+    error: Optional[bool] = None
+    redirect_url: Optional[str]  # Deprecated, use frontend_action to get return URL from config instead
 
 
 class SPAuthnData(BaseModel):
@@ -231,6 +238,7 @@ class SPAuthnData(BaseModel):
 
 class Eidas_Namespace(SessionNSBase):
 
+    # TODO: Move verify_token_action_credential_id into SP_AuthnRequest
     verify_token_action_credential_id: Optional[ElementKey] = None
     sp: SPAuthnData = Field(default=SPAuthnData())
 
