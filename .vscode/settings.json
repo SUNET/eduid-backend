@@ -1,0 +1,32 @@
+{
+    "python.testing.pytestArgs": [
+        "src"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "python.linting.pylintEnabled": false,
+    "python.linting.mypyEnabled": true,
+    "python.linting.enabled": true,
+    "python.formatting.blackArgs": [
+        "--line-length 120",
+        "--skip-string-normalization"
+    ],
+    "terminal.integrated.env.linux": {
+        "PYTHONPATH": "${workspaceFolder}/src"
+    },
+    "python.envFile": "${workspaceFolder}/.vscode/.env",
+    "cSpell.words": [
+        "eduid",
+        "eidplus",
+        "eppn",
+        "Freja",
+        "mischttp",
+        "PWAUTH",
+        "reauthn",
+        "swamid",
+        "Unmarshal",
+        "userdb",
+        "usernamepassword",
+        "webauthn"
+    ]
+}
