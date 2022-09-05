@@ -9,8 +9,9 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple, Type
 
 from bson import ObjectId
 
-from eduid.scimapi.db.basedb import ScimApiBaseDB
-from eduid.scimapi.db.common import (
+from eduid.userdb import User, UserDB
+from eduid.userdb.scimapi.basedb import ScimApiBaseDB
+from eduid.userdb.scimapi.common import (
     ScimApiEmail,
     ScimApiLinkedAccount,
     ScimApiName,
@@ -21,7 +22,6 @@ from eduid.scimapi.db.common import (
 
 __author__ = 'ft'
 
-from eduid.userdb import User, UserDB
 
 logger = logging.getLogger(__name__)
 

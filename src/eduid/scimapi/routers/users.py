@@ -6,12 +6,10 @@ from fastapi import Response
 
 from eduid.scimapi.api_router import APIRouter
 from eduid.scimapi.context_request import ContextRequest, ContextRequestRoute
-from eduid.scimapi.db.common import ScimApiEmail, ScimApiLinkedAccount, ScimApiName, ScimApiPhoneNumber
-from eduid.scimapi.db.eventdb import EventLevel, EventStatus, add_api_event
-from eduid.scimapi.db.userdb import ScimApiProfile, ScimApiUser
 from eduid.scimapi.exceptions import BadRequest, ErrorDetail, NotFound
 from eduid.scimapi.models.scimbase import ListResponse, SCIMResourceType, SCIMSchema, SearchRequest
 from eduid.scimapi.models.user import UserCreateRequest, UserResponse, UserUpdateRequest
+from eduid.scimapi.routers.utils.events import add_api_event
 from eduid.scimapi.routers.utils.users import (
     acceptable_linked_accounts,
     db_user_to_response,
@@ -21,6 +19,15 @@ from eduid.scimapi.routers.utils.users import (
     users_to_resources_dicts,
 )
 from eduid.scimapi.search import parse_search_filter
+from eduid.userdb.scimapi import (
+    EventLevel,
+    EventStatus,
+    ScimApiEmail,
+    ScimApiLinkedAccount,
+    ScimApiName,
+    ScimApiPhoneNumber,
+)
+from eduid.userdb.scimapi.userdb import ScimApiProfile, ScimApiUser
 
 users_router = APIRouter(
     route_class=ContextRequestRoute,

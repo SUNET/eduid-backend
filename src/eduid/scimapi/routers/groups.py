@@ -2,10 +2,10 @@ from fastapi import Response
 
 from eduid.scimapi.api_router import APIRouter
 from eduid.scimapi.context_request import ContextRequest, ContextRequestRoute
-from eduid.scimapi.db.eventdb import EventLevel, EventStatus, add_api_event
-from eduid.scimapi.exceptions import BadRequest, ErrorDetail, NotFound, SCIMErrorResponse
+from eduid.scimapi.exceptions import BadRequest, ErrorDetail, NotFound
 from eduid.scimapi.models.group import GroupCreateRequest, GroupResponse, GroupUpdateRequest
 from eduid.scimapi.models.scimbase import ListResponse, SCIMResourceType, SearchRequest
+from eduid.scimapi.routers.utils.events import add_api_event
 from eduid.scimapi.routers.utils.groups import (
     db_group_to_response,
     filter_display_name,
@@ -13,6 +13,7 @@ from eduid.scimapi.routers.utils.groups import (
     filter_lastmodified,
 )
 from eduid.scimapi.search import parse_search_filter
+from eduid.userdb.scimapi import EventLevel, EventStatus
 
 groups_router = APIRouter(
     route_class=ContextRequestRoute,

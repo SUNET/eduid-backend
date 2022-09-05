@@ -10,13 +10,12 @@ import bson
 from bson import ObjectId
 from requests import Response
 
-from eduid.scimapi.db.common import ScimApiLinkedAccount
-from eduid.scimapi.db.eventdb import EventStatus
-from eduid.scimapi.db.userdb import ScimApiProfile, ScimApiUser
 from eduid.scimapi.models.scimbase import Email, LanguageTag, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
 from eduid.scimapi.models.user import LinkedAccount, NutidUserExtensionV1, Profile, UserResponse
 from eduid.scimapi.testing import ScimApiTestCase
 from eduid.scimapi.utils import filter_none, make_etag
+from eduid.userdb.scimapi import EventStatus, ScimApiLinkedAccount
+from eduid.userdb.scimapi.userdb import ScimApiProfile, ScimApiUser
 from eduid.userdb.testing import normalised_data
 
 logger = logging.getLogger(__name__)

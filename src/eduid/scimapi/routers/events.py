@@ -6,11 +6,11 @@ from fastapi import Response
 
 from eduid.scimapi.api_router import APIRouter
 from eduid.scimapi.context_request import ContextRequest, ContextRequestRoute
-from eduid.scimapi.db.eventdb import ScimApiEvent, ScimApiEventResource
 from eduid.scimapi.exceptions import BadRequest, ErrorDetail, NotFound
 from eduid.scimapi.models.event import EventCreateRequest, EventResponse
 from eduid.scimapi.models.scimbase import SCIMResourceType
 from eduid.scimapi.routers.utils.events import db_event_to_response, get_scim_referenced
+from eduid.userdb.scimapi import ScimApiEvent, ScimApiEventResource
 from eduid.userdb.util import utc_now
 
 __author__ = 'lundberg'

@@ -5,12 +5,13 @@ from uuid import uuid4
 
 import boto3
 
-# from moto import mock_sns
-
-from eduid.scimapi.db.eventdb import EventLevel
 from eduid.scimapi.models.scimbase import SCIMResourceType, SCIMSchema
 from eduid.scimapi.testing import ScimApiTestCase
 from eduid.scimapi.utils import make_etag
+from eduid.userdb.scimapi import EventLevel
+
+# from moto import mock_sns
+
 
 __author__ = 'lundberg'
 

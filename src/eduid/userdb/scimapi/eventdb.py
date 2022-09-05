@@ -2,22 +2,16 @@ from __future__ import annotations
 
 import logging
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Optional, Type
-from uuid import UUID, uuid4
+from typing import Any, Dict, List, Mapping, Optional, Type
+from uuid import UUID
 
 from bson import ObjectId
 
-from eduid.common.utils import urlappend
-from eduid.scimapi.config import DataOwnerName
-from eduid.scimapi.db.basedb import ScimApiBaseDB
-from eduid.scimapi.db.common import ScimApiResourceBase
 from eduid.scimapi.models.scimbase import SCIMResourceType
-from eduid.userdb.util import utc_now
-
-if TYPE_CHECKING:
-    from eduid.scimapi.context import Context
+from eduid.userdb.scimapi.basedb import ScimApiBaseDB
+from eduid.userdb.scimapi.common import ScimApiResourceBase
 
 logger = logging.getLogger(__name__)
 
@@ -135,42 +129,3 @@ class ScimApiEventDB(ScimApiBaseDB):
         if not doc:
             return None
         return ScimApiEvent.from_dict(doc)
-
-
-def add_api_event(
-    data_owner: DataOwnerName,
-    context: 'Context',
-    db_obj: ScimApiResourceBase,
-    resource_type: SCIMResourceType,
-    level: EventLevel,
-    status: EventStatus,
-    message: str,
-) -> None:
-    """Add an event with source=this-API."""
-    _now = utc_now()
-    _expires_at = _now + timedelta(days=1)
-    _event = ScimApiEvent(
-        scim_id=uuid4(),
-        resource=ScimApiEventResource(
-            resource_type=resource_type,
-            scim_id=db_obj.scim_id,
-            external_id=db_obj.external_id,
-            version=db_obj.version,
-            last_modified=db_obj.last_modified,
-        ),
-        timestamp=_now,
-        expires_at=_expires_at,
-        source='eduID SCIM API',
-        level=level,
-        data={'v': 1, 'status': status.value, 'message': message},
-    )
-    event_db = context.get_eventdb(data_owner=data_owner)
-    assert event_db  # please mypy
-    event_db.save(_event)
-
-    # Send notification
-    event_location = urlappend(context.base_url, f'Events/{_event.scim_id}')
-    message = context.notification_relay.format_message(version=1, data={'location': event_location})
-    context.notification_relay.notify(data_owner=data_owner, message=message)
-
-    return None

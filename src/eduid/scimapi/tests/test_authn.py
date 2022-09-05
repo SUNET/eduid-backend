@@ -11,12 +11,12 @@ from requests import Response
 
 from eduid.common.config.parsers import load_config
 from eduid.scimapi.config import DataOwner, ScimApiConfig
-from eduid.scimapi.db.common import ScimApiProfile
-from eduid.scimapi.db.userdb import ScimApiUser
 from eduid.scimapi.middleware import AuthnBearerToken, RequestedAccessDenied, SudoAccess
 from eduid.scimapi.models.scimbase import SCIMSchema
 from eduid.scimapi.testing import BaseDBTestCase
 from eduid.scimapi.tests.test_scimuser import ScimApiTestUserResourceBase
+from eduid.userdb.scimapi import ScimApiProfile
+from eduid.userdb.scimapi.userdb import ScimApiUser
 
 
 class TestAuthnBearerToken(BaseDBTestCase):
