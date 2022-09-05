@@ -6,12 +6,12 @@ from fastapi import Response
 from pymongo.errors import DuplicateKeyError
 
 from eduid.scimapi.context_request import ContextRequest
-from eduid.scimapi.db.userdb import ScimApiUser
 from eduid.scimapi.exceptions import BadRequest
 from eduid.scimapi.models.scimbase import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema, SearchRequest
 from eduid.scimapi.models.user import Group, LinkedAccount, NutidUserExtensionV1, Profile, UserResponse
 from eduid.scimapi.search import SearchFilter
 from eduid.scimapi.utils import make_etag
+from eduid.userdb.scimapi.userdb import ScimApiUser
 
 
 def get_user_groups(req: ContextRequest, db_user: ScimApiUser) -> List[Group]:

@@ -9,13 +9,13 @@ from fastapi import Request, Response
 from eduid.queue.db import QueueItem, SenderInfo
 from eduid.queue.db.message import EduidInviteEmail
 from eduid.scimapi.context_request import ContextRequest
-from eduid.scimapi.db.invitedb import ScimApiInvite
 from eduid.scimapi.exceptions import BadRequest
 from eduid.scimapi.models.invite import InviteCreateRequest, InviteResponse, NutidInviteExtensionV1
 from eduid.scimapi.models.scimbase import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema, SearchRequest
 from eduid.scimapi.models.user import NutidUserExtensionV1, Profile
 from eduid.scimapi.search import SearchFilter
 from eduid.scimapi.utils import get_short_hash, get_unique_hash, make_etag
+from eduid.userdb.scimapi.invitedb import ScimApiInvite
 from eduid.userdb.signup import Invite as SignupInvite
 from eduid.userdb.signup import InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
 

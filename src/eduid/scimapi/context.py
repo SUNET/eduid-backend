@@ -7,14 +7,13 @@ from eduid.common.utils import urlappend
 from eduid.queue.db.message import MessageDB
 from eduid.scimapi.config import DataOwnerName, ScimApiConfig
 from eduid.scimapi.context_request import ContextRequest
-from eduid.scimapi.db.eventdb import ScimApiEventDB
-from eduid.scimapi.db.groupdb import ScimApiGroup, ScimApiGroupDB
-from eduid.scimapi.db.invitedb import ScimApiInvite, ScimApiInviteDB
-from eduid.scimapi.db.userdb import ScimApiUser, ScimApiUserDB
 from eduid.scimapi.log import init_logging
 from eduid.scimapi.models.scimbase import SCIMResourceType
 from eduid.scimapi.notifications import NotificationRelay
 from eduid.scimapi.utils import load_jwks, make_etag
+from eduid.userdb.scimapi import ScimApiEventDB, ScimApiGroup, ScimApiGroupDB
+from eduid.userdb.scimapi.invitedb import ScimApiInvite, ScimApiInviteDB
+from eduid.userdb.scimapi.userdb import ScimApiUser, ScimApiUserDB
 from eduid.userdb.signup.invitedb import SignupInviteDB
 
 

@@ -10,9 +10,15 @@ from uuid import UUID
 
 from bson import ObjectId
 
-from eduid.scimapi.db.basedb import ScimApiBaseDB
-from eduid.scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile, ScimApiResourceBase
 from eduid.scimapi.utils import filter_none
+from eduid.userdb.scimapi.basedb import ScimApiBaseDB
+from eduid.userdb.scimapi.common import (
+    ScimApiEmail,
+    ScimApiName,
+    ScimApiPhoneNumber,
+    ScimApiProfile,
+    ScimApiResourceBase,
+)
 
 __author__ = 'lundberg'
 

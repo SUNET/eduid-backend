@@ -36,9 +36,9 @@ from flask import current_app
 
 from eduid.common.config.parsers import load_config
 from eduid.common.rpc.mail_relay import MailRelay
-from eduid.scimapi.db.groupdb import ScimApiGroupDB
-from eduid.scimapi.db.userdb import ScimApiUserDB
 from eduid.userdb.group_management import GroupManagementInviteStateDB
+from eduid.userdb.scimapi import ScimApiGroupDB
+from eduid.userdb.scimapi.userdb import ScimApiUserDB
 from eduid.webapp.common.api import translation
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.group_management.settings.common import GroupManagementConfig

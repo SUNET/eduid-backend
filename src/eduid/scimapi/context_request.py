@@ -8,10 +8,9 @@ from fastapi import Request, Response
 from fastapi.routing import APIRoute
 
 from eduid.scimapi.config import DataOwnerName
-from eduid.scimapi.db.eventdb import ScimApiEventDB
-from eduid.scimapi.db.groupdb import ScimApiGroupDB
-from eduid.scimapi.db.invitedb import ScimApiInviteDB
-from eduid.scimapi.db.userdb import ScimApiUserDB
+from eduid.userdb.scimapi import ScimApiEventDB, ScimApiGroupDB
+from eduid.userdb.scimapi.invitedb import ScimApiInviteDB
+from eduid.userdb.scimapi.userdb import ScimApiUserDB
 
 
 @dataclass

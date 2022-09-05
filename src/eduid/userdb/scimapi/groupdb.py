@@ -15,9 +15,9 @@ from bson import ObjectId
 from eduid.graphdb.groupdb import Group as GraphGroup
 from eduid.graphdb.groupdb import GroupDB
 from eduid.graphdb.groupdb import User as GraphUser
-from eduid.scimapi.db.basedb import ScimApiBaseDB
-from eduid.scimapi.db.common import ScimApiResourceBase
 from eduid.scimapi.models.group import GroupCreateRequest, GroupUpdateRequest
+from eduid.userdb.scimapi.basedb import ScimApiBaseDB
+from eduid.userdb.scimapi.common import ScimApiResourceBase
 
 __author__ = 'lundberg'
 

@@ -5,12 +5,10 @@ from fastapi import Response
 
 from eduid.scimapi.api_router import APIRouter
 from eduid.scimapi.context_request import ContextRequest, ContextRequestRoute
-from eduid.scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
-from eduid.scimapi.db.eventdb import EventLevel, EventStatus, add_api_event
-from eduid.scimapi.db.invitedb import ScimApiInvite
 from eduid.scimapi.exceptions import BadRequest, ErrorDetail, NotFound
 from eduid.scimapi.models.invite import InviteCreateRequest, InviteResponse
 from eduid.scimapi.models.scimbase import ListResponse, SCIMResourceType, SearchRequest
+from eduid.scimapi.routers.utils.events import add_api_event
 from eduid.scimapi.routers.utils.invites import (
     create_signup_invite,
     create_signup_ref,
@@ -20,6 +18,8 @@ from eduid.scimapi.routers.utils.invites import (
     send_invite_mail,
 )
 from eduid.scimapi.search import parse_search_filter
+from eduid.userdb.scimapi import EventLevel, EventStatus, ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
+from eduid.userdb.scimapi.invitedb import ScimApiInvite
 
 __author__ = 'lundberg'
 
@@ -197,8 +197,8 @@ async def search(req: ContextRequest, query: SearchRequest) -> ListResponse:
       ]
     }
     """
-    req.app.context.logger.info(f'Searching for users(s)')
-    req.app.context.logger.debug(f'Parsed user search query: {query}')
+    req.app.context.logger.info(f'Searching for invite(s)')
+    req.app.context.logger.debug(f'Parsed invite search query: {query}')
 
     filter = parse_search_filter(query.filter)
 
