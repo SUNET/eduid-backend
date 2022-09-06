@@ -5,7 +5,6 @@ from uuid import UUID
 
 from pydantic import Field
 
-from eduid.scimapi.db.eventdb import EventLevel
 from eduid.scimapi.models.scimbase import (
     BaseCreateRequest,
     BaseResponse,
@@ -14,6 +13,7 @@ from eduid.scimapi.models.scimbase import (
     SCIMSchema,
     WeakVersion,
 )
+from eduid.userdb.scimapi import EventLevel
 
 __author__ = 'ft'
 

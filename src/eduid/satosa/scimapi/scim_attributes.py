@@ -9,8 +9,7 @@ from saml2.mdstore import MetaData
 from satosa.attribute_mapping import AttributeMapper
 from satosa.micro_services.base import ResponseMicroService
 
-from eduid.scimapi.db.userdb import ScimApiUser, ScimApiUserDB, ScimEduidUserDB
-from eduid.userdb import UserDB
+from eduid.userdb.scimapi.userdb import ScimApiUser, ScimApiUserDB, ScimEduidUserDB
 
 logger = logging.getLogger(__name__)
 

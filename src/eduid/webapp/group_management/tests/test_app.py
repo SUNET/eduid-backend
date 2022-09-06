@@ -40,9 +40,9 @@ from mock import patch
 
 from eduid.graphdb.groupdb import User as GraphUser
 from eduid.graphdb.testing import Neo4jTemporaryInstance
-from eduid.scimapi.db.groupdb import GroupExtensions, ScimApiGroup
-from eduid.scimapi.db.userdb import ScimApiUser
 from eduid.userdb import User
+from eduid.userdb.scimapi import GroupExtensions, ScimApiGroup
+from eduid.userdb.scimapi.userdb import ScimApiUser
 from eduid.webapp.common.api.testing import EduidAPITestCase, normalised_data
 from eduid.webapp.group_management.app import GroupManagementApp, init_group_management_app
 from eduid.webapp.group_management.helpers import GroupManagementMsg

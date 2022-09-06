@@ -10,14 +10,13 @@ from typing import Any, Dict, Mapping, Optional
 
 from bson import ObjectId
 
-from eduid.scimapi.db.common import ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
-from eduid.scimapi.db.eventdb import EventStatus
-from eduid.scimapi.db.invitedb import ScimApiInvite
 from eduid.scimapi.models.invite import InviteResponse, NutidInviteExtensionV1
 from eduid.scimapi.models.scimbase import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
 from eduid.scimapi.models.user import NutidUserExtensionV1, Profile
 from eduid.scimapi.testing import ScimApiTestCase
 from eduid.scimapi.utils import filter_none, make_etag
+from eduid.userdb.scimapi import EventStatus, ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
+from eduid.userdb.scimapi.invitedb import ScimApiInvite
 from eduid.userdb.signup import Invite as SignupInvite
 from eduid.userdb.signup import InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
 
