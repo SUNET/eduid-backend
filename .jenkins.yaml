@@ -1,7 +1,7 @@
 builders:
   - script
 build_in_docker:
-  image: docker.sunet.se/sunet/docker-jenkins-docker-jenkins-job-python3.9
+  image: docker.sunet.se/sunet/docker-jenkins-job-python3.9
 triggers:
   cron: "@weekly"
 slack:
