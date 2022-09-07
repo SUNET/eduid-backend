@@ -29,7 +29,7 @@ from eduid.webapp.idp.sso_session import SSOSession
 class SAMLQueryParams(BaseModel):
     SAMLRequest: Optional[str]
     RelayState: Optional[str]
-    request_ref: Optional[RequestRef] = Field(alias='ref')
+    request_ref: Optional[RequestRef] = Field(default=None, alias='ref')
 
     class Config:
         # Allow setting request_ref using it's name too - not just the alias (ref)

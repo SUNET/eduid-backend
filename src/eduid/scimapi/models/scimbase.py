@@ -208,12 +208,12 @@ class Meta(EduidBaseModel):
 
 
 class Name(EduidBaseModel):
-    family_name: Optional[str] = Field(alias='familyName')
-    given_name: Optional[str] = Field(alias='givenName')
+    family_name: Optional[str] = Field(default=None, alias='familyName')
+    given_name: Optional[str] = Field(default=None, alias='givenName')
     formatted: Optional[str] = None
-    middle_name: Optional[str] = Field(alias='middleName')
-    honorific_prefix: Optional[str] = Field(alias='honorificPrefix')
-    honorific_suffix: Optional[str] = Field(alias='honorificSuffix')
+    middle_name: Optional[str] = Field(default=None, alias='middleName')
+    honorific_prefix: Optional[str] = Field(default=None, alias='honorificPrefix')
+    honorific_suffix: Optional[str] = Field(default=None, alias='honorificSuffix')
 
 
 class Email(EduidBaseModel):
