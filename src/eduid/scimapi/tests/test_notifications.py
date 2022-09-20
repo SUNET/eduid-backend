@@ -16,7 +16,6 @@ from eduid.userdb.scimapi import EventLevel
 __author__ = 'lundberg'
 
 
-@SkipTest  # type: ignore
 class TestNotifications(ScimApiTestCase):
     def setUp(self) -> None:
         super().setUp()
