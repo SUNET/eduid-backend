@@ -29,7 +29,7 @@
 #
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Mapping
 
 from eduid.queue.db import Payload
@@ -69,6 +69,19 @@ class EduidInviteEmail(Payload):
     invite_code: str
     inviter_name: str
     language: str
+    version: int = 1
+
+    @classmethod
+    def from_dict(cls, data: Mapping):
+        data = dict(data)  # Do not change caller data
+        return cls(**data)
+
+
+@dataclass
+class EduidSCIMAPINotification(Payload):
+    data_owner: str
+    post_url: str
+    message: str
     version: int = 1
 
     @classmethod

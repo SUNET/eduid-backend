@@ -155,6 +155,13 @@ class ScimApiTestCase(MongoNeoTestCase):
             self.userdb._drop_whole_collection()
         if self.eventdb:
             self.eventdb._drop_whole_collection()
+        if self.invitedb:
+            self.invitedb._drop_whole_collection()
+        if self.signup_invitedb:
+            self.signup_invitedb._drop_whole_collection()
+        if self.messagedb:
+            self.messagedb._drop_whole_collection()
+
 
     def _assertScimError(
         self,
