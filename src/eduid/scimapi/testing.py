@@ -162,7 +162,6 @@ class ScimApiTestCase(MongoNeoTestCase):
         if self.messagedb:
             self.messagedb._drop_whole_collection()
 
-
     def _assertScimError(
         self,
         json: Mapping[str, Any],

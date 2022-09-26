@@ -3,8 +3,8 @@
 from typing import Any, Dict
 from unittest import SkipTest
 from uuid import uuid4
-from eduid.queue.db.queue_item import QueueItem
 
+from eduid.queue.db.queue_item import QueueItem
 from eduid.scimapi.models.scimbase import SCIMResourceType, SCIMSchema
 from eduid.scimapi.testing import ScimApiTestCase
 from eduid.scimapi.utils import make_etag
@@ -17,7 +17,6 @@ __author__ = 'lundberg'
 
 
 class TestNotifications(ScimApiTestCase):
-
     def _get_notifications(self):
         return [QueueItem.from_dict(x) for x in self.messagedb._get_all_docs()]
 

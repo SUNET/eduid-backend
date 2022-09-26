@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-import json
-import httpx
 import asyncio
+import json
 import logging
 from typing import Any, Mapping, Optional, cast
+
+import httpx
 
 from eduid.common.config.parsers import load_config
 from eduid.queue.config import QueueWorkerConfig
