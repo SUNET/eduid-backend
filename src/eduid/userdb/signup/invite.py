@@ -83,7 +83,6 @@ class _InviteRequired:
 @dataclass(frozen=True)
 class Invite(_InviteRequired):
     invite_id: ObjectId = field(default_factory=ObjectId)
-    display_name: Optional[str] = field(default=None)
     given_name: Optional[str] = field(default=None)
     surname: Optional[str] = field(default=None)
     mail_addresses: List[InviteMailAddress] = field(default_factory=list)

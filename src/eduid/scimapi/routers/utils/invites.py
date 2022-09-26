@@ -49,7 +49,6 @@ def create_signup_invite(
         invite_code=invite_code,
         invite_type=InviteType.SCIM,
         invite_reference=invite_reference,
-        display_name=create_request.nutid_invite_v1.name.formatted,
         given_name=create_request.nutid_invite_v1.name.given_name,
         surname=create_request.nutid_invite_v1.name.family_name,
         nin=create_request.nutid_invite_v1.national_identity_number,
