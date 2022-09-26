@@ -83,6 +83,8 @@ class SignupMsg(TranslatableMsg):
     email_verification_failed = 'signup.email-verification-failed'
     # email sending throttled
     email_throttled = 'signup.email-throttled'
+    # to many attempts doing email verification
+    email_verification_too_many_tries = 'signup.email-verification-to-many-tries'
     # user has already been created
     user_already_exists = 'signup.user-already-exists'
     # user has no credential

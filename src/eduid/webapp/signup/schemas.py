@@ -66,7 +66,7 @@ class EmailSchema(EduidSchema, CSRFRequestMixin):
     email = LowercaseEmail(required=True, validate=[validate_email])
 
 
-class VerifyEmailSchema(EmailSchema):
+class VerifyEmailSchema(EduidSchema, CSRFRequestMixin):
     verification_code = fields.String(required=True)
 
 

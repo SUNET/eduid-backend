@@ -100,21 +100,34 @@ def register_email(email: str):
 @signup_views.route('/verify-email', methods=['POST'])
 @UnmarshalWith(VerifyEmailSchema)
 @MarshalWith(SignupStatusResponse)
-def verify_email(email: str, verification_code: str):
+def verify_email(verification_code: str):
     """
     Verify the email address.
     """
     current_app.logger.info('Verifying email')
-    current_app.logger.debug(f'email address: {email}')
+    current_app.logger.debug(f'email address: {session.signup.email_verification.email}')
     current_app.logger.debug(f'verification code: {verification_code}')
+
+    # ignore verification attempts if there has been to many wrong attempts
+    if (
+        session.signup.email_verification.wrong_code_attempts
+        >= current_app.conf.email_verification_max_wrong_code_attempts
+    ):
+        current_app.logger.info('Too many wrong verification attempts')
+        # TODO: should we reset the users signup session to allow them to start over
+        #   or should we just let them do another captcha?
+        return error_response(message=SignupMsg.email_verification_too_many_tries)
+
+    if not session.signup.captcha_completed:
+        return error_response(message=SignupMsg.captcha_not_completed)
 
     if (
         is_email_verification_expired(sent_ts=session.signup.email_verification.sent_at)
-        or session.signup.email_verification.email != email
         or session.signup.email_verification.code is None
         or session.signup.email_verification.code != verification_code
     ):
         current_app.logger.info('Verification failed')
+        session.signup.email_verification.wrong_code_attempts += 1
         return error_response(message=SignupMsg.email_verification_failed)
 
     session.signup.email_verification.verified = True

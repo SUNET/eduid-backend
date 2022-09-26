@@ -200,7 +200,6 @@ class SignupTests(EduidAPITestCase):
     def _verify_email(
         self,
         data1: Optional[dict] = None,
-        email: str = 'dummy@example.com',
         expect_success: bool = True,
         expected_message: Optional[TranslatableMsg] = None,
         expected_payload: Optional[Mapping[str, Any]] = None,
@@ -217,7 +216,6 @@ class SignupTests(EduidAPITestCase):
                 endpoint = url_for('signup.verify_email')
                 with client.session_transaction() as sess:
                     data = {
-                        'email': email,
                         'verification_code': sess.signup.email_verification.code,
                         'csrf_token': sess.get_csrf_token(),
                     }
@@ -235,7 +233,10 @@ class SignupTests(EduidAPITestCase):
             if expect_success:
                 if not expected_payload:
                     assert response.json['payload']['captcha_completed'] is True
-                    assert response.json['payload']['email_verification']['email'] == email.lower()
+                    assert (
+                        response.json['payload']['email_verification']['email']
+                        == response.json['payload']['email_verification']['email'].lower()
+                    )
                     assert response.json['payload']['email_verification']['verified'] is True
 
                 self._check_api_response(
@@ -603,11 +604,22 @@ class SignupTests(EduidAPITestCase):
         )
         assert response.reached_state == SignupState.S5_VERIFY_EMAIL
 
+    def test_verify_email_wrong_code_to_many_attempts(self):
+        self._captcha()
+        self._register_email()
+        data = {'verification_code': 'wrong'}
+        for _ in range(self.app.conf.email_verification_max_wrong_code_attempts):
+            self._verify_email(data1=data, expect_success=False, expected_message=SignupMsg.email_verification_failed)
+        response = self._verify_email(
+            data1=data, expect_success=False, expected_message=SignupMsg.email_verification_too_many_tries
+        )
+        assert response.reached_state == SignupState.S5_VERIFY_EMAIL
+
     def test_verify_email_mixed_case(self):
         mixed_case_email = 'MixedCase@Example.com'
         self._captcha()
         self._register_email(email=mixed_case_email)
-        response = self._verify_email(email=mixed_case_email)
+        response = self._verify_email()
         assert response.reached_state == SignupState.S5_VERIFY_EMAIL
 
         with self.session_cookie_anon(self.browser) as client:

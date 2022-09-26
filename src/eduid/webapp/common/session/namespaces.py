@@ -131,6 +131,7 @@ class EmailVerification(SessionNSBase):
     email: Optional[str] = None
     verified: bool = False
     code: Optional[str] = None
+    wrong_code_attempts: int = 0
     sent_at: Optional[datetime] = None
     reference: Optional[str] = None
 
