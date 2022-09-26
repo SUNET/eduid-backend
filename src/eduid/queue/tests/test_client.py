@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime, timedelta
+from datetime import timedelta
 from unittest import TestCase, skip
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.testing_base import normalised_data
 from eduid.queue.db import Payload, RawPayload, TestPayload
 from eduid.queue.db.message import EduidInviteEmail, EduidSignupEmail, MessageDB
@@ -13,7 +14,7 @@ __author__ = 'lundberg'
 
 class TestClient(TestCase):
     def test_queue_item(self):
-        expires_at = datetime.utcnow() + timedelta(days=180)
+        expires_at = utc_now() + timedelta(days=180)
         discard_at = expires_at + timedelta(days=7)
         sender_info = SenderInfo(hostname='testhost', node_id='userdb@testhost')
         payload = TestPayload(message='this is a test payload')
@@ -32,7 +33,7 @@ class TestClient(TestCase):
 
 class TestMessage(TestCase):
     def setUp(self) -> None:
-        self.expires_at = datetime.utcnow() + timedelta(days=180)
+        self.expires_at = utc_now() + timedelta(days=180)
         self.discard_at = self.expires_at + timedelta(days=7)
         self.sender_info = SenderInfo(hostname='testhost', node_id='userdb@testhost')
 
@@ -83,7 +84,7 @@ class TestMessageDB(EduidQueueTestCase):
         self.messagedb.register_handler(EduidInviteEmail)
         self.messagedb.register_handler(EduidSignupEmail)
 
-        self.expires_at = datetime.utcnow() + timedelta(hours=2)
+        self.expires_at = utc_now() + timedelta(hours=2)
         self.discard_at = self.expires_at + timedelta(days=7)
         self.sender_info = SenderInfo(hostname='testhost', node_id='userdb@testhost')
 
@@ -163,7 +164,7 @@ class TestMessageDB(EduidQueueTestCase):
     @skip('It takes mongo a couple of seconds to actually remove the document, skip for now.')
     # TODO: Investigate if it is possible to force a expire check in mongodb
     def test_auto_discard(self):
-        self.discard_at = datetime.utcnow() - timedelta(seconds=-10)
+        self.discard_at = utc_now() - timedelta(seconds=-10)
         payload = TestPayload(message='this is a test payload')
         item = self._create_queue_item(payload)
         self.messagedb.save(item)

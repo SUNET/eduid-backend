@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from marshmallow import fields
+from marshmallow import fields, pre_dump
 
 from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 from eduid.webapp.common.api.schemas.email import LowercaseEmail
 from eduid.webapp.common.api.schemas.validators import validate_email
+from eduid.webapp.common.api.utils import throttle_time_left
+from eduid.webapp.signup.app import current_signup_app as current_app
 
 __author__ = 'lundberg'
 
@@ -15,12 +17,13 @@ class SignupStatusResponse(FluxStandardAction):
         class EmailVerification(EduidSchema):
             email = fields.String(required=False)
             verified = fields.Boolean(required=True)
-            sent_ts = fields.DateTime(required=True)
+            sent_ts = fields.DateTime(required=False)
+            throttle_time_left = fields.Integer(required=False)
 
         class Invite(EduidSchema):
             initiated_signup = fields.Boolean(required=True)
-            code = fields.String(required=True)
-            finish_url = fields.String(required=True)
+            code = fields.String(required=False)
+            finish_url = fields.String(required=False)
             completed = fields.Boolean(required=True)
 
         email_verification = fields.Nested(EmailVerification, required=True)
@@ -31,6 +34,14 @@ class SignupStatusResponse(FluxStandardAction):
         user_created = fields.Boolean(required=True)
 
     payload = fields.Nested(StatusSchema)
+
+    @pre_dump
+    def throttle_delta_to_seconds(self, out_data, **kwargs):
+        if out_data['payload'].get('email_verification', {}).get('sent_ts'):
+            out_data['payload']['email_verification']['throttle_time_left'] = throttle_time_left(
+                out_data['payload']['email_verification']['sent_ts'], current_app.conf.throttle_resend
+            ).seconds
+        return out_data
 
 
 class AcceptTouRequest(EduidSchema, CSRFRequestMixin):

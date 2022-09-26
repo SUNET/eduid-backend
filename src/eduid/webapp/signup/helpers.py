@@ -161,23 +161,21 @@ def check_email_status(email: str) -> EmailStatus:
     # check if mail sending is throttled
     assert session.signup.email_verification.sent_at is not None
     if is_throttled(session.signup.email_verification.sent_at, current_app.conf.throttle_resend):
-        session.signup.email_verification.throttle_time_left = throttle_time_left(
-            session.signup.email_verification.sent_at, current_app.conf.throttle_resend
-        ).seconds
         current_app.logger.info(
-            f'User has been sent a verification code too recently: {session.signup.email_verification.throttle_time_left} seconds left'
+            f'User has been sent a verification code too recently: '
+            f'{session.signup.email_verification.throttle_time_left} seconds left'
         )
         current_app.logger.debug(f'email: {email}')
         return EmailStatus.THROTTLED
 
     if session.signup.email_verification.email == email:
-        # resend code if the user is has provided the same email address
+        # resend code if the user has provided the same email address
         current_app.logger.info('Resend code')
         current_app.logger.debug(f'email: {email}')
         return EmailStatus.RESEND_CODE
-    else:
-        # if the user has changed email address to register with, send a new code
-        return EmailStatus.NEW
+
+    # if the user has changed email address to register with, send a new code
+    return EmailStatus.NEW
 
 
 def verify_recaptcha(secret_key: str, captcha_response: str, user_ip: str, retries: int = 3) -> bool:
@@ -383,13 +381,6 @@ def complete_and_update_invite(user: User, invite_code: str):
     current_app.logger.info(f'Invite completed')
     current_app.logger.debug(f'invite_code: {invite.invite_code}')
     current_app.stats.count(name=f'{invite.invite_type.value}_invite_completed')
-
-
-def _generate_password() -> str:
-    """Generate a random password readable to humans (groups of four characters)."""
-    password = pwgen(current_app.conf.password_length, no_capitalize=True, no_symbols=True)
-    parts = findall('.{,4}', password)
-    return ' '.join(parts).rstrip()
 
 
 def is_email_verification_expired(sent_ts: Optional[datetime]) -> bool:

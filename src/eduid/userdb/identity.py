@@ -73,7 +73,7 @@ class NinIdentity(IdentityElement):
 
     identity_type: IdentityType = Field(default=IdentityType.NIN, const=True)
     number: str
-    date_of_birth: Optional[datetime]
+    date_of_birth: Optional[datetime] = None
 
     @property
     def unique_key_name(self) -> str:

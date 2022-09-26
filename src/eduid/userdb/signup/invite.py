@@ -96,11 +96,11 @@ class Invite(_InviteRequired):
     modified_ts: Optional[datetime] = field(default=None)
 
     def get_primary_mail_address(self) -> Optional[str]:
-        mail_address = None
-        if len(self.mail_addresses) != 0:
-            # there can be only one primary mail address set
-            mail_address = [item.email for item in self.mail_addresses if item.primary is True][0]
-        return mail_address
+        # there can be only one primary mail address set
+        primary_mail_address = [item.email for item in self.mail_addresses if item.primary is True]
+        if not primary_mail_address:
+            return None
+        return primary_mail_address[0]
 
     def to_dict(self) -> Dict[str, Any]:
         data = asdict(self)

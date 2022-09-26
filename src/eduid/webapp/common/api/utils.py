@@ -266,16 +266,16 @@ def get_zxcvbn_terms(user: User) -> List[str]:
     return user_input
 
 
-def throttle_time_left(modified_ts: datetime, min_wait: timedelta) -> timedelta:
-    if modified_ts is None or int(min_wait.total_seconds()) == 0:
+def throttle_time_left(ts: datetime, min_wait: timedelta) -> timedelta:
+    if int(min_wait.total_seconds()) == 0:
         return timedelta()
-    throttle_ends = modified_ts + min_wait
+    throttle_ends = ts + min_wait
     return throttle_ends - utc_now()
 
 
-def is_throttled(modified_ts: datetime, min_wait: timedelta) -> bool:
-    time_left = throttle_time_left(modified_ts=modified_ts, min_wait=min_wait)
+def is_throttled(ts: datetime, min_wait: timedelta) -> bool:
+    time_left = throttle_time_left(ts=ts, min_wait=min_wait)
     if int(time_left.total_seconds()) > 0:
-        logger.warning(f'Resend throttled for {time_left}')
+        logger.info(f'Resend throttled for {time_left}')
         return True
     return False

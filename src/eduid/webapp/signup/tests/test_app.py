@@ -175,6 +175,7 @@ class SignupTests(EduidAPITestCase):
                     assert response.json['payload']['captcha_completed'] is True
                     assert response.json['payload']['email_verification']['email'] == email.lower()
                     assert response.json['payload']['email_verification']['verified'] is False
+                    assert response.json['payload']['email_verification']['throttle_time_left'] is not None
 
                 self._check_api_response(
                     response,

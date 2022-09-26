@@ -58,7 +58,7 @@ class SignupConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MailConf
     default_language: str = 'en'
 
     password_length: int = 10
-    throttle_resend: timedelta = Field(default=timedelta(seconds=300))
+    throttle_resend: timedelta = Field(default=timedelta(minutes=5))
     email_verification_code_length: int = 8
     email_verification_timeout: timedelta = Field(default=timedelta(hours=24))
     email_proofing_version = Field(default='2013v1')
