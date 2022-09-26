@@ -13,6 +13,7 @@ fido2
 gunicorn
 hammock
 html5lib
+httpx
 idna
 langcodes==3.*
 marshmallow-dataclass[enum,union]==7.3.*

@@ -112,6 +112,9 @@ async def on_post(req: ContextRequest, resp: Response, create_request: EventCrea
     message = req.app.context.notification_relay.format_message(
         version=1, data={'location': req.app.context.resource_url(SCIMResourceType.EVENT, event.scim_id)}
     )
-    req.app.context.notification_relay.notify(data_owner=req.context.data_owner, message=message)
+
+    req.app.context.notification_relay.notify(
+        data_owner=req.context.data_owner, message=message, context=req.app.context
+    )
 
     return db_event_to_response(req, resp, event)

@@ -189,12 +189,6 @@ class TestInviteResource(ScimApiTestCase):
             'profiles': {'student': {'attributes': {'displayName': 'Test'}, 'data': {}}},
         }
 
-    def tearDown(self):
-        super().tearDown()
-        self.invitedb._drop_whole_collection()
-        self.signup_invitedb._drop_whole_collection()
-        self.messagedb._drop_whole_collection()
-
     def add_invite(self, data: Optional[dict] = None, update: bool = False) -> ScimApiInvite:
         invite_data = self.invite_data
         if data:

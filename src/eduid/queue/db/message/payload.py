@@ -62,6 +62,18 @@ class EduidTestResultPayload(Payload):
 
 
 @dataclass
+class EduidSCIMAPINotification(Payload):
+    data_owner: str
+    post_url: str
+    message: str
+
+    @classmethod
+    def from_dict(cls, data: Mapping):
+        data = dict(data)  # Do not change caller data
+        return cls(**data)
+
+
+@dataclass
 class EmailPayload(Payload):
     email: str
     reference: str
