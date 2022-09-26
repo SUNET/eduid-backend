@@ -13,7 +13,7 @@ __author__ = 'lundberg'
 class SignupStatusResponse(FluxStandardAction):
     class StatusSchema(EduidSchema, CSRFResponseMixin):
         class EmailVerification(EduidSchema):
-            email = LowercaseEmail(required=False)
+            email = fields.String(required=False)
             verified = fields.Boolean(required=True)
             sent_ts = fields.DateTime(required=True)
 
