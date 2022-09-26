@@ -49,7 +49,7 @@ class TestIdPNamespace(EduidAPITestCase):
             'signup': {
                 'ts': now,
                 'user_created': False,
-                'email_verification': {'verified': False, 'code': 'test'},
+                'email_verification': {'verified': False, 'code': 'test', 'wrong_code_attempts': 0},
                 'invite': {'initiated_signup': False, 'completed': False},
                 'tou_accepted': False,
                 'captcha_completed': False,
