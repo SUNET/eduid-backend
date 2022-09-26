@@ -9,6 +9,7 @@ from uuid import UUID, uuid4
 
 from bson import ObjectId
 
+from eduid.common.testing_base import normalised_data
 from eduid.graphdb.groupdb import Group as GraphGroup
 from eduid.graphdb.groupdb import User as GraphUser
 from eduid.scimapi.config import DataOwnerName
@@ -19,7 +20,6 @@ from eduid.scimapi.tests.test_scimbase import TestScimBase
 from eduid.scimapi.utils import make_etag
 from eduid.userdb.scimapi import EventStatus, GroupExtensions, ScimApiGroup
 from eduid.userdb.scimapi.userdb import ScimApiUser
-from eduid.userdb.testing import normalised_data
 
 logger = logging.getLogger(__name__)
 

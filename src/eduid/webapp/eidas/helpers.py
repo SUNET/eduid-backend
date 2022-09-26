@@ -6,6 +6,10 @@ from enum import unique
 from typing import Any, Dict, List, Optional
 
 from flask import abort, make_response, request, url_for
+from saml2 import BINDING_HTTP_REDIRECT
+from saml2.client import Saml2Client
+from saml2.metadata import entity_descriptor
+from saml2.request import AuthnRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.misc.timeutil import utc_now
@@ -22,10 +26,6 @@ from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import AuthnRequestRef
 from eduid.webapp.eidas.app import current_eidas_app as current_app
 from eduid.webapp.eidas.saml_session_info import BaseSessionInfo
-from saml2 import BINDING_HTTP_REDIRECT
-from saml2.client import Saml2Client
-from saml2.metadata import entity_descriptor
-from saml2.request import AuthnRequest
 
 __author__ = 'lundberg'
 

@@ -4,6 +4,7 @@ from typing import Optional
 from uuid import uuid4
 
 from flask import Blueprint, make_response, redirect, request
+from saml2.request import AuthnRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.config.base import EduidEnvironment
@@ -38,16 +39,15 @@ from eduid.webapp.eidas.helpers import (
     is_valid_reauthn,
     staging_nin_remap,
 )
-from saml2.request import AuthnRequest
 
 __author__ = 'lundberg'
 
 from eduid.webapp.eidas.schemas import (
+    EidasCommonRequestSchema,
+    EidasCommonResponseSchema,
     EidasStatusRequestSchema,
     EidasStatusResponseSchema,
     EidasVerifyCredentialRequestSchema,
-    EidasCommonRequestSchema,
-    EidasCommonResponseSchema,
 )
 
 eidas_views = Blueprint('eidas', __name__, url_prefix='')

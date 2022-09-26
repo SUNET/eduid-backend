@@ -6,16 +6,13 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.userdb import User
 from eduid.userdb.element import ElementKey
-from eduid.webapp.authn.views import FALLBACK_FRONTEND_ACTION
 from eduid.webapp.common.api.decorators import require_user
 from eduid.webapp.common.api.messages import FluxData
 from eduid.webapp.common.api.utils import sanitise_redirect_url
 from eduid.webapp.common.authn.acs_enums import EidasAcsAction
 from eduid.webapp.common.session import session
 from eduid.webapp.eidas.app import current_eidas_app as current_app
-from eduid.webapp.eidas.helpers import (
-    check_credential_to_verify,
-)
+from eduid.webapp.eidas.helpers import check_credential_to_verify
 
 __author__ = 'lundberg'
 

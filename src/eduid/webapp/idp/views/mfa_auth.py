@@ -15,8 +15,8 @@ from eduid.webapp.common.session.logindata import ExternalMfaData
 from eduid.webapp.common.session.namespaces import (
     MfaAction,
     MfaActionError,
-    OnetimeCredType,
     OnetimeCredential,
+    OnetimeCredType,
     RequestRef,
 )
 from eduid.webapp.idp.app import current_idp_app as current_app

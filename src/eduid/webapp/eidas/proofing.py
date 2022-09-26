@@ -38,10 +38,7 @@ from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.proofing.methods import ProofingMethod
 from eduid.webapp.common.session import session
 from eduid.webapp.eidas.app import current_eidas_app as current_app
-from eduid.webapp.eidas.helpers import (
-    EidasMsg,
-    authn_context_class_to_loa,
-)
+from eduid.webapp.eidas.helpers import EidasMsg, authn_context_class_to_loa
 from eduid.webapp.eidas.saml_session_info import ForeignEidSessionInfo, NinSessionInfo
 
 SessionInfoVar = TypeVar('SessionInfoVar')

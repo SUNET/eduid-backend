@@ -9,13 +9,8 @@ from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_actio
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.session import session
 from eduid.webapp.eidas.app import current_eidas_app as current_app
-from eduid.webapp.eidas.helpers import (
-    EidasMsg,
-    authn_ctx_to_loa,
-)
-from eduid.webapp.eidas.proofing import (
-    get_proofing_functions,
-)
+from eduid.webapp.eidas.helpers import EidasMsg, authn_ctx_to_loa
+from eduid.webapp.eidas.proofing import get_proofing_functions
 
 __author__ = 'lundberg'
 

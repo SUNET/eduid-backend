@@ -32,10 +32,11 @@
 
 import bson
 
+from eduid.common.testing_base import normalised_data
 from eduid.userdb import User
 from eduid.userdb.fixtures.passwords import signup_password
 from eduid.userdb.fixtures.users import mocked_user_standard
-from eduid.userdb.testing import MongoTestCase, normalised_data
+from eduid.userdb.testing import MongoTestCase
 
 
 class TestUserDB(MongoTestCase):

@@ -34,9 +34,6 @@ import uuid
 from typing import Optional
 
 from flask import Blueprint, abort, make_response, redirect, request
-
-from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
-from eduid.webapp.common.api.messages import CommonMsg, redirect_with_msg
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.ident import decode
@@ -48,6 +45,8 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 from eduid.userdb.exceptions import MultipleUsersReturned
 from eduid.webapp.authn import acs_actions  # acs_action needs to be imported to be loaded
 from eduid.webapp.authn.app import current_authn_app as current_app
+from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
+from eduid.webapp.common.api.messages import CommonMsg, redirect_with_msg
 from eduid.webapp.common.api.utils import sanitise_redirect_url
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.authn.acs_registry import ACSArgs, get_action

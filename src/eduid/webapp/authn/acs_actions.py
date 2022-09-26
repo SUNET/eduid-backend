@@ -31,6 +31,8 @@
 #
 
 
+from saml2.ident import code
+
 from eduid.userdb import User
 from eduid.webapp.authn.app import current_authn_app as current_app
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
@@ -38,7 +40,6 @@ from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_actio
 from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import LoginApplication
-from saml2.ident import code
 
 
 def update_user_session(session_info: SessionInfo, user: User) -> None:
