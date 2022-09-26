@@ -29,7 +29,7 @@
 #
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Mapping
 
 from eduid.queue.db import Payload
@@ -62,16 +62,27 @@ class EduidTestResultPayload(Payload):
 
 
 @dataclass
-class EduidInviteEmail(Payload):
+class EmailPayload(Payload):
     email: str
     reference: str
-    invite_link: str
-    invite_code: str
-    inviter_name: str
     language: str
-    version: int = 1
 
     @classmethod
     def from_dict(cls, data: Mapping):
         data = dict(data)  # Do not change caller data
         return cls(**data)
+
+
+@dataclass
+class EduidInviteEmail(EmailPayload):
+    invite_link: str
+    invite_code: str
+    inviter_name: str
+    version: int = 1
+
+
+@dataclass
+class EduidSignupEmail(EmailPayload):
+    verification_code: str
+    site_name: str
+    version: int = 1
