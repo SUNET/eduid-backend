@@ -17,7 +17,7 @@ from eduid.common.logging import init_logging
 from eduid.queue.config import QueueWorkerConfig
 from eduid.queue.db import QueueItem
 from eduid.queue.db.change_event import ChangeEvent, OperationType
-from eduid.queue.db.payload import TPayload
+from eduid.queue.db.payload import Payload
 from eduid.queue.db.worker import AsyncQueueDB
 
 __author__ = 'lundberg'
@@ -31,7 +31,7 @@ def cancel_task(signame, task):
 
 
 class QueueWorker(ABC):
-    def __init__(self, config: QueueWorkerConfig, handle_payloads: Sequence[Type[TPayload]]):
+    def __init__(self, config: QueueWorkerConfig, handle_payloads: Sequence[Type[Payload]]):
         worker_name = environ.get('WORKER_NAME', None)
         if worker_name is None:
             raise RuntimeError('Environment variable WORKER_NAME needs to be set')

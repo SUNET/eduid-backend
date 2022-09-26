@@ -4,7 +4,7 @@ import logging
 from dataclasses import asdict
 from email.message import EmailMessage
 from gettext import gettext as _
-from typing import Any, Mapping, Optional, cast
+from typing import Any, Mapping, Optional, Sequence, Type, cast
 
 from aiosmtplib import SMTP
 
@@ -13,6 +13,7 @@ from eduid.common.config.parsers import load_config
 from eduid.queue.config import QueueWorkerConfig
 from eduid.queue.db import QueueItem
 from eduid.queue.db.message import EduidInviteEmail, EduidSignupEmail
+from eduid.queue.db.payload import Payload
 from eduid.queue.db.queue_item import Status
 from eduid.queue.helpers import Jinja2Env
 from eduid.queue.workers.base import QueueWorker
@@ -25,7 +26,7 @@ __author__ = 'lundberg'
 class MailQueueWorker(QueueWorker):
     def __init__(self, config: QueueWorkerConfig):
         # Register which queue items this worker should try to grab
-        payloads = [EduidInviteEmail, EduidSignupEmail]
+        payloads: Sequence[Type[Payload]] = [EduidInviteEmail, EduidSignupEmail]
         super().__init__(config=config, handle_payloads=payloads)
 
         self._smtp: Optional[SMTP] = None

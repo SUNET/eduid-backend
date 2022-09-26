@@ -30,11 +30,9 @@
 from abc import ABC
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Dict, Mapping, TypeVar
+from typing import Dict, Mapping
 
 __author__ = 'lundberg'
-
-TPayload = TypeVar('TPayload', bound='Payload')
 
 
 @dataclass
