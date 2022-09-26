@@ -161,10 +161,10 @@ def check_email_status(email: str) -> EmailStatus:
     # check if mail sending is throttled
     assert session.signup.email_verification.sent_at is not None
     if is_throttled(session.signup.email_verification.sent_at, current_app.conf.throttle_resend):
-        current_app.logger.info(
-            f'User has been sent a verification code too recently: '
-            f'{session.signup.email_verification.throttle_time_left} seconds left'
-        )
+        seconds_left = throttle_time_left(
+            session.signup.email_verification.sent_at, current_app.conf.throttle_resend
+        ).seconds
+        current_app.logger.info(f'User has been sent a verification code too recently: {seconds_left} seconds left')
         current_app.logger.debug(f'email: {email}')
         return EmailStatus.THROTTLED
 

@@ -37,9 +37,9 @@ class SignupStatusResponse(FluxStandardAction):
 
     @pre_dump
     def throttle_delta_to_seconds(self, out_data, **kwargs):
-        if out_data['payload'].get('email_verification', {}).get('sent_ts'):
+        if out_data['payload'].get('email_verification', {}).get('sent_at'):
             out_data['payload']['email_verification']['throttle_time_left'] = throttle_time_left(
-                out_data['payload']['email_verification']['sent_ts'], current_app.conf.throttle_resend
+                out_data['payload']['email_verification']['sent_at'], current_app.conf.throttle_resend
             ).seconds
         return out_data
 

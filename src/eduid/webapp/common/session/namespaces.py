@@ -133,7 +133,6 @@ class EmailVerification(SessionNSBase):
     code: Optional[str] = None
     sent_at: Optional[datetime] = None
     reference: Optional[str] = None
-    throttle_time_left: Optional[int] = None
 
 
 class Invite(SessionNSBase):

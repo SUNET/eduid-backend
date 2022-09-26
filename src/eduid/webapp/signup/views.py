@@ -79,9 +79,6 @@ def register_email(email: str):
         session.signup.email_verification.email = email
         session.signup.email_verification.code = get_short_hash(entropy=current_app.conf.email_verification_code_length)
         session.signup.email_verification.sent_at = utc_now()
-        session.signup.email_verification.throttle_time_left = throttle_time_left(
-            session.signup.email_verification.sent_at, current_app.conf.throttle_resend
-        ).seconds
         session.signup.email_verification.reference = str(uuid4())
 
     # send email to the user
