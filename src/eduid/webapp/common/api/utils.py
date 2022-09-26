@@ -2,7 +2,7 @@
 
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional
 from urllib.parse import urlparse
 from uuid import uuid4
@@ -10,9 +10,10 @@ from uuid import uuid4
 import bcrypt
 from flask import Request, current_app
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.utils import urlappend
 from eduid.userdb import User, UserDB
-from eduid.userdb.exceptions import MultipleUsersReturned, UserDBValueError, UserDoesNotExist
+from eduid.userdb.exceptions import MultipleUsersReturned, UserDBValueError
 from eduid.webapp.common.api.exceptions import ApiException
 
 logger = logging.getLogger(__name__)
@@ -263,3 +264,18 @@ def get_zxcvbn_terms(user: User) -> List[str]:
             user_input.append(item.email.split('@')[0])
 
     return user_input
+
+
+def throttle_time_left(modified_ts: datetime, min_wait: timedelta) -> timedelta:
+    if modified_ts is None or int(min_wait.total_seconds()) == 0:
+        return timedelta()
+    throttle_ends = modified_ts + min_wait
+    return throttle_ends - utc_now()
+
+
+def is_throttled(modified_ts: datetime, min_wait: timedelta) -> bool:
+    time_left = throttle_time_left(modified_ts=modified_ts, min_wait=min_wait)
+    if int(time_left.total_seconds()) > 0:
+        logger.warning(f'Resend throttled for {time_left}')
+        return True
+    return False

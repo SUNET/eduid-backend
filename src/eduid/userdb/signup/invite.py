@@ -32,7 +32,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional
 from uuid import UUID
 
 from bson import ObjectId
@@ -94,6 +94,13 @@ class Invite(_InviteRequired):
     expires_at: Optional[datetime] = field(default=None)
     created_ts: datetime = field(default_factory=datetime.utcnow)
     modified_ts: Optional[datetime] = field(default=None)
+
+    def get_primary_mail_address(self) -> Optional[str]:
+        mail_address = None
+        if len(self.mail_addresses) != 0:
+            # there can be only one primary mail address set
+            mail_address = [item.email for item in self.mail_addresses if item.primary is True][0]
+        return mail_address
 
     def to_dict(self) -> Dict[str, Any]:
         data = asdict(self)

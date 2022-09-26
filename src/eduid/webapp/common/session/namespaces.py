@@ -127,8 +127,31 @@ class SecurityNS(SessionNSBase):
     webauthn_registration: Optional[WebauthnRegistration] = None
 
 
+class EmailVerification(SessionNSBase):
+    email: Optional[str] = None
+    verified: bool = False
+    code: Optional[str] = None
+    sent_at: Optional[datetime] = None
+    reference: Optional[str] = None
+    throttle_time_left: Optional[int] = None
+
+
+class Invite(SessionNSBase):
+    initiated_signup: bool = False
+    code: Optional[str] = None
+    finish_url: Optional[str] = None
+    completed: bool = False
+
+
 class Signup(TimestampedNS):
-    email_verification_code: Optional[str] = None
+    user_created: bool = False
+    email_verification: EmailVerification = Field(default_factory=EmailVerification)
+    invite: Invite = Field(default_factory=Invite)
+    tou_accepted: bool = False
+    tou_version: Optional[str] = None
+    captcha_completed: bool = False
+    generated_password: Optional[str] = None
+    credential_added: bool = False
 
 
 # TODO: Remove Actions, should be unused

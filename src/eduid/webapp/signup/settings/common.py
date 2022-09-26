@@ -52,16 +52,17 @@ class SignupConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MailConf
 
     app_name = 'signup'
 
-    # The signup app uses this to retrieve the ToU texts from the actions app
-    tou_url: str
     vccs_url: str
     signup_url: str
     dashboard_url: str
+    default_language: str = 'en'
 
-    signup_authn_url: str = '/services/authn/signup-authn'
     password_length: int = 10
+    throttle_resend: timedelta = Field(default=timedelta(seconds=300))
+    email_verification_code_length: int = 8
+    email_verification_timeout: timedelta = Field(default=timedelta(hours=24))
+    email_proofing_version = Field(default='2013v1')
     default_finish_url: str = 'https://www.eduid.se/'
-    eduid_site_url: str = 'https://www.eduid.se'
     eduid_site_name: str = 'eduID'
     recaptcha_public_key: str = ''
     recaptcha_private_key: str = ''

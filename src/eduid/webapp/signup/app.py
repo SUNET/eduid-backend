@@ -38,8 +38,9 @@ from flask import current_app
 from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.common.rpc.mail_relay import MailRelay
+from eduid.queue.db.message import MessageDB
 from eduid.userdb.logs import ProofingLog
-from eduid.userdb.signup import SignupUserDB
+from eduid.userdb.signup import SignupInviteDB, SignupUserDB
 from eduid.webapp.common.api import translation
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.signup.settings.common import SignupConfig
@@ -56,6 +57,8 @@ class SignupApp(EduIDBaseApp):
 
         self.private_userdb = SignupUserDB(config.mongo_uri, auto_expire=config.private_userdb_auto_expire)
         self.proofing_log = ProofingLog(config.mongo_uri)
+        self.invite_db = SignupInviteDB(config.mongo_uri)
+        self.messagedb = MessageDB(config.mongo_uri)
 
 
 current_signup_app: SignupApp = cast(SignupApp, current_app)

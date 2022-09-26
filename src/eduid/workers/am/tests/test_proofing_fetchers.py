@@ -4,12 +4,12 @@ from uuid import UUID
 
 import bson
 
+from eduid.common.testing_base import normalised_data
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.personal_data import PersonalDataUser
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.reset_password import ResetPasswordUser
 from eduid.userdb.security import SecurityUser
-from eduid.userdb.testing import normalised_data
 from eduid.workers.am.testing import ProofingTestCase
 
 

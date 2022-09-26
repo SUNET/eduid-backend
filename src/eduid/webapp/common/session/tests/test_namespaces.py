@@ -3,6 +3,8 @@ from datetime import datetime
 from typing import Any, Mapping
 
 from eduid.common.config.parsers import load_config
+from eduid.common.misc.timeutil import utc_now
+from eduid.common.testing_base import normalised_data
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.session import EduidSession
 from eduid.webapp.common.session.eduid_session import SessionFactory
@@ -37,14 +39,23 @@ class TestIdPNamespace(EduidAPITestCase):
         assert session.idp.sso_cookie_val is None
 
         session.idp.sso_cookie_val = 'abc'
-        session.signup.email_verification_code = 'test'
+        session.signup.email_verification.code = 'test'
 
         session._serialize_namespaces()
         out = session._session.to_dict()
 
-        assert out == {
-            'idp': {'sso_cookie_val': 'abc', 'pending_requests': {}, 'ts': session.idp.ts},
-            'signup': {'email_verification_code': 'test', 'ts': session.signup.ts},
+        now = utc_now()
+        assert normalised_data(out, replace_datetime=now) == {
+            'signup': {
+                'ts': now,
+                'user_created': False,
+                'email_verification': {'verified': False, 'code': 'test'},
+                'invite': {'initiated_signup': False, 'completed': False},
+                'tou_accepted': False,
+                'captcha_completed': False,
+                'credential_added': False,
+            },
+            'idp': {'ts': now, 'sso_cookie_val': 'abc', 'pending_requests': {}},
         }
 
         session.persist()
