@@ -43,7 +43,6 @@ signup_views = Blueprint('signup', __name__, url_prefix='', template_folder='tem
 
 
 @signup_views.route('/state', methods=['GET'])
-@UnmarshalWith(EmptyRequest)
 @MarshalWith(SignupStatusResponse)
 def get_state():
     """
