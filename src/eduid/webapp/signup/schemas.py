@@ -19,6 +19,7 @@ class SignupStatusResponse(FluxStandardAction):
             verified = fields.Boolean(required=True)
             sent_at = fields.DateTime(required=False)
             throttle_time_left = fields.Integer(required=False)
+            throttle_time_max = fields.Integer(required=False)
 
         class Invite(EduidSchema):
             initiated_signup = fields.Boolean(required=True)
@@ -42,6 +43,9 @@ class SignupStatusResponse(FluxStandardAction):
             time_left = throttle_time_left(sent_at, current_app.conf.throttle_resend).total_seconds()
             if time_left > 0:
                 out_data['payload']['email_verification']['throttle_time_left'] = time_left
+                out_data['payload']['email_verification'][
+                    'throttle_time_max'
+                ] = current_app.conf.throttle_resend.total_seconds()
         return out_data
 
 
