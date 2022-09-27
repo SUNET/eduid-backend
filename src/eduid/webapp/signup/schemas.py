@@ -66,8 +66,13 @@ class EmailSchema(EduidSchema, CSRFRequestMixin):
     email = LowercaseEmail(required=True, validate=[validate_email])
 
 
-class VerifyEmailSchema(EduidSchema, CSRFRequestMixin):
+class VerifyEmailRequest(EduidSchema, CSRFRequestMixin):
     verification_code = fields.String(required=True)
+
+
+class CreateUserRequest(EduidSchema, CSRFRequestMixin):
+    use_password = fields.Boolean(required=True)
+    use_webauthn = fields.Boolean(required=True)
 
 
 class InviteCodeRequest(EduidSchema, CSRFRequestMixin):

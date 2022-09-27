@@ -11,7 +11,7 @@ from eduid.webapp.common.api.exceptions import ProofingLogFailure
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.schemas.csrf import EmptyRequest
-from eduid.webapp.common.api.utils import get_short_hash, throttle_time_left
+from eduid.webapp.common.api.utils import get_short_hash
 from eduid.webapp.common.authn.utils import generate_password
 from eduid.webapp.common.session import session
 from eduid.webapp.signup.app import current_signup_app as current_app
@@ -111,7 +111,7 @@ def register_email(email: str):
 
 
 @signup_views.route('/verify-email', methods=['POST'])
-@UnmarshalWith(VerifyEmailSchema)
+@UnmarshalWith(VerifyEmailRequest)
 @MarshalWith(SignupStatusResponse)
 def verify_email(verification_code: str):
     """
