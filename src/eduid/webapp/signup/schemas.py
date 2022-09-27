@@ -17,7 +17,7 @@ class SignupStatusResponse(FluxStandardAction):
         class EmailVerification(EduidSchema):
             email = fields.String(required=False)
             verified = fields.Boolean(required=True)
-            sent_ts = fields.DateTime(required=False)
+            sent_at = fields.DateTime(required=False)
             throttle_time_left = fields.Integer(required=False)
 
         class Invite(EduidSchema):
