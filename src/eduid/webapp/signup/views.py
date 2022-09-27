@@ -35,10 +35,23 @@ from eduid.webapp.signup.schemas import (
     InviteCodeRequest,
     InviteDataResponse,
     SignupStatusResponse,
-    VerifyEmailSchema,
+    VerifyEmailRequest,
+    CreateUserRequest,
 )
 
 signup_views = Blueprint('signup', __name__, url_prefix='', template_folder='templates')
+
+
+@signup_views.route('/state', methods=['GET'])
+@UnmarshalWith(EmptyRequest)
+@MarshalWith(SignupStatusResponse)
+def get_state():
+    """
+    Get the current signup state.
+    """
+    # TODO: write tests for this
+    current_app.logger.debug('Get signup state')
+    return success_response(payload=session.signup.to_dict())
 
 
 @signup_views.route('/register-email', methods=['POST'])
