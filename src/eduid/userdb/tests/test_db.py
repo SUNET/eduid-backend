@@ -5,7 +5,6 @@ from bson import ObjectId
 import eduid.userdb.db as db
 from eduid.userdb.fixtures.users import mocked_user_standard_2, new_unverified_user_example, new_user_example
 from eduid.userdb.identity import IdentityType
-from eduid.userdb.meta import CleanedType
 from eduid.userdb.testing import MongoTestCase
 
 
