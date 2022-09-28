@@ -1,26 +1,17 @@
 import logging
 from pathlib import Path
-from typing import Dict, List, Mapping, Optional, Set
+from typing import List, Optional
 
-from pydantic import BaseModel, ConstrainedStr, Field, validator
+from pydantic import Field
 
 from eduid.common.config.base import LoggingConfigMixin, RootConfig
-from eduid.common.utils import removesuffix
 
 logger = logging.getLogger(__name__)
 
 
-class ReasonableDomainName(ConstrainedStr):
-    min_length = len('x.se')
-    to_lower = True
-
-
-class ScopeName(ReasonableDomainName):
-    pass
-
-
-class DataOwnerName(ReasonableDomainName):
-    pass
+class Endpoint:
+    commit_msg: str
+    allowed: bool
 
 
 class AMApiConfig(RootConfig, LoggingConfigMixin):
@@ -28,22 +19,15 @@ class AMApiConfig(RootConfig, LoggingConfigMixin):
     Configuration for the User Management API app
     """
 
-    protocol: str = 'http'
-    server_name: str = 'localhost:8000'
-    application_root: str = ''
-    log_format: str = '{asctime} | {levelname:7} | {hostname} | {name:35} | {module:10} | {message}'
-    mongo_uri: str = ''
+    protocol: str = "http"
+    server_name: str = "localhost:8000"
+    application_root: str = ""
+    log_format: str = "{asctime} | {levelname:7} | {hostname} | {name:35} | {module:10} | {message}"
+    mongo_uri: str = ""
     keystore_path: Path
-    no_authn_urls: List[str] = Field(default=['^/status/healthy$', '^/docs/?$', '^/openapi.json'])
+    no_authn_urls: List[str] = Field(default=["^/status/healthy$", "^/docs/?$", "^/openapi.json"])
     status_cache_seconds: int = 10
     # The expected value of the authn JWT claims['requested_access']['type']
-    allow_db_set: List[Mapping[str, str]]
-    allow_db_unset: List[Mapping[str, str]]
-    requested_access_type: Optional[str] = 'amapi'
+    requested_access_type: Optional[str] = "am_api"
 
-    @validator('application_root')
-    def application_root_must_not_end_with_slash(cls, v: str):
-        if v.endswith('/'):
-            logger.warning(f'application_root should not end with slash ({v})')
-            v = removesuffix(v, '/')
-        return v
+    # user_restriction: Mapping[str, Mapping[str, Endpoint]]

@@ -261,6 +261,20 @@ class BaseDB(object):
             return []
         return docs
 
+    def _get_documents_by_aggregate(
+        self, match: Dict[str, Any], sort: Optional[Dict[str, Any]] = None, limit: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
+
+        pipeline = [Dict[Any, Any], {"$match": match}]
+
+        if sort is not None:
+            pipeline.append({"$sort": sort})
+
+        if limit is not None:
+            pipeline.append({"$limit": limit})
+
+        return list(self._coll.aggregate(pipeline))
+
     def _get_documents_by_filter(
         self,
         spec: Mapping[str, Any],

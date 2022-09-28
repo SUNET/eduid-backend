@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-__author__ = 'masv'
+__author__ = "masv"
 
-from eduid.workers.amapi.models.base import EduidBaseModel
+from pydantic import BaseModel
 
 
-class StatusResponse(EduidBaseModel):
+class StatusResponse(BaseModel):
     status: str
     hostname: str
-    reason: str

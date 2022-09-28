@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
-__author__ = 'masv'
+__author__ = "masv"
 
 from dataclasses import asdict, dataclass
 from typing import Callable, Union
 
 from fastapi import Request, Response
 from fastapi.routing import APIRoute
-
-from eduid.workers.amapi.app import AMAPI
 
 
 @dataclass
@@ -19,7 +17,6 @@ class Context:
 class ContextRequest(Request):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.app: AMAPI = self.app
 
     @property
     def context(self):

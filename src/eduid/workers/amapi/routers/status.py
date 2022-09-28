@@ -11,24 +11,23 @@ from eduid.workers.amapi.routers.utils.status import check_mongo, get_cached_res
 
 __author__ = 'masv'
 
-
 status_router = APIRouter(route_class=ContextRequestRoute, prefix='/status')
 
 
 @status_router.get('/healthy', response_model=StatusResponse, response_model_exclude_none=True)
-async def healthy(ctx: ContextRequest, resp: Response) -> Mapping:
-    res = get_cached_response(ctx=ctx, resp=resp, key='health_check')
+async def healthy(req: ContextRequest, resp: Response) -> Mapping:
+    res = get_cached_response(ctx=req, resp=resp, key='health_check')
     if not res:
         res = {
             # Value of status crafted for grepabilty, trailing underscore intentional
-            'status': f'STATUS_FAIL_{ctx.app.name}_',
+            'status': f'STATUS_FAIL_{req.app.name}_',
             'hostname': environ.get('HOSTNAME', 'UNKNOWN'),
         }
-        if not check_mongo(ctx):
+        if not check_mongo(req):
             res['reason'] = 'mongodb check failed'
-            ctx.app.logger.warning('mongodb check failed')
+            req.app.logger.warning('mongodb check failed')
         else:
-            res['status'] = f'STATUS_OK_{ctx.app.name}_'
+            res['status'] = f'STATUS_OK_{req.app.name}_'
             res['reason'] = 'Databases tested OK'
-        set_cached_response(ctx=ctx, resp=resp, key='health_check', data=res)
+        set_cached_response(ctx=req, resp=resp, key='health_check', data=res)
     return res

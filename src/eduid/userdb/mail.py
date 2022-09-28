@@ -39,16 +39,16 @@ from pydantic import validator
 
 from eduid.userdb.element import ElementKey, PrimaryElement, PrimaryElementList
 
-__author__ = 'ft'
+__author__ = "ft"
 
 
 class MailAddress(PrimaryElement):
     email: str
 
-    @validator('email', pre=True)
+    @validator("email", pre=True)
     def validate_email(cls, v):
         if not isinstance(v, str):
-            raise ValueError('must be a string')
+            raise ValueError("must be a string")
         return v.lower()
 
     @property
@@ -65,8 +65,8 @@ class MailAddress(PrimaryElement):
         """
         data = super()._from_dict_transform(data)
 
-        if 'csrf' in data:
-            del data['csrf']
+        if "csrf" in data:
+            del data["csrf"]
 
         return data
 
@@ -83,6 +83,10 @@ class MailAddressList(PrimaryElementList[MailAddress]):
     @classmethod
     def from_list_of_dicts(cls: Type[MailAddressList], items: List[Dict[str, Any]]) -> MailAddressList:
         return cls(elements=[MailAddress.from_dict(this) for this in items])
+
+    @classmethod
+    def from_list(cls: Type[MailAddressList], items: List[MailAddress]) -> MailAddressList:
+        return cls(elements=items)
 
 
 def address_from_dict(data):

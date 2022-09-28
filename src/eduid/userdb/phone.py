@@ -83,3 +83,7 @@ class PhoneNumberList(PrimaryElementList[PhoneNumber]):
     @classmethod
     def from_list_of_dicts(cls: Type[PhoneNumberList], items: List[Dict[str, Any]]) -> PhoneNumberList:
         return cls(elements=[PhoneNumber.from_dict(this) for this in items])
+
+    @classmethod
+    def from_list(cls: Type[PhoneNumberList], items: List[PhoneNumber]) -> PhoneNumberList:
+        return cls(elements=items)

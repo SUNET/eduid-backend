@@ -1,31 +1,21 @@
 import json
-import logging
 import re
-from copy import copy
-from typing import List, Optional, Set
 
 from fastapi import Request, Response
 from jwcrypto import jwt
 from jwcrypto.common import JWException
 from marshmallow import ValidationError
-from pydantic import BaseModel, Field, StrictInt, validator
+from pydantic import BaseModel, StrictInt, validator
 from starlette.datastructures import URL
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import PlainTextResponse
 from starlette.types import Message
 
 from eduid.common.utils import removeprefix
-from eduid.workers.amapi.config import AMApiConfig, DataOwnerName, ScopeName
-from eduid.workers.amapi.context import Context
 from eduid.workers.amapi.context_request import ContextRequestMixin
 
 
-class SudoAccess(BaseModel):
-    type: str
-    scope: ScopeName
-
-
-class RequestedAccessDenied(Exception):
+class AccessDenied(Exception):
     """Break out of get_data_owner when requested access (in the token) is not allowed"""
 
     pass
@@ -37,94 +27,29 @@ class AuthnBearerToken(BaseModel):
     """
 
     version: StrictInt
-    requested_access: List[SudoAccess] = Field(default=[])
-    scopes: Set[ScopeName] = Field(default=set())
+    requested_access: str
+    app_name: str
 
     def __str__(self):
-        return f'<{self.__class__.__name__}: scopes={self.scopes}, requested_access={self.requested_access}>'
+        return f"<{self.__class__.__name__}: scopes={self.scopes}, requested_access={self.requested_access}>"
 
-    @validator('version')
+    @validator("version")
     def validate_version(cls, v: int) -> int:
         if v != 1:
-            raise ValueError('Unknown version')
+            raise ValueError("Unknown version")
         return v
 
-    @validator('scopes')
-    def validate_scopes(cls, v: Set[ScopeName], values) -> Set[ScopeName]:
-        config = values.get('scim_config')
-        if not config:
-            raise ValueError('Can\'t validate without scim_config')
-        canonical_scopes = {config.scope_mapping.get(x, x) for x in v}
-        return canonical_scopes
+    @validator("app_name")
+    def validate_scopes(cls, v: str) -> str:
+        if v != "amapi":
+            raise ValueError("Unknown app_name")
+        return v
 
-    @validator('requested_access')
-    def validate_requested_access(cls, v: List[SudoAccess], values) -> List[SudoAccess]:
-        config = values.get('scim_config')
-        if not config:
-            raise ValueError('Can\'t validate without scim_config')
-        new_access: List[SudoAccess] = []
-        for this in v:
-            if this.type != config.requested_access_type:
-                # not meant for us
-                continue
-            this.scope = config.scope_mapping.get(this.scope, this.scope)
-            new_access += [this]
-        return new_access
-
-    def get_data_owner(self, logger: logging.Logger) -> Optional[DataOwnerName]:
-        """
-        Get the data owner to use.
-        Primarily, this is done by searching for a data owner matching one of the 'scopes' in the
-        JWT (scopes are inserted into the JWT by the Sunet auth server).
-        Some requesters might be allowed (in configuration) to 'sudo' to certain data owners too,
-        by passing 'access' to the Sunet authn server, which will be found as 'requested_access' in the JWT.
-        A requester with more than one scope and more than one data owner can use the same mechanism
-        as used to 'sudo' in order to indicate which of their data owners they want to use now.
-        Example straight forward minimal JWT:
-          {'version': 1, 'scopes': 'example.org'}
-        Example 'sudo':
-          {'version': 1, 'scopes': 'sudoer.example.org', requested_access: {'type': 'scim-api', 'scope': 'example.edu'}}
-        """
-
-        allowed_scopes = self._get_allowed_scopes(self.scim_config, logger)
-        logger.debug(f'Request {self}, allowed scopes: {allowed_scopes}')
-
-        for this in self.requested_access:
-            _allowed = this.scope in allowed_scopes
-            _found = self.scim_config.data_owners.get(DataOwnerName(this.scope))
-            logger.debug(f'Requested access to scope {this.scope}, allowed {_allowed}, found: {_found}')
-            if not _allowed:
-                _sorted = ', '.join(sorted(list(allowed_scopes)))
-                raise RequestedAccessDenied(f'Requested access to scope {this.scope} not in allow-list: {_sorted}')
-            if _allowed and _found:
-                return DataOwnerName(this.scope)
-
-        # sort to be deterministic
-        for scope in sorted(list(self.scopes)):
-            # checking allowed_scopes here might seem superfluous, but some client with multiple
-            # scopes can request a specific one using the requested_access, and then only that one
-            # scope is in allowed_scopes
-            _allowed = scope in allowed_scopes
-            _found = self.scim_config.data_owners.get(DataOwnerName(scope))
-            logger.debug(f'Trying scope {scope}, allowed {_allowed}, found: {_found}')
-            if _allowed and _found:
-                return DataOwnerName(scope)
-
-        return None
-
-    def _get_allowed_scopes(self, config: ScimApiConfig, logger: logging.Logger) -> Set[ScopeName]:
-        """
-        Make a set of all the allowed scopes for the requester.
-        The allowed scopes are always the scopes the requester has (the scopes come from federation metadata,
-        the Sunet authn server inserts them in the JWT), and possibly others as found in configuration.
-        """
-        _scopes = copy(self.scopes)
-        for this in self.scopes:
-            if this in config.scope_sudo:
-                _sudo_scopes = config.scope_sudo[this]
-                logger.debug(f'Request from scope {this}, allowing sudo to scopes {_sudo_scopes}')
-                _scopes.update(_sudo_scopes)
-        return _scopes
+    @validator("requested_access")
+    def validate_requested_access(cls, v: str) -> str:
+        if v != "amapi":
+            raise ValueError("Unknown requested access")
+        return v
 
 
 # middleware needs to return a response
@@ -137,7 +62,7 @@ def return_error_response(status_code: int, detail: str):
 # https://github.com/encode/starlette/issues/495#issuecomment-513138055
 async def set_body(request: Request, body: bytes):
     async def receive() -> Message:
-        return {'type': 'http.request', 'body': body}
+        return {"type": "http.request", "body": body}
 
     request._receive = receive
 
@@ -149,28 +74,28 @@ async def get_body(request: Request) -> bytes:
 
 
 class BaseMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
-    def __init__(self, app, context: Context):
+    def __init__(self, app):
         super().__init__(app)
-        self.context = context
 
     async def dispatch(self, req: Request, call_next) -> Response:
         return await call_next(req)
 
 
 class AuthenticationMiddleware(BaseMiddleware):
-    def __init__(self, app, context: Context):
-        super().__init__(app, context)
-        self.no_authn_urls = self.context.config.no_authn_urls
-        self.context.logger.debug('No auth allow urls: {}'.format(self.no_authn_urls))
+    def __init__(self, app):
+        super().__init__(app)
+        self.app = app
+        self.no_authn_urls = app.config.no_authn_urls
+        app.logger.debug("No auth allow urls: {}".format(self.no_authn_urls))
 
     def _is_no_auth_path(self, url: URL) -> bool:
         path = url.path
         # Remove application root from path matching
-        path = removeprefix(path, self.context.config.application_root)
+        path = removeprefix(path, self.app.config.application_root)
         for regex in self.no_authn_urls:
             m = re.match(regex, path)
             if m is not None:
-                self.context.logger.debug('{} matched allow list'.format(path))
+                self.app.logger.debug("{} matched allow list".format(path))
                 return True
         return False
 
@@ -180,53 +105,35 @@ class AuthenticationMiddleware(BaseMiddleware):
         if self._is_no_auth_path(req.url):
             return await call_next(req)
 
-        auth = req.headers.get('Authorization')
-
-        if not req.app.context.config.authorization_mandatory and (not auth or not auth.startswith('Bearer ')):
-            # Authorization is optional
-            self.context.logger.info('No authorization header provided - proceeding anyway')
-            req.context.data_owner = DataOwnerName('eduid.se')
-            req.context.userdb = self.context.get_userdb(req.context.data_owner)
-            return await call_next(req)
+        auth = req.headers.get("Authorization")
 
         if not auth:
-            return return_error_response(status_code=401, detail='No authentication header found')
+            return return_error_response(status_code=401, detail="No authentication header found")
 
-        token = auth[len('Bearer ') :]
+        token = auth[len("Bearer ") :]
         _jwt = jwt.JWT()
         try:
-            _jwt.deserialize(token, req.app.context.jwks)
+            _jwt.deserialize(token, req.app.jwks)
             claims = json.loads(_jwt.claims)
         except (JWException, KeyError, ValueError) as e:
-            self.context.logger.info(f'Bearer token error: {e}')
-            return return_error_response(status_code=401, detail='Bearer token error')
-
-        if 'scim_config' in claims:
-            self.context.logger.warning(f'JWT has scim_config: {claims}')
-            return return_error_response(status_code=401, detail='Bearer token error')
+            self.app.logger.info(f"Bearer token error: {e}")
+            return return_error_response(status_code=401, detail="Bearer token error")
 
         try:
-            token = AuthnBearerToken(scim_config=self.context.config, **claims)
-            self.context.logger.debug(f'Bearer token: {token}')
+            token = AuthnBearerToken(**claims)
+            self.app.logger.debug(f"Bearer token: {token}")
         except ValidationError:
-            self.context.logger.exception('Authorization Bearer Token error')
-            return return_error_response(status_code=401, detail='Bearer token error')
+            self.app.logger.exception("Authorization Bearer Token error")
+            return return_error_response(status_code=401, detail="Bearer token error")
 
         try:
-            data_owner = token.get_data_owner(self.context.logger)
-        except RequestedAccessDenied as exc:
-            self.context.logger.error(f'Access denied: {exc}')
-            return return_error_response(status_code=401, detail='Data owner requested in access token denied')
-        self.context.logger.info(f'Bearer token {token}, data owner: {data_owner}')
+            # check if jwt user is allowed, return list of allowed endpoints
+            token.app_name
+            pass
+        except AccessDenied as exc:
+            self.app.logger.error(f"Access denied: {exc}")
+            return return_error_response(status_code=401, detail="Data owner requested in access token denied")
 
-        if not data_owner or data_owner not in self.context.config.data_owners:
-            self.context.logger.error(f'Data owner {repr(data_owner)} not configured')
-            return return_error_response(status_code=401, detail='Unknown data_owner')
-
-        req.context.data_owner = data_owner
-        req.context.userdb = self.context.get_userdb(data_owner)
-        # req.context.groupdb = self.context.get_groupdb(data_owner)
-        # req.context.invitedb = self.context.get_invitedb(data_owner)
-        # req.context.eventdb = self.context.get_eventdb(data_owner)
+        self.app.logger.info(f"Bearer token {token}")
 
         return await call_next(req)

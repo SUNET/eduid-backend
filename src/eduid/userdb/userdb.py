@@ -29,9 +29,10 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from asyncio.constants import SENDFILE_FALLBACK_READBUFFER_SIZE
 import logging
 from abc import ABC
-from typing import Any, Generic, List, Mapping, Optional, TypeVar, Union
+from typing import Any, Generic, List, Mapping, Optional, TypeVar, Union, Dict
 
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -47,13 +48,14 @@ from eduid.userdb.exceptions import (
     UserDoesNotExist,
 )
 from eduid.userdb.identity import IdentityType
+from eduid.userdb.meta import CleanedType
 from eduid.userdb.user import User
 from eduid.userdb.util import utc_now
 
 logger = logging.getLogger(__name__)
 extra_debug_logger = logger.getChild('extra_debug')
 
-UserVar = TypeVar('UserVar')
+UserVar = TypeVar("UserVar")
 
 
 class UserDB(BaseDB, Generic[UserVar], ABC):
@@ -65,26 +67,26 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
     :param collection: mongodb collection name
     """
 
-    def __init__(self, db_uri: str, db_name: str, collection: str = 'userdb'):
+    def __init__(self, db_uri: str, db_name: str, collection: str = "userdb"):
 
-        if db_name == 'eduid_am' and collection == 'userdb':
+        if db_name == "eduid_am" and collection == "userdb":
             # Hack to get right collection name while the configuration points to the old database
-            collection = 'attributes'
+            collection = "attributes"
         self.collection = collection
 
         super().__init__(db_uri, db_name, collection)
 
-        logger.debug(f'{self} connected to database')
+        logger.debug(f"{self} connected to database")
 
     def __repr__(self):
-        return f'<eduID {self.__class__.__name__}: {self._db.sanitized_uri} {repr(self._coll_name)})>'
+        return f"<eduID {self.__class__.__name__}: {self._db.sanitized_uri} {repr(self._coll_name)})>"
 
     __str__ = __repr__
 
     @classmethod
     def user_from_dict(cls, data):
         # must be implemented by subclass to get correct type information
-        raise NotImplementedError(f'user_from_dict not implemented in UserDB subclass {cls}')
+        raise NotImplementedError(f"user_from_dict not implemented in UserDB subclass {cls}")
 
     def get_user_by_id(self, user_id: Union[str, ObjectId]) -> Optional[UserVar]:
         """
@@ -99,7 +101,30 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
                 user_id = ObjectId(user_id)
             except InvalidId:
                 return None
-        return self._get_user_by_attr('_id', user_id)
+        return self._get_user_by_attr("_id", user_id)
+
+    def _get_users_by_aggregate(self, match: dict[str, Any], sort: dict[str, Any], limit: int) -> List[User]:
+        users = self._get_documents_by_aggregate(
+            match=match,
+            sort=sort,
+            limit=limit,
+        )
+        return [self.user_from_dict(data=user) for user in users]
+
+    def get_uncleaned_users(self, cleaned_type: CleanedType, limit: int) -> List[User]:
+        match = {"identities": {"$elemMatch": {"verified": True, "identity_type": IdentityType.NIN.value}}}
+
+        type_filter = f"meta.cleaned.{cleaned_type.value}"
+        sort = {type_filter: 1}
+        return self._get_users_by_aggregate(match=match, sort=sort, limit=limit)
+
+    def get_verified_users_count(self, identity_type: Optional[IdentityType] = None) -> int:
+        if identity_type is None:
+            return self.db_count(spec={"identities": {"$elemMatch": {"verified": True}}})
+        else:
+            return self.db_count(
+                spec={"identities": {"$elemMatch": {"verified": True, "identity_type": identity_type.value}}}
+            )
 
     def _get_user_by_filter(self, filter: Mapping[str, Any]) -> List[UserVar]:
         """
@@ -123,7 +148,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         if not res:
             return None
         if len(res) > 1:
-            raise MultipleUsersReturned(f'Multiple matching users for email {repr(email)}')
+            raise MultipleUsersReturned(f"Multiple matching users for email {repr(email)}")
         return res[0]
 
     def get_users_by_mail(self, email: str, include_unconfirmed: bool = False) -> List[UserVar]:
@@ -138,10 +163,10 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         :return: User instance
         """
         email = email.lower()
-        elemmatch = {'email': email, 'verified': True}
+        elemmatch = {"email": email, "verified": True}
         if include_unconfirmed:
-            elemmatch = {'email': email}
-        filter = {'$or': [{'mail': email}, {'mailAliases': {'$elemMatch': elemmatch}}]}
+            elemmatch = {"email": email}
+        filter = {"$or": [{"mail": email}, {"mailAliases": {"$elemMatch": elemmatch}}]}
         return self._get_user_by_filter(filter)
 
     def get_user_by_nin(self, nin: str) -> Optional[UserVar]:
@@ -150,7 +175,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         if not res:
             return None
         if len(res) > 1:
-            raise MultipleUsersReturned(f'Multiple matching users for NIN {repr(nin)}')
+            raise MultipleUsersReturned(f"Multiple matching users for NIN {repr(nin)}")
         return res[0]
 
     def get_users_by_nin(self, nin: str, include_unconfirmed: bool = False) -> List[UserVar]:
@@ -165,19 +190,27 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         :return: List of User instances
         """
 
-        match = {'identity_type': IdentityType.NIN.value, 'number': nin, 'verified': True}
+        match = {
+            "identity_type": IdentityType.NIN.value,
+            "number": nin,
+            "verified": True,
+        }
         if include_unconfirmed:
-            del match['verified']
-        _filter = {'identities': {'$elemMatch': match}}
+            del match["verified"]
+        _filter = {"identities": {"$elemMatch": match}}
         return self._get_user_by_filter(_filter)
 
     def get_users_by_identity(
-        self, identity_type: IdentityType, key: str, value: str, include_unconfirmed: bool = False
+        self,
+        identity_type: IdentityType,
+        key: str,
+        value: str,
+        include_unconfirmed: bool = False,
     ):
-        match = {'identity_type': identity_type.value, key: value, 'verified': True}
+        match = {"identity_type": identity_type.value, key: value, "verified": True}
         if include_unconfirmed:
-            del match['verified']
-        _filter = {'identities': {'$elemMatch': match}}
+            del match["verified"]
+        _filter = {"identities": {"$elemMatch": match}}
         return self._get_user_by_filter(_filter)
 
     def get_user_by_phone(self, phone: str) -> Optional[UserVar]:
@@ -186,7 +219,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         if not res:
             return None
         if len(res) > 1:
-            raise MultipleUsersReturned(f'Multiple matching users for phone {repr(phone)}')
+            raise MultipleUsersReturned(f"Multiple matching users for phone {repr(phone)}")
         return res[0]
 
     def get_users_by_phone(self, phone: str, include_unconfirmed: bool = False) -> List[UserVar]:
@@ -200,15 +233,15 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
 
         :return: List of User instances
         """
-        oldmatch = {'mobile': phone, 'verified': True}
+        oldmatch = {"mobile": phone, "verified": True}
         if include_unconfirmed:
-            oldmatch = {'mobile': phone}
-        old_filter = {'mobile': {'$elemMatch': oldmatch}}
-        newmatch = {'number': phone, 'verified': True}
+            oldmatch = {"mobile": phone}
+        old_filter = {"mobile": {"$elemMatch": oldmatch}}
+        newmatch = {"number": phone, "verified": True}
         if include_unconfirmed:
-            newmatch = {'number': phone}
-        new_filter = {'phone': {'$elemMatch': newmatch}}
-        filter = {'$or': [old_filter, new_filter]}
+            newmatch = {"number": phone}
+        new_filter = {"phone": {"$elemMatch": newmatch}}
+        filter = {"$or": [old_filter, new_filter]}
         return self._get_user_by_filter(filter)
 
     def get_user_by_eppn(self, eppn: Optional[str]) -> Optional[UserVar]:
@@ -220,7 +253,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         # allow eppn=None as convenience, to not have to check it everywhere before calling this function
         if eppn is None:
             return None
-        return self._get_user_by_attr('eduPersonPrincipalName', eppn)
+        return self._get_user_by_attr("eduPersonPrincipalName", eppn)
 
     def _get_user_by_attr(self, attr: str, value: Any) -> Optional[UserVar]:
         """
@@ -239,7 +272,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         try:
             doc = self._get_document_by_attr(attr, value)
             if doc is not None:
-                logger.debug("{!s} Found user with id {!s}".format(self, doc['_id']))
+                logger.debug("{!s} Found user with id {!s}".format(self, doc["_id"]))
                 user = self.user_from_dict(data=doc)
                 logger.debug("{!s} Returning user {!s}".format(self, user))
             return user
@@ -256,10 +289,10 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         :param check_sync: Ensure the user hasn't been updated in the database since it was loaded
         """
         if not isinstance(user, User):
-            raise EduIDUserDBError(f'user is not a subclass of User')
+            raise EduIDUserDBError(f"user is not a subclass of User")
 
         if not isinstance(user.user_id, ObjectId):
-            raise AssertionError(f'user.user_id is not of type {ObjectId}')
+            raise AssertionError(f"user.user_id is not of type {ObjectId}")
 
         # XXX add modified_by info. modified_ts alone is not unique when propagated to eduid.workers.am.
 
@@ -268,26 +301,26 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         if modified is None:
             # profile has never been modified through the dashboard.
             # possibly just created in signup.
-            result = self._coll.replace_one({'_id': user.user_id}, user.to_dict(), upsert=True)
-            logger.debug(f'{self} Inserted new user {user} into {self._coll_name}: {repr(result)})')
+            result = self._coll.replace_one({"_id": user.user_id}, user.to_dict(), upsert=True)
+            logger.debug(f"{self} Inserted new user {user} into {self._coll_name}: {repr(result)})")
             import pprint
 
             extra_debug = pprint.pformat(user.to_dict(), width=120)
             logger.debug(f"Extra debug:\n{extra_debug}")
         else:
-            test_doc = {'_id': user.user_id}
+            test_doc = {"_id": user.user_id}
             if check_sync:
-                test_doc['modified_ts'] = modified
+                test_doc["modified_ts"] = modified
             result = self._coll.replace_one(test_doc, user.to_dict(), upsert=(not check_sync))
             if check_sync and result.modified_count == 0:
                 db_ts = None
-                db_user = self._coll.find_one({'_id': user.user_id})
+                db_user = self._coll.find_one({"_id": user.user_id})
                 if db_user:
-                    db_ts = db_user['modified_ts']
+                    db_ts = db_user["modified_ts"]
                 logger.debug(
-                    f'{self} FAILED Updating user {user} (ts {modified}) in {self._coll_name}, ts in db = {db_ts}'
+                    f"{self} FAILED Updating user {user} (ts {modified}) in {self._coll_name}, ts in db = {db_ts}"
                 )
-                raise eduid.userdb.exceptions.UserOutOfSync('Stale user object can\'t be saved')
+                raise eduid.userdb.exceptions.UserOutOfSync("Stale user object can't be saved")
             logger.debug(f"{self} Updated user {user} (ts {modified}) in {self._coll_name}: {result}")
             import pprint
 
@@ -326,29 +359,47 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         This update method should only be used in the eduid Attribute Manager when
         merging updates from applications into the central eduID userdb.
         """
-        logger.debug(f'{self} updating user {obj_id} in {repr(self._coll_name)} with operations:\n{operations}')
+        logger.debug(f"{self} updating user {obj_id} in {repr(self._coll_name)} with operations:\n{operations}")
 
-        query_filter = {'_id': obj_id}
+        query_filter = {"_id": obj_id}
 
         # Check that the operations dict includes only the whitelisted operations
-        whitelisted_operations = ['$set', '$unset']
+        whitelisted_operations = ["$set", "$unset"]
         bad_operators = [key for key in operations if key not in whitelisted_operations]
         if bad_operators:
-            logger.debug(f'Tried to update/insert document: {query_filter} with operations: {operations}')
-            error_msg = f'Invalid update operator: {bad_operators}'
+            logger.debug(f"Tried to update/insert document: {query_filter} with operations: {operations}")
+            error_msg = f"Invalid update operator: {bad_operators}"
             logger.error(error_msg)
             raise eduid.userdb.exceptions.EduIDDBError(error_msg)
 
         updated_doc = self._coll.find_one_and_update(
-            filter=query_filter, update=operations, return_document=ReturnDocument.AFTER, upsert=True
+            filter=query_filter,
+            update=operations,
+            return_document=ReturnDocument.AFTER,
+            upsert=True,
         )
-        logger.debug(f'Updated/inserted document: {updated_doc}')
+        logger.debug(f"Updated/inserted document: {updated_doc}")
+
+    def replace_user(
+        self,
+        eppn: str,
+        obj_id: ObjectId,
+        old_version: ObjectId,
+        update_obj: Mapping,
+    ):
+        logger.debug(f"replacing user {eppn} in {repr(self._coll_name)}")
+        search_filter = {
+            "_id": obj_id,
+            "meta.version": old_version,
+        }
+
+        self._coll.replace_one(filter=search_filter, replacement=update_obj)
 
 
 class AmDB(UserDB[User]):
     """Central userdb, aka. AM DB"""
 
-    def __init__(self, db_uri: str, db_name: str = 'eduid_am'):
+    def __init__(self, db_uri: str, db_name: str = "eduid_am"):
         super().__init__(db_uri, db_name)
 
     @classmethod
