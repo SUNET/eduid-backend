@@ -89,7 +89,9 @@ def register_email(email: str):
     if email_status == EmailStatus.NEW:
         current_app.logger.info('Starting new signup')
         session.signup.email_verification.email = email
-        session.signup.email_verification.code = get_short_hash(entropy=current_app.conf.email_verification_code_length)
+        session.signup.email_verification.verification_code = get_short_hash(
+            entropy=current_app.conf.email_verification_code_length
+        )
         session.signup.email_verification.sent_at = utc_now()
         session.signup.email_verification.reference = str(uuid4())
 
@@ -97,11 +99,11 @@ def register_email(email: str):
     if email_status in [EmailStatus.NEW, EmailStatus.RESEND_CODE]:
         current_app.logger.info('Sending verification email')
         assert session.signup.email_verification.email is not None  # please mypy
-        assert session.signup.email_verification.code is not None  # please mypy
+        assert session.signup.email_verification.verification_code is not None  # please mypy
         assert session.signup.email_verification.reference is not None  # please mypy
         send_signup_mail(
             email=session.signup.email_verification.email,
-            verification_code=session.signup.email_verification.code,
+            verification_code=session.signup.email_verification.verification_code,
             reference=session.signup.email_verification.reference,
         )
         current_app.stats.count(name='verification_email_sent')
@@ -121,13 +123,11 @@ def verify_email(verification_code: str):
     current_app.logger.debug(f'verification code: {verification_code}')
 
     # ignore verification attempts if there has been to many wrong attempts
-    if (
-        session.signup.email_verification.wrong_code_attempts
-        >= current_app.conf.email_verification_max_wrong_code_attempts
-    ):
+    if session.signup.email_verification.bad_attempts >= current_app.conf.email_verification_max_bad_attempts:
         current_app.logger.info('Too many wrong verification attempts')
-        # TODO: should we reset the users signup session to allow them to start over
-        #   or should we just let them do another captcha?
+        # let user complete captcha again and reset bad attempts
+        session.signup.captcha_completed = False
+        session.signup.email_verification.bad_attempts = 0
         return error_response(message=SignupMsg.email_verification_too_many_tries)
 
     if not session.signup.captcha_completed:
@@ -135,11 +135,11 @@ def verify_email(verification_code: str):
 
     if (
         is_email_verification_expired(sent_ts=session.signup.email_verification.sent_at)
-        or session.signup.email_verification.code is None
-        or session.signup.email_verification.code != verification_code
+        or session.signup.email_verification.verification_code is None
+        or session.signup.email_verification.verification_code != verification_code
     ):
         current_app.logger.info('Verification failed')
-        session.signup.email_verification.wrong_code_attempts += 1
+        session.signup.email_verification.bad_attempts += 1
         return error_response(message=SignupMsg.email_verification_failed)
 
     session.signup.email_verification.verified = True
@@ -210,15 +210,15 @@ def captcha_response(recaptcha_response: str) -> FluxData:
 @MarshalWith(SignupStatusResponse)
 def get_password() -> FluxData:
     current_app.logger.info('Password requested')
-    session.signup.generated_password = generate_password()
-    session.signup.credential_added = True
+    if session.signup.generated_password is None:
+        session.signup.generated_password = generate_password(length=current_app.conf.password_length)
     return success_response(payload=session.signup.to_dict())
 
 
 @signup_views.route('/create-user', methods=['POST'])
-@UnmarshalWith(EmptyRequest)
+@UnmarshalWith(CreateUserRequest)
 @MarshalWith(SignupStatusResponse)
-def create_user() -> FluxData:
+def create_user(use_password: bool, use_webauthn: bool) -> FluxData:
     current_app.logger.info('Creating user')
 
     if session.common.eppn or session.signup.user_created:
@@ -237,8 +237,14 @@ def create_user() -> FluxData:
     if not session.signup.tou_accepted:
         current_app.logger.error('ToU not accepted')
         return error_response(message=SignupMsg.tou_not_accepted)
-    if not session.signup.credential_added:
-        current_app.logger.error('Credential not added')
+    if use_password and not session.signup.generated_password:
+        current_app.logger.error('No password generated')
+        return error_response(message=SignupMsg.password_not_generated)
+    if use_webauthn and not session.signup.webauthn_credential:
+        current_app.logger.error('No webauthn registered')
+        return error_response(message=SignupMsg.webauthn_not_registered)
+    if not use_password and not use_webauthn:
+        current_app.logger.error('Neither password nor webauthn selected')
         return error_response(message=SignupMsg.credential_not_added)
 
     assert session.signup.email_verification.email is not None  # please mypy
@@ -307,7 +313,7 @@ def accept_invite(invite_code: str) -> FluxData:
         session.signup.email_verification.verified = True
         session.signup.email_verification.sent_at = invite.created_ts
 
-    session.signup.invite.code = invite.invite_code
+    session.signup.invite.invite_code = invite.invite_code
     session.signup.invite.initiated_signup = True
     return success_response(payload=session.signup.to_dict())
 
@@ -324,9 +330,9 @@ def complete_invite() -> FluxData:
     if user is None:
         return error_response(message=CommonMsg.temp_problem)
 
-    assert session.signup.invite.code is not None  # please mypy
+    assert session.signup.invite.invite_code is not None  # please mypy
     try:
-        complete_and_update_invite(user=user, invite_code=session.signup.invite.code)
+        complete_and_update_invite(user=user, invite_code=session.signup.invite.invite_code)
     except InviteNotFound:
         current_app.logger.info('Invite not found')
         return error_response(message=SignupMsg.invite_not_found)
@@ -347,9 +353,9 @@ def complete_invite_existing_user(user: User) -> FluxData:
     if session.signup.invite.initiated_signup is False:
         return success_response(payload=session.signup.to_dict())
 
-    assert session.signup.invite.code is not None  # please mypy
+    assert session.signup.invite.invite_code is not None  # please mypy
     try:
-        complete_and_update_invite(user=user, invite_code=session.signup.invite.code)
+        complete_and_update_invite(user=user, invite_code=session.signup.invite.invite_code)
     except InviteNotFound:
         return error_response(message=SignupMsg.invite_not_found)
     except UserOutOfSync:
@@ -373,7 +379,7 @@ def get_email_code():
                 current_app.logger.error('Missing email')
                 abort(400)
             if session.signup.email_verification.email == email:
-                return session.signup.email_verification.code
+                return session.signup.email_verification.verification_code
     except Exception:
         current_app.logger.exception("Someone tried to use the backdoor to get the email verification code for signup")
 

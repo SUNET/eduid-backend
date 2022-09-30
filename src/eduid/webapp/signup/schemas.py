@@ -20,6 +20,8 @@ class SignupStatusResponse(FluxStandardAction):
             sent_at = fields.DateTime(required=False)
             throttle_time_left = fields.Integer(required=False)
             throttle_time_max = fields.Integer(required=False)
+            bad_attempts = fields.Integer(required=False)
+            bad_attempts_max = fields.Integer(required=False)
 
         class Invite(EduidSchema):
             initiated_signup = fields.Boolean(required=True)
@@ -46,6 +48,14 @@ class SignupStatusResponse(FluxStandardAction):
                 out_data['payload']['email_verification'][
                     'throttle_time_max'
                 ] = current_app.conf.throttle_resend.total_seconds()
+        return out_data
+
+    @pre_dump
+    def bad_attempts_max(self, out_data, **kwargs):
+        if out_data['payload'].get('email_verification'):
+            out_data['payload']['email_verification'][
+                'bad_attempts_max'
+            ] = current_app.conf.email_verification_max_bad_attempts
         return out_data
 
 

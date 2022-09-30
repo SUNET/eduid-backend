@@ -130,15 +130,15 @@ class SecurityNS(SessionNSBase):
 class EmailVerification(SessionNSBase):
     email: Optional[str] = None
     verified: bool = False
-    code: Optional[str] = None
-    wrong_code_attempts: int = 0
+    verification_code: Optional[str] = None
+    bad_attempts: int = 0
     sent_at: Optional[datetime] = None
     reference: Optional[str] = None
 
 
 class Invite(SessionNSBase):
     initiated_signup: bool = False
-    code: Optional[str] = None
+    invite_code: Optional[str] = None
     finish_url: Optional[str] = None
     completed: bool = False
 
@@ -151,7 +151,7 @@ class Signup(TimestampedNS):
     tou_version: Optional[str] = None
     captcha_completed: bool = False
     generated_password: Optional[str] = None
-    credential_added: bool = False
+    webauthn_credential: Optional[Any] = None  # TODO: implement webauthn signup
 
 
 # TODO: Remove Actions, should be unused
