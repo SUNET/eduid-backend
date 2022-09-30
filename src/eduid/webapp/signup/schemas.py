@@ -113,3 +113,25 @@ class InviteCompletedResponse(FluxStandardAction):
         finish_url = fields.String(required=False)
 
     payload = fields.Nested(InviteCompletedSchema)
+
+
+# backware compatibility
+
+
+class RegisterEmailSchema(EmailSchema):
+
+    recaptcha_response = fields.String(required=True)
+    tou_accepted = fields.Boolean(required=True)
+
+
+class AccountCreatedSchema(EduidSchema, CSRFResponseMixin):
+
+    next = fields.String(required=True)
+
+
+class AccountCreatedResponse(FluxStandardAction):
+
+    payload = fields.Nested(AccountCreatedSchema)
+
+
+# end of backware compatibility

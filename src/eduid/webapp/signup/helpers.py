@@ -1,35 +1,5 @@
 # -*- coding: utf-8 -*-
-#
-# Copyright (c) 2018 NORDUnet A/S
-# All rights reserved.
-#
-#   Redistribution and use in source and binary forms, with or
-#   without modification, are permitted provided that the following
-#   conditions are met:
-#
-#     1. Redistributions of source code must retain the above copyright
-#        notice, this list of conditions and the following disclaimer.
-#     2. Redistributions in binary form must reproduce the above
-#        copyright notice, this list of conditions and the following
-#        disclaimer in the documentation and/or other materials provided
-#        with the distribution.
-#     3. Neither the name of the NORDUnet nor the names of its
-#        contributors may be used to endorse or promote products derived
-#        from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-#
+
 
 import os
 import struct
@@ -37,13 +7,11 @@ import time
 from dataclasses import replace
 from datetime import datetime, timedelta
 from enum import Enum, unique
-from re import findall
 from typing import Optional
 
 import proquint
 import requests
 from flask import abort
-from pwgen import pwgen
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
@@ -72,7 +40,7 @@ class SignupMsg(TranslatableMsg):
     # the ToU has not been accepted
     tou_not_accepted = 'signup.tou-not-accepted'
     # The email address used is already known
-    email_used = 'signup.registering-address-used'
+    email_used = 'signup.email-address-used'
     # captcha not completed
     captcha_not_completed = 'signup.captcha-not-completed'
     # captcha completion failed
@@ -87,12 +55,29 @@ class SignupMsg(TranslatableMsg):
     email_verification_too_many_tries = 'signup.email-verification-to-many-tries'
     # user has already been created
     user_already_exists = 'signup.user-already-exists'
+    # user has no password genereated in session
+    password_not_generated = 'signup.password-not-generated'
+    # user has not registered webauthn
+    webauthn_not_registered = 'signup.webauthn-not-registered'
     # user has no credential
     credential_not_added = 'signup.credential-not-added'
     # invite not found
     invite_not_found = 'signup.invite-not-found'
     # invite already completed
     invite_already_completed = 'signup.invite-already-completed'
+
+    # backwards compatibility
+    # partial success registering new account
+    reg_new = 'signup.registering-new'
+    # The email address used is already known
+    old_email_used = 'signup.registering-address-used'
+    # recaptcha not verified
+    no_recaptcha = 'signup.recaptcha-not-verified'
+    # unrecognized verification code
+    unknown_code = 'signup.unknown-code'
+    # the verification code has already been verified
+    already_verified = 'signup.already-verified'
+    # end of backwards compatibility
 
 
 @unique
@@ -389,3 +374,30 @@ def is_email_verification_expired(sent_ts: Optional[datetime]) -> bool:
     if sent_ts is None:
         return True
     return utc_now() - sent_ts > current_app.conf.email_verification_timeout
+
+
+# backwards compatibility
+def remove_users_with_mail_address(email: str) -> None:
+    """
+    Remove all users with a certain (confirmed) e-mail address from signup_db.
+    When syncing of signed up users fail, they remain in the signup_db in a completed state
+    (no pending mail address). This prevents the user from signing up again, and they can't
+    use their new eduid account either since it is not synced to the central userdb.
+    An option would have been to sync the user again, now, but that was deemed more
+    surprising to the user so instead we remove all the unsynced users from signup_db
+    so the user can do a new signup.
+    :param email: E-mail address
+    :return: None
+    """
+    signup_db = current_app.private_userdb
+    # The e-mail address does not exist in userdb (checked by caller), so if there exists a user
+    # in signup_db with this (non-pending) e-mail address, it is probably left-overs from a
+    # previous signup where the sync to userdb failed. Clean away all such users in signup_db
+    # and continue like this was a completely new signup.
+    completed_users = signup_db.get_users_by_mail(email)
+    for user in completed_users:
+        current_app.logger.warning('Removing old user {} with e-mail {} from signup_db'.format(user, email))
+        signup_db.remove_user_by_id(user.user_id)
+
+
+# end of backwards compatibility
