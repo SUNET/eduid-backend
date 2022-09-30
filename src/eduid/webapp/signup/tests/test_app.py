@@ -1032,13 +1032,13 @@ class OldSignupTests(SignupTests):
 
     def test_captcha_existing_user(self):
         res = self._captcha_new(
-            email='johnsmith@example.com', expect_success=False, expected_message=SignupMsg.email_used
+            email='johnsmith@example.com', expect_success=False, expected_message=SignupMsg.old_email_used
         )
         assert res.reached_state == OldSignupState.S5_CAPTCHA
 
     def test_captcha_existing_user_mixed_case(self):
         res = self._captcha_new(
-            email='JohnSmith@Example.com', expect_success=False, expected_message=SignupMsg.email_used
+            email='JohnSmith@Example.com', expect_success=False, expected_message=SignupMsg.old_email_used
         )
         assert res.reached_state == OldSignupState.S5_CAPTCHA
 

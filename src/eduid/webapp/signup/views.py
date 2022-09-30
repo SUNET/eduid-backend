@@ -426,7 +426,7 @@ def trycaptcha(email: str, recaptcha_response: str, tou_accepted: bool) -> FluxD
 
         if _next == EmailStatus.ADDRESS_USED:
             current_app.stats.count(name='address_used_error')
-            return error_response(payload=dict(next=_next), message=SignupMsg.email_used)
+            return error_response(payload=dict(next=_next), message=SignupMsg.old_email_used)
 
         elif _next == EmailStatus.NEW:
             # Workaround for failed earlier sync of user to userdb: Remove any signup_user with this e-mail address.
