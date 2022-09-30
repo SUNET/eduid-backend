@@ -33,12 +33,11 @@ class SessionNSBase(BaseModel, ABC):
         return self.dict()
 
     @classmethod
-    def from_dict(cls: Type[SessionNSBase], data) -> TSessionNSSubclass:
+    def from_dict(cls: Type[TSessionNSSubclass], data) -> TSessionNSSubclass:
         _data = cls._from_dict_transform(data)
 
-        # Avoid error: Incompatible return value type (got "SessionNSBase", expected "TSessionNSSubclass")
         try:
-            return cls(**_data)  # type: ignore
+            return cls(**_data)
         except ValidationError:
             logger.warning(f'Could not parse session namespace:\n{_data}')
             raise
