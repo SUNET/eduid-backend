@@ -36,7 +36,7 @@ import sys
 import traceback
 from contextlib import contextmanager
 from copy import deepcopy
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, Iterable, List, Mapping, Optional
 
 from flask import Response
 from flask.testing import FlaskClient
@@ -268,6 +268,7 @@ class EduidAPITestCase(CommonTestCase):
         message: Optional[TranslatableMsg] = None,
         error: Optional[Mapping[str, Any]] = None,
         payload: Optional[Mapping[str, Any]] = None,
+        assure_not_in_payload: Optional[Iterable[str]] = None,
     ):
         """
         Check data returned from an eduID webapp endpoint.
@@ -297,6 +298,13 @@ class EduidAPITestCase(CommonTestCase):
         :param error: Expected JSON error message
         :param payload: Data expected to be found in the 'payload' of the response
         """
+
+        def _assure_not_in_dict(d: Mapping[str, Any], unwanted_key: str):
+            assert unwanted_key not in d, f'Key {unwanted_key} should not be in payload, but it is: {payload}'
+            for k2, v2 in d.items():
+                if isinstance(v2, dict):
+                    _assure_not_in_dict(v2, unwanted_key)
+
         try:
             assert status == response.status_code, f'The HTTP response code was {response.status_code} not {status}'
             if type_ is not None:
@@ -321,6 +329,10 @@ class EduidAPITestCase(CommonTestCase):
                     assert (
                         v == response.json['payload'][k]
                     ), f'The Flux response payload item {repr(k)} is not {repr(v)}'
+            if assure_not_in_payload is not None:
+                for key in assure_not_in_payload:
+                    _assure_not_in_dict(response.json['payload'], key)
+
         except (AssertionError, KeyError):
             if response.json:
                 logger.info(
