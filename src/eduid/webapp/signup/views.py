@@ -12,7 +12,7 @@ from eduid.webapp.common.api.exceptions import ProofingLogFailure
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.schemas.base import FluxStandardAction
-from eduid.webapp.common.api.utils import get_short_hash
+from eduid.webapp.common.api.utils import get_short_hash, make_short_code
 from eduid.webapp.common.authn.utils import generate_password
 from eduid.webapp.common.session import session
 from eduid.webapp.signup.app import current_signup_app as current_app
@@ -82,8 +82,8 @@ def register_email(email: str):
     if email_status == EmailStatus.NEW:
         current_app.logger.info('Starting new signup')
         session.signup.email_verification.email = email
-        session.signup.email_verification.verification_code = get_short_hash(
-            entropy=current_app.conf.email_verification_code_length
+        session.signup.email_verification.verification_code = make_short_code(
+            digits=current_app.conf.email_verification_code_length
         )
         session.signup.email_verification.sent_at = utc_now()
         session.signup.email_verification.reference = str(uuid4())

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import os
 import re
 from datetime import datetime, timedelta
 from typing import List, Optional
@@ -25,6 +26,12 @@ def get_unique_hash() -> str:
 
 def get_short_hash(entropy=10) -> str:
     return uuid4().hex[:entropy]
+
+
+def make_short_code(digits: int = 6) -> str:
+    """Make a short decimal code, left-padded with zeros to the width specified by `digits'."""
+    code = int.from_bytes(os.urandom(4), byteorder='big') % 1000000
+    return str(code).zfill(digits)
 
 
 def update_modified_ts(user):
