@@ -64,6 +64,7 @@ class SignupConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MailConf
     email_verification_timeout: timedelta = Field(default=timedelta(minutes=10))
     email_proofing_version = Field(default='2013v1')
     default_finish_url: str = 'https://www.eduid.se/'
+    eduid_site_url: str = 'https://www.eduid.se'  # TODO: Backwards compatibility, remove when no longer used
     eduid_site_name: str = 'eduID'
     recaptcha_public_key: str = ''
     recaptcha_private_key: str = ''

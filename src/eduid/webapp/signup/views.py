@@ -427,7 +427,9 @@ def trycaptcha(email: str, recaptcha_response: str, tou_accepted: bool) -> FluxD
         if _next == EmailStatus.ADDRESS_USED:
             current_app.stats.count(name='address_used_error')
             return error_response(payload=dict(next=_next), message=SignupMsg.old_email_used)
-
+        elif _next == EmailStatus.THROTTLED:
+            current_app.logger.info('throttled error')
+            return error_response(payload=dict(next=_next), message=SignupMsg.email_throttled)
         elif _next == EmailStatus.NEW:
             # Workaround for failed earlier sync of user to userdb: Remove any signup_user with this e-mail address.
             remove_users_with_mail_address(email)
@@ -443,6 +445,7 @@ def trycaptcha(email: str, recaptcha_response: str, tou_accepted: bool) -> FluxD
                 email=session.signup.email_verification.email,
                 verification_code=session.signup.email_verification.verification_code,
                 reference=session.signup.email_verification.reference,
+                use_email_link=True,
             )
             return success_response(payload=dict(next='new'), message=SignupMsg.reg_new)
 
@@ -454,6 +457,7 @@ def trycaptcha(email: str, recaptcha_response: str, tou_accepted: bool) -> FluxD
                 email=session.signup.email_verification.email,
                 verification_code=session.signup.email_verification.verification_code,
                 reference=session.signup.email_verification.reference,
+                use_email_link=True,
             )
             current_app.stats.count(name='resend_code')
             # Show the same end screen for resending a mail and a new registration
@@ -469,8 +473,6 @@ def verify_link(code: str) -> FluxData:
     # ignore verification attempts if there has been to many wrong attempts
     if session.signup.email_verification.bad_attempts >= current_app.conf.email_verification_max_bad_attempts:
         current_app.logger.info('Too many wrong verification attempts')
-        # TODO: should we reset the users signup session to allow them to start over
-        #   or should we just let them do another captcha?
         return error_response(message=SignupMsg.email_verification_too_many_tries)
 
     if (
@@ -507,6 +509,7 @@ def verify_link(code: str) -> FluxData:
     context = {
         "status": 'verified',
         "password": password,
+        "dashboard_url": current_app.conf.dashboard_url,
     }
 
     if signup_user.mail_addresses.primary:

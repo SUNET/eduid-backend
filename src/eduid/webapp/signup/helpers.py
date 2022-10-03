@@ -11,12 +11,14 @@ from typing import Optional
 
 import proquint
 import requests
-from flask import abort
+from flask import abort, url_for
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.utils import urlappend
 from eduid.queue.db import QueueItem, SenderInfo
 from eduid.queue.db.message import EduidSignupEmail
+from eduid.queue.db.message.payload import OldEduidSignupEmail
 from eduid.userdb import MailAddress, NinIdentity, PhoneNumber, User
 from eduid.userdb.exceptions import UserHasNotCompletedSignup, UserOutOfSync
 from eduid.userdb.logs import MailAddressProofing
@@ -203,17 +205,29 @@ def verify_recaptcha(secret_key: str, captcha_response: str, user_ip: str, retri
     return False
 
 
-def send_signup_mail(email: str, verification_code: str, reference: str) -> None:
+def send_signup_mail(email: str, verification_code: str, reference: str, use_email_link: bool = False) -> None:
     """
     Put a signup email message on the queue.
     """
-    payload = EduidSignupEmail(
-        email=email,
-        verification_code=verification_code,
-        site_name=current_app.conf.eduid_site_name,
-        language=current_app.babel.locale_selector_func() or current_app.conf.default_language,
-        reference=reference,
-    )
+    if use_email_link:
+        # backwards compatibility
+        verfication_link = urlappend(current_app.conf.signup_url, f'/code/{verification_code}')
+        payload = OldEduidSignupEmail(
+            email=email,
+            verification_link=verfication_link,
+            site_name=current_app.conf.eduid_site_name,
+            site_url=current_app.conf.eduid_site_url,
+            language=current_app.babel.locale_selector_func() or current_app.conf.default_language,
+            reference=reference,
+        )
+    else:
+        payload = EduidSignupEmail(
+            email=email,
+            verification_code=verification_code,
+            site_name=current_app.conf.eduid_site_name,
+            language=current_app.babel.locale_selector_func() or current_app.conf.default_language,
+            reference=reference,
+        )
     app_name = current_app.conf.app_name
     system_hostname = os.environ.get('SYSTEM_HOSTNAME', '')  # Underlying hosts name for containers
     hostname = os.environ.get('HOSTNAME', '')  # Actual hostname or container id

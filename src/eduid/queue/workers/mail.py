@@ -13,6 +13,7 @@ from eduid.common.config.parsers import load_config
 from eduid.queue.config import QueueWorkerConfig
 from eduid.queue.db import QueueItem
 from eduid.queue.db.message import EduidInviteEmail, EduidSignupEmail
+from eduid.queue.db.message.payload import OldEduidSignupEmail
 from eduid.queue.db.payload import Payload
 from eduid.queue.db.queue_item import Status
 from eduid.queue.helpers import Jinja2Env
@@ -26,7 +27,7 @@ __author__ = 'lundberg'
 class MailQueueWorker(QueueWorker):
     def __init__(self, config: QueueWorkerConfig):
         # Register which queue items this worker should try to grab
-        payloads: Sequence[Type[Payload]] = [EduidInviteEmail, EduidSignupEmail]
+        payloads: Sequence[Type[Payload]] = [EduidInviteEmail, EduidSignupEmail, OldEduidSignupEmail]
         super().__init__(config=config, handle_payloads=payloads)
 
         self._smtp: Optional[SMTP] = None
@@ -98,6 +99,14 @@ class MailQueueWorker(QueueWorker):
                 )
             )
             logger.debug(f'send_eduid_invite_mail returned status: {status}')
+        elif queue_item.payload_type == OldEduidSignupEmail.get_type():
+            status = await self.send_old_eduid_signup_mail(
+                cast(
+                    OldEduidSignupEmail,
+                    queue_item.payload,
+                )
+            )
+            logger.debug(f'send_eduid_invite_mail returned status: {status}')
 
         if status and status.retry:
             logger.info(f'Retrying queue item: {queue_item.item_id}')
@@ -135,6 +144,25 @@ class MailQueueWorker(QueueWorker):
             txt = env.get_template('eduid_signup_email.txt.jinja2').render(**asdict(data))
             logger.debug(f'TXT: {txt}')
             html = env.get_template('eduid_signup_email.html.jinja2').render(**asdict(data))
+            logger.debug(f'HTML: {html}')
+        msg.set_content(txt, 'plain', 'utf-8')
+        msg.add_alternative(html, 'html', 'utf-8')
+
+        return await self.sendmail(
+            sender=self.config.mail_default_from,
+            recipients=[data.email],
+            message=msg.as_string(),
+            reference=data.reference,
+        )
+
+    # TODO: Remove this when we no longer need to send old signup emails
+    async def send_old_eduid_signup_mail(self, data: EduidSignupEmail) -> Status:
+        msg = EmailMessage()
+        with self._jinja2.select_language(data.language) as env:
+            msg['Subject'] = _('eduID registration')
+            txt = env.get_template('old_eduid_signup_email.txt.jinja2').render(**asdict(data))
+            logger.debug(f'TXT: {txt}')
+            html = env.get_template('old_eduid_signup_email.html.jinja2').render(**asdict(data))
             logger.debug(f'HTML: {html}')
         msg.set_content(txt, 'plain', 'utf-8')
         msg.add_alternative(html, 'html', 'utf-8')
