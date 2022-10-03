@@ -156,7 +156,7 @@ class MailQueueWorker(QueueWorker):
         )
 
     # TODO: Remove this when we no longer need to send old signup emails
-    async def send_old_eduid_signup_mail(self, data: EduidSignupEmail) -> Status:
+    async def send_old_eduid_signup_mail(self, data: OldEduidSignupEmail) -> Status:
         msg = EmailMessage()
         with self._jinja2.select_language(data.language) as env:
             msg['Subject'] = _('eduID registration')

@@ -7,7 +7,7 @@ import time
 from dataclasses import replace
 from datetime import datetime, timedelta
 from enum import Enum, unique
-from typing import Optional
+from typing import Optional, Union
 
 import proquint
 import requests
@@ -209,6 +209,7 @@ def send_signup_mail(email: str, verification_code: str, reference: str, use_ema
     """
     Put a signup email message on the queue.
     """
+    payload: Union[EduidSignupEmail, OldEduidSignupEmail]
     if use_email_link:
         # backwards compatibility
         verfication_link = urlappend(current_app.conf.signup_url, f'/code/{verification_code}')
