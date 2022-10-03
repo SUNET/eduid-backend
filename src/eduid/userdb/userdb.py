@@ -112,7 +112,14 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         return [self.user_from_dict(data=user) for user in users]
 
     def get_uncleaned_users(self, cleaned_type: CleanedType, limit: int) -> List[User]:
-        match = {"identities": {"$elemMatch": {"verified": True, "identity_type": IdentityType.NIN.value}}}
+        match = {
+            "identities": {
+                "$elemMatch": {
+                    "verified": True,
+                    "identity_type": IdentityType.NIN.value,
+                }
+            }
+        }
 
         type_filter = f"meta.cleaned.{cleaned_type.value}"
         sort = {type_filter: 1}
