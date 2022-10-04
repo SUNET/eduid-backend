@@ -19,7 +19,7 @@ from eduid.userdb.scimapi.invitedb import ScimApiInvite
 from eduid.userdb.signup import Invite as SignupInvite
 from eduid.userdb.signup import InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 def create_signup_invite(
@@ -78,7 +78,7 @@ def db_invite_to_response(req: Request, resp: Response, db_invite: ScimApiInvite
     # Only add invite url in parsed_response if no email should be sent to the invitee
     invite_url = None
     if signup_invite.send_email is False:
-        invite_url = f'{req.app.context.config.invite_url}/{signup_invite.invite_code}'
+        invite_url = f"{req.app.context.config.invite_url}/{signup_invite.invite_code}"
 
     invite_extension = NutidInviteExtensionV1(
         completed=db_invite.completed,
@@ -104,9 +104,9 @@ def db_invite_to_response(req: Request, resp: Response, db_invite: ScimApiInvite
         nutid_user_v1=NutidUserExtensionV1(profiles=_profiles),
     )
 
-    resp.headers['Location'] = location
-    resp.headers['ETag'] = make_etag(db_invite.version)
-    req.app.context.logger.debug(f'Extra debug: Response:\n{scim_invite.json(exclude_none=True, indent=2)}')
+    resp.headers["Location"] = location
+    resp.headers["ETag"] = make_etag(db_invite.version)
+    req.app.context.logger.debug(f"Extra debug: Response:\n{scim_invite.json(exclude_none=True, indent=2)}")
     return scim_invite
 
 
@@ -120,7 +120,7 @@ def send_invite_mail(req: ContextRequest, signup_invite: SignupInvite):
     except IndexError:
         # Primary not set
         email = signup_invite.mail_addresses[0].email
-    link = f'{req.app.context.config.invite_url}/{signup_invite.invite_code}'
+    link = f"{req.app.context.config.invite_url}/{signup_invite.invite_code}"
     payload = EduidInviteEmail(
         email=email,
         reference=str(signup_invite.invite_id),
@@ -130,9 +130,9 @@ def send_invite_mail(req: ContextRequest, signup_invite: SignupInvite):
         language=signup_invite.preferred_language,
     )
     app_name = req.app.context.name
-    system_hostname = environ.get('SYSTEM_HOSTNAME', '')  # Underlying hosts name for containers
-    hostname = environ.get('HOSTNAME', '')  # Actual hostname or container id
-    sender_info = SenderInfo(hostname=hostname, node_id=f'{app_name}@{system_hostname}')
+    system_hostname = environ.get("SYSTEM_HOSTNAME", "")  # Underlying hosts name for containers
+    hostname = environ.get("HOSTNAME", "")  # Actual hostname or container id
+    sender_info = SenderInfo(hostname=hostname, node_id=f"{app_name}@{system_hostname}")
     expires_at = datetime.utcnow() + timedelta(seconds=req.app.context.config.invite_expire)
     discard_at = expires_at + timedelta(days=7)
     message = QueueItem(
@@ -144,23 +144,23 @@ def send_invite_mail(req: ContextRequest, signup_invite: SignupInvite):
         payload=payload,
     )
     req.app.context.messagedb.save(message)
-    req.app.context.logger.info(f'Saved invite email to address {email} in message queue')
+    req.app.context.logger.info(f"Saved invite email to address {email} in message queue")
     return True
 
 
 def invites_to_resources_dicts(query: SearchRequest, invites: Sequence[ScimApiInvite]) -> List[Dict[str, Any]]:
     _attributes = query.attributes
     # TODO: include the requested attributes, not just id
-    return [{'id': str(invite.scim_id)} for invite in invites]
+    return [{"id": str(invite.scim_id)} for invite in invites]
 
 
 def filter_lastmodified(
     req: ContextRequest, filter: SearchFilter, skip: Optional[int] = None, limit: Optional[int] = None
 ) -> Tuple[List[ScimApiInvite], int]:
-    if filter.op not in ['gt', 'ge']:
-        raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
+    if filter.op not in ["gt", "ge"]:
+        raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
     if not isinstance(filter.val, str):
-        raise BadRequest(scim_type='invalidFilter', detail='Invalid datetime')
+        raise BadRequest(scim_type="invalidFilter", detail="Invalid datetime")
     return req.context.invitedb.get_invites_by_last_modified(
         operator=filter.op, value=datetime.fromisoformat(filter.val), skip=skip, limit=limit
     )

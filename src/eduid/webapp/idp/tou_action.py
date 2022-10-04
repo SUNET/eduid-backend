@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-__author__ = 'eperez'
+__author__ = "eperez"
 
 import logging
 from typing import Optional
@@ -53,11 +53,11 @@ def need_tou_acceptance(user: IdPUser) -> bool:
     interval = current_app.conf.tou_reaccept_interval
 
     if user.tou.has_accepted(version, int(interval.total_seconds())):
-        logger.debug(f'User has already accepted ToU version {repr(version)}')
+        logger.debug(f"User has already accepted ToU version {repr(version)}")
         return False
 
     tous = [x.version for x in user.tou.to_list()]
-    logger.info(f'User needs to accepted ToU version {repr(version)} (has accepted: {tous})')
+    logger.info(f"User needs to accepted ToU version {repr(version)} (has accepted: {tous})")
 
     return True
 
@@ -75,9 +75,9 @@ def add_tou_action(user: IdPUser, ticket: Optional[LoginContext] = None) -> Opti
     """
     version = current_app.conf.tou_version
 
-    if current_app.actions_db.has_actions(user.eppn, action_type='tou', params={'version': version}):
+    if current_app.actions_db.has_actions(user.eppn, action_type="tou", params={"version": version}):
         return None
 
     tous = [x.version for x in user.tou.to_list()]
-    current_app.logger.debug(f'Adding action to require user to accept ToU version {version!r} (has accepted: {tous})')
-    return current_app.actions_db.add_action(user.eppn, action_type='tou', preference=100, params={'version': version})
+    current_app.logger.debug(f"Adding action to require user to accept ToU version {version!r} (has accepted: {tous})")
+    return current_app.actions_db.add_action(user.eppn, action_type="tou", preference=100, params={"version": version})

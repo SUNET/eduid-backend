@@ -2,7 +2,7 @@
 
 from eduid.userdb.exceptions import EduIDDBError
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class PayloadNotRegistered(EduIDDBError):

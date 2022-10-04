@@ -73,7 +73,7 @@ class ExpiringCacheMem:
             self.lock = cast(Lock, NoOpLock())  # intentionally lie to mypy
 
         if self.logger is not None:
-            warnings.warn('Object logger deprecated, using module_logger', DeprecationWarning)
+            warnings.warn("Object logger deprecated, using module_logger", DeprecationWarning)
 
     def add(self, key: SSOSessionId, info: Any, now: Optional[int] = None) -> None:
         """
@@ -114,7 +114,7 @@ class ExpiringCacheMem:
                     self._ages.appendleft((_exp_ts, _exp_key))
                     break
                 logger.debug(
-                    'Purged {!s} cache entry {!s} seconds over limit : {!s}'.format(
+                    "Purged {!s} cache entry {!s} seconds over limit : {!s}".format(
                         self.name, timestamp - _exp_ts, _exp_key
                     )
                 )
@@ -152,7 +152,7 @@ class ExpiringCacheMem:
             del self._data[key]
             return True
         except KeyError:
-            logger.debug('Failed deleting key {!r} from {!s} cache (entry did not exist)'.format(key, self.name))
+            logger.debug("Failed deleting key {!r} from {!s} cache (entry did not exist)".format(key, self.name))
         return False
 
     def items(self) -> Any:
@@ -167,13 +167,13 @@ class SSOSessionCacheError(EduIDDBError):
 
 
 class SSOSessionCache(BaseDB):
-    def __init__(self, db_uri: str, db_name: str = 'eduid_idp', collection: str = 'sso_sessions'):
+    def __init__(self, db_uri: str, db_name: str = "eduid_idp", collection: str = "sso_sessions"):
         super().__init__(db_uri, db_name, collection=collection)
 
         # Remove messages older than created_ts + ttl
         indexes = {
-            'auto-discard': {'key': [('expires_at', 1)], 'expireAfterSeconds': 0},
-            'unique-session-id': {'key': [('session_id', 1)], 'unique': True},
+            "auto-discard": {"key": [("expires_at", 1)], "expireAfterSeconds": 0},
+            "unique-session-id": {"key": [("session_id", 1)], "unique": True},
         }
         self.setup_indexes(indexes)
 
@@ -182,9 +182,9 @@ class SSOSessionCache(BaseDB):
         Remove entries when SLO is executed.
         :return: False on failure
         """
-        result = self._coll.remove({'_id': session.obj_id}, w='majority')
-        num = result.get('n')  # number of deleted records
-        logger.debug(f'Removed session {session}: num={num}')
+        result = self._coll.remove({"_id": session.obj_id}, w="majority")
+        num = result.get("n")  # number of deleted records
+        logger.debug(f"Removed session {session}: num={num}")
         return bool(num)
 
     def save(self, session: SSOSession) -> None:
@@ -195,10 +195,10 @@ class SSOSessionCache(BaseDB):
         the SSO session expires, and the mapping of user -> uid is used if the user requests
         logout (SLO).
         """
-        result = self._coll.replace_one({'_id': session.obj_id}, session.to_dict(), upsert=True)
+        result = self._coll.replace_one({"_id": session.obj_id}, session.to_dict(), upsert=True)
         logger.debug(
-            f'Saved SSO session {session} in the db: '
-            f'matched={result.matched_count}, modified={result.modified_count}, upserted_id={result.upserted_id}'
+            f"Saved SSO session {session} in the db: "
+            f"matched={result.matched_count}, modified={result.modified_count}, upserted_id={result.upserted_id}"
         )
         return None
 
@@ -210,9 +210,9 @@ class SSOSessionCache(BaseDB):
         :param userdb: Database to use to initialise session.idp_user
         :return: The session, if found
         """
-        res = self._coll.find_one({'session_id': sid})
+        res = self._coll.find_one({"session_id": sid})
         if not res:
-            logger.debug(f'No SSO session found with session_id={repr(sid)}')
+            logger.debug(f"No SSO session found with session_id={repr(sid)}")
             return None
         session = SSOSession.from_dict(res)
         return session
@@ -225,6 +225,6 @@ class SSOSessionCache(BaseDB):
 
         :return: A list with zero or more SSO sessions
         """
-        entrys = self._coll.find({'eppn': eppn})
+        entrys = self._coll.find({"eppn": eppn})
         res = [SSOSession.from_dict(this) for this in entrys]
         return res

@@ -40,12 +40,12 @@ from eduid.webapp.phone.app import current_phone_app as current_app
 
 
 def normalize_to_e_164(number):
-    number = ''.join(number.split())  # Remove white space
-    if number.startswith(u'00'):
+    number = "".join(number.split())  # Remove white space
+    if number.startswith("00"):
         raise ValidationError("phone.e164_format")
-    if number.startswith(u'0'):
+    if number.startswith("0"):
         country_code = current_app.conf.default_country_code
-        number = '+{}{}'.format(country_code, number[1:])
+        number = "+{}{}".format(country_code, number[1:])
     return number
 
 
@@ -61,7 +61,7 @@ def validate_format_phone(number):
 
 
 def validate_swedish_mobile(number):
-    if number.startswith(u'+467'):
+    if number.startswith("+467"):
         if not re.match(r"^\+467[02369]\d{7}$", number):
             raise ValidationError("phone.swedish_mobile_format")
 

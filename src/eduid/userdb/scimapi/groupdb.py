@@ -19,7 +19,7 @@ from eduid.scimapi.models.group import GroupCreateRequest, GroupUpdateRequest
 from eduid.userdb.scimapi.basedb import ScimApiBaseDB
 from eduid.userdb.scimapi.common import ScimApiResourceBase
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ class GroupExtensions(object):
     @classmethod
     def from_mapping(cls: Type[GroupExtensions], data: Mapping) -> GroupExtensions:
         return cls(
-            data=data.get('data', {}),
+            data=data.get("data", {}),
         )
 
 
@@ -84,17 +84,17 @@ class ScimApiGroup(ScimApiResourceBase, _ScimApiGroupRequired):
 
     def to_dict(self) -> Dict[str, Any]:
         res = asdict(self)
-        res['scim_id'] = str(res['scim_id'])
-        res['_id'] = res.pop('group_id')
-        del res['graph']
+        res["scim_id"] = str(res["scim_id"])
+        res["_id"] = res.pop("group_id")
+        del res["graph"]
         return res
 
     @classmethod
     def from_dict(cls: Type[ScimApiGroup], data: Mapping[str, Any]) -> ScimApiGroup:
         this = dict(copy.copy(data))  # to not modify callers data
-        this['scim_id'] = uuid.UUID(this['scim_id'])
-        this['group_id'] = this.pop('_id')
-        this['extensions'] = GroupExtensions.from_mapping(this['extensions'])
+        this["scim_id"] = uuid.UUID(this["scim_id"])
+        this["group_id"] = this.pop("_id")
+        this["extensions"] = GroupExtensions.from_mapping(this["extensions"])
         return cls(**this)
 
 
@@ -111,11 +111,11 @@ class ScimApiGroupDB(ScimApiBaseDB):
     ):
         super().__init__(mongo_uri, mongo_dbname, collection=mongo_collection)
         self.graphdb = GroupDB(db_uri=neo4j_uri, scope=scope, config=neo4j_config)
-        logger.info(f'{self} initialised')
+        logger.info(f"{self} initialised")
 
         # Create an index so that scim_id is unique per data owner
         indexes = {
-            'unique-scimid': {'key': [('scim_id', 1)], 'unique': True},
+            "unique-scimid": {"key": [("scim_id", 1)], "unique": True},
         }
         if setup_indexes:
             self.setup_indexes(indexes)
@@ -123,37 +123,37 @@ class ScimApiGroupDB(ScimApiBaseDB):
     def _get_graph_group(self, scim_id: str) -> GraphGroup:
         graph_group = self.graphdb.get_group(scim_id)
         if graph_group is None:
-            raise RuntimeError(f'Group {scim_id} found in mongodb, but not in graphdb')
+            raise RuntimeError(f"Group {scim_id} found in mongodb, but not in graphdb")
         return graph_group
 
     def save(self, group: ScimApiGroup) -> bool:
         group_dict = group.to_dict()
 
         test_doc = {
-            '_id': group.group_id,
-            'version': group.version,
+            "_id": group.group_id,
+            "version": group.version,
         }
         # update the version number and last_modified timestamp
-        group_dict['version'] = ObjectId()
-        group_dict['last_modified'] = datetime.utcnow()
+        group_dict["version"] = ObjectId()
+        group_dict["last_modified"] = datetime.utcnow()
         result = self._coll.replace_one(test_doc, group_dict, upsert=False)
         if result.modified_count == 0:
-            db_group = self._coll.find_one({'_id': group.group_id})
+            db_group = self._coll.find_one({"_id": group.group_id})
             if db_group:
-                logger.debug(f'{self} FAILED Updating group {group} in {self._coll_name}')
-                raise RuntimeError('Group out of sync, please retry')
+                logger.debug(f"{self} FAILED Updating group {group} in {self._coll_name}")
+                raise RuntimeError("Group out of sync, please retry")
             self._coll.insert_one(group_dict)
         # Save graphdb group
         # TODO: Should we try to roll back mongodb change if the graphdb save fails?
         group.graph = self.graphdb.save(group.graph)
 
         # put the new version number and last_modified in the group object after a successful update
-        group.version = group_dict['version']
-        group.last_modified = group_dict['last_modified']
-        logger.debug(f'{self} Updated group {group} in {self._coll_name}')
+        group.version = group_dict["version"]
+        group.last_modified = group_dict["last_modified"]
+        logger.debug(f"{self} Updated group {group} in {self._coll_name}")
 
         extra_debug = pprint.pformat(group_dict, width=120)
-        logger.debug(f'Extra debug:\n{extra_debug}')
+        logger.debug(f"Extra debug:\n{extra_debug}")
 
         return result.acknowledged
 
@@ -168,14 +168,14 @@ class ScimApiGroupDB(ScimApiBaseDB):
         )
         group.graph = GraphGroup(identifier=str(group.scim_id), display_name=create_request.display_name)
         if not self.save(group):
-            logger.error(f'Creating group {group} failed')
-            raise RuntimeError('Group creation failed')
+            logger.error(f"Creating group {group} failed")
+            raise RuntimeError("Group creation failed")
         return group
 
     def update_group(self, update_request: GroupUpdateRequest, db_group: ScimApiGroup) -> Tuple[ScimApiGroup, bool]:
         changed = False
         updated_members = set()
-        logger.info(f'Updating group {str(db_group.scim_id)}')
+        logger.info(f"Updating group {str(db_group.scim_id)}")
         # please mypy
         _member: Optional[Union[GraphUser, GraphGroup]]
         _new_member: Optional[Union[GraphUser, GraphGroup]]
@@ -193,10 +193,10 @@ class ScimApiGroupDB(ScimApiBaseDB):
             # Add a new member
             if _new_member is not None:
                 updated_members.add(_new_member)
-                logger.debug(f'Added new member: {_new_member}')
+                logger.debug(f"Added new member: {_new_member}")
             # Update member attributes if they changed
             elif _member is not None and _member.display_name != this.display:
-                logger.debug(f'Changed display name for existing member: {_member.display_name} -> {this.display}')
+                logger.debug(f"Changed display name for existing member: {_member.display_name} -> {this.display}")
                 _member = replace(_member, display_name=this.display)
                 updated_members.add(_member)
             elif _member is not None:
@@ -207,20 +207,20 @@ class ScimApiGroupDB(ScimApiBaseDB):
             changed = True
             db_group.graph = replace(db_group.graph, display_name=update_request.display_name)
             logger.debug(
-                f'Changed display name for group: {db_group.graph.display_name} -> {update_request.display_name}'
+                f"Changed display name for group: {db_group.graph.display_name} -> {update_request.display_name}"
             )
 
         if db_group.external_id != update_request.external_id:
             changed = True
             db_group.external_id = update_request.external_id
-            logger.debug(f'Changed external id for group: {db_group.external_id} -> {update_request.external_id}')
+            logger.debug(f"Changed external id for group: {db_group.external_id} -> {update_request.external_id}")
 
         # Check if there where new, changed or removed members
         if db_group.graph.members != updated_members:
             changed = True
             db_group.graph = replace(db_group.graph, members=updated_members)
-            logger.debug(f'Old members: {db_group.graph.members}')
-            logger.debug(f'New members: {updated_members}')
+            logger.debug(f"Old members: {db_group.graph.members}")
+            logger.debug(f"New members: {updated_members}")
 
         extension_data = dict()
         if update_request.nutid_group_v1 is not None:
@@ -229,15 +229,15 @@ class ScimApiGroupDB(ScimApiBaseDB):
         if db_group.extensions != _sg_ext:
             changed = True
             db_group.extensions = _sg_ext
-            logger.debug(f'Old extensions: {db_group.extensions}')
-            logger.debug(f'New extensions: {_sg_ext}')
+            logger.debug(f"Old extensions: {db_group.extensions}")
+            logger.debug(f"New extensions: {_sg_ext}")
 
         if changed:
-            logger.info(f'Group {str(db_group.scim_id)} changed. Saving.')
+            logger.info(f"Group {str(db_group.scim_id)} changed. Saving.")
             if self.save(db_group):
-                logger.info(f'Group {str(db_group.scim_id)} saved.')
+                logger.info(f"Group {str(db_group.scim_id)} saved.")
             else:
-                logger.warning(f'Update of group {db_group} probably failed')
+                logger.warning(f"Update of group {db_group} probably failed")
 
         return db_group, changed
 
@@ -251,7 +251,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
         return res
 
     def get_group_by_scim_id(self, scim_id: str) -> Optional[ScimApiGroup]:
-        doc = self._get_document_by_attr('scim_id', scim_id)
+        doc = self._get_document_by_attr("scim_id", scim_id)
         if doc:
             group = ScimApiGroup.from_dict(doc)
             group.graph = self._get_graph_group(scim_id)
@@ -277,7 +277,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
         for graph in groups:
             group = self.get_group_by_scim_id(graph.identifier)
             if not group:
-                raise RuntimeError(f'Group {graph} found in graph database, but not in mongodb')
+                raise RuntimeError(f"Group {graph} found in graph database, but not in mongodb")
             group.graph = graph
             res += [group]
         return res
@@ -288,7 +288,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
         for graph in groups:
             group = self.get_group_by_scim_id(graph.identifier)
             if not group:
-                raise RuntimeError(f'Group {graph} found in graph database, but not in mongodb')
+                raise RuntimeError(f"Group {graph} found in graph database, but not in mongodb")
             group.graph = graph
             res += [group]
         return res
@@ -297,16 +297,16 @@ class ScimApiGroupDB(ScimApiBaseDB):
         self, operator: str, value: datetime, limit: Optional[int] = None, skip: Optional[int] = None
     ) -> Tuple[List[ScimApiGroup], int]:
         # map SCIM filter operators to mongodb filter
-        mongo_operator = {'gt': '$gt', 'ge': '$gte'}.get(operator)
+        mongo_operator = {"gt": "$gt", "ge": "$gte"}.get(operator)
         if not mongo_operator:
-            raise ValueError('Invalid filter operator')
-        spec = {'last_modified': {mongo_operator: value}}
+            raise ValueError("Invalid filter operator")
+        spec = {"last_modified": {mongo_operator: value}}
         docs, total_count = self._get_documents_and_count_by_filter(spec=spec, limit=limit, skip=skip)
         groups = [ScimApiGroup.from_dict(x) for x in docs]
         return groups, total_count
 
     def group_exists(self, scim_id: str) -> bool:
-        return bool(self.db_count(spec={'scim_id': scim_id}, limit=1))
+        return bool(self.db_count(spec={"scim_id": scim_id}, limit=1))
 
     def remove_group(self, group: ScimApiGroup) -> bool:
         if not self.remove_document(group.group_id):

@@ -39,11 +39,11 @@ from eduid.userdb.userdb import UserDB
 
 logger = logging.getLogger(__name__)
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class PersonalDataUserDB(UserDB[PersonalDataUser]):
-    def __init__(self, db_uri, db_name='eduid_personal_data', collection='profiles'):
+    def __init__(self, db_uri, db_name="eduid_personal_data", collection="profiles"):
         super().__init__(db_uri, db_name, collection=collection)
 
     @classmethod

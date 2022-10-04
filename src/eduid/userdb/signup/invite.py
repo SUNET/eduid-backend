@@ -37,11 +37,11 @@ from uuid import UUID
 
 from bson import ObjectId
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class InviteType(Enum):
-    SCIM = 'SCIM'
+    SCIM = "SCIM"
 
 
 @dataclass(frozen=True)
@@ -62,7 +62,7 @@ class InviteMailAddress:
 
     def __post_init__(self):
         # Make sure email is lowercase on init as we had trouble with mixed case
-        super().__setattr__('email', self.email.lower())
+        super().__setattr__("email", self.email.lower())
 
 
 @dataclass(frozen=True)
@@ -88,7 +88,7 @@ class Invite(_InviteRequired):
     mail_addresses: List[InviteMailAddress] = field(default_factory=list)
     phone_numbers: List[InvitePhoneNumber] = field(default_factory=list)
     nin: Optional[str] = field(default=None)
-    preferred_language: str = field(default='sv')
+    preferred_language: str = field(default="sv")
     finish_url: Optional[str] = field(default=None)
     completed_ts: Optional[datetime] = field(default=None)
     expires_at: Optional[datetime] = field(default=None)
@@ -104,20 +104,20 @@ class Invite(_InviteRequired):
 
     def to_dict(self) -> Dict[str, Any]:
         data = asdict(self)
-        data['_id'] = data.pop('invite_id')
-        data['invite_type'] = InviteType(data['invite_type']).value
+        data["_id"] = data.pop("invite_id")
+        data["invite_type"] = InviteType(data["invite_type"]).value
         return data
 
     @classmethod
     def from_dict(cls, data: Mapping) -> Invite:
         data = dict(data)
-        data['invite_id'] = data.pop('_id')
-        data['invite_type'] = InviteType(data['invite_type'])
-        if data.get('mail_addresses'):
-            data['mail_addresses'] = [InviteMailAddress(**address) for address in data['mail_addresses']]
-        if data.get('phone_numbers'):
-            data['phone_numbers'] = [InvitePhoneNumber(**number) for number in data['phone_numbers']]
+        data["invite_id"] = data.pop("_id")
+        data["invite_type"] = InviteType(data["invite_type"])
+        if data.get("mail_addresses"):
+            data["mail_addresses"] = [InviteMailAddress(**address) for address in data["mail_addresses"]]
+        if data.get("phone_numbers"):
+            data["phone_numbers"] = [InvitePhoneNumber(**number) for number in data["phone_numbers"]]
         # Load invite specific data
-        if data['invite_type'] is InviteType.SCIM:
-            data['invite_reference'] = SCIMReference(**data['invite_reference'])
+        if data["invite_type"] is InviteType.SCIM:
+            data["invite_reference"] = SCIMReference(**data["invite_reference"])
         return cls(**data)

@@ -40,10 +40,10 @@ from pydantic import validator
 from eduid.common.rpc.msg_relay import FullPostalAddress
 from eduid.userdb.element import Element, VerifiedElement
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
-TProofingElementSubclass = TypeVar('TProofingElementSubclass', bound='ProofingElement')
+TProofingElementSubclass = TypeVar("TProofingElementSubclass", bound="ProofingElement")
 
 
 class ProofingElement(VerifiedElement):
@@ -69,12 +69,12 @@ class ProofingElement(VerifiedElement):
         Transform data received in eduid format into pythonic format.
         """
         # VerifiedElement._from_dict_transform eliminates the verification_code key, and here we keep it.
-        code = data.pop('verification_code', None)
+        code = data.pop("verification_code", None)
 
         data = super()._from_dict_transform(data)
 
         if code is not None:
-            data['verification_code'] = code
+            data["verification_code"] = code
 
         return data
 
@@ -114,10 +114,10 @@ class EmailProofingElement(ProofingElement):
 
     email: str
 
-    @validator('email', pre=True)
+    @validator("email", pre=True)
     def validate_email(cls, v):
         if not isinstance(v, str):
-            ValueError('must be a string')
+            ValueError("must be a string")
         return v.lower()
 
 

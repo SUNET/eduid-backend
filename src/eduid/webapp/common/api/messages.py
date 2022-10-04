@@ -60,25 +60,25 @@ class CommonMsg(TranslatableMsg):
     """
 
     # some form has failed to validate
-    form_errors = 'form-errors'
+    form_errors = "form-errors"
     # problem synchronising the account to the central db
-    temp_problem = 'Temporary technical problems'
+    temp_problem = "Temporary technical problems"
     # The user has changed in the db since it was retrieved
-    out_of_sync = 'user-out-of-sync'
+    out_of_sync = "user-out-of-sync"
     # error in the communications with Navet
-    navet_error = 'error_navet_task'
+    navet_error = "error_navet_task"
     # no official address returned from Navet
-    no_navet_data = 'no_navet_data'
+    no_navet_data = "no_navet_data"
     # NIN validation error
-    nin_invalid = 'nin needs to be formatted as 18|19|20yymmddxxxx'
+    nin_invalid = "nin needs to be formatted as 18|19|20yymmddxxxx"
     # Email address validation error
-    email_invalid = 'email needs to be formatted according to RFC2822'
+    email_invalid = "email needs to be formatted according to RFC2822"
     # TODO: These _should_ be unused now - check and remove
-    csrf_try_again = 'csrf.try_again'
-    csrf_missing = 'csrf.missing'
-    user_already_verified = 'User is already verified'
-    user_has_other_locked_nin = 'Another nin is already registered for this user'
-    locked_identity_not_matching = 'common.locked_identity_not_matching'
+    csrf_try_again = "csrf.try_again"
+    csrf_missing = "csrf.missing"
+    user_already_verified = "User is already verified"
+    user_has_other_locked_nin = "Another nin is already registered for this user"
+    locked_identity_not_matching = "common.locked_identity_not_matching"
 
 
 @dataclass(frozen=True)
@@ -132,15 +132,15 @@ def _make_payload(
 
     if message is not None:
         if isinstance(message, TranslatableMsg):
-            res['message'] = str(message.value)
+            res["message"] = str(message.value)
         elif isinstance(message, str):
-            res['message'] = message
+            res["message"] = message
         else:
-            raise TypeError('Flux message was neither a TranslatableMsg nor a string')
+            raise TypeError("Flux message was neither a TranslatableMsg nor a string")
 
     # TODO: See if the frontend actually uses this element, and if not - remove it (breaks some tests)
-    if 'success' not in res:
-        res['success'] = success
+    if "success" not in res:
+        res["success"] = success
 
     return res
 
@@ -154,8 +154,8 @@ def make_query_string(msg: TranslatableMsg, error: bool = True):
     """
     msg_str = str(msg.value)
     if error:
-        msg_str = ':ERROR:' + msg_str
-    return urlencode({'msg': msg_str})
+        msg_str = ":ERROR:" + msg_str
+    return urlencode({"msg": msg_str})
 
 
 def redirect_with_msg(url: str, msg: Union[TranslatableMsg, str], error: bool = True) -> WerkzeugResponse:
@@ -168,9 +168,9 @@ def redirect_with_msg(url: str, msg: Union[TranslatableMsg, str], error: bool = 
     if isinstance(msg, TranslatableMsg):
         msg = str(msg.value)
     if error:
-        msg = ':ERROR:' + msg
+        msg = ":ERROR:" + msg
     scheme, netloc, path, query_string, fragment = urlsplit(url)
     query_list = parse_qsl(query_string)
-    query_list.append(('msg', msg))
+    query_list.append(("msg", msg))
     new_query_string = urlencode(query_list)
     return redirect(urlunsplit((scheme, netloc, path, new_query_string, fragment)))

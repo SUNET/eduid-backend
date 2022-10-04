@@ -11,15 +11,15 @@ from pydantic import Field
 
 from eduid.userdb.element import ElementKey, VerifiedElement, VerifiedElementList
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 logger = logging.getLogger(__name__)
 
 
 class IdentityType(str, Enum):
-    NIN = 'nin'
-    EIDAS = 'eidas'
-    SVIPE = 'svipe'
+    NIN = "nin"
+    EIDAS = "eidas"
+    SVIPE = "svipe"
 
 
 class IdentityElement(VerifiedElement, ABC):
@@ -46,18 +46,18 @@ class IdentityElement(VerifiedElement, ABC):
         """
         The identity types key name for the value that should be unique for a user
         """
-        raise NotImplementedError('Sub-class must implement unique_key_name')
+        raise NotImplementedError("Sub-class must implement unique_key_name")
 
     @property
     def unique_value(self) -> str:
         """
         The identity types value that should be unique for a user
         """
-        raise NotImplementedError('Sub-class must implement unique_value')
+        raise NotImplementedError("Sub-class must implement unique_value")
 
     def to_dict(self) -> Dict[str, Any]:
         data = super().to_dict()
-        data['identity_type'] = self.identity_type.value
+        data["identity_type"] = self.identity_type.value
         return data
 
 
@@ -77,7 +77,7 @@ class NinIdentity(IdentityElement):
 
     @property
     def unique_key_name(self) -> str:
-        return 'number'
+        return "number"
 
     @property
     def unique_value(self) -> str:
@@ -85,19 +85,19 @@ class NinIdentity(IdentityElement):
 
     def to_old_nin(self) -> Dict[str, Union[str, bool]]:
         # TODO: remove nins after frontend stops using it
-        return {'number': self.number, 'verified': self.is_verified, 'primary': True}
+        return {"number": self.number, "verified": self.is_verified, "primary": True}
 
 
 class PridPersistence(str, Enum):
-    A = 'A'  # Persistence over time is expected to be comparable or better than a Swedish nin
-    B = 'B'  # Persistence over time is expected to be relatively stable, but lower than a Swedish nin
-    C = 'C'  # No expectations regarding persistence over time
+    A = "A"  # Persistence over time is expected to be comparable or better than a Swedish nin
+    B = "B"  # Persistence over time is expected to be relatively stable, but lower than a Swedish nin
+    C = "C"  # No expectations regarding persistence over time
 
 
 class EIDASLoa(str, Enum):
-    NF_LOW = 'eidas-nf-low'
-    NF_SUBSTANTIAL = 'eidas-nf-sub'
-    NF_HIGH = 'eidas-nf-high'
+    NF_LOW = "eidas-nf-low"
+    NF_SUBSTANTIAL = "eidas-nf-sub"
+    NF_HIGH = "eidas-nf-high"
 
 
 class EIDASIdentity(IdentityElement):
@@ -120,7 +120,7 @@ class EIDASIdentity(IdentityElement):
 
     @property
     def unique_key_name(self) -> str:
-        return 'prid'
+        return "prid"
 
     @property
     def unique_value(self) -> str:
@@ -128,7 +128,7 @@ class EIDASIdentity(IdentityElement):
 
     def to_dict(self) -> Dict[str, Any]:
         data = super().to_dict()
-        data['prid_persistence'] = self.prid_persistence.value
+        data["prid_persistence"] = self.prid_persistence.value
         return data
 
 
@@ -147,7 +147,7 @@ class SvipeIdentity(IdentityElement):
 
     @property
     def unique_key_name(self) -> str:
-        return 'svipe_id'
+        return "svipe_id"
 
     @property
     def unique_value(self) -> str:
@@ -163,7 +163,7 @@ class IdentityList(VerifiedElementList[IdentityElement]):
     def from_list_of_dicts(cls: Type[IdentityList], items: List[Dict[str, Any]]) -> IdentityList:
         elements: List[IdentityElement] = []
         for item in items:
-            _type = item['identity_type']
+            _type = item["identity_type"]
             if _type == IdentityType.NIN.value:
                 elements.append(NinIdentity(**item))
             elif _type == IdentityType.EIDAS.value:
@@ -171,7 +171,7 @@ class IdentityList(VerifiedElementList[IdentityElement]):
             elif _type == IdentityType.SVIPE.value:
                 elements.append(SvipeIdentity(**item))
             else:
-                raise ValueError(f'identity_type {_type} not valid')
+                raise ValueError(f"identity_type {_type} not valid")
         return cls(elements=elements)
 
     def replace(self, element: IdentityElement) -> None:
@@ -216,10 +216,10 @@ class IdentityList(VerifiedElementList[IdentityElement]):
                 return self.nin.date_of_birth
             # Fall back to parsing NIN as this should work for all existing users
             try:
-                return datetime.strptime(self.nin.number[:8], '%Y%m%d')
+                return datetime.strptime(self.nin.number[:8], "%Y%m%d")
             except ValueError:
-                logger.exception('Unable to parse user nin to date of birth')
-                logger.debug(f'User nins: {self.nin}')
+                logger.exception("Unable to parse user nin to date of birth")
+                logger.debug(f"User nins: {self.nin}")
         # EIDAS
         if self.eidas and self.eidas.is_verified:
             return self.eidas.date_of_birth
@@ -229,5 +229,5 @@ class IdentityList(VerifiedElementList[IdentityElement]):
         res: Dict[str, Union[bool, Dict[str, Any]]] = {
             item.identity_type.value: item.to_dict() for item in self.to_list()
         }
-        res['is_verified'] = self.is_verified
+        res["is_verified"] = self.is_verified
         return res

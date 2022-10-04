@@ -15,7 +15,7 @@ from eduid.queue.workers.base import QueueWorker
 
 logger = logging.getLogger(__name__)
 
-__author__ = 'ft'
+__author__ = "ft"
 
 
 class ScimEventQueueWorker(QueueWorker):
@@ -25,7 +25,7 @@ class ScimEventQueueWorker(QueueWorker):
         super().__init__(config=config, handle_payloads=payloads)
 
     async def handle_new_item(self, queue_item: QueueItem) -> None:
-        logger.debug(f'handle_new_item: {queue_item}')
+        logger.debug(f"handle_new_item: {queue_item}")
         status = None
         if queue_item.payload_type == EduidSCIMAPINotification.get_type():
             status = await self.send_scim_notification(
@@ -34,10 +34,10 @@ class ScimEventQueueWorker(QueueWorker):
                     queue_item.payload,
                 )
             )
-            logger.debug(f'send_scim_notification returned status: {status}')
+            logger.debug(f"send_scim_notification returned status: {status}")
 
         if status and status.retry:
-            logger.info(f'Retrying queue item: {queue_item.item_id}')
+            logger.info(f"Retrying queue item: {queue_item.item_id}")
             logger.debug(queue_item)
             await self.retry_item(queue_item)
             return
@@ -45,19 +45,19 @@ class ScimEventQueueWorker(QueueWorker):
         await self.item_successfully_handled(queue_item)
 
     async def handle_expired_item(self, queue_item: QueueItem) -> None:
-        logger.warning(f'Found expired item: {queue_item}')
+        logger.warning(f"Found expired item: {queue_item}")
 
     async def send_scim_notification(self, data: EduidSCIMAPINotification) -> Status:
-        logger.debug(f'send_scim_notification: {data}')
+        logger.debug(f"send_scim_notification: {data}")
         r = httpx.post(data.post_url, json=json.loads(data.message))
-        logger.debug(f'send_scim_notification: HTTPX result: {r}')
-        return Status(success=True, message='OK')
+        logger.debug(f"send_scim_notification: HTTPX result: {r}")
+        return Status(success=True, message="OK")
 
 
 def init_scim_event_worker(
-    name: str = 'scim_event_worker', test_config: Optional[Mapping[str, Any]] = None
+    name: str = "scim_event_worker", test_config: Optional[Mapping[str, Any]] = None
 ) -> ScimEventQueueWorker:
-    config = load_config(typ=QueueWorkerConfig, app_name=name, ns='queue', test_config=test_config)
+    config = load_config(typ=QueueWorkerConfig, app_name=name, ns="queue", test_config=test_config)
     return ScimEventQueueWorker(config=config)
 
 
@@ -66,5 +66,5 @@ def start_worker():
     exit(asyncio.run(worker.run()))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     start_worker()

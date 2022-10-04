@@ -57,7 +57,7 @@ class SignupTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return signup_init_app(name='signup', test_config=config)
+        return signup_init_app(name="signup", test_config=config)
 
     def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         config.update(

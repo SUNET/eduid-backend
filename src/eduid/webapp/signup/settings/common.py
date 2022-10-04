@@ -50,7 +50,7 @@ class SignupConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MailConf
     Configuration for the signup app
     """
 
-    app_name = 'signup'
+    app_name = "signup"
 
     vccs_url: str
     signup_url: str

@@ -37,7 +37,7 @@ from typing import Any, Dict, List, Type
 
 from eduid.userdb.element import ElementKey, PrimaryElement, PrimaryElementList
 
-__author__ = 'ft'
+__author__ = "ft"
 
 
 class PhoneNumber(PrimaryElement):
@@ -59,14 +59,14 @@ class PhoneNumber(PrimaryElement):
         """
         data = super()._from_dict_transform(data)
 
-        if 'added_timestamp' in data:
-            data['created_ts'] = data.pop('added_timestamp')
+        if "added_timestamp" in data:
+            data["created_ts"] = data.pop("added_timestamp")
 
-        if 'mobile' in data:
-            data['number'] = data.pop('mobile')
+        if "mobile" in data:
+            data["number"] = data.pop("mobile")
 
-        if 'csrf' in data:
-            del data['csrf']
+        if "csrf" in data:
+            del data["csrf"]
 
         return data
 

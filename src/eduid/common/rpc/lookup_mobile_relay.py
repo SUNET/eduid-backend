@@ -1,6 +1,6 @@
 import eduid.workers.lookup_mobile
 
-__author__ = 'mathiashedstrom'
+__author__ = "mathiashedstrom"
 from eduid.common.config.base import CeleryConfigMixin
 from eduid.common.decorators import deprecated
 from eduid.common.rpc.exceptions import LookupMobileTaskFailed
@@ -23,7 +23,7 @@ class LookupMobileRelay(object):
             result = result.get(timeout=10)  # Lower timeout than standard gunicorn worker timeout (25)
             return result
         except Exception as e:
-            raise LookupMobileTaskFailed('find_nin_by_mobile task failed: {}'.format(e))
+            raise LookupMobileTaskFailed("find_nin_by_mobile task failed: {}".format(e))
 
     @deprecated("This task seems unused")
     def find_mobiles_by_nin(self, nin: str):
@@ -32,16 +32,16 @@ class LookupMobileRelay(object):
             result = result.get(timeout=10)  # Lower timeout than standard gunicorn worker timeout (25)
             return result
         except Exception as e:
-            raise LookupMobileTaskFailed('find_mobiles_by_nin task failed: {}'.format(e))
+            raise LookupMobileTaskFailed("find_mobiles_by_nin task failed: {}".format(e))
 
     def ping(self, timeout: int = 1) -> str:
         """
         Check if this application is able to reach an LookupMobile worker.
         :return: Result of celery Task.get
         """
-        rtask = self._pong.apply_async(kwargs={'app_name': self.app_name})
+        rtask = self._pong.apply_async(kwargs={"app_name": self.app_name})
         try:
             return rtask.get(timeout=timeout)
         except Exception as e:
             rtask.forget()
-            raise LookupMobileTaskFailed(f'ping task failed: {repr(e)}')
+            raise LookupMobileTaskFailed(f"ping task failed: {repr(e)}")

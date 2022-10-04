@@ -58,12 +58,12 @@ class MongoTemporaryInstance(EduidTemporaryInstance):
 
     @property
     def command(self) -> Sequence[str]:
-        return ['docker', 'run', '--rm', '-p', f'{self._port!s}:27017', 'docker.sunet.se/eduid/mongodb:latest']
+        return ["docker", "run", "--rm", "-p", f"{self._port!s}:27017", "docker.sunet.se/eduid/mongodb:latest"]
 
     def setup_conn(self) -> bool:
         try:
-            self._conn = pymongo.MongoClient('localhost', self._port)
-            logger.info(f'Connected to temporary mongodb instance: {self._conn}')
+            self._conn = pymongo.MongoClient("localhost", self._port)
+            logger.info(f"Connected to temporary mongodb instance: {self._conn}")
         except pymongo.errors.ConnectionFailure:
             return False
         return True
@@ -71,16 +71,16 @@ class MongoTemporaryInstance(EduidTemporaryInstance):
     @property
     def conn(self) -> pymongo.MongoClient:
         if self._conn is None:
-            raise RuntimeError('Missing temporary MongoDB instance')
+            raise RuntimeError("Missing temporary MongoDB instance")
         return self._conn
 
     @property
     def uri(self):
-        return f'mongodb://localhost:{self.port}'
+        return f"mongodb://localhost:{self.port}"
 
     def shutdown(self):
         if self._conn:
-            logger.info(f'Closing connection {self._conn}')
+            logger.info(f"Closing connection {self._conn}")
             self._conn.close()
             self._conn = None
         super().shutdown()
@@ -129,11 +129,11 @@ class MongoTestCase(unittest.TestCase):
         self.amdb = AmDB(self.tmp_db.uri)
 
         mongo_settings = {
-            'mongo_replicaset': None,
-            'mongo_uri': self.tmp_db.uri,
+            "mongo_replicaset": None,
+            "mongo_uri": self.tmp_db.uri,
         }
 
-        if getattr(self, 'settings', None) is None:
+        if getattr(self, "settings", None) is None:
             self.settings = mongo_settings
         else:
             self.settings.update(mongo_settings)
@@ -149,7 +149,7 @@ class MongoTestCase(unittest.TestCase):
         # Reset databases for the next test class, but do not shut down the temporary
         # mongodb instance, for efficiency reasons.
         for db_name in self.tmp_db.conn.list_database_names():
-            if db_name not in ['local', 'admin', 'config']:  # Do not drop mongo internal dbs
+            if db_name not in ["local", "admin", "config"]:  # Do not drop mongo internal dbs
                 self.tmp_db.conn.drop_database(db_name)
         self.amdb._drop_whole_collection()
         self.amdb.close()

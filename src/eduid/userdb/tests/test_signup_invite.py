@@ -18,7 +18,7 @@ class TestSignupInvite(TestCase):
             phone_numbers=[InvitePhoneNumber(number='+46071234567', primary=True)],
             nin='190102031234',
             send_email=True,
-            finish_url='https://example.com/finish',
+            finish_url="https://example.com/finish",
             completed_ts=None,
             expires_at=datetime.utcnow() + timedelta(days=180),
         )

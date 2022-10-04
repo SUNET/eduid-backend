@@ -13,26 +13,26 @@ from eduid.webapp.lookup_mobile_proofing import schemas
 from eduid.webapp.lookup_mobile_proofing.app import current_mobilep_app as current_app
 from eduid.webapp.lookup_mobile_proofing.helpers import MobileMsg, create_proofing_state, match_mobile_to_user
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
-mobile_proofing_views = Blueprint('lookup_mobile_proofing', __name__, url_prefix='', template_folder='templates')
+mobile_proofing_views = Blueprint("lookup_mobile_proofing", __name__, url_prefix="", template_folder="templates")
 
 
-@mobile_proofing_views.route('/proofing', methods=['GET'])
+@mobile_proofing_views.route("/proofing", methods=["GET"])
 @MarshalWith(EmptyResponse)
 @require_user
 def get_state(user: User) -> FluxData:
     return success_response()
 
 
-@mobile_proofing_views.route('/proofing', methods=['POST'])
+@mobile_proofing_views.route("/proofing", methods=["POST"])
 @UnmarshalWith(schemas.LookupMobileProofingRequestSchema)
 @MarshalWith(schemas.LookupMobileProofingResponseSchema)
 @can_verify_nin
 @require_user
 def proofing(user: User, nin: str) -> FluxData:
-    current_app.logger.info(f'Trying to verify nin via mobile number for user {user}.')
-    current_app.logger.debug(f'NIN: {nin}.')
+    current_app.logger.info(f"Trying to verify nin via mobile number for user {user}.")
+    current_app.logger.debug(f"NIN: {nin}.")
 
     # Add nin as not verified to the user
     proofing_state = create_proofing_state(user, nin)
@@ -46,13 +46,13 @@ def proofing(user: User, nin: str) -> FluxData:
     try:
         proofing_log_entry = match_mobile_to_user(user, nin, verified_mobiles)
     except LookupMobileTaskFailed:
-        current_app.stats.count('validate_nin_by_mobile_error')
+        current_app.stats.count("validate_nin_by_mobile_error")
         return error_response(message=MobileMsg.lookup_error)
     except NoNavetData:
-        current_app.logger.exception('No data returned from Navet')
+        current_app.logger.exception("No data returned from Navet")
         return error_response(message=CommonMsg.no_navet_data)
     except MsgTaskFailed:
-        current_app.stats.count('navet_error')
+        current_app.stats.count("navet_error")
         return error_response(message=CommonMsg.navet_error)
 
     if proofing_log_entry:
@@ -62,7 +62,7 @@ def proofing(user: User, nin: str) -> FluxData:
                 return error_response(message=CommonMsg.temp_problem)
             return success_response(message=MobileMsg.verify_success)
         except AmTaskFailed:
-            current_app.logger.exception(f'Verifying nin for user {user} failed')
+            current_app.logger.exception(f"Verifying nin for user {user} failed")
             return error_response(message=CommonMsg.temp_problem)
 
     return error_response(message=MobileMsg.no_match)

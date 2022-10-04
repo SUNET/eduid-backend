@@ -55,7 +55,7 @@ if typing.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # A distinct type for session ids
-SSOSessionId = NewType('SSOSessionId', str)
+SSOSessionId = NewType("SSOSessionId", str)
 
 
 def create_session_id() -> SSOSessionId:
@@ -93,14 +93,14 @@ class SSOSession(BaseModel):
 
     eppn: str
     authn_credentials: List[AuthnData]
-    authn_request_id: str = ''  # This should be obsolete now - used to be used to 'break' forceAuthn looping
+    authn_request_id: str = ""  # This should be obsolete now - used to be used to 'break' forceAuthn looping
     authn_timestamp: datetime = Field(default_factory=utc_now)  # TODO: probably obsolete
     created_ts: datetime = Field(default_factory=utc_now)
     expires_at: datetime = Field(default_factory=lambda: utc_now() + timedelta(minutes=5))
     # TODO: should be obsolete now, everything in here should also be available in authn_credentials
     #       (AuthnData.external), stored per credential instead of once per session.
     external_mfa: Optional[ExternalMfaData] = None
-    obj_id: ObjectId = Field(default_factory=ObjectId, alias='_id')
+    obj_id: ObjectId = Field(default_factory=ObjectId, alias="_id")
     session_id: SSOSessionId = Field(default_factory=create_session_id)
 
     class Config:
@@ -109,17 +109,17 @@ class SSOSession(BaseModel):
 
     def __str__(self) -> str:
         # Session id allows impersonation if leaked, so only log a small part of it
-        short_sessionid = self.session_id[:6] + '...'
+        short_sessionid = self.session_id[:6] + "..."
         return (
-            f'<{self.__class__.__name__}: _id={self.obj_id}, session_id={short_sessionid}, eppn={self.eppn}, '
-            f'created={self.created_ts.isoformat()}, authn_ts={self.authn_timestamp.isoformat()}, '
-            f'expires_at={self.expires_at.isoformat()}, age={self.age}>'
+            f"<{self.__class__.__name__}: _id={self.obj_id}, session_id={short_sessionid}, eppn={self.eppn}, "
+            f"created={self.created_ts.isoformat()}, authn_ts={self.authn_timestamp.isoformat()}, "
+            f"expires_at={self.expires_at.isoformat()}, age={self.age}>"
         )
 
     def to_dict(self) -> Dict[str, Any]:
         """Return the object in dict format (serialized for storing in MongoDB)."""
         res = self.dict()
-        res['_id'] = res.pop('obj_id')
+        res["_id"] = res.pop("obj_id")
         return res
 
     @classmethod
@@ -133,7 +133,7 @@ class SSOSession(BaseModel):
         Return a identifier for this session that can't be used to hijack sessions
         if leaked through a log file etc.
         """
-        return f'{self.eppn}.{self.created_ts.replace(microsecond=0).isoformat()}'
+        return f"{self.eppn}.{self.created_ts.replace(microsecond=0).isoformat()}"
 
     @property
     def age(self) -> timedelta:
@@ -143,7 +143,7 @@ class SSOSession(BaseModel):
     def add_authn_credential(self, authn: AuthnData) -> None:
         """Add information about a credential successfully used in this session."""
         if not isinstance(authn, AuthnData):
-            raise ValueError(f'data should be AuthnData (not {type(authn)})')
+            raise ValueError(f"data should be AuthnData (not {type(authn)})")
 
         # Store only the latest use of a particular credential.
         _creds: Dict[ElementKey, AuthnData] = {x.cred_id: x for x in self.authn_credentials}
@@ -169,7 +169,7 @@ def record_authentication(
         sso_session = SSOSession(authn_request_id=ticket.request_id, eppn=eppn, authn_credentials=[])
 
     if sso_session.eppn != eppn:
-        raise RuntimeError(f'Not storing authn for user {eppn} in SSO session for user {sso_session.eppn}')
+        raise RuntimeError(f"Not storing authn for user {eppn} in SSO session for user {sso_session.eppn}")
 
     for this in credentials:
         sso_session.add_authn_credential(this)
@@ -194,16 +194,16 @@ def get_sso_session() -> Optional[SSOSession]:
 
     session = _lookup_sso_session(sso_sessions)
     if session:
-        logger.debug(f'SSO session found in the database: {session}')
+        logger.debug(f"SSO session found in the database: {session}")
         _age = session.age
         if _age > sso_session_lifetime:
-            logger.debug(f'SSO session expired (age {_age} > {sso_session_lifetime})')
+            logger.debug(f"SSO session expired (age {_age} > {sso_session_lifetime})")
             return None
-        logger.debug(f'SSO session is still valid (age {_age} <= {sso_session_lifetime})')
+        logger.debug(f"SSO session is still valid (age {_age} <= {sso_session_lifetime})")
     return session
 
 
-def _lookup_sso_session(sso_sessions: 'SSOSessionCache') -> Optional[SSOSession]:
+def _lookup_sso_session(sso_sessions: "SSOSessionCache") -> Optional[SSOSession]:
     """
     See if a SSO session exists for this request, and return the data about
     the currently logged in user from the session store.
@@ -215,28 +215,28 @@ def _lookup_sso_session(sso_sessions: 'SSOSessionCache') -> Optional[SSOSession]
     _session_id = get_sso_session_id()
     if _session_id:
         _sso = sso_sessions.get_session(_session_id)
-        logger.debug(f'Looked up SSO session using session ID {repr(_session_id)}: {_sso}')
+        logger.debug(f"Looked up SSO session using session ID {repr(_session_id)}: {_sso}")
 
     if not _sso:
-        logger.debug('SSO session not found using IdP SSO cookie')
+        logger.debug("SSO session not found using IdP SSO cookie")
 
         if session.idp.sso_cookie_val is not None:
             # Debug issues with browsers not returning updated SSO cookie values.
             # Only log partial cookie value since it allows impersonation if leaked.
             _other_session_id = SSOSessionId(session.idp.sso_cookie_val)
             logger.debug(
-                'Found potential sso_cookie_val in the eduID session: ' f'({session.idp.sso_cookie_val[:8]}...)'
+                "Found potential sso_cookie_val in the eduID session: " f"({session.idp.sso_cookie_val[:8]}...)"
             )
             _other_sso = sso_sessions.get_session(_other_session_id)
             if _other_sso is not None:
-                logger.info(f'Found no SSO session, but found one from session.idp.sso_cookie_val: {_other_sso}')
+                logger.info(f"Found no SSO session, but found one from session.idp.sso_cookie_val: {_other_sso}")
 
         if session.common.eppn:
             for this in sso_sessions.get_sessions_for_user(session.common.eppn):
-                logger.info(f'Found no SSO session, but found SSO session for user {session.common.eppn}: {this}')
+                logger.info(f"Found no SSO session, but found SSO session for user {session.common.eppn}: {this}")
 
         return None
-    logger.debug(f'Loaded SSO session {_sso}')
+    logger.debug(f"Loaded SSO session {_sso}")
     return _sso
 
 
@@ -253,5 +253,5 @@ def get_sso_session_id() -> Optional[SSOSessionId]:
     _session_id = read_cookie(current_app.conf.sso_cookie.key)
     if not _session_id:
         return None
-    logger.debug(f'Got SSO session ID from IdP SSO cookie {repr(_session_id)}')
+    logger.debug(f"Got SSO session ID from IdP SSO cookie {repr(_session_id)}")
     return SSOSessionId(_session_id)

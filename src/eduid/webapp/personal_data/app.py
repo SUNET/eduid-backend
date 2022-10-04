@@ -57,18 +57,18 @@ class PersonalDataApp(AuthnBaseApp):
 current_pdata_app: PersonalDataApp = cast(PersonalDataApp, current_app)
 
 
-def pd_init_app(name: str = 'personal_data', test_config: Optional[Mapping[str, Any]] = None) -> PersonalDataApp:
+def pd_init_app(name: str = "personal_data", test_config: Optional[Mapping[str, Any]] = None) -> PersonalDataApp:
     """
     Create an instance of an eduid personal data app.
 
     :param name: The name of the instance, it will affect the configuration loaded.
     :param test_config: Override config, used in test cases.
     """
-    config = load_config(typ=PersonalDataConfig, app_name=name, ns='webapp', test_config=test_config)
+    config = load_config(typ=PersonalDataConfig, app_name=name, ns="webapp", test_config=test_config)
 
     app = PersonalDataApp(config)
 
-    app.logger.info(f'Init {app}...')
+    app.logger.info(f"Init {app}...")
 
     from eduid.webapp.personal_data.views import pd_views
 

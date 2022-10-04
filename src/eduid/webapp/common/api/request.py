@@ -243,7 +243,7 @@ class SanitizedEnvironHeaders(EnvironHeaders, SanitationMixin):
     def __init__(self, environ):
         # set content type from environ at init so we don't get in to an infinite recursion
         # when sanitize_input tries to look it up later
-        self.content_type = environ.get('CONTENT_TYPE')
+        self.content_type = environ.get("CONTENT_TYPE")
         super().__init__(environ=environ)
 
     def __getitem__(self, key: str, _get_mode: bool = False) -> str:
@@ -282,5 +282,5 @@ class Request(FlaskRequest, SanitationMixin):
         if text:
             text = self.sanitize_input(text)
         if text is None:
-            text = ''
+            text = ""
         return text

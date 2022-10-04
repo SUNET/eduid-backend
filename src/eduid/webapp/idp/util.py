@@ -46,10 +46,10 @@ logger = logging.getLogger(__name__)
 
 def b64encode(source: Union[str, bytes]) -> str:
     if isinstance(source, str):
-        _source = bytes(source, 'utf-8')
+        _source = bytes(source, "utf-8")
     else:
         _source = source
-    return base64.b64encode(_source).decode('utf-8')
+    return base64.b64encode(_source).decode("utf-8")
 
 
 def maybe_xml_to_string(message: Union[str, bytes]) -> str:
@@ -65,7 +65,7 @@ def maybe_xml_to_string(message: Union[str, bytes]) -> str:
     """
     if isinstance(message, bytes):
         # message is returned as binary from pysaml2 in python3
-        message = message.decode('utf-8')
+        message = message.decode("utf-8")
     try:
         from defusedxml import ElementTree as DefusedElementTree
 
@@ -74,17 +74,17 @@ def maybe_xml_to_string(message: Union[str, bytes]) -> str:
         _xml = DefusedElementTree.tostring(xml)
         if not isinstance(_xml, bytes):
             # how odd for a function called tostring to not return a string...
-            raise ValueError('DefusedElementTree.tostring() did not return bytes')
-        return _xml.decode('utf-8')
+            raise ValueError("DefusedElementTree.tostring() did not return bytes")
+        return _xml.decode("utf-8")
     except Exception:
-        logger.exception(f'Could not parse message of type {type(message)!r} as XML')
+        logger.exception(f"Could not parse message of type {type(message)!r} as XML")
         return message
 
 
 class IPProximity(str, Enum):
-    SAME = 'SAME'
-    NEAR = 'NEAR'
-    FAR = 'FAR'
+    SAME = "SAME"
+    NEAR = "NEAR"
+    FAR = "FAR"
 
 
 def get_ip_proximity(a: str, b: str) -> IPProximity:
@@ -96,22 +96,22 @@ def get_ip_proximity(a: str, b: str) -> IPProximity:
     """
     ip_a = ipaddress.ip_address(a)
     ip_b = ipaddress.ip_address(b)
-    logger.debug(f'Checking proximity of IP {ip_a} and {ip_b}')
-    logger.debug(f'Checking proximity of IP {ip_a!r} and {ip_b!r}')
+    logger.debug(f"Checking proximity of IP {ip_a} and {ip_b}")
+    logger.debug(f"Checking proximity of IP {ip_a!r} and {ip_b!r}")
     if ip_a == ip_b:
-        logger.debug(f'IP addresses {ip_a} and {ip_b} deemed to be SAME')
+        logger.debug(f"IP addresses {ip_a} and {ip_b} deemed to be SAME")
         return IPProximity.SAME
     if isinstance(ip_a, ipaddress.IPv4Address) and isinstance(ip_a, ipaddress.IPv4Address):
         net_a = ipaddress.ip_network(str(ip_a) + "/16", strict=False)
         if ip_b in net_a:
-            logger.debug(f'IP addresses {ip_a} and {ip_b} deemed to be NEAR')
+            logger.debug(f"IP addresses {ip_a} and {ip_b} deemed to be NEAR")
             return IPProximity.NEAR
     if isinstance(ip_a, ipaddress.IPv6Address) and isinstance(ip_a, ipaddress.IPv6Address):
         net_a = ipaddress.ip_network(str(ip_a) + "/48", strict=False)
         if ip_b in net_a:
-            logger.debug(f'IP addresses {ip_a} and {ip_b} deemed to be NEAR')
+            logger.debug(f"IP addresses {ip_a} and {ip_b} deemed to be NEAR")
             return IPProximity.NEAR
-    logger.debug(f'IP addresses {ip_a} and {ip_b} deemed to be FAR')
+    logger.debug(f"IP addresses {ip_a} and {ip_b} deemed to be FAR")
     return IPProximity.FAR
 
 

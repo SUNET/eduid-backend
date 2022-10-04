@@ -53,12 +53,12 @@ class ToUEvent(Event):
     created_by: str
     version: str
 
-    @validator('version')
+    @validator("version")
     def _validate_tou_version(cls, v):
         if not v:
-            raise ValueError('ToU must have a version')
+            raise ValueError("ToU must have a version")
         if not isinstance(v, str):
-            raise TypeError('ToU version must be a string')
+            raise TypeError("ToU version must be a string")
         return v
 
     @classmethod
@@ -66,11 +66,11 @@ class ToUEvent(Event):
         """ """
         data = super()._from_dict_transform(data)
 
-        if 'event_type' not in data:
-            data['event_type'] = 'tou_event'
+        if "event_type" not in data:
+            data["event_type"] = "tou_event"
 
-        if 'event_id' in data and isinstance(data['event_id'], ObjectId):
-            data['event_id'] = str(data['event_id'])
+        if "event_id" in data and isinstance(data["event_id"], ObjectId):
+            data["event_id"] = str(data["event_id"])
 
         return data
 
@@ -83,7 +83,7 @@ class ToUEvent(Event):
         if not isinstance(self.modified_ts, datetime.datetime):
             if self.modified_ts is None:
                 return False
-            raise UserDBValueError(f'Malformed modified_ts: {self.modified_ts!r}')
+            raise UserDBValueError(f"Malformed modified_ts: {self.modified_ts!r}")
         delta = datetime.timedelta(seconds=interval_seconds)
         expiry_date = self.modified_ts + delta
         return expiry_date < utc_now()
@@ -109,11 +109,11 @@ class ToUList(EventList[ToUEvent]):
         :param reaccept_interval: Time between accepting and the need to reaccept (default 3 years)
         """
         # All users have implicitly accepted the first ToU version (info stored in another collection)
-        if version in ['2014-v1', '2014-dev-v1']:
+        if version in ["2014-v1", "2014-dev-v1"]:
             return True
         for this in self.elements:
             if not isinstance(this, ToUEvent):
-                raise UserDBValueError(f'Event {repr(this)} is not of type ToUEvent')
+                raise UserDBValueError(f"Event {repr(this)} is not of type ToUEvent")
 
             if this.version == version and not this.is_expired(interval_seconds=reaccept_interval):
                 return True

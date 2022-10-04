@@ -11,7 +11,7 @@ from marshmallow import Schema, ValidationError, fields, post_load, pre_dump, va
 from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid.webapp.common.session import session
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 logger = logging.getLogger(__name__)
 
@@ -20,30 +20,30 @@ class CSRFRequestMixin(Schema):
 
     csrf_token = fields.String(required=True)
 
-    @validates('csrf_token')
+    @validates("csrf_token")
     def validate_csrf_token(self, value, **kwargs):
-        custom_header = request.headers.get('X-Requested-With')
-        if custom_header != 'XMLHttpRequest':  # TODO: move value to config
-            current_app.logger.error('CSRF check: missing custom X-Requested-With header')
-            raise ValidationError('CSRF missing custom X-Requested-With header')
-        origin = request.headers.get('Origin', None)
+        custom_header = request.headers.get("X-Requested-With")
+        if custom_header != "XMLHttpRequest":  # TODO: move value to config
+            current_app.logger.error("CSRF check: missing custom X-Requested-With header")
+            raise ValidationError("CSRF missing custom X-Requested-With header")
+        origin = request.headers.get("Origin", None)
         if origin is None:
-            origin = request.headers.get('Referer', None)
+            origin = request.headers.get("Referer", None)
         if origin is None:
-            current_app.logger.error('CSRF check: No Origin or Referer')
-            raise ValidationError('CSRF cannot check origin')
+            current_app.logger.error("CSRF check: No Origin or Referer")
+            raise ValidationError("CSRF cannot check origin")
         origin = origin.split()[0]
         origin = urlsplit(origin).hostname
-        target = request.headers.get('X-Forwarded-Host', None)
+        target = request.headers.get("X-Forwarded-Host", None)
         if target is None:
-            current_app.logger.error('CSRF check: The X-Forwarded-Host header is missing')
-            raise ValidationError('CSRF cannot check target')
-        target = target.split(':')[0]
+            current_app.logger.error("CSRF check: The X-Forwarded-Host header is missing")
+            raise ValidationError("CSRF cannot check target")
+        target = target.split(":")[0]
         if origin != target:
-            raise ValidationError(f'CSRF cross origin request, origin: {origin}, target: {target}')
+            raise ValidationError(f"CSRF cross origin request, origin: {origin}, target: {target}")
         if session.get_csrf_token() != value:
-            raise ValidationError('CSRF failed to validate')
-        logger.debug(f'Validated CSRF token in session: {session.get_csrf_token()}')
+            raise ValidationError("CSRF failed to validate")
+        logger.debug(f"Validated CSRF token in session: {session.get_csrf_token()}")
 
     @post_load
     def post_processing(self, in_data, **kwargs):
@@ -53,7 +53,7 @@ class CSRFRequestMixin(Schema):
 
     @staticmethod
     def remove_csrf_token(in_data, **kwargs):
-        del in_data['csrf_token']
+        del in_data["csrf_token"]
         return in_data
 
 
@@ -64,7 +64,7 @@ class CSRFResponseMixin(Schema):
     @pre_dump
     def get_csrf_token(self, out_data, **kwargs):
         # Generate a new csrf token for every response
-        out_data['csrf_token'] = session.new_csrf_token()
+        out_data["csrf_token"] = session.new_csrf_token()
         logger.debug(f'Generated new CSRF token in CSRFResponseMixin: {out_data["csrf_token"]}')
         return out_data
 

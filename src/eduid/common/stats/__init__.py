@@ -11,7 +11,7 @@ Example usage in some view:
 
 """
 
-__author__ = 'ft'
+__author__ = "ft"
 
 from abc import ABC, abstractmethod
 
@@ -42,14 +42,14 @@ class NoOpStats(AppStats):
     def count(self, name: str, value: int = 1) -> None:
         if self.logger:
             if self.prefix:
-                name = '{!s}.{!s}'.format(self.prefix, name)
-            self.logger.info('No-op stats count: {!r} {!r}'.format(name, value))
+                name = "{!s}.{!s}".format(self.prefix, name)
+            self.logger.info("No-op stats count: {!r} {!r}".format(name, value))
 
     def gauge(self, name: str, value: int, rate=1, delta=False):
         if self.logger:
             if self.prefix:
-                name = '{!s}.{!s}'.format(self.prefix, name)
-            self.logger.info(f'No-op stats gauge: {name} {value}')
+                name = "{!s}.{!s}".format(self.prefix, name)
+            self.logger.info(f"No-op stats gauge: {name} {value}")
 
 
 class Statsd(AppStats):
@@ -59,13 +59,13 @@ class Statsd(AppStats):
         self.client = statsd.StatsClient(host, port, prefix=prefix)
 
     def count(self, name: str, value: int = 1) -> None:
-        self.client.incr(f'{name}.average', count=value)
+        self.client.incr(f"{name}.average", count=value)
         # You need to set up a storage aggregation that uses sum instead of the default average
         # for .count
-        self.client.incr(f'{name}.count', count=value)
+        self.client.incr(f"{name}.count", count=value)
 
     def gauge(self, name: str, value: int, rate=1, delta=False):
-        self.client.gauge(f'{name}.gauge', value=value, rate=rate, delta=delta)
+        self.client.gauge(f"{name}.gauge", value=value, rate=rate, delta=delta)
 
 
 def init_app_stats(config: StatsConfigMixin) -> AppStats:

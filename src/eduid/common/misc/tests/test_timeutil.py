@@ -9,4 +9,4 @@ class TimeUtilTests(unittest.TestCase):
         t2 = utc_now()
         assert t2 > t1
 
-        assert str(t1).endswith('+00:00')
+        assert str(t1).endswith("+00:00")

@@ -33,7 +33,7 @@ from marshmallow import Schema, fields
 from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 
-__author__ = 'ft'
+__author__ = "ft"
 
 
 class IdPRequest(EduidSchema, CSRFRequestMixin):

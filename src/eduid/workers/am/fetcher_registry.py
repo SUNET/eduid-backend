@@ -11,12 +11,12 @@ from eduid.workers.am.ams import AttributeFetcher
 
 
 class AFRegistry:
-    '''
+    """
     Registry for attribute fetchers.
     Attribute fetchers are subclasses of eduid.workers.am.ams.common.AttributeFetcher,
     that have (non pep8) names that coincide with those the different eduid_ apps,
     and reside in eduid.workers.am.ams
-    '''
+    """
 
     def __init__(self):
         self._fetchers: Dict[str, AttributeFetcher] = {}
@@ -30,7 +30,7 @@ class AFRegistry:
 
                 self.add_fetcher(key, af_class(AmCelerySingleton.worker_config))
             else:
-                raise KeyError(f'Trying to fetch attributes from unknown db: {key}')
+                raise KeyError(f"Trying to fetch attributes from unknown db: {key}")
         return self._fetchers[key]
 
     def add_fetcher(self, name: str, fetcher: AttributeFetcher) -> None:

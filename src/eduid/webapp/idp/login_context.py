@@ -41,7 +41,7 @@ class LoginContext(ABC, BaseModel):
         underscore_attrs_are_private = True  # needed for the underscore attributes to be inherited to subclasses
 
     def __str__(self) -> str:
-        return f'<{self.__class__.__name__}: key={self.request_ref}>'
+        return f"<{self.__class__.__name__}: key={self.request_ref}>"
 
     @property
     def pending_request(self) -> IdP_PendingRequest:
@@ -50,47 +50,47 @@ class LoginContext(ABC, BaseModel):
 
             pending_request = session.idp.pending_requests.get(self.request_ref)
             if not pending_request:
-                raise RuntimeError(f'No pending request with ref {self.request_ref} found in session')
+                raise RuntimeError(f"No pending request with ref {self.request_ref} found in session")
             self._pending_request = pending_request
 
         return self._pending_request
 
     @property
     def request_id(self) -> Optional[str]:
-        raise NotImplementedError('Subclass must implement request_id')
+        raise NotImplementedError("Subclass must implement request_id")
 
     @property
     def authn_contexts(self) -> List[str]:
-        raise NotImplementedError('Subclass must implement authn_contexts')
+        raise NotImplementedError("Subclass must implement authn_contexts")
 
     @property
     def reauthn_required(self) -> bool:
-        raise NotImplementedError('Subclass must implement reauthn_required')
+        raise NotImplementedError("Subclass must implement reauthn_required")
 
     @property
     def service_requested_eppn(self) -> Optional[str]:
         """The eppn of the user the service (e.g. SAML SP) requests logs in"""
-        raise NotImplementedError('Subclass must implement service_requested_eppn')
+        raise NotImplementedError("Subclass must implement service_requested_eppn")
 
     @property
     def service_info(self) -> Optional[ServiceInfo]:
         """Information about the service where the user is logging in"""
-        raise NotImplementedError('Subclass must implement service_requested_eppn')
+        raise NotImplementedError("Subclass must implement service_requested_eppn")
 
     @property
     def other_device_state_id(self) -> Optional[OtherDeviceId]:
         """Get the state_id for the OtherDevice state, if the user wants to log in using another device."""
-        raise NotImplementedError('Subclass must implement other_device_state_id')
+        raise NotImplementedError("Subclass must implement other_device_state_id")
 
     @property
     def is_other_device_1(self) -> bool:
         """Check if this is a request to log in on another device (specifically device #1)."""
-        raise NotImplementedError('Subclass must implement is_other_device_1')
+        raise NotImplementedError("Subclass must implement is_other_device_1")
 
     @property
     def is_other_device_2(self) -> bool:
         """Check if this is a request to log in on another device (specifically device #2)."""
-        raise NotImplementedError('Subclass must implement is_other_device_2')
+        raise NotImplementedError("Subclass must implement is_other_device_2")
 
     def set_other_device_state(self, state_id: Optional[OtherDeviceId]) -> None:
         if isinstance(self.pending_request, IdP_SAMLPendingRequest):
@@ -98,10 +98,10 @@ class LoginContext(ABC, BaseModel):
         elif isinstance(self.pending_request, IdP_OtherDevicePendingRequest):
             self.pending_request.state_id = None
         else:
-            raise TypeError(f'Can\'t set other_device on pending request of type {type(self.pending_request)}')
+            raise TypeError(f"Can't set other_device on pending request of type {type(self.pending_request)}")
 
     def get_requested_authn_context(self) -> Optional[EduidAuthnContextClass]:
-        raise NotImplementedError('Subclass must implement get_requested_authn_context')
+        raise NotImplementedError("Subclass must implement get_requested_authn_context")
 
     @property
     def known_device(self) -> Optional[KnownDevice]:
@@ -118,41 +118,41 @@ class LoginContext(ABC, BaseModel):
         self.known_device_info = None
 
 
-TLoginContextSubclass = TypeVar('TLoginContextSubclass', bound='LoginContext')
+TLoginContextSubclass = TypeVar("TLoginContextSubclass", bound="LoginContext")
 
 
 class LoginContextSAML(LoginContext):
 
-    _saml_req: Optional['IdP_SAMLRequest'] = None
+    _saml_req: Optional["IdP_SAMLRequest"] = None
 
     @property
     def SAMLRequest(self) -> str:
         pending = self.pending_request
         if not isinstance(pending, IdP_SAMLPendingRequest):
-            raise ValueError('Pending request not initialised (or not a SAML request)')
+            raise ValueError("Pending request not initialised (or not a SAML request)")
         if not isinstance(pending.request, str):
-            raise ValueError('pending_request.request not initialised')
+            raise ValueError("pending_request.request not initialised")
         return pending.request
 
     @property
     def RelayState(self) -> str:
         pending = self.pending_request
         if not isinstance(pending, IdP_SAMLPendingRequest):
-            raise ValueError('Pending request not initialised (or not a SAML request)')
-        return pending.relay_state or ''
+            raise ValueError("Pending request not initialised (or not a SAML request)")
+        return pending.relay_state or ""
 
     @property
     def binding(self) -> str:
         pending = self.pending_request
         if not isinstance(pending, IdP_SAMLPendingRequest):
-            raise ValueError('Pending request not initialised (or not a SAML request)')
+            raise ValueError("Pending request not initialised (or not a SAML request)")
         if not isinstance(pending.binding, str):
-            raise ValueError('pending_request.binding not initialised')
+            raise ValueError("pending_request.binding not initialised")
         return pending.binding
 
     @property
     def query_string(self) -> str:
-        qs = {'SAMLRequest': self.SAMLRequest, 'RelayState': self.RelayState}
+        qs = {"SAMLRequest": self.SAMLRequest, "RelayState": self.RelayState}
         return urlencode(qs)
 
     @property
@@ -187,10 +187,10 @@ class LoginContextSAML(LoginContext):
             # avoid circular import
             from eduid.webapp.idp.app import current_idp_app as current_app
 
-            logger.debug(f'Login subject: {_login_subject}')
+            logger.debug(f"Login subject: {_login_subject}")
 
             if self.saml_req.sp_entity_id not in current_app.conf.request_subject_allowed_entity_ids:
-                logger.info(f'SP {self.saml_req.sp_entity_id} not allowed to request login subject')
+                logger.info(f"SP {self.saml_req.sp_entity_id} not allowed to request login subject")
                 return None
 
             res = _login_subject
@@ -207,7 +207,7 @@ class LoginContextSAML(LoginContext):
         _info = self.saml_req.service_info
         if not _info:
             return None
-        return ServiceInfo(display_name=_info.get('display_name', {}))
+        return ServiceInfo(display_name=_info.get("display_name", {}))
 
     @property
     def other_device_state_id(self) -> Optional[OtherDeviceId]:
@@ -244,17 +244,17 @@ class LoginContextSAML(LoginContext):
         res = _pick_authn_context(self.authn_contexts, self.request_ref)
 
         attributes = self.saml_req.sp_entity_attributes
-        if 'http://www.swamid.se/assurance-requirement' in attributes:
+        if "http://www.swamid.se/assurance-requirement" in attributes:
             # TODO: This is probably obsolete and not present anywhere in SWAMID metadata anymore
-            new_authn = _pick_authn_context(attributes['http://www.swamid.se/assurance-requirement'], self.request_ref)
+            new_authn = _pick_authn_context(attributes["http://www.swamid.se/assurance-requirement"], self.request_ref)
             logger.debug(
-                f'Entity {self.saml_req.sp_entity_id} has AuthnCtx preferences in metadata. '
-                f'Overriding {res} -> {new_authn}'
+                f"Entity {self.saml_req.sp_entity_id} has AuthnCtx preferences in metadata. "
+                f"Overriding {res} -> {new_authn}"
             )
             try:
                 res = EduidAuthnContextClass(new_authn)
             except ValueError:
-                logger.debug(f'Ignoring unknown authnContextClassRef found in metadata: {new_authn}')
+                logger.debug(f"Ignoring unknown authnContextClassRef found in metadata: {new_authn}")
         return res
 
 
@@ -318,14 +318,14 @@ class LoginContextOtherDevice(LoginContext):
 
 def _pick_authn_context(accrs: Sequence[str], log_tag: str) -> Optional[EduidAuthnContextClass]:
     if len(accrs) > 1:
-        logger.warning(f'{log_tag}: More than one authnContextClassRef, using the first recognised: {accrs}')
+        logger.warning(f"{log_tag}: More than one authnContextClassRef, using the first recognised: {accrs}")
     # first, select the ones recognised by this IdP
     known = []
     for x in accrs:
         try:
             known += [EduidAuthnContextClass(x)]
         except ValueError:
-            logger.debug(f'Ignoring unknown authnContextClassRef: {x}')
+            logger.debug(f"Ignoring unknown authnContextClassRef: {x}")
     if not known:
         return None
     # TODO: Pick the most applicable somehow, not just the first one in the list

@@ -9,15 +9,15 @@ from eduid.queue.db.message import EduidInviteEmail, EduidSignupEmail, MessageDB
 from eduid.queue.db.queue_item import QueueItem, SenderInfo
 from eduid.queue.testing import EduidQueueTestCase
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class TestClient(TestCase):
     def test_queue_item(self):
         expires_at = utc_now() + timedelta(days=180)
         discard_at = expires_at + timedelta(days=7)
-        sender_info = SenderInfo(hostname='testhost', node_id='userdb@testhost')
-        payload = TestPayload(message='this is a test payload')
+        sender_info = SenderInfo(hostname="testhost", node_id="userdb@testhost")
+        payload = TestPayload(message="this is a test payload")
         item = QueueItem(
             version=1,
             expires_at=expires_at,
@@ -50,12 +50,12 @@ class TestMessage(TestCase):
     def test_eduid_invite_mail(self):
 
         payload = EduidInviteEmail(
-            email='mail@example.com',
-            reference='ref_id',
-            invite_link='https://signup.example.com/abc123',
-            invite_code='abc123',
-            inviter_name='Test Application',
-            language='sv',
+            email="mail@example.com",
+            reference="ref_id",
+            invite_link="https://signup.example.com/abc123",
+            invite_code="abc123",
+            inviter_name="Test Application",
+            language="sv",
         )
         item = self._create_queue_item(payload=payload)
         loaded_message_dict = QueueItem.from_dict(item.to_dict()).to_dict()
@@ -86,7 +86,7 @@ class TestMessageDB(EduidQueueTestCase):
 
         self.expires_at = utc_now() + timedelta(hours=2)
         self.discard_at = self.expires_at + timedelta(days=7)
-        self.sender_info = SenderInfo(hostname='testhost', node_id='userdb@testhost')
+        self.sender_info = SenderInfo(hostname="testhost", node_id="userdb@testhost")
 
     def tearDown(self):
         super().tearDown()
@@ -103,7 +103,7 @@ class TestMessageDB(EduidQueueTestCase):
         )
 
     def test_save_load(self):
-        payload = TestPayload(message='this is a test payload')
+        payload = TestPayload(message="this is a test payload")
         item = self._create_queue_item(payload)
         self.messagedb.save(item)
         assert 1 == self.messagedb.db_count()
@@ -114,7 +114,7 @@ class TestMessageDB(EduidQueueTestCase):
         assert normalised_data(item.to_dict()) == normalised_data(loaded_item.to_dict())
 
     def test_save_load_raw_payload(self):
-        payload = TestPayload(message='this is a test payload')
+        payload = TestPayload(message="this is a test payload")
         item = self._create_queue_item(payload)
         self.messagedb.save(item)
         assert 1 == self.messagedb.db_count()
@@ -130,12 +130,12 @@ class TestMessageDB(EduidQueueTestCase):
 
     def test_save_load_eduid_email_invite(self):
         payload = EduidInviteEmail(
-            email='mail@example.com',
-            reference='ref_id',
-            invite_link='https://signup.example.com/abc123',
-            invite_code='abc123',
-            inviter_name='Test Application',
-            language='sv',
+            email="mail@example.com",
+            reference="ref_id",
+            invite_link="https://signup.example.com/abc123",
+            invite_code="abc123",
+            inviter_name="Test Application",
+            language="sv",
         )
         item = self._create_queue_item(payload)
         self.messagedb.save(item)
@@ -161,11 +161,11 @@ class TestMessageDB(EduidQueueTestCase):
         assert normalised_data(item.to_dict()) == normalised_data(loaded_item.to_dict())
         assert normalised_data(item.payload.to_dict()), normalised_data(loaded_item.payload.to_dict())
 
-    @skip('It takes mongo a couple of seconds to actually remove the document, skip for now.')
+    @skip("It takes mongo a couple of seconds to actually remove the document, skip for now.")
     # TODO: Investigate if it is possible to force a expire check in mongodb
     def test_auto_discard(self):
         self.discard_at = utc_now() - timedelta(seconds=-10)
-        payload = TestPayload(message='this is a test payload')
+        payload = TestPayload(message="this is a test payload")
         item = self._create_queue_item(payload)
         self.messagedb.save(item)
         assert 0 == self.messagedb.db_count()

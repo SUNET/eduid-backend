@@ -40,7 +40,7 @@ from eduid.webapp.eidas.helpers import (
     staging_nin_remap,
 )
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 from eduid.webapp.eidas.schemas import (
     EidasCommonRequestSchema,
@@ -50,10 +50,10 @@ from eduid.webapp.eidas.schemas import (
     EidasVerifyCredentialRequestSchema,
 )
 
-eidas_views = Blueprint('eidas', __name__, url_prefix='')
+eidas_views = Blueprint("eidas", __name__, url_prefix="")
 
 
-@eidas_views.route('/', methods=['GET'])
+@eidas_views.route("/", methods=["GET"])
 @MarshalWith(EmptyResponse)
 @require_user
 def index(user: User) -> FluxData:
@@ -61,7 +61,7 @@ def index(user: User) -> FluxData:
 
 
 # get_status to not get tangled up in /status/healthy and the like
-@eidas_views.route('/get_status', methods=['POST'])
+@eidas_views.route("/get_status", methods=["POST"])
 @UnmarshalWith(EidasStatusRequestSchema)
 @MarshalWith(EidasStatusResponseSchema)
 def get_status(authn_id: AuthnRequestRef) -> FluxData:
@@ -70,34 +70,34 @@ def get_status(authn_id: AuthnRequestRef) -> FluxData:
         return error_response(message=EidasMsg.not_found)
 
     payload = {
-        'frontend_action': authn.frontend_action,
-        'frontend_state': authn.frontend_state,
-        'method': authn.method,
-        'error': bool(authn.error),
+        "frontend_action": authn.frontend_action,
+        "frontend_state": authn.frontend_state,
+        "method": authn.method,
+        "error": bool(authn.error),
     }
     if authn.status is not None:
-        payload['status'] = authn.status
+        payload["status"] = authn.status
 
     return success_response(payload=payload)
 
 
-@eidas_views.route('/verify-credential', methods=['POST'])
+@eidas_views.route("/verify-credential", methods=["POST"])
 @UnmarshalWith(EidasVerifyCredentialRequestSchema)
 @MarshalWith(EidasCommonResponseSchema)
 @require_user
 def verify_credential(
     user: User, method: str, credential_id: ElementKey, frontend_action: str, frontend_state: Optional[str] = None
 ) -> FluxData:
-    current_app.logger.debug(f'verify-credential called with credential_id: {credential_id}')
+    current_app.logger.debug(f"verify-credential called with credential_id: {credential_id}")
 
     # verify that the user has the credential and that it was used for login recently
     ret = check_credential_to_verify(user=user, credential_id=credential_id)
-    current_app.logger.debug(f'Credential check result: {ret}')
+    current_app.logger.debug(f"Credential check result: {ret}")
     if not ret.verified_ok:
-        current_app.logger.info(f'Can\'t proceed with verify-credential at this time: {ret.message}')
-        current_app.logger.debug(f'Can\'t proceed with verify-credential at this time: {ret}')
+        current_app.logger.info(f"Can't proceed with verify-credential at this time: {ret.message}")
+        current_app.logger.debug(f"Can't proceed with verify-credential at this time: {ret}")
         if ret.location:
-            return success_response(payload={'location': ret.location}, message=ret.message)
+            return success_response(payload={"location": ret.location}, message=ret.message)
         return error_response(message=ret.message)
 
     result = _authn(
@@ -111,15 +111,15 @@ def verify_credential(
     if result.error:
         return error_response(message=result.error)
 
-    return success_response(payload={'location': result.url})
+    return success_response(payload={"location": result.url})
 
 
-@eidas_views.route('/verify-identity', methods=['POST'])
+@eidas_views.route("/verify-identity", methods=["POST"])
 @UnmarshalWith(EidasCommonRequestSchema)
 @MarshalWith(EidasCommonResponseSchema)
 @require_user
 def verify_identity(user: User, method: str, frontend_action: str, frontend_state: Optional[str] = None) -> FluxData:
-    current_app.logger.debug(f'verify-identity called for method {method}')
+    current_app.logger.debug(f"verify-identity called for method {method}")
 
     result = _authn(
         EidasAcsAction.verify_identity,
@@ -131,14 +131,14 @@ def verify_identity(user: User, method: str, frontend_action: str, frontend_stat
     if result.error:
         return error_response(message=result.error)
 
-    return success_response(payload={'location': result.url})
+    return success_response(payload={"location": result.url})
 
 
-@eidas_views.route('/mfa-authenticate', methods=['POST'])
+@eidas_views.route("/mfa-authenticate", methods=["POST"])
 @UnmarshalWith(EidasCommonRequestSchema)
 @MarshalWith(EidasCommonResponseSchema)
 def mfa_authentication(method: str, frontend_action: str, frontend_state: Optional[str] = None) -> FluxData:
-    current_app.logger.debug('mfa-authenticate called')
+    current_app.logger.debug("mfa-authenticate called")
 
     result = _authn(
         EidasAcsAction.mfa_authenticate,
@@ -150,7 +150,7 @@ def mfa_authentication(method: str, frontend_action: str, frontend_state: Option
     if result.error:
         return error_response(message=result.error)
 
-    return success_response(payload={'location': result.url})
+    return success_response(payload={"location": result.url})
 
 
 @dataclass
@@ -169,15 +169,15 @@ def _authn(
     proofing_credential_id: Optional[ElementKey] = None,
     redirect_url: Optional[str] = None,  # DEPRECATED - try to use frontend_action instead
 ) -> AuthnResult:
-    current_app.logger.debug(f'Requested method: {method}, frontend action: {frontend_action}')
+    current_app.logger.debug(f"Requested method: {method}, frontend action: {frontend_action}")
 
     fallback_url = None
     if is_old_action(frontend_action):
-        current_app.logger.debug(f'Using fallback URL {redirect_url} for action {frontend_action}')
+        current_app.logger.debug(f"Using fallback URL {redirect_url} for action {frontend_action}")
         fallback_url = redirect_url
 
     proofing_method = get_proofing_method(method, frontend_action, current_app.conf, fallback_redirect_url=fallback_url)
-    current_app.logger.debug(f'Proofing method: {proofing_method}')
+    current_app.logger.debug(f"Proofing method: {proofing_method}")
     if not proofing_method or not proofing_method.finish_url:
         return AuthnResult(error=EidasMsg.method_not_available)
 
@@ -186,9 +186,9 @@ def _authn(
         # set a test IdP with minimal interaction for the integration tests
         if current_app.conf.magic_cookie_idp:
             idp = current_app.conf.magic_cookie_idp
-            current_app.logger.debug(f'Changed requested IdP due to magic cookie: {idp}')
+            current_app.logger.debug(f"Changed requested IdP due to magic cookie: {idp}")
         else:
-            current_app.logger.warning(f'Missing configuration magic_cookie_idp')
+            current_app.logger.warning(f"Missing configuration magic_cookie_idp")
 
     ref = AuthnRequestRef(str(uuid4()))
     authn_request = create_authn_request(
@@ -207,7 +207,7 @@ def _authn(
         method=proofing_method.method,
         redirect_url=redirect_url,  # DEPRECATED - try to use frontend_action instead
     )
-    current_app.logger.debug(f'Stored SP_AuthnRequest[{ref}]: {session.eidas.sp.authns[ref]}')
+    current_app.logger.debug(f"Stored SP_AuthnRequest[{ref}]: {session.eidas.sp.authns[ref]}")
 
     url = get_location(authn_request)  # type: ignore
     if not url:
@@ -217,7 +217,7 @@ def _authn(
     return AuthnResult(authn_req=authn_request, authn_id=ref, url=url)
 
 
-@eidas_views.route('/saml2-acs', methods=['POST'])
+@eidas_views.route("/saml2-acs", methods=["POST"])
 def assertion_consumer_service() -> WerkzeugResponse:
     """
     Assertion consumer service, receives POSTs from SAML2 IdP's
@@ -229,7 +229,7 @@ def assertion_consumer_service() -> WerkzeugResponse:
     )
     if isinstance(assertion, WerkzeugResponse):
         return assertion
-    current_app.logger.debug(f'Auth response:\n{assertion}\n\n')
+    current_app.logger.debug(f"Auth response:\n{assertion}\n\n")
 
     authn_req = session.eidas.sp.authns.get(assertion.authn_req_ref)
 
@@ -238,10 +238,10 @@ def assertion_consumer_service() -> WerkzeugResponse:
         # (User makes two requests, A and B. Response B arrives, user is happy and proceeds with their work.
         #  Then response A arrives late. Just silently abort, no need to mess up the users' session.)
         current_app.logger.info(
-            f'Response {assertion.authn_req_ref} does not match one in session, redirecting user to eduID Errors page'
+            f"Response {assertion.authn_req_ref} does not match one in session, redirecting user to eduID Errors page"
         )
         if not current_app.conf.errors_url_template:
-            return make_response('Unknown authn response', 400)
+            return make_response("Unknown authn response", 400)
         return goto_errors_response(
             errors_url=current_app.conf.errors_url_template,
             ctx=EduidErrorsContext.SAML_RESPONSE_UNSOLICITED,
@@ -251,7 +251,7 @@ def assertion_consumer_service() -> WerkzeugResponse:
     fallback_url = None
     if is_old_action(assertion.authndata.frontend_action):
         fallback_url = assertion.authndata.redirect_url
-        current_app.logger.debug(f'Using fallback URL {fallback_url} for action {assertion.authndata.frontend_action}')
+        current_app.logger.debug(f"Using fallback URL {fallback_url} for action {assertion.authndata.frontend_action}")
 
     proofing_method = get_proofing_method(
         assertion.authndata.method,
@@ -262,9 +262,9 @@ def assertion_consumer_service() -> WerkzeugResponse:
     if not proofing_method or not proofing_method.finish_url:
         # We _really_ shouldn't end up here because this same thing would have been done in the
         # starting views above.
-        current_app.logger.warning(f'No proofing_method for method {assertion.authndata.method}')
+        current_app.logger.warning(f"No proofing_method for method {assertion.authndata.method}")
         if not current_app.conf.errors_url_template:
-            return make_response('Unknown authn method', 400)
+            return make_response("Unknown authn method", 400)
         return goto_errors_response(
             errors_url=current_app.conf.errors_url_template,
             ctx=EduidErrorsContext.SAML_RESPONSE_FAIL,
@@ -296,7 +296,7 @@ def assertion_consumer_service() -> WerkzeugResponse:
         backdoor=backdoor,
     )
     result = action(args=args)
-    current_app.logger.debug(f'ACS action result: {result}')
+    current_app.logger.debug(f"ACS action result: {result}")
 
     formatted_finish_url = proofing_method.formatted_finish_url(
         app_name=current_app.conf.app_name, authn_id=assertion.authn_req_ref
@@ -304,7 +304,7 @@ def assertion_consumer_service() -> WerkzeugResponse:
     assert formatted_finish_url  # please type checking
 
     if not result.success:
-        current_app.logger.info(f'SAML ACS action failed: {result.message}')
+        current_app.logger.info(f"SAML ACS action failed: {result.message}")
         # update session so this error can be retrieved from the /status endpoint
         _msg = result.message or CommonMsg.temp_problem
         args.authn_req.status = _msg.value
@@ -314,7 +314,7 @@ def assertion_consumer_service() -> WerkzeugResponse:
             return redirect_with_msg(formatted_finish_url, _msg, error=True)
         return redirect(formatted_finish_url)
 
-    current_app.logger.debug(f'SAML ACS action successful (frontend_action {args.authn_req.frontend_action})')
+    current_app.logger.debug(f"SAML ACS action successful (frontend_action {args.authn_req.frontend_action})")
     if result.message:
         args.authn_req.status = result.message.value
     args.authn_req.error = False
@@ -331,12 +331,12 @@ def assertion_consumer_service() -> WerkzeugResponse:
     return redirect(formatted_finish_url)
 
 
-@eidas_views.route('/saml2-metadata')
+@eidas_views.route("/saml2-metadata")
 def metadata() -> WerkzeugResponse:
     """
     Returns an XML with the SAML 2.0 metadata for this SP as configured in the saml2_settings.py file.
     """
     data = create_metadata(current_app.saml2_config)
     response = make_response(data.to_string(), 200)
-    response.headers['Content-Type'] = "text/xml; charset=utf8"
+    response.headers["Content-Type"] = "text/xml; charset=utf8"
     return response

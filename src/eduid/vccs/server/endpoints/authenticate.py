@@ -32,7 +32,7 @@ class AuthenticateFormResponse(BaseModel):
 
 @authenticate_router.post("/authenticate", response_model=AuthenticateFormResponse)
 async def authenticate_legacy(req: Request, request: str = Form(...)) -> AuthenticateFormResponse:
-    req.app.logger.debug(f'Authenticate (using form): {request}')
+    req.app.logger.debug(f"Authenticate (using form): {request}")
 
     class AuthenticateInnerRequest(BaseModel):
         """Requests all the way down."""
@@ -42,10 +42,10 @@ async def authenticate_legacy(req: Request, request: str = Form(...)) -> Authent
     data = json.loads(request)
     inner = AuthenticateInnerRequest(**data)
 
-    req.app.logger.debug(f'Inner request: {repr(inner)}')
+    req.app.logger.debug(f"Inner request: {repr(inner)}")
     inner_response = await authenticate(req, inner.auth)
     response = AuthenticateFormResponse(auth_response=inner_response)
-    req.app.logger.debug(f'Authenticate (form) response: {repr(response)}')
+    req.app.logger.debug(f"Authenticate (form) response: {repr(response)}")
     return response
 
 
@@ -81,7 +81,7 @@ async def authenticate(req: Request, request: AuthenticateRequestV1) -> Authenti
         if cred:
             if cred.status != Status.ACTIVE:
                 audit_log(
-                    f'result=FAIL, factor=password, credential_id={cred.credential_id}, status={cred.status.value}'
+                    f"result=FAIL, factor=password, credential_id={cred.credential_id}, status={cred.status.value}"
                 )
             else:
                 if cred.type == CredType.PASSWORD:
@@ -89,12 +89,12 @@ async def authenticate(req: Request, request: AuthenticateRequestV1) -> Authenti
                         cred, factor, request.user_id, req.app.state.hasher, req.app.state.kdf
                     )
                 else:
-                    req.app.logger.warning(f'Unsupported credential type: {repr(cred)}')
+                    req.app.logger.warning(f"Unsupported credential type: {repr(cred)}")
         else:
-            req.app.logger.warning(f'Credential not found: {factor.credential_id}')
+            req.app.logger.warning(f"Credential not found: {factor.credential_id}")
 
         results += [this_result]
 
     response = AuthenticateResponseV1(version=1, authenticated=all(results))
-    req.app.logger.debug(f'Authenticate: {repr(response)}')
+    req.app.logger.debug(f"Authenticate: {repr(response)}")
     return response

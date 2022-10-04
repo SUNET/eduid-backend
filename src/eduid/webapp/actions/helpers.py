@@ -47,44 +47,44 @@ class ActionsMsg(TranslatableMsg):
     """
 
     # the user corresponding to the action has not been found in the db
-    user_not_found = 'mfa.user-not-found'
+    user_not_found = "mfa.user-not-found"
     # The (mfa|tou|...) action has been completed successfully
-    action_completed = 'actions.action-completed'
+    action_completed = "actions.action-completed"
     # No mfa data sent in authn request
-    no_data = 'mfa.no-request-data'
+    no_data = "mfa.no-request-data"
     # Neither u2f nor webauthn data in request to authn
-    no_response = 'mfa.no-token-response'
+    no_response = "mfa.no-token-response"
     # The mfa data sent does not correspond to a known mfa token
-    unknown_token = 'mfa.unknown-token'
+    unknown_token = "mfa.unknown-token"
     # Cannot find the text for the he ToU version configured
-    no_tou = 'tou.no-tou'
+    no_tou = "tou.no-tou"
     # The user has not accepted the ToU
-    must_accept = 'tou.must-accept'
+    must_accept = "tou.must-accept"
     # Error synchronizing the ToU acceptance to the central db
-    sync_problem = 'tou.sync-problem'
+    sync_problem = "tou.sync-problem"
     # for use in the tests
-    test_error = 'test error'
+    test_error = "test error"
 
 
 def get_next_action(user):
     idp_session = session.actions.session
     action = current_app.actions_db.get_next_action(user.eppn, idp_session)
     if action is None:
-        current_app.logger.info(f'Finished pre-login actions for user: {user}')
-        idp_url = f'{current_app.conf.idp_url}?ref={idp_session}'
-        return {'action': False, 'idp_url': idp_url}
+        current_app.logger.info(f"Finished pre-login actions for user: {user}")
+        idp_url = f"{current_app.conf.idp_url}?ref={idp_session}"
+        return {"action": False, "idp_url": idp_url}
 
     if action.action_type not in current_app.plugins:
-        current_app.logger.info(f'Missing plugin for action {action.action_type}')
+        current_app.logger.info(f"Missing plugin for action {action.action_type}")
         abort(500)
 
     action_dict = action.to_dict()
-    action_dict['_id'] = str(action_dict['_id'])
-    if 'user_oid' in action_dict:
-        action_dict['user_oid'] = str(action_dict['user_oid'])
+    action_dict["_id"] = str(action_dict["_id"])
+    if "user_oid" in action_dict:
+        action_dict["user_oid"] = str(action_dict["user_oid"])
     session.actions.current_action = action
     session.actions.current_step = 1
     session.actions.current_plugin = action.action_type
     plugin_obj = current_app.plugins[action.action_type]()
     session.actions.total_steps = plugin_obj.get_number_of_steps()
-    return {'action': True}
+    return {"action": True}

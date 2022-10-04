@@ -21,7 +21,7 @@ from eduid.queue.workers.base import QueueWorker
 
 logger = logging.getLogger(__name__)
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class MailQueueWorker(QueueWorker):
@@ -90,7 +90,7 @@ class MailQueueWorker(QueueWorker):
                     queue_item.payload,
                 )
             )
-            logger.debug(f'send_eduid_invite_mail returned status: {status}')
+            logger.debug(f"send_eduid_invite_mail returned status: {status}")
         elif queue_item.payload_type == EduidSignupEmail.get_type():
             status = await self.send_eduid_signup_mail(
                 cast(
@@ -109,7 +109,7 @@ class MailQueueWorker(QueueWorker):
             logger.debug(f'send_eduid_invite_mail returned status: {status}')
 
         if status and status.retry:
-            logger.info(f'Retrying queue item: {queue_item.item_id}')
+            logger.info(f"Retrying queue item: {queue_item.item_id}")
             logger.debug(queue_item)
             await self.retry_item(queue_item)
             return
@@ -117,18 +117,18 @@ class MailQueueWorker(QueueWorker):
         await self.item_successfully_handled(queue_item)
 
     async def handle_expired_item(self, queue_item: QueueItem) -> None:
-        logger.warning(f'Found expired item: {queue_item}')
+        logger.warning(f"Found expired item: {queue_item}")
 
     async def send_eduid_invite_mail(self, data: EduidInviteEmail) -> Status:
         msg = EmailMessage()
         with self._jinja2.select_language(data.language) as env:
-            msg['Subject'] = _('eduID invitation')
-            txt = env.get_template('eduid_invite_mail_txt.jinja2').render(**asdict(data))
-            logger.debug(f'TXT: {txt}')
-            html = env.get_template('eduid_invite_mail_html.jinja2').render(**asdict(data))
-            logger.debug(f'HTML: {html}')
-        msg.set_content(txt, 'plain', 'utf-8')
-        msg.add_alternative(html, 'html', 'utf-8')
+            msg["Subject"] = _("eduID invitation")
+            txt = env.get_template("eduid_invite_mail_txt.jinja2").render(**asdict(data))
+            logger.debug(f"TXT: {txt}")
+            html = env.get_template("eduid_invite_mail_html.jinja2").render(**asdict(data))
+            logger.debug(f"HTML: {html}")
+        msg.set_content(txt, "plain", "utf-8")
+        msg.add_alternative(html, "html", "utf-8")
 
         return await self.sendmail(
             sender=self.config.mail_default_from,
@@ -175,8 +175,8 @@ class MailQueueWorker(QueueWorker):
         )
 
 
-def init_mail_worker(name: str = 'mail_worker', test_config: Optional[Mapping[str, Any]] = None) -> MailQueueWorker:
-    config = load_config(typ=QueueWorkerConfig, app_name=name, ns='queue', test_config=test_config)
+def init_mail_worker(name: str = "mail_worker", test_config: Optional[Mapping[str, Any]] = None) -> MailQueueWorker:
+    config = load_config(typ=QueueWorkerConfig, app_name=name, ns="queue", test_config=test_config)
     return MailQueueWorker(config=config)
 
 
@@ -185,5 +185,5 @@ def start_worker():
     exit(asyncio.run(worker.run()))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     start_worker()

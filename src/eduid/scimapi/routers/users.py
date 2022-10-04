@@ -31,35 +31,35 @@ from eduid.userdb.scimapi.userdb import ScimApiProfile, ScimApiUser
 
 users_router = APIRouter(
     route_class=ContextRequestRoute,
-    prefix='/Users',
+    prefix="/Users",
     responses={
-        400: {'description': 'Bad request', 'model': ErrorDetail},
-        404: {'description': 'Not found', 'model': ErrorDetail},
-        500: {'description': 'Internal server error', 'model': ErrorDetail},
+        400: {"description": "Bad request", "model": ErrorDetail},
+        404: {"description": "Not found", "model": ErrorDetail},
+        500: {"description": "Internal server error", "model": ErrorDetail},
     },
 )
 
 
-@users_router.get('/{scim_id}', response_model=UserResponse, response_model_exclude_none=True)
+@users_router.get("/{scim_id}", response_model=UserResponse, response_model_exclude_none=True)
 async def on_get(req: ContextRequest, resp: Response, scim_id: Optional[str] = None) -> UserResponse:
     if scim_id is None:
-        raise BadRequest(detail='Not implemented')
-    req.app.context.logger.info(f'Fetching user {scim_id}')
+        raise BadRequest(detail="Not implemented")
+    req.app.context.logger.info(f"Fetching user {scim_id}")
     db_user = req.context.userdb.get_user_by_scim_id(scim_id)
     if not db_user:
-        raise NotFound(detail='User not found')
+        raise NotFound(detail="User not found")
 
     return db_user_to_response(req=req, resp=resp, db_user=db_user)
 
 
-@users_router.put('/{scim_id}', response_model=UserResponse, response_model_exclude_none=True)
+@users_router.put("/{scim_id}", response_model=UserResponse, response_model_exclude_none=True)
 async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdateRequest, scim_id: str) -> UserResponse:
-    req.app.context.logger.info(f'Updating user {scim_id}')
+    req.app.context.logger.info(f"Updating user {scim_id}")
     req.app.context.logger.debug(update_request)
     if scim_id != str(update_request.id):
-        req.app.context.logger.error(f'Id mismatch')
-        req.app.context.logger.debug(f'{scim_id} != {update_request.id}')
-        raise BadRequest(detail='Id mismatch')
+        req.app.context.logger.error(f"Id mismatch")
+        req.app.context.logger.debug(f"{scim_id} != {update_request.id}")
+        raise BadRequest(detail="Id mismatch")
 
     db_user = req.context.userdb.get_user_by_scim_id(scim_id)
     if not db_user:
@@ -70,7 +70,7 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
         raise BadRequest(detail="Version mismatch")
 
     req.app.context.logger.debug(
-        f'Extra debug: db_user BEFORE {scim_id} as dict:\n{pprint.pformat(db_user.to_dict(), width=120)}'
+        f"Extra debug: db_user BEFORE {scim_id} as dict:\n{pprint.pformat(db_user.to_dict(), width=120)}"
     )
 
     core_changed = False
@@ -103,23 +103,23 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
     if SCIMSchema.NUTID_USER_V1 in update_request.schemas and update_request.nutid_user_v1 is not None:
 
         if not acceptable_linked_accounts(update_request.nutid_user_v1.linked_accounts):
-            raise BadRequest(detail='Invalid nutid linked_accounts')
+            raise BadRequest(detail="Invalid nutid linked_accounts")
 
         # Look for changes in profiles
         for this in update_request.nutid_user_v1.profiles.keys():
             if this not in db_user.profiles:
                 req.app.context.logger.info(
-                    f'Adding profile {this}/{update_request.nutid_user_v1.profiles[this]} to user'
+                    f"Adding profile {this}/{update_request.nutid_user_v1.profiles[this]} to user"
                 )
                 nutid_changed = True
             elif update_request.nutid_user_v1.profiles[this].to_dict() != db_user.profiles[this].to_dict():
-                req.app.context.logger.info(f'Profile {this}/{update_request.nutid_user_v1.profiles[this]} updated')
+                req.app.context.logger.info(f"Profile {this}/{update_request.nutid_user_v1.profiles[this]} updated")
                 nutid_changed = True
             else:
-                req.app.context.logger.info(f'Profile {this}/{update_request.nutid_user_v1.profiles[this]} not changed')
+                req.app.context.logger.info(f"Profile {this}/{update_request.nutid_user_v1.profiles[this]} not changed")
         for this in db_user.profiles.keys():
             if this not in update_request.nutid_user_v1.profiles:
-                req.app.context.logger.info(f'Profile {this}/{db_user.profiles[this]} removed')
+                req.app.context.logger.info(f"Profile {this}/{db_user.profiles[this]} removed")
                 nutid_changed = True
 
         if nutid_changed:
@@ -136,10 +136,10 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
         # Look for changes in linked_accounts
         if sorted(_db_linked_accounts, key=lambda x: x.value) != sorted(db_user.linked_accounts, key=lambda x: x.value):
             db_user.linked_accounts = _db_linked_accounts
-            req.app.context.logger.info(f'Updated linked_accounts: {db_user.linked_accounts}')
+            req.app.context.logger.info(f"Updated linked_accounts: {db_user.linked_accounts}")
             nutid_changed = True
 
-    req.app.context.logger.debug(f'Core changed: {core_changed}, nutid_changed: {nutid_changed}')
+    req.app.context.logger.debug(f"Core changed: {core_changed}, nutid_changed: {nutid_changed}")
     if core_changed or nutid_changed:
         save_user(req, db_user)
         add_api_event(
@@ -149,15 +149,15 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
             resource_type=SCIMResourceType.USER,
             level=EventLevel.INFO,
             status=EventStatus.UPDATED,
-            message='User was updated',
+            message="User was updated",
         )
     else:
-        req.app.context.logger.info(f'No changes detected')
+        req.app.context.logger.info(f"No changes detected")
 
     return db_user_to_response(req=req, resp=resp, db_user=db_user)
 
 
-@users_router.post('/', response_model=UserResponse, response_model_exclude_none=True)
+@users_router.post("/", response_model=UserResponse, response_model_exclude_none=True)
 async def on_post(req: ContextRequest, resp: Response, create_request: UserCreateRequest) -> UserResponse:
     """
     POST /Users  HTTP/1.1
@@ -206,14 +206,14 @@ async def on_post(req: ContextRequest, resp: Response, create_request: UserCreat
     }
     """
 
-    req.app.context.logger.info(f'Creating user')
+    req.app.context.logger.info(f"Creating user")
     req.app.context.logger.debug(create_request)
 
     profiles = {}
     linked_accounts = []
     if SCIMSchema.NUTID_USER_V1 in create_request.schemas and create_request.nutid_user_v1 is not None:
         if not acceptable_linked_accounts(create_request.nutid_user_v1.linked_accounts):
-            raise BadRequest(detail='Invalid nutid linked_accounts')
+            raise BadRequest(detail="Invalid nutid linked_accounts")
 
         # convert from one type of profiles to another
         for profile_name, profile in create_request.nutid_user_v1.profiles.items():
@@ -243,7 +243,7 @@ async def on_post(req: ContextRequest, resp: Response, create_request: UserCreat
         resource_type=SCIMResourceType.USER,
         level=EventLevel.INFO,
         status=EventStatus.CREATED,
-        message='User was created',
+        message="User was created",
     )
 
     user = db_user_to_response(req=req, resp=resp, db_user=db_user)
@@ -251,7 +251,7 @@ async def on_post(req: ContextRequest, resp: Response, create_request: UserCreat
     return user
 
 
-@users_router.post('/.search', response_model=ListResponse, response_model_exclude_none=True)
+@users_router.post("/.search", response_model=ListResponse, response_model_exclude_none=True)
 async def search(req: ContextRequest, query: SearchRequest) -> ListResponse:
     """
     POST /Users/.search
@@ -285,18 +285,18 @@ async def search(req: ContextRequest, query: SearchRequest) -> ListResponse:
       ]
     }
     """
-    req.app.context.logger.info(f'Searching for users(s)')
-    req.app.context.logger.debug(f'Parsed user search query: {query}')
+    req.app.context.logger.info(f"Searching for users(s)")
+    req.app.context.logger.debug(f"Parsed user search query: {query}")
 
     filter = parse_search_filter(query.filter)
 
-    if filter.attr == 'externalid':
+    if filter.attr == "externalid":
         users = filter_externalid(req, filter)
         total_count = len(users)
-    elif filter.attr == 'meta.lastmodified':
+    elif filter.attr == "meta.lastmodified":
         # SCIM start_index 1 equals item 0
         users, total_count = filter_lastmodified(req, filter, skip=query.start_index - 1, limit=query.count)
     else:
-        raise BadRequest(scim_type='invalidFilter', detail=f'Can\'t filter on attribute {filter.attr}')
+        raise BadRequest(scim_type="invalidFilter", detail=f"Can't filter on attribute {filter.attr}")
 
     return ListResponse(resources=users_to_resources_dicts(query, users), total_results=total_count)

@@ -27,23 +27,23 @@ class MobileLookupClient(object):
         return self._client
 
     def _get_find_person(self):
-        find_person = self.client.factory.create('ns7:FindPersonClass')
-        find_person.QueryParams = self.client.factory.create('ns7:QueryParamsClass')
-        find_person.QueryColumns = self.client.factory.create('ns7:QueryColumnsClass')
+        find_person = self.client.factory.create("ns7:FindPersonClass")
+        find_person.QueryParams = self.client.factory.create("ns7:QueryParamsClass")
+        find_person.QueryColumns = self.client.factory.create("ns7:QueryColumnsClass")
         return find_person
 
     @TransactionAudit()
-    @deprecated('This task seems unused')
+    @deprecated("This task seems unused")
     def find_mobiles_by_NIN(self, national_identity_number: str, number_region=None) -> List[str]:
         formatted_nin = format_NIN(national_identity_number)
         if not formatted_nin:
-            self.logger.error(f'Invalid NIN input: {national_identity_number}')
+            self.logger.error(f"Invalid NIN input: {national_identity_number}")
             return []
 
         mobiles = self._search_by_SSNo(formatted_nin)
 
         if not mobiles:
-            self.logger.debug(f'Did not get search result from nin: {formatted_nin}')
+            self.logger.debug(f"Did not get search result from nin: {formatted_nin}")
             return []
 
         return format_mobile_number(mobiles, number_region)
@@ -52,7 +52,7 @@ class MobileLookupClient(object):
     def find_NIN_by_mobile(self, mobile_number) -> Optional[str]:
         nin = self._search_by_mobile(mobile_number)
         if not nin:
-            self.logger.debug(f'Did not get search result from mobile number: {mobile_number}')
+            self.logger.debug(f"Did not get search result from mobile number: {mobile_number}")
             return None
 
         return format_NIN(nin)
@@ -68,7 +68,7 @@ class MobileLookupClient(object):
         if result._error_code != 0:
             self.logger.debug(
                 "Error code: {err_code}, error message: {err_message}".format(
-                    err_code=result._error_code, err_message=(result._error_text.encode('utf-8'))
+                    err_code=result._error_code, err_message=(result._error_text.encode("utf-8"))
                 )
             )
             return None
@@ -79,7 +79,7 @@ class MobileLookupClient(object):
 
         return result.record_list[0].record
 
-    @deprecated('This function seems unused')
+    @deprecated("This function seems unused")
     def _search_by_SSNo(self, national_identity_number: str) -> List[str]:
         person_search = self._get_find_person()
 
@@ -91,7 +91,7 @@ class MobileLookupClient(object):
         person_search.QueryParams.FindSSNo = national_identity_number
 
         # Set the columns to get back from search. (Only need the mobile numbers)
-        person_search.QueryColumns._Mobiles = '1'
+        person_search.QueryColumns._Mobiles = "1"
 
         record = self._search(person_search)
         if record is None:
@@ -114,7 +114,7 @@ class MobileLookupClient(object):
         person_search.QueryParams.FindTelephone = mobile_number
 
         # Set the columns to get back from search. (Only need the SSNo)
-        person_search.QueryColumns._SSNo = '1'
+        person_search.QueryColumns._SSNo = "1"
 
         record = self._search(person_search)
 

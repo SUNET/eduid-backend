@@ -64,7 +64,7 @@ class SignupApp(EduIDBaseApp):
 current_signup_app: SignupApp = cast(SignupApp, current_app)
 
 
-def signup_init_app(name: str = 'signup', test_config: Optional[Mapping[str, Any]] = None) -> SignupApp:
+def signup_init_app(name: str = "signup", test_config: Optional[Mapping[str, Any]] = None) -> SignupApp:
     """
     Create an instance of an eduid signup app.
 
@@ -74,11 +74,11 @@ def signup_init_app(name: str = 'signup', test_config: Optional[Mapping[str, Any
     :param name: The name of the instance, it will affect the configuration loaded.
     :param test_config: Override config. Used in test cases.
     """
-    config = load_config(typ=SignupConfig, app_name=name, ns='webapp', test_config=test_config)
+    config = load_config(typ=SignupConfig, app_name=name, ns="webapp", test_config=test_config)
 
     app = SignupApp(config)
 
-    app.logger.info(f'Init {app}...')
+    app.logger.info(f"Init {app}...")
 
     from eduid.webapp.signup.views import signup_views
 

@@ -72,18 +72,18 @@ class SecurityApp(AuthnBaseApp):
 current_security_app: SecurityApp = cast(SecurityApp, current_app)
 
 
-def security_init_app(name: str = 'security', test_config: Optional[Mapping[str, Any]] = None) -> SecurityApp:
+def security_init_app(name: str = "security", test_config: Optional[Mapping[str, Any]] = None) -> SecurityApp:
     """
     Create an instance of an eduid security (passwords) app.
 
     :param name: The name of the instance, it will affect the configuration loaded.
     :param test_config: Override config. Used in test cases.
     """
-    config = load_config(typ=SecurityConfig, app_name=name, ns='webapp', test_config=test_config)
+    config = load_config(typ=SecurityConfig, app_name=name, ns="webapp", test_config=test_config)
 
     app = SecurityApp(config)
 
-    app.logger.info(f'Init {app}...')
+    app.logger.info(f"Init {app}...")
 
     from eduid.webapp.security.views.change_password import change_password_views
     from eduid.webapp.security.views.security import security_views

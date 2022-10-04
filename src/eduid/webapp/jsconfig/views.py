@@ -41,7 +41,7 @@ from eduid.webapp.common.api.schemas.base import FluxStandardAction
 from eduid.webapp.common.session import session
 from eduid.webapp.jsconfig.app import current_jsconfig_app as current_app
 
-jsconfig_views = Blueprint('jsconfig', __name__, url_prefix='')
+jsconfig_views = Blueprint("jsconfig", __name__, url_prefix="")
 
 
 def _fix_available_languages(available_languages: Dict[str, str]) -> List[List[str]]:
@@ -61,89 +61,89 @@ def _fix_uppercase_config(config: Dict[str, Any]):
 
 
 # TODO: remove when /dashboard/config is used
-@jsconfig_views.route('/config', methods=['GET'])
+@jsconfig_views.route("/config", methods=["GET"])
 @MarshalWith(FluxStandardAction)
 def get_dashboard_config_old() -> FluxData:
     return get_dashboard_config()
 
 
-@jsconfig_views.route('/dashboard/config', methods=['GET'])
+@jsconfig_views.route("/dashboard/config", methods=["GET"])
 @MarshalWith(FluxStandardAction)
 def get_dashboard_config() -> FluxData:
     """
     Configuration for the dashboard front app
     """
     config_dict = current_app.conf.jsapps.dict()
-    config_dict['csrf_token'] = session.get_csrf_token()
+    config_dict["csrf_token"] = session.get_csrf_token()
 
     # Fixes for frontend
     if current_app.conf.fix_dashboard_available_languages:
-        config_dict['available_languages'] = _fix_available_languages(current_app.conf.jsapps.available_languages)
+        config_dict["available_languages"] = _fix_available_languages(current_app.conf.jsapps.available_languages)
     if current_app.conf.fix_dashboard_uppercase_config:
         config_dict = _fix_uppercase_config(config_dict)
 
     return success_response(payload=config_dict)
 
 
-@jsconfig_views.route('/signup/config', methods=['GET'])
+@jsconfig_views.route("/signup/config", methods=["GET"])
 @MarshalWith(FluxStandardAction)
 def get_signup_config() -> FluxData:
     """
     Configuration for the signup front app
     """
     config_dict = current_app.conf.jsapps.dict()
-    config_dict['csrf_token'] = session.get_csrf_token()
-    config_dict['tous'] = get_tous(
+    config_dict["csrf_token"] = session.get_csrf_token()
+    config_dict["tous"] = get_tous(
         version=current_app.conf.tou_version, languages=current_app.conf.jsapps.available_languages.keys()
     )
 
     # Fixes for frontend
     if current_app.conf.fix_signup_available_languages:
-        config_dict['available_languages'] = _fix_available_languages(current_app.conf.jsapps.available_languages)
+        config_dict["available_languages"] = _fix_available_languages(current_app.conf.jsapps.available_languages)
     if current_app.conf.fix_signup_uppercase_config:
         config_dict = _fix_uppercase_config(config_dict)
 
     return success_response(payload=config_dict)
 
 
-@jsconfig_views.route('/login/config', methods=['GET'])
+@jsconfig_views.route("/login/config", methods=["GET"])
 @MarshalWith(FluxStandardAction)
 def get_login_config() -> FluxData:
     """
     Configuration for the login front app
     """
     payload = {
-        'csrf_token': session.get_csrf_token(),
-        'base_url': current_app.conf.jsapps.login_base_url,
-        'next_url': current_app.conf.jsapps.login_next_url,
-        'request_other_url': current_app.conf.jsapps.request_other_url,
-        'password_service_url': current_app.conf.jsapps.password_service_url,
-        'password_entropy': current_app.conf.jsapps.password_entropy,
-        'password_length': current_app.conf.jsapps.password_length,
-        'reset_password_url': current_app.conf.jsapps.reset_password_url,
-        'signup_url': current_app.conf.jsapps.signup_url,
-        'eduid_site_name': current_app.conf.jsapps.eduid_site_name,
-        'eduid_site_url': current_app.conf.jsapps.eduid_site_url,
-        'eidas_url': current_app.conf.jsapps.eidas_url,
-        'mfa_auth_idp': current_app.conf.jsapps.token_verify_idp,
-        'sentry_dsn': current_app.conf.jsapps.sentry_dsn,
-        'environment': current_app.conf.jsapps.environment.value,
+        "csrf_token": session.get_csrf_token(),
+        "base_url": current_app.conf.jsapps.login_base_url,
+        "next_url": current_app.conf.jsapps.login_next_url,
+        "request_other_url": current_app.conf.jsapps.request_other_url,
+        "password_service_url": current_app.conf.jsapps.password_service_url,
+        "password_entropy": current_app.conf.jsapps.password_entropy,
+        "password_length": current_app.conf.jsapps.password_length,
+        "reset_password_url": current_app.conf.jsapps.reset_password_url,
+        "signup_url": current_app.conf.jsapps.signup_url,
+        "eduid_site_name": current_app.conf.jsapps.eduid_site_name,
+        "eduid_site_url": current_app.conf.jsapps.eduid_site_url,
+        "eidas_url": current_app.conf.jsapps.eidas_url,
+        "mfa_auth_idp": current_app.conf.jsapps.token_verify_idp,
+        "sentry_dsn": current_app.conf.jsapps.sentry_dsn,
+        "environment": current_app.conf.jsapps.environment.value,
     }
     return success_response(payload=payload)
 
 
-@jsconfig_views.route('/errors/config', methods=['GET'])
+@jsconfig_views.route("/errors/config", methods=["GET"])
 @MarshalWith(FluxStandardAction)
 def get_errors_config() -> FluxData:
     """
     Configuration for the errors front app
     """
     payload = {
-        'csrf_token': session.get_csrf_token(),
-        'dashboard_url': current_app.conf.jsapps.dashboard_url,
-        'eduid_site_name': current_app.conf.jsapps.eduid_site_name,
-        'eduid_site_url': current_app.conf.jsapps.eduid_site_url,
-        'environment': current_app.conf.jsapps.environment.value,
-        'error_info_url': current_app.conf.jsapps.error_info_url,
+        "csrf_token": session.get_csrf_token(),
+        "dashboard_url": current_app.conf.jsapps.dashboard_url,
+        "eduid_site_name": current_app.conf.jsapps.eduid_site_name,
+        "eduid_site_url": current_app.conf.jsapps.eduid_site_url,
+        "environment": current_app.conf.jsapps.environment.value,
+        "error_info_url": current_app.conf.jsapps.error_info_url,
     }
     return success_response(payload=payload)

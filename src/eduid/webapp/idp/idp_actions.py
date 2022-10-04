@@ -43,7 +43,7 @@ from eduid.webapp.idp.login_context import LoginContext
 
 def redirect_to_actions(user: IdPUser, ticket: LoginContext) -> WerkzeugResponse:
     actions_uri = current_app.conf.actions_app_uri
-    current_app.logger.info(f'Redirecting user {user} to actions app {actions_uri}')
+    current_app.logger.info(f"Redirecting user {user} to actions app {actions_uri}")
 
     # TODO: The IdP should never _write_ to the actions namespace. Actions should _read_
     #       the ticket.request_ref from the IdP namespace instead.

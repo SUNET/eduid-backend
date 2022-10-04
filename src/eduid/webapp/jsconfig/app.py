@@ -43,8 +43,8 @@ from eduid.webapp.jsconfig.settings.common import JSConfigConfig
 class JSConfigApp(EduIDBaseApp):
     def __init__(self, config: JSConfigConfig, **kwargs):
 
-        kwargs['init_central_userdb'] = False
-        kwargs['static_folder'] = None
+        kwargs["init_central_userdb"] = False
+        kwargs["static_folder"] = None
 
         super().__init__(config, **kwargs)
 
@@ -54,19 +54,19 @@ class JSConfigApp(EduIDBaseApp):
 current_jsconfig_app: JSConfigApp = cast(JSConfigApp, current_app)
 
 
-def jsconfig_init_app(name: str = 'jsconfig', test_config: Optional[Mapping[str, Any]] = None) -> JSConfigApp:
+def jsconfig_init_app(name: str = "jsconfig", test_config: Optional[Mapping[str, Any]] = None) -> JSConfigApp:
     """
     Create an instance of an eduid jsconfig data app.
 
     :param name: The name of the instance, it will affect the configuration loaded.
     :param test_config: Override config, used in test cases.
     """
-    config = load_config(typ=JSConfigConfig, app_name=name, ns='webapp', test_config=test_config)
+    config = load_config(typ=JSConfigConfig, app_name=name, ns="webapp", test_config=test_config)
     app = JSConfigApp(config)
 
     from eduid.webapp.jsconfig.views import jsconfig_views
 
     app.register_blueprint(jsconfig_views)
 
-    app.logger.info(f'Init {app}...')
+    app.logger.info(f"Init {app}...")
     return app

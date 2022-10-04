@@ -51,15 +51,15 @@ from eduid.userdb.util import utc_now
 
 logger = logging.getLogger(__name__)
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
-ProofingStateInstance = TypeVar('ProofingStateInstance', bound=ProofingState)
+ProofingStateInstance = TypeVar("ProofingStateInstance", bound=ProofingState)
 
-ProofingStateVar = TypeVar('ProofingStateVar')
+ProofingStateVar = TypeVar("ProofingStateVar")
 
 
 class ProofingStateDB(BaseDB, Generic[ProofingStateVar], ABC):
-    def __init__(self, db_uri: str, db_name: str, collection='proofing_data'):
+    def __init__(self, db_uri: str, db_name: str, collection="proofing_data"):
         super().__init__(db_uri, db_name, collection)
 
     @classmethod
@@ -79,7 +79,7 @@ class ProofingStateDB(BaseDB, Generic[ProofingStateVar], ABC):
         :raise self.MultipleDocumentsReturned: More than one user matches the search criteria
         """
 
-        data = self._get_document_by_attr('eduPersonPrincipalName', eppn)
+        data = self._get_document_by_attr("eduPersonPrincipalName", eppn)
         if not data:
             return None
         return self.state_from_dict(data)
@@ -98,10 +98,10 @@ class ProofingStateDB(BaseDB, Generic[ProofingStateVar], ABC):
         if len(docs) > 1:
             # Ex. multiple states for same user and email address matched
             # This should not be possible but we have seen it happen
-            states = sorted(docs, key=itemgetter('modified_ts'))
+            states = sorted(docs, key=itemgetter("modified_ts"))
             state_to_keep = states.pop(-1)  # Keep latest state
             for state in states:
-                self.remove_document(state['_id'])
+                self.remove_document(state["_id"])
             return self.state_from_dict(state_to_keep)
 
         return self.state_from_dict(docs[0])
@@ -112,7 +112,7 @@ class ProofingStateDB(BaseDB, Generic[ProofingStateVar], ABC):
         :param check_sync: Ensure the document hasn't been updated in the database since it was loaded
         """
         if not isinstance(state, ProofingState):
-            raise TypeError('State must be a ProofingState subclass')
+            raise TypeError("State must be a ProofingState subclass")
         modified = state.modified_ts
         state.modified_ts = utc_now()  # update to current time
         if modified is None:
@@ -120,19 +120,19 @@ class ProofingStateDB(BaseDB, Generic[ProofingStateVar], ABC):
             result = self._coll.insert_one(state.to_dict())
             logging.debug(f"{self} Inserted new state {state} into {self._coll_name}): {result.inserted_id})")
         else:
-            test_doc: Dict[str, Any] = {'eduPersonPrincipalName': state.eppn}
+            test_doc: Dict[str, Any] = {"eduPersonPrincipalName": state.eppn}
             if check_sync:
-                test_doc['modified_ts'] = modified
+                test_doc["modified_ts"] = modified
             result = self._coll.replace_one(test_doc, state.to_dict(), upsert=(not check_sync))
             if check_sync and result.matched_count == 0:
                 db_ts = None
-                db_state = self._coll.find_one({'eduPersonPrincipalName': state.eppn})
+                db_state = self._coll.find_one({"eduPersonPrincipalName": state.eppn})
                 if db_state:
-                    db_ts = db_state['modified_ts']
+                    db_ts = db_state["modified_ts"]
                 logging.error(
-                    f'{self} FAILED Updating state {state} (ts {modified}) in {self._coll_name}). ts in db = {db_ts}'
+                    f"{self} FAILED Updating state {state} (ts {modified}) in {self._coll_name}). ts in db = {db_ts}"
                 )
-                raise DocumentOutOfSync('Stale state object can\'t be saved')
+                raise DocumentOutOfSync("Stale state object can't be saved")
 
             logging.debug(
                 "{!s} Updated state {} (ts {}) in {}): {}".format(self, state, modified, self._coll_name, result)
@@ -143,13 +143,13 @@ class ProofingStateDB(BaseDB, Generic[ProofingStateVar], ABC):
         :param state: ProofingStateClass object
         """
         if not isinstance(state, ProofingState):
-            raise TypeError('State must be a ProofingState subclass')
+            raise TypeError("State must be a ProofingState subclass")
 
-        self.remove_document({'eduPersonPrincipalName': state.eppn})
+        self.remove_document({"eduPersonPrincipalName": state.eppn})
 
 
 class LetterProofingStateDB(ProofingStateDB[LetterProofingState]):
-    def __init__(self, db_uri: str, db_name: str = 'eduid_idproofing_letter'):
+    def __init__(self, db_uri: str, db_name: str = "eduid_idproofing_letter"):
         super().__init__(db_uri, db_name)
 
     @classmethod
@@ -158,7 +158,7 @@ class LetterProofingStateDB(ProofingStateDB[LetterProofingState]):
 
 
 class EmailProofingStateDB(ProofingStateDB[EmailProofingState]):
-    def __init__(self, db_uri: str, db_name: str = 'eduid_email'):
+    def __init__(self, db_uri: str, db_name: str = "eduid_email"):
         super().__init__(db_uri, db_name)
 
     @classmethod
@@ -172,7 +172,7 @@ class EmailProofingStateDB(ProofingStateDB[EmailProofingState]):
 
         :raise self.MultipleDocumentsReturned: More than one user matches the search criteria
         """
-        spec = {'eduPersonPrincipalName': eppn, 'verification.email': email}
+        spec = {"eduPersonPrincipalName": eppn, "verification.email": email}
         return self.get_latest_state_by_spec(spec)
 
     def remove_state(self, state: ProofingStateVar) -> None:
@@ -182,13 +182,13 @@ class EmailProofingStateDB(ProofingStateDB[EmailProofingState]):
         :type state: ProofingStateClass
         """
         if not isinstance(state, EmailProofingState):
-            raise TypeError('State must be a ProofingState subclass')
+            raise TypeError("State must be a ProofingState subclass")
 
-        self.remove_document({'eduPersonPrincipalName': state.eppn, 'verification.email': state.verification.email})
+        self.remove_document({"eduPersonPrincipalName": state.eppn, "verification.email": state.verification.email})
 
 
 class PhoneProofingStateDB(ProofingStateDB[PhoneProofingState]):
-    def __init__(self, db_uri: str, db_name: str = 'eduid_phone'):
+    def __init__(self, db_uri: str, db_name: str = "eduid_phone"):
         ProofingStateDB.__init__(self, db_uri, db_name)
 
     @classmethod
@@ -207,7 +207,7 @@ class PhoneProofingStateDB(ProofingStateDB[PhoneProofingState]):
         :raise self.MultipleDocumentsReturned: More than one user
                                                matches the search criteria
         """
-        spec = {'eduPersonPrincipalName': eppn, 'verification.number': number}
+        spec = {"eduPersonPrincipalName": eppn, "verification.number": number}
         return self.get_latest_state_by_spec(spec)
 
     def remove_state(self, state: ProofingStateVar) -> None:
@@ -217,9 +217,9 @@ class PhoneProofingStateDB(ProofingStateDB[PhoneProofingState]):
         :type state: ProofingStateClass
         """
         if not isinstance(state, PhoneProofingState):
-            raise TypeError('State must be a ProofingState subclass')
+            raise TypeError("State must be a ProofingState subclass")
 
-        self.remove_document({'eduPersonPrincipalName': state.eppn, 'verification.number': state.verification.number})
+        self.remove_document({"eduPersonPrincipalName": state.eppn, "verification.number": state.verification.number})
 
 
 class OidcStateDB(ProofingStateDB[ProofingStateVar], Generic[ProofingStateVar], ABC):
@@ -234,14 +234,14 @@ class OidcStateDB(ProofingStateDB[ProofingStateVar], Generic[ProofingStateVar], 
         :raise self.MultipleDocumentsReturned: More than one user matches the search criteria
         """
 
-        state = self._get_document_by_attr('state', oidc_state)
+        state = self._get_document_by_attr("state", oidc_state)
         if not state:
             return None
         return self.state_from_dict(state)
 
 
 class OidcProofingStateDB(OidcStateDB[OidcProofingState]):
-    def __init__(self, db_uri: str, db_name: str = 'eduid_oidc_proofing'):
+    def __init__(self, db_uri: str, db_name: str = "eduid_oidc_proofing"):
         super().__init__(db_uri, db_name)
 
     @classmethod
@@ -252,7 +252,7 @@ class OidcProofingStateDB(OidcStateDB[OidcProofingState]):
 class OrcidProofingStateDB(OidcStateDB[OrcidProofingState]):
     ProofingStateClass = OrcidProofingState
 
-    def __init__(self, db_uri: str, db_name: str = 'eduid_orcid'):
+    def __init__(self, db_uri: str, db_name: str = "eduid_orcid"):
         super().__init__(db_uri, db_name)
 
     @classmethod
@@ -261,7 +261,7 @@ class OrcidProofingStateDB(OidcStateDB[OrcidProofingState]):
 
 
 class ProofingUserDB(UserDB[ProofingUser]):
-    def __init__(self, db_uri: str, db_name: str, collection: str = 'profiles'):
+    def __init__(self, db_uri: str, db_name: str, collection: str = "profiles"):
         super().__init__(db_uri, db_name, collection=collection)
 
     def save(self, user, check_sync=True):
@@ -273,40 +273,40 @@ class ProofingUserDB(UserDB[ProofingUser]):
 
 
 class LetterProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = 'eduid_idproofing_letter'):
+    def __init__(self, db_uri: str, db_name: str = "eduid_idproofing_letter"):
         super().__init__(db_uri, db_name)
 
 
 class OidcProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = 'eduid_oidc_proofing'):
+    def __init__(self, db_uri: str, db_name: str = "eduid_oidc_proofing"):
         super().__init__(db_uri, db_name)
 
 
 class PhoneProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = 'eduid_phone'):
+    def __init__(self, db_uri: str, db_name: str = "eduid_phone"):
         super().__init__(db_uri, db_name)
 
 
 class EmailProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = 'eduid_email'):
+    def __init__(self, db_uri: str, db_name: str = "eduid_email"):
         super().__init__(db_uri, db_name)
 
 
 class LookupMobileProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = 'eduid_lookup_mobile_proofing'):
+    def __init__(self, db_uri: str, db_name: str = "eduid_lookup_mobile_proofing"):
         super().__init__(db_uri, db_name)
 
 
 class OrcidProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = 'eduid_orcid'):
+    def __init__(self, db_uri: str, db_name: str = "eduid_orcid"):
         super().__init__(db_uri, db_name)
 
 
 class EidasProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = 'eduid_eidas'):
+    def __init__(self, db_uri: str, db_name: str = "eduid_eidas"):
         super().__init__(db_uri, db_name)
 
 
 class LadokProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = 'eduid_ladok'):
+    def __init__(self, db_uri: str, db_name: str = "eduid_ladok"):
         super().__init__(db_uri, db_name)

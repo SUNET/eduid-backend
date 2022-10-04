@@ -8,7 +8,7 @@ from fastapi import Response
 
 from eduid.scimapi.context_request import ContextRequest
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 @dataclass
@@ -26,7 +26,7 @@ class FailCountItem:
     count: int = 0
 
     def __str__(self):
-        return f'(first_failure: {self.first_failure.isoformat()}, fail count: {self.count})'
+        return f"(first_failure: {self.first_failure.isoformat()}, fail count: {self.count})"
 
 
 SIMPLE_CACHE: Dict[str, SimpleCacheItem] = dict()
@@ -37,14 +37,14 @@ def log_failure_info(req: ContextRequest, key: str, msg: str, exc: Optional[Exce
     if key not in FAILURE_INFO:
         FAILURE_INFO[key] = FailCountItem(first_failure=datetime.utcnow())
     FAILURE_INFO[key].count += 1
-    req.app.context.logger.warning(f'{msg} {FAILURE_INFO[key]}: {exc}')
+    req.app.context.logger.warning(f"{msg} {FAILURE_INFO[key]}: {exc}")
 
 
 def reset_failure_info(req: ContextRequest, key: str) -> None:
     if key not in FAILURE_INFO:
         return None
     info = FAILURE_INFO.pop(key)
-    req.app.context.logger.info(f'Check {key} back to normal. Resetting info {info}')
+    req.app.context.logger.info(f"Check {key} back to normal. Resetting info {info}")
 
 
 def check_restart(key, restart: int, terminate: int) -> bool:
@@ -69,16 +69,16 @@ def check_restart(key, restart: int, terminate: int) -> bool:
 
 def get_cached_response(req: ContextRequest, resp: Response, key: str) -> Optional[Mapping[str, Any]]:
     cache_for_seconds = req.app.context.config.status_cache_seconds
-    resp.headers['Cache-Control'] = f'public,max-age={cache_for_seconds}'
+    resp.headers["Cache-Control"] = f"public,max-age={cache_for_seconds}"
 
     now = datetime.utcnow()
     if SIMPLE_CACHE.get(key) is not None:
         if now < SIMPLE_CACHE[key].expire_time:
             if req.app.context.config.debug:
                 req.app.context.logger.debug(
-                    f'Returned cached response for {key}' f' {now} < {SIMPLE_CACHE[key].expire_time}'
+                    f"Returned cached response for {key}" f" {now} < {SIMPLE_CACHE[key].expire_time}"
                 )
-            resp.headers['Expires'] = SIMPLE_CACHE[key].expire_time.strftime("%a, %d %b %Y %H:%M:%S UTC")
+            resp.headers["Expires"] = SIMPLE_CACHE[key].expire_time.strftime("%a, %d %b %Y %H:%M:%S UTC")
             return SIMPLE_CACHE[key].data
     return None
 
@@ -87,10 +87,10 @@ def set_cached_response(req: ContextRequest, resp: Response, key: str, data: Map
     cache_for_seconds = req.app.context.config.status_cache_seconds
     now = datetime.utcnow()
     expires = now + timedelta(seconds=cache_for_seconds)
-    resp.headers['Expires'] = expires.strftime("%a, %d %b %Y %H:%M:%S UTC")
+    resp.headers["Expires"] = expires.strftime("%a, %d %b %Y %H:%M:%S UTC")
     SIMPLE_CACHE[key] = SimpleCacheItem(expire_time=expires, data=data)
     if req.app.context.config.debug:
-        req.app.context.logger.debug(f'Cached response for {key} until {expires}')
+        req.app.context.logger.debug(f"Cached response for {key} until {expires}")
 
 
 def check_mongo(req: ContextRequest, default_data_owner: str):
@@ -99,11 +99,11 @@ def check_mongo(req: ContextRequest, default_data_owner: str):
     try:
         user_db.is_healthy()
         group_db.is_healthy()
-        reset_failure_info(req, '_check_mongo')
+        reset_failure_info(req, "_check_mongo")
         return True
     except Exception as exc:
-        log_failure_info(req, '_check_mongo', msg='Mongodb health check failed', exc=exc)
-        check_restart('_check_mongo', restart=0, terminate=120)
+        log_failure_info(req, "_check_mongo", msg="Mongodb health check failed", exc=exc)
+        check_restart("_check_mongo", restart=0, terminate=120)
         return False
 
 
@@ -118,9 +118,9 @@ def check_neo4j(req: ContextRequest, default_data_owner: str):
             """
         with group_db.graphdb.db.driver.session() as session:
             session.run(q).single()
-        reset_failure_info(req, '_check_neo4j')
+        reset_failure_info(req, "_check_neo4j")
         return True
     except Exception as exc:
-        log_failure_info(req, '_check_neo4j', msg='Neo4j health check failed', exc=exc)
-        check_restart('_check_neo4j', restart=0, terminate=120)
+        log_failure_info(req, "_check_neo4j", msg="Neo4j health check failed", exc=exc)
+        check_restart("_check_neo4j", restart=0, terminate=120)
         return False
