@@ -5,9 +5,9 @@ from eduid.common.config.exceptions import BadConfiguration
 from eduid.common.logging import LocalContext, LoggingFilters, make_dictConfig
 from eduid.queue.config import QueueWorkerConfig
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
-DEFAULT_FORMAT = '{asctime} | {levelname:7} | {hostname} | {name:35} | {module:10} | {message}'
+DEFAULT_FORMAT = "{asctime} | {levelname:7} | {hostname} | {name:35} | {module:10} | {message}"
 
 
 def make_local_context(config: QueueWorkerConfig) -> LocalContext:
@@ -23,7 +23,7 @@ def make_local_context(config: QueueWorkerConfig) -> LocalContext:
     log_level = config.log_level
     if config.debug:
         # Flask expects to be able to debug log in debug mode
-        log_level = 'DEBUG'
+        log_level = "DEBUG"
 
     filters = [LoggingFilters.NAMES]
 
@@ -40,7 +40,7 @@ def make_local_context(config: QueueWorkerConfig) -> LocalContext:
             relative_time=relative_time,
         )
     except (KeyError, AttributeError) as e:
-        raise BadConfiguration(message=f'Could not initialize logging local_context. {type(e).__name__}: {e}')
+        raise BadConfiguration(message=f"Could not initialize logging local_context. {type(e).__name__}: {e}")
     return local_context
 
 

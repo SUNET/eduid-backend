@@ -15,7 +15,7 @@ from eduid.userdb.util import utc_now
 
 logger = logging.getLogger(__name__)
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class SinkQueueWorker(QueueWorker):
@@ -28,13 +28,13 @@ class SinkQueueWorker(QueueWorker):
         self._counter = 0
         self._first_ts: Optional[datetime] = None
         self._last_ts: Optional[datetime] = None
-        hostname = os.environ.get('HOSTNAME') or 'localhost'
-        self._sender_info = SenderInfo(hostname=hostname, node_id='sink_worker')
+        hostname = os.environ.get("HOSTNAME") or "localhost"
+        self._sender_info = SenderInfo(hostname=hostname, node_id="sink_worker")
 
     async def handle_new_item(self, queue_item: QueueItem) -> None:
         if queue_item.payload_type == EduidTestPayload.get_type():
             self._receiving = True
-            logger.debug(f'Received queue item: {queue_item.item_id}')
+            logger.debug(f"Received queue item: {queue_item.item_id}")
             logger.debug(queue_item)
             now = utc_now()
             if not self._first_ts:
@@ -45,11 +45,11 @@ class SinkQueueWorker(QueueWorker):
         await self.item_successfully_handled(queue_item)
 
     async def handle_expired_item(self, queue_item: QueueItem) -> None:
-        logger.warning(f'Found expired item: {queue_item}')
+        logger.warning(f"Found expired item: {queue_item}")
 
     async def collect_periodic_tasks(self) -> List[Task]:
         tasks = await super().collect_periodic_tasks()
-        tasks += [asyncio.create_task(self.periodic_stats_publishing(), name='periodic_stats_publishing')]
+        tasks += [asyncio.create_task(self.periodic_stats_publishing(), name="periodic_stats_publishing")]
         return tasks
 
     async def periodic_stats_publishing(self) -> None:
@@ -78,14 +78,14 @@ class SinkQueueWorker(QueueWorker):
                 payload_type=payload.get_type(),
                 payload=payload,
             )
-            logger.info(f'Test results this period: {payload}')
+            logger.info(f"Test results this period: {payload}")
             self.db.save(qitem)
 
         self._receiving = False
 
 
-def init_sink_worker(name: str = 'sink_worker', test_config: Optional[Mapping[str, Any]] = None) -> SinkQueueWorker:
-    config = load_config(typ=QueueWorkerConfig, app_name=name, ns='queue', test_config=test_config)
+def init_sink_worker(name: str = "sink_worker", test_config: Optional[Mapping[str, Any]] = None) -> SinkQueueWorker:
+    config = load_config(typ=QueueWorkerConfig, app_name=name, ns="queue", test_config=test_config)
     return SinkQueueWorker(config=config)
 
 
@@ -94,6 +94,6 @@ def start_worker():
     exit(asyncio.run(worker.run()))
 
 
-if __name__ == '__main__':
-    logger = logging.getLogger('sink-queue-worker')
+if __name__ == "__main__":
+    logger = logging.getLogger("sink-queue-worker")
     start_worker()

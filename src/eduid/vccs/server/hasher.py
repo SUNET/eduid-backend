@@ -49,22 +49,22 @@ class VCCSHasher(ABC):
         self.lock = lock
 
     def unlock(self, password: str) -> None:
-        raise NotImplementedError('Subclass should implement unlock')
+        raise NotImplementedError("Subclass should implement unlock")
 
     def info(self) -> Any:
-        raise NotImplementedError('Subclass should implement info')
+        raise NotImplementedError("Subclass should implement info")
 
     def hmac_sha1(self, _key_handle, _data):
-        raise NotImplementedError('Subclass should implement safe_hmac_sha1')
+        raise NotImplementedError("Subclass should implement safe_hmac_sha1")
 
     def unsafe_hmac_sha1(self, _key_handle, _data):
-        raise NotImplementedError('Subclass should implement hmac_sha1')
+        raise NotImplementedError("Subclass should implement hmac_sha1")
 
     def load_temp_key(self, _nonce, _key_handle, _aead):
-        raise NotImplementedError('Subclass should implement load_temp_key')
+        raise NotImplementedError("Subclass should implement load_temp_key")
 
     def safe_random(self, _byte_count):
-        raise NotImplementedError('Subclass should implement safe_random')
+        raise NotImplementedError("Subclass should implement safe_random")
 
     async def lock_acquire(self):
         return await self.lock.acquire()
@@ -141,7 +141,7 @@ class VCCSSoftHasher(VCCSHasher):
         return None
 
     def info(self) -> Any:
-        return f'key handles loaded: {list(self.keys.keys())}'
+        return f"key handles loaded: {list(self.keys.keys())}"
 
     async def hmac_sha1(self, key_handle: Optional[int], data: bytes) -> bytes:
         """
@@ -158,7 +158,7 @@ class VCCSSoftHasher(VCCSHasher):
     def unsafe_hmac_sha1(self, key_handle: Optional[int], data: bytes) -> bytes:
         if key_handle is None:
             if not self._temp_key:
-                raise RuntimeError('No key handle provided, and no temp key loaded')
+                raise RuntimeError("No key handle provided, and no temp key loaded")
             hmac_key = self._temp_key
         else:
             hmac_key = self.keys[key_handle]
@@ -205,15 +205,15 @@ def hasher_from_string(name: str, lock=None, debug=False):
     """
     if not lock:
         lock = NoOpLock()
-    if name.startswith('soft_hasher:'):
-        fn = name.split(':')[1]
+    if name.startswith("soft_hasher:"):
+        fn = name.split(":")[1]
         with open(fn) as fd:
             data = yaml.safe_load(fd)
-            return VCCSSoftHasher(keys=data['key_handles'], lock=lock)
+            return VCCSSoftHasher(keys=data["key_handles"], lock=lock)
     try:
         mode = os.stat(name).st_mode
         if stat.S_ISCHR(mode):
             return VCCSYHSMHasher(name, lock, debug)
-        raise ValueError(f'Not a character device : {name}')
+        raise ValueError(f"Not a character device : {name}")
     except OSError:
-        raise ValueError(f'Unknown hasher {repr(name)}')
+        raise ValueError(f"Unknown hasher {repr(name)}")

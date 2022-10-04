@@ -34,7 +34,7 @@ from typing import Mapping
 
 from eduid.queue.db import Payload
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 @dataclass

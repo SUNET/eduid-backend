@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 import logging
 from typing import Dict, Iterable
@@ -50,8 +50,8 @@ _2016_v1_sv = """
 """
 
 tous = {
-    '2016-v1': {'en': _2016_v1_en, 'sv': _2016_v1_sv},
-    'test-version': {'en': 'test tou english', 'sv': 'test tou svenska'},
+    "2016-v1": {"en": _2016_v1_en, "sv": _2016_v1_sv},
+    "test-version": {"en": "test tou english", "sv": "test tou svenska"},
 }
 
 
@@ -61,6 +61,6 @@ def get_tous(version: str, languages: Iterable[str]) -> Dict[str, str]:
         try:
             ret[lang] = tous[version][lang]
         except KeyError:
-            logger.error(f'ToU with version {version} and lang {lang} not found')
+            logger.error(f"ToU with version {version} and lang {lang} not found")
             pass
     return ret

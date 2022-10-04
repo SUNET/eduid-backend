@@ -12,16 +12,16 @@ from pydantic import BaseModel, EmailStr, Extra, Field
 
 from eduid.scimapi.utils import make_etag
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 # https://snipplr.com/view/11540/regex-for-tel-uris
 PHONE_NUMBER_RFC_3966 = re.compile(
-    r'''^tel:((?:\+[\d().-]*\d[\d().-]*|[0-9A-F*#().-]*[0-9A-F*#][0-9A-F*#().-]*(?:
+    r"""^tel:((?:\+[\d().-]*\d[\d().-]*|[0-9A-F*#().-]*[0-9A-F*#][0-9A-F*#().-]*(?:
     ;[a-z\d-]+(?:=(?:[a-z\d\[\]/:&+$_!~*'().-]|%[\dA-F]{2})+)?)*;phone-context=(?:\+[\d().-]*\d[\d().-]*|
     (?:[a-z0-9]\.|[a-z0-9][a-z0-9-]*[a-z0-9]\.)*(?:[a-z]|[a-z][a-z0-9-]*[a-z0-9])))(?:;[a-z\d-]+(?:=
     (?:[a-z\d\[\]/:&+$_!~*'().-]|%[\dA-F]{2})+)?)*(?:,(?:\+[\d().-]*\d[\d().-]*|[0-9A-F*#().-]*[0-9A-F*#]
     [0-9A-F*#().-]*(?:;[a-z\d-]+(?:=(?:[a-z\d\[\]/:&+$_!~*'().-]|%[\dA-F]{2})+)?)*;phone-context=\+[\d().-]*
-    \d[\d().-]*)(?:;[a-z\d-]+(?:=(?:[a-z\d\[\]/:&+$_!~*'().-]|%[\dA-F]{2})+)?)*)*)$''',
+    \d[\d().-]*)(?:;[a-z\d-]+(?:=(?:[a-z\d\[\]/:&+$_!~*'().-]|%[\dA-F]{2})+)?)*)*)$""",
     re.VERBOSE,
 )
 
@@ -56,7 +56,7 @@ class WeakVersion(ObjectId):
         return cls(value)
 
     def __repr__(self):
-        return f'WeakVersion({super().__repr__()})'
+        return f"WeakVersion({super().__repr__()})"
 
     @classmethod
     def serialize(cls, value: ObjectId):
@@ -80,21 +80,21 @@ class PhoneNumberStr(str):
     def __modify_schema__(cls, field_schema):
         # TODO: Better documentation
         field_schema.update(
-            examples=['tel:555-55555'],
+            examples=["tel:555-55555"],
         )
 
     @classmethod
     def validate(cls, value):
         if not isinstance(value, str):
-            raise TypeError('string required')
+            raise TypeError("string required")
         value = value.lower()
         m = PHONE_NUMBER_RFC_3966.fullmatch(value)
         if not m:
-            raise ValueError('invalid phone number format, needs to conform to RFC 3966')
+            raise ValueError("invalid phone number format, needs to conform to RFC 3966")
         return cls(value)
 
     def __repr__(self):
-        return f'PhoneNumberStr({super().__repr__()})'
+        return f"PhoneNumberStr({super().__repr__()})"
 
 
 class LanguageTag(str):
@@ -106,20 +106,20 @@ class LanguageTag(str):
     def __modify_schema__(cls, field_schema):
         # TODO: Better documentation
         field_schema.update(
-            examples=['sv-se', 'en-us'],
+            examples=["sv-se", "en-us"],
         )
 
     @classmethod
     def validate(cls, value):
         if not isinstance(value, str):
-            raise TypeError('string required')
+            raise TypeError("string required")
         # TODO: Does not validate that the input is a correct language tag
         # Replaces overlong tags with their shortest version, and also formats them according to the
         # conventions of BCP 47.
         return cls(standardize_tag(value, macro=True))
 
     def __repr__(self):
-        return f'LanguageTag({super().__repr__()})'
+        return f"LanguageTag({super().__repr__()})"
 
 
 def serialize_datetime(value: datetime) -> str:
@@ -137,40 +137,40 @@ def serialize_datetime(value: datetime) -> str:
 
 
 class SCIMSchema(str, Enum):
-    CORE_20_USER = 'urn:ietf:params:scim:schemas:core:2.0:User'
-    CORE_20_GROUP = 'urn:ietf:params:scim:schemas:core:2.0:Group'
-    API_MESSAGES_20_SEARCH_REQUEST = 'urn:ietf:params:scim:api:messages:2.0:SearchRequest'
-    API_MESSAGES_20_LIST_RESPONSE = 'urn:ietf:params:scim:api:messages:2.0:ListResponse'
-    ERROR = 'urn:ietf:params:scim:api:messages:2.0:Error'
-    NUTID_USER_V1 = 'https://scim.eduid.se/schema/nutid/user/v1'
-    NUTID_GROUP_V1 = 'https://scim.eduid.se/schema/nutid/group/v1'
-    NUTID_INVITE_CORE_V1 = 'https://scim.eduid.se/schema/nutid/invite/core-v1'
-    NUTID_INVITE_V1 = 'https://scim.eduid.se/schema/nutid/invite/v1'
-    NUTID_EVENT_CORE_V1 = 'https://scim.eduid.se/schema/nutid/event/core-v1'
-    NUTID_EVENT_V1 = 'https://scim.eduid.se/schema/nutid/event/v1'
-    DEBUG_V1 = 'https://scim.eduid.se/schema/nutid-DEBUG/v1'
+    CORE_20_USER = "urn:ietf:params:scim:schemas:core:2.0:User"
+    CORE_20_GROUP = "urn:ietf:params:scim:schemas:core:2.0:Group"
+    API_MESSAGES_20_SEARCH_REQUEST = "urn:ietf:params:scim:api:messages:2.0:SearchRequest"
+    API_MESSAGES_20_LIST_RESPONSE = "urn:ietf:params:scim:api:messages:2.0:ListResponse"
+    ERROR = "urn:ietf:params:scim:api:messages:2.0:Error"
+    NUTID_USER_V1 = "https://scim.eduid.se/schema/nutid/user/v1"
+    NUTID_GROUP_V1 = "https://scim.eduid.se/schema/nutid/group/v1"
+    NUTID_INVITE_CORE_V1 = "https://scim.eduid.se/schema/nutid/invite/core-v1"
+    NUTID_INVITE_V1 = "https://scim.eduid.se/schema/nutid/invite/v1"
+    NUTID_EVENT_CORE_V1 = "https://scim.eduid.se/schema/nutid/event/core-v1"
+    NUTID_EVENT_V1 = "https://scim.eduid.se/schema/nutid/event/v1"
+    DEBUG_V1 = "https://scim.eduid.se/schema/nutid-DEBUG/v1"
 
 
 class SCIMResourceType(str, Enum):
-    USER = 'User'
-    GROUP = 'Group'
-    INVITE = 'Invite'
-    EVENT = 'Event'
+    USER = "User"
+    GROUP = "Group"
+    INVITE = "Invite"
+    EVENT = "Event"
 
 
 class EmailType(str, Enum):
-    HOME = 'home'
-    WORK = 'work'
-    OTHER = 'other'
+    HOME = "home"
+    WORK = "work"
+    OTHER = "other"
 
 
 class PhoneNumberType(str, Enum):
-    HOME = 'home'
-    WORK = 'work'
-    OTHER = 'other'
-    MOBILE = 'mobile'
-    FAX = 'fax'
-    PAGER = 'pager'
+    HOME = "home"
+    WORK = "work"
+    OTHER = "other"
+    MOBILE = "mobile"
+    FAX = "fax"
+    PAGER = "pager"
 
 
 class EduidBaseModel(BaseModel):
@@ -183,16 +183,16 @@ class EduidBaseModel(BaseModel):
 
 class SubResource(EduidBaseModel):
     value: UUID
-    ref: str = Field(alias='$ref')
+    ref: str = Field(alias="$ref")
     display: str
 
     @property
     def is_user(self):
-        return self.ref and '/Users/' in self.ref
+        return self.ref and "/Users/" in self.ref
 
     @property
     def is_group(self):
-        return self.ref and '/Groups/' in self.ref
+        return self.ref and "/Groups/" in self.ref
 
     @classmethod
     def from_mapping(cls, data):
@@ -201,19 +201,19 @@ class SubResource(EduidBaseModel):
 
 class Meta(EduidBaseModel):
     location: str
-    last_modified: datetime = Field(alias='lastModified')
-    resource_type: SCIMResourceType = Field(alias='resourceType')
+    last_modified: datetime = Field(alias="lastModified")
+    resource_type: SCIMResourceType = Field(alias="resourceType")
     created: datetime
     version: WeakVersion
 
 
 class Name(EduidBaseModel):
-    family_name: Optional[str] = Field(default=None, alias='familyName')
-    given_name: Optional[str] = Field(default=None, alias='givenName')
+    family_name: Optional[str] = Field(default=None, alias="familyName")
+    given_name: Optional[str] = Field(default=None, alias="givenName")
     formatted: Optional[str] = None
-    middle_name: Optional[str] = Field(default=None, alias='middleName')
-    honorific_prefix: Optional[str] = Field(default=None, alias='honorificPrefix')
-    honorific_suffix: Optional[str] = Field(default=None, alias='honorificSuffix')
+    middle_name: Optional[str] = Field(default=None, alias="middleName")
+    honorific_prefix: Optional[str] = Field(default=None, alias="honorificPrefix")
+    honorific_suffix: Optional[str] = Field(default=None, alias="honorificSuffix")
 
 
 class Email(EduidBaseModel):
@@ -236,29 +236,29 @@ class BaseResponse(EduidBaseModel):
     id: UUID
     meta: Meta
     schemas: List[SCIMSchema] = Field(min_items=1)
-    external_id: Optional[str] = Field(default=None, alias='externalId')
+    external_id: Optional[str] = Field(default=None, alias="externalId")
 
 
 class BaseCreateRequest(EduidBaseModel):
     schemas: List[SCIMSchema] = Field(min_items=1)
-    external_id: Optional[str] = Field(default=None, alias='externalId')
+    external_id: Optional[str] = Field(default=None, alias="externalId")
 
 
 class BaseUpdateRequest(EduidBaseModel):
     id: UUID
     schemas: List[SCIMSchema] = Field(min_items=1)
-    external_id: Optional[str] = Field(default=None, alias='externalId')
+    external_id: Optional[str] = Field(default=None, alias="externalId")
 
 
 class SearchRequest(EduidBaseModel):
     schemas: List[SCIMSchema] = Field(min_items=1, default=[SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST])
     filter: str
-    start_index: int = Field(default=1, alias='startIndex', ge=1)  # Greater or equal to 1
+    start_index: int = Field(default=1, alias="startIndex", ge=1)  # Greater or equal to 1
     count: int = Field(default=100, ge=1)  # Greater or equal to 1
     attributes: Optional[List[str]] = None
 
 
 class ListResponse(EduidBaseModel):
     schemas: List[SCIMSchema] = Field(min_items=1, default=[SCIMSchema.API_MESSAGES_20_LIST_RESPONSE])
-    resources: List[Dict[Any, Any]] = Field(default_factory=list, alias='Resources')
-    total_results: int = Field(default=0, alias='totalResults')
+    resources: List[Dict[Any, Any]] = Field(default_factory=list, alias="Resources")
+    total_results: int = Field(default=0, alias="totalResults")

@@ -31,4 +31,4 @@
 from eduid.queue.db.message.db import MessageDB
 from eduid.queue.db.message.payload import EduidInviteEmail
 
-__author__ = 'lundberg'
+__author__ = "lundberg"

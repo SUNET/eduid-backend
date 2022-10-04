@@ -2,7 +2,7 @@
 
 from marshmallow.fields import Email
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class LowercaseEmail(Email):

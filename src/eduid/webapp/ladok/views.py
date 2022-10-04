@@ -15,36 +15,36 @@ from eduid.webapp.common.api.schemas.csrf import EmptyResponse
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.ladok.app import current_ladok_app as current_app
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 from eduid.webapp.ladok.client import LadokClientException
 from eduid.webapp.ladok.helpers import LadokMsg, link_user_BACKDOOR
 from eduid.webapp.ladok.schemas import LinkUserRequest, LinkUserResponse, UniversityInfoResponseSchema
 
-ladok_views = Blueprint('ladok', __name__, url_prefix='')
+ladok_views = Blueprint("ladok", __name__, url_prefix="")
 
 
-@ladok_views.route('/', methods=['GET'])
+@ladok_views.route("/", methods=["GET"])
 @MarshalWith(EmptyResponse)
 @require_user
 def get_csrf(user: User) -> FluxData:
     return success_response(payload=None, message=None)
 
 
-@ladok_views.route('/universities', methods=['GET'])
+@ladok_views.route("/universities", methods=["GET"])
 @MarshalWith(UniversityInfoResponseSchema)
 @require_user
 def get_university_info(user: User) -> FluxData:
-    return success_response(payload={'universities': current_app.ladok_client.universities})
+    return success_response(payload={"universities": current_app.ladok_client.universities})
 
 
-@ladok_views.route('/link-user', methods=['POST'])
+@ladok_views.route("/link-user", methods=["POST"])
 @MarshalWith(LinkUserResponse)
 @UnmarshalWith(LinkUserRequest)
 @require_user
 def link_user(user: User, ladok_name: str) -> FluxData:
     if user.identities.nin is None or user.identities.nin.is_verified is False:
-        current_app.logger.error('User has no verified nin')
+        current_app.logger.error("User has no verified nin")
         return error_response(message=LadokMsg.no_verified_nin)
 
     # Backdoor for the selenium integration tests or local dev environment
@@ -55,7 +55,7 @@ def link_user(user: User, ladok_name: str) -> FluxData:
     try:
         ladok_info = current_app.ladok_client.get_user_info(ladok_name=ladok_name, nin=user.identities.nin.number)
     except LadokClientException:
-        current_app.logger.error(f'{ladok_name} not found')
+        current_app.logger.error(f"{ladok_name} not found")
         return error_response(message=LadokMsg.missing_university)
 
     if ladok_info is None:
@@ -69,7 +69,7 @@ def link_user(user: User, ladok_name: str) -> FluxData:
             ladok_name=university.ladok_name, name=UniversityName(sv=university.name.sv, en=university.name.en)
         ),
         is_verified=True,
-        verified_by='eduid-ladok',
+        verified_by="eduid-ladok",
     )
     proofing_user.ladok = ladok_data
     assert proofing_user.identities.nin is not None  # please mypy
@@ -78,26 +78,26 @@ def link_user(user: User, ladok_name: str) -> FluxData:
         nin=proofing_user.identities.nin.number,
         external_id=str(ladok_data.external_id),
         ladok_name=ladok_name,
-        proofing_version='2021v1',
-        created_by='eduid-ladok',
+        proofing_version="2021v1",
+        created_by="eduid-ladok",
     )
 
     # Save proofing log entry and save user
     if current_app.proofing_log.save(proofing_log_entry):
-        current_app.logger.info('Recorded Ladok linking in the proofing log')
+        current_app.logger.info("Recorded Ladok linking in the proofing log")
         try:
             save_and_sync_user(proofing_user)
         except AmTaskFailed as e:
-            current_app.logger.error('Linking to Ladok failed')
-            current_app.logger.error('{}'.format(e))
+            current_app.logger.error("Linking to Ladok failed")
+            current_app.logger.error("{}".format(e))
             return error_response(message=CommonMsg.temp_problem)
-        current_app.stats.count(name='ladok_linked')
+        current_app.stats.count(name="ladok_linked")
 
-    current_app.logger.info('Ladok linked successfully')
-    return success_response(payload={'ladok': ladok_data})
+    current_app.logger.info("Ladok linked successfully")
+    return success_response(payload={"ladok": ladok_data})
 
 
-@ladok_views.route('/unlink-user', methods=['POST'])
+@ladok_views.route("/unlink-user", methods=["POST"])
 @MarshalWith(EmptyResponse)
 @require_user
 def unlink_user(user: User) -> FluxData:
@@ -109,10 +109,10 @@ def unlink_user(user: User) -> FluxData:
     try:
         save_and_sync_user(proofing_user)
     except AmTaskFailed as e:
-        current_app.logger.error('Unlinking from Ladok failed')
-        current_app.logger.error('{}'.format(e))
+        current_app.logger.error("Unlinking from Ladok failed")
+        current_app.logger.error("{}".format(e))
         return error_response(message=CommonMsg.temp_problem)
-    current_app.stats.count(name='ladok_unlinked')
-    current_app.logger.info('Ladok unlinked successfully')
+    current_app.stats.count(name="ladok_unlinked")
+    current_app.logger.info("Ladok unlinked successfully")
 
     return success_response(message=LadokMsg.user_unlinked)

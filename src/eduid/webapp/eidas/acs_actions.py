@@ -9,15 +9,10 @@ from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_actio
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.session import session
 from eduid.webapp.eidas.app import current_eidas_app as current_app
-from eduid.webapp.eidas.helpers import (
-    EidasMsg,
-    authn_ctx_to_loa,
-)
-from eduid.webapp.eidas.proofing import (
-    get_proofing_functions,
-)
+from eduid.webapp.eidas.helpers import EidasMsg, authn_ctx_to_loa
+from eduid.webapp.eidas.proofing import get_proofing_functions
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 @acs_action(EidasAcsAction.verify_identity)
@@ -48,8 +43,8 @@ def verify_identity_action(user: User, args: ACSArgs) -> ACSResult:
 
     current = proofing.get_identity(user)
     if current and current.is_verified:
-        current_app.logger.error(f'User already has a verified identity for {args.proofing_method.method}')
-        current_app.logger.debug(f'Current: {current}. Assertion: {args.session_info}')
+        current_app.logger.error(f"User already has a verified identity for {args.proofing_method.method}")
+        current_app.logger.debug(f"Current: {current}. Assertion: {args.session_info}")
         return ACSResult(message=ProofingMsg.identity_already_verified)
 
     verify_result = proofing.verify_identity(user=user)
@@ -76,7 +71,7 @@ def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
 
     credential = user.credentials.find(args.authn_req.proofing_credential_id)
     if not isinstance(credential, FidoCredential):
-        current_app.logger.error(f'Credential {credential} is not a FidoCredential')
+        current_app.logger.error(f"Credential {credential} is not a FidoCredential")
         return ACSResult(message=EidasMsg.token_not_in_creds)
 
     # Check (again) if token was used to authenticate this session. The first time we checked,
@@ -109,7 +104,7 @@ def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
             # actually be saved to the database. Can't be references to old user objects credential.
             credential = user.credentials.find(credential.key)
             if not isinstance(credential, FidoCredential):
-                current_app.logger.error(f'Credential {credential} is not a FidoCredential')
+                current_app.logger.error(f"Credential {credential} is not a FidoCredential")
                 return ACSResult(message=EidasMsg.token_not_in_creds)
 
     # Check that the users' verified identity matches the one that was asserted now
@@ -119,7 +114,7 @@ def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
 
     if not match_res.matched:
         # Matching external mfa authentication with user nin failed, bail
-        current_app.stats.count(name=f'verify_credential_{args.proofing_method.method}_identity_not_matching')
+        current_app.stats.count(name=f"verify_credential_{args.proofing_method.method}_identity_not_matching")
         return ACSResult(message=EidasMsg.identity_not_matching)
 
     loa = authn_ctx_to_loa(args.session_info)
@@ -128,8 +123,8 @@ def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
     if verify_result.error is not None:
         return ACSResult(message=verify_result.error)
 
-    current_app.stats.count(name='fido_token_verified')
-    current_app.stats.count(name=f'verify_credential_{args.proofing_method.method}_success')
+    current_app.stats.count(name="fido_token_verified")
+    current_app.stats.count(name=f"verify_credential_{args.proofing_method.method}_success")
 
     return ACSResult(success=True, message=EidasMsg.credential_verify_success)
 
@@ -154,7 +149,7 @@ def mfa_authenticate_action(args: ACSArgs) -> ACSResult:
     user = current_app.central_userdb.get_user_by_eppn(session.common.eppn)
     if user is None:
         # Please mypy
-        raise RuntimeError(f'No user with eppn {session.common.eppn} found')
+        raise RuntimeError(f"No user with eppn {session.common.eppn} found")
 
     parsed = args.proofing_method.parse_session_info(args.session_info, backdoor=args.backdoor)
     if parsed.error:
@@ -169,16 +164,16 @@ def mfa_authenticate_action(args: ACSArgs) -> ACSResult:
 
     # Check that a verified NIN is equal to the asserted attribute personalIdentityNumber
     match_res = proofing.match_identity(user=user, proofing_method=args.proofing_method)
-    current_app.logger.debug(f'MFA authentication identity matching result: {match_res}')
+    current_app.logger.debug(f"MFA authentication identity matching result: {match_res}")
     if match_res.error is not None:
         return ACSResult(message=match_res.error)
 
     if not match_res.matched:
         # Matching external mfa authentication with user nin failed, bail
-        current_app.stats.count(name=f'mfa_auth_{args.proofing_method.method}_identity_not_matching')
+        current_app.stats.count(name=f"mfa_auth_{args.proofing_method.method}_identity_not_matching")
         return ACSResult(message=EidasMsg.identity_not_matching)
 
-    current_app.stats.count(name=f'mfa_auth_success')
-    current_app.stats.count(name=f'mfa_auth_{args.proofing_method.method}_success')
-    current_app.stats.count(name=f'mfa_auth_{parsed.info.issuer}_success')
+    current_app.stats.count(name=f"mfa_auth_success")
+    current_app.stats.count(name=f"mfa_auth_{args.proofing_method.method}_success")
+    current_app.stats.count(name=f"mfa_auth_{parsed.info.issuer}_success")
     return ACSResult(success=True, message=EidasMsg.mfa_authn_success)

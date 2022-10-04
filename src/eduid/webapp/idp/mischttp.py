@@ -46,20 +46,20 @@ class HttpArgs:
     @classmethod
     def from_pysaml2_dict(cls: Type[HttpArgs], http_args: Dict[str, Any]) -> HttpArgs:
         # Parse the parts of http_args we know how to parse, and then warn about any remains.
-        if 'status' in http_args and http_args["status"] != 200:
+        if "status" in http_args and http_args["status"] != 200:
             logger.warning(f'Ignoring status in http_args: {http_args["status"]}')
-        method = http_args.pop('method')
-        url = http_args.pop('url')
-        message = http_args.pop('data')
-        status = http_args.pop('status', '200 Ok')
-        headers = http_args.pop('headers', [])
+        method = http_args.pop("method")
+        url = http_args.pop("url")
+        message = http_args.pop("data")
+        status = http_args.pop("status", "200 Ok")
+        headers = http_args.pop("headers", [])
         headers_lc = [x[0].lower() for x in headers]
-        if 'content-type' not in headers_lc:
-            _content_type = http_args.pop('content', 'text/html')
-            headers.append(('Content-Type', _content_type))
+        if "content-type" not in headers_lc:
+            _content_type = http_args.pop("content", "text/html")
+            headers.append(("Content-Type", _content_type))
 
         if http_args != {}:
-            logger.debug(f'Unknown HTTP args when creating {repr(status)} response :\n{pprint.pformat(http_args)}')
+            logger.debug(f"Unknown HTTP args when creating {repr(status)} response :\n{pprint.pformat(http_args)}")
 
         return cls(method=method, url=url, headers=headers, body=message)
 
@@ -71,7 +71,7 @@ class HttpArgs:
         Use the header Location first, and secondly 'url' from http_args.
         """
         for k, v in self.headers:
-            if k.lower() == 'location':
+            if k.lower() == "location":
                 return v
         return self.url
 
@@ -86,28 +86,28 @@ def create_html_response(binding: str, http_args: HttpArgs) -> WerkzeugResponse:
     :return: HTML response
     """
     if binding == BINDING_HTTP_REDIRECT:
-        if http_args.method != 'GET':
-            logger.warning(f'BINDING_HTTP_REDIRECT method is not GET ({http_args.method})')
+        if http_args.method != "GET":
+            logger.warning(f"BINDING_HTTP_REDIRECT method is not GET ({http_args.method})")
         location = http_args.redirect_url
-        logger.debug(f'Binding {binding} redirecting to {repr(location)}')
+        logger.debug(f"Binding {binding} redirecting to {repr(location)}")
         if not location:
-            raise InternalServerError('No redirect destination')
+            raise InternalServerError("No redirect destination")
         if http_args.url:
             if not location.startswith(http_args.url):
                 logger.warning(f'There is another "url" in args: {http_args.url} (location: {location})')
         return redirect(location)
 
-    message = b''
+    message = b""
     if isinstance(http_args.body, bytes):
         message = http_args.body
     elif http_args.body is not None:
-        message = bytes(http_args.body, 'utf-8')
+        message = bytes(http_args.body, "utf-8")
 
     response = make_response(message)
     for k, v in http_args.headers:
         _old_v = response.headers.get(k)
         if v != _old_v:
-            logger.debug(f'Changing response header {repr(k)} from {repr(_old_v)} -> {repr(v)}')
+            logger.debug(f"Changing response header {repr(k)} from {repr(_old_v)} -> {repr(v)}")
             response.headers[k] = v
     return response
 
@@ -128,12 +128,12 @@ def _sanitise_items(data: Mapping[str, Any]) -> Dict[str, str]:
     san = Sanitizer()
     for k, v in data.items():
         try:
-            safe_k = san.sanitize_input(k, content_type='text/plain', logger=logger)
+            safe_k = san.sanitize_input(k, content_type="text/plain", logger=logger)
             if safe_k != k:
                 raise BadRequest()
-            safe_v = san.sanitize_input(v, content_type='text/plain', logger=logger)
+            safe_v = san.sanitize_input(v, content_type="text/plain", logger=logger)
         except SanitationProblem:
-            logger.exception(f'There was a problem sanitizing inputs')
+            logger.exception(f"There was a problem sanitizing inputs")
             raise BadRequest()
         res[str(safe_k)] = str(safe_v)
     return res
@@ -149,10 +149,10 @@ def read_cookie(name: str) -> Optional[str]:
     :returns: string with cookie content, or None
     """
     cookies = request.cookies
-    logger.debug(f'Reading cookie(s): {cookies}')
+    logger.debug(f"Reading cookie(s): {cookies}")
     cookie = cookies.get(name)
     if not cookie:
-        logger.debug(f'No IdP SSO cookie ({name}) found')
+        logger.debug(f"No IdP SSO cookie ({name}) found")
         return None
     return cookie
 
@@ -174,8 +174,8 @@ def set_sso_cookie(sso_cookie: CookieConfig, value: str, response: WerkzeugRespo
         samesite=sso_cookie.samesite,
         max_age=sso_cookie.max_age_seconds,
     )
-    _cookie = response.headers.get('Set-Cookie')
-    logger.debug(f'Set SSO cookie {_cookie}')
+    _cookie = response.headers.get("Set-Cookie")
+    logger.debug(f"Set SSO cookie {_cookie}")
     return response
 
 
@@ -206,14 +206,14 @@ def get_default_template_arguments(config: IdPConfig) -> Dict[str, str]:
     :return: header links
     """
     return {
-        'dashboard_link': config.dashboard_link,
-        'signup_link': config.signup_link,
-        'student_link': config.student_link,
-        'technicians_link': config.technicians_link,
-        'staff_link': config.staff_link,
-        'faq_link': config.faq_link,
-        'password_reset_link': config.password_reset_link,
-        'static_link': config.static_link,
+        "dashboard_link": config.dashboard_link,
+        "signup_link": config.signup_link,
+        "student_link": config.student_link,
+        "technicians_link": config.technicians_link,
+        "staff_link": config.staff_link,
+        "faq_link": config.faq_link,
+        "password_reset_link": config.password_reset_link,
+        "static_link": config.static_link,
     }
 
 
@@ -225,7 +225,7 @@ class IdPUserAgent:
 
 def get_user_agent() -> Optional[IdPUserAgent]:
     """Get the request User-Agent and parse it in a safe and controlled way"""
-    user_agent = request.headers.get('user-agent')
+    user_agent = request.headers.get("user-agent")
     if not user_agent:
         return None
 

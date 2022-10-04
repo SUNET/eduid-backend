@@ -241,7 +241,7 @@ class StepUp(ResponseMicroService):
 
         name_id = NameID(format=NAMEID_FORMAT_UNSPECIFIED, text=nameid_value)
         subject = Subject(name_id=name_id)
-        authn_context = {'authn_context_class_ref': [required_loa], 'comparison': 'exact'}
+        authn_context = {"authn_context_class_ref": [required_loa], "comparison": "exact"}
         relay_state = util.rndstr()
 
         logger.debug(
@@ -285,7 +285,7 @@ class StepUp(ResponseMicroService):
             }
             raise StepUpError(error_context) from e
 
-        if self.sp.config.getattr('allow_unsolicited', 'sp') is False:
+        if self.sp.config.getattr("allow_unsolicited", "sp") is False:
             if req_id in self.outstanding_queries:
                 error_context = {
                     "msg": "request with duplicate id",
@@ -339,7 +339,7 @@ class StepUp(ResponseMicroService):
             }
             raise StepUpError(error_context) from e
 
-        if self.sp.config.getattr('allow_unsolicited', 'sp') is False:
+        if self.sp.config.getattr("allow_unsolicited", "sp") is False:
             req_id = authn_response.in_response_to
             if req_id not in self.outstanding_queries:
                 error_context = {

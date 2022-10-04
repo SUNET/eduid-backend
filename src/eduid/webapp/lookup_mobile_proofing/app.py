@@ -43,7 +43,7 @@ from eduid.userdb.proofing import LookupMobileProofingUserDB
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.lookup_mobile_proofing.settings.common import MobileProofingConfig
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class MobileProofingApp(AuthnBaseApp):
@@ -66,17 +66,17 @@ current_mobilep_app = cast(MobileProofingApp, current_app)
 
 
 def init_lookup_mobile_proofing_app(
-    name: str = 'lookup_mobile_proofing', test_config: Optional[Mapping[str, Any]] = None
+    name: str = "lookup_mobile_proofing", test_config: Optional[Mapping[str, Any]] = None
 ) -> MobileProofingApp:
     """
     :param name: The name of the instance, it will affect the configuration loaded.
     :param test_config: Override config, used in test cases.
     """
-    config = load_config(typ=MobileProofingConfig, app_name=name, ns='webapp', test_config=test_config)
+    config = load_config(typ=MobileProofingConfig, app_name=name, ns="webapp", test_config=test_config)
 
     app = MobileProofingApp(config)
 
-    app.logger.info(f'Init {app}...')
+    app.logger.info(f"Init {app}...")
 
     # Register views
     from eduid.webapp.lookup_mobile_proofing.views import mobile_proofing_views

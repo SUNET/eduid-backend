@@ -47,7 +47,7 @@ from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.login_context import LoginContext
 from eduid.webapp.idp.sso_session import SSOSession
 
-__author__ = 'ft'
+__author__ = "ft"
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ def need_security_key(user: IdPUser, ticket: LoginContext) -> bool:
     """Check if the user needs to use a Security Key for this very request, regardless of authnContextClassRef"""
     tokens = user.credentials.filter(FidoCredential)
     if not tokens:
-        logger.debug('User has no FIDO credentials, no extra requirement for MFA this session imposed')
+        logger.debug("User has no FIDO credentials, no extra requirement for MFA this session imposed")
         return False
 
     for cred_key in ticket.pending_request.credentials_used:
@@ -68,15 +68,15 @@ def need_security_key(user: IdPUser, ticket: LoginContext) -> bool:
         if isinstance(credential, OnetimeCredential):
             # OLD way
             if credential.type == OnetimeCredType.external_mfa:
-                logger.debug(f'User has authenticated using external MFA for this request: {credential}')
+                logger.debug(f"User has authenticated using external MFA for this request: {credential}")
                 return False
         elif isinstance(credential, SwedenConnectCredential):
             # NEW way
-            if credential.level == 'loa3':
-                logger.debug(f'User has authenticated using external MFA for this request: {credential}')
+            if credential.level == "loa3":
+                logger.debug(f"User has authenticated using external MFA for this request: {credential}")
                 return False
         elif isinstance(credential, FidoCredential):
-            logger.debug(f'User has authenticated with a FIDO credential for this request: {credential}')
+            logger.debug(f"User has authenticated with a FIDO credential for this request: {credential}")
             return False
 
     logger.debug("User has one or more FIDO credentials registered, but haven't provided any MFA for this request")
@@ -109,41 +109,41 @@ def add_actions(user: IdPUser, ticket: LoginContext, sso_session: SSOSession) ->
     tokens = u2f_tokens + webauthn_tokens
 
     if not tokens and not require_mfa:
-        current_app.logger.debug('User does not have any FIDO tokens registered and SP did not require MFA')
+        current_app.logger.debug("User does not have any FIDO tokens registered and SP did not require MFA")
         return None
 
-    existing_actions = current_app.actions_db.get_actions(user.eppn, ticket.request_ref, action_type='mfa')
+    existing_actions = current_app.actions_db.get_actions(user.eppn, ticket.request_ref, action_type="mfa")
     if existing_actions and len(existing_actions) > 0:
-        current_app.logger.debug('User has existing MFA actions - checking them')
+        current_app.logger.debug("User has existing MFA actions - checking them")
         if check_authn_result(user, ticket, existing_actions, sso_session):
             return None
-        current_app.logger.error('User returned without MFA credentials')
+        current_app.logger.error("User returned without MFA credentials")
 
-    current_app.logger.debug('Checking for previous MFA authentication for this request')
+    current_app.logger.debug("Checking for previous MFA authentication for this request")
 
     for cred_key in ticket.pending_request.credentials_used:
         cred = user.credentials.find(cred_key)
         if isinstance(cred, FidoCredential):
-            current_app.logger.debug(f'User has authenticated for this request with FIDO token {cred_key}')
+            current_app.logger.debug(f"User has authenticated for this request with FIDO token {cred_key}")
             return None
 
-    current_app.logger.debug(f'User must authenticate with a token (has {len(tokens)} token(s))')
+    current_app.logger.debug(f"User must authenticate with a token (has {len(tokens)} token(s))")
     return current_app.actions_db.add_action(
-        user.eppn, action_type='mfa', preference=1, session=ticket.request_ref, params={}
+        user.eppn, action_type="mfa", preference=1, session=ticket.request_ref, params={}
     )
 
 
 def add_mfa_action(user: IdPUser, ticket: LoginContext) -> Optional[Action]:
     tokens = user.credentials.filter(FidoCredential)
 
-    logger.debug(f'User must authenticate with a token (has {len(tokens)} token(s))')
+    logger.debug(f"User must authenticate with a token (has {len(tokens)} token(s))")
     return current_app.actions_db.add_action(
-        user.eppn, action_type='mfa', preference=1, session=ticket.request_ref, params={}
+        user.eppn, action_type="mfa", preference=1, session=ticket.request_ref, params={}
     )
 
 
 def process_mfa_action_results(user: IdPUser, ticket: LoginContext, sso_session: SSOSession) -> None:
-    actions = current_app.actions_db.get_actions(user.eppn, ticket.request_ref, action_type='mfa')
+    actions = current_app.actions_db.get_actions(user.eppn, ticket.request_ref, action_type="mfa")
     check_authn_result(user, ticket, actions, sso_session)
 
 
@@ -160,19 +160,19 @@ def check_authn_result(user: IdPUser, ticket: LoginContext, actions: List[Action
     :return: MFA action with proof of completion found
     """
     if not current_app.actions_db:
-        raise RuntimeError('check_authn_result called without actions_db')
+        raise RuntimeError("check_authn_result called without actions_db")
 
     res = False
     _save = False
 
     for this in actions:
-        current_app.logger.debug(f'Processing authn action result:\n{this}')
+        current_app.logger.debug(f"Processing authn action result:\n{this}")
         if this.result is None:
             continue
 
         if this.session != ticket.request_ref:
             current_app.logger.warning(
-                f'Got action result for another session {this.session} (expected {ticket.request_ref})'
+                f"Got action result for another session {this.session} (expected {ticket.request_ref})"
             )
 
         # TODO: Use timestamp from action result rather than timestamp when we get here
@@ -193,21 +193,21 @@ def check_authn_result(user: IdPUser, ticket: LoginContext, actions: List[Action
                     )
                     session.idp.log_credential_used(RequestRef(this.session), otc, _utc_now)
                 # TODO: Should we persistently log external MFA usage with log_authn() like we do below?
-                current_app.logger.debug(f'Removing MFA action completed with external issuer {this.result.issuer}')
+                current_app.logger.debug(f"Removing MFA action completed with external issuer {this.result.issuer}")
                 current_app.actions_db.remove_action_by_id(this.action_id)
                 res = True
                 continue
             elif isinstance(this.result, ActionResultMFA):
                 cred = user.credentials.find(this.result.cred_key)
                 if not cred:
-                    current_app.logger.error(f'MFA action completed with unknown credential {this.result.cred_key}')
+                    current_app.logger.error(f"MFA action completed with unknown credential {this.result.cred_key}")
                     continue
 
-                current_app.logger.debug(f'Removing MFA action completed with {cred}')
+                current_app.logger.debug(f"Removing MFA action completed with {cred}")
                 current_app.actions_db.remove_action_by_id(this.action_id)
 
                 if not this.result.success:
-                    current_app.logger.debug(f'Authentication with credential {cred} was not successful')
+                    current_app.logger.debug(f"Authentication with credential {cred} was not successful")
                     continue
 
                 authn = AuthnData(cred_id=cred.key, timestamp=_utc_now)
@@ -222,9 +222,9 @@ def check_authn_result(user: IdPUser, ticket: LoginContext, actions: List[Action
 
                 res = True
             else:
-                current_app.logger.error(f'Ignoring unknown action result: {type(this.result)}')
+                current_app.logger.error(f"Ignoring unknown action result: {type(this.result)}")
     if _save:
-        current_app.logger.debug(f'Saving SSO session {sso_session}')
+        current_app.logger.debug(f"Saving SSO session {sso_session}")
         current_app.sso_sessions.save(sso_session)
 
     return res

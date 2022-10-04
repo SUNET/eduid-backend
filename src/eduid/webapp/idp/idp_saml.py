@@ -22,7 +22,7 @@ if typing.TYPE_CHECKING:
     from eduid.webapp.idp.login import SAMLResponseParams
     from eduid.webapp.idp.login_context import LoginContextSAML
 
-ResponseArgs = NewType('ResponseArgs', Dict[str, Any])
+ResponseArgs = NewType("ResponseArgs", Dict[str, Any])
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ class SAMLValidationError(Exception):
     pass
 
 
-ReqSHA1 = NewType('ReqSHA1', str)
+ReqSHA1 = NewType("ReqSHA1", str)
 
 
 def gen_key(something: Union[str, bytes]) -> ReqSHA1:
@@ -46,12 +46,12 @@ def gen_key(something: Union[str, bytes]) -> ReqSHA1:
     :return: SHA1 digest
     """
     if not isinstance(something, bytes):
-        something = something.encode('UTF-8')
+        something = something.encode("UTF-8")
     _digest = sha1(something).hexdigest()
     return ReqSHA1(_digest)
 
 
-SamlResponse = NewType('SamlResponse', str)
+SamlResponse = NewType("SamlResponse", str)
 
 
 class ServiceInfo(BaseModel):
@@ -80,15 +80,15 @@ class IdP_SAMLRequest(object):
         try:
             self._req_info = idp.parse_authn_request(request, binding)
         except UnravelError as exc:
-            logger.info(f'Failed parsing SAML request ({len(request)} bytes)')
-            logger.debug(f'Failed parsing SAML request:\n{request}\nException {exc}')
-            raise SAMLParseError('Failed parsing SAML request')
+            logger.info(f"Failed parsing SAML request ({len(request)} bytes)")
+            logger.debug(f"Failed parsing SAML request:\n{request}\nException {exc}")
+            raise SAMLParseError("Failed parsing SAML request")
 
         if not self._req_info:
             # Either there was no request, or pysaml2 found it to be unacceptable.
             # For example, the IssueInstant might have been out of bounds.
-            logger.debug('No valid SAMLRequest returned by pysaml2')
-            raise SAMLValidationError('No valid SAMLRequest returned by pysaml2')
+            logger.debug("No valid SAMLRequest returned by pysaml2")
+            raise SAMLValidationError("No valid SAMLRequest returned by pysaml2")
 
         # Only perform expensive parse/pretty-print if debugging
         if debug:
@@ -96,7 +96,7 @@ class IdP_SAMLRequest(object):
             from eduid.webapp.idp.util import maybe_xml_to_string
 
             xmlstr = maybe_xml_to_string(self._req_info.xmlstr)
-            logger.debug(f'Decoded SAMLRequest into AuthnRequest {repr(self._req_info.message)}:\n\n{xmlstr}\n\n')
+            logger.debug(f"Decoded SAMLRequest into AuthnRequest {repr(self._req_info.message)}:\n\n{xmlstr}\n\n")
 
     @property
     def binding(self) -> str:
@@ -104,11 +104,11 @@ class IdP_SAMLRequest(object):
 
     def verify_signature(self, sig_alg: str, signature: str) -> bool:
         info = {
-            'SigAlg': sig_alg,
-            'Signature': signature,
-            'SAMLRequest': self.request,
+            "SigAlg": sig_alg,
+            "Signature": signature,
+            "SAMLRequest": self.request,
         }
-        _certs = self._idp.metadata.certs(self.sp_entity_id, 'any', 'signing')
+        _certs = self._idp.metadata.certs(self.sp_entity_id, "any", "signing")
         verified_ok = False
         # Make sure at least one certificate verifies the signature
         for cert in _certs:
@@ -116,8 +116,8 @@ class IdP_SAMLRequest(object):
                 verified_ok = True
                 break
         if not verified_ok:
-            _key = gen_key(info['SAMLRequest'])
-            logger.info('{!s}: SAML request signature verification failure'.format(_key))
+            _key = gen_key(info["SAMLRequest"])
+            logger.info("{!s}: SAML request signature verification failure".format(_key))
         return verified_ok
 
     @property
@@ -135,7 +135,7 @@ class IdP_SAMLRequest(object):
             res = [x.text for x in self.raw_requested_authn_context.authn_context_class_ref]
             for this in res:
                 if not isinstance(this, str):
-                    raise ValueError(f'Invalid authnContextClassRef value ({repr(this)})')
+                    raise ValueError(f"Invalid authnContextClassRef value ({repr(this)})")
             return res
         return []
 
@@ -143,7 +143,7 @@ class IdP_SAMLRequest(object):
     def raw_sp_entity_id(self) -> Issuer:
         _res = self._req_info.message.issuer
         if not isinstance(_res, Issuer):
-            raise ValueError(f'Unknown issuer type ({type(_res)})')
+            raise ValueError(f"Unknown issuer type ({type(_res)})")
         return _res
 
     @property
@@ -151,7 +151,7 @@ class IdP_SAMLRequest(object):
         """The entity ID of the service provider as a string."""
         _res = self.raw_sp_entity_id.text
         if not isinstance(_res, str):
-            raise ValueError(f'Unknown SP entity id type ({type(_res)})')
+            raise ValueError(f"Unknown SP entity id type ({type(_res)})")
         return _res
 
     @property
@@ -167,14 +167,14 @@ class IdP_SAMLRequest(object):
         if _res is None:
             return False
         if not isinstance(_res, str):
-            raise ValueError(f'Unknown force authn type ({type(_res)})')
-        return _res == '1' or _res.lower() == 'true'
+            raise ValueError(f"Unknown force authn type ({type(_res)})")
+        return _res == "1" or _res.lower() == "true"
 
     @property
     def request_id(self) -> str:
         _res = self._req_info.message.id
         if not isinstance(_res, str):
-            raise ValueError(f'Unknown request id type ({type(_res)})')
+            raise ValueError(f"Unknown request id type ({type(_res)})")
         return _res
 
     @property
@@ -189,14 +189,14 @@ class IdP_SAMLRequest(object):
         try:
             _subject = self._req_info.subject_id()
             if not isinstance(_subject.text, str):
-                logger.debug(f'Invalid Subject ID in AuthnRequest (not a string): {_subject.text}')
+                logger.debug(f"Invalid Subject ID in AuthnRequest (not a string): {_subject.text}")
                 return None
             return _subject.text.strip()
         except AttributeError:
             # pysaml trips over itself here if there is no Subject ID: 'NoneType' object has no attribute 'keys'
-            logger.debug('No Subject ID in AuthnRequest')
+            logger.debug("No Subject ID in AuthnRequest")
         except Exception as exc:
-            logger.debug(f'Could not get Subject ID from AuthnRequest: {exc}')
+            logger.debug(f"Could not get Subject ID from AuthnRequest: {exc}")
         return None
 
     @property
@@ -207,7 +207,7 @@ class IdP_SAMLRequest(object):
             _attrs = self._idp.metadata.entity_attributes(self.sp_entity_id)
             for k, v in _attrs.items():
                 if not isinstance(k, str):
-                    raise ValueError(f'Unknown entity attribute type ({type(k)})')
+                    raise ValueError(f"Unknown entity attribute type ({type(k)})")
                 res[k] = v
         except KeyError:
             return {}
@@ -218,16 +218,16 @@ class IdP_SAMLRequest(object):
         """Information about the service where the user is logging in"""
         if self._service_info is None:
             res: Dict[str, Any] = {}
-            logger.debug(f'Looking up MDUI info in metadata for entity id {self.sp_entity_id}')
+            logger.debug(f"Looking up MDUI info in metadata for entity id {self.sp_entity_id}")
             for uiinfo in self._idp.metadata.mdui_uiinfo(self.sp_entity_id):
-                if 'display_name' in uiinfo:
-                    res['display_name'] = {}
-                    for item in uiinfo['display_name']:
-                        if 'lang' in item and 'text' in item:
-                            res['display_name'][item['lang']] = item['text']
+                if "display_name" in uiinfo:
+                    res["display_name"] = {}
+                    for item in uiinfo["display_name"]:
+                        if "lang" in item and "text" in item:
+                            res["display_name"][item["lang"]] = item["text"]
                         self._service_info = res
             if not res:
-                logger.debug(f'No MDUI display_name found for entity id {self.sp_entity_id}')
+                logger.debug(f"No MDUI display_name found for entity id {self.sp_entity_id}")
         return self._service_info
 
     @property
@@ -235,10 +235,10 @@ class IdP_SAMLRequest(object):
         """Return the best signing algorithm that both the IdP and SP supports"""
         res: List[str] = []
         try:
-            _algs = self._idp.metadata.supported_algorithms(self.sp_entity_id)['digest_methods']
+            _algs = self._idp.metadata.supported_algorithms(self.sp_entity_id)["digest_methods"]
             for this in _algs:
                 if not isinstance(this, str):
-                    raise ValueError(f'Unknown digest_methods type ({type(this)})')
+                    raise ValueError(f"Unknown digest_methods type ({type(this)})")
                 res += [this]
         except KeyError:
             return []
@@ -249,10 +249,10 @@ class IdP_SAMLRequest(object):
         """Return the best signing algorithm that both the IdP and SP supports"""
         res: List[str] = []
         try:
-            _algs = self._idp.metadata.supported_algorithms(self.sp_entity_id)['signing_methods']
+            _algs = self._idp.metadata.supported_algorithms(self.sp_entity_id)["signing_methods"]
             for this in _algs:
                 if not isinstance(this, str):
-                    raise ValueError(f'Unknown signing_methods type ({type(this)})')
+                    raise ValueError(f"Unknown signing_methods type ({type(this)})")
                 res += [this]
         except KeyError:
             return []
@@ -262,32 +262,32 @@ class IdP_SAMLRequest(object):
         try:
             resp_args = self._idp.response_args(self._req_info.message)
         except UnknownPrincipal as excp:
-            logger.info(f'{log_prefix}: Unknown service provider: {excp}')
-            raise BadRequest('Don\'t know the SP that referred you here')
+            logger.info(f"{log_prefix}: Unknown service provider: {excp}")
+            raise BadRequest("Don't know the SP that referred you here")
         except UnsupportedBinding as excp:
-            logger.info(f'{log_prefix}: Unsupported SAML binding: {excp}')
-            raise BadRequest('Don\'t know how to reply to the SP that referred you here')
+            logger.info(f"{log_prefix}: Unsupported SAML binding: {excp}")
+            raise BadRequest("Don't know how to reply to the SP that referred you here")
         except UnknownSystemEntity as exc:
             # TODO: Validate refactoring didn't move this exception handling to the wrong place.
             #       Used to be in an exception handler in _redirect_or_post around perform_login().
-            logger.info(f'{log_prefix}: Service provider not known: {exc}')
-            raise BadRequest('SAML_UNKNOWN_SP')
+            logger.info(f"{log_prefix}: Service provider not known: {exc}")
+            raise BadRequest("SAML_UNKNOWN_SP")
 
         # Set digest_alg and sign_alg to a good default value
         if conf.supported_digest_algorithms:
-            resp_args['digest_alg'] = conf.supported_digest_algorithms[0]
+            resp_args["digest_alg"] = conf.supported_digest_algorithms[0]
             # Try to pick best signing and digest algorithms from what the SP supports
             for digest_alg in conf.supported_digest_algorithms:
                 if digest_alg in self.sp_digest_algs:
-                    resp_args['digest_alg'] = digest_alg
+                    resp_args["digest_alg"] = digest_alg
                     break
 
         if conf.supported_signing_algorithms:
-            resp_args['sign_alg'] = conf.supported_signing_algorithms[0]
+            resp_args["sign_alg"] = conf.supported_signing_algorithms[0]
 
             for sign_alg in conf.supported_signing_algorithms:
                 if sign_alg in self.sp_sign_algs:
-                    resp_args['sign_alg'] = sign_alg
+                    resp_args["sign_alg"] = sign_alg
                     break
 
         return ResponseArgs(resp_args)
@@ -301,22 +301,22 @@ class IdP_SAMLRequest(object):
             identity=attributes, userid=userid, authn=authn, sign_response=True, **resp_args
         )
         if not isinstance(saml_response, str):
-            raise ValueError(f'Unknown saml_response type ({type(saml_response)})')
+            raise ValueError(f"Unknown saml_response type ({type(saml_response)})")
         return SamlResponse(saml_response)
 
     def make_cancel_response(self, resp_args: ResponseArgs) -> SamlResponse:
-        info = (samlp.STATUS_AUTHN_FAILED, 'Request cancelled by user')
+        info = (samlp.STATUS_AUTHN_FAILED, "Request cancelled by user")
         saml_response = self._idp.create_error_response(info=info, sign=True, **resp_args)
-        logger.debug(f'Cancel SAML response:\n{saml_response}')
+        logger.debug(f"Cancel SAML response:\n{saml_response}")
         if not isinstance(saml_response, str):
-            raise ValueError(f'Unknown saml_response type ({type(saml_response)})')
+            raise ValueError(f"Unknown saml_response type ({type(saml_response)})")
         return SamlResponse(saml_response)
 
     def apply_binding(self, resp_args: ResponseArgs, relay_state: str, saml_response: SamlResponse) -> HttpArgs:
         """Create the Javascript self-posting form that will take the user back to the SP with a SAMLResponse."""
-        binding = resp_args.get('binding')
-        destination = resp_args.get('destination')
-        logger.debug(f'Applying binding {binding}, destination {destination}, relay_state {relay_state}')
+        binding = resp_args.get("binding")
+        destination = resp_args.get("destination")
+        logger.debug(f"Applying binding {binding}, destination {destination}, relay_state {relay_state}")
         _args = self._idp.apply_binding(
             binding=binding,
             msg_str=str(saml_response),
@@ -333,16 +333,16 @@ class IdP_SAMLRequest(object):
         return HttpArgs.from_pysaml2_dict(_args)
 
 
-def cancel_saml_request(ticket: 'LoginContextSAML', conf: IdPConfig) -> 'SAMLResponseParams':
+def cancel_saml_request(ticket: "LoginContextSAML", conf: IdPConfig) -> "SAMLResponseParams":
     from eduid.webapp.idp.login import SAMLResponseParams
 
     resp_args = ticket.saml_req.get_response_args(ticket.request_ref, conf)
     saml_response = ticket.saml_req.make_cancel_response(resp_args=resp_args)
     http_args = ticket.saml_req.apply_binding(resp_args, ticket.RelayState, saml_response)
     params = {
-        'SAMLResponse': b64encode(str(saml_response).encode('utf-8')).decode('ascii'),
-        'RelayState': ticket.RelayState,
+        "SAMLResponse": b64encode(str(saml_response).encode("utf-8")).decode("ascii"),
+        "RelayState": ticket.RelayState,
     }
-    binding = resp_args['binding']
+    binding = resp_args["binding"]
     saml_params = SAMLResponseParams(url=http_args.url, post_params=params, binding=binding, http_args=http_args)
     return saml_params

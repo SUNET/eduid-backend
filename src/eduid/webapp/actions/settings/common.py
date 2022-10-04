@@ -49,14 +49,14 @@ class ActionsConfig(EduIDBaseAppConfig, WebauthnConfigMixin2, AmConfigMixin, Tou
 
     eduid_static_url: str
 
-    app_name: str = 'actions'
-    bundles_path: str = ''
-    bundles_version: str = ''
-    bundles_feature_cookie: str = ''
+    app_name: str = "actions"
+    bundles_path: str = ""
+    bundles_version: str = ""
+    bundles_feature_cookie: str = ""
     bundles_feature_version: Mapping = Field(default_factory=dict)
-    idp_url: str = ''
+    idp_url: str = ""
     mfa_testing: bool = False
-    eidas_url: str = ''
-    mfa_authn_idp: str = ''
+    eidas_url: str = ""
+    mfa_authn_idp: str = ""
     # The plugins for pre-authentication actions that need to be loaded
-    action_plugins: list = Field(default=['tou', 'mfa'])
+    action_plugins: list = Field(default=["tou", "mfa"])

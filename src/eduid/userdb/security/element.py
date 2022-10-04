@@ -13,7 +13,7 @@ class CodeElement(Element):
     """ """
 
     code: str
-    is_verified: bool = Field(default=False, alias='verified')
+    is_verified: bool = Field(default=False, alias="verified")
 
     @property
     def key(self) -> ElementKey:
@@ -24,8 +24,8 @@ class CodeElement(Element):
         """
         Transform data kept in pythonic format into eduid format.
         """
-        if 'is_verified' in data:
-            data['verified'] = data.pop('is_verified')
+        if "is_verified" in data:
+            data["verified"] = data.pop("is_verified")
 
         data = super()._to_dict_transform(data)
 

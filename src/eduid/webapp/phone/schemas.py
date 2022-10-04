@@ -37,7 +37,7 @@ from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 from eduid.webapp.phone.validators import normalize_to_e_164, validate_format_phone, validate_phone
 
-__author__ = 'eperez'
+__author__ = "eperez"
 
 
 class VerificationCodeSchema(EduidSchema, CSRFRequestMixin):
@@ -49,13 +49,13 @@ class VerificationCodeSchema(EduidSchema, CSRFRequestMixin):
 class PhoneSchema(EduidSchema, CSRFRequestMixin):
 
     number = fields.String(required=True, validate=validate_phone)
-    verified = fields.Boolean(attribute='verified')
-    primary = fields.Boolean(attribute='primary')
+    verified = fields.Boolean(attribute="verified")
+    primary = fields.Boolean(attribute="primary")
 
     @pre_load
     def normalize_phone_number(self, in_data, **kwargs):
-        if in_data.get('number'):
-            in_data['number'] = normalize_to_e_164(in_data['number'])
+        if in_data.get("number"):
+            in_data["number"] = normalize_to_e_164(in_data["number"])
         return in_data
 
 

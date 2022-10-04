@@ -73,26 +73,26 @@ class MailRelay(object):
         :param reference: Audit reference to help cross reference audit log and events
         :param timeout: Max wait time for task to finish
         """
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = subject
-        msg['From'] = self.mail_from
-        msg['To'] = ', '.join(recipients)
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = self.mail_from
+        msg["To"] = ", ".join(recipients)
         if text:
-            msg.attach(MIMEText(text, 'plain', 'utf-8'))
+            msg.attach(MIMEText(text, "plain", "utf-8"))
         if html:
-            msg.attach(MIMEText(html, 'html', 'utf-8'))
+            msg.attach(MIMEText(html, "html", "utf-8"))
 
-        logger.debug(f'About to send email:\n\n {msg.as_string()}')
+        logger.debug(f"About to send email:\n\n {msg.as_string()}")
         rtask = self._sendmail.apply_async(args=[self.mail_from, recipients, msg.as_string(), reference])
 
         try:
             res = rtask.get(timeout=timeout)
-            logger.info(f'email with reference {reference} sent. Task result: {res}')
+            logger.info(f"email with reference {reference} sent. Task result: {res}")
         except Exception as e:
             rtask.forget()
-            raise MailTaskFailed(f'sendmail task failed: {repr(e)}')
+            raise MailTaskFailed(f"sendmail task failed: {repr(e)}")
 
-        logger.info(f'Sent email {rtask} to {recipients} with subject {subject}')
+        logger.info(f"Sent email {rtask} to {recipients} with subject {subject}")
         return None
 
     def ping(self, timeout: int = 1) -> str:
@@ -100,9 +100,9 @@ class MailRelay(object):
         Check if this application is able to reach an AM worker.
         :return: Result of celery Task.get
         """
-        rtask = self._pong.apply_async(kwargs={'app_name': self.app_name})
+        rtask = self._pong.apply_async(kwargs={"app_name": self.app_name})
         try:
             return rtask.get(timeout=timeout)
         except Exception as e:
             rtask.forget()
-            raise MailTaskFailed(f'ping task failed: {repr(e)}')
+            raise MailTaskFailed(f"ping task failed: {repr(e)}")

@@ -11,8 +11,8 @@ from typing import Optional
 def is_deregistered(person: Optional[dict]) -> bool:
     if person is None:
         return False
-    deregistration_information = person['DeregistrationInformation']
-    if deregistration_information.get('date') or deregistration_information.get('causeCode'):
+    deregistration_information = person["DeregistrationInformation"]
+    if deregistration_information.get("date") or deregistration_information.get("causeCode"):
         return True
 
     return False
@@ -26,7 +26,7 @@ def load_template(template_dir: str, filename: str, message_dict: dict, lang: st
 
     if isinstance(template_dir, str) and os.path.isdir(template_dir):
         try:
-            f = '.'.join([filename, lang])
+            f = ".".join([filename, lang])
             if os.path.exists(os.path.join(template_dir, f)):
                 filename = f
             template = Environment(loader=FileSystemLoader(template_dir)).get_template(filename)
@@ -48,7 +48,7 @@ def navet_get_name_and_official_address(navet_data: Optional[dict]) -> Optional[
     if person is not None:
         try:
             return OrderedDict(
-                [(u'Name', person['Name']), (u'OfficialAddress', person['PostalAddresses']['OfficialAddress'])]
+                [("Name", person["Name"]), ("OfficialAddress", person["PostalAddresses"]["OfficialAddress"])]
             )
         except KeyError:
             pass
@@ -66,7 +66,7 @@ def navet_get_relations(navet_data: Optional[dict]) -> Optional[OrderedDict]:
 
     if person is not None:
         try:
-            return OrderedDict([('Relations', {'Relation': person['Relations']})])
+            return OrderedDict([("Relations", {"Relation": person["Relations"]})])
         except KeyError:
             pass
     return None
@@ -106,7 +106,7 @@ def navet_get_person(navet_data: Optional[dict]) -> Optional[OrderedDict]:
     """
     if navet_data is not None:
         try:
-            return OrderedDict(navet_data['PopulationItems'][0]['PersonItem'])
+            return OrderedDict(navet_data["PopulationItems"][0]["PersonItem"])
         except KeyError:
             pass
     return None
@@ -140,7 +140,7 @@ def navet_get_all_data(navet_data: Optional[dict]) -> Optional[OrderedDict]:
     person = navet_get_person(navet_data)
     if navet_data is not None and person is not None:
         try:
-            case_information = OrderedDict(navet_data['PopulationItems'][0]['CaseInformation'])
+            case_information = OrderedDict(navet_data["PopulationItems"][0]["CaseInformation"])
             return OrderedDict({"CaseInformation": case_information, "Person": person})
         except KeyError:
             pass

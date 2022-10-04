@@ -49,56 +49,56 @@ from eduid.webapp.personal_data.schemas import (
     PersonalDataResponseSchema,
 )
 
-pd_views = Blueprint('personal_data', __name__, url_prefix='')
+pd_views = Blueprint("personal_data", __name__, url_prefix="")
 
 
-@pd_views.route('/all-user-data', methods=['GET'])
+@pd_views.route("/all-user-data", methods=["GET"])
 @MarshalWith(AllDataResponseSchema)
 @require_user
 def get_all_data(user: User) -> FluxData:
     user_dict = user.to_dict()
-    user_dict['identities'] = user.identities.to_frontend_format()
+    user_dict["identities"] = user.identities.to_frontend_format()
     # TODO: remove nins after frontend stops using it
-    user_dict['nins'] = []
+    user_dict["nins"] = []
     if user.identities.nin is not None:
-        user_dict['nins'].append(user.identities.nin.to_old_nin())
+        user_dict["nins"].append(user.identities.nin.to_old_nin())
     return success_response(payload=user_dict)
 
 
-@pd_views.route('/user', methods=['GET'])
+@pd_views.route("/user", methods=["GET"])
 @MarshalWith(PersonalDataResponseSchema)
 @require_user
 def get_user(user: User) -> FluxData:
     return success_response(payload=user.to_dict())
 
 
-@pd_views.route('/user', methods=['POST'])
+@pd_views.route("/user", methods=["POST"])
 @UnmarshalWith(PersonalDataRequestSchema)
 @MarshalWith(PersonalDataResponseSchema)
 @require_user
 def post_user(user: User, given_name: str, surname: str, language: str, display_name: Optional[str] = None) -> FluxData:
     # TODO: Remove display_name when frontend stops sending it
     personal_data_user = PersonalDataUser.from_user(user, current_app.private_userdb)
-    current_app.logger.debug('Trying to save user {}'.format(user))
+    current_app.logger.debug("Trying to save user {}".format(user))
 
     # disallow change of first name, surname and display name if the user is verified
     if not user.identities.is_verified:
         personal_data_user.given_name = given_name
         personal_data_user.surname = surname
-        personal_data_user.display_name = f'{given_name} {surname}'
+        personal_data_user.display_name = f"{given_name} {surname}"
     personal_data_user.language = language
     try:
         save_and_sync_user(personal_data_user)
     except UserOutOfSync:
         return error_response(message=CommonMsg.out_of_sync)
-    current_app.stats.count(name='personal_data_saved', value=1)
-    current_app.logger.info('Saved personal data for user {}'.format(personal_data_user))
+    current_app.stats.count(name="personal_data_saved", value=1)
+    current_app.logger.info("Saved personal data for user {}".format(personal_data_user))
 
     personal_data = personal_data_user.to_dict()
     return success_response(payload=personal_data, message=PDataMsg.save_success)
 
 
-@pd_views.route('/nins', methods=['GET'])
+@pd_views.route("/nins", methods=["GET"])
 @MarshalWith(IdentitiesResponseSchema)
 @require_user
 def get_nins(user) -> FluxData:
@@ -106,14 +106,14 @@ def get_nins(user) -> FluxData:
     return get_identities()
 
 
-@pd_views.route('/identities', methods=['GET'])
+@pd_views.route("/identities", methods=["GET"])
 @MarshalWith(IdentitiesResponseSchema)
 @require_user
 def get_identities(user) -> FluxData:
     # TODO: remove nins after frontend stops using it
-    data = {'identities': user.identities.to_frontend_format(), 'nins': []}
+    data = {"identities": user.identities.to_frontend_format(), "nins": []}
 
     if user.identities.nin is not None:
-        data['nins'].append(user.identities.nin.to_old_nin())
+        data["nins"].append(user.identities.nin.to_old_nin())
 
     return success_response(payload=data)

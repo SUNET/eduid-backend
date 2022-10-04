@@ -10,25 +10,25 @@ from eduid.graphdb.groupdb import Group, GroupDB, User
 from eduid.graphdb.groupdb.db import Role
 from eduid.graphdb.testing import Neo4jTestCase
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class TestGroupDB(Neo4jTestCase):
     def setUp(self) -> None:
-        self.db_config = {'encrypted': False, 'auth': basic_auth('neo4j', 'testing')}
-        self.group_db = GroupDB(db_uri=self.neo4jdb.db_uri, scope='__testing__', config=self.db_config)
+        self.db_config = {"encrypted": False, "auth": basic_auth("neo4j", "testing")}
+        self.group_db = GroupDB(db_uri=self.neo4jdb.db_uri, scope="__testing__", config=self.db_config)
         self.group1: Dict[str, Union[str, list, None]] = {
-            'identifier': 'test1',
-            'version': None,
-            'display_name': 'Test Group 1',
+            "identifier": "test1",
+            "version": None,
+            "display_name": "Test Group 1",
         }
         self.group2: Dict[str, Union[str, list, None]] = {
-            'identifier': 'test2',
-            'version': None,
-            'display_name': 'Test Group 2',
+            "identifier": "test2",
+            "version": None,
+            "display_name": "Test Group 2",
         }
-        self.user1: Dict[str, str] = {'identifier': 'user1', 'display_name': 'Test Testsson'}
-        self.user2: Dict[str, str] = {'identifier': 'user2', 'display_name': 'Namn Namnsson'}
+        self.user1: Dict[str, str] = {"identifier": "user1", "display_name": "Test Testsson"}
+        self.user2: Dict[str, str] = {"identifier": "user2", "display_name": "Namn Namnsson"}
 
     @staticmethod
     def _assert_group(expected: Group, testing: Group, modified=False):
@@ -49,34 +49,34 @@ class TestGroupDB(Neo4jTestCase):
     def test_create_group(self):
         group = Group.from_mapping(self.group1)
         post_save_group = self.group_db.save(group)
-        assert 1 == self.group_db.db.count_nodes(label='Group')
+        assert 1 == self.group_db.db.count_nodes(label="Group")
         self._assert_group(group, post_save_group)
 
-        get_group = self.group_db.get_group(identifier='test1')
+        get_group = self.group_db.get_group(identifier="test1")
         self._assert_group(group, get_group)
 
     def test_update_group(self):
         group = Group.from_mapping(self.group1)
         post_save_group = self.group_db.save(group)
-        assert 1 == self.group_db.db.count_nodes(label='Group')
+        assert 1 == self.group_db.db.count_nodes(label="Group")
         self._assert_group(group, post_save_group)
 
-        group = replace(group, display_name='A new display name')
+        group = replace(group, display_name="A new display name")
         group = replace(group, version=post_save_group.version)
         post_save_group2 = self.group_db.save(group)
-        assert 1 == self.group_db.db.count_nodes(label='Group')
+        assert 1 == self.group_db.db.count_nodes(label="Group")
         self._assert_group(group, post_save_group2, modified=True)
 
     def test_get_group_by_property(self):
         group = Group.from_mapping(self.group1)
         self.group_db.save(group)
 
-        post_get_group = self.group_db.get_groups_by_property(key='display_name', value='Test Group 1')
+        post_get_group = self.group_db.get_groups_by_property(key="display_name", value="Test Group 1")
         assert 1 == len(post_get_group)
         self._assert_group(group, post_get_group[0])
 
     def test_get_non_existing_group(self):
-        group = self.group_db.get_group(identifier='test1')
+        group = self.group_db.get_group(identifier="test1")
         self.assertIsNone(group)
 
     def test_group_exists(self):
@@ -84,7 +84,7 @@ class TestGroupDB(Neo4jTestCase):
         self.group_db.save(group)
 
         self.assertTrue(self.group_db.group_exists(identifier=group.identifier))
-        self.assertFalse(self.group_db.group_exists(identifier='wrong-identifier'))
+        self.assertFalse(self.group_db.group_exists(identifier="wrong-identifier"))
 
     def test_get_groups(self):
         self.group_db.save(Group.from_mapping(self.group1))
@@ -96,11 +96,11 @@ class TestGroupDB(Neo4jTestCase):
     def test_save_with_wrong_group_version(self):
         group = Group.from_mapping(self.group1)
         self.group_db.save(group)
-        group = replace(group, display_name='Another display name')
+        group = replace(group, display_name="Another display name")
         group = replace(group, version=ObjectId())
         with self.assertRaises(VersionMismatch):
             self.group_db.save(group)
-        assert 1 == self.group_db.db.count_nodes(label='Group')
+        assert 1 == self.group_db.db.count_nodes(label="Group")
 
     def test_create_group_with_user_member(self):
         group = Group.from_mapping(self.group1)
@@ -109,10 +109,10 @@ class TestGroupDB(Neo4jTestCase):
 
         self.assertIn(user, group.members)
         self.group_db.save(group)
-        assert 1 == self.group_db.db.count_nodes(label='Group')
-        assert 1 == self.group_db.db.count_nodes(label='User')
+        assert 1 == self.group_db.db.count_nodes(label="Group")
+        assert 1 == self.group_db.db.count_nodes(label="User")
 
-        post_save_group = self.group_db.get_group(identifier='test1')
+        post_save_group = self.group_db.get_group(identifier="test1")
         post_save_user = post_save_group.member_users[0]
         self._assert_user(user, post_save_user)
 
@@ -123,9 +123,9 @@ class TestGroupDB(Neo4jTestCase):
 
         self.assertIn(member_group, group.member_groups)
         self.group_db.save(group)
-        assert 2 == self.group_db.db.count_nodes(label='Group')
+        assert 2 == self.group_db.db.count_nodes(label="Group")
 
-        post_save_group = self.group_db.get_group(identifier='test1')
+        post_save_group = self.group_db.get_group(identifier="test1")
         post_save_member_group = post_save_group.member_groups[0]
         self._assert_group(member_group, post_save_member_group)
 
@@ -142,9 +142,9 @@ class TestGroupDB(Neo4jTestCase):
         self.assertIn(member_user, group.member_users)
         self.assertIn(owner, group.owners)
         self.group_db.save(group)
-        assert 2 == self.group_db.db.count_nodes(label='Group')
+        assert 2 == self.group_db.db.count_nodes(label="Group")
 
-        post_save_group = self.group_db.get_group(identifier='test1')
+        post_save_group = self.group_db.get_group(identifier="test1")
         post_save_member_group = post_save_group.member_groups[0]
         self._assert_group(member_group, post_save_member_group)
 
@@ -348,7 +348,7 @@ class TestGroupDB(Neo4jTestCase):
         assert post_remove_group.has_member(member_user1.identifier) is False
         assert post_remove_group.has_member(member_user2.identifier) is True
 
-        get_group = self.group_db.get_group(identifier='test1')
+        get_group = self.group_db.get_group(identifier="test1")
         assert get_group.has_member(member_user1.identifier) is False
         assert get_group.has_member(member_user2.identifier) is True
 

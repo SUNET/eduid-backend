@@ -60,53 +60,53 @@ logger = logging.getLogger(__name__)
 
 
 TEST_CONFIG = {
-    'debug': True,
-    'testing': True,
-    'secret_key': 'mysecretkey',
-    'session_cookie_name': 'sessid',
-    'session_cookie_domain': 'test.localhost',
-    'session_cookie_path': '/',
-    'session_cookie_httponly': False,
-    'session_cookie_secure': False,
-    'permanent_session_lifetime': 60,
-    'server_name': 'test.localhost',
-    'propagate_exceptions': True,
-    'preserve_context_on_exception': True,
-    'trap_http_exceptions': True,
-    'trap_bad_request_errors': True,
-    'preferred_url_scheme': 'http',
-    'json_as_ascii': False,
-    'json_sort_keys': True,
-    'jsonify_prettyprint_regular': True,
-    'mongo_uri': 'mongodb://localhost',
-    'token_service_url': 'http://test.localhost/',
-    'eduid_site_name': 'eduID TESTING',
-    'eduid_static_url': 'https://testing.eduid.se/static/',
-    'celery': {
-        'broker_transport': 'memory',
-        'broker_url': 'memory://',
-        'task_eager_propagates': True,
-        'task_always_eager': True,
-        'result_backend': 'cache',
-        'cache_backend': 'memory',
+    "debug": True,
+    "testing": True,
+    "secret_key": "mysecretkey",
+    "session_cookie_name": "sessid",
+    "session_cookie_domain": "test.localhost",
+    "session_cookie_path": "/",
+    "session_cookie_httponly": False,
+    "session_cookie_secure": False,
+    "permanent_session_lifetime": 60,
+    "server_name": "test.localhost",
+    "propagate_exceptions": True,
+    "preserve_context_on_exception": True,
+    "trap_http_exceptions": True,
+    "trap_bad_request_errors": True,
+    "preferred_url_scheme": "http",
+    "json_as_ascii": False,
+    "json_sort_keys": True,
+    "jsonify_prettyprint_regular": True,
+    "mongo_uri": "mongodb://localhost",
+    "token_service_url": "http://test.localhost/",
+    "eduid_site_name": "eduID TESTING",
+    "eduid_static_url": "https://testing.eduid.se/static/",
+    "celery": {
+        "broker_transport": "memory",
+        "broker_url": "memory://",
+        "task_eager_propagates": True,
+        "task_always_eager": True,
+        "result_backend": "cache",
+        "cache_backend": "memory",
     },
-    'logging_config': {
-        'loggers': {
-            'saml2': {'level': 'WARNING'},
-            'xmlsec': {'level': 'INFO'},
-            'urllib3': {'level': 'INFO'},
-            'eduid.webapp.common.session': {'level': 'INFO'},
-            'eduid.userdb.userdb.extra_debug': {'level': 'INFO'},
-            'eduid.userdb': {'level': 'INFO'},
+    "logging_config": {
+        "loggers": {
+            "saml2": {"level": "WARNING"},
+            "xmlsec": {"level": "INFO"},
+            "urllib3": {"level": "INFO"},
+            "eduid.webapp.common.session": {"level": "INFO"},
+            "eduid.userdb.userdb.extra_debug": {"level": "INFO"},
+            "eduid.userdb": {"level": "INFO"},
         }
     },
 }
 
 
 _standard_test_users = {
-    'hubba-bubba': new_user_example,
-    'hubba-baar': new_unverified_user_example,
-    'hubba-fooo': new_completed_signup_user_example,
+    "hubba-bubba": new_user_example,
+    "hubba-baar": new_unverified_user_example,
+    "hubba-fooo": new_completed_signup_user_example,
 }
 
 
@@ -120,7 +120,7 @@ class EduidAPITestCase(CommonTestCase):
     def setUp(self, *args, users: Optional[List[str]] = None, copy_user_to_private: bool = False, **kwargs):
         # test users
         if users is None:
-            users = ['hubba-bubba']
+            users = ["hubba-bubba"]
 
         # Make a list of User object to be saved to the new temporary mongodb instance
         am_users = [_standard_test_users[x] for x in users]
@@ -137,22 +137,22 @@ class EduidAPITestCase(CommonTestCase):
         # settings
         config = deepcopy(TEST_CONFIG)
         self.settings = self.update_config(config)
-        self.settings['redis_config'] = RedisConfig(host='localhost', port=self.redis_instance.port)
+        self.settings["redis_config"] = RedisConfig(host="localhost", port=self.redis_instance.port)
         assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
-        self.settings['mongo_uri'] = self.tmp_db.uri
+        self.settings["mongo_uri"] = self.tmp_db.uri
         # self.settings['celery']['mongo_uri'] = self.tmp_db.uri
 
         self.app = self.load_app(self.settings)
-        if not getattr(self, 'browser', False):
+        if not getattr(self, "browser", False):
             self.app.test_client_class = CSRFTestClient
             self.browser = self.app.test_client()
 
         # Helper constants
-        self.content_type_json = 'application/json'
+        self.content_type_json = "application/json"
 
         if copy_user_to_private:
             data = self.test_user.to_dict()
-            logging.info(f'Copying test-user {self.test_user} to private_userdb {self.app.private_userdb}')
+            logging.info(f"Copying test-user {self.test_user} to private_userdb {self.app.private_userdb}")
             self.app.private_userdb.save(self.app.private_userdb.user_from_dict(data=data), check_sync=False)
 
     def tearDown(self):
@@ -179,7 +179,7 @@ class EduidAPITestCase(CommonTestCase):
         before the flask app loads its config from a file.
         """
         raise NotImplementedError(
-            'Classes extending EduidAPITestCase must provide a method where they import the flask app and return it.'
+            "Classes extending EduidAPITestCase must provide a method where they import the flask app and return it."
         )
 
     def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
@@ -193,12 +193,12 @@ class EduidAPITestCase(CommonTestCase):
         :return: the updated configuration
         """
         # For tests, it makes sense to show relative time instead of datetime
-        config['log_format'] = '{asctime} | {levelname:7} | {eppn:11} | {name:35} | {message}'
+        config["log_format"] = "{asctime} | {levelname:7} | {eppn:11} | {name:35} | {message}"
         return config
 
     @contextmanager
     def session_cookie(
-        self, client: Any, eppn: Optional[str], server_name: str = 'localhost', logged_in: bool = True, **kwargs
+        self, client: Any, eppn: Optional[str], server_name: str = "localhost", logged_in: bool = True, **kwargs
     ):
         with client.session_transaction(**kwargs) as sess:
             if eppn is not None:
@@ -208,7 +208,7 @@ class EduidAPITestCase(CommonTestCase):
         yield client
 
     @contextmanager
-    def session_cookie_anon(self, client, server_name='localhost', **kwargs):
+    def session_cookie_anon(self, client, server_name="localhost", **kwargs):
         with self.session_cookie(client=client, eppn=None, server_name=server_name, **kwargs) as _client:
             yield _client
 
@@ -300,36 +300,36 @@ class EduidAPITestCase(CommonTestCase):
         :param payload: Data expected to be found in the 'payload' of the response
         """
         try:
-            assert status == response.status_code, f'The HTTP response code was {response.status_code} not {status}'
+            assert status == response.status_code, f"The HTTP response code was {response.status_code} not {status}"
             if type_ is not None:
                 assert (
-                    type_ == response.json['type']
+                    type_ == response.json["type"]
                 ), f'Wrong response type. expected: {type_}, actual: {response.json["type"]}'
-            assert 'payload' in response.json, 'JSON body has no "payload" element'
+            assert "payload" in response.json, 'JSON body has no "payload" element'
             if message is not None:
-                assert 'message' in response.json['payload'], 'JSON payload has no "message" element'
-                _message_value = response.json['payload']['message']
+                assert "message" in response.json["payload"], 'JSON payload has no "message" element'
+                _message_value = response.json["payload"]["message"]
                 assert (
                     message.value == _message_value
-                ), f'Wrong message returned. expected: {message.value}, actual: {_message_value}'
+                ), f"Wrong message returned. expected: {message.value}, actual: {_message_value}"
             if error is not None:
-                assert response.json['error'] is True, 'The Flux response was supposed to have error=True'
-                assert 'error' in response.json['payload'], 'JSON payload has no "error" element'
-                _error = response.json['payload']['error']
-                assert error == _error, f'Wrong error returned. expected: {error}, actual: {_error}'
+                assert response.json["error"] is True, "The Flux response was supposed to have error=True"
+                assert "error" in response.json["payload"], 'JSON payload has no "error" element'
+                _error = response.json["payload"]["error"]
+                assert error == _error, f"Wrong error returned. expected: {error}, actual: {_error}"
             if payload is not None:
                 for k, v in payload.items():
-                    assert k in response.json['payload'], f'The Flux response payload does not contain {repr(k)}'
+                    assert k in response.json["payload"], f"The Flux response payload does not contain {repr(k)}"
                     assert (
-                        v == response.json['payload'][k]
-                    ), f'The Flux response payload item {repr(k)} is not {repr(v)}'
+                        v == response.json["payload"][k]
+                    ), f"The Flux response payload item {repr(k)} is not {repr(v)}"
         except (AssertionError, KeyError):
             if response.json:
                 logger.info(
-                    f'Test case got unexpected response ({response.status_code}):\n{pprint.pformat(response.json)}'
+                    f"Test case got unexpected response ({response.status_code}):\n{pprint.pformat(response.json)}"
                 )
             else:
-                logger.info(f'Test case got unexpected response ({response.status_code}):\n{response.data}')
+                logger.info(f"Test case got unexpected response ({response.status_code}):\n{response.data}")
             raise
 
     def _check_nin_verified_ok(
@@ -373,19 +373,19 @@ class CSRFTestClient(FlaskClient):
         This could also be done with updating FlaskClient.environ_base with the below header keys but
         that makes it harder to override per call to post.
         """
-        test_host = '{}://{}'.format(
+        test_host = "{}://{}".format(
             self.application.conf.flask.preferred_url_scheme, self.application.conf.flask.server_name
         )
         csrf_headers = {
-            'X-Requested-With': 'XMLHttpRequest',
-            'Referer': test_host,
-            'X-Forwarded-Host': self.application.conf.flask.server_name,
+            "X-Requested-With": "XMLHttpRequest",
+            "Referer": test_host,
+            "X-Forwarded-Host": self.application.conf.flask.server_name,
         }
-        if kw.pop('custom_csrf_headers', True):
-            if 'headers' in kw:
-                kw['headers'].update(csrf_headers)
+        if kw.pop("custom_csrf_headers", True):
+            if "headers" in kw:
+                kw["headers"].update(csrf_headers)
             else:
-                kw['headers'] = csrf_headers
+                kw["headers"] = csrf_headers
 
         return super(CSRFTestClient, self).post(*args, **kw)
 
@@ -419,7 +419,7 @@ def normalised_data(
     elif isinstance(data, dict):
         # normalise all values found in the dict, returning a new dict (to not modify callers data)
         return {k: _normalise_value(v) for k, v in data.items()}
-    raise TypeError('normalised_data not called on dict (or list of dicts)')
+    raise TypeError("normalised_data not called on dict (or list of dicts)")
 
 
 class SortEncoder(json.JSONEncoder):

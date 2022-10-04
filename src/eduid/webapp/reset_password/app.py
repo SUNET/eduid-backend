@@ -45,7 +45,7 @@ from eduid.webapp.common.api import translation
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.reset_password.settings.common import ResetPasswordConfig
 
-__author__ = 'eperez'
+__author__ = "eperez"
 
 
 class ResetPasswordApp(EduIDBaseApp):
@@ -69,17 +69,17 @@ current_reset_password_app: ResetPasswordApp = cast(ResetPasswordApp, current_ap
 
 
 def init_reset_password_app(
-    name: str = 'reset_password', test_config: Optional[Mapping[str, Any]] = None
+    name: str = "reset_password", test_config: Optional[Mapping[str, Any]] = None
 ) -> ResetPasswordApp:
     """
     :param name: The name of the instance, it will affect the configuration loaded.
     :param test_config: Override config. Used in tests.
     """
-    config = load_config(typ=ResetPasswordConfig, app_name=name, ns='webapp', test_config=test_config)
+    config = load_config(typ=ResetPasswordConfig, app_name=name, ns="webapp", test_config=test_config)
 
     app = ResetPasswordApp(config)
 
-    app.logger.info(f'Init {app}...')
+    app.logger.info(f"Init {app}...")
 
     # Register views
     from eduid.webapp.reset_password.views.reset_password import reset_password_views

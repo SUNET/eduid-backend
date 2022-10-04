@@ -31,7 +31,7 @@ class RevokeCredsFormResponse(BaseModel):
 
 @revoke_creds_router.post("/revoke_creds", response_model=RevokeCredsFormResponse)
 async def revoke_creds_legacy(req: Request, request: str = Form(...)) -> RevokeCredsFormResponse:
-    req.app.logger.debug(f'Revoke credentials (using form): {request}')
+    req.app.logger.debug(f"Revoke credentials (using form): {request}")
 
     class RevokeCredsInnerRequest(BaseModel):
         """Requests all the way down."""
@@ -41,10 +41,10 @@ async def revoke_creds_legacy(req: Request, request: str = Form(...)) -> RevokeC
     data = json.loads(request)
     inner = RevokeCredsInnerRequest(**data)
 
-    req.app.logger.debug(f'Inner request: {repr(inner)}')
+    req.app.logger.debug(f"Inner request: {repr(inner)}")
     inner_response = await revoke_creds(req, inner.revoke_creds)
     response = RevokeCredsFormResponse(revoke_creds_response=inner_response)
-    req.app.logger.debug(f'Revoke creds (form) response: {repr(response)}')
+    req.app.logger.debug(f"Revoke creds (form) response: {repr(response)}")
     return response
 
 
@@ -60,7 +60,7 @@ async def revoke_creds(req: Request, request: RevokeCredsRequestV1) -> RevokeCre
         cred = req.app.state.credstore.get_credential(factor.credential_id)
         if cred:
             if cred.type == CredType.REVOKED:
-                req.app.logger.warning(f'Credential already revoked: {factor.credential_id}')
+                req.app.logger.warning(f"Credential already revoked: {factor.credential_id}")
                 # Revoking a revoked credential is a NO-OP, not an error
                 continue
             revoked_cred = RevokedCredential(
@@ -75,17 +75,17 @@ async def revoke_creds(req: Request, request: RevokeCredsRequestV1) -> RevokeCre
             # Overwrite the previous credential with this object
             res = req.app.state.credstore.save(revoked_cred)
             audit_log(
-                f'operation=revoke, reason={repr(factor.reason)}, reference={repr(factor.reference)}, '
-                f'credential_id={cred.credential_id}, result={res}'
+                f"operation=revoke, reason={repr(factor.reason)}, reference={repr(factor.reference)}, "
+                f"credential_id={cred.credential_id}, result={res}"
             )
             if res == True:
                 this_result = True
         else:
-            req.app.logger.warning(f'Credential not found: {factor.credential_id}')
+            req.app.logger.warning(f"Credential not found: {factor.credential_id}")
 
         results += [this_result]
 
     response = RevokeCredsResponseV1(version=1, success=all(results))
 
-    req.app.logger.debug(f'Revoke creds response: {repr(response)}')
+    req.app.logger.debug(f"Revoke creds response: {repr(response)}")
     return response

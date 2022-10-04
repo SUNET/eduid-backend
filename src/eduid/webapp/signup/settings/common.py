@@ -50,7 +50,7 @@ class SignupConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MailConf
     Configuration for the signup app
     """
 
-    app_name = 'signup'
+    app_name = "signup"
 
     # The signup app uses this to retrieve the ToU texts from the actions app
     tou_url: str
@@ -58,11 +58,11 @@ class SignupConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MailConf
     signup_url: str
     dashboard_url: str
 
-    signup_authn_url: str = '/services/authn/signup-authn'
+    signup_authn_url: str = "/services/authn/signup-authn"
     password_length: int = 10
-    default_finish_url: str = 'https://www.eduid.se/'
-    eduid_site_url: str = 'https://www.eduid.se'
-    eduid_site_name: str = 'eduID'
-    recaptcha_public_key: str = ''
-    recaptcha_private_key: str = ''
+    default_finish_url: str = "https://www.eduid.se/"
+    eduid_site_url: str = "https://www.eduid.se"
+    eduid_site_name: str = "eduID"
+    recaptcha_public_key: str = ""
+    recaptcha_private_key: str = ""
     private_userdb_auto_expire: Optional[timedelta] = Field(default=timedelta(days=7))

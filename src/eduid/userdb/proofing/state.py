@@ -51,7 +51,7 @@ from eduid.userdb.proofing.element import (
     SentLetterElement,
 )
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 logger = logging.getLogger(__name__)
 
@@ -73,39 +73,39 @@ class ProofingState(object):
     @classmethod
     def _default_from_dict(cls, data: Mapping, fields: Set[str]):
         _data = copy.deepcopy(dict(data))  # to not modify callers data
-        if 'eduPersonPrincipalName' in _data:
-            _data['eppn'] = _data.pop('eduPersonPrincipalName')
-        if '_id' in _data:
-            _data['id'] = _data.pop('_id')
+        if "eduPersonPrincipalName" in _data:
+            _data["eppn"] = _data.pop("eduPersonPrincipalName")
+        if "_id" in _data:
+            _data["id"] = _data.pop("_id")
 
         # Can not use default args as those will be placed before non default args
         # in inheriting classes
-        if not _data.get('id'):
-            _data['id'] = None
-        if not _data.get('modified_ts'):
-            _data['modified_ts'] = None
+        if not _data.get("id"):
+            _data["id"] = None
+        if not _data.get("modified_ts"):
+            _data["modified_ts"] = None
 
-        fields.update({'id', 'eppn', 'modified_ts'})
+        fields.update({"id", "eppn", "modified_ts"})
         _leftovers = [x for x in _data.keys() if x not in fields]
         if _leftovers:
-            raise UserDBValueError(f'{cls}.from_dict() unknown data: {_leftovers}')
+            raise UserDBValueError(f"{cls}.from_dict() unknown data: {_leftovers}")
 
         return cls(**_data)
 
     @classmethod
     def from_dict(cls, data: Mapping):
-        raise NotImplementedError(f'from_dict not implemented for class {cls.__name__}')
+        raise NotImplementedError(f"from_dict not implemented for class {cls.__name__}")
 
     def to_dict(self) -> MutableMapping:
         res = asdict(self)
-        res['_id'] = res.pop('id')
-        res['eduPersonPrincipalName'] = res.pop('eppn')
-        if res['modified_ts'] is True:
-            res['modified_ts'] = datetime.datetime.utcnow()
+        res["_id"] = res.pop("id")
+        res["eduPersonPrincipalName"] = res.pop("eppn")
+        if res["modified_ts"] is True:
+            res["modified_ts"] = datetime.datetime.utcnow()
         return res
 
     def __str__(self):
-        return '<eduID {!s}: eppn={!s}>'.format(self.__class__.__name__, self.eppn)
+        return "<eduID {!s}: eppn={!s}>".format(self.__class__.__name__, self.eppn)
 
     @property
     def reference(self) -> str:
@@ -121,7 +121,7 @@ class ProofingState(object):
         if not isinstance(self.modified_ts, datetime.datetime):
             if self.modified_ts is True or self.modified_ts is None:
                 return False
-            raise UserDBValueError(f'Malformed modified_ts: {repr(self.modified_ts)}')
+            raise UserDBValueError(f"Malformed modified_ts: {repr(self.modified_ts)}")
         delta = datetime.timedelta(seconds=timeout_seconds)
         expiry_date = self.modified_ts + delta
         now = datetime.datetime.now(tz=self.modified_ts.tzinfo)
@@ -131,11 +131,11 @@ class ProofingState(object):
         if not isinstance(self.modified_ts, datetime.datetime):
             if self.modified_ts is True or self.modified_ts is None:
                 return False
-            raise UserDBValueError(f'Malformed modified_ts: {repr(self.modified_ts)}')
+            raise UserDBValueError(f"Malformed modified_ts: {repr(self.modified_ts)}")
         time_since_last_resend = utc_now() - self.modified_ts
         throttle_seconds = datetime.timedelta(seconds=min_wait_seconds)
         if time_since_last_resend < throttle_seconds:
-            logger.warning(f'Resend throttled for {throttle_seconds - time_since_last_resend}')
+            logger.warning(f"Resend throttled for {throttle_seconds - time_since_last_resend}")
             return True
         return False
 
@@ -148,13 +148,13 @@ class NinProofingState(ProofingState):
     @classmethod
     def from_dict(cls, data: Mapping) -> NinProofingState:
         _data = copy.deepcopy(dict(data))  # to not modify callers data
-        _data['nin'] = NinProofingElement.from_dict(_data['nin'])
-        return cls._default_from_dict(_data, {'nin'})
+        _data["nin"] = NinProofingElement.from_dict(_data["nin"])
+        return cls._default_from_dict(_data, {"nin"})
 
     def to_dict(self) -> MutableMapping:
         nin_data = self.nin.to_dict()
         res = super().to_dict()
-        res['nin'] = nin_data
+        res["nin"] = nin_data
         return res
 
 
@@ -166,14 +166,14 @@ class LetterProofingState(NinProofingState):
     @classmethod
     def from_dict(cls, data: Mapping) -> LetterProofingState:
         _data = copy.deepcopy(dict(data))  # to not modify callers data
-        _data['nin'] = NinProofingElement.from_dict(_data['nin'])
-        _data['proofing_letter'] = SentLetterElement.from_dict(_data['proofing_letter'])
-        return cls._default_from_dict(_data, {'nin', 'proofing_letter'})
+        _data["nin"] = NinProofingElement.from_dict(_data["nin"])
+        _data["proofing_letter"] = SentLetterElement.from_dict(_data["proofing_letter"])
+        return cls._default_from_dict(_data, {"nin", "proofing_letter"})
 
     def to_dict(self) -> MutableMapping:
         letter_data = self.proofing_letter.to_dict()
         res = super().to_dict()
-        res['proofing_letter'] = letter_data
+        res["proofing_letter"] = letter_data
         return res
 
 
@@ -185,7 +185,7 @@ class OrcidProofingState(ProofingState):
 
     @classmethod
     def from_dict(cls, data: Mapping) -> OrcidProofingState:
-        return cls._default_from_dict(data, {'state', 'nonce'})
+        return cls._default_from_dict(data, {"state", "nonce"})
 
 
 @dataclass()
@@ -198,8 +198,8 @@ class OidcProofingState(NinProofingState):
     @classmethod
     def from_dict(cls, data: Mapping) -> OidcProofingState:
         _data = copy.deepcopy(dict(data))  # to not modify callers data
-        _data['nin'] = NinProofingElement.from_dict(_data['nin'])
-        return cls._default_from_dict(_data, {'nin', 'state', 'nonce', 'token'})
+        _data["nin"] = NinProofingElement.from_dict(_data["nin"])
+        return cls._default_from_dict(_data, {"nin", "state", "nonce", "token"})
 
 
 @dataclass()
@@ -210,13 +210,13 @@ class EmailProofingState(ProofingState):
     @classmethod
     def from_dict(cls, data: Mapping) -> EmailProofingState:
         _data = copy.deepcopy(dict(data))  # to not modify callers data
-        _data['verification'] = EmailProofingElement.from_dict(_data['verification'])
-        return cls._default_from_dict(_data, {'verification'})
+        _data["verification"] = EmailProofingElement.from_dict(_data["verification"])
+        return cls._default_from_dict(_data, {"verification"})
 
     def to_dict(self) -> MutableMapping:
         email_data = self.verification.to_dict()
         res = super().to_dict()
-        res['verification'] = email_data
+        res["verification"] = email_data
         return res
 
 
@@ -228,11 +228,11 @@ class PhoneProofingState(ProofingState):
     @classmethod
     def from_dict(cls, data: Mapping) -> PhoneProofingState:
         _data = copy.deepcopy(dict(data))  # to not modify callers data
-        _data['verification'] = PhoneProofingElement.from_dict(_data['verification'])
-        return cls._default_from_dict(_data, {'verification'})
+        _data["verification"] = PhoneProofingElement.from_dict(_data["verification"])
+        return cls._default_from_dict(_data, {"verification"})
 
     def to_dict(self) -> MutableMapping:
         phone_data = self.verification.to_dict()
         res = super().to_dict()
-        res['verification'] = phone_data
+        res["verification"] = phone_data
         return res

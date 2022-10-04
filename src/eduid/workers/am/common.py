@@ -17,8 +17,8 @@ class AmCelerySingleton:
     and in 'client' mode in the webapp etc. that invokes the task.
     """
 
-    celery = Celery(include=['eduid.workers.am.tasks'])
-    worker_config = AmConfig(app_name='app_name_NOT_SET')
+    celery = Celery(include=["eduid.workers.am.tasks"])
+    worker_config = AmConfig(app_name="app_name_NOT_SET")
     af_registry = AFRegistry()
 
     @classmethod

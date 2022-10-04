@@ -5,13 +5,13 @@ from typing import Any, Dict
 
 from eduid.webapp.common.api.utils import get_flux_type
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 @unique
 class FluxResponseStatus(Enum):
-    OK = 'ok'
-    ERROR = 'error'
+    OK = "ok"
+    ERROR = "error"
 
 
 class FluxResponse(object):
@@ -41,34 +41,34 @@ class FluxResponse(object):
     """
 
     def __init__(self, req, payload=None, error=None, meta=None):
-        _suffix = 'success'
+        _suffix = "success"
         if error:
-            _suffix = 'fail'
+            _suffix = "fail"
         self.flux_type = get_flux_type(req, _suffix)
         self.payload = payload
         self.meta = meta
         self.error = error
 
     def __repr__(self):
-        return u'<{!s} ({!r})>'.format(self.__class__.__name__, self.to_dict())
+        return "<{!s} ({!r})>".format(self.__class__.__name__, self.to_dict())
 
     def __unicode__(self):
         return self.__str__()
 
     def __str__(self):
-        return u'{!s} ({!r})'.format(self.__class__.__name__, self.to_dict())
+        return "{!s} ({!r})".format(self.__class__.__name__, self.to_dict())
 
     def to_dict(self) -> Dict[str, Any]:
         rv = dict()
         # A Flux Standard Action MUST have a type
-        rv['type'] = self.flux_type
+        rv["type"] = self.flux_type
         # ... and MAY have payload, error, meta (and MUST NOT have anything else)
         if self.payload is not None:
-            rv['payload'] = self.payload
+            rv["payload"] = self.payload
         if self.error is not None:
-            rv['error'] = self.error
+            rv["error"] = self.error
         if self.meta is not None:
-            rv['meta'] = self.meta
+            rv["meta"] = self.meta
         return rv
 
 

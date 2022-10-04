@@ -59,14 +59,14 @@ class AuthnBaseApp(EduIDBaseApp, metaclass=ABCMeta):
         next_path = list(urlparse(next_url))[2]
         # Since trailing slashes is 'optional' in HTTP, we remove them before matching the path
         # against the elements in the allow-list to avoid all of them having to consider that.
-        while next_path.endswith('/'):
+        while next_path.endswith("/"):
             next_path = next_path[:-1]
         allowlist = self.conf.no_authn_urls
-        no_context_logger.debug(f'Checking if URL path {next_path} matches no auth allow list: {allowlist}')
+        no_context_logger.debug(f"Checking if URL path {next_path} matches no auth allow list: {allowlist}")
         for regex in allowlist:
             m = re.match(regex, next_path)
             if m is not None:
-                no_context_logger.debug(f'{next_path} matched allow list')
+                no_context_logger.debug(f"{next_path} matched allow list")
                 return super(AuthnBaseApp, self).__call__(environ, start_response)
 
         with self.request_context(environ):
@@ -74,14 +74,14 @@ class AuthnBaseApp(EduIDBaseApp, metaclass=ABCMeta):
                 if session.common.eppn and session.common.is_logged_in:
                     return super(AuthnBaseApp, self).__call__(environ, start_response)
             except NoSessionDataFoundException:
-                current_app.logger.info('Caught a NoSessionDataFoundException - forcing the user to authenticate')
-                del environ['HTTP_COOKIE']  # Force relogin
+                current_app.logger.info("Caught a NoSessionDataFoundException - forcing the user to authenticate")
+                del environ["HTTP_COOKIE"]  # Force relogin
                 # If HTTP_COOKIE is not removed self.request_context(environ) below
                 # will try to look up the Session data in the backend
 
-        ts_url = urlappend(self.conf.token_service_url, 'login')
+        ts_url = urlappend(self.conf.token_service_url, "login")
 
-        params = {'next': next_url}
+        params = {"next": next_url}
 
         url_parts = list(urlparse(ts_url))
         query = parse_qs(url_parts[4])
@@ -90,6 +90,6 @@ class AuthnBaseApp(EduIDBaseApp, metaclass=ABCMeta):
         url_parts[4] = urlencode(query)
         location = urlunparse(url_parts)
 
-        headers = [('Location', location)]
-        start_response('302 Found', headers)
+        headers = [("Location", location)]
+        start_response("302 Found", headers)
         return []

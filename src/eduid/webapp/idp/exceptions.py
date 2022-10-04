@@ -10,35 +10,35 @@ if TYPE_CHECKING:
     from app import IdPApp
 
 
-def init_exception_handlers(app: 'IdPApp') -> 'IdPApp':
+def init_exception_handlers(app: "IdPApp") -> "IdPApp":
 
     # Init error handler for raised exceptions
     @app.errorhandler(HTTPException)
     def _handle_flask_http_exception(error: HTTPException) -> WerkzeugResponse:
-        app.logger.error(f'IdP HTTPException {request}: {error}')
-        app.logger.debug(f'Exception handler invoked on request from {request.remote_addr}: {request}')
+        app.logger.error(f"IdP HTTPException {request}: {error}")
+        app.logger.debug(f"Exception handler invoked on request from {request.remote_addr}: {request}")
         if app.debug or app.testing:
-            app.logger.exception(f'Got exception in IdP')
+            app.logger.exception(f"Got exception in IdP")
         response = error.get_response()
 
         context = get_default_template_arguments(app.conf)
-        context['error_code'] = str(error.code)
+        context["error_code"] = str(error.code)
 
         messages = {
-            'SAML_UNKNOWN_SP': 'SAML error: Unknown Service Provider',
-            'WRONG_USER': 'Already logged in as another user - please re-initiate login',
+            "SAML_UNKNOWN_SP": "SAML error: Unknown Service Provider",
+            "WRONG_USER": "Already logged in as another user - please re-initiate login",
         }
 
         if error.description in messages:
-            context['error_details'] = '<p>' + messages[error.description] + '</p>'
+            context["error_details"] = "<p>" + messages[error.description] + "</p>"
 
         template = _get_error_template(error.code, error.description)
-        app.logger.debug(f'Rendering {template} with context {context}')
+        app.logger.debug(f"Rendering {template} with context {context}")
 
         response.data = render_template(template, **context)
 
-        if error.description in ['USER_TERMINATED', 'WRONG_USER']:
-            app.logger.debug(f'Deleting SSO cookie on error {error.description}')
+        if error.description in ["USER_TERMINATED", "WRONG_USER"]:
+            app.logger.debug(f"Deleting SSO cookie on error {error.description}")
             # Delete the SSO session cookie in the browser
             response.delete_cookie(
                 key=app.conf.sso_cookie.key,
@@ -53,26 +53,26 @@ def init_exception_handlers(app: 'IdPApp') -> 'IdPApp':
 
 def _get_error_template(status_code: Optional[int], message: Optional[str]) -> str:
     pages = {
-        400: 'bad_request.jinja2',
-        401: 'unauthorized.jinja2',
-        403: 'forbidden.jinja2',
-        404: 'not_found.jinja2',
-        429: 'toomany.jinja2',
-        440: 'session_timeout.jinja2',
+        400: "bad_request.jinja2",
+        401: "unauthorized.jinja2",
+        403: "forbidden.jinja2",
+        404: "not_found.jinja2",
+        429: "toomany.jinja2",
+        440: "session_timeout.jinja2",
     }
     res = None
     if status_code is not None:
         res = pages.get(status_code)
     if status_code == 403 and message is not None:
-        if 'CREDENTIAL_EXPIRED' in message:
-            res = 'credential_expired.jinja2'
-        elif 'SWAMID_MFA_REQUIRED' in message:
-            res = 'swamid_mfa_required.jinja2'
-        elif 'MFA_REQUIRED' in message:
-            res = 'mfa_required.jinja2'
-        elif 'USER_TERMINATED' in message:
-            res = 'user_terminated.jinja2'
+        if "CREDENTIAL_EXPIRED" in message:
+            res = "credential_expired.jinja2"
+        elif "SWAMID_MFA_REQUIRED" in message:
+            res = "swamid_mfa_required.jinja2"
+        elif "MFA_REQUIRED" in message:
+            res = "mfa_required.jinja2"
+        elif "USER_TERMINATED" in message:
+            res = "user_terminated.jinja2"
     if res is None:
-        res = 'error.jinja2'
+        res = "error.jinja2"
 
     return res

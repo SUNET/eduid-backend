@@ -29,7 +29,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-__author__ = 'eperez'
+__author__ = "eperez"
 
 from abc import ABC, abstractmethod
 from typing import List, Optional
@@ -51,7 +51,7 @@ class AttributeFetcher(ABC):
 
     def __init__(self, worker_config: AmConfig):
         if not isinstance(worker_config, AmConfig):
-            raise TypeError('AttributeFetcher config should be AmConfig')
+            raise TypeError("AttributeFetcher config should be AmConfig")
         self.conf = worker_config
         self.private_db: Optional[UserDB] = None
         if worker_config.mongo_uri:
@@ -73,13 +73,13 @@ class AttributeFetcher(ABC):
         """
 
         attributes = {}
-        logger.debug(f'Trying to get user with _id: {user_id} from {self.private_db}.')
+        logger.debug(f"Trying to get user with _id: {user_id} from {self.private_db}.")
         if not self.private_db:
-            raise RuntimeError('No database initialised')
+            raise RuntimeError("No database initialised")
         user = self.private_db.get_user_by_id(user_id)
-        logger.debug(f'User: {user} found.')
+        logger.debug(f"User: {user} found.")
         if not user:
-            raise UserDoesNotExist(f'No user found with id {user_id}')
+            raise UserDoesNotExist(f"No user found with id {user_id}")
 
         user_dict = user.to_dict()
 
@@ -93,12 +93,12 @@ class AttributeFetcher(ABC):
             elif attr in self.whitelist_unset_attrs:
                 attributes_unset[attr] = value
 
-        logger.debug('Will set attributes: {}'.format(attributes_set))
-        logger.debug('Will remove attributes: {}'.format(attributes_unset))
+        logger.debug("Will set attributes: {}".format(attributes_set))
+        logger.debug("Will remove attributes: {}".format(attributes_unset))
 
         if attributes_set:
-            attributes['$set'] = attributes_set
+            attributes["$set"] = attributes_set
         if attributes_unset:
-            attributes['$unset'] = attributes_unset
+            attributes["$unset"] = attributes_unset
 
         return attributes

@@ -66,12 +66,12 @@ from eduid.webapp.common.api.utils import init_template_functions
 from eduid.webapp.common.authn.utils import no_authn_views
 from eduid.webapp.common.session.eduid_session import SessionFactory
 
-DEBUG = os.environ.get('EDUID_APP_DEBUG', False)
+DEBUG = os.environ.get("EDUID_APP_DEBUG", False)
 if DEBUG:
-    stderr.writelines('----- WARNING! EDUID_APP_DEBUG is enabled -----\n')
+    stderr.writelines("----- WARNING! EDUID_APP_DEBUG is enabled -----\n")
 
 
-TFlaskConfigSubclass = TypeVar('TFlaskConfigSubclass', bound=FlaskConfig)
+TFlaskConfigSubclass = TypeVar("TFlaskConfigSubclass", bound=FlaskConfig)
 
 
 class EduIDBaseApp(Flask, metaclass=ABCMeta):
@@ -92,9 +92,9 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         self.config.from_mapping(_flask_config)
 
         # Check for required configuration
-        for this in ['SECRET_KEY', 'APPLICATION_ROOT', 'SERVER_NAME']:
+        for this in ["SECRET_KEY", "APPLICATION_ROOT", "SERVER_NAME"]:
             if this not in self.config:
-                raise BadConfiguration(f'Flask configuration variable {this} is missing')
+                raise BadConfiguration(f"Flask configuration variable {this} is missing")
 
         if DEBUG:
             init_app_debug(self)
@@ -110,8 +110,8 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         # Set app url prefix to APPLICATION_ROOT
         self.wsgi_app = PrefixMiddleware(  # type: ignore
             self.wsgi_app,
-            prefix=self.config['APPLICATION_ROOT'],
-            server_name=self.config['SERVER_NAME'],
+            prefix=self.config["APPLICATION_ROOT"],
+            server_name=self.config["SERVER_NAME"],
         )
 
         # Allow legacy samesite cookie support
@@ -150,38 +150,38 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         # MongoDB
         if mongo and not check_mongo():
             res.healthy = False
-            res.reason = 'mongodb check failed'
-            self.logger.warning('mongodb check failed')
+            res.reason = "mongodb check failed"
+            self.logger.warning("mongodb check failed")
         # Redis
         elif redis and not check_redis():
             res.healthy = False
-            res.reason = 'redis check failed'
-            self.logger.warning('redis check failed')
+            res.reason = "redis check failed"
+            self.logger.warning("redis check failed")
         # AM
         elif am and not check_am():
             res.healthy = False
-            res.reason = 'am check failed'
-            self.logger.warning('am check failed')
+            res.reason = "am check failed"
+            self.logger.warning("am check failed")
         # MSG
         elif msg and not check_msg():
             res.healthy = False
-            res.reason = 'msg check failed'
-            self.logger.warning('msg check failed')
+            res.reason = "msg check failed"
+            self.logger.warning("msg check failed")
         # Mail Relay
         elif mail and not check_mail():
             res.healthy = False
-            res.reason = 'mail check failed'
-            self.logger.warning('mail check failed')
+            res.reason = "mail check failed"
+            self.logger.warning("mail check failed")
         # Lookup Mobile Relay
         elif lookup_mobile and not check_lookup_mobile():
             res.healthy = False
-            res.reason = 'lookup_mobile check failed'
-            self.logger.warning('lookup_mobile check failed')
+            res.reason = "lookup_mobile check failed"
+            self.logger.warning("lookup_mobile check failed")
         # VCCS
         elif vccs and not check_vccs():
             res.healthy = False
-            res.reason = 'vccs check failed'
-            self.logger.warning('vccs check failed')
+            res.reason = "vccs check failed"
+            self.logger.warning("vccs check failed")
         return res
 
 
@@ -193,6 +193,6 @@ def init_status_views(app: EduIDBaseApp, config: EduIDBaseAppConfig) -> None:
 
     app.register_blueprint(status_views)
     # Register status paths for unauthorized requests
-    status_paths = ['/status/healthy', '/status/sanity-check']
+    status_paths = ["/status/healthy", "/status/sanity-check"]
     no_authn_views(config, status_paths)
     return None

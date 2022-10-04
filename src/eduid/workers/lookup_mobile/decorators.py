@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 #
 #  This is a copy of decorators.py in the eduid.workers.msg project. Both should be move in to a
@@ -16,7 +16,7 @@ class TransactionAudit(object):
     enabled = True
     db_uri = None
 
-    def __init__(self, db_name='eduid_lookup_mobile', collection_name='transaction_audit'):
+    def __init__(self, db_name="eduid_lookup_mobile", collection_name="transaction_audit"):
         self.db_name = db_name
         self.collection_name = collection_name
         self.collection = None
@@ -31,7 +31,7 @@ class TransactionAudit(object):
             # XXX Ugly hack
             # The class that uses the decorator needs to have self.conf['MONGO_URI'] and self.transaction_audit set
             # args[0] is wrapped methods self.
-            self.enabled = getattr(args[0], 'transaction_audit', False)
+            self.enabled = getattr(args[0], "transaction_audit", False)
             if self.enabled:
                 if self.collection is None:
                     self.db_uri = args[0].conf.mongo_uri
@@ -41,9 +41,9 @@ class TransactionAudit(object):
                 if not isclass(ret):  # we can't save class objects in mongodb
                     date = datetime.utcnow()
                     doc = {
-                        'function': f.__name__,
-                        'data': self._filter(f.__name__, ret, *args, **kwargs),
-                        'created_at': date,
+                        "function": f.__name__,
+                        "data": self._filter(f.__name__, ret, *args, **kwargs),
+                        "created_at": date,
                     }
                     self.collection.insert_one(doc)
             return ret
@@ -61,11 +61,11 @@ class TransactionAudit(object):
     def _filter(self, func, data, *args, **kwargs):
         if data is False:
             return data
-        if func == 'find_mobiles_by_NIN':
+        if func == "find_mobiles_by_NIN":
             number_region = None
             if len(args) == 3:
                 number_region = args[2]
-            return {'national_identity_number': args[1], 'number_region': number_region, 'data_returned': bool(data)}
-        elif func == 'find_NIN_by_mobile':
-            return {'mobile_number': args[1], 'data_returned': bool(data)}
+            return {"national_identity_number": args[1], "number_region": number_region, "data_returned": bool(data)}
+        elif func == "find_NIN_by_mobile":
+            return {"mobile_number": args[1], "data_returned": bool(data)}
         return data

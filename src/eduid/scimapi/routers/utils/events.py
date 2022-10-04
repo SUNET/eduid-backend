@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 from eduid.userdb.util import utc_now
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 def db_event_to_response(req: ContextRequest, resp: Response, db_event: ScimApiEvent):
@@ -54,9 +54,9 @@ def db_event_to_response(req: ContextRequest, resp: Response, db_event: ScimApiE
         ),
     )
 
-    resp.headers['Location'] = location
-    resp.headers['ETag'] = make_etag(db_event.version)
-    req.app.context.logger.debug(f'Extra debug: Response:\n{event_response.json(exclude_none=True, indent=2)}')
+    resp.headers["Location"] = location
+    resp.headers["ETag"] = make_etag(db_event.version)
+    req.app.context.logger.debug(f"Extra debug: Response:\n{event_response.json(exclude_none=True, indent=2)}")
     return event_response
 
 
@@ -68,13 +68,13 @@ def get_scim_referenced(req: ContextRequest, resource: NutidEventResource) -> Op
     elif resource.resource_type == SCIMResourceType.INVITE:
         return req.context.invitedb.get_invite_by_scim_id(str(resource.scim_id))
     elif resource.resource_type == SCIMResourceType.EVENT:
-        raise BadRequest(detail=f'Events can not refer to other events')
-    raise BadRequest(detail=f'Events for resource {resource.resource_type.value} not implemented')
+        raise BadRequest(detail=f"Events can not refer to other events")
+    raise BadRequest(detail=f"Events for resource {resource.resource_type.value} not implemented")
 
 
 def add_api_event(
     data_owner: DataOwnerName,
-    context: 'Context',
+    context: "Context",
     db_obj: ScimApiResourceBase,
     resource_type: SCIMResourceType,
     level: EventLevel,
@@ -95,17 +95,17 @@ def add_api_event(
         ),
         timestamp=_now,
         expires_at=_expires_at,
-        source='eduID SCIM API',
+        source="eduID SCIM API",
         level=level,
-        data={'v': 1, 'status': status.value, 'message': message},
+        data={"v": 1, "status": status.value, "message": message},
     )
     event_db = context.get_eventdb(data_owner=data_owner)
     assert event_db  # please mypy
     event_db.save(_event)
 
     # Send notification
-    event_location = urlappend(context.base_url, f'Events/{_event.scim_id}')
-    message = context.notification_relay.format_message(version=1, data={'location': event_location})
+    event_location = urlappend(context.base_url, f"Events/{_event.scim_id}")
+    message = context.notification_relay.format_message(version=1, data={"location": event_location})
     context.notification_relay.notify(data_owner=data_owner, message=message, context=context)
 
     return None

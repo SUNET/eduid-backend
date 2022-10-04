@@ -48,9 +48,9 @@ class JsAppsConfig(PasswordConfigMixin):
     debug: bool = False
     environment: EduidEnvironment = EduidEnvironment.production
     csrf_token: Optional[str] = None
-    available_languages: Dict[str, str] = Field(default={'en': 'English', 'sv': 'Svenska'})
-    eduid_site_name: str = 'eduID'
-    eduid_site_url: str = 'https://eduid.se'
+    available_languages: Dict[str, str] = Field(default={"en": "English", "sv": "Svenska"})
+    eduid_site_name: str = "eduID"
+    eduid_site_url: str = "https://eduid.se"
     dashboard_url: str
     signup_url: str
     reset_password_link: str  # used for directing a user to the reset password app
@@ -84,7 +84,7 @@ class JsAppsConfig(PasswordConfigMixin):
     security_url: str
     token_service_url: Optional[str] = None  # should be replaced by authn_url
     # Dashboard config
-    proofing_methods: list = Field(default=['letter', 'lookup_mobile', 'oidc', 'eidas'])
+    proofing_methods: list = Field(default=["letter", "lookup_mobile", "oidc", "eidas"])
     default_country_code: int = 46
     token_verify_idp: str
     # Signup config

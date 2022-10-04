@@ -46,23 +46,23 @@ logger = logging.getLogger(__name__)
 
 # default list of SAML attributes to release
 _SAML_ATTRIBUTES = [
-    'c',
-    'cn',
-    'co',
-    'displayName',
-    'eduPersonAssurance',
-    'eduPersonEntitlement',
-    'eduPersonOrcid',
-    'eduPersonTargetedID',
-    'eduPersonPrincipalName',
-    'givenName',
-    'mail',
-    'norEduPersonNIN',
-    'personalIdentityNumber',
-    'preferredLanguage',
-    'schacDateOfBirth',
-    'schacPersonalUniqueCode',
-    'sn',
+    "c",
+    "cn",
+    "co",
+    "displayName",
+    "eduPersonAssurance",
+    "eduPersonEntitlement",
+    "eduPersonOrcid",
+    "eduPersonTargetedID",
+    "eduPersonPrincipalName",
+    "givenName",
+    "mail",
+    "norEduPersonNIN",
+    "personalIdentityNumber",
+    "preferredLanguage",
+    "schacDateOfBirth",
+    "schacPersonalUniqueCode",
+    "sn",
 ]
 
 
@@ -104,7 +104,7 @@ class IdPUser(User):
         for approved in filter_attributes:
             if approved in attributes_in:
                 attributes[approved] = attributes_in.pop(approved)
-        logger.debug(f'Discarded non-attributes: {list(attributes_in.keys())!s}')
+        logger.debug(f"Discarded non-attributes: {list(attributes_in.keys())!s}")
         # Create and add missing attributes that can be released if correct release policy
         # is applied by pysaml2 for the current metadata
         attributes = make_scoped_eppn(attributes, settings)
@@ -118,8 +118,8 @@ class IdPUser(User):
         attributes = make_schac_date_of_birth(attributes, self)
         attributes = make_mail(attributes, self)
         attributes = make_eduperson_orcid(attributes, self)
-        logger.info(f'Attributes available for release: {list(attributes.keys())}')
-        logger.debug(f'Attributes with values: {attributes}')
+        logger.info(f"Attributes available for release: {list(attributes.keys())}")
+        logger.debug(f"Attributes with values: {attributes}")
         return attributes
 
 
@@ -134,20 +134,20 @@ def make_scoped_eppn(attributes: dict, settings: SAMLAttributeSettings) -> dict:
     :param settings: IdP configuration settings
     :return: New attributes
     """
-    eppn = attributes.get('eduPersonPrincipalName')
+    eppn = attributes.get("eduPersonPrincipalName")
     scope = settings.default_eppn_scope
     if not eppn or not scope:
         return attributes
-    if '@' not in eppn:
-        attributes['eduPersonPrincipalName'] = eppn + '@' + scope
+    if "@" not in eppn:
+        attributes["eduPersonPrincipalName"] = eppn + "@" + scope
     return attributes
 
 
 def add_country_attributes(attributes: dict, settings: SAMLAttributeSettings) -> dict:
-    if attributes.get('c') is None:
-        attributes['c'] = settings.default_country_code
-    if attributes.get('co') is None:
-        attributes['co'] = settings.default_country
+    if attributes.get("c") is None:
+        attributes["c"] = settings.default_country_code
+    if attributes.get("co") is None:
+        attributes["co"] = settings.default_country
     return attributes
 
 
@@ -160,9 +160,9 @@ def make_eduperson_unique_id(attributes: dict, user: IdPUser, settings: SAMLAttr
     if not eppn or not scope:
         return attributes
 
-    if attributes.get('eduPersonUniqueID') is None:
-        unique_id = eppn.replace('-', '')  # hyphen (-) not allowed in eduPersonUniqueID
-        attributes['eduPersonUniqueID'] = f'{unique_id}@{scope}'
+    if attributes.get("eduPersonUniqueID") is None:
+        unique_id = eppn.replace("-", "")  # hyphen (-) not allowed in eduPersonUniqueID
+        attributes["eduPersonUniqueID"] = f"{unique_id}@{scope}"
     return attributes
 
 
@@ -176,25 +176,25 @@ def add_eduperson_assurance(attributes: Dict[str, Any], user: IdPUser) -> Dict[s
 
     :return: New attributes
     """
-    attributes['eduPersonAssurance'] = ['http://www.swamid.se/policy/assurance/al1']
+    attributes["eduPersonAssurance"] = ["http://www.swamid.se/policy/assurance/al1"]
     if user.identities.is_verified:
-        attributes['eduPersonAssurance'] = ['http://www.swamid.se/policy/assurance/al2']
+        attributes["eduPersonAssurance"] = ["http://www.swamid.se/policy/assurance/al2"]
     return attributes
 
 
 def make_name_attributes(attributes: dict, user: IdPUser) -> dict:
     # displayName
-    if attributes.get('displayName') is None and user.display_name:
-        attributes['displayName'] = user.display_name
+    if attributes.get("displayName") is None and user.display_name:
+        attributes["displayName"] = user.display_name
     # givenName
-    if attributes.get('givenName') is None and user.given_name:
-        attributes['givenName'] = user.given_name
+    if attributes.get("givenName") is None and user.given_name:
+        attributes["givenName"] = user.given_name
     # cn (givenName + sn)
-    if attributes.get('cn') is None and (user.given_name and user.surname):
-        attributes['cn'] = f'{user.given_name} {user.surname}'
+    if attributes.get("cn") is None and (user.given_name and user.surname):
+        attributes["cn"] = f"{user.given_name} {user.surname}"
     # sn
-    if attributes.get('sn') is None and user.surname:
-        attributes['sn'] = user.surname
+    if attributes.get("sn") is None and user.surname:
+        attributes["sn"] = user.surname
     return attributes
 
 
@@ -204,11 +204,11 @@ def make_nor_eduperson_nin(attributes: dict, user: IdPUser) -> dict:
     """
     # TODO: If we ever allow NIN to be something else than personnummer or samordningsnummer
     # TODO: we need to update this function
-    if attributes.get('norEduPersonNIN') is not None:
+    if attributes.get("norEduPersonNIN") is not None:
         return attributes
 
     if user.identities.nin is not None and user.identities.nin.is_verified:
-        attributes['norEduPersonNIN'] = user.identities.nin.number
+        attributes["norEduPersonNIN"] = user.identities.nin.number
     return attributes
 
 
@@ -218,11 +218,11 @@ def make_personal_identity_number(attributes: dict, user: IdPUser) -> dict:
     """
     # TODO: If we ever allow NIN to be something else than personnummer or samordningsnummer
     # TODO: we need to update this function
-    if attributes.get('personalIdentityNumber') is not None:
+    if attributes.get("personalIdentityNumber") is not None:
         return attributes
 
     if user.identities.nin is not None and user.identities.nin.is_verified:
-        attributes['personalIdentityNumber'] = user.identities.nin.number
+        attributes["personalIdentityNumber"] = user.identities.nin.number
     return attributes
 
 
@@ -230,32 +230,32 @@ def make_schac_date_of_birth(attributes: dict, user: IdPUser) -> dict:
     """
     Format: YYYYMMDD, only numeric
     """
-    if attributes.get('schacDateOfBirth') is not None:
+    if attributes.get("schacDateOfBirth") is not None:
         return attributes
 
     if user.identities.is_verified and user.identities.date_of_birth is not None:
-        attributes['schacDateOfBirth'] = user.identities.date_of_birth.strftime('%Y%m%d')
+        attributes["schacDateOfBirth"] = user.identities.date_of_birth.strftime("%Y%m%d")
     return attributes
 
 
 def make_mail(attributes: dict, user: IdPUser) -> dict:
-    if attributes.get('mail') is not None:
+    if attributes.get("mail") is not None:
         return attributes
 
     # A primary element have to be verified but better be defensive
     if user.mail_addresses.primary is not None and user.mail_addresses.primary.is_verified:
-        attributes['mail'] = user.mail_addresses.primary.email
+        attributes["mail"] = user.mail_addresses.primary.email
     return attributes
 
 
 def make_eduperson_orcid(attributes: dict, user: IdPUser) -> dict:
     # TODO: Should the user be AL2 for us to release this?
     #   Should we disallow there to be more than one eduID user with the same orcid?
-    if attributes.get('eduPersonOrcid') is not None:
+    if attributes.get("eduPersonOrcid") is not None:
         return attributes
 
     if user.orcid is not None and user.orcid.is_verified:
-        attributes['eduPersonOrcid'] = user.orcid.id
+        attributes["eduPersonOrcid"] = user.orcid.id
     return attributes
 
 
@@ -263,7 +263,7 @@ def _make_user_esi(user: IdPUser, settings: SAMLAttributeSettings) -> Optional[s
     # do not release Ladok ESI for an unverified user as you need to be verified to connect to Ladok
     if user.identities.is_verified:
         if user.ladok is not None and user.ladok.is_verified:
-            return f'{settings.esi_ladok_prefix}{user.ladok.external_id}'
+            return f"{settings.esi_ladok_prefix}{user.ladok.external_id}"
     return None
 
 
@@ -272,15 +272,15 @@ def make_schac_personal_unique_code(attributes: dict, user: IdPUser, settings: S
     schacPersonalUniqueCode could be something other than ESI, but we have no usecase for anything else
     at the moment
     """
-    if attributes.get('schacPersonalUniqueCode') is not None:
+    if attributes.get("schacPersonalUniqueCode") is not None:
         return attributes
 
     unique_code = None
     # if SP has entity category https://myacademicid.org/entity-categories/esi we should release ESI as
     # personal unique code
-    if 'https://myacademicid.org/entity-categories/esi' in settings.sp_entity_categories:
+    if "https://myacademicid.org/entity-categories/esi" in settings.sp_entity_categories:
         unique_code = _make_user_esi(user=user, settings=settings)
 
     if unique_code is not None:
-        attributes['schacPersonalUniqueCode'] = unique_code
+        attributes["schacPersonalUniqueCode"] = unique_code
     return attributes

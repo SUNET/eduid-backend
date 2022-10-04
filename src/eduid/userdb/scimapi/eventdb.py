@@ -26,29 +26,29 @@ class ScimApiEventResource:
 
     def to_dict(self) -> Dict[str, Any]:
         data = asdict(self)
-        data['scim_id'] = str(self.scim_id)
-        data['resource_type'] = self.resource_type.value
+        data["scim_id"] = str(self.scim_id)
+        data["resource_type"] = self.resource_type.value
         return data
 
     @classmethod
     def from_dict(cls: Type[ScimApiEventResource], data: Mapping[str, Any]) -> ScimApiEventResource:
         _data = dict(data)
-        _data['resource_type'] = SCIMResourceType(_data['resource_type'])
-        _data['scim_id'] = UUID(_data['scim_id'])
+        _data["resource_type"] = SCIMResourceType(_data["resource_type"])
+        _data["scim_id"] = UUID(_data["scim_id"])
         return cls(**_data)
 
 
 class EventLevel(Enum):
-    DEBUG = 'debug'
-    INFO = 'info'
-    WARNING = 'warning'
-    ERROR = 'error'
+    DEBUG = "debug"
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
 
 
 class EventStatus(Enum):
-    CREATED = 'CREATED'
-    UPDATED = 'UPDATED'
-    DELETED = 'DELETED'
+    CREATED = "CREATED"
+    UPDATED = "UPDATED"
+    DELETED = "DELETED"
 
 
 @dataclass
@@ -67,31 +67,31 @@ class ScimApiEvent(ScimApiResourceBase, _ScimApiEventRequired):
 
     def to_dict(self) -> Dict[str, Any]:
         data = asdict(self)
-        data['_id'] = data.pop('db_id')
-        data['level'] = self.level.value
-        data['scim_id'] = str(self.scim_id)
-        data['resource'] = self.resource.to_dict()
+        data["_id"] = data.pop("db_id")
+        data["level"] = self.level.value
+        data["scim_id"] = str(self.scim_id)
+        data["resource"] = self.resource.to_dict()
         return data
 
     @classmethod
     def from_dict(cls: Type[ScimApiEvent], data: Mapping[str, Any]) -> ScimApiEvent:
         _data = dict(data)
-        if '_id' in _data:
-            _data['db_id'] = _data.pop('_id')
-        _data['level'] = EventLevel(_data['level'])
-        _data['scim_id'] = UUID(_data['scim_id'])
-        _data['resource'] = ScimApiEventResource.from_dict(_data['resource'])
+        if "_id" in _data:
+            _data["db_id"] = _data.pop("_id")
+        _data["level"] = EventLevel(_data["level"])
+        _data["scim_id"] = UUID(_data["scim_id"])
+        _data["resource"] = ScimApiEventResource.from_dict(_data["resource"])
         return cls(**_data)
 
 
 class ScimApiEventDB(ScimApiBaseDB):
-    def __init__(self, db_uri: str, collection: str, db_name='eduid_scimapi'):
+    def __init__(self, db_uri: str, collection: str, db_name="eduid_scimapi"):
         super().__init__(db_uri, db_name, collection=collection)
         indexes = {
             # Remove messages older than expires_at datetime
-            'auto-discard': {'key': [('expires_at', 1)], 'expireAfterSeconds': 0},
+            "auto-discard": {"key": [("expires_at", 1)], "expireAfterSeconds": 0},
             # Ensure unique scim_id
-            'unique-scimid': {'key': [('scim_id', 1)], 'unique': True},
+            "unique-scimid": {"key": [("scim_id", 1)], "unique": True},
         }
         self.setup_indexes(indexes)
 
@@ -100,11 +100,11 @@ class ScimApiEventDB(ScimApiBaseDB):
         event_dict = event.to_dict()
 
         result = self._coll.insert_one(event_dict)
-        logger.debug(f'{self} Inserted event {event} in {self._coll_name}')
+        logger.debug(f"{self} Inserted event {event} in {self._coll_name}")
         import pprint
 
         extra_debug = pprint.pformat(event_dict, width=120)
-        logger.debug(f'Extra debug:\n{extra_debug}')
+        logger.debug(f"Extra debug:\n{extra_debug}")
 
         return result.acknowledged
 
@@ -112,12 +112,12 @@ class ScimApiEventDB(ScimApiBaseDB):
         self, resource_type: SCIMResourceType, scim_id: Optional[UUID] = None, external_id: Optional[str] = None
     ) -> List[ScimApiEvent]:
         filter = {
-            'resource.resource_type': resource_type.value,
+            "resource.resource_type": resource_type.value,
         }
         if scim_id is not None:
-            filter['resource.scim_id'] = str(scim_id)
+            filter["resource.scim_id"] = str(scim_id)
         if external_id is not None:
-            filter['resource.external_id'] = external_id
+            filter["resource.external_id"] = external_id
 
         docs = self._get_documents_by_filter(filter)
         if docs:
@@ -125,7 +125,7 @@ class ScimApiEventDB(ScimApiBaseDB):
         return []
 
     def get_event_by_scim_id(self, scim_id: str) -> Optional[ScimApiEvent]:
-        doc = self._get_document_by_attr('scim_id', scim_id)
+        doc = self._get_document_by_attr("scim_id", scim_id)
         if not doc:
             return None
         return ScimApiEvent.from_dict(doc)

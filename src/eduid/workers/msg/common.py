@@ -16,8 +16,8 @@ class MsgCelerySingleton:
     and in 'client' mode in the webapp etc. that invokes the task.
     """
 
-    celery = Celery(include=['eduid.workers.msg.tasks'])
-    worker_config = MsgConfig(app_name='app_name_NOT_SET')
+    celery = Celery(include=["eduid.workers.msg.tasks"])
+    worker_config = MsgConfig(app_name="app_name_NOT_SET")
 
     @classmethod
     def update_worker_config(cls, config: MsgConfig) -> None:

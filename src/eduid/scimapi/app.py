@@ -23,14 +23,14 @@ from eduid.scimapi.routers.users import users_router
 
 
 class ScimAPI(FastAPI):
-    def __init__(self, name: str = 'scimapi', test_config: Optional[Dict] = None):
-        self.config = load_config(typ=ScimApiConfig, app_name=name, ns='api', test_config=test_config)
+    def __init__(self, name: str = "scimapi", test_config: Optional[Dict] = None):
+        self.config = load_config(typ=ScimApiConfig, app_name=name, ns="api", test_config=test_config)
         super().__init__(root_path=self.config.application_root)
         self.context = Context(config=self.config)
-        self.context.logger.info(f'Starting {name} app')
+        self.context.logger.info(f"Starting {name} app")
 
 
-def init_api(name: str = 'scimapi', test_config: Optional[Dict] = None) -> ScimAPI:
+def init_api(name: str = "scimapi", test_config: Optional[Dict] = None) -> ScimAPI:
     app = ScimAPI(name=name, test_config=test_config)
     app.router.route_class = ContextRequestRoute
 
@@ -52,5 +52,5 @@ def init_api(name: str = 'scimapi', test_config: Optional[Dict] = None) -> ScimA
     app.add_exception_handler(HTTPErrorDetail, http_error_detail_handler)
     app.add_exception_handler(Exception, unexpected_error_handler)
 
-    app.context.logger.info('app running...')
+    app.context.logger.info("app running...")
     return app

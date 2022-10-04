@@ -7,7 +7,7 @@ from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseM
 from eduid.webapp.common.api.schemas.identity import IdentitiesSchema, NinSchema
 from eduid.webapp.common.api.schemas.validators import validate_nin
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class LetterProofingRequestSchema(EduidSchema, CSRFRequestMixin):
