@@ -35,16 +35,16 @@ class AttributeFetcherTests(AMTestCase):
         expected_identities = mocked_user_standard.identities.to_list_of_dicts()
 
         expected = {
-            '$set': {
-                'eduPersonPrincipalName': mocked_user_standard.eppn,
-                'mailAliases': expected_emails,
-                'phone': expected_phones,
-                'passwords': expected_passwords,
-                'identities': expected_identities,
-                'givenName': mocked_user_standard.given_name,
-                'surname': mocked_user_standard.surname,
-                'displayName': mocked_user_standard.display_name,
-                'preferredLanguage': mocked_user_standard.language,
+            "$set": {
+                "eduPersonPrincipalName": mocked_user_standard.eppn,
+                "mailAliases": expected_emails,
+                "phone": expected_phones,
+                "passwords": expected_passwords,
+                "identities": expected_identities,
+                "givenName": mocked_user_standard.given_name,
+                "surname": mocked_user_standard.surname,
+                "displayName": mocked_user_standard.display_name,
+                "preferredLanguage": mocked_user_standard.language,
             }
         }
 
@@ -105,16 +105,16 @@ class AttributeFetcherTests(AMTestCase):
         expected_identities = user.identities.to_list_of_dicts()
 
         expected = {
-            '$set': {
-                'eduPersonPrincipalName': user.eppn,
-                'mailAliases': expected_emails,
-                'passwords': expected_passwords,
-                'phone': expected_phones,
-                'identities': expected_identities,
-                'givenName': user.given_name,
-                'surname': user.surname,
-                'displayName': user.display_name,
-                'preferredLanguage': user.language,
+            "$set": {
+                "eduPersonPrincipalName": user.eppn,
+                "mailAliases": expected_emails,
+                "passwords": expected_passwords,
+                "phone": expected_phones,
+                "identities": expected_identities,
+                "givenName": user.given_name,
+                "surname": user.surname,
+                "displayName": user.display_name,
+                "preferredLanguage": user.language,
             }
         }
 

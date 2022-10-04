@@ -9,7 +9,7 @@ from eduid.webapp.common.api.schemas.validators import validate_email
 from eduid.webapp.common.api.utils import throttle_time_left
 from eduid.webapp.signup.app import current_signup_app as current_app
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class SignupStatusResponse(FluxStandardAction):
@@ -40,21 +40,21 @@ class SignupStatusResponse(FluxStandardAction):
 
     @pre_dump
     def throttle_delta_to_seconds(self, out_data, **kwargs):
-        if out_data['payload'].get('email_verification', {}).get('sent_at'):
-            sent_at = out_data['payload']['email_verification']['sent_at']
+        if out_data["payload"].get("email_verification", {}).get("sent_at"):
+            sent_at = out_data["payload"]["email_verification"]["sent_at"]
             time_left = throttle_time_left(sent_at, current_app.conf.throttle_resend).total_seconds()
             if time_left > 0:
-                out_data['payload']['email_verification']['throttle_time_left'] = time_left
-                out_data['payload']['email_verification'][
-                    'throttle_time_max'
+                out_data["payload"]["email_verification"]["throttle_time_left"] = time_left
+                out_data["payload"]["email_verification"][
+                    "throttle_time_max"
                 ] = current_app.conf.throttle_resend.total_seconds()
         return out_data
 
     @pre_dump
     def bad_attempts_max(self, out_data, **kwargs):
-        if out_data['payload'].get('email_verification'):
-            out_data['payload']['email_verification'][
-                'bad_attempts_max'
+        if out_data["payload"].get("email_verification"):
+            out_data["payload"]["email_verification"][
+                "bad_attempts_max"
             ] = current_app.conf.email_verification_max_bad_attempts
         return out_data
 

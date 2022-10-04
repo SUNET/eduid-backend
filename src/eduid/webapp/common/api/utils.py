@@ -30,7 +30,7 @@ def get_short_hash(entropy=10) -> str:
 
 def make_short_code(digits: int = 6) -> str:
     """Make a short decimal code, left-padded with zeros to the width specified by `digits'."""
-    code = int.from_bytes(os.urandom(4), byteorder='big') % 1000000
+    code = int.from_bytes(os.urandom(4), byteorder="big") % 1000000
     return str(code).zfill(digits)
 
 
@@ -283,6 +283,6 @@ def throttle_time_left(ts: datetime, min_wait: timedelta) -> timedelta:
 def is_throttled(ts: datetime, min_wait: timedelta) -> bool:
     time_left = throttle_time_left(ts=ts, min_wait=min_wait)
     if int(time_left.total_seconds()) > 0:
-        logger.info(f'Resend throttled for {time_left}')
+        logger.info(f"Resend throttled for {time_left}")
         return True
     return False

@@ -65,8 +65,8 @@ def session_init_app(name, test_config: Mapping[str, Any]) -> SessionTestApp:
 
     @app.route("/signup")
     def signup():
-        session.signup.email_verification.verification_code = 'email-verification-code'
-        return 'Hello, World!'
+        session.signup.email_verification.verification_code = "email-verification-code"
+        return "Hello, World!"
 
     @app.route("/logout")
     def logout():
@@ -164,7 +164,7 @@ class EduidSessionTests(EduidAPITestCase):
             response = browser.get("/signup")
             self.assertEqual(response.status_code, 200)
             with browser.session_transaction() as sess:
-                self.assertEqual(sess.signup.email_verification.verification_code, 'email-verification-code')
+                self.assertEqual(sess.signup.email_verification.verification_code, "email-verification-code")
 
     def test_clear_session_mfa_action(self):
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:

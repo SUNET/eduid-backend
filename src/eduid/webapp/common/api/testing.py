@@ -300,7 +300,7 @@ class EduidAPITestCase(CommonTestCase):
         """
 
         def _assure_not_in_dict(d: Mapping[str, Any], unwanted_key: str):
-            assert unwanted_key not in d, f'Key {unwanted_key} should not be in payload, but it is: {payload}'
+            assert unwanted_key not in d, f"Key {unwanted_key} should not be in payload, but it is: {payload}"
             for k2, v2 in d.items():
                 if isinstance(v2, dict):
                     _assure_not_in_dict(v2, unwanted_key)
@@ -331,7 +331,7 @@ class EduidAPITestCase(CommonTestCase):
                     ), f"The Flux response payload item {repr(k)} is not {repr(v)}"
             if assure_not_in_payload is not None:
                 for key in assure_not_in_payload:
-                    _assure_not_in_dict(response.json['payload'], key)
+                    _assure_not_in_dict(response.json["payload"], key)
 
         except (AssertionError, KeyError):
             if response.json:

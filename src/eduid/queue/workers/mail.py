@@ -62,12 +62,12 @@ class MailQueueWorker(QueueWorker):
 
         # Just log the mail if in development mode
         if self.config.environment == EduidEnvironment.dev:
-            logger.info('sendmail task:')
+            logger.info("sendmail task:")
             logger.info(
                 f"\nType: email\nReference: {reference}\nSender: {sender}\nRecipients: {recipients}\n"
                 f"Message:\n{message}"
             )
-            return Status(success=True, message='Devel message printed')
+            return Status(success=True, message="Devel message printed")
 
         async with self.smtp as smtp_client:
             ret = await smtp_client.sendmail(sender, recipients, message)
@@ -98,7 +98,7 @@ class MailQueueWorker(QueueWorker):
                     queue_item.payload,
                 )
             )
-            logger.debug(f'send_eduid_invite_mail returned status: {status}')
+            logger.debug(f"send_eduid_invite_mail returned status: {status}")
         elif queue_item.payload_type == OldEduidSignupEmail.get_type():
             status = await self.send_old_eduid_signup_mail(
                 cast(
@@ -106,7 +106,7 @@ class MailQueueWorker(QueueWorker):
                     queue_item.payload,
                 )
             )
-            logger.debug(f'send_eduid_invite_mail returned status: {status}')
+            logger.debug(f"send_eduid_invite_mail returned status: {status}")
 
         if status and status.retry:
             logger.info(f"Retrying queue item: {queue_item.item_id}")
@@ -140,13 +140,13 @@ class MailQueueWorker(QueueWorker):
     async def send_eduid_signup_mail(self, data: EduidSignupEmail) -> Status:
         msg = EmailMessage()
         with self._jinja2.select_language(data.language) as env:
-            msg['Subject'] = _('eduID registration')
-            txt = env.get_template('eduid_signup_email.txt.jinja2').render(**asdict(data))
-            logger.debug(f'TXT: {txt}')
-            html = env.get_template('eduid_signup_email.html.jinja2').render(**asdict(data))
-            logger.debug(f'HTML: {html}')
-        msg.set_content(txt, 'plain', 'utf-8')
-        msg.add_alternative(html, 'html', 'utf-8')
+            msg["Subject"] = _("eduID registration")
+            txt = env.get_template("eduid_signup_email.txt.jinja2").render(**asdict(data))
+            logger.debug(f"TXT: {txt}")
+            html = env.get_template("eduid_signup_email.html.jinja2").render(**asdict(data))
+            logger.debug(f"HTML: {html}")
+        msg.set_content(txt, "plain", "utf-8")
+        msg.add_alternative(html, "html", "utf-8")
 
         return await self.sendmail(
             sender=self.config.mail_default_from,
@@ -159,13 +159,13 @@ class MailQueueWorker(QueueWorker):
     async def send_old_eduid_signup_mail(self, data: OldEduidSignupEmail) -> Status:
         msg = EmailMessage()
         with self._jinja2.select_language(data.language) as env:
-            msg['Subject'] = _('eduID registration')
-            txt = env.get_template('old_eduid_signup_email.txt.jinja2').render(**asdict(data))
-            logger.debug(f'TXT: {txt}')
-            html = env.get_template('old_eduid_signup_email.html.jinja2').render(**asdict(data))
-            logger.debug(f'HTML: {html}')
-        msg.set_content(txt, 'plain', 'utf-8')
-        msg.add_alternative(html, 'html', 'utf-8')
+            msg["Subject"] = _("eduID registration")
+            txt = env.get_template("old_eduid_signup_email.txt.jinja2").render(**asdict(data))
+            logger.debug(f"TXT: {txt}")
+            html = env.get_template("old_eduid_signup_email.html.jinja2").render(**asdict(data))
+            logger.debug(f"HTML: {html}")
+        msg.set_content(txt, "plain", "utf-8")
+        msg.add_alternative(html, "html", "utf-8")
 
         return await self.sendmail(
             sender=self.config.mail_default_from,

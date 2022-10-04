@@ -40,54 +40,54 @@ class SignupMsg(TranslatableMsg):
     """
 
     # the ToU has not been accepted
-    tou_not_accepted = 'signup.tou-not-accepted'
+    tou_not_accepted = "signup.tou-not-accepted"
     # The email address used is already known
-    email_used = 'signup.email-address-used'
+    email_used = "signup.email-address-used"
     # captcha not completed
-    captcha_not_completed = 'signup.captcha-not-completed'
+    captcha_not_completed = "signup.captcha-not-completed"
     # captcha completion failed
-    captcha_failed = 'signup.captcha-failed'
+    captcha_failed = "signup.captcha-failed"
     # unrecognized verification code
-    email_verification_not_complete = 'signup.email-verification-not-complete'
+    email_verification_not_complete = "signup.email-verification-not-complete"
     # unrecognized verification code
-    email_verification_failed = 'signup.email-verification-failed'
+    email_verification_failed = "signup.email-verification-failed"
     # email sending throttled
-    email_throttled = 'signup.email-throttled'
+    email_throttled = "signup.email-throttled"
     # to many attempts doing email verification
-    email_verification_too_many_tries = 'signup.email-verification-to-many-tries'
+    email_verification_too_many_tries = "signup.email-verification-to-many-tries"
     # user has already been created
-    user_already_exists = 'signup.user-already-exists'
+    user_already_exists = "signup.user-already-exists"
     # user has no password genereated in session
-    password_not_generated = 'signup.password-not-generated'
+    password_not_generated = "signup.password-not-generated"
     # user has not registered webauthn
-    webauthn_not_registered = 'signup.webauthn-not-registered'
+    webauthn_not_registered = "signup.webauthn-not-registered"
     # user has no credential
-    credential_not_added = 'signup.credential-not-added'
+    credential_not_added = "signup.credential-not-added"
     # invite not found
-    invite_not_found = 'signup.invite-not-found'
+    invite_not_found = "signup.invite-not-found"
     # invite already completed
-    invite_already_completed = 'signup.invite-already-completed'
+    invite_already_completed = "signup.invite-already-completed"
 
     # backwards compatibility
     # partial success registering new account
-    reg_new = 'signup.registering-new'
+    reg_new = "signup.registering-new"
     # The email address used is already known
-    old_email_used = 'signup.registering-address-used'
+    old_email_used = "signup.registering-address-used"
     # recaptcha not verified
-    no_recaptcha = 'signup.recaptcha-not-verified'
+    no_recaptcha = "signup.recaptcha-not-verified"
     # unrecognized verification code
-    unknown_code = 'signup.unknown-code'
+    unknown_code = "signup.unknown-code"
     # the verification code has already been verified
-    already_verified = 'signup.already-verified'
+    already_verified = "signup.already-verified"
     # end of backwards compatibility
 
 
 @unique
 class EmailStatus(str, Enum):
-    ADDRESS_USED = 'address_used'
-    RESEND_CODE = 'resend_code'
-    NEW = 'new'
-    THROTTLED = 'throttled'
+    ADDRESS_USED = "address_used"
+    RESEND_CODE = "resend_code"
+    NEW = "new"
+    THROTTLED = "throttled"
 
 
 class EmailAlreadyVerifiedException(Exception):
@@ -107,12 +107,12 @@ def generate_eppn() -> str:
     :return: eppn
     """
     for _ in range(10):
-        eppn_int = struct.unpack('I', os.urandom(4))[0]
+        eppn_int = struct.unpack("I", os.urandom(4))[0]
         eppn = proquint.uint2quint(eppn_int)
         user = current_app.central_userdb.get_user_by_eppn(eppn)
         if not user:
             return eppn
-    current_app.logger.critical('generate_eppn finished without finding a new unique eppn')
+    current_app.logger.critical("generate_eppn finished without finding a new unique eppn")
     abort(500)
 
 
@@ -128,9 +128,9 @@ def check_email_status(email: str) -> EmailStatus:
     try:
         am_user = current_app.central_userdb.get_user_by_mail(email)
         if am_user:
-            current_app.logger.debug(f'Found user {am_user} with email {email}')
+            current_app.logger.debug(f"Found user {am_user} with email {email}")
             return EmailStatus.ADDRESS_USED
-        current_app.logger.debug(f'No user found with email {email} in central userdb')
+        current_app.logger.debug(f"No user found with email {email} in central userdb")
     except UserHasNotCompletedSignup:
         # TODO: What is the implication of getting here? Should we just let the user signup again?
         current_app.logger.warning("Incomplete user found with email {} in central userdb".format(email))
@@ -138,13 +138,13 @@ def check_email_status(email: str) -> EmailStatus:
     # new signup
     if session.signup.email_verification.email is None:
         current_app.logger.debug("Registering new user with email {}".format(email))
-        current_app.stats.count(name='signup_started')
+        current_app.stats.count(name="signup_started")
         return EmailStatus.NEW
 
     # check if the verification code has expired
     if is_email_verification_expired(sent_ts=session.signup.email_verification.sent_at):
-        current_app.logger.info('email verification expired')
-        current_app.logger.debug(f'email: {email}')
+        current_app.logger.info("email verification expired")
+        current_app.logger.debug(f"email: {email}")
         return EmailStatus.NEW
 
     # check if mail sending is throttled
@@ -153,14 +153,14 @@ def check_email_status(email: str) -> EmailStatus:
         seconds_left = throttle_time_left(
             session.signup.email_verification.sent_at, current_app.conf.throttle_resend
         ).seconds
-        current_app.logger.info(f'User has been sent a verification code too recently: {seconds_left} seconds left')
-        current_app.logger.debug(f'email: {email}')
+        current_app.logger.info(f"User has been sent a verification code too recently: {seconds_left} seconds left")
+        current_app.logger.debug(f"email: {email}")
         return EmailStatus.THROTTLED
 
     if session.signup.email_verification.email == email:
         # resend code if the user has provided the same email address
-        current_app.logger.info('Resend code')
-        current_app.logger.debug(f'email: {email}')
+        current_app.logger.info("Resend code")
+        current_app.logger.debug(f"email: {email}")
         return EmailStatus.RESEND_CODE
 
     # if the user has changed email address to register with, send a new code
@@ -179,27 +179,27 @@ def verify_recaptcha(secret_key: str, captcha_response: str, user_ip: str, retri
 
     :return: True|False
     """
-    current_app.stats.count(name='recaptcha_verify_attempt')
-    url = 'https://www.google.com/recaptcha/api/siteverify'
-    params = {'secret': secret_key, 'response': captcha_response, 'remoteip': user_ip}
+    current_app.stats.count(name="recaptcha_verify_attempt")
+    url = "https://www.google.com/recaptcha/api/siteverify"
+    params = {"secret": secret_key, "response": captcha_response, "remoteip": user_ip}
     while retries:
         retries -= 1
         try:
-            current_app.logger.debug('Sending the CAPTCHA response')
+            current_app.logger.debug("Sending the CAPTCHA response")
             verify_rs = requests.get(url, params=params, verify=True)
             verify_rs.raise_for_status()  # raise exception status code in 400 or 500 range
-            current_app.logger.debug(f'CAPTCHA response: {verify_rs}')
-            if verify_rs.json().get('success', False) is True:
-                current_app.logger.info(f'Valid CAPTCHA response from {user_ip}')
-                current_app.stats.count(name='recaptcha_verify_success')
+            current_app.logger.debug(f"CAPTCHA response: {verify_rs}")
+            if verify_rs.json().get("success", False) is True:
+                current_app.logger.info(f"Valid CAPTCHA response from {user_ip}")
+                current_app.stats.count(name="recaptcha_verify_success")
                 return True
-            _error = verify_rs.json().get('error-codes', 'Unspecified error')
-            current_app.logger.info(f'Invalid CAPTCHA response from {user_ip}: {_error}')
+            _error = verify_rs.json().get("error-codes", "Unspecified error")
+            current_app.logger.info(f"Invalid CAPTCHA response from {user_ip}: {_error}")
         except requests.exceptions.RequestException as e:
             if not retries:
-                current_app.logger.error('Caught RequestException while sending CAPTCHA, giving up.')
+                current_app.logger.error("Caught RequestException while sending CAPTCHA, giving up.")
                 raise e
-            current_app.logger.warning('Caught RequestException while sending CAPTCHA, trying again.')
+            current_app.logger.warning("Caught RequestException while sending CAPTCHA, trying again.")
             current_app.logger.warning(e)
             time.sleep(0.5)
     return False
@@ -212,7 +212,7 @@ def send_signup_mail(email: str, verification_code: str, reference: str, use_ema
     payload: Union[EduidSignupEmail, OldEduidSignupEmail]
     if use_email_link:
         # backwards compatibility
-        verfication_link = urlappend(current_app.conf.signup_url, f'/code/{verification_code}')
+        verfication_link = urlappend(current_app.conf.signup_url, f"/code/{verification_code}")
         payload = OldEduidSignupEmail(
             email=email,
             verification_link=verfication_link,
@@ -230,9 +230,9 @@ def send_signup_mail(email: str, verification_code: str, reference: str, use_ema
             reference=reference,
         )
     app_name = current_app.conf.app_name
-    system_hostname = os.environ.get('SYSTEM_HOSTNAME', '')  # Underlying hosts name for containers
-    hostname = os.environ.get('HOSTNAME', '')  # Actual hostname or container id
-    sender_info = SenderInfo(hostname=hostname, node_id=f'{app_name}@{system_hostname}')
+    system_hostname = os.environ.get("SYSTEM_HOSTNAME", "")  # Underlying hosts name for containers
+    hostname = os.environ.get("HOSTNAME", "")  # Actual hostname or container id
+    sender_info = SenderInfo(hostname=hostname, node_id=f"{app_name}@{system_hostname}")
     expires_at = utc_now() + current_app.conf.email_verification_timeout
     discard_at = expires_at + timedelta(days=7)
     message = QueueItem(
@@ -244,11 +244,11 @@ def send_signup_mail(email: str, verification_code: str, reference: str, use_ema
         payload=payload,
     )
     current_app.messagedb.save(message)
-    current_app.logger.info(f'Saved signup email queue item in queue collection {current_app.messagedb._coll_name}')
-    current_app.logger.debug(f'email: {email}')
+    current_app.logger.info(f"Saved signup email queue item in queue collection {current_app.messagedb._coll_name}")
+    current_app.logger.debug(f"email: {email}")
     if current_app.conf.environment == EduidEnvironment.dev:
         # Debug-log the message in development environment
-        current_app.logger.debug(f'Generating verification e-mail with context:\n{payload}')
+        current_app.logger.debug(f"Generating verification e-mail with context:\n{payload}")
 
 
 def create_and_sync_user(email: str, tou_version: str, password: Optional[str] = None) -> SignupUser:
@@ -261,7 +261,7 @@ def create_and_sync_user(email: str, tou_version: str, password: Optional[str] =
     * Add the password to the password db
     * Update the attribute manager db with the new account
     """
-    current_app.logger.info('Creating new user')
+    current_app.logger.info("Creating new user")
 
     signup_user = SignupUser(eppn=generate_eppn())
 
@@ -274,20 +274,20 @@ def create_and_sync_user(email: str, tou_version: str, password: Optional[str] =
     if password is not None and not add_password(
         signup_user, password, application=current_app.conf.app_name, vccs_url=current_app.conf.vccs_url
     ):
-        current_app.logger.error('Failed to add a credential to user')
-        current_app.logger.debug(f'signup_user: {signup_user}')
-        raise VCCSBackendFailure('Failed to add a credential to user')
+        current_app.logger.error("Failed to add a credential to user")
+        current_app.logger.debug(f"signup_user: {signup_user}")
+        raise VCCSBackendFailure("Failed to add a credential to user")
 
     try:
         save_and_sync_user(signup_user)
     except UserOutOfSync as e:
-        revoke_passwords(user=signup_user, reason='UserOutOfSync during signup', application=current_app.conf.app_name)
-        current_app.logger.error(f'Failed saving user {signup_user}, data out of sync')
+        revoke_passwords(user=signup_user, reason="UserOutOfSync during signup", application=current_app.conf.app_name)
+        current_app.logger.error(f"Failed saving user {signup_user}, data out of sync")
         raise e
 
-    current_app.stats.count(name='user_created')
-    current_app.logger.info(f'Signup user created')
-    current_app.logger.debug(f'user: {signup_user}')
+    current_app.stats.count(name="user_created")
+    current_app.logger.info(f"Signup user created")
+    current_app.logger.debug(f"user: {signup_user}")
     return signup_user
 
 
@@ -297,7 +297,7 @@ def record_tou(signup_user: SignupUser, tou_version: str) -> None:
     """
     event = ToUEvent(version=tou_version, created_by=current_app.conf.app_name)
     current_app.logger.info(
-        f'Recording ToU acceptance {event.event_id} (version {event.version}) for user {signup_user} (source: {current_app.conf.app_name})'
+        f"Recording ToU acceptance {event.event_id} (version {event.version}) for user {signup_user} (source: {current_app.conf.app_name})"
     )
     signup_user.tou.add(event)
 
@@ -331,19 +331,19 @@ def record_email_address(signup_user: SignupUser, email: str) -> None:
     )
 
     if not current_app.proofing_log.save(mail_address_proofing):
-        current_app.logger.error('Failed to save email address proofing log entry, aborting')
-        raise ProofingLogFailure('Failed to save email address proofing log entry')
+        current_app.logger.error("Failed to save email address proofing log entry, aborting")
+        raise ProofingLogFailure("Failed to save email address proofing log entry")
 
     signup_user.mail_addresses.add(mail_address)
-    current_app.stats.count(name='mail_verified')
+    current_app.stats.count(name="mail_verified")
 
 
 def complete_and_update_invite(user: User, invite_code: str):
     signup_user = SignupUser.from_user(user, current_app.private_userdb)
     invite = current_app.invite_db.get_invite_by_invite_code(invite_code)
     if invite is None:
-        current_app.logger.error(f'Invite with code {invite_code} not found')
-        raise InviteNotFound('Invite not found')
+        current_app.logger.error(f"Invite with code {invite_code} not found")
+        raise InviteNotFound("Invite not found")
 
     # set user attributes from invite data if not already set
     if invite.given_name and not signup_user.given_name:
@@ -351,7 +351,7 @@ def complete_and_update_invite(user: User, invite_code: str):
     if invite.surname and not signup_user.surname:
         signup_user.surname = invite.surname
     if not signup_user.display_name and invite.given_name and invite.surname:
-        signup_user.display_name = f'{invite.given_name} {invite.surname}'
+        signup_user.display_name = f"{invite.given_name} {invite.surname}"
     if invite.preferred_language and not signup_user.language:
         signup_user.language = invite.preferred_language
     if invite.nin and not signup_user.identities.nin:
@@ -373,16 +373,16 @@ def complete_and_update_invite(user: User, invite_code: str):
         current_app.invite_db.save(invite=updated_invite)
         save_and_sync_user(signup_user)
     except UserOutOfSync as e:
-        current_app.logger.error(f'Failed saving user {signup_user}, data out of sync')
+        current_app.logger.error(f"Failed saving user {signup_user}, data out of sync")
         raise e
 
     if invite.finish_url:
         session.signup.invite.finish_url = invite.finish_url
     session.signup.invite.completed = True
 
-    current_app.logger.info(f'Invite completed')
-    current_app.logger.debug(f'invite_code: {invite.invite_code}')
-    current_app.stats.count(name=f'{invite.invite_type.value}_invite_completed')
+    current_app.logger.info(f"Invite completed")
+    current_app.logger.debug(f"invite_code: {invite.invite_code}")
+    current_app.stats.count(name=f"{invite.invite_type.value}_invite_completed")
 
 
 def is_email_verification_expired(sent_ts: Optional[datetime]) -> bool:
@@ -411,7 +411,7 @@ def remove_users_with_mail_address(email: str) -> None:
     # and continue like this was a completely new signup.
     completed_users = signup_db.get_users_by_mail(email)
     for user in completed_users:
-        current_app.logger.warning('Removing old user {} with e-mail {} from signup_db'.format(user, email))
+        current_app.logger.warning("Removing old user {} with e-mail {} from signup_db".format(user, email))
         signup_db.remove_user_by_id(user.user_id)
 
 

@@ -104,14 +104,14 @@ def normalised_data(
             if data.tzinfo is not None and data.tzinfo.utcoffset(data) is not None:
                 # Raise an exception if the timezone is not equivalent to UTC
                 if data.tzinfo.utcoffset(data) != timedelta(seconds=0):
-                    raise ValueError(f'Non UTC timezone found: {data.tzinfo}')
+                    raise ValueError(f"Non UTC timezone found: {data.tzinfo}")
             else:
-                logger.warning(f'No timezone found for datetime: {data}')
+                logger.warning(f"No timezone found for datetime: {data}")
             # Make sure all datetimes has the same type of tzinfo object
             data = data.replace(tzinfo=timezone.utc)
             return data.replace(microsecond=0)
         elif isinstance(data, Enum):
-            return f'{repr(data)}'
+            return f"{repr(data)}"
         return data
 
     if isinstance(data, list):
@@ -124,4 +124,4 @@ def normalised_data(
     elif isinstance(data, dict):
         # normalise all values found in the dict, returning a new dict (to not modify callers data)
         return {k: _normalise_value(v) for k, v in data.items()}
-    raise TypeError('normalised_data not called on dict (or list of dicts)')
+    raise TypeError("normalised_data not called on dict (or list of dicts)")

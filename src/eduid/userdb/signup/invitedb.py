@@ -21,9 +21,9 @@ class SignupInviteDB(BaseDB):
         # Create an index so that invite_code is unique and invites are removed at the expires_at time
         indexes = {
             "unique-invite-code": {"key": [("invite_code", 1)], "unique": True},
-            'auto-discard-expires-at': {
-                'key': [('expires_at', 1)],
-                'expireAfterSeconds': 0,
+            "auto-discard-expires-at": {
+                "key": [("expires_at", 1)],
+                "expireAfterSeconds": 0,
             },
         }
         self.setup_indexes(indexes)

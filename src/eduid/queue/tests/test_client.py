@@ -35,7 +35,7 @@ class TestMessage(TestCase):
     def setUp(self) -> None:
         self.expires_at = utc_now() + timedelta(days=180)
         self.discard_at = self.expires_at + timedelta(days=7)
-        self.sender_info = SenderInfo(hostname='testhost', node_id='userdb@testhost')
+        self.sender_info = SenderInfo(hostname="testhost", node_id="userdb@testhost")
 
     def _create_queue_item(self, payload: Payload):
         return QueueItem(
@@ -64,11 +64,11 @@ class TestMessage(TestCase):
 
     def test_eduid_signup_mail(self):
         payload = EduidSignupEmail(
-            email='mail@example.com',
-            reference='ref_id',
-            verification_code='abc123',
-            site_name='Test Site',
-            language='sv',
+            email="mail@example.com",
+            reference="ref_id",
+            verification_code="abc123",
+            site_name="Test Site",
+            language="sv",
         )
         item = self._create_queue_item(payload=payload)
         loaded_message_dict = QueueItem.from_dict(item.to_dict()).to_dict()
@@ -147,11 +147,11 @@ class TestMessageDB(EduidQueueTestCase):
 
     def test_save_load_eduid_email_signup(self):
         payload = EduidSignupEmail(
-            email='mail@example.com',
-            reference='ref_id',
-            verification_code='abc123',
-            site_name='Test Site',
-            language='sv',
+            email="mail@example.com",
+            reference="ref_id",
+            verification_code="abc123",
+            site_name="Test Site",
+            language="sv",
         )
         item = self._create_queue_item(payload)
         self.messagedb.save(item)
