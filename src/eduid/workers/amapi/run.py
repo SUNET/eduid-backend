@@ -3,10 +3,10 @@ from sys import stderr
 
 from eduid.workers.amapi.app import init_api
 
-__author__ = 'masv'
+__author__ = "masv"
 
-DEBUG = os.environ.get('EDUID_APP_DEBUG', False)
+DEBUG = os.environ.get("EDUID_APP_DEBUG", False)
 if DEBUG:
-    stderr.writelines('----- WARNING! EDUID_APP_DEBUG is enabled -----\n')
+    stderr.writelines("----- WARNING! EDUID_APP_DEBUG is enabled -----\n")
 
 api = init_api()

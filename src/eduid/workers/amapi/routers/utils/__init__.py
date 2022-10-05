@@ -1,2 +1,2 @@
 # -*- coding: utf-8 -*-
-__author__ = 'masv'
+__author__ = "masv"

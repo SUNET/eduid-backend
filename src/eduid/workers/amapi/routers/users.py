@@ -16,7 +16,7 @@ from eduid.workers.amapi.routers.utils.users import (
     update_user,
 )
 
-__author__ = 'masv'
+__author__ = "masv"
 
 users_router = APIRouter(
     route_class=ContextRequestRoute,

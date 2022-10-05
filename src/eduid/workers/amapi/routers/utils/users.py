@@ -93,5 +93,5 @@ def update_user(
 
     return UserUpdateResponse(
         status=True,
-        diff="",
+        diff=diff,
     )

@@ -104,11 +104,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         return self._get_user_by_attr("_id", user_id)
 
     def _get_users_by_aggregate(self, match: dict[str, Any], sort: dict[str, Any], limit: int) -> List[User]:
-        users = self._get_documents_by_aggregate(
-            match=match,
-            sort=sort,
-            limit=limit,
-        )
+        users = self._get_documents_by_aggregate(match=match, sort=sort, limit=limit)
         return [self.user_from_dict(data=user) for user in users]
 
     def get_uncleaned_users(self, cleaned_type: CleanedType, limit: int) -> List[User]:

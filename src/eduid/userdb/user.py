@@ -72,7 +72,6 @@ class User(BaseModel):
 
     meta: Meta = Field(default_factory=Meta)
     eppn: str = Field(alias="eduPersonPrincipalName")
-    # user_id: str = Field(default_factory=bson.ObjectId, alias="_id")
     user_id: Union[str, bson.ObjectId] = Field(default_factory=bson.ObjectId, alias="_id")
     given_name: Optional[str] = Field(default=None, alias="givenName")
     display_name: Optional[str] = Field(default=None, alias="displayName")
@@ -306,9 +305,9 @@ class User(BaseModel):
             data.pop("mail")
 
         if (
-            isinstance(_mail_addresses, list)
-            and len(_mail_addresses) == 1
-            and _mail_addresses[0].get("verified", False)
+                isinstance(_mail_addresses, list)
+                and len(_mail_addresses) == 1
+                and _mail_addresses[0].get("verified", False)
         ):
             if not _mail_addresses[0].get("primary", False):
                 # A single mail address was not set as Primary until it was verified
