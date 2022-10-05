@@ -78,6 +78,7 @@ class _InviteRequired:
     invite_code: str
     inviter_name: str
     send_email: bool
+    expires_at: datetime
 
 
 @dataclass(frozen=True)
@@ -91,7 +92,6 @@ class Invite(_InviteRequired):
     preferred_language: str = field(default="sv")
     finish_url: Optional[str] = field(default=None)
     completed_ts: Optional[datetime] = field(default=None)
-    expires_at: Optional[datetime] = field(default=None)
     created_ts: datetime = field(default_factory=datetime.utcnow)
     modified_ts: Optional[datetime] = field(default=None)
 

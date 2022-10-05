@@ -19,10 +19,10 @@ from eduid.common.utils import urlappend
 from eduid.queue.db import QueueItem, SenderInfo
 from eduid.queue.db.message import EduidSignupEmail
 from eduid.queue.db.message.payload import OldEduidSignupEmail
-from eduid.userdb import MailAddress, NinIdentity, PhoneNumber, User
+from eduid.userdb import MailAddress, NinIdentity, PhoneNumber, User, Profile
 from eduid.userdb.exceptions import UserHasNotCompletedSignup, UserOutOfSync
 from eduid.userdb.logs import MailAddressProofing
-from eduid.userdb.signup import InviteType, SignupUser
+from eduid.userdb.signup import InviteType, SignupUser, SCIMReference
 from eduid.userdb.tou import ToUEvent
 from eduid.webapp.common.api.exceptions import ProofingLogFailure, VCCSBackendFailure
 from eduid.webapp.common.api.messages import TranslatableMsg
@@ -363,9 +363,20 @@ def complete_and_update_invite(user: User, invite_code: str):
         if signup_user.phone_numbers.find(number.number) is None:
             signup_user.phone_numbers.add(PhoneNumber(number=number.number, created_by=current_app.conf.app_name))
 
-    if invite.invite_type == InviteType.SCIM:
+    if invite.invite_type == InviteType.SCIM and isinstance(invite.invite_reference, SCIMReference):
         # update scim invite and create/update scim user
         # TODO: implement scim client
+        # TODO: get invite from scim db
+        # TODO: get or create user in scim db
+        # TODO: add linked account to scim profile
+        # TODO: check if the user should have mfa_stepup enabled
+        # signup_user.profiles.add(
+        #    Profile(
+        #        owner=invite.invite_reference.data_owner,
+        #        profile_schema="urn:ietf:params:scim:schemas:core:2.0:User",
+        #        profile_data={"externalID": "USER EXTERNAL ID"},  # TODO: Fix me
+        #    )
+        # )
         pass
 
     updated_invite = replace(invite, completed_ts=utc_now())

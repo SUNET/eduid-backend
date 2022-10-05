@@ -3,9 +3,10 @@
 import json
 import logging
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import timedelta, timezone, datetime
 from enum import Enum
 from typing import Any, Dict, Mapping, Optional, Union
+from uuid import uuid4
 
 from flask import Response as FlaskResponse
 from flask import url_for
@@ -13,6 +14,8 @@ from mock import patch
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.exceptions import UserOutOfSync
+from eduid.userdb.signup import Invite, InviteType, InviteMailAddress, SignupUser
+from eduid.userdb.signup.invite import InviteReference, SCIMReference, InvitePhoneNumber
 from eduid.webapp.common.api.exceptions import ProofingLogFailure
 from eduid.webapp.common.api.messages import CommonMsg, TranslatableMsg
 from eduid.webapp.common.api.testing import EduidAPITestCase
@@ -23,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 class SignupState(Enum):
+    S0_GET_INVITE_DATA = 'get_invite_data'
     S1_ACCEPT_INVITE = "accept_invite"
     S2_ACCEPT_TOU = "accept_tou"
     S3_COMPLETE_CAPTCHA = "complete_captcha"
@@ -366,7 +370,7 @@ class SignupTests(EduidAPITestCase):
         Create a new user with the data in the session.
         """
         mock_add_credentials.return_value = True
-        mock_request_user_sync.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
         with self.session_cookie_anon(self.browser) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
@@ -417,6 +421,227 @@ class SignupTests(EduidAPITestCase):
             logger.info(f"Validated {endpoint} response:\n{response.json}")
 
             return SignupResult(url=endpoint, reached_state=SignupState.S6_CREATE_USER, response=response)
+
+    def _create_invite(
+        self, email: str = "dummy@example.com", invite_code: str = "test_code", send_email: bool = True
+    ) -> Invite:
+        mail_address = InviteMailAddress(email=email, primary=True)
+        phone_number = InvitePhoneNumber(number="+46700000000", primary=True)
+        invite_ref = SCIMReference(data_owner="test_owner", scim_id=uuid4())
+        invite = Invite(
+            invite_type=InviteType.SCIM,
+            invite_reference=invite_ref,
+            inviter_name="Test Inviter",
+            invite_code=invite_code,
+            mail_addresses=[mail_address],
+            phone_numbers=[phone_number],
+            send_email=send_email,
+            given_name="Invite",
+            surname="Invitesson",
+            nin="190102031234",
+            finish_url="https://example.com/finish",
+            expires_at=datetime(1970, 1, 1, 0, 0, 0, 0, timezone.utc),
+        )
+        self.app.invite_db.save(invite=invite)
+        return invite
+
+    def _get_invite_data(
+        self,
+        email: str,
+        invite_code: str,
+        data1: Optional[dict] = None,
+        expect_success: bool = True,
+        expected_message: Optional[TranslatableMsg] = None,
+        expected_payload: Optional[Mapping[str, Any]] = None,
+    ):
+        """
+        Get invite data from the invite data endpoint.
+        """
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    endpoint = url_for("signup.get_invite")
+                    data = {
+                        "invite_code": invite_code,
+                        "csrf_token": sess.get_csrf_token(),
+                    }
+                if data1 is not None:
+                    data.update(data1)
+
+            logger.info(f"Making request to {endpoint}")
+            response = client.post(f"{endpoint}", data=json.dumps(data), content_type=self.content_type_json)
+
+            logger.info(f"Request to {endpoint} result: {response}")
+
+            if response.status_code != 200:
+                return SignupResult(url=endpoint, reached_state=SignupState.S0_GET_INVITE_DATA, response=response)
+
+            if expect_success:
+                if not expected_payload:
+                    assert response.json["payload"]["email"] == email
+                    assert response.json["payload"]['invite_type'] == InviteType.SCIM.value
+                    assert response.json["payload"]["inviter_name"] == 'Test Inviter'
+                    assert response.json["payload"]["given_name"] == 'Invite'
+                    assert response.json["payload"]["surname"] == 'Invitesson'
+                    assert response.json["payload"]["inviter_name"] == 'Test Inviter'
+                    assert response.json["payload"]["expires_at"] == '1970-01-01T00:00:00+00:00'
+                    assert response.json["payload"]["finish_url"] == 'https://example.com/finish'
+                    assert response.json["payload"]["preferred_language"] == 'sv'
+
+                self._check_api_response(
+                    response,
+                    status=200,
+                    message=expected_message,
+                    type_="POST_SIGNUP_INVITE_DATA_SUCCESS",
+                    payload=expected_payload,
+                    assure_not_in_payload=["verification_code"],
+                )
+            else:
+                self._check_api_response(
+                    response,
+                    status=200,
+                    message=expected_message,
+                    type_="POST_SIGNUP_INVITE_DATA_FAIL",
+                    payload=expected_payload,
+                    assure_not_in_payload=["verification_code"],
+                )
+
+            logger.info(f"Validated {endpoint} response:\n{response.json}")
+
+            return SignupResult(url=endpoint, reached_state=SignupState.S0_GET_INVITE_DATA, response=response)
+
+    def _accept_invite(
+        self,
+        email: str,
+        invite_code: str,
+        email_verified: bool = True,
+        data1: Optional[dict] = None,
+        expect_success: bool = True,
+        expected_message: Optional[TranslatableMsg] = None,
+        expected_payload: Optional[Mapping[str, Any]] = None,
+    ):
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    endpoint = url_for("signup.accept_invite")
+                    data = {
+                        "invite_code": invite_code,
+                        "csrf_token": sess.get_csrf_token(),
+                    }
+                if data1 is not None:
+                    data.update(data1)
+
+            logger.info(f"Making request to {endpoint}")
+            response = client.post(f"{endpoint}", data=json.dumps(data), content_type=self.content_type_json)
+
+            logger.info(f"Request to {endpoint} result: {response}")
+
+            if response.status_code != 200:
+                return SignupResult(url=endpoint, reached_state=SignupState.S1_ACCEPT_INVITE, response=response)
+
+            if expect_success:
+                if not expected_payload:
+                    assert response.json["payload"]["tou_accepted"] is False
+                    assert response.json["payload"]["captcha_completed"] is False
+                    assert response.json["payload"]["email_verification"]["email"] == email
+                    assert response.json["payload"]["email_verification"]["verified"] is email_verified
+                    assert response.json["payload"]["user_created"] is False
+                    with client.session_transaction() as sess:
+                        assert sess.signup.invite.invite_code == invite_code
+
+                self._check_api_response(
+                    response,
+                    status=200,
+                    message=expected_message,
+                    type_="POST_SIGNUP_ACCEPT_INVITE_SUCCESS",
+                    payload=expected_payload,
+                    assure_not_in_payload=["verification_code"],
+                )
+            else:
+                self._check_api_response(
+                    response,
+                    status=200,
+                    message=expected_message,
+                    type_="POST_SIGNUP_ACCEPT_INVITE_FAIL",
+                    payload=expected_payload,
+                    assure_not_in_payload=["verification_code"],
+                )
+
+            logger.info(f"Validated {endpoint} response:\n{response.json}")
+
+            return SignupResult(url=endpoint, reached_state=SignupState.S1_ACCEPT_INVITE, response=response)
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def _complete_invite(
+        self,
+        mock_request_user_sync,
+        eppn: Optional[str] = None,
+        data1: Optional[dict] = None,
+        expect_success: bool = True,
+        expected_message: Optional[TranslatableMsg] = None,
+        expected_payload: Optional[Mapping[str, Any]] = None,
+    ):
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        if eppn is None:
+            with self.session_cookie_anon(self.browser) as client:
+                with client.session_transaction() as sess:
+                    with self.app.test_request_context():
+                        endpoint = url_for("signup.complete_invite")
+                        data = {
+                            "csrf_token": sess.get_csrf_token(),
+                        }
+                    if data1 is not None:
+                        data.update(data1)
+
+                logger.info(f"Making request to {endpoint}")
+                response = client.post(f"{endpoint}", data=json.dumps(data), content_type=self.content_type_json)
+        else:
+            with self.session_cookie(self.browser, eppn=eppn) as client:
+                with client.session_transaction() as sess:
+                    with self.app.test_request_context():
+                        endpoint = url_for("signup.complete_invite")
+                        data = {
+                            "csrf_token": sess.get_csrf_token(),
+                        }
+                    if data1 is not None:
+                        data.update(data1)
+
+                logger.info(f"Making request to {endpoint}")
+                response = client.post(f"{endpoint}", data=json.dumps(data), content_type=self.content_type_json)
+
+        logger.info(f"Request to {endpoint} result: {response}")
+
+        if response.status_code != 200:
+            return SignupResult(url=endpoint, reached_state=SignupState.S7_COMPLETE_INVITE, response=response)
+
+        if expect_success:
+            if not expected_payload:
+                assert response.json["payload"]["invite"]['initiated_signup'] is True
+                assert response.json["payload"]["invite"]['completed'] is True
+                assert response.json["payload"]["invite"]['finish_url'] == 'https://example.com/finish'
+
+            self._check_api_response(
+                response,
+                status=200,
+                message=expected_message,
+                type_="POST_SIGNUP_COMPLETE_INVITE_SUCCESS",
+                payload=expected_payload,
+                assure_not_in_payload=["verification_code"],
+            )
+        else:
+            self._check_api_response(
+                response,
+                status=200,
+                message=expected_message,
+                type_="POST_SIGNUP_COMPLETE_INVITE_FAIL",
+                payload=expected_payload,
+                assure_not_in_payload=["verification_code"],
+            )
+
+        logger.info(f"Validated {endpoint} response:\n{response.json}")
+
+        return SignupResult(url=endpoint, reached_state=SignupState.S7_COMPLETE_INVITE, response=response)
 
     def _get_code_backdoor(
         self,
@@ -645,6 +870,20 @@ class SignupTests(EduidAPITestCase):
             with client.session_transaction() as sess:
                 assert sess.signup.email_verification.email == mixed_case_email.lower()
 
+    def test_create_user(self):
+        email = "test@example.com"
+        self._prepare_for_create_user(email=email)
+        response = self._create_user(expect_success=True)
+        assert response.reached_state == SignupState.S6_CREATE_USER
+
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                eppn = sess.common.eppn
+                assert eppn is not None
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        assert user is not None
+        assert user.mail_addresses.to_list()[0].email == email
+
     def test_create_user_out_of_sync(self):
         self._prepare_for_create_user()
         with patch("eduid.webapp.signup.helpers.save_and_sync_user") as mock_save:
@@ -699,6 +938,82 @@ class SignupTests(EduidAPITestCase):
             expect_success=False,
             expected_message=SignupMsg.password_not_generated,
         )
+        assert res.reached_state == SignupState.S6_CREATE_USER
+
+    def test_get_invite_data(self):
+        invite = self._create_invite()
+        res = self._get_invite_data(email=invite.get_primary_mail_address(), invite_code=invite.invite_code)
+        assert res.reached_state == SignupState.S0_GET_INVITE_DATA
+
+    def test_accept_invite_via_email(self):
+        invite = self._create_invite()
+        res = self._accept_invite(email=invite.get_primary_mail_address(), invite_code=invite.invite_code)
+        assert res.reached_state == SignupState.S1_ACCEPT_INVITE
+
+    def test_accept_invite_via_other(self):
+        invite = self._create_invite(send_email=False)
+        res = self._accept_invite(
+            email=invite.get_primary_mail_address(), invite_code=invite.invite_code, email_verified=False
+        )
+        assert res.reached_state == SignupState.S1_ACCEPT_INVITE
+
+    def test_accept_invite_no_csrf(self):
+        invite = self._create_invite()
+        data1 = {"csrf_token": "wrong"}
+        res = self._accept_invite(
+            email=invite.get_primary_mail_address(),
+            invite_code=invite.invite_code,
+            data1=data1,
+            expect_success=False,
+            expected_message=None,
+        )
+        assert res.response.json["payload"]["error"] == {"csrf_token": ["CSRF failed to validate"]}
+
+    def test_complete_invite_new_user(self):
+        invite = self._create_invite()
+        self._accept_invite(email=invite.get_primary_mail_address(), invite_code=invite.invite_code)
+        self._prepare_for_create_user(email=invite.get_primary_mail_address())
+        self._create_user(expect_success=True)
+        res = self._complete_invite()
+        assert res.reached_state == SignupState.S7_COMPLETE_INVITE
+
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                eppn = sess.common.eppn
+                assert eppn is not None
+
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        assert user is not None
+        assert user.given_name == invite.given_name
+        assert user.surname == invite.surname
+        assert user.mail_addresses.to_list()[0].email == invite.get_primary_mail_address()
+
+    def test_complete_invite_existing_user(self):
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+        previous_given_name = user.given_name
+        previous_surname = user.surname
+        invite = self._create_invite(email=user.mail_addresses.primary.email)
+        self._accept_invite(email=invite.get_primary_mail_address(), invite_code=invite.invite_code)
+        res = self._complete_invite(eppn=user.eppn)
+        assert res.reached_state == SignupState.S7_COMPLETE_INVITE
+
+        with self.session_cookie(self.browser, eppn=user.eppn) as client:
+            with client.session_transaction() as sess:
+                eppn = sess.common.eppn
+                assert eppn is not None
+
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        assert user is not None
+        assert user.given_name == previous_given_name
+        assert user.surname == previous_surname
+        assert user.mail_addresses.to_list()[0].email == invite.get_primary_mail_address()
+
+    def test_complete_invite_existing_user_try_new_signup(self):
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+        invite = self._create_invite(email=user.mail_addresses.primary.email)
+        self._accept_invite(email=invite.get_primary_mail_address(), invite_code=invite.invite_code)
+        self._prepare_for_create_user(email=invite.get_primary_mail_address())
+        res = self._create_user(expect_success=False, expected_message=SignupMsg.email_used)
         assert res.reached_state == SignupState.S6_CREATE_USER
 
     def test_get_code_backdoor(self):

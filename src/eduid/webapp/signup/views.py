@@ -272,7 +272,7 @@ def get_invite(invite_code: str):
         return error_response(message=SignupMsg.invite_not_found)
 
     return {
-        "invite_type": invite.invite_type,
+        "invite_type": invite.invite_type.value,
         "inviter_name": invite.inviter_name,
         "email": invite.get_primary_mail_address(),
         "preferred_language": invite.preferred_language,
@@ -285,6 +285,7 @@ def get_invite(invite_code: str):
 
 @signup_views.route("/accept-invite", methods=["POST"])
 @UnmarshalWith(InviteCodeRequest)
+@MarshalWith(SignupStatusResponse)
 def accept_invite(invite_code: str) -> FluxData:
     invite = current_app.invite_db.get_invite_by_invite_code(code=invite_code)
     if invite is None:

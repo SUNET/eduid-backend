@@ -220,9 +220,18 @@ class EduidAPITestCase(CommonTestCase):
         """
         user_id = str(private_user.user_id)
         central_user = self.app.central_userdb.get_user_by_id(user_id)
+        private_user_dict = private_user.to_dict()
+        # fix signup_user data
+        if "proofing_reference" in private_user_dict:
+            del private_user_dict["proofing_reference"]
+
+        if central_user is None:
+            # This is a new user, create a new user in the central db
+            self.app.central_userdb.save(User.from_dict(private_user_dict), check_sync=False)
+            return True
+
         modified_ts = central_user.modified_ts
         central_user_dict = central_user.to_dict()
-        private_user_dict = private_user.to_dict()
         central_user_dict.update(private_user_dict)
         # Iterate over all top level keys and remove those missing
         for key in list(central_user_dict.keys()):
