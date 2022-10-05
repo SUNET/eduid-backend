@@ -16,7 +16,7 @@ class MongoDB(object):
 
     def __init__(self, db_uri, db_name=None, connection_factory=None, **kwargs):
         if db_uri is None:
-            raise ValueError('db_uri not supplied')
+            raise ValueError("db_uri not supplied")
 
         self._db_uri = db_uri
         self._database_name = db_name
@@ -24,44 +24,44 @@ class MongoDB(object):
 
         self._parsed_uri = parse_uri(db_uri)
 
-        if self._parsed_uri.get('database') is None:
-            self._parsed_uri['database'] = db_name
+        if self._parsed_uri.get("database") is None:
+            self._parsed_uri["database"] = db_name
 
-        if 'replicaSet' in kwargs and kwargs['replicaSet'] is None:
-            del kwargs['replicaSet']
+        if "replicaSet" in kwargs and kwargs["replicaSet"] is None:
+            del kwargs["replicaSet"]
 
-        _options = self._parsed_uri.get('options')
+        _options = self._parsed_uri.get("options")
         if connection_factory is None:
             connection_factory = pymongo.MongoClient
         elif connection_factory == pymongo.MongoReplicaSetClient:
             warnings.warn(
-                f'{__name__} initialized with connection_factory {connection_factory} use pymongo.MongoClient instead.',
+                f"{__name__} initialized with connection_factory {connection_factory} use pymongo.MongoClient instead.",
                 DeprecationWarning,
             )
-        elif connection_factory.__class__.__name__ == 'AsyncIOMotorClient':
+        elif connection_factory.__class__.__name__ == "AsyncIOMotorClient":
             from motor import motor_asyncio
 
             connection_factory = motor_asyncio.AsyncIOMotorClient
 
-        if 'replicaSet' in _options and _options['replicaSet'] is not None:
-            kwargs['replicaSet'] = _options['replicaSet']
+        if "replicaSet" in _options and _options["replicaSet"] is not None:
+            kwargs["replicaSet"] = _options["replicaSet"]
 
-        if 'replicaSet' in kwargs:
-            if 'socketTimeoutMS' not in kwargs:
-                kwargs['socketTimeoutMS'] = 5000
-            if 'connectTimeoutMS' not in kwargs:
-                kwargs['connectTimeoutMS'] = 5000
+        if "replicaSet" in kwargs:
+            if "socketTimeoutMS" not in kwargs:
+                kwargs["socketTimeoutMS"] = 5000
+            if "connectTimeoutMS" not in kwargs:
+                kwargs["connectTimeoutMS"] = 5000
 
         self._db_uri = _format_mongodb_uri(self._parsed_uri)
 
         try:
             self._connection = connection_factory(host=self._db_uri, tz_aware=True, **kwargs)
         except PyMongoError as e:
-            raise MongoConnectionError('Error connecting to mongodb {!r}: {}'.format(self, e))
+            raise MongoConnectionError("Error connecting to mongodb {!r}: {}".format(self, e))
 
     def __repr__(self):
-        return '<eduID {!s}: {!s} {!s}>'.format(
-            self.__class__.__name__, getattr(self, '_db_uri', None), getattr(self, '_database_name', None)
+        return "<eduID {!s}: {!s} {!s}>".format(
+            self.__class__.__name__, getattr(self, "_db_uri", None), getattr(self, "_database_name", None)
         )
 
     __str__ = __repr__
@@ -75,9 +75,9 @@ class MongoDB(object):
         """
         if self._sanitized_uri is None:
             _parsed = copy.copy(self._parsed_uri)
-            if 'username' in _parsed:
-                _parsed['password'] = 'secret'
-            _parsed['nodelist'] = [_parsed['nodelist'][0]]
+            if "username" in _parsed:
+                _parsed["password"] = "secret"
+            _parsed["nodelist"] = [_parsed["nodelist"][0]]
             self._sanitized_uri = _format_mongodb_uri(_parsed)
         return self._sanitized_uri
 
@@ -98,7 +98,7 @@ class MongoDB(object):
         if database_name is None:
             database_name = self._database_name
         if database_name is None:
-            raise ValueError('No database_name supplied, and no default provided to __init__')
+            raise ValueError("No database_name supplied, and no default provided to __init__")
         return self._connection[database_name]
 
     def get_collection(self, collection, database_name=None):
@@ -137,10 +137,10 @@ class MongoDB(object):
         :rtype: boolean
         """
         try:
-            self.get_connection().admin.command('ismaster')
+            self.get_connection().admin.command("ismaster")
             return True
         except pymongo.errors.ConnectionFailure as e:
-            logging.error('{} not healthy: {}'.format(self, e))
+            logging.error("{} not healthy: {}".format(self, e))
             return False
 
     def close(self):
@@ -155,32 +155,32 @@ def _format_mongodb_uri(parsed_uri: Mapping[str, Any]) -> str:
 
     :return: New URI
     """
-    user_pass = ''
-    if parsed_uri.get('username') and parsed_uri.get('password'):
-        user_pass = '{username!s}:{password!s}@'.format(**parsed_uri)
+    user_pass = ""
+    if parsed_uri.get("username") and parsed_uri.get("password"):
+        user_pass = "{username!s}:{password!s}@".format(**parsed_uri)
 
     _nodes = []
-    for host, port in parsed_uri.get('nodelist', []):
-        if ':' in host and not host.endswith(']'):
+    for host, port in parsed_uri.get("nodelist", []):
+        if ":" in host and not host.endswith("]"):
             # IPv6 address without brackets
-            host = '[{!s}]'.format(host)
+            host = "[{!s}]".format(host)
         if port == 27017:
             _nodes.append(host)
         else:
-            _nodes.append('{!s}:{!s}'.format(host, port))
-    nodelist = ','.join(_nodes)
+            _nodes.append("{!s}:{!s}".format(host, port))
+    nodelist = ",".join(_nodes)
 
     _opt_list = []
-    for key, value in parsed_uri.get('options', {}).items():
+    for key, value in parsed_uri.get("options", {}).items():
         if isinstance(value, bool):
             value = str(value).lower()
-        _opt_list.append('{!s}={!s}'.format(key, value))
+        _opt_list.append("{!s}={!s}".format(key, value))
 
-    options = ''
+    options = ""
     if _opt_list:
-        options = '?' + '&'.join(sorted(_opt_list))
+        options = "?" + "&".join(sorted(_opt_list))
 
-    db_name = parsed_uri.get('database') or ''
+    db_name = parsed_uri.get("database") or ""
 
     res = "mongodb://{user_pass!s}{nodelist!s}/{db_name!s}{options!s}".format(
         user_pass=user_pass,
@@ -202,10 +202,10 @@ class BaseDB(object):
         self._db = MongoDB(db_uri, db_name=db_name)
         self._coll = self._db.get_collection(collection)
         if safe_writes:
-            self._coll = self._coll.with_options(write_concern=pymongo.WriteConcern(w='majority'))
+            self._coll = self._coll.with_options(write_concern=pymongo.WriteConcern(w="majority"))
 
     def __repr__(self):
-        return '<eduID {!s}: {!s} {!r}>'.format(self.__class__.__name__, self._db.sanitized_uri, self._coll_name)
+        return "<eduID {!s}: {!s} {!r}>".format(self.__class__.__name__, self._db.sanitized_uri, self._coll_name)
 
     __str__ = __repr__
 
@@ -236,14 +236,14 @@ class BaseDB(object):
         :return: A document dict
         """
         if value is None:
-            raise EduIDUserDBError(f'Missing value to filter users by {attr}')
+            raise EduIDUserDBError(f"Missing value to filter users by {attr}")
 
         docs = list(self._coll.find({attr: value}))
         doc_count = len(docs)
         if doc_count == 0:
             return None
         elif doc_count > 1:
-            raise MultipleDocumentsReturned(f'Multiple matching documents for {attr}={repr(value)}')
+            raise MultipleDocumentsReturned(f"Multiple matching documents for {attr}={repr(value)}")
         return docs[0]
 
     def _get_documents_by_attr(self, attr: str, value: str) -> List[Dict[str, Any]]:
@@ -265,7 +265,7 @@ class BaseDB(object):
         self, match: Dict[str, Any], sort: Optional[Dict[str, Any]] = None, limit: Optional[int] = None
     ) -> List[Dict[str, Any]]:
 
-        pipeline = [Dict[Any, Any], {"$match": match}]
+        pipeline: List[Dict[str, Any]] = [{"$match": match}]
 
         if sort is not None:
             pipeline.append({"$sort": sort})
@@ -273,7 +273,7 @@ class BaseDB(object):
         if limit is not None:
             pipeline.append({"$limit": limit})
 
-        return list(self._coll.aggregate(pipeline))
+        return list(self._coll.aggregate(pipeline=pipeline))
 
     def _get_documents_by_filter(
         self,
@@ -313,11 +313,11 @@ class BaseDB(object):
 
         :return: Document count
         """
-        args: Dict[str, Any] = {'filter': {}}
+        args: Dict[str, Any] = {"filter": {}}
         if spec:
-            args['filter'] = spec
+            args["filter"] = spec
         if limit:
-            args['limit'] = limit
+            args["limit"] = limit
         return self._coll.count_documents(**args)
 
     def remove_document(self, spec_or_id: Union[dict, ObjectId]) -> bool:
@@ -327,7 +327,7 @@ class BaseDB(object):
         :param spec_or_id: spec or document id (_id)
         """
         if isinstance(spec_or_id, ObjectId):
-            spec_or_id = {'_id': spec_or_id}
+            spec_or_id = {"_id": spec_or_id}
         result = self._coll.delete_one(spec_or_id)
         return result.acknowledged
 
@@ -343,15 +343,15 @@ class BaseDB(object):
         """
         # indexes={'index-name': {'key': [('key', 1)], 'param1': True, 'param2': False}, }
         # http://docs.mongodb.org/manual/reference/method/db.collection.ensureIndex/
-        default_indexes = ['_id_']  # _id_ index can not be deleted from a mongo collection
+        default_indexes = ["_id_"]  # _id_ index can not be deleted from a mongo collection
         current_indexes = self._coll.index_information()
         for name in current_indexes:
             if name not in indexes and name not in default_indexes:
                 self._coll.drop_index(name)
         for name, params in indexes.items():
             if name not in current_indexes:
-                key = params.pop('key')
-                params['name'] = name
+                key = params.pop("key")
+                params["name"] = name
                 self._coll.ensure_index(key, **params)
 
     def close(self):

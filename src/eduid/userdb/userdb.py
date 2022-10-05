@@ -53,7 +53,7 @@ from eduid.userdb.user import User
 from eduid.userdb.util import utc_now
 
 logger = logging.getLogger(__name__)
-extra_debug_logger = logger.getChild('extra_debug')
+extra_debug_logger = logger.getChild("extra_debug")
 
 UserVar = TypeVar("UserVar")
 
@@ -127,10 +127,25 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
 
     def get_verified_users_count(self, identity_type: Optional[IdentityType] = None) -> int:
         if identity_type is None:
-            return self.db_count(spec={"identities": {"$elemMatch": {"verified": True}}})
+            return self.db_count(
+                spec={
+                    "identities": {
+                        "$elemMatch": {
+                            "verified": True,
+                        }
+                    }
+                }
+            )
         else:
             return self.db_count(
-                spec={"identities": {"$elemMatch": {"verified": True, "identity_type": identity_type.value}}}
+                spec={
+                    "identities": {
+                        "$elemMatch": {
+                            "verified": True,
+                            "identity_type": identity_type.value,
+                        }
+                    }
+                }
             )
 
     def _get_user_by_filter(self, filter: Mapping[str, Any]) -> List[UserVar]:
