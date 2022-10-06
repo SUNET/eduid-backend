@@ -386,13 +386,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         )
         logger.debug(f"Updated/inserted document: {updated_doc}")
 
-    def replace_user(
-        self,
-        eppn: str,
-        obj_id: ObjectId,
-        old_version: ObjectId,
-        update_obj: Mapping,
-    ):
+    def replace_user(self, eppn: str, obj_id: ObjectId, old_version: ObjectId, update_obj: Mapping):
         logger.debug(f"replacing user {eppn} in {repr(self._coll_name)}")
         search_filter = {
             "_id": obj_id,
