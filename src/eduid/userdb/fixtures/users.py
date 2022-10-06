@@ -34,6 +34,7 @@ from datetime import datetime
 
 from bson import ObjectId
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import CredentialList
 from eduid.userdb.fixtures.email_addresses import (
     johnsmith2_example_com,
@@ -91,7 +92,6 @@ mocked_user_standard = User(
     ladok=dashboard_ladok,
 )
 
-
 mocked_user_standard_2 = User(
     meta=Meta(version=ObjectId("987654321098765432103210")),
     eppn="babba-labba",
@@ -127,7 +127,6 @@ new_completed_signup_user_example = User(
     locked_identity=LockedIdentityList(),
 )
 
-
 new_signup_user_example = SignupUser(
     meta=Meta(version=ObjectId("987654321098765432103210")),
     eppn="hubba-bubba",
@@ -153,7 +152,6 @@ new_signup_user_example = SignupUser(
     pending_mail_address=johnsmith2_example_com_pending,
 )
 
-
 new_unverified_user_example = User(
     meta=Meta(version=ObjectId("987654321098765432103210")),
     eppn="hubba-baar",
@@ -175,7 +173,6 @@ new_unverified_user_example = User(
     ],
     locked_identity=LockedIdentityList(),
 )
-
 
 new_user_example = User(
     meta=Meta(

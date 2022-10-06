@@ -98,9 +98,7 @@ class User(BaseModel):
         allow_population_by_field_name = True  # allow setting created_ts by name, not just it's alias
         validate_assignment = True  # validate data when updated, not just when initialised
         extra = Extra.forbid  # reject unknown data
-        # arbitrary_types_allowed = True  # allow ObjectId as type in Event
         BaseConfig.arbitrary_types_allowed = True
-        # BaseConfig.orm_mode = True
 
     @validator("eppn", pre=True)
     def check_eppn(cls, v: str) -> str:
@@ -306,9 +304,9 @@ class User(BaseModel):
             data.pop("mail")
 
         if (
-            isinstance(_mail_addresses, list)
-            and len(_mail_addresses) == 1
-            and _mail_addresses[0].get("verified", False)
+                isinstance(_mail_addresses, list)
+                and len(_mail_addresses) == 1
+                and _mail_addresses[0].get("verified", False)
         ):
             if not _mail_addresses[0].get("primary", False):
                 # A single mail address was not set as Primary until it was verified

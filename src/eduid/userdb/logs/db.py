@@ -53,3 +53,14 @@ class FidoMetadataLog(LogDB):
                 limit=1,
             )
         )
+
+
+class UserChangeLog(LogDB):
+    def __init__(self, db_uri, collection="user_change_log"):
+        LogDB.__init__(self, db_uri, collection)
+
+    def get_by_eppn(self, eppn: str) -> Optional[UserLogElement]:
+        doc = self._get_document_by_attr("eduPersonPrincipalName", eppn)
+        if doc is not None:
+            return UserLogElement(**doc)
+        return None
