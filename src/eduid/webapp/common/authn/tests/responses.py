@@ -23,7 +23,7 @@ def auth_response(session_id: str, eppn: str) -> str:
     tomorrow = utc_now() + timedelta(days=1)
     yesterday = utc_now() - timedelta(days=1)
 
-    sp_baseurl = 'http://test.localhost:6544/'
+    sp_baseurl = "http://test.localhost:6544/"
 
     saml_response_tpl = """<?xml version='1.0' encoding='UTF-8'?>
 <samlp:Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"
@@ -93,12 +93,12 @@ def auth_response(session_id: str, eppn: str) -> str:
 
     return saml_response_tpl.format(
         **{
-            'uid': eppn,
-            'session_id': session_id,
-            'timestamp': timestamp.strftime('%Y-%m-%dT%H:%M:%SZ'),
-            'tomorrow': tomorrow.strftime('%Y-%m-%dT%H:%M:%SZ'),
-            'yesterday': yesterday.strftime('%Y-%m-%dT%H:%M:%SZ'),
-            'sp_url': sp_baseurl,
+            "uid": eppn,
+            "session_id": session_id,
+            "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "tomorrow": tomorrow.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "yesterday": yesterday.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "sp_url": sp_baseurl,
         }
     )
 
@@ -120,7 +120,7 @@ def logout_response(session_id: str) -> str:
         <samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success" />
     </samlp:Status>
 </samlp:LogoutResponse>""".format(
-        now=timestamp.strftime('%Y-%m-%dT%H:%M:%SZ'), session_id=session_id
+        now=timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"), session_id=session_id
     )
 
     return saml_logout_response
@@ -133,9 +133,9 @@ def logout_request(session_id, idp=None):
     TODO: The session_id is used as both SAML request id, NameID and SessionIndex. Which one is it???
     """
     timestamp = utc_now() - timedelta(seconds=10)
-    instant = timestamp.strftime('%Y-%m-%dT%H:%M:%SZ')
+    instant = timestamp.strftime("%Y-%m-%dT%H:%M:%SZ")
     if idp is None:
-        idp = 'https://idp.example.com/simplesaml/saml2/idp/metadata.php'
+        idp = "https://idp.example.com/simplesaml/saml2/idp/metadata.php"
     saml_logout_request = f"""
 <samlp:LogoutRequest xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol"
                      xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"

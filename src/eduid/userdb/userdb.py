@@ -29,7 +29,6 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from asyncio.constants import SENDFILE_FALLBACK_READBUFFER_SIZE
 import logging
 from abc import ABC
 from typing import Any, Generic, List, Mapping, Optional, TypeVar, Union, Dict
@@ -208,22 +207,14 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         :return: List of User instances
         """
 
-        match = {
-            "identity_type": IdentityType.NIN.value,
-            "number": nin,
-            "verified": True,
-        }
+        match = {"identity_type": IdentityType.NIN.value, "number": nin, "verified": True}
         if include_unconfirmed:
             del match["verified"]
         _filter = {"identities": {"$elemMatch": match}}
         return self._get_user_by_filter(_filter)
 
     def get_users_by_identity(
-        self,
-        identity_type: IdentityType,
-        key: str,
-        value: str,
-        include_unconfirmed: bool = False,
+        self, identity_type: IdentityType, key: str, value: str, include_unconfirmed: bool = False
     ):
         match = {"identity_type": identity_type.value, key: value, "verified": True}
         if include_unconfirmed:
@@ -391,10 +382,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
             raise eduid.userdb.exceptions.EduIDDBError(error_msg)
 
         updated_doc = self._coll.find_one_and_update(
-            filter=query_filter,
-            update=operations,
-            return_document=ReturnDocument.AFTER,
-            upsert=True,
+            filter=query_filter, update=operations, return_document=ReturnDocument.AFTER, upsert=True
         )
         logger.debug(f"Updated/inserted document: {updated_doc}")
 

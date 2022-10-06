@@ -45,7 +45,7 @@ class AuthnTestApp(AuthnBaseApp):
     def __init__(self, name: str, test_config: Mapping[str, Any], **kwargs):
         # This should be an AuthnConfig instance, but an EduIDBaseAppConfig instance suffices for these
         # tests and we don't want eduid.webapp.common to depend on eduid.webapp.
-        self.conf = load_config(typ=EduIDBaseAppConfig, app_name=name, ns='webapp', test_config=test_config)
+        self.conf = load_config(typ=EduIDBaseAppConfig, app_name=name, ns="webapp", test_config=test_config)
         super().__init__(self.conf, **kwargs)
 
 
@@ -55,27 +55,27 @@ class AuthnTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return AuthnTestApp('testing', config)
+        return AuthnTestApp("testing", config)
 
     def update_config(self, config):
         config.update(
             {
-                'available_languages': {'en': 'English', 'sv': 'Svenska'},
-                'development': 'DEBUG',
-                'application_root': '/',
-                'no_authn_urls': [],
-                'log_level': 'DEBUG',
+                "available_languages": {"en": "English", "sv": "Svenska"},
+                "development": "DEBUG",
+                "application_root": "/",
+                "no_authn_urls": [],
+                "log_level": "DEBUG",
             }
         )
         return config
 
     def test_get_view(self):
-        response = self.browser.get('/some/path')
+        response = self.browser.get("/some/path")
         self.assertEqual(response.status_code, 302)
 
-        with self.session_cookie(self.browser, 'hubba-bubba') as client:
+        with self.session_cookie(self.browser, "hubba-bubba") as client:
             with self.assertRaises(NotFound):
-                client.get('/some/path')
+                client.get("/some/path")
 
 
 class UnAuthnTests(EduidAPITestCase):
@@ -84,26 +84,26 @@ class UnAuthnTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return AuthnTestApp('testing', config)
+        return AuthnTestApp("testing", config)
 
     def update_config(self, config):
         config.update(
             {
-                'available_languages': {'en': 'English', 'sv': 'Svenska'},
-                'development': 'DEBUG',
-                'application_root': '/',
-                'log_level': 'DEBUG',
+                "available_languages": {"en": "English", "sv": "Svenska"},
+                "development": "DEBUG",
+                "application_root": "/",
+                "log_level": "DEBUG",
             }
         )
         return config
 
     @contextmanager
-    def session_cookie(self, client, server_name='localhost'):
+    def session_cookie(self, client, server_name="localhost"):
         with client.session_transaction() as sess:
             sess.persist()
         client.set_cookie(server_name, key=self.app.config.session_cookie_name, value=sess._session.token.cookie_val)
         yield client
 
     def test_get_view(self):
-        response = self.browser.get('/status/healthy')
+        response = self.browser.get("/status/healthy")
         self.assertEqual(response.status_code, 200)

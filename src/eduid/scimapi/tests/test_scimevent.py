@@ -31,10 +31,10 @@ class TestEventResource(ScimApiTestCase):
 
     def _create_event(self, event: Dict[str, Any], expect_success: bool = True) -> EventApiResult:
         req = {
-            'schemas': [SCIMSchema.NUTID_EVENT_CORE_V1.value, SCIMSchema.NUTID_EVENT_V1.value],
+            "schemas": [SCIMSchema.NUTID_EVENT_CORE_V1.value, SCIMSchema.NUTID_EVENT_V1.value],
             SCIMSchema.NUTID_EVENT_V1.value: event,
         }
-        response = self.client.post(url='/Events/', data=self.as_json(req), headers=self.headers)
+        response = self.client.post(url="/Events/", data=self.as_json(req), headers=self.headers)
         if expect_success:
             self._assertResponse(response)
         parsed_response = EventResponse.parse_raw(response.text)
@@ -43,7 +43,7 @@ class TestEventResource(ScimApiTestCase):
         )
 
     def _fetch_event(self, event_id: UUID) -> EventApiResult:
-        response = self.client.get(url=f'/Events/{str(event_id)}', headers=self.headers)
+        response = self.client.get(url=f"/Events/{str(event_id)}", headers=self.headers)
         self._assertResponse(response)
         parsed_response = EventResponse.parse_raw(response.text)
         return EventApiResult(event=parsed_response.nutid_event_v1, response=response, parsed_response=parsed_response)
@@ -51,10 +51,10 @@ class TestEventResource(ScimApiTestCase):
     def _assertEventUpdateSuccess(self, req: Mapping, response, event: ScimApiEvent):
         """Function to validate successful responses to SCIM calls that update a event according to a request."""
 
-        if response.json().get('schemas') == [SCIMSchema.ERROR.value]:
-            self.fail(f'Got SCIM error parsed_response ({response.status}):\n{response.json()}')
+        if response.json().get("schemas") == [SCIMSchema.ERROR.value]:
+            self.fail(f"Got SCIM error parsed_response ({response.status}):\n{response.json()}")
 
-        expected_schemas = req.get('schemas', [SCIMSchema.NUTID_EVENT_CORE_V1.value])
+        expected_schemas = req.get("schemas", [SCIMSchema.NUTID_EVENT_CORE_V1.value])
         if (
             SCIMSchema.NUTID_EVENT_V1.value in response.json()
             and SCIMSchema.NUTID_EVENT_V1.value not in expected_schemas
@@ -65,16 +65,16 @@ class TestEventResource(ScimApiTestCase):
         self._assertScimResponseProperties(response, resource=event, expected_schemas=expected_schemas)
 
     def test_create_event(self):
-        user = self.add_user(identifier=str(uuid4()), external_id='test@example.org')
+        user = self.add_user(identifier=str(uuid4()), external_id="test@example.org")
         event = {
-            'resource': {
-                'resourceType': SCIMResourceType.USER.value,
-                'id': str(user.scim_id),
-                'version': make_etag(user.version),
-                'lastModified': str(user.last_modified),
+            "resource": {
+                "resourceType": SCIMResourceType.USER.value,
+                "id": str(user.scim_id),
+                "version": make_etag(user.version),
+                "lastModified": str(user.last_modified),
             },
-            'level': EventLevel.DEBUG.value,
-            'data': {'create_test': True},
+            "level": EventLevel.DEBUG.value,
+            "data": {"create_test": True},
         }
         result = self._create_event(event=event)
 
@@ -88,22 +88,22 @@ class TestEventResource(ScimApiTestCase):
         assert db_event.resource.version == user.version
         assert db_event.resource.last_modified == user.last_modified
         assert db_event.resource.external_id == user.external_id
-        assert db_event.data == event['data']
+        assert db_event.data == event["data"]
         # Verify what is returned in the parsed_response
         assert result.parsed_response.id == db_event.scim_id
         self._assertEventUpdateSuccess(req=result.request, response=result.response, event=db_event)
 
     def test_create_and_fetch_event(self):
-        user = self.add_user(identifier=str(uuid4()), external_id='test@example.org')
+        user = self.add_user(identifier=str(uuid4()), external_id="test@example.org")
         event = {
-            'resource': {
-                'resourceType': SCIMResourceType.USER.value,
-                'id': str(user.scim_id),
-                'version': make_etag(user.version),
-                'lastModified': user.last_modified.isoformat(),
+            "resource": {
+                "resourceType": SCIMResourceType.USER.value,
+                "id": str(user.scim_id),
+                "version": make_etag(user.version),
+                "lastModified": user.last_modified.isoformat(),
             },
-            'level': EventLevel.DEBUG.value,
-            'data': {'create_fetch_test': True},
+            "level": EventLevel.DEBUG.value,
+            "data": {"create_fetch_test": True},
         }
         created = self._create_event(event=event)
 
@@ -124,31 +124,31 @@ class TestEventResource(ScimApiTestCase):
 
         # For once, verify the actual SCIM message format too
         expected = {
-            'schemas': [
-                'https://scim.eduid.se/schema/nutid/event/core-v1',
-                'https://scim.eduid.se/schema/nutid/event/v1',
+            "schemas": [
+                "https://scim.eduid.se/schema/nutid/event/core-v1",
+                "https://scim.eduid.se/schema/nutid/event/v1",
             ],
-            'id': str(db_event.scim_id),
-            'meta': {
-                'created': db_event.created.isoformat(),
-                'lastModified': db_event.last_modified.isoformat(),
-                'location': f'http://localhost:8000/Events/{db_event.scim_id}',
-                'resourceType': 'Event',
-                'version': make_etag(db_event.version),
+            "id": str(db_event.scim_id),
+            "meta": {
+                "created": db_event.created.isoformat(),
+                "lastModified": db_event.last_modified.isoformat(),
+                "location": f"http://localhost:8000/Events/{db_event.scim_id}",
+                "resourceType": "Event",
+                "version": make_etag(db_event.version),
             },
-            'https://scim.eduid.se/schema/nutid/event/v1': {
-                'data': {'create_fetch_test': True},
-                'expiresAt': (db_event.timestamp + timedelta(days=1)).isoformat(),
-                'level': 'debug',
-                'source': 'eduid.se',
-                'timestamp': db_event.timestamp.isoformat(),
-                'resource': {
-                    'resourceType': 'User',
-                    'id': str(user.scim_id),
-                    'lastModified': user.last_modified.isoformat(),
-                    'version': make_etag(user.version),
-                    'externalId': user.external_id,
-                    'location': f'http://localhost:8000/Users/{user.scim_id}',
+            "https://scim.eduid.se/schema/nutid/event/v1": {
+                "data": {"create_fetch_test": True},
+                "expiresAt": (db_event.timestamp + timedelta(days=1)).isoformat(),
+                "level": "debug",
+                "source": "eduid.se",
+                "timestamp": db_event.timestamp.isoformat(),
+                "resource": {
+                    "resourceType": "User",
+                    "id": str(user.scim_id),
+                    "lastModified": user.last_modified.isoformat(),
+                    "version": make_etag(user.version),
+                    "externalId": user.external_id,
+                    "location": f"http://localhost:8000/Users/{user.scim_id}",
                 },
             },
         }

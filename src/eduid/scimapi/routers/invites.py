@@ -21,35 +21,35 @@ from eduid.scimapi.search import parse_search_filter
 from eduid.userdb.scimapi import EventLevel, EventStatus, ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
 from eduid.userdb.scimapi.invitedb import ScimApiInvite
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 invites_router = APIRouter(
     route_class=ContextRequestRoute,
-    prefix='/Invites',
+    prefix="/Invites",
     responses={
-        400: {'description': 'Bad request', 'model': ErrorDetail},
-        404: {'description': 'Not found', 'model': ErrorDetail},
-        500: {'description': 'Internal server error', 'model': ErrorDetail},
+        400: {"description": "Bad request", "model": ErrorDetail},
+        404: {"description": "Not found", "model": ErrorDetail},
+        500: {"description": "Internal server error", "model": ErrorDetail},
     },
 )
 
 
-@invites_router.get('/{scim_id}', response_model=InviteResponse, response_model_exclude_none=True)
+@invites_router.get("/{scim_id}", response_model=InviteResponse, response_model_exclude_none=True)
 async def on_get(req: ContextRequest, resp: Response, scim_id: Optional[str] = None) -> InviteResponse:
     if scim_id is None:
-        raise BadRequest(detail='Not implemented')
-    req.app.context.logger.info(f'Fetching invite {scim_id}')
+        raise BadRequest(detail="Not implemented")
+    req.app.context.logger.info(f"Fetching invite {scim_id}")
     db_invite = req.context.invitedb.get_invite_by_scim_id(scim_id)
     if not db_invite:
-        raise NotFound(detail='Invite not found')
+        raise NotFound(detail="Invite not found")
     ref = create_signup_ref(req, db_invite)
     signup_invite = req.app.context.signup_invitedb.get_invite_by_reference(ref)
     if signup_invite is None:
-        raise NotFound(detail='Invite reference not found')
+        raise NotFound(detail="Invite reference not found")
     return db_invite_to_response(req, resp, db_invite, signup_invite)
 
 
-@invites_router.post('/', response_model=InviteResponse, response_model_exclude_none=True)
+@invites_router.post("/", response_model=InviteResponse, response_model_exclude_none=True)
 async def on_post(req: ContextRequest, resp: Response, create_request: InviteCreateRequest) -> InviteResponse:
     """
     POST /Invites  HTTP/1.1
@@ -95,7 +95,7 @@ async def on_post(req: ContextRequest, resp: Response, create_request: InviteCre
          ],
      }
     """
-    req.app.context.logger.info(f'Creating invite')
+    req.app.context.logger.info(f"Creating invite")
     profiles = {}
     for profile_name, profile in create_request.nutid_user_v1.profiles.items():
         profiles[profile_name] = ScimApiProfile(attributes=profile.attributes, data=profile.data)
@@ -123,18 +123,18 @@ async def on_post(req: ContextRequest, resp: Response, create_request: InviteCre
         resource_type=SCIMResourceType.INVITE,
         level=EventLevel.INFO,
         status=EventStatus.CREATED,
-        message='Invite was created',
+        message="Invite was created",
     )
 
     resp.status_code = 201
     return db_invite_to_response(req, resp, db_invite, signup_invite)
 
 
-@invites_router.delete('/{scim_id}', status_code=204, responses={204: {'description': 'No Content'}})
+@invites_router.delete("/{scim_id}", status_code=204, responses={204: {"description": "No Content"}})
 async def on_delete(req: ContextRequest, scim_id: str) -> None:
-    req.app.context.logger.info(f'Deleting invite {scim_id}')
+    req.app.context.logger.info(f"Deleting invite {scim_id}")
     db_invite = req.context.invitedb.get_invite_by_scim_id(scim_id=scim_id)
-    req.app.context.logger.debug(f'Found invite: {db_invite}')
+    req.app.context.logger.debug(f"Found invite: {db_invite}")
 
     if not db_invite:
         raise NotFound(detail="Invite not found")
@@ -159,13 +159,13 @@ async def on_delete(req: ContextRequest, scim_id: str) -> None:
         resource_type=SCIMResourceType.INVITE,
         level=EventLevel.INFO,
         status=EventStatus.DELETED,
-        message='Invite was deleted',
+        message="Invite was deleted",
     )
 
-    req.app.context.logger.debug(f'Remove invite result: {res}')
+    req.app.context.logger.debug(f"Remove invite result: {res}")
 
 
-@invites_router.post('/.search', response_model=ListResponse, response_model_exclude_none=True)
+@invites_router.post("/.search", response_model=ListResponse, response_model_exclude_none=True)
 async def search(req: ContextRequest, query: SearchRequest) -> ListResponse:
     """
     POST /Invites/.search
@@ -197,15 +197,15 @@ async def search(req: ContextRequest, query: SearchRequest) -> ListResponse:
       ]
     }
     """
-    req.app.context.logger.info(f'Searching for invite(s)')
-    req.app.context.logger.debug(f'Parsed invite search query: {query}')
+    req.app.context.logger.info(f"Searching for invite(s)")
+    req.app.context.logger.debug(f"Parsed invite search query: {query}")
 
     filter = parse_search_filter(query.filter)
 
-    if filter.attr == 'meta.lastmodified':
+    if filter.attr == "meta.lastmodified":
         # SCIM start_index 1 equals item 0
         users, total_count = filter_lastmodified(req, filter, skip=query.start_index - 1, limit=query.count)
     else:
-        raise BadRequest(scim_type='invalidFilter', detail=f'Can\'t filter on attribute {filter.attr}')
+        raise BadRequest(scim_type="invalidFilter", detail=f"Can't filter on attribute {filter.attr}")
 
     return ListResponse(resources=invites_to_resources_dicts(query, users), total_results=total_count)

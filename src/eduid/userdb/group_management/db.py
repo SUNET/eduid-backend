@@ -43,13 +43,13 @@ logger = logging.getLogger(__name__)
 
 
 class GroupManagementInviteStateDB(BaseDB):
-    def __init__(self, db_uri: str, db_name: str = 'eduid_group_management', collection: str = 'group_invite_data'):
+    def __init__(self, db_uri: str, db_name: str = "eduid_group_management", collection: str = "group_invite_data"):
         super(GroupManagementInviteStateDB, self).__init__(db_uri, db_name, collection=collection)
         # Create an index so that invites for group_scim_id, email_address and role is unique
         indexes = {
-            'unique-group-email-role': {
-                'key': [('group_scim_id', 1), ('email_address', 1), ('role', 1)],
-                'unique': True,
+            "unique-group-email-role": {
+                "key": [("group_scim_id", 1), ("email_address", 1), ("role", 1)],
+                "unique": True,
             }
         }
         self.setup_indexes(indexes)
@@ -60,7 +60,7 @@ class GroupManagementInviteStateDB(BaseDB):
         :param email_address: Invited email address
         :param role: Group role
         """
-        spec = {'group_scim_id': group_scim_id, 'email_address': email_address, 'role': role.value}
+        spec = {"group_scim_id": group_scim_id, "email_address": email_address, "role": role.value}
         docs = list(self._get_documents_by_filter(spec))
         if len(docs) == 1:
             return GroupInviteState.from_dict(docs[0])
@@ -76,7 +76,7 @@ class GroupManagementInviteStateDB(BaseDB):
 
         :raise self.DocumentDoesNotExist: No document match the search criteria
         """
-        spec = {'group_scim_id': group_scim_id}
+        spec = {"group_scim_id": group_scim_id}
         states = list(self._get_documents_by_filter(spec))
 
         if len(states) == 0:
@@ -96,7 +96,7 @@ class GroupManagementInviteStateDB(BaseDB):
         """
         states = []
         for email_address in email_addresses:
-            spec = {'email_address': email_address}
+            spec = {"email_address": email_address}
             states.extend(list(self._get_documents_by_filter(spec)))
 
         if len(states) == 0:
@@ -118,32 +118,32 @@ class GroupManagementInviteStateDB(BaseDB):
             return None
 
         test_doc: Dict[str, Any] = {
-            'group_scim_id': state.group_scim_id,
-            'email_address': state.email_address,
-            'role': state.role,
+            "group_scim_id": state.group_scim_id,
+            "email_address": state.email_address,
+            "role": state.role,
         }
         if check_sync:
-            test_doc['modified_ts'] = modified
+            test_doc["modified_ts"] = modified
         result = self._coll.replace_one(test_doc, state.to_dict(), upsert=(not check_sync))
         if check_sync and result.matched_count == 0:
             db_ts = None
             db_state = self._coll.find_one(
-                {'group_scim_id': state.group_scim_id, 'email_address': state.email_address, 'role': state.role}
+                {"group_scim_id": state.group_scim_id, "email_address": state.email_address, "role": state.role}
             )
             if db_state:
-                db_ts = db_state['modified_ts']
+                db_ts = db_state["modified_ts"]
             logging.error(
                 "{} FAILED Updating state {} (ts {}) in {}). "
                 "ts in db = {!s}".format(self, state, modified, self._coll_name, db_ts)
             )
-            raise DocumentOutOfSync('Stale state object can\'t be saved')
+            raise DocumentOutOfSync("Stale state object can't be saved")
 
-        logging.debug(f'{self} Updated state {state} (ts {modified}) in {self._coll_name}): {result}')
+        logging.debug(f"{self} Updated state {state} (ts {modified}) in {self._coll_name}): {result}")
 
     def remove_state(self, state: GroupInviteState) -> None:
         """
         :param state: GroupInviteState object
         """
         self.remove_document(
-            {'group_scim_id': state.group_scim_id, 'email_address': state.email_address, 'role': state.role.value}
+            {"group_scim_id": state.group_scim_id, "email_address": state.email_address, "role": state.role.value}
         )

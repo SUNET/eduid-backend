@@ -40,42 +40,42 @@ from eduid.userdb.testing import MongoTestCase
 
 logger = logging.getLogger(__name__)
 
-USERID3 = '333333333333333333333333'
-USERID4 = '444444444444444444444444'
-EPPN3 = 'hubba-bubba'
-EPPN4 = 'hussa-sussa'
+USERID3 = "333333333333333333333333"
+USERID4 = "444444444444444444444444"
+EPPN3 = "hubba-bubba"
+EPPN4 = "hussa-sussa"
 
 
 DUMMY_ACTION = {
-    '_id': ObjectId('111111111111111111111111'),
-    'eppn': EPPN3,
-    'action': 'dummy',
-    'preference': 200,
-    'params': {},
+    "_id": ObjectId("111111111111111111111111"),
+    "eppn": EPPN3,
+    "action": "dummy",
+    "preference": 200,
+    "params": {},
 }
 
 TOU_ACTION = {
-    '_id': ObjectId('222222222222222222222222'),
-    'eppn': EPPN3,  # same eppn as DUMMY_ACTION
-    'action': 'tou',
-    'preference': 100,
-    'params': {'version': 'test-version'},
+    "_id": ObjectId("222222222222222222222222"),
+    "eppn": EPPN3,  # same eppn as DUMMY_ACTION
+    "action": "tou",
+    "preference": 100,
+    "params": {"version": "test-version"},
 }
 
 DUMMY_ACTION_USERID = {
-    '_id': ObjectId('111111111111111111111111'),
-    'user_oid': ObjectId(USERID3),
-    'action': 'dummy',
-    'preference': 200,
-    'params': {},
+    "_id": ObjectId("111111111111111111111111"),
+    "user_oid": ObjectId(USERID3),
+    "action": "dummy",
+    "preference": 200,
+    "params": {},
 }
 
 TOU_ACTION_USERID = {
-    '_id': ObjectId('222222222222222222222222'),
-    'user_oid': ObjectId(USERID3),  # same user_oid as DUMMY_ACTION
-    'action': 'tou',
-    'preference': 100,
-    'params': {'version': 'test-version'},
+    "_id": ObjectId("222222222222222222222222"),
+    "user_oid": ObjectId(USERID3),  # same user_oid as DUMMY_ACTION
+    "action": "tou",
+    "preference": 100,
+    "params": {"version": "test-version"},
 }
 
 
@@ -90,9 +90,9 @@ class TestActionsDB(MongoTestCase):
         self.actionsdb._drop_whole_collection()
 
     def test_remove_action(self):
-        self.actionsdb.remove_action_by_id(DUMMY_ACTION['_id'])
+        self.actionsdb.remove_action_by_id(DUMMY_ACTION["_id"])
         next_action = self.actionsdb.get_next_action(EPPN3)
-        self.assertEqual(next_action.action_type, 'tou')
+        self.assertEqual(next_action.action_type, "tou")
         self.actionsdb.remove_action_by_id(next_action.action_id)
         next_action = self.actionsdb.get_next_action(EPPN3)
         self.assertEqual(next_action, None)
@@ -100,16 +100,16 @@ class TestActionsDB(MongoTestCase):
     def test_has_actions(self):
         self.assertTrue(self.actionsdb.has_actions(eppn_or_userid=EPPN3))
         self.assertFalse(self.actionsdb.has_actions(eppn_or_userid=EPPN4))
-        self.assertTrue(self.actionsdb.has_actions(eppn_or_userid=EPPN3, session='xzf'))
-        self.assertTrue(self.actionsdb.has_actions(eppn_or_userid=EPPN3, params={'version': 'test-version'}))
-        self.assertFalse(self.actionsdb.has_actions(eppn_or_userid=EPPN3, params={'version': 'WRONG'}))
+        self.assertTrue(self.actionsdb.has_actions(eppn_or_userid=EPPN3, session="xzf"))
+        self.assertTrue(self.actionsdb.has_actions(eppn_or_userid=EPPN3, params={"version": "test-version"}))
+        self.assertFalse(self.actionsdb.has_actions(eppn_or_userid=EPPN3, params={"version": "WRONG"}))
         self.assertTrue(
-            self.actionsdb.has_actions(eppn_or_userid=EPPN3, action_type='tou', params={'version': 'test-version'})
+            self.actionsdb.has_actions(eppn_or_userid=EPPN3, action_type="tou", params={"version": "test-version"})
         )
 
     def test_update_action_with_result(self):
         action = self.actionsdb.get_next_action(EPPN3)
-        action.result = {'test': True}
+        action.result = {"test": True}
         self.actionsdb.update_action(action)
         # Saving a result on the action should make get_next_action advance to the next one
         next_action = self.actionsdb.get_next_action(EPPN3)

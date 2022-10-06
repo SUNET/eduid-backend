@@ -42,7 +42,7 @@ from eduid.webapp.common.api import oidc
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.orcid.settings.common import OrcidConfig
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class OrcidApp(AuthnBaseApp):
@@ -66,16 +66,16 @@ class OrcidApp(AuthnBaseApp):
 current_orcid_app: OrcidApp = cast(OrcidApp, current_app)
 
 
-def init_orcid_app(name: str = 'orcid', test_config: Optional[Mapping[str, Any]] = None) -> OrcidApp:
+def init_orcid_app(name: str = "orcid", test_config: Optional[Mapping[str, Any]] = None) -> OrcidApp:
     """
     :param name: The name of the instance, it will affect the configuration loaded.
     :param test_config: Override config, used in test cases.
     """
-    config = load_config(typ=OrcidConfig, app_name=name, ns='webapp', test_config=test_config)
+    config = load_config(typ=OrcidConfig, app_name=name, ns="webapp", test_config=test_config)
 
     app = OrcidApp(config)
 
-    app.logger.info(f'Init {name} app...')
+    app.logger.info(f"Init {name} app...")
 
     # Register views
     from eduid.webapp.orcid.views import orcid_views

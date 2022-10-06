@@ -57,28 +57,28 @@ class SecurityTests(EduidAPITestCase):
     def setUp(self, *args, users: Optional[List[str]] = None, copy_user_to_private: bool = True, **kwargs):
         super(SecurityTests, self).setUp(*args, **kwargs)
 
-        self.test_user_eppn = 'hubba-bubba'
-        self.test_user_nin = '197801011235'
+        self.test_user_eppn = "hubba-bubba"
+        self.test_user_nin = "197801011235"
 
     def load_app(self, config: Mapping[str, Any]) -> SecurityApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return security_init_app('testing', config)
+        return security_init_app("testing", config)
 
     def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         config.update(
             {
-                'available_languages': {'en': 'English', 'sv': 'Svenska'},
-                'password_length': 12,
-                'password_entropy': 25,
-                'chpass_reauthn_timeout': 600,
-                'eduid_site_name': 'eduID',
-                'eduid_site_url': 'https://www.eduid.se/',
-                'fido2_rp_id': 'https://test.example.edu',
-                'vccs_url': 'https://vccs',
-                'dashboard_url': 'https://dashboard/',
+                "available_languages": {"en": "English", "sv": "Svenska"},
+                "password_length": 12,
+                "password_entropy": 25,
+                "chpass_reauthn_timeout": 600,
+                "eduid_site_name": "eduID",
+                "eduid_site_url": "https://www.eduid.se/",
+                "fido2_rp_id": "https://test.example.edu",
+                "vccs_url": "https://vccs",
+                "dashboard_url": "https://dashboard/",
             }
         )
         return config
@@ -93,24 +93,24 @@ class SecurityTests(EduidAPITestCase):
 
         :param data1: to control the data sent in the POST.
         """
-        response = self.browser.post('/terminate-account')
+        response = self.browser.post("/terminate-account")
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
-        eppn = self.test_user_data['eduPersonPrincipalName']
+        eppn = self.test_user_data["eduPersonPrincipalName"]
         with self.session_cookie(self.browser, eppn) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
                     data = {
-                        'csrf_token': sess.get_csrf_token(),
+                        "csrf_token": sess.get_csrf_token(),
                     }
                 if data1 is not None:
                     data.update(data1)
 
-            return client.post('/terminate-account', data=json.dumps(data), content_type=self.content_type_json)
+            return client.post("/terminate-account", data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch('eduid.common.rpc.mail_relay.MailRelay.sendmail')
-    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
-    @patch('eduid.webapp.security.views.security.revoke_all_credentials')
+    @patch("eduid.common.rpc.mail_relay.MailRelay.sendmail")
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    @patch("eduid.webapp.security.views.security.revoke_all_credentials")
     def _account_terminated(
         self,
         mock_revoke: Any,
@@ -131,7 +131,7 @@ class SecurityTests(EduidAPITestCase):
         if sendmail_side_effect:
             mock_sendmail.side_effect = sendmail_side_effect
 
-        eppn = self.test_user_data['eduPersonPrincipalName']
+        eppn = self.test_user_data["eduPersonPrincipalName"]
         with self.session_cookie(self.browser, eppn) as client:
             if reauthn is not None:
                 # Add authn data faking a reauthn event has taken place for this action
@@ -139,13 +139,13 @@ class SecurityTests(EduidAPITestCase):
                     _authn_id = AuthnRequestRef(str(uuid4()))
                     sess.authn.sp.authns[_authn_id] = SP_AuthnRequest(
                         post_authn_action=AuthnAcsAction.terminate_account,
-                        redirect_url='/test',
+                        redirect_url="/test",
                         authn_instant=utc_now() - timedelta(seconds=reauthn),
                         frontend_action=FALLBACK_FRONTEND_ACTION,
                     )
-            return client.get('/account-terminated')
+            return client.get("/account-terminated")
 
-    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _remove_nin(self, mock_request_user_sync: Any, data1: Optional[dict] = None, unverify: bool = False):
         """
         Send a POST request to remove a NIN from the test user, possibly
@@ -169,13 +169,13 @@ class SecurityTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
-                    data = {'nin': user.identities.nin.number, 'csrf_token': sess.get_csrf_token()}
+                    data = {"nin": user.identities.nin.number, "csrf_token": sess.get_csrf_token()}
                 if data1 is not None:
                     data.update(data1)
 
-                return client.post('/remove-nin', data=json.dumps(data), content_type=self.content_type_json)
+                return client.post("/remove-nin", data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _add_nin(
         self, mock_request_user_sync: Any, data1: Optional[dict] = None, remove: bool = True, unverify: bool = False
     ):
@@ -205,92 +205,92 @@ class SecurityTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
-                    data = {'nin': self.test_user_nin, 'csrf_token': sess.get_csrf_token()}
+                    data = {"nin": self.test_user_nin, "csrf_token": sess.get_csrf_token()}
                 if data1:
                     data.update(data1)
 
-                return client.post('/add-nin', data=json.dumps(data), content_type=self.content_type_json)
+                return client.post("/add-nin", data=json.dumps(data), content_type=self.content_type_json)
 
-    @patch('eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data')
-    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
+    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _refresh_user_data(self, mock_request_user_sync: Any, mock_get_all_navet_data: Any, user: User):
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
 
         with self.session_cookie(self.browser, user.eppn) as client:
             with client.session_transaction() as sess:
-                data = {'csrf_token': sess.get_csrf_token()}
+                data = {"csrf_token": sess.get_csrf_token()}
             return client.post(
-                '/refresh-official-user-data', data=json.dumps(data), content_type=self.content_type_json
+                "/refresh-official-user-data", data=json.dumps(data), content_type=self.content_type_json
             )
 
     # actual tests
 
     def test_delete_account_no_csrf(self):
-        data1 = {'csrf_token': ''}
+        data1 = {"csrf_token": ""}
         response = self._delete_account(data1=data1)
-        self.assertEqual(response.json['type'], 'POST_SECURITY_TERMINATE_ACCOUNT_FAIL')
-        self.assertEqual(response.json['payload']['error']['csrf_token'], ['CSRF failed to validate'])
+        self.assertEqual(response.json["type"], "POST_SECURITY_TERMINATE_ACCOUNT_FAIL")
+        self.assertEqual(response.json["payload"]["error"]["csrf_token"], ["CSRF failed to validate"])
 
     def test_delete_account_wrong_csrf(self):
-        data1 = {'csrf_token': 'wrong-token'}
+        data1 = {"csrf_token": "wrong-token"}
         response = self._delete_account(data1=data1)
-        self.assertEqual(response.json['type'], 'POST_SECURITY_TERMINATE_ACCOUNT_FAIL')
-        self.assertEqual(response.json['payload']['error']['csrf_token'], ['CSRF failed to validate'])
+        self.assertEqual(response.json["type"], "POST_SECURITY_TERMINATE_ACCOUNT_FAIL")
+        self.assertEqual(response.json["payload"]["error"]["csrf_token"], ["CSRF failed to validate"])
 
     def test_delete_account(self):
         response = self._delete_account()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response.json['payload']['location'], 'http://test.localhost/terminate?next=%2Faccount-terminated'
+            response.json["payload"]["location"], "http://test.localhost/terminate?next=%2Faccount-terminated"
         )
-        self.assertEqual(response.json['type'], 'POST_SECURITY_TERMINATE_ACCOUNT_SUCCESS')
+        self.assertEqual(response.json["type"], "POST_SECURITY_TERMINATE_ACCOUNT_SUCCESS")
 
     def test_account_terminated_no_authn(self):
-        response = self.browser.get('/account-terminated')
+        response = self.browser.get("/account-terminated")
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
     def test_account_terminated_no_reauthn(self):
         response = self._account_terminated()
-        self._check_error_response(response, type_='GET_SECURITY_ACCOUNT_TERMINATED_FAIL', msg=SecurityMsg.no_reauthn)
+        self._check_error_response(response, type_="GET_SECURITY_ACCOUNT_TERMINATED_FAIL", msg=SecurityMsg.no_reauthn)
 
     def test_account_terminated_stale(self):
         response = self._account_terminated(reauthn=1200)
         self._check_error_response(
-            response, type_='GET_SECURITY_ACCOUNT_TERMINATED_FAIL', msg=SecurityMsg.stale_reauthn
+            response, type_="GET_SECURITY_ACCOUNT_TERMINATED_FAIL", msg=SecurityMsg.stale_reauthn
         )
 
-    @patch('eduid.webapp.security.views.security.send_termination_mail')
+    @patch("eduid.webapp.security.views.security.send_termination_mail")
     def test_account_terminated_sendmail_fail(self, mock_send: Any):
         from eduid.common.rpc.exceptions import MsgTaskFailed
 
         mock_send.side_effect = MsgTaskFailed()
         response = self._account_terminated(reauthn=50)
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.location, 'http://test.localhost/services/authn/logout?next=https://eduid.se')
+        self.assertEqual(response.location, "http://test.localhost/services/authn/logout?next=https://eduid.se")
 
     def test_account_terminated_mail_fail(self):
         from eduid.common.rpc.exceptions import MsgTaskFailed
 
         response = self._account_terminated(sendmail_side_effect=MsgTaskFailed(), reauthn=8)
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.location, 'http://test.localhost/services/authn/logout?next=https://eduid.se')
+        self.assertEqual(response.location, "http://test.localhost/services/authn/logout?next=https://eduid.se")
 
     def test_account_terminated(self):
         response = self._account_terminated(reauthn=22)
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.location, 'http://test.localhost/services/authn/logout?next=https://eduid.se')
+        self.assertEqual(response.location, "http://test.localhost/services/authn/logout?next=https://eduid.se")
 
     def test_remove_nin(self):
         response = self._remove_nin(unverify=True)
         self._check_success_response(
             response,
-            type_='POST_SECURITY_REMOVE_NIN_SUCCESS',
+            type_="POST_SECURITY_REMOVE_NIN_SUCCESS",
             msg=SecurityMsg.rm_success,
             payload={
-                'identities': {
-                    'is_verified': True,
-                    'eidas': {'verified': True, 'country_code': 'DE', 'date_of_birth': '1978-09-02'},
+                "identities": {
+                    "is_verified": True,
+                    "eidas": {"verified": True, "country_code": "DE", "date_of_birth": "1978-09-02"},
                 },
             },
         )
@@ -299,16 +299,16 @@ class SecurityTests(EduidAPITestCase):
         assert user.identities.nin is None
 
     def test_remove_not_existing_nin(self):
-        response = self._remove_nin(data1={'nin': '202202031234'})
+        response = self._remove_nin(data1={"nin": "202202031234"})
         self._check_success_response(
             response,
-            type_='POST_SECURITY_REMOVE_NIN_SUCCESS',
+            type_="POST_SECURITY_REMOVE_NIN_SUCCESS",
             msg=SecurityMsg.rm_success,
             payload={
-                'identities': {
-                    'is_verified': True,
-                    'nin': {'number': self.test_user.identities.nin.number, 'verified': True},
-                    'eidas': {'verified': True, 'country_code': 'DE', 'date_of_birth': '1978-09-02'},
+                "identities": {
+                    "is_verified": True,
+                    "nin": {"number": self.test_user.identities.nin.number, "verified": True},
+                    "eidas": {"verified": True, "country_code": "DE", "date_of_birth": "1978-09-02"},
                 },
             },
         )
@@ -316,20 +316,20 @@ class SecurityTests(EduidAPITestCase):
         assert user.identities.nin is not None
         assert user.identities.nin.is_verified is True
 
-    @patch('eduid.webapp.security.views.security.remove_nin_from_user')
+    @patch("eduid.webapp.security.views.security.remove_nin_from_user")
     def test_remove_nin_am_fail(self, mock_remove: Any):
         from eduid.common.rpc.exceptions import AmTaskFailed
 
         mock_remove.side_effect = AmTaskFailed()
         response = self._remove_nin()
 
-        self.assertTrue(response.json['payload']['message'], "Temporary technical problems")
+        self.assertTrue(response.json["payload"]["message"], "Temporary technical problems")
 
     def test_remove_nin_no_csrf(self):
-        data1 = {'csrf_token': ''}
+        data1 = {"csrf_token": ""}
         response = self._remove_nin(data1=data1)
 
-        self.assertTrue(response.json['payload']['error'])
+        self.assertTrue(response.json["payload"]["error"])
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.identities.nin is not None
@@ -337,7 +337,7 @@ class SecurityTests(EduidAPITestCase):
 
     def test_remove_verified_nin(self):
         response = self._remove_nin()
-        self._check_error_response(response, type_='POST_SECURITY_REMOVE_NIN_FAIL', msg=SecurityMsg.rm_verified)
+        self._check_error_response(response, type_="POST_SECURITY_REMOVE_NIN_FAIL", msg=SecurityMsg.rm_verified)
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.identities.nin is not None
@@ -348,13 +348,13 @@ class SecurityTests(EduidAPITestCase):
 
         self._check_success_response(
             response,
-            type_='POST_SECURITY_ADD_NIN_SUCCESS',
+            type_="POST_SECURITY_ADD_NIN_SUCCESS",
             msg=SecurityMsg.add_success,
             payload={
-                'identities': {
-                    'is_verified': True,
-                    'eidas': {'verified': True, 'country_code': 'DE', 'date_of_birth': '1978-09-02'},
-                    'nin': {'number': self.test_user_nin, 'verified': False},
+                "identities": {
+                    "is_verified": True,
+                    "eidas": {"verified": True, "country_code": "DE", "date_of_birth": "1978-09-02"},
+                    "nin": {"number": self.test_user_nin, "verified": False},
                 },
             },
         )
@@ -366,7 +366,7 @@ class SecurityTests(EduidAPITestCase):
     def test_add_existing_nin(self):
         response = self._add_nin(remove=False)
 
-        self.assertEqual(response.json['payload']['message'], 'nins.already_exists')
+        self.assertEqual(response.json["payload"]["message"], "nins.already_exists")
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.identities.nin is not None
@@ -375,44 +375,44 @@ class SecurityTests(EduidAPITestCase):
     def test_add_other_existing_unverified_nin(self):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         number_before = user.identities.nin.number
-        data1 = {'nin': '202201023456'}
+        data1 = {"nin": "202201023456"}
         response = self._add_nin(data1=data1, remove=False, unverify=True)
 
-        self.assertEqual(response.json['payload']['message'], 'nins.already_exists')
+        self.assertEqual(response.json["payload"]["message"], "nins.already_exists")
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.identities.nin is not None
         assert user.identities.nin.is_verified is False
         assert user.identities.nin.number == number_before
 
-    @patch('eduid.webapp.security.views.security.add_nin_to_user')
+    @patch("eduid.webapp.security.views.security.add_nin_to_user")
     def test_add_nin_task_failed(self, mock_add):
         from eduid.common.rpc.exceptions import AmTaskFailed
 
         mock_add.side_effect = AmTaskFailed()
         response = self._add_nin()
 
-        self.assertEqual(response.json['payload']['message'], 'Temporary technical problems')
+        self.assertEqual(response.json["payload"]["message"], "Temporary technical problems")
 
     def test_add_nin_bad_csrf(self):
-        data1 = {'csrf_token': 'bad-token'}
+        data1 = {"csrf_token": "bad-token"}
         response = self._add_nin(data1=data1, remove=False)
 
-        self.assertTrue(response.json['payload']['error'])
+        self.assertTrue(response.json["payload"]["error"])
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.identities.nin is not None
         assert user.identities.nin.is_verified is True
 
     def test_add_invalid_nin(self):
-        data1 = {'nin': '123456789'}
+        data1 = {"nin": "123456789"}
         response = self._add_nin(data1=data1, remove=False)
-        self.assertIsNotNone(response.json['payload']['error']['nin'])
+        self.assertIsNotNone(response.json["payload"]["error"]["nin"])
 
         self._check_error_response(
             response,
-            type_='POST_SECURITY_ADD_NIN_FAIL',
-            error={'nin': ['nin needs to be formatted as 18|19|20yymmddxxxx']},
+            type_="POST_SECURITY_ADD_NIN_FAIL",
+            error={"nin": ["nin needs to be formatted as 18|19|20yymmddxxxx"]},
         )
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.identities.nin is not None
@@ -424,18 +424,18 @@ class SecurityTests(EduidAPITestCase):
         Make sure the users display name do not change.
         """
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        assert user.given_name == 'John'
-        assert user.surname == 'Smith'
-        assert user.display_name == 'John Smith'
+        assert user.given_name == "John"
+        assert user.surname == "Smith"
+        assert user.display_name == "John Smith"
 
         response = self._refresh_user_data(user=user)
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        assert user.given_name == 'Testaren Test'
-        assert user.surname == 'Testsson'
-        assert user.display_name == 'Test Testsson'
+        assert user.given_name == "Testaren Test"
+        assert user.surname == "Testsson"
+        assert user.display_name == "Test Testsson"
         self._check_success_response(
             response,
-            type_='POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS',
+            type_="POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS",
             msg=SecurityMsg.user_updated,
         )
 
@@ -451,12 +451,12 @@ class SecurityTests(EduidAPITestCase):
 
         response = self._refresh_user_data(user=user)
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        assert user.given_name == 'Testaren Test'
-        assert user.surname == 'Testsson'
-        assert user.display_name == 'Test Testsson'
+        assert user.given_name == "Testaren Test"
+        assert user.surname == "Testsson"
+        assert user.display_name == "Test Testsson"
         self._check_success_response(
             response,
-            type_='POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS',
+            type_="POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS",
             msg=SecurityMsg.user_updated,
         )
 
@@ -469,7 +469,7 @@ class SecurityTests(EduidAPITestCase):
         self._refresh_user_data(user=user)
         response = self._refresh_user_data(user=user)
         self._check_error_response(
-            response, type_='POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_FAIL', msg=SecurityMsg.user_update_throttled
+            response, type_="POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_FAIL", msg=SecurityMsg.user_update_throttled
         )
 
     def test_refresh_user_official_name_user_not_verified(self):
@@ -482,7 +482,7 @@ class SecurityTests(EduidAPITestCase):
         self.app.central_userdb.save(user)
         response = self._refresh_user_data(user=user)
         self._check_error_response(
-            response, type_='POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_FAIL', msg=SecurityMsg.user_not_verified
+            response, type_="POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_FAIL", msg=SecurityMsg.user_not_verified
         )
 
     def test_refresh_user_official_name_user_no_names_set(self):
@@ -491,86 +491,86 @@ class SecurityTests(EduidAPITestCase):
         """
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         # Unset names from the users
-        user.given_name = ''
-        user.surname = ''
-        user.display_name = ''
+        user.given_name = ""
+        user.surname = ""
+        user.display_name = ""
         self.app.central_userdb.save(user)
 
         response = self._refresh_user_data(user=user)
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        assert user.given_name == 'Testaren Test'
-        assert user.surname == 'Testsson'
-        assert user.display_name == 'Test Testsson'
+        assert user.given_name == "Testaren Test"
+        assert user.surname == "Testsson"
+        assert user.display_name == "Test Testsson"
         self._check_success_response(
-            response, type_='POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS', msg=SecurityMsg.user_updated
+            response, type_="POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS", msg=SecurityMsg.user_updated
         )
 
     def _get_credentials(self):
-        response = self.browser.get('/credentials')
+        response = self.browser.get("/credentials")
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
-        eppn = self.test_user_data['eduPersonPrincipalName']
+        eppn = self.test_user_data["eduPersonPrincipalName"]
         with self.session_cookie(self.browser, eppn) as client:
-            return client.get('/credentials')
+            return client.get("/credentials")
 
     def test_get_credentials(self):
         response = self._get_credentials()
         expected_payload = {
-            'credentials': [
+            "credentials": [
                 {
-                    'created_ts': '2013-09-02 10:23:25+00:00',
-                    'credential_type': 'security.password_credential_type',
-                    'description': None,
-                    'key': '112345678901234567890123',
-                    'success_ts': None,
-                    'used_for_login': False,
-                    'verified': False,
+                    "created_ts": "2013-09-02 10:23:25+00:00",
+                    "credential_type": "security.password_credential_type",
+                    "description": None,
+                    "key": "112345678901234567890123",
+                    "success_ts": None,
+                    "used_for_login": False,
+                    "verified": False,
                 }
             ],
         }
-        self._check_success_response(response, type_='GET_SECURITY_CREDENTIALS_SUCCESS', payload=expected_payload)
+        self._check_success_response(response, type_="GET_SECURITY_CREDENTIALS_SUCCESS", payload=expected_payload)
 
     def _get_suggested(self):
-        response = self.browser.get('/suggested-password')
+        response = self.browser.get("/suggested-password")
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
-        eppn = self.test_user_data['eduPersonPrincipalName']
+        eppn = self.test_user_data["eduPersonPrincipalName"]
         with self.session_cookie(self.browser, eppn) as client:
-            return client.get('/suggested-password')
+            return client.get("/suggested-password")
 
     def test_get_suggested(self):
         response = self._get_suggested()
 
         passwd = json.loads(response.data)
-        self.assertEqual(passwd['type'], 'GET_SECURITY_SUGGESTED_PASSWORD_SUCCESS')
+        self.assertEqual(passwd["type"], "GET_SECURITY_SUGGESTED_PASSWORD_SUCCESS")
 
     def test_change_passwd_no_data(self):
-        response = self.browser.post('/change-password')
+        response = self.browser.post("/change-password")
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
-        eppn = self.test_user_data['eduPersonPrincipalName']
+        eppn = self.test_user_data["eduPersonPrincipalName"]
         with self.session_cookie(self.browser, eppn) as client:
-            response2 = client.post('/change-password')
+            response2 = client.post("/change-password")
 
             sec_data = json.loads(response2.data)
-            self.assertEqual(sec_data['payload']['message'], 'chpass.no-data')
-            self.assertEqual(sec_data['type'], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
+            self.assertEqual(sec_data["payload"]["message"], "chpass.no-data")
+            self.assertEqual(sec_data["type"], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
 
     def test_change_passwd_no_reauthn(self):
-        eppn = self.test_user_data['eduPersonPrincipalName']
+        eppn = self.test_user_data["eduPersonPrincipalName"]
         with self.session_cookie(self.browser, eppn) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
                     data = {
-                        'csrf_token': sess.get_csrf_token(),
-                        'new_password': 'j7/E >pO9 ,$Sr',
-                        'old_password': '5678',
+                        "csrf_token": sess.get_csrf_token(),
+                        "new_password": "j7/E >pO9 ,$Sr",
+                        "old_password": "5678",
                     }
-            response2 = client.post('/change-password', data=json.dumps(data), content_type=self.content_type_json)
-        self._check_error_response(response2, type_='POST_SECURITY_CHANGE_PASSWORD_FAIL', msg=SecurityMsg.no_reauthn)
+            response2 = client.post("/change-password", data=json.dumps(data), content_type=self.content_type_json)
+        self._check_error_response(response2, type_="POST_SECURITY_CHANGE_PASSWORD_FAIL", msg=SecurityMsg.no_reauthn)
 
     def test_change_passwd_stale(self):
-        eppn = self.test_user_data['eduPersonPrincipalName']
+        eppn = self.test_user_data["eduPersonPrincipalName"]
         with self.session_cookie(self.browser, eppn) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
@@ -578,90 +578,90 @@ class SecurityTests(EduidAPITestCase):
                     _authn_id = AuthnRequestRef(str(uuid4()))
                     sess.authn.sp.authns[_authn_id] = SP_AuthnRequest(
                         post_authn_action=AuthnAcsAction.change_password,
-                        redirect_url='/test',
+                        redirect_url="/test",
                         authn_instant=utc_now() - timedelta(days=1),
                         frontend_action=FALLBACK_FRONTEND_ACTION,
                     )
                     data = {
-                        'csrf_token': sess.get_csrf_token(),
-                        'new_password': 'j7/E >pO9 ,$Sr O0;&',
-                        'old_password': '5678',
+                        "csrf_token": sess.get_csrf_token(),
+                        "new_password": "j7/E >pO9 ,$Sr O0;&",
+                        "old_password": "5678",
                     }
-            response2 = client.post('/change-password', data=json.dumps(data), content_type=self.content_type_json)
-        self._check_error_response(response2, type_='POST_SECURITY_CHANGE_PASSWORD_FAIL', msg=SecurityMsg.stale_reauthn)
+            response2 = client.post("/change-password", data=json.dumps(data), content_type=self.content_type_json)
+        self._check_error_response(response2, type_="POST_SECURITY_CHANGE_PASSWORD_FAIL", msg=SecurityMsg.stale_reauthn)
 
-    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_change_passwd_no_csrf(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
-        eppn = self.test_user_data['eduPersonPrincipalName']
+        eppn = self.test_user_data["eduPersonPrincipalName"]
         with self.session_cookie(self.browser, eppn) as client:
-            with patch('eduid.webapp.security.views.security.add_credentials', return_value=True):
+            with patch("eduid.webapp.security.views.security.add_credentials", return_value=True):
                 # with client.session_transaction() as sess:
                 #    sess['reauthn-for-chpass'] = int(time.time())
-                data = {'new_password': 'j7/E >pO9 ,$Sr O0;&', 'old_password': '5678'}
-                response2 = client.post('/change-password', data=json.dumps(data), content_type=self.content_type_json)
+                data = {"new_password": "j7/E >pO9 ,$Sr O0;&", "old_password": "5678"}
+                response2 = client.post("/change-password", data=json.dumps(data), content_type=self.content_type_json)
 
                 self.assertEqual(response2.status_code, 200)
 
                 sec_data = json.loads(response2.data)
-                self.assertEqual(sec_data['payload']['message'], 'chpass.weak-password')
-                self.assertEqual(sec_data['type'], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
+                self.assertEqual(sec_data["payload"]["message"], "chpass.weak-password")
+                self.assertEqual(sec_data["type"], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
 
-    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_change_passwd_wrong_csrf(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
-        eppn = self.test_user_data['eduPersonPrincipalName']
+        eppn = self.test_user_data["eduPersonPrincipalName"]
         with self.session_cookie(self.browser, eppn) as client:
-            with patch('eduid.webapp.security.views.security.add_credentials', return_value=True):
+            with patch("eduid.webapp.security.views.security.add_credentials", return_value=True):
                 with client.session_transaction() as sess:
                     # sess['reauthn-for-chpass'] = int(time.time())
-                    data = {'csrf_token': '0000', 'new_password': 'j7/E >pO9 ,$Sr O0;&', 'old_password': '5678'}
-                response2 = client.post('/change-password', data=json.dumps(data), content_type=self.content_type_json)
+                    data = {"csrf_token": "0000", "new_password": "j7/E >pO9 ,$Sr O0;&", "old_password": "5678"}
+                response2 = client.post("/change-password", data=json.dumps(data), content_type=self.content_type_json)
 
                 sec_data = json.loads(response2.data)
-                self.assertEqual(sec_data['payload']['message'], 'csrf.try_again')
-                self.assertEqual(sec_data['type'], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
+                self.assertEqual(sec_data["payload"]["message"], "csrf.try_again")
+                self.assertEqual(sec_data["type"], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
 
-    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_change_passwd_weak(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
-        eppn = self.test_user_data['eduPersonPrincipalName']
+        eppn = self.test_user_data["eduPersonPrincipalName"]
         with self.session_cookie(self.browser, eppn) as client:
-            with patch('eduid.webapp.security.views.security.add_credentials', return_value=True):
+            with patch("eduid.webapp.security.views.security.add_credentials", return_value=True):
                 with self.app.test_request_context():
                     with client.session_transaction() as sess:
                         # sess['reauthn-for-chpass'] = int(time.time())
-                        data = {'csrf_token': sess.get_csrf_token(), 'new_password': '1234', 'old_password': '5678'}
-                response2 = client.post('/change-password', data=json.dumps(data), content_type=self.content_type_json)
+                        data = {"csrf_token": sess.get_csrf_token(), "new_password": "1234", "old_password": "5678"}
+                response2 = client.post("/change-password", data=json.dumps(data), content_type=self.content_type_json)
 
                 self.assertEqual(response2.status_code, 200)
 
                 sec_data = json.loads(response2.data)
-                self.assertEqual(sec_data['payload']['message'], 'chpass.weak-password')
-                self.assertEqual(sec_data['type'], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
+                self.assertEqual(sec_data["payload"]["message"], "chpass.weak-password")
+                self.assertEqual(sec_data["type"], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
 
-    @patch('eduid.common.rpc.am_relay.AmRelay.request_user_sync')
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_change_passwd(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.request_user_sync
-        eppn = self.test_user_data['eduPersonPrincipalName']
+        eppn = self.test_user_data["eduPersonPrincipalName"]
         with self.session_cookie(self.browser, eppn) as client:
-            with patch('eduid.webapp.security.views.security.add_credentials', return_value=True):
+            with patch("eduid.webapp.security.views.security.add_credentials", return_value=True):
                 with self.app.test_request_context():
                     with client.session_transaction() as sess:
                         # Add authn data faking a reauthn event has taken place for this action
                         _authn_id = AuthnRequestRef(str(uuid4()))
                         sess.authn.sp.authns[_authn_id] = SP_AuthnRequest(
                             post_authn_action=AuthnAcsAction.change_password,
-                            redirect_url='/test',
+                            redirect_url="/test",
                             authn_instant=utc_now() - timedelta(seconds=12),
                             frontend_action=FALLBACK_FRONTEND_ACTION,
                         )
                         data = {
-                            'csrf_token': sess.get_csrf_token(),
-                            'new_password': 'j7/E >pO9 ,$Sr O0;&',
-                            'old_password': '5678',
+                            "csrf_token": sess.get_csrf_token(),
+                            "new_password": "j7/E >pO9 ,$Sr O0;&",
+                            "old_password": "5678",
                         }
-                response2 = client.post('/change-password', data=json.dumps(data), content_type=self.content_type_json)
+                response2 = client.post("/change-password", data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(
-            response2, type_='POST_SECURITY_CHANGE_PASSWORD_SUCCESS', msg=SecurityMsg.chpass_password_changed2
+            response2, type_="POST_SECURITY_CHANGE_PASSWORD_SUCCESS", msg=SecurityMsg.chpass_password_changed2
         )

@@ -8,7 +8,7 @@ import eduid.userdb.element
 import eduid.userdb.exceptions
 from eduid.userdb.orcid import OidcAuthorization, OidcIdToken, Orcid
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 token_response = {
     "access_token": "b8b8ca5d-b233-4d49-830a-ede934c626d3",
@@ -39,18 +39,18 @@ class TestOrcid(unittest.TestCase):
     maxDiff = None
 
     def test_id_token(self):
-        id_token_data = token_response['id_token']
-        id_token_data['created_by'] = 'test'
+        id_token_data = token_response["id_token"]
+        id_token_data["created_by"] = "test"
         id_token_1 = OidcIdToken.from_dict(id_token_data)
         id_token_2 = OidcIdToken(
-            iss=id_token_data['iss'],
-            sub=id_token_data['sub'],
-            aud=id_token_data['aud'],
-            exp=id_token_data['exp'],
-            iat=id_token_data['iat'],
-            nonce=id_token_data['nonce'],
-            auth_time=id_token_data['auth_time'],
-            created_by='test',
+            iss=id_token_data["iss"],
+            sub=id_token_data["sub"],
+            aud=id_token_data["aud"],
+            exp=id_token_data["exp"],
+            iat=id_token_data["iat"],
+            nonce=id_token_data["nonce"],
+            auth_time=id_token_data["auth_time"],
+            created_by="test",
         )
 
         self.assertIsInstance(id_token_1, OidcIdToken)
@@ -60,8 +60,8 @@ class TestOrcid(unittest.TestCase):
         dict_1 = id_token_1.to_dict()
         dict_2 = id_token_2.to_dict()
 
-        del dict_2['created_ts']
-        del dict_2['modified_ts']
+        del dict_2["created_ts"]
+        del dict_2["modified_ts"]
 
         assert dict_1 == dict_2
 
@@ -69,19 +69,19 @@ class TestOrcid(unittest.TestCase):
             OidcIdToken.from_dict(None)
 
     def test_oidc_authz(self):
-        id_token_data = token_response['id_token']
-        id_token_data['created_by'] = 'test'
-        id_token = OidcIdToken.from_dict(token_response['id_token'])
+        id_token_data = token_response["id_token"]
+        id_token_data["created_by"] = "test"
+        id_token = OidcIdToken.from_dict(token_response["id_token"])
 
-        token_response['created_by'] = 'test'
+        token_response["created_by"] = "test"
         oidc_authz_1 = OidcAuthorization.from_dict(token_response)
         oidc_authz_2 = OidcAuthorization(
-            access_token=token_response['access_token'],
-            token_type=token_response['token_type'],
+            access_token=token_response["access_token"],
+            token_type=token_response["token_type"],
             id_token=id_token,
-            expires_in=token_response['expires_in'],
-            refresh_token=token_response['refresh_token'],
-            created_by='test',
+            expires_in=token_response["expires_in"],
+            refresh_token=token_response["refresh_token"],
+            created_by="test",
         )
 
         self.assertIsInstance(oidc_authz_1, OidcAuthorization)
@@ -91,8 +91,8 @@ class TestOrcid(unittest.TestCase):
         dict_1 = oidc_authz_1.to_dict()
         dict_2 = oidc_authz_2.to_dict()
 
-        del dict_2['created_ts']
-        del dict_2['modified_ts']
+        del dict_2["created_ts"]
+        del dict_2["modified_ts"]
 
         assert dict_1 == dict_2
 
@@ -100,11 +100,11 @@ class TestOrcid(unittest.TestCase):
             OidcAuthorization.from_dict(None)
 
     def test_orcid(self):
-        token_response['id_token']['created_by'] = 'test'
-        token_response['created_by'] = 'test'
+        token_response["id_token"]["created_by"] = "test"
+        token_response["created_by"] = "test"
         oidc_authz = OidcAuthorization.from_dict(token_response)
         orcid_1 = Orcid(
-            id='https://op.example.org/user_orcid', oidc_authz=oidc_authz, created_by='test', is_verified=True
+            id="https://op.example.org/user_orcid", oidc_authz=oidc_authz, created_by="test", is_verified=True
         )
         orcid_2 = Orcid.from_dict(data=orcid_1.to_dict())
 
@@ -122,12 +122,12 @@ class TestOrcid(unittest.TestCase):
         assert dict_1 == dict_2
 
         data = orcid_1.to_dict()
-        data['unknown_key'] = 'test'
+        data["unknown_key"] = "test"
 
         with pytest.raises(ValidationError) as exc_info:
             Orcid.from_dict(data)
         assert exc_info.value.errors() == [
-            {'loc': ('unknown_key',), 'msg': 'extra fields not permitted', 'type': 'value_error.extra'}
+            {"loc": ("unknown_key",), "msg": "extra fields not permitted", "type": "value_error.extra"}
         ]
 
         with pytest.raises(eduid.userdb.exceptions.UserDBValueError):

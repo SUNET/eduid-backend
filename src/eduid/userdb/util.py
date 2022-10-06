@@ -31,7 +31,7 @@
 #
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
-__author__ = 'ft'
+__author__ = "ft"
 
 import datetime
 

@@ -15,7 +15,7 @@ from eduid.scimapi.models.scimbase import (
     SubResource,
 )
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class Profile(EduidBaseModel):
@@ -47,8 +47,8 @@ class Group(SubResource):
 class User(EduidBaseModel):
     name: Name = Field(default_factory=Name)
     emails: List[Email] = Field(default_factory=list)
-    phone_numbers: List[PhoneNumber] = Field(default_factory=list, alias='phoneNumbers')
-    preferred_language: Optional[LanguageTag] = Field(default=None, alias='preferredLanguage')
+    phone_numbers: List[PhoneNumber] = Field(default_factory=list, alias="phoneNumbers")
+    preferred_language: Optional[LanguageTag] = Field(default=None, alias="preferredLanguage")
     groups: List[Group] = Field(default_factory=list)
     nutid_user_v1: Optional[NutidUserExtensionV1] = Field(
         default_factory=NutidUserExtensionV1, alias=SCIMSchema.NUTID_USER_V1.value

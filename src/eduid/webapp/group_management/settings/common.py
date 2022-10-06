@@ -44,18 +44,18 @@ class GroupManagementConfig(EduIDBaseAppConfig, MailConfigMixin):
     Configuration for the group_management app
     """
 
-    app_name: str = 'group_management'
+    app_name: str = "group_management"
 
-    eduid_site_name: str = 'eduID'
+    eduid_site_name: str = "eduID"
     eduid_site_url: str
 
-    group_invite_template_html: str = 'group_invite_email.html.jinja2'
-    group_invite_template_txt: str = 'group_invite_email.txt.jinja2'
-    group_delete_invite_template_html: str = 'group_delete_invite_email.html.jinja2'
-    group_delete_invite_template_txt: str = 'group_delete_invite_email.txt.jinja2'
-    group_invite_url: str = 'https://dashboard.eduid.se'
-    mail_default_from: str = 'no-reply@eduid.se'
+    group_invite_template_html: str = "group_invite_email.html.jinja2"
+    group_invite_template_txt: str = "group_invite_email.txt.jinja2"
+    group_delete_invite_template_html: str = "group_delete_invite_email.html.jinja2"
+    group_delete_invite_template_txt: str = "group_delete_invite_email.txt.jinja2"
+    group_invite_url: str = "https://dashboard.eduid.se"
+    mail_default_from: str = "no-reply@eduid.se"
     neo4j_config: Optional[Dict[str, Any]] = None
-    neo4j_uri: str = ''
-    scim_data_owner: str = 'eduid.se'
-    scim_external_id_scope: str = 'eduid.se'
+    neo4j_uri: str = ""
+    scim_data_owner: str = "eduid.se"
+    scim_external_id_scope: str = "eduid.se"

@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 
 
 class IdPUserDb(UserDB[IdPUser]):
-    def __init__(self, db_uri: str, db_name: str = 'eduid_am', collection: str = 'attributes'):
+    def __init__(self, db_uri: str, db_name: str = "eduid_am", collection: str = "attributes"):
         super().__init__(db_uri, db_name, collection=collection)
 
     @classmethod
@@ -63,17 +63,17 @@ class IdPUserDb(UserDB[IdPUser]):
         """
         user = None
         try:
-            if '@' in username:
+            if "@" in username:
                 user = self.get_user_by_mail(username.lower())
             if not user:
                 user = self.get_user_by_eppn(username.lower())
         except EduIDDBError as exc:
-            logger.warning(f'User lookup using {repr(username)} did not return a valid user: {str(exc)}')
+            logger.warning(f"User lookup using {repr(username)} did not return a valid user: {str(exc)}")
             return None
 
         if not user:
-            logger.info(f'Unknown user: {repr(username)}')
+            logger.info(f"Unknown user: {repr(username)}")
             return None
 
-        logger.debug(f'Found user {user} using {repr(username)}')
+        logger.debug(f"Found user {user} using {repr(username)}")
         return user

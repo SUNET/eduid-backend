@@ -80,7 +80,7 @@ def get_authn_ctx(session_info: SessionInfo) -> Optional[str]:
     :return: The first AuthnContext
     """
     try:
-        return session_info['authn_info'][0][0]
+        return session_info["authn_info"][0][0]
     except KeyError:
         return None
 
@@ -97,9 +97,9 @@ def get_authn_request(
     subject: Optional[Subject] = None,
 ):
     kwargs = {
-        'force_authn': str(force_authn).lower(),
+        "force_authn": str(force_authn).lower(),
     }
-    logger.debug(f'Authn request args: {kwargs}')
+    logger.debug(f"Authn request args: {kwargs}")
 
     client = Saml2Client(saml2_config)
 
@@ -114,7 +114,7 @@ def get_authn_request(
             **kwargs,
         )
     except TypeError:
-        logger.error('Unable to know which IdP to use')
+        logger.error("Unable to know which IdP to use")
         raise
 
     oq_cache = OutstandingQueriesCache(session.authn.sp.pysaml2_dicts)
@@ -151,24 +151,24 @@ def get_authn_response(
         # process the authentication response
         response = client.parse_authn_request_response(raw_response, BINDING_HTTP_POST, outstanding_queries)
     except AssertionError:
-        logger.error('SAML response is not verified')
+        logger.error("SAML response is not verified")
         raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_FAIL)
     except ParseError as e:
-        logger.error(f'SAML response is not correctly formatted: {repr(e)}')
+        logger.error(f"SAML response is not correctly formatted: {repr(e)}")
         raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_FAIL)
     except UnsolicitedResponse as e:
-        logger.error('Unsolicited SAML response')
+        logger.error("Unsolicited SAML response")
         # Extra debug to try and find the cause for some of these that seem to be incorrect
-        logger.debug(f'Session: {session}')
-        logger.debug(f'Outstanding queries cache: {oq_cache}')
-        logger.debug(f'Outstanding queries: {outstanding_queries}')
+        logger.debug(f"Session: {session}")
+        logger.debug(f"Outstanding queries cache: {oq_cache}")
+        logger.debug(f"Outstanding queries: {outstanding_queries}")
         raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_UNSOLICITED)
     except StatusError as e:
-        logger.error(f'SAML response was a failure: {repr(e)}')
+        logger.error(f"SAML response was a failure: {repr(e)}")
         raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_FAIL)
 
     if response is None:
-        logger.error('SAML response is None')
+        logger.error("SAML response is None")
         raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_FAIL)
 
     session_id = response.session_id()
@@ -176,8 +176,8 @@ def get_authn_response(
 
     authn_reqref = outstanding_queries[session_id]
     logger.debug(
-        f'Response {session_id}, request reference {authn_reqref}\n'
-        f'session info:\n{pprint.pformat(response.session_info())}\n\n'
+        f"Response {session_id}, request reference {authn_reqref}\n"
+        f"session info:\n{pprint.pformat(response.session_info())}\n\n"
     )
 
     return response, authn_reqref
@@ -194,11 +194,11 @@ def authenticate(session_info: SessionInfo, strip_suffix: Optional[str], userdb:
     :returns: User, if found
     """
     if session_info is None:
-        raise TypeError('Session info is None')
+        raise TypeError("Session info is None")
 
-    attribute_values = get_saml_attribute(session_info, 'eduPersonPrincipalName')
+    attribute_values = get_saml_attribute(session_info, "eduPersonPrincipalName")
     if not attribute_values:
-        logger.error('Could not find attribute eduPersonPrincipalName in the SAML assertion')
+        logger.error("Could not find attribute eduPersonPrincipalName in the SAML assertion")
         return None
 
     saml_user = attribute_values[0]
@@ -209,13 +209,13 @@ def authenticate(session_info: SessionInfo, strip_suffix: Optional[str], userdb:
         if saml_user.endswith(strip_suffix):
             saml_user = saml_user[: -len(strip_suffix)]
 
-    logger.debug(f'Looking for user with eduPersonPrincipalName == {repr(saml_user)}')
+    logger.debug(f"Looking for user with eduPersonPrincipalName == {repr(saml_user)}")
     try:
         return userdb.get_user_by_eppn(saml_user)
     except UserDoesNotExist:
-        logger.error(f'No user with eduPersonPrincipalName = {repr(saml_user)} found')
+        logger.error(f"No user with eduPersonPrincipalName = {repr(saml_user)} found")
     except MultipleUsersReturned:
-        logger.error(f'There are more than one user with eduPersonPrincipalName == {repr(saml_user)}')
+        logger.error(f"There are more than one user with eduPersonPrincipalName == {repr(saml_user)}")
     return None
 
 
@@ -226,10 +226,10 @@ def saml_logout(sp_config: SPConfig, user: User, location: str) -> WerkzeugRespo
     using the pysaml2 library to create the LogoutRequest.
     """
     if not session.authn.name_id:
-        logger.warning(f'The session does not contain the subject id for user {user}')
+        logger.warning(f"The session does not contain the subject id for user {user}")
         session.invalidate()
-        logger.info(f'Invalidated session for {user}')
-        logger.info(f'Redirection user to {location} for logout')
+        logger.info(f"Invalidated session for {user}")
+        logger.info(f"Redirection user to {location} for logout")
         return redirect(location)
 
     # Since we have a subject_id, call the IdP using SOAP to do a global logout
@@ -239,27 +239,27 @@ def saml_logout(sp_config: SPConfig, user: User, location: str) -> WerkzeugRespo
     client = Saml2Client(sp_config, state_cache=state, identity_cache=identity)
 
     _subject_id = decode(session.authn.name_id)
-    logger.info(f'Initiating global logout for {_subject_id}')
+    logger.info(f"Initiating global logout for {_subject_id}")
     logouts = client.global_logout(_subject_id)
-    logger.debug(f'Logout response: {logouts}')
+    logger.debug(f"Logout response: {logouts}")
 
     # Invalidate session, now that Saml2Client is done with the information within.
     session.invalidate()
-    logger.info(f'Invalidated session for {user}')
+    logger.info(f"Invalidated session for {user}")
 
     loresponse = list(logouts.values())[0]
     # loresponse is a dict for REDIRECT binding, and LogoutResponse for SOAP binding
     if isinstance(loresponse, LogoutResponse):
         if loresponse.status_ok():
-            location = sanitise_redirect_url(request.form.get('RelayState', location), location)
+            location = sanitise_redirect_url(request.form.get("RelayState", location), location)
             return redirect(location)
         else:
-            logger.error(f'The logout response was not OK: {loresponse}')
+            logger.error(f"The logout response was not OK: {loresponse}")
             abort(500)
 
-    headers_tuple = loresponse[1]['headers']
+    headers_tuple = loresponse[1]["headers"]
     location = headers_tuple[0][1]
-    logger.info(f'Redirecting {user} to {location} after successful logout')
+    logger.info(f"Redirecting {user} to {location} after successful logout")
     return redirect(location)
 
 
@@ -272,8 +272,8 @@ class AssertionData:
 
     def __str__(self) -> str:
         return (
-            f'<{self.__class__.__name__}: user={self.user}, authndata={self.authndata}, '
-            f'session_info={self.session_info}>'
+            f"<{self.__class__.__name__}: user={self.user}, authndata={self.authndata}, "
+            f"session_info={self.session_info}>"
         )
 
 
@@ -290,15 +290,15 @@ def process_assertion(
     put that in the result. This way, token vetting applications can know that a particular token was
     used for authentication when they request re-authn.
     """
-    if 'SAMLResponse' not in form:
+    if "SAMLResponse" not in form:
         abort(400)
 
-    saml_response = form['SAMLResponse']
+    saml_response = form["SAMLResponse"]
     try:
         response, authn_ref = get_authn_response(current_app.saml2_config, sp_data, session, saml_response)
-        current_app.logger.debug(f'authn response: {response}')
+        current_app.logger.debug(f"authn response: {response}")
     except BadSAMLResponse as e:
-        current_app.logger.error(f'BadSAMLResponse: {e}')
+        current_app.logger.error(f"BadSAMLResponse: {e}")
         if not current_app.conf.errors_url_template:
             return make_response(str(e), 400)
         _ctx = EduidErrorsContext.SAML_RESPONSE_FAIL
@@ -311,9 +311,9 @@ def process_assertion(
         )
 
     if authn_ref not in sp_data.authns:
-        current_app.logger.info(f'Unknown response. Redirecting user to eduID Errors page')
+        current_app.logger.info(f"Unknown response. Redirecting user to eduID Errors page")
         if not current_app.conf.errors_url_template:
-            return make_response('Unknown authn response', 400)
+            return make_response("Unknown authn response", 400)
         return goto_errors_response(
             errors_url=current_app.conf.errors_url_template,
             ctx=EduidErrorsContext.SAML_RESPONSE_UNSOLICITED,
@@ -321,25 +321,25 @@ def process_assertion(
         )
 
     authn_data = sp_data.authns[authn_ref]
-    current_app.logger.debug(f'Authentication request data retrieved from session: {authn_data}')
+    current_app.logger.debug(f"Authentication request data retrieved from session: {authn_data}")
 
     session_info = response.session_info()
-    authn_data.authn_instant = dt_parse(session_info['authn_info'][0][2])
+    authn_data.authn_instant = dt_parse(session_info["authn_info"][0][2])
 
     user = None
     if authenticate_user:
-        current_app.logger.debug('Trying to locate the user authenticated by the IdP')
+        current_app.logger.debug("Trying to locate the user authenticated by the IdP")
         user = authenticate(session_info, strip_suffix=strip_suffix, userdb=current_app.central_userdb)
         if user is None:
-            current_app.logger.error('Could not find the user identified by the IdP')
-            raise Forbidden('Access not authorized')
+            current_app.logger.error("Could not find the user identified by the IdP")
+            raise Forbidden("Access not authorized")
 
-        credentials_used = get_saml_attribute(session_info, 'eduidIdPCredentialsUsed')
+        credentials_used = get_saml_attribute(session_info, "eduidIdPCredentialsUsed")
         if credentials_used:
             for cred_used in credentials_used:
                 this = user.credentials.find(cred_used)
                 if not this:
-                    current_app.logger.warning(f'Could not find credential with key {cred_used} on user {user}')
+                    current_app.logger.warning(f"Could not find credential with key {cred_used} on user {user}")
                     continue
                 authn_data.credentials_used += [this.key]
 

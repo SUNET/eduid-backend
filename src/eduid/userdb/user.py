@@ -42,6 +42,7 @@ from typing import Any, Dict, List, Mapping, Optional, Type, TypeVar, Union, cas
 import bson
 from pydantic import BaseModel, Extra, Field, root_validator, validator, BaseConfig
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import CredentialList
 from eduid.userdb.db import BaseDB
 from eduid.userdb.element import UserDBValueError
@@ -305,9 +306,9 @@ class User(BaseModel):
             data.pop("mail")
 
         if (
-                isinstance(_mail_addresses, list)
-                and len(_mail_addresses) == 1
-                and _mail_addresses[0].get("verified", False)
+            isinstance(_mail_addresses, list)
+            and len(_mail_addresses) == 1
+            and _mail_addresses[0].get("verified", False)
         ):
             if not _mail_addresses[0].get("primary", False):
                 # A single mail address was not set as Primary until it was verified

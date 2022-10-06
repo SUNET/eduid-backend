@@ -19,7 +19,7 @@ from eduid.queue.db import Payload, QueueItem
 from eduid.queue.db.change_event import ChangeEvent, OperationType
 from eduid.queue.db.worker import AsyncQueueDB
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 logger = logging.getLogger(__name__)
 
@@ -31,16 +31,16 @@ def cancel_task(signame, task):
 
 class QueueWorker(ABC):
     def __init__(self, config: QueueWorkerConfig, handle_payloads: Sequence[Type[Payload]]):
-        worker_name = environ.get('WORKER_NAME', None)
+        worker_name = environ.get("WORKER_NAME", None)
         if worker_name is None:
-            raise RuntimeError('Environment variable WORKER_NAME needs to be set')
+            raise RuntimeError("Environment variable WORKER_NAME needs to be set")
         self.worker_name = worker_name
         self.config = config
         self.payloads = handle_payloads
         self.db: AsyncQueueDB
 
         init_logging(config=config)
-        logger.info(f'Starting {self.config.app_name}: {self.worker_name}...')
+        logger.info(f"Starting {self.config.app_name}: {self.worker_name}...")
 
     async def run(self):
         # Init db in the correct loop
@@ -52,28 +52,28 @@ class QueueWorker(ABC):
             self.db.register_handler(payload)
 
         # Create a main task for easy cleanup when exiting
-        main_task = asyncio.create_task(self.run_subtasks(), name=f'run subtasks')
+        main_task = asyncio.create_task(self.run_subtasks(), name=f"run subtasks")
         # set up signal handling to be a well behaved service
         loop = asyncio.get_running_loop()
-        for signame in {'SIGINT', 'SIGTERM'}:
+        for signame in {"SIGINT", "SIGTERM"}:
             loop.add_signal_handler(getattr(signal, signame), functools.partial(cancel_task, signame, main_task))
 
-        logger.info(f'Running: {main_task.get_name()}')
+        logger.info(f"Running: {main_task.get_name()}")
         await main_task
 
     async def run_subtasks(self):
-        logger.info(f'Initiating event stream for: {self.db}')
+        logger.info(f"Initiating event stream for: {self.db}")
         watch_collection_task = asyncio.create_task(
-            self.watch_collection(), name=f'Watch collection {self.config.mongo_collection}'
+            self.watch_collection(), name=f"Watch collection {self.config.mongo_collection}"
         )
-        logger.info(f'Initiating periodic tasks for: {self.db}')
+        logger.info(f"Initiating periodic tasks for: {self.db}")
         periodic_task = asyncio.create_task(
-            self.periodic_collection_check(), name=f'Periodic check for {self.config.mongo_collection}'
+            self.periodic_collection_check(), name=f"Periodic check for {self.config.mongo_collection}"
         )
         try:
             await asyncio.gather(watch_collection_task, periodic_task)
         except CancelledError:
-            logger.info('run_tasks task was cancelled')
+            logger.info("run_tasks task was cancelled")
 
     async def item_successfully_handled(self, queue_item: QueueItem) -> None:
         """
@@ -81,7 +81,7 @@ class QueueWorker(ABC):
         """
         timeit = datetime.utcnow() - queue_item.created_ts
         await self.db.remove_item(queue_item.item_id)
-        logger.info(f'QueueItem with id: {queue_item.item_id} successfully processed after {timeit.seconds}s.')
+        logger.info(f"QueueItem with id: {queue_item.item_id} successfully processed after {timeit.seconds}s.")
 
     async def retry_item(self, queue_item: QueueItem) -> None:
         """
@@ -94,9 +94,9 @@ class QueueWorker(ABC):
             new_queue_item = replace(queue_item, retries=retries, processed_by=None, processed_ts=None)
             success = await self.db.replace_item(queue_item, new_queue_item)
             if not success:
-                logger.warning('Replacing QueueItem failed.')
-                logger.warning(f'QueueItem with id: {queue_item.item_id} will NOT be retried.')
-            logger.info(f'QueueItem with id: {queue_item.item_id} will be retried')
+                logger.warning("Replacing QueueItem failed.")
+                logger.warning(f"QueueItem with id: {queue_item.item_id} will NOT be retried.")
+            logger.info(f"QueueItem with id: {queue_item.item_id} will be retried")
 
     async def process_new_item(self, document_id: str) -> None:
         """
@@ -107,7 +107,7 @@ class QueueWorker(ABC):
             try:
                 await self.handle_new_item(queue_item)
             except Exception as e:
-                logger.exception(f'QueueItem processing failed with: {repr(e)}')
+                logger.exception(f"QueueItem processing failed with: {repr(e)}")
 
     async def handle_change(self, change: ChangeEvent):
         """
@@ -116,7 +116,7 @@ class QueueWorker(ABC):
         if change.operation_type == OperationType.INSERT:
             await self.process_new_item(change.document_key.id)
         else:
-            logger.debug(f'{change.operation_type.value}: {change}')
+            logger.debug(f"{change.operation_type.value}: {change}")
 
     async def watch_collection(self):
         change_stream = None
@@ -125,37 +125,37 @@ class QueueWorker(ABC):
             async with self.db.collection.watch() as change_stream:
                 async for change in change_stream:
                     change_event = ChangeEvent.from_dict(change)
-                    tasks.append(asyncio.create_task(self.handle_change(change_event), name='handle_change'))
+                    tasks.append(asyncio.create_task(self.handle_change(change_event), name="handle_change"))
                     tasks = [task for task in tasks if not task.done()]
-                    logger.debug(f'watch_collection: {len(tasks)} running tasks')
+                    logger.debug(f"watch_collection: {len(tasks)} running tasks")
         except CancelledError:
-            logger.info('watch_collection task was cancelled')
+            logger.info("watch_collection task was cancelled")
         finally:
             if change_stream is not None:
-                logger.info('Closing watch stream...')
+                logger.info("Closing watch stream...")
                 await change_stream.close()
                 # Wait for tasks to finish before exiting
-                logger.info('Cleaning up watch_collection task...')
+                logger.info("Cleaning up watch_collection task...")
                 await asyncio.gather(*tasks)
 
     async def periodic_collection_check(self):
         tasks = []
         try:
             while True:
-                logger.debug(f'Running periodic collection check')
+                logger.debug(f"Running periodic collection check")
                 tasks = await self.collect_periodic_tasks()
 
                 # TODO: Implement some kind of retry of failed events here
 
                 tasks = [task for task in tasks if not task.done()]
-                logger.debug(f'periodic_collection_check: {len(tasks)} running tasks')
-                logger.debug(f'periodic_collection_check: sleeping for {self.config.periodic_interval}s')
+                logger.debug(f"periodic_collection_check: {len(tasks)} running tasks")
+                logger.debug(f"periodic_collection_check: sleeping for {self.config.periodic_interval}s")
                 await asyncio.sleep(self.config.periodic_interval)
         except CancelledError:
-            logger.info('periodic_collection_check task was cancelled')
+            logger.info("periodic_collection_check task was cancelled")
         finally:
             # Wait for tasks to finish before exiting
-            logger.info('Cleaning up periodic_collection_check task...')
+            logger.info("Cleaning up periodic_collection_check task...")
             await asyncio.gather(*tasks)
 
     async def collect_periodic_tasks(self) -> List[Task]:
@@ -170,13 +170,13 @@ class QueueWorker(ABC):
             processed=False, min_age_in_seconds=self.config.periodic_min_retry_wait_in_seconds, expired=False
         )
         if len(items) > 0:
-            logger.info(f'{len(items)} item(s) was forgotten or should be retried, processing...')
+            logger.info(f"{len(items)} item(s) was forgotten or should be retried, processing...")
         for item in items:
-            logger.debug(f'item: {item}')
+            logger.debug(f"item: {item}")
             tasks.append(
                 asyncio.create_task(
-                    self.process_new_item(document_id=item['_id']),
-                    name='periodic_process_new_item',
+                    self.process_new_item(document_id=item["_id"]),
+                    name="periodic_process_new_item",
                 )
             )
         return tasks
@@ -188,12 +188,12 @@ class QueueWorker(ABC):
             processed=False, min_age_in_seconds=self.config.periodic_min_retry_wait_in_seconds, expired=True
         )
         if len(items) > 0:
-            logger.info(f'{len(items)} item(s) was not processed and has expired')
+            logger.info(f"{len(items)} item(s) was not processed and has expired")
         for item in items:
-            queue_item = await self.db.grab_item(item_id=item['_id'], worker_name=self.worker_name)
+            queue_item = await self.db.grab_item(item_id=item["_id"], worker_name=self.worker_name)
             if queue_item:
                 tasks.append(
-                    asyncio.create_task(self.handle_expired_item(queue_item), name='periodic_process_expired_item')
+                    asyncio.create_task(self.handle_expired_item(queue_item), name="periodic_process_expired_item")
                 )
         return tasks
 

@@ -6,11 +6,11 @@ from logging.config import dictConfig
 from eduid.common.config.exceptions import BadConfiguration
 from eduid.common.logging import LocalContext, LoggingFilters, make_dictConfig, merge_config
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 from eduid.scimapi.config import ScimApiConfig
 
-DEFAULT_FORMAT = '{asctime} | {levelname:7} | {hostname} | {name:35} | {module:10} | {message}'
+DEFAULT_FORMAT = "{asctime} | {levelname:7} | {hostname} | {name:35} | {module:10} | {message}"
 
 
 def make_local_context(app_name: str, config: ScimApiConfig) -> LocalContext:
@@ -26,7 +26,7 @@ def make_local_context(app_name: str, config: ScimApiConfig) -> LocalContext:
     log_level = config.log_level
     if config.debug:
         # Flask expects to be able to debug log in debug mode
-        log_level = 'DEBUG'
+        log_level = "DEBUG"
 
     filters = [LoggingFilters.NAMES]
 
@@ -43,7 +43,7 @@ def make_local_context(app_name: str, config: ScimApiConfig) -> LocalContext:
             relative_time=relative_time,
         )
     except (KeyError, AttributeError) as e:
-        raise BadConfiguration(message=f'Could not initialize logging local_context. {type(e).__name__}: {e}')
+        raise BadConfiguration(message=f"Could not initialize logging local_context. {type(e).__name__}: {e}")
     return local_context
 
 
@@ -53,5 +53,5 @@ def init_logging(app_name: str, config: ScimApiConfig) -> None:
     logging_config = merge_config(logging_config, config.logging_config)
     dictConfig(logging_config)
     logger = logging.getLogger(__name__)
-    logger.debug(f'Logging config:\n{pprint.pformat(logging_config, width=120)}')
+    logger.debug(f"Logging config:\n{pprint.pformat(logging_config, width=120)}")
     return None

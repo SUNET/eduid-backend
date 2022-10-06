@@ -34,7 +34,6 @@ from datetime import datetime
 
 from bson import ObjectId
 
-from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import CredentialList
 from eduid.userdb.fixtures.email_addresses import (
     johnsmith2_example_com,
@@ -46,10 +45,7 @@ from eduid.userdb.fixtures.email_addresses import (
     johnsmith_example_com_old,
     johnsmith_example_org,
 )
-from eduid.userdb.fixtures.identity import (
-    verified_eidas_identity,
-    verified_nin_identity,
-)
+from eduid.userdb.fixtures.identity import verified_eidas_identity, verified_nin_identity
 from eduid.userdb.fixtures.ladok import dashboard_ladok
 from eduid.userdb.fixtures.locked_identities import dashboard_locked_nin
 from eduid.userdb.fixtures.nins import dashboard_primary_nin, dashboard_verified_nin
@@ -85,23 +81,16 @@ mocked_user_standard = User(
     language="en",
     entitlements=["urn:mace:eduid.se:role:admin", "urn:mace:eduid.se:role:student"],
     phone_numbers=PhoneNumberList(
-        elements=[
-            dashboard_primary_phone,
-            dashboard_verified_phone,
-            dashboard_unverified_phone,
-        ]
+        elements=[dashboard_primary_phone, dashboard_verified_phone, dashboard_unverified_phone]
     ),
     mail_addresses=MailAddressList(
-        elements=[
-            johnsmith_example_com,
-            johnsmith2_example_com_old,
-            johnsmith3_example_com_unverified,
-        ]
+        elements=[johnsmith_example_com, johnsmith2_example_com_old, johnsmith3_example_com_unverified]
     ),
     credentials=CredentialList(elements=[signup_password]),
     orcid=dashboard_orcid,
     ladok=dashboard_ladok,
 )
+
 
 mocked_user_standard_2 = User(
     meta=Meta(version=ObjectId("987654321098765432103210")),
@@ -138,6 +127,7 @@ new_completed_signup_user_example = User(
     locked_identity=LockedIdentityList(),
 )
 
+
 new_signup_user_example = SignupUser(
     meta=Meta(version=ObjectId("987654321098765432103210")),
     eppn="hubba-bubba",
@@ -163,6 +153,7 @@ new_signup_user_example = SignupUser(
     pending_mail_address=johnsmith2_example_com_pending,
 )
 
+
 new_unverified_user_example = User(
     meta=Meta(version=ObjectId("987654321098765432103210")),
     eppn="hubba-baar",
@@ -184,6 +175,7 @@ new_unverified_user_example = User(
     ],
     locked_identity=LockedIdentityList(),
 )
+
 
 new_user_example = User(
     meta=Meta(

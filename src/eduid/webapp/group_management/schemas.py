@@ -40,7 +40,7 @@ from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseM
 from eduid.webapp.common.api.schemas.email import LowercaseEmail
 from eduid.webapp.common.api.schemas.validators import validate_email
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class GroupUser(EduidSchema):

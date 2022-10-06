@@ -44,11 +44,11 @@ from eduid.userdb.util import utc_now
 
 logger = logging.getLogger(__name__)
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class SecurityUserDB(UserDB[SecurityUser]):
-    def __init__(self, db_uri: str, db_name: str = 'eduid_security', collection: str = 'profiles'):
+    def __init__(self, db_uri: str, db_name: str = "eduid_security", collection: str = "profiles"):
         super().__init__(db_uri, db_name, collection=collection)
 
     @classmethod
@@ -59,7 +59,7 @@ class SecurityUserDB(UserDB[SecurityUser]):
 # @deprecated("Remove once the password reset views are served from their own webapp")
 class PasswordResetStateDB(BaseDB):
     @deprecated("Remove once the password reset views are served from their own webapp")
-    def __init__(self, db_uri, db_name='eduid_security', collection='password_reset_data'):
+    def __init__(self, db_uri, db_name="eduid_security", collection="password_reset_data"):
         super(PasswordResetStateDB, self).__init__(db_uri, db_name, collection=collection)
 
     def get_state_by_email_code(self, email_code: str) -> Optional[PasswordResetState]:
@@ -72,7 +72,7 @@ class PasswordResetStateDB(BaseDB):
 
         :raise self.MultipleDocumentsReturned: More than one document matches the search criteria
         """
-        spec = {'email_code.code': email_code}
+        spec = {"email_code.code": email_code}
         states = list(self._get_documents_by_filter(spec))
 
         if len(states) == 0:
@@ -93,7 +93,7 @@ class PasswordResetStateDB(BaseDB):
 
         :raise self.MultipleDocumentsReturned: More than one document matches the search criteria
         """
-        state = self._get_document_by_attr('eduPersonPrincipalName', eppn)
+        state = self._get_document_by_attr("eduPersonPrincipalName", eppn)
         if state:
             return self.init_state(state)
         return None
@@ -103,10 +103,10 @@ class PasswordResetStateDB(BaseDB):
         data: Mapping[str, Any]
     ) -> Optional[Union[PasswordResetEmailState, PasswordResetEmailAndPhoneState]]:
         _data = dict(copy.deepcopy(data))  # to not modify callers data
-        method = _data.pop('method', None)
-        if method == 'email':
+        method = _data.pop("method", None)
+        if method == "email":
             return PasswordResetEmailState.from_dict(_data)
-        if method == 'email_and_phone':
+        if method == "email_and_phone":
             return PasswordResetEmailAndPhoneState.from_dict(_data)
         return None
 
@@ -123,9 +123,9 @@ class PasswordResetStateDB(BaseDB):
         data = state.to_dict()
         # Remember what type of state this is, used when loading state above in init_state()
         if isinstance(state, PasswordResetEmailAndPhoneState):
-            data['method'] = 'email_and_phone'
+            data["method"] = "email_and_phone"
         elif isinstance(state, PasswordResetEmailState):
-            data['method'] = 'email'
+            data["method"] = "email"
 
         if modified is None:
             # document has never been modified
@@ -136,21 +136,21 @@ class PasswordResetStateDB(BaseDB):
             result = self._coll.insert_one(data)
             logging.debug(f"{self} Inserted new state {state} into {self._coll_name}): {result.inserted_id})")
         else:
-            test_doc: Dict[str, Any] = {'eduPersonPrincipalName': state.eppn}
+            test_doc: Dict[str, Any] = {"eduPersonPrincipalName": state.eppn}
             if check_sync:
-                test_doc['modified_ts'] = modified
+                test_doc["modified_ts"] = modified
             result = self._coll.replace_one(test_doc, data, upsert=(not check_sync))
             if check_sync and result.matched_count == 0:
                 db_ts = None
-                db_state = self._coll.find_one({'eduPersonPrincipalName': state.eppn})
+                db_state = self._coll.find_one({"eduPersonPrincipalName": state.eppn})
                 if db_state:
-                    db_ts = db_state['modified_ts']
+                    db_ts = db_state["modified_ts"]
                 logging.debug(
                     "{!s} FAILED Updating state {!r} (ts {!s}) in {!r}). ts in db = {!s}".format(
                         self, state, modified, self._coll_name, db_ts
                     )
                 )
-                raise DocumentOutOfSync('Stale state object can\'t be saved')
+                raise DocumentOutOfSync("Stale state object can't be saved")
 
             logging.debug(
                 "{!s} Updated state {!r} (ts {!s}) in {!r}): {!r}".format(
@@ -164,4 +164,4 @@ class PasswordResetStateDB(BaseDB):
 
         :type state: ProofingStateClass
         """
-        self.remove_document({'eduPersonPrincipalName': state.eppn})
+        self.remove_document({"eduPersonPrincipalName": state.eppn})

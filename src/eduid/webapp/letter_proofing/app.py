@@ -44,7 +44,7 @@ from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.letter_proofing.ekopost import Ekopost
 from eduid.webapp.letter_proofing.settings.common import LetterProofingConfig
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class LetterProofingApp(AuthnBaseApp):
@@ -70,17 +70,17 @@ current_letterp_app = cast(LetterProofingApp, current_app)
 
 
 def init_letter_proofing_app(
-    name: str = 'letter_proofing', test_config: Optional[Mapping[str, Any]] = None
+    name: str = "letter_proofing", test_config: Optional[Mapping[str, Any]] = None
 ) -> LetterProofingApp:
     """
     :param name: The name of the instance, it will affect the configuration loaded.
     :param test_config: Override config, used in test cases.
     """
-    config = load_config(typ=LetterProofingConfig, app_name=name, ns='webapp', test_config=test_config)
+    config = load_config(typ=LetterProofingConfig, app_name=name, ns="webapp", test_config=test_config)
 
     app = LetterProofingApp(config)
 
-    app.logger.info(f'Init {name} app...')
+    app.logger.info(f"Init {name} app...")
 
     # Register views
     from eduid.webapp.letter_proofing.views import letter_proofing_views

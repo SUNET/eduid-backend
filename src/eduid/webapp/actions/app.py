@@ -49,11 +49,11 @@ class PluginsRegistry(dict):
         super(PluginsRegistry, self).__init__()
         for plugin_name in app.conf.action_plugins:
             if plugin_name in self:
-                app.logger.warn(f'Duplicate entry point: {plugin_name}')
+                app.logger.warn(f"Duplicate entry point: {plugin_name}")
             else:
-                app.logger.debug(f'Registering entry point: {plugin_name}')
-                module = import_module(f'eduid.webapp.actions.actions.{plugin_name}')
-                self[plugin_name] = getattr(module, 'Plugin')
+                app.logger.debug(f"Registering entry point: {plugin_name}")
+                module = import_module(f"eduid.webapp.actions.actions.{plugin_name}")
+                self[plugin_name] = getattr(module, "Plugin")
 
 
 class ActionsApp(EduIDBaseApp):
@@ -74,7 +74,7 @@ class ActionsApp(EduIDBaseApp):
 current_actions_app: ActionsApp = cast(ActionsApp, current_app)
 
 
-def actions_init_app(name: str = 'actions', test_config: Optional[Mapping[str, Any]] = None) -> ActionsApp:
+def actions_init_app(name: str = "actions", test_config: Optional[Mapping[str, Any]] = None) -> ActionsApp:
     """
     Create an instance of an eduid actions app.
 
@@ -84,11 +84,11 @@ def actions_init_app(name: str = 'actions', test_config: Optional[Mapping[str, A
     :param name: The name of the instance, it will affect the configuration loaded.
     :param test_config: Override config, used in test cases.
     """
-    config = load_config(typ=ActionsConfig, app_name=name, ns='webapp', test_config=test_config)
+    config = load_config(typ=ActionsConfig, app_name=name, ns="webapp", test_config=test_config)
 
     app = ActionsApp(config)
 
-    app.logger.info(f'Init {config.app_name} app...')
+    app.logger.info(f"Init {config.app_name} app...")
 
     from eduid.webapp.actions.views import actions_views
 

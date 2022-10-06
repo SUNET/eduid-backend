@@ -3,7 +3,7 @@ from typing import List, Mapping, Optional, Tuple
 
 from eduid.userdb.db import BaseDB
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class ScimApiBaseDB(BaseDB):

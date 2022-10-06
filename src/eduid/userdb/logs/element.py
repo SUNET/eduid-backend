@@ -20,6 +20,7 @@ from fido_mds.models.webauthn import AttestationFormat
 
 logger = logging.getLogger(__name__)
 
+
 TLogElementSubclass = TypeVar("TLogElementSubclass", bound="LogElement")
 TNinProofingLogElementSubclass = TypeVar("TNinProofingLogElementSubclass", bound="NinProofingLogElement")
 TForeignEidProofingLogElementSubclass = TypeVar(
@@ -459,11 +460,3 @@ class FidoMetadataLogElement(LogElement):
     authenticator_id: Union[UUID, str]
     last_status_change: datetime
     metadata_entry: FidoMetadataEntry
-
-
-class UserLogElement(LogElement):
-    eppn: str = Field(alias="eduPersonPrincipalName")
-    id: Optional[bson.ObjectId] = Field(alias="_id")
-    diff: str
-    reason: str
-    source: str

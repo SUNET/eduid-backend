@@ -45,7 +45,7 @@ from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.common.authn.utils import no_authn_views
 from eduid.webapp.oidc_proofing.settings.common import OIDCProofingConfig
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class OIDCProofingApp(AuthnBaseApp):
@@ -75,7 +75,7 @@ current_oidcp_app: OIDCProofingApp = cast(OIDCProofingApp, current_app)
 
 
 def init_oidc_proofing_app(
-    name: str = 'oidc_proofing', test_config: Optional[Mapping[str, Any]] = None
+    name: str = "oidc_proofing", test_config: Optional[Mapping[str, Any]] = None
 ) -> OIDCProofingApp:
     """
     Create an instance of an oidc proofing app.
@@ -83,18 +83,18 @@ def init_oidc_proofing_app(
     :param name: The name of the instance, it will affect the configuration loaded.
     :param test_config: Override config. Used in test cases.
     """
-    config = load_config(typ=OIDCProofingConfig, app_name=name, ns='webapp', test_config=test_config)
+    config = load_config(typ=OIDCProofingConfig, app_name=name, ns="webapp", test_config=test_config)
 
     app = OIDCProofingApp(config)
 
-    app.logger.info(f'Init {app}...')
+    app.logger.info(f"Init {app}...")
 
     from eduid.webapp.oidc_proofing.views import oidc_proofing_views
 
     app.register_blueprint(oidc_proofing_views)
 
     # Register view path that should not be authorized
-    no_authn_views(config, ['/authorization-response'])
+    no_authn_views(config, ["/authorization-response"])
 
     # Initialize the oidc_client after views to be able to set correct redirect_uris
     app.oidc_client = oidc.init_client(config.client_registration_info, config.provider_configuration_info)

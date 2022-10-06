@@ -18,22 +18,22 @@ class LookupMobileMongoTestCase(MongoTestCase):
         super().setUp(**kwargs)
         if init_lookup_mobile:
             settings = {
-                'app_name': 'testing',
-                'celery': {
-                    'broker_transport': 'memory',
-                    'broker_url': 'memory://',
-                    'task_eager_propagates': True,
-                    'task_always_eager': True,
-                    'result_backend': 'cache',
-                    'cache_backend': 'memory',
+                "app_name": "testing",
+                "celery": {
+                    "broker_transport": "memory",
+                    "broker_url": "memory://",
+                    "task_eager_propagates": True,
+                    "task_always_eager": True,
+                    "result_backend": "cache",
+                    "cache_backend": "memory",
                 },
-                'mongo_uri': self.tmp_db.uri,
-                'token_service_url': 'foo',
-                'testing': True,
+                "mongo_uri": self.tmp_db.uri,
+                "token_service_url": "foo",
+                "testing": True,
             }
             self.lookup_mobile_settings = MobConfig(**settings)
 
             MobCelerySingleton.update_worker_config(self.lookup_mobile_settings)
-            logger.debug(f'Initialised lookup_mobile with config:\n{self.lookup_mobile_settings}')
+            logger.debug(f"Initialised lookup_mobile with config:\n{self.lookup_mobile_settings}")
 
             self.lookup_mobile_relay = LookupMobileRelay(MobTestConfig(**settings))

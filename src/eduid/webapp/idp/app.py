@@ -51,7 +51,7 @@ from eduid.webapp.idp.settings.common import IdPConfig
 from eduid.webapp.idp.sso_cache import SSOSessionCache
 from eduid.webapp.idp.sso_session import SSOSession, SSOSessionId, get_sso_session
 
-__author__ = 'ft'
+__author__ = "ft"
 
 
 class IdPApp(EduIDBaseApp):
@@ -69,11 +69,11 @@ class IdPApp(EduIDBaseApp):
         # Log both 'starting' and 'started' messages.
         self.logger.info("eduid-IdP server starting")
 
-        self.logger.debug(f'Loading PySAML2 server using cfgfile {config.pysaml2_config}')
+        self.logger.debug(f"Loading PySAML2 server using cfgfile {config.pysaml2_config}")
         self.IDP = init_pysaml2(config.pysaml2_config)
 
         if config.mongo_uri is None:
-            raise RuntimeError('Mongo URI is not optional for the IdP')
+            raise RuntimeError("Mongo URI is not optional for the IdP")
         self.sso_sessions = SSOSessionCache(config.mongo_uri)
 
         self.authn_info_db = None
@@ -94,7 +94,7 @@ class IdPApp(EduIDBaseApp):
         # Init celery
         self.am_relay = AmRelay(config)
 
-        self.logger.info('eduid-IdP application started')
+        self.logger.info("eduid-IdP application started")
 
     # OLD way, call sso_session.get_sso_session() directly instead, or use the @uses_sso_session decorator
     def _lookup_sso_session(self) -> Optional[SSOSession]:
@@ -109,14 +109,14 @@ class IdPApp(EduIDBaseApp):
 current_idp_app = cast(IdPApp, current_app)
 
 
-def init_idp_app(name: str = 'idp', test_config: Optional[Mapping[str, Any]] = None) -> IdPApp:
+def init_idp_app(name: str = "idp", test_config: Optional[Mapping[str, Any]] = None) -> IdPApp:
     """
     :param name: The name of the instance, it will affect the configuration loaded.
     :param test_config: Override configuration - used in tests.
 
     :return: the flask app
     """
-    config = load_config(typ=IdPConfig, app_name=name, ns='webapp', test_config=test_config)
+    config = load_config(typ=IdPConfig, app_name=name, ns="webapp", test_config=test_config)
 
     app = IdPApp(config, handle_exceptions=False)
 
@@ -145,5 +145,5 @@ def init_idp_app(name: str = 'idp', test_config: Optional[Mapping[str, Any]] = N
 
     app = init_exception_handlers(app)
 
-    app.logger.info(f'{name} initialized')
+    app.logger.info(f"{name} initialized")
     return app

@@ -20,12 +20,12 @@ from eduid.userdb.element import ElementKey
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
 from eduid.webapp.idp.other_device.data import OtherDeviceId
 
-__author__ = 'ft'
+__author__ = "ft"
 
 logger = logging.getLogger(__name__)
 
 
-AuthnRequestRef = NewType('AuthnRequestRef', str)
+AuthnRequestRef = NewType("AuthnRequestRef", str)
 
 
 class SessionNSBase(BaseModel, ABC):
@@ -39,7 +39,7 @@ class SessionNSBase(BaseModel, ABC):
         try:
             return cls(**_data)
         except ValidationError:
-            logger.warning(f'Could not parse session namespace:\n{_data}')
+            logger.warning(f"Could not parse session namespace:\n{_data}")
             raise
 
     @classmethod
@@ -48,22 +48,22 @@ class SessionNSBase(BaseModel, ABC):
         return dict(_data)
 
 
-TSessionNSSubclass = TypeVar('TSessionNSSubclass', bound=SessionNSBase)
+TSessionNSSubclass = TypeVar("TSessionNSSubclass", bound=SessionNSBase)
 
 
 @unique
 class LoginApplication(str, Enum):
-    idp = 'idp'
-    authn = 'authn'
-    signup = 'signup'
+    idp = "idp"
+    authn = "authn"
+    signup = "signup"
 
 
 @unique
 class MfaActionError(str, Enum):
-    authn_context_mismatch = 'authn_context_mismatch'
-    authn_too_old = 'authn_too_old'
-    nin_not_matching = 'nin_not_matching'
-    foreign_eid_not_matching = 'foreign_eid_not_matching'
+    authn_context_mismatch = "authn_context_mismatch"
+    authn_too_old = "authn_too_old"
+    nin_not_matching = "nin_not_matching"
+    foreign_eid_not_matching = "foreign_eid_not_matching"
 
 
 class Common(SessionNSBase):
@@ -73,7 +73,7 @@ class Common(SessionNSBase):
     preferred_language: Optional[str] = None
 
 
-WebauthnState = NewType('WebauthnState', Dict[str, Any])
+WebauthnState = NewType("WebauthnState", Dict[str, Any])
 
 
 class MfaAction(SessionNSBase):
@@ -139,11 +139,11 @@ class Actions(TimestampedNS):
     total_steps: Optional[int] = None
 
 
-RequestRef = NewType('RequestRef', str)
+RequestRef = NewType("RequestRef", str)
 
 
 class OnetimeCredType(str, Enum):
-    external_mfa = 'ext_mfa'
+    external_mfa = "ext_mfa"
 
 
 class OnetimeCredential(Credential):
@@ -190,13 +190,13 @@ class IdP_Namespace(TimestampedNS):
     @classmethod
     def _from_dict_transform(cls: Type[IdP_Namespace], data: Mapping[str, Any]) -> Dict[str, Any]:
         _data = super()._from_dict_transform(data)
-        if 'pending_requests' in _data:
+        if "pending_requests" in _data:
             # pre-parse values into the right subclass if IdP_PendingRequest
-            for k, v in _data['pending_requests'].items():
-                if 'binding' in v:
-                    _data['pending_requests'][k] = IdP_SAMLPendingRequest(**v)
-                elif 'state_id' in v:
-                    _data['pending_requests'][k] = IdP_OtherDevicePendingRequest(**v)
+            for k, v in _data["pending_requests"].items():
+                if "binding" in v:
+                    _data["pending_requests"][k] = IdP_SAMLPendingRequest(**v)
+                elif "state_id" in v:
+                    _data["pending_requests"][k] = IdP_OtherDevicePendingRequest(**v)
         return _data
 
     def log_credential_used(

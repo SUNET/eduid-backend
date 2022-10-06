@@ -4,27 +4,27 @@ from unittest import TestCase
 
 from eduid.userdb.credentials import CredentialList, CredentialProofingMethod
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 _one_dict = {
-    'app_id': 'unit test',
-    'keyhandle': 'firstWebauthnElement',
-    'credential_data': 'bar',
+    "app_id": "unit test",
+    "keyhandle": "firstWebauthnElement",
+    "credential_data": "bar",
 }
 _two_dict = {
-    'app_id': 'unit test',
-    'keyhandle': 'secondWebauthnElement',
-    'credential_data': 'bar',
+    "app_id": "unit test",
+    "keyhandle": "secondWebauthnElement",
+    "credential_data": "bar",
 }
 _three_dict = {
-    'app_id': 'unit test',
-    'keyhandle': 'thirdWebauthnElement',
-    'credential_data': 'bar',
+    "app_id": "unit test",
+    "keyhandle": "thirdWebauthnElement",
+    "credential_data": "bar",
 }
 
 
 def _keyid(key):
-    return 'sha256:' + sha256(key['keyhandle'].encode('utf-8') + key['credential_data'].encode('utf-8')).hexdigest()
+    return "sha256:" + sha256(key["keyhandle"].encode("utf-8") + key["credential_data"].encode("utf-8")).hexdigest()
 
 
 class TestWebauthn(TestCase):
@@ -43,8 +43,8 @@ class TestWebauthn(TestCase):
             this.key,
             _keyid(
                 {
-                    'keyhandle': this.keyhandle,
-                    'credential_data': this.credential_data,
+                    "keyhandle": this.keyhandle,
+                    "credential_data": this.credential_data,
                 }
             ),
         )
@@ -59,8 +59,8 @@ class TestWebauthn(TestCase):
 
     def test_created_by(self):
         this = self.three.find(_keyid(_three_dict))
-        this.created_by = 'unit test'
-        self.assertEqual(this.created_by, 'unit test')
+        this.created_by = "unit test"
+        self.assertEqual(this.created_by, "unit test")
 
     def test_created_ts(self):
         this = self.three.find(_keyid(_three_dict))
@@ -77,9 +77,9 @@ class TestWebauthn(TestCase):
 
     def test_proofing_version(self):
         this = self.three.find(_keyid(_three_dict))
-        this.proofing_version = 'TEST'
-        self.assertEqual(this.proofing_version, 'TEST')
-        this.proofing_version = 'TEST2'
-        self.assertEqual(this.proofing_version, 'TEST2')
+        this.proofing_version = "TEST"
+        self.assertEqual(this.proofing_version, "TEST")
+        this.proofing_version = "TEST2"
+        self.assertEqual(this.proofing_version, "TEST2")
         this.proofing_version = None
         self.assertEqual(this.proofing_version, None)

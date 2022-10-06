@@ -43,27 +43,27 @@ from eduid.webapp.actions.helpers import ActionsMsg
 from eduid.webapp.common.authn import fido_tokens
 from eduid.webapp.common.session import session
 
-__author__ = 'ft'
+__author__ = "ft"
 
 
 class Plugin(ActionPlugin):
 
-    PLUGIN_NAME = 'mfa'
+    PLUGIN_NAME = "mfa"
     steps = 1
 
     @classmethod
     def includeme(cls, app: ActionsApp):
         if not app.conf.eidas_url:
-            app.logger.error(f'The configuration option eidas_url is required with plugin MFA')
+            app.logger.error(f"The configuration option eidas_url is required with plugin MFA")
         if not app.conf.mfa_authn_idp:
-            app.logger.error(f'The configuration option mfa_authn_idp is required with plugin MFA')
+            app.logger.error(f"The configuration option mfa_authn_idp is required with plugin MFA")
 
         app.conf.mfa_testing = False
 
     def get_config_for_bundle(self, action: Action) -> Mapping[str, Any]:
         eppn = action.eppn
         user = current_app.central_userdb.get_user_by_eppn(eppn)
-        current_app.logger.debug('Loaded User {} from db'.format(user))
+        current_app.logger.debug("Loaded User {} from db".format(user))
         if not user:
             raise self.ActionError(ActionsMsg.user_not_found)
 
@@ -76,35 +76,35 @@ class Plugin(ActionPlugin):
 
         # Explicit check for boolean True
         if current_app.conf.mfa_testing is True:
-            current_app.logger.info('MFA test mode is enabled')
-            config['testing'] = True
+            current_app.logger.info("MFA test mode is enabled")
+            config["testing"] = True
         else:
-            config['testing'] = False
+            config["testing"] = False
 
         # Add config for external mfa auth
-        config['eidas_url'] = current_app.conf.eidas_url
-        config['mfa_authn_idp'] = current_app.conf.mfa_authn_idp
+        config["eidas_url"] = current_app.conf.eidas_url
+        config["mfa_authn_idp"] = current_app.conf.mfa_authn_idp
 
         return config
 
     def perform_step(self, action: Action) -> ActionResult:
-        current_app.logger.debug('Performing MFA step')
+        current_app.logger.debug("Performing MFA step")
         if current_app.conf.mfa_testing:
-            current_app.logger.debug('Test mode is on, faking authentication')
+            current_app.logger.debug("Test mode is on, faking authentication")
             return ActionResultTesting(success=True, testing=True)
 
         eppn = action.eppn
         user = current_app.central_userdb.get_user_by_eppn(eppn)
         if not user:
             raise self.ActionError(ActionsMsg.user_not_found)
-        current_app.logger.debug(f'Loaded User {user} from db (in perform_action)')
+        current_app.logger.debug(f"Loaded User {user} from db (in perform_action)")
 
         # Third party service MFA
         if session.mfa_action.success is True:  # Explicit check that success is the boolean True
             issuer = session.mfa_action.issuer
             authn_instant = session.mfa_action.authn_instant
             authn_context = session.mfa_action.authn_context
-            current_app.logger.info(f'User {user} logged in using external MFA service {issuer}')
+            current_app.logger.info(f"User {user} logged in using external MFA service {issuer}")
             action.result = ActionResultThirdPartyMFA(
                 success=True,
                 issuer=issuer,
@@ -120,14 +120,14 @@ class Plugin(ActionPlugin):
             silent=True
         )  # silent=True lets get_json return None even if mime-type is not application/json
         if not req_json:
-            current_app.logger.error(f'No data in request to authn {user}')
+            current_app.logger.error(f"No data in request to authn {user}")
             raise self.ActionError(ActionsMsg.no_data)
 
         # Process POSTed data
-        if 'authenticatorData' in req_json:
+        if "authenticatorData" in req_json:
             # CTAP2/Webauthn
             if not session.mfa_action.webauthn_state:
-                current_app.logger.error(f'No webauthn state in session')
+                current_app.logger.error(f"No webauthn state in session")
                 raise self.ActionError(ActionsMsg.no_data)
 
             try:
@@ -155,6 +155,6 @@ class Plugin(ActionPlugin):
             current_app.actions_db.update_action(action)
             return action.result
 
-        current_app.logger.error(f'No Thirdparty-MFA/Webauthn data in request to authn {user}')
-        current_app.logger.debug(f'Request: {req_json}')
+        current_app.logger.error(f"No Thirdparty-MFA/Webauthn data in request to authn {user}")
+        current_app.logger.debug(f"Request: {req_json}")
         raise self.ActionError(ActionsMsg.no_response)

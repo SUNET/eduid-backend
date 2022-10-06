@@ -93,13 +93,13 @@ class ChangePasswordSchema(PasswordSchema):
     old_password = fields.String(required=True)
     new_password = fields.String(required=True)
 
-    @validates('new_password')
+    @validates("new_password")
     def validate_custom_password(self, value, **kwargs):
         # Set a new error message
         try:
             self.validate_password(value)
         except ValidationError:
-            raise ValidationError('chpass.weak-pass')
+            raise ValidationError("chpass.weak-pass")
 
 
 class AccountTerminatedSchema(FluxStandardAction):
@@ -133,16 +133,16 @@ class RemoveWebauthnTokenRequestSchema(EduidSchema, CSRFRequestMixin):
 
 
 class VerifyWithWebauthnTokenRequestSchema(EduidSchema):
-    key_handle = fields.String(required=True, data_key='keyHandle')
-    signature_data = fields.String(required=True, data_key='signatureData')
-    client_data = fields.String(required=True, data_key='clientData')
+    key_handle = fields.String(required=True, data_key="keyHandle")
+    signature_data = fields.String(required=True, data_key="signatureData")
+    client_data = fields.String(required=True, data_key="clientData")
 
 
 class VerifyWithWebauthnTokenResponseSchema(FluxStandardAction):
     class Payload(CSRFResponseMixin):
-        key_handle = fields.String(required=True, data_key='keyHandle')
-        signature_data = fields.String(required=True, data_key='signatureData')
-        client_data = fields.String(required=True, data_key='clientData')
+        key_handle = fields.String(required=True, data_key="keyHandle")
+        signature_data = fields.String(required=True, data_key="signatureData")
+        client_data = fields.String(required=True, data_key="clientData")
 
     payload = fields.Nested(Payload)
 
@@ -164,7 +164,7 @@ class IdentitiesResponseSchema(FluxStandardAction):
 
 class UserUpdateResponseSchema(FluxStandardAction):
     class UserUpdatePayload(EduidSchema, CSRFRequestMixin):
-        given_name = fields.String(attribute='givenName')
+        given_name = fields.String(attribute="givenName")
         surname = fields.String()
 
     payload = fields.Nested(UserUpdatePayload)

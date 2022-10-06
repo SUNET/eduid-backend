@@ -5,7 +5,7 @@ from marshmallow import fields
 from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class EidasCommonRequestSchema(EduidSchema, CSRFRequestMixin):

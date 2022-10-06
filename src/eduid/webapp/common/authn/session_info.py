@@ -2,4 +2,4 @@
 #
 from typing import Any, Mapping, NewType
 
-SessionInfo = NewType('SessionInfo', Mapping[str, Any])
+SessionInfo = NewType("SessionInfo", Mapping[str, Any])

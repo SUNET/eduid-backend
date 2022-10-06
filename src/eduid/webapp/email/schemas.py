@@ -39,7 +39,7 @@ from eduid.webapp.common.api.schemas.email import LowercaseEmail
 from eduid.webapp.common.api.schemas.validators import validate_email
 from eduid.webapp.email.validators import email_does_not_exist, email_exists
 
-__author__ = 'eperez'
+__author__ = "eperez"
 
 
 class NoCSRFVerificationCodeSchema(EduidSchema):
@@ -55,8 +55,8 @@ class VerificationCodeSchema(NoCSRFVerificationCodeSchema, CSRFRequestMixin):
 class EmailSchema(EduidSchema, CSRFRequestMixin):
 
     email = LowercaseEmail(required=True, validate=validate_email)
-    verified = fields.Boolean(attribute='verified')
-    primary = fields.Boolean(attribute='primary')
+    verified = fields.Boolean(attribute="verified")
+    primary = fields.Boolean(attribute="primary")
 
 
 class AddEmailSchema(EmailSchema):

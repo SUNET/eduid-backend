@@ -63,18 +63,18 @@ class PhoneApp(AuthnBaseApp):
 current_phone_app: PhoneApp = cast(PhoneApp, current_app)
 
 
-def phone_init_app(name: str = 'phone', test_config: Optional[Mapping[str, Any]] = None) -> PhoneApp:
+def phone_init_app(name: str = "phone", test_config: Optional[Mapping[str, Any]] = None) -> PhoneApp:
     """
     Create an instance of an eduid phone app.
 
     :param name: The name of the instance, it will affect the configuration loaded.
     :param test_config: Override config, used in test cases.
     """
-    config = load_config(typ=PhoneConfig, app_name=name, ns='webapp', test_config=test_config)
+    config = load_config(typ=PhoneConfig, app_name=name, ns="webapp", test_config=test_config)
 
     app = PhoneApp(config)
 
-    app.logger.info(f'Init {name} app...')
+    app.logger.info(f"Init {name} app...")
 
     from eduid.webapp.phone.views import phone_views
 

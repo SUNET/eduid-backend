@@ -11,7 +11,7 @@ from eduid.userdb.support.models import GenericFilterDict
 from eduid.userdb.support.user import SupportUser
 from eduid.userdb.userdb import BaseDB, UserDB
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 """
 Database classes for use in support applications to filter user data returned to support personnel. This
@@ -20,7 +20,7 @@ way we can minimize the risk of accidentally sharing any secret user data.
 
 
 class SupportUserDB(UserDB[SupportUser]):
-    def __init__(self, db_uri: str, db_name: str = 'eduid_am', collection: str = 'attributes'):
+    def __init__(self, db_uri: str, db_name: str = "eduid_am", collection: str = "attributes"):
         super().__init__(db_uri, db_name, collection=collection)
 
     @classmethod
@@ -53,8 +53,8 @@ class SupportAuthnInfoDB(BaseDB):
     model = models.UserAuthnInfo
 
     def __init__(self, db_uri: str):
-        db_name = 'eduid_idp_authninfo'
-        collection = 'authn_info'
+        db_name = "eduid_idp_authninfo"
+        collection = "authn_info"
         super().__init__(db_uri, db_name, collection)
 
     def get_authn_info(self, user_id: Union[str, ObjectId]) -> Dict[str, Any]:
@@ -66,7 +66,7 @@ class SupportAuthnInfoDB(BaseDB):
         """
         if not isinstance(user_id, ObjectId):
             user_id = ObjectId(user_id)
-        docs = self._get_documents_by_filter({'_id': user_id})
+        docs = self._get_documents_by_filter({"_id": user_id})
         if not docs:
             return dict()
         return self.model(dict(docs[0]))  # Cast to dict to allow mutability
@@ -76,7 +76,7 @@ class SupportAuthnInfoDB(BaseDB):
         :param credential_id: Credential id
         :return: A document dict
         """
-        doc = self._get_document_by_attr('_id', credential_id)
+        doc = self._get_document_by_attr("_id", credential_id)
         if not doc:
             return dict()
         return self.model(dict(doc))  # Cast to dict to allow mutability
@@ -87,8 +87,8 @@ class SupportActionsDB(BaseDB):
     model = models.UserActions
 
     def __init__(self, db_uri: str):
-        db_name = 'eduid_actions'
-        collection = 'actions'
+        db_name = "eduid_actions"
+        collection = "actions"
         super(SupportActionsDB, self).__init__(db_uri, db_name, collection)
 
     def get_actions(self, user_id: Union[str, ObjectId]) -> List[Dict[str, Any]]:
@@ -100,7 +100,7 @@ class SupportActionsDB(BaseDB):
         """
         if not isinstance(user_id, ObjectId):
             user_id = ObjectId(user_id)
-        docs = self._get_documents_by_filter(spec={'user_oid': user_id})
+        docs = self._get_documents_by_filter(spec={"user_oid": user_id})
         return [self.model(dict(doc)) for doc in docs]  # Cast to dict to allow mutability
 
 
@@ -116,7 +116,7 @@ class SupportProofingDB(BaseDB):
         :param eppn: User objects eduPersonPrincipalName property
         :return: A document dict
         """
-        doc = self._get_document_by_attr('eduPersonPrincipalName', eppn)
+        doc = self._get_document_by_attr("eduPersonPrincipalName", eppn)
         if not doc:
             return dict()
         return self.model(dict(doc))  # Cast to dict to allow mutability
@@ -126,7 +126,7 @@ class SupportProofingDB(BaseDB):
         :param eppn: User objects eduPersonPrincipalName property
         :return: A list of document dicts
         """
-        docs = self._get_documents_by_attr('eduPersonPrincipalName', eppn)
+        docs = self._get_documents_by_attr("eduPersonPrincipalName", eppn)
         return [self.model(dict(doc)) for doc in docs]  # Cast to dict to allow mutability
 
 
@@ -135,8 +135,8 @@ class SupportLetterProofingDB(SupportProofingDB):
     model = models.UserLetterProofing
 
     def __init__(self, db_uri: str):
-        db_name = 'eduid_idproofing_letter'
-        collection = 'proofing_data'
+        db_name = "eduid_idproofing_letter"
+        collection = "proofing_data"
         super().__init__(db_uri, db_name, collection)
 
     def get_proofing_state(self, eppn: str) -> Dict[str, Any]:
@@ -144,7 +144,7 @@ class SupportLetterProofingDB(SupportProofingDB):
         :param eppn: User objects eduPersonPrincipalName property
         :return: A document dict
         """
-        doc = self._get_document_by_attr('eduPersonPrincipalName', eppn)
+        doc = self._get_document_by_attr("eduPersonPrincipalName", eppn)
         if not doc:
             return dict()
         # hack to support old official address format
@@ -156,8 +156,8 @@ class SupportOidcProofingDB(SupportProofingDB):
     model = models.UserOidcProofing
 
     def __init__(self, db_uri: str):
-        db_name = 'eduid_oidc_proofing'
-        collection = 'proofing_data'
+        db_name = "eduid_oidc_proofing"
+        collection = "proofing_data"
         super().__init__(db_uri, db_name, collection)
 
 
@@ -166,8 +166,8 @@ class SupportEmailProofingDB(SupportProofingDB):
     model = models.UserEmailProofing
 
     def __init__(self, db_uri: str):
-        db_name = 'eduid_email'
-        collection = 'proofing_data'
+        db_name = "eduid_email"
+        collection = "proofing_data"
         super().__init__(db_uri, db_name, collection)
 
 
@@ -176,8 +176,8 @@ class SupportPhoneProofingDB(SupportProofingDB):
     model = models.UserPhoneProofing
 
     def __init__(self, db_uri: str):
-        db_name = 'eduid_phone'
-        collection = 'proofing_data'
+        db_name = "eduid_phone"
+        collection = "proofing_data"
         super().__init__(db_uri, db_name, collection)
 
 
@@ -186,8 +186,8 @@ class SupportProofingLogDB(BaseDB):
     model = models.ProofingLogEntry
 
     def __init__(self, db_uri: str):
-        db_name = 'eduid_logs'
-        collection = 'proofing_log'
+        db_name = "eduid_logs"
+        collection = "proofing_log"
         super().__init__(db_uri, db_name, collection)
 
     def get_entries(self, eppn: str) -> List[Dict[str, Any]]:
@@ -195,5 +195,5 @@ class SupportProofingLogDB(BaseDB):
         :param eppn: User objects eduPersonPrincipalName property
         :return: A list of dicts
         """
-        docs = self._get_documents_by_attr('eduPersonPrincipalName', eppn)
+        docs = self._get_documents_by_attr("eduPersonPrincipalName", eppn)
         return [self.model(doc) for doc in docs]

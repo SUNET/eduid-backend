@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-__author__ = 'ft'
+__author__ = "ft"
 
 from typing import Any, Mapping
 
@@ -39,7 +39,7 @@ from eduid.userdb.userdb import UserDB
 
 
 class ToUUserDB(UserDB[ToUUser]):
-    def __init__(self, db_uri, db_name='eduid_actions', collection='tou'):
+    def __init__(self, db_uri, db_name="eduid_actions", collection="tou"):
         UserDB.__init__(self, db_uri, db_name, collection)
 
     @classmethod

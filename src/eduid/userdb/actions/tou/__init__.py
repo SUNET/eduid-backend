@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-__author__ = 'eperez'
+__author__ = "eperez"
 
 from .user import ToUUser
 from .userdb import ToUUserDB

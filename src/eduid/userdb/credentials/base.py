@@ -40,13 +40,13 @@ from typing import Any, Dict, Optional
 
 from eduid.userdb.element import VerifiedElement
 
-__author__ = 'ft'
+__author__ = "ft"
 
 
 # well-known proofing methods
 class CredentialProofingMethod(str, Enum):
-    SWAMID_AL2_MFA = 'SWAMID_AL2_MFA'
-    SWAMID_AL2_MFA_HI = 'SWAMID_AL2_MFA_HI'
+    SWAMID_AL2_MFA = "SWAMID_AL2_MFA"
+    SWAMID_AL2_MFA_HI = "SWAMID_AL2_MFA_HI"
 
 
 class Credential(VerifiedElement):
@@ -70,14 +70,14 @@ class Credential(VerifiedElement):
             # probably an object id in string format, don't cut it
             shortkey = str(self.key)
         else:
-            shortkey = str(self.key[:12]) + '...'
+            shortkey = str(self.key[:12]) + "..."
         if self.is_verified:
             return (
-                f'<eduID {self.__class__.__name__}(key={repr(shortkey)}): verified=True, '
-                f'proofing=({repr(self.proofing_method)} v={repr(self.proofing_version)})>'
+                f"<eduID {self.__class__.__name__}(key={repr(shortkey)}): verified=True, "
+                f"proofing=({repr(self.proofing_method)} v={repr(self.proofing_version)})>"
             )
         else:
-            return f'<eduID {self.__class__.__name__}(key={repr(shortkey)}): verified=False>'
+            return f"<eduID {self.__class__.__name__}(key={repr(shortkey)}): verified=False>"
 
     def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -85,10 +85,10 @@ class Credential(VerifiedElement):
         """
         data = super()._to_dict_transform(data)
 
-        if data.get('verified') is False:
-            del data['verified']
-            if 'proofing_method' in data:
-                del data['proofing_method']
-            if 'proofing_version' in data:
-                del data['proofing_version']
+        if data.get("verified") is False:
+            del data["verified"]
+            if "proofing_method" in data:
+                del data["proofing_method"]
+            if "proofing_version" in data:
+                del data["proofing_version"]
         return data

@@ -53,8 +53,8 @@ class EmailConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MailConfi
     eduid_site_name: str
     eduid_site_url: str
 
-    app_name: str = 'email'
+    app_name: str = "email"
 
     email_verification_timeout: int = 86400  # seconds
     throttle_resend_seconds: int = 300
-    email_verify_redirect_url: str = '/profile/emails'
+    email_verify_redirect_url: str = "/profile/emails"

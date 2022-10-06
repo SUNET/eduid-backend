@@ -38,7 +38,7 @@ from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseM
 from eduid.webapp.common.api.schemas.email import LowercaseEmail
 from eduid.webapp.common.api.schemas.validators import validate_email
 
-__author__ = 'eperez'
+__author__ = "eperez"
 
 
 class EmailSchema(EduidSchema, CSRFRequestMixin):

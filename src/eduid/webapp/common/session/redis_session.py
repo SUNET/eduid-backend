@@ -149,32 +149,32 @@ class SessionManager(object):
         res = RedisEncryptedSession(
             conn,
             db_key=meta.session_id,
-            encryption_key=meta.derive_key(self.secret, 'nacl', nacl.secret.SecretBox.KEY_SIZE),
+            encryption_key=meta.derive_key(self.secret, "nacl", nacl.secret.SecretBox.KEY_SIZE),
             ttl=self.ttl,
             whitelist=self.whitelist,
             raise_on_unknown=self.raise_on_unknown,
         )
 
         if new:
-            logger.debug(f'Created new session {res}')
+            logger.debug(f"Created new session {res}")
         else:
             if not res.load_session():
-                logger.warning(f'No existing session found for {res}')
-                raise KeyError(f'Session not found using provided cookie')
+                logger.warning(f"No existing session found for {res}")
+                raise KeyError(f"Session not found using provided cookie")
 
         return res
 
 
 def get_redis_pool(cfg: RedisConfig) -> Union[sentinel.SentinelConnectionPool, redis.ConnectionPool]:
-    logger.debug(f'Redis configuration: {cfg}')
+    logger.debug(f"Redis configuration: {cfg}")
     if cfg.sentinel_hosts and cfg.sentinel_service_name:
         host_port = [(x, cfg.port) for x in cfg.sentinel_hosts]
         manager = sentinel.Sentinel(host_port, socket_timeout=0.1)
         return sentinel.SentinelConnectionPool(cfg.sentinel_service_name, manager)
     else:
         if not cfg.host:
-            logger.error(f'Redis configuration without sentinel parameters does not have host')
-            raise RuntimeError('Redis configuration incorrect')
+            logger.error(f"Redis configuration without sentinel parameters does not have host")
+            raise RuntimeError("Redis configuration incorrect")
         return redis.ConnectionPool(host=cfg.host, port=cfg.port, db=cfg.db)
 
 
@@ -236,17 +236,17 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
 
     def __str__(self):
         # Include hex(id(self)) for now to troubleshoot clobbered sessions
-        return f'<{self.__class__.__name__} at {hex(id(self))}: db_key={self.short_id}>'
+        return f"<{self.__class__.__name__} at {hex(id(self))}: db_key={self.short_id}>"
 
     def __getitem__(self, key):
         if key in self._data:
             return self._data[key]
-        raise KeyError(f'Key {repr(key)} not present in session')
+        raise KeyError(f"Key {repr(key)} not present in session")
 
     def __setitem__(self, key, value):
         if self.whitelist and key not in self.whitelist:
             if self.raise_on_unknown:
-                raise ValueError(f'Key {repr(key)} not allowed in session')
+                raise ValueError(f"Key {repr(key)} not allowed in session")
             return
         self._data[key] = value
 
@@ -265,10 +265,10 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
     @property
     def short_id(self) -> str:
         """Short version of db_key for use in logging"""
-        return self.db_key[:8] + '...'
+        return self.db_key[:8] + "..."
 
     def load_session(self) -> bool:
-        logger.debug(f'Looking for session {self.short_id}')
+        logger.debug(f"Looking for session {self.short_id}")
 
         # Fetch session from session store (Redis). We remember the raw data and use it
         # when writing data back to Redis to detect if the session was updated by someone
@@ -279,7 +279,7 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
 
         self._data = self.decrypt_data(self._raw_data)
 
-        logger.debug(f'Loaded data from Redis[{self.short_id}]:\n{repr(self._data)}')
+        logger.debug(f"Loaded data from Redis[{self.short_id}]:\n{repr(self._data)}")
         return True
 
     def commit(self) -> None:
@@ -287,7 +287,7 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         Persist the currently held data into the redis db.
         """
         data = self.encrypt_data(self._data)
-        logger.debug(f'Committing session {self} to Redis with ttl {self.ttl} ({len(data)} bytes)')
+        logger.debug(f"Committing session {self} to Redis with ttl {self.ttl} ({len(data)} bytes)")
 
         def set_no_clobber(pipe: redis.client.Pipeline) -> None:
             """
@@ -302,7 +302,7 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
                 _data_now = self.conn.get(self.db_key)
                 if _data_now != self._raw_data:
                     pipe.reset()
-                    raise SessionOutOfSync(f'The session {self} has been updated by someone else')
+                    raise SessionOutOfSync(f"The session {self} has been updated by someone else")
             pipe.setex(self.db_key, self.ttl, data)
             self._raw_data = data
 
@@ -316,15 +316,15 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         :return: serialized data
         """
         data_json = json.dumps(data_dict, cls=EduidJSONEncoder)
-        logger.debug(f'Storing data in Redis[{self.short_id}]:\n{data_json}')
+        logger.debug(f"Storing data in Redis[{self.short_id}]:\n{data_json}")
         nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
         # Version data to make it easier to know how to decode it on reading
         versioned = {
-            'v2': bytes(
-                self.secret_box.encrypt(data_json.encode('ascii'), nonce, encoder=nacl.encoding.Base64Encoder)
-            ).decode('ascii')
+            "v2": bytes(
+                self.secret_box.encrypt(data_json.encode("ascii"), nonce, encoder=nacl.encoding.Base64Encoder)
+            ).decode("ascii")
         }
-        return bytes(json.dumps(versioned), 'ascii')
+        return bytes(json.dumps(versioned), "ascii")
 
     def decrypt_data(self, data_str: str) -> Dict[str, Any]:
         """
@@ -334,13 +334,13 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         :return: Parsed data as dict
         """
         versioned = json.loads(data_str)
-        if 'v2' in versioned:
-            _data = self.secret_box.decrypt(versioned['v2'], encoder=nacl.encoding.Base64Encoder)
+        if "v2" in versioned:
+            _data = self.secret_box.decrypt(versioned["v2"], encoder=nacl.encoding.Base64Encoder)
             decrypted = json.loads(_data)
             return decrypted
 
-        logger.error(f'Unknown data retrieved from Redis[{self.short_id}]: {repr(data_str)}')
-        raise ValueError('Unknown data retrieved from Redis')
+        logger.error(f"Unknown data retrieved from Redis[{self.short_id}]: {repr(data_str)}")
+        raise ValueError("Unknown data retrieved from Redis")
 
     def clear(self):
         """

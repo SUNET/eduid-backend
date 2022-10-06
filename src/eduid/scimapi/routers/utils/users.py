@@ -63,7 +63,7 @@ def db_user_to_response(req: ContextRequest, resp: Response, db_user: ScimApiUse
 
     resp.headers["Location"] = location
     resp.headers["ETag"] = make_etag(db_user.version)
-    req.app.context.logger.debug(f'Extra debug: Response:\n{user.json(exclude_none=True, indent=2)}')
+    req.app.context.logger.debug(f"Extra debug: Response:\n{user.json(exclude_none=True, indent=2)}")
     return user
 
 
@@ -71,9 +71,9 @@ def save_user(req: ContextRequest, db_user: ScimApiUser) -> None:
     try:
         req.context.userdb.save(db_user)
     except DuplicateKeyError as e:
-        if 'external-id' in e.details['errmsg']:
-            raise BadRequest(detail='externalID must be unique')
-        raise BadRequest(detail='Duplicated key error')
+        if "external-id" in e.details["errmsg"]:
+            raise BadRequest(detail="externalID must be unique")
+        raise BadRequest(detail="Duplicated key error")
 
 
 def acceptable_linked_accounts(value: List[LinkedAccount]):
@@ -82,12 +82,12 @@ def acceptable_linked_accounts(value: List[LinkedAccount]):
     but for now we allow setting a very limited value, to try out MFA step up using this.
     """
     for this in value:
-        if this.issuer not in ['eduid.se', 'dev.eduid.se']:
+        if this.issuer not in ["eduid.se", "dev.eduid.se"]:
             return False
-        if not this.value.endswith('@dev.eduid.se'):
+        if not this.value.endswith("@dev.eduid.se"):
             return False
         for param in this.parameters:
-            if param not in ['mfa_stepup']:
+            if param not in ["mfa_stepup"]:
                 return False
             if not isinstance(this.parameters[param], bool):
                 return False
@@ -97,14 +97,14 @@ def acceptable_linked_accounts(value: List[LinkedAccount]):
 def users_to_resources_dicts(query: SearchRequest, users: Sequence[ScimApiUser]) -> List[Dict[str, Any]]:
     _attributes = query.attributes
     # TODO: include the requested attributes, not just id
-    return [{'id': str(user.scim_id)} for user in users]
+    return [{"id": str(user.scim_id)} for user in users]
 
 
 def filter_externalid(req: ContextRequest, filter: SearchFilter) -> List[ScimApiUser]:
-    if filter.op != 'eq':
-        raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
+    if filter.op != "eq":
+        raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
     if not isinstance(filter.val, str):
-        raise BadRequest(scim_type='invalidFilter', detail='Invalid externalId')
+        raise BadRequest(scim_type="invalidFilter", detail="Invalid externalId")
 
     user = req.context.userdb.get_user_by_external_id(filter.val)
 
@@ -117,10 +117,10 @@ def filter_externalid(req: ContextRequest, filter: SearchFilter) -> List[ScimApi
 def filter_lastmodified(
     req: ContextRequest, filter: SearchFilter, skip: Optional[int] = None, limit: Optional[int] = None
 ) -> Tuple[List[ScimApiUser], int]:
-    if filter.op not in ['gt', 'ge']:
-        raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
+    if filter.op not in ["gt", "ge"]:
+        raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
     if not isinstance(filter.val, str):
-        raise BadRequest(scim_type='invalidFilter', detail='Invalid datetime')
+        raise BadRequest(scim_type="invalidFilter", detail="Invalid datetime")
     return req.context.userdb.get_users_by_last_modified(
         operator=filter.op, value=datetime.fromisoformat(filter.val), skip=skip, limit=limit
     )

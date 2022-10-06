@@ -42,31 +42,14 @@ class FidoMetadataLog(LogDB):
         LogDB.__init__(self, db_uri, collection)
         # Create an index so that metadata logs are unique for authenticator id and last status change datetime
         indexes = {
-            "unique-id-date": {
-                "key": [("authenticator_id", 1), ("last_status_change", 1)],
-                "unique": True,
-            },
+            "unique-id-date": {"key": [("authenticator_id", 1), ("last_status_change", 1)], "unique": True},
         }
         self.setup_indexes(indexes)
 
     def exists(self, authenticator_id: Union[str, UUID], last_status_change: datetime) -> bool:
         return bool(
             self.db_count(
-                spec={
-                    "authenticator_id": authenticator_id,
-                    "last_status_change": last_status_change,
-                },
+                spec={"authenticator_id": authenticator_id, "last_status_change": last_status_change},
                 limit=1,
             )
         )
-
-
-class UserChangeLog(LogDB):
-    def __init__(self, db_uri, collection="user_change_log"):
-        LogDB.__init__(self, db_uri, collection)
-
-    def get_by_eppn(self, eppn: str) -> Optional[UserLogElement]:
-        doc = self._get_document_by_attr("eduPersonPrincipalName", eppn)
-        if doc is not None:
-            return UserLogElement(**doc)
-        return None

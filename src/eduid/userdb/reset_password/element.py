@@ -57,8 +57,8 @@ class CodeElement(Element):
         """
         data = super()._from_dict_transform(data)
 
-        if 'verified' in data:
-            data['is_verified'] = data.pop('verified')
+        if "verified" in data:
+            data["is_verified"] = data.pop("verified")
 
         return data
 
@@ -66,8 +66,8 @@ class CodeElement(Element):
         """
         Transform data kept in pythonic format into eduid format.
         """
-        if 'is_verified' in data:
-            data['verified'] = data.pop('is_verified')
+        if "is_verified" in data:
+            data["verified"] = data.pop("is_verified")
 
         data = super()._to_dict_transform(data)
 
@@ -93,21 +93,21 @@ class CodeElement(Element):
             data = code_or_element
             for this in data.keys():
                 if this not in [
-                    'application',
-                    'code',
-                    'created_by',
-                    'created_ts',
-                    'verified',
-                    'modified_ts',
-                    'modified_by',
+                    "application",
+                    "code",
+                    "created_by",
+                    "created_ts",
+                    "verified",
+                    "modified_ts",
+                    "modified_by",
                 ]:
-                    raise ValueError(f'Unknown data {this} for CodeElement.parse from mapping')
+                    raise ValueError(f"Unknown data {this} for CodeElement.parse from mapping")
             return cls(
-                created_by=data.get('created_by', application),
-                code=data['code'],
-                created_ts=data.get('created_ts', datetime.utcnow()),
-                is_verified=data.get('verified', False),
+                created_by=data.get("created_by", application),
+                code=data["code"],
+                created_ts=data.get("created_ts", datetime.utcnow()),
+                is_verified=data.get("verified", False),
             )
         if isinstance(code_or_element, CodeElement):
             return code_or_element
-        raise ValueError(f'Can\'t create CodeElement from input: {code_or_element}')
+        raise ValueError(f"Can't create CodeElement from input: {code_or_element}")
