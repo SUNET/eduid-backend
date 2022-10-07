@@ -4,7 +4,13 @@ from typing import Any, Dict, List, Optional, Union
 from fastapi import FastAPI
 
 from eduid.common.config.parsers import load_config
-from eduid.common.fastapi.exceptions import HTTPErrorDetail, http_error_detail_handler, unexpected_error_handler
+from eduid.common.fastapi.exceptions import (
+    HTTPErrorDetail,
+    RequestValidationError,
+    http_error_detail_handler,
+    unexpected_error_handler,
+    validation_exception_handler,
+)
 from eduid.common.logging import init_logging
 from eduid.userdb import AmDB, UserDB
 from eduid.userdb.logs.db import UserChangeLog
@@ -44,7 +50,7 @@ def init_api(name: str = "am_api", test_config: Optional[Dict] = None) -> AMAPI:
     # app.add_middleware(AuthenticationMiddleware)
 
     # Exception handling
-    # app.add_exception_handler(RequestValidationError, validation_exception_handler)
+    app.add_exception_handler(RequestValidationError, validation_exception_handler)
     app.add_exception_handler(HTTPErrorDetail, http_error_detail_handler)
     app.add_exception_handler(Exception, unexpected_error_handler)
 

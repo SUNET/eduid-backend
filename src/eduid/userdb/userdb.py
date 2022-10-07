@@ -106,12 +106,14 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         users = self._get_documents_by_aggregate(match=match, sort=sort, limit=limit)
         return [self.user_from_dict(data=user) for user in users]
 
-    def get_uncleaned_users(self, cleaned_type: CleanedType, limit: int) -> List[User]:
+    def get_uncleaned_verified_users(
+        self, cleaned_type: CleanedType, identity_type: IdentityType, limit: int
+    ) -> List[User]:
         match = {
             "identities": {
                 "$elemMatch": {
                     "verified": True,
-                    "identity_type": IdentityType.NIN.value,
+                    "identity_type": identity_type.value,
                 }
             }
         }
@@ -121,27 +123,16 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         return self._get_users_by_aggregate(match=match, sort=sort, limit=limit)
 
     def get_verified_users_count(self, identity_type: Optional[IdentityType] = None) -> int:
-        if identity_type is None:
-            return self.db_count(
-                spec={
-                    "identities": {
-                        "$elemMatch": {
-                            "verified": True,
-                        }
-                    }
+        spec = {
+            "identities": {
+                "$elemMatch": {
+                    "verified": True,
                 }
-            )
-        else:
-            return self.db_count(
-                spec={
-                    "identities": {
-                        "$elemMatch": {
-                            "verified": True,
-                            "identity_type": identity_type.value,
-                        }
-                    }
-                }
-            )
+            }
+        }
+        if identity_type is not None:
+            spec["identities"]["$elemMatch"]["identity_type"] = identity_type.value
+        return self.db_count(spec=spec)
 
     def _get_user_by_filter(self, filter: Mapping[str, Any]) -> List[UserVar]:
         """

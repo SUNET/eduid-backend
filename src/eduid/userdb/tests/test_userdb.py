@@ -35,6 +35,7 @@ import bson
 from eduid.userdb import User
 from eduid.userdb.fixtures.passwords import signup_password
 from eduid.userdb.fixtures.users import mocked_user_standard, new_user_example
+from eduid.userdb.identity import IdentityType
 from eduid.userdb.meta import CleanedType
 from eduid.userdb.testing import MongoTestCase, normalised_data
 
@@ -89,9 +90,12 @@ class TestUserDB(MongoTestCase):
         assert self.amdb.get_user_by_eppn("abc123") is None
 
     def test_get_uncleaned_users(self):
-        docs = self.amdb.get_uncleaned_users(cleaned_type=CleanedType.SKV, limit=10)
+        docs = self.amdb.get_uncleaned_verified_users(
+            cleaned_type=CleanedType.SKV, identity_type=IdentityType.NIN, limit=10
+        )
         self.assertEqual(1, len(docs))
-        self.assertEqual("hubba-bubba", docs[0].eppn)
+        assert len(docs) == 1
+        assert docs[0].eppn == "hubba-bubba"
 
 
 class TestUserDB_mail(MongoTestCase):

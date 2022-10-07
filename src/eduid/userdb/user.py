@@ -40,7 +40,7 @@ from operator import itemgetter
 from typing import Any, Dict, List, Mapping, Optional, Type, TypeVar, Union, cast
 
 import bson
-from pydantic import BaseConfig, BaseModel, Extra, Field, root_validator, validator
+from pydantic import BaseModel, Extra, Field, root_validator, validator
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import CredentialList
@@ -98,7 +98,7 @@ class User(BaseModel):
         allow_population_by_field_name = True  # allow setting created_ts by name, not just it's alias
         validate_assignment = True  # validate data when updated, not just when initialised
         extra = Extra.forbid  # reject unknown data
-        BaseConfig.arbitrary_types_allowed = True
+        arbitrary_types_allowed = True  # allow ObjectId as type in Event
 
     @validator("eppn", pre=True)
     def check_eppn(cls, v: str) -> str:
