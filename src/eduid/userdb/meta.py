@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Mapping
+from typing import Mapping, Optional
 
 import bson
 from pydantic import BaseModel, Field

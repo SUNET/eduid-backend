@@ -31,7 +31,7 @@
 #
 import logging
 from abc import ABC
-from typing import Any, Generic, List, Mapping, Optional, TypeVar, Union, Dict
+from typing import Any, Dict, Generic, List, Mapping, Optional, TypeVar, Union
 
 from bson import ObjectId
 from bson.errors import InvalidId

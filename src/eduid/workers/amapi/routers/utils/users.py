@@ -2,22 +2,20 @@ from typing import Union
 
 from deepdiff import DeepDiff
 
+from eduid.common.fastapi.exceptions import BadRequest
 from eduid.common.misc.timeutil import utc_now
+from eduid.userdb.logs.element import UserLogElement
 from eduid.userdb.mail import MailAddressList
 from eduid.userdb.phone import PhoneNumberList
 from eduid.workers.amapi.context_request import ContextRequest
-from eduid.common.fastapi.exceptions import BadRequest
 from eduid.workers.amapi.models.user import (
     UserUpdateEmailRequest,
-    UserUpdateNameRequest,
     UserUpdateLanguageRequest,
+    UserUpdateMetaRequest,
+    UserUpdateNameRequest,
     UserUpdatePhoneRequest,
     UserUpdateResponse,
     UserUpdateTerminateRequest,
-    UserUpdateMetaRequest,
-)
-from eduid.userdb.logs.element import (
-    UserLogElement,
 )
 
 

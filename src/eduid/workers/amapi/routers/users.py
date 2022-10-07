@@ -1,20 +1,18 @@
 from typing import Optional
 
 from eduid.common.fastapi.api_router import APIRouter
-from eduid.workers.amapi.context_request import ContextRequest, ContextRequestRoute
 from eduid.common.fastapi.exceptions import BadRequest, ErrorDetail
+from eduid.workers.amapi.context_request import ContextRequest, ContextRequestRoute
 from eduid.workers.amapi.models.user import (
-    UserUpdateResponse,
-    UserUpdateNameRequest,
     UserUpdateEmailRequest,
     UserUpdateLanguageRequest,
-    UserUpdatePhoneRequest,
-    UserUpdateTerminateRequest,
     UserUpdateMetaRequest,
+    UserUpdateNameRequest,
+    UserUpdatePhoneRequest,
+    UserUpdateResponse,
+    UserUpdateTerminateRequest,
 )
-from eduid.workers.amapi.routers.utils.users import (
-    update_user,
-)
+from eduid.workers.amapi.routers.utils.users import update_user
 
 __author__ = "masv"
 

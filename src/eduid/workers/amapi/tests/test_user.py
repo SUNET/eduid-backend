@@ -7,13 +7,10 @@ from typing import Dict, Optional
 
 import pkg_resources
 from bson import ObjectId
-
-from eduid.common.testing_base import CommonTestCase
 from fastapi.testclient import TestClient
 
-from eduid.userdb.fixtures.users import (
-    new_user_example,
-)
+from eduid.common.testing_base import CommonTestCase
+from eduid.userdb.fixtures.users import new_user_example
 from eduid.workers.amapi.app import init_api
 
 

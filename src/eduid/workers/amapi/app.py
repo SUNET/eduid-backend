@@ -4,21 +4,16 @@ from typing import Any, Dict, List, Optional, Union
 from fastapi import FastAPI
 
 from eduid.common.config.parsers import load_config
+from eduid.common.fastapi.exceptions import HTTPErrorDetail, http_error_detail_handler, unexpected_error_handler
 from eduid.common.logging import init_logging
-from eduid.userdb import UserDB, AmDB
+from eduid.userdb import AmDB, UserDB
+from eduid.userdb.logs.db import UserChangeLog
 from eduid.workers.amapi.config import AMApiConfig
 from eduid.workers.amapi.context_request import ContextRequestRoute
-from eduid.common.fastapi.exceptions import (
-    HTTPErrorDetail,
-    http_error_detail_handler,  # validation_exception_handler,
-    unexpected_error_handler,
-)
-
 from eduid.workers.amapi.middleware import AuthenticationMiddleware
 from eduid.workers.amapi.routers.status import status_router
 from eduid.workers.amapi.routers.users import users_router
 from eduid.workers.amapi.utils import load_jwks
-from eduid.userdb.logs.db import UserChangeLog
 
 
 class AMAPI(FastAPI):
