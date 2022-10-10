@@ -32,11 +32,18 @@ class SignupStatusResponse(FluxStandardAction):
         email_verification = fields.Nested(EmailVerification, required=True)
         invite = fields.Nested(Invite, required=True)
         tou_accepted = fields.Boolean(required=True)
+        tou_version = fields.String(required=True)
         captcha_completed = fields.Boolean(required=True)
         credential_added = fields.Boolean(required=True)
         user_created = fields.Boolean(required=True)
 
     payload = fields.Nested(StatusSchema)
+
+    @pre_dump
+    def set_tou_version(self, data, **kwargs):
+        if data["payload"].get("tou_version") is None:
+            data["payload"]["tou_version"] = current_app.conf.tou_version
+        return data
 
     @pre_dump
     def throttle_delta_to_seconds(self, out_data, **kwargs):

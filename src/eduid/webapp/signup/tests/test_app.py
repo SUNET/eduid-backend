@@ -280,6 +280,7 @@ class SignupTests(EduidAPITestCase):
         self,
         data1: Optional[dict] = None,
         accept_tou: bool = True,
+        tou_version: Optional[str] = None,
         expect_success: bool = True,
         expected_message: Optional[TranslatableMsg] = None,
         expected_payload: Optional[Mapping[str, Any]] = None,
@@ -290,6 +291,8 @@ class SignupTests(EduidAPITestCase):
         :param data1: to control the data POSTed to the verify email endpoint
         :param accept_tou: did the user accept the terms of use
         """
+        if tou_version is None:
+            tou_version = self.app.conf.tou_version
 
         with self.session_cookie_anon(self.browser) as client:
             with self.app.test_request_context():
@@ -297,7 +300,7 @@ class SignupTests(EduidAPITestCase):
                 with client.session_transaction() as sess:
                     data = {
                         "tou_accepted": accept_tou,
-                        "tou_version": "test_tou_v1",
+                        "tou_version": tou_version,
                         "csrf_token": sess.get_csrf_token(),
                     }
                 if data1 is not None:
@@ -665,6 +668,15 @@ class SignupTests(EduidAPITestCase):
 
     def test_not_accept_tou(self):
         res = self._accept_tou(accept_tou=False, expect_success=False, expected_message=SignupMsg.tou_not_accepted)
+        assert res.reached_state == SignupState.S2_ACCEPT_TOU
+
+    def test_accept_tou_wrong_version(self):
+        res = self._accept_tou(
+            accept_tou=True,
+            tou_version="bad_version",
+            expect_success=False,
+            expected_message=SignupMsg.tou_wrong_version,
+        )
         assert res.reached_state == SignupState.S2_ACCEPT_TOU
 
     def test_accept_tou_bad_csrf(self):

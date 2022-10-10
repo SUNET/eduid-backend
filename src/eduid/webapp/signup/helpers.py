@@ -41,6 +41,7 @@ class SignupMsg(TranslatableMsg):
 
     # the ToU has not been accepted
     tou_not_accepted = "signup.tou-not-accepted"
+    tou_wrong_version = "signup.tou-wrong-version"
     # The email address used is already known
     email_used = "signup.email-address-used"
     # captcha not completed

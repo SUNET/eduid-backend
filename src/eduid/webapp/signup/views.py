@@ -150,6 +150,9 @@ def accept_tou(tou_accepted: bool, tou_version: str):
     if not tou_accepted:
         current_app.logger.info("ToU not accepted")
         return error_response(message=SignupMsg.tou_not_accepted)
+    if tou_version != current_app.conf.tou_version:
+        current_app.logger.error(f"ToU version: Got {tou_version}, expected {current_app.conf.tou_version}")
+        return error_response(message=SignupMsg.tou_wrong_version)
 
     current_app.logger.info("ToU accepted")
     session.signup.tou_accepted = True
