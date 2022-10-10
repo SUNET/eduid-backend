@@ -5,7 +5,7 @@ from unittest import SkipTest
 from uuid import uuid4
 
 from eduid.queue.db.queue_item import QueueItem
-from eduid.scimapi.models.scimbase import SCIMResourceType, SCIMSchema
+from eduid.common.models.scim_base import SCIMResourceType, SCIMSchema
 from eduid.scimapi.testing import ScimApiTestCase
 from eduid.scimapi.utils import make_etag
 from eduid.userdb.scimapi import EventLevel

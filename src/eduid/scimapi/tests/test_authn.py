@@ -12,7 +12,7 @@ from requests import Response
 from eduid.common.config.parsers import load_config
 from eduid.scimapi.config import DataOwner, ScimApiConfig
 from eduid.scimapi.middleware import AuthnBearerToken, RequestedAccessDenied, SudoAccess
-from eduid.scimapi.models.scimbase import SCIMSchema
+from eduid.common.models.scim_base import SCIMSchema
 from eduid.scimapi.testing import BaseDBTestCase
 from eduid.scimapi.tests.test_scimuser import ScimApiTestUserResourceBase
 from eduid.userdb.scimapi import ScimApiProfile

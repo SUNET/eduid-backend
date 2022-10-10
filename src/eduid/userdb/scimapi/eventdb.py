@@ -9,7 +9,7 @@ from uuid import UUID
 
 from bson import ObjectId
 
-from eduid.scimapi.models.scimbase import SCIMResourceType
+from eduid.common.models.scim_base import SCIMResourceType
 from eduid.userdb.scimapi.basedb import ScimApiBaseDB
 from eduid.userdb.scimapi.common import ScimApiResourceBase
 

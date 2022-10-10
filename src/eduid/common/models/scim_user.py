@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import Field
 
-from eduid.scimapi.models.scimbase import (
+from eduid.common.models.scim_base import (
     BaseCreateRequest,
     BaseResponse,
     BaseUpdateRequest,
