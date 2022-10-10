@@ -42,7 +42,6 @@ from typing import Any, Dict, List, Mapping, Optional, Type, TypeVar, Union, cas
 import bson
 from pydantic import BaseModel, Extra, Field, root_validator, validator
 
-from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import CredentialList
 from eduid.userdb.db import BaseDB
 from eduid.userdb.element import UserDBValueError
@@ -73,7 +72,7 @@ class User(BaseModel):
 
     meta: Meta = Field(default_factory=Meta)
     eppn: str = Field(alias="eduPersonPrincipalName")
-    user_id: Union[str, bson.ObjectId] = Field(default_factory=bson.ObjectId, alias="_id")
+    user_id: bson.ObjectId = Field(default_factory=bson.ObjectId, alias="_id")
     given_name: Optional[str] = Field(default=None, alias="givenName")
     display_name: Optional[str] = Field(default=None, alias="displayName")
     surname: Optional[str] = None
