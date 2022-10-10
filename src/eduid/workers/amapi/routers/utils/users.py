@@ -46,25 +46,25 @@ def update_user(
         user_obj.given_name = data.given_name
         user_obj.display_name = data.display_name
 
-    if isinstance(data, UserUpdateMetaRequest):
+    elif isinstance(data, UserUpdateMetaRequest):
         user_obj.meta = data.meta
 
-    if isinstance(data, UserUpdateEmailRequest):
+    elif isinstance(data, UserUpdateEmailRequest):
         if data is None:
             raise BadRequest(detail="mail_addresses can't be nil")
         user_obj.mail_addresses = MailAddressList.from_list(data.mail_addresses)
 
-    if isinstance(data, UserUpdateLanguageRequest):
+    elif isinstance(data, UserUpdateLanguageRequest):
         if data is None:
             raise BadRequest(detail="language can't be nil")
         user_obj.language = data.language
 
-    if isinstance(data, UserUpdatePhoneRequest):
+    elif isinstance(data, UserUpdatePhoneRequest):
         if data is None:
             raise BadRequest(detail="phone_numbers can't be nil")
         user_obj.phone_numbers = PhoneNumberList.from_list(data.phone_numbers)
 
-    if isinstance(data, UserUpdateTerminateRequest):
+    elif isinstance(data, UserUpdateTerminateRequest):
         user_obj.terminated = utc_now()
 
     user_obj.meta.new_version()
