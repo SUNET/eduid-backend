@@ -52,7 +52,7 @@ def update_user(
     elif isinstance(data, UserUpdateEmailRequest):
         if data is None:
             raise BadRequest(detail="mail_addresses can't be nil")
-        user_obj.mail_addresses = MailAddressList.from_list(data.mail_addresses)
+        user_obj.mail_addresses = MailAddressList(elements=data.mail_addresses)
 
     elif isinstance(data, UserUpdateLanguageRequest):
         if data is None:
@@ -62,7 +62,7 @@ def update_user(
     elif isinstance(data, UserUpdatePhoneRequest):
         if data is None:
             raise BadRequest(detail="phone_numbers can't be nil")
-        user_obj.phone_numbers = PhoneNumberList.from_list(data.phone_numbers)
+        user_obj.phone_numbers = PhoneNumberList(elements=data.phone_numbers)
 
     elif isinstance(data, UserUpdateTerminateRequest):
         user_obj.terminated = utc_now()
