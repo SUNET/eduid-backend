@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime
-from typing import Optional, Union, List, Type
+from typing import List, Optional, Type, Union
 from uuid import UUID
 
 from eduid.userdb.db import BaseDB
