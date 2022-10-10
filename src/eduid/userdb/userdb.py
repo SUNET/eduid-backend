@@ -102,12 +102,12 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
                 return None
         return self._get_user_by_attr("_id", user_id)
 
-    def _get_users_by_aggregate(self, match: dict[str, Any], sort: dict[str, Any], limit: int) -> List[User]:
+    def _get_users_by_aggregate(self, match: dict[str, Any], sort: dict[str, Any], limit: int) -> List[UserVar]:
         users = self._get_documents_by_aggregate(match=match, sort=sort, limit=limit)
         return [self.user_from_dict(data=user) for user in users]
 
     def get_uncleaned_verified_users(
-            self, cleaned_type: CleanedType, identity_type: IdentityType, limit: int
+        self, cleaned_type: CleanedType, identity_type: IdentityType, limit: int
     ) -> List[User]:
         match = {
             "identities": {
@@ -206,7 +206,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         return self._get_user_by_filter(_filter)
 
     def get_users_by_identity(
-            self, identity_type: IdentityType, key: str, value: str, include_unconfirmed: bool = False
+        self, identity_type: IdentityType, key: str, value: str, include_unconfirmed: bool = False
     ):
         match = {"identity_type": identity_type.value, key: value, "verified": True}
         if include_unconfirmed:
