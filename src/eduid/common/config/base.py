@@ -36,8 +36,9 @@ Configuration (file) handling for eduID IdP.
 
 from __future__ import annotations
 
+from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional, Sequence, TypeVar
+from typing import Any, Dict, List, Mapping, Optional, Sequence, TypeVar, Union, Pattern
 
 from pydantic import BaseModel, Field
 
@@ -136,7 +137,32 @@ class WorkerConfig(RootConfig):
     transaction_audit: bool = False
 
 
-class FlaskConfig(BaseModel):
+class CORSMixin(BaseModel):
+    cors_allow_headers: Union[str, List[str]] = "*"
+    cors_always_send: bool = True
+    cors_automatic_options: bool = True
+    cors_expose_headers: Optional[Union[str, List[str]]] = None
+    cors_intercept_exceptions: bool = True
+    cors_max_age: Optional[Union[timedelta, int, str]] = None
+    cors_methods: Union[str, List[str]] = ["GET", "HEAD", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"]
+    # The origin(s) to allow requests from. An origin configured here that matches the value of the Origin header in a
+    # preflight OPTIONS request is returned as the value of the Access-Control-Allow-Origin response header.
+    cors_origins: Union[str, List[str], Pattern] = [r"^eduid.se$", r".*\.eduid\.se$"]
+    # The series of regular expression and (optionally) associated CORS options to be applied to the given resource
+    # path.
+    # If the value is a dictionary, it’s keys must be regular expressions matching resources, and the values must be
+    # another dictionary of configuration options, as described in this section.
+    # If the argument is a list, it is expected to be a list of regular expressions matching resources for which the
+    # app-wide configured options are applied.
+    # If the argument is a string, it is expected to be a regular expression matching resources for which the app-wide
+    # configured options are applied.
+    cors_resources: Union[Dict[Union[str, Pattern], CORSMixin], List[Union[str, Pattern]], Union[str, Pattern]] = r"/*"
+    cors_send_wildcard: bool = False
+    cors_supports_credentials: bool = True
+    cors_vary_header: bool = True
+
+
+class FlaskConfig(CORSMixin):
     """
     These are configuration keys used by Flask (and flask plugins) itself,
     with the default values provided by flask.
@@ -349,7 +375,7 @@ class ProofingConfigMixin(BaseModel):
 class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, RedisConfigMixin):
     available_languages: Mapping[str, str] = Field(default={"en": "English", "sv": "Svenska"})
     environment: EduidEnvironment = EduidEnvironment.production
-    flask: FlaskConfig = Field(default=FlaskConfig())
+    flask: FlaskConfig = Field(default_factory=FlaskConfig)
     mongo_uri: str
     # Allow list of URLs that do not need authentication. Unauthenticated requests
     # for these URLs will be served, rather than redirected to the authn service.
