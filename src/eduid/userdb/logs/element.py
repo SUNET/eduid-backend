@@ -461,7 +461,7 @@ class FidoMetadataLogElement(LogElement):
     metadata_entry: FidoMetadataEntry
 
 
-class UserLogElement(LogElement):
+class UserChangeLogElement(LogElement):
     eppn: str = Field(alias="eduPersonPrincipalName")
     id: Optional[bson.ObjectId] = Field(alias="_id")
     diff: str

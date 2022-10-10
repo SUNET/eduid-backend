@@ -4,7 +4,7 @@ from deepdiff import DeepDiff
 
 from eduid.common.fastapi.exceptions import BadRequest
 from eduid.common.misc.timeutil import utc_now
-from eduid.userdb.logs.element import UserLogElement
+from eduid.userdb.logs.element import UserChangeLogElement
 from eduid.userdb.mail import MailAddressList
 from eduid.userdb.phone import PhoneNumberList
 from eduid.workers.amapi.context_request import ContextRequest
@@ -72,9 +72,10 @@ def update_user(
 
     diff = DeepDiff(old_user_dict, new_user_dict, ignore_order=True).to_json()
 
-    audit_msg = UserLogElement(
+    audit_msg = UserChangeLogElement(
         created_by="am_api",
         eppn=eppn,
+        id=None,
         diff=diff,
         reason=data.reason,
         source=data.source,

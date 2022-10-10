@@ -2,14 +2,14 @@
 
 import logging
 from datetime import datetime
-from typing import Optional, Union
+from typing import Optional, Union, List, Type
 from uuid import UUID
 
 from eduid.userdb.db import BaseDB
 
 __author__ = "lundberg"
 
-from eduid.userdb.logs.element import LogElement, UserLogElement
+from eduid.userdb.logs.element import LogElement, UserChangeLogElement
 
 logger = logging.getLogger(__name__)
 
@@ -59,8 +59,6 @@ class UserChangeLog(LogDB):
     def __init__(self, db_uri, collection="user_change_log"):
         LogDB.__init__(self, db_uri, collection)
 
-    def get_by_eppn(self, eppn: str) -> Optional[UserLogElement]:
-        doc = self._get_document_by_attr("eduPersonPrincipalName", eppn)
-        if doc is not None:
-            return UserLogElement(**doc)
-        return None
+    def get_by_eppn(self, eppn: str) -> list[UserChangeLogElement]:
+        docs = self._get_documents_by_attr("eduPersonPrincipalName", eppn)
+        return [UserChangeLogElement(**doc) for doc in docs]

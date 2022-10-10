@@ -49,12 +49,12 @@ class TestUsers(TestAMBase):
         return f"/users/{self.eppn}/{endpoint}"
 
     def _audit_log_tests(self, assert_diff: dict):
-        audit_log = self.api.audit_logger.get_by_eppn(self.eppn)
-        assert audit_log is not None
-        assert audit_log.eppn == self.eppn
-        assert audit_log.reason == self.reason
-        assert audit_log.source == self.source
-        assert audit_log.diff == self.as_json(assert_diff)
+        audit_logs = self.api.audit_logger.get_by_eppn(self.eppn)
+        assert len(audit_logs) == 1
+        assert audit_logs[0].eppn == self.eppn
+        assert audit_logs[0].reason == self.reason
+        assert audit_logs[0].source == self.source
+        assert audit_logs[0].diff == self.as_json(assert_diff)
 
     def make_put_call(self, req: dict, endpoint: Optional[str] = None):
         response = self.client.put(
@@ -166,7 +166,11 @@ class TestUsers(TestAMBase):
         self._audit_log_tests(assert_diff=assert_diff)
 
     def test_update_language(self):
-        req = {"reason": self.reason, "source": self.source, "language": "test"}
+        req = {
+            "reason": self.reason,
+            "source": self.source,
+            "language": "test",
+        }
 
         assert_diff = {
             "values_changed": {
