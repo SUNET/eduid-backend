@@ -102,6 +102,7 @@ class TestUsers(TestAMBase):
     def test_update_meta(self):
         pass
 
+    # datetime.fromisoformat("2022-09-02T10:23:25")
     def test_update_email(self):
         req = {
             "reason": self.reason,
@@ -110,12 +111,12 @@ class TestUsers(TestAMBase):
                 {
                     "email": "test@example.com",
                     "created_by": "signup",
-                    "created_ts": "2013-09-02T10:23:25",
+                    "created_ts": "2013-09-02T10:23:25+00:00",
                     "is_verified": True,
                     "verified_by": "signup",
-                    "verified_ts": "2013-09-02T10:23:25",
+                    "verified_ts": "2013-09-02T10:23:25+00:00",
                     "is_primary": True,
-                    "modified_ts": "2013-09-02T10:23:25",
+                    "modified_ts": "2013-09-02T10:23:25+00:00",
                 }
             ],
         }
@@ -125,10 +126,10 @@ class TestUsers(TestAMBase):
                 "root['mailAliases'][0]": {
                     "new_value": {
                         "created_by": "signup",
-                        "created_ts": "2013-09-02T10:23:25",
-                        "modified_ts": "2013-09-02T10:23:25",
+                        "created_ts": "2013-09-02T10:23:25+00:00",
+                        "modified_ts": "2013-09-02T10:23:25+00:00",
                         "verified_by": "signup",
-                        "verified_ts": "2013-09-02T10:23:25",
+                        "verified_ts": "2013-09-02T10:23:25+00:00",
                         "email": "test@example.com",
                         "primary": True,
                         "verified": True,
