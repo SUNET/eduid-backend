@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import JSONResponse
 
-from eduid.scimapi.models.scimbase import SCIMSchema
+from eduid.common.models.scim_base import SCIMSchema
 
 logger = logging.getLogger(__name__)
 
