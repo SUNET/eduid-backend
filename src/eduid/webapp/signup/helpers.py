@@ -19,10 +19,10 @@ from eduid.common.utils import urlappend
 from eduid.queue.db import QueueItem, SenderInfo
 from eduid.queue.db.message import EduidSignupEmail
 from eduid.queue.db.message.payload import OldEduidSignupEmail
-from eduid.userdb import MailAddress, NinIdentity, PhoneNumber, User, Profile
+from eduid.userdb import MailAddress, NinIdentity, PhoneNumber, Profile, User
 from eduid.userdb.exceptions import UserHasNotCompletedSignup, UserOutOfSync
 from eduid.userdb.logs import MailAddressProofing
-from eduid.userdb.signup import InviteType, SignupUser, SCIMReference
+from eduid.userdb.signup import InviteType, SCIMReference, SignupUser
 from eduid.userdb.tou import ToUEvent
 from eduid.webapp.common.api.exceptions import ProofingLogFailure, VCCSBackendFailure
 from eduid.webapp.common.api.messages import TranslatableMsg

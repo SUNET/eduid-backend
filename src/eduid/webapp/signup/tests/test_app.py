@@ -3,7 +3,7 @@
 import json
 import logging
 from dataclasses import dataclass
-from datetime import timedelta, timezone, datetime
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Dict, Mapping, Optional, Union
 from uuid import uuid4
@@ -14,8 +14,8 @@ from mock import patch
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.exceptions import UserOutOfSync
-from eduid.userdb.signup import Invite, InviteType, InviteMailAddress, SignupUser
-from eduid.userdb.signup.invite import InviteReference, SCIMReference, InvitePhoneNumber
+from eduid.userdb.signup import Invite, InviteMailAddress, InviteType, SignupUser
+from eduid.userdb.signup.invite import InvitePhoneNumber, InviteReference, SCIMReference
 from eduid.webapp.common.api.exceptions import ProofingLogFailure
 from eduid.webapp.common.api.messages import CommonMsg, TranslatableMsg
 from eduid.webapp.common.api.testing import EduidAPITestCase
@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 class SignupState(Enum):
-    S0_GET_INVITE_DATA = 'get_invite_data'
+    S0_GET_INVITE_DATA = "get_invite_data"
     S1_ACCEPT_INVITE = "accept_invite"
     S2_ACCEPT_TOU = "accept_tou"
     S3_COMPLETE_CAPTCHA = "complete_captcha"
@@ -482,14 +482,14 @@ class SignupTests(EduidAPITestCase):
             if expect_success:
                 if not expected_payload:
                     assert response.json["payload"]["email"] == email
-                    assert response.json["payload"]['invite_type'] == InviteType.SCIM.value
-                    assert response.json["payload"]["inviter_name"] == 'Test Inviter'
-                    assert response.json["payload"]["given_name"] == 'Invite'
-                    assert response.json["payload"]["surname"] == 'Invitesson'
-                    assert response.json["payload"]["inviter_name"] == 'Test Inviter'
-                    assert response.json["payload"]["expires_at"] == '1970-01-01T00:00:00+00:00'
-                    assert response.json["payload"]["finish_url"] == 'https://example.com/finish'
-                    assert response.json["payload"]["preferred_language"] == 'sv'
+                    assert response.json["payload"]["invite_type"] == InviteType.SCIM.value
+                    assert response.json["payload"]["inviter_name"] == "Test Inviter"
+                    assert response.json["payload"]["given_name"] == "Invite"
+                    assert response.json["payload"]["surname"] == "Invitesson"
+                    assert response.json["payload"]["inviter_name"] == "Test Inviter"
+                    assert response.json["payload"]["expires_at"] == "1970-01-01T00:00:00+00:00"
+                    assert response.json["payload"]["finish_url"] == "https://example.com/finish"
+                    assert response.json["payload"]["preferred_language"] == "sv"
 
                 self._check_api_response(
                     response,
@@ -620,9 +620,9 @@ class SignupTests(EduidAPITestCase):
 
         if expect_success:
             if not expected_payload:
-                assert response.json["payload"]["invite"]['initiated_signup'] is True
-                assert response.json["payload"]["invite"]['completed'] is True
-                assert response.json["payload"]["invite"]['finish_url'] == 'https://example.com/finish'
+                assert response.json["payload"]["invite"]["initiated_signup"] is True
+                assert response.json["payload"]["invite"]["completed"] is True
+                assert response.json["payload"]["invite"]["finish_url"] == "https://example.com/finish"
 
             self._check_api_response(
                 response,
