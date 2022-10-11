@@ -18,7 +18,7 @@ from eduid.queue.db.message import MessageDB
 from eduid.scimapi.app import init_api
 from eduid.scimapi.config import DataOwnerName, ScimApiConfig
 from eduid.scimapi.context import Context
-from eduid.scimapi.models.scimbase import SCIMSchema
+from eduid.common.models.scim_base import SCIMSchema
 from eduid.userdb.scimapi import ScimApiEvent, ScimApiGroup, ScimApiLinkedAccount, ScimApiName
 from eduid.userdb.scimapi.invitedb import ScimApiInvite
 from eduid.userdb.scimapi.userdb import ScimApiProfile, ScimApiUser

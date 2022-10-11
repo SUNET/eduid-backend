@@ -8,7 +8,7 @@ from eduid.queue.db.message import MessageDB
 from eduid.scimapi.config import DataOwnerName, ScimApiConfig
 from eduid.scimapi.context_request import ContextRequest
 from eduid.scimapi.log import init_logging
-from eduid.scimapi.models.scimbase import SCIMResourceType
+from eduid.common.models.scim_base import SCIMResourceType
 from eduid.scimapi.notifications import NotificationRelay
 from eduid.scimapi.utils import load_jwks, make_etag
 from eduid.userdb.scimapi import ScimApiEventDB, ScimApiGroup, ScimApiGroupDB
