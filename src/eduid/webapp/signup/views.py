@@ -126,16 +126,17 @@ def verify_email(verification_code: str):
     if not session.signup.captcha_completed:
         return error_response(message=SignupMsg.captcha_not_completed)
 
-    if (
-        is_email_verification_expired(sent_ts=session.signup.email_verification.sent_at)
-        or session.signup.email_verification.verification_code is None
-        or session.signup.email_verification.verification_code != verification_code
-    ):
+    if is_email_verification_expired(sent_ts=session.signup.email_verification.sent_at):
+        current_app.logger.info("Email verification expired")
+        return error_response(message=SignupMsg.email_verification_expired)
+
+    if verification_code and verification_code == session.signup.email_verification.verification_code:
+        session.signup.email_verification.verified = True
+    else:
         current_app.logger.info("Verification failed")
         session.signup.email_verification.bad_attempts += 1
         return error_response(message=SignupMsg.email_verification_failed)
 
-    session.signup.email_verification.verified = True
     return success_response(payload=session.signup.to_dict())
 
 
