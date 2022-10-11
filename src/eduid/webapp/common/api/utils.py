@@ -273,16 +273,21 @@ def get_zxcvbn_terms(user: User) -> List[str]:
     return user_input
 
 
-def throttle_time_left(ts: datetime, min_wait: timedelta) -> timedelta:
-    if int(min_wait.total_seconds()) == 0:
+def time_left(ts: datetime, delta: timedelta) -> timedelta:
+    end_time = ts + delta
+    _time_left = end_time - utc_now()
+    if _time_left.total_seconds() <= 0:
         return timedelta()
-    throttle_ends = ts + min_wait
-    return throttle_ends - utc_now()
+    return _time_left
 
 
 def is_throttled(ts: datetime, min_wait: timedelta) -> bool:
-    time_left = throttle_time_left(ts=ts, min_wait=min_wait)
-    if int(time_left.total_seconds()) > 0:
-        logger.info(f"Resend throttled for {time_left}")
+    throttle_time_left = time_left(ts=ts, delta=min_wait)
+    if int(throttle_time_left.total_seconds()) > 0:
+        logger.info(f"Resend throttled for {throttle_time_left}")
         return True
     return False
+
+
+def is_expired(ts: datetime, max_age: timedelta) -> bool:
+    return utc_now() - ts > max_age

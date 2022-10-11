@@ -6,7 +6,7 @@ from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 from eduid.webapp.common.api.schemas.email import LowercaseEmail
 from eduid.webapp.common.api.schemas.validators import validate_email
-from eduid.webapp.common.api.utils import throttle_time_left
+from eduid.webapp.common.api.utils import time_left
 from eduid.webapp.signup.app import current_signup_app as current_app
 
 __author__ = "lundberg"
@@ -20,6 +20,8 @@ class SignupStatusResponse(FluxStandardAction):
             sent_at = fields.DateTime(required=False)
             throttle_time_left = fields.Integer(required=False)
             throttle_time_max = fields.Integer(required=False)
+            expires_time_left = fields.Integer(required=False)
+            expires_time_max = fields.Integer(required=False)
             bad_attempts = fields.Integer(required=False)
             bad_attempts_max = fields.Integer(required=False)
 
@@ -49,12 +51,24 @@ class SignupStatusResponse(FluxStandardAction):
     def throttle_delta_to_seconds(self, out_data, **kwargs):
         if out_data["payload"].get("email_verification", {}).get("sent_at"):
             sent_at = out_data["payload"]["email_verification"]["sent_at"]
-            time_left = throttle_time_left(sent_at, current_app.conf.throttle_resend).total_seconds()
-            if time_left > 0:
-                out_data["payload"]["email_verification"]["throttle_time_left"] = time_left
+            throttle_time_left = time_left(sent_at, current_app.conf.throttle_resend).total_seconds()
+            if throttle_time_left > 0:
+                out_data["payload"]["email_verification"]["throttle_time_left"] = throttle_time_left
                 out_data["payload"]["email_verification"][
                     "throttle_time_max"
                 ] = current_app.conf.throttle_resend.total_seconds()
+        return out_data
+
+    @pre_dump
+    def email_verification_timeout_delta_to_seconds(self, out_data, **kwargs):
+        if out_data["payload"].get("email_verification", {}).get("sent_at"):
+            sent_at = out_data["payload"]["email_verification"]["sent_at"]
+            verification_time_left = time_left(sent_at, current_app.conf.email_verification_timeout).total_seconds()
+            if verification_time_left > 0:
+                out_data["payload"]["email_verification"]["expires_time_left"] = verification_time_left
+                out_data["payload"]["email_verification"][
+                    "expires_time_max"
+                ] = current_app.conf.email_verification_timeout.total_seconds()
         return out_data
 
     @pre_dump

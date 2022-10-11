@@ -26,7 +26,7 @@ from eduid.userdb.signup import InviteType, SCIMReference, SignupUser
 from eduid.userdb.tou import ToUEvent
 from eduid.webapp.common.api.exceptions import ProofingLogFailure, VCCSBackendFailure
 from eduid.webapp.common.api.messages import TranslatableMsg
-from eduid.webapp.common.api.utils import is_throttled, save_and_sync_user, throttle_time_left
+from eduid.webapp.common.api.utils import is_throttled, save_and_sync_user, time_left
 from eduid.webapp.common.authn.vccs import add_password, revoke_passwords
 from eduid.webapp.common.session import session
 from eduid.webapp.signup.app import current_signup_app as current_app
@@ -52,6 +52,8 @@ class SignupMsg(TranslatableMsg):
     email_verification_not_complete = "signup.email-verification-not-complete"
     # unrecognized verification code
     email_verification_failed = "signup.email-verification-failed"
+    # email verification code expired
+    email_verification_expired = "signup.email-verification-expired"
     # email sending throttled
     email_throttled = "signup.email-throttled"
     # to many attempts doing email verification
@@ -151,9 +153,7 @@ def check_email_status(email: str) -> EmailStatus:
     # check if mail sending is throttled
     assert session.signup.email_verification.sent_at is not None
     if is_throttled(session.signup.email_verification.sent_at, current_app.conf.throttle_resend):
-        seconds_left = throttle_time_left(
-            session.signup.email_verification.sent_at, current_app.conf.throttle_resend
-        ).seconds
+        seconds_left = time_left(session.signup.email_verification.sent_at, current_app.conf.throttle_resend).seconds
         current_app.logger.info(f"User has been sent a verification code too recently: {seconds_left} seconds left")
         current_app.logger.debug(f"email: {email}")
         return EmailStatus.THROTTLED

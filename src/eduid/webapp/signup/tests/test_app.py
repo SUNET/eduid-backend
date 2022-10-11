@@ -187,8 +187,9 @@ class SignupTests(EduidAPITestCase):
                     assert response.json["payload"]["captcha_completed"] is True
                     assert response.json["payload"]["email_verification"]["email"] == email.lower()
                     assert response.json["payload"]["email_verification"]["verified"] is False
-                    if response.json["payload"]["email_verification"].get("throttle_time_left") is not None:
-                        assert response.json["payload"]["email_verification"].get("throttle_time_left") > 0
+                    if "throttle_time_left" in response.json["payload"]["email_verification"]:
+                        assert response.json["payload"]["email_verification"]["throttle_time_left"] > 0
+                    assert response.json["payload"]["email_verification"]["expires_time_left"] > 0
 
                 self._check_api_response(
                     response,
@@ -223,7 +224,6 @@ class SignupTests(EduidAPITestCase):
         Verify registered email with a verification code.
 
         :param data1: to control the data POSTed to the verify email endpoint
-        :param email: what email address to use
         """
 
         with self.session_cookie_anon(self.browser) as client:
