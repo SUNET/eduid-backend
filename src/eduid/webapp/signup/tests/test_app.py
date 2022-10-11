@@ -34,6 +34,7 @@ class SignupState(Enum):
     S5_VERIFY_EMAIL = "verify_email"
     S6_CREATE_USER = "create_user"
     S7_COMPLETE_INVITE = "complete_invite"
+    S8_GENERATE_PASSWORD = "generate_password"
 
 
 class OldSignupState(Enum):
@@ -127,7 +128,7 @@ class SignupTests(EduidAPITestCase):
 
                 if expect_success:
                     if not expected_payload:
-                        assert response.json["payload"]["captcha_completed"] is True
+                        assert response.json["payload"]["captcha"]["completed"] is True
 
                     self._check_api_response(
                         response,
@@ -184,7 +185,7 @@ class SignupTests(EduidAPITestCase):
 
             if expect_success:
                 if not expected_payload:
-                    assert response.json["payload"]["captcha_completed"] is True
+                    assert response.json["payload"]["captcha"]["completed"] is True
                     assert response.json["payload"]["email_verification"]["email"] == email.lower()
                     assert response.json["payload"]["email_verification"]["verified"] is False
                     if "throttle_time_left" in response.json["payload"]["email_verification"]:
@@ -247,7 +248,7 @@ class SignupTests(EduidAPITestCase):
 
             if expect_success:
                 if not expected_payload:
-                    assert response.json["payload"]["captcha_completed"] is True
+                    assert response.json["payload"]["captcha"]["completed"] is True
                     assert (
                         response.json["payload"]["email_verification"]["email"]
                         == response.json["payload"]["email_verification"]["email"].lower()
@@ -316,7 +317,7 @@ class SignupTests(EduidAPITestCase):
 
             if expect_success:
                 if not expected_payload:
-                    assert response.json["payload"]["tou_accepted"] is True
+                    assert response.json["payload"]["tou"]["accepted"] is True
 
                 self._check_api_response(
                     response,
@@ -340,6 +341,62 @@ class SignupTests(EduidAPITestCase):
 
             return SignupResult(url=endpoint, reached_state=SignupState.S2_ACCEPT_TOU, response=response)
 
+    def _generate_password(
+        self,
+        data1: Optional[dict] = None,
+        expect_success: bool = True,
+        expected_message: Optional[TranslatableMsg] = None,
+        expected_payload: Optional[Mapping[str, Any]] = None,
+    ):
+        """
+        Generate a password and return in state.
+
+        :param data1: to control the data POSTed to the verify email endpoint
+        """
+        with self.session_cookie_anon(self.browser) as client:
+            with self.app.test_request_context():
+                endpoint = url_for("signup.get_password")
+                with client.session_transaction() as sess:
+                    data = {
+                        "csrf_token": sess.get_csrf_token(),
+                    }
+                if data1 is not None:
+                    data.update(data1)
+
+            logger.info(f"Making request to {endpoint} with data:\n{data}")
+            response = client.post(f"{endpoint}", data=json.dumps(data), content_type=self.content_type_json)
+
+            logger.info(f"Request to {endpoint} result: {response}")
+
+            if response.status_code != 200:
+                return SignupResult(url=endpoint, reached_state=SignupState.S8_GENERATE_PASSWORD, response=response)
+
+            if expect_success:
+                if not expected_payload:
+                    assert response.json["payload"]["credentials"]["generated_password"] is not None
+
+                self._check_api_response(
+                    response,
+                    status=200,
+                    message=expected_message,
+                    type_="POST_SIGNUP_GET_PASSWORD_SUCCESS",
+                    payload=expected_payload,
+                    assure_not_in_payload=["verification_code"],
+                )
+            else:
+                self._check_api_response(
+                    response,
+                    status=200,
+                    message=expected_message,
+                    type_="POST_SIGNUP_GET_PASSWORD_FAIL",
+                    payload=expected_payload,
+                    assure_not_in_payload=["verification_code"],
+                )
+
+            logger.info(f"Validated {endpoint} response:\n{response.json}")
+
+            return SignupResult(url=endpoint, reached_state=SignupState.S8_GENERATE_PASSWORD, response=response)
+
     def _prepare_for_create_user(
         self,
         email: str = "dummy@example.com",
@@ -350,13 +407,13 @@ class SignupTests(EduidAPITestCase):
     ):
         with self.session_cookie_anon(self.browser) as client:
             with client.session_transaction() as sess:
-                sess.signup.tou_accepted = tou_accepted
-                sess.signup.tou_version = "test_tou_v1"
-                sess.signup.captcha_completed = captcha_completed
+                sess.signup.tou.accepted = tou_accepted
+                sess.signup.tou.version = "test_tou_v1"
+                sess.signup.captcha.completed = captcha_completed
                 sess.signup.email_verification.email = email
                 sess.signup.email_verification.verified = email_verified
                 sess.signup.email_verification.reference = "test_ref"
-                sess.signup.generated_password = generated_password
+                sess.signup.credentials.generated_password = generated_password
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.vccs.client.VCCSClient.add_credentials")
@@ -396,9 +453,10 @@ class SignupTests(EduidAPITestCase):
 
             if expect_success:
                 if not expected_payload:
-                    assert response.json["payload"]["tou_accepted"] is True
-                    assert response.json["payload"]["captcha_completed"] is True
+                    assert response.json["payload"]["tou"]["accepted"] is True
+                    assert response.json["payload"]["captcha"]["completed"] is True
                     assert response.json["payload"]["email_verification"]["verified"] is True
+                    assert response.json["payload"]["credentials"]["generated_password"] is not None
                     assert response.json["payload"]["user_created"] is True
                     with client.session_transaction() as sess:
                         assert sess.common.eppn is not None
@@ -544,8 +602,8 @@ class SignupTests(EduidAPITestCase):
 
             if expect_success:
                 if not expected_payload:
-                    assert response.json["payload"]["tou_accepted"] is False
-                    assert response.json["payload"]["captcha_completed"] is False
+                    assert response.json["payload"]["tou"]["accepted"] is False
+                    assert response.json["payload"]["captcha"]["completed"] is False
                     assert response.json["payload"]["email_verification"]["email"] == email
                     assert response.json["payload"]["email_verification"]["verified"] is email_verified
                     assert response.json["payload"]["user_created"] is False
@@ -683,6 +741,16 @@ class SignupTests(EduidAPITestCase):
         data1 = {"csrf_token": "bad-csrf-token"}
         res = self._accept_tou(data1=data1, expect_success=False, expected_message=None)
         assert res.reached_state == SignupState.S2_ACCEPT_TOU
+        assert res.response.json["payload"]["error"] == {"csrf_token": ["CSRF failed to validate"]}
+
+    def test_get_password(self):
+        res = self._generate_password()
+        assert res.reached_state == SignupState.S8_GENERATE_PASSWORD
+
+    def test_get_password_bad_csrf(self):
+        data1 = {"csrf_token": "bad-csrf-token"}
+        res = self._generate_password(data1=data1, expect_success=False, expected_message=None)
+        assert res.reached_state == SignupState.S8_GENERATE_PASSWORD
         assert res.response.json["payload"]["error"] == {"csrf_token": ["CSRF failed to validate"]}
 
     def test_captcha(self):
@@ -1193,9 +1261,9 @@ class OldSignupTests(SignupTests):
                     sess.signup.email_verification.verification_code = "dummy"
                     sess.signup.email_verification.reference = "test reference"
                     sess.signup.email_verification.sent_at = utc_now()
-                    sess.signup.tou_accepted = True
-                    sess.signup.tou_version = "test_tou_v1"
-                    sess.signup.captcha_completed = True
+                    sess.signup.tou.accepted = True
+                    sess.signup.tou.version = "test_tou_v1"
+                    sess.signup.captcha.completed = True
                     code = code or sess.signup.email_verification.verification_code
 
             return client.get(f"/verify-link/{code}")

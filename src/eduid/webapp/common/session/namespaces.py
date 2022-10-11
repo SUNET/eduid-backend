@@ -142,15 +142,27 @@ class Invite(SessionNSBase):
     completed: bool = False
 
 
+class Tou(SessionNSBase):
+    version: Optional[str] = None
+    accepted: bool = False
+
+
+class Captcha(SessionNSBase):
+    completed: bool = False
+
+
+class Credentials(SessionNSBase):
+    generated_password: Optional[str] = None
+    webauthn_credential: Optional[Any] = None  # TODO: implement webauthn signup
+
+
 class Signup(TimestampedNS):
     user_created: bool = False
     email_verification: EmailVerification = Field(default_factory=EmailVerification)
     invite: Invite = Field(default_factory=Invite)
-    tou_accepted: bool = False
-    tou_version: Optional[str] = None
-    captcha_completed: bool = False
-    generated_password: Optional[str] = None
-    webauthn_credential: Optional[Any] = None  # TODO: implement webauthn signup
+    tou: Tou = Field(default_factory=Tou)
+    captcha: Captcha = Field(default_factory=Captcha)
+    credentials: Credentials = Field(default_factory=Credentials)
 
 
 # TODO: Remove Actions, should be unused

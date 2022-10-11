@@ -31,12 +31,22 @@ class SignupStatusResponse(FluxStandardAction):
             finish_url = fields.String(required=False)
             completed = fields.Boolean(required=True)
 
+        class Tou(EduidSchema):
+            accepted = fields.Boolean(required=True)
+            version = fields.String(required=True)
+
+        class Captcha(EduidSchema):
+            completed = fields.Boolean(required=True)
+
+        class Credentials(EduidSchema):
+            generated_password = fields.String(required=False)
+            # TODO: implement webauthn signup
+
         email_verification = fields.Nested(EmailVerification, required=True)
         invite = fields.Nested(Invite, required=True)
-        tou_accepted = fields.Boolean(required=True)
-        tou_version = fields.String(required=True)
-        captcha_completed = fields.Boolean(required=True)
-        credential_added = fields.Boolean(required=True)
+        tou = fields.Nested(Tou, required=True)
+        captcha = fields.Nested(Captcha, required=True)
+        credentials = fields.Nested(Credentials, required=True)
         user_created = fields.Boolean(required=True)
 
     payload = fields.Nested(StatusSchema)
