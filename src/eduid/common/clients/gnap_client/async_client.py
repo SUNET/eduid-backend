@@ -42,33 +42,3 @@ class AsyncGNAPClient(httpx.AsyncClient, GNAPBearerTokenMixin):
             await self._request_bearer_token()
         headers = self._add_authz_header(headers=Headers(headers))
         return await super().request(method, url, headers=headers, **kwargs)
-
-
-async def main():
-    cjwk = JWK(
-        **{
-            "kty": "EC",
-            "kid": "devkey",
-            "crv": "P-256",
-            "x": "LsX8Jl-DwZfJjgkwvTiRu5nqMNYcwh29hdkDtCsj26w",
-            "y": "hifFMvRh_moHOvBLx58JokS0LMjjo3Ww5SfjzFVSVSA",
-            "d": "tghyR6Z5kmJZiEw3VBF8d5VGCSaXX_-4w8TN94auHP0",
-        }
-    )
-    gnap_client_auth_data = GNAPClientAuthData(
-        authn_server_url="https://api.eduid.docker/auth/",
-        key_name="devkey",
-        client_jwk=cjwk,
-        access=["test", "test2"],
-    )
-    async with AsyncGNAPClient(
-        gnap_client_auth_data=gnap_client_auth_data,
-        verify=False,
-    ) as client:
-        ret = await client.get("https://api.eduid.docker/auth/docs")
-        print(ret.request.headers)
-        print(client._bearer_token)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
