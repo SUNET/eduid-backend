@@ -261,8 +261,11 @@ def create_user(use_password: bool, use_webauthn: bool) -> FluxData:
 
     session.signup.user_created = True
     session.common.eppn = signup_user.eppn
-
-    return success_response(payload=session.signup.to_dict())
+    # create payload before clearing password
+    payload = session.signup.to_dict()
+    # clear password from session
+    session.signup.credentials.password = None
+    return success_response(payload=payload)
 
 
 @signup_views.route("/invite-data", methods=["POST"])

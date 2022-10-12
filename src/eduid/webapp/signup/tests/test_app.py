@@ -961,6 +961,7 @@ class SignupTests(EduidAPITestCase):
             with client.session_transaction() as sess:
                 eppn = sess.common.eppn
                 assert eppn is not None
+                assert sess.signup.credentials.password is None
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         assert user is not None
         assert user.mail_addresses.to_list()[0].email == email
