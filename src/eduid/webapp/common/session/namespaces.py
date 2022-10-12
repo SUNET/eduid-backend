@@ -127,8 +127,8 @@ class SecurityNS(SessionNSBase):
 
 
 class EmailVerification(SessionNSBase):
+    completed: bool = False
     email: Optional[str] = None
-    verified: bool = False
     verification_code: Optional[str] = None
     bad_attempts: int = 0
     sent_at: Optional[datetime] = None
@@ -136,15 +136,15 @@ class EmailVerification(SessionNSBase):
 
 
 class Invite(SessionNSBase):
+    completed: bool = False
     initiated_signup: bool = False
     invite_code: Optional[str] = None
     finish_url: Optional[str] = None
-    completed: bool = False
 
 
 class Tou(SessionNSBase):
+    completed: bool = False
     version: Optional[str] = None
-    accepted: bool = False
 
 
 class Captcha(SessionNSBase):
@@ -152,13 +152,13 @@ class Captcha(SessionNSBase):
 
 
 class Credentials(SessionNSBase):
-    generated_password: Optional[str] = None
-    webauthn_credential: Optional[Any] = None  # TODO: implement webauthn signup
+    password: Optional[str] = None
+    webauthn: Optional[Any] = None  # TODO: implement webauthn signup
 
 
 class Signup(TimestampedNS):
     user_created: bool = False
-    email_verification: EmailVerification = Field(default_factory=EmailVerification)
+    email: EmailVerification = Field(default_factory=EmailVerification)
     invite: Invite = Field(default_factory=Invite)
     tou: Tou = Field(default_factory=Tou)
     captcha: Captcha = Field(default_factory=Captcha)

@@ -16,7 +16,7 @@ class SignupStatusResponse(FluxStandardAction):
     class StatusSchema(EduidSchema, CSRFResponseMixin):
         class EmailVerification(EduidSchema):
             email = fields.String(required=False)
-            verified = fields.Boolean(required=True)
+            completed = fields.Boolean(required=True)
             sent_at = fields.DateTime(required=False)
             throttle_time_left = fields.Integer(required=False)
             throttle_time_max = fields.Integer(required=False)
@@ -32,17 +32,17 @@ class SignupStatusResponse(FluxStandardAction):
             completed = fields.Boolean(required=True)
 
         class Tou(EduidSchema):
-            accepted = fields.Boolean(required=True)
+            completed = fields.Boolean(required=True)
             version = fields.String(required=True)
 
         class Captcha(EduidSchema):
             completed = fields.Boolean(required=True)
 
         class Credentials(EduidSchema):
-            generated_password = fields.String(required=False)
+            password = fields.String(required=False)
             # TODO: implement webauthn signup
 
-        email_verification = fields.Nested(EmailVerification, required=True)
+        email = fields.Nested(EmailVerification, required=True)
         invite = fields.Nested(Invite, required=True)
         tou = fields.Nested(Tou, required=True)
         captcha = fields.Nested(Captcha, required=True)
@@ -59,34 +59,30 @@ class SignupStatusResponse(FluxStandardAction):
 
     @pre_dump
     def throttle_delta_to_seconds(self, out_data, **kwargs):
-        if out_data["payload"].get("email_verification", {}).get("sent_at"):
-            sent_at = out_data["payload"]["email_verification"]["sent_at"]
+        if out_data["payload"].get("email", {}).get("sent_at"):
+            sent_at = out_data["payload"]["email"]["sent_at"]
             throttle_time_left = time_left(sent_at, current_app.conf.throttle_resend).total_seconds()
             if throttle_time_left > 0:
-                out_data["payload"]["email_verification"]["throttle_time_left"] = throttle_time_left
-                out_data["payload"]["email_verification"][
-                    "throttle_time_max"
-                ] = current_app.conf.throttle_resend.total_seconds()
+                out_data["payload"]["email"]["throttle_time_left"] = throttle_time_left
+                out_data["payload"]["email"]["throttle_time_max"] = current_app.conf.throttle_resend.total_seconds()
         return out_data
 
     @pre_dump
     def email_verification_timeout_delta_to_seconds(self, out_data, **kwargs):
-        if out_data["payload"].get("email_verification", {}).get("sent_at"):
-            sent_at = out_data["payload"]["email_verification"]["sent_at"]
+        if out_data["payload"].get("email", {}).get("sent_at"):
+            sent_at = out_data["payload"]["email"]["sent_at"]
             verification_time_left = time_left(sent_at, current_app.conf.email_verification_timeout).total_seconds()
             if verification_time_left > 0:
-                out_data["payload"]["email_verification"]["expires_time_left"] = verification_time_left
-                out_data["payload"]["email_verification"][
+                out_data["payload"]["email"]["expires_time_left"] = verification_time_left
+                out_data["payload"]["email"][
                     "expires_time_max"
                 ] = current_app.conf.email_verification_timeout.total_seconds()
         return out_data
 
     @pre_dump
     def bad_attempts_max(self, out_data, **kwargs):
-        if out_data["payload"].get("email_verification"):
-            out_data["payload"]["email_verification"][
-                "bad_attempts_max"
-            ] = current_app.conf.email_verification_max_bad_attempts
+        if out_data["payload"].get("email"):
+            out_data["payload"]["email"]["bad_attempts_max"] = current_app.conf.email_verification_max_bad_attempts
         return out_data
 
 

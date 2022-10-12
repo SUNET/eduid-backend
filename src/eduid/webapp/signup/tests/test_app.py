@@ -186,11 +186,11 @@ class SignupTests(EduidAPITestCase):
             if expect_success:
                 if not expected_payload:
                     assert response.json["payload"]["captcha"]["completed"] is True
-                    assert response.json["payload"]["email_verification"]["email"] == email.lower()
-                    assert response.json["payload"]["email_verification"]["verified"] is False
-                    if "throttle_time_left" in response.json["payload"]["email_verification"]:
-                        assert response.json["payload"]["email_verification"]["throttle_time_left"] > 0
-                    assert response.json["payload"]["email_verification"]["expires_time_left"] > 0
+                    assert response.json["payload"]["email"]["email"] == email.lower()
+                    assert response.json["payload"]["email"]["completed"] is False
+                    if "throttle_time_left" in response.json["payload"]["email"]:
+                        assert response.json["payload"]["email"]["throttle_time_left"] > 0
+                    assert response.json["payload"]["email"]["expires_time_left"] > 0
 
                 self._check_api_response(
                     response,
@@ -232,7 +232,7 @@ class SignupTests(EduidAPITestCase):
                 endpoint = url_for("signup.verify_email")
                 with client.session_transaction() as sess:
                     data = {
-                        "verification_code": sess.signup.email_verification.verification_code,
+                        "verification_code": sess.signup.email.verification_code,
                         "csrf_token": sess.get_csrf_token(),
                     }
                 if data1 is not None:
@@ -250,10 +250,9 @@ class SignupTests(EduidAPITestCase):
                 if not expected_payload:
                     assert response.json["payload"]["captcha"]["completed"] is True
                     assert (
-                        response.json["payload"]["email_verification"]["email"]
-                        == response.json["payload"]["email_verification"]["email"].lower()
+                        response.json["payload"]["email"]["email"] == response.json["payload"]["email"]["email"].lower()
                     )
-                    assert response.json["payload"]["email_verification"]["verified"] is True
+                    assert response.json["payload"]["email"]["completed"] is True
 
                 self._check_api_response(
                     response,
@@ -317,7 +316,7 @@ class SignupTests(EduidAPITestCase):
 
             if expect_success:
                 if not expected_payload:
-                    assert response.json["payload"]["tou"]["accepted"] is True
+                    assert response.json["payload"]["tou"]["completed"] is True
 
                 self._check_api_response(
                     response,
@@ -373,7 +372,7 @@ class SignupTests(EduidAPITestCase):
 
             if expect_success:
                 if not expected_payload:
-                    assert response.json["payload"]["credentials"]["generated_password"] is not None
+                    assert response.json["payload"]["credentials"]["password"] is not None
 
                 self._check_api_response(
                     response,
@@ -407,13 +406,13 @@ class SignupTests(EduidAPITestCase):
     ):
         with self.session_cookie_anon(self.browser) as client:
             with client.session_transaction() as sess:
-                sess.signup.tou.accepted = tou_accepted
+                sess.signup.tou.completed = tou_accepted
                 sess.signup.tou.version = "test_tou_v1"
                 sess.signup.captcha.completed = captcha_completed
-                sess.signup.email_verification.email = email
-                sess.signup.email_verification.verified = email_verified
-                sess.signup.email_verification.reference = "test_ref"
-                sess.signup.credentials.generated_password = generated_password
+                sess.signup.email.email = email
+                sess.signup.email.completed = email_verified
+                sess.signup.email.reference = "test_ref"
+                sess.signup.credentials.password = generated_password
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.vccs.client.VCCSClient.add_credentials")
@@ -453,10 +452,10 @@ class SignupTests(EduidAPITestCase):
 
             if expect_success:
                 if not expected_payload:
-                    assert response.json["payload"]["tou"]["accepted"] is True
+                    assert response.json["payload"]["tou"]["completed"] is True
                     assert response.json["payload"]["captcha"]["completed"] is True
-                    assert response.json["payload"]["email_verification"]["verified"] is True
-                    assert response.json["payload"]["credentials"]["generated_password"] is not None
+                    assert response.json["payload"]["email"]["completed"] is True
+                    assert response.json["payload"]["credentials"]["password"] is not None
                     assert response.json["payload"]["user_created"] is True
                     with client.session_transaction() as sess:
                         assert sess.common.eppn is not None
@@ -602,10 +601,10 @@ class SignupTests(EduidAPITestCase):
 
             if expect_success:
                 if not expected_payload:
-                    assert response.json["payload"]["tou"]["accepted"] is False
+                    assert response.json["payload"]["tou"]["completed"] is False
                     assert response.json["payload"]["captcha"]["completed"] is False
-                    assert response.json["payload"]["email_verification"]["email"] == email
-                    assert response.json["payload"]["email_verification"]["verified"] is email_verified
+                    assert response.json["payload"]["email"]["email"] == email
+                    assert response.json["payload"]["email"]["completed"] is email_verified
                     assert response.json["payload"]["user_created"] is False
                     with client.session_transaction() as sess:
                         assert sess.signup.invite.invite_code == invite_code
@@ -725,7 +724,7 @@ class SignupTests(EduidAPITestCase):
         assert res.reached_state == SignupState.S2_ACCEPT_TOU
 
     def test_not_accept_tou(self):
-        res = self._accept_tou(accept_tou=False, expect_success=False, expected_message=SignupMsg.tou_not_accepted)
+        res = self._accept_tou(accept_tou=False, expect_success=False, expected_message=SignupMsg.tou_not_completed)
         assert res.reached_state == SignupState.S2_ACCEPT_TOU
 
     def test_accept_tou_wrong_version(self):
@@ -845,7 +844,7 @@ class SignupTests(EduidAPITestCase):
 
         with self.session_cookie_anon(self.browser) as client:
             with client.session_transaction() as sess:
-                assert sess.signup.email_verification.email == mixed_case_email.lower()
+                assert sess.signup.email.email == mixed_case_email.lower()
 
     def test_register_existing_user(self):
         self._captcha()
@@ -876,19 +875,19 @@ class SignupTests(EduidAPITestCase):
 
         with self.session_cookie_anon(self.browser) as client:
             with client.session_transaction() as sess:
-                assert sess.signup.email_verification.email == mixed_case_email.lower()
+                assert sess.signup.email.email == mixed_case_email.lower()
 
     def test_register_user_resend(self):
         self._captcha()
         self._register_email(expect_success=True, expected_message=None)
         with self.session_cookie_anon(self.browser) as client:
             with client.session_transaction() as sess:
-                sess.signup.email_verification.sent_at = utc_now() - timedelta(minutes=6)
-                verification_code = sess.signup.email_verification.verification_code
+                sess.signup.email.sent_at = utc_now() - timedelta(minutes=6)
+                verification_code = sess.signup.email.verification_code
         res = self._register_email(expect_success=True, expected_payload=None)
         with self.session_cookie_anon(self.browser) as client:
             with client.session_transaction() as sess:
-                assert verification_code == sess.signup.email_verification.verification_code
+                assert verification_code == sess.signup.email.verification_code
         assert res.reached_state == SignupState.S4_REGISTER_EMAIL
         assert self.app.messagedb.db_count() == 2
 
@@ -904,12 +903,12 @@ class SignupTests(EduidAPITestCase):
         self._register_email(expect_success=True, expected_message=None)
         with self.session_cookie_anon(self.browser) as client:
             with client.session_transaction() as sess:
-                sess.signup.email_verification.sent_at = utc_now() - timedelta(hours=25)
-                verification_code = sess.signup.email_verification.verification_code
+                sess.signup.email.sent_at = utc_now() - timedelta(hours=25)
+                verification_code = sess.signup.email.verification_code
         res = self._register_email(expect_success=True, expected_payload=None)
         with self.session_cookie_anon(self.browser) as client:
             with client.session_transaction() as sess:
-                assert verification_code != sess.signup.email_verification.verification_code
+                assert verification_code != sess.signup.email.verification_code
         assert res.reached_state == SignupState.S4_REGISTER_EMAIL
         assert self.app.messagedb.db_count() == 2
 
@@ -948,7 +947,7 @@ class SignupTests(EduidAPITestCase):
 
         with self.session_cookie_anon(self.browser) as client:
             with client.session_transaction() as sess:
-                assert sess.signup.email_verification.email == mixed_case_email.lower()
+                assert sess.signup.email.email == mixed_case_email.lower()
 
     def test_create_user(self):
         email = "test@example.com"
@@ -1008,7 +1007,7 @@ class SignupTests(EduidAPITestCase):
         self._prepare_for_create_user(tou_accepted=False)
         res = self._create_user(
             expect_success=False,
-            expected_message=SignupMsg.tou_not_accepted,
+            expected_message=SignupMsg.tou_not_completed,
         )
         assert res.reached_state == SignupState.S6_CREATE_USER
 
@@ -1108,7 +1107,7 @@ class SignupTests(EduidAPITestCase):
 
         with self.session_cookie_anon(self.browser) as client:
             with client.session_transaction() as sess:
-                assert response.text == sess.signup.email_verification.verification_code
+                assert response.text == sess.signup.email.verification_code
 
     def test_get_code_no_backdoor_in_pro(self):
         self.app.conf.magic_cookie = "magic-cookie"
@@ -1257,14 +1256,14 @@ class OldSignupTests(SignupTests):
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
                     # lower because we are purposefully calling it with a mixed case mail address in tests
-                    sess.signup.email_verification.email = email.lower()
-                    sess.signup.email_verification.verification_code = "dummy"
-                    sess.signup.email_verification.reference = "test reference"
-                    sess.signup.email_verification.sent_at = utc_now()
-                    sess.signup.tou.accepted = True
+                    sess.signup.email.email = email.lower()
+                    sess.signup.email.verification_code = "dummy"
+                    sess.signup.email.reference = "test reference"
+                    sess.signup.email.sent_at = utc_now()
+                    sess.signup.tou.completed = True
                     sess.signup.tou.version = "test_tou_v1"
                     sess.signup.captcha.completed = True
-                    code = code or sess.signup.email_verification.verification_code
+                    code = code or sess.signup.email.verification_code
 
             return client.get(f"/verify-link/{code}")
 
@@ -1302,8 +1301,8 @@ class OldSignupTests(SignupTests):
                 return captcha_res
 
             with client.session_transaction() as sess:
-                assert sess.signup.email_verification.email == email.lower()
-                verification_code = sess.signup.email_verification.verification_code
+                assert sess.signup.email.email == email.lower()
+                verification_code = sess.signup.email.verification_code
                 assert verification_code is not None
 
             _verify_link_url = f"/verify-link/{verification_code}"
@@ -1365,8 +1364,8 @@ class OldSignupTests(SignupTests):
 
         with self.session_cookie_anon(self.browser) as client:
             with client.session_transaction() as sess:
-                assert sess.signup.email_verification.email == email
-                assert sess.signup.email_verification.verification_code == resp.data.decode("ascii")
+                assert sess.signup.email.email == email
+                assert sess.signup.email.verification_code == resp.data.decode("ascii")
 
     def test_get_code_no_backdoor_in_pro(self):
         self.app.conf.magic_cookie = "magic-cookie"
@@ -1411,7 +1410,7 @@ class OldSignupTests(SignupTests):
 
         with self.session_cookie_anon(self.browser) as client:
             with client.session_transaction() as sess:
-                assert sess.signup.email_verification.email == mixed_case_email.lower()
+                assert sess.signup.email.email == mixed_case_email.lower()
 
     def test_captcha_new_no_key(self):
         self.app.conf.recaptcha_public_key = ""
@@ -1448,7 +1447,7 @@ class OldSignupTests(SignupTests):
 
         with self.session_cookie_anon(self.browser) as client:
             with client.session_transaction() as sess:
-                assert sess.signup.email_verification.email == mixed_case_email.lower()
+                assert sess.signup.email.email == mixed_case_email.lower()
 
     def test_captcha_fail(self):
         res = self._captcha_new(

@@ -39,7 +39,7 @@ class TestIdPNamespace(EduidAPITestCase):
         assert session.idp.sso_cookie_val is None
 
         session.idp.sso_cookie_val = "abc"
-        session.signup.email_verification.verification_code = "test"
+        session.signup.email.verification_code = "test"
 
         session._serialize_namespaces()
         out = session._session.to_dict()
@@ -49,10 +49,11 @@ class TestIdPNamespace(EduidAPITestCase):
             "signup": {
                 "ts": now,
                 "user_created": False,
-                "email_verification": {"verified": False, "verification_code": "test", "bad_attempts": 0},
+                "email": {"completed": False, "verification_code": "test", "bad_attempts": 0},
                 "invite": {"initiated_signup": False, "completed": False},
-                "tou_accepted": False,
-                "captcha_completed": False,
+                "tou": {"completed": False},
+                "captcha": {"completed": False},
+                "credentials": {},
             },
             "idp": {"ts": now, "sso_cookie_val": "abc", "pending_requests": {}},
         }

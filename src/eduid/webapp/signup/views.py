@@ -82,23 +82,21 @@ def register_email(email: str):
         return error_response(payload=session.signup.to_dict(), message=SignupMsg.email_throttled)
     if email_status == EmailStatus.NEW:
         current_app.logger.info("Starting new signup")
-        session.signup.email_verification.email = email
-        session.signup.email_verification.verification_code = make_short_code(
-            digits=current_app.conf.email_verification_code_length
-        )
-        session.signup.email_verification.sent_at = utc_now()
-        session.signup.email_verification.reference = str(uuid4())
+        session.signup.email.email = email
+        session.signup.email.verification_code = make_short_code(digits=current_app.conf.email_verification_code_length)
+        session.signup.email.sent_at = utc_now()
+        session.signup.email.reference = str(uuid4())
 
     # send email to the user
     if email_status in [EmailStatus.NEW, EmailStatus.RESEND_CODE]:
         current_app.logger.info("Sending verification email")
-        assert session.signup.email_verification.email is not None  # please mypy
-        assert session.signup.email_verification.verification_code is not None  # please mypy
-        assert session.signup.email_verification.reference is not None  # please mypy
+        assert session.signup.email.email is not None  # please mypy
+        assert session.signup.email.verification_code is not None  # please mypy
+        assert session.signup.email.reference is not None  # please mypy
         send_signup_mail(
-            email=session.signup.email_verification.email,
-            verification_code=session.signup.email_verification.verification_code,
-            reference=session.signup.email_verification.reference,
+            email=session.signup.email.email,
+            verification_code=session.signup.email.verification_code,
+            reference=session.signup.email.reference,
         )
         current_app.stats.count(name="verification_email_sent")
 
@@ -113,29 +111,29 @@ def verify_email(verification_code: str):
     Verify the email address.
     """
     current_app.logger.info("Verifying email")
-    current_app.logger.debug(f"email address: {session.signup.email_verification.email}")
+    current_app.logger.debug(f"email address: {session.signup.email.email}")
     current_app.logger.debug(f"verification code: {verification_code}")
 
     # ignore verification attempts if there has been to many wrong attempts
-    if session.signup.email_verification.bad_attempts >= current_app.conf.email_verification_max_bad_attempts:
+    if session.signup.email.bad_attempts >= current_app.conf.email_verification_max_bad_attempts:
         current_app.logger.info("Too many wrong verification attempts")
         # let user complete captcha again and reset bad attempts
         session.signup.captcha.completed = False
-        session.signup.email_verification.bad_attempts = 0
+        session.signup.email.bad_attempts = 0
         return error_response(message=SignupMsg.email_verification_too_many_tries)
 
     if not session.signup.captcha.completed:
         return error_response(message=SignupMsg.captcha_not_completed)
 
-    if is_email_verification_expired(sent_ts=session.signup.email_verification.sent_at):
+    if is_email_verification_expired(sent_ts=session.signup.email.sent_at):
         current_app.logger.info("Email verification expired")
         return error_response(message=SignupMsg.email_verification_expired)
 
-    if verification_code and verification_code == session.signup.email_verification.verification_code:
-        session.signup.email_verification.verified = True
+    if verification_code and verification_code == session.signup.email.verification_code:
+        session.signup.email.completed = True
     else:
         current_app.logger.info("Verification failed")
-        session.signup.email_verification.bad_attempts += 1
+        session.signup.email.bad_attempts += 1
         return error_response(message=SignupMsg.email_verification_failed)
 
     return success_response(payload=session.signup.to_dict())
@@ -150,14 +148,14 @@ def accept_tou(tou_accepted: bool, tou_version: str):
     """
     current_app.logger.info("Accepting ToU")
     if not tou_accepted:
-        current_app.logger.info("ToU not accepted")
-        return error_response(message=SignupMsg.tou_not_accepted)
+        current_app.logger.info("ToU not completed")
+        return error_response(message=SignupMsg.tou_not_completed)
     if tou_version != current_app.conf.tou_version:
         current_app.logger.error(f"ToU version: Got {tou_version}, expected {current_app.conf.tou_version}")
         return error_response(message=SignupMsg.tou_wrong_version)
 
-    current_app.logger.info("ToU accepted")
-    session.signup.tou.accepted = True
+    current_app.logger.info("ToU completed")
+    session.signup.tou.completed = True
     session.signup.tou.version = tou_version
     return success_response(payload=session.signup.to_dict())
 
@@ -199,7 +197,7 @@ def captcha_response(recaptcha_response: str) -> FluxData:
         current_app.logger.info("Captcha failed")
         return error_response(message=SignupMsg.captcha_failed)
 
-    current_app.logger.info("Captcha verified")
+    current_app.logger.info("Captcha completed")
     session.signup.captcha.completed = True
     return success_response(payload=session.signup.to_dict())
 
@@ -209,8 +207,8 @@ def captcha_response(recaptcha_response: str) -> FluxData:
 @MarshalWith(SignupStatusResponse)
 def get_password() -> FluxData:
     current_app.logger.info("Password requested")
-    if session.signup.credentials.generated_password is None:
-        session.signup.credentials.generated_password = generate_password(length=current_app.conf.password_length)
+    if session.signup.credentials.password is None:
+        session.signup.credentials.password = generate_password(length=current_app.conf.password_length)
     return success_response(payload=session.signup.to_dict())
 
 
@@ -230,28 +228,28 @@ def create_user(use_password: bool, use_webauthn: bool) -> FluxData:
     if not session.signup.captcha.completed:
         current_app.logger.error("Captcha not completed")
         return error_response(message=SignupMsg.captcha_not_completed)
-    if not session.signup.email_verification.verified:
-        current_app.logger.error("Email not verified")
+    if not session.signup.email.completed:
+        current_app.logger.error("Email not completed")
         return error_response(message=SignupMsg.email_verification_not_complete)
-    if not session.signup.tou.accepted:
-        current_app.logger.error("ToU not accepted")
-        return error_response(message=SignupMsg.tou_not_accepted)
-    if use_password and not session.signup.credentials.generated_password:
+    if not session.signup.tou.completed:
+        current_app.logger.error("ToU not completed")
+        return error_response(message=SignupMsg.tou_not_completed)
+    if use_password and not session.signup.credentials.password:
         current_app.logger.error("No password generated")
         return error_response(message=SignupMsg.password_not_generated)
-    if use_webauthn and not session.signup.credentials.webauthn_credential:
+    if use_webauthn and not session.signup.credentials.webauthn:
         current_app.logger.error("No webauthn registered")
         return error_response(message=SignupMsg.webauthn_not_registered)
     if not use_password and not use_webauthn:
         current_app.logger.error("Neither password nor webauthn selected")
         return error_response(message=SignupMsg.credential_not_added)
 
-    assert session.signup.email_verification.email is not None  # please mypy
+    assert session.signup.email.email is not None  # please mypy
     assert session.signup.tou.version is not None  # please mypy
     try:
         signup_user = create_and_sync_user(
-            email=session.signup.email_verification.email,
-            password=session.signup.credentials.generated_password,
+            email=session.signup.email.email,
+            password=session.signup.credentials.password,
             tou_version=session.signup.tou.version,
         )
     except EmailAlreadyVerifiedException:
@@ -305,13 +303,13 @@ def accept_invite(invite_code: str) -> FluxData:
         return error_response(message=SignupMsg.invite_already_completed)
 
     if invite.get_primary_mail_address() is not None:
-        session.signup.email_verification.email = invite.get_primary_mail_address()
+        session.signup.email.email = invite.get_primary_mail_address()
 
     if invite.send_email is True:
         # user reached the invite endpoint after receiving an email
-        # we can now set the email as verified
-        session.signup.email_verification.verified = True
-        session.signup.email_verification.sent_at = invite.created_ts
+        # we can now set the email as completed
+        session.signup.email.completed = True
+        session.signup.email.sent_at = invite.created_ts
 
     session.signup.invite.invite_code = invite.invite_code
     session.signup.invite.initiated_signup = True
@@ -378,8 +376,8 @@ def get_email_code():
             if not email:
                 current_app.logger.error("Missing email")
                 abort(400)
-            if session.signup.email_verification.email == email:
-                return session.signup.email_verification.verification_code
+            if session.signup.email.email == email:
+                return session.signup.email.verification_code
     except Exception:
         current_app.logger.exception("Someone tried to use the backdoor to get the email verification code for signup")
 
@@ -396,7 +394,7 @@ def trycaptcha(email: str, recaptcha_response: str, tou_accepted: bool) -> FluxD
     """
     if not tou_accepted:
         return error_response(message=SignupMsg.tou_not_accepted)
-    session.signup.tou.accepted = True
+    session.signup.tou.completed = True
     session.signup.tou.version = current_app.conf.tou_version
 
     recaptcha_verified = False
@@ -424,9 +422,9 @@ def trycaptcha(email: str, recaptcha_response: str, tou_accepted: bool) -> FluxD
         if signup_user is not None:
             assert signup_user.pending_mail_address is not None  # please mypy
             current_app.logger.debug("Found user {} with pending email {} in signup db".format(signup_user, email))
-            session.signup.email_verification.email = signup_user.pending_mail_address.email
-            session.signup.email_verification.verification_code = signup_user.pending_mail_address.verification_code
-            session.signup.email_verification.sent_at = signup_user.pending_mail_address.modified_ts
+            session.signup.email.email = signup_user.pending_mail_address.email
+            session.signup.email.verification_code = signup_user.pending_mail_address.verification_code
+            session.signup.email.sent_at = signup_user.pending_mail_address.modified_ts
 
         _next = check_email_status(email)
         current_app.logger.info(f"recaptcha verified, next is {_next}")
@@ -441,29 +439,29 @@ def trycaptcha(email: str, recaptcha_response: str, tou_accepted: bool) -> FluxD
             # Workaround for failed earlier sync of user to userdb: Remove any signup_user with this e-mail address.
             remove_users_with_mail_address(email)
 
-            session.signup.email_verification.email = email
-            session.signup.email_verification.verification_code = get_short_hash(
+            session.signup.email.email = email
+            session.signup.email.verification_code = get_short_hash(
                 entropy=current_app.conf.email_verification_code_length
             )
-            session.signup.email_verification.sent_at = utc_now()
-            session.signup.email_verification.reference = str(uuid4())
+            session.signup.email.sent_at = utc_now()
+            session.signup.email.reference = str(uuid4())
 
             send_signup_mail(
-                email=session.signup.email_verification.email,
-                verification_code=session.signup.email_verification.verification_code,
-                reference=session.signup.email_verification.reference,
+                email=session.signup.email.email,
+                verification_code=session.signup.email.verification_code,
+                reference=session.signup.email.reference,
                 use_email_link=True,
             )
             return success_response(payload=dict(next="new"), message=SignupMsg.reg_new)
 
         elif _next == EmailStatus.RESEND_CODE:
-            assert session.signup.email_verification.email is not None  # please mypy
-            assert session.signup.email_verification.verification_code is not None  # please mypy
-            assert session.signup.email_verification.reference is not None  # please mypy
+            assert session.signup.email.email is not None  # please mypy
+            assert session.signup.email.verification_code is not None  # please mypy
+            assert session.signup.email.reference is not None  # please mypy
             send_signup_mail(
-                email=session.signup.email_verification.email,
-                verification_code=session.signup.email_verification.verification_code,
-                reference=session.signup.email_verification.reference,
+                email=session.signup.email.email,
+                verification_code=session.signup.email.verification_code,
+                reference=session.signup.email.reference,
                 use_email_link=True,
             )
             current_app.stats.count(name="resend_code")
@@ -478,28 +476,28 @@ def trycaptcha(email: str, recaptcha_response: str, tou_accepted: bool) -> FluxD
 def verify_link(code: str) -> FluxData:
 
     # ignore verification attempts if there has been to many wrong attempts
-    if session.signup.email_verification.bad_attempts >= current_app.conf.email_verification_max_bad_attempts:
+    if session.signup.email.bad_attempts >= current_app.conf.email_verification_max_bad_attempts:
         current_app.logger.info("Too many wrong verification attempts")
         return error_response(message=SignupMsg.email_verification_too_many_tries)
 
     if (
-        is_email_verification_expired(sent_ts=session.signup.email_verification.sent_at)
-        or session.signup.email_verification.verification_code is None
-        or session.signup.email_verification.verification_code != code
+        is_email_verification_expired(sent_ts=session.signup.email.sent_at)
+        or session.signup.email.verification_code is None
+        or session.signup.email.verification_code != code
     ):
         current_app.logger.info("Verification failed")
-        session.signup.email_verification.bad_attempts += 1
+        session.signup.email.bad_attempts += 1
         return error_response(payload=dict(status="unknown-code"), message=SignupMsg.unknown_code)
 
-    session.signup.email_verification.verified = True
-    session.signup.credentials.generated_password = generate_password(length=current_app.conf.password_length)
+    session.signup.email.completed = True
+    session.signup.credentials.password = generate_password(length=current_app.conf.password_length)
 
-    assert session.signup.email_verification.email is not None  # please mypy
+    assert session.signup.email.email is not None  # please mypy
     assert session.signup.tou.version is not None  # please mypy
     try:
         signup_user = create_and_sync_user(
-            email=session.signup.email_verification.email,
-            password=session.signup.credentials.generated_password,
+            email=session.signup.email.email,
+            password=session.signup.credentials.password,
             tou_version=session.signup.tou.version,
         )
 
@@ -510,7 +508,7 @@ def verify_link(code: str) -> FluxData:
     except UserOutOfSync:
         return error_response(message=CommonMsg.out_of_sync)
 
-    parts = findall(".{,4}", session.signup.credentials.generated_password)
+    parts = findall(".{,4}", session.signup.credentials.password)
     password = " ".join(parts).rstrip()
 
     context = {

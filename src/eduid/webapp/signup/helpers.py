@@ -39,8 +39,8 @@ class SignupMsg(TranslatableMsg):
     attempted operations on the back end.
     """
 
-    # the ToU has not been accepted
-    tou_not_accepted = "signup.tou-not-accepted"
+    # the ToU has not been completed
+    tou_not_completed = "signup.tou-not-completed"
     tou_wrong_version = "signup.tou-wrong-version"
     # The email address used is already known
     email_used = "signup.email-address-used"
@@ -48,7 +48,7 @@ class SignupMsg(TranslatableMsg):
     captcha_not_completed = "signup.captcha-not-completed"
     # captcha completion failed
     captcha_failed = "signup.captcha-failed"
-    # unrecognized verification code
+    # email verification not completed
     email_verification_not_complete = "signup.email-verification-not-complete"
     # unrecognized verification code
     email_verification_failed = "signup.email-verification-failed"
@@ -82,6 +82,8 @@ class SignupMsg(TranslatableMsg):
     unknown_code = "signup.unknown-code"
     # the verification code has already been verified
     already_verified = "signup.already-verified"
+    # the ToU has not been accepted
+    tou_not_accepted = "signup.tou-not-accepted"
     # end of backwards compatibility
 
 
@@ -124,7 +126,7 @@ def check_email_status(email: str) -> EmailStatus:
     Check the email registration status.
 
     If the email doesn't exist in central db return 'new'.
-    If the email address exists in the central db and is verified return 'address-used'.
+    If the email address exists in the central db and is completed return 'address-used'.
 
     :return: status
     """
@@ -139,26 +141,26 @@ def check_email_status(email: str) -> EmailStatus:
         current_app.logger.warning("Incomplete user found with email {} in central userdb".format(email))
 
     # new signup
-    if session.signup.email_verification.email is None:
+    if session.signup.email.email is None:
         current_app.logger.debug("Registering new user with email {}".format(email))
         current_app.stats.count(name="signup_started")
         return EmailStatus.NEW
 
     # check if the verification code has expired
-    if is_email_verification_expired(sent_ts=session.signup.email_verification.sent_at):
+    if is_email_verification_expired(sent_ts=session.signup.email.sent_at):
         current_app.logger.info("email verification expired")
         current_app.logger.debug(f"email: {email}")
         return EmailStatus.NEW
 
     # check if mail sending is throttled
-    assert session.signup.email_verification.sent_at is not None
-    if is_throttled(session.signup.email_verification.sent_at, current_app.conf.throttle_resend):
-        seconds_left = time_left(session.signup.email_verification.sent_at, current_app.conf.throttle_resend)
+    assert session.signup.email.sent_at is not None
+    if is_throttled(session.signup.email.sent_at, current_app.conf.throttle_resend):
+        seconds_left = time_left(session.signup.email.sent_at, current_app.conf.throttle_resend)
         current_app.logger.info(f"User has been sent a verification code too recently: {seconds_left} seconds left")
         current_app.logger.debug(f"email: {email}")
         return EmailStatus.THROTTLED
 
-    if session.signup.email_verification.email == email:
+    if session.signup.email.email == email:
         # resend code if the user has provided the same email address
         current_app.logger.info("Resend code")
         current_app.logger.debug(f"email: {email}")
@@ -268,7 +270,7 @@ def create_and_sync_user(email: str, tou_version: str, password: Optional[str] =
 
     # Record the acceptance of the terms of use
     record_tou(signup_user=signup_user, tou_version=tou_version)
-    # Add the verified email address to the user
+    # Add the completed email address to the user
     record_email_address(signup_user=signup_user, email=email)
 
     # TODO: add_password needs to understand that signup_user is a descendant from User
@@ -327,7 +329,7 @@ def record_email_address(signup_user: SignupUser, email: str) -> None:
         eppn=signup_user.eppn,
         created_by=current_app.conf.app_name,
         mail_address=mail_address.email,
-        reference=session.signup.email_verification.reference,
+        reference=session.signup.email.reference,
         proofing_version=current_app.conf.email_proofing_version,
     )
 
