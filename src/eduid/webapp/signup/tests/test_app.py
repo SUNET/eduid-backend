@@ -457,6 +457,7 @@ class SignupTests(EduidAPITestCase):
                     assert response.json["payload"]["tou"]["completed"] is True
                     assert response.json["payload"]["captcha"]["completed"] is True
                     assert response.json["payload"]["email"]["completed"] is True
+                    assert response.json["payload"]["credentials"]["completed"] is True
                     assert response.json["payload"]["credentials"]["password"] is not None
                     assert response.json["payload"]["user_created"] is True
                     with client.session_transaction() as sess:

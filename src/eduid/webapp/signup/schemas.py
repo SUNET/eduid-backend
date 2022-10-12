@@ -39,6 +39,7 @@ class SignupStatusResponse(FluxStandardAction):
             completed = fields.Boolean(required=True)
 
         class Credentials(EduidSchema):
+            completed = fields.Boolean(required=True)
             password = fields.String(required=False)
             # TODO: implement webauthn signup
 

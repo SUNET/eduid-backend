@@ -152,6 +152,7 @@ class Captcha(SessionNSBase):
 
 
 class Credentials(SessionNSBase):
+    completed: bool = False
     password: Optional[str] = None
     webauthn: Optional[Any] = None  # TODO: implement webauthn signup
 

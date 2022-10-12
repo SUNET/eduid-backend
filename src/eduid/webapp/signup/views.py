@@ -260,6 +260,7 @@ def create_user(use_password: bool, use_webauthn: bool) -> FluxData:
         return error_response(message=CommonMsg.out_of_sync)
 
     session.signup.user_created = True
+    session.signup.credentials.completed = True
     session.common.eppn = signup_user.eppn
     # create payload before clearing password
     payload = session.signup.to_dict()
