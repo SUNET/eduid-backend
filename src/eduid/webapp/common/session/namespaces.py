@@ -128,7 +128,7 @@ class SecurityNS(SessionNSBase):
 
 class EmailVerification(SessionNSBase):
     completed: bool = False
-    email: Optional[str] = None
+    address: Optional[str] = None
     verification_code: Optional[str] = None
     bad_attempts: int = 0
     sent_at: Optional[datetime] = None

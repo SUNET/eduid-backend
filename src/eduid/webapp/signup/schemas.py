@@ -15,7 +15,7 @@ __author__ = "lundberg"
 class SignupStatusResponse(FluxStandardAction):
     class StatusSchema(EduidSchema, CSRFResponseMixin):
         class EmailVerification(EduidSchema):
-            email = fields.String(required=False)
+            address = fields.String(required=False)
             completed = fields.Boolean(required=True)
             sent_at = fields.DateTime(required=False)
             throttle_time_left = fields.Integer(required=False)

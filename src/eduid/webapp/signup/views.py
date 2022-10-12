@@ -82,7 +82,7 @@ def register_email(email: str):
         return error_response(payload=session.signup.to_dict(), message=SignupMsg.email_throttled)
     if email_status == EmailStatus.NEW:
         current_app.logger.info("Starting new signup")
-        session.signup.email.email = email
+        session.signup.email.address = email
         session.signup.email.verification_code = make_short_code(digits=current_app.conf.email_verification_code_length)
         session.signup.email.sent_at = utc_now()
         session.signup.email.reference = str(uuid4())
@@ -90,11 +90,11 @@ def register_email(email: str):
     # send email to the user
     if email_status in [EmailStatus.NEW, EmailStatus.RESEND_CODE]:
         current_app.logger.info("Sending verification email")
-        assert session.signup.email.email is not None  # please mypy
+        assert session.signup.email.address is not None  # please mypy
         assert session.signup.email.verification_code is not None  # please mypy
         assert session.signup.email.reference is not None  # please mypy
         send_signup_mail(
-            email=session.signup.email.email,
+            email=session.signup.email.address,
             verification_code=session.signup.email.verification_code,
             reference=session.signup.email.reference,
         )
@@ -111,7 +111,7 @@ def verify_email(verification_code: str):
     Verify the email address.
     """
     current_app.logger.info("Verifying email")
-    current_app.logger.debug(f"email address: {session.signup.email.email}")
+    current_app.logger.debug(f"email address: {session.signup.email.address}")
     current_app.logger.debug(f"verification code: {verification_code}")
 
     # ignore verification attempts if there has been to many wrong attempts
@@ -244,11 +244,11 @@ def create_user(use_password: bool, use_webauthn: bool) -> FluxData:
         current_app.logger.error("Neither password nor webauthn selected")
         return error_response(message=SignupMsg.credential_not_added)
 
-    assert session.signup.email.email is not None  # please mypy
+    assert session.signup.email.address is not None  # please mypy
     assert session.signup.tou.version is not None  # please mypy
     try:
         signup_user = create_and_sync_user(
-            email=session.signup.email.email,
+            email=session.signup.email.address,
             password=session.signup.credentials.password,
             tou_version=session.signup.tou.version,
         )
@@ -303,7 +303,7 @@ def accept_invite(invite_code: str) -> FluxData:
         return error_response(message=SignupMsg.invite_already_completed)
 
     if invite.get_primary_mail_address() is not None:
-        session.signup.email.email = invite.get_primary_mail_address()
+        session.signup.email.address = invite.get_primary_mail_address()
 
     if invite.send_email is True:
         # user reached the invite endpoint after receiving an email
@@ -376,7 +376,7 @@ def get_email_code():
             if not email:
                 current_app.logger.error("Missing email")
                 abort(400)
-            if session.signup.email.email == email:
+            if session.signup.email.address == email:
                 return session.signup.email.verification_code
     except Exception:
         current_app.logger.exception("Someone tried to use the backdoor to get the email verification code for signup")
@@ -422,7 +422,7 @@ def trycaptcha(email: str, recaptcha_response: str, tou_accepted: bool) -> FluxD
         if signup_user is not None:
             assert signup_user.pending_mail_address is not None  # please mypy
             current_app.logger.debug("Found user {} with pending email {} in signup db".format(signup_user, email))
-            session.signup.email.email = signup_user.pending_mail_address.email
+            session.signup.email.address = signup_user.pending_mail_address.email
             session.signup.email.verification_code = signup_user.pending_mail_address.verification_code
             session.signup.email.sent_at = signup_user.pending_mail_address.modified_ts
 
@@ -439,7 +439,7 @@ def trycaptcha(email: str, recaptcha_response: str, tou_accepted: bool) -> FluxD
             # Workaround for failed earlier sync of user to userdb: Remove any signup_user with this e-mail address.
             remove_users_with_mail_address(email)
 
-            session.signup.email.email = email
+            session.signup.email.address = email
             session.signup.email.verification_code = get_short_hash(
                 entropy=current_app.conf.email_verification_code_length
             )
@@ -447,7 +447,7 @@ def trycaptcha(email: str, recaptcha_response: str, tou_accepted: bool) -> FluxD
             session.signup.email.reference = str(uuid4())
 
             send_signup_mail(
-                email=session.signup.email.email,
+                email=session.signup.email.address,
                 verification_code=session.signup.email.verification_code,
                 reference=session.signup.email.reference,
                 use_email_link=True,
@@ -455,11 +455,11 @@ def trycaptcha(email: str, recaptcha_response: str, tou_accepted: bool) -> FluxD
             return success_response(payload=dict(next="new"), message=SignupMsg.reg_new)
 
         elif _next == EmailStatus.RESEND_CODE:
-            assert session.signup.email.email is not None  # please mypy
+            assert session.signup.email.address is not None  # please mypy
             assert session.signup.email.verification_code is not None  # please mypy
             assert session.signup.email.reference is not None  # please mypy
             send_signup_mail(
-                email=session.signup.email.email,
+                email=session.signup.email.address,
                 verification_code=session.signup.email.verification_code,
                 reference=session.signup.email.reference,
                 use_email_link=True,
@@ -492,11 +492,11 @@ def verify_link(code: str) -> FluxData:
     session.signup.email.completed = True
     session.signup.credentials.password = generate_password(length=current_app.conf.password_length)
 
-    assert session.signup.email.email is not None  # please mypy
+    assert session.signup.email.address is not None  # please mypy
     assert session.signup.tou.version is not None  # please mypy
     try:
         signup_user = create_and_sync_user(
-            email=session.signup.email.email,
+            email=session.signup.email.address,
             password=session.signup.credentials.password,
             tou_version=session.signup.tou.version,
         )

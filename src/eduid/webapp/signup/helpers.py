@@ -141,7 +141,7 @@ def check_email_status(email: str) -> EmailStatus:
         current_app.logger.warning("Incomplete user found with email {} in central userdb".format(email))
 
     # new signup
-    if session.signup.email.email is None:
+    if session.signup.email.address is None:
         current_app.logger.debug("Registering new user with email {}".format(email))
         current_app.stats.count(name="signup_started")
         return EmailStatus.NEW
@@ -160,7 +160,7 @@ def check_email_status(email: str) -> EmailStatus:
         current_app.logger.debug(f"email: {email}")
         return EmailStatus.THROTTLED
 
-    if session.signup.email.email == email:
+    if session.signup.email.address == email:
         # resend code if the user has provided the same email address
         current_app.logger.info("Resend code")
         current_app.logger.debug(f"email: {email}")
