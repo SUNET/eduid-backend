@@ -317,6 +317,7 @@ class SignupTests(EduidAPITestCase):
 
             if expect_success:
                 if not expected_payload:
+                    assert response.json["payload"]["tou"]["version"] == tou_version
                     assert response.json["payload"]["tou"]["completed"] is True
 
                 self._check_api_response(

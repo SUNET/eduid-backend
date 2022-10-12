@@ -53,8 +53,8 @@ class SignupStatusResponse(FluxStandardAction):
 
     @pre_dump
     def set_tou_version(self, data, **kwargs):
-        if data["payload"].get("tou_version") is None:
-            data["payload"]["tou_version"] = current_app.conf.tou_version
+        if data["payload"].get("tou") and data["payload"]["tou"].get("version") is None:
+            data["payload"]["tou"]["version"] = current_app.conf.tou_version
         return data
 
     @pre_dump
