@@ -53,7 +53,7 @@ class TestIdPNamespace(EduidAPITestCase):
                 "invite": {"initiated_signup": False, "completed": False},
                 "tou": {"completed": False},
                 "captcha": {"completed": False},
-                "credentials": {},
+                "credentials": {"completed": False},
             },
             "idp": {"ts": now, "sso_cookie_val": "abc", "pending_requests": {}},
         }
