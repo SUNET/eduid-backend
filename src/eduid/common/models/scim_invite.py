@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import Field, root_validator
 
-from eduid.scimapi.models.scimbase import (
+from eduid.common.models.scim_base import (
     BaseCreateRequest,
     BaseResponse,
     EduidBaseModel,
@@ -15,7 +15,7 @@ from eduid.scimapi.models.scimbase import (
     PhoneNumber,
     SCIMSchema,
 )
-from eduid.scimapi.models.user import NutidUserExtensionV1
+from eduid.common.models.scim_user import NutidUserExtensionV1
 from eduid.webapp.common.api.validation import nin_re_str
 
 __author__ = "lundberg"

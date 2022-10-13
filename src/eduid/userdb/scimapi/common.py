@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Any, Dict, Mapping, Optional, Type, Union
 from uuid import UUID
 
-from eduid.scimapi.models.scimbase import EmailType, PhoneNumberType, WeakVersion
+from eduid.common.models.scim_base import EmailType, PhoneNumberType, WeakVersion
 from eduid.userdb.util import utc_now
 
 __author__ = "lundberg"

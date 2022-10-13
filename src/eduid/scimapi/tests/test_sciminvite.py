@@ -10,9 +10,9 @@ from typing import Any, Dict, Mapping, Optional
 
 from bson import ObjectId
 
-from eduid.scimapi.models.invite import InviteResponse, NutidInviteExtensionV1
-from eduid.scimapi.models.scimbase import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
-from eduid.scimapi.models.user import NutidUserExtensionV1, Profile
+from eduid.common.models.scim_invite import InviteResponse, NutidInviteExtensionV1
+from eduid.common.models.scim_base import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
+from eduid.common.models.scim_user import NutidUserExtensionV1, Profile
 from eduid.scimapi.testing import ScimApiTestCase
 from eduid.scimapi.utils import filter_none, make_etag
 from eduid.userdb.scimapi import EventStatus, ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
