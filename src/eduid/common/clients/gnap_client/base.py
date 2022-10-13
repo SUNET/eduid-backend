@@ -2,9 +2,9 @@
 import logging
 from abc import ABC
 from datetime import timedelta, datetime
-from typing import List, Optional, Union, Any, Coroutine
+from typing import List, Optional, Union
 
-from httpx import Headers
+from httpx import Request
 from jwcrypto.jwk import JWK
 from jwcrypto.jws import JWS
 from pydantic import BaseModel
@@ -79,11 +79,8 @@ class GNAPBearerTokenMixin(ABC):
             expires_in = timedelta(seconds=grant_response.access_token.expires_in)
         self._bearer_token_expires_at = utc_now() + expires_in
 
-    def _add_authz_header(self, headers: Optional[Headers] = None) -> Headers:
-        if headers is None:
-            headers = Headers()
-        headers["Authorization"] = f"Bearer {self._bearer_token}"
-        return headers
+    def _request_bearer_token(self) -> GrantResponse:
+        raise NotImplementedError()
 
-    def _request_bearer_token(self) -> Union[None, Coroutine[Any, Any, None]]:
+    def _add_authz_header(self, request: Request) -> None:
         raise NotImplementedError()

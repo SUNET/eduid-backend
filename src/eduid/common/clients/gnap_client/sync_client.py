@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
-from typing import Optional
 
 import httpx
-from httpx import Response, Headers
-from httpx._types import HeaderTypes, URLTypes
-from jwcrypto.jwk import JWK
 
 from eduid.common.clients.gnap_client.base import GNAPBearerTokenMixin, GNAPClientAuthData
 from eduid.common.misc.timeutil import utc_now
@@ -17,27 +13,37 @@ logger = logging.getLogger(__name__)
 
 
 class GNAPClient(httpx.Client, GNAPBearerTokenMixin):
-    def __init__(self, gnap_client_auth_data: GNAPClientAuthData, **kwargs):
-        super().__init__(**kwargs)
-        self._auth_data = gnap_client_auth_data
+    def __init__(self, auth_data: GNAPClientAuthData, **kwargs):
+        if "event_hooks" not in kwargs:
+            kwargs["event_hooks"] = {"response": [self.raise_on_4xx_5xx], "request": [self._add_authz_header]}
 
-    def _request_bearer_token(self) -> None:
+        super().__init__(**kwargs)
+
+        self.verify = kwargs.get("verify", True)
+        self._auth_data = auth_data
+
+    @staticmethod
+    def raise_on_4xx_5xx(response: httpx.Response) -> None:
+        response.raise_for_status()
+
+    def _request_bearer_token(self) -> GrantResponse:
         """
         Request a bearer token from the transaction endpoint.
         :return: The bearer token
         """
         data = self._create_grant_request_jws()
-        resp = super().request(
-            method="POST",
+        resp = httpx.post(
             url=self.transaction_uri,
             content=data,
             headers={"Content-Type": "application/jose+json"},
+            verify=self.verify,
         )
         resp.raise_for_status()
-        self._set_bearer_token(grant_response=GrantResponse.parse_raw(resp.text))
+        return GrantResponse.parse_raw(resp.text)
 
-    def request(self, method: str, url: URLTypes, headers: Optional[HeaderTypes] = None, **kwargs) -> Response:
+    def _add_authz_header(self, request: httpx.Request) -> None:
         if not self._bearer_token or utc_now() > self._bearer_token_expires_at:
-            self._request_bearer_token()
-        headers = self._add_authz_header(headers=Headers(headers))
-        return super().request(method, url, headers=headers, **kwargs)
+            grant_response = self._request_bearer_token()
+            self._set_bearer_token(grant_response=grant_response)
+
+        request.headers["Authorization"] = f"Bearer {self._bearer_token}"
