@@ -512,6 +512,7 @@ class SignupTests(EduidAPITestCase):
         self,
         email: str,
         invite_code: str,
+        eppn: Optional[str] = None,
         data1: Optional[dict] = None,
         expect_success: bool = True,
         expected_message: Optional[TranslatableMsg] = None,
@@ -520,58 +521,74 @@ class SignupTests(EduidAPITestCase):
         """
         Get invite data from the invite data endpoint.
         """
-        with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as sess:
-                with self.app.test_request_context():
-                    endpoint = url_for("signup.get_invite")
+        with self.app.test_request_context():
+            endpoint = url_for("signup.get_invite")
+
+        if eppn is None:
+            with self.session_cookie_anon(self.browser) as client:
+                with client.session_transaction() as sess:
                     data = {
                         "invite_code": invite_code,
                         "csrf_token": sess.get_csrf_token(),
                     }
-                if data1 is not None:
-                    data.update(data1)
+                    if data1 is not None:
+                        data.update(data1)
+        else:
+            with self.session_cookie(self.browser, eppn=eppn) as client:
+                with client.session_transaction() as sess:
+                    data = {
+                        "invite_code": invite_code,
+                        "csrf_token": sess.get_csrf_token(),
+                    }
+                    if data1 is not None:
+                        data.update(data1)
 
-            logger.info(f"Making request to {endpoint}")
-            response = client.post(f"{endpoint}", data=json.dumps(data), content_type=self.content_type_json)
+        logger.info(f"Making request to {endpoint}")
+        response = client.post(f"{endpoint}", data=json.dumps(data), content_type=self.content_type_json)
 
-            logger.info(f"Request to {endpoint} result: {response}")
+        logger.info(f"Request to {endpoint} result: {response}")
 
-            if response.status_code != 200:
-                return SignupResult(url=endpoint, reached_state=SignupState.S0_GET_INVITE_DATA, response=response)
-
-            if expect_success:
-                if not expected_payload:
-                    assert response.json["payload"]["email"] == email
-                    assert response.json["payload"]["invite_type"] == InviteType.SCIM.value
-                    assert response.json["payload"]["inviter_name"] == "Test Inviter"
-                    assert response.json["payload"]["given_name"] == "Invite"
-                    assert response.json["payload"]["surname"] == "Invitesson"
-                    assert response.json["payload"]["inviter_name"] == "Test Inviter"
-                    assert response.json["payload"]["expires_at"] == "1970-01-01T00:00:00+00:00"
-                    assert response.json["payload"]["finish_url"] == "https://example.com/finish"
-                    assert response.json["payload"]["preferred_language"] == "sv"
-
-                self._check_api_response(
-                    response,
-                    status=200,
-                    message=expected_message,
-                    type_="POST_SIGNUP_INVITE_DATA_SUCCESS",
-                    payload=expected_payload,
-                    assure_not_in_payload=["verification_code"],
-                )
-            else:
-                self._check_api_response(
-                    response,
-                    status=200,
-                    message=expected_message,
-                    type_="POST_SIGNUP_INVITE_DATA_FAIL",
-                    payload=expected_payload,
-                    assure_not_in_payload=["verification_code"],
-                )
-
-            logger.info(f"Validated {endpoint} response:\n{response.json}")
-
+        if response.status_code != 200:
             return SignupResult(url=endpoint, reached_state=SignupState.S0_GET_INVITE_DATA, response=response)
+
+        if expect_success:
+            if not expected_payload:
+                assert response.json["payload"]["email"] == email
+                assert response.json["payload"]["invite_type"] == InviteType.SCIM.value
+                assert response.json["payload"]["inviter_name"] == "Test Inviter"
+                assert response.json["payload"]["given_name"] == "Invite"
+                assert response.json["payload"]["surname"] == "Invitesson"
+                assert response.json["payload"]["inviter_name"] == "Test Inviter"
+                assert response.json["payload"]["expires_at"] == "1970-01-01T00:00:00+00:00"
+                assert response.json["payload"]["finish_url"] == "https://example.com/finish"
+                assert response.json["payload"]["preferred_language"] == "sv"
+                if eppn is not None:
+                    assert response.json["payload"]["is_logged_in"] is True
+                    assert response.json["payload"]["user"]["given_name"] == "John"
+                    assert response.json["payload"]["user"]["surname"] == "Smith"
+                    assert response.json["payload"]["user"]["email"] == "johnsmith@example.com"
+
+            self._check_api_response(
+                response,
+                status=200,
+                message=expected_message,
+                type_="POST_SIGNUP_INVITE_DATA_SUCCESS",
+                payload=expected_payload,
+                assure_not_in_payload=["verification_code"],
+            )
+        else:
+            self._check_api_response(
+                response,
+                status=200,
+                message=expected_message,
+                type_="POST_SIGNUP_INVITE_DATA_FAIL",
+                payload=expected_payload,
+                assure_not_in_payload=["verification_code"],
+            )
+
+        logger.info(f"Validated {endpoint} response:\n{response.json}")
+
+        return SignupResult(url=endpoint, reached_state=SignupState.S0_GET_INVITE_DATA, response=response)
 
     def _accept_invite(
         self,
@@ -1026,6 +1043,13 @@ class SignupTests(EduidAPITestCase):
     def test_get_invite_data(self):
         invite = self._create_invite()
         res = self._get_invite_data(email=invite.get_primary_mail_address(), invite_code=invite.invite_code)
+        assert res.reached_state == SignupState.S0_GET_INVITE_DATA
+
+    def test_get_invite_data_already_logged_in(self):
+        invite = self._create_invite()
+        res = self._get_invite_data(
+            email=invite.get_primary_mail_address(), invite_code=invite.invite_code, eppn=self.test_user.eppn
+        )
         assert res.reached_state == SignupState.S0_GET_INVITE_DATA
 
     def test_accept_invite_via_email(self):

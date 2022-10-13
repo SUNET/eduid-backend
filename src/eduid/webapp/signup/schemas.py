@@ -124,6 +124,13 @@ class InviteCodeRequest(EduidSchema, CSRFRequestMixin):
 
 class InviteDataResponse(FluxStandardAction):
     class InviteSchema(EduidSchema, CSRFResponseMixin):
+        class User(EduidSchema):
+            given_name = fields.String(required=False)
+            surname = fields.String(required=False)
+            email = LowercaseEmail(required=False)
+
+        is_logged_in = fields.Boolean(required=True)
+        user = fields.Nested(User, required=False)
         invite_type = fields.String(required=True)
         inviter_name = fields.String(required=True)
         email = fields.String(required=True)

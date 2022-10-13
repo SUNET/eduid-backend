@@ -279,7 +279,8 @@ def get_invite(invite_code: str):
         current_app.logger.debug(f"invite_code: {invite_code}")
         return error_response(message=SignupMsg.invite_not_found)
 
-    return {
+    invite_data = {
+        "is_logged_in": session.common.is_logged_in,
         "invite_type": invite.invite_type.value,
         "inviter_name": invite.inviter_name,
         "email": invite.get_primary_mail_address(),
@@ -289,6 +290,21 @@ def get_invite(invite_code: str):
         "surname": invite.surname,
         "finish_url": invite.finish_url,
     }
+
+    if session.common.is_logged_in:
+        user = current_app.central_userdb.get_user_by_eppn(eppn=session.common.eppn)
+        if user is None:
+            current_app.logger.error("User not found but logged in?")
+            current_app.logger.error(f"invite_code: {invite_code}")
+            raise RuntimeError("User not found but logged in?")
+        assert user.mail_addresses.primary is not None  # please mypy
+        invite_data["user"] = {
+            "given_name": user.given_name,
+            "surname": user.surname,
+            "email": user.mail_addresses.primary.email,
+        }
+
+    return invite_data
 
 
 @signup_views.route("/accept-invite", methods=["POST"])
