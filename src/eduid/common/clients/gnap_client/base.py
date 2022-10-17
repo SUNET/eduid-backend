@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
 from abc import ABC
-from datetime import timedelta, datetime
-from typing import List, Optional, Union
+from datetime import datetime, timedelta
+from typing import List, Optional, Union, Coroutine, Any
 
 from httpx import Request
 from jwcrypto.jwk import JWK
@@ -79,8 +79,8 @@ class GNAPBearerTokenMixin(ABC):
             expires_in = timedelta(seconds=grant_response.access_token.expires_in)
         self._bearer_token_expires_at = utc_now() + expires_in
 
-    def _request_bearer_token(self) -> GrantResponse:
+    def _request_bearer_token(self) -> Union[GrantResponse, Coroutine[Any, Any, GrantResponse]]:
         raise NotImplementedError()
 
-    def _add_authz_header(self, request: Request) -> None:
+    def _add_authz_header(self, request: Request) -> Union[None, Coroutine[Any, Any, None]]:
         raise NotImplementedError()
