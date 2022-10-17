@@ -7,8 +7,7 @@ from typing import List, Optional, Set
 from fastapi import Request, Response
 from jwcrypto import jwt
 from jwcrypto.common import JWException
-from marshmallow import ValidationError
-from pydantic import BaseModel, Field, StrictInt, validator
+from pydantic import BaseModel, Field, StrictInt, ValidationError, validator
 from starlette.datastructures import URL
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import PlainTextResponse
@@ -252,6 +251,7 @@ class AuthenticationMiddleware(BaseMiddleware):
             return return_error_response(status_code=401, detail="Bearer token error")
 
         try:
+            self.context.logger.debug(f"Parsing claims: {claims}")
             token = AuthnBearerToken(scim_config=self.context.config, **claims)
             self.context.logger.debug(f"Bearer token: {token}")
         except ValidationError:
