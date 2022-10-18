@@ -48,6 +48,10 @@ class SignupMsg(TranslatableMsg):
     captcha_not_completed = "signup.captcha-not-completed"
     # captcha completion failed
     captcha_failed = "signup.captcha-failed"
+    # captcha already completed
+    captcha_already_completed = "signup.captcha-already-completed"
+    # captcha not requested from get-captcha endpoint
+    captcha_not_requested = "signup.captcha-not-requested"
     # email verification not completed
     email_verification_not_complete = "signup.email-verification-not-complete"
     # unrecognized verification code

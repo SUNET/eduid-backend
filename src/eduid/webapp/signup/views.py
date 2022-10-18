@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
+from base64 import b64encode
+from io import BytesIO
 from re import findall
+from typing import Optional
 from uuid import uuid4
 
+from captcha.image import ImageCaptcha
 from flask import Blueprint, abort, request
 
 from eduid.common.misc.timeutil import utc_now
@@ -160,18 +164,26 @@ def accept_tou(tou_accepted: bool, tou_version: str):
     return success_response(payload=session.signup.to_dict())
 
 
-@signup_views.route("/captcha", methods=["GET"])
-# @UnmarshalWith()
+@signup_views.route("/get-captcha", methods=["GET"])
+# @UnmarshalWith(EmptyRequest)
 @MarshalWith(CaptchaResponse)
 def captcha_request() -> FluxData:
-    # TODO: respond with either new captcha or recaptcha
-    pass
+    if session.signup.captcha.completed:
+        return error_response(message=SignupMsg.captcha_already_completed)
+
+    session.signup.captcha.internal_answer = make_short_code(digits=current_app.conf.captcha_code_length)
+    data = current_app.captcha_image_generator.generate_image(chars=session.signup.captcha.internal_answer)
+    with BytesIO() as f:
+        data.save(fp=f, format="PNG", optimize=True)
+        return success_response(
+            payload={"captcha_img": f"data:image/png;base64,{b64encode(f.getvalue()).decode('utf-8')}"},
+        )
 
 
 @signup_views.route("/captcha", methods=["POST"])
 @UnmarshalWith(CaptchaCompleteRequest)
 @MarshalWith(SignupStatusResponse)
-def captcha_response(recaptcha_response: str) -> FluxData:
+def captcha_response(recaptcha_response: Optional[str] = None, internal_response: Optional[str] = None) -> FluxData:
     """
     Check for humanness even at level AL1.
     """
@@ -192,6 +204,10 @@ def captcha_response(recaptcha_response: str) -> FluxData:
             captcha_verified = verify_recaptcha(current_app.conf.recaptcha_private_key, recaptcha_response, remote_ip)
         else:
             current_app.logger.info("Missing configuration for reCaptcha!")
+    elif internal_response and not captcha_verified:
+        if session.signup.captcha.internal_answer is None:
+            return error_response(message=SignupMsg.captcha_not_requested)
+        captcha_verified = internal_response == session.signup.captcha.internal_answer
 
     if not captcha_verified:
         current_app.logger.info("Captcha failed")

@@ -848,7 +848,6 @@ class SignupTests(EduidAPITestCase):
             self.assertEqual(data["error"], True)
             self.assertEqual(data["type"], "POST_SIGNUP_CAPTCHA_FAIL")
             self.assertIn("csrf_token", data["payload"]["error"])
-            self.assertIn("recaptcha_response", data["payload"]["error"])
 
     def test_register_new_user(self):
         self._captcha()

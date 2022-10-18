@@ -149,6 +149,7 @@ class Tou(SessionNSBase):
 
 class Captcha(SessionNSBase):
     completed: bool = False
+    internal_answer: Optional[str] = None
 
 
 class Credentials(SessionNSBase):

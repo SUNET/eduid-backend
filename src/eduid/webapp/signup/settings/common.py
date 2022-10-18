@@ -32,7 +32,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from datetime import timedelta
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import Field
 
@@ -68,4 +68,8 @@ class SignupConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MailConf
     eduid_site_name: str = "eduID"
     recaptcha_public_key: str = ""
     recaptcha_private_key: str = ""
+    captcha_code_length: int = 6
+    captcha_width: int = 160
+    captcha_height: int = 60
+    captcha_font_size: List[int] = [42, 50, 56]
     private_userdb_auto_expire: Optional[timedelta] = Field(default=timedelta(days=7))
