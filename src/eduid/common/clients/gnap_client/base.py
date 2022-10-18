@@ -79,6 +79,9 @@ class GNAPBearerTokenMixin(ABC):
             expires_in = timedelta(seconds=grant_response.access_token.expires_in)
         self._bearer_token_expires_at = utc_now() + expires_in
 
+    def _has_bearer_token(self) -> bool:
+        return self._bearer_token is not None and self._bearer_token_expires_at > utc_now()
+
     def _request_bearer_token(self) -> Union[GrantResponse, Coroutine[Any, Any, GrantResponse]]:
         raise NotImplementedError()
 

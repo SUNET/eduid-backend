@@ -42,7 +42,7 @@ class AsyncGNAPClient(httpx.AsyncClient, GNAPBearerTokenMixin):
             return GrantResponse.parse_raw(resp.text)
 
     async def _add_authz_header(self, request: httpx.Request) -> None:
-        if not self._bearer_token or utc_now() > self._bearer_token_expires_at:
+        if not self._has_bearer_token():
             grant_response = await self._request_bearer_token()
             self._set_bearer_token(grant_response=grant_response)
 
