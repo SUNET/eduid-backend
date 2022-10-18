@@ -16,6 +16,10 @@ class SearchFilter(object):
 
 
 def parse_search_filter(filter: str) -> SearchFilter:
+    # Bandaid for GitHub CodeQL: Polynomial regular expression used on uncontrolled data
+    # TODO: Maybe use a proper parser instead of regex, maybe https://pypi.org/project/scim2-filter-parser/
+    if len(filter) > 1024:
+        raise BadRequest(scim_type="invalidFilter", detail="Filter too long")
     match = re.match("(.+?) (..) (.+)", filter)
     if not match:
         logger.debug(f"Unrecognised filter: {filter}")
