@@ -33,8 +33,11 @@ class SCIMClient(GNAPClient):
             response.raise_for_status()
         except httpx.HTTPStatusError as exc:
             response.read()
-            if "detail" in response.json():
-                raise SCIMError(f"HTTP Error {response.status_code}: {response.json()['detail']}")
+            try:
+                if "detail" in response.json():
+                    raise SCIMError(f"HTTP Error {response.status_code}: {response.json()['detail']}")
+            except (ValueError, TypeError):
+                pass  # not json
             raise exc
 
     @staticmethod
@@ -47,11 +50,11 @@ class SCIMClient(GNAPClient):
         return headers
 
     @property
-    def user_endpoint(self) -> str:
+    def users_endpoint(self) -> str:
         return urlappend(self.scim_server_url, "Users")
 
     @property
-    def invite_endpoint(self) -> str:
+    def invites_endpoint(self) -> str:
         return urlappend(self.scim_server_url, "Invites")
 
     def _get(self, endpoint: str, obj_id: Union[UUID, str]) -> httpx.Response:
@@ -67,25 +70,25 @@ class SCIMClient(GNAPClient):
         return self.put(urlappend(endpoint, str(update_request.id)), content=update_request.json(), headers=headers)
 
     def get_user(self, user_id: Union[UUID, str]) -> UserResponse:
-        ret = self._get(self.user_endpoint, obj_id=user_id)
+        ret = self._get(self.users_endpoint, obj_id=user_id)
         return UserResponse.parse_raw(ret.text)
 
     def create_user(self, user: UserCreateRequest) -> UserResponse:
-        ret = self._create(self.user_endpoint, create_request=user)
+        ret = self._create(self.users_endpoint, create_request=user)
         return UserResponse.parse_raw(ret.text)
 
     def update_user(self, user: UserUpdateRequest, version: WeakVersion) -> UserResponse:
-        ret = self._update(self.user_endpoint, update_request=user, version=version)
+        ret = self._update(self.users_endpoint, update_request=user, version=version)
         return UserResponse.parse_raw(ret.text)
 
     def get_invite(self, invite_id: Union[UUID, str]) -> InviteResponse:
-        ret = self._get(self.invite_endpoint, obj_id=invite_id)
+        ret = self._get(self.invites_endpoint, obj_id=invite_id)
         return InviteResponse.parse_raw(ret.text)
 
     def create_invite(self, invite: InviteCreateRequest) -> InviteResponse:
-        ret = self._create(self.invite_endpoint, create_request=invite)
+        ret = self._create(self.invites_endpoint, create_request=invite)
         return InviteResponse.parse_raw(ret.text)
 
     def update_invite(self, invite: InviteUpdateRequest, version: WeakVersion) -> InviteResponse:
-        ret = self._update(self.invite_endpoint, update_request=invite, version=version)
+        ret = self._update(self.invites_endpoint, update_request=invite, version=version)
         return InviteResponse.parse_raw(ret.text)
