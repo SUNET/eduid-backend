@@ -37,7 +37,7 @@ from eduid.webapp.eidas.helpers import (
     create_metadata,
     is_required_loa,
     is_valid_reauthn,
-    staging_nin_remap,
+    attribute_remap,
 )
 
 __author__ = "lundberg"
@@ -284,8 +284,8 @@ def assertion_consumer_service() -> WerkzeugResponse:
         return redirect_with_msg(proofing_method.finish_url, EidasMsg.reauthn_expired)
 
     # Remap nin in staging environment
-    if current_app.conf.environment == EduidEnvironment.staging:
-        assertion.session_info = staging_nin_remap(assertion.session_info)
+    if current_app.conf.environment in [EduidEnvironment.staging, EduidEnvironment.dev]:
+        assertion.session_info = attribute_remap(assertion.session_info)
 
     action = get_action(default_action=None, authndata=assertion.authndata)
     backdoor = check_magic_cookie(config=current_app.conf)
