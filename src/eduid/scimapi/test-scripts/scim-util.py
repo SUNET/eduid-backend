@@ -351,7 +351,7 @@ def main(args: Args) -> bool:
     for url in data.keys():
         api = Api(url=url, verify=not args.insecure)
         if "login" in data[url]:
-            api.token = process_login(api, data[url]["login"])
+            api.token = data[url]["login"]["token"]
             if not api.token:
                 logger.error("Login failed")
                 return False
