@@ -88,7 +88,7 @@ class EidasConfig(
     )
 
     # Staging nin map
-    staging_nin_map: Mapping[str, str] = Field(
+    nin_attribute_map: Mapping[str, str] = Field(
         default={
             #  'test nin': 'user nin'
         }
