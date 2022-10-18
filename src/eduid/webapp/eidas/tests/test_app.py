@@ -1423,7 +1423,7 @@ class EidasTests(EduidAPITestCase):
         eppn = self.test_unverified_user_eppn
         remapped_nin = NinIdentity(number="190102031234")
         self.app.conf.environment = EduidEnvironment.staging
-        self.app.conf.staging_nin_map = {self.test_user_nin.number: remapped_nin.number}
+        self.app.conf.nin_attribute_map = {self.test_user_nin.number: remapped_nin.number}
 
         self._verify_user_parameters(
             eppn, num_mfa_tokens=0, identity_verified=False, identity=remapped_nin, identity_present=False
