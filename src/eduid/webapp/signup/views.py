@@ -164,8 +164,8 @@ def accept_tou(tou_accepted: bool, tou_version: str):
     return success_response(payload=session.signup.to_dict())
 
 
-@signup_views.route("/get-captcha", methods=["GET"])
-# @UnmarshalWith(EmptyRequest)
+@signup_views.route("/get-captcha", methods=["POST"])
+@UnmarshalWith(EmptyRequest)
 @MarshalWith(CaptchaResponse)
 def captcha_request() -> FluxData:
     if session.signup.captcha.completed:
