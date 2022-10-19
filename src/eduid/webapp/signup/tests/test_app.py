@@ -35,6 +35,7 @@ class SignupState(Enum):
     S6_CREATE_USER = "create_user"
     S7_COMPLETE_INVITE = "complete_invite"
     S8_GENERATE_PASSWORD = "generate_password"
+    S9_GENERATE_CAPTCHA = "generate_captcha"
 
 
 class OldSignupState(Enum):
@@ -83,6 +84,23 @@ class SignupTests(EduidAPITestCase):
         )
         return config
 
+    def _get_captcha(self):
+        with self.session_cookie_anon(self.browser) as client:
+            with self.app.test_request_context():
+                endpoint = url_for("signup.captcha_request")
+                with client.session_transaction() as sess:
+                    data = {
+                        "csrf_token": sess.get_csrf_token(),
+                    }
+        response = client.post(f"{endpoint}", data=json.dumps(data), content_type=self.content_type_json)
+        self._check_api_response(
+            response,
+            status=200,
+            type_="POST_SIGNUP_GET_CAPTCHA_SUCCESS",
+        )
+        assert response.json["payload"]["captcha_img"].startswith("data:image/png;base64,")
+        return SignupResult(url=endpoint, reached_state=SignupState.S9_GENERATE_CAPTCHA, response=response)
+
     # parameterized test methods
     @patch("eduid.webapp.signup.views.verify_recaptcha")
     def _captcha(
@@ -90,6 +108,7 @@ class SignupTests(EduidAPITestCase):
         mock_recaptcha: Any,
         captcha_data: Optional[Mapping[str, Any]] = None,
         recaptcha_return_value: bool = True,
+        internal_captcha: bool = False,
         add_magic_cookie: bool = False,
         expect_success: bool = True,
         expected_message: Optional[TranslatableMsg] = None,
@@ -105,13 +124,20 @@ class SignupTests(EduidAPITestCase):
         with self.session_cookie_anon(self.browser) as client:
             with self.app.test_request_context():
                 endpoint = url_for("signup.captcha_response")
-                with client.session_transaction() as sess:
-                    data = {
-                        "recaptcha_response": "dummy",
-                        "csrf_token": sess.get_csrf_token(),
-                    }
+                if not internal_captcha:
+                    with client.session_transaction() as sess:
+                        data = {"csrf_token": sess.get_csrf_token(), "recaptcha_response": "dummy"}
+                else:
+                    self._get_captcha()
+                    with client.session_transaction() as sess:
+                        data = {
+                            "csrf_token": sess.get_csrf_token(),
+                            "internal_response": sess.signup.captcha.internal_answer,
+                        }
                 if captcha_data is not None:
                     data.update(captcha_data)
+                    # remove any None values
+                    data = {k: v for k, v in data.items() if v is not None}
 
                 if add_magic_cookie:
                     client.set_cookie(
@@ -776,6 +802,10 @@ class SignupTests(EduidAPITestCase):
         res = self._captcha()
         assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
 
+    def test_captcha_internal(self):
+        res = self._captcha(internal_captcha=True)
+        assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
+
     def test_recaptcha_new_no_key(self):
         self.app.conf.recaptcha_public_key = ""
         res = self._captcha(expect_success=False, expected_message=SignupMsg.captcha_failed)
@@ -789,6 +819,23 @@ class SignupTests(EduidAPITestCase):
     def test_captcha_fail(self):
         res = self._captcha(
             recaptcha_return_value=False, expect_success=False, expected_message=SignupMsg.captcha_failed
+        )
+        assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
+
+    def test_captcha_internal_fail(self):
+        res = self._captcha(
+            internal_captcha=True,
+            captcha_data={"internal_response": "wrong"},
+            expect_success=False,
+            expected_message=SignupMsg.captcha_failed,
+        )
+        assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
+
+    def test_captcha_internal_not_requested(self):
+        res = self._captcha(
+            captcha_data={"internal_response": "not-requested", "recaptcha_response": None},
+            expect_success=False,
+            expected_message=SignupMsg.captcha_not_requested,
         )
         assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
 
