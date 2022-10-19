@@ -5,9 +5,9 @@ from uuid import UUID, uuid4
 
 from requests import Response
 
+from eduid.common.models.scim_base import SCIMResourceType, SCIMSchema
 from eduid.common.testing_base import normalised_data
 from eduid.scimapi.models.event import EventResponse, NutidEventExtensionV1
-from eduid.common.models.scim_base import SCIMResourceType, SCIMSchema
 from eduid.scimapi.testing import ScimApiTestCase
 from eduid.scimapi.utils import make_etag
 from eduid.userdb.scimapi import EventLevel, ScimApiEvent

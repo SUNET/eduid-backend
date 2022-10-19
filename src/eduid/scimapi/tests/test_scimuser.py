@@ -10,9 +10,9 @@ import bson
 from bson import ObjectId
 from requests import Response
 
-from eduid.common.testing_base import normalised_data
 from eduid.common.models.scim_base import Email, LanguageTag, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
 from eduid.common.models.scim_user import LinkedAccount, NutidUserExtensionV1, Profile, UserResponse
+from eduid.common.testing_base import normalised_data
 from eduid.scimapi.testing import ScimApiTestCase
 from eduid.scimapi.utils import filter_none, make_etag
 from eduid.userdb.scimapi import EventStatus, ScimApiLinkedAccount
