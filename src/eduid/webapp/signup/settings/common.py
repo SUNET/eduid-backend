@@ -32,8 +32,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from datetime import timedelta
+from pathlib import Path
 from typing import List, Optional
 
+import pkg_resources
 from pydantic import Field
 
 from eduid.common.config.base import (
@@ -71,5 +73,12 @@ class SignupConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MailConf
     captcha_code_length: int = 6
     captcha_width: int = 160
     captcha_height: int = 60
+    captcha_fonts: List[Path] = Field(
+        default=[
+            pkg_resources.resource_filename("eduid", "static/fonts/ProximaNova-Regular.ttf"),
+            pkg_resources.resource_filename("eduid", "static/fonts/ProximaNova-Light.ttf"),
+            pkg_resources.resource_filename("eduid", "static/fonts/ProximaNova-Bold.ttf"),
+        ]
+    )
     captcha_font_size: List[int] = [42, 50, 56]
     private_userdb_auto_expire: Optional[timedelta] = Field(default=timedelta(days=7))

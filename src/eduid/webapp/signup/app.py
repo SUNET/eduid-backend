@@ -57,7 +57,10 @@ class SignupApp(EduIDBaseApp):
         self.mail_relay = MailRelay(config)
 
         self.captcha_image_generator = ImageCaptcha(
-            height=self.conf.captcha_height, width=self.conf.captcha_width, font_sizes=self.conf.captcha_font_size
+            height=self.conf.captcha_height,
+            width=self.conf.captcha_width,
+            fonts=self.conf.captcha_fonts,
+            font_sizes=self.conf.captcha_font_size,
         )
 
         self.private_userdb = SignupUserDB(config.mongo_uri, auto_expire=config.private_userdb_auto_expire)
