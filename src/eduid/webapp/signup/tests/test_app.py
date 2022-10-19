@@ -154,7 +154,7 @@ class SignupTests(EduidAPITestCase):
 
                 if expect_success:
                     if not expected_payload:
-                        assert response.json["payload"]["captcha"]["completed"] is True
+                        assert response.json["payload"]["state"]["captcha"]["completed"] is True
 
                     self._check_api_response(
                         response,
@@ -211,12 +211,12 @@ class SignupTests(EduidAPITestCase):
 
             if expect_success:
                 if not expected_payload:
-                    assert response.json["payload"]["captcha"]["completed"] is True
-                    assert response.json["payload"]["email"]["address"] == email.lower()
-                    assert response.json["payload"]["email"]["completed"] is False
-                    if "throttle_time_left" in response.json["payload"]["email"]:
-                        assert response.json["payload"]["email"]["throttle_time_left"] > 0
-                    assert response.json["payload"]["email"]["expires_time_left"] > 0
+                    assert response.json["payload"]["state"]["captcha"]["completed"] is True
+                    assert response.json["payload"]["state"]["email"]["address"] == email.lower()
+                    assert response.json["payload"]["state"]["email"]["completed"] is False
+                    if "throttle_time_left" in response.json["payload"]["state"]["email"]:
+                        assert response.json["payload"]["state"]["email"]["throttle_time_left"] > 0
+                    assert response.json["payload"]["state"]["email"]["expires_time_left"] > 0
 
                 self._check_api_response(
                     response,
@@ -274,12 +274,12 @@ class SignupTests(EduidAPITestCase):
 
             if expect_success:
                 if not expected_payload:
-                    assert response.json["payload"]["captcha"]["completed"] is True
+                    assert response.json["payload"]["state"]["captcha"]["completed"] is True
                     assert (
-                        response.json["payload"]["email"]["address"]
-                        == response.json["payload"]["email"]["address"].lower()
+                        response.json["payload"]["state"]["email"]["address"]
+                        == response.json["payload"]["state"]["email"]["address"].lower()
                     )
-                    assert response.json["payload"]["email"]["completed"] is True
+                    assert response.json["payload"]["state"]["email"]["completed"] is True
 
                 self._check_api_response(
                     response,
@@ -343,8 +343,8 @@ class SignupTests(EduidAPITestCase):
 
             if expect_success:
                 if not expected_payload:
-                    assert response.json["payload"]["tou"]["version"] == tou_version
-                    assert response.json["payload"]["tou"]["completed"] is True
+                    assert response.json["payload"]["state"]["tou"]["version"] == tou_version
+                    assert response.json["payload"]["state"]["tou"]["completed"] is True
 
                 self._check_api_response(
                     response,
@@ -400,7 +400,7 @@ class SignupTests(EduidAPITestCase):
 
             if expect_success:
                 if not expected_payload:
-                    assert response.json["payload"]["credentials"]["password"] is not None
+                    assert response.json["payload"]["state"]["credentials"]["password"] is not None
 
                 self._check_api_response(
                     response,
@@ -480,12 +480,12 @@ class SignupTests(EduidAPITestCase):
 
             if expect_success:
                 if not expected_payload:
-                    assert response.json["payload"]["tou"]["completed"] is True
-                    assert response.json["payload"]["captcha"]["completed"] is True
-                    assert response.json["payload"]["email"]["completed"] is True
-                    assert response.json["payload"]["credentials"]["completed"] is True
-                    assert response.json["payload"]["credentials"]["password"] is not None
-                    assert response.json["payload"]["user_created"] is True
+                    assert response.json["payload"]["state"]["tou"]["completed"] is True
+                    assert response.json["payload"]["state"]["captcha"]["completed"] is True
+                    assert response.json["payload"]["state"]["email"]["completed"] is True
+                    assert response.json["payload"]["state"]["credentials"]["completed"] is True
+                    assert response.json["payload"]["state"]["credentials"]["password"] is not None
+                    assert response.json["payload"]["state"]["user_created"] is True
                     with client.session_transaction() as sess:
                         assert sess.common.eppn is not None
 
@@ -647,11 +647,11 @@ class SignupTests(EduidAPITestCase):
 
             if expect_success:
                 if not expected_payload:
-                    assert response.json["payload"]["tou"]["completed"] is False
-                    assert response.json["payload"]["captcha"]["completed"] is False
-                    assert response.json["payload"]["email"]["address"] == email
-                    assert response.json["payload"]["email"]["completed"] is email_verified
-                    assert response.json["payload"]["user_created"] is False
+                    assert response.json["payload"]["state"]["tou"]["completed"] is False
+                    assert response.json["payload"]["state"]["captcha"]["completed"] is False
+                    assert response.json["payload"]["state"]["email"]["address"] == email
+                    assert response.json["payload"]["state"]["email"]["completed"] is email_verified
+                    assert response.json["payload"]["state"]["user_created"] is False
                     with client.session_transaction() as sess:
                         assert sess.signup.invite.invite_code == invite_code
 
@@ -723,9 +723,9 @@ class SignupTests(EduidAPITestCase):
 
         if expect_success:
             if not expected_payload:
-                assert response.json["payload"]["invite"]["initiated_signup"] is True
-                assert response.json["payload"]["invite"]["completed"] is True
-                assert response.json["payload"]["invite"]["finish_url"] == "https://example.com/finish"
+                assert response.json["payload"]["state"]["invite"]["initiated_signup"] is True
+                assert response.json["payload"]["state"]["invite"]["completed"] is True
+                assert response.json["payload"]["state"]["invite"]["finish_url"] == "https://example.com/finish"
 
             self._check_api_response(
                 response,

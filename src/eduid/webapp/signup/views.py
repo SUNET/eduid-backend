@@ -59,7 +59,7 @@ def get_state():
     """
     # TODO: write tests for this
     current_app.logger.debug("Get signup state")
-    return success_response(payload=session.signup.to_dict())
+    return success_response(payload={"state": session.signup.to_dict()})
 
 
 @signup_views.route("/register-email", methods=["POST"])
@@ -80,10 +80,10 @@ def register_email(email: str):
     email_status = check_email_status(email)
     if email_status == EmailStatus.ADDRESS_USED:
         current_app.logger.info("Email address already used")
-        return error_response(payload=session.signup.to_dict(), message=SignupMsg.email_used)
+        return error_response(message=SignupMsg.email_used)
     if email_status == EmailStatus.THROTTLED:
         current_app.logger.info("Email sending throttled")
-        return error_response(payload=session.signup.to_dict(), message=SignupMsg.email_throttled)
+        return error_response(message=SignupMsg.email_throttled)
     if email_status == EmailStatus.NEW:
         current_app.logger.info("Starting new signup")
         session.signup.email.address = email
@@ -104,7 +104,7 @@ def register_email(email: str):
         )
         current_app.stats.count(name="verification_email_sent")
 
-    return success_response(payload=session.signup.to_dict())
+    return success_response(payload={"state": session.signup.to_dict()})
 
 
 @signup_views.route("/verify-email", methods=["POST"])
@@ -120,11 +120,13 @@ def verify_email(verification_code: str):
 
     # ignore verification attempts if there has been to many wrong attempts
     if session.signup.email.bad_attempts >= current_app.conf.email_verification_max_bad_attempts:
-        current_app.logger.info("Too many wrong verification attempts")
+        current_app.logger.info("Too many incorrect verification attempts")
         # let user complete captcha again and reset bad attempts
         session.signup.captcha.completed = False
         session.signup.email.bad_attempts = 0
-        return error_response(message=SignupMsg.email_verification_too_many_tries)
+        return error_response(
+            payload={"state": session.signup.to_dict()}, message=SignupMsg.email_verification_too_many_tries
+        )
 
     if not session.signup.captcha.completed:
         return error_response(message=SignupMsg.captcha_not_completed)
@@ -138,9 +140,9 @@ def verify_email(verification_code: str):
     else:
         current_app.logger.info("Verification failed")
         session.signup.email.bad_attempts += 1
-        return error_response(message=SignupMsg.email_verification_failed)
+        return error_response(payload={"state": session.signup.to_dict()}, message=SignupMsg.email_verification_failed)
 
-    return success_response(payload=session.signup.to_dict())
+    return success_response(payload={"state": session.signup.to_dict()})
 
 
 @signup_views.route("/accept-tou", methods=["POST"])
@@ -161,7 +163,7 @@ def accept_tou(tou_accepted: bool, tou_version: str):
     current_app.logger.info("ToU completed")
     session.signup.tou.completed = True
     session.signup.tou.version = tou_version
-    return success_response(payload=session.signup.to_dict())
+    return success_response(payload={"state": session.signup.to_dict()})
 
 
 @signup_views.route("/get-captcha", methods=["POST"])
@@ -215,7 +217,7 @@ def captcha_response(recaptcha_response: Optional[str] = None, internal_response
 
     current_app.logger.info("Captcha completed")
     session.signup.captcha.completed = True
-    return success_response(payload=session.signup.to_dict())
+    return success_response(payload={"state": session.signup.to_dict()})
 
 
 @signup_views.route("/get-password", methods=["POST"])
@@ -225,7 +227,7 @@ def get_password() -> FluxData:
     current_app.logger.info("Password requested")
     if session.signup.credentials.password is None:
         session.signup.credentials.password = generate_password(length=current_app.conf.password_length)
-    return success_response(payload=session.signup.to_dict())
+    return success_response(payload={"state": session.signup.to_dict()})
 
 
 @signup_views.route("/create-user", methods=["POST"])
@@ -279,10 +281,10 @@ def create_user(use_password: bool, use_webauthn: bool) -> FluxData:
     session.signup.credentials.completed = True
     session.common.eppn = signup_user.eppn
     # create payload before clearing password
-    payload = session.signup.to_dict()
+    state = session.signup.to_dict()
     # clear password from session
     session.signup.credentials.password = None
-    return success_response(payload=payload)
+    return success_response(payload={"state": state})
 
 
 @signup_views.route("/invite-data", methods=["POST"])
@@ -349,7 +351,7 @@ def accept_invite(invite_code: str) -> FluxData:
 
     session.signup.invite.invite_code = invite.invite_code
     session.signup.invite.initiated_signup = True
-    return success_response(payload=session.signup.to_dict())
+    return success_response(payload={"state": session.signup.to_dict()})
 
 
 @signup_views.route("/complete-invite", methods=["POST"])
@@ -358,7 +360,7 @@ def complete_invite() -> FluxData:
     current_app.logger.info("Completing invite")
 
     if not session.common.eppn or session.signup.invite.initiated_signup is False:
-        return success_response(payload=session.signup.to_dict())
+        return success_response(payload={"state": session.signup.to_dict()})
 
     user = current_app.central_userdb.get_user_by_eppn(eppn=session.common.eppn)
     if user is None:
@@ -375,7 +377,7 @@ def complete_invite() -> FluxData:
 
     current_app.logger.info("Invite completed for new user")
     current_app.stats.count(name="invite_completed_new_user")
-    return success_response(payload=session.signup.to_dict())
+    return success_response(payload={"state": session.signup.to_dict()})
 
 
 @signup_views.route("/complete-invite-existing-user", methods=["POST"])
@@ -385,7 +387,7 @@ def complete_invite_existing_user(user: User) -> FluxData:
     current_app.logger.info("Completing invite for existing user")
 
     if session.signup.invite.initiated_signup is False:
-        return success_response(payload=session.signup.to_dict())
+        return success_response(payload={"state": session.signup.to_dict()})
 
     assert session.signup.invite.invite_code is not None  # please mypy
     try:
@@ -397,7 +399,7 @@ def complete_invite_existing_user(user: User) -> FluxData:
 
     current_app.logger.info("Invite completed for existing user")
     current_app.stats.count(name="invite_completed_existing_user")
-    return success_response(payload=session.signup.to_dict())
+    return success_response(payload={"state": session.signup.to_dict()})
 
 
 # BACKDOOR for testing
