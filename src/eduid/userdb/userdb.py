@@ -367,8 +367,6 @@ class AmDB(UserDB[User]):
         if not isinstance(user.user_id, ObjectId):
             raise AssertionError(f"user.user_id is not of type {ObjectId}")
 
-        # XXX add modified_by info. modified_ts alone is not unique when propagated to eduid.workers.am.
-
         search_filter = {"_id": user.user_id}
         db_user = self._coll.find_one(search_filter)
 
