@@ -108,8 +108,16 @@ class UpdateUser(MongoTestCaseRaw):
         test_user = mocked_user_standard
         test_user.given_name = "new_given_name"
 
+        old_meta_version = test_user.meta.version
+        old_modified_ts = test_user.modified_ts
+
         res = self.amdb.save(test_user, check_sync=True)
         assert res is True
+
+        db_user = self.amdb.get_user_by_id(test_user.user_id)
+        assert db_user.meta.version != old_meta_version
+        assert db_user.modified_ts != old_modified_ts
+        assert db_user.given_name == "new_given_name"
 
 
 class TestUserDB_mail(MongoTestCase):
