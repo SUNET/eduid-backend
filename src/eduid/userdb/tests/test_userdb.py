@@ -104,14 +104,6 @@ class UpdateUser(MongoTestCaseRaw):
         with self.assertRaises(UserOutOfSync):
             self.amdb.save(test_user, check_sync=True)
 
-    def test_stale_user__modified_ts(self):
-        test_user = mocked_user_standard
-        test_user.given_name = "new_given_name"
-        test_user.modified_ts = utc_now() + timedelta(seconds=10)
-
-        with self.assertRaises(UserOutOfSync):
-            self.amdb.save(test_user, check_sync=True)
-
     def test_ok(self):
         test_user = mocked_user_standard
         test_user.given_name = "new_given_name"

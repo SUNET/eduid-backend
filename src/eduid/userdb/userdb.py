@@ -388,7 +388,6 @@ class AmDB(UserDB[User]):
             user.meta.new_version()
 
             if check_sync:
-                search_filter["modified_ts"] = modified_ts
                 search_filter["meta.version"] = meta_version
             result = self._coll.replace_one(search_filter, user.to_dict(), upsert=(not check_sync))
             if check_sync and result.modified_count == 0:
