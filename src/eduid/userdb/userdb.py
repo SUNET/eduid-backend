@@ -370,10 +370,6 @@ class AmDB(UserDB[User]):
         search_filter = {"_id": user.user_id}
         db_user = self._coll.find_one(search_filter)
 
-        # prevent key error if modified_ts is supposed to be present.
-        if not user.modified_ts:
-            user.modified_ts = None
-
         if db_user is None:
             result = self._coll.replace_one(search_filter, user.to_dict(), upsert=True)
             logger.debug(f"{self} Inserted new user {user} into {self._coll_name}: {repr(result)})")
