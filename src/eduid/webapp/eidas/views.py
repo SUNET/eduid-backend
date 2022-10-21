@@ -185,7 +185,12 @@ def _authn(
     if check_magic_cookie(current_app.conf):
         # set a test IdP with minimal interaction for the integration tests
         if current_app.conf.magic_cookie_idp:
-            idp = current_app.conf.magic_cookie_idp
+            if proofing_method.method == "freja":
+                idp = current_app.conf.magic_cookie_idp
+            elif proofing_method.method == "eidas":
+                idp = current_app.conf.magic_cookie_foreign_id_idp
+            else:
+                current_app.logger.error(f"Magic cookie is not supported for method {method}")
             current_app.logger.debug(f"Changed requested IdP due to magic cookie: {idp}")
         else:
             current_app.logger.warning(f"Missing configuration magic_cookie_idp")
