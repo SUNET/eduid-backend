@@ -160,7 +160,7 @@ class MongoTestCaseRaw(unittest.TestCase):
         self.amdb = AmDB(self._tmp_db.uri)
         self.collection = self.amdb.collection
 
-        self._f_db = BaseDB(db_uri=self._tmp_db.uri, db_name="eduid_am", collection=self.collection)
+        self._db = BaseDB(db_uri=self._tmp_db.uri, db_name="eduid_am", collection=self.collection)
 
         mongo_settings = {
             "mongo_replicaset": None,
@@ -176,9 +176,9 @@ class MongoTestCaseRaw(unittest.TestCase):
             pass
             # Set up test users in the MongoDB.
             for user in am_users:
-                self._f_db._coll.save(user.to_dict())
+                self._db._coll.save(user.to_dict())
 
-        self._f_db.close()
+        self._db.close()
 
     def tearDown(self):
         for userdoc in self.amdb._get_all_docs():
@@ -190,7 +190,7 @@ class MongoTestCaseRaw(unittest.TestCase):
                 self._tmp_db.conn.drop_database(db_name)
         self.amdb._drop_whole_collection()
         self.amdb.close()
-        self._f_db.close()  # do we need this?
+        self._db.close()  # do we need this?
         super().tearDown()
 
 
