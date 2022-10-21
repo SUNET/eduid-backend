@@ -40,12 +40,12 @@ from pymongo import ReturnDocument
 from eduid.userdb.db import BaseDB
 from eduid.userdb.exceptions import (
     DocumentDoesNotExist,
+    EduIDDBError,
     EduIDUserDBError,
     MultipleDocumentsReturned,
     MultipleUsersReturned,
     UserDoesNotExist,
     UserOutOfSync,
-    EduIDDBError,
 )
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.user import User
