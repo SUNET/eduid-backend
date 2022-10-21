@@ -47,8 +47,9 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Type, Union, ca
 import pymongo
 
 from eduid.userdb import User
+from eduid.userdb.db import BaseDB
 from eduid.userdb.testing.temp_instance import EduidTemporaryInstance
-from eduid.userdb.userdb import AmDB
+from eduid.userdb.userdb import AmDB, UserDB
 
 logger = logging.getLogger(__name__)
 
@@ -147,6 +148,50 @@ def normalised_data(
         # normalise all values found in the dict, returning a new dict (to not modify callers data)
         return {k: _normalise_value(v) for k, v in data.items()}
     raise TypeError("normalised_data not called on dict (or list of dicts)")
+
+
+class MongoTestCaseRaw(unittest.TestCase):
+    def setUp(self, am_users: Optional[List[User]] = None, **kwargs):
+        super().setUp()
+        self.maxDiff = None
+        self._tmp_db = MongoTemporaryInstance.get_instance()
+        assert isinstance(self._tmp_db, MongoTemporaryInstance)  # please mypy
+
+        self.amdb = AmDB(self._tmp_db.uri)
+        self.collection = self.amdb.collection
+
+        self._f_db = BaseDB(db_uri=self._tmp_db.uri, db_name="eduid_am", collection=self.collection)
+
+        mongo_settings = {
+            "mongo_replicaset": None,
+            "mongo_uri": self._tmp_db.uri,
+        }
+
+        if getattr(self, "settings", None) is None:
+            self.settings = mongo_settings
+        else:
+            self.settings.update(mongo_settings)
+
+        if am_users:
+            pass
+            # Set up test users in the MongoDB.
+            for user in am_users:
+                self._f_db._coll.save(user.to_dict())
+
+        self._f_db.close()
+
+    def tearDown(self):
+        for userdoc in self.amdb._get_all_docs():
+            assert User.from_dict(data=userdoc)
+        # Reset databases for the next test class, but do not shut down the temporary
+        # mongodb instance, for efficiency reasons.
+        for db_name in self._tmp_db.conn.list_database_names():
+            if db_name not in ["local", "admin", "config"]:  # Do not drop mongo internal dbs
+                self._tmp_db.conn.drop_database(db_name)
+        self.amdb._drop_whole_collection()
+        self.amdb.close()
+        self._f_db.close()  # do we need this?
+        super().tearDown()
 
 
 class MongoTestCase(unittest.TestCase):

@@ -1,4 +1,3 @@
-
 import logging
 import re
 from abc import ABCMeta
@@ -25,7 +24,7 @@ class AuthnBaseApp(EduIDBaseApp, metaclass=ABCMeta):
 
     def __call__(self, environ: dict, start_response: Callable) -> Union[Response, list]:
         # let request with method OPTIONS pass through
-        if environ['REQUEST_METHOD'] == 'OPTIONS':
+        if environ["REQUEST_METHOD"] == "OPTIONS":
             return super().__call__(environ, start_response)
 
         next_url = get_current_url(environ)

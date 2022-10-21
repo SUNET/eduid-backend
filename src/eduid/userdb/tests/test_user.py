@@ -896,18 +896,21 @@ class TestNewUser(unittest.TestCase):
 
     def test_user_meta(self):
         version = ObjectId()
-        modified_ts = utc_now()
+        _utc_now = utc_now()
         user_dict = self.user1.to_dict()
         user_dict["meta"] = {}
         user_dict["meta"]["version"] = version
-        user_dict["meta"]["modified_ts"] = modified_ts
+        user_dict["meta"]["modified_ts"] = _utc_now
+        user_dict["meta"]["created_ts"] = _utc_now
         user = User.from_dict(user_dict)
         assert user.meta.version == version
-        assert user.meta.modified_ts == modified_ts
+        assert user.meta.modified_ts == _utc_now
+        assert user.meta.created_ts == _utc_now
         user_dict2 = user.to_dict()
         expected = {
             "version": version,
-            "modified_ts": modified_ts,
+            "modified_ts": _utc_now,
+            "created_ts": _utc_now,
         }
         assert user_dict2["meta"] == expected
 
@@ -915,7 +918,7 @@ class TestNewUser(unittest.TestCase):
         assert isinstance(self.user1.meta.version, ObjectId) is True
 
     def test_user_meta_modified_ts(self):
-        assert isinstance(self.user1.meta.modified_ts, datetime) is True
+        assert self.user1.meta.modified_ts is None
         # TODO: remove below check when removing user.modified_ts
         # verify that user.modified_ts is synced with meta.modified_ts
         self.user1.modified_ts = utc_now()

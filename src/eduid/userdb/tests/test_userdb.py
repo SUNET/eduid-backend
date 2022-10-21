@@ -29,13 +29,16 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from datetime import timedelta
 
 import bson
 
 from eduid.userdb import User
+from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.fixtures.passwords import signup_password
-from eduid.userdb.fixtures.users import mocked_user_standard
-from eduid.userdb.testing import MongoTestCase, normalised_data
+from eduid.userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
+from eduid.userdb.testing import MongoTestCase, normalised_data, MongoTestCaseRaw
+from eduid.userdb.util import utc_now
 
 
 class TestUserDB(MongoTestCase):
@@ -86,6 +89,35 @@ class TestUserDB(MongoTestCase):
     def test_get_user_by_eppn_not_found(self):
         """Test user lookup using unknown"""
         assert self.amdb.get_user_by_eppn("abc123") is None
+
+
+class UpdateUser(MongoTestCaseRaw):
+    def setUp(self, *args, **kwargs):
+        self.user = mocked_user_standard
+        super().setUp(am_users=[self.user, mocked_user_standard_2], **kwargs)
+
+    def test_stale_user__meta_version(self):
+        test_user = mocked_user_standard
+        test_user.given_name = "new_given_name"
+        test_user.meta.new_version()
+
+        with self.assertRaises(UserOutOfSync):
+            self.amdb.save(test_user, check_sync=True)
+
+    def test_stale_user__modified_ts(self):
+        test_user = mocked_user_standard
+        test_user.given_name = "new_given_name"
+        test_user.modified_ts = utc_now() + timedelta(seconds=10)
+
+        with self.assertRaises(UserOutOfSync):
+            self.amdb.save(test_user, check_sync=True)
+
+    def test_ok(self):
+        test_user = mocked_user_standard
+        test_user.given_name = "new_given_name"
+
+        res = self.amdb.save(test_user, check_sync=True)
+        assert res is True
 
 
 class TestUserDB_mail(MongoTestCase):

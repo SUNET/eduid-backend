@@ -58,7 +58,6 @@ from eduid.workers.msg.tasks import MessageSender
 
 logger = logging.getLogger(__name__)
 
-
 TEST_CONFIG = {
     "debug": True,
     "testing": True,
@@ -101,7 +100,6 @@ TEST_CONFIG = {
         }
     },
 }
-
 
 _standard_test_users = {
     "hubba-bubba": new_user_example,
@@ -223,6 +221,8 @@ class EduidAPITestCase(CommonTestCase):
         user_id = str(private_user.user_id)
         central_user = self.app.central_userdb.get_user_by_id(user_id)
         modified_ts = central_user.modified_ts
+        meta_modified_ts = central_user.meta.modified_ts
+        meta_version = central_user.meta.version
         central_user_dict = central_user.to_dict()
         private_user_dict = private_user.to_dict()
         central_user_dict.update(private_user_dict)
@@ -232,6 +232,8 @@ class EduidAPITestCase(CommonTestCase):
                 central_user_dict.pop(key, None)
         user = User.from_dict(data=central_user_dict)
         user.modified_ts = modified_ts
+        user.meta.modified_ts = meta_modified_ts
+        user.meta.version = meta_version
         self.app.central_userdb.save(user)
         return True
 
