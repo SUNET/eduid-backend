@@ -118,16 +118,6 @@ def verify_email(verification_code: str):
     current_app.logger.debug(f"email address: {session.signup.email.address}")
     current_app.logger.debug(f"verification code: {verification_code}")
 
-    # ignore verification attempts if there has been to many wrong attempts
-    if session.signup.email.bad_attempts >= current_app.conf.email_verification_max_bad_attempts:
-        current_app.logger.info("Too many incorrect verification attempts")
-        # let user complete captcha again and reset bad attempts
-        session.signup.captcha.completed = False
-        session.signup.email.bad_attempts = 0
-        return error_response(
-            payload={"state": session.signup.to_dict()}, message=SignupMsg.email_verification_too_many_tries
-        )
-
     if not session.signup.captcha.completed:
         return error_response(message=SignupMsg.captcha_not_completed)
 
@@ -140,6 +130,16 @@ def verify_email(verification_code: str):
     else:
         current_app.logger.info("Verification failed")
         session.signup.email.bad_attempts += 1
+
+        if session.signup.email.bad_attempts >= current_app.conf.email_verification_max_bad_attempts:
+            current_app.logger.info("Too many incorrect verification attempts")
+            # let user complete captcha again and reset bad attempts
+            session.signup.captcha.completed = False
+            session.signup.email.bad_attempts = 0
+            return error_response(
+                payload={"state": session.signup.to_dict()}, message=SignupMsg.email_verification_too_many_tries
+            )
+
         return error_response(payload={"state": session.signup.to_dict()}, message=SignupMsg.email_verification_failed)
 
     return success_response(payload={"state": session.signup.to_dict()})

@@ -997,7 +997,7 @@ class SignupTests(EduidAPITestCase):
         self._captcha()
         self._register_email()
         data = {"verification_code": "wrong"}
-        for _ in range(self.app.conf.email_verification_max_bad_attempts):
+        for _ in range(self.app.conf.email_verification_max_bad_attempts - 1):
             self._verify_email(data1=data, expect_success=False, expected_message=SignupMsg.email_verification_failed)
         response = self._verify_email(
             data1=data, expect_success=False, expected_message=SignupMsg.email_verification_too_many_tries
