@@ -135,10 +135,10 @@ def verify_email(verification_code: str):
             current_app.logger.info("Too many incorrect verification attempts")
             # let user complete captcha again and reset bad attempts
             session.signup.captcha.completed = False
+            state = session.signup.to_dict()
+            # reset bad attempts after we copied the state as frontend needs to know the number of bad attempts
             session.signup.email.bad_attempts = 0
-            return error_response(
-                payload={"state": session.signup.to_dict()}, message=SignupMsg.email_verification_too_many_tries
-            )
+            return error_response(payload={"state": state}, message=SignupMsg.email_verification_too_many_tries)
 
         return error_response(payload={"state": session.signup.to_dict()}, message=SignupMsg.email_verification_failed)
 

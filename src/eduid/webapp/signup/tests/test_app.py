@@ -1002,6 +1002,8 @@ class SignupTests(EduidAPITestCase):
         response = self._verify_email(
             data1=data, expect_success=False, expected_message=SignupMsg.email_verification_too_many_tries
         )
+        assert response.response.json["payload"]["state"]["email"]["bad_attempts"] == 3
+        assert response.response.json["payload"]["state"]["captcha"]["completed"] is False
         assert response.reached_state == SignupState.S5_VERIFY_EMAIL
 
     def test_verify_email_mixed_case(self):
