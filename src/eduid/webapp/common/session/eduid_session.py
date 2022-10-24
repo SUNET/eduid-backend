@@ -187,6 +187,11 @@ class EduidSession(SessionMixin, MutableMapping):
             self._namespaces.signup = Signup.from_dict(self._session.get("signup", {}))
         return self._namespaces.signup
 
+    @signup.deleter
+    def signup(self):
+        self._namespaces.signup = None
+        del self["signup"]
+
     @property
     def actions(self) -> Actions:
         if not self._namespaces.actions:

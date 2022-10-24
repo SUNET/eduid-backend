@@ -5,7 +5,6 @@ from re import findall
 from typing import Optional
 from uuid import uuid4
 
-from captcha.image import ImageCaptcha
 from flask import Blueprint, abort, request
 
 from eduid.common.misc.timeutil import utc_now
@@ -80,16 +79,22 @@ def register_email(email: str):
     email_status = check_email_status(email)
     if email_status == EmailStatus.ADDRESS_USED:
         current_app.logger.info("Email address already used")
+        current_app.stats.count(name="address_used_error")
         return error_response(message=SignupMsg.email_used)
-    if email_status == EmailStatus.THROTTLED:
+    elif email_status == EmailStatus.THROTTLED:
         current_app.logger.info("Email sending throttled")
         return error_response(message=SignupMsg.email_throttled)
-    if email_status == EmailStatus.NEW:
+    elif email_status == EmailStatus.RESEND_CODE:
+        current_app.stats.count(name="resend_code")
+    elif email_status == EmailStatus.NEW:
         current_app.logger.info("Starting new signup")
         session.signup.email.address = email
         session.signup.email.verification_code = make_short_code(digits=current_app.conf.email_verification_code_length)
         session.signup.email.sent_at = utc_now()
         session.signup.email.reference = str(uuid4())
+    else:
+        current_app.logger.error(f"Unknown email status: {email_status}")
+        return error_response(message=CommonMsg.temp_problem)
 
     # send email to the user
     if email_status in [EmailStatus.NEW, EmailStatus.RESEND_CODE]:
@@ -284,6 +289,10 @@ def create_user(use_password: bool, use_webauthn: bool) -> FluxData:
     state = session.signup.to_dict()
     # clear password from session
     session.signup.credentials.password = None
+    # clear signup session if the user is done
+    if not session.signup.invite.initiated_signup:
+        del session.signup
+    current_app.stats.count(name="signup_complete")
     return success_response(payload={"state": state})
 
 
@@ -377,7 +386,9 @@ def complete_invite() -> FluxData:
 
     current_app.logger.info("Invite completed for new user")
     current_app.stats.count(name="invite_completed_new_user")
-    return success_response(payload={"state": session.signup.to_dict()})
+    state = session.signup.to_dict()
+    del session.signup
+    return success_response(payload={"state": state})
 
 
 @signup_views.route("/complete-invite-existing-user", methods=["POST"])
@@ -399,7 +410,9 @@ def complete_invite_existing_user(user: User) -> FluxData:
 
     current_app.logger.info("Invite completed for existing user")
     current_app.stats.count(name="invite_completed_existing_user")
-    return success_response(payload={"state": session.signup.to_dict()})
+    state = session.signup.to_dict()
+    del session.signup
+    return success_response(payload={"state": state})
 
 
 # BACKDOOR for testing
@@ -560,6 +573,7 @@ def verify_link(code: str) -> FluxData:
 
     current_app.stats.count(name="signup_complete")
     current_app.logger.info(f"Signup process for new user {signup_user} complete")
+    del session.signup
     return success_response(payload=context)
 
 

@@ -254,7 +254,8 @@ def send_signup_mail(email: str, verification_code: str, reference: str, use_ema
     current_app.logger.info(f"Saved signup email queue item in queue collection {current_app.messagedb._coll_name}")
     current_app.logger.debug(f"email: {email}")
     if current_app.conf.environment == EduidEnvironment.dev:
-        # Debug-log the message in development environment
+        # Debug-log the code and message in development environment
+        current_app.logger.debug(f"code: {verification_code}")
         current_app.logger.debug(f"Generating verification e-mail with context:\n{payload}")
 
 

@@ -7,6 +7,7 @@ from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseM
 from eduid.webapp.common.api.schemas.email import LowercaseEmail
 from eduid.webapp.common.api.schemas.validators import validate_email
 from eduid.webapp.common.api.utils import time_left
+from eduid.webapp.common.session import session
 from eduid.webapp.signup.app import current_signup_app as current_app
 
 __author__ = "lundberg"
@@ -44,6 +45,7 @@ class SignupStatusResponse(FluxStandardAction):
                 password = fields.String(required=False)
                 # TODO: implement webauthn signup
 
+            already_signed_up = fields.Boolean(required=True)
             email = fields.Nested(EmailVerification, required=True)
             invite = fields.Nested(Invite, required=True)
             tou = fields.Nested(Tou, required=True)
@@ -54,6 +56,12 @@ class SignupStatusResponse(FluxStandardAction):
         state = fields.Nested(State, required=True)
 
     payload = fields.Nested(StatusSchema)
+
+    @pre_dump
+    def set_already_signed_up(self, data, **kwargs):
+        if data["payload"].get("state"):
+            data["payload"]["state"]["already_signed_up"] = bool(session.common.eppn)
+        return data
 
     @pre_dump
     def set_tou_version(self, data, **kwargs):

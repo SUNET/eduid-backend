@@ -211,6 +211,7 @@ class SignupTests(EduidAPITestCase):
 
             if expect_success:
                 if not expected_payload:
+                    assert response.json["payload"]["state"]["already_signed_up"] is False
                     assert response.json["payload"]["state"]["captcha"]["completed"] is True
                     assert response.json["payload"]["state"]["email"]["address"] == email.lower()
                     assert response.json["payload"]["state"]["email"]["completed"] is False
@@ -274,6 +275,7 @@ class SignupTests(EduidAPITestCase):
 
             if expect_success:
                 if not expected_payload:
+                    assert response.json["payload"]["state"]["already_signed_up"] is False
                     assert response.json["payload"]["state"]["captcha"]["completed"] is True
                     assert (
                         response.json["payload"]["state"]["email"]["address"]
@@ -480,6 +482,7 @@ class SignupTests(EduidAPITestCase):
 
             if expect_success:
                 if not expected_payload:
+                    assert response.json["payload"]["state"]["already_signed_up"] is True
                     assert response.json["payload"]["state"]["tou"]["completed"] is True
                     assert response.json["payload"]["state"]["captcha"]["completed"] is True
                     assert response.json["payload"]["state"]["email"]["completed"] is True
@@ -1031,6 +1034,15 @@ class SignupTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         assert user is not None
         assert user.mail_addresses.to_list()[0].email == email
+
+    def test_create_user_eppn_in_session(self):
+        email = "test@example.com"
+        self._prepare_for_create_user(email=email)
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                sess.common.eppn = "some-eppn"
+        response = self._create_user(expect_success=False, expected_message=SignupMsg.user_already_exists)
+        assert response.reached_state == SignupState.S6_CREATE_USER
 
     def test_create_user_out_of_sync(self):
         self._prepare_for_create_user()
