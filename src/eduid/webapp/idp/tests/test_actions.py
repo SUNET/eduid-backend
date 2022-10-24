@@ -204,7 +204,7 @@ class TestActions(SSOIdPTests):
             credential_data="test_credential_data",
             app_id="https://dev.eduid.se/u2f-app-id.json",
             description="test_description",
-            authenticator=WebauthnAuthenticator.cross_platform,
+            authenticator=AuthenticatorAttachment.CROSS_PLATFORM,
         )
         self.test_user.credentials.add(webauthn)
         self.amdb.save(self.test_user, check_sync=False)
@@ -384,7 +384,7 @@ class TestActions(SSOIdPTests):
             credential_data="test_credential_data",
             app_id="https://dev.eduid.se/u2f-app-id.json",
             description="test_description",
-            authenticator=WebauthnAuthenticator.cross_platform,
+            authenticator=AuthenticatorAttachment.CROSS_PLATFORM,
         )
         self.test_user.credentials.add(webauthn)
         self.amdb.save(self.test_user, check_sync=False)
