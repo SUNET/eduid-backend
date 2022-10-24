@@ -134,7 +134,7 @@ def _normalise_value(data: Any) -> Any:
 
 
 def normalised_data(
-    data: Union[Mapping[str, Any], Sequence[Mapping[str, Any]]]
+        data: Union[Mapping[str, Any], Sequence[Mapping[str, Any]]]
 ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """Utility function for normalising dicts (or list of dicts) before comparisons in test cases."""
     if isinstance(data, list):
@@ -173,7 +173,6 @@ class MongoTestCaseRaw(unittest.TestCase):
             self.settings.update(mongo_settings)
 
         if am_users:
-            pass
             # Set up test users in the MongoDB.
             for user in am_users:
                 self._db._coll.save(user.to_dict())
