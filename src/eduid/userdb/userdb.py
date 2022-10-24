@@ -391,14 +391,11 @@ class AmDB(UserDB[User]):
                 search_filter["meta.version"] = meta_version
             result = self._coll.replace_one(search_filter, user.to_dict(), upsert=(not check_sync))
             if check_sync and result.modified_count == 0:
-                db_ts = None
                 db_meta_version = None
                 if "version" in db_user["meta"]:
                     db_meta_version = db_user["meta"]["version"]
-                if "modified_ts" in db_user:
-                    db_ts = db_user["modified_ts"]
                 logger.debug(
-                    f"{self} FAILED Updating user {user} ( meta_version: {meta_version}) in {self._coll_name}, ts in db = {db_ts} and/or {db_meta_version}"
+                    f"{self} FAILED Updating user {user} (meta_version: {meta_version}) in {self._coll_name}, {db_meta_version}"
                 )
                 raise UserOutOfSync("Stale user object can't be saved")
             logger.debug(f"{self} Updated user {user} (meta_version: {meta_version}) in {self._coll_name}: {result}")
