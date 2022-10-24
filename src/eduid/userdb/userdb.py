@@ -378,7 +378,7 @@ class AmDB(UserDB[User]):
             extra_debug = pprint.pformat(user.to_dict(), width=120)
             logger.debug(f"Extra debug:\n{extra_debug}")
         else:
-            modified_ts = user.modified_ts
+            # modified_ts = user.modified_ts
             meta_version = user.meta.version
 
             time_now = utc_now()
@@ -398,12 +398,10 @@ class AmDB(UserDB[User]):
                 if "modified_ts" in db_user:
                     db_ts = db_user["modified_ts"]
                 logger.debug(
-                    f"{self} FAILED Updating user {user} (ts {modified_ts} and/or {meta_version}) in {self._coll_name}, ts in db = {db_ts} and/or {db_meta_version}"
+                    f"{self} FAILED Updating user {user} ( meta_version: {meta_version}) in {self._coll_name}, ts in db = {db_ts} and/or {db_meta_version}"
                 )
                 raise UserOutOfSync("Stale user object can't be saved")
-            logger.debug(
-                f"{self} Updated user {user} (ts: {modified_ts} meta_version: {meta_version}) in {self._coll_name}: {result}"
-            )
+            logger.debug(f"{self} Updated user {user} (meta_version: {meta_version}) in {self._coll_name}: {result}")
             import pprint
 
             extra_debug = pprint.pformat(user.to_dict(), width=120)
