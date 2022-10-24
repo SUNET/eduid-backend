@@ -315,11 +315,16 @@ flask==2.2.2 \
     # via
     #   -r webapp_requirements.in
     #   flask-babel
+    #   flask-cors
     #   flask-mail
     #   raven
 flask-babel==2.0.0 \
     --hash=sha256:e6820a052a8d344e178cdd36dd4bb8aea09b4bda3d5f9fa9f008df2c7f2f5468 \
     --hash=sha256:f9faf45cdb2e1a32ea2ec14403587d4295108f35017a7821a2b1acb8cfd9257d
+    # via -r webapp_requirements.in
+flask-cors==3.0.10 \
+    --hash=sha256:74efc975af1194fc7891ff5cd85b0f7478be4f7f59fe158102e91abb72bb4438 \
+    --hash=sha256:b60839393f3b84a0f3746f6cdca56c1ad7426aa738b70d6c61375857823181de
     # via -r webapp_requirements.in
 flask-mail==0.9.1 \
     --hash=sha256:22e5eb9a940bf407bcf30410ecc3708f3c56cc44b29c34e1726fe85006935f41
@@ -382,9 +387,9 @@ idna==3.4 \
     #   email-validator
     #   requests
     #   rfc3986
-importlib-metadata==4.12.0 \
-    --hash=sha256:637245b8bab2b6502fcbc752cc4b7a6f6243bb02b31c5c26156ad103d3d45670 \
-    --hash=sha256:7401a975809ea1fdc658c3aa4f78cc2195a0e019c5cbc4c06122884e9ae80c23
+importlib-metadata==5.0.0 \
+    --hash=sha256:da31db32b304314d044d3c12c79bd59e307889b287ad12ff387b3500835fc2ab \
+    --hash=sha256:ddb0e35065e8938f867ed4928d0ae5bf2a53b7773871bfe6bcc7e4fcdc7dea43
     # via
     #   -c main.txt
     #   -r sub_main.in
@@ -1023,9 +1028,9 @@ pytool==3.16.2 \
     # via
     #   -c main.txt
     #   pyconfig
-pytz==2022.2.1 \
-    --hash=sha256:220f481bdafa09c3955dfbdddb7b57780e9a94f5127e35456a48589b9e0c0197 \
-    --hash=sha256:cea221417204f2d1a2aa03ddae3e867921971d0d76f14d87abb4414415bbdcf5
+pytz==2022.4 \
+    --hash=sha256:2c0784747071402c6e99f0bafdb7da0fa22645f06554c7ae06bf6358897e9c91 \
+    --hash=sha256:48ce799d83b6f8aab2020e369b627446696619e79645419610b9facd909b3174
     # via
     #   -c main.txt
     #   babel
@@ -1240,6 +1245,7 @@ six==1.16.0 \
     #   bleach
     #   click-repl
     #   ecdsa
+    #   flask-cors
     #   html5lib
     #   pyconfig
     #   pyjwkest
@@ -1436,9 +1442,9 @@ xhtml2pdf==0.2.8 \
     # via
     #   -c main.txt
     #   -r main.in
-xmlschema==2.1.0 \
-    --hash=sha256:2882888a76415b37765aff1cfc8f6f4d413b029ecfb48438a11734a4b7e38fa3 \
-    --hash=sha256:e7f70c305e0def2a2293ab7110827086c477ab3c6f8757d2acb3ccbfa6b425a4
+xmlschema==2.1.1 \
+    --hash=sha256:5717a8a239637a9ad7d7563ce676dddf0a8989644c833f96bfc6d157c3cb3750 \
+    --hash=sha256:5ca34ff15dd3276cfb2e3e7b4c8dde4b7d4d27080f333a93b6c3f817e90abddf
     # via
     #   -c main.txt
     #   pysaml2

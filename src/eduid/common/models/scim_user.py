@@ -1,8 +1,9 @@
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import Field
+from pydantic import Extra, Field
 
-from eduid.scimapi.models.scimbase import (
+from eduid.common.models.scim_base import (
     BaseCreateRequest,
     BaseResponse,
     BaseUpdateRequest,
@@ -13,6 +14,8 @@ from eduid.scimapi.models.scimbase import (
     PhoneNumber,
     SCIMSchema,
     SubResource,
+    WeakVersion,
+    serialize_datetime,
 )
 
 __author__ = "lundberg"

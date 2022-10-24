@@ -4,7 +4,7 @@ from typing import Mapping
 
 from fastapi import Response
 
-from eduid.common.fastapi.api_router import APIRouter
+from eduid.scimapi.api_router import APIRouter
 from eduid.scimapi.context_request import ContextRequest, ContextRequestRoute
 from eduid.scimapi.models.status import StatusResponse
 from eduid.scimapi.routers.utils.status import check_mongo, check_neo4j, get_cached_response, set_cached_response

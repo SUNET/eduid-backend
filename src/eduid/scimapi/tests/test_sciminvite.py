@@ -10,9 +10,10 @@ from typing import Any, Dict, Mapping, Optional
 
 from bson import ObjectId
 
-from eduid.scimapi.models.invite import InviteResponse, NutidInviteExtensionV1
-from eduid.scimapi.models.scimbase import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
-from eduid.scimapi.models.user import NutidUserExtensionV1, Profile
+from eduid.common.misc.timeutil import utc_now
+from eduid.common.models.scim_base import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
+from eduid.common.models.scim_invite import InviteResponse, NutidInviteExtensionV1
+from eduid.common.models.scim_user import NutidUserExtensionV1, Profile
 from eduid.scimapi.testing import ScimApiTestCase
 from eduid.scimapi.utils import filter_none, make_etag
 from eduid.userdb.scimapi import EventStatus, ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
@@ -422,7 +423,13 @@ class TestInviteResource(ScimApiTestCase):
         self._assertScimError(
             status=422,
             json=response.json(),
-            detail=[{"loc": ["body", "__root__"], "msg": "Missing inviterName", "type": "value_error"}],
+            detail=[
+                {
+                    "loc": ["body", "https://scim.eduid.se/schema/nutid/invite/v1", "__root__"],
+                    "msg": "Missing inviterName",
+                    "type": "value_error",
+                }
+            ],
         )
 
         req2 = copy(req)
@@ -431,7 +438,13 @@ class TestInviteResource(ScimApiTestCase):
         self._assertScimError(
             status=422,
             json=response.json(),
-            detail=[{"loc": ["body", "__root__"], "msg": "Missing sendEmail", "type": "value_error"}],
+            detail=[
+                {
+                    "loc": ["body", "https://scim.eduid.se/schema/nutid/invite/v1", "__root__"],
+                    "msg": "Missing sendEmail",
+                    "type": "value_error",
+                }
+            ],
         )
 
     def test_create_invite_do_not_send_email(self):
@@ -481,6 +494,29 @@ class TestInviteResource(ScimApiTestCase):
     def test_get_invite(self):
         db_invite = self.add_invite()
         response = self.client.get(url=f"/Invites/{db_invite.scim_id}", headers=self.headers)
+        expected_schemas = [
+            SCIMSchema.NUTID_INVITE_CORE_V1.value,
+            SCIMSchema.NUTID_INVITE_V1.value,
+            SCIMSchema.NUTID_USER_V1.value,
+        ]
+        self._assertScimResponseProperties(response, resource=db_invite, expected_schemas=expected_schemas)
+
+    def test_update_invite(self):
+        # TODO: For now we only support updating completed
+        db_invite = self.add_invite()
+        invite = self.client.get(url=f"/Invites/{db_invite.scim_id}", headers=self.headers)
+
+        update_req = invite.json()
+        update_req[SCIMSchema.NUTID_INVITE_V1.value]["completed"] = utc_now().isoformat()
+        del update_req["meta"]
+        self.headers["IF-MATCH"] = make_etag(db_invite.version)
+
+        response = self.client.put(url=f"/Invites/{db_invite.scim_id}", json=update_req, headers=self.headers)
+        assert response.status_code == 200
+
+        updated_invite = self.invitedb.get_invite_by_scim_id(str(db_invite.scim_id))
+        assert updated_invite.completed is not None
+
         expected_schemas = [
             SCIMSchema.NUTID_INVITE_CORE_V1.value,
             SCIMSchema.NUTID_INVITE_V1.value,

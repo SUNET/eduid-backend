@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
+from dataclasses import replace
 from typing import Optional
 
 from fastapi import Response
 
-from eduid.common.fastapi.api_router import APIRouter
+from eduid.common.models.scim_base import ListResponse, SCIMResourceType, SCIMSchema, SearchRequest
+from eduid.common.models.scim_invite import InviteCreateRequest, InviteResponse, InviteUpdateRequest
+from eduid.scimapi.api_router import APIRouter
 from eduid.scimapi.context_request import ContextRequest, ContextRequestRoute
 from eduid.scimapi.exceptions import BadRequest, ErrorDetail, NotFound
-from eduid.scimapi.models.invite import InviteCreateRequest, InviteResponse
-from eduid.scimapi.models.scimbase import ListResponse, SCIMResourceType, SearchRequest
 from eduid.scimapi.routers.utils.events import add_api_event
 from eduid.scimapi.routers.utils.invites import (
     create_signup_invite,
@@ -15,10 +16,20 @@ from eduid.scimapi.routers.utils.invites import (
     db_invite_to_response,
     filter_lastmodified,
     invites_to_resources_dicts,
+    save_invite,
     send_invite_mail,
 )
+from eduid.scimapi.routers.utils.users import acceptable_linked_accounts
 from eduid.scimapi.search import parse_search_filter
-from eduid.userdb.scimapi import EventLevel, EventStatus, ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
+from eduid.userdb.scimapi import (
+    EventLevel,
+    EventStatus,
+    ScimApiEmail,
+    ScimApiLinkedAccount,
+    ScimApiName,
+    ScimApiPhoneNumber,
+    ScimApiProfile,
+)
 from eduid.userdb.scimapi.invitedb import ScimApiInvite
 
 __author__ = "lundberg"
@@ -46,6 +57,121 @@ async def on_get(req: ContextRequest, resp: Response, scim_id: Optional[str] = N
     signup_invite = req.app.context.signup_invitedb.get_invite_by_reference(ref)
     if signup_invite is None:
         raise NotFound(detail="Invite reference not found")
+    return db_invite_to_response(req, resp, db_invite, signup_invite)
+
+
+@invites_router.put("/{scim_id}", response_model=InviteResponse, response_model_exclude_none=True)
+async def on_put(
+    req: ContextRequest, resp: Response, update_request: InviteUpdateRequest, scim_id: str
+) -> InviteResponse:
+    if scim_id != str(update_request.id):
+        req.app.context.logger.error(f"Id mismatch")
+        req.app.context.logger.debug(f"{scim_id} != {update_request.id}")
+        raise BadRequest(detail="Id mismatch")
+
+    req.app.context.logger.info(f"Updating invite {scim_id}")
+    db_invite = req.context.invitedb.get_invite_by_scim_id(scim_id)
+    if not db_invite:
+        raise NotFound(detail="Invite not found")
+    ref = create_signup_ref(req, db_invite)
+    signup_invite = req.app.context.signup_invitedb.get_invite_by_reference(ref)
+    if signup_invite is None:
+        raise NotFound(detail="Invite reference not found")
+
+    if db_invite.completed is not None:
+        raise BadRequest(detail="Invite completed and cannot be updated")
+
+    invite_changed = False
+    profiles_changed = False
+
+    if update_request.nutid_invite_v1.completed is not None:
+        signup_invite = replace(signup_invite, completed_ts=update_request.nutid_invite_v1.completed)
+        db_invite = replace(db_invite, completed=update_request.nutid_invite_v1.completed)
+        invite_changed = True
+
+    # TODO: decide what can be updated
+    # # Update the invite
+    # invite_changed = False
+    # if SCIMSchema.NUTID_INVITE_V1 in update_request.schemas:
+    #     name_in = ScimApiName(**update_request.nutid_invite_v1.name.dict(exclude_none=True))
+    #     emails_in = set(ScimApiEmail(**email.dict()) for email in update_request.nutid_invite_v1.emails)
+    #     phone_numbers_in = set(
+    #         ScimApiPhoneNumber(**number.dict()) for number in update_request.nutid_invite_v1.phone_numbers
+    #     )
+    #     # external_id
+    #     if update_request.external_id != db_invite.external_id:
+    #         db_invite = replace(db_invite, external_id=update_request.external_id)
+    #         invite_changed = True
+    #     # preferred_language
+    #     if update_request.nutid_invite_v1.preferred_language != db_invite.preferred_language:
+    #         db_invite = replace(db_invite, preferred_language=update_request.nutid_invite_v1.preferred_language)
+    #         invite_changed = True
+    #     # name
+    #     if name_in != db_invite.name:
+    #         db_invite = replace(db_invite, name=name_in)
+    #         invite_changed = True
+    #     # emails
+    #     if emails_in != set(db_invite.emails):
+    #         db_invite = replace(db_invite, emails=list(emails_in))
+    #         invite_changed = True
+    #     # phone_numbers
+    #     if phone_numbers_in != set(db_invite.phone_numbers):
+    #         db_invite = replace(db_invite, phone_numbers=list(phone_numbers_in))
+    #         invite_changed = True
+    #     # nin
+    #     if update_request.nutid_invite_v1.national_identity_number != db_invite.national_identity_number:
+    #         db_invite = replace(
+    #             db_invite, national_identity_number=update_request.nutid_invite_v1.national_identity_number
+    #         )
+    #         invite_changed = True
+    #     # finish_url
+    #     if update_request.nutid_invite_v1.finish_url != db_invite.finish_url:
+    #         db_invite = replace(db_invite, finish_url=update_request.nutid_invite_v1.finish_url)
+    #         invite_changed = True
+    #     # completed_ts
+    #     if update_request.nutid_invite_v1.completed != db_invite.completed_ts:
+    #         db_invite = replace(db_invite, completed_ts=update_request.nutid_invite_v1.completed)
+    #         invite_changed = True
+    #
+    # profiles_changed = False
+    # if SCIMSchema.NUTID_USER_V1 in update_request.schemas and update_request.nutid_user_v1 is not None:
+    #
+    #     # Look for changes in profiles
+    #     for this in update_request.nutid_user_v1.profiles.keys():
+    #         if this not in db_invite.profiles:
+    #             req.app.context.logger.info(
+    #                 f"Adding profile {this}/{update_request.nutid_user_v1.profiles[this]} to invite"
+    #             )
+    #             profiles_changed = True
+    #         elif update_request.nutid_user_v1.profiles[this].to_dict() != db_invite.profiles[this].to_dict():
+    #             req.app.context.logger.info(f"Profile {this}/{update_request.nutid_user_v1.profiles[this]} updated")
+    #             profiles_changed = True
+    #         else:
+    #             req.app.context.logger.info(f"Profile {this}/{update_request.nutid_user_v1.profiles[this]} not changed")
+    #     for this in db_invite.profiles.keys():
+    #         if this not in update_request.nutid_user_v1.profiles:
+    #             req.app.context.logger.info(f"Profile {this}/{db_invite.profiles[this]} removed")
+    #             profiles_changed = True
+    #
+    #     if profiles_changed:
+    #         for profile_name, profile in update_request.nutid_user_v1.profiles.items():
+    #             db_profile = ScimApiProfile(attributes=profile.attributes, data=profile.data)
+    #             db_invite.profiles[profile_name] = db_profile
+
+    if invite_changed or profiles_changed:
+        save_invite(req, db_invite=db_invite, signup_invite=signup_invite)
+        add_api_event(
+            context=req.app.context,
+            data_owner=req.context.data_owner,
+            db_obj=db_invite,
+            resource_type=SCIMResourceType.INVITE,
+            level=EventLevel.INFO,
+            status=EventStatus.UPDATED,
+            message="Invite was updated",
+        )
+    else:
+        req.app.context.logger.info(f"No changes detected")
+
     return db_invite_to_response(req, resp, db_invite, signup_invite)
 
 
@@ -111,8 +237,7 @@ async def on_post(req: ContextRequest, resp: Response, create_request: InviteCre
         profiles=profiles,
     )
     signup_invite = create_signup_invite(req, create_request, db_invite)
-    req.app.context.signup_invitedb.save(signup_invite)
-    req.context.invitedb.save(db_invite)
+    save_invite(req, db_invite=db_invite, signup_invite=signup_invite)
     if signup_invite.send_email:
         send_invite_mail(req, signup_invite)
 

@@ -5,12 +5,12 @@ from uuid import uuid4
 
 from fastapi import Response
 
+from eduid.common.models.scim_base import Meta, SCIMResourceType, SCIMSchema, WeakVersion
 from eduid.common.utils import urlappend
 from eduid.scimapi.config import DataOwnerName
 from eduid.scimapi.context_request import ContextRequest
 from eduid.scimapi.exceptions import BadRequest
 from eduid.scimapi.models.event import EventResponse, NutidEventExtensionV1, NutidEventResource
-from eduid.scimapi.models.scimbase import Meta, SCIMResourceType, SCIMSchema, WeakVersion
 from eduid.scimapi.utils import make_etag
 from eduid.userdb.scimapi import EventLevel, EventStatus, ScimApiEvent, ScimApiEventResource, ScimApiResourceBase
 

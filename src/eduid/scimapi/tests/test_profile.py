@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from eduid.scimapi.models.user import NutidUserExtensionV1
+from eduid.common.models.scim_user import NutidUserExtensionV1
 
 
 class TestProfile(TestCase):

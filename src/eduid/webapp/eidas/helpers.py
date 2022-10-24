@@ -172,18 +172,19 @@ def create_metadata(config):
     return entity_descriptor(config)
 
 
-def staging_nin_remap(session_info: SessionInfo) -> SessionInfo:
+def attribute_remap(session_info: SessionInfo) -> SessionInfo:
     """
-    Remap from known test nins to users correct nins.
+    Remap from known test attributes to users correct attributes.
 
     :param session_info: the SAML session info
     :return: SAML session info with new nin mapped
     """
-    attributes = session_info["ava"]
-    asserted_test_nin = attributes["personalIdentityNumber"][0]
-    user_nin = current_app.conf.staging_nin_map.get(asserted_test_nin, None)
-    if user_nin:
-        attributes["personalIdentityNumber"] = [user_nin]
+    personal_identity_number = session_info.get("ava", {}).get("personalIdentityNumber")
+    if personal_identity_number:
+        asserted_test_nin = personal_identity_number[0]
+        user_nin = current_app.conf.nin_attribute_map.get(asserted_test_nin, None)
+        if user_nin:
+            session_info["ava"]["personalIdentityNumber"] = [user_nin]
     return session_info
 
 

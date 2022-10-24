@@ -88,10 +88,11 @@ class EidasConfig(
     )
 
     # Staging nin map
-    staging_nin_map: Mapping[str, str] = Field(
+    nin_attribute_map: Mapping[str, str] = Field(
         default={
             #  'test nin': 'user nin'
         }
     )
     # magic cookie IdP is used for integration tests when magic cookie is set
     magic_cookie_idp: Optional[str] = None
+    magic_cookie_foreign_id_idp: Optional[str] = None

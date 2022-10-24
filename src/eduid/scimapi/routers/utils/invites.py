@@ -5,14 +5,15 @@ from os import environ
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from fastapi import Request, Response
+from pymongo.errors import DuplicateKeyError
 
+from eduid.common.models.scim_base import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema, SearchRequest
+from eduid.common.models.scim_invite import InviteCreateRequest, InviteResponse, NutidInviteExtensionV1
+from eduid.common.models.scim_user import NutidUserExtensionV1, Profile
 from eduid.queue.db import QueueItem, SenderInfo
 from eduid.queue.db.message import EduidInviteEmail
 from eduid.scimapi.context_request import ContextRequest
 from eduid.scimapi.exceptions import BadRequest
-from eduid.scimapi.models.invite import InviteCreateRequest, InviteResponse, NutidInviteExtensionV1
-from eduid.scimapi.models.scimbase import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema, SearchRequest
-from eduid.scimapi.models.user import NutidUserExtensionV1, Profile
 from eduid.scimapi.search import SearchFilter
 from eduid.scimapi.utils import get_short_hash, get_unique_hash, make_etag
 from eduid.userdb.scimapi.invitedb import ScimApiInvite
@@ -153,6 +154,22 @@ def invites_to_resources_dicts(query: SearchRequest, invites: Sequence[ScimApiIn
     _attributes = query.attributes
     # TODO: include the requested attributes, not just id
     return [{"id": str(invite.scim_id)} for invite in invites]
+
+
+def save_invite(req: ContextRequest, db_invite: ScimApiInvite, signup_invite: SignupInvite) -> None:
+    try:
+        req.context.invitedb.save(db_invite)
+    except DuplicateKeyError as e:
+        if "external-id" in e.details["errmsg"]:
+            raise BadRequest(detail="externalID must be unique")
+        raise BadRequest(detail="Duplicated key error")
+
+    try:
+        req.app.context.signup_invitedb.save(signup_invite)
+    except DuplicateKeyError as e:
+        if "invite_code" in e.details["errmsg"]:
+            raise BadRequest(detail="invite_code must be unique")
+        raise BadRequest(detail="Duplicated key error")
 
 
 def filter_lastmodified(

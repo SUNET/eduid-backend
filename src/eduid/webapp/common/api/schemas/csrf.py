@@ -3,7 +3,6 @@
 from __future__ import absolute_import
 
 import logging
-from urllib.parse import urlsplit
 
 from flask import current_app, request
 from marshmallow import Schema, ValidationError, fields, post_load, pre_dump, validates
@@ -26,21 +25,6 @@ class CSRFRequestMixin(Schema):
         if custom_header != "XMLHttpRequest":  # TODO: move value to config
             current_app.logger.error("CSRF check: missing custom X-Requested-With header")
             raise ValidationError("CSRF missing custom X-Requested-With header")
-        origin = request.headers.get("Origin", None)
-        if origin is None:
-            origin = request.headers.get("Referer", None)
-        if origin is None:
-            current_app.logger.error("CSRF check: No Origin or Referer")
-            raise ValidationError("CSRF cannot check origin")
-        origin = origin.split()[0]
-        origin = urlsplit(origin).hostname
-        target = request.headers.get("X-Forwarded-Host", None)
-        if target is None:
-            current_app.logger.error("CSRF check: The X-Forwarded-Host header is missing")
-            raise ValidationError("CSRF cannot check target")
-        target = target.split(":")[0]
-        if origin != target:
-            raise ValidationError(f"CSRF cross origin request, origin: {origin}, target: {target}")
         if session.get_csrf_token() != value:
             raise ValidationError("CSRF failed to validate")
         logger.debug(f"Validated CSRF token in session: {session.get_csrf_token()}")

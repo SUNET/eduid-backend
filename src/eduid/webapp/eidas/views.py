@@ -37,7 +37,7 @@ from eduid.webapp.eidas.helpers import (
     create_metadata,
     is_required_loa,
     is_valid_reauthn,
-    staging_nin_remap,
+    attribute_remap,
 )
 
 __author__ = "lundberg"
@@ -185,7 +185,13 @@ def _authn(
     if check_magic_cookie(current_app.conf):
         # set a test IdP with minimal interaction for the integration tests
         if current_app.conf.magic_cookie_idp:
-            idp = current_app.conf.magic_cookie_idp
+            if proofing_method.method == "freja" and current_app.conf.magic_cookie_idp:
+                idp = current_app.conf.magic_cookie_idp
+            elif proofing_method.method == "eidas" and current_app.conf.magic_cookie_foreign_id_idp:
+                idp = current_app.conf.magic_cookie_foreign_id_idp
+            else:
+                current_app.logger.error(f"Magic cookie is not supported for method {method}")
+                return AuthnResult(error=EidasMsg.method_not_available)
             current_app.logger.debug(f"Changed requested IdP due to magic cookie: {idp}")
         else:
             current_app.logger.warning(f"Missing configuration magic_cookie_idp")
@@ -284,8 +290,8 @@ def assertion_consumer_service() -> WerkzeugResponse:
         return redirect_with_msg(proofing_method.finish_url, EidasMsg.reauthn_expired)
 
     # Remap nin in staging environment
-    if current_app.conf.environment == EduidEnvironment.staging:
-        assertion.session_info = staging_nin_remap(assertion.session_info)
+    if current_app.conf.environment in [EduidEnvironment.staging, EduidEnvironment.dev]:
+        assertion.session_info = attribute_remap(assertion.session_info)
 
     action = get_action(default_action=None, authndata=assertion.authndata)
     backdoor = check_magic_cookie(config=current_app.conf)

@@ -20,8 +20,8 @@ class CleanedType(str, Enum):
 
 class Meta(BaseModel):
     version: ObjectId = Field(default_factory=ObjectId)
-    modified_ts: datetime = Field(default_factory=utc_now)
-    cleaned: Optional[Mapping[CleanedType, datetime]] = None
+    created_ts: datetime = Field(default_factory=utc_now)
+    modified_ts: Optional[datetime]
 
     class Config:
         arbitrary_types_allowed = True  # allow ObjectId as type
