@@ -100,7 +100,7 @@ def registration_begin(user: User, authenticator: str) -> FluxData:
     if user.given_name is None or user.surname is None or user.display_name is None:
         return error_response(message=SecurityMsg.no_pdata)
     user_entity = PublicKeyCredentialUserEntity(
-        id=str(user.eppn).encode("ascii"), name=f"{user.given_name} {user.surname}", display_name=user.display_name
+        id=bytes(user.eppn, "utf-8"), name=f"{user.given_name} {user.surname}", display_name=user.display_name
     )
     registration_data, state = server.register_begin(
         user=user_entity,
