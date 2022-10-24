@@ -39,11 +39,11 @@ from datetime import datetime, timedelta
 from typing import cast
 
 import bson
+from fido2.webauthn import AuthenticatorAttachment
 from mock import patch
 
 from eduid.userdb.actions.action import ActionResultMFA
 from eduid.userdb.credentials import U2F, Webauthn
-from eduid.userdb.credentials.fido import WebauthnAuthenticator
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.tou import ToUEvent
 from eduid.vccs.client import VCCSClient
@@ -88,7 +88,7 @@ class TestActions(SSOIdPTests):
             credential_data="test_credential_data",
             app_id="https://dev.eduid.se/u2f-app-id.json",
             description="test_description",
-            authenticator=WebauthnAuthenticator.cross_platform,
+            authenticator=AuthenticatorAttachment.CROSS_PLATFORM,
         )
 
     def update_config(self, config):

@@ -5,7 +5,16 @@ from typing import List, Optional, Sequence
 
 from fido2 import cbor
 from fido2.server import Fido2Server, PublicKeyCredentialRpEntity
-from fido2.webauthn import AttestationObject, AttestedCredentialData, CollectedClientData, UserVerificationRequirement
+from fido2.webauthn import (
+    AttestationConveyancePreference,
+    AttestationObject,
+    AttestedCredentialData,
+    AuthenticatorAttachment,
+    AuthenticatorData,
+    CollectedClientData,
+    PublicKeyCredentialUserEntity,
+    UserVerificationRequirement,
+)
 from fido_mds.exceptions import AttestationVerificationError, MetadataValidationError
 from flask import Blueprint
 
@@ -20,7 +29,7 @@ from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response
 from eduid.webapp.common.api.schemas.base import FluxStandardAction
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import WebauthnAuthenticator, WebauthnRegistration
+from eduid.webapp.common.session.namespaces import WebauthnRegistration
 from eduid.webapp.security.app import current_security_app as current_app
 from eduid.webapp.security.helpers import SecurityMsg, compile_credential_list
 from eduid.webapp.security.schemas import (
@@ -29,7 +38,6 @@ from eduid.webapp.security.schemas import (
     WebauthnRegisterBeginSchema,
     WebauthnRegisterRequestSchema,
 )
-from eduid.webapp.security.settings.common import WebauthnAttestation
 from eduid.webapp.security.webauthn_proofing import (
     OtherAuthenticatorStatus,
     get_authenticator_information,
@@ -38,12 +46,11 @@ from eduid.webapp.security.webauthn_proofing import (
 )
 
 
-def get_webauthn_server(rp_id: str, rp_name: str, attestation: Optional[WebauthnAttestation] = None) -> Fido2Server:
+def get_webauthn_server(
+    rp_id: str, rp_name: str, attestation: Optional[AttestationConveyancePreference] = None
+) -> Fido2Server:
     rp = PublicKeyCredentialRpEntity(id=rp_id, name=rp_name)
-    _att = None
-    if attestation:
-        _att = attestation.value
-    return Fido2Server(rp, attestation=_att)
+    return Fido2Server(rp, attestation=attestation)
 
 
 def make_credentials(creds: Sequence[FidoCredential]) -> List[AttestedCredentialData]:
@@ -74,7 +81,7 @@ webauthn_views = Blueprint("webauthn", __name__, url_prefix="/webauthn", templat
 @require_user
 def registration_begin(user: User, authenticator: str) -> FluxData:
     try:
-        _auth_enum = WebauthnAuthenticator(authenticator)
+        _auth_enum = AuthenticatorAttachment(authenticator)
     except ValueError:
         return error_response(message=SecurityMsg.invalid_authenticator)
     user_webauthn_tokens = user.credentials.filter(FidoCredential)
@@ -92,16 +99,14 @@ def registration_begin(user: User, authenticator: str) -> FluxData:
     )
     if user.given_name is None or user.surname is None or user.display_name is None:
         return error_response(message=SecurityMsg.no_pdata)
-
+    user_entity = PublicKeyCredentialUserEntity(
+        id=str(user.eppn).encode("ascii"), name=f"{user.given_name} {user.surname}", display_name=user.display_name
+    )
     registration_data, state = server.register_begin(
-        {
-            "id": str(user.eppn).encode("ascii"),
-            "name": "{} {}".format(user.given_name, user.surname),
-            "displayName": user.display_name,
-        },
+        user=user_entity,
         credentials=creds,
         user_verification=UserVerificationRequirement.DISCOURAGED,
-        authenticator_attachment=_auth_enum.value,
+        authenticator_attachment=_auth_enum,
     )
     session.security.webauthn_registration = WebauthnRegistration(webauthn_state=state, authenticator=_auth_enum)
 
@@ -154,16 +159,18 @@ def registration_complete(
     reg_state = session.security.webauthn_registration
     session.security.webauthn_registration = None
 
-    auth_data = server.register_complete(reg_state.webauthn_state, cdata_obj, att_obj)
-    cred_data = auth_data.credential_data
-    current_app.logger.debug(f"Processed Webauthn credential data: {cred_data}")
+    auth_data: AuthenticatorData = server.register_complete(reg_state.webauthn_state, cdata_obj, att_obj)
+    if auth_data.credential_data is None:
+        raise RuntimeError("Authenticator data does not contain credential data")
+    credential_data = base64.urlsafe_b64encode(auth_data.credential_data).decode("ascii")
+    current_app.logger.debug(f"Processed Webauthn credential data: {credential_data}")
     mfa_approved = is_authenticator_mfa_approved(authenticator_info=authenticator_info)
     current_app.logger.info(f"authenticator mfa approved: {mfa_approved}")
 
     credential = Webauthn(
         keyhandle=credential_id,
         authenticator_id=authenticator_info.authenticator_id,
-        credential_data=base64.urlsafe_b64encode(cred_data).decode("ascii"),
+        credential_data=credential_data,
         app_id=current_app.conf.fido2_rp_id,
         description=description,
         created_by="security",

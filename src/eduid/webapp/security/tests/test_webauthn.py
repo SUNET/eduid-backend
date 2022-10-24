@@ -5,13 +5,12 @@ import base64
 import json
 from typing import Any, Dict, Mapping, Optional
 
-from fido2.webauthn import AttestationObject, CollectedClientData
+from fido2.webauthn import AttestationObject, AuthenticatorAttachment, CollectedClientData
 from mock import patch
 from werkzeug.http import dump_cookie
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.userdb.credentials import U2F, Webauthn
-from eduid.userdb.credentials.fido import WebauthnAuthenticator
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.session import EduidSession
 from eduid.webapp.common.session.namespaces import WebauthnRegistration, WebauthnState
@@ -131,6 +130,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         server = get_webauthn_server(rp_id=self.app.conf.fido2_rp_id, rp_name=self.app.conf.fido2_rp_name)
         auth_data = server.register_complete(state, client_data_obj, att_obj)
         cred_data = auth_data.credential_data
+        assert cred_data is not None  # please mypy
         cred_id = cred_data.credential_id
 
         credential = Webauthn(
@@ -139,7 +139,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
             app_id=self.app.conf.fido2_rp_id,
             description="ctap1 token",
             created_by="test_security",
-            authenticator=WebauthnAuthenticator.cross_platform,
+            authenticator=AuthenticatorAttachment.CROSS_PLATFORM,
         )
         self.test_user.credentials.add(credential)
         self.app.central_userdb.save(self.test_user, check_sync=False)
@@ -266,7 +266,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
                 with client.session_transaction() as sess:
                     assert isinstance(sess, EduidSession)
                     sess.security.webauthn_registration = WebauthnRegistration(
-                        webauthn_state=webauthn_state, authenticator=WebauthnAuthenticator.cross_platform
+                        webauthn_state=webauthn_state, authenticator=AuthenticatorAttachment.CROSS_PLATFORM
                     )
                     if csrf is not None:
                         csrf_token = csrf

@@ -32,9 +32,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from datetime import timedelta
-from enum import Enum
 from typing import List, Optional
 
+from fido2.webauthn import AttestationConveyancePreference
 from fido_mds.models.fido_mds import AuthenticatorStatus
 from pydantic import Field
 
@@ -47,19 +47,6 @@ from eduid.common.config.base import (
     PasswordConfigMixin,
     WebauthnConfigMixin2,
 )
-
-
-class WebauthnAttestation(str, Enum):
-    """
-    Type of attestation to ask from authenticators on registration.
-
-    https://w3c.github.io/webauthn/#attestation-conveyance
-    """
-
-    none = "none"
-    indirect = "indirect"
-    direct = "direct"
-    enterprise = "enterprise"
 
 
 class SecurityConfig(
@@ -91,7 +78,7 @@ class SecurityConfig(
     webauthn_proofing_method = Field(default="webauthn metadata")
     webauthn_proofing_version = Field(default="2022v1")
     webauthn_max_allowed_tokens: int = 10
-    webauthn_attestation: Optional[WebauthnAttestation] = None
+    webauthn_attestation: Optional[AttestationConveyancePreference] = None
     webauthn_allowed_user_verification_methods: List[str] = Field(
         default=[
             "faceprint_internal",

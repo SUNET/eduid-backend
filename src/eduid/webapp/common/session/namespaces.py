@@ -9,13 +9,13 @@ from enum import Enum, unique
 from typing import Any, Dict, List, Mapping, NewType, Optional, Type, TypeVar, Union
 from uuid import uuid4
 
+from fido2.webauthn import AuthenticatorAttachment
 from pydantic import BaseModel, Field, ValidationError
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.actions import Action
 from eduid.userdb.credentials import Credential
 from eduid.userdb.credentials.external import TrustFramework
-from eduid.userdb.credentials.fido import WebauthnAuthenticator
 from eduid.userdb.element import ElementKey
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
 from eduid.webapp.idp.other_device.data import OtherDeviceId
@@ -115,7 +115,7 @@ class ResetPasswordNS(SessionNSBase):
 class WebauthnRegistration(SessionNSBase):
     # Data stored between webauthn register "begin" and "complete"
     webauthn_state: WebauthnState
-    authenticator: WebauthnAuthenticator
+    authenticator: AuthenticatorAttachment
 
 
 class SecurityNS(SessionNSBase):
