@@ -36,8 +36,8 @@ import bson
 from eduid.userdb import User
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.fixtures.passwords import signup_password
-from eduid.userdb.fixtures.users import mocked_user_standard
-from eduid.userdb.testing import MongoTestCase, normalised_data
+from eduid.userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
+from eduid.userdb.testing import MongoTestCase, normalised_data, MongoTestCaseRaw
 
 
 class TestUserDB(MongoTestCase):
