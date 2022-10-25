@@ -120,4 +120,7 @@ class Invite(_InviteRequired):
         # Load invite specific data
         if data["invite_type"] is InviteType.SCIM:
             data["invite_reference"] = SCIMReference(**data["invite_reference"])
+        # backwards compatibility
+        if "display_name" in data:
+            del data["display_name"]
         return cls(**data)
