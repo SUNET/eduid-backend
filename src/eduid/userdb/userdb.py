@@ -37,14 +37,15 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from pymongo import ReturnDocument
 
-import eduid.userdb.exceptions
 from eduid.userdb.db import BaseDB
 from eduid.userdb.exceptions import (
     DocumentDoesNotExist,
+    EduIDDBError,
     EduIDUserDBError,
     MultipleDocumentsReturned,
     MultipleUsersReturned,
     UserDoesNotExist,
+    UserOutOfSync,
 )
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.user import User
@@ -129,7 +130,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
     def get_users_by_mail(self, email: str, include_unconfirmed: bool = False) -> List[UserVar]:
         """
         Return the user object in the central eduID UserDB having
-        an email address matching `email'. Unless include_unconfirmed=True, the
+        an email address matching 'email'. Unless include_unconfirmed=True, the
         email address has to be confirmed/verified.
 
         :param email: The email address to look for
@@ -156,7 +157,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
     def get_users_by_nin(self, nin: str, include_unconfirmed: bool = False) -> List[UserVar]:
         """
         Return the user object in the central eduID UserDB having
-        a NIN matching `nin'. Unless include_unconfirmed=True, the
+        a NIN matching 'nin'. Unless include_unconfirmed=True, the
         NIN has to be confirmed/verified.
 
         :param nin: The nin to look for
@@ -192,7 +193,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
     def get_users_by_phone(self, phone: str, include_unconfirmed: bool = False) -> List[UserVar]:
         """
         Return the user object in the central eduID UserDB having
-        a phone number matching `phone'. Unless include_unconfirmed=True, the
+        a phone number matching 'phone'. Unless include_unconfirmed=True, the
         phone number has to be confirmed/verified.
 
         :param phone: The phone to look for
@@ -287,7 +288,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
                 logger.debug(
                     f"{self} FAILED Updating user {user} (ts {modified}) in {self._coll_name}, ts in db = {db_ts}"
                 )
-                raise eduid.userdb.exceptions.UserOutOfSync("Stale user object can't be saved")
+                raise UserOutOfSync("Stale user object can't be saved")
             logger.debug(f"{self} Updated user {user} (ts {modified}) in {self._coll_name}: {result}")
             import pprint
 
@@ -337,7 +338,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
             logger.debug(f"Tried to update/insert document: {query_filter} with operations: {operations}")
             error_msg = f"Invalid update operator: {bad_operators}"
             logger.error(error_msg)
-            raise eduid.userdb.exceptions.EduIDDBError(error_msg)
+            raise EduIDDBError(error_msg)
 
         updated_doc = self._coll.find_one_and_update(
             filter=query_filter, update=operations, return_document=ReturnDocument.AFTER, upsert=True
@@ -354,3 +355,52 @@ class AmDB(UserDB[User]):
     @classmethod
     def user_from_dict(cls, data: Mapping[str, Any]) -> User:
         return User.from_dict(data)
+
+    def save(self, user: UserVar, check_sync: bool = True) -> bool:
+        """
+        :param user: User object
+        :param check_sync: Ensure the user hasn't been updated in the database since it was loaded
+        """
+        if not isinstance(user, User):
+            raise EduIDUserDBError(f"user is not a subclass of User")
+
+        if not isinstance(user.user_id, ObjectId):
+            raise AssertionError(f"user.user_id is not of type {ObjectId}")
+
+        search_filter = {"_id": user.user_id}
+        db_user = self._coll.find_one(search_filter)
+
+        if db_user is None:
+            result = self._coll.replace_one(search_filter, user.to_dict(), upsert=True)
+            logger.debug(f"{self} Inserted new user {user} into {self._coll_name}: {repr(result)})")
+            import pprint
+
+            extra_debug = pprint.pformat(user.to_dict(), width=120)
+            logger.debug(f"Extra debug:\n{extra_debug}")
+        else:
+            # modified_ts = user.modified_ts
+            meta_version = user.meta.version
+
+            time_now = utc_now()
+
+            user.modified_ts = time_now
+            user.meta.modified_ts = time_now
+            user.meta.new_version()
+
+            if check_sync:
+                search_filter["meta.version"] = meta_version
+            result = self._coll.replace_one(search_filter, user.to_dict(), upsert=(not check_sync))
+            if check_sync and result.modified_count == 0:
+                db_meta_version = None
+                if "version" in db_user["meta"]:
+                    db_meta_version = db_user["meta"]["version"]
+                logger.debug(
+                    f"{self} FAILED Updating user {user} (meta_version: {meta_version}) in {self._coll_name}, {db_meta_version}"
+                )
+                raise UserOutOfSync("Stale user object can't be saved")
+            logger.debug(f"{self} Updated user {user} (meta_version: {meta_version}) in {self._coll_name}: {result}")
+            import pprint
+
+            extra_debug = pprint.pformat(user.to_dict(), width=120)
+            extra_debug_logger.debug(f"Extra debug:\n{extra_debug}")
+        return result.acknowledged

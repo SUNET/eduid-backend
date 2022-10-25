@@ -34,9 +34,10 @@ import bson
 
 from eduid.common.testing_base import normalised_data
 from eduid.userdb import User
+from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.fixtures.passwords import signup_password
-from eduid.userdb.fixtures.users import mocked_user_standard
-from eduid.userdb.testing import MongoTestCase
+from eduid.userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
+from eduid.userdb.testing import MongoTestCase, MongoTestCaseRaw
 
 
 class TestUserDB(MongoTestCase):
@@ -87,6 +88,35 @@ class TestUserDB(MongoTestCase):
     def test_get_user_by_eppn_not_found(self):
         """Test user lookup using unknown"""
         assert self.amdb.get_user_by_eppn("abc123") is None
+
+
+class UpdateUser(MongoTestCaseRaw):
+    def setUp(self, *args, **kwargs):
+        self.user = mocked_user_standard
+        super().setUp(am_users=[self.user, mocked_user_standard_2], **kwargs)
+
+    def test_stale_user__meta_version(self):
+        test_user = mocked_user_standard
+        test_user.given_name = "new_given_name"
+        test_user.meta.new_version()
+
+        with self.assertRaises(UserOutOfSync):
+            self.amdb.save(test_user, check_sync=True)
+
+    def test_ok(self):
+        test_user = mocked_user_standard
+        test_user.given_name = "new_given_name"
+
+        old_meta_version = test_user.meta.version
+        old_modified_ts = test_user.modified_ts
+
+        res = self.amdb.save(test_user, check_sync=True)
+        assert res is True
+
+        db_user = self.amdb.get_user_by_id(test_user.user_id)
+        assert db_user.meta.version != old_meta_version
+        assert db_user.modified_ts != old_modified_ts
+        assert db_user.given_name == "new_given_name"
 
 
 class TestUserDB_mail(MongoTestCase):

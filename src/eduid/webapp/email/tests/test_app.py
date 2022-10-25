@@ -44,7 +44,6 @@ from eduid.webapp.email.app import EmailApp, email_init_app
 
 
 class EmailTests(EduidAPITestCase):
-
     app: EmailApp
 
     def setUp(self, **kwargs):
