@@ -179,6 +179,7 @@ def captcha_request() -> FluxData:
         return error_response(message=SignupMsg.captcha_already_completed)
 
     session.signup.captcha.internal_answer = make_short_code(digits=current_app.conf.captcha_code_length)
+    session.signup.captcha.bad_attempts = 0
     data = current_app.captcha_image_generator.generate_image(chars=session.signup.captcha.internal_answer)
     with BytesIO() as f:
         data.save(fp=f, format="PNG", optimize=True)
@@ -197,6 +198,11 @@ def captcha_response(recaptcha_response: Optional[str] = None, internal_response
     current_app.logger.info("Checking captcha")
 
     captcha_verified = False
+
+    if session.signup.captcha.bad_attempts >= current_app.conf.captcha_max_bad_attempts:
+        current_app.logger.info("Too many incorrect captcha attempts")
+        # bad attempts is reset when a new captcha is generated
+        return error_response(message=SignupMsg.captcha_failed)
 
     # add a backdoor to bypass recaptcha checks for humanness,
     # to be used in testing environments for automated integration tests.
@@ -218,6 +224,7 @@ def captcha_response(recaptcha_response: Optional[str] = None, internal_response
 
     if not captcha_verified:
         current_app.logger.info("Captcha failed")
+        session.signup.captcha.bad_attempts += 1
         return error_response(message=SignupMsg.captcha_failed)
 
     current_app.logger.info("Captcha completed")

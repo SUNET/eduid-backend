@@ -81,6 +81,7 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
                 "default_finish_url": "https://www.eduid.se/",
                 "recaptcha_public_key": "XXXX",
                 "recaptcha_private_key": "XXXX",
+                "captcha_max_bad_attempts": 3,
                 "environment": "dev",
                 "scim_api_url": "http://localhost/scim/",
                 "gnap_auth_data": {
@@ -117,6 +118,7 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
         captcha_data: Optional[Mapping[str, Any]] = None,
         recaptcha_return_value: bool = True,
         internal_captcha: bool = False,
+        generate_internal_captcha: bool = True,
         add_magic_cookie: bool = False,
         expect_success: bool = True,
         expected_message: Optional[TranslatableMsg] = None,
@@ -135,12 +137,17 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
                 if not internal_captcha:
                     with client.session_transaction() as sess:
                         data = {"csrf_token": sess.get_csrf_token(), "recaptcha_response": "dummy"}
-                else:
+                elif generate_internal_captcha:
                     self._get_captcha()
                     with client.session_transaction() as sess:
                         data = {
                             "csrf_token": sess.get_csrf_token(),
                             "internal_response": sess.signup.captcha.internal_answer,
+                        }
+                else:
+                    with client.session_transaction() as sess:
+                        data = {
+                            "csrf_token": sess.get_csrf_token(),
                         }
                 if captcha_data is not None:
                     data.update(captcha_data)
@@ -837,6 +844,33 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
         res = self._captcha(
             internal_captcha=True,
             captcha_data={"internal_response": "wrong"},
+            expect_success=False,
+            expected_message=SignupMsg.captcha_failed,
+        )
+        assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
+
+    def test_captcha_internal_fail_to_many_attempts(self):
+        # run once to generate captcha
+        self._captcha(
+            internal_captcha=True,
+            generate_internal_captcha=True,
+            captcha_data={"internal_response": "wrong"},
+            expect_success=False,
+            expected_message=SignupMsg.captcha_failed,
+        )
+        for _ in range(self.app.conf.captcha_max_bad_attempts):
+            # make x bad attempts to get over the limit
+            self._captcha(
+                internal_captcha=True,
+                generate_internal_captcha=False,
+                captcha_data={"internal_response": "wrong"},
+                expect_success=False,
+                expected_message=SignupMsg.captcha_failed,
+            )
+        # try one more time, should fail even as we use the correct code
+        res = self._captcha(
+            internal_captcha=True,
+            generate_internal_captcha=False,
             expect_success=False,
             expected_message=SignupMsg.captcha_failed,
         )
