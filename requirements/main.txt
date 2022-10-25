@@ -1193,9 +1193,9 @@ xmlschema==2.1.1 \
     --hash=sha256:5717a8a239637a9ad7d7563ce676dddf0a8989644c833f96bfc6d157c3cb3750 \
     --hash=sha256:5ca34ff15dd3276cfb2e3e7b4c8dde4b7d4d27080f333a93b6c3f817e90abddf
     # via pysaml2
-zipp==3.9.0 \
-    --hash=sha256:3a7af91c3db40ec72dd9d154ae18e008c69efe8ca88dde4f9a731bb82fe2f9eb \
-    --hash=sha256:972cfa31bc2fedd3fa838a51e9bc7e64b7fb725a8c00e7431554311f180e9980
+zipp==3.10.0 \
+    --hash=sha256:4fcb6f278987a6605757302a6e40e896257570d11c51628968ccb2a47e80c6c1 \
+    --hash=sha256:7a7262fd930bd3e36c50b9a64897aec3fafff3dfdeec9623ae22b40e93f99bb8
     # via importlib-metadata
 zxcvbn==4.4.28 \
     --hash=sha256:151bd816817e645e9064c354b13544f85137ea3320ca3be1fb6873ea75ef7dc1
