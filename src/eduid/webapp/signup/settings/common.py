@@ -83,6 +83,7 @@ class SignupConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MailConf
     )
     captcha_font_size: List[int] = [42, 50, 56]
     captcha_max_bad_attempts: int = 100
+    captcha_backdoor_code: str = "123456"
     scim_api_url: Optional[AnyUrl] = None
     gnap_auth_data: Optional[GNAPClientAuthData] = None
     eduid_scope: str = "eduid.se"

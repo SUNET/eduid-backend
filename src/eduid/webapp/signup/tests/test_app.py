@@ -896,6 +896,33 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
         )
         assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
 
+    def test_captcha_backdoor_right_code(self):
+        self.app.conf.magic_cookie = "magic-cookie"
+        self.app.conf.magic_cookie_name = "magic"
+        self.app.conf.environment = "dev"
+
+        res = self._captcha(
+            internal_captcha=True,
+            add_magic_cookie=True,
+            captcha_data={"internal_response": self.app.conf.captcha_backdoor_code},
+            expect_success=True,
+        )
+        assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
+
+    def test_captcha_backdoor_wrong_code(self):
+        self.app.conf.magic_cookie = "magic-cookie"
+        self.app.conf.magic_cookie_name = "magic"
+        self.app.conf.environment = "dev"
+
+        res = self._captcha(
+            internal_captcha=True,
+            add_magic_cookie=True,
+            captcha_data={"internal_response": "wrong"},
+            expect_success=False,
+            expected_message=SignupMsg.captcha_failed,
+        )
+        assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
+
     def test_captcha_no_backdoor_in_pro(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"

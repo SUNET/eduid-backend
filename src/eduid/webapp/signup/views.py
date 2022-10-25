@@ -207,8 +207,12 @@ def captcha_response(recaptcha_response: Optional[str] = None, internal_response
     # add a backdoor to bypass recaptcha checks for humanness,
     # to be used in testing environments for automated integration tests.
     if check_magic_cookie(current_app.conf):
-        current_app.logger.info("Using BACKDOOR to verify reCaptcha during signup!")
+        current_app.logger.info("Using BACKDOOR to verify captcha during signup!")
         captcha_verified = True
+        if internal_response is not None and internal_response != current_app.conf.captcha_backdoor_code:
+            # used for testing failed captcha attempts
+            current_app.logger.info("Incorrect captcha backdoor code")
+            captcha_verified = False
 
     # common path with no backdoor
     if recaptcha_response and not captcha_verified:
