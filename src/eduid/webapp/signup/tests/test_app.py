@@ -10,12 +10,14 @@ from uuid import uuid4
 
 from flask import Response as FlaskResponse
 from flask import url_for
+from jwcrypto.jwk import JWK
 from mock import patch
 
+from eduid.common.clients.scim_client.testing import MockedScimAPIMixin
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.signup import Invite, InviteMailAddress, InviteType, SignupUser
-from eduid.userdb.signup.invite import InvitePhoneNumber, InviteReference, SCIMReference
+from eduid.userdb.signup.invite import InvitePhoneNumber, SCIMReference
 from eduid.webapp.common.api.exceptions import ProofingLogFailure
 from eduid.webapp.common.api.messages import CommonMsg, TranslatableMsg
 from eduid.webapp.common.api.testing import EduidAPITestCase
@@ -51,7 +53,7 @@ class SignupResult:
     response: FlaskResponse
 
 
-class SignupTests(EduidAPITestCase):
+class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
 
     app: SignupApp
 
@@ -80,6 +82,12 @@ class SignupTests(EduidAPITestCase):
                 "recaptcha_public_key": "XXXX",
                 "recaptcha_private_key": "XXXX",
                 "environment": "dev",
+                "scim_api_url": "http://localhost/scim/",
+                "gnap_auth_data": {
+                    "authn_server_url": "http://localhost/auth/",
+                    "key_name": "app_name",
+                    "client_jwk": JWK.generate(kid="testkey", kty="EC", size=256).export(as_dict=True),
+                },
             }
         )
         return config
@@ -1137,6 +1145,8 @@ class SignupTests(EduidAPITestCase):
         assert res.response.json["payload"]["error"] == {"csrf_token": ["CSRF failed to validate"]}
 
     def test_complete_invite_new_user(self):
+        self.start_mocked_scim_api()
+
         invite = self._create_invite()
         self._accept_invite(email=invite.get_primary_mail_address(), invite_code=invite.invite_code)
         self._prepare_for_create_user(email=invite.get_primary_mail_address())
@@ -1156,6 +1166,8 @@ class SignupTests(EduidAPITestCase):
         assert user.mail_addresses.to_list()[0].email == invite.get_primary_mail_address()
 
     def test_complete_invite_existing_user(self):
+        self.start_mocked_scim_api()
+
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         previous_given_name = user.given_name
         previous_surname = user.surname

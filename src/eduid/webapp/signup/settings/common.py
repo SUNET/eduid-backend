@@ -36,8 +36,9 @@ from pathlib import Path
 from typing import List, Optional
 
 import pkg_resources
-from pydantic import Field
+from pydantic import AnyUrl, Field
 
+from eduid.common.clients.gnap_client.base import GNAPClientAuthData
 from eduid.common.config.base import (
     AmConfigMixin,
     EduIDBaseAppConfig,
@@ -81,4 +82,7 @@ class SignupConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MailConf
         ]
     )
     captcha_font_size: List[int] = [42, 50, 56]
+    scim_api_url: Optional[AnyUrl] = None
+    gnap_auth_data: Optional[GNAPClientAuthData] = None
+    eduid_scope: str = "eduid.se"
     private_userdb_auto_expire: Optional[timedelta] = Field(default=timedelta(days=7))

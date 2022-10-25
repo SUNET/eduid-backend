@@ -11,10 +11,13 @@ from typing import Optional, Union
 
 import proquint
 import requests
-from flask import abort, url_for
+from flask import abort
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.models.scim_base import SCIMSchema
+from eduid.common.models.scim_user import LinkedAccount as SCIMLinkedAccount
+from eduid.common.models.scim_user import UserCreateRequest, UserResponse, UserUpdateRequest
 from eduid.common.utils import urlappend
 from eduid.queue.db import QueueItem, SenderInfo
 from eduid.queue.db.message import EduidSignupEmail
@@ -22,7 +25,7 @@ from eduid.queue.db.message.payload import OldEduidSignupEmail
 from eduid.userdb import MailAddress, NinIdentity, PhoneNumber, Profile, User
 from eduid.userdb.exceptions import UserHasNotCompletedSignup, UserOutOfSync
 from eduid.userdb.logs import MailAddressProofing
-from eduid.userdb.signup import InviteType, SCIMReference, SignupUser
+from eduid.userdb.signup import Invite, InviteType, SCIMReference, SignupUser
 from eduid.userdb.tou import ToUEvent
 from eduid.webapp.common.api.exceptions import ProofingLogFailure, VCCSBackendFailure
 from eduid.webapp.common.api.messages import TranslatableMsg
@@ -371,21 +374,19 @@ def complete_and_update_invite(user: User, invite_code: str):
         if signup_user.phone_numbers.find(number.number) is None:
             signup_user.phone_numbers.add(PhoneNumber(number=number.number, created_by=current_app.conf.app_name))
 
-    if invite.invite_type == InviteType.SCIM and isinstance(invite.invite_reference, SCIMReference):
-        # update scim invite and create/update scim user
-        # TODO: implement scim client
-        # TODO: get invite from scim db
-        # TODO: get or create user in scim db
-        # TODO: add linked account to scim profile
-        # TODO: check if the user should have mfa_stepup enabled
-        # signup_user.profiles.add(
-        #    Profile(
-        #        owner=invite.invite_reference.data_owner,
-        #        profile_schema="urn:ietf:params:scim:schemas:core:2.0:User",
-        #        profile_data={"externalID": "USER EXTERNAL ID"},  # TODO: Fix me
-        #    )
-        # )
-        pass
+    if invite.invite_type == InviteType.SCIM:
+        if not isinstance(invite.invite_reference, SCIMReference):
+            raise RuntimeError("Invite reference is not a SCIMReference")
+
+        scim_user = update_or_create_scim_user(invite=invite, signup_user=signup_user)
+        # add scim profile to eduid user
+        signup_user.profiles.add(
+            Profile(
+                owner=invite.invite_reference.data_owner,
+                profile_schema="urn:ietf:params:scim:schemas:core:2.0:User",
+                profile_data={"externalID": scim_user.external_id},
+            )
+        )
 
     updated_invite = replace(invite, completed_ts=utc_now())
     try:
@@ -402,6 +403,70 @@ def complete_and_update_invite(user: User, invite_code: str):
     current_app.logger.info(f"Invite completed")
     current_app.logger.debug(f"invite_code: {invite.invite_code}")
     current_app.stats.count(name=f"{invite.invite_type.value}_invite_completed")
+
+
+def update_or_create_scim_user(invite: Invite, signup_user: SignupUser) -> UserResponse:
+    if not isinstance(invite.invite_reference, SCIMReference):
+        raise RuntimeError("Invite reference is not a SCIMReference")
+
+    with current_app.get_scim_client_for(data_owner=invite.invite_reference.data_owner) as client:
+        # update scim invite and create/update scim user
+        scim_invite = client.get_invite(invite_id=invite.invite_reference.scim_id)
+        scim_user = client.get_user_by_external_id(external_id=scim_invite.external_id)
+        if scim_user is None:
+            # create a new scim user
+            external_id = scim_invite.external_id or f"{signup_user.eppn}@{invite.invite_reference.data_owner}"
+            scim_user_create_req = UserCreateRequest(schemas=[SCIMSchema.CORE_20_USER], external_id=external_id)
+            scim_user = client.create_user(scim_user_create_req)
+
+        # update scim users missing attributes
+        update_user = UserUpdateRequest(**scim_user.dict(exclude={"meta"}))
+        # names
+        name_updates = {}
+        if update_user.name.given_name is None:
+            name_updates["given_name"] = invite.given_name
+        if update_user.name.family_name is None:
+            name_updates["family_name"] = invite.surname
+        if name_updates:
+            update_user = update_user.copy(update={"name": update_user.name.copy(update=name_updates).dict()})
+        # preferred language
+        if update_user.preferred_language is None:
+            update_user = update_user.copy(update={"preferred_language": invite.preferred_language})
+        # emails
+        if not update_user.emails:
+            update_user = update_user.copy(
+                update={
+                    "emails": [
+                        {"value": address.email, "primary": address.primary} for address in invite.mail_addresses
+                    ]
+                }
+            )
+        # phone numbers
+        if not update_user.phone_numbers:
+            update_user = update_user.copy(
+                update={
+                    "phone_numbers": [
+                        {"value": number.number, "primary": number.primary} for number in invite.phone_numbers
+                    ]
+                }
+            )
+        # linked account
+        parameters = dict()
+        # mfa stepup
+        if scim_invite.nutid_invite_v1.enable_mfa_stepup:
+            parameters = {"mfa_stepup": True}
+        eduid_linked_account = SCIMLinkedAccount(
+            issuer=current_app.conf.eduid_scope,
+            value=f"{signup_user.eppn}@{current_app.conf.eduid_scope}",
+            parameters=parameters,
+        )
+        assert update_user.nutid_user_v1 is not None  # please mypy
+        linked_accounts = update_user.nutid_user_v1.dict().get("linked_accounts", [])
+        linked_accounts.append(eduid_linked_account)
+        update_user = update_user.copy(
+            update={"nutid_user_v1": update_user.nutid_user_v1.copy(update={"linked_accounts": linked_accounts}).dict()}
+        )
+        return client.update_user(user=update_user, version=scim_user.meta.version)
 
 
 def is_email_verification_expired(sent_ts: Optional[datetime]) -> bool:
