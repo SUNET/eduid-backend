@@ -232,6 +232,7 @@ def get_password() -> FluxData:
     current_app.logger.info("Password requested")
     if session.signup.credentials.password is None:
         session.signup.credentials.password = generate_password(length=current_app.conf.password_length)
+        session.signup.credentials.completed = True
     return success_response(payload={"state": session.signup.to_dict()})
 
 
