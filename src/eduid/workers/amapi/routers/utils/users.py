@@ -50,18 +50,12 @@ def update_user(
         user_obj.meta = data.meta
 
     elif isinstance(data, UserUpdateEmailRequest):
-        if data is None:
-            raise BadRequest(detail="mail_addresses can't be nil")
         user_obj.mail_addresses = MailAddressList(elements=data.mail_addresses)
 
     elif isinstance(data, UserUpdateLanguageRequest):
-        if data is None:
-            raise BadRequest(detail="language can't be nil")
         user_obj.language = data.language
 
     elif isinstance(data, UserUpdatePhoneRequest):
-        if data is None:
-            raise BadRequest(detail="phone_numbers can't be nil")
         user_obj.phone_numbers = PhoneNumberList(elements=data.phone_numbers)
 
     elif isinstance(data, UserUpdateTerminateRequest):
