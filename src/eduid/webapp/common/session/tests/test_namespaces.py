@@ -52,7 +52,7 @@ class TestIdPNamespace(EduidAPITestCase):
                 "email": {"completed": False, "verification_code": "test", "bad_attempts": 0},
                 "invite": {"initiated_signup": False, "completed": False},
                 "tou": {"completed": False},
-                "captcha": {"completed": False},
+                "captcha": {"bad_attempts": 0, "completed": False},
                 "credentials": {"completed": False},
             },
             "idp": {"ts": now, "sso_cookie_val": "abc", "pending_requests": {}},
